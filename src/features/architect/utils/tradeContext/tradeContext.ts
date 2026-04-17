@@ -80,7 +80,6 @@ import type {
   TradeApplyPreparation,
   TradeApplyValidationPlayer,
   TradeApplyValidationTeam,
-  TeamResult,
   TeamUpdate,
   ValidatePostTradeSnapshotForContextParams,
   ValidatedTradeContext,
@@ -463,6 +462,34 @@ function getTradePayloadPlayerId(player: AnyRecord | null | undefined): string |
   return normalized || null;
 }
 
+function getTradePayloadPlayerMatchKey(
+  player: AnyRecord | null | undefined
+): string | null {
+  return (
+    getTradePayloadPlayerId(player) ||
+    player?.name ||
+    player?.displayName ||
+    player?.playerName ||
+    null
+  );
+}
+
+function findMatchingTradeReceivePayload(
+  receives: AnyRecord[] | null | undefined,
+  player: AnyRecord | null | undefined
+): AnyRecord | null {
+  const targetKey = getTradePayloadPlayerMatchKey(player);
+  if (!targetKey || !Array.isArray(receives)) {
+    return null;
+  }
+
+  return (
+    receives.find(
+      (candidate) => getTradePayloadPlayerMatchKey(candidate) === targetKey
+    ) || null
+  );
+}
+
 function findTradePlayerSnapshot(
   team: AnyRecord | null | undefined,
   playerId: string | null
@@ -524,7 +551,16 @@ function buildTradeIncomingPlayerSnapshot({
   }
 
   const fallback: AnyRecord = {};
-  const keys = ['player_id', 'name', 'displayName', 'originTeamId'] as const;
+  const keys = [
+    'player_id',
+    'playerId',
+    'id',
+    'name',
+    'displayName',
+    'playerName',
+    'isTwoWay',
+    'originTeamId',
+  ] as const;
 
   keys.forEach((key) => {
     if (player[key] !== undefined) {
@@ -736,10 +772,20 @@ export function buildPostTradeTeamsSnapshot({
         (otherTeamTrade.sends || []).forEach((player, playerIndex) => {
           const validationPlayer =
             validationSendsByTeam[otherIndex]?.[playerIndex] || { ...player };
+          const receiveOverride = findMatchingTradeReceivePayload(
+            teamTrade.receives || [],
+            player
+          );
+          const mergedValidationPlayer = receiveOverride
+            ? { ...validationPlayer, ...receiveOverride }
+            : validationPlayer;
           const incomingPlayerSnapshot = buildTradeIncomingPlayerSnapshot({
             player,
             sourceTeamState: otherTeamState,
           });
+          const mergedIncomingPlayerSnapshot = receiveOverride
+            ? { ...incomingPlayerSnapshot, ...receiveOverride }
+            : incomingPlayerSnapshot;
           const resolvedTarget = resolveOutgoingTradeDestinationTeamCode({
             payloadTeamCodes,
             senderIndex: otherIndex,
@@ -748,11 +794,11 @@ export function buildPostTradeTeamsSnapshot({
 
           if (resolvedTarget) {
             if (resolvedTarget === thisTeamCode) {
-              validationReceives.push(validationPlayer);
+              validationReceives.push(mergedValidationPlayer);
 
               if (player.signAndTrade === true) {
                 const satContract = resolveSignAndTradeContractPayload(
-                  validationPlayer,
+                  mergedValidationPlayer,
                   currentEndYear,
                   { allowPlayerContractFallback: false }
                 );
@@ -766,7 +812,7 @@ export function buildPostTradeTeamsSnapshot({
                   }) || null;
 
                 incomingPlayers.push({
-                  ...incomingPlayerSnapshot,
+                  ...mergedIncomingPlayerSnapshot,
                   signAndTrade: true,
                   contractType: 'Sign & Trade',
                   contract: normalizedSatContract,
@@ -775,15 +821,15 @@ export function buildPostTradeTeamsSnapshot({
                   originTeamId: otherTeamCode,
                 });
               } else {
-                incomingPlayers.push(incomingPlayerSnapshot);
+                incomingPlayers.push(mergedIncomingPlayerSnapshot);
               }
             }
             return;
           }
 
           if (activeTeamCount <= 2) {
-            validationReceives.push(validationPlayer);
-            incomingPlayers.push(incomingPlayerSnapshot);
+            validationReceives.push(mergedValidationPlayer);
+            incomingPlayers.push(mergedIncomingPlayerSnapshot);
             return;
           }
 
@@ -1152,6 +1198,7 @@ function normalizeTradePayloadPlayer({
   const matchOutgoing = toFiniteNumberOrUndefined(player?.matchOutgoing);
   const absorptionMode = toNonEmptyString(player?.absorptionMode);
   const tpeId = toNonEmptyString(player?.tpeId);
+  const isTwoWay = player?.isTwoWay === true;
   const tradeTo = resolveOutgoingTradeDestinationTeamCode({
     payloadTeamCodes,
     senderIndex,
@@ -1181,6 +1228,9 @@ function normalizeTradePayloadPlayer({
   }
   if (tpeId !== undefined) {
     normalized.tpeId = tpeId;
+  }
+  if (isTwoWay) {
+    normalized.isTwoWay = true;
   }
   if (player?.signAndTrade === true) {
     normalized.signAndTrade = true;
@@ -1246,6 +1296,15 @@ function normalizeTradePayloadTeam({
     teamCode,
     sends: Array.isArray(team?.sends)
       ? team.sends.map((player) =>
+          normalizeTradePayloadPlayer({
+            player,
+            payloadTeamCodes,
+            senderIndex,
+          })
+        )
+      : [],
+    receives: Array.isArray(team?.receives)
+      ? team.receives.map((player) =>
           normalizeTradePayloadPlayer({
             player,
             payloadTeamCodes,
@@ -1380,10 +1439,12 @@ export function buildSignAndTradeTradeHandoff({
               : {}),
           },
         ],
+        receives: [],
       },
       {
         teamCode: destinationTeamCode ?? null,
         sends: [],
+        receives: [],
       },
     ],
     ...(asOfDate != null ? { asOfDate } : {}),
@@ -1479,6 +1540,7 @@ function buildPreviewAuthorityTeamMaps({
   for (const entry of currentState.teams ?? []) {
     const code = entry?.teamCode;
     if (code && entry.team) {
+      // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-168
       beforeTeamsByCode[code] = entry.team as unknown as AnyRecord;
     }
   }
@@ -1487,6 +1549,7 @@ function buildPreviewAuthorityTeamMaps({
   for (const update of postTradeSnapshot.teamUpdates) {
     const code = update?.teamCode;
     if (code && update.team) {
+      // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-169
       afterTeamsByCode[code] = update.team as unknown as AnyRecord;
     }
   }

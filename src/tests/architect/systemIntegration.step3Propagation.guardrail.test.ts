@@ -34,7 +34,10 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
       'export function findUpdatedTeamSnapshot('
     );
     expect(mutationPipelineSource).toContain(
-      'This helper intentionally works for both compute-time `teamUpdates` and committed'
+      'export function findCommittedTeamSnapshot('
+    );
+    expect(mutationPipelineSource).toContain(
+      'committed team artifact instead of the compute-time team update shape.'
     );
   });
 

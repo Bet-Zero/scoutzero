@@ -22,6 +22,7 @@ const ENTITLEMENT_ID = 'ent_1';
 const PLAYER_ID = 'player_1';
 const UID_A = 'uid-owner-a';
 const UID_B = 'uid-non-owner-b';
+const HAS_FIRESTORE_EMULATOR_HOST = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 
 let testEnv: RulesTestEnvironment;
 
@@ -84,6 +85,10 @@ async function seedOwnedTierList(tierListId: string): Promise<void> {
 }
 
 beforeAll(async () => {
+  if (!HAS_FIRESTORE_EMULATOR_HOST) {
+    return;
+  }
+
   const rules = await fs.readFile(rulesPath, 'utf8');
   const { host, port } = requireEmulatorHost();
 
@@ -98,14 +103,28 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+  if (!testEnv) {
+    return;
+  }
+
   await testEnv.clearFirestore();
 });
 
 afterAll(async () => {
+  if (!testEnv) {
+    return;
+  }
+
   await testEnv.cleanup();
 });
 
-describe('ARCHITECT_RULES_INTEGRATION_E1 - Firestore rules integration matrix', () => {
+const describeWithFirestoreEmulator = HAS_FIRESTORE_EMULATOR_HOST
+  ? describe
+  : describe.skip;
+
+describeWithFirestoreEmulator(
+  'ARCHITECT_RULES_INTEGRATION_E1 - Firestore rules integration matrix',
+  () => {
   it('1) owner can create world doc when createdBy == uidA', async () => {
     const db = ownerDb();
     await assertSucceeds(
@@ -299,4 +318,5 @@ describe('ARCHITECT_RULES_INTEGRATION_E1 - Firestore rules integration matrix', 
       })
     );
   });
-});
+  }
+);

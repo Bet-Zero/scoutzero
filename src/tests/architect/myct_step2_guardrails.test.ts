@@ -90,10 +90,12 @@ describe('MYCT Step 2 Guardrails - Source Scan', () => {
   it('snapshot and derived helpers consume computeTeamCapTotals rather than partially recomputing totals', () => {
     const source = fs.readFileSync(computeTotalsPath, 'utf-8');
 
-    expect(source).toContain(
-      'const canonicalTotals = computeTeamCapTotals(teamCapSheet, selectedYear, options);'
+    expect(source).toMatch(
+      /const\s+canonicalTotals\s*=\s*computeTeamCapTotals\s*\(\s*teamCapSheet\s*,\s*selectedYear\s*,\s*options\s*\)\s*;/
     );
-    expect(source).toContain('const totals = computeTeamCapTotals(team, yearKey);');
+    expect(source).toMatch(
+      /const\s+totals\s*=\s*computeTeamCapTotals\s*\(\s*team\s*,\s*yearKey\s*\)\s*;/
+    );
   });
 
   it('bounded legacy dead-money compatibility remains contained in the dedicated helper', () => {

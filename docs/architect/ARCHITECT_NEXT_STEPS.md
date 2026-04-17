@@ -50,7 +50,7 @@ Read `docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md`. The "Entries" table current
 
 **Status:** IN PROGRESS
 
-_Updated 2026-04-16: fixed stale phase 61/64/65 source-scan guardrail assertions and `npm run test:diff -- --reporter=dot` passes locally; full-suite and CI-green confirmation are still pending explicit `RUN FULL SUITE` permission._
+_Updated 2026-04-16: fixed the stale CI blockers called out in this step, `npm run test:full -- --reporter=dot` plus the remaining local CI-equivalent gates (`npm run typecheck`, `npm run lint:architect-gate`, `npm run validate:project`, `npm run build`) now pass locally, and the only blocker left is pushing to `main` and verifying the resulting GitHub Actions run is green._
 
 **Goal:** The CI workflow (`.github/workflows/ci.yml`) passes on every push to `main` so that any future red is a real signal, not background noise.
 

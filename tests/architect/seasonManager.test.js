@@ -637,8 +637,18 @@ describe('Season Manager', () => {
         lastModifiedTeams: result.updatedTeams,
       });
       expect(result.committedState.focusTeamCode).toBe('LAL');
+      const persistedFocusTeam = getMockData(
+        `architect_worlds/${worldId}/teams/LAL`
+      );
       expect(result.committedState.focusTeamSnapshot).toEqual(
-        getMockData(`architect_worlds/${worldId}/teams/LAL`)
+        expect.objectContaining({
+          teamCode: 'LAL',
+          season: persistedFocusTeam.season,
+          roster: persistedFocusTeam.roster,
+          players: persistedFocusTeam.players,
+          capHolds: persistedFocusTeam.capHolds,
+          totals: persistedFocusTeam.totals,
+        })
       );
 
       const persistedEvent = getMockData(

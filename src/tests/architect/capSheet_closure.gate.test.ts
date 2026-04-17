@@ -635,10 +635,10 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
       'return canonicalizeComputeResultTeamUpdates(result, seasonId);'
     );
     expect(mutationPipelineContent).toContain(
-      'const canonicalChangedTeams ='
+      'buildGeneralMutationCommittedTeamUpdates'
     );
     expect(mutationPipelineContent).toContain(
-      'changedTeams: canonicalChangedTeams'
+      'changedTeams: committedTeamUpdates'
     );
   });
 

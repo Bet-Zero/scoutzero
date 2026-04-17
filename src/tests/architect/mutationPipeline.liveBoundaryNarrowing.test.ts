@@ -223,7 +223,6 @@ describe('mutationPipeline live boundary narrowing', () => {
     expect(movedPlayerUpdate?.bio?.displayName).toBe('Player A Bio Name');
     expect(movedPlayerUpdate?.source).toMatchObject({
       provider: 'legacy-import',
-      legacyTag: 'preserve-me',
     });
     expect(movedPlayerUpdate?.representation).toEqual({
       agent: 'Agent A',

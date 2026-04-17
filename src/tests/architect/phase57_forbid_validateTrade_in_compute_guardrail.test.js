@@ -182,8 +182,8 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       // - computeTradeResult (pure, requires prepared context)
 
       // Extract the computeWorldMutation function region
-      const computeWorldStart = 'export function computeWorldMutation({';
-      const computeWorldEnd = "\n    case 'signFreeAgent':";
+      const computeWorldStart = 'function computeNormalizedWorldMutation(';
+      const computeWorldEnd = "\n      case 'signFreeAgent': {";
 
       const regionCode = extractRegion(
         source,
@@ -337,17 +337,16 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   });
 
   describe('Test 7: Module-level import check (informational)', () => {
-    it('should import validateTrade at module level (needed for validation functions)', () => {
+    it('should NOT import validateTrade at module level (unused after Phase 58 extraction)', () => {
       const source = readSourceFile(
         'src/features/architect/utils/mutationPipeline.ts'
       );
 
-      // The import should exist at module level
-      expect(source).toContain(
+      // validateTrade was removed — it was imported but never called.
+      // Validation is handled by tradeContext module helpers.
+      expect(source).not.toContain(
         "import { validateTrade } from '@/features/architect/utils/tradeMachine'"
       );
-
-      // This is expected and correct - validatePostTradeSnapshotForContext needs it
     });
   });
 

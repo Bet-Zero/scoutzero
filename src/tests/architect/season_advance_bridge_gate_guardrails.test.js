@@ -61,13 +61,13 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
   it('TEST 3: Correct ordering — stripHydration before sanitize before normalize before assertPersistable before removeUndefined', () => {
     // Find the bridge gate block within advanceSeasonInWorld
     const stripIdx = seasonManagerSource.indexOf(
-      'stripHydrationOnlyFields(updatedTeam)'
+      'stripHydrationOnlyFields(team)'
     );
     const sanitizeIdx = seasonManagerSource.indexOf(
       'sanitizeTransientFieldsForPersistence(afterHydrationStrip)'
     );
-    const normalizeIdx = seasonManagerSource.indexOf(
-      'normalizeTeamTpeSchema(afterSanitize)'
+    const normalizeIdx = seasonManagerSource.search(
+      /normalizeTeamTpeSchema\s*\(\s*afterSanitize/
     );
     const assertIdx = seasonManagerSource.indexOf(
       'assertPersistableOrThrow({'

@@ -53,9 +53,11 @@ const moduleParityCases = [
     exportNames: [
       'HARD_CAP_TYPES',
       'default',
+      'getSigningHardCapTriggerMetadata',
       'getHardCapStatus',
       'getHardCapStatusFromContext',
       'isTeamHardCapped',
+      'resolveHardCapCeiling',
     ],
   },
   {

@@ -32,6 +32,18 @@ const mutationMocks = vi.hoisted(() => ({
         (update) => update?.teamCode === targetTeamCode && update?.team
       )?.team || null
   ),
+  findCommittedTeamSnapshot: vi.fn(
+    (
+      teamUpdates: Array<{ teamCode?: string; team?: unknown }> | null | undefined,
+      targetTeamCode: string
+    ) =>
+      (teamUpdates || []).find(
+        (update) => update?.teamCode === targetTeamCode && update?.team
+      )?.team || null
+  ),
+  buildGeneralMutationDashboardReloadTeamSnapshot: vi.fn(
+    (team: unknown) => team || null
+  ),
   preflightSignAndTradeMutation: vi.fn(),
 }));
 
@@ -72,7 +84,10 @@ vi.mock('react-hot-toast', () => ({
 
 vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   applyWorldMutation: mutationMocks.applyWorldMutation,
+  buildGeneralMutationDashboardReloadTeamSnapshot:
+    mutationMocks.buildGeneralMutationDashboardReloadTeamSnapshot,
   computeWorldMutation: mutationMocks.computeWorldMutation,
+  findCommittedTeamSnapshot: mutationMocks.findCommittedTeamSnapshot,
   findUpdatedTeamSnapshot: mutationMocks.findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
 }));

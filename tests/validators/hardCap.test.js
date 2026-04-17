@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/validateHardCap';
+import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/hardCapValidation';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 describe('validateHardCap', () => {
@@ -10,11 +10,9 @@ describe('validateHardCap', () => {
       totalSalary: 100_000_000,
     },
     projectedSalary: 100_000_000,
-    context: {
-      capSettings: {
-        firstApron: 172_346_000,
-        secondApron: 182_794_000,
-      },
+    capSettings: {
+      firstApron: 172_346_000,
+      secondApron: 182_794_000,
     },
     ...params,
   });
@@ -49,7 +47,7 @@ describe('validateHardCap', () => {
     it('allows trades under second apron hard cap', () => {
       const result = validateHardCap(
         makeTeam({
-          team: { hardCapTriggered: 'SecondApron' },
+          team: { hardCapSecondApron: { active: true } },
           projectedSalary: 180_000_000,
         })
       );
@@ -59,7 +57,7 @@ describe('validateHardCap', () => {
     it('blocks trades exceeding second apron hard cap', () => {
       const result = validateHardCap(
         makeTeam({
-          team: { hardCapTriggered: 'SecondApron' },
+          team: { hardCapSecondApron: { active: true } },
           projectedSalary: 185_000_000,
         })
       );

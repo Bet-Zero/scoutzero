@@ -746,7 +746,10 @@ describe('Gate 13: offer-sheet lifecycle final-state sync stays explicit (FA-6C/
       /const\s+resolveCommittedWorldTeamSnapshot\s*=\s*useCallback/
     );
     expect(content).toMatch(
-      /resolveCommittedWorldTeamSnapshot[\s\S]{0,2200}findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+      /resolveCommittedWorldTeamSnapshot[\s\S]{0,2200}findCommittedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(content).toMatch(
+      /resolveCommittedWorldTeamSnapshot[\s\S]{0,2200}buildGeneralMutationDashboardReloadTeamSnapshot\s*\(\s*changedTeam\s*\)/
     );
     expect(content).toMatch(
       /resolveCommittedWorldTeamSnapshot[\s\S]{0,2200}loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/

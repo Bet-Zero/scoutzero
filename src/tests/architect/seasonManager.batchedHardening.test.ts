@@ -194,22 +194,28 @@ function makeConveyancePick(overrides: Record<string, unknown> = {}) {
 describe('seasonManager batched hardening — narrowed resolution types', () => {
 
   describe('resolveDraftPickConveyanceForYear — no-op paths', () => {
-    it('returns team reference unchanged when positionsMap is empty', () => {
+    it('returns a normalized carrier unchanged when positionsMap is empty', () => {
       const team = { teamCode: 'LAL', draftPicks: [makeConveyancePick()] };
       const result = resolveDraftPickConveyanceForYear(team, 2026, {});
-      expect(result).toBe(team);
+      expect(result).toEqual({
+        teamCode: 'LAL',
+        draftPicks: [expect.objectContaining({ id: 'MEM_2026_1' })],
+      });
     });
 
-    it('returns team reference unchanged when positionsMap is null', () => {
+    it('returns a normalized carrier unchanged when positionsMap is null', () => {
       const team = { teamCode: 'LAL', draftPicks: [makeConveyancePick()] };
       const result = resolveDraftPickConveyanceForYear(team, 2026, null);
-      expect(result).toBe(team);
+      expect(result).toEqual({
+        teamCode: 'LAL',
+        draftPicks: [expect.objectContaining({ id: 'MEM_2026_1' })],
+      });
     });
 
-    it('returns team reference unchanged when team has no draftPicks', () => {
+    it('returns a normalized empty carrier when team has no draftPicks', () => {
       const team = { teamCode: 'LAL' };
       const result = resolveDraftPickConveyanceForYear(team, 2026, { MEM: 5 });
-      expect(result).toBe(team);
+      expect(result).toEqual({ teamCode: 'LAL', draftPicks: [] });
     });
   });
 
@@ -264,10 +270,13 @@ describe('seasonManager batched hardening — narrowed resolution types', () => 
   });
 
   describe('resolveDraftPickSwapsForYear — SwapResolutionEntry shape', () => {
-    it('returns team reference unchanged when positionsMap is empty', () => {
+    it('returns a normalized carrier unchanged when positionsMap is empty', () => {
       const team = { teamCode: 'LAL', draftPicks: [makeSwapPick()] };
       const result = resolveDraftPickSwapsForYear(team, 2026, {});
-      expect(result).toBe(team);
+      expect(result).toEqual({
+        teamCode: 'LAL',
+        draftPicks: [expect.objectContaining({ id: 'LAL_2026_1' })],
+      });
     });
 
     it('resolves swap pick and exposes SwapResolutionEntry-compatible fields', () => {

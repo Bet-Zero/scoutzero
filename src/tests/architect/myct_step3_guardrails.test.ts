@@ -77,7 +77,9 @@ describe('MYCT Step 3 Guardrails - Source Scan', () => {
     expect(source).toMatch(
       /import\s+\{\s*getPlayerCapHitForYear,\s*isTwoWayContract,\s*\}\s+from\s+['"]@\/features\/architect\/utils\/contractUtils['"]/
     );
-    expect(source).toContain('num(getPlayerCapHitForYear((asRecord(player) || {}) as TeamPlayerLike, endYear))');
+    expect(source).toMatch(
+      /num\s*\(\s*getPlayerCapHitForYear\s*\(\s*\(asRecord\(player\)\s*\|\|\s*\{\}\)\s*as\s*TeamPlayerLike\s*,\s*endYear\s*\)\s*\)/
+    );
     expect(source).not.toContain('getContractYearsForDisplay(');
     expect(source).not.toContain('getMinimumCapHit(');
   });

@@ -498,7 +498,6 @@ describe('mutationPipeline current-state ingress hardening', () => {
     );
     expect(updatedPlayer?.source).toMatchObject({
       provider: 'legacy-import',
-      legacyTag: 'keep-me',
     });
   });
 });

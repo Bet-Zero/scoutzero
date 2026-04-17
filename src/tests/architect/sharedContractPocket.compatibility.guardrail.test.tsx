@@ -51,8 +51,14 @@ describe('E111 shared contract pocket compatibility guardrails', () => {
   it('preserves EditContractModal default-only parity across extensionless and TSX authority imports', async () => {
     const explicitTsxModule = await import(editContractModalTsxSpecifier);
 
-    expect(Object.keys(EditContractModalModule)).toEqual(['default']);
-    expect(Object.keys(explicitTsxModule)).toEqual(['default']);
+    expect(Object.keys(EditContractModalModule).sort()).toEqual([
+      'default',
+      'normalizeContractActionResult',
+    ]);
+    expect(Object.keys(explicitTsxModule).sort()).toEqual([
+      'default',
+      'normalizeContractActionResult',
+    ]);
     expect(EditContractModalModule.default).toBe(EditContractModal);
     expect(explicitTsxModule.default).toBe(EditContractModal);
   });

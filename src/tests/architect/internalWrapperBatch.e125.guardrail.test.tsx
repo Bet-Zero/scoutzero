@@ -142,10 +142,10 @@ describe('E125 internal wrapper deletion batch guardrails', () => {
     );
 
     expect(offseasonSectionSource).toContain(
-      "import SeasonAdvanceModal from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';"
+      "from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';"
     );
     expect(offseasonSectionSource).toContain(
-      "import DraftPositionsInput from '@/features/architect/GMDashboard/components/DraftPositionsInput';"
+      "from '@/features/architect/GMDashboard/components/DraftPositionsInput';"
     );
     expect(offseasonSectionSource).not.toContain(
       "from '@/features/architect/GMDashboard/components';"

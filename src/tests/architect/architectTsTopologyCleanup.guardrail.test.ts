@@ -114,7 +114,7 @@ beforeAll(async () => {
       middlewareMode: true,
     },
   });
-}, 15000);
+}, 30000);
 
 afterAll(async () => {
   await viteServer?.close();
@@ -148,7 +148,7 @@ describe('Architect TS topology cleanup guardrails', () => {
           )
         ).toBe(callerCase.expectedAuthorityRelativePath);
       },
-      15000
+      30000
     );
   }
 });

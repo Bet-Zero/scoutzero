@@ -32,7 +32,7 @@ describe('validateRoster behavior', () => {
         })
       );
       expect(result.passed).toBe(true);
-      expect(result.warningsOnly).toBeNull();
+      expect(result.warningsOnly).toBe(false);
 
       const result15 = validateRoster(
         makeTeam({
@@ -40,7 +40,7 @@ describe('validateRoster behavior', () => {
         })
       );
       expect(result15.passed).toBe(true);
-      expect(result15.warningsOnly).toBeNull();
+      expect(result15.warningsOnly).toBe(false);
     });
 
     it('fails when roster would be too small', () => {
@@ -62,7 +62,7 @@ describe('validateRoster behavior', () => {
           projected: 13,
           current: 14,
         },
-        warningsOnly: null,
+        warningsOnly: false,
       });
     });
 

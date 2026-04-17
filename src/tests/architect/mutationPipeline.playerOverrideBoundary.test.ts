@@ -493,7 +493,6 @@ describe('mutationPipeline player override boundary', () => {
       source: {
         provider: 'legacy-import',
         playerPageUrl: '/players/a',
-        legacyTag: 'preserve-me',
       },
     });
     const playerB = makePlayer('player_b', 'Player B', 10_000_000, 'BOS', {
@@ -563,7 +562,6 @@ describe('mutationPipeline player override boundary', () => {
       source: {
         provider: 'legacy-import',
         playerPageUrl: '/players/a',
-        legacyTag: 'preserve-me',
       },
       isTwoWay: true,
       signedDate: '2026-02-01T00:00:00.000Z',

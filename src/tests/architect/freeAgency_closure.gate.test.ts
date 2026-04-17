@@ -988,7 +988,10 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /await\s+resolveCommittedWorldTeamSnapshot\s*\(\s*result\s*\)/
     );
     expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
-      /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+      /findCommittedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
+      /buildGeneralMutationDashboardReloadTeamSnapshot\s*\(\s*changedTeam\s*\)/
     );
     expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
       /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
@@ -1232,7 +1235,10 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /const\s+applyCommittedWorldReloadPlan\s*=\s*useCallback/
     );
     expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
-      /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+      /findCommittedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
+      /buildGeneralMutationDashboardReloadTeamSnapshot\s*\(\s*changedTeam\s*\)/
     );
     expect(applyCommittedWorldReloadRegion).toMatch(
       /applyCommittedWorldReloadPlan\s*\(\s*\{/

@@ -1,6 +1,6 @@
 # Architect Type Cast Ledger
 
-**Generated:** 2026-04-17 · **Total entries:** 167 (all classified)
+**Generated:** 2026-04-17 · **Total entries:** 169 (all classified)
 
 Companion to [.architect-cast-baseline.json](../../.architect-cast-baseline.json) and the gate at [scripts/architect-cast-gate.mjs](../../scripts/architect-cast-gate.mjs). Cross-reference: [ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md](ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md) defines Items 2–5 referenced in the Seam column.
 
@@ -204,3 +204,5 @@ When a seam is fixed, delete every ledger row tagged with that Item together, up
 | CAST-165 | src/features/architect/utils/tradeMachine/utils/validateInput.ts:28               | `[key: string]: unknown` | Item 3     | Index signature on ValidateInputTeamMeta accommodates loose team metadata domain fields.                                                                                                |
 | CAST-166 | src/features/architect/utils/tradeMachine/utils/validateInput.ts:35               | `[key: string]: unknown` | Item 3     | Index signature on ValidateInputTeam accommodates loose team domain fields.                                                                                                             |
 | CAST-167 | src/features/architect/utils/tradeMachine/utils/validateInput.ts:41               | `[key: string]: unknown` | Item 3     | Index signature on CapProjectionEntry accommodates loose cap projection domain fields.                                                                                                  |
+| CAST-168 | src/features/architect/utils/tradeContext/tradeContext.ts:1545                     | `as unknown as`          | Item 5     | `as unknown as AnyRecord` on currentState team entry — ArchitectMutationTeamRecord is not directly assignable to Record<string, any> without intermediate cast.                        |
+| CAST-169 | src/features/architect/utils/tradeContext/tradeContext.ts:1553                     | `as unknown as`          | Item 5     | `as unknown as AnyRecord` on postTradeSnapshot team update — ArchitectMutationTeamRecord is not directly assignable to Record<string, any> without intermediate cast.                  |

@@ -55,8 +55,6 @@ import {
   getWorldMetadata,
   updateWorldStats,
 } from '@/features/architect/utils/worldManager';
-import { validateTrade } from '@/features/architect/utils/tradeMachine';
-import { buildTradeTeamInput } from '@/features/architect/utils/schemaAdapter';
 import {
   toEndYear,
   toSeasonCode,
@@ -134,7 +132,6 @@ import type {
   TradeValidatorCapProjections,
   TradeValidatorContext,
 } from '@/features/architect/utils/tradeMachine/constants/types';
-import type { CapHold } from '@/features/architect/utils/capHolds';
 import type {
   ArchitectSource,
   BasePlayerDoc,
@@ -144,12 +141,10 @@ import type { PlayerBio, PlayerDraft } from '@/schemas/players_v2';
 import type { SignAndTradeContractLike } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type { TeamTotals } from '@/features/architect/types';
 import type {
-  OutgoingTradeRouteLike,
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
   TradeApplyValidationTeam as TradeContextApplyValidationTeam,
   TradeContextCurrentState,
   TradeContextNormalizedPayload,
-  TradeContextPayload,
   TeamResult as TradeContextTeamResult,
   ValidatedTradeContext as TradeContextValidatedTradeContext,
 } from '@/features/architect/utils/tradeContext/types';
@@ -162,8 +157,6 @@ import type {
 import {
   buildPostTradeTeamsSnapshot,
   validatePostTradeSnapshotForContext,
-  assertPostTradeSnapshot,
-  assertValidatedTradeContext,
   assertTradeComputeInputs,
 } from '@/features/architect/utils/tradeContext';
 // TM-3A/TM-3C: Direct import to avoid circular dependency through barrel.
@@ -658,6 +651,7 @@ export type ArchitectTradePayloadPlayerIngress =
     matchOutgoing?: number | string | null;
     absorptionMode?: string | null;
     tpeId?: string | null;
+    isTwoWay?: boolean | null;
     signAndTrade?: boolean;
     signAndTradeContract?:
       | ArchitectTradePayloadSignAndTradeContract
@@ -671,7 +665,8 @@ export type ArchitectTradePayloadPlayerIngress =
 
 // Closed mutation-owned handoff: apply-time compute only owns a stable player
 // identifier, minimal labeling, salary-matching fields, one SAT contract slice,
-// and one canonical routed destination.
+// one canonical routed destination, and the two-way flag needed by roster /
+// eligibility normalization.
 export type ArchitectTradePayloadPlayer = {
   player_id?: string | null;
   name?: string | null;
@@ -681,6 +676,7 @@ export type ArchitectTradePayloadPlayer = {
   matchOutgoing?: number | string | null;
   absorptionMode?: string | null;
   tpeId?: string | null;
+  isTwoWay?: boolean;
   signAndTrade?: boolean;
   signAndTradeContract?:
     | ArchitectTradePayloadSignAndTradeContract
@@ -723,11 +719,13 @@ export type ArchitectTradePayloadTeamIngress = {
   cashReceived?: number | null;
 };
 
-// Closed mutation-owned handoff: authoritative trade compute only needs the
-// resolved source team code plus the outbound asset slices it actually applies.
+// Closed mutation-owned handoff: authoritative trade compute anchors on the
+// resolved source team code and outbound assets, while still preserving
+// normalized receive mirrors for validation/snapshot compatibility.
 export type ArchitectTradePayloadTeam = {
   teamCode: string | null;
   sends: ArchitectTradePayloadPlayer[];
+  receives: ArchitectTradePayloadPlayer[];
   entitlementsOut?: TradePayloadEntitlementLike[];
   picksOut?: NormalizedTeamPick[];
   cashSent?: number | null;
@@ -1937,7 +1935,6 @@ export type OfferSheetPreflightResult = {
   source: 'authoritative-preflight';
 };
 export type MutationPayloadLike = ArchitectMutationPayload;
-type TeamUpdateLike = ArchitectMutationTeamUpdate;
 type PlayerUpdateLike = ArchitectMutationPlayerUpdate;
 type PlayerDeleteLike = ArchitectMutationPlayerDelete;
 type WritesSummaryLike = ArchitectMutationWritesSummary;
@@ -2088,14 +2085,6 @@ type MutationSignAndTradeCurrentStateIngress = Omit<
 // Public current-state ingress is now a family-owned union instead of one
 // cross-lane object bag. Mixed compute-ready tolerance is reintroduced only by
 // the per-family input types below.
-type MutationCurrentStateIngress =
-  | MutationTradeCurrentStateIngress
-  | MutationTeamOnlyCurrentStateIngress
-  | MutationTeamAndPlayerCurrentStateIngress
-  | MutationSigningCurrentStateIngress
-  | MutationOfferSheetMirrorCurrentStateIngress
-  | MutationOfferSheetResolutionCurrentStateIngress
-  | MutationSignAndTradeCurrentStateIngress;
 // Internal mutation state after ingress normalization. Only fields actually read
 // by compute/apply paths are carried forward from the public ingress.
 export type MutationCurrentState = {
@@ -3062,6 +3051,7 @@ function stripComputeOnlyTeamFieldsForPersistence<
   if (!materializedTeam) {
     return {} as Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'>;
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-destructure to strip compute-only field
   const { teamTotalSalary: _teamTotalSalary, ...persistableTeam } = materializedTeam;
   return persistableTeam;
 }
@@ -3183,8 +3173,8 @@ function sanitizePayloadForOverride(payload: LooseRecord | null | undefined) {
   // In production (override disabled), strip override-related fields
   const {
     overrideUsed,
-    overrideReasons,
-    overrideTimestamp,
+    overrideReasons: _overrideReasons, // eslint-disable-line @typescript-eslint/no-unused-vars -- rest-destructure strips override fields
+    overrideTimestamp: _overrideTimestamp, // eslint-disable-line @typescript-eslint/no-unused-vars -- rest-destructure strips override fields
     overrideMetadata,
     forceTrade,
     ...sanitized
@@ -6952,8 +6942,6 @@ type CurrentStateWithSigningPair<
   team: MutationSigningTeamLike;
   player: PlayerLike;
 };
-type CurrentStateWithSigningState =
-  CurrentStateWithSigningPair<MutationSigningCurrentState>;
 
 type CurrentStateWithDestination =
   CurrentStateWithSigningPair<MutationSignAndTradeCurrentState> & {
@@ -8060,22 +8048,6 @@ export function buildGeneralMutationDashboardReloadTeamSnapshot(
   ) as ArchitectGeneralMutationDashboardReloadTeamSnapshot;
 }
 
-function buildGeneralMutationDashboardReloadTeamUpdates(
-  teamUpdates:
-    | ArchitectGeneralMutationCommittedTeamUpdate[]
-    | null
-    | undefined
-): ArchitectGeneralMutationDashboardReloadTeamUpdate[] {
-  if (!Array.isArray(teamUpdates)) {
-    return [];
-  }
-
-  return teamUpdates.map((update) => ({
-    teamCode: update.teamCode,
-    team: buildGeneralMutationDashboardReloadTeamSnapshot(update.team),
-  }));
-}
-
 function canonicalizeTeamUpdatesWithCanonicalTotals(
   teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
   seasonId: string
@@ -9121,7 +9093,6 @@ export async function applyWorldMutation({
       seasonId
     );
     const playerUpdates = computeResult.playerUpdates || [];
-    const entitlementUpdates = computeResult.entitlementUpdates || [];
     const teamCodes = committedTeamUpdates
       .map((u) => String(u.teamCode || ''))
       .filter(Boolean);
@@ -9810,7 +9781,7 @@ async function loadStateForMutation(
           await getPlayer(worldId, teamCode, playerId)
         );
         return { team, player, teamCode };
-      } catch (err) {
+      } catch (_err) { // eslint-disable-line @typescript-eslint/no-unused-vars -- rethrows with context
         throw new Error(
           `Player ${playerId} not found in team roster, cap holds, or base collection`
         );
@@ -11394,10 +11365,11 @@ function computeWaiveResult({
 /**
  * Compute extension result
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- params required by ComputeMutationParamsWithCurrentState interface
 function computeExtensionResult({
   payload,
   currentState,
-  seasonId,
+  seasonId: _seasonId, // eslint-disable-line @typescript-eslint/no-unused-vars
   timestamp,
 }: ComputeMutationParamsWithCurrentState<
   MutationTeamAndPlayerCurrentState,
@@ -12494,10 +12466,11 @@ function computeStoreOfferSheetResult({
 /**
  * Compute match offer sheet result
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- params required by ComputeMutationParamsWithCurrentState interface
 function computeMatchOfferSheetResult({
-  payload,
+  payload: _payload, // eslint-disable-line @typescript-eslint/no-unused-vars
   currentState,
-  seasonId,
+  seasonId: _seasonId, // eslint-disable-line @typescript-eslint/no-unused-vars
   timestamp,
 }: ComputeMutationParamsWithCurrentState<
   MutationOfferSheetMirrorCurrentState,
@@ -12583,10 +12556,11 @@ function computeMatchOfferSheetResult({
 /**
  * Compute decline offer sheet result
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- params required by ComputeMutationParamsWithCurrentState interface
 function computeDeclineOfferSheetResult({
-  payload,
+  payload: _payload, // eslint-disable-line @typescript-eslint/no-unused-vars
   currentState,
-  seasonId,
+  seasonId: _seasonId, // eslint-disable-line @typescript-eslint/no-unused-vars
   timestamp,
 }: ComputeMutationParamsWithCurrentState<
   MutationOfferSheetMirrorCurrentState,

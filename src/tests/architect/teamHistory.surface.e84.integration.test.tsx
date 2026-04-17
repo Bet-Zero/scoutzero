@@ -115,8 +115,9 @@ describe('Team History E84 surface integration', () => {
     render(<TeamHistoryTab teamCapSheet={buildTeam()} worldId="world_lal" />);
 
     const row = screen.getByTestId('team-history-event-row-0');
+    const summary = screen.getByTestId('team-history-row-0');
     expect(screen.getByTestId('team-history-world-banner')).toBeInTheDocument();
-    expect(row).toHaveTextContent('Trade executed: LAL ↔ BOS');
+    expect(summary).toHaveTextContent('Trade Executed: LAL ↔ BOS');
     expect(row).toHaveTextContent('executeTrade');
 
     fireEvent.click(row);
