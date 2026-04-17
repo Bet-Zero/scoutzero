@@ -77,7 +77,9 @@ Apply each fix. Run the full test suite locally to confirm the changes work. Pus
 
 ## Step 3 — Implement Item 1 from deferred-work doc
 
-**Status:** TODO
+**Status:** DONE
+
+_Completed 2026-04-17: `PickRuleDoc` is re-imported into both panel files (it was already exported from `pickRulesResolver.ts` — the deferred-work doc's claim that it lived in `entitlementPickRowProjection.ts` was inaccurate). Prop types on `TradeSummaryPanel` and `TradeReceiptPanel` narrowed from `Record<string, unknown>` to `Record<string, PickRuleDoc>`; all 4 `as any` casts removed. Narrowed the upstream chain so callers still type-check: `useTradeMachine.resolvePickRulesForEntitlements` return type, the two local `pickRulesById` vars, `TradeMachineTeam.pickRulesById`, `ValidationDetailsPanel.pickRulesById`, and `TradeEditor.TeamLike.pickRulesById`/`mergedPickRulesById`. Baseline went from 167 → 161 (−6: the 4 `as any` I removed, plus 2 pre-existing stale `as unknown as` entries in `tradeContext.ts` that the 6009165a refactor had silently eliminated). Ledger rows CAST-044 through CAST-047 deleted (total count 169 → 165). `npm run typecheck` clean; architect test suite passes (3052/3052 relevant tests; 1 unrelated file, `architectTsTopologyCleanup.guardrail.test.ts`, fails to load due to an environment-level esbuild issue that reproduces on `main` before this change)._
 
 **Goal:** `PickRuleDoc` is exported, the `as any` casts in `TradeSummaryPanel.tsx` and `TradeReceiptPanel.tsx` are removed, and the corresponding ledger rows are deleted.
 

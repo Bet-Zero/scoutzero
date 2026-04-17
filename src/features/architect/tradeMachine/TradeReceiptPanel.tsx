@@ -4,6 +4,7 @@ import {
   projectEntitlementToPickRow,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
+import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
   TeamPlayerLike,
@@ -19,7 +20,7 @@ interface PlayerListItemProps {
 
 interface TradeReceiptPanelProps {
   receipt?: TradeReceiptLike | null;
-  pickRulesById?: Record<string, unknown>;
+  pickRulesById?: Record<string, PickRuleDoc>;
 }
 
 type PlayerFlagsLike = {
@@ -418,7 +419,7 @@ const TradeReceiptPanel = ({
                                 { ...entitlement } as Record<string, unknown>,
                                 {
                                   teamCode: toText(team.teamCode),
-                                  pickRulesById: pickRulesById as any, // load-bearing: prop is Record<string,unknown>, fn expects Record<string,PickRuleDoc> (not exported)
+                                  pickRulesById,
                                 }
                               );
                               const secondaryText =
@@ -468,7 +469,7 @@ const TradeReceiptPanel = ({
                                 { ...entitlement } as Record<string, unknown>,
                                 {
                                   teamCode: toText(team.teamCode),
-                                  pickRulesById: pickRulesById as any, // load-bearing: prop is Record<string,unknown>, fn expects Record<string,PickRuleDoc> (not exported)
+                                  pickRulesById,
                                 }
                               );
                               const secondaryText =

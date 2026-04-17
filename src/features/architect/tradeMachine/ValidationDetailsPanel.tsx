@@ -18,6 +18,7 @@ import type {
   TeamLike,
   TeamPlayerLike,
 } from './validationPresentationTypes';
+import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 
 interface ValidationDetailsPanelProps {
   hasValidatorResult?: boolean;
@@ -32,7 +33,7 @@ interface ValidationDetailsPanelProps {
   capProjections?: CapSettingsLike | null;
   yearKey?: string | number | null;
   onCalculatorTeamChange?: ((teamIndex: number) => void) | null;
-  pickRulesById?: Record<string, unknown>;
+  pickRulesById?: Record<string, PickRuleDoc>;
   showSntInjector?: boolean;
   hasInjectedSntPlayers?: boolean;
   onInjectSntPlayers?: (() => void) | null;

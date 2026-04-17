@@ -15,6 +15,7 @@ import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlem
 import {
   resolvePickRulesByIds,
   pickRulesMapToObject,
+  type PickRuleDoc,
 } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 // Phase 65: Canonical TPE read accessor
@@ -57,7 +58,7 @@ type TradeMachineTeam = UnknownRecord & {
   deadCap?: UnknownRecord[];
   entitlementIds?: Array<string | null | undefined>;
   entitlements?: TradeMachineEntitlement[];
-  pickRulesById?: Record<string, unknown>;
+  pickRulesById?: Record<string, PickRuleDoc>;
   tradeExceptions?: UnknownRecord[];
   totals?: UnknownRecord | null;
   hardCapped?: unknown;
@@ -259,7 +260,7 @@ const extractPickIdsFromEntitlements = (
  */
 const resolvePickRulesForEntitlements = async (
   entitlements: TradeMachineEntitlement[]
-): Promise<Record<string, unknown>> => {
+): Promise<Record<string, PickRuleDoc>> => {
   const pickIds = extractPickIdsFromEntitlements(entitlements);
   if (pickIds.length === 0) return {};
 
@@ -563,7 +564,7 @@ export const useTradeMachine = (
                 teamObj.entitlements = entitlements;
 
                 // Phase 12.3B: Fetch pick rules for entitlements
-                let pickRulesById: Record<string, unknown> = {};
+                let pickRulesById: Record<string, PickRuleDoc> = {};
                 if (ENABLE_PICK_RULES) {
                   pickRulesById =
                     await resolvePickRulesForEntitlements(entitlements);
@@ -965,7 +966,7 @@ export const useTradeMachine = (
               teamObj.entitlements = entitlements;
 
               // Phase 12.3B: Fetch pick rules for entitlements
-              let pickRulesById: Record<string, unknown> = {};
+              let pickRulesById: Record<string, PickRuleDoc> = {};
               if (ENABLE_PICK_RULES) {
                 pickRulesById =
                   await resolvePickRulesForEntitlements(entitlements);

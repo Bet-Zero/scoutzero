@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-04-17T01:19:22.568Z",
+    "generated": "2026-04-17T06:01:01.283Z",
     "gate": "scripts/architect-cast-gate.mjs",
     "ledger": "docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md",
     "buckets": [
@@ -9,8 +9,8 @@
       "no-restricted-syntax:as-unknown-as",
       "no-restricted-syntax:index-unknown"
     ],
-    "totalFiles": 57,
-    "totalViolations": 167
+    "totalFiles": 54,
+    "totalViolations": 161
   },
   "files": {
     "src/features/architect/GMDashboard/hooks/useArchitectActions.ts": {
@@ -52,12 +52,6 @@
     },
     "src/features/architect/tradeMachine/TradePlayerRow.tsx": {
       "no-restricted-syntax:as-never": 6
-    },
-    "src/features/architect/tradeMachine/TradeReceiptPanel.tsx": {
-      "no-explicit-any": 2
-    },
-    "src/features/architect/tradeMachine/TradeSummaryPanel.tsx": {
-      "no-explicit-any": 2
     },
     "src/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot.ts": {
       "no-restricted-syntax:index-unknown": 7
@@ -138,9 +132,6 @@
     "src/features/architect/utils/subscribeArchitectPlayerData.ts": {
       "no-restricted-syntax:as-unknown-as": 2,
       "no-restricted-syntax:index-unknown": 2
-    },
-    "src/features/architect/utils/tradeContext/tradeContext.ts": {
-      "no-restricted-syntax:as-unknown-as": 2
     },
     "src/features/architect/utils/tradeContext/types.ts": {
       "no-explicit-any": 1

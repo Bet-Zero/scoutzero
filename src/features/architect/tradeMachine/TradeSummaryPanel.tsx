@@ -18,6 +18,7 @@ import {
   projectEntitlementToPickRow,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
+import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import {
   getValidationIssueText,
   normalizeValidationIssues,
@@ -36,7 +37,7 @@ interface TradeSummaryPanelProps {
   forceTrade?: boolean;
   showRuleExplanations?: boolean;
   isValidating?: boolean;
-  pickRulesById?: Record<string, unknown>;
+  pickRulesById?: Record<string, PickRuleDoc>;
 }
 
 function TradeSummaryPanel({
@@ -318,7 +319,7 @@ function TradeSummaryPanel({
                                 { ...entitlement } as Record<string, unknown>,
                                 {
                                   teamCode: teamMeta?.team?.id,
-                                  pickRulesById: pickRulesById as any, // load-bearing: prop is Record<string, unknown>, fn expects Record<string, PickRuleDoc> (not exported)
+                                  pickRulesById,
                                 }
                               );
                               const secondaryText =
@@ -380,7 +381,7 @@ function TradeSummaryPanel({
                               { ...entitlement } as Record<string, unknown>,
                               {
                                 teamCode: teamMeta?.team?.id,
-                                pickRulesById: pickRulesById as any, // load-bearing: prop is Record<string, unknown>, fn expects Record<string, PickRuleDoc> (not exported)
+                                pickRulesById,
                               }
                             );
                             const secondaryText =

@@ -20,6 +20,7 @@ import {
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 
 type UseTradeMachineResult = ReturnType<typeof useTradeMachine>;
 type HookTradeTeamSlot = UseTradeMachineResult['teams'][number];
@@ -38,7 +39,7 @@ type TeamLike = {
   id?: string;
   teamId?: string;
   teamCode?: string;
-  pickRulesById?: Record<string, unknown>;
+  pickRulesById?: Record<string, PickRuleDoc>;
 };
 
 type EntitlementLike = {
@@ -224,7 +225,7 @@ const TradeEditor = ({
 
   // Phase 12.3B: Merge pickRulesById from all team slots for projection layer
   const mergedPickRulesById = useMemo(() => {
-    const merged: Record<string, unknown> = {};
+    const merged: Record<string, PickRuleDoc> = {};
     for (const slot of teams) {
       if (slot?.team?.pickRulesById) {
         Object.assign(merged, slot.team.pickRulesById);
