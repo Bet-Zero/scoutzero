@@ -542,82 +542,132 @@ describe('mutationPipeline current-state team boundary', () => {
     expect(persistedTeam).not.toHaveProperty('teamTotalSalary');
   });
 
-  it('tolerates mixed legacy compute snapshots only at the public current-state boundary', () => {
-    const freeAgent = makePlayer('fa_mixed', 'Mixed Boundary FA', 0, null, {
-      contract: null,
-      freeAgency: 'UFA',
-    });
-    const initialTeam = makeTeam('LAL', [], {
-      draftPicks: [{ id: 'lal_2027_2', year: 2027, round: 2, owner: 'LAL' }],
+  it('tolerates mixed legacy compute snapshots only at the local trade compatibility boundary', () => {
+    const lakersOutgoing = makePlayer(
+      'lal_boundary_out',
+      'Boundary Laker',
+      10_000_000,
+      'LAL'
+    );
+    const celticsOutgoing = makePlayer(
+      'bos_boundary_out',
+      'Boundary Celtic',
+      10_000_000,
+      'BOS'
+    );
+    const lakers = makeTeam('LAL', [lakersOutgoing], {
+      tradeExceptions: [
+        {
+          id: 'tpe_boundary_keep',
+          amount: 2_000_000,
+          totalAmount: 2_000_000,
+          remainingAmount: 2_000_000,
+          usedAmount: 0,
+          createdSeason: 2026,
+        },
+      ],
+      cashLedger: { totalOut: 900_000 },
+      draftPicks: [{ id: 'lal_2027_1', year: 2027, round: 1, owner: 'LAL' }],
+      entitlementIds: ['ent_boundary_keep'],
       legacyRawLoaderBlob: { shouldDrop: true },
     });
-
-    const signingResult = computeWorldMutation({
-      mutationType: 'signFreeAgent',
-      payload: {
-        teamCode: 'LAL',
-        playerId: 'fa_mixed',
-        contract: makeContract(3_000_000),
-        signedUsing: 'Minimum',
-      },
-      currentState: {
-        team: initialTeam,
-        player: freeAgent,
-        teamCode: 'LAL',
-      },
-      seasonId: SEASON_ID,
-      timestamp: FIXED_TIMESTAMP,
+    const celtics = makeTeam('BOS', [celticsOutgoing], {
+      cashLedger: { totalOut: 300_000 },
     });
 
-    expect(signingResult.success).toBe(true);
-
-    const computedTeam = signingResult.teamUpdates?.[0]?.team;
-    const mixedLegacyTeam = {
-      ...computedTeam,
-      teamTotalSalary: 123_000_000,
-      twoWayPlayers: [makePlayer('legacy_two_way', 'Legacy Two Way', 0, 'LAL')],
-      legacyComputedSnapshotBlob: { shouldDrop: true },
-    };
-
-    const result = computeWorldMutation({
+    const manualCapResult = computeWorldMutation({
       mutationType: 'setExceptions',
       payload: {
         teamCode: 'LAL',
         exceptions: {
           room: {
             enabled: true,
-            totalAmount: 5_000_000,
-            remainingAmount: 5_000_000,
+            totalAmount: 4_000_000,
+            remainingAmount: 4_000_000,
             usedAmount: 0,
           },
         },
-        exceptionChanges: ['Room Exception after mixed snapshot'],
+        exceptionChanges: ['Boundary compatibility prep'],
       },
       currentState: {
-        team: mixedLegacyTeam,
+        team: lakers as ComputeArgs['currentState']['team'],
         teamCode: 'LAL',
       } as Extract<ComputeArgs, { mutationType: 'setExceptions' }>['currentState'],
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
 
+    expect(manualCapResult.success).toBe(true);
+    const preparedTradeTeam = manualCapResult.teamUpdates?.[0]?.team;
+    if (!preparedTradeTeam) {
+      throw new Error('Expected prepared LAL team snapshot for trade boundary');
+    }
+
+    const mixedLegacyTeam = {
+      ...preparedTradeTeam,
+      legacyComputedSnapshotBlob: { shouldDrop: true },
+    };
+
+    const result = computeWorldMutation({
+      mutationType: 'executeTrade',
+      payload: {
+        teams: [
+          {
+            teamCode: 'LAL',
+            sends: [
+              {
+                player_id: 'lal_boundary_out',
+                name: 'Boundary Laker',
+                tradeTo: 'BOS',
+              },
+            ],
+            entitlementsOut: [],
+          },
+          {
+            teamCode: 'BOS',
+            sends: [
+              {
+                player_id: 'bos_boundary_out',
+                name: 'Boundary Celtic',
+                tradeTo: 'LAL',
+              },
+            ],
+            entitlementsOut: [],
+          },
+        ],
+        tradeCtx: { worldId: WORLD_ID },
+      },
+      currentState: {
+        teams: [
+          { teamCode: 'LAL', team: mixedLegacyTeam },
+          { teamCode: 'BOS', team: celtics },
+        ],
+      } as Extract<ComputeArgs, { mutationType: 'executeTrade' }>['currentState'],
+      seasonId: SEASON_ID,
+      timestamp: FIXED_TIMESTAMP,
+      worldId: WORLD_ID,
+    });
+
     expect(result.success).toBe(true);
 
-    const updatedTeam = result.teamUpdates?.[0]?.team;
-    expect(updatedTeam?.roster).toContain('fa_mixed');
-    expect(updatedTeam?.draftPicks).toEqual([
-      { id: 'lal_2027_2', year: 2027, round: 2, pick: null, owner: 'LAL' },
+    const updatedLakers = result.teamUpdates?.find(
+      (update) => update.teamCode === 'LAL'
+    )?.team;
+    const updatedCeltics = result.teamUpdates?.find(
+      (update) => update.teamCode === 'BOS'
+    )?.team;
+
+    expect(updatedLakers?.roster).toContain('bos_boundary_out');
+    expect(updatedCeltics?.roster).toContain('lal_boundary_out');
+    expect(updatedLakers?.tradeExceptions).toEqual([
+      expect.objectContaining({ id: 'tpe_boundary_keep', amount: 2_000_000 }),
     ]);
-    expect(updatedTeam?.exceptions).toMatchObject({
-      room: {
-        totalAmount: 5_000_000,
-        remainingAmount: 5_000_000,
-        usedAmount: 0,
-      },
-    });
-    expect(updatedTeam).not.toHaveProperty('teamTotalSalary');
-    expect(updatedTeam).not.toHaveProperty('twoWayPlayers');
-    expect(updatedTeam).not.toHaveProperty('legacyRawLoaderBlob');
-    expect(updatedTeam).not.toHaveProperty('legacyComputedSnapshotBlob');
+    expect(updatedLakers?.cashLedger).toEqual({ totalOut: 900_000 });
+    expect(updatedLakers?.draftPicks).toEqual([
+      { id: 'lal_2027_1', year: 2027, round: 1, pick: null, owner: 'LAL' },
+    ]);
+    expect(updatedLakers?.entitlementIds).toEqual(['ent_boundary_keep']);
+    expect(updatedLakers).not.toHaveProperty('legacyRawLoaderBlob');
+    expect(updatedLakers).not.toHaveProperty('legacyComputedSnapshotBlob');
   });
 });
