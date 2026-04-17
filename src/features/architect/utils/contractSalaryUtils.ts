@@ -28,7 +28,11 @@ type ContractLike = {
 type PlayerLike = {
   playerId?: string | number | null;
   id?: string | number | null;
-  contract?: ContractLike | null;
+  name?: string | null;
+  contract?: ContractLike | Record<string, unknown> | null;
+  primaryContract?: ContractLike | Record<string, unknown> | null;
+  contracts?: Record<string, unknown> | null;
+  salariesByYear?: SalaryYearEntryLike[] | null;
   newSalary?: NumericLike;
   salary?: NumericLike;
   currentSalary?: NumericLike;
@@ -36,6 +40,15 @@ type PlayerLike = {
 };
 // SeasonLookupValue accepts any; functions use String()/parseInt() internally, so all inputs are safe
 type SeasonLookupValue = any; // load-bearing: callers pass unknown season values
+
+function hasSalaryRows(candidate: unknown): candidate is ContractLike {
+  return (
+    Boolean(candidate) &&
+    typeof candidate === 'object' &&
+    !Array.isArray(candidate) &&
+    Array.isArray((candidate as ContractLike).salariesByYear)
+  );
+}
 
 export function getContractSalaryForYear(
   player: PlayerLike | null | undefined,
@@ -48,16 +61,25 @@ export function getContractSalaryForYear(
     return 0;
   }
 
-  if (player.contract?.salariesByYear?.length) {
-    const seasonKey = toSeasonCode(endYear);
-    const yearEntry =
-      player.contract.salariesByYear.find((y) => y.season === seasonKey) ||
-      player.contract.salariesByYear.find(
-        (y) => String(y.season) === String(endYear)
-      );
+  const contractCandidates: ContractLike[] = [
+    player.contract || null,
+    player.primaryContract || null,
+    ...(player.contracts ? Object.values(player.contracts) : []),
+    player.salariesByYear ? { salariesByYear: player.salariesByYear } : null,
+  ].filter(hasSalaryRows);
 
-    if (yearEntry) {
-      return yearEntry.capHit ?? yearEntry.salary ?? 0;
+  if (contractCandidates.length > 0) {
+    const seasonKey = toSeasonCode(endYear);
+    for (const contract of contractCandidates) {
+      const yearEntry =
+        contract.salariesByYear?.find((y) => y.season === seasonKey) ||
+        contract.salariesByYear?.find(
+          (y) => String(y.season) === String(endYear)
+        );
+
+      if (yearEntry) {
+        return yearEntry.capHit ?? yearEntry.salary ?? 0;
+      }
     }
   }
 
@@ -77,13 +99,23 @@ export function getSalaryWithFallback(
     return contractSalary;
   }
 
-  if (player && !player.contract?.salariesByYear?.length) {
+  const hasCanonicalSalaryRows =
+    (hasSalaryRows(player.contract) && player.contract.salariesByYear?.length) ||
+    (hasSalaryRows(player.primaryContract) &&
+      player.primaryContract.salariesByYear?.length) ||
+    Object.values(player.contracts || {}).some(
+      (contract) => hasSalaryRows(contract) && contract.salariesByYear?.length
+    ) ||
+    player.salariesByYear?.length;
+  if (player && !hasCanonicalSalaryRows) {
     console.warn(
       'getSalaryWithFallback: Expected contract.salariesByYear, got unexpected shape',
       {
-        playerId: player.playerId || player.id,
+        playerId: player.playerId || player.id || player.name,
         hasContract: !!player.contract,
         hasSalariesByYear: !!player.contract?.salariesByYear,
+        hasPrimaryContract: !!player.primaryContract,
+        hasContractsMap: !!player.contracts,
       }
     );
   }

@@ -38,15 +38,18 @@ import type {
   TradeContextPayload,
   TradeContextCurrentState,
 } from '@/features/architect/utils/tradeContext/types';
-import type {
-  ArchitectMutationTeamRecord,
-  ArchitectTradePayloadPlayer,
-} from '@/features/architect/utils/mutationPipeline';
 
 type UnknownRecord = Record<string, unknown>;
 
-type TradeMachinePlayer = UnknownRecord;
-type TradeMachineEntitlement = UnknownRecord;
+type TradeMachinePlayer = UnknownRecord &
+  NonNullable<TradeContextPayload['teams'][number]['sends']>[number];
+type TradeMachineEntitlement = UnknownRecord &
+  NonNullable<TradeContextPayload['teams'][number]['entitlementsOut']>[number];
+type TradeMachineActionMeta = UnknownRecord & {
+  signAndTradeContract?: Parameters<
+    typeof validateSignAndTradeContractPayload
+  >[0];
+};
 
 type TradeMachineTeam = UnknownRecord & {
   id?: string | null;
@@ -54,12 +57,12 @@ type TradeMachineTeam = UnknownRecord & {
   teamName?: string | null;
   abbreviation?: string | null;
   players?: TradeMachinePlayer[];
-  capHolds?: UnknownRecord[];
-  deadCap?: UnknownRecord[];
+  capHolds?: unknown[];
+  deadCap?: unknown[];
   entitlementIds?: Array<string | null | undefined>;
   entitlements?: TradeMachineEntitlement[];
   pickRulesById?: Record<string, PickRuleDoc>;
-  tradeExceptions?: UnknownRecord[];
+  tradeExceptions?: unknown[];
   totals?: UnknownRecord | null;
   hardCapped?: unknown;
   hardCapLevel?: string | null;
@@ -657,10 +660,10 @@ export const useTradeMachine = (
   const setPlayerTrade = useCallback(
     (
       index: number,
-      player: UnknownRecord,
+      player: TradeMachinePlayer,
       action: string,
       destTeamId: string | null = null,
-      actionMeta: UnknownRecord | null = null
+      actionMeta: TradeMachineActionMeta | null = null
     ) => {
       setTeams((prev) => {
         const newTeams = [...prev];
@@ -695,7 +698,7 @@ export const useTradeMachine = (
           case 'signAndTrade':
             {
               const validation = validateSignAndTradeContractPayload(
-                (actionMeta?.signAndTradeContract as any) || null, // load-bearing: actionMeta.signAndTradeContract type doesn't match validator's expected input shape
+                actionMeta?.signAndTradeContract || null,
                 yearKey,
                 { requireActiveYearRow: true }
               );
@@ -1138,11 +1141,8 @@ export const useTradeMachine = (
         teams: activeTeams.map((slot) => ({
           teamCode: String(slot.team.teamCode || slot.team.id || ''),
           teamId: String(slot.team.id || slot.team.teamCode || ''),
-          sends: slot.sends as unknown as ArchitectTradePayloadPlayer[],
-          entitlementsOut: (slot.entitlementsOut ||
-            []) as unknown as NonNullable<
-            TradeContextPayload['teams'][0]['entitlementsOut']
-          >,
+          sends: slot.sends,
+          entitlementsOut: slot.entitlementsOut || [],
         })),
         capProjections: capProjections as TradeContextPayload['capProjections'],
         tradeCtx: {
@@ -1154,10 +1154,8 @@ export const useTradeMachine = (
       };
       const currentState: TradeContextCurrentState = {
         teams: activeTeams.map((slot) => ({
-          teamCode: (slot.team.teamCode || slot.team.id || null) as
-            | string
-            | null,
-          team: slot.team as unknown as ArchitectMutationTeamRecord,
+          teamCode: String(slot.team.teamCode || slot.team.id || '') || null,
+          team: slot.team,
         })),
       };
 

@@ -41,8 +41,9 @@ type HardCapCapSettingsLike = {
   firstApron?: number | string | null;
   apron?: number | string | null;
   secondApron?: number | string | null;
-  [key: string]: unknown;
 };
+
+type HardCapTotalsLike = TeamCapTotalsSnapshot | Record<string, unknown> | null;
 
 type HardCapStatusTeamData = {
   hardCapSecondApron?: HardCapStructuredFlag;
@@ -55,7 +56,7 @@ type HardCapStatusTeamData = {
   mle?: HardCapUsageEntryLike;
   bae?: HardCapUsageEntryLike;
   faExceptionBuckets?: HardCapExceptionBucketLike[] | null;
-  totals?: TeamCapTotalsSnapshot | null;
+  totals?: HardCapTotalsLike;
   [key: string]: unknown;
 } | null;
 
@@ -71,7 +72,7 @@ type HardCapStatusTeamLike = {
   mle?: HardCapUsageEntryLike;
   bae?: HardCapUsageEntryLike;
   faExceptionBuckets?: HardCapExceptionBucketLike[] | null;
-  totals?: TeamCapTotalsSnapshot | null;
+  totals?: HardCapTotalsLike;
   [key: string]: unknown;
 };
 

@@ -14,6 +14,34 @@
 
 import type { SeasonId } from '../utils/seasonHelpers';
 
+function normalizeSeasonIdInput(
+  seasonId: SeasonId | string | number | null | undefined
+): SeasonId | null {
+  if (typeof seasonId === 'number' && Number.isFinite(seasonId)) {
+    return `${seasonId - 1}-${String(seasonId).slice(-2)}` as SeasonId;
+  }
+
+  if (typeof seasonId !== 'string') {
+    return null;
+  }
+
+  const trimmed = seasonId.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}$/.test(trimmed)) {
+    return trimmed as SeasonId;
+  }
+
+  const numericSeason = Number(trimmed);
+  if (Number.isFinite(numericSeason)) {
+    return `${numericSeason - 1}-${String(numericSeason).slice(-2)}` as SeasonId;
+  }
+
+  return null;
+}
+
 /**
  * Minimum salary scale by years of service per season.
  * Key: SeasonId (e.g., "2024-25")
@@ -67,8 +95,11 @@ export function getAvailableScaleSeasons(): SeasonId[] {
  * @param seasonId - Season to check
  * @returns True if scale data exists
  */
-export function hasScaleForSeason(seasonId: SeasonId): boolean {
-  return seasonId in MINIMUM_SALARY_SCALES;
+export function hasScaleForSeason(
+  seasonId: SeasonId | string | number | null | undefined
+): boolean {
+  const normalizedSeasonId = normalizeSeasonIdInput(seasonId);
+  return normalizedSeasonId ? normalizedSeasonId in MINIMUM_SALARY_SCALES : false;
 }
 
 /**
@@ -76,8 +107,11 @@ export function hasScaleForSeason(seasonId: SeasonId): boolean {
  * @param seasonId - Season to get scale for
  * @returns Scale data or null if not found
  */
-export function getScaleForSeason(seasonId: SeasonId): Record<number, number> | null {
-  return MINIMUM_SALARY_SCALES[seasonId] ?? null;
+export function getScaleForSeason(
+  seasonId: SeasonId | string | number | null | undefined
+): Record<number, number> | null {
+  const normalizedSeasonId = normalizeSeasonIdInput(seasonId);
+  return normalizedSeasonId ? MINIMUM_SALARY_SCALES[normalizedSeasonId] ?? null : null;
 }
 
 /**

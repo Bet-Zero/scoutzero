@@ -97,7 +97,7 @@ type PlayerBioLike = {
   weight?: number | string | null;
   display?: {
     freeAgentType?: string | null;
-    freeAgentYear?: number | null;
+    freeAgentYear?: number | string | null;
     teamId?: string | null;
     team?: string | null;
   } | null;
@@ -131,7 +131,7 @@ type PlayerLike = HookPlayerLike & {
   bio?: PlayerBioLike | null;
   contract?: ContractLike | null;
   futureContract?: ContractLike | null;
-  freeAgentYear?: number | null;
+  freeAgentYear?: number | string | null;
 };
 
 type SigningGuardrailsLike = HookContractDataLike['guardrails'] | null;
@@ -341,7 +341,7 @@ type EditContractModalProps = {
   showOfferSheetToggle?: boolean | null;
   onAuditLog?: AuditLogCallback | null;
   capProjections?: CapProjectionOverrides | null;
-  playersMap?: Record<string, PlayerLike> | null;
+  playersMap?: Record<string, unknown> | null;
 };
 
 type ValidationAuthority = 'advisory-modal' | 'authoritative-preflight';
@@ -955,8 +955,12 @@ const EditContractModal = ({
       .reduce((sum, y) => sum + (Number(y.salary) || 0), 0);
   }, [CURRENT_YEAR, player]);
 
+  const freeAgentYear =
+    player?.freeAgentYear == null ? null : Number(player.freeAgentYear);
   const isFreeAgent =
-    player?.freeAgentYear && player.freeAgentYear <= CURRENT_YEAR;
+    freeAgentYear != null &&
+    Number.isFinite(freeAgentYear) &&
+    freeAgentYear <= CURRENT_YEAR;
 
   // Only consider options on future years (not current season - that decision is already made)
   const optionYearEntry = contractYears.find(

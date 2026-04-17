@@ -26,14 +26,14 @@ interface ContractOptions {
 type SalaryRowInput = {
   season?: string | null;
   year?: string | number | null;
-  salary?: number | null;
-  capHit?: number | null;
+  salary?: number | string | null;
+  capHit?: number | string | null;
   guaranteed?: boolean | null;
   option?: string | null;
-  guaranteedAmount?: number | null;
+  guaranteedAmount?: number | string | null;
   optionUsed?: boolean | null;
   optionDecisionDate?: string | Date | null;
-  tradeBonus?: number | null;
+  tradeBonus?: number | string | null;
   [key: string]: unknown;
 };
 
@@ -59,10 +59,10 @@ interface ContractUtilsPlayer {
   isMinimum?: boolean;
   yearsOfService?: unknown;
   bio?: {
-    display?: { freeAgentYear?: number | null } | null;
+    display?: { freeAgentYear?: number | string | null } | null;
     [key: string]: unknown;
   } | null;
-  freeAgentYear?: number | null;
+  freeAgentYear?: number | string | null;
 }
 
 interface CapProjectionEntry {
@@ -567,7 +567,7 @@ export function stretchContract(
         const entryEndYear = toEndYear(y.season);
         return entryEndYear === key;
       });
-      return sum + (yearEntry?.salary || 0);
+      return sum + (Number(yearEntry?.salary ?? 0) || 0);
     }, 0);
 
   const stretchYears = remainingYears * 2 + 1;
@@ -656,5 +656,5 @@ export function getLastSalary(player: ContractUtilsPlayer | null | undefined) {
     return yearB - yearA;
   });
 
-  return sorted[0]?.salary || sorted[0]?.capHit || 0;
+  return Number(sorted[0]?.salary ?? sorted[0]?.capHit ?? 0) || 0;
 }

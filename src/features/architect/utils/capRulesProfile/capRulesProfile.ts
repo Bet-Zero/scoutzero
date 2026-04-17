@@ -384,7 +384,7 @@ export function getCapRulesForYear(
   // 3. Define Scale Lookup Function
   const getMinimumForYOS = (yos: number): number => {
     // Try explicit scale first
-    const scale = getScaleForSeason(seasonKey as any); // load-bearing: seasonKey is string|number, getScaleForSeason expects branded SeasonId type
+    const scale = getScaleForSeason(seasonKey);
     if (scale) {
       // Cap at 10 years
       const cappedYOS = Math.min(Math.max(0, yos), 10);

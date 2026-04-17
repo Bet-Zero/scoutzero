@@ -1558,8 +1558,7 @@ function buildPreviewAuthorityTeamMaps({
   for (const entry of currentState.teams ?? []) {
     const code = entry?.teamCode;
     if (code && entry.team) {
-      // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-168
-      beforeTeamsByCode[code] = entry.team as unknown as AnyRecord;
+      beforeTeamsByCode[code] = entry.team;
     }
   }
 
@@ -1567,8 +1566,7 @@ function buildPreviewAuthorityTeamMaps({
   for (const update of postTradeSnapshot.teamUpdates) {
     const code = update?.teamCode;
     if (code && update.team) {
-      // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-169
-      afterTeamsByCode[code] = update.team as unknown as AnyRecord;
+      afterTeamsByCode[code] = update.team;
     }
   }
 

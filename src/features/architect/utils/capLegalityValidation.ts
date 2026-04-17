@@ -763,12 +763,9 @@ function getValidationHardCapStatus(
   team: MutationTeam,
   capRules: CapRulesProfile
 ) {
-  const sharedStatus = getSharedHardCapStatus(
-    team as Parameters<typeof getSharedHardCapStatus>[0],
-    {
-      capSettings: capRules.cap as unknown as Record<string, unknown>,
-    }
-  );
+  const sharedStatus = getSharedHardCapStatus(team, {
+    capSettings: capRules.cap,
+  });
 
   return {
     isHardCapped: sharedStatus.isHardCapped,

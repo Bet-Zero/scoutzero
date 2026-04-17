@@ -17,46 +17,51 @@ import {
   removeCreate,
   applyVacuumTransfer,
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
+import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
-import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 
 type UseTradeMachineResult = ReturnType<typeof useTradeMachine>;
 type HookTradeTeamSlot = UseTradeMachineResult['teams'][number];
 type ValidationDetailsPanelProps = Parameters<typeof ValidationDetailsPanel>[0];
 type TradePreviewModalProps = Parameters<typeof TradePreviewModal>[0];
 type TradeTeamCardProps = Parameters<typeof TradeTeamCard>[0];
+type EditContractModalProps = Parameters<typeof EditContractModal>[0];
+type HookTradePlayer = Parameters<UseTradeMachineResult['setPlayerTrade']>[1];
+type HookTradeActionMeta = Parameters<UseTradeMachineResult['setPlayerTrade']>[4];
+type CardPlayerLike = TradeTeamCardProps['sends'][number];
+type CardTeamLike = NonNullable<TradeTeamCardProps['team']>;
+type CardEntitlementLike = NonNullable<
+  TradeTeamCardProps['entitlementsOut']
+>[number];
+type PrimaryTeamDataLike = Parameters<typeof useTradeMachine>[3];
+type ModalPlayerLike = NonNullable<EditContractModalProps['player']>;
+type ModalTeamCapSheetLike = NonNullable<
+  EditContractModalProps['teamCapSheet']
+>;
+type PlayerLike = CardPlayerLike;
+type TeamLike = CardTeamLike;
 
-type PlayerLike = {
-  id?: string | number;
-  player_id?: string | number;
-  name?: string;
-  tradeTo?: string | null;
-};
-
-type TeamLike = {
-  id?: string;
-  teamId?: string;
-  teamCode?: string;
-  pickRulesById?: Record<string, PickRuleDoc>;
-};
-
-type EntitlementLike = {
-  id?: string | number;
-  entitlementId?: string | number;
-  toTeamId?: string | null;
-  holderTeam?: string | null;
-  holder_team?: string | null;
-  originalTeamId?: string | null;
-  originalTeam?: string | null;
-  seasonYear?: number;
-  year?: number;
-  round?: number;
+type EntitlementLike = CardEntitlementLike & {
+  identityKey?: string;
+  underlyingStatus?: string;
+  holderTeam?: string | number | null;
+  holder_team?: string | number | null;
+  originalTeamId?: string | number | null;
+  originalTeam?: string | number | null;
+  seasonYear?: number | string;
+  year?: number | string;
+  round?: number | string;
   kind?: string;
+  secondaryText?: string | null;
   protectionDetails?: string | null;
   protection?: string | null;
-  fromTeamId?: string | null;
+  fromTeamId?: string | number | null;
+  linkedEntitlementIds?: Array<string | number>;
+  residualOfEntitlementId?: string | number | null;
+  __vacuumSessionOnly?: boolean;
+  __vacuumEdited?: boolean;
 };
 
 type TradeTeamSlotLike = {
@@ -90,16 +95,80 @@ interface TradeEditorProps {
   primaryTeam?: string | null;
   capProjections?: Record<string, unknown> | null;
   currentYear?: number | null;
-  playersMap?: Record<string, unknown>;
+  playersMap?: TradeTeamCardProps['playersMap'];
   onApplyTrade?:
     | ((tradeData: TradeDataEntryLike[]) => Promise<unknown> | unknown)
     | null;
-  primaryTeamData?: TeamLike | null;
-  onEditContract?: ((...args: unknown[]) => unknown) | null;
+  primaryTeamData?: PrimaryTeamDataLike;
+  onEditContract?: ((player: unknown) => unknown) | null;
   worldId?: string | null;
   worldAsOfDate?: string | Date | null;
   userId?: string | null;
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const normalizeTradeActionMeta = (
+  actionMeta: unknown
+): HookTradeActionMeta | null => {
+  return isRecord(actionMeta) ? actionMeta : null;
+};
+
+const toHookTradePlayer = (player: PlayerLike): HookTradePlayer => ({
+  ...player,
+});
+
+const normalizeModalId = (
+  value: string | number | null | undefined
+): string | null | undefined => {
+  if (value == null || value === '') {
+    return value == null ? null : undefined;
+  }
+  return String(value);
+};
+
+const toEditContractModalPlayer = (player: PlayerLike): ModalPlayerLike => ({
+  ...player,
+  id: normalizeModalId(player.id),
+  player_id: normalizeModalId(player.player_id),
+  playerId: normalizeModalId(player.playerId),
+  yearsOfService:
+    typeof player.yearsOfService === 'number'
+      ? player.yearsOfService
+      : typeof player.yearsOfService === 'string'
+        ? Number(player.yearsOfService) || undefined
+        : undefined,
+  bio: player.bio
+    ? {
+        ...player.bio,
+        playerId: normalizeModalId(player.bio.playerId),
+      }
+    : undefined,
+});
+
+const normalizeRecordArray = (items: unknown) => {
+  return Array.isArray(items)
+    ? items.filter(isRecord).map((item) => ({ ...item }))
+    : [];
+};
+
+const toEditContractModalTeamCapSheet = (
+  team: TeamLike | null | undefined
+): ModalTeamCapSheetLike | null => {
+  if (!team) {
+    return null;
+  }
+
+  return {
+    ...team,
+    players: Array.isArray(team.players)
+      ? team.players.map(toEditContractModalPlayer)
+      : null,
+    capHolds: normalizeRecordArray(team.capHolds),
+    deadCap: normalizeRecordArray(team.deadCap),
+  };
+};
 
 const TradeEditor = ({
   primaryTeam,
@@ -187,8 +256,9 @@ const TradeEditor = ({
   // Phase 14.2: incomingAssets now uses entitlementsOut instead of picksOut
   // Phase 17: Updated to require toTeamId for 3+ team trades (same logic as hook)
   const incomingAssets = teams.map((tm, idx) => {
-    const players: PlayerLike[] = [];
-    const entitlements: EntitlementLike[] = [];
+    const players: NonNullable<TradeTeamCardProps['incomingPlayers']> = [];
+    const entitlements: NonNullable<TradeTeamCardProps['incomingEntitlements']> =
+      [];
     teams.forEach((t, j) => {
       if (j !== idx && t.team) {
         t.sends.forEach((p) => {
@@ -367,7 +437,10 @@ const TradeEditor = ({
 
   const resolveEntitlementTeamCode = (
     entitlement: EntitlementLike | null | undefined
-  ) => entitlement?.holderTeam || entitlement?.holder_team || null;
+  ) => {
+    const rawTeamCode = entitlement?.holderTeam || entitlement?.holder_team;
+    return rawTeamCode == null ? null : String(rawTeamCode);
+  };
 
   const handleRevertEntitlementEdit = (
     entitlement: EntitlementLike | null | undefined
@@ -584,10 +657,13 @@ const TradeEditor = ({
         }
       >
         {teams.map((t, idx) => {
-          const otherTeams = teams
-            .filter((_, j) => j !== idx && teams[j].team)
-            .map((tm) => tm.team)
-            .filter(Boolean);
+          const otherTeams: NonNullable<TradeTeamCardProps['otherTeams']> =
+            teams.flatMap((tm, j) => {
+              if (j === idx || !tm.team) {
+                return [];
+              }
+              return [tm.team];
+            });
           return (
             <div
               key={idx}
@@ -605,14 +681,7 @@ const TradeEditor = ({
                     null) as TradeTeamCardProps['validationResult']
                 }
                 teamIndex={idx}
-                team={
-                  t.team
-                    ? {
-                        ...t.team,
-                        id: t.team.id ?? undefined,
-                      }
-                    : null
-                }
+                team={t.team}
                 sends={t.sends}
                 // Phase 14.2: Removed picks prop - draft assets are entitlements-only
                 // Phase 11.1: Pass entitlement toggle and selection state
@@ -636,31 +705,27 @@ const TradeEditor = ({
                 // Phase 14.2: Incoming entitlements instead of incoming picks
                 incomingEntitlements={incomingAssets[idx]?.entitlements || []}
                 yearKey={yearKey}
-                otherTeams={otherTeams as TradeTeamCardProps['otherTeams']}
+                otherTeams={otherTeams}
                 playersMap={playersMap}
                 onSetPlayerTrade={(p, action, dest, meta) =>
                   setPlayerTrade(
                     idx,
-                    p as Record<string, unknown>,
+                    toHookTradePlayer(p),
                     action,
                     dest ?? null,
-                    (meta as Record<string, unknown>) ?? null
+                    normalizeTradeActionMeta(meta)
                   )
                 }
                 onRequestSignAndTrade={(player, defaultDestinationTeamId) =>
-                  openTradeMachineSatModal(
-                    idx,
-                    player as PlayerLike,
-                    defaultDestinationTeamId as string | null | undefined
-                  )
+                  openTradeMachineSatModal(idx, player, defaultDestinationTeamId)
                 }
                 // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
-                onUndoPlayerTrade={
-                  undoPlayerTrade as (...args: unknown[]) => void
-                }
+                onUndoPlayerTrade={(player) => undoPlayerTrade(player)}
                 onSelectTeam={(teamId) => selectTeam(idx, teamId)}
                 onRemove={() => removeTeam(idx)}
-                onEditContract={onEditContract}
+                onEditContract={
+                  onEditContract ? (player) => onEditContract(player) : null
+                }
                 worldId={worldId}
                 // P0-3: Pass validation in-flight state
                 isValidating={isValidating}
@@ -837,10 +902,12 @@ const TradeEditor = ({
         <EditContractModal
           isOpen={!!tradeMachineSatModal}
           onClose={closeTradeMachineSatModal}
-          player={tradeMachineSatModal.player}
+          player={toEditContractModalPlayer(tradeMachineSatModal.player)}
           initialAction="signAndTrade"
           actionContext="freeAgent"
-          teamCapSheet={teams[tradeMachineSatModal.teamIndex]?.team || null}
+          teamCapSheet={toEditContractModalTeamCapSheet(
+            teams[tradeMachineSatModal.teamIndex]?.team || null
+          )}
           currentYear={currentYear}
           actionsOverride={['signAndTrade']}
           actionLabelsOverride={{

@@ -20,8 +20,8 @@ import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 type MiscRulesYearKey = number | string;
 
 interface MiscRulesNormalizedYear {
-  seasonString?: string | null;
-  endYear?: number | null;
+  seasonString: string | null;
+  endYear: number | null;
 }
 
 interface MiscRulesContext {
@@ -52,6 +52,27 @@ interface MiscRulesPlayer {
 interface MiscRulesTeam {
   sends?: MiscRulesPlayer[] | null;
   teamId?: string | null;
+  tradedPicks?:
+    | Array<{
+        year?: MiscRulesYearKey;
+        round?: number | string | null;
+        isSwap?: boolean;
+        protection?: unknown;
+      }>
+    | null;
+  teamTotalSalary?: number;
+  projectedSalary?: number;
+  cashSent?: number | null;
+  postTradeStatus?: {
+    isAtOrAboveSecondApron?: boolean;
+  };
+  context?: {
+    isAtOrAboveSecondApron?: boolean;
+  };
+  team?: {
+    teamTotalSalary?: number;
+    totalSalary?: number;
+  } | null;
 }
 
 interface MiscRulesValidationResult {
@@ -59,8 +80,6 @@ interface MiscRulesValidationResult {
   violations: string[];
   warningsOnly: boolean;
 }
-
-type LegacyRuleSpread = Iterable<unknown>;
 
 /**
  * Validates Base Year Compensation (BYC) rules
@@ -163,27 +182,25 @@ export function validateAllNewRules(
   allTeams: unknown,
   tradeCtx: MiscRulesContext = {}
 ): unknown[] {
-  // Keep the legacy mixed spread contract exactly as-is. These local assertions
-  // are TS-only and intentionally do not normalize the underlying runtime shape.
+  const tradeExceptionViolations = validateTradeExceptions(team).violations;
+  const draftPickViolations = validateDraftPicks(team, allTeams);
+  const cashViolations = validateCash(team, tradeCtx).violations;
+  const signAndTradeViolations = validateSignAndTrade(
+    team,
+    tradeCtx
+  ).violations;
+  const bycViolations = validateBYC(team).violations;
+  const secondApronViolations = validateSecondApronRules(
+    team
+  ).violations;
+
   return [
-    ...(validateTradeExceptions(
-      team as Parameters<typeof validateTradeExceptions>[0]
-    ) as unknown as LegacyRuleSpread),
-    ...validateDraftPicks(
-      team as Parameters<typeof validateDraftPicks>[0],
-      allTeams as never // load-bearing: allTeams type incompatible with validateDraftPicks second param — validator expects internal team shape
-    ),
-    ...(validateCash(
-      team as Parameters<typeof validateCash>[0]
-    ) as unknown as LegacyRuleSpread),
-    ...(validateSignAndTrade(
-      team as Parameters<typeof validateSignAndTrade>[0],
-      tradeCtx as Parameters<typeof validateSignAndTrade>[1]
-    ) as unknown as LegacyRuleSpread),
-    ...(validateBYC(team) as unknown as LegacyRuleSpread),
-    ...(validateSecondApronRules(
-      team as Parameters<typeof validateSecondApronRules>[0]
-    ) as unknown as LegacyRuleSpread),
+    ...tradeExceptionViolations,
+    ...draftPickViolations,
+    ...cashViolations,
+    ...signAndTradeViolations,
+    ...bycViolations,
+    ...secondApronViolations,
   ];
 }
 

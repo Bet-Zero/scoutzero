@@ -88,10 +88,7 @@ const deriveApronStatus = (
   if (!teamSalary || !capSettings) return null;
 
   // Delegate to SSOT for correct boundary semantics
-  const status = getTeamApronStatus(
-    teamSalary as unknown as Parameters<typeof getTeamApronStatus>[0],
-    capSettings as unknown as Parameters<typeof getTeamApronStatus>[1]
-  );
+  const status = getTeamApronStatus(teamSalary, capSettings);
 
   // Map SSOT return values to legacy format
   switch (status) {

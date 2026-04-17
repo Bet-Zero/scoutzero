@@ -33,7 +33,7 @@ import {
   type TeamDeadMoneySourcesLike,
 } from '@/features/architect/utils/capTotals/deadMoneyForYear';
 import { resolveHardCapSnapshotOverlay } from '@/features/architect/utils/capTotals/hardCapSnapshotOverlay';
-import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
+import { toEndYear, toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import type { TeamTotals } from '@/features/architect/types';
 
 type UnknownRecord = Record<string, unknown>;
@@ -240,10 +240,13 @@ function computeCanonicalTotalCapAllocations({
  */
 export function computeTeamCapTotals(
   teamCapSheet: TeamCapSheetLike | null | undefined,
-  selectedYear: number,
+  selectedYear: number | string,
   options: CapTotalsOptions = {}
 ): ComputedTeamCapTotals {
-  const yearKey = selectedYear;
+  const normalizedYear = toEndYear(selectedYear);
+  const yearKey = Number.isFinite(normalizedYear)
+    ? normalizedYear
+    : Number(selectedYear);
   const rules = getCapRulesForYear(yearKey, options.capProjections) as any; // load-bearing: getCapRulesForYear return type incompatible with direct destructuring
 
   const salaryCap = rules.cap.salaryCap || 0;

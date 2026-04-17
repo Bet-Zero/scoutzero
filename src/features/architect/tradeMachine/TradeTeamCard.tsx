@@ -58,8 +58,8 @@ type HookTradeEntitlement = NonNullable<
 >[number];
 type PlayerLike = HookTradePlayer &
   ChildPlayerLike & {
-    matchOutgoing?: number | null;
-    matchIncoming?: number | null;
+    matchOutgoing?: number | string | null;
+    matchIncoming?: number | string | null;
     absorptionMode?: string | null;
     tpeId?: string | number | null;
     bucketType?: string | null;
@@ -69,12 +69,12 @@ type EntitlementLike = HookTradeEntitlement & {
   entitlementId?: string | number;
   identityKey?: string;
   underlyingStatus?: string;
-  seasonYear?: number | null;
-  round?: number | null;
+  seasonYear?: number | string | null;
+  round?: number | string | null;
   kind?: string | null;
   secondaryText?: string | null;
-  fromTeamId?: string | null;
-  toTeamId?: string | null;
+  fromTeamId?: string | number | null;
+  toTeamId?: string | number | null;
   linkedEntitlementIds?: Array<string | number>;
   residualOfEntitlementId?: string | number | null;
   __vacuumSessionOnly?: boolean;

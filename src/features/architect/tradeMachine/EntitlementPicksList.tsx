@@ -14,8 +14,8 @@ type EntitlementLike = {
   entitlementId?: string | number;
   identityKey?: string;
   underlyingStatus?: string;
-  seasonYear?: number;
-  round?: number;
+  seasonYear?: number | string;
+  round?: number | string;
   kind?: string;
   secondaryText?: string;
 };
@@ -23,11 +23,11 @@ type EntitlementLike = {
 type OutgoingEntitlementLike = {
   id?: string | number;
   entitlementId?: string | number;
-  toTeamId?: string | null;
+  toTeamId?: string | number | null;
 };
 
 type TeamOptionLike = {
-  id?: string;
+  id?: string | number;
   teamName?: string;
   teamCode?: string;
 };
@@ -98,12 +98,12 @@ export const EntitlementPicksList = ({
     }
 
     return [...deduped].sort((a, b) => {
-      const yearA = a.seasonYear || 0;
-      const yearB = b.seasonYear || 0;
+      const yearA = Number(a.seasonYear || 0) || 0;
+      const yearB = Number(b.seasonYear || 0) || 0;
       if (yearA !== yearB) return yearA - yearB;
 
-      const roundA = a.round || 0;
-      const roundB = b.round || 0;
+      const roundA = Number(a.round || 0) || 0;
+      const roundB = Number(b.round || 0) || 0;
       if (roundA !== roundB) return roundA - roundB;
 
       const kindPriorityA = getKindSortPriority(a.kind);
@@ -125,7 +125,7 @@ export const EntitlementPicksList = ({
   }, [sortedEntitlements]);
 
   const toTeamIdByEntitlement = useMemo(() => {
-    const map: Record<string, string | null> = {};
+    const map: Record<string, string | number | null> = {};
     for (const e of entitlementsOut) {
       const id = e.id || e.entitlementId;
       if (id) {

@@ -11,9 +11,10 @@ import {
 
 type YearKeyLike = string | number;
 
-type TradeAssetLike = {};
+type TradeAssetLike = Record<string, unknown>;
 
-type TeamLike = {
+type TeamLike = NonNullable<Parameters<typeof computeTeamCapTotals>[0]> &
+  NonNullable<Parameters<typeof isHardCappedAtFirstApron>[0]> & {
   id?: string;
   teamId?: string;
   teamTotalSalary?: number;
@@ -46,9 +47,7 @@ const CapImpactTiles = ({
   if (!team) return null;
 
   const baselineTotals = useMemo(
-    // yearKey as never: JS-migrated utils expect branded SeasonId; number|string is compatible at runtime
-    () =>
-      computeTeamCapTotals(team as Record<string, unknown>, yearKey as never),
+    () => computeTeamCapTotals(team, yearKey),
     [team, yearKey]
   );
 
@@ -62,18 +61,10 @@ const CapImpactTiles = ({
 
   const hardCapStatus = useMemo(
     () => ({
-      isFirstApronHardCapped: isHardCappedAtFirstApron(
-        team as Record<string, unknown>,
-        yearKey as never // yearKey: JS-migrated util expects branded SeasonId
-      ),
-      isSecondApronHardCapped: isHardCappedAtSecondApron(
-        team as Record<string, unknown>
-      ),
-      firstApronReason: isHardCappedAtFirstApron(
-        team as Record<string, unknown>,
-        yearKey as never // same: SeasonId mismatch
-      )
-        ? getFirstApronHardCapReason(team as Record<string, unknown>)
+      isFirstApronHardCapped: isHardCappedAtFirstApron(team, yearKey),
+      isSecondApronHardCapped: isHardCappedAtSecondApron(team),
+      firstApronReason: isHardCappedAtFirstApron(team, yearKey)
+        ? getFirstApronHardCapReason(team)
         : '',
     }),
     [team, yearKey]
@@ -86,9 +77,8 @@ const CapImpactTiles = ({
 
   const { salaryOut, salaryIn } = useMemo(
     () => ({
-      // sends/incomingPlayers as never: JS array types not assignable to internal player list shape
-      salaryOut: getSalaryForYear(sends as never, yearKey as never),
-      salaryIn: getSalaryForYear(incomingPlayers as never, yearKey as never),
+      salaryOut: getSalaryForYear(sends, yearKey),
+      salaryIn: getSalaryForYear(incomingPlayers, yearKey),
     }),
     [sends, incomingPlayers, yearKey]
   );

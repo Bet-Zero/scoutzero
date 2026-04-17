@@ -18,7 +18,7 @@ interface OutgoingPlayersListProps {
   yearKey: string | number;
   worldId?: string | null;
   otherTeams?: TeamOptionLike[];
-  playersMap?: Record<string, PlayerLike>;
+  playersMap?: Record<string, PlayerLike | Record<string, unknown>>;
   sourceTeamId?: string | null;
   sourceTeamCapHolds?: unknown[];
   onSetPlayerTrade?: (...args: unknown[]) => void;
@@ -75,7 +75,7 @@ export const OutgoingPlayersList = ({
       if (inB && !inA) return 1;
 
       const getSalary = (player: PlayerLike) =>
-        Number(getSalaryWithFallback(player as never, yearKey as never)) || 0; // load-bearing: PlayerLike and yearKey types don't satisfy getSalaryWithFallback's expected param shapes
+        Number(getSalaryWithFallback(player, yearKey)) || 0;
       return getSalary(b) - getSalary(a);
     });
   }, [available, incomingSet, yearKey]);

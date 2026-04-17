@@ -31,7 +31,7 @@ export type PickRowProtectionMeta = {
 
 export type ProjectionOptions = {
   teamCode?: string;
-  pickRulesById?: Record<string, PickRuleDoc>;
+  pickRulesById?: Record<string, unknown>;
 };
 
 type PickRowAssetType = 'outright_pick' | 'conditional_right' | 'swap_right';
@@ -73,20 +73,20 @@ type ProtectionLadderTierLike = {
 } | null;
 
 type ProjectionEntitlement = EffectiveEntitlement & {
-  id?: string;
-  seasonYear?: number;
-  round?: number;
+  id?: string | number;
+  seasonYear?: number | string;
+  round?: number | string;
   kind?: string;
-  originalTeamId?: string;
-  originalTeam?: string;
-  underlyingPickId?: string;
-  holderTeam?: string;
+  originalTeamId?: string | number;
+  originalTeam?: string | number;
+  underlyingPickId?: string | number;
+  holderTeam?: string | number;
   description?: string;
   protectionLadder?: ProtectionLadderTierLike[];
   swapTargetDefinition?: string;
-  poolUnderlyingPickIds?: string[];
+  poolUnderlyingPickIds?: Array<string | number>;
   receivesComparator?: 'less_favorable' | 'more_favorable' | 'middle' | string;
-  receivesRank?: number[];
+  receivesRank?: Array<number | string>;
   termsShort?: string;
   underlyingStatus?: unknown;
   evidenceRowRefs?: unknown;
@@ -120,16 +120,20 @@ void PROTECTION_PATTERNS;
  * Extract original team code from entitlement.
  */
 const extractOriginalTeam = (entitlement: ProjectionEntitlement): string => {
-  if (entitlement.originalTeamId) return entitlement.originalTeamId as string;
-  if (entitlement.originalTeam) return entitlement.originalTeam as string;
+  if (entitlement.originalTeamId != null) {
+    return String(entitlement.originalTeamId);
+  }
+  if (entitlement.originalTeam != null) {
+    return String(entitlement.originalTeam);
+  }
 
   if (entitlement.underlyingPickId) {
-    const match = entitlement.underlyingPickId.match(/^([A-Z]{3})_/);
+    const match = String(entitlement.underlyingPickId).match(/^([A-Z]{3})_/);
     if (match) return match[1];
   }
 
   if (entitlement.id) {
-    const match = entitlement.id.match(/^([A-Z]{3})_/);
+    const match = String(entitlement.id).match(/^([A-Z]{3})_/);
     if (match) return match[1];
   }
 
@@ -145,7 +149,10 @@ const extractViaTeam = (
   teamCode?: string
 ): string | null => {
   const originalTeam = extractOriginalTeam(entitlement);
-  const holderTeam = (entitlement.holderTeam || teamCode || '') as string;
+  const holderTeam =
+    entitlement.holderTeam != null
+      ? String(entitlement.holderTeam)
+      : teamCode || '';
 
   const normalizedHolder = holderTeam.toUpperCase().trim();
   const normalizedOriginal = (originalTeam || '').toUpperCase().trim();
@@ -391,14 +398,27 @@ const deriveConditionsText = (
  */
 const lookupPickRule = (
   entitlement: ProjectionEntitlement,
-  pickRulesById?: Record<string, PickRuleDoc>
+  pickRulesById?: Record<string, unknown>
 ): PickRuleDoc | null => {
   if (!pickRulesById) return null;
 
   const pickId = entitlement.underlyingPickId;
   if (!pickId) return null;
 
-  return pickRulesById[pickId] || null;
+  const candidate = pickRulesById[String(pickId)];
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return null;
+  }
+
+  if (
+    !('pickId' in candidate) ||
+    !('seasonYear' in candidate) ||
+    !('round' in candidate)
+  ) {
+    return null;
+  }
+
+  return candidate as PickRuleDoc;
 };
 
 /**
@@ -549,9 +569,10 @@ export const projectEntitlementToPickRow = (
 
   const pickRule = lookupPickRule(entitlement, pickRulesById);
 
-  const year = (entitlement.seasonYear || 0) as number;
-  const round = (entitlement.round || 0) as number;
-  const kind = (entitlement.kind || 'unknown') as string;
+  const year = Number(entitlement.seasonYear || 0) || 0;
+  const round = Number(entitlement.round || 0) || 0;
+  const kind =
+    typeof entitlement.kind === 'string' ? entitlement.kind : 'unknown';
   const originalTeam = extractOriginalTeam(entitlement);
   const via = extractViaTeam(entitlement, teamCode);
   const assetType = deriveAssetType(entitlement);
@@ -595,7 +616,7 @@ export const projectEntitlementToPickRow = (
     : null;
 
   return {
-    id: entitlement.id || 'unknown',
+    id: entitlement.id != null ? String(entitlement.id) : 'unknown',
     year,
     round,
     kind,

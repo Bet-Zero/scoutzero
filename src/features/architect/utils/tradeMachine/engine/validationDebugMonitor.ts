@@ -1,5 +1,8 @@
 import { debug } from './engineUtils';
-import { performanceMonitor } from './validationPerformanceMonitor';
+import {
+  performanceMonitor,
+  type ValidationReport,
+} from './validationPerformanceMonitor';
 import { validationCache } from '../cache/validationCacheService';
 // import { CACHE_TYPES } from '../cache/validationCacheService';
 
@@ -15,12 +18,6 @@ interface CacheMetrics {
   invalidations: number;
 }
 
-interface PerformanceReport {
-  validationCount?: number;
-  validations?: Record<string, { avgTimeMs?: number; calls?: number }>;
-  averageTimeMs?: number;
-}
-
 interface DebugWarning {
   type: string;
   validator?: string;
@@ -32,7 +29,7 @@ interface DebugWarning {
 
 interface MetricsSnapshot {
   timestamp: number;
-  performance: PerformanceReport & {
+  performance: ValidationReport & {
     totalValidations: number;
     validationsByType: Record<string, ValidationTypeMetrics>;
   };
@@ -74,7 +71,7 @@ export class ValidationDebugMonitor {
   // Collect current snapshot of metrics
   collectMetrics(): MetricsSnapshot {
     const timestamp = Date.now();
-    const performance = performanceMonitor.getReport() as unknown as PerformanceReport;
+    const performance = performanceMonitor.getReport();
     const cache = validationCache.getMetrics() as CacheMetrics;
 
     const metrics: MetricsSnapshot = {
@@ -100,7 +97,9 @@ export class ValidationDebugMonitor {
   }
 
   // Build validationsByType structure expected by tests
-  _buildValidationsByType(performance: PerformanceReport): Record<string, ValidationTypeMetrics> {
+  _buildValidationsByType(
+    performance: ValidationReport
+  ): Record<string, ValidationTypeMetrics> {
     const validationsByType: Record<string, ValidationTypeMetrics> = {};
 
     if (performance.validations) {
@@ -116,7 +115,10 @@ export class ValidationDebugMonitor {
   }
 
   // Analyze metrics for potential issues
-  analyzeMetrics(performance: PerformanceReport, cache: CacheMetrics): DebugWarning[] {
+  analyzeMetrics(
+    performance: ValidationReport,
+    cache: CacheMetrics
+  ): DebugWarning[] {
     const warnings: DebugWarning[] = [];
 
     // Check for slow validations

@@ -18,11 +18,11 @@ type EntitlementKindDisplay = {
 
 type FormatEntitlementLike = {
   description?: string | null;
-  seasonYear?: number | null;
-  round?: number | null;
-  originalTeamId?: string | null;
-  originalTeam?: string | null;
-  holderTeam?: string | null;
+  seasonYear?: number | string | null;
+  round?: number | string | null;
+  originalTeamId?: string | number | null;
+  originalTeam?: string | number | null;
+  holderTeam?: string | number | null;
   kind?: string | null;
 };
 
@@ -63,9 +63,10 @@ export const getEntitlementKindTag = (
  * @param {number} round - Round number (1 or 2)
  * @returns {string}
  */
-const formatRound = (round: number | null | undefined): string => {
-  if (round === 1) return '1st';
-  if (round === 2) return '2nd';
+const formatRound = (round: number | string | null | undefined): string => {
+  const normalizedRound = Number(round);
+  if (normalizedRound === 1) return '1st';
+  if (normalizedRound === 2) return '2nd';
   return `${round}`;
 };
 
@@ -99,10 +100,10 @@ export const formatEntitlementLabel = (
   const originalTeam = entitlement.originalTeamId || entitlement.originalTeam;
   const holderTeam = entitlement.holderTeam;
   if (originalTeam && holderTeam && originalTeam !== holderTeam) {
-    parts.push(`via ${originalTeam.toUpperCase()}`);
+    parts.push(`via ${String(originalTeam).toUpperCase()}`);
   } else if (originalTeam && !holderTeam) {
     // Show team if we don't know the holder context
-    parts.push(originalTeam.toUpperCase());
+    parts.push(String(originalTeam).toUpperCase());
   }
 
   // Kind indicator (simple)

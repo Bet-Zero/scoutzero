@@ -29,7 +29,12 @@ interface CapUtilsTeamWrapper {
   ctx?: CapUtilsTeamData | null;
 }
 
-type CapUtilsTeamLike = CapUtilsTeamData | CapUtilsTeamWrapper | null | undefined;
+type CapUtilsTeamContainer =
+  | CapUtilsTeamData
+  | CapUtilsTeamWrapper
+  | null
+  | undefined;
+type CapUtilsTeamLike = CapUtilsTeamContainer | NumericLike;
 
 interface CapUtilsCapSettingsLike {
   salaryCap?: NumericLike;
@@ -73,17 +78,53 @@ function asTeamData(team: CapUtilsTeamData | null | undefined): CapUtilsTeamData
   return (team || {}) as CapUtilsTeamData;
 }
 
+function isTeamWrapper(
+  teamLike: CapUtilsTeamContainer
+): teamLike is CapUtilsTeamWrapper {
+  return (
+    Boolean(teamLike) &&
+    typeof teamLike === 'object' &&
+    ('team' in teamLike || 'sourceTeam' in teamLike || 'ctx' in teamLike)
+  );
+}
+
+function resolveComparableTeamData(
+  teamLike: CapUtilsTeamLike
+): CapUtilsTeamData | null {
+  if (teamLike === null || teamLike === undefined) {
+    return null;
+  }
+
+  if (typeof teamLike === 'number' || typeof teamLike === 'string') {
+    const totalSalary: NumericLike = teamLike;
+    return { totalSalary };
+  }
+
+  const teamContainer: CapUtilsTeamContainer = teamLike;
+  const extractedTeam = getTeamObject(teamContainer);
+  if (extractedTeam) {
+    return asTeamData(extractedTeam);
+  }
+
+  if (isTeamWrapper(teamContainer)) {
+    return null;
+  }
+
+  return asTeamData(teamContainer);
+}
+
 /**
  * Determines if a team is at or above the first apron threshold
  * (From capHelpers.js)
  */
 export function isFirstApronTeam(
-  team: CapUtilsTeamData | null | undefined,
+  team: CapUtilsTeamLike,
   capSettings: CapUtilsCapSettingsLike | null | undefined
 ): boolean {
-  if (!team || !capSettings) return false;
+  const teamData = resolveComparableTeamData(team);
+  if (!teamData || !capSettings) return false;
 
-  const teamSalary = (team.totalSalary || team.teamTotalSalary || 0) as
+  const teamSalary = (teamData.totalSalary || teamData.teamTotalSalary || 0) as
     | number
     | string;
   const firstApron = (capSettings.firstApron || capSettings.apron || 0) as
@@ -105,7 +146,8 @@ export function isSecondApronTeam(
   if (!teamLike || !capSettings) return false;
 
   // Utilize robust extraction
-  const team = asTeamData(getTeamObject(teamLike) || (teamLike as CapUtilsTeamData));
+  const team = resolveComparableTeamData(teamLike);
+  if (!team) return false;
   const teamSalary = (team.totalSalary || team.teamTotalSalary || 0) as
     | number
     | string;
@@ -119,12 +161,13 @@ export function isSecondApronTeam(
  * (From capHelpers.js)
  */
 export function getTeamApronStatus(
-  team: CapUtilsTeamData | null | undefined,
+  team: CapUtilsTeamLike,
   capSettings: CapUtilsCapSettingsLike | null | undefined
 ): 'SECOND_APRON' | 'FIRST_APRON' | 'OVER_CAP' | 'UNDER_CAP' {
-  if (!team || !capSettings) return 'UNDER_CAP';
+  const teamData = resolveComparableTeamData(team);
+  if (!teamData || !capSettings) return 'UNDER_CAP';
 
-  const teamSalary = (team.totalSalary || team.teamTotalSalary || 0) as
+  const teamSalary = (teamData.totalSalary || teamData.teamTotalSalary || 0) as
     | number
     | string;
   const salaryCap = (capSettings.salaryCap || 0) as number | string;
@@ -189,7 +232,7 @@ export function normalizeCaps(
  * @param {Object} teamLike - An object that might contain a team
  * @returns {Object|null} The team object or null
  */
-export function getTeamObject(teamLike: CapUtilsTeamLike): CapUtilsTeamData | null {
+export function getTeamObject(teamLike: CapUtilsTeamContainer): CapUtilsTeamData | null {
   if (!teamLike) return null;
   const wrapper = teamLike as CapUtilsTeamWrapper;
   return wrapper.team || wrapper.sourceTeam || wrapper.ctx || (teamLike as CapUtilsTeamData);

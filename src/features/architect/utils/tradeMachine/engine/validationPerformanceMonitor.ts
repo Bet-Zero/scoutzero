@@ -1,14 +1,14 @@
 import { debug } from './engineUtils';
 import { validationCache } from '../cache/validationCache';
 
-interface ValidationTypeMetrics {
+export interface ValidationTypeMetrics {
   avgTimeMs: number;
   totalTimeMs: number;
   calls: number;
   cacheHitRate: number;
 }
 
-interface ValidationReport {
+export interface ValidationReport {
   averageTimeMs: number;
   totalTimeMs: number;
   validationCount: number;
@@ -73,7 +73,7 @@ export class ValidationPerformanceMonitor {
   }
 
   // Get performance report
-  getReport() {
+  getReport(): ValidationReport {
     const cacheMetrics = validationCache.getMetrics();
     const allTimings = Array.from(this.timings.values()).flat() as number[];
     const totalTime = allTimings.reduce((sum, time) => sum + time, 0);

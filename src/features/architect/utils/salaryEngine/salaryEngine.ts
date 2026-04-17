@@ -61,13 +61,13 @@ import { computeRFAFromRuleContext, RFA_STATUS } from '@/features/architect/util
  * ```
  */
 export function getSalaryProfile(ctx: RuleContext): SalaryProfile {
-  const result = {
+  const result: SalaryProfile = {
     maxSalary: computeMaxSalaryFromRuleContext(ctx),
     minSalary: computeMinimumSalaryFromRuleContext(ctx),
     birdRights: computeBirdRightsFromRuleContext(ctx),
-    extension: computeExtensionFromRuleContext(ctx) as unknown as ExtensionProfile,
+    extension: computeExtensionFromRuleContext(ctx),
     rfa: computeRFAFromRuleContext(ctx),
-  } as SalaryProfile;
+  };
   return result;
 }
 
@@ -139,8 +139,7 @@ export function getBirdRightsProfile(ctx: RuleContext): BirdRightsInfo {
  * @returns Extension profile with eligibility and terms
  */
 export function getExtensionProfile(ctx: RuleContext): ExtensionProfile {
-  const result =
-    computeExtensionFromRuleContext(ctx) as unknown as ExtensionProfile;
+  const result: ExtensionProfile = computeExtensionFromRuleContext(ctx);
   return result;
 }
 

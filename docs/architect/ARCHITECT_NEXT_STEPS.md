@@ -143,7 +143,9 @@ Read Item 4 in `docs/architect/ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md`. Follo
 
 ## Step 7 — Implement Item 5 from deferred-work doc
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-17: Removed the Item 5 trade-path casts, regenerated the architect cast baseline, deleted the Item 5 ledger rows, and reran the architect diff validation cleanly.
 
 **Goal:** The `as never` casts in `TradePlayerRow.tsx`, `CapImpactTiles.tsx`, `OutgoingPlayersList.tsx`, `EntitlementPickRow.tsx`, and `miscRules.ts` are removed by widening the JS-migrated utility function signatures (not by narrowing the components).
 

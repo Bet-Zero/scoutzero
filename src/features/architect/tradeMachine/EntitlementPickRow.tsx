@@ -13,19 +13,27 @@ import {
   projectEntitlementToPickRow,
   getPickRowDisplayLabel,
   getPickRowSecondaryText,
-  type PickRow,
-  type ProjectionOptions,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
-import type { EffectiveEntitlement } from '@/features/architect/utils/entitlements/entitlementResolver';
 import { AlertTriangle, Info, Layers, Link2, GitBranch } from 'lucide-react';
 import TeamLogo from '@/shared/components/TeamLogo';
 
 type EntitlementLike = {
   id?: string | number;
   entitlementId?: string | number;
+  identityKey?: string;
   kind?: string;
-  seasonYear?: number;
-  round?: number;
+  seasonYear?: number | string;
+  year?: number | string;
+  round?: number | string;
+  secondaryText?: string;
+  toTeamId?: string | number | null;
+  holderTeam?: string | number | null;
+  holder_team?: string | number | null;
+  originalTeamId?: string | number | null;
+  originalTeam?: string | number | null;
+  protectionDetails?: string | null;
+  protection?: string | null;
+  fromTeamId?: string | null;
   underlyingStatus?: string;
   linkedEntitlementIds?: Array<string | number>;
   residualOfEntitlementId?: string | number | null;
@@ -34,7 +42,7 @@ type EntitlementLike = {
 };
 
 type TeamOptionLike = {
-  id?: string;
+  id?: string | number;
   teamName?: string;
   teamCode?: string;
 };
@@ -46,11 +54,11 @@ interface EntitlementPickRowProps {
   onToggle?: ((entitlement: EntitlementLike) => void) | null;
   pickRulesById?: Record<string, unknown>;
   otherTeams?: TeamOptionLike[];
-  currentToTeamId?: string | null;
+  currentToTeamId?: string | number | null;
   onSetDestination?:
     | ((
         entitlementId: string | number | undefined,
-        toTeamId: string | undefined
+        toTeamId: string | number | undefined
       ) => void)
     | null;
   onEdit?: ((entitlement: EntitlementLike) => void) | null;
@@ -104,14 +112,12 @@ const EntitlementPickRow = ({
 
   if (!entitlement) return null;
 
-  // EntitlementLike is a loose local type; cast via EffectiveEntitlement (= Record<string,unknown>)
-  // so the structural contract is satisfied without widening or breaking the component's prop types.
   const pickRow = projectEntitlementToPickRow(
-    entitlement as unknown as EffectiveEntitlement,
+    entitlement,
     {
       teamCode: teamId,
       pickRulesById,
-    } as ProjectionOptions
+    }
   );
   const pickRowLabel = getPickRowDisplayLabel(pickRow);
   const secondaryText = getPickRowSecondaryText(pickRow);
@@ -134,7 +140,7 @@ const EntitlementPickRow = ({
   const DEBUG_PICKROW =
     import.meta?.env?.VITE_DEBUG_ENTITLEMENT_PICKROWS === 'true';
 
-  const handleTradeToTeam = (toTeamId?: string) => {
+  const handleTradeToTeam = (toTeamId?: string | number) => {
     if (onToggle) {
       if (isSelected && currentToTeamId === toTeamId) {
         onToggle(entitlement);

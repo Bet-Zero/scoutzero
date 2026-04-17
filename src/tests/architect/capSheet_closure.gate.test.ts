@@ -665,7 +665,7 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
       'computeCanonicalMutationTeamCapTotals'
     );
     expect(actionsContent).toContain(
-      'const canonicalTeam = synchronizeTeamTotalsSnapshot(team as any, year);'
+      'const canonicalTeam = synchronizeTeamTotalsSnapshot(team, year);'
     );
     expect(actionsContent).toContain(
       'canonicalTeam?.totals || computeTeamCapTotals(team, year)'

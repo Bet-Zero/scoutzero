@@ -9,23 +9,67 @@ import { getYearsRemainingDisplay } from '@/features/architect/utils/contractUti
 import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
 import { isSignAndTradeEligible } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 
+type SignAndTradeEligibilityInput = Parameters<typeof isSignAndTradeEligible>[0];
+
 type PlayerLike = {
-  id?: string | number;
-  player_id?: string | number;
-  name?: string;
-  tradeTo?: string | null;
-  teamCode?: string;
-  teamAbbr?: string;
-  teamId?: string;
+  id?: string | number | null;
+  player_id?: string | number | null;
+  playerId?: string | number | null;
+  name?: string | null;
+  displayName?: string | null;
+  playerName?: string | null;
+  tradeTo?: string | number | null;
+  teamCode?: string | null;
+  teamAbbr?: string | null;
+  teamId?: string | null;
   team?: string;
+  originTeamId?: string | number | null;
   position?: string;
   height?: string | number;
   height_ft_in?: string | number;
   weight?: string | number;
   weight_lbs?: string | number;
-  primaryContract?: Record<string, unknown> | null;
-  contracts?: Record<string, unknown> | null;
-  signAndTrade?: boolean;
+  contract?:
+    | {
+        salariesByYear?: Array<Record<string, unknown>>;
+        freeAgency?:
+          | {
+              year?: number | string | null;
+            }
+          | string
+          | null;
+      }
+    | null;
+  primaryContract?:
+    | {
+        salariesByYear?: Array<Record<string, unknown>>;
+        freeAgency?:
+          | {
+              year?: number | string | null;
+            }
+          | string
+          | null;
+      }
+    | null;
+  futureContract?:
+    | {
+        salariesByYear?: Array<Record<string, unknown>>;
+      }
+    | null;
+  contracts?: Record<string, Record<string, unknown>> | null;
+  salariesByYear?: Array<Record<string, unknown>> | null;
+  contractYears?: number | null;
+  years?: number | null;
+  firstYearGuaranteed?: boolean | null;
+  freeAgentYear?: number | string | null;
+  rightsRenounced?: boolean;
+  signAndTrade?: boolean | { contract?: Record<string, unknown> | null };
+  signAndTradeContract?: Record<string, unknown> | null;
+  currentSalary?: number | string | null;
+  salary?: number | string | null;
+  newSalary?: number | string | null;
+  isMinimum?: boolean;
+  yearsOfService?: unknown;
   mockSalary?: number;
   bio?: {
     displayName?: string;
@@ -33,6 +77,7 @@ type PlayerLike = {
     team?: string;
     display?: {
       team?: string;
+      freeAgentYear?: number | string | null;
     };
     position?: string;
     height?: string | number;
@@ -51,7 +96,7 @@ interface TradePlayerRowProps {
   yearKey: string | number;
   incoming?: boolean;
   otherTeams?: TeamOptionLike[];
-  playersMap?: Record<string, PlayerLike>;
+  playersMap?: Record<string, PlayerLike | Record<string, unknown>>;
   onSetPlayerTrade?: (...args: unknown[]) => void;
   onUndoPlayerTrade?: (...args: unknown[]) => void;
   openMenu?: string | null;
@@ -59,7 +104,7 @@ interface TradePlayerRowProps {
   setContractPlayer?: ((player: PlayerLike) => void) | null;
   signAndTradeActive?: boolean;
   sourceTeamId?: string | null;
-  sourceTeamCapHolds?: unknown[];
+  sourceTeamCapHolds?: SignAndTradeEligibilityInput['sourceTeamCapHolds'];
   worldId?: string | null;
   onRequestSignAndTrade?:
     | ((player: PlayerLike, teamId?: string) => void)
@@ -90,7 +135,7 @@ const TradePlayerRow = ({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   const menuId = player.name || null;
-  const details = (playersMap[player.name || ''] || {}) as PlayerLike;
+  const details = (playersMap[String(player.name || '')] || {}) as PlayerLike;
   const team =
     player.tradeTo ||
     player.teamCode ||
@@ -130,18 +175,15 @@ const TradePlayerRow = ({
     typeof yearKey === 'number'
       ? yearKey
       : parseInt(String(yearKey).match(/\d{4}/)?.[0] || '', 10);
-  // player/yearKey as never: JS-migrated utils expect internal player shape not assignable from PlayerLike
-  const salary = getSalaryWithFallback(player as never, yearKey as never);
+  const salary = getSalaryWithFallback(player, yearKey);
   const yearsLeft = getYearsRemainingDisplay({
     player,
     currentYear: year,
     primaryContract,
-  } as never); // as never: display helper expects separate player/contract args, not this combined props object
+  });
   const position =
     getPlayerPositionLabel(
-      player.bio?.position ||
-        player.position ||
-        playersMap[player.name || '']?.bio?.position
+      player.bio?.position || player.position || details.bio?.position
     ) || '—';
 
   const signAndTradeEligibility = useMemo(
@@ -152,7 +194,7 @@ const TradePlayerRow = ({
         sourceTeamId,
         worldId,
         sourceTeamCapHolds,
-      } as never), // as never: context object shape doesn't match S&T eligibility checker's internal input type
+      }),
     [player, yearKey, sourceTeamId, worldId, sourceTeamCapHolds]
   );
 
@@ -266,12 +308,7 @@ const TradePlayerRow = ({
                 Modify Contract
               </button>
               <button
-                onClick={
-                  () =>
-                    (window.location.href = getPlayerProfileUrl(
-                      player as never
-                    )) // PlayerLike not assignable to getPlayerProfileUrl's expected player shape
-                }
+                onClick={() => (window.location.href = getPlayerProfileUrl(player))}
                 className="block w-full text-left px-3 py-1 hover:bg-[#333]"
               >
                 View Profile
@@ -305,9 +342,7 @@ const TradePlayerRow = ({
       <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
         <img
           src={`/assets/headshots/${
-            player.bio?.playerId ||
-            playersMap[player.name || '']?.bio?.playerId ||
-            player.player_id
+            player.bio?.playerId || details.bio?.playerId || player.player_id
           }.png`}
           onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
             e.currentTarget.src = '/assets/headshots/default.png';
@@ -429,10 +464,7 @@ const TradePlayerRow = ({
             </button>
 
             <button
-              onClick={
-                () =>
-                  (window.location.href = getPlayerProfileUrl(player as never)) // PlayerLike not assignable to getPlayerProfileUrl's expected player shape
-              }
+              onClick={() => (window.location.href = getPlayerProfileUrl(player))}
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >
               View Profile

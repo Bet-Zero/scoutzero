@@ -94,7 +94,7 @@ export type SignAndTradePlayerLike = {
   teamId?: string | null;
   teamAbbr?: string | null;
   team?: string | null;
-  originTeamId?: string | null;
+  originTeamId?: string | number | null;
   contract?: SignAndTradeContractLike | null;
   primaryContract?: SignAndTradeContractLike | null;
   freeAgentYear?: number | string | null;

@@ -8,9 +8,7 @@ import type {
 import type {
   ArchitectMutationTeamRecord,
   ArchitectTradePayloadPlayer,
-  ArchitectTradePayloadPlayerIngress,
   ArchitectTradePayloadTeam,
-  ArchitectTradePayloadTeamIngress,
 } from '@/features/architect/utils/mutationPipeline';
 
 // Local object-shape carrier for snapshot-building compatibility paths.
@@ -25,6 +23,7 @@ export interface TeamUpdate {
 export type ValidationIssue = TradeValidationIssue;
 
 export type TeamResult = TradeTeamResult;
+type TradeContextScalarId = string | number | null | undefined;
 
 export interface ValidationTeam {
   team: ArchitectMutationTeamRecord;
@@ -72,8 +71,58 @@ export type ValidatedTradeContext = Pick<
 };
 
 export type PayloadTeam = ArchitectTradePayloadTeam;
-export type PayloadTeamIngress = ArchitectTradePayloadTeamIngress;
-export type PayloadPlayerIngress = ArchitectTradePayloadPlayerIngress;
+
+export interface PayloadPlayerIngress {
+  player_id?: TradeContextScalarId;
+  id?: TradeContextScalarId;
+  playerId?: TradeContextScalarId;
+  name?: string | null;
+  displayName?: string | null;
+  playerName?: string | null;
+  originTeamId?: TradeContextScalarId;
+  matchIncoming?: number | string | null;
+  matchOutgoing?: number | string | null;
+  absorptionMode?: string | null;
+  tpeId?: string | number | null;
+  isTwoWay?: boolean | null;
+  signAndTrade?: boolean;
+  signAndTradeContract?: ArchitectTradePayloadPlayer['signAndTradeContract'];
+  receivingTeamIndex?: TradeContextScalarId;
+  receivingTeamId?: TradeContextScalarId;
+  tradeTo?: TradeContextScalarId;
+  toTeamId?: TradeContextScalarId;
+  destTeamId?: TradeContextScalarId;
+}
+
+export interface PayloadEntitlementIngress {
+  entitlementId?: TradeContextScalarId;
+  id?: TradeContextScalarId;
+  type?: string | null;
+  name?: string | null;
+  year?: number | string | null;
+  round?: number | string | null;
+  toTeamId?: TradeContextScalarId;
+}
+
+export interface PayloadTeamIngress {
+  team?: {
+    id?: TradeContextScalarId;
+    teamCode?: TradeContextScalarId;
+  } | null;
+  teamCode?: TradeContextScalarId;
+  teamId?: TradeContextScalarId;
+  sends?: PayloadPlayerIngress[];
+  receives?: PayloadPlayerIngress[];
+  receiving?: Array<Record<string, unknown>>;
+  playersReceiving?: Array<Record<string, unknown>>;
+  outgoingEntitlements?: PayloadEntitlementIngress[];
+  incomingEntitlements?: PayloadEntitlementIngress[];
+  entitlementsOut?: PayloadEntitlementIngress[];
+  picksOut?: ArchitectTradePayloadTeam['picksOut'];
+  picksIn?: unknown[];
+  cashSent?: number | null;
+  cashReceived?: number | null;
+}
 
 export interface TradeContextTradeBridge {
   worldId?: TradeValidatorContext['worldId'] | null;
@@ -103,7 +152,7 @@ export interface TradeContextNormalizedPayload {
 
 export interface CurrentStateTeamEntry {
   teamCode: string | null;
-  team: ArchitectMutationTeamRecord;
+  team: AnyRecord;
 }
 
 export interface TradeContextCurrentState {
