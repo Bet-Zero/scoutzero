@@ -38,8 +38,10 @@ jobs:
         run: PUPPETEER_SKIP_DOWNLOAD=true npm ci
 
       - name: Type check
-        run: npm run typecheck || echo "TypeScript errors exist (known issue)"
-        continue-on-error: true
+        run: npm run typecheck
+
+      - name: Architect cast-ledger gate
+        run: npm run lint:architect-gate
 
       - name: Run diff-based tests
         run: npm run test:diff -- --verbose
@@ -69,8 +71,10 @@ jobs:
         run: PUPPETEER_SKIP_DOWNLOAD=true npm ci
 
       - name: Type check
-        run: npm run typecheck || echo "TypeScript errors exist (known issue)"
-        continue-on-error: true
+        run: npm run typecheck
+
+      - name: Architect cast-ledger gate
+        run: npm run lint:architect-gate
 
       - name: Run full test suite
         run: npm run test:full

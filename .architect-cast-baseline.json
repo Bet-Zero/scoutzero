@@ -1,0 +1,195 @@
+{
+  "_meta": {
+    "generated": "2026-04-17T01:19:22.568Z",
+    "gate": "scripts/architect-cast-gate.mjs",
+    "ledger": "docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md",
+    "buckets": [
+      "no-explicit-any",
+      "no-restricted-syntax:as-never",
+      "no-restricted-syntax:as-unknown-as",
+      "no-restricted-syntax:index-unknown"
+    ],
+    "totalFiles": 57,
+    "totalViolations": 167
+  },
+  "files": {
+    "src/features/architect/GMDashboard/hooks/useArchitectActions.ts": {
+      "no-explicit-any": 1
+    },
+    "src/features/architect/freeAgency/FreeAgentPool/types.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/history/TeamHistoryTab/types.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/hooks/useArchitectPlayerData.ts": {
+      "no-explicit-any": 1
+    },
+    "src/features/architect/hooks/usePlayerRulesProfiles.ts": {
+      "no-restricted-syntax:as-unknown-as": 2
+    },
+    "src/features/architect/hooks/useTradeMachine.ts": {
+      "no-explicit-any": 2,
+      "no-restricted-syntax:as-unknown-as": 4
+    },
+    "src/features/architect/hooks/useTradeMachineSnapshot.ts": {
+      "no-restricted-syntax:index-unknown": 8
+    },
+    "src/features/architect/offseason/OffseasonTab/types.ts": {
+      "no-restricted-syntax:index-unknown": 4
+    },
+    "src/features/architect/shared/RosterVisual/RosterVisual.tsx": {
+      "no-restricted-syntax:index-unknown": 3
+    },
+    "src/features/architect/tradeMachine/CapImpactTiles.tsx": {
+      "no-restricted-syntax:as-never": 7
+    },
+    "src/features/architect/tradeMachine/EntitlementPickRow.tsx": {
+      "no-restricted-syntax:as-unknown-as": 1
+    },
+    "src/features/architect/tradeMachine/OutgoingPlayersList.tsx": {
+      "no-restricted-syntax:as-never": 2
+    },
+    "src/features/architect/tradeMachine/TradePlayerRow.tsx": {
+      "no-restricted-syntax:as-never": 6
+    },
+    "src/features/architect/tradeMachine/TradeReceiptPanel.tsx": {
+      "no-explicit-any": 2
+    },
+    "src/features/architect/tradeMachine/TradeSummaryPanel.tsx": {
+      "no-explicit-any": 2
+    },
+    "src/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot.ts": {
+      "no-restricted-syntax:index-unknown": 7
+    },
+    "src/features/architect/utils/capHoldTransitionHelpers.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/capLegality/localCapAuditLog.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/capLegalityValidation.ts": {
+      "no-explicit-any": 1,
+      "no-restricted-syntax:as-unknown-as": 1,
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/capRulesProfile/capRulesProfile.ts": {
+      "no-explicit-any": 1
+    },
+    "src/features/architect/utils/capTotals/computeTeamCapTotals.ts": {
+      "no-explicit-any": 2,
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/capTotals/deadMoneyForYear.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/capTotals/hardCapSnapshotOverlay.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/contractNormalization.ts": {
+      "no-restricted-syntax:index-unknown": 8
+    },
+    "src/features/architect/utils/contractSalaryUtils.ts": {
+      "no-explicit-any": 2,
+      "no-restricted-syntax:index-unknown": 3
+    },
+    "src/features/architect/utils/contractUtils.ts": {
+      "no-restricted-syntax:index-unknown": 3
+    },
+    "src/features/architect/utils/entitlements/entitlementExclusivityValidator.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/entitlements/entitlementHealthReport.ts": {
+      "no-restricted-syntax:index-unknown": 2
+    },
+    "src/features/architect/utils/entitlements/entitlementIdentity.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/entitlements/entitlementWriter.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/exceptionHistory/historyHelpers.ts": {
+      "no-restricted-syntax:index-unknown": 2
+    },
+    "src/features/architect/utils/exceptions/exceptionLifecycle.ts": {
+      "no-restricted-syntax:index-unknown": 2
+    },
+    "src/features/architect/utils/faExceptionUtils.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/firebaseTeamPlanHelpers.ts": {
+      "no-explicit-any": 2
+    },
+    "src/features/architect/utils/leagueInvariants.ts": {
+      "no-explicit-any": 3
+    },
+    "src/features/architect/utils/loadArchitectBasePlayer.ts": {
+      "no-restricted-syntax:index-unknown": 2
+    },
+    "src/features/architect/utils/salaryEngine/salaryEngine.ts": {
+      "no-restricted-syntax:as-unknown-as": 2
+    },
+    "src/features/architect/utils/seasonFormat.ts": {
+      "no-explicit-any": 1
+    },
+    "src/features/architect/utils/seasonManagerLegacy.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/subscribeArchitectPlayerData.ts": {
+      "no-restricted-syntax:as-unknown-as": 2,
+      "no-restricted-syntax:index-unknown": 2
+    },
+    "src/features/architect/utils/tradeContext/tradeContext.ts": {
+      "no-restricted-syntax:as-unknown-as": 2
+    },
+    "src/features/architect/utils/tradeContext/types.ts": {
+      "no-explicit-any": 1
+    },
+    "src/features/architect/utils/tradeHelpers.ts": {
+      "no-restricted-syntax:index-unknown": 5
+    },
+    "src/features/architect/utils/tradeMachine/engine/tradeValidator.ts": {
+      "no-restricted-syntax:index-unknown": 2
+    },
+    "src/features/architect/utils/tradeMachine/engine/validationDebugMonitor.ts": {
+      "no-restricted-syntax:as-unknown-as": 1
+    },
+    "src/features/architect/utils/tradeMachine/engine/validationUtils.ts": {
+      "no-explicit-any": 2
+    },
+    "src/features/architect/utils/tradeMachine/rules/miscRules.ts": {
+      "no-restricted-syntax:as-never": 1,
+      "no-restricted-syntax:as-unknown-as": 5
+    },
+    "src/features/architect/utils/tradeMachine/rules/tradeExceptions.ts": {
+      "no-restricted-syntax:index-unknown": 5
+    },
+    "src/features/architect/utils/tradeMachine/rules/validateEligibility.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/tradeMachine/rules/validatePlayerRouting.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/tradeMachine/rules/validateRoster.ts": {
+      "no-restricted-syntax:index-unknown": 2
+    },
+    "src/features/architect/utils/tradeMachine/utils/capSettingsProvider.ts": {
+      "no-restricted-syntax:index-unknown": 2
+    },
+    "src/features/architect/utils/tradeMachine/utils/hardCapStatus.ts": {
+      "no-restricted-syntax:index-unknown": 7
+    },
+    "src/features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts": {
+      "no-restricted-syntax:index-unknown": 10
+    },
+    "src/features/architect/utils/tradeMachine/utils/salaryMargin.ts": {
+      "no-restricted-syntax:index-unknown": 7
+    },
+    "src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/tradeMachine/utils/validateInput.ts": {
+      "no-restricted-syntax:index-unknown": 6
+    }
+  }
+}

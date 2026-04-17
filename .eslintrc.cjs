@@ -50,6 +50,52 @@ module.exports = {
     },
 
     // ============================================================
+    // Architect cast-ledger gate: ban unjustified type-system escape
+    // hatches in src/features/architect/**. Existing violations are
+    // tracked in .architect-cast-baseline.json and the ledger doc at
+    // docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md. The gate script
+    // (scripts/architect-cast-gate.mjs) is the source of truth for CI;
+    // ESLint severity here drives IDE display only. New exceptions
+    // require a rule-scoped `eslint-disable-next-line ... -- LEDGER:CAST-NNN`
+    // comment, a matching ledger row with a non-placeholder reason,
+    // and a baseline-snapshot update.
+    // ============================================================
+    {
+      files: ['src/features/architect/**/*.{ts,tsx}'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'error',
+        // Note: `no-restricted-syntax` is replaced (not merged) across
+        // overrides, so we re-include the Player/Contract interface ban
+        // from the global override above to preserve it for architect files.
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'TSInterfaceDeclaration[id.name=/^(Player|Contract)/]',
+            message:
+              'Do not declare Player*/Contract* interfaces outside src/schemas. Import from src/schemas/players_v2 instead.',
+          },
+          {
+            selector: 'TSAsExpression > TSNeverKeyword',
+            message:
+              '`as never` is banned in src/features/architect/**. Add a justified ledger entry (LEDGER:CAST-NNN) and rule-scoped disable, or fix the underlying type. See docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md.',
+          },
+          {
+            selector:
+              "TSAsExpression[expression.type='TSAsExpression'][expression.typeAnnotation.type='TSUnknownKeyword']",
+            message:
+              '`as unknown as X` is banned in src/features/architect/**. Add a justified ledger entry (LEDGER:CAST-NNN) and rule-scoped disable, or fix the underlying type. See docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md.',
+          },
+          {
+            selector:
+              "TSIndexSignature[parameters.0.typeAnnotation.typeAnnotation.type='TSStringKeyword'] > TSTypeAnnotation > TSUnknownKeyword",
+            message:
+              '`[key: string]: unknown` index signatures are tracked in src/features/architect/**. Existing instances are baselined; new ones require a ledger entry (LEDGER:CAST-NNN). See docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md.',
+          },
+        ],
+      },
+    },
+
+    // ============================================================
     // Architect layering rule: do NOT import playerRulesProfile directly
     // - UI/hooks/etc must use salaryEngine
     // - Blocks alias imports AND relative imports
