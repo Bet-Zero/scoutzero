@@ -2,6 +2,13 @@
 
 **How this doc works:** When the user says "keep working on docs/architect/ARCHITECT_NEXT_STEPS.md," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is trivial. Do not skip ahead. Do not invent new steps. When all steps are `DONE`, tell the user the plan is complete and ask what's next.
 
+**Commit & status hygiene (REQUIRED — do not skip):**
+
+1. Use the commit message specified in each step (e.g., `docs: fill in architect cast ledger reasons`). Never use generic placeholder text like "Implement feature X."
+2. BEFORE committing the source changes, edit this file (`docs/architect/ARCHITECT_NEXT_STEPS.md`) to change the step's `**Status:** TODO` line to `**Status:** DONE` and append a one-line completion note with today's date.
+3. Include the plan-doc update in the same commit as the step's work.
+4. If you cannot complete the step in one session, change the status to `IN PROGRESS` and add a brief note describing where you left off.
+
 **Background context (read before starting any step):**
 
 - The cast-ledger gate shipped 2026-04-17 (commit `a6518fd8`). It blocks new type-system shortcuts in `src/features/architect/**`. Source of truth: `scripts/architect-cast-gate.mjs`, baseline at `.architect-cast-baseline.json`, ledger at `docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md`.
@@ -19,7 +26,9 @@
 
 ## Step 1 — Fill in cast ledger TODO rows
 
-**Status:** TODO
+**Status:** DONE
+
+_Completed 2026-04-17: all 167 ledger rows filled in with seam tags and reasons (commit `51335eb4`). Note: that commit used a generic placeholder message instead of the prescribed `docs: fill in architect cast ledger reasons` — fixed forward by tightening commit-message guidance in the doc header._
 
 **Goal:** Every row in `docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md` has a real Seam value and a real Reason. No rows remain with `TODO` in either column.
 
