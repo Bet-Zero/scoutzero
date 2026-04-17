@@ -283,41 +283,62 @@ describe('Phase 64: getTeamTpeList() read helper', () => {
 // TEST CATEGORY 4: Source-scan guardrails
 // ==============================================================================
 describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
-  it('persistWorldMutation applies normalizeTeamTpeSchema BEFORE assertPersistableOrThrow', () => {
+  it('committed team snapshots normalize TPEs before persistWorldMutation validation', () => {
     const source = readSourceFile(
       'src/features/architect/utils/mutationPipeline.ts'
     );
 
-    // Find the team write section
-    const teamWriteSection = source.match(
-      /for \(const \{ teamCode, team \} of (?:computeResult\.teamUpdates|teamUpdates)\)[\s\S]*?batch\.set\(teamRef/
+    const prepareStart = source.indexOf(
+      'function prepareGeneralMutationPersistenceTeamSnapshot'
+    );
+    const prepareEnd = source.indexOf(
+      'function buildGeneralMutationCommittedTeamSnapshot'
+    );
+    const prepareSection = source.slice(prepareStart, prepareEnd);
+
+    expect(prepareSection).toContain(
+      'const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize);'
+    );
+    expect(
+      prepareSection.indexOf('sanitizeTransientFieldsForPersistence(')
+    ).toBeLessThan(prepareSection.indexOf('normalizeTeamTpeSchema(afterSanitize)'));
+
+    const builderStart = source.indexOf(
+      'function buildGeneralMutationCommittedTeamUpdates'
+    );
+    const builderEnd = source.indexOf(
+      'function normalizeDashboardReloadDeadCapAmountByYear'
+    );
+    const builderSection = source.slice(builderStart, builderEnd);
+
+    expect(builderSection).toContain(
+      'buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId)'
     );
 
-    expect(teamWriteSection).not.toBeNull();
+    const persistStart = source.indexOf('async function persistWorldMutation');
+    const persistEnd = source.indexOf('// 2. Write player overrides');
+    const persistSection = source.slice(persistStart, persistEnd);
 
-    const section = teamWriteSection[0];
-
-    // Find positions of key operations
-    const normalizePos = section.indexOf('normalizeTeamTpeSchema');
-    const assertPos = section.indexOf('assertPersistableOrThrow');
-
-    expect(normalizePos).toBeGreaterThan(-1);
-    expect(assertPos).toBeGreaterThan(-1);
-
-    // Normalization must happen BEFORE assertion
-    expect(normalizePos).toBeLessThan(assertPos);
+    expect(persistSection).toContain('const teamUpdates = committedTeamUpdates || [];');
+    expect(persistSection).toContain('assertPersistableOrThrow({');
+    expect(persistSection).toContain('obj: persistenceReadyTeam');
   });
 
-  it('persistWorldMutation uses normalized team for contract validation', () => {
+  it('the normalized helper output is what team validation consumes', () => {
     const source = readSourceFile(
       'src/features/architect/utils/mutationPipeline.ts'
     );
 
-    // The assertPersistableOrThrow should receive afterTpeNormalize, not afterSanitize
     expect(source).toContain(
       'const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize)'
     );
-    expect(source).toContain('obj: afterTpeNormalize');
+    expect(source).toContain(
+      'return afterTpeNormalize as GeneralMutationPersistenceTeamSnapshot;'
+    );
+    expect(source).toContain(
+      'prepareGeneralMutationPersistenceTeamSnapshot(team, seasonId)'
+    );
+    expect(source).toContain('obj: persistenceReadyTeam');
   });
 
   it('normalizeTeamTpeSchema is imported in mutationPipeline', () => {

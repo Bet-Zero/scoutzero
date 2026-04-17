@@ -48,7 +48,9 @@ Read `docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md`. The "Entries" table current
 
 ## Step 2 — Get CI to green
 
-**Status:** TODO
+**Status:** IN PROGRESS
+
+_Updated 2026-04-16: fixed stale phase 61/64/65 source-scan guardrail assertions and `npm run test:diff -- --reporter=dot` passes locally; full-suite and CI-green confirmation are still pending explicit `RUN FULL SUITE` permission._
 
 **Goal:** The CI workflow (`.github/workflows/ci.yml`) passes on every push to `main` so that any future red is a real signal, not background noise.
 

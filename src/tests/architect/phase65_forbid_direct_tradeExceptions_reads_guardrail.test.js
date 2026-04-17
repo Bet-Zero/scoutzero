@@ -363,23 +363,38 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
     );
   });
 
-  it('should call normalizeTeamTpeSchema before batch.set in seasonManager', () => {
+  it('should build a normalized committed snapshot before batch.set in seasonManager', () => {
     const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.ts');
     const content = fs.readFileSync(seasonManagerPath, 'utf-8');
 
-    const normalizeCall = 'normalizeTeamTpeSchema(afterSanitize)';
-    const safeTeamAssignment = 'const safeTeam = removeUndefinedDeep(normalizedTeam)';
-    const batchSetCall = 'batch.set(snapshotRef, safeTeam)';
+    const helperStart = content.indexOf(
+      'function buildSeasonAdvanceCommittedTeamSnapshot'
+    );
+    const helperEnd = content.indexOf('export type SeasonAdvanceSuccessResult');
+    const helperSection = content.slice(helperStart, helperEnd);
 
-    expect(content).toContain(normalizeCall);
-    expect(content).toContain(safeTeamAssignment);
-    expect(content).toContain(batchSetCall);
-    expect(content.indexOf(normalizeCall)).toBeLessThan(
-      content.indexOf(safeTeamAssignment)
+    expect(helperSection).toContain(
+      'sanitizeTransientFieldsForPersistence(afterHydrationStrip)'
     );
-    expect(content.indexOf(safeTeamAssignment)).toBeLessThan(
-      content.indexOf(batchSetCall)
+    expect(helperSection).toContain('const normalizedTeam = normalizeTeamTpeSchema(');
+    expect(helperSection).toContain('obj: normalizedTeam');
+    expect(helperSection).toContain('return removeUndefinedDeep(normalizedTeam);');
+    expect(helperSection.indexOf('normalizeTeamTpeSchema(')).toBeLessThan(
+      helperSection.indexOf('obj: normalizedTeam')
     );
+    expect(helperSection.indexOf('obj: normalizedTeam')).toBeLessThan(
+      helperSection.indexOf('return removeUndefinedDeep(normalizedTeam);')
+    );
+
+    const writeSection = content.slice(
+      content.indexOf('const snapshotRef = worldTeamRef(worldId, teamCode);'),
+      content.indexOf('updatedTeams.push(teamCode);')
+    );
+
+    expect(content).toContain(
+      'buildSeasonAdvanceCommittedTeamSnapshot(updatedTeam)'
+    );
+    expect(writeSection).toContain('batch.set(snapshotRef, committedTeam);');
   });
 });
 
