@@ -372,7 +372,9 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(source).toContain('export function buildTradeApplyPreparation');
       expect(source).toContain('export function getTradePreviewAuthority');
       expect(source).toContain('export function getFullLegalityPreview');
-      expect(source).not.toContain('export function evaluatePreparedTradeContext');
+      expect(source).not.toContain(
+        'export function evaluatePreparedTradeContext'
+      );
 
       // Phase 59: validateTradeForContext moved to legacy namespace
       expect(source).toContain('PHASE 59: LEGACY FUNCTION MOVED');

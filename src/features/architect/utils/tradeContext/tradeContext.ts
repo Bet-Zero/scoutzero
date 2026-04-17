@@ -189,9 +189,7 @@ function normalizeFallbackTradeApplyValidationTeam(
     ? team.receives
         .map((player) => projectTradeApplyValidationPlayer(player))
         .filter(
-          (
-            player
-          ): player is TradeApplyValidationPlayer => player !== null
+          (player): player is TradeApplyValidationPlayer => player !== null
         )
     : [];
 
@@ -452,7 +450,9 @@ export function resolveOutgoingTradeDestinationTeamCode({
   return null;
 }
 
-function getTradePayloadPlayerId(player: AnyRecord | null | undefined): string | null {
+function getTradePayloadPlayerId(
+  player: AnyRecord | null | undefined
+): string | null {
   const rawId = player?.player_id || player?.playerId || player?.id || null;
   if (rawId == null) {
     return null;
@@ -602,7 +602,8 @@ export function buildPostTradeTeamsSnapshot({
     .map((team) => normalizeTradeTeamCodeLike(team.teamCode))
     .filter(Boolean) as string[];
   const activeTeamCount = payloadTeamCodes.length;
-  const currentEndYear = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
+  const currentEndYear =
+    toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
   const enforceSatPreflight =
     normalizedPayload?.tradeCtx?.source === 'tradeMachine' ||
     normalizedPayload?.tradeCtx?.enforceSignAndTradePreflight === true;
@@ -640,68 +641,70 @@ export function buildPostTradeTeamsSnapshot({
         ? senderTeamState.capHolds
         : [];
 
-      (validationSendsByTeam[senderIndex] || []).forEach((player, playerIndex) => {
-        if (player.signAndTrade !== true) return;
+      (validationSendsByTeam[senderIndex] || []).forEach(
+        (player, playerIndex) => {
+          if (player.signAndTrade !== true) return;
 
-        const destinationTeamId = resolveOutgoingTradeDestinationTeamCode({
-          payloadTeamCodes,
-          senderIndex,
-          player,
-        });
-        const playerLabel =
-          player.name ||
-          player.displayName ||
-          player.playerName ||
-          player.player_id ||
-          player.id ||
-          `send[${playerIndex}]`;
+          const destinationTeamId = resolveOutgoingTradeDestinationTeamCode({
+            payloadTeamCodes,
+            senderIndex,
+            player,
+          });
+          const playerLabel =
+            player.name ||
+            player.displayName ||
+            player.playerName ||
+            player.player_id ||
+            player.id ||
+            `send[${playerIndex}]`;
 
-        if (
-          !destinationTeamId ||
-          !payloadTeamCodes.includes(destinationTeamId) ||
-          destinationTeamId === senderTeamCode
-        ) {
-          throw new Error(
-            `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" from ${senderTeamCode} must have a valid destination team`
+          if (
+            !destinationTeamId ||
+            !payloadTeamCodes.includes(destinationTeamId) ||
+            destinationTeamId === senderTeamCode
+          ) {
+            throw new Error(
+              `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" from ${senderTeamCode} must have a valid destination team`
+            );
+          }
+
+          const eligibility = isSignAndTradeEligible({
+            player,
+            yearKey: currentEndYear,
+            sourceTeamId: senderTeamCode,
+            sourceTeamCapHolds: senderCapHolds,
+          });
+
+          if (!eligibility.eligible) {
+            throw new Error(
+              `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" is ineligible (${eligibility.reasonCode})`
+            );
+          }
+
+          if (!player.signAndTradeContract) {
+            throw new Error(
+              `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" is missing signAndTradeContract payload`
+            );
+          }
+
+          const contract = resolveSignAndTradeContractPayload(
+            player,
+            currentEndYear,
+            { allowPlayerContractFallback: false }
           );
-        }
-
-        const eligibility = isSignAndTradeEligible({
-          player,
-          yearKey: currentEndYear,
-          sourceTeamId: senderTeamCode,
-          sourceTeamCapHolds: senderCapHolds,
-        });
-
-        if (!eligibility.eligible) {
-          throw new Error(
-            `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" is ineligible (${eligibility.reasonCode})`
+          const contractValidation = validateSignAndTradeContractPayload(
+            contract,
+            currentEndYear,
+            { requireActiveYearRow: true }
           );
-        }
 
-        if (!player.signAndTradeContract) {
-          throw new Error(
-            `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" is missing signAndTradeContract payload`
-          );
+          if (!contractValidation.valid) {
+            throw new Error(
+              `[SIGN_AND_TRADE_APPLY_ERROR] Invalid sign-and-trade contract for "${playerLabel}": ${contractValidation.reasons.join('; ')}`
+            );
+          }
         }
-
-        const contract = resolveSignAndTradeContractPayload(
-          player,
-          currentEndYear,
-          { allowPlayerContractFallback: false }
-        );
-        const contractValidation = validateSignAndTradeContractPayload(
-          contract,
-          currentEndYear,
-          { requireActiveYearRow: true }
-        );
-
-        if (!contractValidation.valid) {
-          throw new Error(
-            `[SIGN_AND_TRADE_APPLY_ERROR] Invalid sign-and-trade contract for "${playerLabel}": ${contractValidation.reasons.join('; ')}`
-          );
-        }
-      });
+      );
     });
   }
 
@@ -770,8 +773,9 @@ export function buildPostTradeTeamsSnapshot({
           currentState.teams[otherIndex]?.team;
 
         (otherTeamTrade.sends || []).forEach((player, playerIndex) => {
-          const validationPlayer =
-            validationSendsByTeam[otherIndex]?.[playerIndex] || { ...player };
+          const validationPlayer = validationSendsByTeam[otherIndex]?.[
+            playerIndex
+          ] || { ...player };
           const receiveOverride = findMatchingTradeReceivePayload(
             teamTrade.receives || [],
             player
@@ -853,10 +857,12 @@ export function buildPostTradeTeamsSnapshot({
     ];
 
     updatedTeam.players = [
-      ...(Array.isArray(team.players) ? team.players : []).filter((player: AnyRecord) => {
-        const playerId = getTradePayloadPlayerId(player);
-        return !outgoingPlayerIds.includes(playerId || '');
-      }),
+      ...(Array.isArray(team.players) ? team.players : []).filter(
+        (player: AnyRecord) => {
+          const playerId = getTradePayloadPlayerId(player);
+          return !outgoingPlayerIds.includes(playerId || '');
+        }
+      ),
       ...incomingPlayers.map((player) => ({
         ...player,
         teamCode,
@@ -968,7 +974,9 @@ export function buildPostTradeTeamsSnapshot({
       outgoingEntitlementIds.length > 0 ||
       incomingEntitlementIds.length > 0
     ) {
-      const currentEntitlementIds = Array.isArray(team.entitlementIds) ? team.entitlementIds : [];
+      const currentEntitlementIds = Array.isArray(team.entitlementIds)
+        ? team.entitlementIds
+        : [];
       const newEntitlementIds = [
         ...currentEntitlementIds.filter(
           (id: string) => !outgoingEntitlementIds.includes(id)
@@ -1018,7 +1026,9 @@ export function buildPostTradeTeamsSnapshot({
 
   const entitlementOwnership = new Map<string, string>();
   for (const { teamCode, team } of teamUpdates) {
-    const entitlementIds = Array.isArray(team.entitlementIds) ? team.entitlementIds : [];
+    const entitlementIds = Array.isArray(team.entitlementIds)
+      ? team.entitlementIds
+      : [];
     for (const entId of entitlementIds) {
       if (entitlementOwnership.has(entId)) {
         const otherTeam = entitlementOwnership.get(entId);
@@ -1030,19 +1040,21 @@ export function buildPostTradeTeamsSnapshot({
     }
   }
 
-  const validationTeams: ValidationTeam[] = payloadTeams.map((teamTrade, idx) => {
-    const teamUpdate = teamUpdates[idx];
-    return {
-      team: teamUpdate.team,
-      teamCode: teamUpdate.teamCode,
-      sends: validationSendsByTeam[idx] || [],
-      receives: validationReceivesByTeam[idx] || [],
-      picksOut: teamTrade.picksOut || [],
-      picksIn: [],
-      cashSent: teamTrade.cashSent || 0,
-      cashReceived: teamTrade.cashReceived || 0,
-    };
-  });
+  const validationTeams: ValidationTeam[] = payloadTeams.map(
+    (teamTrade, idx) => {
+      const teamUpdate = teamUpdates[idx];
+      return {
+        team: teamUpdate.team,
+        teamCode: teamUpdate.teamCode,
+        sends: validationSendsByTeam[idx] || [],
+        receives: validationReceivesByTeam[idx] || [],
+        picksOut: teamTrade.picksOut || [],
+        picksIn: [],
+        cashSent: teamTrade.cashSent || 0,
+        cashReceived: teamTrade.cashReceived || 0,
+      };
+    }
+  );
 
   return {
     teamUpdates,
@@ -1104,9 +1116,8 @@ export function validatePostTradeSnapshotForContext({
           ? normalizedTeamResults[index].incomingPlayers
               .map((player) => projectTradeApplyValidationPlayer(player))
               .filter(
-                (
-                  player
-                ): player is TradeApplyValidationPlayer => player !== null
+                (player): player is TradeApplyValidationPlayer =>
+                  player !== null
               )
           : [];
         const fallbackReceives =
@@ -1129,7 +1140,9 @@ export function validatePostTradeSnapshotForContext({
       reason: validation.reason ?? null,
       error:
         validation.error ||
-        (validation.legal ? null : (validation.reason as string) || 'Trade is not legal'),
+        (validation.legal
+          ? null
+          : (validation.reason as string) || 'Trade is not legal'),
       violations: normalizedViolations,
       warnings: normalizedWarnings,
       teamResults: normalizedTeamResults,
@@ -1140,7 +1153,8 @@ export function validatePostTradeSnapshotForContext({
 
     return context as ValidatedTradeContext;
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Trade validation failed';
+    const message =
+      error instanceof Error ? error.message : 'Trade validation failed';
     const failureIssue =
       createValidationIssue(message, {
         rule: 'tradeContext',
@@ -1191,8 +1205,7 @@ function normalizeTradePayloadPlayer({
     toNonEmptyString(player?.name) ??
     toNonEmptyString(player?.displayName) ??
     toNonEmptyString(player?.playerName);
-  const displayName =
-    toNonEmptyString(player?.displayName) ?? name;
+  const displayName = toNonEmptyString(player?.displayName) ?? name;
   const originTeamId = toNonEmptyString(player?.originTeamId);
   const matchIncoming = toFiniteNumberOrUndefined(player?.matchIncoming);
   const matchOutgoing = toFiniteNumberOrUndefined(player?.matchOutgoing);
@@ -1330,11 +1343,12 @@ export function normalizeTradeContextPayload(
 ): TradeContextNormalizedPayload {
   const ingressTeams = Array.isArray(payload?.teams) ? payload.teams : [];
   const payloadTeamCodes = ingressTeams
-    .map((team) =>
-      normalizeTradeTeamCodeLike(team?.teamCode) ??
-      normalizeTradeTeamCodeLike(team?.team?.teamCode) ??
-      normalizeTradeTeamCodeLike(team?.team?.id) ??
-      normalizeTradeTeamCodeLike(team?.teamId)
+    .map(
+      (team) =>
+        normalizeTradeTeamCodeLike(team?.teamCode) ??
+        normalizeTradeTeamCodeLike(team?.team?.teamCode) ??
+        normalizeTradeTeamCodeLike(team?.team?.id) ??
+        normalizeTradeTeamCodeLike(team?.teamId)
     )
     .map((teamCode) => teamCode ?? '');
 
@@ -1346,7 +1360,9 @@ export function normalizeTradeContextPayload(
         senderIndex,
       })
     ),
-    ...(payload?.capProjections ? { capProjections: payload.capProjections } : {}),
+    ...(payload?.capProjections
+      ? { capProjections: payload.capProjections }
+      : {}),
     ...(payload?.tradeCtx ? { tradeCtx: payload.tradeCtx } : {}),
     ...(payload?.asOfDate != null ? { asOfDate: payload.asOfDate } : {}),
   };
@@ -1431,7 +1447,9 @@ export function buildSignAndTradeTradeHandoff({
             ...(signedPlayerDisplayName
               ? { displayName: signedPlayerDisplayName }
               : {}),
-            ...(sourceTeamCode != null ? { originTeamId: String(sourceTeamCode) } : {}),
+            ...(sourceTeamCode != null
+              ? { originTeamId: String(sourceTeamCode) }
+              : {}),
             signAndTrade: true,
             signAndTradeContract: contract,
             ...(destinationTeamCode != null
@@ -1597,12 +1615,11 @@ export function getTradePreviewAuthority({
         seasonId,
         timestamp: Date.now(),
       });
-    const { beforeTeamsByCode, afterTeamsByCode } = buildPreviewAuthorityTeamMaps(
-      {
+    const { beforeTeamsByCode, afterTeamsByCode } =
+      buildPreviewAuthorityTeamMaps({
         currentState,
         postTradeSnapshot: prepared.postTradeSnapshot,
-      }
-    );
+      });
     const previewAuthority = validateTradePreviewAuthority({
       seasonId,
       validatedTradeContext: prepared.validatedContext,
@@ -1622,8 +1639,8 @@ export function getTradePreviewAuthority({
       reason: previewAuthority.reason,
       error:
         previewAuthority.failedStage === 'SNAPSHOT_VALIDATION'
-          ? previewAuthority.error ?? prepared.validatedContext.error ?? null
-          : prepared.validatedContext.error ?? null,
+          ? (previewAuthority.error ?? prepared.validatedContext.error ?? null)
+          : (prepared.validatedContext.error ?? null),
       source: 'apply-preview',
       omittedStages: previewAuthority.omittedStages,
     };
