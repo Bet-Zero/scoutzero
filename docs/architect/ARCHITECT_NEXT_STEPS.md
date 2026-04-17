@@ -158,7 +158,9 @@ Read Item 5 in `docs/architect/ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md`. Follo
 
 ## Step 8 — Audit remaining ledger rows
 
-**Status:** TODO
+**Status:** DONE
+
+_Completed 2026-04-17: reconciled `ARCHITECT_TYPE_CAST_LEDGER.md` to live ESLint output (119 surviving rows), retagged every remaining former `Item 3` row to `STANDALONE`, deleted stale row `CAST-139`, added the previously-missing `CAST-168` row for `useTradeMachine.ts`, refreshed drifted file:line references, and confirmed no coherent Step 10 seam remains._
 
 **Goal:** Every remaining ledger row is either truly load-bearing (`STANDALONE` with a clear permanent reason) or has a planned fix path. No "we forgot why this is here" rows.
 
