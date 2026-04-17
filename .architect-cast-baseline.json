@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-04-17T06:01:01.283Z",
+    "generated": "2026-04-17T06:24:16.340Z",
     "gate": "scripts/architect-cast-gate.mjs",
     "ledger": "docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md",
     "buckets": [
@@ -10,7 +10,7 @@
       "no-restricted-syntax:index-unknown"
     ],
     "totalFiles": 54,
-    "totalViolations": 161
+    "totalViolations": 159
   },
   "files": {
     "src/features/architect/GMDashboard/hooks/useArchitectActions.ts": {
@@ -115,7 +115,7 @@
       "no-explicit-any": 2
     },
     "src/features/architect/utils/leagueInvariants.ts": {
-      "no-explicit-any": 3
+      "no-explicit-any": 1
     },
     "src/features/architect/utils/loadArchitectBasePlayer.ts": {
       "no-restricted-syntax:index-unknown": 2

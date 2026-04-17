@@ -98,7 +98,9 @@ Read Item 1 in `docs/architect/ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md` and im
 
 ## Step 4 — Implement Item 2 from deferred-work doc
 
-**Status:** TODO
+**Status:** DONE
+
+_Completed 2026-04-17: added `receiving?`/`playersReceiving?` as optional fields on `ArchitectTradePayloadTeamIngress` (typed as `ArchitectTradePayloadLegacyReceivingPlayer[]`, a `Pick<>` of `ArchitectMutationPlayerRecord`) and added the missing `playerName?` to `ArchitectMutationPayload`. Both `extractIncomingPlayers` and `validateMutationLeagueInvariants` now take `payload: ArchitectMutationPayload` instead of `payload: any`. Inside the executeTrade branch, coerced `teamEntry.teamCode`/`teamEntry.team.teamCode` through `String(...)` since `MutationScalarId` is `string | number | null | undefined`. Baseline went from 161 → 159 (−2, both in leagueInvariants.ts). Ledger rows CAST-095 and CAST-096 deleted; CAST-094 retagged from `Item 2` to `STANDALONE` with an accurate reason (the `validateNoDuplicatePlayers(teams: any[])` cast is about `getLeague()` vs `computeResult.teamUpdates[].team` heterogeneity, not legacy payload fields — it was mis-tagged). Total ledger entries 165 → 163. Tests: `phase86_league_invariants.test.js` (17/17), `leagueInvariants.tradeApplyScope.test.ts` (1/1), all 35 `mutationPipeline.*.test.*` files (116/116) all green. `npx tsc --noEmit` clean._
 
 **Goal:** `leagueInvariants.ts` no longer takes `payload: any`. Legacy `receiving`/`playersReceiving` fields are properly typed (either added to `ArchitectMutationPayload` or split into a `LegacyMutationPayload` intersection).
 

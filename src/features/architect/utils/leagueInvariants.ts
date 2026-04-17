@@ -20,7 +20,10 @@ import {
   type LeagueClaimConflict,
 } from './entitlements/leagueClaimUniquenessGate';
 import type { EntitlementDocLike } from './entitlements/entitlementExclusivityValidator';
-import type { ComputeResultLike } from './mutationPipeline';
+import type {
+  ArchitectMutationPayload,
+  ComputeResultLike,
+} from './mutationPipeline';
 
 type RawPlayerLike = {
   player_id?: string | number | null;
@@ -277,7 +280,7 @@ export async function assertLeagueIntegrity(
  */
 export function extractIncomingPlayers(
   mutationType: string,
-  payload: any // load-bearing: accesses legacy payload.teams[].receiving and .playersReceiving not in ArchitectMutationPayload
+  payload: ArchitectMutationPayload
 ): Array<{ playerId: string; targetTeamCode: string; playerName?: string }> {
   const incomingPlayers: Array<{
     playerId: string;
@@ -290,7 +293,12 @@ export function extractIncomingPlayers(
       // For trades, extract players being received by each team
       const teams = payload?.teams || [];
       for (const teamEntry of teams) {
-        const targetTeamCode = teamEntry?.teamCode || teamEntry?.team?.teamCode;
+        const rawTargetTeamCode =
+          teamEntry?.teamCode ?? teamEntry?.team?.teamCode ?? null;
+        const targetTeamCode =
+          rawTargetTeamCode !== null && rawTargetTeamCode !== undefined
+            ? String(rawTargetTeamCode)
+            : null;
         const receiving =
           teamEntry?.receiving || teamEntry?.playersReceiving || [];
         for (const player of receiving) {
@@ -371,7 +379,7 @@ export function extractIncomingPlayers(
 export async function validateMutationLeagueInvariants(
   worldId: string,
   mutationType: string,
-  payload: any, // load-bearing: accesses legacy payload.teams[].receiving and .playersReceiving not in ArchitectMutationPayload
+  payload: ArchitectMutationPayload,
   computeResult?: ComputeResultLike
 ): Promise<LeagueInvariantResult> {
   // For trades, we need to validate the POST-trade state, not current state

@@ -694,6 +694,13 @@ export type ArchitectTradePayloadTeamRef = {
   teamCode?: MutationScalarId;
 };
 
+// Legacy incoming-player field carried on older executeTrade payloads.
+// Only read by leagueInvariants.extractIncomingPlayers for cross-team duplicate detection.
+export type ArchitectTradePayloadLegacyReceivingPlayer = Pick<
+  ArchitectMutationPlayerRecord,
+  'player_id' | 'id' | 'playerId' | 'bio' | 'displayName' | 'name' | 'playerName'
+>;
+
 export type ArchitectTradePayloadTeamIngress = {
   team?: ArchitectTradePayloadTeamRef | null;
   teamCode?: MutationScalarId;
@@ -703,6 +710,10 @@ export type ArchitectTradePayloadTeamIngress = {
   // apply-time compute rebuilds receives from routed sends instead of reading
   // this bag as authority.
   receives?: ArchitectTradePayloadPlayerIngress[];
+  // Legacy field names from older executeTrade payload shapes; only consumed by
+  // leagueInvariants.extractIncomingPlayers for duplicate-player detection.
+  receiving?: ArchitectTradePayloadLegacyReceivingPlayer[];
+  playersReceiving?: ArchitectTradePayloadLegacyReceivingPlayer[];
   outgoingEntitlements?: TradePayloadEntitlementLike[];
   incomingEntitlements?: TradePayloadEntitlementLike[];
   entitlementsOut?: TradePayloadEntitlementLike[];
@@ -788,6 +799,7 @@ export type ArchitectMutationPayload = {
   offeringTeamCode?: string | null;
   homeTeamCode?: string | null;
   playerId?: string | null;
+  playerName?: string | null;
   contract?: ArchitectMutationContract | null;
   extension?: ArchitectMutationContract | null;
   signedUsing?: string | null;
