@@ -26,7 +26,7 @@ PR rejected if any of the four are missing.
 Seam IDs in the table below map to the architectural work items in [ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md](ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md):
 
 - **Item 2** — `leagueInvariants.ts` legacy payload field audit
-- **Item 3** — `ArchitectContract` catch-all index signature
+- **Item 3** — `ArchitectContract` catch-all index signature — **SEAM FIX ALREADY SHIPPED** (2026-03-24 Salary-Row Schema Alignment Pass). Rows below tagged `Item 3` are *not* `ArchitectContract`/`ArchitectMutationContract` catch-alls (those types are already narrowed); they are unrelated `[key: string]: unknown` sites on other types that were bulk-tagged `Item 3` during the initial 2026-04-17 ledger classification. Step 8 of `ARCHITECT_NEXT_STEPS.md` will audit and retag them as `STANDALONE` with type-specific reasons.
 - **Item 4** — `ArchitectMutationTeamRecord.totals` dual-shape split
 - **Item 5** — `as never` casts caused by JS-migrated utilities
 - **STANDALONE** — load-bearing exception not part of a known multi-file seam

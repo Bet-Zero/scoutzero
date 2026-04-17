@@ -113,7 +113,9 @@ Read Item 2 in `docs/architect/ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md`. Audit
 
 ## Step 5 — Implement Item 3 from deferred-work doc (biggest payoff)
 
-**Status:** TODO
+**Status:** DONE
+
+_Completed 2026-04-17: verified the Item 3 seam fix already shipped in the 2026-03-24 Salary-Row Schema Alignment Pass. `ArchitectContract` in [useArchitectState.ts:130-137](src/features/architect/GMDashboard/hooks/useArchitectState.ts#L130-L137) has no catch-all; `ArchitectMutationContract` in [mutationPipeline.ts:394-436](src/features/architect/utils/mutationPipeline.ts#L394-L436) has all previously-undeclared fields (`years`, `contractYears`, `firstYearSalary`, `year1Salary`, `originalLength`, `contractLength`, `yearsRemaining`, etc.) explicitly declared. `npx tsc --noEmit` clean; `node scripts/architect-cast-gate.mjs` PASS at 54 files / 159 violations. No source changes this session. The ~40 ledger rows tagged `Item 3` are NOT about ArchitectContract — Step 1's bulk-classification pass applied the tag loosely to every `[key: string]: unknown` in architect scope (validator result types, bio/roster shapes, entitlement shapes, contract normalization helpers). Those rows remain and will be audited/retagged STANDALONE in Step 8. Seam-reference line in the ledger header updated to say so. Commit `docs: mark architect next-steps Step 5 done (Item 3 previously completed)`._
 
 **Goal:** `ArchitectContract` no longer has the `[key: string]: unknown` catch-all. All previously-undeclared fields (`years`, `contractYears`, `firstYearSalary`, `salariesByYear`, `originalLength`, etc.) are explicitly typed as optional fields on the type.
 
