@@ -62,10 +62,6 @@ declare module '@/features/roster/utils' {
   export const buildInitialRoster: any;
 }
 
-declare module '@/features/roster/utils/enrichPlayerData' {
-  export const enrichPlayerData: any;
-}
-
 declare module '@/features/roster/RosterSection' {
   const RosterSection: any;
   export default RosterSection;

@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/roster/utils/enrichPlayerData.js
+ * FILE: src/features/roster/utils/enrichPlayerData.ts
  * PURPOSE: Normalize players_v2 data into UI-friendly contract, stats, and evaluation fields.
  * OWNERSHIP: Feature: roster (player data enrichment)
  *
@@ -14,13 +14,185 @@
 
 import { POSITION_MAP } from '@/shared/utils/roles/roleUtils';
 import { normalizeBlurbs } from '@/shared/utils/blurbs';
+import type { Blurbs } from '@/shared/utils/blurbs';
 import { normalizeVideoExamples } from '@/shared/utils/videoExamples';
+import type { NormalizedVideoExamples } from '@/shared/utils/videoExamples';
+
+type BirdRightsInput =
+  | string
+  | {
+      status?: string | null;
+      eligibleFor?: string[] | null;
+    }
+  | null
+  | undefined;
+
+type SalaryYearEntry = {
+  year?: number | string | null;
+  season?: number | string | null;
+  salary?: number | string | null;
+  option?: string | null;
+};
+
+type ContractOption = {
+  year?: number | string | null;
+  type?: string | null;
+};
+
+type FreeAgencyInput = {
+  freeAgentYear?: number | string | null;
+  freeAgentType?: string | null;
+  type?: string | null;
+  year?: number | null;
+};
+
+export type EnrichableContract = {
+  salariesByYear?: SalaryYearEntry[] | null;
+  freeAgency?: FreeAgencyInput | null;
+  contractType?: string | null;
+  options?: ContractOption[] | null;
+  birdRights?: BirdRightsInput;
+  yearsRemaining?: number | null;
+  averageAnnualValue?: number | null;
+  maxType?: string | null;
+};
+
+type CurrentContractViewInput = {
+  salaryByYear?: Record<string, number | null | undefined> | null;
+  optionsByYear?: Record<string, string | null | undefined> | null;
+  freeAgentYear?: number | string | null;
+  freeAgentType?: string | null;
+  contractType?: string | null;
+  options?: ContractOption[] | null;
+  birdRights?: BirdRightsInput;
+  yearsRemaining?: number | null;
+  averageAnnualValue?: number | null;
+  maxType?: string | null;
+  currentSalary?: number | null;
+};
+
+type ContractViewSeasonInput = {
+  season?: number | string | null;
+  optionType?: string | null;
+};
+
+type ContractsViewInput = {
+  seasons?: ContractViewSeasonInput[] | null;
+};
+
+export type PlayerStats = Record<string, number | string | null | undefined>;
+type SeasonMeta = Record<string, unknown>;
+
+type SeasonInput = {
+  stats?: PlayerStats | null;
+  meta?: SeasonMeta | null;
+};
+
+type EvaluationRoles = {
+  offense1?: string;
+  offense2?: string;
+  defense1?: string;
+  defense2?: string;
+};
+
+export type PlayerSubRoles = {
+  offense: string[];
+  defense: string[];
+};
+
+type EvaluationInput = {
+  roles?: EvaluationRoles | null;
+  traits?: Record<string, number> | null;
+  subRoles?: Partial<PlayerSubRoles> | null;
+  shootingProfile?: unknown;
+  twoWay?: number | null;
+  badges?: string[] | null;
+  overallGrade?: number | null;
+  blurbs?: unknown;
+  videoExamples?: unknown;
+};
+
+type PlayerBioInput = {
+  displayName?: string | null;
+  playerId?: string | null;
+  position?: string | null;
+  height?: number | null;
+  weight?: number | null;
+  age?: number | null;
+  dob?: string | null;
+  display?: {
+    team?: string | null;
+    teamId?: string | null;
+    freeAgentYear?: number | string | null;
+    freeAgentType?: string | null;
+  } | null;
+};
+
+export type EnrichablePlayerData = {
+  id?: string;
+  bio?: PlayerBioInput | null;
+  currentContractView?: CurrentContractViewInput | null;
+  contractsView?: ContractsViewInput | null;
+  contracts?: Record<string, EnrichableContract | null | undefined> | null;
+  currentSeasonStats?: PlayerStats | null;
+  seasons?: Record<string, SeasonInput | null | undefined> | null;
+  currentEvaluationView?: EvaluationInput | null;
+  evaluations?: Record<string, EvaluationInput | null | undefined> | null;
+};
+
+type PrimaryEvaluation = EvaluationInput & {
+  roles: EvaluationRoles;
+  traits: Record<string, number>;
+  subRoles: PlayerSubRoles;
+  shootingProfile: string;
+  twoWay: number | null | undefined;
+  badges: string[];
+  overallGrade: number | null | undefined;
+  blurbs: Blurbs;
+  videoExamples: NormalizedVideoExamples;
+};
+
+export type EnrichedPlayerData<
+  TPlayer extends EnrichablePlayerData = EnrichablePlayerData,
+> = TPlayer & {
+  name: string;
+  formattedPosition: string;
+  heightInInches: number;
+  weight: number;
+  age: number;
+  team: string | null;
+  headshotUrl: string;
+  offenseRole: string;
+  defenseRole: string;
+  shootingProfile: string;
+  twoWay: number | null;
+  blurbs: Blurbs;
+  videoExamples: NormalizedVideoExamples;
+  subRoles: PlayerSubRoles;
+  traits: Record<string, number>;
+  badges: string[];
+  overallGrade: number | null;
+  freeAgentYear: number | string | null;
+  freeAgentType: string | null;
+  birdRightsStatus: string | null;
+  optionByYear: Record<string | number, string>;
+  salaryByYear: Record<string | number, number | null>;
+  latestSeasonId: string | null;
+  latestSeasonStats: PlayerStats;
+  latestSeasonMeta: SeasonMeta;
+  primaryContractId: string | null;
+  primaryContract: EnrichableContract | null;
+  primaryEvaluation: PrimaryEvaluation;
+  PPG: number | string | null | undefined;
+  RPG: number | string | null | undefined;
+  APG: number | string | null | undefined;
+};
 
 /**
  * Normalize playerId for headshot path lookup
  * Handles special characters (e.g., kristaps_porzingis -> kristaps_porziņģis)
  */
-function normalizeHeadshotId(playerId) {
+function normalizeHeadshotId(playerId: string | null | undefined): string {
   if (!playerId) return 'default';
   // Normalize special characters - convert to ASCII-friendly version
   return playerId
@@ -32,7 +204,7 @@ function normalizeHeadshotId(playerId) {
 /**
  * Get headshot path, trying normalized version first, then falling back to original
  */
-function getHeadshotPath(playerId) {
+function getHeadshotPath(playerId: string | null | undefined): string {
   if (!playerId) return '/assets/headshots/default.png';
   const normalized = normalizeHeadshotId(playerId);
   // Try normalized first (handles special characters)
@@ -41,15 +213,15 @@ function getHeadshotPath(playerId) {
 
 /**
  * Calculate age from date of birth (DOB)
- * @param {string} dob - Date of birth in ISO format (YYYY-MM-DD) or other parseable format
- * @returns {number|null} - Age in years, or null if DOB is invalid
+ * @param dob - Date of birth in ISO format (YYYY-MM-DD) or other parseable format
+ * @returns Age in years, or null if DOB is invalid
  */
-function calculateAgeFromDOB(dob) {
+function calculateAgeFromDOB(dob: string | null | undefined): number | null {
   if (!dob) return null;
 
   try {
     const birthDate = new Date(dob);
-    if (isNaN(birthDate.getTime())) return null;
+    if (Number.isNaN(birthDate.getTime())) return null;
 
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -69,40 +241,55 @@ function calculateAgeFromDOB(dob) {
   }
 }
 
-const hasOwn = (obj, key) =>
-  obj && Object.prototype.hasOwnProperty.call(obj, key);
+const hasOwn = <T extends object, K extends PropertyKey>(
+  obj: T | null | undefined,
+  key: K
+): obj is T & Record<K, unknown> =>
+  Boolean(obj && Object.prototype.hasOwnProperty.call(obj, key));
 
-const pickEvaluationDoc = (evaluations = {}) => {
+const pickEvaluationDoc = (
+  evaluations: EnrichablePlayerData['evaluations'] = {}
+): EvaluationInput | null => {
   if (!evaluations || typeof evaluations !== 'object') return null;
   if (evaluations.current) return evaluations.current;
-  const values = Object.values(evaluations);
+  const values = Object.values(evaluations).filter(
+    (value): value is EvaluationInput => Boolean(value)
+  );
   return values.length > 0 ? values[0] : null;
 };
 
-const normalizeShootingProfile = (value) => {
+const normalizeShootingProfile = (value: unknown): string => {
   if (typeof value !== 'string') return '';
   if (value.trim() === '—') return '';
   return value;
 };
 
-const normalizeSubRoles = (viewSub, subSub) => ({
-  offense: Array.isArray(subSub?.offense)
-    ? subSub.offense
-    : Array.isArray(viewSub?.offense)
-      ? viewSub.offense
-      : [],
-  defense: Array.isArray(subSub?.defense)
-    ? subSub.defense
-    : Array.isArray(viewSub?.defense)
-      ? viewSub.defense
-      : [],
+const toStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+
+const normalizeSubRoles = (
+  viewSub: EvaluationInput['subRoles'],
+  subSub: EvaluationInput['subRoles']
+): PlayerSubRoles => ({
+  offense:
+    toStringArray(subSub?.offense).length > 0
+      ? toStringArray(subSub?.offense)
+      : toStringArray(viewSub?.offense),
+  defense:
+    toStringArray(subSub?.defense).length > 0
+      ? toStringArray(subSub?.defense)
+      : toStringArray(viewSub?.defense),
 });
 
 /**
  * Normalize free agent type to canonical format
  * Data may come as "UFA", "RFA", "TWO_WAY", or legacy "2W"
  */
-const normalizeFreeAgentType = (faType) => {
+const normalizeFreeAgentType = (
+  faType: string | null | undefined
+): string | null => {
   if (!faType) return null;
   const normalized = String(faType).toUpperCase().trim();
   // Handle legacy "2W" format
@@ -118,7 +305,9 @@ const normalizeFreeAgentType = (faType) => {
  * Normalize bird rights status from object or string
  * Data may be object { status: "Bird", eligibleFor: [...] } or string
  */
-const normalizeBirdRightsStatus = (birdRights) => {
+const normalizeBirdRightsStatus = (
+  birdRights: BirdRightsInput
+): string | null => {
   if (!birdRights) return null;
   // If it's already a string, return it
   if (typeof birdRights === 'string') return birdRights;
@@ -127,6 +316,13 @@ const normalizeBirdRightsStatus = (birdRights) => {
     return birdRights.status;
   }
   return null;
+};
+
+const parseSeasonStartYear = (value: number | string | null | undefined): number => {
+  if (typeof value === 'string' && value.includes('-')) {
+    return Number.parseInt(value.split('-')[0], 10);
+  }
+  return Number.parseInt(String(value), 10);
 };
 
 /**
@@ -139,18 +335,20 @@ const normalizeBirdRightsStatus = (birdRights) => {
  * - seasons: { [seasonId]: { stats, team, etc. } }
  * - evaluations: { [evalId]: { roles, traits, badges, etc. } }
  */
-export function enrichPlayerData(playerData) {
+export function enrichPlayerData<TPlayer extends EnrichablePlayerData>(
+  playerData: TPlayer | null | undefined
+): EnrichedPlayerData<TPlayer> | null {
   if (!playerData) return null;
 
   // v2 nested position data (ONLY v2 structure)
-  const rawPosition = playerData.bio?.position;
+  const rawPosition = playerData.bio?.position || null;
   const formattedPosition = POSITION_MAP[rawPosition] || rawPosition || '—';
 
   // Prioritize denormalized views from main document, fallback to subcollections
   // Contract data: use currentContractView if available
-  let salaryMap = {};
-  let primaryContractId = null;
-  let primaryContract = null;
+  const salaryMap: Record<string | number, number | null> = {};
+  let primaryContractId: string | null = null;
+  let primaryContract: EnrichableContract | null = null;
 
   // Build primaryContract from currentContractView for easier access
   if (playerData.currentContractView?.salaryByYear) {
@@ -164,24 +362,21 @@ export function enrichPlayerData(playerData) {
     // Create a primaryContract-like structure from currentContractView
     // Convert salaryByYear object to array format for backward compatibility
     // CRITICAL: Must include option field from contractsView.seasons for Option filter
-    let salariesArray = Object.entries(denormalizedSalaries)
+    let salariesArray: SalaryYearEntry[] = Object.entries(denormalizedSalaries)
       .map(([year, salary]) => ({
-        year: parseInt(year, 10),
+        year: Number.parseInt(year, 10),
         salary: typeof salary === 'number' ? salary : null,
         option: null, // Will be populated below from contractsView if available
       }))
-      .sort((a, b) => a.year - b.year);
+      .sort((a, b) => Number(a.year) - Number(b.year));
 
     // Merge option data from contractsView.seasons (has optionType field)
     if (playerData.contractsView?.seasons) {
-      const optionMap = {};
+      const optionMap: Record<string | number, string> = {};
       playerData.contractsView.seasons.forEach((season) => {
         if (season.optionType && season.season) {
-          // Extract start year from season string "2025-26" → 2025
-          const yearNum =
-            typeof season.season === 'string' && season.season.includes('-')
-              ? parseInt(season.season.split('-')[0], 10)
-              : parseInt(season.season, 10);
+          // Extract start year from season string "2025-26" -> 2025
+          const yearNum = parseSeasonStartYear(season.season);
           if (yearNum) {
             optionMap[yearNum] = season.optionType;
           }
@@ -191,7 +386,7 @@ export function enrichPlayerData(playerData) {
       // Merge options into salariesArray
       salariesArray = salariesArray.map((entry) => ({
         ...entry,
-        option: optionMap[entry.year] || null,
+        option: optionMap[entry.year ?? ''] || null,
       }));
     }
 
@@ -211,11 +406,14 @@ export function enrichPlayerData(playerData) {
   } else {
     // Fallback to contracts subcollection
     if (playerData.contracts && Object.keys(playerData.contracts).length > 0) {
-      const [firstId, firstContract] = Object.entries(
-        playerData.contracts
-      ).sort(([a], [b]) => a.localeCompare(b))[0];
-      primaryContractId = firstId;
-      primaryContract = firstContract || null;
+      const firstEntry = Object.entries(playerData.contracts).sort(([a], [b]) =>
+        a.localeCompare(b)
+      )[0];
+      if (firstEntry) {
+        const [firstId, firstContract] = firstEntry;
+        primaryContractId = firstId;
+        primaryContract = firstContract || null;
+      }
     }
 
     const annualSalaries = primaryContract?.salariesByYear || [];
@@ -223,14 +421,14 @@ export function enrichPlayerData(playerData) {
       const key = s.year || s.season;
       if (!key) return;
 
-      let raw = s.salary;
+      const raw = s.salary;
       if (typeof raw === 'string') {
         const cleaned = raw.replace(/[$,]/g, '').trim();
         if (cleaned.endsWith('M')) {
-          const value = parseFloat(cleaned.slice(0, -1));
+          const value = Number.parseFloat(cleaned.slice(0, -1));
           salaryMap[key] = Number.isFinite(value) ? value : null;
         } else {
-          const value = parseFloat(cleaned);
+          const value = Number.parseFloat(cleaned);
           salaryMap[key] = Number.isFinite(value) ? value / 1_000_000 : null;
         }
       } else if (typeof raw === 'number') {
@@ -246,33 +444,36 @@ export function enrichPlayerData(playerData) {
   }
 
   // Stats data: use currentSeasonStats if available
-  let latestSeasonId = null;
-  let latestSeasonStats = {};
-  let latestSeasonMeta = {};
+  let latestSeasonId: string | null = null;
+  let latestSeasonStats: PlayerStats = {};
+  let latestSeasonMeta: SeasonMeta = {};
 
   if (playerData.currentSeasonStats) {
     // Use denormalized stats from main document
     latestSeasonStats = playerData.currentSeasonStats;
   } else if (playerData.seasons && Object.keys(playerData.seasons).length > 0) {
     // Fallback to seasons subcollection
-    const [seasonId, seasonData] = Object.entries(playerData.seasons).sort(
-      ([a], [b]) => b.localeCompare(a)
+    const firstSeasonEntry = Object.entries(playerData.seasons).sort(([a], [b]) =>
+      b.localeCompare(a)
     )[0];
-    latestSeasonId = seasonId;
-    latestSeasonStats = seasonData?.stats || {};
-    latestSeasonMeta = seasonData?.meta || {};
+    if (firstSeasonEntry) {
+      const [seasonId, seasonData] = firstSeasonEntry;
+      latestSeasonId = seasonId;
+      latestSeasonStats = seasonData?.stats || {};
+      latestSeasonMeta = seasonData?.meta || {};
+    }
   }
 
   // Evaluation data: merge currentEvaluationView with evaluations/current (preferred)
-  const evaluationView = playerData.currentEvaluationView || {};
+  const evaluationView: EvaluationInput = playerData.currentEvaluationView || {};
   const evaluationDoc = pickEvaluationDoc(playerData.evaluations);
 
-  const roles = {
+  const roles: EvaluationRoles = {
     ...(evaluationView.roles || {}),
     ...(evaluationDoc?.roles || {}),
   };
 
-  const traits = {
+  const traits: Record<string, number> = {
     ...(evaluationView.traits || {}),
     ...(evaluationDoc?.traits || {}),
   };
@@ -311,7 +512,7 @@ export function enrichPlayerData(playerData) {
     ? normalizeVideoExamples(evaluationDoc.videoExamples)
     : normalizeVideoExamples(evaluationView.videoExamples);
 
-  const evaluationData = {
+  const evaluationData: PrimaryEvaluation = {
     ...evaluationView,
     ...(evaluationDoc || {}),
     roles,
@@ -333,14 +534,14 @@ export function enrichPlayerData(playerData) {
   // 1) PRIMARY: currentContractView.optionsByYear (denormalized in main doc)
   // 2) FALLBACK: Build from primaryContract.salariesByYear (legacy/subcollection)
   // Keys use seasonStartYear convention (e.g., 2025 = 2025-26 season)
-  let optionByYear = {};
+  const optionByYear: Record<string | number, string> = {};
 
   // PRIMARY: Use denormalized optionsByYear from main document
   if (playerData.currentContractView?.optionsByYear) {
     const raw = playerData.currentContractView.optionsByYear;
     // Convert string keys to numbers for consistent access
     Object.keys(raw).forEach((key) => {
-      const yearNum = parseInt(key, 10);
+      const yearNum = Number.parseInt(key, 10);
       if (yearNum && raw[key]) {
         optionByYear[yearNum] = raw[key];
       }
@@ -354,10 +555,7 @@ export function enrichPlayerData(playerData) {
       const key = s.year || s.season;
       if (!key || !s.option) return;
       // Extract year as number - use START year for season strings like "2025-26"
-      const yearNum =
-        typeof key === 'string' && key.includes('-')
-          ? parseInt(key.split('-')[0], 10) // "2025-26" → 2025 (start year)
-          : parseInt(key, 10);
+      const yearNum = parseSeasonStartYear(key);
       if (yearNum && s.option) {
         optionByYear[yearNum] = s.option; // "PO", "TO", "ETO"
       }
@@ -390,9 +588,11 @@ export function enrichPlayerData(playerData) {
     offenseRole: evaluationData.roles?.offense1 || '—',
     defenseRole: evaluationData.roles?.defense1 || '—',
     shootingProfile,
-    twoWay: Number.isFinite(evaluationData.twoWay)
-      ? evaluationData.twoWay
-      : null,
+    twoWay:
+      typeof evaluationData.twoWay === 'number' &&
+      Number.isFinite(evaluationData.twoWay)
+        ? evaluationData.twoWay
+        : null,
     blurbs,
     videoExamples,
     subRoles,

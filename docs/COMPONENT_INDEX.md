@@ -106,7 +106,6 @@ Quick reference for all components in the ScoutZero project.
 - RosterViewer.jsx
 - SaveRosterModal.jsx
 - hooks/useRosterManager.js
-- utils/enrichPlayerData.js
 - utils/index.js
 
 ## Table
@@ -142,4 +141,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-04-18T13:46:21.271Z*
+*Generated on: 2026-04-18T13:53:01.078Z*
