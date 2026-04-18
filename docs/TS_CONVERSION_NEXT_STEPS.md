@@ -645,8 +645,8 @@ Opportunistic Pile C rule:
 
 Dedicated Pile C plan decision:
 
-- A dedicated Pile C plan is not needed right now. Opportunistic conversion is enough because Pile C is mostly UI component surface, and broad UI migration would create a large visual regression risk without a product requirement.
-- If the user later wants a UI-only TypeScript push, create a new bounded plan that starts with the highest-traffic page/component trees and requires screenshot or UI-test validation per tree.
+- A dedicated Pile C plan was requested after this closeout. Use `docs/TS_CONVERSION_PILE_C_PLAN.md` as the successor plan.
+- This completed Pile A/B plan stays closed; Pile C should advance in the dedicated plan rather than by reopening this document.
 
 This JS-to-TS living plan is complete.
 
