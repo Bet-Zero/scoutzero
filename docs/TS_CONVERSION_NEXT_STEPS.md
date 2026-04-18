@@ -29,7 +29,8 @@
 
 ## Step 1 — Audit Pile A and produce conversion order
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-18: `docs/TS_CONVERSION_PILE_A_AUDIT.md` created — 34 files catalogued across 5 groups, import graph resolved, 5-wave conversion order established, 6 pre-populated follow-up items noted.
 
 **Goal:** A companion doc `docs/TS_CONVERSION_PILE_A_AUDIT.md` that lists every file in Pile A with: file path, line count, current exports, import graph (what imports it, what it imports), recommended conversion order (leaves first), and a one-sentence note on what the file does.
 
