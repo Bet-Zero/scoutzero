@@ -1,6 +1,6 @@
 # STEP 1 — Free Agency Action Ownership and Source of Truth
 
-## Scope
+## Step 2 Scope
 
 Free Agency — Step 1: Action Ownership and Source of Truth
 
@@ -9,7 +9,7 @@ Free Agency — Step 1: Action Ownership and Source of Truth
 
 ---
 
-## Purpose of this Step
+## Step 2 Purpose
 
 Determine the real ownership model for Free Agency actions and state.
 
@@ -23,7 +23,7 @@ Main questions:
 
 ---
 
-## Executive Verdict
+## Step 2 Executive Verdict
 
 **RISK**
 
@@ -291,7 +291,7 @@ That is not automatically bad, but it increases the chance that Free Agency beha
 
 ---
 
-## PASS / RISK / FAIL
+## Step 2 PASS / RISK / FAIL
 
 ### Result: RISK
 
@@ -315,7 +315,7 @@ Free Agency is clearly organized enough to avoid a FAIL verdict.
 
 ---
 
-## Final Conclusion
+## Step 2 Final Conclusion
 
 Free Agency has a real central action owner and generally coherent world-gated mutation truth.
 
@@ -325,7 +325,7 @@ However, the feature still carries enough split payload ownership and dual-path 
 
 ---
 
-# STEP 2 — Free Agent Pool UI Truth and Modal Launch Wiring
+## Detailed Step 2 Review
 
 ## Scope
 

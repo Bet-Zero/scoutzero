@@ -125,7 +125,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | Picks are compared by year/round/via (no stable ID) |
 | **Evidence** | `src/features/architect/utils/tradeHelpers.js:288-291` |
-| **Snippet** | `export const areSamePick = (a, b) => +a.year === +b.year && +a.round === +b.round && (a.via || '') === (b.via || '');` |
+| **Snippet** | `export const areSamePick = (a, b) => +a.year === +b.year && +a.round === +b.round && (a.via \|\| '') === (b.via \|\| '');` |
 | **Call Chain** | `useTradeMachine.togglePick()` → `picksOut.findIndex((p) => areSamePick(p, pick))` |
 | **Input Shape** | Two pick objects with `year`, `round`, `via` fields |
 | **Output Effect** | Picks without `via` are compared only by year/round; **originalTeam is NOT used** |
@@ -238,7 +238,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 | **Snippet** | `export function resolveConveyanceForPick(pick, positionsMap, opts = {}) { ... if (protectionTriggers(protection, position)) { return resolveProtectionTrigger(pick, position, opts); } }` |
 | **Call Chain** | `seasonManager.advanceSeasonYear()` → `resolveConveyanceForPick(pick, positionsMap)` at line 1222 |
 | **Input Shape** | `pick` with `protection` string and/or `conveyance` object; `positionsMap` with team → position mapping |
-| **Output Effect** | Returns pick with `conveyanceResult: { outcome: 'rolled' | 'conveyed' | 'converted', position, ... }` |
+| **Output Effect** | Returns pick with `conveyanceResult: { outcome: 'rolled' \| 'conveyed' \| 'converted', position, ... }` |
 
 ### E17: Pick ID Utilities Implemented (G5 RESOLVED - 2026-01-15)
 
@@ -246,7 +246,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | `pickIdUtils.js` provides stable pick ID generation and comparison |
 | **Evidence** | `src/features/architect/utils/tradeMachine/utils/pickIdUtils.js:63-75` |
-| **Snippet** | `export function generatePickId(pick) { const team = pick.originalTeam || 'UNK'; const year = pick.year || '????'; const round = normalizeRound(pick.round); return \`${team}_${year}_${round}\`; }` |
+| **Snippet** | `export function generatePickId(pick) { const team = pick.originalTeam \|\| 'UNK'; const year = pick.year \|\| '????'; const round = normalizeRound(pick.round); return \`${team}_${year}_${round}\`; }` |
 | **Call Chain** | `ensurePickId(pick)` → `generatePickId(pick)` |
 | **Input Shape** | `pick` with `originalTeam`, `year`, `round` (string or number) |
 | **Output Effect** | Returns canonical ID format `{originalTeam}_{year}_{round}` (e.g., `"PHI_2026_1"`) |
@@ -257,7 +257,7 @@ This document provides a **brutally honest audit** of draft pick implementation 
 |-------|-------|
 | **Claim** | `validateStepien.js` now reads existing obligations and considers swap types |
 | **Evidence** | `src/features/architect/utils/tradeMachine/rules/validateStepien.js:14-24, 116` |
-| **Snippet** | `function reservesYearForStepien(pick) { if (!pick.isSwap) return true; const swapType = pick.swapType || 'best_of'; return swapType !== 'worst_of'; }` and `const existingObligations = team.draftPicksObligations || team.team?.draftPicksObligations || [];` |
+| **Snippet** | `function reservesYearForStepien(pick) { if (!pick.isSwap) return true; const swapType = pick.swapType \|\| 'best_of'; return swapType !== 'worst_of'; }` and `const existingObligations = team.draftPicksObligations \|\| team.team?.draftPicksObligations \|\| [];` |
 | **Call Chain** | `validateStepien(team, tradeCtx)` → `reservesYearForStepien(pick)` → `obligationReservesYear(ob, teamCode)` |
 | **Input Shape** | `team.draftPicksObligations[]` array with pick obligations; `pick.isSwap`, `pick.swapType` |
 | **Output Effect** | `worst_of` swaps do NOT reserve year for Stepien; `best_of` swaps DO reserve year |

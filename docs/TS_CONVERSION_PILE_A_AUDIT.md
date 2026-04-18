@@ -79,10 +79,10 @@
 |------|-------|---------|-------------|--------------------------|-------|
 | `useClickOutside.js` | 25 | default `useClickOutside` | none | UI components | No Pile A imports. Trivial leaf. Params are `RefObject`, `(event) => void`, `boolean`. |
 | `useImageDownload.js` | 61 | default `useImageDownload` | none | export UI components | No Pile A imports. Leaf. Param is a `RefObject<HTMLElement>`. Returns `(filename: string, options?: {...}) => Promise<void>`. |
-| `useAuth.js` | 65 | named `useAuth` | none | architect GMDashboard, 20+ other files | No Pile A imports. Leaf. Return type: `{ user: FirebaseUser | null, userId: string | null, loading: boolean }`. |
-| `useFirebaseQuery.js` | 55 | default `useFirebaseQuery` | none | lists, tierMaker, roster, ranker (many files) | No Pile A imports. Leaf. Generic return: `{ data: T[], loading: boolean, error: Error | null }`. Good candidate for`useFirebaseQuery<T>`. |
+| `useAuth.js` | 65 | named `useAuth` | none | architect GMDashboard, 20+ other files | No Pile A imports. Leaf. Return type: `{ user: FirebaseUser \| null, userId: string \| null, loading: boolean }`. |
+| `useFirebaseQuery.js` | 55 | default `useFirebaseQuery` | none | lists, tierMaker, roster, ranker (many files) | No Pile A imports. Leaf. Generic return: `{ data: T[], loading: boolean, error: Error \| null }`. Good candidate for `useFirebaseQuery<T>`. |
 | `useSeasonPlayerData.js` | 163 | default `useSeasonPlayerData` | `@/constants/collections` (`.ts`), `@/features/roster/utils` (`.js`) | (deprecated — emit warning) | **Deprecated** hook. Marked with `@deprecated` JSDoc. Still in use via `usePlayerData`/`useSimplePlayerData` wrappers. Low priority to convert; the deprecation path matters more. |
-| `usePlayerDetail.js` | 147 | default `usePlayerDetail` | `@/data/firestorePaths.js` (Pile A), Zod schemas (`.ts`) | profile hooks, architect player load | Depends on `firestorePaths.js`. Convert that first. Already uses Zod validation (dev-only). Return type: `{ player: PlayerV2 | null, loading: boolean, error: string | null }`. |
+| `usePlayerDetail.js` | 147 | default `usePlayerDetail` | `@/data/firestorePaths.js` (Pile A), Zod schemas (`.ts`) | profile hooks, architect player load | Depends on `firestorePaths.js`. Convert that first. Already uses Zod validation (dev-only). Return type: `{ player: PlayerV2 \| null, loading: boolean, error: string \| null }`. |
 
 ---
 

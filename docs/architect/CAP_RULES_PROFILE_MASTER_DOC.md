@@ -78,8 +78,6 @@ This document establishes a **Single Source of Truth (SSOT)** for all cap rules,
 
 ### 3.3 Minimum Salary Tables
 
-### 3.3 Minimum Salary Tables
-
 | Constant/Concept | Current Value(s) Found | File(s) | Consumer(s) | Notes/Conflicts |
 |------------------|------------------------|---------|-------------|-----------------|
 | MIN_SALARY_ROOKIE (2024-25) | **$1,119,563** | `capProjections.js` | `capRulesProfile`, `computeTeamCapTotals` | **CANONICAL** |

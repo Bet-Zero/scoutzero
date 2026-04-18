@@ -35,7 +35,7 @@ Modified [buildSelectionSpecs()](file:///Users/brenthibbitts/Desktop/ScoutZero/t
 | Check | Result |
 |-------|--------|
 | DAL_2030_1st has selectionSpecs | ✅ `[{ kind:'swap', controller:'SAS', order:'most', pool:['BOS','DAL','SAS'] }]` |
-| DAL Rights View for 2030 | ✅ `2030 | 1 | owes most favorable to SAS | pool (BOS,DAL,SAS)` |
+| DAL Rights View for 2030 | ✅ `2030 \| 1 \| owes most favorable to SAS \| pool (BOS,DAL,SAS)` |
 | MIL_2026_2nd clean | ✅ No first-round encumbrances |
 | Pick count | ✅ 480 |
 | needs_review | ✅ 0 |

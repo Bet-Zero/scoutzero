@@ -369,8 +369,7 @@ These files support human cross-checking against external sources (e.g., Fanspo)
 
 > [!TIP]
 > For manual Trade Machine asset verification, use `draft_assets_team_lists.md`. It provides a clean, scroll-proof view with one table per team, sorted by year, with clear team separators.
-
-> [!TIP]
+>
 > For fast cross-referencing against external sources (Fanspo, RealGM, etc.), use `draft_assets_manual_check.md`. It provides a compact one-line-per-pick view optimized for visual scanning. Format: `YEAR | ROUND | ORIGIN | CONDITIONS`
 
 ---

@@ -332,7 +332,7 @@ teamsWithAssets[] = {
 | Team inventory from SSOT | ✅ Yes | Phase 13 entitlements as baseline |
 | Stepien rule enforcement | ✅ Yes | [validateStepien.js](src/features/architect/utils/tradeMachine/rules/validateStepien.js) |
 | Cannot trade unowned picks | ✅ Yes | Entitlement ownership validation |
-| Swaps handled correctly | ✅ Yes | `swapType: 'best_of' | 'worst_of'` |
+| Swaps handled correctly | ✅ Yes | `swapType: 'best_of' \| 'worst_of'` |
 | Protections propagate | ✅ Yes | `pickRulesById` for protection metadata |
 | UI pick selection | ✅ Yes | [EntitlementPicksList.jsx](src/features/architect/tradeMachine/EntitlementPicksList.jsx) |
 | Pick summary UI | ✅ Yes | [EntitlementPickRow.jsx](src/features/architect/tradeMachine/EntitlementPickRow.jsx) |
