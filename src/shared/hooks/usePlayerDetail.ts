@@ -36,7 +36,9 @@ interface UsePlayerDetailResult {
  *
  * Returns v2 schema structure directly — no legacy flattening.
  */
-const usePlayerDetail = (playerId: string | null | undefined): UsePlayerDetailResult => {
+const usePlayerDetail = (
+  playerId: string | null | undefined
+): UsePlayerDetailResult => {
   const [player, setPlayer] = useState<PlayerV2 | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +70,11 @@ const usePlayerDetail = (playerId: string | null | undefined): UsePlayerDetailRe
           const res = PlayerMainDocZ.safeParse(mainDoc);
           if (!res.success) {
             // eslint-disable-next-line no-console
-            console.warn('players_v2 main doc failed schema validation', playerId, res.error?.issues);
+            console.warn(
+              'players_v2 main doc failed schema validation',
+              playerId,
+              res.error?.issues
+            );
           }
         }
 
@@ -89,7 +95,12 @@ const usePlayerDetail = (playerId: string | null | undefined): UsePlayerDetailRe
               const r = ContractDocZ.safeParse(data);
               if (!r.success) {
                 // eslint-disable-next-line no-console
-                console.warn('contract doc failed schema validation', playerId, doc.id, r.error?.issues);
+                console.warn(
+                  'contract doc failed schema validation',
+                  playerId,
+                  doc.id,
+                  r.error?.issues
+                );
               }
             }
             contracts[doc.id] = data as ContractDoc;
@@ -103,7 +114,12 @@ const usePlayerDetail = (playerId: string | null | undefined): UsePlayerDetailRe
             const r = SeasonDocZ.safeParse(data);
             if (!r.success) {
               // eslint-disable-next-line no-console
-              console.warn('season doc failed schema validation', playerId, doc.id, r.error?.issues);
+              console.warn(
+                'season doc failed schema validation',
+                playerId,
+                doc.id,
+                r.error?.issues
+              );
             }
           }
           seasons[doc.id] = data as SeasonDoc;
@@ -116,7 +132,12 @@ const usePlayerDetail = (playerId: string | null | undefined): UsePlayerDetailRe
             const r = EvaluationDocZ.safeParse(data);
             if (!r.success) {
               // eslint-disable-next-line no-console
-              console.warn('evaluation doc failed schema validation', playerId, doc.id, r.error?.issues);
+              console.warn(
+                'evaluation doc failed schema validation',
+                playerId,
+                doc.id,
+                r.error?.issues
+              );
             }
           }
           evaluations[doc.id] = data as EvaluationDoc;
@@ -128,7 +149,8 @@ const usePlayerDetail = (playerId: string | null | undefined): UsePlayerDetailRe
           id: playerId,
           contracts: Object.keys(contracts).length > 0 ? contracts : undefined,
           seasons: Object.keys(seasons).length > 0 ? seasons : undefined,
-          evaluations: Object.keys(evaluations).length > 0 ? evaluations : undefined,
+          evaluations:
+            Object.keys(evaluations).length > 0 ? evaluations : undefined,
         };
 
         if (isMounted) {
