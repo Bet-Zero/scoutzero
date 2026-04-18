@@ -1,10 +1,9 @@
-// Consolidated role and position utilities
-// Merged from: positionMap.js, roleLabel.js, expandPositionGroup.js, roleOptions.js, subRoleUtils.js
-
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
+import type { SubRoleType } from '@/constants/SubRoleMasterList';
 
-// Position mapping constants
-export const POSITION_MAP = {
+// Note: POSITION_MAP and getPlayerPositionLabel both define the same position → abbreviation
+// mapping. Consolidation opportunity flagged — see follow-up items in TS_CONVERSION_NEXT_STEPS.md.
+export const POSITION_MAP: Record<string, string> = {
   Guard: 'G',
   'Point Guard': 'PG',
   'Shooting Guard': 'SG',
@@ -18,9 +17,8 @@ export const POSITION_MAP = {
   'Center-Forward': 'C',
 };
 
-// Get abbreviated position label
-export function getPlayerPositionLabel(fullPosition) {
-  const map = {
+export function getPlayerPositionLabel(fullPosition: string | null | undefined): string {
+  const map: Record<string, string> = {
     Guard: 'G',
     'Point Guard': 'PG',
     'Shooting Guard': 'SG',
@@ -33,11 +31,10 @@ export function getPlayerPositionLabel(fullPosition) {
     'Forward-Guard': 'F',
     'Center-Forward': 'C',
   };
-  return map[fullPosition] || fullPosition || '—';
+  return (fullPosition && map[fullPosition]) || fullPosition || '—';
 }
 
-// Expand position groups to specific positions
-export function expandPositionGroup(position) {
+export function expandPositionGroup(position: string | null | undefined): string[] {
   switch (position) {
     case 'group_guard':
     case 'Guard':
@@ -60,8 +57,7 @@ export function expandPositionGroup(position) {
   }
 }
 
-// Offensive role options
-export const offensiveRoles = [
+export const offensiveRoles: string[] = [
   'Primary Playmaker',
   'Primary Ball Handler',
   'Secondary Creator',
@@ -78,8 +74,7 @@ export const offensiveRoles = [
   'Play Finisher',
 ];
 
-// Defensive role options
-export const defensiveRoles = [
+export const defensiveRoles: string[] = [
   'Point-of-Attack',
   'Chaser',
   'Wing Stopper',
@@ -93,8 +88,7 @@ export const defensiveRoles = [
   'Anchor Big',
 ];
 
-// Shooting profile tiers
-export const shootingProfileTiers = [
+export const shootingProfileTiers: string[] = [
   'Elite',
   'Plus',
   'Capable',
@@ -103,13 +97,15 @@ export const shootingProfileTiers = [
   'Non',
 ];
 
-// Sub-role utility functions
-export const isPositiveSubRole = (roleName) => {
+export const isPositiveSubRole = (roleName: string): boolean | undefined => {
   const role = SubRoleMasterList.find((r) => r.name === roleName);
   return role?.isPositive;
 };
 
-export const toggleSubroleSelection = (subRoles = {}, roleName) => {
+export const toggleSubroleSelection = (
+  subRoles: Partial<Record<SubRoleType, string[]>> = {},
+  roleName: string
+): Partial<Record<SubRoleType, string[]>> => {
   const roleData = SubRoleMasterList.find((r) => r.name === roleName);
   if (!roleData) return subRoles;
 
