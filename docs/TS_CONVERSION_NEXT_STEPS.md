@@ -112,7 +112,8 @@ If a call-site break reveals that the constant is being used in a way inconsiste
 
 ## Step 4 — Convert `src/shared/utils/**`
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-18: All 18 utils files converted across Wave 1 (pure leaves), Wave 2 (formatting + roles barrels), and Wave 3 (filtering). Key findings: (1) `newSchemeSelectors` has zero callers and its expected schema shape (bio, team.code, evaluations) diverges from `SeasonDocZ` — flagged in a prominent comment; (2) `salaryYear` in `PlayerFilters` is `number`, not `string` — corrected; (3) barrel import `@/shared/utils/roles` fails with `moduleResolution: "bundler"` — direct path required.
 
 **Goal:** All ~18 utility files under `src/shared/utils/` converted to TypeScript. Function parameters and return types explicit. No `any` unless genuinely unavoidable (and documented if so).
 
@@ -222,6 +223,14 @@ Present all three options to the user with a recommendation. Do not unilaterally
 _Anything surfaced during conversion that isn't in scope for the step that found it. Examples: duplicated utilities across files, inconsistent Firestore shapes, functions with undocumented side effects, missing tests on critical paths. Do not try to fix these in the same step they're found — add them here and address separately._
 
 - **`firestorePaths.js` `splitPath` indirection removed (Step 3):** The original JS used `splitPath()` to spread collection constants into `doc()`/`collection()` rest params. TypeScript TS2556 prevents spreading `string[]` into a typed rest param. Since all collection constants are single-segment names (no internal slashes), we eliminated `splitPath` and pass the constants directly. If env vars are ever set to multi-segment paths, this file will need to be revisited.
+
+- **`newSchemeSelectors.ts` dead code + schema mismatch (Step 4):** Zero callers in the codebase. Expects `bio`, `team.code`, `evaluations` fields but `SeasonDocZ` has `age` (flat), `team` (string), `evaluationView`. Before wiring any callers, decide which schema shape applies and update either the selectors or the Zod schema.
+
+- **`filterHelpers.ts` stat abbreviation map duplicates `statFilters.ts` (Step 4):** Both files define stat-key → display-label mappings (`PPG → ppg`, `FGP → fg%`, etc.). Consolidation opportunity: extract a single `STAT_ABBREVIATION_MAP` constant into `statFilters.ts` and import it in `filterHelpers.ts`.
+
+- **`roleUtils.ts` POSITION_MAP vs getPlayerPositionLabel duplication (Step 4):** Both `POSITION_MAP` and `getPlayerPositionLabel` hardcode the same position → abbreviation map. Consolidation: `getPlayerPositionLabel` should delegate to `POSITION_MAP` (or vice versa).
+
+- **`moduleResolution: "bundler"` and barrel imports (Step 4):** Directory-level barrel imports (e.g. `@/shared/utils/roles`) fail TypeScript resolution with `moduleResolution: "bundler"` unless a `.ts`-aware bundler is involved. Direct sub-path imports (e.g. `@/shared/utils/roles/roleUtils`) work reliably. Consider this when writing imports in new TS files.
 
 ---
 
