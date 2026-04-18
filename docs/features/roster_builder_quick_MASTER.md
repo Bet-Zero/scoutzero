@@ -96,7 +96,7 @@ The Roster Builder assembles a normalized 15-man roster split into **starters (5
 - `src/features/roster/hooks/useRosterManager.js` — Roster state, load logic, save logic.
 - `src/features/roster/utils/rosterUtils.js` — `normalizePlayer`, `buildInitialRoster`.
 - `src/features/roster/utils/contractUtils.js` — `isTwoWayContract`.
-- `src/firebase/rosterHelpers.js` — Firestore CRUD for `rosterProjects`.
+- `src/firebase/rosterHelpers.ts` — Firestore CRUD for `rosterProjects` with typed writes and Zod-validated reads.
 - `src/pages/RostersHome.jsx` — Saved roster list, rename, delete, search.
 - `src/features/roster/CreateRosterModal.jsx` — Create roster from list page.
 - `src/features/roster/SaveRosterModal.jsx` — Save new roster from builder.
@@ -127,8 +127,8 @@ The Roster Builder assembles a normalized 15-man roster split into **starters (5
 
 - **Collection**: `rosterProjects`.
 - **Constant**: `ROSTER_PROJECTS_COLLECTION` in `src/constants/collections.ts`.
-- **Create**: `createRosterProject` in `src/firebase/rosterHelpers.js` (called from `SaveRosterModal` and `CreateRosterModal`).
-- **Read**: `fetchAllRosterProjects` / `loadRosterProject` (used in `useRosterManager` and `RostersHome`).
+- **Create**: `createRosterProject` in `src/firebase/rosterHelpers.ts` (called from `SaveRosterModal` and `CreateRosterModal`).
+- **Read**: `fetchAllRosterProjects` / `loadRosterProject` in `src/firebase/rosterHelpers.ts` (used in `useRosterManager` and `RostersHome`).
 - **Update**: `updateRosterProject` is wired to the overwrite flow in `RosterViewerActions`.
 - **Rename/Delete**: `RostersHome` uses `renameRosterProject` / `deleteRosterProject`; rename updates `updatedAt`.
 

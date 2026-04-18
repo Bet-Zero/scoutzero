@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import {
   filterPlayers,
   sortPlayers,
-} from '@/shared/utils/filtering/playerFilterUtils.js';
+} from '@/shared/utils/filtering/playerFilterUtils';
 
 const useFilteredPlayers = (players, filters) =>
   useMemo(() => {

@@ -166,7 +166,8 @@ React hooks benefit a lot from TS because the `useState`/`useEffect`/`useCallbac
 
 ## Step 6 — Convert `src/firebase/*.js` (Firestore helpers)
 
-**Status:** TODO
+**Status:** IN PROGRESS  
+Started 2026-04-18: `src/firebase/rosterHelpers.js` → `rosterHelpers.ts` with explicit document/update types, Zod-validated reads, and direct smoke coverage at `src/tests/roster/rosterHelpers.smoke.test.ts`. Validation so far: `npm run typecheck`, `npm run validate:project`, `npm run test:roster -- --reporter=dot`, targeted UI roster test, and `npm run build`. Remaining: `rankerHelpers.js`, `listHelpers.js`. Full suite intentionally not run because AGENTS.md requires the exact phrase `RUN FULL SUITE`.
 
 **Goal:** `rosterHelpers.js`, `rankerHelpers.js`, `listHelpers.js` converted to TypeScript with explicit types for every read and write. Every Firestore read that crosses back into application code validates the shape with Zod (add Zod schemas where absent).
 
@@ -234,6 +235,8 @@ _Anything surfaced during conversion that isn't in scope for the step that found
 - **`moduleResolution: "bundler"` and barrel imports (Step 4):** Directory-level barrel imports (e.g. `@/shared/utils/roles`) fail TypeScript resolution with `moduleResolution: "bundler"` unless a `.ts`-aware bundler is involved. Direct sub-path imports (e.g. `@/shared/utils/roles/roleUtils`) work reliably. Consider this when writing imports in new TS files.
 
 - **`global-shims.d.ts` overrides actual TS file exports (Step 5):** Module declarations in `global-shims.d.ts` take priority over the real `.ts` file. When converting a JS file to TS, check if there's a corresponding `declare module` block in `global-shims.d.ts` — if so, any new exports must be added there too or they'll be invisible. Long-term: remove `declare module` blocks for files that are now properly typed `.ts` files (requires ensuring the shim layer for `@/firebaseConfig` and other JS dependencies is handled differently).
+
+- **`rosterHelpers.ts` still has no ownership guard (Step 6):** Unlike `listHelpers` and `rankerHelpers`, roster projects still expose CRUD without `userId`/`ownerUid`. The TS conversion preserved current behavior and added runtime shape validation, but product direction still needs a decision: are roster projects intentionally unscoped, or is ownership missing?
 
 ---
 

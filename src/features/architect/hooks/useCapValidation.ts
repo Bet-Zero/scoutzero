@@ -37,7 +37,7 @@ import {
   getCapSettings,
   calculateTeamCapHit,
 } from '@/features/architect/utils/capHelpers';
-import { formatMillions } from '@/shared/utils/formatting/basicFormatting.js';
+import { formatMillions } from '@/shared/utils/formatting/basicFormatting';
 
 type ValidationMessage = {
   severity: 'error' | 'warning' | 'info';

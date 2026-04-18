@@ -29,7 +29,7 @@
  * @file src/features/architect/utils/playerRulesProfile/birdRightsRules.ts
  */
 
-import { formatSalary } from '@/shared/utils/formatting/basicFormatting.js';
+import { formatSalary } from '@/shared/utils/formatting/basicFormatting';
 import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants';
 import { CAP_HOLD_MULTIPLIERS } from '../capHolds';
 
