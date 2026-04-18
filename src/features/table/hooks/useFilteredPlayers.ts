@@ -3,8 +3,15 @@ import {
   filterPlayers,
   sortPlayers,
 } from '@/shared/utils/filtering/playerFilterUtils';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
 
-const useFilteredPlayers = (players, filters) =>
+type FilteredPlayersInput = Parameters<typeof filterPlayers>[0] | null;
+type FilteredPlayersResult = ReturnType<typeof filterPlayers>;
+
+const useFilteredPlayers = (
+  players: FilteredPlayersInput,
+  filters: PlayerFilters
+): FilteredPlayersResult =>
   useMemo(() => {
     if (!players) return [];
     const filtered = filterPlayers(players, filters);

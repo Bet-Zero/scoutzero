@@ -27,9 +27,9 @@ PlayerTable/
   index.jsx
 hooks/
   useFilterDiagnostics.js
-  useFilteredPlayers.js
+  useFilteredPlayers.ts
 ```
 
 ---
-*Generated on: 2026-04-18T14:05:48.565Z*
+*Generated on: 2026-04-18T14:08:38.886Z*
 *Auto-updated by: npm run docs*

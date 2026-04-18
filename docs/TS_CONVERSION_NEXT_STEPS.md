@@ -543,6 +543,7 @@ For each file:
 
 **Status:** IN PROGRESS
 Started 2026-04-18: `src/features/table/PlayerTable/hooks/usePlayerTableDensity.js` → `usePlayerTableDensity.ts` with `DensityMode`, typed scale map, explicit hook result type, and a runtime density-mode guard. Added focused jsdom coverage at `src/tests/table/usePlayerTableDensity.test.tsx` for defaults, localStorage restore/persist, and invalid mode rejection. Validation for this slice: `npm run typecheck`, `npm run validate:project`, and `npm run test:ui -- --reporter=dot src/tests/table/usePlayerTableDensity.test.tsx`.
+Updated 2026-04-18: `src/features/table/hooks/useFilteredPlayers.js` → `useFilteredPlayers.ts` using the existing shared `PlayerFilters` type plus inferred `filterPlayers`/`sortPlayers` player types. Added focused hook coverage at `src/tests/table/useFilteredPlayers.test.tsx`. Validation for this slice: `npm run typecheck`, `npm run validate:project`, and `npm run test:ui -- --reporter=dot src/tests/table`.
 
 **Goal:** All remaining Pile B feature hooks under `src/features/**/hooks/**/*.js` are converted to TypeScript.
 
