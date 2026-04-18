@@ -1,24 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query, QueryConstraint } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 
-/**
- * Hook to fetch all documents from a Firestore collection.
- * E4: Accepts optional queryConstraints (e.g. where clauses) for scoped reads.
- * @param {string} collectionName - Firestore collection name
- * @param {import('firebase/firestore').QueryConstraint[]} [queryConstraints=[]] - Optional Firestore query constraints
- * @param {{ enabled?: boolean }} [options]
- * @returns {{ data: Array, loading: boolean, error: Error|null }}
- */
-const useFirebaseQuery = (collectionName, queryConstraints = [], options = {}) => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+interface FirebaseQueryOptions {
+  enabled?: boolean;
+}
+
+export interface UseFirebaseQueryResult<T> {
+  data: T[];
+  loading: boolean;
+  error: Error | null;
+}
+
+const useFirebaseQuery = <T = Record<string, unknown>>(
+  collectionName: string,
+  queryConstraints: QueryConstraint[] = [],
+  options: FirebaseQueryOptions = {}
+): UseFirebaseQueryResult<T> => {
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
   const { enabled = true } = options;
   // Serialize constraints to detect changes without causing infinite re-renders
-  const constraintsKey = useRef('');
+  const constraintsKey = useRef<string>('');
   const newKey = JSON.stringify(
-    queryConstraints.map((c) => c.type || String(c))
+    queryConstraints.map((c) => (c as unknown as Record<string, unknown>).type ?? String(c))
   );
 
   useEffect(() => {
@@ -37,11 +43,11 @@ const useFirebaseQuery = (collectionName, queryConstraints = [], options = {}) =
         const q =
           queryConstraints.length > 0 ? query(ref, ...queryConstraints) : ref;
         const snap = await getDocs(q);
-        const items = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const items = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as T));
         setData(items);
       } catch (err) {
         console.error('Error fetching from Firebase:', err);
-        setError(err);
+        setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
         setLoading(false);
       }
