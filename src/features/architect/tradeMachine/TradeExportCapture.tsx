@@ -21,6 +21,22 @@ import type {
   TradePreviewPlayerLike,
 } from './tradePreviewExportTypes';
 
+const toStringKey = (value: string | number | null | undefined): string | undefined =>
+  value === null || value === undefined ? undefined : String(value);
+
+const toSeasonYear = (value: string | number | null | undefined): number | null => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === 'string') {
+    const year = Number(value.match(/\d{4}/)?.[0]);
+    return Number.isFinite(year) ? year : null;
+  }
+
+  return null;
+};
+
 const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCaptureProps>(
   function TradeExportCapture(
     {
@@ -124,7 +140,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
               (s) => s?.teamName === tm.team?.teamName
             );
             const capDelta = summary?.capDelta || 0;
-            const { primary } = getTeamColors(tm.team.id) || {};
+            const { primary } = getTeamColors(toStringKey(tm.team.id));
 
             return (
               <div
@@ -182,12 +198,12 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                               const baseSalary =
                                 p.baseSalary ?? getSalaryForYear([p], yearKey);
                               const years = getYearsRemaining(
-                                p.contract?.freeAgency?.year ||
-                                  p.fa_year ||
-                                  p.freeAgentYear,
-                                parseInt(
-                                  String(yearKey).match(/\d{4}/)?.[0] || String(yearKey)
-                                )
+                                toSeasonYear(
+                                  p.contract?.freeAgency?.year ??
+                                    p.fa_year ??
+                                    p.freeAgentYear
+                                ),
+                                toSeasonYear(yearKey) ?? undefined
                               );
                               const headshot =
                                 p.headshotUrl ||

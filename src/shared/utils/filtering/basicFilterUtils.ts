@@ -51,7 +51,10 @@ export const normalizeFreeAgentType = (value: unknown): string => {
 
 type PlayerWithFAType = {
   currentContractView?: { freeAgentType?: string | null } | null;
-  bio?: { display?: { freeAgentType?: string | null } | null } | null;
+  bio?: {
+    displayName?: string | null;
+    display?: { freeAgentType?: string | null } | null;
+  } | null;
   primaryContract?: { freeAgency?: { freeAgentType?: string | null } | null } | null;
   freeAgentType?: string | null;
 };
@@ -73,9 +76,10 @@ export const getPlayerFreeAgentType = (
   return normalized || null;
 };
 
-export const teamOptions: TeamEntry[] = TeamListFull as TeamEntry[];
+export const teamOptions: TeamEntry[] = [...TeamListFull];
 
 type PlayerWithOptions = {
+  bio?: { displayName?: string | null } | null;
   optionByYear?: Record<string, string | null | undefined> | null;
   original?: {
     optionByYear?: Record<string, string | null | undefined> | null;
@@ -113,6 +117,7 @@ export const playerHasOptionType = (
 };
 
 type PlayerWithContract = {
+  bio?: { displayName?: string | null } | null;
   original?: Record<string, unknown> | null;
   contract?: { signedUsing?: string | null; contractType?: string | null } | null;
   primaryContract?: { signedUsing?: string | null; contractType?: string | null } | null;

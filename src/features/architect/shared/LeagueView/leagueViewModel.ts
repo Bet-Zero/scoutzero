@@ -54,7 +54,7 @@ export type LeagueViewConferenceSummaries = {
   westTeams: LeagueViewTeamSummary[];
 };
 
-const teamsList = TeamListFull as LeagueViewTeamSource[];
+const teamsList: readonly LeagueViewTeamSource[] = TeamListFull;
 
 export const LEAGUE_VIEW_TOTAL_TEAMS = teamsList.length;
 

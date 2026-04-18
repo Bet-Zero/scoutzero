@@ -5,83 +5,6 @@
  * unresolved JS modules while preserving the real named-export contract.
  */
 
-declare module '@/shared/utils/formatting' {
-  export const formatSalary: any;
-  export const formatCurrency: any;
-  export const formatCurrencyFull: any;
-  export const formatNumber: any;
-  export const formatName: any;
-  export const formatPercent: any;
-  export const getTeamColors: any;
-  export const formatMillions: any;
-  export const formatHeight: any;
-}
-
-declare module '@/shared/utils/formatting/basicFormatting.js' {
-  export const formatSalary: any;
-  export const formatCurrency: any;
-  export const formatMillions: any;
-}
-
-declare module '@/shared/utils/formatting/teamColors' {
-  export const getTeamColor: any;
-  export const getTeamColors: any;
-  export const getTeamGradient: any;
-}
-
-declare module '@/shared/utils/formatting/teamLogos' {
-  export const getTeamLogo: any;
-  export const getTeamLogoFilename: any;
-}
-
-declare module '@/shared/utils/roles' {
-  export const hasRole: any;
-  export const isAdmin: any;
-  export const POSITION_MAP: any;
-  export const getPlayerPositionLabel: any;
-}
-
-declare module '@/shared/utils/filtering' {
-  export const normalizeTeamCode: any;
-  export const normalizeFreeAgentType: any;
-  export const getPlayerFreeAgentType: any;
-  export const teamOptions: any;
-  export const playerHasOptionType: any;
-  export const isPlayerTwoWay: any;
-  export const getDefaultAddPlayerFilters: any;
-  export const getDefaultPlayerFilters: any;
-  export const getFilterDisplayValue: any;
-  export const getFilterStyles: any;
-  export const statOptions: any;
-  export const getDefaultMaxValue: any;
-  export const getActiveStatFilters: any;
-  export const generateHeightOptions: any;
-  export const generateWeightOptions: any;
-  export const generateAgeOptions: any;
-  export const filterPlayers: any;
-  export const sortPlayers: any;
-}
-
-declare module '@/shared/utils/contracts' {
-  export const getYearsRemaining: any;
-}
-
-declare module '@/shared/utils/videoExamples' {
-  export const createEmptyVideoExamples: any;
-  export const isYouTubeUrl: any;
-  export const extractYouTubeId: any;
-  export const getYouTubeEmbedUrl: any;
-  export const getYouTubeThumbnailUrl: any;
-  export const buildVideoExample: any;
-  export const normalizeVideoExampleList: any;
-  export const normalizeVideoExamples: any;
-  export const DEFAULT_VIDEO_EXAMPLES: any;
-}
-
-declare module '@/shared/utils/routing/playerRouteUtils' {
-  export const getPlayerProfileUrl: any;
-}
-
 declare module '@/shared/components/BirdRightsIcon' {
   const BirdRightsIcon: any;
   export default BirdRightsIcon;
@@ -110,49 +33,9 @@ declare module '@/shared/components/ui/filters' {
   export const MultiSelectFilter: any;
 }
 
-declare module '@/shared/hooks/useAuth' {
-  export const useAuth: any;
-}
-
-declare module '@/shared/hooks/useImageDownload' {
-  const useImageDownload: any;
-  export default useImageDownload;
-}
-
-declare module '@/shared/hooks/usePlayerDetail' {
-  const usePlayerDetail: any;
-  export default usePlayerDetail;
-}
-
-declare module '@/constants/teamList' {
-  export const NBA_TEAMS: any;
-  export const TEAM_LIST: any;
-  export const TeamMap: any;
-  export const TeamCodeMap: any;
-  export const TeamListFull: any;
-  export const TeamSlugToCode: any;
-}
-
 declare module '@/config/validationFlags.js' {
   export const validationFlags: any;
   export const shouldWarnOnly: any;
-}
-
-declare module '@/data/firestorePaths' {
-  export const playerRef: any;
-  export const contractsCol: any;
-  export const seasonsCol: any;
-  export const evalsCol: any;
-  export const contractRef: any;
-  export const seasonRef: any;
-  export const evalRef: any;
-  export const playersCol: any;
-  export const baseTeamRef: any;
-  export const baseTeamsCol: any;
-  export const basePlayerRef: any;
-  export const basePlayersCol: any;
-  export const baseEntitlementRef: any;
-  export const baseEntitlementsCol: any;
 }
 
 declare module '@/firebaseConfig' {

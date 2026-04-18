@@ -433,7 +433,8 @@ No additional product-direction question is needed before Step 9. The ownership-
 
 ## Step 9 — Resolve Pile A resume blockers before Pile B
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-18: Removed stale Pile A/shared TS declarations from `src/global-shims.d.ts` so real typed exports now flow into downstream TS. Typecheck exposed and fixed narrow downstream contract issues in readonly team-list usage, numeric route/team IDs, trade export year/team normalization, and roster helper optional-player shapes. Validation passed: `npm run typecheck`, `npm run build`, `npm run test:diff -- --reporter=dot`, `npm run test:roster -- --reporter=dot`, and `npm run test:architect -- --reporter=dot`.
 
 **Goal:** Fix only the issues that Step 8 proves should block Pile B from starting. Keep the cleanup narrow and tied to the review.
 
@@ -595,11 +596,11 @@ This is the only step in this document that may declare the plan complete.
 
 - **`roleUtils.ts` POSITION_MAP vs getPlayerPositionLabel duplication (Step 4):** Both `POSITION_MAP` and `getPlayerPositionLabel` hardcode the same position → abbreviation map. Consolidation: `getPlayerPositionLabel` should delegate to `POSITION_MAP` (or vice versa).
 
-- **`moduleResolution: "bundler"` and barrel imports (Step 4):** Directory-level barrel imports (e.g. `@/shared/utils/roles`) fail TypeScript resolution with `moduleResolution: "bundler"` unless a `.ts`-aware bundler is involved. Direct sub-path imports (e.g. `@/shared/utils/roles/roleUtils`) work reliably. Consider this when writing imports in new TS files.
+- **`moduleResolution: "bundler"` and barrel imports (Step 4, rechecked Step 9):** Typed `.ts` index barrels now resolve cleanly for the converted shared utility surfaces after the stale ambient shims were removed. Prefer preserving real `.ts` barrels for Pile B-facing shared surfaces; use direct sub-path imports only when a barrel does not yet have a typed index.
 
-- **`global-shims.d.ts` overrides actual TS file exports (Step 5):** Module declarations in `global-shims.d.ts` take priority over the real `.ts` file. When converting a JS file to TS, check if there's a corresponding `declare module` block in `global-shims.d.ts` — if so, any new exports must be added there too or they'll be invisible. Long-term: remove `declare module` blocks for files that are now properly typed `.ts` files (requires ensuring the shim layer for `@/firebaseConfig` and other JS dependencies is handled differently).
+- **`global-shims.d.ts` overrides actual TS file exports (Step 5, resolved for Pile A in Step 9):** Pile A/shared declarations for formatting, roles, filtering, contracts, video examples, player routing, shared hooks, team constants, and Firestore paths were removed. Remaining declarations should be treated as legacy JS/JSX bridges only; when a declared module is converted to TypeScript, remove the matching `declare module` block in the same step.
 
-- **`rosterHelpers.ts` still has no ownership guard (Step 6):** Unlike `listHelpers` and `rankerHelpers`, roster projects still expose CRUD without `userId`/`ownerUid`. The TS conversion preserved current behavior and added runtime shape validation, but product direction still needs a decision: are roster projects intentionally unscoped, or is ownership missing?
+- **User-authored Firestore ownership policy inconsistency (Step 6, narrowed Step 8):** `listHelpers.ts` and `rosterHelpers.ts` auto-claim legacy ownerless docs, while `rankerHelpers.ts` treats missing `ownerUid` as invalid. This is deferred product/security policy work, not a Pile B type-flow blocker.
 
 ---
 

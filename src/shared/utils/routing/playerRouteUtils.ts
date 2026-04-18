@@ -1,11 +1,13 @@
+type RouteId = string | number | null | undefined;
+
 type PlayerRoutable = {
-  id?: string | null;
+  id?: RouteId;
   bio?: {
-    playerId?: string | null;
+    playerId?: RouteId;
     displayName?: string | null;
     name?: string | null;
   } | null;
-  player_id?: string | null;
+  player_id?: RouteId;
   name?: string | null;
   playerName?: string | null;
 };
@@ -36,7 +38,8 @@ export function toPlayerSlug(displayName: string | null | undefined): string {
 }
 
 export function getPlayerRouteId(player: PlayerRoutable | null | undefined): string {
-  return player?.id || player?.bio?.playerId || player?.player_id || '';
+  const routeId = player?.id ?? player?.bio?.playerId ?? player?.player_id;
+  return routeId === null || routeId === undefined ? '' : String(routeId);
 }
 
 export function getPlayerDisplayName(player: PlayerRoutable | null | undefined): string {
@@ -53,7 +56,9 @@ const matchesRouteIdentifier = (
   player: PlayerRoutable,
   identifier: string
 ): boolean => {
-  return [player?.id, player?.bio?.playerId, player?.player_id].includes(identifier);
+  return [player?.id, player?.bio?.playerId, player?.player_id].some(
+    (value) => value !== null && value !== undefined && String(value) === identifier
+  );
 };
 
 export function resolvePlayerProfileTarget(

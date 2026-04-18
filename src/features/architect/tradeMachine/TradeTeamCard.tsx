@@ -377,7 +377,13 @@ const TradeTeamCard = ({
     );
   }
 
-  const { primary } = useMemo(() => getTeamColors(team?.id) || {}, [team?.id]);
+  const { primary } = useMemo(
+    () =>
+      getTeamColors(
+        team?.id === null || team?.id === undefined ? undefined : String(team.id)
+      ),
+    [team?.id]
+  );
 
   const playersCount = useMemo(
     () => (team?.players?.length || 0) - sends.length + incomingPlayers.length,
