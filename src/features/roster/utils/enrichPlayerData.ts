@@ -154,7 +154,7 @@ type PrimaryEvaluation = EvaluationInput & {
 
 export type EnrichedPlayerData<
   TPlayer extends EnrichablePlayerData = EnrichablePlayerData,
-> = TPlayer & {
+> = TPlayer & EnrichablePlayerData & {
   name: string;
   formattedPosition: string;
   heightInInches: number;

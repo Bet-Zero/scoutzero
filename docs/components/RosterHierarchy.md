@@ -32,11 +32,11 @@ hooks/
 utils/
   contractUtils.ts
   enrichPlayerData.ts
-  index.js
+  index.ts
   rosterBuilderHelpers.ts
   rosterUtils.ts
 ```
 
 ---
-*Generated on: 2026-04-18T13:53:01.049Z*
+*Generated on: 2026-04-18T14:02:20.342Z*
 *Auto-updated by: npm run docs*

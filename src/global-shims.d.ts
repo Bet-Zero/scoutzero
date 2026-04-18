@@ -46,22 +46,6 @@ declare module '@/firebaseConfig' {
   export const isLikelyEmulatorConnectionError: any;
 }
 
-declare module '@/features/roster/utils' {
-  export const isTwoWayContract: any;
-  export const enrichPlayerData: any;
-  export const findSalaryForYear: any;
-  export const hasActiveAddPlayerFilters: any;
-  export const filterRosterDrawerPlayers: any;
-  export const getPlayersForSelectedTeam: any;
-  export const normalizeHeadshotId: any;
-  export const createEmptyRoster: any;
-  export const normalizeRosterShape: any;
-  export const normalizePlayer: any;
-  export const createMissingRosterPlayer: any;
-  export const isRosterFull: any;
-  export const buildInitialRoster: any;
-}
-
 declare module '@/features/roster/RosterSection' {
   const RosterSection: any;
   export default RosterSection;
