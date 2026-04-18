@@ -318,6 +318,19 @@ Conservative fallback:
 
 Decision recorded 2026-04-18: Pause the formal TS conversion plan here and prioritize the follow-up debt Pile A exposed, starting with Firestore ownership-policy inconsistency and the shared utility/shim seams listed below.
 
+## Plan Closeout
+
+**No open numbered steps remain in this file.**
+
+As of 2026-04-18, every numbered step in this document is complete. Treat this file as a closed record of the Pile A migration, not an open-ended tracker.
+
+If the user asks to "keep working on `docs/TS_CONVERSION_NEXT_STEPS.md`" again, do **not** add Step 8+ here unless the user explicitly chooses to reopen the TypeScript rollout. The correct next move is either:
+
+- execute the chosen Option C follow-up work from the list below, preferably in a separate plan or execution doc scoped to that problem
+- declare the TS conversion plan complete and move on to product work
+
+Recommended first follow-up if the user wants to continue: create a dedicated plan for the Firestore ownership-policy inconsistency across `listHelpers.ts`, `rankerHelpers.ts`, and `rosterHelpers.ts`, since that was the highest-signal contract issue surfaced by Pile A.
+
 ---
 
 ## Follow-up items (populated as conversion progresses)
