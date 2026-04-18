@@ -1,10 +1,14 @@
 # Architect TypeScript Hardening — Deferred Work
 
-**Status as of 2026-04-16:** The 7-sweep type quality pass is complete. `tsc --noEmit` is clean. Every remaining `any`, `as never`, and catch-all type alias has a justifying comment in source. This document catalogs the work that was _intentionally deferred_ — cases where narrowing is correct but requires a coordinated architectural change beyond a single-file edit.
+**Status as of 2026-04-17:** All deferred items (1–5) are DONE. The cast-ledger gate (live since 2026-04-17) and the 8-step follow-up plan in [ARCHITECT_NEXT_STEPS.md](./ARCHITECT_NEXT_STEPS.md) closed every seam listed here. Baseline is 119 violations / 43 files, all tagged `STANDALONE` in [ARCHITECT_TYPE_CAST_LEDGER.md](./ARCHITECT_TYPE_CAST_LEDGER.md). Item 6 (source-scan test maintenance) was resolved as part of Step 2 (CI green).
+
+This doc is retained as historical context for the seams that were dismantled. Each item below has a DONE marker with pointer to the completing step.
 
 ---
 
 ## Item 1 — Export `PickRuleDoc` and fix prop types in TradeSummaryPanel / TradeReceiptPanel
+
+**Status:** DONE 2026-04-17 (ARCHITECT_NEXT_STEPS.md Step 3). `PickRuleDoc` re-imported; 4 `as any` casts removed; ledger rows CAST-044–CAST-047 deleted.
 
 **Effort:** Small (~30 min)
 
@@ -22,6 +26,8 @@
 ---
 
 ## Item 2 — Narrow `ArchitectMutationPayload` to include legacy `receiving`/`playersReceiving` fields
+
+**Status:** DONE 2026-04-17 (ARCHITECT_NEXT_STEPS.md Step 4). Added optional `receiving?`/`playersReceiving?` to `ArchitectTradePayloadTeamIngress`; both function signatures switched from `payload: any` to `payload: ArchitectMutationPayload`; ledger rows CAST-095, CAST-096 deleted.
 
 **Effort:** Small–Medium (~1–2 hrs)
 
@@ -41,6 +47,8 @@ Two functions in `src/features/architect/utils/leagueInvariants.ts` — `extract
 
 ## Item 3 — Resolve `ArchitectContract` catch-all index signature
 
+**Status:** DONE (shipped 2026-03-24 in the Salary-Row Schema Alignment Pass, verified 2026-04-17 in ARCHITECT_NEXT_STEPS.md Step 5). `ArchitectContract` and `ArchitectMutationContract` both have explicit fields; no catch-all.
+
 **Effort:** Medium (~half day)
 
 **The problem:**
@@ -58,6 +66,8 @@ Two functions in `src/features/architect/utils/leagueInvariants.ts` — `extract
 ---
 
 ## Item 4 — Split `ArchitectMutationTeamRecord.totals` into load type vs. compute type
+
+**Status:** DONE 2026-04-17 (ARCHITECT_NEXT_STEPS.md Step 6). Exported `LoadedTeamCapTotals`/`ComputedTeamCapTotals` from `computeTeamCapTotals.ts` and threaded the unified boundary through `mutationPipeline.ts`, `hardCapSnapshotOverlay.ts`, `normalizeTradeInput.ts`, `hardCapStatus.ts`, and `useArchitectActions.ts`. Ledger rows CAST-002, CAST-061, CAST-065, CAST-140, CAST-142, CAST-150 deleted.
 
 **Effort:** Medium–Large (~1 day)
 
@@ -82,6 +92,8 @@ These two shapes are structurally incompatible. Dozens of test fixtures use the 
 ---
 
 ## Item 5 — Fix `as never` casts caused by JS-migrated utility functions
+
+**Status:** DONE 2026-04-17 (ARCHITECT_NEXT_STEPS.md Step 7). All `as never` casts removed from the listed components and `miscRules.ts`; utility signatures widened (not components narrowed); ledger rows tagged `Item 5` deleted.
 
 **Effort:** Large (~1–2 days)
 
@@ -115,7 +127,9 @@ The cleanest fix is to export the internal types from the JS-migrated utilities 
 
 ## Item 6 — Source-scan guardrail test failures (pre-existing, unrelated to type hardening)
 
-**Status:** 57 test failures exist in the suite today. These are NOT regressions from the type hardening pass. The majority are source-scan tests from phases 61, 64, and 65 that grep for specific code patterns (variable names, call signatures) that changed shape during earlier refactors.
+**Status:** DONE 2026-04-17 (ARCHITECT_NEXT_STEPS.md Step 2). Source-scan grep patterns updated to match current code shape; CI is green on `main`.
+
+Originally: 57 test failures existed in the suite. These were NOT regressions from the type hardening pass. The majority were source-scan tests from phases 61, 64, and 65 that grepped for specific code patterns (variable names, call signatures) that changed shape during earlier refactors.
 
 **Affected test files:**
 
