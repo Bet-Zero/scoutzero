@@ -1,6 +1,6 @@
 # JS → TS Conversion — Living Plan
 
-**How this doc works:** When the user says "keep working on docs/TS_CONVERSION_NEXT_STEPS.md," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is trivial. Do not skip ahead. Do not invent new steps. When all steps are `DONE`, tell the user the plan is complete and ask what's next.
+**How this doc works:** When the user says "keep working on docs/TS_CONVERSION_NEXT_STEPS.md," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is trivial. Do not skip ahead. Do not invent new steps unless the user explicitly asks to revise this plan. Checkpoints, reviews, or temporary branches inside this doc must always reconnect to a later numbered step; they are not standalone end states. When all steps are `DONE`, tell the user the plan is complete and ask what's next.
 
 **Commit & status hygiene (REQUIRED — do not skip):**
 
@@ -13,8 +13,24 @@
 
 - 297 JS/JSX files / ~62k lines remain unconverted. 565 TS/TSX files already migrated.
 - The goal of this plan is NOT to convert all 297 files. It is to convert the high-leverage subset ("Pile A"): Firestore helpers, shared utils, shared hooks, firestore paths, and constants. These are the files where typed shapes will cascade to the most downstream code.
-- Pile C (UI components under `features/*/**`) is explicitly deferred. Convert those opportunistically when you touch them, not as part of this plan.
+- Pile B in this plan means the remaining non-Architect feature hooks and feature utils / bridges under `src/features/**/hooks/**` and `src/features/**/utils/**`.
+- Pile C (UI components under `features/*/**`) is explicitly deferred until the final closeout step. Convert those opportunistically when you touch them, not as part of the main numbered conversion flow unless the user later asks for a dedicated UI plan.
 - User-facing framing: the user is not a professional engineer. Explain tradeoffs in plain terms. When a conversion surfaces duplication or bag types across multiple files, flag it — that's the "debt pointing at itself" the conversion is meant to reveal.
+
+**Plan continuity invariant (applies to the entire doc):**
+
+- Piles are phases inside one living plan, not disconnected plans.
+- Completing one pile never throws the document off route; it only advances the plan to the next numbered step.
+- Reviews, audits, cleanups, and branch decisions are allowed only if they are written as bounded numbered steps that explicitly reconnect to the next pile or the final closeout step.
+- Only the final closeout step may declare the plan complete.
+- If future piles are added later, they must be inserted into the numbered flow with an explicit resume point and an explicit path back to final closeout.
+
+**Current planned flow:**
+
+- Steps 1–7: Pile A conversion + checkpoint decision
+- Steps 8–9: bounded Pile A reintegration review / blocker cleanup loop
+- Steps 10–12: Pile B audit + conversion
+- Step 13: explicit final closeout and Pile C handling
 
 **Universal constraints (apply to every step):**
 
@@ -24,6 +40,7 @@
 - Run `npm run typecheck` and the relevant test subset after each conversion. If converting a file surfaces type errors at call sites, fix the call sites — those errors are the point.
 - If a file being converted has zero tests, add at least a smoke test before converting. Untested logic code is the riskiest to convert without a safety net.
 - If a conversion reveals that a function is duplicated across multiple files with slight variations, note it in this plan as a follow-up item at the bottom — don't try to de-duplicate in the same step.
+- If a checkpoint step inserts review work or follow-up cleanup, the doc must also add the explicit later numbered step where the main conversion path resumes. Never leave the plan on a side track with no written return path.
 
 ---
 
@@ -199,9 +216,9 @@ If a read reveals that real Firestore documents have inconsistent shapes (some d
 ## Step 7 — Checkpoint: re-scope Pile B and Pile C
 
 **Status:** DONE  
-Completed 2026-04-18: User chose Option C — pause further TS rollout and address the higher-priority contract issues exposed by Pile A before adding any Step 8+ conversion work.
+Completed 2026-04-18: User chose Option C. Clarification added 2026-04-18: in this plan, Option C means a bounded Pile A reintegration review + cleanup loop that returns to Pile B inside the same numbered sequence. It does not close or abandon the plan.
 
-**Goal:** Pile A is done. Decide whether to extend this plan to Pile B (feature-level hooks + `features/*/utils/`) or declare the plan complete and move on.
+**Goal:** Pile A is done. Decide whether Pile B starts immediately or whether the plan inserts a bounded review / cleanup checkpoint first.
 
 **Instructions:**
 This step is a judgment call, not a conversion. After Steps 1–6 are done, answer these questions and append the answers to this plan as a "Phase 2 Decision" section:
@@ -213,13 +230,13 @@ This step is a judgment call, not a conversion. After Steps 1–6 are done, answ
 
 Based on the answers, propose one of:
 
-- **Option A:** Extend this plan with Step 8+ for Pile B (feature-level hooks + utils).
-- **Option B:** Declare the plan complete; Pile C (UI components) converts opportunistically when files are touched.
-- **Option C:** Pause conversion; address a higher-priority finding (data migration, duplication consolidation, etc.).
+- **Option A:** Proceed directly into Pile B Step 10+ work.
+- **Option B:** Insert a lightweight Pile A reintegration review, resolve only confirmed resume blockers, then continue into Pile B.
+- **Option C:** Insert a deeper Pile A reintegration review and cleanup checkpoint for cross-cutting contract seams, then continue into Pile B.
 
 Present all three options to the user with a recommendation. Do not unilaterally pick one.
 
-**Done when:** "Phase 2 Decision" section appended to this plan with answers to the four questions and a recommendation. User has chosen A, B, or C.
+**Done when:** "Phase 2 Decision" section appended to this plan with answers to the four questions and a recommendation. User has chosen A, B, or C, and the later numbered steps explicitly show how that path returns to Pile B and then to final closeout.
 
 ---
 
@@ -293,9 +310,9 @@ Interpretation:
 
 ### Options For The User
 
-- **Option A — Extend this plan into Pile B:** Add Step 8+ for feature-level hooks and `features/*/utils/`. Best if the goal is maximum TS coverage now. Tradeoff: wider blast radius, more feature-specific churn, and less shared leverage per file than Pile A delivered.
-- **Option B — Declare this plan complete:** Stop the formal migration plan here. Keep converting Pile B/C opportunistically when product work touches those files. Best if the goal was leverage-first hardening rather than broad coverage.
-- **Option C — Pause conversion and address follow-up debt first:** Use the next cycle to resolve the higher-signal issues Pile A exposed, especially Firestore ownership-policy inconsistency and the small duplicated utility/schema seams. Best if the goal is correctness and clearer contracts before deeper TS rollout.
+- **Option A — Resume directly into Pile B:** Start the Pile B audit and conversion steps immediately. Best if the goal is maximum TS coverage now. Tradeoff: wider blast radius, more feature-specific churn, and less shared leverage per file than Pile A delivered.
+- **Option B — Insert a lightweight review loop, then resume:** Recheck Pile A in totality, fix only confirmed resume blockers, then continue into Pile B. Best if the goal is to verify the shared layer really hangs together before widening scope.
+- **Option C — Insert a deeper reintegration review, then resume:** Use the next cycle to review and, where necessary, clean up the higher-signal contract seams Pile A exposed before continuing into Pile B. Best if the goal is correctness and clearer contracts before deeper TS rollout, but still within the same plan.
 
 ### Recommendation
 
@@ -306,30 +323,263 @@ Reasoning:
 - Pile A already captured the highest-leverage shared surfaces.
 - No Firestore shape migration was uncovered, so there is no emergency cleanup blocking the app.
 - The most valuable new information from the conversion was not "convert more files immediately"; it was that ownership rules across user-authored Firestore helpers are inconsistent, and several shared utility contracts are still duplicated or shadowed.
-- Fixing those seams first should make any later Pile B conversion cleaner and reduce the chance of converting bad assumptions into typed bad assumptions.
+- Fixing those seams first should make the later Pile B conversion cleaner and reduce the chance of converting bad assumptions into typed bad assumptions.
+- This is a checkpoint recommendation, not an exit ramp. The plan should resume once the review loop is complete.
 
 Conservative fallback:
 
-- If the user wants to stop the migration plan cleanly and move back to product work, **Option B** is a reasonable second choice.
+- If the user wants to minimize detour time while still sanity-checking Pile A as one system, **Option B** is a reasonable second choice.
 
 ### User Decision
 
 **Chosen option:** `C`
 
-Decision recorded 2026-04-18: Pause the formal TS conversion plan here and prioritize the follow-up debt Pile A exposed, starting with Firestore ownership-policy inconsistency and the shared utility/shim seams listed below.
+Decision recorded 2026-04-18: Insert a deeper Pile A reintegration review + cleanup checkpoint before Pile B. In this document, that means complete Steps 8 and 9, then resume the main migration path at Step 10. The plan remains open until the final closeout step is done.
 
-## Plan Closeout
+---
 
-**No open numbered steps remain in this file.**
+## Step 8 — Review Pile A in totality and classify resume blockers
 
-As of 2026-04-18, every numbered step in this document is complete. Treat this file as a closed record of the Pile A migration, not an open-ended tracker.
+**Status:** DONE  
+Completed 2026-04-18: Pile A reintegration review recorded. `npm run typecheck` and `npm run build` passed; `npm run test:diff -- --reporter=dot` exposed one stale smoke-test import (`@/constants/yearDefaults.js`), fixed in `tests/smoke/imports.smoke.test.js`, and the rerun passed. Resume blockers narrowed to the shim/barrel layer feeding `any` into future Pile B conversions.
 
-If the user asks to "keep working on `docs/TS_CONVERSION_NEXT_STEPS.md`" again, do **not** add Step 8+ here unless the user explicitly chooses to reopen the TypeScript rollout. The correct next move is either:
+**Goal:** Recheck the completed Pile A conversion as one coherent system, not as six isolated steps. Confirm what actually works together, what follow-up items are real blockers for Pile B, and what can safely be deferred.
 
-- execute the chosen Option C follow-up work from the list below, preferably in a separate plan or execution doc scoped to that problem
-- declare the TS conversion plan complete and move on to product work
+**Instructions:**
+This is the review loop that Option C was meant to trigger. Read the converted Pile A surfaces together:
 
-Recommended first follow-up if the user wants to continue: create a dedicated plan for the Firestore ownership-policy inconsistency across `listHelpers.ts`, `rankerHelpers.ts`, and `rosterHelpers.ts`, since that was the highest-signal contract issue surfaced by Pile A.
+- `src/constants/**`
+- `src/data/firestorePaths.ts`
+- `src/shared/utils/**`
+- `src/shared/hooks/**`
+- `src/firebase/*.ts`
+- the existing follow-up items at the bottom of this doc
+
+Then:
+
+1. Run `npm run typecheck`.
+2. Run `npm run build`.
+3. Run `npm run test:diff -- --reporter=dot`.
+4. Re-read every follow-up item and classify it in a new `Pile A Reintegration Review` section as either:
+   - `Resume blocker` — should be addressed before Pile B
+   - `Safe to defer` — can remain on the follow-up list while Pile B proceeds
+5. Write a short explanation for each classification in plain language.
+6. End the review section with an explicit recommendation for what Step 9 should fix, if anything.
+
+**Constraints specific to this step:**
+
+- Review-first step. Do NOT start Pile B conversion here.
+- Only make source changes if the review exposes a tiny, obvious bug that would make the review notes false if left unfixed. Bigger fixes belong in Step 9.
+- If a blocker requires user-facing product direction, ask one plain-language question and mark the step `BLOCKED` until answered.
+
+**Done when:** A `Pile A Reintegration Review` section has been appended to this doc, every follow-up item is classified as `Resume blocker` or `Safe to defer`, and Step 9 has a truthful scoped input. Commit message: `docs: record Pile A reintegration review`.
+
+---
+
+## Pile A Reintegration Review
+
+**Date:** 2026-04-18
+
+### Validation results
+
+- `npm run typecheck` — passed.
+- `npm run build` — passed. Existing Vite warnings remain, but they are the same non-blocking warnings already visible before this review (`Browserslist` age, externalized `fs`, dynamic-import chunking, large chunk warning).
+- First `npm run test:diff -- --reporter=dot` run — failed in `tests/smoke/imports.smoke.test.js` because the test still imported `@/constants/yearDefaults.js`, which no longer exists after the Pile A conversion.
+- Review fix applied during Step 8: updated `tests/smoke/imports.smoke.test.js` to import `@/constants/yearDefaults`.
+- Second `npm run test:diff -- --reporter=dot` run — passed.
+
+### Follow-up item classification
+
+- **`firestorePaths.js` `splitPath` indirection removed (Step 3) — `Safe to defer`.**  
+  Live `firestorePaths.ts` typechecks, builds, and is already used successfully by converted Pile A code. This only becomes a real issue if collection constants ever become multi-segment paths, which Pile B does not depend on.
+
+- **`newSchemeSelectors.ts` dead code + schema mismatch (Step 4) — `Safe to defer`.**  
+  The issue is real, but the file has zero callers and the current review confirmed it still sits unused. It should not be wired into new work until the schema mismatch is reconciled, but it does not block Pile B conversion today. Note: the old follow-up text points to the wrong subdirectory; the live file is `src/shared/utils/selectors/newSchemeSelectors.ts`.
+
+- **`filterHelpers.ts` stat abbreviation map duplicates `statFilters.ts` (Step 4) — `Safe to defer`.**  
+  This is duplicate mapping logic, not a broken contract. It is worth consolidating later, but leaving it as-is does not prevent truthful typing from flowing into Pile B.
+
+- **`roleUtils.ts` POSITION_MAP vs getPlayerPositionLabel duplication (Step 4) — `Safe to defer`.**  
+  Same pattern as `filterHelpers`: duplicated mapping logic, but no current integration failure. Clean up later if it starts causing drift.
+
+- **`moduleResolution: "bundler"` and barrel imports (Step 4) — `Resume blocker`.**  
+  Pile B files already import `@/shared/utils/filtering` and `@/shared/utils/roles` heavily. This review confirmed those barrels are part of the live path into Pile B, so Step 9 needs to make the typed import strategy honest before Pile B starts: either keep the barrels truly TS-visible or move the affected imports to direct typed subpaths.
+
+- **`global-shims.d.ts` overrides actual TS file exports (Step 5) — `Resume blocker`.**  
+  This review confirmed the shim file still declares converted Pile A modules like `@/shared/utils/filtering`, `@/shared/utils/roles`, `@/data/firestorePaths`, `@/shared/hooks/usePlayerDetail`, `@/shared/hooks/useAuth`, `@/shared/hooks/useImageDownload`, and other shared helpers as `any`. If Pile B conversion starts with those declarations still in place, the main value of Pile A is blunted because downstream TS files will see `any` instead of real types.
+
+- **`rosterHelpers.ts` still has no ownership guard (Step 6) — `Safe to defer`.**  
+  The old follow-up note is stale. The live `rosterHelpers.ts` now creates with `ownerUid`, auto-claims legacy ownerless docs, and enforces ownership on guarded reads / updates / deletes. The remaining policy seam is narrower: `listHelpers.ts` and `rosterHelpers.ts` auto-claim legacy ownerless docs, while `rankerHelpers.ts` treats missing `ownerUid` as invalid. That inconsistency is real, but it does not block Pile B type flow.
+
+### Review conclusion
+
+Pile A holds together as one system well enough to continue. The review did not uncover a broad runtime regression from the conversion work. The blockers are narrower and more practical:
+
+- Pile A types are not yet guaranteed to flow into Pile B because the shim layer still overrides several converted modules as `any`.
+- The barrel-import story for `@/shared/utils/filtering` and `@/shared/utils/roles` needs to be made explicit before Pile B relies on those surfaces for real types.
+
+### Step 9 recommendation
+
+Step 9 should stay narrow and fix only the resume blockers proven by this review:
+
+1. Remove or sharply narrow the Pile A-related `declare module` blocks in `src/global-shims.d.ts` so converted modules stop collapsing to `any`.
+2. Make the Pile B-facing import strategy explicit for `@/shared/utils/filtering`, `@/shared/utils/roles`, `@/data/firestorePaths`, and the converted shared hooks:
+   either preserve typed barrels cleanly or move affected imports to direct typed subpaths.
+3. While touching that area, refresh the stale follow-up wording that this review disproved (`rosterHelpers` ownership note and the incorrect `newSchemeSelectors` path), but do not widen into unrelated cleanup.
+
+No additional product-direction question is needed before Step 9. The ownership-policy inconsistency can remain deferred unless the Step 9 implementation proves it is directly entangled with the shim/barrel fix.
+
+---
+
+## Step 9 — Resolve Pile A resume blockers before Pile B
+
+**Status:** TODO
+
+**Goal:** Fix only the issues that Step 8 proves should block Pile B from starting. Keep the cleanup narrow and tied to the review.
+
+**Instructions:**
+Use Step 8's blocker list as the source of truth. Work through the blockers in priority order. Likely candidates include:
+
+- Firestore ownership-policy inconsistency across `listHelpers.ts`, `rankerHelpers.ts`, and `rosterHelpers.ts`
+- `global-shims.d.ts` shadowing real `.ts` exports
+- dead code or schema mismatch that would mislead future Pile B conversion work
+- duplicated shared maps or contracts, but only if Step 8 proves they are real resume blockers
+
+For each blocker:
+
+1. Fix the code or documentation seam directly.
+2. Run `npm run typecheck`.
+3. Run the narrowest relevant validation command(s) and always append `--reporter=dot` to test scripts.
+4. Update this plan's follow-up list and Step 9 completion note so it is clear what was fixed and what remains deferred.
+
+**Constraints specific to this step:**
+
+- Do NOT widen into unrelated feature work.
+- If Step 8 finds zero resume blockers, mark this step `DONE` with a note saying no code changes were required and move directly to Step 10.
+- If a blocker needs a product-direction decision, stop and ask in plain language rather than guessing.
+
+**Done when:** Every Step 8 `Resume blocker` is resolved, reclassified with user approval, or explicitly deferred with a written reason that still allows Pile B to begin honestly. Commit message: `refactor: resolve Pile A blockers before Pile B`.
+
+---
+
+## Step 10 — Audit Pile B and produce conversion order
+
+**Status:** TODO
+
+**Goal:** Create a companion doc `docs/TS_CONVERSION_PILE_B_AUDIT.md` that lists every Pile B file with path, line count, exports, import graph, feature owner, and recommended conversion order.
+
+**Instructions:**
+Scope is the remaining non-Architect feature logic files under:
+
+- `src/features/**/hooks/**/*.js`
+- `src/features/**/utils/**/*.js`
+
+As of 2026-04-18, this is currently 19 files across `filters`, `profile`, `ranker`, `roster`, `table`, and `tierMaker`.
+
+For each file, record:
+
+- path
+- line count
+- top-level exports
+- what it imports
+- what imports it
+- one-sentence description of what it does
+- whether it depends directly on newly converted Pile A surfaces
+
+Group by feature. End with a `Recommended conversion order` section that is leaf-first and notes any files that should move together because of tight coupling.
+
+Do NOT convert any files in this step.
+
+**Constraints specific to this step:**
+
+- Audit only the hook / util / bridge layer. Do not pull `.jsx` UI components into the formal scope here.
+- Keep the doc concise, but call out high-risk files that touch persistence, local storage, routing, or cross-feature shared logic.
+
+**Done when:** `docs/TS_CONVERSION_PILE_B_AUDIT.md` exists with every Pile B file listed and a recommended conversion order. Commit message: `docs: audit Pile B for JS-to-TS conversion`.
+
+---
+
+## Step 11 — Convert Pile B feature utils and bridges
+
+**Status:** TODO
+
+**Goal:** All Pile B utility and bridge files under `src/features/**/utils/**/*.js` are converted to TypeScript with explicit parameter and return types.
+
+**Instructions:**
+Use the conversion order from Step 10's audit. Leaves first. One file per commit is preferred; a small same-feature batch is acceptable if the files are tightly coupled and the validation remains narrow.
+
+For each file:
+
+1. Rename `.js` → `.ts`.
+2. Add explicit parameter and return types to every exported function.
+3. If the file sits at an external boundary (storage, URL params, Firebase reads passed through from a helper, etc.), use truthful runtime guards or Zod where appropriate.
+4. Run `npm run typecheck`.
+5. Run the narrowest relevant test script(s) with `--reporter=dot`.
+6. Fix truthful call-site errors rather than widening the type.
+
+**Constraints specific to this step:**
+
+- Do NOT widen bag types just to keep feature code quiet.
+- Do NOT convert `.jsx` components in this step unless an import rename is trivial and purely mechanical.
+- `saveAsListBridge.js` files count as bridge logic and belong in this step.
+
+**Done when:** All Pile B utils / bridge files are `.ts`, typecheck is clean, and the relevant scoped tests pass. Commit messages per file or feature batch: `refactor: convert <feature>/<filename> to TypeScript`.
+
+---
+
+## Step 12 — Convert Pile B feature hooks
+
+**Status:** TODO
+
+**Goal:** All remaining Pile B feature hooks under `src/features/**/hooks/**/*.js` are converted to TypeScript.
+
+**Instructions:**
+After Step 11, convert the feature hooks in the audit order. One hook per commit is preferred unless two hooks are tightly coupled inside the same feature.
+
+For each hook:
+
+1. Rename `.js` → `.ts` (or `.tsx` only if the hook file actually contains JSX).
+2. Type all state, callback parameters, callback return values, and exported hook result shapes.
+3. Export the hook return type where that improves downstream clarity.
+4. Run `npm run typecheck`.
+5. Run the narrowest relevant test script(s) with `--reporter=dot`.
+6. Fix downstream call sites if the hook now exposes a more truthful contract.
+
+**Constraints specific to this step:**
+
+- Keep the scope on hooks, not their surrounding UI components.
+- If a hook is entangled with an unconverted `.jsx` component, convert only the hook unless a tiny import-path change is needed.
+- If a hook has no meaningful test coverage, add at least a smoke test before converting it.
+
+**Done when:** All Pile B hooks are `.ts` / `.tsx`, typecheck is clean, and the relevant scoped tests pass. Commit messages per hook or feature batch: `refactor: convert <hook-name> to TypeScript`.
+
+---
+
+## Step 13 — Final checkpoint and close out the living plan
+
+**Status:** TODO
+
+**Goal:** After Pile A, the Step 8-9 review loop, and Pile B are complete, explicitly record what remains for Pile C and then close this plan cleanly.
+
+**Instructions:**
+Append a `Final Closeout` section to this doc that answers:
+
+1. What JS / JSX files remain?
+2. Which of those are intentionally deferred Pile C UI components?
+3. What follow-up items remain open after Pile B?
+4. What is the rule for opportunistic Pile C conversion when product work touches those files?
+5. Is a dedicated Pile C plan needed, or is opportunistic conversion enough?
+
+This is the only step in this document that may declare the plan complete.
+
+**Constraints specific to this step:**
+
+- Do NOT create Step 14+ unless the user explicitly asks to re-scope the plan.
+- Pile C remains opportunistic unless the user asks for a dedicated UI conversion plan.
+- If future piles are added later, insert them before the final closeout step and update the flow summary at the top of this doc so the return path stays explicit.
+- The plan is not complete just because Pile A is done; it is complete only after this explicit closeout step is done.
+
+**Done when:** The doc has a `Final Closeout` section, Pile A + Pile B are explicitly recorded as complete, and the remaining Pile C handling is spelled out plainly. Commit message: `docs: close out JS-to-TS living plan`.
 
 ---
 

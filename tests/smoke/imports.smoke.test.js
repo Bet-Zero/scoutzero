@@ -62,7 +62,7 @@ describe('Critical Imports Smoke Test', () => {
   });
 
   it('can import yearDefaults constants', async () => {
-    const constants = await import('@/constants/yearDefaults.js');
+    const constants = await import('@/constants/yearDefaults');
     expect(constants.DEFAULT_SALARY_YEAR).toBeDefined();
   });
 });
