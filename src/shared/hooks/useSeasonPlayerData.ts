@@ -3,45 +3,64 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { enrichPlayerData } from '@/features/roster/utils';
 import { PLAYERS_COLLECTION } from '@/constants/collections';
+import type { SimplePlayer } from './useSimplePlayerData';
 
 /**
  * @deprecated Use usePlayerData or useSimplePlayerData instead
- * 
+ *
  * LEGACY: Enhanced hook that supports both legacy /players collection and new season-based structure
  * This hook is deprecated as part of data layer consolidation.
  * All components should use the simplified usePlayerData or useSimplePlayerData hooks.
- * 
+ *
  * Migration guide:
  * - Replace useSeasonPlayerData() with useSimplePlayerData() for direct access
  * - Replace useSeasonPlayerData(season) with usePlayerData() (season param deprecated)
  */
-const useSeasonPlayerData = (season = null) => {
+
+interface SeasonPlayerDiagnostics {
+  source: string | null;
+  collectionsChecked: string[];
+  playerCount: number;
+  fallbackUsed: boolean;
+}
+
+interface UseSeasonPlayerDataResult {
+  players: SimplePlayer[];
+  loading: boolean;
+  error: Error | null;
+  diagnostics: SeasonPlayerDiagnostics;
+  isEmpty: boolean;
+  isUsingFallback: boolean;
+  dataSource: string | null;
+}
+
+const useSeasonPlayerData = (season: string | null = null): UseSeasonPlayerDataResult => {
   console.warn('🚨 useSeasonPlayerData is DEPRECATED. Use usePlayerData or useSimplePlayerData instead.');
-  
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [diagnostics, setDiagnostics] = useState({
+
+  const [data, setData] = useState<Record<string, unknown>[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [diagnostics, setDiagnostics] = useState<SeasonPlayerDiagnostics>({
     source: null,
     collectionsChecked: [],
     playerCount: 0,
-    fallbackUsed: false
+    fallbackUsed: false,
   });
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      const diag = {
+      const diag: SeasonPlayerDiagnostics = {
         source: null,
         collectionsChecked: [],
         playerCount: 0,
-        fallbackUsed: false
+        fallbackUsed: false,
       };
 
       try {
-        let players = [];
-        
+        let players: Record<string, unknown>[] = [];
+
         // Strategy 1: Try current season data if season specified
         if (season) {
           try {
@@ -53,19 +72,18 @@ const useSeasonPlayerData = (season = null) => {
               diag.playerCount = players.length;
             }
           } catch (err) {
-            console.warn(`Season ${season} players collection not accessible:`, err.message);
+            console.warn(`Season ${season} players collection not accessible:`, (err as Error).message);
           }
         }
-        
+
         // Strategy 2: Try active season detection if no explicit season or no data found
         if (players.length === 0) {
           try {
             diag.collectionsChecked.push('/seasons');
             const seasonsSnap = await getDocs(collection(db, 'seasons'));
-            
-            // Look for active season
+
             for (const seasonDoc of seasonsSnap.docs) {
-              const seasonData = seasonDoc.data();
+              const seasonData = seasonDoc.data() as { status?: string };
               if (seasonData.status === 'active') {
                 diag.collectionsChecked.push(`/seasons/${seasonDoc.id}/players`);
                 try {
@@ -77,15 +95,15 @@ const useSeasonPlayerData = (season = null) => {
                     break;
                   }
                 } catch (err) {
-                  console.warn(`Active season ${seasonDoc.id} players not accessible:`, err.message);
+                  console.warn(`Active season ${seasonDoc.id} players not accessible:`, (err as Error).message);
                 }
               }
             }
           } catch (err) {
-            console.warn('Seasons collection not accessible:', err.message);
+            console.warn('Seasons collection not accessible:', (err as Error).message);
           }
         }
-        
+
         // Strategy 3: Fallback to legacy /players collection
         if (players.length === 0) {
           try {
@@ -98,66 +116,60 @@ const useSeasonPlayerData = (season = null) => {
               diag.fallbackUsed = true;
             }
           } catch (err) {
-            console.warn('Legacy players collection not accessible:', err.message);
+            console.warn('Legacy players collection not accessible:', (err as Error).message);
           }
         }
-        
+
         // Strategy 4: Use local data as ultimate fallback
         if (players.length === 0) {
           try {
             diag.collectionsChecked.push('local:/public/players.json');
             const response = await fetch('/players.json');
             if (response.ok) {
-              const localData = await response.json();
-              players = Object.keys(localData).map(id => ({
-                id,
-                ...localData[id]
-              }));
+              const localData = (await response.json()) as Record<string, Record<string, unknown>>;
+              players = Object.keys(localData).map((id) => ({ id, ...localData[id] }));
               diag.source = 'local:/public/players.json';
               diag.playerCount = players.length;
               diag.fallbackUsed = true;
             }
           } catch (err) {
-            console.warn('Local players.json not accessible:', err.message);
+            console.warn('Local players.json not accessible:', (err as Error).message);
           }
         }
-        
+
         setData(players);
         setDiagnostics(diag);
-        
-        // Log diagnostic information
+
         console.log('🔍 Player Data Loading Diagnostics:', diag);
-        
+
         if (players.length === 0) {
           throw new Error('No player data found in any location. Please check Firestore configuration or run season data population.');
         }
-        
       } catch (err) {
         console.error('Error fetching player data:', err);
-        setError(err);
+        setError(err instanceof Error ? err : new Error(String(err)));
         setDiagnostics(diag);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [season]);
 
-  const players = useMemo(() => {
+  const players = useMemo<SimplePlayer[]>(() => {
     if (!data.length) return [];
-    return data.map(enrichPlayerData);
+    return data.map((p) => enrichPlayerData(p) as SimplePlayer).filter(Boolean);
   }, [data]);
 
-  return { 
-    players, 
-    loading, 
-    error, 
+  return {
+    players,
+    loading,
+    error,
     diagnostics,
-    // Helper methods for troubleshooting
     isEmpty: players.length === 0,
     isUsingFallback: diagnostics.fallbackUsed,
-    dataSource: diagnostics.source
+    dataSource: diagnostics.source,
   };
 };
 
