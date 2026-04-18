@@ -166,9 +166,10 @@ React hooks benefit a lot from TS because the `useState`/`useEffect`/`useCallbac
 
 ## Step 6 — Convert `src/firebase/*.js` (Firestore helpers)
 
-**Status:** IN PROGRESS  
+**Status:** DONE  
 Started 2026-04-18: `src/firebase/rosterHelpers.js` → `rosterHelpers.ts` with explicit document/update types, Zod-validated reads, and direct smoke coverage at `src/tests/roster/rosterHelpers.smoke.test.ts`. Validation so far: `npm run typecheck`, `npm run validate:project`, `npm run test:roster -- --reporter=dot`, targeted UI roster test, and `npm run build`.
 Updated 2026-04-18: `src/firebase/rankerHelpers.js` → `rankerHelpers.ts` with local Zod schemas for session/setup/result reads, typed create/update payloads, and direct CRUD smoke coverage at `src/tests/ranker/rankerHelpers.smoke.test.ts`. Also extended `tests/__mocks__/firebase.js` with `limit()` query support because the new smoke path exercises ordered+limited queries. Validation for this slice: `npm run typecheck`, `npm run validate:project`, `npm run test:node -- --reporter=dot src/tests/ranker/rankerHelpers.smoke.test.ts tests/rankerSessionSerialization.test.js`, and `npm run build`. Remaining: `listHelpers.js`. Full suite intentionally not run because AGENTS.md requires the exact phrase `RUN FULL SUITE`.
+Completed 2026-04-18: `src/firebase/listHelpers.js` → `listHelpers.ts` with Zod-validated list/tier-list reads, typed ownership-guarded writes, preserved coded tier-list errors, and direct CRUD smoke coverage at `tests/listHelpers.smoke.test.ts`. Final validation: `npm run typecheck`, `npm run validate:project`, `npm run build`, and `npm run test:node -- --reporter=dot tests/listHelpers.smoke.test.ts tests/tierListModePersistence.test.js tests/tierSaveAsList.test.js tests/tierMakerListOrder.test.js`. Full suite intentionally not run because AGENTS.md requires the exact phrase `RUN FULL SUITE`.
 
 **Goal:** `rosterHelpers.js`, `rankerHelpers.js`, `listHelpers.js` converted to TypeScript with explicit types for every read and write. Every Firestore read that crosses back into application code validates the shape with Zod (add Zod schemas where absent).
 
