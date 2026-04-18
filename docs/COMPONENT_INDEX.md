@@ -62,7 +62,6 @@ Quick reference for all components in the ScoutZero project.
 - PlayerSearchBar.jsx
 - SaveStatusIndicator.jsx
 - TeamPlayerDropdowns.jsx
-- hooks/useAutoSavePlayer.js
 
 ## Ranker
 
@@ -133,4 +132,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-04-18T14:30:04.822Z*
+*Generated on: 2026-04-18T14:36:38.077Z*

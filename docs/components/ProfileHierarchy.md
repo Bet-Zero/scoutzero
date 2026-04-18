@@ -22,7 +22,7 @@ PlayerSearchBar.jsx
 SaveStatusIndicator.jsx
 TeamPlayerDropdowns.jsx
 hooks/
-  useAutoSavePlayer.js
+  useAutoSavePlayer.ts
   usePlayerNavigation.ts
   usePlayerProfileState.ts
 utils/
@@ -30,5 +30,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-18T14:30:04.779Z*
+*Generated on: 2026-04-18T14:36:37.976Z*
 *Auto-updated by: npm run docs*

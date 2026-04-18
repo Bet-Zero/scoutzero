@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/profile/hooks/useAutoSavePlayer.js
+ * FILE: src/features/profile/hooks/useAutoSavePlayer.ts
  * PURPOSE: Autosave scouting evaluation data to Firestore evaluations/current and denormalized views.
  * OWNERSHIP: Feature: profile/scouting
  *
@@ -15,52 +15,135 @@
  *  - Latest Chunk: n/a (no chunks used)
  */
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import { writeBatch } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { evalRef, seasonRef, playerRef } from '@/data/firestorePaths';
 import { normalizeBlurbs } from '@/shared/utils/blurbs';
+import type { Blurbs } from '@/shared/utils/blurbs';
 import { normalizeVideoExamples } from '@/shared/utils/videoExamples';
+import type { NormalizedVideoExamples } from '@/shared/utils/videoExamples';
+import type {
+  EnrichablePlayerData,
+  EnrichedPlayerData,
+  PlayerSubRoles,
+} from '@/features/roster/utils/enrichPlayerData';
+import type { ProfileRoles } from '@/features/profile/hooks/usePlayerProfileState';
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 
-/**
- * Recursively strips undefined values from objects and arrays.
- * Firestore does not support undefined field values.
- * @param {*} value - Any value to sanitize
- * @returns {*} - Value with undefined fields removed
- */
-const stripUndefinedDeep = (value) => {
-  if (value === undefined) return undefined; // Signal removal
-  if (value === null) return null; // Preserve null
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+type SanitizedValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Date
+  | SanitizedValue[]
+  | { [key: string]: SanitizedValue };
+
+export type AutoSavePlayerInput = {
+  playerId: string;
+  player: EnrichedPlayerData<EnrichablePlayerData> | null;
+  traits: Record<string, number>;
+  roles: ProfileRoles;
+  twoWay: number;
+  subRoles: PlayerSubRoles;
+  badges: string[];
+  shootingProfile: string;
+  overallGrade: number | null;
+  blurbs: Blurbs;
+  videoExamples: NormalizedVideoExamples;
+  hasChanges: boolean;
+  setHasChanges: Dispatch<SetStateAction<boolean>>;
+};
+
+type AutoSaveSnapshot = Omit<
+  AutoSavePlayerInput,
+  'hasChanges' | 'setHasChanges'
+>;
+
+type CompleteAutoSaveSnapshot = AutoSaveSnapshot & {
+  player: EnrichedPlayerData<EnrichablePlayerData>;
+};
+
+type SaveNowOverride = Partial<AutoSaveSnapshot> & {
+  hasChanges?: boolean;
+};
+
+export type UseAutoSavePlayerResult = {
+  isSaving: boolean;
+  saveError: string | null;
+  saveState: SaveState;
+  saveNow: (snapshotOverride?: SaveNowOverride | null) => Promise<void>;
+};
+
+const stripUndefinedDeep = (value: unknown): SanitizedValue | undefined => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (value instanceof Date) return value;
 
   if (Array.isArray(value)) {
     return value
       .map((item) => stripUndefinedDeep(item))
-      .filter((item) => item !== undefined);
+      .filter((item): item is SanitizedValue => item !== undefined);
   }
 
-  if (value instanceof Date || typeof value !== 'object') {
+  if (typeof value === 'object') {
+    const cleaned: Record<string, SanitizedValue> = {};
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      const cleanedVal = stripUndefinedDeep(val);
+      if (cleanedVal !== undefined) {
+        cleaned[key] = cleanedVal;
+      }
+    }
+    return cleaned;
+  }
+
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
     return value;
   }
 
-  // Plain object: recursively clean
-  const cleaned = {};
-  for (const [key, val] of Object.entries(value)) {
-    const cleanedVal = stripUndefinedDeep(val);
-    if (cleanedVal !== undefined) {
-      cleaned[key] = cleanedVal;
-    }
-  }
-  return cleaned;
+  return undefined;
 };
 
-/**
- * @typedef {Object} AutoSaveStatus
- * @property {boolean} isSaving - True while save is in progress
- * @property {string|null} saveError - Error message if save failed, null otherwise
- * @property {'idle'|'saving'|'saved'|'error'} saveState - Current save state for UI
- */
+const sanitizeWriteData = (
+  value: Record<string, unknown>
+): Record<string, SanitizedValue> => {
+  const sanitized = stripUndefinedDeep(value);
+  return sanitized && !Array.isArray(sanitized) && typeof sanitized === 'object'
+    ? (sanitized as Record<string, SanitizedValue>)
+    : {};
+};
+
+const isCompleteSnapshot = (
+  snapshot: Partial<AutoSaveSnapshot> | null
+): snapshot is CompleteAutoSaveSnapshot => {
+  return Boolean(
+    snapshot?.playerId &&
+      snapshot.player &&
+      snapshot.traits &&
+      snapshot.roles &&
+      typeof snapshot.twoWay === 'number' &&
+      snapshot.subRoles &&
+      Array.isArray(snapshot.badges) &&
+      typeof snapshot.shootingProfile === 'string' &&
+      snapshot.blurbs &&
+      snapshot.videoExamples
+  );
+};
 
 const useAutoSavePlayer = ({
   playerId,
@@ -76,17 +159,19 @@ const useAutoSavePlayer = ({
   videoExamples,
   hasChanges,
   setHasChanges,
-}) => {
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState(null);
-  const [saveState, setSaveState] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
-  const latestSnapshotRef = useRef(null);
-  const changeTokenRef = useRef(0);
-  const debounceTimeoutRef = useRef(null);
-  const isSavingRef = useRef(false);
-  const pendingSaveRef = useRef(false);
-  const performSaveRef = useRef(null);
-  const saveCompleteResolversRef = useRef([]);
+}: AutoSavePlayerInput): UseAutoSavePlayerResult => {
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const latestSnapshotRef = useRef<AutoSaveSnapshot | null>(null);
+  const changeTokenRef = useRef<number>(0);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingRef = useRef<boolean>(false);
+  const pendingSaveRef = useRef<boolean>(false);
+  const performSaveRef = useRef<
+    ((snapshotOverride?: SaveNowOverride | null) => Promise<void>) | null
+  >(null);
+  const saveCompleteResolversRef = useRef<Array<() => void>>([]);
 
   // Clear error when user makes new changes
   useEffect(() => {
@@ -129,7 +214,7 @@ const useAutoSavePlayer = ({
     hasChanges,
   ]);
 
-  const scheduleSave = useCallback((delay = AUTOSAVE_DEBOUNCE_MS) => {
+  const scheduleSave = useCallback((delay = AUTOSAVE_DEBOUNCE_MS): void => {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
@@ -147,11 +232,13 @@ const useAutoSavePlayer = ({
     }, delay);
   }, []);
 
-  const performSave = useCallback(async (snapshotOverride = null) => {
+  const performSave = useCallback(async (
+    snapshotOverride: SaveNowOverride | null = null
+  ): Promise<void> => {
     const snapshot = snapshotOverride
-      ? { ...latestSnapshotRef.current, ...snapshotOverride }
+      ? { ...(latestSnapshotRef.current ?? {}), ...snapshotOverride }
       : latestSnapshotRef.current;
-    if (!snapshot?.playerId || !snapshot?.player) return;
+    if (!isCompleteSnapshot(snapshot)) return;
     if (isSavingRef.current) {
       pendingSaveRef.current = true;
       return;
@@ -188,22 +275,22 @@ const useAutoSavePlayer = ({
         },
       };
 
-      // Strip undefined values to prevent Firestore errors
-      const sanitizedEvaluationData = stripUndefinedDeep(evaluationData);
+      // Strip undefined values to prevent Firestore errors.
+      const sanitizedEvaluationData = sanitizeWriteData(evaluationData);
 
-      // Get current season info for denormalized updates
+      // Get current season info for denormalized updates.
       const now = new Date();
       const currentYear = now.getFullYear() + (now.getMonth() >= 6 ? 1 : 0);
       const seasonId = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
-      // Batch operation to update both locations
+      // Batch operation to update both locations.
       const batch = writeBatch(db);
 
-      // 1. Save to main evaluations subcollection
+      // 1. Save to main evaluations subcollection.
       const evaluationDocRef = evalRef(snapshot.playerId, 'current');
       batch.set(evaluationDocRef, sanitizedEvaluationData, { merge: true });
 
-      // 2. Update denormalized evaluationView in current season
+      // 2. Update denormalized evaluationView in current season.
       const seasonDocRef = seasonRef(snapshot.playerId, seasonId);
       const evaluationView = {
         overallGrade: snapshot.overallGrade,
@@ -217,7 +304,7 @@ const useAutoSavePlayer = ({
         twoWay: snapshot.twoWay,
         badges: snapshot.badges,
       };
-      const sanitizedEvaluationView = stripUndefinedDeep(evaluationView);
+      const sanitizedEvaluationView = sanitizeWriteData(evaluationView);
       batch.set(
         seasonDocRef,
         {
@@ -226,8 +313,7 @@ const useAutoSavePlayer = ({
         { merge: true }
       );
 
-      // 3. Update denormalized currentEvaluationView in main document
-      // Use set with merge to handle missing docs gracefully
+      // 3. Update denormalized currentEvaluationView in main document.
       const playerDocRef = playerRef(snapshot.playerId);
       const currentEvaluationView = {
         overallGrade: snapshot.overallGrade,
@@ -245,7 +331,7 @@ const useAutoSavePlayer = ({
         blurbs: normalizedBlurbs,
         videoExamples: normalizedVideoExamples,
       };
-      const sanitizedCurrentEvaluationView = stripUndefinedDeep(
+      const sanitizedCurrentEvaluationView = sanitizeWriteData(
         currentEvaluationView
       );
       batch.set(
@@ -262,14 +348,15 @@ const useAutoSavePlayer = ({
       didSucceed = true;
     } catch (error) {
       console.error('❌ Error saving player evaluation data:', error);
-      const errorMessage = error?.message || 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       setSaveError(errorMessage);
       setSaveState('error');
-      // Do NOT clear hasChanges on error - user should retry
+      // Do NOT clear hasChanges on error - user should retry.
     } finally {
       isSavingRef.current = false;
       setIsSaving(false);
-      // Resolve any saveNow() callers waiting for this save to finish
+      // Resolve any saveNow() callers waiting for this save to finish.
       const resolvers = saveCompleteResolversRef.current;
       saveCompleteResolversRef.current = [];
       resolvers.forEach((resolve) => resolve());
@@ -282,7 +369,7 @@ const useAutoSavePlayer = ({
       setHasChanges(false);
       setSaveState('saved');
 
-      // Reset to idle after brief "Saved" display
+      // Reset to idle after brief "Saved" display.
       setTimeout(() => {
         setSaveState((prev) => (prev === 'saved' ? 'idle' : prev));
       }, 2000);
@@ -325,22 +412,24 @@ const useAutoSavePlayer = ({
     scheduleSave,
   ]);
 
-  // saveNow: Immediate save, bypassing debounce. Returns promise that resolves when complete.
-  const saveNow = useCallback(async (snapshotOverride = null) => {
-    // Clear any pending debounce
+  // saveNow: Immediate save, bypassing debounce. Resolves when complete.
+  const saveNow = useCallback(async (
+    snapshotOverride: SaveNowOverride | null = null
+  ): Promise<void> => {
+    // Clear any pending debounce.
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
       debounceTimeoutRef.current = null;
     }
 
-    // Wait for in-flight save to complete using promise queue (no polling)
+    // Wait for in-flight save to complete using promise queue (no polling).
     if (isSavingRef.current) {
-      await new Promise((resolve) => {
+      await new Promise<void>((resolve) => {
         saveCompleteResolversRef.current.push(resolve);
       });
     }
 
-    // Run the save immediately
+    // Run the save immediately.
     await performSave(snapshotOverride);
   }, [performSave]);
 
