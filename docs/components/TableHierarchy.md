@@ -23,7 +23,7 @@ PlayerTable/
     TopControlsBar.jsx
     index.jsx
   hooks/
-    usePlayerTableDensity.js
+    usePlayerTableDensity.ts
   index.jsx
 hooks/
   useFilterDiagnostics.js
@@ -31,5 +31,5 @@ hooks/
 ```
 
 ---
-*Generated on: 2026-03-20T06:34:11.450Z*
+*Generated on: 2026-04-18T14:05:48.565Z*
 *Auto-updated by: npm run docs*

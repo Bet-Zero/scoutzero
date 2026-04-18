@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/table/PlayerTable/hooks/usePlayerTableDensity.js
+ * FILE: src/features/table/PlayerTable/hooks/usePlayerTableDensity.ts
  * PURPOSE: Manages density mode preference (comfortable/compact) for PlayerTable with localStorage persistence.
  *
  * OWNERSHIP: Feature: table/density
@@ -14,45 +14,37 @@ import { useState, useMemo, useCallback } from 'react';
 
 const STORAGE_KEY = 'players_density_mode';
 
-/**
- * Density mode values
- * @type {Object}
- */
 export const DENSITY_MODES = {
   COMFORTABLE: 'comfortable',
   COMPACT: 'compact',
-};
+} as const;
 
-/**
- * Scale factors for each density mode
- * @type {Object}
- */
-export const DENSITY_SCALES = {
+export type DensityMode =
+  (typeof DENSITY_MODES)[keyof typeof DENSITY_MODES];
+
+export const DENSITY_SCALES: Record<DensityMode, number> = {
   [DENSITY_MODES.COMFORTABLE]: 1.0,
   [DENSITY_MODES.COMPACT]: 0.75,
 };
 
-/**
- * Hook to manage density mode preference with localStorage persistence.
- *
- * @returns {{
- *   mode: string,
- *   setMode: function,
- *   scale: number,
- *   isCompact: boolean
- * }}
- */
-export function usePlayerTableDensity() {
+export type UsePlayerTableDensityResult = {
+  mode: DensityMode;
+  setMode: (newMode: string) => void;
+  scale: number;
+  isCompact: boolean;
+};
+
+const isDensityMode = (value: string | null): value is DensityMode =>
+  value === DENSITY_MODES.COMPACT || value === DENSITY_MODES.COMFORTABLE;
+
+export function usePlayerTableDensity(): UsePlayerTableDensityResult {
   // Initialize from localStorage or default to comfortable
-  const [mode, setModeInternal] = useState(() => {
+  const [mode, setModeInternal] = useState<DensityMode>(() => {
     if (typeof window === 'undefined') return DENSITY_MODES.COMFORTABLE;
 
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (
-        stored === DENSITY_MODES.COMPACT ||
-        stored === DENSITY_MODES.COMFORTABLE
-      ) {
+      if (isDensityMode(stored)) {
         return stored;
       }
     } catch {
@@ -62,17 +54,16 @@ export function usePlayerTableDensity() {
   });
 
   // Persist to localStorage when mode changes
-  const setMode = useCallback((newMode) => {
-    if (
-      newMode !== DENSITY_MODES.COMFORTABLE &&
-      newMode !== DENSITY_MODES.COMPACT
-    ) {
+  const setMode = useCallback((newMode: string) => {
+    if (!isDensityMode(newMode)) {
       console.warn(`Invalid density mode: ${newMode}`);
       return;
     }
     setModeInternal(newMode);
     try {
-      localStorage.setItem(STORAGE_KEY, newMode);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, newMode);
+      }
     } catch {
       // localStorage not available
     }
