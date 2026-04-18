@@ -141,7 +141,8 @@ If the utils subdirectory contains clear duplication (e.g., three formatting hel
 
 ## Step 5 — Convert `src/shared/hooks/**`
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-18: All 6 JS hooks converted. `useClickOutside` (typed ref/handler), `useAuth` (Firebase `User` type, explicit `UseAuthResult`), `useImageDownload` (typed `DownloadFn`, worked around TS DOM lib gap for `FontFaceSet.add`), `useFirebaseQuery` (generic `<T>` with `UseFirebaseQueryResult<T>`, proper `Error | null` for error state), `useSeasonPlayerData` (deprecated, typed with `SimplePlayer` and `SeasonPlayerDiagnostics`), `usePlayerDetail` (returns `PlayerV2 | null`, Zod validation in DEV, typed subcollection records). Smoke test added for `useFirebaseQuery` at `src/tests/shared/hooks.smoke.test.tsx`. Also fixed `global-shims.d.ts` missing exports for `firestorePaths` module and added explicit return types to `firestorePaths.ts` to resolve TS 5.9 shim-layer inference issue.
 
 **Goal:** All ~6 files under `src/shared/hooks/` converted to TypeScript with properly typed parameters, return values, and internal state.
 
@@ -231,6 +232,8 @@ _Anything surfaced during conversion that isn't in scope for the step that found
 - **`roleUtils.ts` POSITION_MAP vs getPlayerPositionLabel duplication (Step 4):** Both `POSITION_MAP` and `getPlayerPositionLabel` hardcode the same position → abbreviation map. Consolidation: `getPlayerPositionLabel` should delegate to `POSITION_MAP` (or vice versa).
 
 - **`moduleResolution: "bundler"` and barrel imports (Step 4):** Directory-level barrel imports (e.g. `@/shared/utils/roles`) fail TypeScript resolution with `moduleResolution: "bundler"` unless a `.ts`-aware bundler is involved. Direct sub-path imports (e.g. `@/shared/utils/roles/roleUtils`) work reliably. Consider this when writing imports in new TS files.
+
+- **`global-shims.d.ts` overrides actual TS file exports (Step 5):** Module declarations in `global-shims.d.ts` take priority over the real `.ts` file. When converting a JS file to TS, check if there's a corresponding `declare module` block in `global-shims.d.ts` — if so, any new exports must be added there too or they'll be invisible. Long-term: remove `declare module` blocks for files that are now properly typed `.ts` files (requires ensuring the shim layer for `@/firebaseConfig` and other JS dependencies is handled differently).
 
 ---
 
