@@ -198,7 +198,8 @@ If a read reveals that real Firestore documents have inconsistent shapes (some d
 
 ## Step 7 — Checkpoint: re-scope Pile B and Pile C
 
-**Status:** TODO
+**Status:** IN PROGRESS  
+Updated 2026-04-18: "Phase 2 Decision" appended below using the 2026-04-18 Pile A commit trail. Waiting on user choice between Options A, B, and C before this step can be marked DONE.
 
 **Goal:** Pile A is done. Decide whether to extend this plan to Pile B (feature-level hooks + `features/*/utils/`) or declare the plan complete and move on.
 
@@ -222,9 +223,100 @@ Present all three options to the user with a recommendation. Do not unilaterally
 
 ---
 
+## Phase 2 Decision
+
+**Date:** 2026-04-18
+
+### 1. How many type errors did Pile A surface at call sites in Pile B/C files?
+
+Observed answer: **0 direct Pile B/C call-site edits landed during Pile A.**
+
+Evidence from the 2026-04-18 conversion commits:
+
+- The constants/utils/hooks/helper conversion commits only touched Pile A files, tests, `src/global-shims.d.ts`, and `docs/TS_CONVERSION_NEXT_STEPS.md`.
+- No `src/features/*`, `src/pages/*`, or other Pile B/C source files were edited as part of the conversion wave.
+
+Interpretation:
+
+- Good news: Pile A conversions did not blow up downstream feature code.
+- Important caveat: this does **not** prove Pile B/C is clean. Many downstream callers are still JS, so some debt is still masked because JS callers do not force strict type alignment the way TS callers would.
+
+### 2. Did any conversion reveal shape inconsistencies in Firestore data?
+
+Observed answer: **No confirmed Firestore document-shape inconsistency requiring a migration was found during Pile A.**
+
+What *was* surfaced:
+
+- `usePlayerDetail.ts`, `listHelpers.ts`, `rankerHelpers.ts`, and `rosterHelpers.ts` now all have Zod-validated read boundaries, so invalid shapes should fail loudly instead of drifting silently.
+- Step 6 did expose an **ownership-policy inconsistency** across user-authored collections:
+  - `listHelpers.ts` can auto-claim legacy docs with missing `ownerUid`
+  - `rankerHelpers.ts` treats missing `ownerUid` as invalid
+  - `rosterHelpers.ts` still has no `ownerUid` / `userId` guard at all
+
+Interpretation:
+
+- This is not a data-shape migration blocker.
+- It **is** a product/security contract question that is probably higher-value than blindly converting deeper feature files.
+
+### 3. Were there duplicated utilities that should be consolidated before further conversion?
+
+Observed answer: **Yes.**
+
+Concrete duplicates or contract seams already recorded in Follow-up items:
+
+- `filterHelpers.ts` duplicates the stat abbreviation map from `statFilters.ts`
+- `roleUtils.ts` duplicates position-label mapping logic between `POSITION_MAP` and `getPlayerPositionLabel`
+- `newSchemeSelectors.ts` is dead code and expects a schema shape that does not match `SeasonDocZ`
+- `global-shims.d.ts` still shadows real `.ts` exports and can hide new exports during future conversions
+
+Interpretation:
+
+- None of these blocked Pile A.
+- They are the kind of small-but-real seams that become more expensive if Pile B expands on top of them unchanged.
+
+### 4. How much real time did Pile A take vs the estimate?
+
+Observed answer: **No explicit estimate was written into this plan, so only actual runtime is knowable.**
+
+Measured from the 2026-04-18 commit trail:
+
+- Step 1 audit commit: `02:11:45` ET
+- Final Step 6 commit: `05:39:46` ET
+- Execution time from Step 1 through Step 6: about **3 hours 28 minutes**
+- If the initial plan-creation commit at `01:46:58` ET is included, total time is about **3 hours 53 minutes**
+
+Interpretation:
+
+- Pile A moved faster than a multi-session migration would suggest.
+- That speed is partly because Pile A is the highest-leverage, lower-blast-radius part of the tree.
+- Pile B is likely slower per file because it sits closer to feature logic and JS callers.
+
+### Options For The User
+
+- **Option A — Extend this plan into Pile B:** Add Step 8+ for feature-level hooks and `features/*/utils/`. Best if the goal is maximum TS coverage now. Tradeoff: wider blast radius, more feature-specific churn, and less shared leverage per file than Pile A delivered.
+- **Option B — Declare this plan complete:** Stop the formal migration plan here. Keep converting Pile B/C opportunistically when product work touches those files. Best if the goal was leverage-first hardening rather than broad coverage.
+- **Option C — Pause conversion and address follow-up debt first:** Use the next cycle to resolve the higher-signal issues Pile A exposed, especially Firestore ownership-policy inconsistency and the small duplicated utility/schema seams. Best if the goal is correctness and clearer contracts before deeper TS rollout.
+
+### Recommendation
+
+**Recommend Option C.**
+
+Reasoning:
+
+- Pile A already captured the highest-leverage shared surfaces.
+- No Firestore shape migration was uncovered, so there is no emergency cleanup blocking the app.
+- The most valuable new information from the conversion was not "convert more files immediately"; it was that ownership rules across user-authored Firestore helpers are inconsistent, and several shared utility contracts are still duplicated or shadowed.
+- Fixing those seams first should make any later Pile B conversion cleaner and reduce the chance of converting bad assumptions into typed bad assumptions.
+
+Conservative fallback:
+
+- If the user wants to stop the migration plan cleanly and move back to product work, **Option B** is a reasonable second choice.
+
+---
+
 ## Follow-up items (populated as conversion progresses)
 
-_Anything surfaced during conversion that isn't in scope for the step that found it. Examples: duplicated utilities across files, inconsistent Firestore shapes, functions with undocumented side effects, missing tests on critical paths. Do not try to fix these in the same step they're found — add them here and address separately._
+*Anything surfaced during conversion that isn't in scope for the step that found it. Examples: duplicated utilities across files, inconsistent Firestore shapes, functions with undocumented side effects, missing tests on critical paths. Do not try to fix these in the same step they're found — add them here and address separately.*
 
 - **`firestorePaths.js` `splitPath` indirection removed (Step 3):** The original JS used `splitPath()` to spread collection constants into `doc()`/`collection()` rest params. TypeScript TS2556 prevents spreading `string[]` into a typed rest param. Since all collection constants are single-segment names (no internal slashes), we eliminated `splitPath` and pass the constants directly. If env vars are ever set to multi-segment paths, this file will need to be revisited.
 
