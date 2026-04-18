@@ -1,14 +1,21 @@
+import { RefObject } from 'react';
 import { toPng } from 'html-to-image';
 import { toast } from 'react-hot-toast';
 import { antonBase64CSS } from '@/fonts/antonBase64';
 
-const useImageDownload = (ref) => {
-  const download = async (filename, options = {}) => {
+type DownloadOptions = {
+  pixelRatio?: number;
+  backgroundColor?: string;
+};
+
+type DownloadFn = (filename: string, options?: DownloadOptions) => Promise<void>;
+
+const useImageDownload = (ref: RefObject<HTMLElement | null>): DownloadFn => {
+  const download: DownloadFn = async (filename, options = {}) => {
     if (!ref.current) return;
     try {
-      // 1. Ensure the Base64 font is loaded and injected before export
       const match = antonBase64CSS.match(/base64,([^)]+)\)/);
-      let styleEl;
+      let styleEl: HTMLStyleElement | undefined;
       if (match) {
         const font = new FontFace(
           'AntonBase64',
@@ -16,31 +23,27 @@ const useImageDownload = (ref) => {
           { weight: '400', style: 'normal' }
         );
         await font.load();
-        document.fonts.add(font);
+        // FontFaceSet.add() exists at runtime; TS DOM lib may not include it in all versions
+        (document.fonts as FontFaceSet & { add(f: FontFace): void }).add(font);
         await document.fonts.load('1em AntonBase64');
         await document.fonts.ready;
 
-        // Inject @font-face so html-to-image clone retains the font
         styleEl = document.createElement('style');
         styleEl.textContent = antonBase64CSS;
         ref.current.prepend(styleEl);
       }
 
-      // 2. Wait a frame so layout has time to settle
-      await new Promise((r) => requestAnimationFrame(r));
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((r) => setTimeout(r, 100));
 
-      // 3. Export as PNG using the element directly
       const dataUrl = await toPng(ref.current, {
         cacheBust: true,
-        // Avoid html-to-image font parsing bugs by skipping font
-        // inlining. Fonts are already loaded via Base64.
+        // Fonts already loaded via Base64; skip html-to-image font inlining to avoid parsing bugs
         skipFonts: true,
-        pixelRatio: options.pixelRatio || 2,
-        backgroundColor: options.backgroundColor || '#111',
+        pixelRatio: options.pixelRatio ?? 2,
+        backgroundColor: options.backgroundColor ?? '#111',
       });
 
-      // 4. Download
       const link = document.createElement('a');
       link.download = filename;
       link.href = dataUrl;
