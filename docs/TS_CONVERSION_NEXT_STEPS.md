@@ -465,7 +465,8 @@ For each blocker:
 
 ## Step 10 — Audit Pile B and produce conversion order
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-18: `docs/TS_CONVERSION_PILE_B_AUDIT.md` created — 19 files catalogued across filters, profile, ranker, roster, table, and tierMaker. Conversion order now splits Step 11 utility/bridge leaves from Step 12 hooks and flags Firestore, storage, routing, and cross-feature boundaries.
 
 **Goal:** Create a companion doc `docs/TS_CONVERSION_PILE_B_AUDIT.md` that lists every Pile B file with path, line count, exports, import graph, feature owner, and recommended conversion order.
 
