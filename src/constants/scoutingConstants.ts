@@ -1,4 +1,3 @@
-// Canonical trait order used across the scouting/profile feature
 export const TRAIT_ORDER = [
   'Shooting',
   'Passing',
@@ -8,15 +7,15 @@ export const TRAIT_ORDER = [
   'IQ',
   'Feel',
   'Energy',
-];
+] as const;
 
-// Default trait values for new/ungraded players
+export type Trait = (typeof TRAIT_ORDER)[number];
+
 export const DEFAULT_TRAITS = Object.fromEntries(
   TRAIT_ORDER.map((t) => [t, 0])
-);
+) as Record<Trait, number>;
 
-// Trait color scale (green = high, red = low)
-export const getTraitColor = (rating) => {
+export const getTraitColor = (rating: number): string => {
   if (rating >= 98) return '#13895b';
   if (rating >= 94) return '#369972';
   if (rating >= 91) return '#55b48f';

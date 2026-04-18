@@ -23,4 +23,7 @@ export const BadgeList = [
   { key: 'iron_man', label: 'Iron Man', icon: '🦾' },
   { key: 'cool_under_pressure', label: 'Cool Under Pressure', icon: '🧊' },
   { key: 'veteran_presence', label: 'Veteran Presence', icon: '🦉' },
-];
+] as const;
+
+export type Badge = (typeof BadgeList)[number];
+export type BadgeKey = Badge['key'];

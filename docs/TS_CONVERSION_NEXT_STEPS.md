@@ -85,7 +85,8 @@ If any step fails, STOP and document the blocker as an `IN PROGRESS` note. Fix t
 
 ## Step 3 — Convert `src/constants/**` and `src/data/firestorePaths.js`
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-18: All 5 remaining constants files and `firestorePaths.js` converted. `as const` + derived types on `teamList`; explicit `SubRole`/`SubRoleGroup` union types on `SubRoleMasterList`; `firestorePaths` simplified from spread-of-string[] to direct constant args (TypeScript spread TS2556). Typecheck clean, zero call-site errors.
 
 **Goal:** All files under `src/constants/` and `src/data/firestorePaths.js` converted to TypeScript with explicit exported types. These are pure-data files that flow everywhere — typing them gives downstream files something to narrow against.
 
@@ -220,7 +221,7 @@ Present all three options to the user with a recommendation. Do not unilaterally
 
 _Anything surfaced during conversion that isn't in scope for the step that found it. Examples: duplicated utilities across files, inconsistent Firestore shapes, functions with undocumented side effects, missing tests on critical paths. Do not try to fix these in the same step they're found — add them here and address separately._
 
-- _(empty)_
+- **`firestorePaths.js` `splitPath` indirection removed (Step 3):** The original JS used `splitPath()` to spread collection constants into `doc()`/`collection()` rest params. TypeScript TS2556 prevents spreading `string[]` into a typed rest param. Since all collection constants are single-segment names (no internal slashes), we eliminated `splitPath` and pass the constants directly. If env vars are ever set to multi-segment paths, this file will need to be revisited.
 
 ---
 
