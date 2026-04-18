@@ -16,10 +16,10 @@ ranker.css
 tournamentRanker.js
 utils/
   rankerLocalDraft.ts
-  rankingEngine.js
+  rankingEngine.ts
   saveAsListBridge.ts
 ```
 
 ---
-*Generated on: 2026-04-18T13:27:18.693Z*
+*Generated on: 2026-04-18T13:35:46.346Z*
 *Auto-updated by: npm run docs*

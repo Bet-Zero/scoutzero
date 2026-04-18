@@ -3,7 +3,7 @@ import {
   generateRankingFromComparisons,
   suggestNextPair,
   createClosureCache,
-} from '@/features/ranker/utils/rankingEngine.js';
+} from '@/features/ranker/utils/rankingEngine';
 
 const players = [
   { id: '1', name: 'A' },

@@ -1,20 +1,61 @@
-// 📁 src/utils/ranker/rankingEngine.js
+// src/features/ranker/utils/rankingEngine.ts
+
+export type RankerPlayer = {
+  id: string;
+  group?: string | null;
+};
+
+export type RankerComparison = {
+  winner: string;
+  loser: string;
+};
+
+export type RankerPair = [] | [RankerPlayer, RankerPlayer];
+
+export type RankerGraph = Record<string, Set<string>>;
+
+export type ClosureCache = {
+  addEdge(winnerId: unknown, loserId: unknown): boolean;
+  rebuild(comparisons: readonly RankerComparison[]): void;
+  getGroupClosure(groupPlayerIds: readonly string[]): RankerGraph;
+  readonly closure: RankerGraph;
+};
+
+export type SuggestNextPairOptions = {
+  skippedPairs?: Set<string> | null;
+  closureCache?: ClosureCache | null;
+};
+
+export type RankingGenerationOptions = {
+  topTier?: readonly string[];
+  bottomTier?: readonly string[];
+  anchor?: string | null;
+};
+
+type RankerIdPair = [] | [string, string];
+type RankerGroups = Record<string, RankerPlayer[]>;
+type UsageCounts = Record<string, number>;
 
 // ========== 🧠 UTILITY FUNCTIONS ==========
 
 // Get list of unique player IDs
-const getPlayerIds = (players) => players.map((p) => p.id);
+const getPlayerIds = (players: readonly RankerPlayer[]): string[] =>
+  players.map((p) => p.id);
 
 // Determine if a direct comparison already exists
-const alreadyCompared = (a, b, comparisons) =>
+const alreadyCompared = (
+  a: string,
+  b: string,
+  comparisons: readonly RankerComparison[]
+): boolean =>
   comparisons.some(
     (c) =>
       (c.winner === a && c.loser === b) || (c.winner === b && c.loser === a)
   );
 
 // Build graph of wins/losses
-const buildGraph = (comparisons) => {
-  const graph = {};
+const buildGraph = (comparisons: readonly RankerComparison[]): RankerGraph => {
+  const graph: RankerGraph = {};
   comparisons.forEach(({ winner, loser }) => {
     if (!graph[winner]) graph[winner] = new Set();
     graph[winner].add(loser);
@@ -23,7 +64,12 @@ const buildGraph = (comparisons) => {
 };
 
 // Check if A > B can be inferred from graph
-const canInfer = (a, b, graph, visited = new Set()) => {
+const canInfer = (
+  a: string,
+  b: string,
+  graph: RankerGraph,
+  visited = new Set<string>()
+): boolean => {
   if (!graph[a]) return false;
   if (graph[a].has(b)) return true;
   for (const next of graph[a]) {
@@ -40,10 +86,13 @@ const canInfer = (a, b, graph, visited = new Set()) => {
 // Track internal pairing state
 // @deprecated Currently unused - reserved for future pairing algorithm
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _getNextPhasePair = (players, comparisons) => {
+const _getNextPhasePair = (
+  players: readonly RankerPlayer[],
+  comparisons: readonly RankerComparison[]
+): RankerIdPair => {
   const ids = getPlayerIds(players);
   const graph = buildGraph(comparisons);
-  const usedInComparison = new Set();
+  const usedInComparison = new Set<string>();
 
   comparisons.forEach(({ winner, loser }) => {
     usedInComparison.add(winner);
@@ -84,11 +133,11 @@ const _getNextPhasePair = (players, comparisons) => {
 // ========== 🔁 INCREMENTAL TRANSITIVE CLOSURE CACHE ==========
 
 // Create a reusable closure cache that can be incrementally updated
-export function createClosureCache() {
-  const closure = {}; // { [id]: Set of all transitively reachable ids }
-  const directEdges = {}; // { [id]: Set of direct wins }
+export function createClosureCache(): ClosureCache {
+  const closure: RankerGraph = {}; // { [id]: Set of all transitively reachable ids }
+  const directEdges: RankerGraph = {}; // { [id]: Set of direct wins }
 
-  const ensureNode = (id) => {
+  const ensureNode = (id: string): void => {
     if (!closure[id]) closure[id] = new Set();
     if (!directEdges[id]) directEdges[id] = new Set();
   };
@@ -96,7 +145,7 @@ export function createClosureCache() {
   return {
     // Add a comparison edge and incrementally update reachability
     // Returns true if edge was added, false if rejected (cycle/duplicate/invalid)
-    addEdge(winnerId, loserId) {
+    addEdge(winnerId: unknown, loserId: unknown): boolean {
       // Safety belt: ID validation
       if (typeof winnerId !== 'string' || typeof loserId !== 'string') {
         console.warn('[rankingEngine] addEdge rejected: IDs must be strings', {
@@ -133,7 +182,7 @@ export function createClosureCache() {
       directEdges[winnerId].add(loserId);
 
       // Winner now reaches loser + everything loser reaches
-      const newReachable = new Set([loserId, ...closure[loserId]]);
+      const newReachable = new Set<string>([loserId, ...closure[loserId]]);
       // Remove what winner already knew about
       for (const id of closure[winnerId]) newReachable.delete(id);
       if (newReachable.size === 0) return true;
@@ -150,7 +199,7 @@ export function createClosureCache() {
     },
 
     // Bulk-load from a comparisons array (used on init / undo)
-    rebuild(comparisons) {
+    rebuild(comparisons: readonly RankerComparison[]): void {
       for (const key in closure) delete closure[key];
       for (const key in directEdges) delete directEdges[key];
       comparisons.forEach(({ winner, loser }) => {
@@ -164,6 +213,7 @@ export function createClosureCache() {
         const stack = [...directEdges[a]];
         while (stack.length > 0) {
           const next = stack.pop();
+          if (!next) continue;
           if (!closure[a].has(next)) {
             closure[a].add(next);
             directEdges[next]?.forEach((n) => stack.push(n));
@@ -173,9 +223,9 @@ export function createClosureCache() {
     },
 
     // Get the closure for a specific group of players
-    getGroupClosure(groupPlayerIds) {
+    getGroupClosure(groupPlayerIds: readonly string[]): RankerGraph {
       const idSet = new Set(groupPlayerIds);
-      const groupClosure = {};
+      const groupClosure: RankerGraph = {};
       for (const id of groupPlayerIds) {
         groupClosure[id] = new Set();
         if (closure[id]) {
@@ -196,32 +246,33 @@ export function createClosureCache() {
 // Suggest next strategic pair while respecting group isolation
 // ✅ SMART MATCHUP GENERATOR
 export function suggestNextPair(
-  comparisons,
-  players,
-  { skippedPairs, closureCache } = {}
-) {
+  comparisons: readonly RankerComparison[],
+  players: readonly RankerPlayer[],
+  { skippedPairs, closureCache }: SuggestNextPairOptions = {}
+): RankerPair {
   if (players.length < 2) return [];
 
   const skipSet = skippedPairs || new Set();
 
   // Helper: make a canonical skip key for a pair (order-independent)
-  const skipKey = (a, b) => (a < b ? `${a}<>${b}` : `${b}<>${a}`);
+  const skipKey = (a: string, b: string): string =>
+    a < b ? `${a}<>${b}` : `${b}<>${a}`;
 
   // Helper to suggest a pair within a single group
-  const suggestInGroup = (groupPlayers) => {
+  const suggestInGroup = (groupPlayers: readonly RankerPlayer[]): RankerPair => {
     if (groupPlayers.length < 2) return [];
     const idSet = new Set(groupPlayers.map((p) => p.id));
     const groupComps = comparisons.filter(
       (c) => idSet.has(c.winner) && idSet.has(c.loser)
     );
 
-    const seen = new Set();
+    const seen = new Set<string>();
     groupComps.forEach(({ winner, loser }) => {
       seen.add(`${winner}->${loser}`);
       seen.add(`${loser}->${winner}`);
     });
 
-    const usageCount = {};
+    const usageCount: UsageCounts = {};
     groupPlayers.forEach((p) => (usageCount[p.id] = 0));
     groupComps.forEach(({ winner, loser }) => {
       usageCount[winner]++;
@@ -233,17 +284,18 @@ export function suggestNextPair(
     const closure = closureCache
       ? closureCache.getGroupClosure(groupIds)
       : (() => {
-          const graph = {};
+          const graph: RankerGraph = {};
           groupPlayers.forEach((p) => (graph[p.id] = new Set()));
           groupComps.forEach(({ winner, loser }) => {
             graph[winner].add(loser);
           });
-          const c = {};
+          const c: RankerGraph = {};
           for (const a in graph) {
             c[a] = new Set();
             const stack = [...graph[a]];
             while (stack.length > 0) {
               const next = stack.pop();
+              if (!next) continue;
               if (!c[a].has(next)) {
                 c[a].add(next);
                 graph[next]?.forEach((n) => stack.push(n));
@@ -270,7 +322,8 @@ export function suggestNextPair(
     }
 
     // Phase 2: Usage-balanced unresolved matchups
-    const unresolved = [];
+    const unresolved: Array<{ pair: [RankerPlayer, RankerPlayer]; score: number }> =
+      [];
     for (let i = 0; i < groupPlayers.length; i++) {
       for (let j = i + 1; j < groupPlayers.length; j++) {
         const a = groupPlayers[i];
@@ -297,14 +350,14 @@ export function suggestNextPair(
 
     if (unresolved.length > 0) {
       unresolved.sort((a, b) => a.score - b.score);
-      return unresolved[0].pair;
+      return unresolved[0]?.pair ?? [];
     }
 
     return [];
   };
 
   // Group players by tag (default group if undefined)
-  const groups = {};
+  const groups: RankerGroups = {};
   players.forEach((p) => {
     const g = p.group || 'default';
     if (!groups[g]) groups[g] = [];
@@ -318,7 +371,7 @@ export function suggestNextPair(
   }
 
   // Compute boundary comparisons (top↔upper and lower↔bottom)
-  const rankGroup = (groupName) => {
+  const rankGroup = (groupName: string): RankerPlayer[] => {
     const list = groups[groupName] || [];
     if (list.length === 0) return [];
     const idSet = new Set(list.map((p) => p.id));
@@ -326,17 +379,23 @@ export function suggestNextPair(
       (c) => idSet.has(c.winner) && idSet.has(c.loser)
     );
     const graph = buildGraph(comps);
-    const visited = new Set();
-    const stack = [];
-    const dfs = (node) => {
+    const visited = new Set<string>();
+    const stack: string[] = [];
+    const dfs = (node: string): void => {
       if (visited.has(node)) return;
       visited.add(node);
       graph[node]?.forEach((n) => dfs(n));
       stack.push(node);
     };
     list.forEach((p) => dfs(p.id));
-    const idMap = Object.fromEntries(list.map((p) => [p.id, p]));
-    return stack.reverse().map((id) => idMap[id]);
+    const idMap = list.reduce<Record<string, RankerPlayer>>((acc, player) => {
+      acc[player.id] = player;
+      return acc;
+    }, {});
+    return stack
+      .reverse()
+      .map((id) => idMap[id])
+      .filter((player): player is RankerPlayer => Boolean(player));
   };
 
   const topRanked = rankGroup('top');
@@ -364,11 +423,14 @@ export function suggestNextPair(
 }
 
 // Estimate how many additional comparisons remain (formula-based, O(n²) single pass)
-export function estimateRemainingComparisons(comparisons, players) {
+export function estimateRemainingComparisons(
+  comparisons: readonly RankerComparison[],
+  players: readonly RankerPlayer[]
+): number {
   if (players.length < 2) return 0;
 
   // Group players the same way suggestNextPair does
-  const groups = {};
+  const groups: RankerGroups = {};
   players.forEach((p) => {
     const g = p.group || 'default';
     if (!groups[g]) groups[g] = [];
@@ -387,24 +449,25 @@ export function estimateRemainingComparisons(comparisons, players) {
     );
 
     // Build seen set (directly compared pairs)
-    const seen = new Set();
+    const seen = new Set<string>();
     groupComps.forEach(({ winner, loser }) => {
       seen.add(`${winner}->${loser}`);
       seen.add(`${loser}->${winner}`);
     });
 
     // Build transitive closure for this group
-    const graph = {};
+    const graph: RankerGraph = {};
     groupPlayers.forEach((p) => (graph[p.id] = new Set()));
     groupComps.forEach(({ winner, loser }) => {
       graph[winner].add(loser);
     });
-    const closure = {};
+    const closure: RankerGraph = {};
     for (const a in graph) {
       closure[a] = new Set();
       const stack = [...graph[a]];
       while (stack.length > 0) {
         const next = stack.pop();
+        if (!next) continue;
         if (!closure[a].has(next)) {
           closure[a].add(next);
           graph[next]?.forEach((n) => stack.push(n));
@@ -430,7 +493,7 @@ export function estimateRemainingComparisons(comparisons, players) {
   }
 
   // Add pending boundary comparisons
-  const hasGroup = (name) => (groups[name]?.length || 0) > 0;
+  const hasGroup = (name: string): boolean => (groups[name]?.length || 0) > 0;
   if (hasGroup('top') && hasGroup('upper')) {
     const topIds = new Set(groups.top.map((p) => p.id));
     const upperIds = new Set(groups.upper.map((p) => p.id));
@@ -456,7 +519,11 @@ export function estimateRemainingComparisons(comparisons, players) {
 }
 
 // Build direct comparisons against an anchor player
-export function buildAnchorComparisons(anchorId, players, betterIds = []) {
+export function buildAnchorComparisons(
+  anchorId: string,
+  players: readonly RankerPlayer[],
+  betterIds: readonly string[] = []
+): RankerComparison[] {
   const betterSet = new Set(betterIds);
   return players.map((p) =>
     betterSet.has(p.id)
@@ -469,12 +536,15 @@ export function buildAnchorComparisons(anchorId, players, betterIds = []) {
 
 // Topological sort using DFS
 // Topological sort helper for a subset of players
-const topologicalSort = (comparisons, players) => {
+const topologicalSort = (
+  comparisons: readonly RankerComparison[],
+  players: readonly RankerPlayer[]
+): RankerPlayer[] => {
   const graph = buildGraph(comparisons);
-  const visited = new Set();
-  const stack = [];
+  const visited = new Set<string>();
+  const stack: string[] = [];
 
-  const dfs = (node) => {
+  const dfs = (node: string): void => {
     if (visited.has(node)) return;
     visited.add(node);
     if (graph[node]) {
@@ -487,15 +557,24 @@ const topologicalSort = (comparisons, players) => {
     if (!visited.has(p.id)) dfs(p.id);
   });
 
-  const idToPlayer = Object.fromEntries(players.map((p) => [p.id, p]));
-  return stack.reverse().map((id) => idToPlayer[id]);
+  const idToPlayer = players.reduce<Record<string, RankerPlayer>>(
+    (acc, player) => {
+      acc[player.id] = player;
+      return acc;
+    },
+    {}
+  );
+  return stack
+    .reverse()
+    .map((id) => idToPlayer[id])
+    .filter((player): player is RankerPlayer => Boolean(player));
 };
 
 export const generateRankingFromComparisons = (
-  comparisons,
-  players,
-  options = {}
-) => {
+  comparisons: readonly RankerComparison[],
+  players: readonly RankerPlayer[],
+  options: RankingGenerationOptions = {}
+): RankerPlayer[] => {
   const { topTier = [], bottomTier = [], anchor } = options;
 
   // Fallback to simple topological sort if no grouping info provided
@@ -503,11 +582,19 @@ export const generateRankingFromComparisons = (
     return topologicalSort(comparisons, players);
   }
 
-  const idMap = Object.fromEntries(players.map((p) => [p.id, p]));
+  const idMap = players.reduce<Record<string, RankerPlayer>>((acc, player) => {
+    acc[player.id] = player;
+    return acc;
+  }, {});
   const anchorPlayer = anchor ? idMap[anchor] : null;
 
   // Step 1: segment players
-  const groups = { top: [], upper: [], lower: [], bottom: [] };
+  const groups: Record<'top' | 'upper' | 'lower' | 'bottom', RankerPlayer[]> = {
+    top: [],
+    upper: [],
+    lower: [],
+    bottom: [],
+  };
   players.forEach((p) => {
     if (p.id === anchor) return;
     if (topTier.includes(p.id)) groups.top.push(p);
@@ -522,7 +609,7 @@ export const generateRankingFromComparisons = (
     }
   });
 
-  const rankGroup = (list) => {
+  const rankGroup = (list: readonly RankerPlayer[]): RankerPlayer[] => {
     if (!list.length) return [];
     const set = new Set(list.map((p) => p.id));
     const comps = comparisons.filter(
@@ -536,7 +623,10 @@ export const generateRankingFromComparisons = (
   let rankedLower = rankGroup(groups.lower);
   let rankedBottom = rankGroup(groups.bottom);
 
-  const boundaryCheck = (high, low) => {
+  const boundaryCheck = (
+    high: RankerPlayer[],
+    low: RankerPlayer[]
+  ): [RankerPlayer[], RankerPlayer[]] => {
     if (high.length === 0 || low.length === 0) return [high, low];
     const highWorst = high[high.length - 1];
     const lowBest = low[0];
