@@ -118,7 +118,7 @@ export const playerHasOptionType = (
 
 type PlayerWithContract = {
   bio?: { displayName?: string | null } | null;
-  original?: Record<string, unknown> | null;
+  original?: PlayerWithContract | null;
   contract?: { signedUsing?: string | null; contractType?: string | null } | null;
   primaryContract?: { signedUsing?: string | null; contractType?: string | null } | null;
   contracts?: Record<string, { signedUsing?: string | null; contractType?: string | null }> | null;
@@ -129,7 +129,7 @@ type PlayerWithContract = {
 export const isPlayerTwoWay = (player: PlayerWithContract | null | undefined): boolean => {
   if (!player) return false;
 
-  const p = (player.original as PlayerWithContract | null) || player;
+  const p = player.original || player;
 
   const contract =
     p.contract ||

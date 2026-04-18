@@ -33,10 +33,10 @@ utils/
   contractUtils.ts
   enrichPlayerData.js
   index.js
-  rosterBuilderHelpers.js
+  rosterBuilderHelpers.ts
   rosterUtils.ts
 ```
 
 ---
-*Generated on: 2026-04-18T13:15:01.006Z*
+*Generated on: 2026-04-18T13:46:21.246Z*
 *Auto-updated by: npm run docs*

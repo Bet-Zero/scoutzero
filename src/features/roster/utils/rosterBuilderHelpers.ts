@@ -1,16 +1,173 @@
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
-import { normalizeTeamCode } from '@/shared/utils/filtering';
-import { expandPositionGroup } from '@/shared/utils/roles';
+import type { AddPlayerFilters } from '@/shared/utils/filtering';
 import {
   getPlayerFreeAgentType,
   isPlayerTwoWay,
+  normalizeTeamCode,
   playerHasOptionType,
 } from '@/shared/utils/filtering';
+import { expandPositionGroup } from '@/shared/utils/roles';
+
+type SalarySeason = {
+  year?: number | string | null;
+  season?: string | null;
+  salary?: number | null;
+};
+
+type SalaryContractData = {
+  salariesByYear?: SalarySeason[] | null;
+};
+
+type SalaryByYear = Record<string, number | null | undefined>;
+
+export type SalaryLookupPlayer = {
+  primaryContract?: SalaryContractData | null;
+  contract?: SalaryContractData | null;
+  contracts?: Record<string, SalaryContractData | null | undefined> | null;
+  currentContractView?: {
+    salaryByYear?: SalaryByYear | null;
+  } | null;
+};
+
+type ContractOption = {
+  year?: number | string | null;
+  type?: string | null;
+};
+
+type FreeAgencyData = {
+  freeAgentYear?: number | string | null;
+  freeAgentType?: string | null;
+};
+
+export type RosterDrawerOriginalPlayer = {
+  id?: string;
+  team?: string | number | null;
+  bio?: {
+    age?: number | null;
+    displayName?: string | null;
+    height?: number | null;
+    playerId?: string | null;
+    position?: string | null;
+    team?: string | number | null;
+    weight?: number | null;
+    display?: {
+      freeAgentType?: string | null;
+      freeAgentYear?: number | string | null;
+      team?: string | number | null;
+      teamId?: string | number | null;
+    } | null;
+  } | null;
+  currentContractView?: {
+    contractType?: string | null;
+    freeAgentType?: string | null;
+    salaryByYear?: SalaryByYear | null;
+  } | null;
+  currentSeasonStats?: Partial<Record<SeasonStatField, number | string | null>> | null;
+  optionByYear?: Record<string, string | null | undefined> | null;
+  options?: ContractOption[] | null;
+  primaryContract?: (SalaryContractData & {
+    contractType?: string | null;
+    freeAgency?: FreeAgencyData | null;
+    options?: ContractOption[] | null;
+  }) | null;
+  contract?: (SalaryContractData & {
+    contractType?: string | null;
+    freeAgency?: FreeAgencyData | null;
+    signedUsing?: string | null;
+  }) | null;
+  contracts?: Record<
+    string,
+    | (SalaryContractData & {
+        contractType?: string | null;
+        freeAgency?: FreeAgencyData | null;
+        isExtension?: boolean | null;
+        options?: ContractOption[] | null;
+        signedUsing?: string | null;
+      })
+    | null
+    | undefined
+  > | null;
+};
+
+export type RosterDrawerPlayer<
+  TOriginal extends RosterDrawerOriginalPlayer = RosterDrawerOriginalPlayer,
+> = {
+  id: string;
+  name: string;
+  team?: string | null;
+  teamCode?: string | null;
+  position: string;
+  offenseRoles: string[];
+  defenseRoles: string[];
+  offenseSubroles: string[];
+  defenseSubroles: string[];
+  shootingProfile: string;
+  badges: string[];
+  salary?: number | string | null;
+  freeAgentYear?: string | null;
+  freeAgentType?: string | null;
+  contractType?: string | null;
+  extension?: { freeAgentYear?: number | string | null } | null;
+  options: ContractOption[];
+  original: TOriginal;
+};
+
+export type SelectedRosterTeam = {
+  teamId?: string | null;
+  code?: string | null;
+  id?: string | null;
+  teamName?: string | null;
+  nickname?: string | null;
+};
+
+export type TeamLookupPlayer = {
+  id?: string;
+  team?: string | number | null;
+  bio?: {
+    team?: string | number | null;
+    display?: {
+      team?: string | number | null;
+      teamId?: string | number | null;
+    } | null;
+  } | null;
+};
+
+type RosterDrawerFilters = Partial<AddPlayerFilters>;
+type NumericFilterKey =
+  | 'min_PPG'
+  | 'max_PPG'
+  | 'min_RPG'
+  | 'max_RPG'
+  | 'min_APG'
+  | 'max_APG'
+  | 'min_FGP'
+  | 'max_FGP'
+  | 'min_TPP'
+  | 'max_TPP'
+  | 'min_FTP'
+  | 'max_FTP'
+  | 'min_eFGP'
+  | 'max_eFGP'
+  | 'min_MIN'
+  | 'max_MIN'
+  | 'min_G'
+  | 'max_G';
+
+type SeasonStatField =
+  | 'PTS'
+  | 'REB'
+  | 'AST'
+  | 'FG%'
+  | '3PT%'
+  | 'FT%'
+  | 'eFG%'
+  | 'MIN'
+  | 'GP';
 
 export const findSalaryForYear = (
-  player,
-  salaryYear = DEFAULT_SALARY_YEAR
-) => {
+  player: SalaryLookupPlayer | null | undefined,
+  salaryYear: number | string = DEFAULT_SALARY_YEAR
+): number | null => {
   if (!player) return null;
 
   const year = Number(salaryYear);
@@ -21,20 +178,22 @@ export const findSalaryForYear = (
     null;
 
   if (player.currentContractView?.salaryByYear?.[year] != null) {
-    return player.currentContractView.salaryByYear[year];
+    return player.currentContractView.salaryByYear[year] ?? null;
   }
 
   if (!Array.isArray(contractData?.salariesByYear)) return null;
 
   const salaryEntry = contractData.salariesByYear.find(
     (season) =>
-      season?.year === year || season?.season?.startsWith?.(String(year))
+      Number(season?.year) === year || season?.season?.startsWith?.(String(year))
   );
 
   return salaryEntry?.salary ?? null;
 };
 
-export const hasActiveAddPlayerFilters = (filters = {}) => {
+export const hasActiveAddPlayerFilters = (
+  filters: RosterDrawerFilters | null | undefined = {}
+): boolean => {
   if (!filters) return false;
 
   return Boolean(
@@ -80,18 +239,20 @@ export const hasActiveAddPlayerFilters = (filters = {}) => {
   );
 };
 
-export const filterRosterDrawerPlayers = (
-  allPlayers = [],
+export const filterRosterDrawerPlayers = <
+  TOriginal extends RosterDrawerOriginalPlayer = RosterDrawerOriginalPlayer,
+>(
+  allPlayers: readonly RosterDrawerPlayer<TOriginal>[] = [],
   search = '',
-  filters = {}
-) => {
+  filters: RosterDrawerFilters = {}
+): TOriginal[] => {
   const searchTerm = search.toLowerCase();
   const {
     team,
     position,
     offenseRole,
     defenseRole,
-    subRoles = { offense: [], defense: [] },
+    subRoles,
     shootingProfile,
     badges = [],
     minSalary,
@@ -107,6 +268,10 @@ export const filterRosterDrawerPlayers = (
     maxAge,
   } = filters;
 
+  const normalizedSubRoles = {
+    offense: subRoles?.offense ?? [],
+    defense: subRoles?.defense ?? [],
+  };
   const positionOptions = position ? expandPositionGroup(position) : null;
   const normalizedTeam = normalizeTeamCode(team);
   const normalizedFreeAgentStatus = freeAgentStatus || '';
@@ -125,8 +290,9 @@ export const filterRosterDrawerPlayers = (
         );
       if (normalizedTeam && playerTeamCode !== normalizedTeam) return false;
 
-      if (positionOptions && !positionOptions.includes(p.position))
+      if (positionOptions && !positionOptions.includes(p.position)) {
         return false;
+      }
 
       if (
         offenseRole &&
@@ -143,15 +309,15 @@ export const filterRosterDrawerPlayers = (
       }
 
       if (
-        subRoles.offense.length > 0 &&
-        !subRoles.offense.every((sr) => p.offenseSubroles.includes(sr))
+        normalizedSubRoles.offense.length > 0 &&
+        !normalizedSubRoles.offense.every((sr) => p.offenseSubroles.includes(sr))
       ) {
         return false;
       }
 
       if (
-        subRoles.defense.length > 0 &&
-        !subRoles.defense.every((sr) => p.defenseSubroles.includes(sr))
+        normalizedSubRoles.defense.length > 0 &&
+        !normalizedSubRoles.defense.every((sr) => p.defenseSubroles.includes(sr))
       ) {
         return false;
       }
@@ -168,16 +334,23 @@ export const filterRosterDrawerPlayers = (
       }
 
       if (minSalary !== undefined || maxSalary !== undefined) {
-        const salaryValue =
+        const rawSalary =
           typeof p.salary === 'string'
-            ? parseFloat(p.salary.replace(/[^0-9.]/g, '')) / 1000000
-            : p.salary / 1000000;
+            ? Number.parseFloat(p.salary.replace(/[^0-9.]/g, ''))
+            : Number(p.salary ?? 0);
+        const salaryValue = rawSalary / 1_000_000;
 
-        if (minSalary !== undefined && (!salaryValue || salaryValue < minSalary)) {
+        if (
+          minSalary !== undefined &&
+          (!salaryValue || salaryValue < minSalary)
+        ) {
           return false;
         }
 
-        if (maxSalary !== undefined && (!salaryValue || salaryValue > maxSalary)) {
+        if (
+          maxSalary !== undefined &&
+          (!salaryValue || salaryValue > maxSalary)
+        ) {
           return false;
         }
       }
@@ -227,12 +400,18 @@ export const filterRosterDrawerPlayers = (
       }
 
       const ss = p.original?.currentSeasonStats ?? {};
-      const passStatFilter = (field, minKey, maxKey) => {
+      const passStatFilter = (
+        field: SeasonStatField,
+        minKey: NumericFilterKey,
+        maxKey: NumericFilterKey
+      ): boolean => {
         const lo = filters[minKey];
         const hi = filters[maxKey];
         if (lo === undefined && hi === undefined) return true;
+        const rawValue = ss[field] ?? 0;
         const val =
-          parseFloat(ss[field] ?? 0) * (field.includes('%') ? 100 : 1);
+          Number.parseFloat(String(rawValue)) *
+          (field.includes('%') ? 100 : 1);
         if (lo !== undefined && val < lo) return false;
         if (hi !== undefined && val > hi) return false;
         return true;
@@ -253,7 +432,10 @@ export const filterRosterDrawerPlayers = (
     .map((p) => p.original);
 };
 
-export const getPlayersForSelectedTeam = (allPlayers = [], selectedTeam) => {
+export const getPlayersForSelectedTeam = <TPlayer extends TeamLookupPlayer>(
+  allPlayers: readonly TPlayer[] = [],
+  selectedTeam: SelectedRosterTeam | null | undefined
+): TPlayer[] => {
   if (!selectedTeam) return [];
 
   const selectedTeamCode = normalizeTeamCode(
@@ -268,7 +450,7 @@ export const getPlayersForSelectedTeam = (allPlayers = [], selectedTeam) => {
         player.bio?.team ||
         ''
     );
-    const playerTeamName = (player.bio?.display?.team || '').toLowerCase();
+    const playerTeamName = String(player.bio?.display?.team || '').toLowerCase();
 
     const teamNameMatch =
       playerTeamName === selectedTeam.teamName?.toLowerCase();
