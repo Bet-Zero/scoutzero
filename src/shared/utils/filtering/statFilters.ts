@@ -1,4 +1,14 @@
-export const statOptions = [
+export type StatOption = { label: string; key: string };
+
+export type ActiveStatFilter = {
+  key: string;
+  stat: string | undefined;
+  operator: string;
+  value: number;
+  fullKey: string;
+};
+
+export const statOptions: StatOption[] = [
   { label: 'PPG', key: 'PPG' },
   { label: 'RPG', key: 'RPG' },
   { label: 'APG', key: 'APG' },
@@ -10,7 +20,7 @@ export const statOptions = [
   { label: 'G', key: 'G' },
 ];
 
-const defaultMaxValues = {
+const defaultMaxValues: Record<string, number> = {
   PPG: 50,
   RPG: 20,
   APG: 20,
@@ -22,10 +32,13 @@ const defaultMaxValues = {
   G: 82,
 };
 
-export const getDefaultMaxValue = (statKey) => defaultMaxValues[statKey] || 100;
+export const getDefaultMaxValue = (statKey: string): number =>
+  defaultMaxValues[statKey] || 100;
 
-export function getActiveStatFilters(filters) {
-  const activeFilters = [];
+export function getActiveStatFilters(
+  filters: Record<string, unknown>
+): ActiveStatFilter[] {
+  const activeFilters: ActiveStatFilter[] = [];
   const validStatKeys = statOptions.map((s) => s.key);
 
   Object.keys(filters).forEach((key) => {
@@ -43,13 +56,7 @@ export function getActiveStatFilters(filters) {
             (isMinFilter && value > 0) ||
             (isMaxFilter && value < getDefaultMaxValue(statKey))
           ) {
-            activeFilters.push({
-              key,
-              stat: statLabel,
-              operator,
-              value,
-              fullKey: key,
-            });
+            activeFilters.push({ key, stat: statLabel, operator, value, fullKey: key });
           }
         }
       }
