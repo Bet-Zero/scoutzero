@@ -101,7 +101,6 @@ Quick reference for all components in the ScoutZero project.
 - RosterSection/index.jsx
 - RosterViewer.jsx
 - SaveRosterModal.jsx
-- hooks/useRosterManager.js
 
 ## Table
 
@@ -132,4 +131,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-04-18T14:36:38.077Z*
+*Generated on: 2026-04-18T14:42:45.943Z*

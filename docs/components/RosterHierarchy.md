@@ -28,7 +28,7 @@ RosterViewer.jsx
 RosterViewerActions.tsx
 SaveRosterModal.jsx
 hooks/
-  useRosterManager.js
+  useRosterManager.ts
 utils/
   contractUtils.ts
   enrichPlayerData.ts
@@ -38,5 +38,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-18T14:02:20.342Z*
+*Generated on: 2026-04-18T14:42:45.903Z*
 *Auto-updated by: npm run docs*
