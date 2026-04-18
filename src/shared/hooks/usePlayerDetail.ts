@@ -5,12 +5,28 @@ import {
   contractsCol,
   seasonsCol,
   evalsCol,
-} from '@/data/firestorePaths.js';
-// Dev-only schema validation
-import { PlayerMainDocZ, ContractDocZ, SeasonDocZ, EvaluationDocZ } from '@/schemas/players_v2';
+} from '@/data/firestorePaths';
+import {
+  PlayerMainDocZ,
+  ContractDocZ,
+  SeasonDocZ,
+  EvaluationDocZ,
+} from '@/schemas/players_v2';
+import type {
+  PlayerV2,
+  ContractDoc,
+  SeasonDoc,
+  EvaluationDoc,
+} from '@/schemas/players_v2';
+
+interface UsePlayerDetailResult {
+  player: PlayerV2 | null;
+  loading: boolean;
+  error: string | null;
+}
 
 /**
- * Hook for fetching full player details including subcollections
+ * Hook for fetching full player details including subcollections.
  *
  * Fetches:
  * 1. Main player document (bio, etc.)
@@ -18,15 +34,12 @@ import { PlayerMainDocZ, ContractDocZ, SeasonDocZ, EvaluationDocZ } from '@/sche
  * 3. All season documents (in parallel)
  * 4. All evaluation documents (in parallel)
  *
- * Returns v2 schema structure directly - no legacy flattening
- *
- * @param {string} playerId - Player document ID
- * @returns {Object} { player, loading, error }
+ * Returns v2 schema structure directly — no legacy flattening.
  */
-const usePlayerDetail = (playerId) => {
-  const [player, setPlayer] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const usePlayerDetail = (playerId: string | null | undefined): UsePlayerDetailResult => {
+  const [player, setPlayer] = useState<PlayerV2 | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!playerId) {
@@ -54,7 +67,6 @@ const usePlayerDetail = (playerId) => {
         if (import.meta.env.DEV) {
           const res = PlayerMainDocZ.safeParse(mainDoc);
           if (!res.success) {
-            // Non-blocking: log for awareness
             // eslint-disable-next-line no-console
             console.warn('players_v2 main doc failed schema validation', playerId, res.error?.issues);
           }
@@ -68,7 +80,7 @@ const usePlayerDetail = (playerId) => {
         ]);
 
         // Step 3: Convert subcollections to records
-        const contracts = {};
+        const contracts: Record<string, ContractDoc> = {};
         contractsSnap.forEach((doc) => {
           // Filter out metadata fields like last_updated
           if (!doc.id.startsWith('last_')) {
@@ -80,11 +92,11 @@ const usePlayerDetail = (playerId) => {
                 console.warn('contract doc failed schema validation', playerId, doc.id, r.error?.issues);
               }
             }
-            contracts[doc.id] = data;
+            contracts[doc.id] = data as ContractDoc;
           }
         });
 
-        const seasons = {};
+        const seasons: Record<string, SeasonDoc> = {};
         seasonsSnap.forEach((doc) => {
           const data = doc.data();
           if (import.meta.env.DEV) {
@@ -94,10 +106,10 @@ const usePlayerDetail = (playerId) => {
               console.warn('season doc failed schema validation', playerId, doc.id, r.error?.issues);
             }
           }
-          seasons[doc.id] = data;
+          seasons[doc.id] = data as SeasonDoc;
         });
 
-        const evaluations = {};
+        const evaluations: Record<string, EvaluationDoc> = {};
         evalsSnap.forEach((doc) => {
           const data = doc.data();
           if (import.meta.env.DEV) {
@@ -107,17 +119,16 @@ const usePlayerDetail = (playerId) => {
               console.warn('evaluation doc failed schema validation', playerId, doc.id, r.error?.issues);
             }
           }
-          evaluations[doc.id] = data;
+          evaluations[doc.id] = data as EvaluationDoc;
         });
 
         // Step 4: Build v2 player structure with spread pattern for easier access
-        const playerV2 = {
+        const playerV2: PlayerV2 = {
+          ...(mainDoc as PlayerV2),
           id: playerId,
-          ...mainDoc, // Spread main doc fields (bio, etc.) at top level
           contracts: Object.keys(contracts).length > 0 ? contracts : undefined,
           seasons: Object.keys(seasons).length > 0 ? seasons : undefined,
-          evaluations:
-            Object.keys(evaluations).length > 0 ? evaluations : undefined,
+          evaluations: Object.keys(evaluations).length > 0 ? evaluations : undefined,
         };
 
         if (isMounted) {
@@ -127,7 +138,7 @@ const usePlayerDetail = (playerId) => {
       } catch (err) {
         console.error('Error fetching player detail:', err);
         if (isMounted) {
-          setError(err.message);
+          setError(err instanceof Error ? err.message : String(err));
           setLoading(false);
         }
       }

@@ -139,6 +139,14 @@ declare module '@/config/validationFlags.js' {
 }
 
 declare module '@/data/firestorePaths' {
+  export const playerRef: any;
+  export const contractsCol: any;
+  export const seasonsCol: any;
+  export const evalsCol: any;
+  export const contractRef: any;
+  export const seasonRef: any;
+  export const evalRef: any;
+  export const playersCol: any;
   export const baseTeamRef: any;
   export const baseTeamsCol: any;
   export const basePlayerRef: any;

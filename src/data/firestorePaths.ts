@@ -1,4 +1,9 @@
-import { doc, collection } from 'firebase/firestore';
+import {
+  doc, collection,
+  type DocumentReference,
+  type CollectionReference,
+  type DocumentData,
+} from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import {
   PLAYERS_COLLECTION,
@@ -10,24 +15,27 @@ import {
   EVALUATIONS_SUBCOLLECTION,
 } from '@/constants/collections';
 
-export const playerRef = (playerId: string) =>
+type DocRef = DocumentReference<DocumentData, DocumentData>;
+type ColRef = CollectionReference<DocumentData, DocumentData>;
+
+export const playerRef = (playerId: string): DocRef =>
   doc(db, PLAYERS_COLLECTION, playerId);
 
-export const contractsCol = (playerId: string) =>
+export const contractsCol = (playerId: string): ColRef =>
   collection(db, PLAYERS_COLLECTION, playerId, CONTRACTS_SUBCOLLECTION);
-export const seasonsCol = (playerId: string) =>
+export const seasonsCol = (playerId: string): ColRef =>
   collection(db, PLAYERS_COLLECTION, playerId, SEASONS_SUBCOLLECTION);
-export const evalsCol = (playerId: string) =>
+export const evalsCol = (playerId: string): ColRef =>
   collection(db, PLAYERS_COLLECTION, playerId, EVALUATIONS_SUBCOLLECTION);
 
-export const contractRef = (playerId: string, contractId: string) =>
+export const contractRef = (playerId: string, contractId: string): DocRef =>
   doc(db, PLAYERS_COLLECTION, playerId, CONTRACTS_SUBCOLLECTION, contractId);
-export const seasonRef = (playerId: string, seasonId: string) =>
+export const seasonRef = (playerId: string, seasonId: string): DocRef =>
   doc(db, PLAYERS_COLLECTION, playerId, SEASONS_SUBCOLLECTION, seasonId);
-export const evalRef = (playerId: string, evalId: string) =>
+export const evalRef = (playerId: string, evalId: string): DocRef =>
   doc(db, PLAYERS_COLLECTION, playerId, EVALUATIONS_SUBCOLLECTION, evalId);
 
-export const playersCol = () => collection(db, PLAYERS_COLLECTION);
+export const playersCol = (): ColRef => collection(db, PLAYERS_COLLECTION);
 
 // Architect base collections (for GM tools and trade machine)
 // Canonical paths (documentation): /architect/baseTeams/{teamCode} and /architect/basePlayers/{playerId}
