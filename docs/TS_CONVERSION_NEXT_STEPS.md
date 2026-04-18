@@ -506,6 +506,7 @@ Do NOT convert any files in this step.
 **Status:** IN PROGRESS  
 Started 2026-04-18: `src/features/roster/utils/contractUtils.js` → `contractUtils.ts` with explicit contract/player input types. Added direct roster smoke coverage for `isTwoWayContract` and updated the roster utils barrel to resolve the converted file. Validation so far: `npm run typecheck`, `npm run validate:project`, and `npm run test:roster -- --reporter=dot`.
 Updated 2026-04-18: `src/features/roster/utils/rosterUtils.js` → `rosterUtils.ts` with generic `RosterShape<T>`, named normalized/missing roster player types, and an explicit missing-player type guard. Updated the roster barrel to resolve the converted file. Validation for this slice: `npm run typecheck`, `npm run validate:project`, and `npm run test:roster -- --reporter=dot`.
+Updated 2026-04-18: `src/features/ranker/utils/saveAsListBridge.js` → `saveAsListBridge.ts` with typed ranker list items, injected list helper signatures, saved-list payload shape, and unknown-safe error messages. Validation for this slice: `npm run typecheck`, `npm run validate:project`, and `npm run test:node -- --reporter=dot tests/rankerSaveAsList.test.js`.
 
 **Goal:** All Pile B utility and bridge files under `src/features/**/utils/**/*.js` are converted to TypeScript with explicit parameter and return types.
 
