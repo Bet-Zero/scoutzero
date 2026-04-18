@@ -198,8 +198,8 @@ If a read reveals that real Firestore documents have inconsistent shapes (some d
 
 ## Step 7 — Checkpoint: re-scope Pile B and Pile C
 
-**Status:** IN PROGRESS  
-Updated 2026-04-18: "Phase 2 Decision" appended below using the 2026-04-18 Pile A commit trail. Waiting on user choice between Options A, B, and C before this step can be marked DONE.
+**Status:** DONE  
+Completed 2026-04-18: User chose Option C — pause further TS rollout and address the higher-priority contract issues exposed by Pile A before adding any Step 8+ conversion work.
 
 **Goal:** Pile A is done. Decide whether to extend this plan to Pile B (feature-level hooks + `features/*/utils/`) or declare the plan complete and move on.
 
@@ -311,6 +311,12 @@ Reasoning:
 Conservative fallback:
 
 - If the user wants to stop the migration plan cleanly and move back to product work, **Option B** is a reasonable second choice.
+
+### User Decision
+
+**Chosen option:** `C`
+
+Decision recorded 2026-04-18: Pause the formal TS conversion plan here and prioritize the follow-up debt Pile A exposed, starting with Firestore ownership-policy inconsistency and the shared utility/shim seams listed below.
 
 ---
 
