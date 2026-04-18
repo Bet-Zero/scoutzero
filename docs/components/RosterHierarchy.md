@@ -34,9 +34,9 @@ utils/
   enrichPlayerData.js
   index.js
   rosterBuilderHelpers.js
-  rosterUtils.js
+  rosterUtils.ts
 ```
 
 ---
-*Generated on: 2026-04-18T13:07:38.582Z*
+*Generated on: 2026-04-18T13:15:01.006Z*
 *Auto-updated by: npm run docs*

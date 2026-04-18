@@ -113,7 +113,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/enrichPlayerData.js
 - utils/index.js
 - utils/rosterBuilderHelpers.js
-- utils/rosterUtils.js
 
 ## Table
 
@@ -148,4 +147,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-04-18T13:07:38.610Z*
+*Generated on: 2026-04-18T13:15:01.034Z*
