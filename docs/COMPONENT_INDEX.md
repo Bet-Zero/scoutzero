@@ -20,7 +20,6 @@ Quick reference for all components in the ScoutZero project.
 - FiltersPanel/FilterPanel/sections/ViewControls.jsx
 - FiltersPanel/FilterPanelCondensed.jsx
 - FiltersPanel/index.jsx
-- hooks/useActiveFilterCount.js
 
 ## Lists
 
@@ -137,4 +136,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-04-18T14:08:38.911Z*
+*Generated on: 2026-04-18T14:11:51.199Z*

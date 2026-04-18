@@ -23,9 +23,9 @@ FiltersPanel/
   FilterPanelCondensed.jsx
   index.jsx
 hooks/
-  useActiveFilterCount.js
+  useActiveFilterCount.ts
 ```
 
 ---
-*Generated on: 2026-02-01T08:08:34.394Z*
+*Generated on: 2026-04-18T14:11:50.811Z*
 *Auto-updated by: npm run docs*

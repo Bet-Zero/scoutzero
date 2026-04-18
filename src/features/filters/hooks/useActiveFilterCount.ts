@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/filters/hooks/useActiveFilterCount.js
+ * FILE: src/features/filters/hooks/useActiveFilterCount.ts
  * PURPOSE: Calculates the count of active (non-default) filters for UI badges.
  *
  * OWNERSHIP: Feature: filters
@@ -13,19 +13,23 @@
 import { useMemo } from 'react';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
 
-/**
- * useActiveFilterCount - Counts non-default filters for badge display.
- *
- * @param {object} filters - Current filter state
- * @param {function} getDefaultFilters - Returns default filter values
- * @param {string[]} excludeFromCount - Filter keys to exclude from count
- * @returns {number} Count of active filters
- */
-const useActiveFilterCount = (
-  filters,
-  getDefaultFilters,
-  excludeFromCount = []
-) => {
+export type ActiveFilterState = Record<string, unknown>;
+export type GetDefaultFilters<TFilters extends ActiveFilterState> =
+  () => Partial<TFilters>;
+
+type SubRoleFilterValue = {
+  offense?: readonly unknown[];
+  defense?: readonly unknown[];
+};
+
+const isSubRoleFilterValue = (value: unknown): value is SubRoleFilterValue =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const useActiveFilterCount = <TFilters extends ActiveFilterState>(
+  filters: TFilters | null | undefined,
+  getDefaultFilters: GetDefaultFilters<TFilters> | null | undefined,
+  excludeFromCount: readonly string[] = []
+): number => {
   return useMemo(() => {
     if (!filters || !getDefaultFilters) return 0;
 
@@ -46,7 +50,7 @@ const useActiveFilterCount = (
       const isActive = JSON.stringify(value) !== JSON.stringify(defaultValue);
 
       if (isActive) {
-        if (key === 'subRoles' && value) {
+        if (key === 'subRoles' && isSubRoleFilterValue(value)) {
           // Count each subrole individually
           count += (value.offense || []).length;
           count += (value.defense || []).length;
