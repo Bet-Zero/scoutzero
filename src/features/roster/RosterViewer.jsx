@@ -10,10 +10,12 @@ import RosterSection from './RosterSection';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { useRosterManager } from '@/features/roster/hooks/useRosterManager';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { RosterViewerActions } from './RosterViewerActions';
 
 const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const { players: allPlayers, loading: isLoading } = useSimplePlayerData();
+  const { userId, loading: authLoading } = useAuth();
   const {
     roster,
     processedPlayers,
@@ -36,7 +38,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     missingPlayerCount,
     missingPlayerIds,
     isSavedRosterSelection,
-  } = useRosterManager(allPlayers, isLoading);
+  } = useRosterManager(allPlayers, isLoading, userId, authLoading);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [slotTarget, setSlotTarget] = useState({ section: '', index: -1 });
@@ -219,6 +221,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
               isEditingExisting={isEditingExisting}
               onSaveNew={saveNewRoster}
               onOverwrite={updateRoster}
+              canPersist={Boolean(userId)}
             />
           )}
         </div>

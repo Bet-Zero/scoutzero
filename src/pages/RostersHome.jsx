@@ -1,9 +1,10 @@
 // RostersHome.jsx
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CreateRosterModal from '@/features/roster/CreateRosterModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import { useAuth } from '@/shared/hooks/useAuth';
 import {
   deleteRosterProject,
   fetchAllRosterProjects,
@@ -28,6 +29,7 @@ const RostersHome = () => {
   const [renameValue, setRenameValue] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const navigate = useNavigate();
+  const { userId, loading: authLoading } = useAuth();
   const { players } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
@@ -53,26 +55,34 @@ const RostersHome = () => {
     return map;
   }, [rosters]);
 
-  const fetchRosters = async () => {
-    const results = await fetchAllRosterProjects();
+  const fetchRosters = useCallback(async () => {
+    if (!userId) {
+      setRosters([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const results = await fetchAllRosterProjects(userId);
     setRosters(results);
     setIsLoading(false);
-  };
+  }, [userId]);
 
   useEffect(() => {
-    fetchRosters();
-  }, []);
+    if (!authLoading) {
+      fetchRosters();
+    }
+  }, [authLoading, fetchRosters]);
 
   const handleRename = async () => {
     if (!renameValue.trim()) return;
-    await renameRosterProject(renamingId, renameValue.trim());
+    await renameRosterProject(renamingId, renameValue.trim(), userId);
     setRenamingId(null);
     setRenameValue('');
     await fetchRosters();
   };
 
   const handleDelete = async () => {
-    await deleteRosterProject(deletingId);
+    await deleteRosterProject(deletingId, userId);
     setDeletingId(null);
     await fetchRosters();
   };
@@ -98,8 +108,12 @@ const RostersHome = () => {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading || authLoading ? (
           <div className="text-white/60">Loading rosters...</div>
+        ) : !userId ? (
+          <div className="text-white/40">
+            Unable to initialize session. Rosters are unavailable.
+          </div>
         ) : rosters.length === 0 ? (
           <div className="text-white/40">
             You haven&apos;t created any rosters yet.

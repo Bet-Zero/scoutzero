@@ -25,7 +25,12 @@ import { TeamMap } from '@/constants/teamList';
 
 export const emptyRoster = createEmptyRoster();
 
-export const useRosterManager = (allPlayers = [], isLoading = false) => {
+export const useRosterManager = (
+  allPlayers = [],
+  isLoading = false,
+  userId = null,
+  authLoading = false
+) => {
   const [roster, setRoster] = useState(() => createEmptyRoster());
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [loadMethod, setLoadMethod] = useState('current');
@@ -111,16 +116,25 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
 
   useEffect(() => {
     const loadSaved = async () => {
-      const all = await fetchAllRosterProjects();
+      if (!userId) {
+        setSavedRosters([]);
+        return;
+      }
+
+      const all = await fetchAllRosterProjects(userId);
       setSavedRosters(all);
     };
 
+    if (authLoading) {
+      return;
+    }
+
     loadSaved();
-  }, []);
+  }, [userId, authLoading]);
 
   useEffect(() => {
     const load = async () => {
-      if (isLoading || allPlayers.length === 0) return;
+      if (authLoading || isLoading || allPlayers.length === 0) return;
 
       if (loadMethod === 'blank') {
         setRoster(createEmptyRoster());
@@ -149,7 +163,11 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
         return;
       }
 
-      const loaded = await loadRosterProject(loadMethod);
+      if (!userId) {
+        return;
+      }
+
+      const loaded = await loadRosterProject(loadMethod, userId);
       if (!loaded) return;
 
       setSelectedTeam(TeamMap[loaded.team] || null);
@@ -165,7 +183,15 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
     };
 
     load();
-  }, [selectedTeam, loadMethod, allPlayers, isLoading, idsToPlayers]);
+  }, [
+    selectedTeam,
+    loadMethod,
+    allPlayers,
+    isLoading,
+    idsToPlayers,
+    userId,
+    authLoading,
+  ]);
 
   const addPlayerToSlot = useCallback(
     (player, section, index) => {
@@ -216,10 +242,14 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
   const saveNewRoster = useCallback(async () => {
     const trimmedName = rosterName.trim();
     if (!trimmedName) return;
+    if (!userId) {
+      throw new Error('No user session.');
+    }
 
     const normalizedRoster = normalizeRosterShape(roster);
     const created = await createRosterProject(
       trimmedName,
+      userId,
       normalizedRoster.starters.map((player) => (player ? player.id : null)),
       normalizedRoster.rotation.map((player) => (player ? player.id : null)),
       normalizedRoster.bench.map((player) => (player ? player.id : null)),
@@ -230,15 +260,18 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
     setLoadMethod(created.id);
     setSavedRosters((prev) => [...prev, created]);
     setRosterName(created.name);
-  }, [rosterName, roster, selectedTeam]);
+  }, [rosterName, roster, selectedTeam, userId]);
 
   const updateRoster = useCallback(async () => {
     if (!rosterId) return;
+    if (!userId) {
+      throw new Error('No user session.');
+    }
 
     const normalizedRoster = normalizeRosterShape(roster);
     const trimmedName = rosterName?.trim();
 
-    await updateRosterProject(rosterId, {
+    await updateRosterProject(rosterId, userId, {
       starters: normalizedRoster.starters.map((player) =>
         player ? player.id : null
       ),
@@ -270,9 +303,9 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
               ),
             }
           : item
-      )
+        )
     );
-  }, [rosterId, roster, rosterName, selectedTeam]);
+  }, [rosterId, roster, rosterName, selectedTeam, userId]);
 
   const rosterHasPlayer = useCallback(
     (playerId) => {

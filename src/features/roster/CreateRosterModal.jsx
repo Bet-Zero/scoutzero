@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { createRosterProject } from '@/firebase/rosterHelpers';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 
 const CreateRosterModal = ({ isOpen, onClose, onCreated }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const { userId } = useAuth();
 
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
     try {
-      const created = await createRosterProject(trimmed);
+      const created = await createRosterProject(trimmed, userId);
       setName('');
       setError('');
       onCreated?.(created);
@@ -31,9 +33,15 @@ const CreateRosterModal = ({ isOpen, onClose, onCreated }) => {
           className="w-full p-2 border border-gray-300 rounded mb-2"
         />
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+        {!userId && (
+          <p className="text-yellow-400/80 text-xs mb-2">
+            Session unavailable — roster creation disabled.
+          </p>
+        )}
         <button
-          className="bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded w-full"
+          className="bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded w-full disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={handleCreate}
+          disabled={!userId}
         >
           Create Roster
         </button>

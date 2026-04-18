@@ -44,6 +44,7 @@ interface RosterViewerActionsProps {
   isEditingExisting: boolean;
   onSaveNew: () => Promise<void>;
   onOverwrite: () => Promise<void>;
+  canPersist: boolean;
 }
 
 export const RosterViewerActions = ({
@@ -54,6 +55,7 @@ export const RosterViewerActions = ({
   isEditingExisting,
   onSaveNew,
   onOverwrite,
+  canPersist,
 }: RosterViewerActionsProps) => {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -142,6 +144,7 @@ export const RosterViewerActions = ({
           isEditingExisting={isEditingExisting}
           saveMode={saveMode}
           onSaveModeChange={handleSaveModeChange}
+          canSave={canPersist}
         />
       )}
 

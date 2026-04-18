@@ -212,6 +212,41 @@ Documents created before E4 may lack an `ownerUid` field. When such a document i
 
 This is a "first-come, first-claimed" strategy. It requires no migration script and is safe for single-user contexts.
 
+### `/rosterProjects/{projectId}` - Saved Rosters
+
+**Status**: App-level ownership enforced (2026-04-18), rules flip still pending
+**Usage**: Saved roster builder states, created/managed via `/rosters` and `/roster/:rosterId`
+
+**Structure**:
+
+| Field       | Type        | Default                            | Notes                                                                                                 |
+| ----------- | ----------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `name`      | `string`    | _(required)_                       | Roster display name                                                                                   |
+| `team`      | `string`    | `''`                               | Team slug or code used by roster views                                                                |
+| `starters`  | `(string\|null)[]` | `[]`                        | Starter slot player IDs; `null` preserves empty slots                                                 |
+| `rotation`  | `(string\|null)[]` | `[]`                        | Rotation slot player IDs; `null` preserves empty slots                                                |
+| `bench`     | `(string\|null)[]` | `[]`                        | Bench slot player IDs; `null` preserves empty slots                                                   |
+| `ownerUid`  | `string`    | _(required on new docs)_           | Firebase Auth UID of the roster owner. Legacy docs may be ownerless and are auto-claimed on access. |
+| `createdAt` | `Timestamp` | `serverTimestamp()`                | Set on creation                                                                                       |
+| `updatedAt` | `Timestamp` | `serverTimestamp()`                | Updated on every mutation and during legacy ownership claim                                           |
+
+**ID Strategy**: Auto-generated (`addDoc`). No human-readable IDs.
+
+**Service Layer**: `src/firebase/rosterHelpers.ts` — `fetchAllRosterProjects`, `createRosterProject`, `loadRosterProject`, `updateRosterProject`, `renameRosterProject`, `deleteRosterProject`
+
+```javascript
+// Fetch the current user's saved rosters
+const rosters = await fetchAllRosterProjects(userId);
+
+// Create a new owned roster project
+const created = await createRosterProject('My Roster', userId);
+
+// Reopen an existing roster with ownership guard
+const roster = await loadRosterProject(rosterId, userId);
+```
+
+**Ownership/Auth**: App-level ownership is now enforced by `rosterHelpers.ts`. New roster docs always write `ownerUid`, collection reads in the app are scoped to the current `userId`, and direct load/update/delete paths owner-enforce access. Legacy ownerless docs are auto-claimed on first signed-in access. Firestore rules for `/rosterProjects/{projectId}` are still broader than the app contract and should be tightened in a later pass.
+
 ---
 
 ## Migration Context

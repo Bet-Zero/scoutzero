@@ -13,6 +13,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import TeamRosterView from '@/pages/TeamRosterView';
 import RostersHome from '@/pages/RostersHome';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import { useAuth } from '@/shared/hooks/useAuth';
 import {
   fetchAllRosterProjects,
   loadRosterProject,
@@ -29,6 +30,10 @@ const toastMock = vi.hoisted(() => {
 
 vi.mock('@/shared/hooks/useSimplePlayerData', () => ({
   default: vi.fn(),
+}));
+
+vi.mock('@/shared/hooks/useAuth', () => ({
+  useAuth: vi.fn(),
 }));
 
 vi.mock('@/firebase/rosterHelpers', () => ({
@@ -53,6 +58,7 @@ vi.mock('@/features/lists/ListSearchBar', () => ({
 }));
 
 const mockedUseSimplePlayerData = vi.mocked(useSimplePlayerData);
+const mockedUseAuth = vi.mocked(useAuth);
 const mockedFetchAllRosterProjects = vi.mocked(fetchAllRosterProjects);
 const mockedLoadRosterProject = vi.mocked(loadRosterProject);
 const mockedRenameRosterProject = vi.mocked(renameRosterProject);
@@ -103,6 +109,11 @@ const renderRosterHome = () =>
   );
 
 beforeEach(() => {
+  mockedUseAuth.mockReturnValue({
+    user: { uid: 'user-1' },
+    userId: 'user-1',
+    loading: false,
+  });
   mockedUseSimplePlayerData.mockReturnValue({
     players: [],
     loading: false,
@@ -154,7 +165,10 @@ describe('Roster Builder saved-roster flows', () => {
     renderRosterRoute('/roster/saved-roster');
 
     await waitFor(() => {
-      expect(mockedLoadRosterProject).toHaveBeenCalledWith('saved-roster');
+      expect(mockedLoadRosterProject).toHaveBeenCalledWith(
+        'saved-roster',
+        'user-1'
+      );
     });
 
     expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument();
@@ -170,6 +184,7 @@ describe('Roster Builder saved-roster flows', () => {
     await waitFor(() => {
       expect(mockedUpdateRosterProject).toHaveBeenCalledWith(
         'saved-roster',
+        'user-1',
         expect.objectContaining({
           team: 'lakers',
           starters: expect.arrayContaining([
@@ -258,7 +273,8 @@ describe('Rosters Home rename flow', () => {
     await waitFor(() => {
       expect(mockedRenameRosterProject).toHaveBeenCalledWith(
         'roster-1',
-        'Renamed Roster'
+        'Renamed Roster',
+        'user-1'
       );
     });
 

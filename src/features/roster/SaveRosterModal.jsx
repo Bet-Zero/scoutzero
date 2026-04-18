@@ -8,6 +8,7 @@ const SaveRosterModal = ({
   isEditingExisting = false,
   saveMode = 'new',
   onSaveModeChange,
+  canSave = true,
 }) => (
   <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div className="bg-[#1a1a1a] p-6 rounded-lg w-full max-w-sm text-white">
@@ -48,6 +49,12 @@ const SaveRosterModal = ({
         className="w-full px-3 py-2 mb-4 rounded bg-neutral-800 placeholder:text-white/40"
       />
 
+      {!canSave && (
+        <p className="text-yellow-400/80 text-xs mb-4">
+          Session unavailable — roster saving disabled.
+        </p>
+      )}
+
       <div className="flex justify-end gap-3">
         <button
           onClick={onCancel}
@@ -57,7 +64,8 @@ const SaveRosterModal = ({
         </button>
         <button
           onClick={onSave}
-          className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500"
+          className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={!canSave}
         >
           {isEditingExisting && saveMode === 'overwrite'
             ? 'Overwrite'

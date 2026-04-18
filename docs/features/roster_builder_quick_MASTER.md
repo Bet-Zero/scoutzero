@@ -120,6 +120,7 @@ The Roster Builder assembles a normalized 15-man roster split into **starters (5
 - `starters`: array of player IDs or `null` entries.
 - `rotation`: array of player IDs or `null` entries.
 - `bench`: array of player IDs or `null` entries.
+- `ownerUid`: Firebase Auth UID for the roster owner. New docs always write this; legacy ownerless docs are auto-claimed on first signed-in access.
 - `createdAt`: `serverTimestamp()`.
 - `updatedAt`: `serverTimestamp()`.
 
@@ -127,10 +128,11 @@ The Roster Builder assembles a normalized 15-man roster split into **starters (5
 
 - **Collection**: `rosterProjects`.
 - **Constant**: `ROSTER_PROJECTS_COLLECTION` in `src/constants/collections.ts`.
-- **Create**: `createRosterProject` in `src/firebase/rosterHelpers.ts` (called from `SaveRosterModal` and `CreateRosterModal`).
-- **Read**: `fetchAllRosterProjects` / `loadRosterProject` in `src/firebase/rosterHelpers.ts` (used in `useRosterManager` and `RostersHome`).
-- **Update**: `updateRosterProject` is wired to the overwrite flow in `RosterViewerActions`.
-- **Rename/Delete**: `RostersHome` uses `renameRosterProject` / `deleteRosterProject`; rename updates `updatedAt`.
+- **Create**: `createRosterProject(name, userId, ...)` in `src/firebase/rosterHelpers.ts` (called from `SaveRosterModal` and `CreateRosterModal`).
+- **Read**: `fetchAllRosterProjects(userId)` / `loadRosterProject(id, userId)` in `src/firebase/rosterHelpers.ts` (used in `useRosterManager` and `RostersHome`).
+- **Update**: `updateRosterProject(id, userId, patch)` is wired to the overwrite flow in `RosterViewerActions`.
+- **Rename/Delete**: `RostersHome` uses `renameRosterProject(id, newName, userId)` / `deleteRosterProject(id, userId)`; rename updates `updatedAt`.
+- **Ownership policy**: The app now treats roster projects as user-owned content. `rosterHelpers.ts` blocks non-owner writes and auto-claims legacy ownerless docs on first signed-in access.
 
 ## Constraints & Rules
 
@@ -143,6 +145,9 @@ The Roster Builder assembles a normalized 15-man roster split into **starters (5
 - **Add‑player behavior**:
   - If a slot was clicked, the next selection fills that specific slot.
   - Otherwise, the selection fills the next empty slot scanning starters → rotation → bench.
+- **Persistence gating**:
+  - Saving requires an initialized Firebase Auth session.
+  - `/rosters` only shows the current user's owned rosters plus any legacy ownerless rosters that get claimed during that visit.
 - **No enforcement** for positional constraints, salary cap, or team limits.
 - **No swap/reorder UI** (remove + re‑add only).
 
@@ -151,6 +156,7 @@ The Roster Builder assembles a normalized 15-man roster split into **starters (5
 - The builder intentionally does not enforce salary cap, positional legality, or roster-balance rules.
 - Saved-roster rendering depends on `players_v2` remaining internally consistent. Missing player IDs are now preserved, but they still require manual replacement or removal by the user.
 - Salary display currently relies on the shared default salary year constant; review this on season rollover.
+- Firestore rules for `rosterProjects` have not been tightened to match the new app-level owner contract yet, so the helper layer remains the current enforcement point.
 
 ## What Changed in v1 Closure
 

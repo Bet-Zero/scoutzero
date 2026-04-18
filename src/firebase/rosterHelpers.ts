@@ -9,10 +9,14 @@ import {
   getDocs,
   serverTimestamp,
   updateDoc,
+  query,
+  where,
 } from 'firebase/firestore';
 import { ROSTER_PROJECTS_COLLECTION } from '@/constants/collections';
 import { db } from '../firebaseConfig';
 
+const DocumentIdZ = z.string().min(1);
+const UserIdZ = z.string().min(1);
 const RosterProjectPlayerIdZ = z.string().min(1).nullable();
 const FirestoreTimestampLikeZ = z.union([
   z.string(),
@@ -28,6 +32,7 @@ const RosterProjectReadDocZ = z
     starters: z.array(RosterProjectPlayerIdZ).default([]),
     rotation: z.array(RosterProjectPlayerIdZ).default([]),
     bench: z.array(RosterProjectPlayerIdZ).default([]),
+    ownerUid: z.string().min(1).nullish(),
     createdAt: FirestoreTimestampLikeZ.optional(),
     updatedAt: FirestoreTimestampLikeZ.optional(),
   })
@@ -53,9 +58,14 @@ export type RosterProjectPlayerId = z.infer<typeof RosterProjectPlayerIdZ>;
 export type RosterProjectTimestamp = z.infer<typeof FirestoreTimestampLikeZ>;
 export type RosterProjectDoc = z.infer<typeof RosterProjectReadDocZ>;
 export type RosterProject = RosterProjectDoc & { id: string };
+export type RosterProjectReadResult = Omit<RosterProject, 'ownerUid'> & {
+  ownerUid: string | null;
+  ownershipValid: boolean;
+};
 export type CreateRosterProjectInput = z.infer<typeof RosterProjectCreateInputZ>;
 export type UpdateRosterProjectInput = z.infer<typeof RosterProjectUpdateInputZ>;
 export type RosterProjectWriteDoc = CreateRosterProjectInput & {
+  ownerUid: string;
   createdAt: FieldValue;
   updatedAt: FieldValue;
 };
@@ -63,32 +73,104 @@ export type CreatedRosterProject = RosterProjectWriteDoc & { id: string };
 
 const rosterProjectsRef = collection(db, ROSTER_PROJECTS_COLLECTION);
 
-const parseRosterProject = (id: string, data: unknown): RosterProject => {
+const formatIssueSummary = (error: z.ZodError): string =>
+  error.issues
+    .map((issue) => `${issue.path.join('.') || '<root>'}: ${issue.message}`)
+    .join('; ');
+
+const parseRosterProjectDoc = (id: string, data: unknown): RosterProjectDoc => {
   const parsed = RosterProjectReadDocZ.safeParse(data);
 
   if (!parsed.success) {
-    const issueSummary = parsed.error.issues
-      .map((issue) => `${issue.path.join('.') || '<root>'}: ${issue.message}`)
-      .join('; ');
-    throw new Error(`Invalid roster project ${id}: ${issueSummary}`);
+    throw new Error(
+      `Invalid roster project ${id}: ${formatIssueSummary(parsed.error)}`
+    );
   }
+
+  return parsed.data;
+};
+
+const buildRosterProject = (id: string, data: unknown): RosterProject => {
+  const parsed = parseRosterProjectDoc(id, data);
 
   return {
     id,
-    ...parsed.data,
+    ...parsed,
   };
 };
 
-// Roster projects still have no ownerUid/userId guard.
-// This preserves current behavior but should be revisited separately.
+const claimOwnershipIfMissing = async (
+  docRef: ReturnType<typeof doc>,
+  ownerUid: string | null | undefined,
+  userId: string
+): Promise<string> => {
+  if (ownerUid) {
+    return ownerUid;
+  }
+
+  await updateDoc(docRef, {
+    ownerUid: userId,
+    updatedAt: serverTimestamp(),
+  });
+
+  return userId;
+};
+
+const assertOwnership = (ownerUid: string, userId: string): void => {
+  if (ownerUid !== userId) {
+    throw new Error('You do not own this roster project.');
+  }
+};
+
+const readAndGuard = async (
+  id: string,
+  userId: string
+): Promise<{
+  docRef: ReturnType<typeof doc>;
+  roster: RosterProject & { ownerUid: string };
+}> => {
+  if (!userId) {
+    throw new Error('No user session.');
+  }
+
+  const parsedId = DocumentIdZ.parse(id);
+  const parsedUserId = UserIdZ.parse(userId);
+  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, parsedId);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    throw new Error('Roster project not found.');
+  }
+
+  const roster = buildRosterProject(docSnap.id, docSnap.data());
+  const ownerUid = await claimOwnershipIfMissing(
+    docRef,
+    roster.ownerUid,
+    parsedUserId
+  );
+  assertOwnership(ownerUid, parsedUserId);
+
+  return {
+    docRef,
+    roster: {
+      ...roster,
+      ownerUid,
+    },
+  };
+};
 
 export const createRosterProject = async (
   name: string,
+  userId: string,
   starters: RosterProjectPlayerId[] = [],
   rotation: RosterProjectPlayerId[] = [],
   bench: RosterProjectPlayerId[] = [],
   team = ''
 ): Promise<CreatedRosterProject> => {
+  if (!userId) {
+    throw new Error('Cannot create roster without a user session.');
+  }
+
   const parsedInput = RosterProjectCreateInputZ.parse({
     name,
     starters,
@@ -96,9 +178,11 @@ export const createRosterProject = async (
     bench,
     team,
   });
+  const parsedUserId = UserIdZ.parse(userId);
 
   const newRoster: RosterProjectWriteDoc = {
     ...parsedInput,
+    ownerUid: parsedUserId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -107,32 +191,114 @@ export const createRosterProject = async (
   return { id: docRef.id, ...newRoster };
 };
 
-export const fetchAllRosterProjects = async (): Promise<RosterProject[]> => {
-  const snapshot = await getDocs(rosterProjectsRef);
-  return snapshot.docs.map((rosterDoc) =>
-    parseRosterProject(rosterDoc.id, rosterDoc.data())
+export const fetchAllRosterProjects = async (
+  userId: string | null | undefined
+): Promise<RosterProject[]> => {
+  if (!userId) {
+    return [];
+  }
+
+  const parsedUserId = UserIdZ.parse(userId);
+  const ownedSnapshot = await getDocs(
+    query(rosterProjectsRef, where('ownerUid', '==', parsedUserId))
   );
+  const ownedIds = new Set<string>();
+  const ownedRosters = ownedSnapshot.docs.map((rosterDoc) => {
+    ownedIds.add(rosterDoc.id);
+    return buildRosterProject(rosterDoc.id, rosterDoc.data());
+  });
+
+  // Legacy migration: claim ownerless roster docs on first signed-in access.
+  const allSnapshot = await getDocs(rosterProjectsRef);
+  const legacyRosters: RosterProject[] = [];
+
+  for (const rosterDoc of allSnapshot.docs) {
+    if (ownedIds.has(rosterDoc.id)) {
+      continue;
+    }
+
+    const rawData = rosterDoc.data();
+    const rawOwnerUid =
+      typeof rawData?.ownerUid === 'string' && rawData.ownerUid.trim().length > 0
+        ? rawData.ownerUid
+        : null;
+
+    if (rawOwnerUid && rawOwnerUid !== parsedUserId) {
+      continue;
+    }
+
+    const roster = buildRosterProject(rosterDoc.id, rawData);
+
+    if (roster.ownerUid) {
+      if (roster.ownerUid === parsedUserId) {
+        legacyRosters.push(roster);
+      }
+      continue;
+    }
+
+    const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, rosterDoc.id);
+    await updateDoc(docRef, {
+      ownerUid: parsedUserId,
+      updatedAt: serverTimestamp(),
+    });
+
+    legacyRosters.push({
+      ...roster,
+      ownerUid: parsedUserId,
+    });
+  }
+
+  return [...ownedRosters, ...legacyRosters];
 };
 
 export const loadRosterProject = async (
-  id: string
-): Promise<RosterProject | null> => {
-  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, id);
+  id: string,
+  userId: string | null | undefined
+): Promise<RosterProjectReadResult | null> => {
+  if (!userId) {
+    return null;
+  }
+
+  const parsedId = DocumentIdZ.parse(id);
+  const parsedUserId = UserIdZ.parse(userId);
+  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, parsedId);
   const docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) {
     return null;
   }
 
-  return parseRosterProject(id, docSnap.data());
+  const roster = buildRosterProject(parsedId, docSnap.data());
+  let ownerUid = roster.ownerUid ?? null;
+
+  if (!ownerUid) {
+    await updateDoc(docRef, {
+      ownerUid: parsedUserId,
+      updatedAt: serverTimestamp(),
+    });
+    ownerUid = parsedUserId;
+  }
+
+  const ownershipValid = ownerUid === parsedUserId;
+
+  if (!ownershipValid) {
+    return null;
+  }
+
+  return {
+    ...roster,
+    ownerUid,
+    ownershipValid,
+  };
 };
 
 export const updateRosterProject = async (
   id: string,
+  userId: string,
   update: UpdateRosterProjectInput = {}
 ): Promise<void> => {
+  const { docRef } = await readAndGuard(id, userId);
   const parsedUpdate = RosterProjectUpdateInputZ.parse(update);
-  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, id);
   const payload: UpdateRosterProjectInput & { updatedAt: FieldValue } = {
     updatedAt: serverTimestamp(),
   };
@@ -158,9 +324,10 @@ export const updateRosterProject = async (
 
 export const renameRosterProject = async (
   id: string,
-  newName: string
+  newName: string,
+  userId: string
 ): Promise<void> => {
-  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, id);
+  const { docRef } = await readAndGuard(id, userId);
   const parsedName = z.string().trim().min(1).parse(newName);
 
   await updateDoc(docRef, {
@@ -169,7 +336,10 @@ export const renameRosterProject = async (
   });
 };
 
-export const deleteRosterProject = async (id: string): Promise<void> => {
-  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, id);
+export const deleteRosterProject = async (
+  id: string,
+  userId: string
+): Promise<void> => {
+  const { docRef } = await readAndGuard(id, userId);
   await deleteDoc(docRef);
 };
