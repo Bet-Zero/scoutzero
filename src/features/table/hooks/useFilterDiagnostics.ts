@@ -1,5 +1,5 @@
 /**
- * @file useFilterDiagnostics.js
+ * @file useFilterDiagnostics.ts
  * @description Phase 2S Dev Diagnostics Hook
  *
  * Provides filter diagnostics data for the dev panel.
@@ -16,31 +16,125 @@ import {
   PLAYER_FILTER_CATALOG,
   getCatalogFilterKeys,
 } from '@/shared/utils/filtering/playerFilterCatalog';
+import type { FilterCatalogEntry } from '@/shared/utils/filtering/playerFilterCatalog';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+
+type FilterDiagnosticsFilters = Partial<PlayerFilters> & {
+  [key: string]: unknown;
+};
+
+type ActiveFilterEntry = {
+  key: string;
+  value: unknown;
+  defaultValue: unknown;
+};
+
+type CatalogDiagnosticEntry = {
+  key: string;
+  value: unknown;
+  inCatalog: boolean;
+  catalogEntry: FilterCatalogEntry | null;
+  status: 'WIRED' | 'STUB' | 'DEPRECATED' | 'UNKNOWN';
+};
+
+type ReductionStats = {
+  totalPlayers: number;
+  filteredPlayers: number;
+  removedPlayers: number;
+  reductionPercentage: number;
+};
+
+type DiagnosticPlayer = {
+  id?: string | null;
+  name?: string | null;
+  bio?: { displayName?: string | null } | null;
+  currentContractView?: {
+    options?: unknown[] | null;
+    optionsByYear?: Record<string | number, string | null | undefined> | null;
+  } | null;
+  contractsView?: {
+    seasons?: unknown[] | null;
+  } | null;
+  optionByYear?: Record<string | number, string | null | undefined> | null;
+};
+
+type RawOptionSources = {
+  currentContractViewOptions: number;
+  currentContractViewOptionsByYear: number;
+  contractsViewSeasons: number;
+  contractsSubcollection: number;
+};
+
+type DiagnosticSample = {
+  id?: string | null;
+  name: string;
+  source?: string;
+  value?: unknown;
+  optionByYear?: Record<string | number, string | null | undefined>;
+};
+
+type OptionCoverageDiagnostics = {
+  salaryYear: unknown;
+  totalPlayers: number;
+  rawOptionSources: RawOptionSources;
+  rawOptionValues: Record<string, number>;
+  rawSamples: DiagnosticSample[];
+  enrichedStats: {
+    withAnyOptionByYear: number;
+    withOptionForSalaryYear: number;
+    withOptionForOptionYear: number;
+    optionByYearValues: Record<string, number>;
+  };
+  enrichedSamples: DiagnosticSample[];
+  rootCause: string;
+  diagnosis: string;
+  schemaNote: string;
+};
+
+export type FilterDiagnostics = {
+  enabled: true;
+  timestamp: string;
+  activeFilters: CatalogDiagnosticEntry[];
+  activeFilterCount: number;
+  uncatalogedFilters: CatalogDiagnosticEntry[];
+  hasUncatalogedFilters: boolean;
+  reduction: ReductionStats;
+  catalog: {
+    total: number;
+    wired: number;
+    stub: number;
+    deprecated: number;
+    coveragePercentage: number;
+  };
+  optionCoverage: OptionCoverageDiagnostics;
+};
 
 // Get default filters once at module load
 const FILTER_DEFAULTS = getDefaultPlayerFilters();
 
 /**
  * Check if debug mode is enabled via query param
- * @returns {boolean}
  */
-function isDebugModeEnabled() {
+function isDebugModeEnabled(): boolean {
   if (typeof window === 'undefined') return false;
   const params = new URLSearchParams(window.location.search);
   return params.get('debugFilters') === '1';
 }
 
+const getDefaultFilterValue = (key: string): unknown =>
+  FILTER_DEFAULTS[key as keyof PlayerFilters];
+
 /**
  * Get list of currently active (non-default) filters
- * @param {Object} activeFilters - Current filter state
- * @returns {Array<{key: string, value: any, defaultValue: any}>}
  */
-function getActiveFiltersList(activeFilters) {
-  const active = [];
+function getActiveFiltersList(
+  activeFilters: FilterDiagnosticsFilters
+): ActiveFilterEntry[] {
+  const active: ActiveFilterEntry[] = [];
 
   for (const [key, value] of Object.entries(activeFilters)) {
-    const defaultValue = FILTER_DEFAULTS[key];
+    const defaultValue = getDefaultFilterValue(key);
 
     // Check if value differs from default
     if (JSON.stringify(value) !== JSON.stringify(defaultValue)) {
@@ -64,10 +158,10 @@ function getActiveFiltersList(activeFilters) {
 
 /**
  * Get catalog entries for active filters
- * @param {Array<{key: string}>} activeFilters
- * @returns {Array<Object>}
  */
-function getCatalogEntriesForActive(activeFilters) {
+function getCatalogEntriesForActive(
+  activeFilters: ActiveFilterEntry[]
+): CatalogDiagnosticEntry[] {
   const catalogKeys = getCatalogFilterKeys();
 
   return activeFilters.map(({ key, value }) => {
@@ -79,18 +173,27 @@ function getCatalogEntriesForActive(activeFilters) {
       value,
       inCatalog: catalogKeys.includes(key),
       catalogEntry: catalogEntry || null,
-      status: catalogEntry?.status || 'UNKNOWN',
+      status: getDiagnosticStatus(catalogEntry?.status),
     };
   });
 }
 
+const getDiagnosticStatus = (
+  status: FilterCatalogEntry['status'] | undefined
+): CatalogDiagnosticEntry['status'] => {
+  if (status === 'wired') return 'WIRED';
+  if (status === 'broken') return 'STUB';
+  if (status === 'deprecated') return 'DEPRECATED';
+  return 'UNKNOWN';
+};
+
 /**
  * Calculate filter reduction stats
- * @param {Array} allPlayers
- * @param {Array} filteredPlayers
- * @returns {Object}
  */
-function getReductionStats(allPlayers, filteredPlayers) {
+function getReductionStats(
+  allPlayers: readonly DiagnosticPlayer[] | null | undefined,
+  filteredPlayers: readonly DiagnosticPlayer[] | null | undefined
+): ReductionStats {
   const total = allPlayers?.length || 0;
   const filtered = filteredPlayers?.length || 0;
   const removed = total - filtered;
@@ -107,16 +210,16 @@ function getReductionStats(allPlayers, filteredPlayers) {
 /**
  * Phase 2W: Calculate option coverage diagnostics
  * Shows raw vs enriched option data to identify root cause of Option Types filter returning 0 players
- * @param {Array} allPlayers - Full player list
- * @param {Object} activeFilters - Current filter state
- * @returns {Object} Option coverage diagnostics
  */
-function getOptionCoverageDiagnostics(allPlayers, activeFilters) {
+function getOptionCoverageDiagnostics(
+  allPlayers: readonly DiagnosticPlayer[] | null | undefined,
+  activeFilters: FilterDiagnosticsFilters | null | undefined
+): OptionCoverageDiagnostics {
   const salaryYear = activeFilters?.salaryYear || 2025;
   const optionYear = activeFilters?.optionYear ?? salaryYear; // Phase 2X: use optionYear if set
 
   // Count raw option sources
-  const rawOptionSources = {
+  const rawOptionSources: RawOptionSources = {
     // currentContractView.options[] - flat array like ["PO"] or ["TO"]
     currentContractViewOptions: 0,
     // currentContractView.optionsByYear - Phase 2X SSOT (year-keyed map)
@@ -128,10 +231,10 @@ function getOptionCoverageDiagnostics(allPlayers, activeFilters) {
   };
 
   // Count raw option values
-  const rawOptionValues = {};
+  const rawOptionValues: Record<string, number> = {};
 
   // Count enriched optionByYear
-  const enrichedStats = {
+  const enrichedStats: OptionCoverageDiagnostics['enrichedStats'] = {
     withAnyOptionByYear: 0,
     withOptionForSalaryYear: 0,
     withOptionForOptionYear: 0,
@@ -139,8 +242,8 @@ function getOptionCoverageDiagnostics(allPlayers, activeFilters) {
   };
 
   // Sample players for debugging
-  const rawSamples = [];
-  const enrichedSamples = [];
+  const rawSamples: DiagnosticSample[] = [];
+  const enrichedSamples: DiagnosticSample[] = [];
 
   for (const player of allPlayers || []) {
     // Check raw source 1: currentContractView.options[] (legacy flat array)
@@ -168,7 +271,7 @@ function getOptionCoverageDiagnostics(allPlayers, activeFilters) {
     }
 
     // Check raw source 3: contractsView.seasons (legacy - doesn't exist in main doc)
-    if (player.contractsView?.seasons?.length > 0) {
+    if ((player.contractsView?.seasons?.length || 0) > 0) {
       rawOptionSources.contractsViewSeasons++;
     }
 
@@ -187,13 +290,13 @@ function getOptionCoverageDiagnostics(allPlayers, activeFilters) {
     }
 
     // Check if option exists for the active salary year
-    const optionForSalaryYear = optionByYear[salaryYear];
+    const optionForSalaryYear = optionByYear[salaryYear as string | number];
     if (optionForSalaryYear) {
       enrichedStats.withOptionForSalaryYear++;
     }
 
     // Check if option exists for the active option year (Phase 2X)
-    const optionForYear = optionByYear[optionYear];
+    const optionForYear = optionByYear[optionYear as string | number];
     if (optionForYear) {
       enrichedStats.withOptionForSalaryYear++;
       enrichedStats.optionByYearValues[optionForYear] =
@@ -240,17 +343,12 @@ function getOptionCoverageDiagnostics(allPlayers, activeFilters) {
 
 /**
  * Dev diagnostics hook for filter debugging
- *
- * @param {Array} allPlayers - Full player list before filtering
- * @param {Array} filteredPlayers - Players after filtering
- * @param {Object} activeFilters - Current filter state object
- * @returns {Object|null} - Diagnostics object or null if debug mode off
  */
 export function useFilterDiagnostics(
-  allPlayers,
-  filteredPlayers,
-  activeFilters
-) {
+  allPlayers: readonly DiagnosticPlayer[] | null | undefined,
+  filteredPlayers: readonly DiagnosticPlayer[] | null | undefined,
+  activeFilters: FilterDiagnosticsFilters | null | undefined
+): FilterDiagnostics | null {
   const isEnabled = isDebugModeEnabled();
 
   return useMemo(() => {
@@ -266,13 +364,13 @@ export function useFilterDiagnostics(
     // Get catalog coverage stats
     const totalCatalogEntries = PLAYER_FILTER_CATALOG.length;
     const wiredEntries = PLAYER_FILTER_CATALOG.filter(
-      (e) => e.status === 'WIRED'
+      (e) => e.status === 'wired'
     ).length;
     const stubEntries = PLAYER_FILTER_CATALOG.filter(
-      (e) => e.status === 'STUB'
+      (e) => e.status === 'broken'
     ).length;
     const deprecatedEntries = PLAYER_FILTER_CATALOG.filter(
-      (e) => e.status === 'DEPRECATED'
+      (e) => e.status === 'deprecated'
     ).length;
 
     return {

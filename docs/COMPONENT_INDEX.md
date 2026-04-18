@@ -125,7 +125,6 @@ Quick reference for all components in the ScoutZero project.
 - PlayerTable/PlayerTableHeader/TopControlsBar.jsx
 - PlayerTable/PlayerTableHeader/index.jsx
 - PlayerTable/index.jsx
-- hooks/useFilterDiagnostics.js
 
 ## TierMaker
 
@@ -136,4 +135,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-04-18T14:11:51.199Z*
+*Generated on: 2026-04-18T14:18:21.527Z*

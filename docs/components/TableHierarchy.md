@@ -26,10 +26,10 @@ PlayerTable/
     usePlayerTableDensity.ts
   index.jsx
 hooks/
-  useFilterDiagnostics.js
+  useFilterDiagnostics.ts
   useFilteredPlayers.ts
 ```
 
 ---
-*Generated on: 2026-04-18T14:08:38.886Z*
+*Generated on: 2026-04-18T14:18:21.503Z*
 *Auto-updated by: npm run docs*
