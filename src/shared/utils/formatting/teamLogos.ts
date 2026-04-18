@@ -1,4 +1,4 @@
-export const TEAM_LOGO_MAP = {
+export const TEAM_LOGO_MAP: Record<string, string> = {
   Hawks: 'hawks',
   Celtics: 'celtics',
   Nets: 'nets',
@@ -98,7 +98,7 @@ export const TEAM_LOGO_MAP = {
   WAS: 'wizards',
 };
 
-export function getTeamLogoFilename(teamName) {
+export function getTeamLogoFilename(teamName: string | null | undefined): string {
   if (!teamName) return 'default';
   return TEAM_LOGO_MAP[teamName] || teamName.toLowerCase().replace(/\s+/g, '');
 }
