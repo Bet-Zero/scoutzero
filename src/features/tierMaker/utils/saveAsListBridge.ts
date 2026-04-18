@@ -1,5 +1,5 @@
 /**
- * saveAsListBridge.js — Convert Tiermaker/Tieramid board state to a List and save.
+ * saveAsListBridge.ts — Convert Tiermaker/Tieramid board state to a List and save.
  *
  * Provides bridge utilities to export a curated tier board into the lists collection,
  * enabling interoperability with Ranker + Lists features.
@@ -13,28 +13,69 @@
  */
 
 import { createList, saveList } from '@/firebase/listHelpers';
+import type { SaveListInput } from '@/firebase/listHelpers';
+
+export type TierBoardMode = 'standard' | 'pyramid';
+
+type TierPlayerObject = {
+  player_id?: unknown;
+  id?: unknown;
+};
+
+type TierPlayerEntry = string | TierPlayerObject | null | undefined;
+type TierBoardBuckets = Record<string, TierPlayerEntry[] | null | undefined>;
+
+export type TierMakerListPayloadInput = {
+  tiers?: TierBoardBuckets | null;
+  tierOrder?: string[] | null;
+};
+
+export type TieramidListPayloadInput = {
+  rows?: TierBoardBuckets | null;
+  rowOrder?: string[] | null;
+};
+
+export type TierListPayload = {
+  playerOrder: string[];
+  playerIds: string[];
+};
+
+export type SaveTierAsListParams = {
+  mode: TierBoardMode | string;
+  name: string;
+  userId: string | null | undefined;
+  data?: (TierMakerListPayloadInput & TieramidListPayloadInput) | null;
+};
+
+export type SaveTierAsListResult = {
+  listId: string;
+};
 
 // ─── Conversion Utilities ─────────────────────────────────────────────────────
+
+const isObjectEntry = (value: TierPlayerEntry): value is TierPlayerObject =>
+  value !== null && typeof value === 'object';
+
+const isBucketRecord = (value: unknown): value is TierBoardBuckets =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /**
  * Extracts player IDs from board state where each entry may be:
  *   - A plain string ID (from draft/serialized state)
  *   - A player object with player_id or id property
- *
- * @param {(string | object)[]} arr - Array of ids or player objects
- * @returns {string[]} - Array of player IDs
  */
-function extractIds(arr) {
+function extractIds(arr: readonly TierPlayerEntry[] | null | undefined): string[] {
   if (!Array.isArray(arr)) return [];
   return arr
     .map((item) => {
       if (typeof item === 'string') return item;
-      if (item && typeof item === 'object') {
-        return item.player_id || item.id || null;
+      if (isObjectEntry(item)) {
+        const id = item.player_id || item.id || null;
+        return typeof id === 'string' ? id : null;
       }
       return null;
     })
-    .filter((id) => typeof id === 'string' && id.length > 0);
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
 }
 
 /**
@@ -44,24 +85,22 @@ function extractIds(arr) {
  *   1. tierOrder from first to last, excluding Pool
  *   2. Within each tier, preserve array order
  *   3. Append Pool last
- *
- * @param {Object} params
- * @param {Record<string, (string | object)[]>} params.tiers - tier name → array of ids/players
- * @param {string[]} params.tierOrder - ordered tier names (Pool expected last)
- * @returns {{ playerOrder: string[], playerIds: string[] }}
  */
-export function buildListPayloadFromTierMaker({ tiers, tierOrder }) {
-  const seen = new Set();
-  const playerOrder = [];
+export function buildListPayloadFromTierMaker({
+  tiers,
+  tierOrder,
+}: TierMakerListPayloadInput = {}): TierListPayload {
+  const seen = new Set<string>();
+  const playerOrder: string[] = [];
 
   // Ensure valid inputs
-  const safeTiers = tiers && typeof tiers === 'object' ? tiers : {};
+  const safeTiers = isBucketRecord(tiers) ? tiers : {};
   const safeOrder = Array.isArray(tierOrder)
     ? tierOrder
     : Object.keys(safeTiers);
 
   // 1. Traverse non-Pool tiers in order
-  const nonPoolOrder = safeOrder.filter((t) => t !== 'Pool');
+  const nonPoolOrder = safeOrder.filter((tier) => tier !== 'Pool');
   for (const tier of nonPoolOrder) {
     const ids = extractIds(safeTiers[tier]);
     for (const id of ids) {
@@ -83,7 +122,7 @@ export function buildListPayloadFromTierMaker({ tiers, tierOrder }) {
 
   return {
     playerOrder,
-    playerIds: [...seen], // deduped set → array
+    playerIds: [...seen], // deduped set -> array
   };
 }
 
@@ -94,22 +133,20 @@ export function buildListPayloadFromTierMaker({ tiers, tierOrder }) {
  *   1. rowOrder from first to last, excluding Pool
  *   2. Within each row, preserve array order
  *   3. Append Pool last
- *
- * @param {Object} params
- * @param {Record<string, (string | object)[]>} params.rows - row name → array of ids/players
- * @param {string[]} params.rowOrder - ordered row names (Pool expected last)
- * @returns {{ playerOrder: string[], playerIds: string[] }}
  */
-export function buildListPayloadFromTieramid({ rows, rowOrder }) {
-  const seen = new Set();
-  const playerOrder = [];
+export function buildListPayloadFromTieramid({
+  rows,
+  rowOrder,
+}: TieramidListPayloadInput = {}): TierListPayload {
+  const seen = new Set<string>();
+  const playerOrder: string[] = [];
 
   // Ensure valid inputs
-  const safeRows = rows && typeof rows === 'object' ? rows : {};
+  const safeRows = isBucketRecord(rows) ? rows : {};
   const safeOrder = Array.isArray(rowOrder) ? rowOrder : Object.keys(safeRows);
 
   // 1. Traverse non-Pool rows in order
-  const nonPoolOrder = safeOrder.filter((r) => r !== 'Pool');
+  const nonPoolOrder = safeOrder.filter((row) => row !== 'Pool');
   for (const row of nonPoolOrder) {
     const ids = extractIds(safeRows[row]);
     for (const id of ids) {
@@ -131,7 +168,7 @@ export function buildListPayloadFromTieramid({ rows, rowOrder }) {
 
   return {
     playerOrder,
-    playerIds: [...seen], // deduped set → array
+    playerIds: [...seen], // deduped set -> array
   };
 }
 
@@ -140,33 +177,34 @@ export function buildListPayloadFromTieramid({ rows, rowOrder }) {
 /**
  * Creates a new list from tier board state and saves it.
  *
- * @param {Object} params
- * @param {'standard' | 'pyramid'} params.mode - Board type
- * @param {string} params.name - List name
- * @param {string} params.userId - Current user's uid (must be owner)
- * @param {Object} params.data - Board state: { tiers, tierOrder } or { rows, rowOrder }
- * @returns {Promise<{ listId: string }>}
- * @throws {Error} If no userId or save fails
+ * @throws Error if no userId, board is empty, mode is unknown, or save fails.
  */
-export async function saveTierAsList({ mode, name, userId, data }) {
+export async function saveTierAsList({
+  mode,
+  name,
+  userId,
+  data,
+}: SaveTierAsListParams): Promise<SaveTierAsListResult> {
   if (!userId) {
     throw new Error('Cannot save as list without a user session.');
   }
 
+  const boardData = data || {};
+
   // Build payload based on mode
-  let payload;
-  let description;
+  let payload: TierListPayload;
+  let description: string;
 
   if (mode === 'standard') {
     payload = buildListPayloadFromTierMaker({
-      tiers: data.tiers,
-      tierOrder: data.tierOrder,
+      tiers: boardData.tiers,
+      tierOrder: boardData.tierOrder,
     });
     description = 'Created from Tiermaker';
   } else if (mode === 'pyramid') {
     payload = buildListPayloadFromTieramid({
-      rows: data.rows,
-      rowOrder: data.rowOrder,
+      rows: boardData.rows,
+      rowOrder: boardData.rowOrder,
     });
     description = 'Created from Tieramid';
   } else {
@@ -181,17 +219,15 @@ export async function saveTierAsList({ mode, name, userId, data }) {
   // Create the list document
   const listId = await createList(name, userId);
 
+  const savePayload: SaveListInput = {
+    playerOrder: payload.playerOrder,
+    playerIds: payload.playerIds,
+    playerNotes: {},
+    description,
+  };
+
   // Save the payload
-  await saveList(
-    listId,
-    {
-      playerOrder: payload.playerOrder,
-      playerIds: payload.playerIds,
-      playerNotes: {},
-      description,
-    },
-    userId
-  );
+  await saveList(listId, savePayload, userId);
 
   return { listId };
 }
@@ -199,10 +235,9 @@ export async function saveTierAsList({ mode, name, userId, data }) {
 /**
  * Generates a default list name for the current date.
  *
- * @param {'standard' | 'pyramid'} mode - Board type
- * @returns {string} - e.g., "Tiermaker 2026-02-28" or "Tieramid 2026-02-28"
+ * @returns e.g., "Tiermaker 2026-02-28" or "Tieramid 2026-02-28"
  */
-export function generateDefaultListName(mode) {
+export function generateDefaultListName(mode: TierBoardMode): string {
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');

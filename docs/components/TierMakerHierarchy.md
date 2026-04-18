@@ -10,9 +10,9 @@ hooks/
   useTierDraft.ts
 utils/
   draftConversion.ts
-  saveAsListBridge.js
+  saveAsListBridge.ts
 ```
 
 ---
-*Generated on: 2026-03-01T03:37:21.497Z*
+*Generated on: 2026-04-18T13:56:37.067Z*
 *Auto-updated by: npm run docs*
