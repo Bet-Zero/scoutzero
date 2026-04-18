@@ -59,7 +59,8 @@ Do NOT convert any files in this step. This is a read-only survey.
 
 ## Step 2 — Tooling sanity check (convert one small constant file)
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-18: `src/constants/styles.js` → `styles.ts` with `as const` and exported `Styles` type. Typecheck live-confirmed (deliberate error surfaced correctly). Build and smoke tests pass.
 
 **Goal:** Prove the conversion pipeline actually works before committing to larger files. Convert the smallest, safest file in Pile A (likely `src/constants/yearDefaults.js` or a similar pure-data constant file) to TypeScript. Verify typecheck picks up the new file, build still succeeds, tests still pass.
 
