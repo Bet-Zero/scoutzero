@@ -24,11 +24,11 @@ TeamPlayerDropdowns.jsx
 hooks/
   useAutoSavePlayer.js
   usePlayerNavigation.ts
-  usePlayerProfileState.js
+  usePlayerProfileState.ts
 utils/
   profileHelpers.ts
 ```
 
 ---
-*Generated on: 2026-04-18T14:24:00.601Z*
+*Generated on: 2026-04-18T14:30:04.779Z*
 *Auto-updated by: npm run docs*

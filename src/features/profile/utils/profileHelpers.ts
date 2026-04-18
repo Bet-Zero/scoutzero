@@ -19,7 +19,7 @@ type ProfilePlayerSummary = {
 };
 
 type PlayersDataMap = Record<string, ProfilePlayerSummary | null | undefined>;
-type ProfileDetailKey = string | null | undefined;
+export type ProfileDetailKey = string | null | undefined;
 
 export function getPlayersForTeam(
   playersData: PlayersDataMap,
