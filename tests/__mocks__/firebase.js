@@ -336,6 +336,10 @@ export async function getDocs(queryOrCollection) {
       });
     }
 
+    if (typeof queryOrCollection.limit === 'number') {
+      filteredResults = filteredResults.slice(0, queryOrCollection.limit);
+    }
+
     return {
       docs: filteredResults,
       empty: filteredResults.length === 0,
@@ -359,10 +363,15 @@ export async function getDocs(queryOrCollection) {
       });
     }
 
+    const limitedResults =
+      typeof queryOrCollection.limit === 'number'
+        ? results.slice(0, queryOrCollection.limit)
+        : results;
+
     return {
-      docs: results,
-      empty: results.length === 0,
-      size: results.length,
+      docs: limitedResults,
+      empty: limitedResults.length === 0,
+      size: limitedResults.length,
     };
   }
 
@@ -402,6 +411,7 @@ export function query(collectionRef, ...queryConstraints) {
     const filters = [];
     let orderByField = null;
     let orderDirection = 'asc';
+    let limitCount = null;
 
     for (const constraint of queryConstraints) {
       if (constraint.type === 'where') {
@@ -409,6 +419,8 @@ export function query(collectionRef, ...queryConstraints) {
       } else if (constraint.type === 'orderBy') {
         orderByField = constraint.field;
         orderDirection = constraint.direction || 'asc';
+      } else if (constraint.type === 'limit') {
+        limitCount = constraint.count;
       }
     }
 
@@ -419,6 +431,7 @@ export function query(collectionRef, ...queryConstraints) {
       orderBy: orderByField
         ? { field: orderByField, direction: orderDirection }
         : null,
+      limit: limitCount,
     };
   }
 
@@ -426,6 +439,7 @@ export function query(collectionRef, ...queryConstraints) {
   const filters = [];
   let orderByField = null;
   let orderDirection = 'asc';
+  let limitCount = null;
 
   for (const constraint of queryConstraints) {
     if (constraint.type === 'where') {
@@ -433,6 +447,8 @@ export function query(collectionRef, ...queryConstraints) {
     } else if (constraint.type === 'orderBy') {
       orderByField = constraint.field;
       orderDirection = constraint.direction || 'asc';
+    } else if (constraint.type === 'limit') {
+      limitCount = constraint.count;
     }
   }
 
@@ -442,6 +458,7 @@ export function query(collectionRef, ...queryConstraints) {
     orderBy: orderByField
       ? { field: orderByField, direction: orderDirection }
       : null,
+    limit: limitCount,
   };
 }
 
@@ -461,6 +478,14 @@ export function orderBy(field, direction = 'asc') {
     type: 'orderBy',
     field,
     direction,
+  };
+}
+
+// Mock limit function
+export function limit(count) {
+  return {
+    type: 'limit',
+    count,
   };
 }
 
