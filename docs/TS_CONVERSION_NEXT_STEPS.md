@@ -578,7 +578,8 @@ For each hook:
 
 ## Step 13 — Final checkpoint and close out the living plan
 
-**Status:** TODO
+**Status:** DONE
+Completed 2026-04-18: Final closeout recorded. Pile A and Pile B are complete; remaining JS/JSX is deferred Pile C UI, app shell/bootstrap/config leftovers, and tests.
 
 **Goal:** After Pile A, the Step 8-9 review loop, and Pile B are complete, explicitly record what remains for Pile C and then close this plan cleanly.
 
@@ -601,6 +602,53 @@ This is the only step in this document that may declare the plan complete.
 - The plan is not complete just because Pile A is done; it is complete only after this explicit closeout step is done.
 
 **Done when:** The doc has a `Final Closeout` section, Pile A + Pile B are explicitly recorded as complete, and the remaining Pile C handling is spelled out plainly. Commit message: `docs: close out JS-to-TS living plan`.
+
+---
+
+## Final Closeout
+
+Pile A and Pile B are complete:
+
+- No `src/constants/*.js`, `src/data/firestorePaths.js`, `src/firebase/*.js`, `src/shared/utils/**/*.js`, or `src/shared/hooks/*.js` files remain from Pile A.
+- No `src/features/**/utils/**/*.js` or `src/features/**/hooks/**/*.js` files remain from Pile B.
+- Step 12 finished with all feature hooks converted to `.ts` / `.tsx`, including the high-risk profile autosave, roster manager, and ranker session hooks.
+
+Remaining JS/JSX inventory as of 2026-04-18:
+
+- `244` total `src/**/*.js(x)` files remain.
+- `140` runtime app files remain.
+- `104` test files remain under `src/tests/**`.
+- Runtime split: `106` feature UI files, `17` page/app-shell files, `11` shared/diagnostic UI files, and `6` bootstrap/config/legacy support files.
+
+Intentionally deferred Pile C UI:
+
+- Feature UI components are the main deferred Pile C surface: filters `16`, lists `19`, profile `17`, ranker `10`, roster `22`, table `17`, tierMaker `5`.
+- Page/app-shell JSX remains outside Pile A/B: `src/App.jsx`, `src/main.jsx`, `src/PasswordGate.jsx`, `src/core/layout/SiteLayout.jsx`, and route views in `src/pages/`.
+- Shared UI remains opportunistic: `src/shared/components/**` plus the legacy diagnostic component in `src/components/diagnostic/`.
+- Test JS/JSX is not part of Pile C and should stay on a separate test-migration track unless a touched test needs typing for the related source change.
+
+Open follow-up items after Pile B:
+
+- `firestorePaths.ts`: multi-segment collection env vars would need a new typed path strategy.
+- `newSchemeSelectors.ts`: dead code with a schema mismatch; decide schema ownership before wiring callers.
+- `filterHelpers.ts` and `statFilters.ts`: duplicated stat abbreviation maps.
+- `roleUtils.ts`: duplicated position label mapping.
+- Remaining `global-shims.d.ts` declarations should be removed only as their legacy JS/JSX modules are converted.
+- Firestore ownership policy remains inconsistent by product choice: list/roster helpers auto-claim ownerless docs, ranker helpers reject missing `ownerUid`.
+
+Opportunistic Pile C rule:
+
+- When product work touches a JS/JSX UI file, convert that file to `.tsx` in the same change if the behavior can be preserved and the relevant UI or feature tests can run narrowly.
+- Keep UI conversions local to the touched component tree; do not start broad visual rewrites or cross-feature component migration just because a file is still JSX.
+- Prefer converting parents and children together only when props are otherwise impossible to type truthfully.
+- Preserve the existing visual layout unless the user explicitly asks for a design/product change.
+
+Dedicated Pile C plan decision:
+
+- A dedicated Pile C plan is not needed right now. Opportunistic conversion is enough because Pile C is mostly UI component surface, and broad UI migration would create a large visual regression risk without a product requirement.
+- If the user later wants a UI-only TypeScript push, create a new bounded plan that starts with the highest-traffic page/component trees and requires screenshot or UI-test validation per tree.
+
+This JS-to-TS living plan is complete.
 
 ---
 
