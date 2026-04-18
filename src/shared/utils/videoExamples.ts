@@ -1,31 +1,21 @@
-/**
- * FILE: src/shared/utils/videoExamples.js
- * PURPOSE: Normalize and validate video example entries for evaluation blurbs.
- * OWNERSHIP: Feature: shared/utils (player evaluations)
- *
- * HISTORY:
- *  - 2026-01-22: Created by plan `plans/_archive/scouting-player-profile-phase-3-videos/plan.md`, chunk_n/a
- *
- * LINKS:
- *  - Plan: plans/_archive/scouting-player-profile-phase-3-videos/plan.md
- *  - Latest Chunk: n/a (no chunks used)
- */
+import type { VideoExample } from '@/schemas/players_v2';
 
-const EMPTY_VIDEO_EXAMPLES = {
-  traits: {},
-  roles: {},
-  subroles: {},
-  shootingProfile: [],
-  twoWayMeter: [],
-  overall: [],
+export type NormalizedVideoExamples = {
+  traits: Record<string, VideoExample[]>;
+  roles: Record<string, VideoExample[]>;
+  subroles: Record<string, VideoExample[]>;
+  shootingProfile: VideoExample[];
+  twoWayMeter: VideoExample[];
+  overall: VideoExample[];
 };
 
-const isPlainObject = (value) =>
-  value && typeof value === 'object' && !Array.isArray(value);
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
 
-const trimString = (value) => (typeof value === 'string' ? value.trim() : '');
+const trimString = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : '';
 
-export const createEmptyVideoExamples = () => ({
+export const createEmptyVideoExamples = (): NormalizedVideoExamples => ({
   traits: {},
   roles: {},
   subroles: {},
@@ -34,13 +24,13 @@ export const createEmptyVideoExamples = () => ({
   overall: [],
 });
 
-export const isYouTubeUrl = (url) => {
+export const isYouTubeUrl = (url: unknown): boolean => {
   if (typeof url !== 'string') return false;
   const value = url.trim().toLowerCase();
   return value.includes('youtube.com/watch?v=') || value.includes('youtu.be/');
 };
 
-export const extractYouTubeId = (url) => {
+export const extractYouTubeId = (url: unknown): string | null => {
   if (typeof url !== 'string') return null;
   const value = url.trim();
 
@@ -56,27 +46,26 @@ export const extractYouTubeId = (url) => {
   return null;
 };
 
-export const getYouTubeEmbedUrl = (url) => {
+export const getYouTubeEmbedUrl = (url: unknown): string | null => {
   const id = extractYouTubeId(url);
   return id ? `https://www.youtube.com/embed/${id}` : null;
 };
 
-export const getYouTubeThumbnailUrl = (url) => {
+export const getYouTubeThumbnailUrl = (url: unknown): string | null => {
   const id = extractYouTubeId(url);
   return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
 };
 
-export const buildVideoExample = (url, label) => {
+export const buildVideoExample = (url: unknown, label: unknown): VideoExample | null => {
   const trimmedUrl = trimString(url);
   if (!trimmedUrl) return null;
   const trimmedLabel = trimString(label);
 
-  const videoExample = {
+  const videoExample: VideoExample = {
     url: trimmedUrl,
     createdAt: Date.now(),
   };
 
-  // Only include label if it has a non-empty value
   if (trimmedLabel) {
     videoExample.label = trimmedLabel;
   }
@@ -84,7 +73,7 @@ export const buildVideoExample = (url, label) => {
   return videoExample;
 };
 
-const normalizeVideoExample = (value) => {
+const normalizeVideoExample = (value: unknown): VideoExample | null => {
   if (typeof value === 'string') {
     const url = trimString(value);
     if (!url) return null;
@@ -96,13 +85,13 @@ const normalizeVideoExample = (value) => {
   if (!url) return null;
 
   const label = trimString(value.label);
-  const createdAt = Number.isFinite(value.createdAt)
-    ? value.createdAt
-    : Date.now();
+  const createdAt =
+    typeof value.createdAt === 'number' && Number.isFinite(value.createdAt)
+      ? value.createdAt
+      : Date.now();
 
-  const normalized = { url, createdAt };
+  const normalized: VideoExample = { url, createdAt };
 
-  // Only include label if it exists and is non-empty
   if (label) {
     normalized.label = label;
   }
@@ -110,23 +99,30 @@ const normalizeVideoExample = (value) => {
   return normalized;
 };
 
-export const normalizeVideoExampleList = (list) => {
+export const normalizeVideoExampleList = (list: unknown): VideoExample[] => {
   if (!Array.isArray(list)) return [];
   return list
     .map((item) => normalizeVideoExample(item))
-    .filter((item) => item && item.url);
+    .filter((item): item is VideoExample => item !== null && !!item.url);
 };
 
-const normalizeVideoExampleMap = (value) => {
+const normalizeVideoExampleMap = (
+  value: unknown
+): Record<string, VideoExample[]> => {
   if (!isPlainObject(value)) return {};
-  return Object.entries(value).reduce((acc, [key, list]) => {
-    const normalizedList = normalizeVideoExampleList(list);
-    if (normalizedList.length) acc[key] = normalizedList;
-    return acc;
-  }, {});
+  return Object.entries(value).reduce<Record<string, VideoExample[]>>(
+    (acc, [key, list]) => {
+      const normalizedList = normalizeVideoExampleList(list);
+      if (normalizedList.length) acc[key] = normalizedList;
+      return acc;
+    },
+    {}
+  );
 };
 
-const normalizeSubroleMap = (value) => {
+const normalizeSubroleMap = (
+  value: unknown
+): Record<string, VideoExample[]> => {
   if (!isPlainObject(value)) return {};
   const hasBuckets =
     isPlainObject(value.offense) || isPlainObject(value.defense);
@@ -140,7 +136,7 @@ const normalizeSubroleMap = (value) => {
   };
 };
 
-export const normalizeVideoExamples = (raw) => {
+export const normalizeVideoExamples = (raw: unknown): NormalizedVideoExamples => {
   if (!isPlainObject(raw)) {
     return createEmptyVideoExamples();
   }
@@ -161,4 +157,4 @@ export const normalizeVideoExamples = (raw) => {
   };
 };
 
-export const DEFAULT_VIDEO_EXAMPLES = { ...EMPTY_VIDEO_EXAMPLES };
+export const DEFAULT_VIDEO_EXAMPLES: NormalizedVideoExamples = createEmptyVideoExamples();
