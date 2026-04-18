@@ -1,24 +1,30 @@
-/**
- * FILE: src/features/profile/utils/profileHelpers.js
- * PURPOSE: Profile utilities for player lists, modal labels, and blurb access.
- * OWNERSHIP: Feature: profile/scouting
- *
- * HISTORY:
- *  - 2026-01-22: Added video example helpers (Phase 3)
- *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
- *
- * LINKS:
- *  - Plan: plans/_archive/scouting-player-profile-phase-3-videos/plan.md
- *  - Latest Chunk: n/a (no chunks used)
- */
-
 import { normalizeBlurbs } from '@/shared/utils/blurbs';
+import type { Blurbs } from '@/shared/utils/blurbs';
 import {
   normalizeVideoExamples,
   normalizeVideoExampleList,
 } from '@/shared/utils/videoExamples';
+import type { NormalizedVideoExamples } from '@/shared/utils/videoExamples';
+import type { VideoExample } from '@/schemas/players_v2';
 
-export function getPlayersForTeam(playersData, team) {
+type ProfilePlayerSummary = {
+  name?: string | null;
+  bio?: {
+    displayName?: string | null;
+    name?: string | null;
+    display?: {
+      team?: string | null;
+    } | null;
+  } | null;
+};
+
+type PlayersDataMap = Record<string, ProfilePlayerSummary | null | undefined>;
+type ProfileDetailKey = string | null | undefined;
+
+export function getPlayersForTeam(
+  playersData: PlayersDataMap,
+  team: string | null | undefined
+): string[] {
   return Object.keys(playersData)
     .filter((key) => !team || playersData[key]?.bio?.display?.team === team)
     .sort((a, b) => {
@@ -33,7 +39,7 @@ export function getPlayersForTeam(playersData, team) {
     });
 }
 
-export function getModalTitle(key) {
+export function getModalTitle(key: ProfileDetailKey): string {
   if (!key) return 'Breakdown';
   if (key.startsWith('trait_')) return `Trait Breakdown: ${key.slice(6)}`;
   if (key.startsWith('role_')) return `Role Breakdown: ${key.slice(5)}`;
@@ -44,7 +50,7 @@ export function getModalTitle(key) {
   return 'Breakdown';
 }
 
-export function getBlurbValue(blurbs, key) {
+export function getBlurbValue(blurbs: unknown, key: ProfileDetailKey): string {
   const normalized = normalizeBlurbs(blurbs);
   if (!key) return '';
   if (key.startsWith('trait_'))
@@ -59,7 +65,10 @@ export function getBlurbValue(blurbs, key) {
   return '';
 }
 
-export function getVideoExamplesForKey(videoExamples, key) {
+export function getVideoExamplesForKey(
+  videoExamples: unknown,
+  key: ProfileDetailKey
+): VideoExample[] {
   const normalized = normalizeVideoExamples(videoExamples);
   if (!key) return [];
   if (key.startsWith('trait_'))
@@ -74,7 +83,11 @@ export function getVideoExamplesForKey(videoExamples, key) {
   return [];
 }
 
-export function setVideoExamplesForKey(videoExamples, key, list) {
+export function setVideoExamplesForKey(
+  videoExamples: unknown,
+  key: ProfileDetailKey,
+  list: unknown
+): NormalizedVideoExamples {
   const normalized = normalizeVideoExamples(videoExamples);
   const safeList = normalizeVideoExampleList(list);
   if (!key) return normalized;
@@ -115,12 +128,20 @@ export function setVideoExamplesForKey(videoExamples, key, list) {
   return normalized;
 }
 
-export function addVideoExampleForKey(videoExamples, key, example) {
+export function addVideoExampleForKey(
+  videoExamples: unknown,
+  key: ProfileDetailKey,
+  example: VideoExample
+): NormalizedVideoExamples {
   const current = getVideoExamplesForKey(videoExamples, key);
   return setVideoExamplesForKey(videoExamples, key, [...current, example]);
 }
 
-export function removeVideoExampleForKey(videoExamples, key, index) {
+export function removeVideoExampleForKey(
+  videoExamples: unknown,
+  key: ProfileDetailKey,
+  index: number
+): NormalizedVideoExamples {
   const current = getVideoExamplesForKey(videoExamples, key);
   return setVideoExamplesForKey(
     videoExamples,
@@ -131,9 +152,13 @@ export function removeVideoExampleForKey(videoExamples, key, index) {
 
 /**
  * Update a blurb value by key, returning a new blurbs object.
- * Centralizes the key-format parsing (trait_, role_, subrole_, etc.)
+ * Centralizes the key-format parsing (trait_, role_, subrole_, etc.).
  */
-export function setBlurbForKey(blurbs, key, value) {
+export function setBlurbForKey(
+  blurbs: unknown,
+  key: ProfileDetailKey,
+  value: string
+): Blurbs {
   const normalized = normalizeBlurbs(blurbs);
   if (!key) return normalized;
   if (key.startsWith('trait_'))
@@ -151,7 +176,12 @@ export function setBlurbForKey(blurbs, key, value) {
   return normalized;
 }
 
-export function updateVideoExampleLabelForKey(videoExamples, key, index, label) {
+export function updateVideoExampleLabelForKey(
+  videoExamples: unknown,
+  key: ProfileDetailKey,
+  index: number,
+  label: string
+): NormalizedVideoExamples {
   const current = getVideoExamplesForKey(videoExamples, key);
   const next = current.map((item, i) =>
     i === index ? { ...item, label } : item

@@ -26,9 +26,9 @@ hooks/
   usePlayerNavigation.js
   usePlayerProfileState.js
 utils/
-  profileHelpers.js
+  profileHelpers.ts
 ```
 
 ---
-*Generated on: 2026-03-06T08:40:07.502Z*
+*Generated on: 2026-04-18T13:22:14.518Z*
 *Auto-updated by: npm run docs*

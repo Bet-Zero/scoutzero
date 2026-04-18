@@ -46,18 +46,6 @@ declare module '@/firebaseConfig' {
   export const isLikelyEmulatorConnectionError: any;
 }
 
-declare module '@/features/profile/utils/profileHelpers' {
-  export const getPlayersForTeam: any;
-  export const getModalTitle: any;
-  export const getBlurbValue: any;
-  export const getVideoExamplesForKey: any;
-  export const setVideoExamplesForKey: any;
-  export const addVideoExampleForKey: any;
-  export const removeVideoExampleForKey: any;
-  export const setBlurbForKey: any;
-  export const updateVideoExampleLabelForKey: any;
-}
-
 declare module '@/features/roster/utils' {
   export const isTwoWayContract: any;
   export const enrichPlayerData: any;

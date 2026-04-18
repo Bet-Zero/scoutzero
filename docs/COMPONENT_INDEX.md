@@ -66,7 +66,6 @@ Quick reference for all components in the ScoutZero project.
 - hooks/useAutoSavePlayer.js
 - hooks/usePlayerNavigation.js
 - hooks/usePlayerProfileState.js
-- utils/profileHelpers.js
 
 ## Ranker
 
@@ -146,4 +145,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-04-18T13:17:53.057Z*
+*Generated on: 2026-04-18T13:22:14.552Z*
