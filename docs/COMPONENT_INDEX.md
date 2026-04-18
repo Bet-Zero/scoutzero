@@ -80,7 +80,6 @@ Quick reference for all components in the ScoutZero project.
 - RankingSetup.jsx
 - hooks/useRankerSession.js
 - tournamentRanker.js
-- utils/rankerLocalDraft.js
 - utils/rankingEngine.js
 
 ## Roster
@@ -145,4 +144,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-04-18T13:22:14.552Z*
+*Generated on: 2026-04-18T13:27:18.740Z*
