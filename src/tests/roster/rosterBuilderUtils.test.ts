@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { normalizeRosterShape } from '@/features/roster/utils';
+import { isTwoWayContract, normalizeRosterShape } from '@/features/roster/utils';
 import {
   normalizeFreeAgentType,
   normalizeTeamCode,
@@ -33,6 +33,23 @@ describe('Roster Builder Utils', () => {
     expect(result.starters).toEqual(['a', 'b', null, null, null]);
     expect(result.rotation).toEqual(['r1', 'r2', 'r3', 'r4']);
     expect(result.bench).toEqual([null, null, null, null, null, null]);
+  });
+
+  it('isTwoWayContract detects roster utility two-way contract fields', () => {
+    expect(
+      isTwoWayContract({
+        contract: {
+          contractType: 'Two-Way',
+        },
+      })
+    ).toBe(true);
+    expect(
+      isTwoWayContract({
+        primaryContract: {
+          signedUsing: 'Standard Contract',
+        },
+      })
+    ).toBe(false);
   });
 
   it('normalizeTeamCode accepts code, slug, and full name', () => {

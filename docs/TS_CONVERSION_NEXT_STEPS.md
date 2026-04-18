@@ -503,7 +503,8 @@ Do NOT convert any files in this step.
 
 ## Step 11 — Convert Pile B feature utils and bridges
 
-**Status:** TODO
+**Status:** IN PROGRESS  
+Started 2026-04-18: `src/features/roster/utils/contractUtils.js` → `contractUtils.ts` with explicit contract/player input types. Added direct roster smoke coverage for `isTwoWayContract` and updated the roster utils barrel to resolve the converted file. Validation so far: `npm run typecheck`, `npm run validate:project`, and `npm run test:roster -- --reporter=dot`.
 
 **Goal:** All Pile B utility and bridge files under `src/features/**/utils/**/*.js` are converted to TypeScript with explicit parameter and return types.
 

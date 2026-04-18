@@ -30,7 +30,7 @@ SaveRosterModal.jsx
 hooks/
   useRosterManager.js
 utils/
-  contractUtils.js
+  contractUtils.ts
   enrichPlayerData.js
   index.js
   rosterBuilderHelpers.js
@@ -38,5 +38,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-07T08:09:43.653Z*
+*Generated on: 2026-04-18T13:07:38.582Z*
 *Auto-updated by: npm run docs*
