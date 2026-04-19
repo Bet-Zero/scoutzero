@@ -5,11 +5,17 @@
  * Risks: Missing aria-pressed & type="button"; no focus-visible; no disabled.
  * Next TODO: Add aria-pressed & type; add focus-visible ring; support disabled prop.
  */
-// src/components/shared/ui/ToggleButton.jsx
-import React from 'react';
+// src/components/shared/ui/ToggleButton.tsx
+import type { MouseEventHandler, ReactNode } from 'react';
 import clsx from 'clsx';
 
-const ToggleButton = ({ selected, onClick, children }) => {
+export type ToggleButtonProps = {
+  selected: boolean;
+  onClick: MouseEventHandler<HTMLButtonElement>;
+  children?: ReactNode;
+};
+
+const ToggleButton = ({ selected, onClick, children }: ToggleButtonProps) => {
   return (
     <button
       className={clsx(

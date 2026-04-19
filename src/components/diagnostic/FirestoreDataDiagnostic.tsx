@@ -1,20 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
+import {
+  ARCHITECT_BASE_PLAYERS_PATH,
+  ARCHITECT_BASE_TEAMS_PATH,
+  PLAYERS_COLLECTION,
+} from '@/constants/collections';
 import { db } from '@/firebaseConfig';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+
+type SubcollectionDiagnostic = {
+  count: number;
+  exists: boolean;
+  error?: string;
+};
+
+type SeasonDiagnostic = {
+  id: string;
+  status: unknown;
+  displayName: unknown;
+  subcollections: Record<string, SubcollectionDiagnostic>;
+};
+
+type CollectionDiagnostic = {
+  exists: boolean;
+  count: number;
+  error: string | null;
+  label?: string;
+  seasons?: SeasonDiagnostic[];
+};
+
+type DiagnosticsState = {
+  collections: Record<string, CollectionDiagnostic>;
+  loading: boolean;
+  error: string | null;
+};
+
+type FallbackDiagnosticsState = {
+  source: string | null;
+  collectionsChecked: string[];
+  fallbackUsed: boolean;
+};
+
+type CollectionCheck = {
+  name: string;
+  label: string;
+};
+
+type SeasonData = {
+  status?: unknown;
+  bio?: {
+    displayName?: unknown;
+  };
+};
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /**
  * Diagnostic component to help users understand their Firestore data structure
  * and troubleshoot missing player data issues
  */
 const FirestoreDataDiagnostic = () => {
-  const [diagnostics, setDiagnostics] = useState({
+  const [diagnostics, setDiagnostics] = useState<DiagnosticsState>({
     collections: {},
     loading: true,
     error: null,
   });
 
-  const [fallbackDiagnostics, setFallbackDiagnostics] = useState({
+  const [fallbackDiagnostics, setFallbackDiagnostics] =
+    useState<FallbackDiagnosticsState>({
     source: null,
     collectionsChecked: [],
     fallbackUsed: false,
@@ -29,7 +86,7 @@ const FirestoreDataDiagnostic = () => {
 
   useEffect(() => {
     const runDiagnostics = async () => {
-      const results = {
+      const results: DiagnosticsState = {
         collections: {},
         loading: false,
         error: null,
@@ -37,15 +94,15 @@ const FirestoreDataDiagnostic = () => {
 
       try {
         // Check main collections (new architecture)
-        const collectionsToCheck = [
-          { name: 'players_v2', label: 'players_v2 (active)' },
+        const collectionsToCheck: CollectionCheck[] = [
+          { name: PLAYERS_COLLECTION, label: `${PLAYERS_COLLECTION} (active)` },
           {
-            name: 'architect_basePlayers',
-            label: 'architect_basePlayers (active)',
+            name: ARCHITECT_BASE_PLAYERS_PATH,
+            label: `${ARCHITECT_BASE_PLAYERS_PATH} (active)`,
           },
           {
-            name: 'architect_baseTeams',
-            label: 'architect_baseTeams (active)',
+            name: ARCHITECT_BASE_TEAMS_PATH,
+            label: `${ARCHITECT_BASE_TEAMS_PATH} (active)`,
           },
           { name: 'players', label: 'players (legacy - deprecated)' },
           { name: 'teams', label: 'teams (legacy - deprecated)' },
@@ -67,8 +124,8 @@ const FirestoreDataDiagnostic = () => {
               results.collections[collectionName].seasons = [];
 
               for (const doc of snap.docs) {
-                const seasonData = doc.data();
-                const seasonInfo = {
+                const seasonData = doc.data() as SeasonData;
+                const seasonInfo: SeasonDiagnostic = {
                   id: doc.id,
                   status: seasonData.status,
                   displayName: seasonData.bio?.displayName,
@@ -95,7 +152,7 @@ const FirestoreDataDiagnostic = () => {
                     seasonInfo.subcollections[subCollection] = {
                       count: 0,
                       exists: false,
-                      error: e.message,
+                      error: getErrorMessage(e),
                     };
                   }
                 }
@@ -107,7 +164,7 @@ const FirestoreDataDiagnostic = () => {
             results.collections[collectionName] = {
               exists: false,
               count: 0,
-              error: error.message,
+              error: getErrorMessage(error),
             };
           }
         }
@@ -117,13 +174,13 @@ const FirestoreDataDiagnostic = () => {
         setDiagnostics({
           collections: {},
           loading: false,
-          error: error.message,
+          error: getErrorMessage(error),
         });
       }
     };
 
     const runFallbackDiagnostics = async () => {
-      const fallbackDiag = {
+      const fallbackDiag: FallbackDiagnosticsState = {
         source: '/players',
         collectionsChecked: ['/players'],
         fallbackUsed: false,
@@ -146,8 +203,8 @@ const FirestoreDataDiagnostic = () => {
             try {
               const response = await fetch('/players.json');
               if (response.ok) {
-                const localData = await response.json();
-                if (Object.keys(localData).length > 0) {
+                const localData: unknown = await response.json();
+                if (isRecord(localData) && Object.keys(localData).length > 0) {
                   fallbackDiag.source = source.path;
                   fallbackDiag.fallbackUsed = true;
                   break;
@@ -167,13 +224,13 @@ const FirestoreDataDiagnostic = () => {
     runFallbackDiagnostics();
   }, [players.length, playersError]);
 
-  const getStatusColor = (exists, count) => {
+  const getStatusColor = (exists: boolean, count: number): string => {
     if (!exists) return 'text-red-600';
     if (count === 0) return 'text-yellow-600';
     return 'text-green-600';
   };
 
-  const getStatusIcon = (exists, count) => {
+  const getStatusIcon = (exists: boolean, count: number): string => {
     if (!exists) return '❌';
     if (count === 0) return '⚠️';
     return '✅';
@@ -265,7 +322,8 @@ const FirestoreDataDiagnostic = () => {
           {diagnostics.collections.seasons.seasons.map((season) => (
             <div key={season.id} className="mb-4 p-3 bg-gray-50 rounded">
               <div className="font-semibold text-gray-900">
-                Season {season.id} ({season.bio?.displayName}) - {season.status}
+                Season {season.id} ({String(season.displayName ?? '')}) -{' '}
+                {String(season.status ?? '')}
               </div>
               <div className="mt-2 space-y-1">
                 {Object.entries(season.subcollections).map(

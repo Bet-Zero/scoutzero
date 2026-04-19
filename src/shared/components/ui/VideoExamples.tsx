@@ -1,5 +1,5 @@
 /**
- * FILE: src/shared/components/ui/VideoExamples.jsx
+ * FILE: src/shared/components/ui/VideoExamples.tsx
  * PURPOSE: Manage and display video example links with optional YouTube embeds.
  * OWNERSHIP: Feature: profile/scouting
  *
@@ -12,6 +12,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
+import type { VideoExample } from '@/schemas/players_v2';
 import {
   buildVideoExample,
   getYouTubeEmbedUrl,
@@ -20,19 +21,26 @@ import {
   normalizeVideoExampleList,
 } from '@/shared/utils/videoExamples';
 
+export type VideoExamplesProps = {
+  contextKey: string | number | null | undefined;
+  videos?: unknown;
+  onChange?: (videos: VideoExample[]) => void;
+  maxVideos?: number;
+};
+
 const VideoExamples = ({
   contextKey,
   videos = [],
   onChange,
   maxVideos = 5,
-}) => {
+}: VideoExamplesProps) => {
   const normalizedVideos = useMemo(
     () => normalizeVideoExampleList(videos),
     [videos]
   );
   const [urlInput, setUrlInput] = useState('');
   const [labelInput, setLabelInput] = useState('');
-  const [expanded, setExpanded] = useState({});
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     setUrlInput('');
@@ -48,18 +56,18 @@ const VideoExamples = ({
     setLabelInput('');
   };
 
-  const handleDelete = (index) => {
+  const handleDelete = (index: number) => {
     onChange?.(normalizedVideos.filter((_, i) => i !== index));
   };
 
-  const handleLabelChange = (index, value) => {
+  const handleLabelChange = (index: number, value: string) => {
     const next = normalizedVideos.map((item, i) =>
       i === index ? { ...item, label: value } : item
     );
     onChange?.(next);
   };
 
-  const toggleExpanded = (index) => {
+  const toggleExpanded = (index: number) => {
     setExpanded((prev) => ({ ...prev, [index]: !prev[index] }));
   };
 
@@ -118,8 +126,7 @@ const VideoExamples = ({
         {normalizedVideos.length > 0 && (
           <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
             {normalizedVideos.map((video, index) => {
-              const label =
-                video.label?.trim() || `Example ${index + 1}`;
+              const label = video.label?.trim() || `Example ${index + 1}`;
               const youtubeEmbed = getYouTubeEmbedUrl(video.url);
               const thumbnail = getYouTubeThumbnailUrl(video.url);
               const canEmbed = Boolean(youtubeEmbed);

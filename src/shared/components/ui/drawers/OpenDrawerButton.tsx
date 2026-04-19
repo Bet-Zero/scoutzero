@@ -5,14 +5,21 @@
  * Risks: Redundant inline transitions; missing aria-label; small hit target.
  * Next TODO: Remove inline transition; add aria-label & focus-visible; ensure ≥44px target.
  */
-import React from 'react';
+import type { MouseEventHandler } from 'react';
+
+export type OpenDrawerButtonProps = {
+  onClick: MouseEventHandler<HTMLButtonElement>;
+  disabled?: boolean;
+  title?: string;
+  ariaLabel?: string;
+};
 
 const OpenDrawerButton = ({
   onClick,
   disabled = false,
   title = 'Open player drawer',
   ariaLabel = 'Open player drawer',
-}) => (
+}: OpenDrawerButtonProps) => (
   <button
     onClick={onClick}
     disabled={disabled}

@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildVideoExample,
   normalizeVideoExamples,
-} from '@/shared/utils/videoExamples.js';
+} from '@/shared/utils/videoExamples';
 
 describe('Video Examples - Undefined Field Prevention', () => {
   describe('buildVideoExample', () => {

@@ -7,7 +7,13 @@
  */
 import React, { useState, useEffect } from 'react';
 
-const getTraitColor = (rating) => {
+export type OverallGradeBlockProps = {
+  grade?: number | null;
+  onGradeChange?: (grade: number) => void;
+  readOnly?: boolean;
+};
+
+const getTraitColor = (rating: number): string => {
   if (rating >= 98) return '#13895b';
   if (rating >= 94) return '#369972';
   if (rating >= 91) return '#55b48f';
@@ -24,7 +30,11 @@ const getTraitColor = (rating) => {
   return '#891313';
 };
 
-const OverallGradeBlock = ({ grade, onGradeChange, readOnly = false }) => {
+const OverallGradeBlock = ({
+  grade,
+  onGradeChange,
+  readOnly = false,
+}: OverallGradeBlockProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(
     typeof grade === 'number' ? grade.toString() : ''
@@ -39,7 +49,7 @@ const OverallGradeBlock = ({ grade, onGradeChange, readOnly = false }) => {
   const rounded = typeof grade === 'number' ? Math.round(grade) : '—';
 
   const handleSubmit = () => {
-    const parsed = parseInt(inputValue);
+    const parsed = parseInt(inputValue, 10);
     if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
       onGradeChange?.(parsed);
     }

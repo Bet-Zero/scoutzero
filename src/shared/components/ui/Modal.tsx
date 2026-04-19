@@ -1,5 +1,5 @@
 /**
- * FILE: src/shared/components/ui/Modal.jsx
+ * FILE: src/shared/components/ui/Modal.tsx
  * PURPOSE: Centered modal overlay with close behavior, focus trap, and a11y support.
  * OWNERSHIP: Shared/ui
  *
@@ -14,9 +14,15 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 
-const Modal = ({ title, children, onClose }) => {
-  const modalRef = useRef(null);
-  const openerRef = useRef(null);
+export type ModalProps = {
+  title: React.ReactNode;
+  children?: React.ReactNode;
+  onClose: () => void;
+};
+
+const Modal = ({ title, children, onClose }: ModalProps) => {
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const openerRef = useRef<Element | null>(null);
   const hasInitializedRef = useRef(false);
   // Store onClose in a ref so effects don't re-run when it changes
   const onCloseRef = useRef(onClose);
@@ -36,13 +42,13 @@ const Modal = ({ title, children, onClose }) => {
       if (!container) return;
 
       // Prefer textarea first (for blurb editing), then other focusable elements
-      const textarea = container.querySelector('textarea');
+      const textarea = container.querySelector<HTMLTextAreaElement>('textarea');
       if (textarea) {
         textarea.focus();
         return;
       }
 
-      const focusable = container.querySelector(
+      const focusable = container.querySelector<HTMLElement>(
         'input, select, button:not([aria-label="Close dialog"]), [href], [tabindex]:not([tabindex="-1"])'
       );
       if (focusable) {
@@ -60,8 +66,12 @@ const Modal = ({ title, children, onClose }) => {
 
   // Click outside handler (stable via ref)
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        modalRef.current &&
+        event.target instanceof Node &&
+        !modalRef.current.contains(event.target)
+      ) {
         onCloseRef.current();
       }
     };
@@ -74,7 +84,7 @@ const Modal = ({ title, children, onClose }) => {
 
   // Keyboard handler for Escape (stable via ref)
   useEffect(() => {
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
@@ -90,17 +100,17 @@ const Modal = ({ title, children, onClose }) => {
 
   // Focus trap: redirect focus back inside modal if it escapes
   useEffect(() => {
-    const handleFocusIn = (event) => {
+    const handleFocusIn = (event: FocusEvent) => {
       const container = modalRef.current;
       if (!container) return;
 
       // If focus moved outside the modal, bring it back
-      if (!container.contains(event.target)) {
+      if (event.target instanceof Node && !container.contains(event.target)) {
         event.preventDefault();
         event.stopPropagation();
 
         // Try to focus textarea first, then modal container
-        const textarea = container.querySelector('textarea');
+        const textarea = container.querySelector<HTMLTextAreaElement>('textarea');
         if (textarea) {
           textarea.focus();
         } else {
@@ -119,7 +129,7 @@ const Modal = ({ title, children, onClose }) => {
   useEffect(() => {
     return () => {
       const opener = openerRef.current;
-      if (opener && typeof opener.focus === 'function') {
+      if (opener instanceof HTMLElement && typeof opener.focus === 'function') {
         // Use setTimeout to ensure focus restoration happens after modal is fully removed
         setTimeout(() => {
           try {
@@ -133,12 +143,15 @@ const Modal = ({ title, children, onClose }) => {
   }, []); // Empty deps = unmount only
 
   // Prevent keydown events from bubbling to parent handlers (e.g., arrow key navigation)
-  const handleContainerKeyDown = useCallback((event) => {
-    // Stop propagation for all keys except Escape (which is handled globally)
-    if (event.key !== 'Escape') {
-      event.stopPropagation();
-    }
-  }, []);
+  const handleContainerKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // Stop propagation for all keys except Escape (which is handled globally)
+      if (event.key !== 'Escape') {
+        event.stopPropagation();
+      }
+    },
+    []
+  );
 
   const ariaLabel = typeof title === 'string' ? title : 'Dialog';
 

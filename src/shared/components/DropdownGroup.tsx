@@ -5,11 +5,16 @@
  * Risks: Hardcoded gaps; missing a11y grouping; small-screen reflow issues.
  * Next TODO: Add spacing/wrap props; fieldset/legend where appropriate; add tests.
  */
-// src/components/shared/DropdownGroup.jsx
+// src/components/shared/DropdownGroup.tsx
 
-import React from 'react';
+import type { ReactNode } from 'react';
 
-const DropdownGroup = ({ label, children }) => {
+export type DropdownGroupProps = {
+  label: ReactNode;
+  children?: ReactNode;
+};
+
+const DropdownGroup = ({ label, children }: DropdownGroupProps) => {
   return (
     <div className="mb-0">
       <label className="text-white text-xs block mb-1">{label}</label>

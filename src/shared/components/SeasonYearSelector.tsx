@@ -5,17 +5,29 @@
  * Risks: A11y/keyboard unknown; range edges; styling consistency.
  * Next TODO: Confirm control type; add labels/keyboard; prop types/TS & edge tests.
  */
-// src/components/shared/SeasonYearSelect.jsx
+// src/components/shared/SeasonYearSelect.tsx
 
 import React from 'react';
-import { seasonEndYearsFromCaps, toSeasonKey } from '@/utils/seasonUtils';
+import {
+  seasonEndYearsFromCaps,
+  toSeasonKey,
+} from '@/features/architect/utils/seasonFormat';
+
+type CapProjectionsLike = Record<string, unknown> | null | undefined;
+
+export type SeasonYearSelectProps = {
+  capProjections: CapProjectionsLike;
+  value: number | string;
+  onChange: (year: number) => void;
+  label?: React.ReactNode;
+};
 
 const SeasonYearSelect = ({
   capProjections,
   value,
   onChange,
   label = 'Season',
-}) => {
+}: SeasonYearSelectProps) => {
   const options = React.useMemo(
     () => seasonEndYearsFromCaps(capProjections),
     [capProjections]

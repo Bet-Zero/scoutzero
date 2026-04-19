@@ -5,10 +5,16 @@
  * Risks: Missing dialog roles/focus/ESC; fixed width; keyboard inaccessibility.
  * Next TODO: Add a11y semantics & focus trap; ESC close; make size/side configurable.
  */
-// src/components/roster/DrawerShell.jsx
-import React from 'react';
+// src/components/roster/DrawerShell.tsx
+import type { MouseEventHandler, ReactNode } from 'react';
 
-const DrawerShell = ({ isOpen, onClose, children }) => (
+export type DrawerShellProps = {
+  isOpen: boolean;
+  onClose: MouseEventHandler<HTMLDivElement>;
+  children?: ReactNode;
+};
+
+const DrawerShell = ({ isOpen, onClose, children }: DrawerShellProps) => (
   <>
     <div
       className={`fixed left-0 top-0 h-full w-[300px] bg-[#1a1a1a] border-r border-white/10 z-20 flex flex-col transition-transform duration-200 ease-out overflow-y-auto ${

@@ -307,7 +307,8 @@ Completed 2026-04-19: Converted all six support files to TypeScript, removed obs
 
 ## Step 3 — Convert Shared UI Leaves
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Converted all shared UI leaf and diagnostic files to TSX, exported prop types for shared consumers, fixed the stale `SeasonYearSelector` season utility import, added focused shared UI smoke coverage, and updated explicit test imports for renamed modules.
 
 **Goal:** Convert shared leaf components before feature components depend on their prop types.
 

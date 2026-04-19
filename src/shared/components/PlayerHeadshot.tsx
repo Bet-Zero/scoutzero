@@ -5,17 +5,27 @@
  * Risks: Alt text may be generic; no loading state; unknown error handling.
  * Next TODO: Confirm props/defaults; add descriptive alt/ARIA; consider skeleton.
  */
-import React from 'react';
+import type { SyntheticEvent } from 'react';
 
-const PlayerHeadshot = ({ src, playerId, className = '' }) => {
+export type PlayerHeadshotProps = {
+  src?: string | null;
+  playerId?: string | number | null;
+  className?: string;
+};
+
+const PlayerHeadshot = ({
+  src,
+  playerId,
+  className = '',
+}: PlayerHeadshotProps) => {
   const initialSrc = src || `/assets/headshots/${playerId}.png`;
 
-  const handleError = (e) => {
+  const handleError = (e: SyntheticEvent<HTMLImageElement>) => {
     if (!playerId) {
-      e.target.src = '/assets/headshots/default.png';
+      e.currentTarget.src = '/assets/headshots/default.png';
       return;
     }
-    e.target.src = '/assets/headshots/default.png';
+    e.currentTarget.src = '/assets/headshots/default.png';
   };
 
   return (
