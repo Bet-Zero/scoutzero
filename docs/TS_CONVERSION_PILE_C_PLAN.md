@@ -501,7 +501,8 @@ Completed 2026-04-19: Converted the remaining app shell, password gate, layout, 
 
 ## Step 10 — Pile C Closeout
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Recounted runtime and test JS/JSX after Step 9, confirmed there are no deferred runtime files, and documented that the remaining JS/JSX belongs to the separate test/support migration track.
 
 **Goal:** Confirm runtime JS/JSX is gone or explicitly documented, and decide whether to start a separate test migration track.
 
@@ -516,6 +517,28 @@ Completed 2026-04-19: Converted the remaining app shell, password gate, layout, 
 **Validation:** `npm run typecheck`, `npm run validate:project`, `npm run build`, and the narrowest relevant aggregate UI/test commands run during the final step. Do not run full suite without `RUN FULL SUITE`.
 
 **Done when:** This doc has a `Pile C Closeout` section and all Pile C steps are `DONE` or explicitly deferred. Commit message: `docs: close out Pile C TypeScript conversion`.
+
+---
+
+## Pile C Closeout (2026-04-19)
+
+### Runtime Result
+
+- Runtime `src/**/*.js(x)` excluding `src/tests/**`: `0`.
+- Intentionally deferred runtime JS/JSX files: none.
+- Pile C source conversion is complete; no runtime app/page/component JS/JSX remains under `src/`.
+
+### Remaining Test JS/JSX
+
+- `src/tests/**/*.js(x)`: `104`.
+- `tests/**/*.js(x)`: `127`.
+- Total test/support JS/JSX files remaining: `231`.
+
+### Follow-Up Decision
+
+A separate test migration plan is needed if the project wants to eliminate JS/JSX from tests and test support files. That track should be planned separately from Pile C because the runtime migration is complete and the remaining files are test-only.
+
+No Pile C runtime follow-up items were deferred.
 
 ---
 
