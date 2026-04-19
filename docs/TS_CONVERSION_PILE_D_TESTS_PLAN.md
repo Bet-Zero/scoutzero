@@ -9,7 +9,7 @@
 - Pile C (runtime UI/page/component): `docs/TS_CONVERSION_PILE_C_PLAN.md` — in progress, separate track.
 - Pile D (this document): test and test-support JS/JSX under `src/tests/**` and `tests/**`.
 
-**How this doc works:** When the user says "keep working on Pile D" or "keep working on `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`," find the first step below with status `TODO`, do it, update the status/note, validate narrowly, and commit the source change plus this plan update together.
+**How this doc works:** When the user says "keep working on Pile D" or "keep working on `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`," resume the first step below with status `IN PROGRESS`; otherwise take the first step with status `TODO`, do it, update the status/note, validate narrowly, and commit the source change plus this plan update together.
 
 **Commit & status hygiene:**
 
@@ -255,7 +255,9 @@ npm run typecheck
 
 ### Step 5 — Remaining `tests/` root logic tests (100–300 lines, 16 files, ~3,122 lines)
 
-**Status:** TODO
+**Status:** IN PROGRESS — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all 16 Step 5 files from `.js` to `.ts` with no test-logic changes. `npm run typecheck` passes. A targeted `npm run test:node -- --reporter=dot` run over the 16 converted files passes for 15 files; `tests/contractSalaryUtils.test.ts` still fails on the same pre-existing warning-payload assertion already seen in earlier broad node runs because the runtime payload now includes `hasPrimaryContract: false` and `hasContractsMap: false`. `tests/validationPerformance.test.ts` remains intentionally skipped by its `RUN_PERF_TESTS` gate.
 
 **Files:**
 
