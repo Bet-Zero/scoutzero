@@ -255,9 +255,9 @@ npm run typecheck
 
 ### Step 5 — Remaining `tests/` root logic tests (100–300 lines, 16 files, ~3,122 lines)
 
-**Status:** IN PROGRESS — 2026-04-19
+**Status:** DONE — 2026-04-19
 
-**Progress note (2026-04-19):** Renamed all 16 Step 5 files from `.js` to `.ts` with no test-logic changes. `npm run typecheck` passes. A targeted `npm run test:node -- --reporter=dot` run over the 16 converted files passes for 15 files; `tests/contractSalaryUtils.test.ts` still fails on the same pre-existing warning-payload assertion already seen in earlier broad node runs because the runtime payload now includes `hasPrimaryContract: false` and `hasContractsMap: false`. `tests/validationPerformance.test.ts` remains intentionally skipped by its `RUN_PERF_TESTS` gate.
+**Progress note (2026-04-19):** Renamed all 16 Step 5 files from `.js` to `.ts` with no migration-only logic changes. Updated `tests/contractSalaryUtils.test.ts` to match the current warning payload shape, which now includes `hasPrimaryContract: false` and `hasContractsMap: false`. `npm run typecheck` passes, and a targeted `npm run test:node -- --reporter=dot` run over all 16 converted Step 5 files now passes (15 files / 174 tests passed; `tests/validationPerformance.test.ts` remains intentionally skipped by its `RUN_PERF_TESTS` gate).
 
 **Files:**
 
@@ -293,7 +293,9 @@ npm run typecheck
 
 ### Step 6 — Remaining `tests/` root large tests (300+ lines, 10 files, ~4,082 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all 10 Step 6 files from `.js` to `.ts` with no test-logic changes. `npm run typecheck` passes, and a targeted `npm run test:node -- --reporter=dot` run over the 10 converted Step 6 files passes (10 files / 169 tests).
 
 **Files:**
 

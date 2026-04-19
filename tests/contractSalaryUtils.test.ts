@@ -134,6 +134,8 @@ describe('contractSalaryUtils', () => {
           playerId: 'player-1',
           hasContract: true,
           hasSalariesByYear: false,
+          hasPrimaryContract: false,
+          hasContractsMap: false,
         }
       );
     });
