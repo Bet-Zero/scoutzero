@@ -3,7 +3,7 @@ import {
   enforceRosterWindow,
   validateRoster,
 } from '@/features/architect/utils/tradeMachine/rules/validateRoster.ts';
-import { validationFlags } from '@/config/validationFlags.js';
+import { validationFlags } from '@/config/validationFlags';
 
 describe('validateRoster behavior', () => {
   const makeTeam = (params) => ({

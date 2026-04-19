@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const firebaseConfigPath = path.resolve(
   __dirname,
-  '../../../src/firebaseConfig.js'
+  '../../../src/firebaseConfig.ts'
 );
 const packageJsonPath = path.resolve(__dirname, '../../../package.json');
 const gmDashboardPath = path.resolve(

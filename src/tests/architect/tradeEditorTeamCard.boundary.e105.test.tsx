@@ -202,7 +202,7 @@ vi.mock('@/features/architect/utils/faExceptionUtils', () => ({
   isFaExceptionEligibleType: () => true,
 }));
 
-vi.mock('@/config/validationFlags.js', () => ({
+vi.mock('@/config/validationFlags', () => ({
   validationFlags: {
     faExceptionTrade: 'warn',
   },

@@ -1,4 +1,4 @@
-// src/firebaseConfig.js
+// src/firebaseConfig.ts
 /**
  * Firebase initialization with review mode fallback.
  *
@@ -12,6 +12,7 @@
  *
  * @see docs/reviews/ARCHITECT_REVIEW_LEDGER.md
  */
+import type { FirebaseOptions } from 'firebase/app';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
@@ -25,32 +26,65 @@ let emulatorsConnected = false;
 const FIREBASE_TARGET_MODES = {
   EMULATOR: 'EMULATOR',
   PROD: 'PROD',
+} as const;
+
+export type FirebaseTargetMode =
+  (typeof FIREBASE_TARGET_MODES)[keyof typeof FIREBASE_TARGET_MODES];
+
+export type FirebaseEmulatorEndpoint = {
+  host: string;
+  port: number;
 };
 
-const readEnv = (name) => {
+type FirebaseJsonEmulatorConfig = {
+  host?: unknown;
+  port?: unknown;
+};
+
+type FirebaseJsonEmulators = {
+  firestore?: FirebaseJsonEmulatorConfig;
+  auth?: FirebaseJsonEmulatorConfig;
+  functions?: FirebaseJsonEmulatorConfig;
+  storage?: FirebaseJsonEmulatorConfig;
+};
+
+export type FirebaseEmulatorEndpoints = {
+  firestore: FirebaseEmulatorEndpoint | null;
+  auth: FirebaseEmulatorEndpoint | null;
+  functions: FirebaseEmulatorEndpoint | null;
+  storage: FirebaseEmulatorEndpoint | null;
+};
+
+const readEnv = (name: string): string | null => {
   const value = import.meta.env[name];
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
 
-const toIntOrNull = (rawValue) => {
+const toIntOrNull = (rawValue: string | null): number | null => {
   if (!rawValue) return null;
   const parsed = Number(rawValue);
   if (!Number.isInteger(parsed) || parsed <= 0) return null;
   return parsed;
 };
 
-const parseBooleanEnv = (rawValue) => {
+const parseBooleanEnv = (rawValue: string | null): boolean | null => {
   if (rawValue == null) return null;
   if (rawValue === 'true') return true;
   if (rawValue === 'false') return false;
   return null;
 };
 
-const getFirebaseJsonEmulators = () => firebaseProjectConfig?.emulators || {};
+const getFirebaseJsonEmulators = (): FirebaseJsonEmulators =>
+  (firebaseProjectConfig as { emulators?: FirebaseJsonEmulators }).emulators ||
+  {};
 
-const resolveHostPort = (hostEnvName, portEnvName, fallbackConfig) => {
+const resolveHostPort = (
+  hostEnvName: string,
+  portEnvName: string,
+  fallbackConfig?: FirebaseJsonEmulatorConfig
+): FirebaseEmulatorEndpoint | null => {
   const envHost = readEnv(hostEnvName);
   const envPort = toIntOrNull(readEnv(portEnvName));
   if (envHost && envPort) {
@@ -59,14 +93,19 @@ const resolveHostPort = (hostEnvName, portEnvName, fallbackConfig) => {
 
   const host = fallbackConfig?.host;
   const port = fallbackConfig?.port;
-  if (typeof host === 'string' && Number.isInteger(port) && port > 0) {
+  if (
+    typeof host === 'string' &&
+    typeof port === 'number' &&
+    Number.isInteger(port) &&
+    port > 0
+  ) {
     return { host, port };
   }
 
   return null;
 };
 
-export function getFirebaseTargetMode() {
+export function getFirebaseTargetMode(): FirebaseTargetMode {
   const requestedEmulatorMode = parseBooleanEnv(
     readEnv('VITE_USE_FIREBASE_EMULATORS')
   );
@@ -82,7 +121,7 @@ export function getFirebaseTargetMode() {
   return FIREBASE_TARGET_MODES.PROD;
 }
 
-export function resolveFirebaseEmulatorEndpoints() {
+export function resolveFirebaseEmulatorEndpoints(): FirebaseEmulatorEndpoints {
   const emulators = getFirebaseJsonEmulators();
 
   return {
@@ -109,13 +148,22 @@ export function resolveFirebaseEmulatorEndpoints() {
   };
 }
 
-const formatHostPort = (endpoint) =>
+const formatHostPort = (
+  endpoint: FirebaseEmulatorEndpoint | null | undefined
+): string =>
   endpoint ? `${endpoint.host}:${endpoint.port}` : 'not-configured';
 
-export function isLikelyEmulatorConnectionError(errorLike) {
-  const text = String(
-    errorLike?.message || errorLike?.code || errorLike || ''
-  ).toLowerCase();
+const getErrorText = (errorLike: unknown): string => {
+  if (errorLike && typeof errorLike === 'object') {
+    const maybeError = errorLike as { message?: unknown; code?: unknown };
+    return String(maybeError.message || maybeError.code || errorLike);
+  }
+
+  return String(errorLike || '');
+};
+
+export function isLikelyEmulatorConnectionError(errorLike: unknown): boolean {
+  const text = getErrorText(errorLike).toLowerCase();
 
   return (
     text.includes('econnrefused') ||
@@ -141,7 +189,7 @@ const isReviewMode =
  * Demo project config for review mode.
  * Safe defaults for emulator-only operation (no real Firebase connection).
  */
-const REVIEW_MODE_CONFIG = {
+const REVIEW_MODE_CONFIG: FirebaseOptions = {
   apiKey: 'demo-api-key-not-real',
   authDomain: 'demo-architect-review.firebaseapp.com',
   projectId: 'demo-architect-review',
@@ -153,7 +201,7 @@ const REVIEW_MODE_CONFIG = {
 /**
  * Production config from environment variables.
  */
-const PRODUCTION_CONFIG = {
+const PRODUCTION_CONFIG: FirebaseOptions = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -162,7 +210,9 @@ const PRODUCTION_CONFIG = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const firebaseConfig = isReviewMode ? REVIEW_MODE_CONFIG : PRODUCTION_CONFIG;
+const firebaseConfig: FirebaseOptions = isReviewMode
+  ? REVIEW_MODE_CONFIG
+  : PRODUCTION_CONFIG;
 export const FIREBASE_TARGET_MODE = getFirebaseTargetMode();
 export const FIREBASE_EMULATOR_ENDPOINTS = resolveFirebaseEmulatorEndpoints();
 

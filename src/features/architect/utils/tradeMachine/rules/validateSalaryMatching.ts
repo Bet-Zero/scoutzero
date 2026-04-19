@@ -13,7 +13,7 @@ import {
   formatCurrency,
   getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers';
-import { shouldWarnOnly } from '@/config/validationFlags.js';
+import { shouldWarnOnly } from '@/config/validationFlags';
 import {
   getSalaryMatchingResult,
   SALARY_MATCHING_RULE_KEYS,

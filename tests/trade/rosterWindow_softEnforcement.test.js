@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { enforceRosterWindow } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
-import { validationFlags } from '@/config/validationFlags.js';
+import { validationFlags } from '@/config/validationFlags';
 
 const makeTeam = (count) => ({
   postTradeTeam: { players: Array(count), twoWayPlayers: [] },

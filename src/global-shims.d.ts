@@ -33,19 +33,6 @@ declare module '@/shared/components/ui/filters' {
   export const MultiSelectFilter: any;
 }
 
-declare module '@/config/validationFlags.js' {
-  export const validationFlags: any;
-  export const shouldWarnOnly: any;
-}
-
-declare module '@/firebaseConfig' {
-  export const db: any;
-  export const auth: any;
-  export const functions: any;
-  export const FIREBASE_TARGET_MODE: any;
-  export const isLikelyEmulatorConnectionError: any;
-}
-
 declare module '@/features/roster/RosterSection' {
   const RosterSection: any;
   export default RosterSection;

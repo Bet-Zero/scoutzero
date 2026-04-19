@@ -16,7 +16,7 @@ import {
   getTeamFaExceptionBuckets,
   isFaExceptionEligibleType,
 } from '@/features/architect/utils/faExceptionUtils';
-import { validationFlags } from '@/config/validationFlags.js';
+import { validationFlags } from '@/config/validationFlags';
 import {
   getCapHitForSeason,
   normalizeYearInput,

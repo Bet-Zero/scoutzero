@@ -1,9 +1,24 @@
-import { doc, setDoc, getDoc, getDocs, collection } from 'firebase/firestore';
-import { db } from './firebaseConfig.js';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  type DocumentData,
+  type WithFieldValue,
+} from 'firebase/firestore';
+import { db } from './firebaseConfig';
 import { PLAYERS_COLLECTION } from '@/constants/collections';
 
+export type PlayerFirestoreData = WithFieldValue<DocumentData>;
+export type LoadedPlayerData = DocumentData | null;
+export type PlayerDataMap = Record<string, DocumentData>;
+
 // 🔁 Save a single player to Firestore
-export const savePlayerData = async (playerId, playerData) => {
+export const savePlayerData = async (
+  playerId: string,
+  playerData: PlayerFirestoreData
+): Promise<void> => {
   try {
     await setDoc(doc(db, PLAYERS_COLLECTION, playerId), playerData, { merge: true });
     console.log(`✅ Player ${playerId} saved to Firebase`);
@@ -13,7 +28,9 @@ export const savePlayerData = async (playerId, playerData) => {
 };
 
 // 📥 Load a single player from Firestore
-export const loadPlayerData = async (playerId) => {
+export const loadPlayerData = async (
+  playerId: string
+): Promise<LoadedPlayerData> => {
   try {
     const docRef = doc(db, PLAYERS_COLLECTION, playerId);
     const docSnap = await getDoc(docRef);
@@ -32,10 +49,10 @@ export const loadPlayerData = async (playerId) => {
 };
 
 // 📤 Load all players from Firebase
-export const getAllPlayers = async () => {
+export const getAllPlayers = async (): Promise<PlayerDataMap> => {
   try {
     const snapshot = await getDocs(collection(db, PLAYERS_COLLECTION));
-    const players = {};
+    const players: PlayerDataMap = {};
     snapshot.forEach((doc) => {
       players[doc.id] = doc.data();
     });

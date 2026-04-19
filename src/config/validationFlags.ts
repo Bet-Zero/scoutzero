@@ -8,11 +8,46 @@
  * - 'off': Rule validation is disabled
  */
 
+export type ValidationEnforcement = 'error' | 'warn' | 'off';
+export type ValidationToggle = 'on' | 'off';
+export type CbaRulesYear = '2017' | '2023';
+
+export type MoratoriumWindow = {
+  startMonth: number;
+  startDay: number;
+  endMonth: number;
+  endDay: number;
+};
+
+export type ValidationFlags = {
+  rosterEnforcement: ValidationEnforcement;
+  twoWayRoster: ValidationEnforcement;
+  timingEnforcement: ValidationEnforcement;
+  reAcquisition: ValidationEnforcement;
+  moratorium: MoratoriumWindow;
+  consent: ValidationEnforcement;
+  seasonalCash: ValidationEnforcement;
+  eligibility: ValidationEnforcement;
+  hardCap: ValidationEnforcement;
+  secondApron: ValidationEnforcement;
+  salaryMatching: ValidationEnforcement;
+  stepienRule: ValidationEnforcement;
+  frozenPicks: ValidationEnforcement;
+  faExceptionTrade: ValidationToggle;
+  faExceptionEligible: unknown[] | undefined;
+  faExceptionAutoSelect: boolean;
+  aggregation: ValidationEnforcement;
+  cbaYear: CbaRulesYear;
+};
+
+export type ValidationFlagName = keyof ValidationFlags;
+export type ValidationFlagValue = ValidationFlags[ValidationFlagName];
+
 /**
  * Validation flags for different trade rules
  * This allows toggling validation rules and setting enforcement levels
  */
-export const validationFlags = {
+export const validationFlags: ValidationFlags = {
   // Team roster validation
   rosterEnforcement: 'error', // Roster size requirements
   twoWayRoster: 'error', // Two-way contract limits
@@ -54,12 +89,16 @@ export const validationFlags = {
  * Get validation flag value with fallback
  *
  * @param {string} flagName - The flag to retrieve
- * @param {any} defaultValue - Default value if flag is undefined
- * @returns {any} The flag value or default
+ * @param {ValidationFlagValue} defaultValue - Default value if flag is undefined
+ * @returns {ValidationFlagValue} The flag value or default
  */
-export function getValidationFlag(flagName, defaultValue = 'error') {
-  return validationFlags[flagName] !== undefined
-    ? validationFlags[flagName]
+export function getValidationFlag(
+  flagName: string,
+  defaultValue: ValidationFlagValue = 'error'
+): ValidationFlagValue {
+  const typedFlagName = flagName as ValidationFlagName;
+  return validationFlags[typedFlagName] !== undefined
+    ? validationFlags[typedFlagName]
     : defaultValue;
 }
 
@@ -69,7 +108,7 @@ export function getValidationFlag(flagName, defaultValue = 'error') {
  * @param {string} flagName - The validation flag to check
  * @returns {boolean} True if the rule should block trade
  */
-export function shouldBlockTrade(flagName) {
+export function shouldBlockTrade(flagName: string): boolean {
   return getValidationFlag(flagName) === 'error';
 }
 
@@ -79,6 +118,6 @@ export function shouldBlockTrade(flagName) {
  * @param {string} flagName - The validation flag to check
  * @returns {boolean} True if the rule should warn but not block
  */
-export function shouldWarnOnly(flagName) {
+export function shouldWarnOnly(flagName: string): boolean {
   return getValidationFlag(flagName) === 'warn';
 }

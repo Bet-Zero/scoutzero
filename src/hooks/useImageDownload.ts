@@ -1,10 +1,29 @@
+import type { RefObject } from 'react';
 import { toPng } from 'html-to-image';
 import { antonBase64CSS } from '@/fonts/antonBase64';
 
-const waitForImages = async (root) => {
+type DownloadOptions = {
+  pixelRatio?: number;
+  backgroundColor?: string;
+};
+
+type DownloadFn = (filename: string, options?: DownloadOptions) => Promise<void>;
+
+type StyleSnapshot = {
+  top: string;
+  visibility: string;
+  zIndex: string;
+  pointerEvents: string;
+};
+
+type ToPngOptions = NonNullable<Parameters<typeof toPng>[1]> & {
+  beforeDrawImage?: (node: HTMLElement) => Promise<HTMLElement> | HTMLElement;
+};
+
+const waitForImages = async (root: HTMLElement | null): Promise<void> => {
   if (!root) return;
 
-  const images = Array.from(root.querySelectorAll('img'));
+  const images = Array.from(root.querySelectorAll<HTMLImageElement>('img'));
 
   await Promise.all(
     images.map((img) => {
@@ -12,7 +31,7 @@ const waitForImages = async (root) => {
         return Promise.resolve();
       }
 
-      return new Promise((resolve) => {
+      return new Promise<void>((resolve) => {
         const handleDone = () => {
           img.removeEventListener('load', handleDone);
           img.removeEventListener('error', handleDone);
@@ -26,11 +45,11 @@ const waitForImages = async (root) => {
   );
 };
 
-const useImageDownload = (ref) => {
-  const download = async (filename, options = {}) => {
+const useImageDownload = (ref: RefObject<HTMLElement | null>): DownloadFn => {
+  const download: DownloadFn = async (filename, options = {}) => {
     if (!ref.current) return;
-    let styleEl;
-    let originalStyles = null;
+    let styleEl: HTMLStyleElement | undefined;
+    let originalStyles: StyleSnapshot | null = null;
     try {
       // 1. Ensure the Base64 font is loaded and injected before export
       const match = antonBase64CSS.match(/base64,([^)]+)\)/);
@@ -41,7 +60,9 @@ const useImageDownload = (ref) => {
           { weight: '400', style: 'normal' }
         );
         await font.load();
-        document.fonts.add(font);
+        (document.fonts as FontFaceSet & { add(font: FontFace): void }).add(
+          font
+        );
         await document.fonts.load('1em AntonBase64');
         await document.fonts.ready;
 
@@ -69,18 +90,20 @@ const useImageDownload = (ref) => {
       await waitForImages(ref.current);
 
       // 4. Wait for layout to settle
-      await new Promise((r) => requestAnimationFrame(r));
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve())
+      );
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
 
       // 5. Export as PNG
-      const dataUrl = await toPng(ref.current, {
+      const toPngOptions: ToPngOptions = {
         cacheBust: true,
         skipFonts: true,
         pixelRatio: options.pixelRatio || 2,
         backgroundColor: options.backgroundColor || '#111',
         filter: () => true,
         async beforeDrawImage(node) {
-          if (node.tagName === 'IMG' && node.src.endsWith('.svg')) {
+          if (node instanceof HTMLImageElement && node.src.endsWith('.svg')) {
             try {
               const response = await fetch(node.src);
               const svgText = await response.text();
@@ -92,7 +115,9 @@ const useImageDownload = (ref) => {
           }
           return node;
         },
-      });
+      };
+
+      const dataUrl = await toPng(ref.current, toPngOptions);
 
       // 6. Download
       const link = document.createElement('a');

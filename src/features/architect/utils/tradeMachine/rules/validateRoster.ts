@@ -1,4 +1,4 @@
-import { validationFlags } from '@/config/validationFlags.js';
+import { validationFlags } from '@/config/validationFlags';
 import type { RosterResult, TradeTeam } from '../constants/types';
 
 /**

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { enforceTiming } from '@/features/architect/utils/tradeMachine/rules/timingValidation';
-import { validationFlags } from '@/config/validationFlags.js';
+import { validationFlags } from '@/config/validationFlags';
 
 const run = (team, tradeCtx) => {
   const warns = [];

@@ -7,7 +7,7 @@
  * - Sign-and-trade-specific season/timing gates live in validateSignAndTrade.js.
  */
 
-import { validationFlags } from '@/config/validationFlags.js';
+import { validationFlags } from '@/config/validationFlags';
 import {
   isWithinMoratorium,
   daysSince,

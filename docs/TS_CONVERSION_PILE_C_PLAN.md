@@ -278,7 +278,8 @@ Completed 2026-04-19: Recounted `140` runtime JS/JSX files outside `src/tests/**
 
 ## Step 2 — Convert Bootstrap and Support JS
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Converted all six support files to TypeScript, removed obsolete ambient shims for `@/firebaseConfig` and `validationFlags`, updated stale `.js` import specifiers for renamed support modules, and kept the legacy ranker `src/hooks/useImageDownload.ts` separate because its export behavior differs from `src/shared/hooks/useImageDownload.ts`.
 
 **Goal:** Convert small non-UI runtime support files that are not feature components.
 

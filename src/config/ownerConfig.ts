@@ -1,5 +1,5 @@
 /**
- * FILE: src/config/ownerConfig.js
+ * FILE: src/config/ownerConfig.ts
  * PURPOSE: Owner allowlist configuration for privileged actions (e.g., Firestore writes)
  * OWNERSHIP: Shared configuration
  *
@@ -17,7 +17,7 @@
  * Parse comma-separated owner UIDs from environment variable.
  * @returns {Set<string>} Set of owner UIDs (empty if not configured)
  */
-const parseOwnerUids = () => {
+const parseOwnerUids = (): Set<string> => {
   const raw = import.meta.env?.VITE_OWNER_UIDS || '';
   if (!raw || typeof raw !== 'string') return new Set();
 
@@ -30,14 +30,14 @@ const parseOwnerUids = () => {
 };
 
 /** Cached owner UIDs set */
-const OWNER_UIDS = parseOwnerUids();
+const OWNER_UIDS: ReadonlySet<string> = parseOwnerUids();
 
 /**
  * Check if a user ID is in the owner allowlist.
  * @param {string|null|undefined} userId - The user's uid to check
  * @returns {boolean} True if the user is an owner
  */
-export const isOwnerUid = (userId) => {
+export const isOwnerUid = (userId: string | null | undefined): boolean => {
   if (!userId || typeof userId !== 'string') return false;
   return OWNER_UIDS.has(userId);
 };
@@ -46,6 +46,8 @@ export const isOwnerUid = (userId) => {
  * Get the count of configured owner UIDs (for debugging).
  * @returns {number} Number of configured owners
  */
-export const getOwnerCount = () => OWNER_UIDS.size;
+export const getOwnerCount = (): number => OWNER_UIDS.size;
 
-export default { isOwnerUid, getOwnerCount };
+const ownerConfig = { isOwnerUid, getOwnerCount };
+
+export default ownerConfig;

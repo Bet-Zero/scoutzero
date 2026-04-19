@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { enforceEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
-import { validationFlags } from '@/config/validationFlags.js';
+import { validationFlags } from '@/config/validationFlags';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));

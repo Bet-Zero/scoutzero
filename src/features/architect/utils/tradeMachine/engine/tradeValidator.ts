@@ -23,7 +23,7 @@ import { enforceTiming } from '../rules/timingValidation';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules';
 import { computeMatchingValues } from '../utils/salaryUtils';
 import { checkRosterCounts } from '../rules/validateRoster';
-import { validationFlags } from '@/config/validationFlags.js';
+import { validationFlags } from '@/config/validationFlags';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
 import { validateAggregation } from '../rules/validateAggregation';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils';

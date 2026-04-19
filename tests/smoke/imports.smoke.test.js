@@ -15,7 +15,7 @@ describe('Critical Imports Smoke Test', () => {
   });
 
   it('can import Firebase config', async () => {
-    const { db } = await import('@/firebaseConfig.js');
+    const { db } = await import('@/firebaseConfig');
     expect(db).toBeDefined();
   });
 
