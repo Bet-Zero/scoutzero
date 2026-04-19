@@ -447,7 +447,8 @@ Completed 2026-04-19: Converted the lists, list export/preview, tier-maker, tier
 
 ## Step 8 — Convert Ranker UI
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Converted the ranker UI tree, legacy tournament ranker helper, and `PlayerRankerPage` route to TypeScript, reused the typed ranker engine/session contracts, aligned the ranker add-player drawer data with the roster drawer shape, and updated the existing ranker UI tests to import the renamed components extensionlessly.
 
 **Goal:** Convert the ranker UI tree after `useRankerSession.ts`, ranker utilities, and Firestore helpers are typed.
 

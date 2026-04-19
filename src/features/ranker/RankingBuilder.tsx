@@ -13,6 +13,11 @@ import TierPlayerTile from '@/features/lists/TierPlayerTile';
 import { useRankerSession } from './hooks/useRankerSession';
 import { hasLocalDraft } from './utils/rankerLocalDraft';
 import { Clock, Play, Trash2, X, RotateCcw } from 'lucide-react';
+import type { PlayerList } from '@/firebase/listHelpers';
+import type { RosterDrawerPlayer } from '@/features/roster/utils';
+import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
+
+type RankerPoolPlayer = RosterManagerPlayer;
 
 // ─── Pool Card ────────────────────────────────────────────────────────────────
 
@@ -129,7 +134,10 @@ const RankingBuilder = () => {
     () => (userId ? [where('ownerUid', '==', userId)] : []),
     [userId]
   );
-  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints);
+  const { data: listsData } = useFirebaseQuery<PlayerList>(
+    'lists',
+    ownerConstraints
+  );
 
   // Session hook - now local-first with optional Firestore for owners
   const {
@@ -152,21 +160,26 @@ const RankingBuilder = () => {
     saveAsList,
   } = useRankerSession();
 
-  const processedPlayers = useMemo(
+  const processedPlayers = useMemo<Array<RosterDrawerPlayer<RosterManagerPlayer>>>(
     () =>
-      allPlayers.map((player) => {
+      allPlayers.map((rawPlayer) => {
+        const player = rawPlayer as RosterManagerPlayer;
+        const contractValues = player.contracts
+          ? Object.values(player.contracts).filter(Boolean)
+          : [];
         const contractData =
           player.primaryContract ||
-          (player.contracts ? Object.values(player.contracts)[0] : null);
+          contractValues[0] ||
+          null;
 
         return {
           id: player.id,
           player_id: player.id,
           name: (player.bio?.displayName || player.name || '').toLowerCase(),
-          team: (player.bio?.display?.team || '').toLowerCase(),
+          team: String(player.bio?.display?.team || '').toLowerCase(),
           position:
             player.formattedPosition ||
-            POSITION_MAP[player.bio?.position] ||
+            POSITION_MAP[player.bio?.position || ''] ||
             player.bio?.position ||
             '',
           offenseRoles: [
@@ -194,10 +207,17 @@ const RankingBuilder = () => {
             ''
           ).toLowerCase(),
           contractType: (contractData?.contractType || '').toLowerCase(),
-          extension: (player.contracts
-            ? Object.values(player.contracts)
-            : []
-          ).find((c) => c.isExtension),
+          extension: (() => {
+            const extensionContract = contractValues.find(
+              (contract) => contract?.isExtension
+            );
+            return extensionContract
+              ? {
+                  freeAgentYear:
+                    extensionContract.freeAgency?.freeAgentYear ?? null,
+                }
+              : null;
+          })(),
           options: contractData?.options || [],
           original: player,
         };
@@ -206,9 +226,10 @@ const RankingBuilder = () => {
   );
 
   const playersMap = useMemo(() => {
-    const map = {};
-    allPlayers.forEach((p) => {
-      map[p.id] = p;
+    const map: Record<string, RosterManagerPlayer> = {};
+    allPlayers.forEach((rawPlayer) => {
+      const player = rawPlayer as RosterManagerPlayer;
+      map[player.id] = player;
     });
     return map;
   }, [allPlayers]);
@@ -216,8 +237,12 @@ const RankingBuilder = () => {
   const lists = useMemo(
     () =>
       (listsData || []).map((l) => {
-        const orderIds = l.playerOrder || [];
-        const allIds = l.playerIds || [];
+        const orderIds = Array.isArray(l.playerOrder)
+          ? l.playerOrder.filter((id): id is string => typeof id === 'string')
+          : [];
+        const allIds = Array.isArray(l.playerIds)
+          ? l.playerIds.filter((id): id is string => typeof id === 'string')
+          : [];
         const merged = [...orderIds];
         allIds.forEach((id) => {
           if (!merged.includes(id)) merged.push(id);
@@ -227,7 +252,7 @@ const RankingBuilder = () => {
     [listsData]
   );
 
-  const [pool, setPool] = useState([]);
+  const [pool, setPool] = useState<RankerPoolPlayer[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [selectedList, setSelectedList] = useState('');
@@ -282,14 +307,14 @@ const RankingBuilder = () => {
     setShowLocalDraftBanner(false);
   }, [deleteLocalDraft]);
 
-  const addPlayerToPool = (player) => {
+  const addPlayerToPool = (player: RosterManagerPlayer) => {
     setPool((prev) => {
       if (prev.some((p) => p.id === player.id)) return prev;
       return [...prev, player];
     });
   };
 
-  const addPlayersToPool = (playersArr) => {
+  const addPlayersToPool = (playersArr: RosterManagerPlayer[]) => {
     setPool((prev) => {
       const existingIds = new Set(prev.map((p) => p.id));
       return [...prev, ...playersArr.filter((p) => !existingIds.has(p.id))];
@@ -301,9 +326,9 @@ const RankingBuilder = () => {
     const team = TeamListFull.find((t) => t.id === selectedTeamId);
     if (!team) return;
     const teamCode = (team.code || team.teamId || '').toUpperCase();
-    const teamPlayers = allPlayers.filter(
-      (p) => (p.bio?.display?.teamId || '').toUpperCase() === teamCode
-    );
+    const teamPlayers = allPlayers
+      .filter((p) => String(p.bio?.display?.teamId || '').toUpperCase() === teamCode)
+      .map((player) => player as RosterManagerPlayer);
     addPlayersToPool(teamPlayers);
     setSelectedTeamId('');
   };
@@ -313,7 +338,9 @@ const RankingBuilder = () => {
     const list = lists.find((l) => l.id === selectedList);
     if (!list) return;
     addPlayersToPool(
-      list.playerIds.map((id) => playersMap[id]).filter(Boolean)
+      list.playerIds
+        .map((id) => playersMap[id])
+        .filter((player): player is RosterManagerPlayer => Boolean(player))
     );
     setSelectedList('');
   };

@@ -141,7 +141,7 @@ const AdjustableRankings = ({ initialRanking = [], onSave, onCancel }) => {
                 alt={getPlayerName(player)}
                 className="w-12 h-12 rounded-lg object-cover bg-neutral-800 flex-shrink-0"
                 onError={(e) => {
-                  e.target.src = '/assets/headshots/default.png';
+                  e.currentTarget.src = '/assets/headshots/default.png';
                 }}
               />
 
@@ -157,7 +157,7 @@ const AdjustableRankings = ({ initialRanking = [], onSave, onCancel }) => {
                       alt=""
                       className="w-4 h-4 object-contain flex-shrink-0"
                       onError={(e) => {
-                        e.target.style.display = 'none';
+                        e.currentTarget.style.display = 'none';
                       }}
                     />
                   )}

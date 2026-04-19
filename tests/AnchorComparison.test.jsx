@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { AnchorComparison } from '@/features/ranker/AnchorComparison.jsx';
+import { AnchorComparison } from '@/features/ranker/AnchorComparison';
 
 const players = [
   { id: '1', name: 'Alpha' },

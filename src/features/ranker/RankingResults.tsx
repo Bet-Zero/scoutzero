@@ -41,7 +41,7 @@ const GridCard = ({ player, rank }) => {
           loading="eager"
           decoding="async"
           onError={(e) => {
-            e.target.src = '/assets/headshots/default.png';
+            e.currentTarget.src = '/assets/headshots/default.png';
           }}
         />
         <div className="absolute top-2 left-2 bg-neutral-900/80 backdrop-blur-sm text-white font-bold text-lg px-1.5 py-0.5 rounded shadow-xl border border-white/20">
@@ -63,7 +63,7 @@ const GridCard = ({ player, rank }) => {
               loading="eager"
               decoding="async"
               onError={(e) => {
-                e.target.style.display = 'none';
+                e.currentTarget.style.display = 'none';
               }}
             />
           )}
@@ -94,7 +94,7 @@ const ListRow = ({ player, rank }) => {
         loading="eager"
         decoding="async"
         onError={(e) => {
-          e.target.src = '/assets/headshots/default.png';
+          e.currentTarget.src = '/assets/headshots/default.png';
         }}
       />
       <div className="flex-1 min-w-0">
@@ -108,7 +108,7 @@ const ListRow = ({ player, rank }) => {
               alt=""
               className="w-3.5 h-3.5 object-contain flex-shrink-0"
               onError={(e) => {
-                e.target.style.display = 'none';
+                e.currentTarget.style.display = 'none';
               }}
             />
           )}

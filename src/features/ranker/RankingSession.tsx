@@ -16,6 +16,10 @@ import {
   estimateRemainingComparisons,
   buildAnchorComparisons,
   createClosureCache,
+  type ClosureCache,
+  type RankerComparison,
+  type RankerPair,
+  type RankerPlayer,
 } from '@/features/ranker/utils/rankingEngine';
 import { Save, CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -34,14 +38,14 @@ const RankingSession = ({
   listSaveStatus = null,
   savedListMeta = null,
 }) => {
-  const players = useMemo(
+  const players = useMemo<RankerPlayer[]>(
     () => playerPool.map((p) => p.original || p),
     [playerPool]
   );
 
   // Core state — initialized from resumed session or fresh
-  const [currentPair, setCurrentPair] = useState([]);
-  const [results, setResults] = useState(
+  const [currentPair, setCurrentPair] = useState<RankerPair>([]);
+  const [results, setResults] = useState<RankerComparison[]>(
     () => resumedSessionData?.results || []
   );
   const [isFinished, setIsFinished] = useState(
@@ -53,22 +57,26 @@ const RankingSession = ({
   const [anchorDone, setAnchorDone] = useState(
     () => resumedSessionData?.anchorDone || false
   );
-  const [skippedPairs, setSkippedPairs] = useState(
-    () => resumedSessionData?.skippedPairs || new Set()
-  );
-  const [adjustments, setAdjustments] = useState(
+  const [skippedPairs, setSkippedPairs] = useState<Set<string>>(() => {
+    const skipped = resumedSessionData?.skippedPairs;
+    if (skipped instanceof Set) {
+      return new Set(
+        Array.from(skipped).filter((key): key is string => typeof key === 'string')
+      );
+    }
+    if (Array.isArray(skipped)) {
+      return new Set(
+        skipped.filter((key): key is string => typeof key === 'string')
+      );
+    }
+    return new Set();
+  });
+  const [adjustments, setAdjustments] = useState<string[] | null>(
     () => resumedSessionData?.adjustments || null
   );
 
   // Incremental closure cache — survives re-renders, rebuilt on undo or resume
-  const closureCacheRef = useRef(() => {
-    const cache = createClosureCache();
-    // If resuming, rebuild closure from stored results
-    if (resumedSessionData?.results?.length > 0) {
-      cache.rebuild(resumedSessionData.results);
-    }
-    return cache;
-  });
+  const closureCacheRef = useRef<ClosureCache>(createClosureCache());
 
   // Initialize closure cache on first render (or when resumedSessionData changes)
   useEffect(() => {
@@ -237,7 +245,7 @@ const RankingSession = ({
     // If adjustments exist (persisted), use them as canonical ranking
     if (adjustments && Array.isArray(adjustments) && adjustments.length > 0) {
       // Reconstruct player objects from adjustment IDs
-      const playerById = {};
+      const playerById: Record<string, RankerPlayer> = {};
       groupedPlayers.forEach((p) => {
         playerById[p.id] = p;
       });
@@ -324,7 +332,7 @@ const RankingSession = ({
       setSetupData(data);
       setAnchorDone(!data.anchor);
 
-      const initial = [];
+      const initial: RankerComparison[] = [];
       if (data.firstPlace) {
         players.forEach((p) => {
           if (p.id !== data.firstPlace)
@@ -366,13 +374,13 @@ const RankingSession = ({
 
   if (setupData?.anchor && !anchorDone) {
     const anchorPlayer = players.find((p) => p.id === setupData.anchor);
-    const tagged = new Set(
+    const tagged = new Set<string>(
       [
         ...setupData.topTier,
         ...setupData.bottomTier,
         setupData.firstPlace,
         setupData.lastPlace,
-      ].filter(Boolean)
+      ].filter((id): id is string => typeof id === 'string' && id.length > 0)
     );
     const untagged = players.filter(
       (p) => p.id !== setupData.anchor && !tagged.has(p.id)

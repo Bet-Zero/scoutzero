@@ -123,7 +123,7 @@ const SectionCard = ({ children, className = '', ...rest }) => (
   </div>
 );
 
-const SectionHeader = ({ label, hint, right }) => (
+const SectionHeader = ({ label, hint, right = null }) => (
   <div className="flex items-center justify-between mb-4">
     <div className="flex items-center">
       <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-white/40">
