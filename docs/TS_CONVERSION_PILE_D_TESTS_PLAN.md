@@ -358,7 +358,9 @@ npm run typecheck
 
 ### Step 8 — `tests/trade/` medium and large tests (18 files, ~3,933 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all 18 Step 8 `tests/trade/` files from `.js` to `.ts` with no migration-only logic changes or extra type annotations required. `npm run typecheck` passes, and `npm run test:trade -- --reporter=dot` passes (72 files / 632 tests in 59.06s).
 
 **Files:**
 
