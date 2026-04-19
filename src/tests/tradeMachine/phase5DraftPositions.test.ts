@@ -211,7 +211,11 @@ describe('Phase 5 - NO-OP Guarantees', () => {
     });
 
     it('returns team unchanged when positionsMap is undefined', () => {
-      const result = resolveDraftPickSwapsForYear(teamWithSwaps, 2026);
+      const result = resolveDraftPickSwapsForYear(
+        teamWithSwaps,
+        2026,
+        undefined
+      );
 
       expect(result.draftPicks[0].resolved).toBeUndefined();
     });
@@ -237,7 +241,11 @@ describe('Phase 5 - NO-OP Guarantees', () => {
     });
 
     it('returns team unchanged when positionsMap is undefined', () => {
-      const result = resolveDraftPickConveyanceForYear(teamWithConveyance, 2026);
+      const result = resolveDraftPickConveyanceForYear(
+        teamWithConveyance,
+        2026,
+        undefined
+      );
 
       expect(result.draftPicks[0].conveyanceResult).toBeUndefined();
     });

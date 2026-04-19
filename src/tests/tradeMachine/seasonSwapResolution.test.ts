@@ -57,7 +57,7 @@ describe('resolveDraftPickSwapsForYear()', () => {
         ],
       };
 
-      const result = resolveDraftPickSwapsForYear(team, 2026);
+      const result = resolveDraftPickSwapsForYear(team, 2026, undefined);
 
       // Should return team unchanged
       expect(result).toEqual(team);

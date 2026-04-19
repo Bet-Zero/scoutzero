@@ -469,7 +469,9 @@ npm run typecheck
 
 ### Step 11 — `src/tests/tradeMachine/` JS tests (9 files, ~3,400 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all nine Step 11 `src/tests/tradeMachine/` files from `.js` to `.ts`. Most files stayed logic-identical; the only TS migration edits were local expectation types for broad `unknown` metadata fields in trade-machine utility return values, one legacy Stepien fallback test routed through the existing `makeTeam()` helper to satisfy weak-type checks, and explicit `undefined` third arguments where the typed season-manager signatures require `positionsMap`. `npm run typecheck`, `npm run test:trade -- --reporter=dot`, and `npm run validate:project` pass. The trade suite finished at 72 files / 632 tests in 70.15s and included the converted trade-machine files directly.
 
 **Files:**
 
@@ -731,7 +733,7 @@ find src/tests tests \( -name '*.js' -o -name '*.jsx' \) | head -20
 
 _(Record any type errors discovered in source modules during test conversion. Do not fix them in the test migration commits.)_
 
-- (none yet)
+- Trade-machine utility typing remains intentionally broad in a few places: `src/features/architect/utils/tradeMachine/utils/swapResolution.ts` exposes `resolutionMeta` as `unknown`, and `src/features/architect/utils/tradeMachine/utils/conveyanceResolution.ts` exposes `conveyanceResult` as `unknown`. The new TS tests use local expectation types instead of changing those source contracts in Step 11.
 
 ---
 

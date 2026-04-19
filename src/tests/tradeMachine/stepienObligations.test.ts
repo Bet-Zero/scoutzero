@@ -218,9 +218,9 @@ describe('validateStepien - Phase 13 SSOT (Legacy Obligations Removed)', () => {
 
     it('Phase 13: team.team.draftPicksObligations fallback is IGNORED', () => {
       // Phase 13: Even the fallback path is now ignored
-      const result = validateStepien({
-        teamId: 'TEST',
+      const teamInput = makeTeam({
         team: {
+          picks: [],
           draftPicksObligations: [
             {
               year: 2027,
@@ -229,11 +229,9 @@ describe('validateStepien - Phase 13 SSOT (Legacy Obligations Removed)', () => {
             },
           ],
         },
-        context: {
-          yearKey: 2025,
-        },
         outgoingPicks: [{ year: 2028, round: '1st' }],
       });
+      const result = validateStepien(teamInput);
       // Phase 13: Obligation is ignored, only 2028 outgoing = pass
       expect(result.passed).toBe(true);
     });

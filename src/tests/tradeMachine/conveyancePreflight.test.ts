@@ -21,6 +21,16 @@ import conveyanceConvertsTo2nd from '../fixtures/tradeMachinePicks/conveyance_co
 import conveyanceMultiYearLadder from '../fixtures/tradeMachinePicks/conveyance_multi_year_ladder.json';
 import protectionSwapPlusMinusStrings from '../fixtures/tradeMachinePicks/protection_swap_plus_minus_strings.json';
 
+type ConveyanceTestResult = {
+  year?: number;
+  round?: number;
+  status?: string;
+  conveyanceResult?: {
+    outcome?: string;
+    position?: number;
+  };
+};
+
 // ==============================================================================
 // SECTION 1: Current Behavior Assertions (Protection String Parsing)
 // ==============================================================================
@@ -181,7 +191,10 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     const positionsMap = { LAL: 2 }; // Position 2 triggers Top 3 protection
     
-    const resolved = resolveConveyanceForPick(pick, positionsMap);
+    const resolved = resolveConveyanceForPick(
+      pick,
+      positionsMap
+    ) as ConveyanceTestResult;
     
     expect(resolved.year).toBe(2027);
     expect(resolved.status).toBe('rolled');
@@ -196,7 +209,10 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     const positionsMap = { LAL: 7 }; // Position 7 does NOT trigger Top 3 protection
     
-    const resolved = resolveConveyanceForPick(pick, positionsMap);
+    const resolved = resolveConveyanceForPick(
+      pick,
+      positionsMap
+    ) as ConveyanceTestResult;
     
     expect(resolved.year).toBe(2026); // Year unchanged
     expect(resolved.status).toBe('conveyed');
@@ -210,7 +226,10 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
     const pick = conveyanceConvertsTo2nd.teams[0].picksOut[0];
     const positionsMap = { NYK: 10 }; // Position 10 triggers Lottery protection
     
-    const resolved = resolveConveyanceForPick(pick, positionsMap);
+    const resolved = resolveConveyanceForPick(
+      pick,
+      positionsMap
+    ) as ConveyanceTestResult;
     
     expect(resolved.round).toBe(2);
     expect(resolved.status).toBe('converted');

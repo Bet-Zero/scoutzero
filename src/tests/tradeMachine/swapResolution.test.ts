@@ -16,6 +16,32 @@ import {
   resolveTeamSwaps,
 } from '@/features/architect/utils/tradeMachine/utils/swapResolution';
 
+type ResolutionMetaExpectation = {
+  resolvedAt?: string;
+  method?: string;
+  positions?: Record<string, number>;
+};
+
+type SwapResolutionExpectation = {
+  id?: string;
+  year?: number;
+  round?: number | string;
+  originalTeam?: string;
+  isSwap?: boolean;
+  swapType?: string | null;
+  swapWithTeamId?: string | null;
+  resolved?: boolean;
+  resolvedOwner?: string;
+  resolvedPosition?: number;
+  resolutionMeta?: ResolutionMetaExpectation;
+};
+
+type TeamSwapsExpectation = {
+  draftPicks: SwapResolutionExpectation[];
+  resolvedCount: number;
+  warnings: string[];
+};
+
 /**
  * Swap Resolution Core Logic
  *
@@ -104,7 +130,7 @@ describe('Swap Resolution Core Logic', () => {
 describe('Resolved Pick Schema', () => {
   // Schema validation for unresolved pick
   it('unresolved pick has resolved: false and no resolvedOwner', () => {
-    const unresolvedPick = {
+    const unresolvedPick: SwapResolutionExpectation = {
       id: 'PHI_2026_1',
       year: 2026,
       round: 1,
@@ -122,7 +148,7 @@ describe('Resolved Pick Schema', () => {
 
   // Schema validation for resolved pick
   it('resolved pick has resolved: true and resolvedOwner set', () => {
-    const resolvedPick = {
+    const resolvedPick: SwapResolutionExpectation = {
       id: 'PHI_2026_1',
       year: 2026,
       round: 1,
@@ -148,7 +174,7 @@ describe('Resolved Pick Schema', () => {
 
   // Non-swap picks should not have resolution fields
   it('non-swap picks have isSwap: false and no resolution fields needed', () => {
-    const outrightPick = {
+    const outrightPick: SwapResolutionExpectation = {
       id: 'PHI_2026_1',
       year: 2026,
       round: 1,
@@ -172,8 +198,14 @@ describe('Resolved Pick Schema', () => {
 describe('Multi-Team Swaps (NOT SUPPORTED)', () => {
   it('enforces current two-team resolver contract (teamA/teamB only)', () => {
     const positions = { PHI: 12, OKC: 5, BOS: 1 };
+    const multiTeamInput = {
+      teamA: 'PHI',
+      teamB: 'OKC',
+      swapType: 'best_of',
+      teamC: 'BOS',
+    } as const;
     const result = resolveSwapWinner(
-      { teamA: 'PHI', teamB: 'OKC', swapType: 'best_of', teamC: 'BOS' },
+      multiTeamInput,
       positions
     );
     expect(result).toBe('OKC');
@@ -459,7 +491,7 @@ describe('resolvePickSwap()', () => {
     const result = resolvePickSwap(pick, positions, {
       nowIso: '2026-06-25T20:00:00Z',
       method: 'lottery',
-    });
+    }) as SwapResolutionExpectation;
 
     // Schema A fields
     expect(result.resolved).toBe(true);
@@ -486,7 +518,7 @@ describe('resolvePickSwap()', () => {
       swapWithTeamId: 'OKC',
     };
     const positions = { PHI: 12, OKC: 5 };
-    const result = resolvePickSwap(pick, positions);
+    const result = resolvePickSwap(pick, positions) as SwapResolutionExpectation;
 
     // PHI has position 12 (worse) - wins worst_of
     expect(result.resolved).toBe(true);
@@ -541,7 +573,7 @@ describe('resolveTeamSwaps()', () => {
     ];
     const positions = { PHI: 12, OKC: 5, LAL: 3, BOS: 20, MIA: 15 };
 
-    const result = resolveTeamSwaps(picks, positions);
+    const result = resolveTeamSwaps(picks, positions) as TeamSwapsExpectation;
 
     expect(result.resolvedCount).toBe(2);
     expect(result.warnings).toHaveLength(0);
@@ -579,7 +611,9 @@ describe('resolveTeamSwaps()', () => {
     ];
     const positions = { PHI: 12, OKC: 5 };
 
-    const result = resolveTeamSwaps(picks, positions, { draftYear: 2026 });
+    const result = resolveTeamSwaps(picks, positions, {
+      draftYear: 2026,
+    }) as TeamSwapsExpectation;
 
     expect(result.resolvedCount).toBe(1);
     expect(result.draftPicks[0].resolved).toBe(true); // 2026 resolved
@@ -596,7 +630,7 @@ describe('resolveTeamSwaps()', () => {
       },
     ];
 
-    const result = resolveTeamSwaps(picks, null);
+    const result = resolveTeamSwaps(picks, null) as TeamSwapsExpectation;
 
     expect(result.resolvedCount).toBe(0);
     expect(result.warnings).toContainEqual(
@@ -617,7 +651,7 @@ describe('resolveTeamSwaps()', () => {
     ];
     const positions = { PHI: 12 }; // Missing OKC
 
-    const result = resolveTeamSwaps(picks, positions);
+    const result = resolveTeamSwaps(picks, positions) as TeamSwapsExpectation;
 
     expect(result.resolvedCount).toBe(0);
     expect(result.warnings).toContainEqual(
@@ -638,7 +672,7 @@ describe('resolveTeamSwaps()', () => {
     ];
     const positions = { PHI: 12 };
 
-    const result = resolveTeamSwaps(picks, positions);
+    const result = resolveTeamSwaps(picks, positions) as TeamSwapsExpectation;
 
     expect(result.resolvedCount).toBe(0);
     expect(result.warnings).toContainEqual(
@@ -669,7 +703,9 @@ describe('Fixture Shape Validation', () => {
       '../fixtures/tradeMachinePicks/swapPlusAdjacentPick.json'
     );
     const picks = swapPlusAdjacentPick.default.teams[0].picksOut;
-    const swapPick = picks.find((p) => p.isSwap);
+    const swapPick = picks.find((p) => p.isSwap) as
+      | SwapResolutionExpectation
+      | undefined;
 
     // Swap pick exists
     expect(swapPick).toBeDefined();
