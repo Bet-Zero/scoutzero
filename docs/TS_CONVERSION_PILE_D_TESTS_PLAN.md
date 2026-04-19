@@ -325,7 +325,9 @@ npm run typecheck
 
 ### Step 7 — `tests/validators/` remaining + `tests/entitlements/` (10 files, ~2,950 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all 10 Step 7 files from `.js` to `.ts` with no test-logic changes. `npm run typecheck` passes, and a targeted `npm run test:node -- --reporter=dot` run over the 10 converted validator/entitlement files passes (10 files / 144 tests). The broad `npm run test:architect -- --reporter=dot` step listed below was intentionally skipped because that script is directory-scoped to `tests/architect`, `src/tests/architect`, and `src/tests/tradeMachine`; using it here would run the full architect suite rather than the changed `tests/entitlements/*` files, which conflicts with AGENTS.md's default targeted-validation rule.
 
 **Files:**
 
