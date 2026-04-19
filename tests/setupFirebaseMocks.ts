@@ -4,7 +4,7 @@
  * Sets up Firebase mocks before each test and provides utilities
  * for seeding test data and resetting between tests.
  * 
- * @file tests/setupFirebaseMocks.js
+ * @file tests/setupFirebaseMocks.ts
  */
 
 import { beforeEach, afterEach } from 'vitest';
@@ -63,4 +63,3 @@ afterEach(() => {
 
 // Export utilities for use in tests
 export { seedMockData, getMockData, getAllMockData, resetMockDataStore, clearMockCallables };
-

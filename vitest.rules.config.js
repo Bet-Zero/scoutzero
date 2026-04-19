@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    setupFiles: ['./tests/setupDebug.js'],
+    setupFiles: ['./tests/setupDebug.ts'],
     include: ['src/tests/security/firestoreRules.integration.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     testTimeout: 30000,

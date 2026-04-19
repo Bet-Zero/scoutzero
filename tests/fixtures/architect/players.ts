@@ -4,7 +4,7 @@
  * Sample base player data matching Architect schema for testing.
  * Includes key players with contracts, bio data, and salariesByYear.
  * 
- * @file tests/fixtures/architect/players.js
+ * @file tests/fixtures/architect/players.ts
  */
 
 export const LEBRON_JAMES = {
@@ -500,4 +500,3 @@ export const BASE_PLAYERS = {
   stephen_curry: STEPHEN_CURRY,
   jayson_tatum: JAYSON_TATUM,
 };
-

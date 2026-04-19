@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildTradeTeamInput, buildTradeInput } from '@/features/architect/utils/schemaAdapter';
-import { createMockTeam } from '../helpers/architectTestHelpers.js';
+import { createMockTeam } from '../helpers/architectTestHelpers.ts';
 
 describe('Schema Adapter', () => {
   describe('buildTradeTeamInput', () => {
@@ -180,4 +180,3 @@ describe('Schema Adapter', () => {
     });
   });
 });
-

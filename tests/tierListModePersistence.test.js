@@ -5,7 +5,7 @@ import {
   resolveTierListMode,
   saveTierList,
 } from '@/firebase/listHelpers';
-import { getMockData, seedMockData } from './__mocks__/firebase.js';
+import { getMockData, seedMockData } from './__mocks__/firebase.ts';
 
 describe('tier list mode persistence', () => {
   it('resolves row-shaped standard docs as pyramid', () => {

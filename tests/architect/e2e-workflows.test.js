@@ -25,8 +25,8 @@ import {
   seedBaseData,
   createMockCapProjections,
   seedTeamSnapshot,
-} from '../helpers/architectTestHelpers.js';
-import { seedMockData as seedMockDataDirect } from '../__mocks__/firebase.js';
+} from '../helpers/architectTestHelpers.ts';
+import { seedMockData as seedMockDataDirect } from '../__mocks__/firebase.ts';
 
 /**
  * Helper to persist team snapshot to mock Firestore

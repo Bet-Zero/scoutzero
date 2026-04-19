@@ -59,7 +59,7 @@ import {
   createMockTeam,
   createMockPlayer,
   createMockCapProjections,
-} from '../helpers/architectTestHelpers.js';
+} from '../helpers/architectTestHelpers.ts';
 import {
   computeExpectedCapHoldAmount,
   computeExpectedCapHoldAmount,

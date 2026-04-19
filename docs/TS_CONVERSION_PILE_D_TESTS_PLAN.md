@@ -101,7 +101,9 @@
 
 ### Step 1 — Test support infrastructure (9 files, ~2,356 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Converted the nine setup/mock/helper/fixture files to TypeScript and updated Vitest setup-file references to `.ts`. `npm run typecheck`, `npm run test:fast -- --reporter=dot`, and targeted support-consumer node tests pass. `npm run test:diff -- --reporter=dot` was started but stopped because the diff runner selected `npm run test:full`, which is guarded by AGENTS.md unless the prompt contains `RUN FULL SUITE`.
 
 **Why first:** These are non-test files that other test files import. Converting them first eliminates cross-batch `@ts-expect-error` suppressions and gives every subsequent step typed fixtures and helpers from the start.
 

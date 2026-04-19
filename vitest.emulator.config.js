@@ -11,7 +11,7 @@
  *   FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 vitest run --config vitest.emulator.config.js
  *
  * DIFFERENCES FROM vitest.config.js:
- *   - NO setupFirebaseMocks.js - tests use REAL Firebase/emulator
+ *   - NO setupFirebaseMocks.ts - tests use REAL Firebase/emulator
  *   - Requires FIRESTORE_EMULATOR_HOST to be set
  *   - Only runs tests matching *.emulator.test.* pattern
  */
@@ -42,7 +42,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node', // Use Node, not jsdom, for true E2E
-    setupFiles: ['./tests/setupDebug.js'], // Keep debug logging, skip Firebase mocks
+    setupFiles: ['./tests/setupDebug.ts'], // Keep debug logging, skip Firebase mocks
     include: ['**/*.emulator.test.{js,ts}'], // Only emulator tests
     testTimeout: 30000, // Longer timeout for emulator operations
     // No globalSetup needed - each test checks FIRESTORE_EMULATOR_HOST

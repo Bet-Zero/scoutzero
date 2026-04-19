@@ -187,7 +187,7 @@ describe('Phase D4: TRUE E2E Emulator Gate Guardrails', () => {
     });
 
     it('TEST 21: vitest.emulator.config.js does NOT include setupFirebaseMocks in setupFiles', () => {
-      // The vitest.emulator.config.js setupFiles should NOT include setupFirebaseMocks.js
+      // The vitest.emulator.config.js setupFiles should NOT include setupFirebaseMocks.ts
       // It's okay to mention it in comments, but it must not be in the actual setupFiles array
       expect(vitestEmulatorConfigContent).toMatch(/setupFiles.*setupDebug/);
       // Ensure the actual setupFiles doesn't include firebase mocks (only debug)

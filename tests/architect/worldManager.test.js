@@ -28,12 +28,12 @@ import {
   seedWorldMetadata,
   getMockWorldMetadata,
   createMockWorld,
-} from '../helpers/architectTestHelpers.js';
+} from '../helpers/architectTestHelpers.ts';
 import {
   setMockCallable,
   clearMockCallables,
   resetMockDataStore,
-} from '../__mocks__/firebase.js';
+} from '../__mocks__/firebase.ts';
 
 describe('World Manager', () => {
   const userId = 'user_123';

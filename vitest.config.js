@@ -11,7 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    setupFiles: ['./tests/setupFirebaseMocks.js', './tests/setupDebug.js'],
+    setupFiles: ['./tests/setupFirebaseMocks.ts', './tests/setupDebug.ts'],
     // Exclude *.emulator.test.* files - they require the real Firestore emulator
     // and have a separate config: vitest.emulator.config.js
     exclude: ['**/node_modules/**', '**/dist/**', '**/*.emulator.test.{js,ts}'],

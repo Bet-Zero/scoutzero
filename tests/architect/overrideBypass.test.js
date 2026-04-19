@@ -22,7 +22,7 @@ import {
   seedBaseData,
   createMockTeam,
   createMockPlayer,
-} from '../helpers/architectTestHelpers.js';
+} from '../helpers/architectTestHelpers.ts';
 
 // ==============================================================================
 // HELPER: Mock environment variable

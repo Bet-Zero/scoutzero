@@ -31,7 +31,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    setupFiles: ['./tests/setupFirebaseMocks.js', './tests/setupDebug.js'],
+    setupFiles: ['./tests/setupFirebaseMocks.ts', './tests/setupDebug.ts'],
     include: [
       // Root-level pure-logic tests (.js/.ts only — excludes .jsx/.tsx)
       'tests/**/*.test.js',

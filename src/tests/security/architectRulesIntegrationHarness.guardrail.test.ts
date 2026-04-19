@@ -46,13 +46,15 @@ describe('Architect rules integration harness guardrails', () => {
     expect(runner).not.toContain("'test:node'");
     expect(runner).not.toContain('vitest.node.config.js');
     expect(runner).not.toContain('setupFirebaseMocks.js');
+    expect(runner).not.toContain('setupFirebaseMocks.ts');
   });
 
   it('keeps rules Vitest config free of firebase mock setup', () => {
     const config = readText(rulesVitestConfigPath);
 
-    expect(config).toContain("setupFiles: ['./tests/setupDebug.js']");
+    expect(config).toContain("setupFiles: ['./tests/setupDebug.ts']");
     expect(config).not.toContain('setupFirebaseMocks.js');
+    expect(config).not.toContain('setupFirebaseMocks.ts');
     expect(config).toContain(
       "include: ['src/tests/security/firestoreRules.integration.test.ts']"
     );

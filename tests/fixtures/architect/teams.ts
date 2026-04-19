@@ -4,7 +4,7 @@
  * Sample base team data matching Architect schema for testing.
  * Includes LAL, GSW, and BOS teams with rosters, players, draft picks, exceptions, and cap totals.
  * 
- * @file tests/fixtures/architect/teams.js
+ * @file tests/fixtures/architect/teams.ts
  */
 
 export const LAL_BASE_TEAM = {
@@ -238,4 +238,3 @@ export const BASE_TEAMS = {
   GSW: GSW_BASE_TEAM,
   BOS: BOS_BASE_TEAM,
 };
-

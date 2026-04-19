@@ -19,8 +19,8 @@ import {
   createMockTeam,
   createMockPlayer,
   getMockWorldMetadata,
-} from '../helpers/architectTestHelpers.js';
-import { getMockData } from '../__mocks__/firebase.js';
+} from '../helpers/architectTestHelpers.ts';
+import { getMockData } from '../__mocks__/firebase.ts';
 
 describe('Season Manager', () => {
   const worldId = 'world_123';

@@ -22,7 +22,7 @@ import {
   createMockTeam,
   createMockPlayer,
   seedMockData,
-} from '../helpers/architectTestHelpers.js';
+} from '../helpers/architectTestHelpers.ts';
 
 describe('Team Loader', () => {
   beforeEach(() => {

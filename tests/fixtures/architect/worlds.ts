@@ -4,7 +4,7 @@
  * Sample world metadata structures for testing world management,
  * branching, and parent/child relationships.
  * 
- * @file tests/fixtures/architect/worlds.js
+ * @file tests/fixtures/architect/worlds.ts
  */
 
 export const SAMPLE_WORLD_METADATA = {
@@ -131,4 +131,3 @@ export const MULTI_USER_WORLD_METADATA = {
     teamsInvolved: 0,
   },
 };
-

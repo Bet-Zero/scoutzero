@@ -4,7 +4,7 @@
  * Provides helper functions for creating mock worlds/teams/players,
  * seeding base data, and assertion helpers.
  *
- * @file tests/helpers/architectTestHelpers.js
+ * @file tests/helpers/architectTestHelpers.ts
  */
 
 import { expect } from 'vitest';

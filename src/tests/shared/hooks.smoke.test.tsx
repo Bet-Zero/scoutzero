@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
 
 // seedMockData / resetMockDataStore are re-exported through firebase/firestore mock
-// (setupFirebaseMocks.js wires vi.mock('firebase/firestore') → tests/__mocks__/firebase.js)
+// (setupFirebaseMocks.ts wires vi.mock('firebase/firestore') to tests/__mocks__/firebase.ts)
 import { seedMockData, resetMockDataStore } from '../../../tests/__mocks__/firebase.js';
 
 describe('useFirebaseQuery', () => {

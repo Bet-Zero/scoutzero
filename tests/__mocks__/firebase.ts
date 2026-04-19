@@ -4,8 +4,14 @@
  * Provides in-memory mock implementation of Firestore operations
  * for testing Architect modules without hitting real Firestore.
  *
- * @file tests/__mocks__/firebase.js
+ * @file tests/__mocks__/firebase.ts
  */
+
+type MockFieldValue = {
+  __type?: 'serverTimestamp' | 'arrayUnion' | 'arrayRemove' | 'increment';
+  elements?: unknown[];
+  value?: number;
+};
 
 // In-memory data store
 const mockDataStore = new Map();
@@ -592,22 +598,26 @@ function processServerTimestamps(data, existingData = {}) {
   const processed = {};
   for (const [key, value] of Object.entries(data)) {
     if (value && typeof value === 'object') {
-      if (value.__type === 'serverTimestamp') {
+      const mockValue = value as MockFieldValue;
+
+      if (mockValue.__type === 'serverTimestamp') {
         processed[key] = new Date().toISOString();
-      } else if (value.__type === 'arrayUnion') {
+      } else if (mockValue.__type === 'arrayUnion') {
         // Handle arrayUnion
         const existing = existingData[key] || [];
-        processed[key] = [...new Set([...existing, ...value.elements])];
-      } else if (value.__type === 'arrayRemove') {
+        processed[key] = [
+          ...new Set([...existing, ...(mockValue.elements ?? [])]),
+        ];
+      } else if (mockValue.__type === 'arrayRemove') {
         // Handle arrayRemove
         const existing = existingData[key] || [];
-        const toRemove = new Set(value.elements);
+        const toRemove = new Set(mockValue.elements ?? []);
         processed[key] = existing.filter((item) => !toRemove.has(item));
-      } else if (value.__type === 'increment') {
+      } else if (mockValue.__type === 'increment') {
         // Handle increment - ensure existing value is a number
         const existing = existingData[key];
         const existingNum = typeof existing === 'number' ? existing : 0;
-        processed[key] = existingNum + value.value;
+        processed[key] = existingNum + (mockValue.value ?? 0);
       } else {
         processed[key] = processServerTimestamps(value, existingData[key] || {});
       }

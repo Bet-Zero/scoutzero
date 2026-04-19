@@ -55,7 +55,7 @@ import {
   seedTeamSnapshot,
   getMockTeamSnapshot,
   getMockWorldMetadata,
-} from '../helpers/architectTestHelpers.js';
+} from '../helpers/architectTestHelpers.ts';
 
 describe('Renounce Rights Mutation', () => {
   const userId = 'test_user_123';

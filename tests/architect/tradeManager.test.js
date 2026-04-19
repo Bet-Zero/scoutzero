@@ -22,8 +22,8 @@ import {
   seedWorldMetadata,
   createMockWorld,
   createMockTeam,
-} from '../helpers/architectTestHelpers.js';
-import { seedMockData } from '../__mocks__/firebase.js';
+} from '../helpers/architectTestHelpers.ts';
+import { seedMockData } from '../__mocks__/firebase.ts';
 
 describe('Trade Manager', () => {
   const worldId = 'world_123';
