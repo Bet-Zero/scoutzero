@@ -1,4 +1,4 @@
-// src/features/lists/ListTierExport.jsx
+// src/features/lists/ListTierExport.tsx
 import React from 'react';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';
 

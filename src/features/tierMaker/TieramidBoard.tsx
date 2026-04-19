@@ -6,7 +6,12 @@ import React, {
   useRef,
 } from 'react';
 import TieramidPlayerTile from '@/features/tierMaker/TieramidPlayerTile';
-import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
+import {
+  fetchTierList,
+  saveTierList,
+  type PlayerList,
+  type TierList,
+} from '@/firebase/listHelpers';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -22,12 +27,38 @@ import {
   saveTierAsList,
   generateDefaultListName,
 } from '@/features/tierMaker/utils/saveAsListBridge';
+import type { RosterDrawerPlayer } from '@/features/roster/utils';
+import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
+import type { DraftTieramid } from '@/features/tierMaker/hooks/useTierDraft';
 
 const INITIAL_ROWS = 5;
 const MAX_ROWS = 10;
 
-function getInitialRows() {
-  const rows = {};
+type TieramidBoardPlayer = RosterManagerPlayer & {
+  player_id?: string;
+};
+
+type TieramidRows = Record<string, TieramidBoardPlayer[]>;
+
+type NormalizedRows = {
+  rows: TieramidRows;
+  rowOrder: string[];
+};
+
+type TeamOption = (typeof TeamListFull)[number];
+
+type TieramidBoardProps = {
+  onScreenshotChange?: (isScreenshotMode: boolean) => void;
+  initialTierListId?: string;
+  onTierListChange?: (tierListId: string) => void;
+  isDraftMode?: boolean;
+  draftData?: DraftTieramid | null;
+  onDraftChange?: (data: DraftTieramid) => void;
+  draftRestored?: boolean;
+};
+
+function getInitialRows(): NormalizedRows {
+  const rows: TieramidRows = {};
   for (let i = 1; i <= INITIAL_ROWS; i++) {
     rows[`Row${i}`] = [];
   }
@@ -49,8 +80,11 @@ const getSpotsInRow = (rowIndex) => rowIndex + 1;
  * @param {Array} rowOrder - The row order array
  * @returns {Object} - Normalized { rows, rowOrder }
  */
-const normalizeRows = (rows, rowOrder) => {
-  const normalizedRows = { ...rows };
+const normalizeRows = (
+  rows: TieramidRows = {},
+  rowOrder: string[] = []
+): NormalizedRows => {
+  const normalizedRows: TieramidRows = { ...rows };
   let normalizedOrder = Array.isArray(rowOrder) ? [...rowOrder] : [];
 
   // If no non-Pool rows exist, inject default rows (Row1..Row5)
@@ -91,7 +125,7 @@ const TieramidBoard = ({
   draftData = null,
   onDraftChange = null,
   draftRestored = true,
-}) => {
+}: TieramidBoardProps) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { userId } = useAuth();
   const canPersist = Boolean(userId);
@@ -100,29 +134,34 @@ const TieramidBoard = ({
     () => (userId ? [where('ownerUid', '==', userId)] : []),
     [userId]
   );
-  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints, {
+  const { data: listsData } = useFirebaseQuery<PlayerList>('lists', ownerConstraints, {
     enabled: canPersist,
   });
-  const { data: tierListsData } = useFirebaseQuery(
+  const { data: tierListsData } = useFirebaseQuery<TierList>(
     'tierLists',
     ownerConstraints,
     { enabled: canPersist }
   );
 
-  const processedPlayers = useMemo(
+  const processedPlayers = useMemo<Array<RosterDrawerPlayer<RosterManagerPlayer>>>(
     () =>
-      allPlayers.filter(Boolean).map((player) => {
+      allPlayers.filter(Boolean).map((rawPlayer) => {
+        const player = rawPlayer as RosterManagerPlayer;
+        const contractValues = player.contracts
+          ? Object.values(player.contracts).filter(Boolean)
+          : [];
         const contractData =
           player.primaryContract ||
-          (player.contracts ? Object.values(player.contracts)[0] : null);
+          contractValues[0] ||
+          null;
         return {
           id: player.id,
           player_id: player.id,
           name: (player.bio?.displayName || player.name || '').toLowerCase(),
-          team: (player.bio?.display?.team || '').toLowerCase(),
+          team: String(player.bio?.display?.team || '').toLowerCase(),
           position:
             player.formattedPosition ||
-            POSITION_MAP[player.bio?.position] ||
+            POSITION_MAP[player.bio?.position || ''] ||
             player.bio?.position ||
             '',
           offenseRoles: [
@@ -150,10 +189,17 @@ const TieramidBoard = ({
             ''
           ).toLowerCase(),
           contractType: (contractData?.contractType || '').toLowerCase(),
-          extension: (player.contracts
-            ? Object.values(player.contracts)
-            : []
-          ).find((c) => c.isExtension),
+          extension: (() => {
+            const extensionContract = contractValues.find(
+              (contract) => contract?.isExtension
+            );
+            return extensionContract
+              ? {
+                  freeAgentYear:
+                    extensionContract.freeAgency?.freeAgentYear ?? null,
+                }
+              : null;
+          })(),
           options: contractData?.options || [],
           original: player,
         };
@@ -162,7 +208,7 @@ const TieramidBoard = ({
   );
 
   const processedPlayersMap = useMemo(() => {
-    const map = {};
+    const map: Record<string, RosterDrawerPlayer<RosterManagerPlayer>> = {};
     processedPlayers.forEach((p) => {
       map[p.id] = p;
     });
@@ -180,9 +226,10 @@ const TieramidBoard = ({
     [listsData]
   );
   const playersMap = useMemo(() => {
-    const map = {};
-    allPlayers.filter(Boolean).forEach((p) => {
-      map[p.id] = p;
+    const map: Record<string, RosterManagerPlayer> = {};
+    allPlayers.filter(Boolean).forEach((rawPlayer) => {
+      const player = rawPlayer as RosterManagerPlayer;
+      map[player.id] = player;
     });
     return map;
   }, [allPlayers]);
@@ -192,10 +239,10 @@ const TieramidBoard = ({
   );
 
   const initialState = useMemo(() => getInitialRows(), []);
-  const [rows, setRows] = useState(initialState.rows);
-  const [rowOrder, setRowOrder] = useState(initialState.rowOrder);
+  const [rows, setRows] = useState<TieramidRows>(initialState.rows);
+  const [rowOrder, setRowOrder] = useState<string[]>(initialState.rowOrder);
   const [selectedTierList, setSelectedTierList] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedTeam, setSelectedTeam] = useState<TeamOption | null>(null);
   const [selectedList, setSelectedList] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -204,7 +251,7 @@ const TieramidBoard = ({
   const [screenshotMode, setScreenshotMode] = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
 
-  const normalizeRowsForCapacity = useCallback((currentRows, currentOrder) => {
+  const normalizeRowsForCapacity = useCallback((currentRows: TieramidRows, currentOrder: string[]) => {
     const normalized = {
       ...currentRows,
       Pool: [...(currentRows.Pool || [])],
@@ -248,7 +295,7 @@ const TieramidBoard = ({
     // Wait for players to be available for rehydration
     if (!processedPlayers.length) return;
 
-    const rehydrated = {};
+    const rehydrated: TieramidRows = {};
     Object.entries(draftData.rows).forEach(([row, ids]) => {
       rehydrated[row] = (Array.isArray(ids) ? ids : [])
         .map((pid) => processedPlayersMap[pid])
@@ -295,9 +342,9 @@ const TieramidBoard = ({
     }
 
     const timer = setTimeout(() => {
-      const serialized = {};
+      const serialized: Record<string, string[]> = {};
       rowOrder.forEach((row) => {
-        serialized[row] = (rows[row] || []).map((p) => p.player_id);
+        serialized[row] = (rows[row] || []).map((p) => p.player_id || p.id);
       });
       onDraftChange({ rows: serialized, rowOrder });
     }, 300);
@@ -306,7 +353,7 @@ const TieramidBoard = ({
   }, [isDraftMode, onDraftChange, rows, rowOrder]);
 
   // Persistence
-  const handleSaveTierList = async (idOverride) => {
+  const handleSaveTierList = async (idOverride?: string) => {
     if (!userId) {
       toast.error('Save requires a session');
       return;
@@ -316,9 +363,9 @@ const TieramidBoard = ({
       setShowCreateModal(true);
       return;
     }
-    const dataToSave = {};
+    const dataToSave: Record<string, string[]> = {};
     rowOrder.forEach((row) => {
-      dataToSave[row] = (rows[row] || []).map((p) => p.player_id);
+      dataToSave[row] = (rows[row] || []).map((p) => p.player_id || p.id);
     });
     try {
       setIsSaving(true);
@@ -364,19 +411,19 @@ const TieramidBoard = ({
       console.log('[TieramidBoard] Saved as list:', listId);
     } catch (err) {
       console.error('Failed to save as list:', err);
-      toast.error(err.message || 'Failed to save as list');
+      toast.error(err instanceof Error ? err.message : 'Failed to save as list');
     } finally {
       setIsSavingAsList(false);
     }
   };
 
   const handleLoadTierList = useCallback(
-    async (id) => {
+    async (id: string) => {
       if (!id) return;
       try {
         const data = await fetchTierList(id, userId);
         if (data) {
-          const newRows = {};
+          const newRows: TieramidRows = {};
           if (data.tiers && typeof data.tiers === 'object') {
             Object.entries(data.tiers).forEach(([row, ids]) => {
               newRows[row] = (Array.isArray(ids) ? ids : [])
@@ -423,12 +470,12 @@ const TieramidBoard = ({
   );
 
   // Add to pool helpers
-  const addPlayerToPool = (player) => {
+  const addPlayerToPool = (player: RosterManagerPlayer) => {
     if (!player) return;
     const formatted = { ...player, player_id: player.id };
     setRows((prev) => {
       // Check ALL rows for duplicate
-      const allIds = new Set();
+      const allIds = new Set<string>();
       Object.values(prev).forEach((arr) =>
         (arr || [])
           .filter(Boolean)
@@ -442,10 +489,10 @@ const TieramidBoard = ({
     });
   };
 
-  const addPlayersToPool = (playersArray) => {
+  const addPlayersToPool = (playersArray: RosterManagerPlayer[]) => {
     setRows((prev) => {
       // Collect IDs from ALL rows
-      const allIds = new Set();
+      const allIds = new Set<string>();
       Object.values(prev).forEach((arr) =>
         (arr || [])
           .filter(Boolean)
@@ -453,8 +500,8 @@ const TieramidBoard = ({
       );
       const additions = playersArray
         .filter(Boolean)
-        .filter((p) => !allIds.has(p.id || p.player_id))
-        .map((p) => ({ ...p, player_id: p.id || p.player_id }));
+        .filter((p) => !allIds.has(p.id))
+        .map((p) => ({ ...p, player_id: p.id }));
       if (additions.length === 0) return prev;
       return {
         ...prev,
@@ -469,13 +516,13 @@ const TieramidBoard = ({
     const selectedTeamCode = (selectedTeam.code || '').toUpperCase();
     const teamPlayers = allPlayers.filter((player) => {
       if (!player) return false;
-      const playerTeamId = (player.bio?.display?.teamId || '').toUpperCase();
-      const playerTeamCode = (player.bio?.display?.team || '').toUpperCase();
+      const playerTeamId = String(player.bio?.display?.teamId || '').toUpperCase();
+      const playerTeamCode = String(player.bio?.display?.team || '').toUpperCase();
       return (
         (selectedTeamId && playerTeamId === selectedTeamId) ||
         (selectedTeamCode && playerTeamCode === selectedTeamCode)
       );
-    });
+    }).map((player) => player as RosterManagerPlayer);
     addPlayersToPool(teamPlayers);
     setSelectedTeam(null);
   };
@@ -489,7 +536,9 @@ const TieramidBoard = ({
     list.playerIds.forEach((id) => {
       if (!merged.includes(id)) merged.push(id);
     });
-    const listPlayers = merged.map((id) => playersMap[id]).filter(Boolean);
+    const listPlayers = merged
+      .map((id) => playersMap[id])
+      .filter((player): player is RosterManagerPlayer => Boolean(player));
     addPlayersToPool(listPlayers);
     setSelectedList('');
   };
@@ -1014,7 +1063,7 @@ const TieramidBoard = ({
                 <option value="">Load Tier List...</option>
                 {tierLists.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.name}
+                    {String(l.name)}
                   </option>
                 ))}
               </select>

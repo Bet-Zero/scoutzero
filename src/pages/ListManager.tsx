@@ -1,4 +1,4 @@
-// ListManager.jsx
+// ListManager.tsx
 // E4: Routes reads/writes through listHelpers with ownership scoping
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -70,8 +70,12 @@ const ListManager = () => {
 
         setNotFound(false);
         setIsOwner(result.ownershipValid);
-        const orderIds = result.playerOrder || [];
-        const allIds = result.playerIds || [];
+        const orderIds = Array.isArray(result.playerOrder)
+          ? result.playerOrder.filter((id): id is string => typeof id === 'string')
+          : [];
+        const allIds = Array.isArray(result.playerIds)
+          ? result.playerIds.filter((id): id is string => typeof id === 'string')
+          : [];
         const merged = [...orderIds];
         allIds.forEach((id) => {
           if (!merged.includes(id)) merged.push(id);

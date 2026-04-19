@@ -1,4 +1,4 @@
-// ListsHome.jsx
+// ListsHome.tsx
 // E4: Routes all CRUD through listHelpers with ownership scoping
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';

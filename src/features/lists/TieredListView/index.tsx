@@ -1,4 +1,4 @@
-// src/features/lists/TieredListView.jsx
+// src/features/lists/TieredListView.tsx
 
 import React from 'react';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';

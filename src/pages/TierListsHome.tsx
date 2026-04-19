@@ -1,4 +1,4 @@
-// TierListsHome.jsx
+// TierListsHome.tsx
 // E4: Routes all CRUD through listHelpers with ownership scoping
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -37,9 +37,11 @@ const TierListsHome = () => {
   const listsMap = useMemo(() => {
     const map = {};
     lists.forEach((l) => {
-      const ids = [];
+      const ids: string[] = [];
       Object.values(l.tiers || {}).forEach((arr) => {
-        ids.push(...arr);
+        if (Array.isArray(arr)) {
+          ids.push(...arr.filter((id): id is string => typeof id === 'string'));
+        }
       });
       map[l.id] = { name: l.name, playerIds: ids };
     });

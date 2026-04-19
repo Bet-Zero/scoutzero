@@ -1,4 +1,4 @@
-// ListPlayerRow.jsx
+// ListPlayerRow.tsx
 // Full player row component for ranked or tiered lists. Rank display is now optional via showRank prop.
 
 import React from 'react';
@@ -9,7 +9,9 @@ import { POSITION_MAP } from '@/shared/utils/roles';
 const ListPlayerRow = ({
   player,
   index, // order index used for reordering
-  rank,
+  rank = index,
+  note,
+  onNoteChange,
   onMoveUp,
   onMoveDown,
   onRemove,
@@ -82,7 +84,11 @@ const ListPlayerRow = ({
       )}
 
       {/* Player Row */}
-      <PlayerRow player={processedPlayer} />
+      <PlayerRow
+        player={processedPlayer}
+        isExpanded={false}
+        onToggleExpand={() => {}}
+      />
 
       {/* Optional Notes */}
       {/*

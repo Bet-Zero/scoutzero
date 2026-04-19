@@ -1,4 +1,4 @@
-// src/features/lists/ListExportWrapper.jsx
+// src/features/lists/ListExportWrapper.tsx
 import React from 'react';
 import ListExportPlayerRow from './ListExportPlayerRow';
 import ListExportRowCompact from './ListExportRowCompact';

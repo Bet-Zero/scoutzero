@@ -1,4 +1,4 @@
-// src/features/lists/ListPreviewModal.jsx
+// src/features/lists/ListPreviewModal.tsx
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import useImageDownload from '@/shared/hooks/useImageDownload';
 import ListExportWrapper from './ListExportWrapper';

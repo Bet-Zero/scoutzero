@@ -1,11 +1,23 @@
-// src/components/lists/CreateListModal.jsx
-// E4: Passes userId to createList for ownership
+// src/features/tierMaker/CreateTierListModal.tsx
+// E4: Passes userId to createTierList for ownership
 import React, { useState } from 'react';
-import { createList } from '@/firebase/listHelpers';
+import { createTierList, type TierListMode } from '@/firebase/listHelpers';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 
-const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
+type CreateTierListModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated?: (id: string) => void;
+  mode?: TierListMode;
+};
+
+const CreateTierListModal = ({
+  isOpen,
+  onClose,
+  onCreated,
+  mode = 'standard',
+}: CreateTierListModalProps) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const { userId } = useAuth();
@@ -13,32 +25,32 @@ const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-
     try {
-      await createList(trimmed, userId);
+      const id = await createTierList(trimmed, mode, userId);
       setName('');
       setError('');
-      onListCreated?.(); // optional callback to trigger refresh
+      onCreated?.(id);
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="p-6 max-w-md">
-        <h2 className="text-xl font-bold mb-4">Create New List</h2>
+        <h2 className="text-xl font-bold mb-4">Create New Tier List</h2>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Enter list name"
-          className="w-full p-2 border border-gray-300 rounded mb-2"
+          placeholder="Enter tier list name"
+          className="w-full p-2 bg-neutral-800 text-white border border-white/10 rounded mb-2 placeholder:text-neutral-400"
         />
+
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
         {!userId && (
           <p className="text-yellow-400/80 text-xs mb-2">
-            Session unavailable — list creation disabled.
+            Session unavailable — tier list creation disabled.
           </p>
         )}
         <button
@@ -46,11 +58,11 @@ const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
           onClick={handleCreate}
           disabled={!userId}
         >
-          Create List
+          Create Tier List
         </button>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default CreateListModal;
+export default CreateTierListModal;

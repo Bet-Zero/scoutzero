@@ -1,4 +1,4 @@
-// src/features/lists/ListExportWrapper/ListExportRowCompact.jsx
+// src/features/lists/ListExportWrapper/ListExportRowCompact.tsx
 // Consolidated compact-height export row. Replaces ListExportRowCompactSingle and
 // ListExportRowCompactTwoColumn — both were identical; column layout is handled by the parent.
 import React from 'react';
@@ -40,7 +40,7 @@ const ListExportRowCompact = ({ player, rank }) => {
             `/assets/headshots/${player.bio?.playerId || player.player_id}.png`
           }
           onError={(e) => {
-            e.target.src = '/assets/headshots/default.png';
+            e.currentTarget.src = '/assets/headshots/default.png';
           }}
           alt={player.name}
           className="h-full w-full object-cover"

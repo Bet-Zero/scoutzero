@@ -1,4 +1,4 @@
-// src/features/lists/ListExportWrapper/ListExportPlayerRow.jsx
+// src/features/lists/ListExportWrapper/ListExportPlayerRow.tsx
 // Consolidated full-height export row. Replaces ListExportPlayerRowSingle and
 // ListExportPlayerRowTwoColumn — both were identical; column layout is handled by the parent.
 import React from 'react';
@@ -28,7 +28,7 @@ const ListExportPlayerRow = ({ player, rank }) => {
             `/assets/headshots/${player.bio?.playerId || player.player_id}.png`
           }
           onError={(e) => {
-            e.target.src = '/assets/headshots/default.png';
+            e.currentTarget.src = '/assets/headshots/default.png';
           }}
           alt={player.name}
           className="h-full w-full object-cover"

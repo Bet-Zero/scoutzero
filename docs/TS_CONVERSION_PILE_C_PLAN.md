@@ -418,7 +418,8 @@ Completed 2026-04-19: Converted the roster UI tree and the roster route pages to
 
 ## Step 7 — Convert Lists and Tier Maker UI
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Converted the lists, list export/preview, tier-maker, tieramid, and related route page UI files to TSX, typed the list/tier board data contracts around `listHelpers`, `useTierDraft`, and the roster drawer player shape, and fixed stale list/tier imports and header comments after the rename.
 
 **Goal:** Convert list-management, list-preview/export, and tier-maker UI trees together because their data contracts overlap.
 

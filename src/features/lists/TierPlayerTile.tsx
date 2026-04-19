@@ -1,4 +1,4 @@
-// TierPlayerTile.jsx
+// TierPlayerTile.tsx
 // Small visual player card used in tier layouts (ListTierExport and TierMaker).
 import React from 'react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
@@ -35,7 +35,7 @@ const TierPlayerTile = ({ player }) => {
             alt={player.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
+              e.currentTarget.src = '/assets/headshots/default.png';
             }}
           />
           <div className="absolute top-1 left-1 px-[4px] py-[1px] bg-black/00 text-white/40 text-[12px] font-semibold uppercase rounded-sm tracking-wider shadow-md">

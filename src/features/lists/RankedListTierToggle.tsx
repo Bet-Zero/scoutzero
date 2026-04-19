@@ -1,4 +1,4 @@
-// RankedListTierToggle.jsx
+// RankedListTierToggle.tsx
 // Toggle component to enable tiered grouping within a ranked list.
 
 import React from 'react';

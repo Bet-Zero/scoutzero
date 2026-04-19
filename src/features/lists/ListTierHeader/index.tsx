@@ -1,4 +1,4 @@
-// ListTierHeader.jsx
+// ListTierHeader.tsx
 // Displays a tier label (e.g. "Tier 1") and wraps a group of ListPlayerRow entries.
 import React from 'react';
 import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react';

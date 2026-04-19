@@ -1,4 +1,4 @@
-// src/features/lists/ListRankToggle.jsx
+// src/features/lists/ListRankToggle.tsx
 import React from 'react';
 import ToggleButton from '@/shared/components/ui/ToggleButton';
 

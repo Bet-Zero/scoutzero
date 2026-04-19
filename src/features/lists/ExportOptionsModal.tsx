@@ -1,4 +1,4 @@
-// src/features/lists/ExportOptionsModal.jsx
+// src/features/lists/ExportOptionsModal.tsx
 import React from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 

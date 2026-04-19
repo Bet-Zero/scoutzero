@@ -1,4 +1,4 @@
-// AddToListButton.jsx
+// AddToListButton.tsx
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import AddToListModal from '@/features/lists/AddToListButton/AddToListModal';

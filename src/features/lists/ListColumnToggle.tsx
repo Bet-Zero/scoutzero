@@ -1,4 +1,4 @@
-// src/features/lists/ListColumnToggle.jsx
+// src/features/lists/ListColumnToggle.tsx
 import React from 'react';
 import ToggleButton from '@/shared/components/ui/ToggleButton';
 

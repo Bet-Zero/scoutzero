@@ -1,4 +1,4 @@
-// src/features/tierMaker/TierRow.jsx
+// src/features/tierMaker/TierRow.tsx
 import React from 'react';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';
 
