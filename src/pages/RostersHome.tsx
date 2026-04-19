@@ -1,4 +1,4 @@
-// RostersHome.jsx
+// RostersHome.tsx
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CreateRosterModal from '@/features/roster/CreateRosterModal';

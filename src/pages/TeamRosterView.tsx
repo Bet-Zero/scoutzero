@@ -1,4 +1,4 @@
-// TeamRosterView.jsx
+// TeamRosterView.tsx
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import RosterViewer from '@/features/roster/RosterViewer';

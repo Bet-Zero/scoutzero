@@ -1,13 +1,21 @@
 import React from 'react';
+import type { MouseEvent } from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
+
+type StarterCardProps = {
+  player: any;
+  onRemove?: (event: MouseEvent<HTMLButtonElement>) => void;
+  showRemove?: boolean;
+  isExport?: boolean;
+};
 
 const StarterCard = ({
   player,
   onRemove,
   showRemove = true,
   isExport = false,
-}) => {
+}: StarterCardProps) => {
   if (!player) return null;
 
   const playerId = player.bio?.playerId || player.id;
@@ -32,7 +40,7 @@ const StarterCard = ({
             alt={player.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
+              e.currentTarget.src = '/assets/headshots/default.png';
             }}
           />
           {showRemove && (

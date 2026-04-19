@@ -5,6 +5,9 @@ import {
   normalizePlayer,
   normalizeRosterShape,
   isTwoWayContract,
+  type MissingRosterPlayer,
+  type NormalizedRosterPlayer,
+  type RosterShape,
 } from '@/features/roster/utils';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
@@ -43,11 +46,9 @@ type RosterDisplayMember = {
   [key: string]: unknown;
 };
 
-type LegacyRosterShape = {
-  starters: Array<RosterDisplayMember | null>;
-  rotation: Array<RosterDisplayMember | null>;
-  bench: Array<RosterDisplayMember | null>;
-};
+type LegacyRosterShape = RosterShape<
+  NormalizedRosterPlayer | MissingRosterPlayer
+>;
 
 export type RosterVisualCapSheetInput = {
   teamId?: string | number | null;
@@ -243,9 +244,9 @@ const RosterVisual = ({
     );
 
     // Build initial roster (up to 15 standard players)
-    const roster = normalizeRosterShape(
+    const roster: LegacyRosterShape = normalizeRosterShape(
       buildInitialRoster(sorted)
-    ) as LegacyRosterShape;
+    );
 
     // Ensure we always have 15 players total by filling with two-way contracts if needed
     const totalPlayers = roster.starters.filter(Boolean).length +
@@ -265,7 +266,10 @@ const RosterVisual = ({
       twoWayToAdd.forEach((player, index) => {
         const benchIndex = emptyBenchSlots[index];
         if (benchIndex !== undefined) {
-          roster.bench[benchIndex] = normalizePlayer(player);
+          const normalizedTwoWay = normalizePlayer(player);
+          if (normalizedTwoWay) {
+            roster.bench[benchIndex] = normalizedTwoWay;
+          }
         }
       });
     }

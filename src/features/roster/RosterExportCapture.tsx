@@ -1,10 +1,23 @@
-// src/components/roster/RosterExportCapture.jsx
 import React from 'react';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
+import type {
+  MissingRosterPlayer,
+  NormalizedRosterPlayer,
+  RosterShape,
+  SelectedRosterTeam,
+} from '@/features/roster/utils';
 
-const RosterExportCapture = React.forwardRef(function RosterExportCapture({ roster, team }, ref) {
+type RosterExportCaptureProps = {
+  roster: RosterShape<NormalizedRosterPlayer | MissingRosterPlayer>;
+  team?: SelectedRosterTeam | null;
+};
+
+const RosterExportCapture = React.forwardRef<
+  HTMLDivElement,
+  RosterExportCaptureProps
+>(function RosterExportCapture({ roster, team }, ref) {
   const { primary, secondary } = getTeamColors(team?.id);
   const teamName = team?.nickname || 'Roster';
 

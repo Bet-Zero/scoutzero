@@ -5,9 +5,27 @@ import RosterExportCapture from './RosterExportCapture';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import RosterSection from './RosterSection';
+import type {
+  MissingRosterPlayer,
+  NormalizedRosterPlayer,
+  RosterShape,
+  SelectedRosterTeam,
+} from '@/features/roster/utils';
 
-const RosterPreviewModal = ({ open, onClose, roster, team }) => {
-  const exportRef = useRef(null); // ✅ used for PNG export
+type RosterPreviewModalProps = {
+  open: boolean;
+  onClose: () => void;
+  roster: RosterShape<NormalizedRosterPlayer | MissingRosterPlayer>;
+  team?: SelectedRosterTeam | null;
+};
+
+const RosterPreviewModal = ({
+  open,
+  onClose,
+  roster,
+  team,
+}: RosterPreviewModalProps) => {
+  const exportRef = useRef<HTMLDivElement | null>(null); // ✅ used for PNG export
   const { primary, secondary } = getTeamColors(team?.id);
   const teamName = team?.nickname || 'Roster';
 

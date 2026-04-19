@@ -1,4 +1,4 @@
-// src/components/roster/PlayerRowMini.jsx
+// src/features/roster/AddPlayerDrawer/PlayerRowMini.tsx
 import React, { useState } from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -40,7 +40,7 @@ const PlayerRowMini = ({ player, onClick }) => {
           <img
             src={headshot}
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
+              e.currentTarget.src = '/assets/headshots/default.png';
             }}
             alt={name}
             className="h-full w-full object-cover"

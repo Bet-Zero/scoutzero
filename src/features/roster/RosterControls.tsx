@@ -1,4 +1,4 @@
-// src/components/roster/RosterControls.jsx
+// src/features/roster/RosterControls.tsx
 import React from 'react';
 import { TeamListFull, TeamMap } from '@/constants/teamList';
 

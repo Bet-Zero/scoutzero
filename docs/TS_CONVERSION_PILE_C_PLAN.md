@@ -392,7 +392,8 @@ Completed 2026-04-19: Converted the profile UI tree and `PlayerProfileView` rout
 
 ## Step 6 — Convert Roster UI
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Converted the roster UI tree and the roster route pages to TSX, typed the roster section/export/viewer contracts around the existing roster manager utilities, removed the obsolete `RosterSection` ambient shim, and aligned the Architect roster visual bridge with the typed roster shape so its read-only preview path still feeds the shared roster section component truthfully.
 
 **Goal:** Convert Roster Builder UI components after `useRosterManager.ts` and roster utils are typed.
 

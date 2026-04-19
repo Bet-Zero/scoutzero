@@ -1,4 +1,4 @@
-// src/components/roster/EmptySlot.jsx
+// src/features/roster/RosterSection/EmptySlot.tsx
 import React from 'react';
 
 // EmptySlot – Displays a plus sign button to add a player to a given slot

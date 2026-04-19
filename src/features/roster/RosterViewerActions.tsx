@@ -17,24 +17,16 @@ import { Download, FileJson } from 'lucide-react';
 import SaveRosterModal from './SaveRosterModal';
 import RosterPreviewModal from './RosterPreviewModal';
 import RosterExportModal from './RosterExportModal';
+import type {
+  MissingRosterPlayer,
+  NormalizedRosterPlayer,
+  RosterShape,
+  SelectedRosterTeam,
+} from '@/features/roster/utils';
 
 type SaveMode = 'new' | 'overwrite' | 'copy';
-type RosterPlayer = {
-  id: string;
-  displayName?: string;
-  name?: string;
-};
-type RosterSlot = RosterPlayer | null;
-type RosterState = {
-  starters: RosterSlot[];
-  rotation: RosterSlot[];
-  bench: RosterSlot[];
-};
-type RosterTeam = {
-  id?: string;
-  nickname?: string;
-  teamName?: string;
-} | null;
+type RosterState = RosterShape<NormalizedRosterPlayer | MissingRosterPlayer>;
+type RosterTeam = SelectedRosterTeam | null;
 
 interface RosterViewerActionsProps {
   rosterName: string;

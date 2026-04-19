@@ -1,11 +1,41 @@
-// src/components/roster/index.jsx
 import React from 'react';
 import StarterCard from './StarterCard';
 import RotationCard from './RotationCard';
 import BenchCard from './BenchCard';
 import EmptySlot from './EmptySlot';
+import type { MouseEvent } from 'react';
+import type {
+  MissingRosterPlayer,
+  NormalizedRosterPlayer,
+  RosterShape,
+} from '@/features/roster/utils';
 
-const getSectionClass = (section, previewSpacing) => {
+type RosterSectionName = keyof RosterShape;
+type RosterSectionPlayer = NormalizedRosterPlayer | MissingRosterPlayer;
+type RosterCardProps = {
+  player: RosterSectionPlayer;
+  onRemove?: (event: MouseEvent<HTMLElement>) => void;
+  showRemove?: boolean;
+  isExport?: boolean;
+};
+
+type RosterSectionProps = {
+  players: Array<RosterSectionPlayer | null>;
+  section: RosterSectionName;
+  onRemove?: (
+    section: RosterSectionName,
+    index: number,
+    event?: MouseEvent<HTMLElement>
+  ) => void;
+  onAdd?: (section: RosterSectionName, index: number) => void;
+  isExport?: boolean;
+  previewSpacing?: boolean;
+};
+
+const getSectionClass = (
+  section: RosterSectionName,
+  previewSpacing: boolean
+) => {
   const base = 'flex justify-center';
 
   if (section === 'starters') {
@@ -27,9 +57,9 @@ const sizeMap = {
   starters: 'starter',
   rotation: 'rotation',
   bench: 'bench',
-};
+} as const;
 
-const cardMap = {
+const cardMap: Record<RosterSectionName, React.ComponentType<RosterCardProps>> = {
   starters: StarterCard,
   rotation: RotationCard,
   bench: BenchCard,
@@ -42,7 +72,7 @@ const RosterSection = ({
   onAdd,
   isExport = false,
   previewSpacing = false,
-}) => {
+}: RosterSectionProps) => {
   const CardComponent = cardMap[section];
   const sectionClass = getSectionClass(section, previewSpacing);
   const showMutationControls = !isExport && Boolean(onRemove);

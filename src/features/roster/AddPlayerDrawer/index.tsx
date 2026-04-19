@@ -1,4 +1,3 @@
-// src/components/roster/AddPlayerDrawer.jsx
 import React, { useState, useMemo } from 'react';
 import PlayerRowMini from './PlayerRowMini';
 import {
@@ -11,8 +10,24 @@ import {
   filterRosterDrawerPlayers,
   hasActiveAddPlayerFilters,
 } from '@/features/roster/utils';
+import type {
+  RosterDrawerPlayer,
+} from '@/features/roster/utils';
+import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 
-const AddPlayerDrawer = ({ onClose, allPlayers, onSelect, onSelectAll }) => {
+type AddPlayerDrawerProps = {
+  onClose: () => void;
+  allPlayers: Array<RosterDrawerPlayer<RosterManagerPlayer>>;
+  onSelect: (player: RosterManagerPlayer) => void;
+  onSelectAll?: (players: RosterManagerPlayer[]) => void;
+};
+
+const AddPlayerDrawer = ({
+  onClose,
+  allPlayers,
+  onSelect,
+  onSelectAll,
+}: AddPlayerDrawerProps) => {
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(getDefaultAddPlayerFilters());

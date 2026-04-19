@@ -1,13 +1,21 @@
 import React from 'react';
+import type { MouseEvent } from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
+
+type BenchCardProps = {
+  player: any;
+  onRemove?: (event: MouseEvent<HTMLButtonElement>) => void;
+  showRemove?: boolean;
+  isExport?: boolean;
+};
 
 const BenchCard = ({
   player,
   onRemove,
   showRemove = true,
   isExport = false,
-}) => {
+}: BenchCardProps) => {
   if (!player) return null;
 
   const playerId = player.bio?.playerId || player.id;
@@ -32,7 +40,7 @@ const BenchCard = ({
             alt={player.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src = '/assets/headshots/default.png';
+              e.currentTarget.src = '/assets/headshots/default.png';
             }}
           />
           {showRemove && (

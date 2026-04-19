@@ -33,11 +33,6 @@ declare module '@/shared/components/ui/filters' {
   export const MultiSelectFilter: any;
 }
 
-declare module '@/features/roster/RosterSection' {
-  const RosterSection: any;
-  export default RosterSection;
-}
-
 declare module '@/features/architect/utils/capTotals' {
   export const computeTeamCapTotals: any;
   export const warnOnTotalsDivergence: any;

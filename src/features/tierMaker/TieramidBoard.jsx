@@ -16,7 +16,7 @@ import { TeamListFull } from '@/constants/teamList';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
-import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer/index.jsx';
+import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
 import { toast } from 'react-hot-toast';
 import {
   saveTierAsList,

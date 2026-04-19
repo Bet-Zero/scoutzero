@@ -1,4 +1,3 @@
-// src/components/roster/RosterViewer.jsx
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
@@ -12,6 +11,13 @@ import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { useRosterManager } from '@/features/roster/hooks/useRosterManager';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { RosterViewerActions } from './RosterViewerActions';
+import type { RosterShape } from '@/features/roster/utils';
+
+type RosterSectionName = keyof RosterShape;
+type SlotTarget = {
+  section: RosterSectionName | '';
+  index: number;
+};
 
 const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const { players: allPlayers, loading: isLoading } = useSimplePlayerData();
@@ -41,19 +47,26 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
   } = useRosterManager(allPlayers, isLoading, userId, authLoading);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [slotTarget, setSlotTarget] = useState({ section: '', index: -1 });
+  const [slotTarget, setSlotTarget] = useState<SlotTarget>({
+    section: '',
+    index: -1,
+  });
   const [screenshotMode, setScreenshotMode] = useState(false);
 
   useEffect(() => {
     if (!initialRosterId) return;
     setLoadMethod(initialRosterId);
   }, [initialRosterId, setLoadMethod]);
-  const handleRemovePlayer = (section, index, e) => {
+  const handleRemovePlayer = (
+    section: RosterSectionName,
+    index: number,
+    e?: React.MouseEvent<HTMLElement>
+  ) => {
     e?.stopPropagation();
     removePlayer(section, index);
   };
 
-  const handleOpenDrawer = (section, index) => {
+  const handleOpenDrawer = (section: RosterSectionName, index: number) => {
     setSlotTarget({ section, index });
     setDrawerOpen(true);
   };
@@ -86,10 +99,11 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
                 toast.error('Player already in roster');
                 return;
               }
+              const targetSection = slotTarget.section;
               const isManualTarget =
-                slotTarget.section && slotTarget.index !== -1;
+                targetSection !== '' && slotTarget.index !== -1;
               if (isManualTarget) {
-                addPlayerToSlot(player, slotTarget.section, slotTarget.index);
+                addPlayerToSlot(player, targetSection, slotTarget.index);
                 setSlotTarget({ section: '', index: -1 });
                 setDrawerOpen(false);
               } else {
