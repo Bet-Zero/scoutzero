@@ -137,7 +137,9 @@ npm run test:diff -- --reporter=dot
 
 ### Step 2 — Smoke tests and smallest root test files (≤100 lines each, ~18 files, ~850 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed the 18 Step 2 smoke/small root test files from `.js` to `.ts`; no test logic or TypeScript annotations were needed. `npm run typecheck`, `npm run test:fast -- --reporter=dot`, and a targeted `npm run test:node -- --reporter=dot` run over the 18 converted files pass. The broad `npm run test:node -- --reporter=dot` command was also run, but it exceeded the 4-minute AGENTS.md budget and failed in unrelated pre-existing `tests/contractSalaryUtils.test.js` warning-payload expectations: the runtime warning now includes `hasPrimaryContract: false` and `hasContractsMap: false`.
 
 **Why second:** These are the smallest, lowest-risk test files. Many are pure smoke/sanity checks with no cross-test imports. Converting them builds confidence in the pipeline before tackling larger files.
 
