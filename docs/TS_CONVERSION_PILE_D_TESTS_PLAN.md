@@ -222,7 +222,9 @@ npm run typecheck
 
 ### Step 4 — Small JSX UI tests (≤120 lines, ~8 files, ~440 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed the eight Step 4 JSX UI tests from `.jsx` to `.tsx`; no test logic or TypeScript annotations were needed. `npm run typecheck`, `npm run validate:project`, and a targeted `npm run test:ui -- --reporter=dot` run over the eight converted files pass. `npm run test:architect -- --reporter=dot` passed all 283 files / 3,298 tests but exceeded the 4-minute AGENTS.md budget at 276s. The broad `npm run test:ui -- --reporter=dot` command also exceeded the 4-minute budget at 329s and failed in unrelated pre-existing `src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx`: the `setPlayerTrade` spy now receives normalized player fields (`bio`, `playerId`, `yearsOfService`) and a concrete `signAndTradeContract` object where the test expected a narrower payload.
 
 **Why fourth:** These are the smallest JSX component tests. Converting them to `.tsx` validates the JSX→TSX pipeline before tackling larger UI tests.
 

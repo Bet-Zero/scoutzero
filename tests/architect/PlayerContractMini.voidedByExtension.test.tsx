@@ -1,5 +1,5 @@
 /**
- * FILE: tests/architect/PlayerContractMini.voidedByExtension.test.jsx
+ * FILE: tests/architect/PlayerContractMini.voidedByExtension.test.tsx
  * PURPOSE: T-3 guard — verifies PlayerContractMini dims and labels voided
  *          year rows when voidedByExtension is true.
  */

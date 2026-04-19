@@ -1,5 +1,5 @@
 /**
- * FILE: src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx
+ * FILE: src/tests/architect/capSheet_capPct_ssot.behavior.test.tsx
  * PURPOSE: Verify cap % denominator uses canonicalTotals.salaryCap (SSOT), not deprecated capProjections.
  * OWNERSHIP: Feature: architect/cap-sheet (E2)
  *

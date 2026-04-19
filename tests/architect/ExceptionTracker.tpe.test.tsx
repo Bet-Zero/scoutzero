@@ -1,5 +1,5 @@
 /**
- * FILE: tests/architect/ExceptionTracker.tpe.test.jsx
+ * FILE: tests/architect/ExceptionTracker.tpe.test.tsx
  * PURPOSE: Gap D guard — verifies ExceptionTracker reads TPEs via getTeamTpeList (canonical + legacy fallback).
  * OWNERSHIP: Test suite — TM-1 fixpack
  */
