@@ -25,9 +25,33 @@ const OSTE_PATH = path.resolve(
 
 const FROM_YEAR = 2025;
 const TO_YEAR = 2026;
+type BasicTeamSalaryRows =
+  ReturnType<typeof createBasicTeam>['players'][number]['contract']['salariesByYear'];
 
 // Helper: create a team with N players
-function createBasicTeam(playerCount = 14, salary = 5_000_000) {
+function createBasicTeam(playerCount = 14, salary = 5_000_000): {
+  teamCode: string;
+  season: string;
+  players: Array<{
+    player_id: string;
+    displayName: string;
+    contract: {
+      contractType: string;
+      salariesByYear: Array<{
+        season: string;
+        salary: number;
+        capHit: number;
+      }>;
+    };
+  }>;
+  capHolds: [];
+  deadCap: [];
+  exceptions: Record<string, never>;
+  roster: [];
+  totals: Record<string, never>;
+  hardCapTriggered?: string | boolean | null;
+  hardCapped?: boolean | number | null;
+} {
   return {
     teamCode: 'BOS',
     season: '2024-25',
@@ -97,7 +121,7 @@ describe('OSTE Validation Unification — Behavioral Guardrails (E1.1)', () => {
     team.players[0].contract.salariesByYear = [
       { salary: 5_000_000, capHit: 5_000_000 }, // missing 'season'
       { season: '2025-26', salary: 5_000_000, capHit: 5_000_000 },
-    ];
+    ] as unknown as BasicTeamSalaryRows;
 
     const result = resolveOffseasonTransition({
       teamCapSheet: team,

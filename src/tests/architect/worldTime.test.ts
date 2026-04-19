@@ -78,7 +78,7 @@ describe('Phase 20: World Time SSOT', () => {
       const result = resolveWorldAsOfDate({
         payloadAsOfDate: 12345,
         worldAsOfDate: '2026-01-15',
-      });
+      } as unknown as Parameters<typeof resolveWorldAsOfDate>[0]);
       
       // Number should be ignored, use world date
       expect(result.asOfDate).toBe('2026-01-15');
@@ -89,7 +89,7 @@ describe('Phase 20: World Time SSOT', () => {
       const result = resolveWorldAsOfDate({
         payloadAsOfDate: null,
         worldAsOfDate: { date: '2026-01-15' },
-      });
+      } as unknown as Parameters<typeof resolveWorldAsOfDate>[0]);
       
       // Object should be ignored, use fallback
       expect(result.asOfDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -137,7 +137,7 @@ describe('Phase 20: World Time SSOT', () => {
         seasonId: '2025-26',
         timestamp: Date.now(),
         asOfDate: '2026-01-20', // Phase 20 param
-      });
+      } as unknown as Parameters<typeof computeWorldMutation>[0]);
       
       // Should return error for unknown type but not crash
       expect(result.success).toBe(false);
@@ -150,7 +150,11 @@ describe('Phase 20: World Time SSOT', () => {
       // This is a structural test - validates the conditional logic
       // When payloadAsOfDate is a valid string, it should be included in worldPatch
       const payloadAsOfDate = '2026-01-20';
-      const worldPatch = {
+      const worldPatch: {
+        lastModifiedAt: string;
+        lastModifiedTeams: string[];
+        asOfDate?: string;
+      } = {
         lastModifiedAt: new Date().toISOString(),
         lastModifiedTeams: ['LAL'],
       };
@@ -165,7 +169,11 @@ describe('Phase 20: World Time SSOT', () => {
 
     it('T7: worldPatch does NOT include asOfDate when payload omits it', () => {
       const payloadAsOfDate = null;
-      const worldPatch = {
+      const worldPatch: {
+        lastModifiedAt: string;
+        lastModifiedTeams: string[];
+        asOfDate?: string;
+      } = {
         lastModifiedAt: new Date().toISOString(),
         lastModifiedTeams: ['LAL'],
       };
@@ -180,7 +188,11 @@ describe('Phase 20: World Time SSOT', () => {
 
     it('T7b: worldPatch does NOT include asOfDate when payload has undefined', () => {
       const payloadAsOfDate = undefined;
-      const worldPatch = {
+      const worldPatch: {
+        lastModifiedAt: string;
+        lastModifiedTeams: string[];
+        asOfDate?: string;
+      } = {
         lastModifiedAt: new Date().toISOString(),
         lastModifiedTeams: ['LAL'],
       };

@@ -56,7 +56,7 @@ vi.mock('../../features/architect/utils/capRulesProfile', () => ({
 vi.mock(
   '../../features/architect/utils/capTotals/computeTeamCapTotals',
   async (importOriginal) => {
-    const actual = await importOriginal();
+    const actual = (await importOriginal()) as Record<string, unknown>;
     return {
       ...actual,
       computeTeamCapTotals: vi.fn((team) => ({
@@ -85,28 +85,29 @@ vi.mock('../../features/architect/utils/playerRulesProfile/minimumSalaryRules', 
 import { getCapForSeason } from '../../features/architect/utils/capHelpers';
 
 describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
-  const CAP_CONTEXT = {
+  const CAP_CONTEXT: NonNullable<ReturnType<typeof getCapForSeason>> = {
     salaryCap: 140e6,
+    taxLine: 170e6,
     firstApron: 178e6,
     secondApron: 190e6,
+    minimumTeamSalary: 126e6,
     fullMLE: 12e6,
     taxpayerMLE: 5e6,
     roomMLE: 8e6,
     bae: 4e6,
-    legacy: false,
-    season: '2025-26',
+    averagePlayerSalary: 10e6,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    getCapForSeason.mockReturnValue(CAP_CONTEXT);
+    vi.mocked(getCapForSeason).mockReturnValue(CAP_CONTEXT);
   });
 
   describe('buildRuleContext.ts: deriveApronLevel', () => {
     // We test this via buildRuleContextForPlayerMove's output
     // Input must be rigorous enough to pass validation
 
-    const baseInput = {
+    const baseInput: Parameters<typeof buildRuleContextForPlayerMove>[0] = {
       player: { id: 'p1' },
       teamState: { teamId: 't1', totals: { totalSalary: 0 } },
       operationType: 'UFA_SIGNING',
@@ -165,8 +166,9 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
 
         const result = validateSigning({
             team,
+            player: { player_id: 'p1' },
             contract,
-            year: '2025-26',
+            year: 2026,
             signedUsing: 'TPMLE', // Non-minimum
         });
 
@@ -185,14 +187,15 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
 
         const result = validateSigning({
             team,
+            player: { player_id: 'p1' },
             contract,
-            year: '2025-26',
+            year: 2026,
             signedUsing: 'TPMLE',
         });
 
         const blockedByApron = result.violations.find(v => v.rule === 'second_apron_minimum_only');
         expect(blockedByApron).toBeDefined();
-        expect(blockedByApron.rule).toBe('second_apron_minimum_only');
+        expect(blockedByApron?.rule).toBe('second_apron_minimum_only');
     });
   });
 
@@ -242,7 +245,15 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
     it('should IGNORE legacy parameter teamIsAtOrAboveSecondApron', () => {
         // Should behave as false (frozen=false) because teamIsSecondApron is undefined,
         // even though legacy key is true.
-        expect(isFrozenPick(pick, { ...opts, teamIsAtOrAboveSecondApron: true })).toBe(false);
+        expect(
+          isFrozenPick(
+            pick,
+            {
+              ...opts,
+              teamIsAtOrAboveSecondApron: true,
+            } as unknown as Parameters<typeof isFrozenPick>[1]
+          )
+        ).toBe(false);
     });
 
     it('should support new parameter teamIsSecondApron', () => {

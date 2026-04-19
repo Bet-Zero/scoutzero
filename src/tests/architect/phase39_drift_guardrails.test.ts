@@ -31,7 +31,7 @@ vi.mock('../../features/architect/utils/hardCapUtils', () => ({
 vi.mock(
   '../../features/architect/utils/capTotals/computeTeamCapTotals',
   async (importOriginal) => {
-    const actual = await importOriginal();
+    const actual = (await importOriginal()) as Record<string, unknown>;
     return {
       ...actual,
       computeTeamCapTotals: vi.fn((team) => ({

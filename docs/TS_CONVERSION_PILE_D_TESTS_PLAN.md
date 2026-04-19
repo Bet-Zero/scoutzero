@@ -563,7 +563,9 @@ npm run typecheck
 
 ### Step 14 — `src/tests/architect/` small-to-medium JS guardrails, part 1 (~15 files, ~5,500 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all 15 Step 14 files from `.js` to `.ts`. Seven files were rename-only; the remaining eight needed minimal TS migration edits limited to typed mock-module spreads, local fixture widening/casts for intentionally invalid inputs, one required `player` field in `validateSigning` calls, and optional-property-safe expectations where helper types are broader than the asserted runtime shape. `npm run typecheck`, a targeted `npm run test:node -- --reporter=dot` run over the 15 converted files, and `npm run validate:project` all pass. The broad `npm run test:architect -- --reporter=dot` step listed below was intentionally skipped because that script is directory-scoped to all architect and trade-machine node tests; the targeted node run covered every converted Step 14 file directly and better matches AGENTS.md's default targeted-validation rule.
 
 **Why split:** The `src/tests/architect/` directory has 62 JS files and 8 JSX files. Converting in two batches (Steps 14–15 for JS, Step 16 for JSX) keeps each commit reviewable and limits blast radius.
 

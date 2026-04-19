@@ -14,6 +14,10 @@ import {
   computeMatchingValues,
 } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 
+type MatchingTeams = NonNullable<
+  Parameters<typeof computeMatchingValues>[0]['teams']
+>;
+
 describe('Legacy getMatchingValue() vs Canonical computeMatchingValues()', () => {
   const currentYear = '2024-25';
 
@@ -44,9 +48,9 @@ describe('Legacy getMatchingValue() vs Canonical computeMatchingValues()', () =>
 
       // Calculate using canonical computeMatchingValues()
       // Correct: (10M + 20M + 22M + 24M) / 4 = 19M
-      const teams = [{ sends: [{ ...player }] }];
+      const teams: MatchingTeams = [{ sends: [{ ...player }] }];
       computeMatchingValues({ teams, yearKey: currentYear });
-      const canonicalResult = teams[0].sends[0].matchIncoming;
+      const canonicalResult = teams[0].sends?.[0]?.matchIncoming;
 
       // Document the difference
       const legacyExpected = Math.floor((10_000_000 + 22_000_000) / 2); // 16M
@@ -77,12 +81,12 @@ describe('Legacy getMatchingValue() vs Canonical computeMatchingValues()', () =>
         extensionYears,
       };
 
-      const teams = [{ sends: [{ ...player }] }];
+      const teams: MatchingTeams = [{ sends: [{ ...player }] }];
       computeMatchingValues({ teams, yearKey: currentYear });
 
       // Canonical: (15M + 30M + 35M) / 3 = 80M / 3 = 26.666...M → floor = 26,666,666
       const expectedCanonical = Math.floor(80_000_000 / 3);
-      expect(teams[0].sends[0].matchIncoming).toBe(expectedCanonical);
+      expect(teams[0].sends?.[0]?.matchIncoming).toBe(expectedCanonical);
     });
 
     it('legacy getMatchingValue() is only used as input fallback, not validation', () => {
@@ -127,10 +131,10 @@ describe('Legacy getMatchingValue() vs Canonical computeMatchingValues()', () =>
       expect(legacyOutgoing).toBe(expectedBYC);
 
       // Canonical should match for BYC
-      const teams = [{ sends: [{ ...player }] }];
+      const teams: MatchingTeams = [{ sends: [{ ...player }] }];
       computeMatchingValues({ teams, yearKey: currentYear });
 
-      expect(teams[0].sends[0].matchOutgoing).toBe(expectedBYC);
+      expect(teams[0].sends?.[0]?.matchOutgoing).toBe(expectedBYC);
     });
   });
 });

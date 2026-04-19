@@ -101,14 +101,20 @@ describe('Dead Money Management (setDeadCap)', () => {
               currentState,
               seasonId: '2025-26',
               timestamp: Date.now()
-          });
+          } as unknown as Parameters<typeof computeWorldMutation>[0]);
           
           expect(result.success).toBe(true);
           expect(result.teamUpdates).toHaveLength(1);
           expect(result.teamUpdates[0].team.deadCap).toEqual(newDeadCap);
           // Ensure it fully replaced, not appended
           expect(result.teamUpdates[0].team.deadCap).toHaveLength(1);
-          expect(result.teamUpdates[0].team.deadCap[0].reason).toBe('New Entry');
+          expect(
+            (
+              result.teamUpdates[0].team.deadCap as Array<{
+                reason?: string;
+              }>
+            )[0].reason
+          ).toBe('New Entry');
       });
       
       it('should fail if deadCap payload is missing', () => {
@@ -121,7 +127,7 @@ describe('Dead Money Management (setDeadCap)', () => {
               currentState: { team: { teamCode: 'LAL' } },
               seasonId: '2025-26',
               timestamp: Date.now()
-           });
+           } as unknown as Parameters<typeof computeWorldMutation>[0]);
            
            expect(result.success).toBe(false);
            expect(result.error).toContain('Invalid deadCap payload');
@@ -152,7 +158,7 @@ describe('Dead Money Management (setDeadCap)', () => {
               },
               seasonId: '2025-26',
               timestamp: Date.now()
-          });
+          } as unknown as Parameters<typeof computeWorldMutation>[0]);
 
           expect(result.success).toBe(true);
           expect(result.teamUpdates[0].team.totals.yearKey).toBe(2026);

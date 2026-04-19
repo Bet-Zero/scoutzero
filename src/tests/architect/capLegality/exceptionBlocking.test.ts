@@ -9,7 +9,7 @@ import capProjections from '@/features/architect/utils/capProjections';
 vi.mock(
   '@/features/architect/utils/capTotals/computeTeamCapTotals',
   async (importOriginal) => {
-    const actual = await importOriginal();
+    const actual = (await importOriginal()) as Record<string, unknown>;
     return {
       ...actual,
       computeTeamCapTotals: vi.fn((team) => ({
@@ -34,7 +34,14 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
   /**
    * Creates a mock team with the specified cap hit.
    */
-  function createTeamWithCapHit(capHit, options = {}) {
+  function createTeamWithCapHit(
+    capHit: number,
+    options: {
+      isHardCapped?: boolean;
+      hardCapLevel?: string | null;
+      exceptions?: Record<string, unknown>;
+    } = {}
+  ) {
     const {
       isHardCapped = false,
       hardCapLevel = null,

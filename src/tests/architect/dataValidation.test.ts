@@ -23,6 +23,9 @@ import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/u
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
+type MatchingTeams = NonNullable<
+  Parameters<typeof computeMatchingValues>[0]['teams']
+>;
 
 describe('GAP-DATA-001: BYC Player Data Validation', () => {
   describe('validateBYCPlayerData', () => {
@@ -120,7 +123,7 @@ describe('GAP-DATA-001: BYC Player Data Validation', () => {
 
   describe('computeMatchingValues with BYC warnings', () => {
     it('collects BYC warnings when computing matching values', () => {
-      const teams = [
+      const teams: MatchingTeams = [
         {
           sends: [
             {
@@ -145,7 +148,7 @@ describe('GAP-DATA-001: BYC Player Data Validation', () => {
     });
 
     it('attaches warnings to team object', () => {
-      const teams = [
+      const teams: MatchingTeams = [
         {
           sends: [
             {
@@ -164,7 +167,7 @@ describe('GAP-DATA-001: BYC Player Data Validation', () => {
     });
 
     it('BYC calculation still works (uses 50% fallback)', () => {
-      const teams = [
+      const teams: MatchingTeams = [
         {
           sends: [
             {
@@ -180,7 +183,7 @@ describe('GAP-DATA-001: BYC Player Data Validation', () => {
       computeMatchingValues({ teams, yearKey: currentYear });
 
       // 50% of 20M = 10M (fallback when no previousSalary)
-      expect(teams[0].sends[0].matchOutgoing).toBe(10_000_000);
+      expect(teams[0].sends?.[0]?.matchOutgoing).toBe(10_000_000);
     });
   });
 });
@@ -248,7 +251,7 @@ describe('GAP-DATA-002: Salary Field Normalization', () => {
 
   describe('computeMatchingValues with salary field tracking', () => {
     it('tracks when fallback salary source is used', () => {
-      const teams = [
+      const teams: MatchingTeams = [
         {
           sends: [
             {
@@ -283,7 +286,7 @@ describe('validateTradeData (combined validation)', () => {
 
     const result = validateTradeData(players, currentYear);
 
-    expect(result.hasIssues).toBe(true);
+    expect('hasIssues' in result && result.hasIssues).toBe(true);
     expect(result.summary.bycPlayers).toBe(1);
     expect(result.summary.bycMissingPrevSalary).toBe(1);
   });
