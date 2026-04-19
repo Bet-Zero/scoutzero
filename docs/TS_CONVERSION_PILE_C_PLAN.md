@@ -367,7 +367,8 @@ Completed 2026-04-19: Converted all table and filters runtime UI files to TSX, a
 
 ## Step 5 — Convert Profile UI
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Converted the profile UI tree and `PlayerProfileView` route to TSX, kept the route conversion in Step 5 because it owns the typed modal/profile state wiring, and widened the shared enriched stats contract to match canonical `PlayerV2` stat maps without changing runtime normalization.
 
 **Goal:** Convert Player Profile UI components using the typed profile hooks and helper contracts from Pile B.
 

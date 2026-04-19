@@ -24,26 +24,6 @@ Quick reference for all components in the ScoutZero project.
 - TierPlayerTile.jsx
 - TieredListView/index.jsx
 
-## Profile
-
-- BreakdownModal.jsx
-- PlayerDetails/BadgeSelector.jsx
-- PlayerDetails/OverallBlurbBox.jsx
-- PlayerDetails/PlayerHeader/ProfilePlayerName.jsx
-- PlayerDetails/PlayerHeader/ProfilePlayerPosition.jsx
-- PlayerDetails/PlayerHeader/index.jsx
-- PlayerDetails/PlayerRolesSection/ShootingProfileSelector.jsx
-- PlayerDetails/PlayerRolesSection/SubRoleSelector.jsx
-- PlayerDetails/PlayerRolesSection/TwoWayMeter.jsx
-- PlayerDetails/PlayerRolesSection/index.jsx
-- PlayerDetails/PlayerStatsTable.jsx
-- PlayerDetails/PlayerTraitsGrid.jsx
-- PlayerDetails/index.jsx
-- PlayerNavigation.jsx
-- PlayerSearchBar.jsx
-- SaveStatusIndicator.jsx
-- TeamPlayerDropdowns.jsx
-
 ## Ranker
 
 - AdjustableRankings.jsx
@@ -91,4 +71,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-04-19T01:04:49.137Z*
+*Generated on: 2026-04-19T01:11:53.936Z*

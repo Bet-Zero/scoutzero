@@ -1,4 +1,4 @@
-// src/features/profile/TeamPlayerDropdowns.jsx
+// src/features/profile/TeamPlayerDropdowns.tsx
 
 import React, { useEffect } from 'react';
 import { getPlayersForTeam } from '@/features/profile/utils/profileHelpers';

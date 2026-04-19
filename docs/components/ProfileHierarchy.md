@@ -1,26 +1,26 @@
 # Profile Component Hierarchy
 
 ```text
-BreakdownModal.jsx
+BreakdownModal.tsx
 PlayerDetails/
-  BadgeSelector.jsx
-  OverallBlurbBox.jsx
+  BadgeSelector.tsx
+  OverallBlurbBox.tsx
   PlayerHeader/
-    ProfilePlayerName.jsx
-    ProfilePlayerPosition.jsx
-    index.jsx
+    ProfilePlayerName.tsx
+    ProfilePlayerPosition.tsx
+    index.tsx
   PlayerRolesSection/
-    ShootingProfileSelector.jsx
-    SubRoleSelector.jsx
-    TwoWayMeter.jsx
-    index.jsx
-  PlayerStatsTable.jsx
-  PlayerTraitsGrid.jsx
-  index.jsx
-PlayerNavigation.jsx
-PlayerSearchBar.jsx
-SaveStatusIndicator.jsx
-TeamPlayerDropdowns.jsx
+    ShootingProfileSelector.tsx
+    SubRoleSelector.tsx
+    TwoWayMeter.tsx
+    index.tsx
+  PlayerStatsTable.tsx
+  PlayerTraitsGrid.tsx
+  index.tsx
+PlayerNavigation.tsx
+PlayerSearchBar.tsx
+SaveStatusIndicator.tsx
+TeamPlayerDropdowns.tsx
 hooks/
   useAutoSavePlayer.ts
   usePlayerNavigation.ts
@@ -30,5 +30,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-18T14:36:37.976Z*
+*Generated on: 2026-04-19T01:11:53.900Z*
 *Auto-updated by: npm run docs*

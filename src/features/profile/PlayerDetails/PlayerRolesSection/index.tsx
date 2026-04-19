@@ -1,4 +1,4 @@
-// components/PlayerRolesSection.jsx
+// components/PlayerRolesSection.tsx
 import React from 'react';
 import SubRoleSelector from './SubRoleSelector';
 import ShootingProfileSelector from './ShootingProfileSelector';

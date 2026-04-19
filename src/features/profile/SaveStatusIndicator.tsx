@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/profile/SaveStatusIndicator.jsx
+ * FILE: src/features/profile/SaveStatusIndicator.tsx
  * PURPOSE: Minimal save status indicator for profile autosave feedback.
  * OWNERSHIP: Feature: profile/scouting
  *

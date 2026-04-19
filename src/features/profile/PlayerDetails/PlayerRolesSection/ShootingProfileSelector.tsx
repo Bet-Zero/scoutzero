@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/profile/PlayerDetails/PlayerRolesSection/ShootingProfileSelector.jsx
+ * FILE: src/features/profile/PlayerDetails/PlayerRolesSection/ShootingProfileSelector.tsx
  * PURPOSE: Shooting profile tier picker used in the player roles section.
  * OWNERSHIP: Feature: profile/scouting
  *

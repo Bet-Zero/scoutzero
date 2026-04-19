@@ -1,4 +1,4 @@
-// PlayerPosition.jsx
+// PlayerPosition.tsx
 import React from 'react';
 import { POSITION_MAP } from '@/shared/utils/roles';
 

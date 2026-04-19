@@ -1,5 +1,5 @@
 /**
- * FILE: src/pages/PlayerProfileView.jsx
+ * FILE: src/pages/PlayerProfileView.tsx
  * PURPOSE: Scouting Player Profile route view with player selection, state, and autosave.
  * OWNERSHIP: Feature: profile/scouting
  */

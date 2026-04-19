@@ -1,4 +1,4 @@
-// components/LayoutPreview/TwoWayMeter.jsx
+// components/LayoutPreview/TwoWayMeter.tsx
 import React from 'react';
 
 const TwoWayMeter = ({ twoWayValue, onChange }) => {

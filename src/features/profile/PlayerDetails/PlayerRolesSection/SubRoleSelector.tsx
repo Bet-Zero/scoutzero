@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/profile/PlayerDetails/PlayerRolesSection/SubRoleSelector.jsx
+ * FILE: src/features/profile/PlayerDetails/PlayerRolesSection/SubRoleSelector.tsx
  * PURPOSE: Sub-role selection UI with modal picker for offense/defense subroles.
  * OWNERSHIP: Feature: profile/scouting
  *
@@ -16,6 +16,7 @@ import { NotebookText } from 'lucide-react';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { isPositiveSubRole } from '@/shared/utils/roles';
 import useClickOutside from '@/shared/hooks/useClickOutside';
+import type { PlayerSubRoles } from '@/features/roster/utils/enrichPlayerData';
 
 const OFFENSIVE_GROUPS = [
   'Playmaking',
@@ -161,8 +162,12 @@ const SubRoleModal = ({ selection, onToggle, onClose, modalRef }) => (
   </div>
 );
 
-const SubRoleSelector = ({ subRoles = {}, setSubRoles, setOpenModal }) => {
-  const safeSubRoles = {
+const SubRoleSelector = ({
+  subRoles = {} as Partial<PlayerSubRoles>,
+  setSubRoles,
+  setOpenModal,
+}) => {
+  const safeSubRoles: PlayerSubRoles = {
     offense: Array.isArray(subRoles.offense) ? subRoles.offense : [],
     defense: Array.isArray(subRoles.defense) ? subRoles.defense : [],
   };

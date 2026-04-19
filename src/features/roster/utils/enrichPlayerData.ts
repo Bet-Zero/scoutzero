@@ -80,7 +80,19 @@ type ContractsViewInput = {
   seasons?: ContractViewSeasonInput[] | null;
 };
 
-export type PlayerStats = Record<string, number | string | null | undefined>;
+type PlayerStatValue = number | string | null | undefined;
+
+export type PlayerStats = Record<string, unknown> & {
+  PTS?: PlayerStatValue;
+  REB?: PlayerStatValue;
+  AST?: PlayerStatValue;
+  'FG%'?: PlayerStatValue;
+  '3PT%'?: PlayerStatValue;
+  'FT%'?: PlayerStatValue;
+  'eFG%'?: PlayerStatValue;
+  MIN?: PlayerStatValue;
+  GP?: PlayerStatValue;
+};
 type SeasonMeta = Record<string, unknown>;
 
 type SeasonInput = {

@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/profile/BreakdownModal.jsx
+ * FILE: src/features/profile/BreakdownModal.tsx
  * PURPOSE: Shared breakdown modal for blurbs with video examples, Save/Close buttons.
  * OWNERSHIP: Feature: profile/scouting
  *

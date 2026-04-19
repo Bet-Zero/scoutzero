@@ -1,4 +1,4 @@
-// components/PlayerTraitsGrid.jsx
+// components/PlayerTraitsGrid.tsx
 import React from 'react';
 import { NotebookText } from 'lucide-react';
 import { TRAIT_ORDER, getTraitColor } from '@/constants/scoutingConstants';

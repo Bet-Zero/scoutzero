@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/profile/PlayerDetails/OverallBlurbBox.jsx
+ * FILE: src/features/profile/PlayerDetails/OverallBlurbBox.tsx
  * PURPOSE: Overall scouting blurb and grade editor with modal access.
  * OWNERSHIP: Feature: profile/scouting
  *
