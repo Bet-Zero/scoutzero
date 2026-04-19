@@ -398,7 +398,9 @@ npm run typecheck
 
 ### Step 9 — `tests/architect/` JS tests (19 files, ~14,617 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all 19 Step 9 `tests/architect/` files from `.js` to `.ts` with no migration-only logic changes or extra type annotations required. `npm run typecheck` passes, a targeted `npm run test:node -- --reporter=dot` run over the 19 converted files passes (19 files / 615 tests in 14.33s), and `npm run validate:project` passes. The broad `npm run test:architect -- --reporter=dot` step listed below was intentionally skipped because earlier batches showed that suite can exceed AGENTS.md's 4-minute budget; the targeted node run covered every converted Step 9 file directly.
 
 **Files:**
 
