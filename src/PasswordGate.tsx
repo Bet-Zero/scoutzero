@@ -1,4 +1,4 @@
-// src/PasswordGate.jsx
+// src/PasswordGate.tsx
 import { useState } from 'react';
 
 const PasswordGate = ({ children }) => {

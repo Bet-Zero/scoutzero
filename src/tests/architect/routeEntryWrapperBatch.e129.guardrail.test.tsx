@@ -35,7 +35,7 @@ describe('E129 route/public-entry wrapper deletion batch guardrails', () => {
 
   it('keeps GmDashboardView on the direct GMDashboard authority import', () => {
     const source = fs.readFileSync(
-      path.join(srcRoot, 'pages/GmDashboardView.jsx'),
+      path.join(srcRoot, 'pages/GmDashboardView.tsx'),
       'utf-8'
     );
 
@@ -49,7 +49,7 @@ describe('E129 route/public-entry wrapper deletion batch guardrails', () => {
 
   it('keeps GmLeagueView on the retained shared/LeagueView folder entry', () => {
     const source = fs.readFileSync(
-      path.join(srcRoot, 'pages/GmLeagueView.jsx'),
+      path.join(srcRoot, 'pages/GmLeagueView.tsx'),
       'utf-8'
     );
 

@@ -1,5 +1,5 @@
 /**
- * FILE: src/core/layout/SiteLayout.jsx
+ * FILE: src/core/layout/SiteLayout.tsx
  * PURPOSE: Site-wide layout with header navigation and conditional scroll handling.
  *
  * OWNERSHIP: Core: layout

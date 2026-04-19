@@ -473,7 +473,8 @@ Completed 2026-04-19: Converted the ranker UI tree, legacy tournament ranker hel
 
 ## Step 9 — Convert Page Shells and App Entry
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Converted the remaining app shell, password gate, layout, diagnostic/table/GM route pages, and React entrypoint to TSX, updated route wrapper guardrails for the renamed GM pages, and confirmed no runtime `src/**/*.js(x)` files remain outside `src/tests/**`.
 
 **Goal:** Convert top-level route views and app shell after their child feature trees have typed props.
 
