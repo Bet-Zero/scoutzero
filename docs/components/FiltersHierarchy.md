@@ -3,29 +3,29 @@
 ```text
 ActiveFiltersDisplay/
   FilterPill/
-    FilterContent.jsx
-    FilterPill.jsx
-  index.jsx
-ActiveFiltersDrawer.jsx
+    FilterContent.tsx
+    FilterPill.tsx
+  index.tsx
+ActiveFiltersDrawer.tsx
 FiltersPanel/
   FilterPanel/
-    index.jsx
+    index.tsx
     sections/
-      BadgeFilters.jsx
-      ContractFilters.jsx
-      MetadataFilters.jsx
-      OverallGradeFilter.jsx
-      PhysicalFilters.jsx
-      RoleFilters.jsx
-      StatFilters.jsx
-      TraitFilters.jsx
-      ViewControls.jsx
-  FilterPanelCondensed.jsx
-  index.jsx
+      BadgeFilters.tsx
+      ContractFilters.tsx
+      MetadataFilters.tsx
+      OverallGradeFilter.tsx
+      PhysicalFilters.tsx
+      RoleFilters.tsx
+      StatFilters.tsx
+      TraitFilters.tsx
+      ViewControls.tsx
+  FilterPanelCondensed.tsx
+  index.tsx
 hooks/
   useActiveFilterCount.ts
 ```
 
 ---
-*Generated on: 2026-04-18T14:11:50.811Z*
+*Generated on: 2026-04-19T01:04:49.074Z*
 *Auto-updated by: npm run docs*

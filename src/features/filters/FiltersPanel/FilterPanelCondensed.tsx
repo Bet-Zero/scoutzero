@@ -1,4 +1,4 @@
-// src/components/filters/FilterPanelCondensed.jsx
+// src/components/filters/FilterPanelCondensed.tsx
 
 import React from 'react';
 import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';

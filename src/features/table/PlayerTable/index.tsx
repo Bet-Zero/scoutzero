@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/table/PlayerTable/index.jsx
+ * FILE: src/features/table/PlayerTable/index.tsx
  * PURPOSE: Virtualized player database table using react-window with ResizeObserver-based measurement.
  *
  * OWNERSHIP: Feature: table/virtualization
@@ -25,6 +25,7 @@ import React, {
   useLayoutEffect,
   useEffect,
 } from 'react';
+import type { CSSProperties, HTMLAttributes } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
@@ -42,6 +43,20 @@ import usePlayerTableDensity from './hooks/usePlayerTableDensity';
 import useActiveFilterCount from '@/features/filters/hooks/useActiveFilterCount';
 import { useFilterDiagnostics } from '../hooks/useFilterDiagnostics';
 import FilterDiagnosticsPanel from './FilterDiagnosticsPanel';
+
+type TablePlayer = ReturnType<typeof useFilteredPlayers>[number];
+
+type DrawerContextValue = {
+  expandedPlayerId: string | null;
+  players: TablePlayer[];
+  itemSize: number;
+  drawerHeight: number;
+  setDrawerHeight: React.Dispatch<React.SetStateAction<number>>;
+};
+
+type InnerElementProps = HTMLAttributes<HTMLDivElement> & {
+  style?: CSSProperties;
+};
 
 // Row Component for react-window
 const Row = ({ index, style, data }) => {
@@ -66,45 +81,51 @@ const Row = ({ index, style, data }) => {
 
 // Custom Inner Element to render the Overlay Drawer
 // Phase 2E: Uses measured drawer height to compute exact extra scroll space needed
-const InnerElement = React.forwardRef(({ children, style, ...rest }, ref) => {
-  const { expandedPlayerId, players, itemSize, drawerHeight } =
-    React.useContext(DrawerContext);
+const InnerElement = React.forwardRef<HTMLDivElement, InnerElementProps>(
+  ({ children, style = {}, ...rest }, ref) => {
+    const { expandedPlayerId, players, itemSize, drawerHeight } =
+      React.useContext(DrawerContext);
 
-  // Compute exact extra height needed to prevent drawer clipping
-  // Formula: extra = max(0, drawerBottom - baseInnerHeight)
-  // where drawerBottom = (expandedIndex + 1) * itemSize + drawerHeight
-  let modifiedStyle = style;
+    // Compute exact extra height needed to prevent drawer clipping
+    // Formula: extra = max(0, drawerBottom - baseInnerHeight)
+    // where drawerBottom = (expandedIndex + 1) * itemSize + drawerHeight
+    let modifiedStyle = style;
 
-  if (expandedPlayerId && drawerHeight > 0 && players.length > 0) {
-    const expandedIndex = players.findIndex(
-      (p) => getPlayerId(p) === expandedPlayerId
-    );
-    if (expandedIndex !== -1) {
-      const baseInnerHeight = parseFloat(style.height) || 0;
-      const drawerTop = (expandedIndex + 1) * itemSize;
-      const drawerBottom = drawerTop + drawerHeight;
-      const extra = Math.max(0, drawerBottom - baseInnerHeight);
+    if (expandedPlayerId && drawerHeight > 0 && players.length > 0) {
+      const expandedIndex = players.findIndex(
+        (p) => getPlayerId(p) === expandedPlayerId
+      );
+      if (expandedIndex !== -1) {
+        const styleHeight = style.height;
+        const baseInnerHeight =
+          typeof styleHeight === 'number'
+            ? styleHeight
+            : parseFloat(String(styleHeight ?? 0)) || 0;
+        const drawerTop = (expandedIndex + 1) * itemSize;
+        const drawerBottom = drawerTop + drawerHeight;
+        const extra = Math.max(0, drawerBottom - baseInnerHeight);
 
-      if (extra > 0) {
-        modifiedStyle = { ...style, height: baseInnerHeight + extra };
+        if (extra > 0) {
+          modifiedStyle = { ...style, height: baseInnerHeight + extra };
+        }
       }
     }
-  }
 
-  return (
-    <div ref={ref} style={modifiedStyle} {...rest}>
-      {children}
-      <DrawerOverlay />
-    </div>
-  );
-});
+    return (
+      <div ref={ref} style={modifiedStyle} {...rest}>
+        {children}
+        <DrawerOverlay />
+      </div>
+    );
+  }
+);
 
 // Separate component to consume context and render drawer
 // Phase 2E: Uses ResizeObserver to measure actual drawer height
 const DrawerOverlay = () => {
   const { expandedPlayerId, players, itemSize, setDrawerHeight } =
     React.useContext(DrawerContext);
-  const drawerRef = useRef(null);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
 
   // Measure drawer height using ResizeObserver
   useLayoutEffect(() => {
@@ -167,7 +188,7 @@ const DrawerOverlay = () => {
   );
 };
 
-const DrawerContext = React.createContext({
+const DrawerContext = React.createContext<DrawerContextValue>({
   expandedPlayerId: null,
   players: [],
   itemSize: 100,

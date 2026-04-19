@@ -19,6 +19,7 @@ type BadgeFilterSelectProps = {
   selectedBadgeClass?: string;
   unselectedBadgeClass?: string;
   iconSize?: string;
+  cols?: number;
 };
 
 const BadgeFilterSelect = ({

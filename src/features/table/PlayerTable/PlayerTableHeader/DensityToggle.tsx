@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/table/PlayerTable/PlayerTableHeader/DensityToggle.jsx
+ * FILE: src/features/table/PlayerTable/PlayerTableHeader/DensityToggle.tsx
  * PURPOSE: Segmented control for switching between Comfortable and Compact density modes.
  *
  * OWNERSHIP: Feature: table/density

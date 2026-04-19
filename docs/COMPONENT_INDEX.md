@@ -2,25 +2,6 @@
 
 Quick reference for all components in the ScoutZero project.
 
-## Filters
-
-- ActiveFiltersDisplay/FilterPill/FilterContent.jsx
-- ActiveFiltersDisplay/FilterPill/FilterPill.jsx
-- ActiveFiltersDisplay/index.jsx
-- ActiveFiltersDrawer.jsx
-- FiltersPanel/FilterPanel/index.jsx
-- FiltersPanel/FilterPanel/sections/BadgeFilters.jsx
-- FiltersPanel/FilterPanel/sections/ContractFilters.jsx
-- FiltersPanel/FilterPanel/sections/MetadataFilters.jsx
-- FiltersPanel/FilterPanel/sections/OverallGradeFilter.jsx
-- FiltersPanel/FilterPanel/sections/PhysicalFilters.jsx
-- FiltersPanel/FilterPanel/sections/RoleFilters.jsx
-- FiltersPanel/FilterPanel/sections/StatFilters.jsx
-- FiltersPanel/FilterPanel/sections/TraitFilters.jsx
-- FiltersPanel/FilterPanel/sections/ViewControls.jsx
-- FiltersPanel/FilterPanelCondensed.jsx
-- FiltersPanel/index.jsx
-
 ## Lists
 
 - AddToListButton/AddToListModal.jsx
@@ -101,26 +82,6 @@ Quick reference for all components in the ScoutZero project.
 - RosterViewer.jsx
 - SaveRosterModal.jsx
 
-## Table
-
-- PlayerTable/FilterDiagnosticsPanel.jsx
-- PlayerTable/PlayerRow/PlayerDrawer/BadgeMini.jsx
-- PlayerTable/PlayerRow/PlayerDrawer/OverallBlurbMini.jsx
-- PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.jsx
-- PlayerTable/PlayerRow/PlayerDrawer/PlayerStatsMini.jsx
-- PlayerTable/PlayerRow/PlayerDrawer/PlayerSubRolesMini.jsx
-- PlayerTable/PlayerRow/PlayerDrawer/PlayerTraitsMiniGrid.jsx
-- PlayerTable/PlayerRow/PlayerDrawer/index.jsx
-- PlayerTable/PlayerRow/PlayerNameMini.jsx
-- PlayerTable/PlayerRow/RolePill.jsx
-- PlayerTable/PlayerRow/ShootingProfileMini.jsx
-- PlayerTable/PlayerRow/index.jsx
-- PlayerTable/PlayerTableHeader/DensityToggle.jsx
-- PlayerTable/PlayerTableHeader/SearchBar.jsx
-- PlayerTable/PlayerTableHeader/TopControlsBar.jsx
-- PlayerTable/PlayerTableHeader/index.jsx
-- PlayerTable/index.jsx
-
 ## TierMaker
 
 - CreateTierListModal.jsx
@@ -130,4 +91,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-04-18T14:49:34.065Z*
+*Generated on: 2026-04-19T01:04:49.137Z*

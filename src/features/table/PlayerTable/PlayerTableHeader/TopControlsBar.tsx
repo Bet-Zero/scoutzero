@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/table/PlayerTable/PlayerTableHeader/TopControlsBar.jsx
+ * FILE: src/features/table/PlayerTable/PlayerTableHeader/TopControlsBar.tsx
  * PURPOSE: Always-visible fixed-height controls bar with basic filters (left) and sort (right).
  *          Part of Phase 2O: zero layout shift controls architecture.
  *

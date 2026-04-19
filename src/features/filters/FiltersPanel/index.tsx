@@ -36,7 +36,6 @@ const FiltersPanel = ({
         <FilterPanel
           filters={filters}
           setFilters={setFilters}
-          getDefaultFilters={getDefaultFilters}
           onClose={() => {
             setShowFullFilters(false);
             onClose();

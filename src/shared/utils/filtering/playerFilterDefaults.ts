@@ -21,7 +21,7 @@ export type PlayerFilters = {
   freeAgentType: string;
   birdRights: string;
   optionTypes: string[];
-  optionYear: string | null;
+  optionYear: number | null;
   min_overall_grade: number | undefined;
   max_overall_grade: number | undefined;
   offenseRole: string;

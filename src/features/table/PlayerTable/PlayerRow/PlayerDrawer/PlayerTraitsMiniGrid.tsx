@@ -1,4 +1,4 @@
-// components/PlayerTraitsMiniGrid.jsx
+// components/PlayerTraitsMiniGrid.tsx
 import React from 'react';
 
 const TRAIT_ORDER = [

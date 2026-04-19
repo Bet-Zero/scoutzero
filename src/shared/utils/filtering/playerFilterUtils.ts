@@ -19,7 +19,7 @@ const traitSort = [
 
 const CURRENT_YEAR = getCurrentSeasonYear();
 
-type FilterablePlayer = {
+export type FilterablePlayer = {
   bio?: {
     displayName?: string | null;
     name?: string | null;
@@ -27,11 +27,15 @@ type FilterablePlayer = {
       teamId?: string | null;
       team?: string | null;
       freeAgentYear?: string | number | null;
+      freeAgentType?: string | null;
     } | null;
     playerId?: string | null;
+    height?: number | null;
+    weight?: number | null;
   } | null;
   id?: string | null;
   player_id?: string | null;
+  headshotUrl?: string | null;
   formattedPosition?: string | null;
   heightInInches?: number | null;
   weight?: number | null;
@@ -47,15 +51,39 @@ type FilterablePlayer = {
   primaryEvaluation?: {
     roles?: { offense2?: string | null; defense2?: string | null } | null;
   } | null;
+  currentContractView?: {
+    birdRights?: { status?: string | null } | null;
+    currentSalary?: number | null;
+    freeAgentYear?: string | number | null;
+    freeAgentType?: string | null;
+    options?: unknown[] | null;
+    optionsByYear?: Record<string | number, string | null | undefined> | null;
+    salaryByYear?: Record<string | number, number | null | undefined> | null;
+    yearsRemaining?: number | null;
+  } | null;
   shootingProfile?: string | null;
   subRoles?: { offense?: string[]; defense?: string[] } | null;
+  subroles?: { offense?: string[]; defense?: string[] } | null;
   traits?: Record<string, number | null | undefined> | null;
   badges?: string[] | null;
   name?: string | null;
   primaryContract?: {
-    salariesByYear?: Array<{ salary?: number | string | null }> | null;
+    freeAgency?: {
+      birdRights?: string | null;
+      freeAgentYear?: string | number | null;
+      freeAgentType?: string | null;
+    } | null;
+    isExtension?: boolean | null;
+    options?: Array<{ year?: string | number | null; type?: string | null }> | null;
+    salariesByYear?: Array<{
+      option?: string | null;
+      salary?: number | string | null;
+      season?: string | null;
+      voidedByExtension?: boolean | null;
+      year?: string | number | null;
+    }> | null;
   } | null;
-  contracts?: Record<string, { salariesByYear?: Array<{ salary?: number | string | null }> | null }> | null;
+  contracts?: Record<string, NonNullable<FilterablePlayer['primaryContract']>> | null;
   [key: string]: unknown;
 };
 

@@ -2,34 +2,34 @@
 
 ```text
 PlayerTable/
-  FilterDiagnosticsPanel.jsx
+  FilterDiagnosticsPanel.tsx
   PlayerRow/
     PlayerDrawer/
-      BadgeMini.jsx
-      OverallBlurbMini.jsx
-      PlayerContractMini.jsx
-      PlayerStatsMini.jsx
-      PlayerSubRolesMini.jsx
-      PlayerTraitsMiniGrid.jsx
-      index.jsx
+      BadgeMini.tsx
+      OverallBlurbMini.tsx
+      PlayerContractMini.tsx
+      PlayerStatsMini.tsx
+      PlayerSubRolesMini.tsx
+      PlayerTraitsMiniGrid.tsx
+      index.tsx
     PlayerNameMini.d.ts
-    PlayerNameMini.jsx
-    RolePill.jsx
-    ShootingProfileMini.jsx
-    index.jsx
+    PlayerNameMini.tsx
+    RolePill.tsx
+    ShootingProfileMini.tsx
+    index.tsx
   PlayerTableHeader/
-    DensityToggle.jsx
-    SearchBar.jsx
-    TopControlsBar.jsx
-    index.jsx
+    DensityToggle.tsx
+    SearchBar.tsx
+    TopControlsBar.tsx
+    index.tsx
   hooks/
     usePlayerTableDensity.ts
-  index.jsx
+  index.tsx
 hooks/
   useFilterDiagnostics.ts
   useFilteredPlayers.ts
 ```
 
 ---
-*Generated on: 2026-04-18T14:18:21.503Z*
+*Generated on: 2026-04-19T01:04:49.096Z*
 *Auto-updated by: npm run docs*

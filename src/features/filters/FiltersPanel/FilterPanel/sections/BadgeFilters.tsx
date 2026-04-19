@@ -4,8 +4,7 @@ import BadgeFilterSelect from '@/shared/components/ui/filters/BadgeFilterSelect'
 const BadgeFilters = ({ filters, setFilters }) => (
   <BadgeFilterSelect
     selected={filters.badges || []}
-      onChange={(badges) => setFilters((prev) => ({ ...prev, badges }))}
-    cols={4}
+    onChange={(badges) => setFilters((prev) => ({ ...prev, badges }))}
   />
 );
 

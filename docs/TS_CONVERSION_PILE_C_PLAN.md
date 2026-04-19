@@ -341,7 +341,8 @@ Completed 2026-04-19: Converted all shared UI leaf and diagnostic files to TSX, 
 
 ## Step 4 — Convert Table and Filters UI
 
-**Status:** TODO
+**Status:** DONE  
+Completed 2026-04-19: Converted all table and filters runtime UI files to TSX, added focused table/filter UI smoke coverage, exported/reused the typed filterable player contract for table rows and drawers, aligned `optionYear` with its numeric UI behavior, and refreshed filter catalog source references after the rename.
 
 **Goal:** Convert the player table and filters UI tree after its hooks and utilities are already typed.
 

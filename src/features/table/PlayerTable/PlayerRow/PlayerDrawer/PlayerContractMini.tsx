@@ -1,18 +1,33 @@
 import React from 'react';
 import { getCurrentSeasonYear } from '@/shared/utils/contracts';
+import type { FilterablePlayer } from '@/shared/utils/filtering/playerFilterUtils';
+
+type DrawerContract = FilterablePlayer['primaryContract'];
+type DrawerCurrentContractView = FilterablePlayer['currentContractView'];
+type DrawerSalary = NonNullable<NonNullable<DrawerContract>['salariesByYear']>[number];
+type DrawerOption = NonNullable<NonNullable<DrawerContract>['options']>[number] | null;
+
+type PlayerContractMiniProps = {
+  contract?: DrawerContract;
+  bird_rights?: string | null;
+  option_type?: DrawerOption;
+  free_agent_year?: string | number | null;
+  free_agent_type?: string | null;
+  currentContractView?: DrawerCurrentContractView;
+};
 
 const PlayerContractMini = ({
-  contract = {},
+  contract,
   bird_rights = 'Unknown',
-  option_type = {},
+  option_type = null,
   free_agent_year,
   free_agent_type,
   currentContractView, // Accept denormalized view
-}) => {
+}: PlayerContractMiniProps) => {
   const CURRENT_YEAR = getCurrentSeasonYear();
 
   // Prioritize currentContractView (denormalized), fallback to contract.salariesByYear array
-  let allSalaries = {};
+  let allSalaries: Record<number, DrawerSalary> = {};
   
   if (currentContractView?.salaryByYear) {
     // Convert object to array format
@@ -25,11 +40,18 @@ const PlayerContractMini = ({
   } else {
     // Fallback to contract.salariesByYear array
     const salaries = contract?.salariesByYear || [];
-    allSalaries = salaries.reduce(
+    allSalaries = salaries.reduce<Record<number, DrawerSalary>>(
       (acc, salary) => {
-        const year = salary.year || (salary.season ? parseInt(salary.season.split('-')[0]) + 1 : null);
-        if (year && year >= CURRENT_YEAR) {
-          acc[year] = salary;
+        const parsedYear =
+          typeof salary.year === 'number'
+            ? salary.year
+            : salary.year
+              ? parseInt(String(salary.year), 10)
+              : salary.season
+                ? parseInt(salary.season.split('-')[0], 10) + 1
+                : null;
+        if (parsedYear && parsedYear >= CURRENT_YEAR) {
+          acc[parsedYear] = salary;
         }
         return acc;
       },
@@ -50,7 +72,11 @@ const PlayerContractMini = ({
     let optionType = null;
     if (salaryData?.option) {
       optionType = salaryData.option;
-    } else if (option_type?.year === year) {
+    } else if (
+      option_type &&
+      typeof option_type === 'object' &&
+      Number(option_type.year) === year
+    ) {
       optionType = option_type.type;
     }
 
@@ -62,10 +88,10 @@ const PlayerContractMini = ({
 
     return {
       year,
-      amount: salaryData?.salary || null,
+      amount: (salaryData?.salary as number | null | undefined) || null,
       optionType,
       freeAgentTag,
-      isExtensionYear: contract?.isExtension && salaryData,
+      isExtensionYear: Boolean(contract?.isExtension && salaryData),
       voidedByExtension: !!salaryData?.voidedByExtension,
     };
   });
@@ -117,7 +143,7 @@ const PlayerContractMini = ({
       <div className="mt-2 pt-2 border-t border-white/10 text-[11px] flex justify-between">
         <span className="text-white/50">Rights:</span>
         <span className="font-normal text-[11px] capitalize">
-          {bird_rights.toLowerCase()}
+          {(bird_rights || 'Unknown').toLowerCase()}
         </span>
       </div>
     </div>

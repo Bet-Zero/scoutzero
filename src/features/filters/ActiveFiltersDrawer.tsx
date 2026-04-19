@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/filters/ActiveFiltersDrawer.jsx
+ * FILE: src/features/filters/ActiveFiltersDrawer.tsx
  * PURPOSE: Right-side overlay drawer displaying active filter pills.
  *          Part of Phase 2O: zero layout shift controls architecture.
  *
@@ -18,6 +18,7 @@ import FilterPill from './ActiveFiltersDisplay/FilterPill/FilterPill';
 import { getFilterDisplayValue } from '@/shared/utils/filtering';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
 
 /**
  * ActiveFiltersDrawer - Right-side overlay drawer for active filter management.
@@ -99,7 +100,8 @@ const ActiveFiltersDrawer = ({
 
       if (isActive) {
         if (key === 'subRoles' && value) {
-          [...(value.offense || []), ...(value.defense || [])].forEach(
+          const subRoles = value as PlayerFilters['subRoles'];
+          [...(subRoles.offense || []), ...(subRoles.defense || [])].forEach(
             (item) => {
               activeFilters.push({
                 key,

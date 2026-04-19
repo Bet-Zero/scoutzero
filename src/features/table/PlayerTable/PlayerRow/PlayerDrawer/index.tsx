@@ -4,10 +4,21 @@ import PlayerTraitsMiniGrid from '@/features/table/PlayerTable/PlayerRow/PlayerD
 import PlayerSubRolesMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerSubRolesMini';
 import PlayerStatsMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerStatsMini';
 import PlayerContractMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini';
+import type { FilterablePlayer } from '@/shared/utils/filtering/playerFilterUtils';
 
 const Divider = () => <div className="w-px h-auto bg-white/10 mx-3 my-1" />;
 
-const PlayerDrawer = ({ player }) => {
+type PlayerDrawerProps = {
+  player: FilterablePlayer;
+};
+
+const getFirstContract = (player: FilterablePlayer) =>
+  player.contracts ? Object.values(player.contracts)[0] : undefined;
+
+const PlayerDrawer = ({ player }: PlayerDrawerProps) => {
+  const firstContract = getFirstContract(player);
+  const contract = player.primaryContract || firstContract;
+
   return (
     <div className="w-full bg-[#111] border-t border-white/10 py-3">
       <div className="flex w-full gap-2">
@@ -30,18 +41,18 @@ const PlayerDrawer = ({ player }) => {
           />
           <Divider />
           <PlayerContractMini
-            contract={player.primaryContract || (player.contracts ? Object.values(player.contracts)[0] : {})}
+            contract={contract}
             bird_rights={player.currentContractView?.birdRights?.status || 
-              (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.birdRights : 'Unknown')}
+              firstContract?.freeAgency?.birdRights || 'Unknown'}
             option_type={
-              player.contracts ? Object.values(player.contracts)[0]?.options?.[0] : null
+              firstContract?.options?.[0] || null
             }
             free_agent_year={player.currentContractView?.freeAgentYear || 
               player.bio?.display?.freeAgentYear || 
-              (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.freeAgentYear : null)}
+              firstContract?.freeAgency?.freeAgentYear || null}
             free_agent_type={player.currentContractView?.freeAgentType || 
               player.bio?.display?.freeAgentType || 
-              (player.contracts ? Object.values(player.contracts)[0]?.freeAgency?.freeAgentType : null)}
+              firstContract?.freeAgency?.freeAgentType || null}
             currentContractView={player.currentContractView}
           />
           <Divider />

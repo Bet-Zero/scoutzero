@@ -1,4 +1,4 @@
-// RolePill.jsx
+// RolePill.tsx
 import React from 'react';
 
 const RolePill = ({

@@ -27,7 +27,7 @@ type MultiSelectFilterLabelKey = 'label' | 'name' | 'teamName' | 'code' | 'value
 type MultiSelectFilterProps = {
   label?: React.ReactNode;
   value?: MultiSelectFilterValue | '';
-  options?: MultiSelectFilterOption[];
+  options?: readonly MultiSelectFilterOption[];
   onChange?: (value: string) => void;
   allLabel?: string;
   containerClass?: string;

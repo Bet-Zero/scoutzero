@@ -1,4 +1,4 @@
-// src/components/filters/sections/MetadataFilters.jsx
+// src/components/filters/sections/MetadataFilters.tsx
 
 import React from 'react';
 import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';

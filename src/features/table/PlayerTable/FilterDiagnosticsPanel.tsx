@@ -1,5 +1,5 @@
 /**
- * @file FilterDiagnosticsPanel.jsx
+ * @file FilterDiagnosticsPanel.tsx
  * @description Phase 2S Dev Diagnostics Panel
  *
  * Collapsible overlay panel that displays filter diagnostics.
@@ -10,6 +10,7 @@
  */
 
 import React, { useState } from 'react';
+import type { FilterDiagnostics } from '@/features/table/hooks/useFilterDiagnostics';
 
 /**
  * Format a filter value for display
@@ -31,7 +32,11 @@ function formatValue(value) {
 /**
  * Status badge component
  */
-function StatusBadge({ status }) {
+function StatusBadge({
+  status,
+}: {
+  status: FilterDiagnostics['activeFilters'][number]['status'];
+}) {
   const colors = {
     WIRED: 'bg-green-600 text-white',
     STUB: 'bg-yellow-500 text-black',
@@ -52,7 +57,11 @@ function StatusBadge({ status }) {
  * Phase 2W: Option Coverage Diagnostics Section
  * Shows raw vs enriched option data for debugging Option Types filter
  */
-function OptionCoverageSection({ optionCoverage }) {
+function OptionCoverageSection({
+  optionCoverage,
+}: {
+  optionCoverage: FilterDiagnostics['optionCoverage'] | null | undefined;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!optionCoverage) return null;
@@ -178,7 +187,7 @@ function OptionCoverageSection({ optionCoverage }) {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Players with option for {salaryYear}:</span>
+                <span>Players with option for {String(salaryYear)}:</span>
                 <span
                   className={
                     enrichedStats.withOptionForSalaryYear > 0
@@ -192,7 +201,7 @@ function OptionCoverageSection({ optionCoverage }) {
             </div>
             {Object.keys(enrichedStats.optionByYearValues).length > 0 && (
               <div className="mt-2 text-gray-400">
-                Values for {salaryYear}:{' '}
+                Values for {String(salaryYear)}:{' '}
                 {Object.entries(enrichedStats.optionByYearValues)
                   .map(([k, v]) => `${k}:${v}`)
                   .join(', ')}
@@ -247,7 +256,11 @@ function OptionCoverageSection({ optionCoverage }) {
  * @param {Object} props
  * @param {Object|null} props.diagnostics - Diagnostics object from useFilterDiagnostics hook
  */
-export function FilterDiagnosticsPanel({ diagnostics }) {
+export function FilterDiagnosticsPanel({
+  diagnostics,
+}: {
+  diagnostics: FilterDiagnostics | null;
+}) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Don't render if diagnostics is null (debug mode off)
@@ -325,9 +338,9 @@ export function FilterDiagnosticsPanel({ diagnostics }) {
                         {formatValue(filter.value)}
                       </span>
                     </div>
-                    {filter.catalogEntry?.playerField && (
+                    {filter.catalogEntry?.playerFieldPaths?.length > 0 && (
                       <div className="text-xs text-gray-500 mt-0.5">
-                        Field: {filter.catalogEntry.playerField}
+                        Field: {filter.catalogEntry.playerFieldPaths.join(', ')}
                       </div>
                     )}
                   </div>
