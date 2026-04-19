@@ -180,7 +180,9 @@ npm run typecheck
 
 ### Step 3 — Small trade and validator tests (≤100 lines, ~17 files, ~1,150 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed the 17 Step 3 small trade/validator tests from `.js` to `.ts`; no test logic or TypeScript annotations were needed. `npm run typecheck`, `npm run test:trade -- --reporter=dot`, targeted `npm run test:node -- --reporter=dot tests/validators/hardCap.test.ts`, and `npm run validate:project` pass. The broad `npm run test:node -- --reporter=dot` command was also run, but it exceeded the 4-minute AGENTS.md budget and failed in the unrelated pre-existing `tests/contractSalaryUtils.test.js` warning-payload expectation: the runtime warning now includes `hasPrimaryContract: false` and `hasContractsMap: false`.
 
 **Why third:** Small trade rule tests are self-contained, import only from source modules (already TS), and match cleanly to `test:trade`.
 
