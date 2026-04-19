@@ -1,0 +1,729 @@
+# JS → TS Conversion — Pile D Tests Plan
+
+**Purpose:** Convert the remaining JS/JSX test and test-support files to TypeScript without breaking any existing test behavior.
+
+**Relationship to prior plans:**
+
+- Pile A (constants, data, Firestore helpers): complete.
+- Pile B (shared utils, hooks, schemas): complete.
+- Pile C (runtime UI/page/component): `docs/TS_CONVERSION_PILE_C_PLAN.md` — in progress, separate track.
+- Pile D (this document): test and test-support JS/JSX under `src/tests/**` and `tests/**`.
+
+**How this doc works:** When the user says "keep working on Pile D" or "keep working on `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`," find the first step below with status `TODO`, do it, update the status/note, validate narrowly, and commit the source change plus this plan update together.
+
+**Commit & status hygiene:**
+
+1. Use the commit message specified in each step.
+2. Before committing source changes, update this file with the step status or a dated progress note.
+3. Include the plan update in the same commit as the conversion work.
+4. If a step cannot finish, leave it `IN PROGRESS` and state the blocker plainly.
+
+**Scope boundary:**
+
+- Pile D covers only test and test-support files: `src/tests/**/*.js(x)` and `tests/**/*.js(x)`.
+- Pile D does NOT touch runtime source files. If a type import is needed from a source module, import it — do not duplicate the type.
+- If a converted test reveals a genuine type error in a source module, note it but do not fix it in the test migration commit. File a follow-up comment in this plan instead.
+- JSX test files (`.test.jsx`) become `.test.tsx`. Pure-logic test files (`.test.js`) become `.test.ts`.
+
+**Validation rules (per AGENTS.md):**
+
+- After each commit, run the relevant scoped test suite with `--reporter=dot` to confirm zero regressions.
+- Use the validation command specified in each step. Do not run `npm run test:full` unless the prompt contains `RUN FULL SUITE`.
+- Run `npm run typecheck` after each batch to confirm no new type errors are introduced.
+- If a test run exceeds 4 minutes, stop and switch to a cheaper scoped command.
+
+**Conversion technique:**
+
+1. Rename `.js` → `.ts` or `.jsx` → `.tsx`.
+2. Add minimal type annotations: typed imports, `describe`/`it` blocks need no annotation. Fixture objects get `as const` or explicit types only where the test logic requires it.
+3. Do not refactor test logic, add docstrings, or restructure assertions.
+4. If a test file imports from another JS file that has not been converted yet, use a `// @ts-expect-error` or rely on the existing `global-shims.d.ts` until that file's batch arrives. Prefer converting the dependency first (support files go in Step 1).
+5. Where vitest config `setupFiles` reference a converted file, update the config in the same commit.
+
+---
+
+## Inventory Summary (2026-04-19)
+
+### Counts
+
+| Location       | JS test files | JSX test files | JS support files | Total JS/JSX |
+| -------------- | ------------: | -------------: | ---------------: | -----------: |
+| `src/tests/**` |            93 |             11 |                0 |          104 |
+| `tests/**`     |           109 |              9 |                9 |          127 |
+| **Total**      |       **202** |         **20** |            **9** |      **231** |
+
+### Already-TS test files (no action needed)
+
+| Location       | `.test.ts` | `.test.tsx` |
+| -------------- | ---------: | ----------: |
+| `src/tests/**` |        201 |          88 |
+| `tests/**`     |         30 |           0 |
+
+### JS Support (non-test) files
+
+| File                                    | Lines | Role                                               | Consumers                                                                        |
+| --------------------------------------- | ----: | -------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `tests/setupFirebaseMocks.js`           |    66 | Vitest setup file — Firebase mock wiring           | Referenced in `vitest.config.js`, `vitest.node.config.js`, `vitest.ui.config.js` |
+| `tests/setupDebug.js`                   |    13 | Vitest setup file — debug logging                  | Referenced in all vitest configs                                                 |
+| `tests/__mocks__/firebase.js`           |   719 | Manual Firebase SDK mock                           | Auto-resolved by vitest module resolution                                        |
+| `tests/helpers/architectTestHelpers.js` |   440 | Shared architect world/team/player factory helpers | 10 architect test files in `tests/architect/`                                    |
+| `tests/fixtures/newSchemaPlayer.js`     |   169 | Player fixture conforming to `players_v2` schema   | `tests/newSchemaValidation.test.js` + 13 other test files                        |
+| `tests/fixtures/architect/players.js`   |   503 | Architect player fixture data                      | `tests/helpers/architectTestHelpers.js` and 2 direct consumers                   |
+| `tests/fixtures/architect/teams.js`     |   241 | Architect team fixture data                        | `tests/helpers/architectTestHelpers.js` and 2 direct consumers                   |
+| `tests/fixtures/architect/worlds.js`    |   134 | Architect world fixture data                       | `tests/helpers/architectTestHelpers.js` and 2 direct consumers                   |
+| `tests/regression.secondApron.js`       |    71 | Second apron regression fixture/scenario           | Self-contained; imported by 0 other test files                                   |
+
+### Subdirectory breakdown (JS/JSX test files only)
+
+| Directory                          |  JS | JSX | Total |   Lines | Scoped suite     |
+| ---------------------------------- | --: | --: | ----: | ------: | ---------------- |
+| `tests/` (root)                    |  37 |   0 |    37 |  ~8,400 | `test:node`      |
+| `tests/trade/`                     |  34 |   0 |    34 |  ~6,800 | `test:trade`     |
+| `tests/architect/`                 |  18 |   5 |    23 | ~10,900 | `test:architect` |
+| `tests/validators/`                |   7 |   0 |     7 |  ~1,800 | `test:node`      |
+| `tests/entitlements/`              |   4 |   0 |     4 |  ~1,300 | `test:architect` |
+| `tests/smoke/`                     |   3 |   0 |     3 |    ~165 | `test:fast`      |
+| `tests/roster/`                    |   0 |   1 |     1 |     289 | `test:roster`    |
+| `tests/` UI (root JSX)             |   0 |   3 |     3 |    ~460 | `test:ui`        |
+| `src/tests/architect/`             |  52 |   8 |    60 | ~23,800 | `test:architect` |
+| `src/tests/architect/dare/`        |  10 |   0 |    10 |  ~3,700 | `test:architect` |
+| `src/tests/architect/capTotals/`   |   4 |   0 |     4 |    ~700 | `test:architect` |
+| `src/tests/architect/capLegality/` |   1 |   0 |     1 |    ~200 | `test:architect` |
+| `src/tests/architect/utils/`       |   1 |   0 |     1 |    ~200 | `test:architect` |
+| `src/tests/trade/`                 |  11 |   3 |    14 |  ~4,500 | `test:trade`     |
+| `src/tests/tradeMachine/`          |   9 |   0 |     9 |  ~3,400 | `test:trade`     |
+| `src/tests/scouting/`              |   1 |   0 |     1 |     509 | `test:scouting`  |
+| `src/tests/` (root)                |   2 |   0 |     2 |    ~270 | `test:node`      |
+
+---
+
+## Conversion Steps
+
+### Step 1 — Test support infrastructure (9 files, ~2,356 lines)
+
+**Status:** TODO
+
+**Why first:** These are non-test files that other test files import. Converting them first eliminates cross-batch `@ts-expect-error` suppressions and gives every subsequent step typed fixtures and helpers from the start.
+
+**Files:**
+
+| File                                    | Lines | Action                        |
+| --------------------------------------- | ----: | ----------------------------- |
+| `tests/setupDebug.js`                   |    13 | → `setupDebug.ts`             |
+| `tests/setupFirebaseMocks.js`           |    66 | → `setupFirebaseMocks.ts`     |
+| `tests/__mocks__/firebase.js`           |   719 | → `firebase.ts`               |
+| `tests/regression.secondApron.js`       |    71 | → `regression.secondApron.ts` |
+| `tests/fixtures/newSchemaPlayer.js`     |   169 | → `newSchemaPlayer.ts`        |
+| `tests/fixtures/architect/players.js`   |   503 | → `players.ts`                |
+| `tests/fixtures/architect/teams.js`     |   241 | → `teams.ts`                  |
+| `tests/fixtures/architect/worlds.js`    |   134 | → `worlds.ts`                 |
+| `tests/helpers/architectTestHelpers.js` |   440 | → `architectTestHelpers.ts`   |
+
+**Config updates required:** Update `setupFiles` paths in `vitest.config.js`, `vitest.node.config.js`, `vitest.ui.config.js`, `vitest.emulator.config.js`, and `vitest.rules.config.js` to reference `.ts` extensions.
+
+**Validation:**
+
+```bash
+npm run typecheck
+npm run test:fast -- --reporter=dot
+npm run test:diff -- --reporter=dot
+```
+
+**Commit message:** `test: convert test support/fixture/mock files to TypeScript (Pile D Step 1)`
+
+---
+
+### Step 2 — Smoke tests and smallest root test files (≤100 lines each, ~18 files, ~850 lines)
+
+**Status:** TODO
+
+**Why second:** These are the smallest, lowest-risk test files. Many are pure smoke/sanity checks with no cross-test imports. Converting them builds confidence in the pipeline before tackling larger files.
+
+**Files:**
+
+| File                                     | Lines | Action  |
+| ---------------------------------------- | ----: | ------- |
+| `tests/smoke/utilities.smoke.test.js`    |    45 | → `.ts` |
+| `tests/smoke/trade-basics.smoke.test.js` |    52 | → `.ts` |
+| `tests/smoke/imports.smoke.test.js`      |    68 | → `.ts` |
+| `tests/formatHeight.test.js`             |    12 | → `.ts` |
+| `tests/buildAnchorComparisons.test.js`   |    16 | → `.ts` |
+| `tests/contractYears.test.js`            |    21 | → `.ts` |
+| `tests/hasStepienViolation.test.js`      |    39 | → `.ts` |
+| `tests/seasonIntegrationFinal.test.js`   |    55 | → `.ts` |
+| `tests/yearLogicIntegration.test.js`     |    59 | → `.ts` |
+| `tests/contractFixValidation.test.js`    |    60 | → `.ts` |
+| `tests/tradeSalaryMatching.test.js`      |    65 | → `.ts` |
+| `tests/contractDebugging.test.js`        |    76 | → `.ts` |
+| `tests/seasonUtils.test.js`              |    83 | → `.ts` |
+| `tests/contractOptionUsed.test.js`       |    84 | → `.ts` |
+| `tests/seasonNormalizer.test.js`         |    94 | → `.ts` |
+| `tests/dateConversion.test.js`           |    34 | → `.ts` |
+| `tests/salaryMargin.test.js`             |    40 | → `.ts` |
+| `tests/salaryUtils.test.js`              |    41 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:fast -- --reporter=dot
+npm run test:node -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert smoke + small root test files to TypeScript (Pile D Step 2)`
+
+---
+
+### Step 3 — Small trade and validator tests (≤100 lines, ~17 files, ~1,150 lines)
+
+**Status:** TODO
+
+**Why third:** Small trade rule tests are self-contained, import only from source modules (already TS), and match cleanly to `test:trade`.
+
+**Files:**
+
+| File                                                       | Lines | Action  |
+| ---------------------------------------------------------- | ----: | ------- |
+| `tests/trade/roster_twoWay_enforcement.test.js`            |    33 | → `.ts` |
+| `tests/trade/hardCap_trigger_faException.test.js`          |    37 | → `.ts` |
+| `tests/trade/byc_outgoing_max.test.js`                     |    38 | → `.ts` |
+| `tests/trade/firstApron_100pct.test.js`                    |    41 | → `.ts` |
+| `tests/trade/matchingBands_2023.test.js`                   |    54 | → `.ts` |
+| `tests/trade/usedTradeExceptions.test.js`                  |    55 | → `.ts` |
+| `tests/trade/rosterWindow_softEnforcement.test.js`         |    61 | → `.ts` |
+| `tests/trade/poisonPill_average.test.js`                   |    65 | → `.ts` |
+| `tests/trade/frozenPick_consequences.test.js`              |    74 | → `.ts` |
+| `tests/trade/tradeKicker_proration.test.js`                |    77 | → `.ts` |
+| `tests/trade/orderOfOps_conversionsBeforeMatching.test.js` |    81 | → `.ts` |
+| `tests/trade/tradeKicker_zeroGuarantee.test.js`            |    85 | → `.ts` |
+| `tests/trade/cashLedger_season_tracking.test.js`           |    86 | → `.ts` |
+| `tests/trade/consent_and_birdVeto.test.js`                 |    90 | → `.ts` |
+| `tests/trade/timingGates_softEnforcement.test.js`          |    99 | → `.ts` |
+| `tests/trade/tradeUtilityMisc_surface.test.js`             |    97 | → `.ts` |
+| `tests/validators/hardCap.test.js`                         |    84 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:trade -- --reporter=dot
+npm run test:node -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert small trade + validator tests to TypeScript (Pile D Step 3)`
+
+---
+
+### Step 4 — Small JSX UI tests (≤120 lines, ~8 files, ~440 lines)
+
+**Status:** TODO
+
+**Why fourth:** These are the smallest JSX component tests. Converting them to `.tsx` validates the JSX→TSX pipeline before tackling larger UI tests.
+
+**Files:**
+
+| File                                                            | Lines | Action   |
+| --------------------------------------------------------------- | ----: | -------- |
+| `tests/PlayerHeadshot.test.jsx`                                 |    11 | → `.tsx` |
+| `tests/AnchorComparison.test.jsx`                               |    19 | → `.tsx` |
+| `tests/RankingSetup.test.jsx`                                   |    27 | → `.tsx` |
+| `tests/architect/PlayerContractMini.voidedByExtension.test.jsx` |    82 | → `.tsx` |
+| `tests/architect/CapSheetFull.rules.test.jsx`                   |    92 | → `.tsx` |
+| `tests/architect/ExceptionTracker.tpe.test.jsx`                 |    92 | → `.tsx` |
+| `src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx`    |    53 | → `.tsx` |
+| `src/tests/architect/entitlementPickRow.vacuumBadges.test.jsx`  |    79 | → `.tsx` |
+
+**Validation:**
+
+```bash
+npm run test:architect -- --reporter=dot
+npm run test:ui -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert small JSX UI tests to TSX (Pile D Step 4)`
+
+---
+
+### Step 5 — Remaining `tests/` root logic tests (100–300 lines, ~13 files, ~2,700 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                            | Lines | Action  |
+| ----------------------------------------------- | ----: | ------- |
+| `tests/tradeHelpers.test.js`                    |   109 | → `.ts` |
+| `tests/rankingEngine.test.js`                   |   111 | → `.ts` |
+| `tests/tradeExceptions.test.js`                 |   118 | → `.ts` |
+| `tests/validationPerformance.test.js`           |   130 | → `.ts` |
+| `tests/contractSalaryUtils.test.js`             |   147 | → `.ts` |
+| `tests/playerSchemaValidation.test.js`          |   161 | → `.ts` |
+| `tests/newSchemaValidation.test.js`             |   230 | → `.ts` |
+| `tests/contractLukaDoncicSpec.test.js`          |   230 | → `.ts` |
+| `tests/capSettingsProvider.test.js`             |   266 | → `.ts` |
+| `tests/capUtils.test.js`                        |   270 | → `.ts` |
+| `tests/contractNormalizationValidation.test.js` |   288 | → `.ts` |
+| `tests/tierMakerListOrder.test.js`              |   103 | → `.ts` |
+| `tests/rankerSaveAsList.test.js`                |   105 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:node -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert mid-size root logic tests to TypeScript (Pile D Step 5)`
+
+---
+
+### Step 6 — Remaining `tests/` root large tests (300+ lines, ~9 files, ~4,500 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                                 | Lines | Action  |
+| ---------------------------------------------------- | ----: | ------- |
+| `tests/rankerLocalDraft.test.js`                     |   361 | → `.ts` |
+| `tests/tradeValidatorEdgeCases.test.js`              |   306 | → `.ts` |
+| `tests/signAndTradeAggregation.test.js`              |   367 | → `.ts` |
+| `tests/tierSaveAsList.test.js`                       |   444 | → `.ts` |
+| `tests/salaryMatchingRules.test.js`                  |   148 | → `.ts` |
+| `tests/salaryMatchingUnification.test.js`            |   149 | → `.ts` |
+| `tests/tradeValidator.test.js`                       |   524 | → `.ts` |
+| `tests/computeTeamCapTotals.test.js`                 |   644 | → `.ts` |
+| `tests/contractParser.test.js`                       |   545 | → `.ts` |
+| `tests/contractNormalizationRulesValidation.test.js` |   507 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:node -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert large root logic tests to TypeScript (Pile D Step 6)`
+
+---
+
+### Step 7 — `tests/validators/` remaining + `tests/entitlements/` (10 files, ~2,950 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                                      | Lines | Action  |
+| --------------------------------------------------------- | ----: | ------- |
+| `tests/validators/validationCache.test.js`                |   130 | → `.ts` |
+| `tests/validators/salaryMatching.test.js`                 |   200 | → `.ts` |
+| `tests/validators/stepienEntitlementBaseline.test.js`     |   370 | → `.ts` |
+| `tests/validators/stepienEntitlements.test.js`            |   569 | → `.ts` |
+| `tests/validators/stepien.test.js`                        |   170 | → `.ts` |
+| `tests/validators/roster.test.js`                         |   180 | → `.ts` |
+| `tests/entitlements/entitlementTrading.test.js`           |   350 | → `.ts` |
+| `tests/entitlements/entitlementPickRowProjection.test.js` |   656 | → `.ts` |
+| `tests/entitlements/worldTradeTransfer.test.js`           |   200 | → `.ts` |
+| `tests/entitlements/tradeReceiptEntitlements.test.js`     |   125 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:node -- --reporter=dot
+npm run test:architect -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert validator + entitlement tests to TypeScript (Pile D Step 7)`
+
+---
+
+### Step 8 — `tests/trade/` medium and large tests (17 remaining files, ~4,200 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                                  | Lines | Action  |
+| ----------------------------------------------------- | ----: | ------- |
+| `tests/trade/input_validation.test.js`                |   100 | → `.ts` |
+| `tests/trade/consent_and_reacq.test.js`               |   109 | → `.ts` |
+| `tests/trade/twoWayPlayers_snapshot.test.js`          |   110 | → `.ts` |
+| `tests/trade/reacquisition_bar.test.js`               |   128 | → `.ts` |
+| `tests/trade/signAndTrade_completeness.test.js`       |   140 | → `.ts` |
+| `tests/trade/tpe_creation_expiry_usage.test.js`       |   200 | → `.ts` |
+| `tests/trade/secondApronBoundary.test.js`             |   296 | → `.ts` |
+| `tests/trade/timingEnforcement_authoritative.test.js` |   194 | → `.ts` |
+| `tests/trade/salaryMatching.test.js`                  |   234 | → `.ts` |
+| `tests/trade/tpe_absorption_fail_closed.test.js`      |   222 | → `.ts` |
+| `tests/trade/secondApron_tpeBan.test.js`              |   155 | → `.ts` |
+| `tests/trade/secondApron_handcuffs.test.js`           |   178 | → `.ts` |
+| `tests/trade/faExceptions_as_trade_buckets.test.js`   |   175 | → `.ts` |
+| `tests/trade/jan15_offseason_timing.test.js`          |   160 | → `.ts` |
+| `tests/trade/rosterLegality_validateTrade.test.js`    |   200 | → `.ts` |
+| `tests/trade/validation_caching.test.js`              |   247 | → `.ts` |
+| `tests/trade/validatorTrustFixes.test.js`             |   456 | → `.ts` |
+| `tests/trade/validatorContractCleanup.test.js`        |   429 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:trade -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert tests/trade tests to TypeScript (Pile D Step 8)`
+
+---
+
+### Step 9 — `tests/architect/` JS tests (18 files, ~8,600 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                            | Lines | Action                                                       |
+| ----------------------------------------------- | ----: | ------------------------------------------------------------ |
+| `tests/architect/offerSheetResolution.test.js`  |    78 | → `.ts`                                                      |
+| `tests/architect/seasonHelpers.test.js`         |   254 | → `.ts`                                                      |
+| `tests/architect/tradeManager.test.js`          |   306 | → `.ts`                                                      |
+| `tests/architect/overrideBypass.test.js`        |   385 | → `.ts`                                                      |
+| `tests/architect/teamLoader.test.js`            |   519 | → `.ts`                                                      |
+| `tests/architect/contractNormalization.test.js` |   502 | → `.ts`                                                      |
+| `tests/architect/salaryEngine.test.js`          |   525 | → `.ts`                                                      |
+| `tests/architect/e2e-workflows.test.js`         |   508 | → `.ts`                                                      |
+| `tests/architect/renounceRights.test.js`        |   626 | → `.ts`                                                      |
+| `tests/architect/ruleContextTiming.test.js`     |   691 | → `.ts`                                                      |
+| `tests/architect/worldManager.test.js`          |   798 | → `.ts`                                                      |
+| `tests/architect/seasonManager.test.js`         |   857 | → `.ts`                                                      |
+| `tests/architect/offerSheetPersistence.test.js` |   879 | → `.ts`                                                      |
+| `tests/architect/integration.test.js`           |   734 | → `.ts`                                                      |
+| `tests/architect/playerRulesProfile.test.js`    | 1,152 | → `.ts`                                                      |
+| `tests/architect/worldsOnlyRegression.test.js`  |   150 | → `.ts`                                                      |
+| `tests/architect/schemaAdapter.test.js`         |   130 | → `.ts`                                                      |
+| `tests/architect/capLegalityValidation.test.js` | 5,381 | → `.ts` (largest file in Pile D — convert last in this step) |
+
+**Validation:**
+
+```bash
+npm run test:architect -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert tests/architect JS tests to TypeScript (Pile D Step 9)`
+
+**Note:** `tests/architect/capLegalityValidation.test.js` is 5,381 lines. If conversion is too noisy in one pass, split it into a standalone sub-commit.
+
+---
+
+### Step 10 — `tests/architect/` JSX tests (5 files, ~1,060 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                               | Lines | Action   |
+| -------------------------------------------------- | ----: | -------- |
+| `tests/architect/EditContractModal.rules.test.jsx` |   570 | → `.tsx` |
+| `tests/tierMakerRoutes.ui.test.jsx`                |   203 | → `.tsx` |
+| `tests/tierMakerBoards.ui.test.jsx`                |   225 | → `.tsx` |
+| `tests/roster/rosterBuilder.ui.test.jsx`           |   289 | → `.tsx` |
+
+**Validation:**
+
+```bash
+npm run test:ui -- --reporter=dot
+npm run test:architect -- --reporter=dot
+npm run test:roster -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert tests/ JSX UI tests to TSX (Pile D Step 10)`
+
+---
+
+### Step 11 — `src/tests/tradeMachine/` JS tests (9 files, ~3,400 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                                  | Lines | Action  |
+| ----------------------------------------------------- | ----: | ------- |
+| `src/tests/tradeMachine/displayFix.test.js`           |    54 | → `.ts` |
+| `src/tests/tradeMachine/pickIdUtils.test.js`          |   136 | → `.ts` |
+| `src/tests/tradeMachine/draftPicksSmokeCheck.test.js` |   170 | → `.ts` |
+| `src/tests/tradeMachine/seasonSwapResolution.test.js` |   280 | → `.ts` |
+| `src/tests/tradeMachine/draftPicksPreflight.test.js`  |   320 | → `.ts` |
+| `src/tests/tradeMachine/stepienObligations.test.js`   |   406 | → `.ts` |
+| `src/tests/tradeMachine/conveyancePreflight.test.js`  |   408 | → `.ts` |
+| `src/tests/tradeMachine/phase5DraftPositions.test.js` |   598 | → `.ts` |
+| `src/tests/tradeMachine/swapResolution.test.js`       |   687 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:trade -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert src/tests/tradeMachine tests to TypeScript (Pile D Step 11)`
+
+---
+
+### Step 12 — `src/tests/trade/` JS tests (11 files, ~3,700 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                                           | Lines | Action  |
+| -------------------------------------------------------------- | ----: | ------- |
+| `src/tests/trade/playerRouting.test.js`                        |   135 | → `.ts` |
+| `src/tests/trade/staleValidationFix.test.js`                   |   140 | → `.ts` |
+| `src/tests/trade/worldless_season_mapping.guardrail.test.js`   |   160 | → `.ts` |
+| `src/tests/trade/tpe_perPlayer.guardrail.test.js`              |   200 | → `.ts` |
+| `src/tests/trade/hardCapSkip_strict_boolean.guardrail.test.js` |   180 | → `.ts` |
+| `src/tests/trade/hardCap_salaryMatching.guardrail.test.js`     |   200 | → `.ts` |
+| `src/tests/trade/P0_hardCapSkip_worldless.guardrail.test.js`   |   150 | → `.ts` |
+| `src/tests/trade/secondApron_SSOT_guardrail.test.js`           |   180 | → `.ts` |
+| `src/tests/trade/goldenTrades.test.js`                         |   350 | → `.ts` |
+| `src/tests/trade/tradeSnapshotWiring.test.js`                  |   582 | → `.ts` |
+| `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js`      |   482 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:trade -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert src/tests/trade JS tests to TypeScript (Pile D Step 12)`
+
+---
+
+### Step 13 — `src/tests/trade/` JSX tests + scouting + root tests (6 files, ~1,650 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                                        | Lines | Action   |
+| ----------------------------------------------------------- | ----: | -------- |
+| `src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx`  |   407 | → `.tsx` |
+| `src/tests/trade/validatorContractConsumers.test.jsx`       |   336 | → `.tsx` |
+| `src/tests/trade/TradeValidationGating.guardrail.test.jsx`  |   494 | → `.tsx` |
+| `src/tests/scouting/player_filters_wiring_contract.test.js` |   509 | → `.ts`  |
+| `src/tests/stripUndefinedDeep.test.js`                      |   183 | → `.ts`  |
+| `src/tests/videoExamples.undefined.test.js`                 |    87 | → `.ts`  |
+
+**Validation:**
+
+```bash
+npm run test:trade -- --reporter=dot
+npm run test:scouting -- --reporter=dot
+npm run test:ui -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert src/tests trade JSX + scouting + root tests to TypeScript (Pile D Step 13)`
+
+---
+
+### Step 14 — `src/tests/architect/` small-to-medium JS guardrails, part 1 (~15 files, ~5,500 lines)
+
+**Status:** TODO
+
+**Why split:** The `src/tests/architect/` directory has 62 JS files and 8 JSX files. Converting in two batches (Steps 14–15 for JS, Step 16 for JSX) keeps each commit reviewable and limits blast radius.
+
+**Files (sorted by size, smallest first):**
+
+| File                                                                    | Lines | Action  |
+| ----------------------------------------------------------------------- | ----: | ------- |
+| `src/tests/architect/apronSemantics.test.js`                            |    50 | → `.ts` |
+| `src/tests/architect/phase39_drift_guardrails.test.js`                  |    84 | → `.ts` |
+| `src/tests/architect/worldTime.test.js`                                 |   108 | → `.ts` |
+| `src/tests/architect/legacyMatchingValue.test.js`                       |   130 | → `.ts` |
+| `src/tests/architect/dataValidation.test.js`                            |   150 | → `.ts` |
+| `src/tests/architect/batchB_cbaRules.test.js`                           |   180 | → `.ts` |
+| `src/tests/architect/deadCapManagement.test.js`                         |   200 | → `.ts` |
+| `src/tests/architect/phase17_entitlement_routing_guardrail.test.js`     |   220 | → `.ts` |
+| `src/tests/architect/capLegality/exceptionBlocking.test.js`             |   200 | → `.ts` |
+| `src/tests/architect/utils/seasonManager.tpe.test.js`                   |   200 | → `.ts` |
+| `src/tests/architect/phase16_3_trade_machine_init_guardrail.test.js`    |   250 | → `.ts` |
+| `src/tests/architect/phase42_apron_derivation_consolidation.test.js`    |   300 | → `.ts` |
+| `src/tests/architect/phase40_secondApron_drift_guardrails.test.js`      |   320 | → `.ts` |
+| `src/tests/architect/phase43_apron_drift_prevention_guardrails.test.js` |   350 | → `.ts` |
+| `src/tests/architect/oste_validation_unification_e1_1.test.js`          |   300 | → `.ts` |
+
+**Validation:**
+
+```bash
+npm run test:architect -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert src/tests/architect small guardrail tests to TypeScript (Pile D Step 14)`
+
+---
+
+### Step 15 — `src/tests/architect/` large JS guardrails + dare/, part 2 (~37 files, ~18,000 lines)
+
+**Status:** TODO
+
+**Why large:** These are the heavyweight architect guardrail, integration, and persistence tests. They share similar import patterns and can be converted in a single batch after Step 14 proves the smaller files.
+
+**Files (all remaining JS in `src/tests/architect/` including `dare/`, `capTotals/`):**
+
+| File                                                                                                    | Lines | Action  |
+| ------------------------------------------------------------------------------------------------------- | ----: | ------- |
+| `src/tests/architect/entitlementInvariants.test.js`                                                     |   350 | → `.ts` |
+| `src/tests/architect/exceptionManagement.test.js`                                                       |   501 | → `.ts` |
+| `src/tests/architect/signAndTrade.test.js`                                                              | 1,055 | → `.ts` |
+| `src/tests/architect/capLegalityValidation.test.js`                                                     |   866 | → `.ts` |
+| `src/tests/architect/phase86_league_invariants.test.js`                                                 |   439 | → `.ts` |
+| `src/tests/architect/capSheetFull_ssot_parity_guardrails.test.js`                                       |   640 | → `.ts` |
+| `src/tests/architect/phase47_tpe_persistence_guardrails.test.js`                                        |   350 | → `.ts` |
+| `src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.js`                             |   578 | → `.ts` |
+| `src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.js`                          |   350 | → `.ts` |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.js`                              |   818 | → `.ts` |
+| `src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.js`                              |   683 | → `.ts` |
+| `src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.js`                      |   724 | → `.ts` |
+| `src/tests/architect/phase55_trade_validation_separation_guardrails.test.js`                            |   447 | → `.ts` |
+| `src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.js`                                |   496 | → `.ts` |
+| `src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.js`                         |   654 | → `.ts` |
+| `src/tests/architect/phase59_legacy_import_guardrail.test.js`                                           |   300 | → `.ts` |
+| `src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.js`                      |   459 | → `.ts` |
+| `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.js`                         |   611 | → `.ts` |
+| `src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js`                |   815 | → `.ts` |
+| `src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.js`                               |   350 | → `.ts` |
+| `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.js`                 |   412 | → `.ts` |
+| `src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.js`                     |   448 | → `.ts` |
+| `src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.js`                    |   446 | → `.ts` |
+| `src/tests/architect/phase67_migration_execution_guardrails.test.js`                                    |   300 | → `.ts` |
+| `src/tests/architect/phase68_verify_only_empty_scan_must_fail_guardrails.test.js`                       |   250 | → `.ts` |
+| `src/tests/architect/phase69_seeded_verify_only_nonempty_proof_guardrails.test.js`                      |   250 | → `.ts` |
+| `src/tests/architect/phase70_ci_proof_and_prod_write_safety_guardrails.test.js`                         |   300 | → `.ts` |
+| `src/tests/architect/phase72_ssot_cap_totals_unification_guardrails.test.js`                            |   400 | → `.ts` |
+| `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.js`                       |   350 | → `.ts` |
+| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.js`                                     |   586 | → `.ts` |
+| `src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.js`                        |   516 | → `.ts` |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.js` |   530 | → `.ts` |
+| `src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.js`       |   627 | → `.ts` |
+| `src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js`                   |   350 | → `.ts` |
+| `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.js`    |   471 | → `.ts` |
+| `src/tests/architect/phase80_emulator_e2e_cap_sheet_proof_guardrails.test.js`                           |   300 | → `.ts` |
+| `src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js`           |   350 | → `.ts` |
+| `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.js`                                 |   488 | → `.ts` |
+| `src/tests/architect/phase16_seasonmanager_entitlements_ssot_view_guardrail.test.js`                    |   490 | → `.ts` |
+| `src/tests/architect/season_advance_bridge_gate_guardrails.test.js`                                     |   300 | → `.ts` |
+| `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.js`                                   |   350 | → `.ts` |
+| `src/tests/architect/dare/dareResolver.test.js`                                                         |   427 | → `.ts` |
+| `src/tests/architect/dare/conveyanceResolutionAdapter.test.js`                                          |   380 | → `.ts` |
+| `src/tests/architect/dare/protectionLadderFactory.test.js`                                              |   200 | → `.ts` |
+| `src/tests/architect/dare/swapResolutionAdapter.test.js`                                                |   200 | → `.ts` |
+| `src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.js`                            |   389 | → `.ts` |
+| `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.js`                                  |   623 | → `.ts` |
+| `src/tests/architect/dare/phaseD2_true_e2e_trade_to_advance_gate.test.js`                               |   350 | → `.ts` |
+| `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.js`                                     |   300 | → `.ts` |
+| `src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js`                                    |   350 | → `.ts` |
+| `src/tests/architect/dare/phaseD4_true_e2e_gate_guardrails.test.js`                                     |   300 | → `.ts` |
+| `src/tests/architect/capTotals/deadMoney.test.js`                                                       |   200 | → `.ts` |
+| `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.js`                                   |   150 | → `.ts` |
+| `src/tests/architect/capTotals/leagueViewSsot.test.js`                                                  |   200 | → `.ts` |
+| `src/tests/architect/capTotals/incompleteRosterCharge.test.js`                                          |   150 | → `.ts` |
+
+**Note:** If this batch is too large for a single commit, split into two sub-commits: (a) `dare/` + `capTotals/` + smaller phase files, then (b) remaining large phase files.
+
+**Validation:**
+
+```bash
+npm run test:architect -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert src/tests/architect large JS guardrails to TypeScript (Pile D Step 15)`
+
+---
+
+### Step 16 — `src/tests/architect/` JSX tests (8 files, ~2,600 lines)
+
+**Status:** TODO
+
+**Files:**
+
+| File                                                                       | Lines | Action   |
+| -------------------------------------------------------------------------- | ----: | -------- |
+| `src/tests/architect/entitlementPickRowDisplay.test.jsx`                   |   106 | → `.tsx` |
+| `src/tests/architect/editContractModal_buyout_and_close.behavior.test.jsx` |   119 | → `.tsx` |
+| `src/tests/architect/rosterChargeDisplay.test.jsx`                         |   344 | → `.tsx` |
+| `src/tests/architect/OfferSheetList.freeAgency.test.jsx`                   |   364 | → `.tsx` |
+| `src/tests/architect/freeAgentPool.offerSheetInitiation.behavior.test.jsx` |   384 | → `.tsx` |
+| `src/tests/architect/capSheet_exception_wiring.behavior.test.jsx`          | 1,027 | → `.tsx` |
+
+**Validation:**
+
+```bash
+npm run test:architect -- --reporter=dot
+npm run test:ui -- --reporter=dot
+npm run typecheck
+```
+
+**Commit message:** `test: convert src/tests/architect JSX tests to TSX (Pile D Step 16)`
+
+---
+
+## Post-Conversion Verification (Step 17)
+
+**Status:** TODO
+
+After all steps are complete:
+
+1. Run `npm run typecheck` — confirm zero new errors.
+2. Run `npm run build` — confirm clean build.
+3. Run `npm run validate:project` — confirm project structure is valid.
+4. Verify zero `.js` or `.jsx` files remain under `src/tests/` and `tests/` (excluding any intentionally deferred files noted below).
+5. Update `docs/TS_CONVERSION_NEXT_STEPS.md` to mark Pile D as complete.
+
+```bash
+npm run typecheck
+npm run build
+npm run validate:project
+find src/tests tests \( -name '*.js' -o -name '*.jsx' \) | head -20
+```
+
+**Commit message:** `docs: mark Pile D test migration complete`
+
+---
+
+## Follow-Up Items
+
+_(Record any type errors discovered in source modules during test conversion. Do not fix them in the test migration commits.)_
+
+- (none yet)
+
+---
+
+## Summary
+
+|      Step | Scope                           |   Files |       Lines | Risk                                  | Scoped validation                                       |
+| --------: | ------------------------------- | ------: | ----------: | ------------------------------------- | ------------------------------------------------------- |
+|         1 | Support infrastructure          |       9 |      ~2,356 | Low — no test logic changes           | `test:fast`, `test:diff`, `typecheck`                   |
+|         2 | Smoke + small root tests        |      18 |        ~850 | Low — tiny isolated files             | `test:fast`, `test:node`, `typecheck`                   |
+|         3 | Small trade + validator tests   |      17 |      ~1,150 | Low — small, self-contained           | `test:trade`, `test:node`, `typecheck`                  |
+|         4 | Small JSX UI tests              |       8 |        ~440 | Low — validates JSX→TSX path          | `test:architect`, `test:ui`, `typecheck`                |
+|         5 | Mid-size root logic tests       |      13 |      ~2,700 | Low-Med — larger but pure logic       | `test:node`, `typecheck`                                |
+|         6 | Large root logic tests          |      10 |      ~4,500 | Medium — large files                  | `test:node`, `typecheck`                                |
+|         7 | Validators + entitlements       |      10 |      ~2,950 | Medium — cross-domain                 | `test:node`, `test:architect`, `typecheck`              |
+|         8 | `tests/trade/` remaining        |      18 |      ~4,200 | Medium — CBA logic heavy              | `test:trade`, `typecheck`                               |
+|         9 | `tests/architect/` JS           |      18 |      ~8,600 | Med-High — large integration tests    | `test:architect`, `typecheck`                           |
+|        10 | `tests/` JSX UI                 |       4 |      ~1,060 | Medium — component rendering          | `test:ui`, `test:architect`, `test:roster`, `typecheck` |
+|        11 | `src/tests/tradeMachine/`       |       9 |      ~3,400 | Medium — draft pick logic             | `test:trade`, `typecheck`                               |
+|        12 | `src/tests/trade/` JS           |      11 |      ~3,700 | Medium — guardrails                   | `test:trade`, `typecheck`                               |
+|        13 | `src/tests/trade/` JSX + misc   |       6 |      ~1,650 | Medium — JSX + scouting               | `test:trade`, `test:scouting`, `test:ui`, `typecheck`   |
+|        14 | `src/tests/architect/` small JS |      15 |      ~5,500 | Medium — many guardrails              | `test:architect`, `typecheck`                           |
+|        15 | `src/tests/architect/` large JS |      55 |     ~18,000 | High — largest batch; split if needed | `test:architect`, `typecheck`                           |
+|        16 | `src/tests/architect/` JSX      |       6 |      ~2,600 | Medium — component tests              | `test:architect`, `test:ui`, `typecheck`                |
+|        17 | Post-conversion verification    |       0 |           0 | N/A                                   | Full validation pass                                    |
+| **Total** |                                 | **227** | **~63,700** |                                       |                                                         |
