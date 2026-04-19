@@ -2,31 +2,31 @@
 
 ```text
 AddPlayerDrawer/
-  PlayerRowMini.jsx
+  PlayerRowMini.tsx
   addPlayer/
-    BasicFilters.jsx
-    ContractFilters.jsx
-    DrawerHeader.jsx
-    FilterTabs.jsx
-    PhysicalFilters.jsx
-    PlayerSearchBar.jsx
-    RolesFilters.jsx
-    StatsFilters.jsx
-  index.jsx
-CreateRosterModal.jsx
-RosterControls.jsx
-RosterExportCapture.jsx
-RosterExportModal.jsx
-RosterPreviewModal.jsx
+    BasicFilters.tsx
+    ContractFilters.tsx
+    DrawerHeader.tsx
+    FilterTabs.tsx
+    PhysicalFilters.tsx
+    PlayerSearchBar.tsx
+    RolesFilters.tsx
+    StatsFilters.tsx
+  index.tsx
+CreateRosterModal.tsx
+RosterControls.tsx
+RosterExportCapture.tsx
+RosterExportModal.tsx
+RosterPreviewModal.tsx
 RosterSection/
-  BenchCard.jsx
-  EmptySlot.jsx
-  RotationCard.jsx
-  StarterCard.jsx
-  index.jsx
-RosterViewer.jsx
+  BenchCard.tsx
+  EmptySlot.tsx
+  RotationCard.tsx
+  StarterCard.tsx
+  index.tsx
+RosterViewer.tsx
 RosterViewerActions.tsx
-SaveRosterModal.jsx
+SaveRosterModal.tsx
 hooks/
   useRosterManager.ts
 utils/
@@ -38,5 +38,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-18T14:42:45.903Z*
+*Generated on: 2026-04-19T01:43:28.693Z*
 *Auto-updated by: npm run docs*
