@@ -441,7 +441,9 @@ npm run typecheck
 
 ### Step 10 — `tests/architect/` JSX tests (4 files, ~1,287 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all four Step 10 JSX UI tests from `.jsx` to `.tsx` with no migration-only logic changes or extra type annotations required. `npm run typecheck` passes, targeted `npm run test:ui -- --reporter=dot tests/tierMakerRoutes.ui.test.tsx tests/tierMakerBoards.ui.test.tsx` passes (2 files / 6 tests), and targeted `npm run test:roster -- --reporter=dot tests/roster/rosterBuilder.ui.test.tsx` passes (the `test:roster` script ran its built-in `src/tests/roster` scope plus the converted file and finished at 3 files / 31 tests). `npm run test:architect -- --reporter=dot tests/architect/EditContractModal.rules.test.tsx` also passes, but that script is directory-scoped to `tests/architect`, `src/tests/architect`, and `src/tests/tradeMachine`; it therefore ran a broader regression pass than Step 10 needed and finished in 204.67s with 283 files / 3,298 tests passed, still within the AGENTS.md 4-minute budget.
 
 **Files:**
 
