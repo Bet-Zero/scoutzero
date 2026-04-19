@@ -49,8 +49,8 @@
 | Location       | JS test files | JSX test files | JS support files | Total JS/JSX |
 | -------------- | ------------: | -------------: | ---------------: | -----------: |
 | `src/tests/**` |            93 |             11 |                0 |          104 |
-| `tests/**`     |           109 |              9 |                9 |          127 |
-| **Total**      |       **202** |         **20** |            **9** |      **231** |
+| `tests/**`     |           108 |             10 |                9 |          127 |
+| **Total**      |       **201** |         **21** |            **9** |      **231** |
 
 ### Already-TS test files (no action needed)
 
@@ -77,15 +77,15 @@
 
 | Directory                          |  JS | JSX | Total |   Lines | Scoped suite     |
 | ---------------------------------- | --: | --: | ----: | ------: | ---------------- |
-| `tests/` (root)                    |  37 |   0 |    37 |  ~8,400 | `test:node`      |
+| `tests/` (root)                    |  41 |   0 |    41 |  ~9,200 | `test:node`      |
 | `tests/trade/`                     |  34 |   0 |    34 |  ~6,800 | `test:trade`     |
-| `tests/architect/`                 |  18 |   5 |    23 | ~10,900 | `test:architect` |
+| `tests/architect/`                 |  19 |   5 |    24 | ~11,050 | `test:architect` |
 | `tests/validators/`                |   7 |   0 |     7 |  ~1,800 | `test:node`      |
 | `tests/entitlements/`              |   4 |   0 |     4 |  ~1,300 | `test:architect` |
 | `tests/smoke/`                     |   3 |   0 |     3 |    ~165 | `test:fast`      |
 | `tests/roster/`                    |   0 |   1 |     1 |     289 | `test:roster`    |
 | `tests/` UI (root JSX)             |   0 |   3 |     3 |    ~460 | `test:ui`        |
-| `src/tests/architect/`             |  52 |   8 |    60 | ~23,800 | `test:architect` |
+| `src/tests/architect/`             |  54 |   8 |    62 | ~24,100 | `test:architect` |
 | `src/tests/architect/dare/`        |  10 |   0 |    10 |  ~3,700 | `test:architect` |
 | `src/tests/architect/capTotals/`   |   4 |   0 |     4 |    ~700 | `test:architect` |
 | `src/tests/architect/capLegality/` |   1 |   0 |     1 |    ~200 | `test:architect` |
@@ -245,7 +245,7 @@ npm run typecheck
 
 ---
 
-### Step 5 — Remaining `tests/` root logic tests (100–300 lines, ~13 files, ~2,700 lines)
+### Step 5 — Remaining `tests/` root logic tests (100–300 lines, 16 files, ~3,122 lines)
 
 **Status:** TODO
 
@@ -266,6 +266,9 @@ npm run typecheck
 | `tests/contractNormalizationValidation.test.js` |   288 | → `.ts` |
 | `tests/tierMakerListOrder.test.js`              |   103 | → `.ts` |
 | `tests/rankerSaveAsList.test.js`                |   105 | → `.ts` |
+| `tests/seasonUtilsNormalization.test.js`        |   117 | → `.ts` |
+| `tests/tierListModePersistence.test.js`         |   127 | → `.ts` |
+| `tests/rankerSessionSerialization.test.js`      |   178 | → `.ts` |
 
 **Validation:**
 
@@ -278,7 +281,7 @@ npm run typecheck
 
 ---
 
-### Step 6 — Remaining `tests/` root large tests (300+ lines, ~9 files, ~4,500 lines)
+### Step 6 — Remaining `tests/` root large tests (300+ lines, 10 files, ~4,082 lines)
 
 **Status:** TODO
 
@@ -290,8 +293,8 @@ npm run typecheck
 | `tests/tradeValidatorEdgeCases.test.js`              |   306 | → `.ts` |
 | `tests/signAndTradeAggregation.test.js`              |   367 | → `.ts` |
 | `tests/tierSaveAsList.test.js`                       |   444 | → `.ts` |
-| `tests/salaryMatchingRules.test.js`                  |   148 | → `.ts` |
-| `tests/salaryMatchingUnification.test.js`            |   149 | → `.ts` |
+| `tests/salaryMatchingRules.test.js`                  |   217 | → `.ts` |
+| `tests/salaryMatchingUnification.test.js`            |   167 | → `.ts` |
 | `tests/tradeValidator.test.js`                       |   524 | → `.ts` |
 | `tests/computeTeamCapTotals.test.js`                 |   644 | → `.ts` |
 | `tests/contractParser.test.js`                       |   545 | → `.ts` |
@@ -339,7 +342,7 @@ npm run typecheck
 
 ---
 
-### Step 8 — `tests/trade/` medium and large tests (17 remaining files, ~4,200 lines)
+### Step 8 — `tests/trade/` medium and large tests (18 files, ~3,933 lines)
 
 **Status:** TODO
 
@@ -377,32 +380,33 @@ npm run typecheck
 
 ---
 
-### Step 9 — `tests/architect/` JS tests (18 files, ~8,600 lines)
+### Step 9 — `tests/architect/` JS tests (19 files, ~14,617 lines)
 
 **Status:** TODO
 
 **Files:**
 
-| File                                            | Lines | Action                                                       |
-| ----------------------------------------------- | ----: | ------------------------------------------------------------ |
-| `tests/architect/offerSheetResolution.test.js`  |    78 | → `.ts`                                                      |
-| `tests/architect/seasonHelpers.test.js`         |   254 | → `.ts`                                                      |
-| `tests/architect/tradeManager.test.js`          |   306 | → `.ts`                                                      |
-| `tests/architect/overrideBypass.test.js`        |   385 | → `.ts`                                                      |
-| `tests/architect/teamLoader.test.js`            |   519 | → `.ts`                                                      |
-| `tests/architect/contractNormalization.test.js` |   502 | → `.ts`                                                      |
-| `tests/architect/salaryEngine.test.js`          |   525 | → `.ts`                                                      |
-| `tests/architect/e2e-workflows.test.js`         |   508 | → `.ts`                                                      |
-| `tests/architect/renounceRights.test.js`        |   626 | → `.ts`                                                      |
-| `tests/architect/ruleContextTiming.test.js`     |   691 | → `.ts`                                                      |
-| `tests/architect/worldManager.test.js`          |   798 | → `.ts`                                                      |
-| `tests/architect/seasonManager.test.js`         |   857 | → `.ts`                                                      |
-| `tests/architect/offerSheetPersistence.test.js` |   879 | → `.ts`                                                      |
-| `tests/architect/integration.test.js`           |   734 | → `.ts`                                                      |
-| `tests/architect/playerRulesProfile.test.js`    | 1,152 | → `.ts`                                                      |
-| `tests/architect/worldsOnlyRegression.test.js`  |   150 | → `.ts`                                                      |
-| `tests/architect/schemaAdapter.test.js`         |   130 | → `.ts`                                                      |
-| `tests/architect/capLegalityValidation.test.js` | 5,381 | → `.ts` (largest file in Pile D — convert last in this step) |
+| File                                                  | Lines | Action                                                       |
+| ----------------------------------------------------- | ----: | ------------------------------------------------------------ |
+| `tests/architect/offerSheetResolution.test.js`        |    78 | → `.ts`                                                      |
+| `tests/architect/extension_voidedByExtension.test.js` |   142 | → `.ts`                                                      |
+| `tests/architect/seasonHelpers.test.js`               |   254 | → `.ts`                                                      |
+| `tests/architect/tradeManager.test.js`                |   306 | → `.ts`                                                      |
+| `tests/architect/overrideBypass.test.js`              |   385 | → `.ts`                                                      |
+| `tests/architect/teamLoader.test.js`                  |   519 | → `.ts`                                                      |
+| `tests/architect/contractNormalization.test.js`       |   502 | → `.ts`                                                      |
+| `tests/architect/salaryEngine.test.js`                |   525 | → `.ts`                                                      |
+| `tests/architect/e2e-workflows.test.js`               |   508 | → `.ts`                                                      |
+| `tests/architect/renounceRights.test.js`              |   626 | → `.ts`                                                      |
+| `tests/architect/ruleContextTiming.test.js`           |   691 | → `.ts`                                                      |
+| `tests/architect/worldManager.test.js`                |   798 | → `.ts`                                                      |
+| `tests/architect/seasonManager.test.js`               |   857 | → `.ts`                                                      |
+| `tests/architect/offerSheetPersistence.test.js`       |   879 | → `.ts`                                                      |
+| `tests/architect/integration.test.js`                 |   734 | → `.ts`                                                      |
+| `tests/architect/playerRulesProfile.test.js`          | 1,152 | → `.ts`                                                      |
+| `tests/architect/worldsOnlyRegression.test.js`        |   150 | → `.ts`                                                      |
+| `tests/architect/schemaAdapter.test.js`               |   130 | → `.ts`                                                      |
+| `tests/architect/capLegalityValidation.test.js`       | 5,381 | → `.ts` (largest file in Pile D — convert last in this step) |
 
 **Validation:**
 
@@ -417,7 +421,7 @@ npm run typecheck
 
 ---
 
-### Step 10 — `tests/architect/` JSX tests (5 files, ~1,060 lines)
+### Step 10 — `tests/architect/` JSX tests (4 files, ~1,287 lines)
 
 **Status:** TODO
 
@@ -568,11 +572,17 @@ npm run typecheck
 
 ---
 
-### Step 15 — `src/tests/architect/` large JS guardrails + dare/, part 2 (~37 files, ~18,000 lines)
+### Step 15 — `src/tests/architect/` large JS guardrails + dare/, part 2 (55 files, ~24,200 lines)
 
 **Status:** TODO
 
 **Why large:** These are the heavyweight architect guardrail, integration, and persistence tests. They share similar import patterns and can be converted in a single batch after Step 14 proves the smaller files.
+
+**Mandatory split:** This step is too large for a single commit. Split into three sub-commits:
+
+- **15a** — `dare/` + `capTotals/` + `capLegality/` subdirectory files (~15 files)
+- **15b** — Phase 47–70 guardrails (~21 files)
+- **15c** — Phase 72–86 + remaining non-phase files (~19 files)
 
 **Files (all remaining JS in `src/tests/architect/` including `dare/`, `capTotals/`):**
 
@@ -634,7 +644,7 @@ npm run typecheck
 | `src/tests/architect/capTotals/leagueViewSsot.test.js`                                                  |   200 | → `.ts` |
 | `src/tests/architect/capTotals/incompleteRosterCharge.test.js`                                          |   150 | → `.ts` |
 
-**Note:** If this batch is too large for a single commit, split into two sub-commits: (a) `dare/` + `capTotals/` + smaller phase files, then (b) remaining large phase files.
+**Note:** Split into sub-commits as described above (15a/15b/15c). Each sub-commit should pass `npm run test:architect -- --reporter=dot` before proceeding.
 
 **Validation:**
 
@@ -647,7 +657,7 @@ npm run typecheck
 
 ---
 
-### Step 16 — `src/tests/architect/` JSX tests (8 files, ~2,600 lines)
+### Step 16 — `src/tests/architect/` JSX tests (6 files, ~2,344 lines)
 
 **Status:** TODO
 
@@ -707,23 +717,23 @@ _(Record any type errors discovered in source modules during test conversion. Do
 
 ## Summary
 
-|      Step | Scope                           |   Files |       Lines | Risk                                  | Scoped validation                                       |
-| --------: | ------------------------------- | ------: | ----------: | ------------------------------------- | ------------------------------------------------------- |
-|         1 | Support infrastructure          |       9 |      ~2,356 | Low — no test logic changes           | `test:fast`, `test:diff`, `typecheck`                   |
-|         2 | Smoke + small root tests        |      18 |        ~850 | Low — tiny isolated files             | `test:fast`, `test:node`, `typecheck`                   |
-|         3 | Small trade + validator tests   |      17 |      ~1,150 | Low — small, self-contained           | `test:trade`, `test:node`, `typecheck`                  |
-|         4 | Small JSX UI tests              |       8 |        ~440 | Low — validates JSX→TSX path          | `test:architect`, `test:ui`, `typecheck`                |
-|         5 | Mid-size root logic tests       |      13 |      ~2,700 | Low-Med — larger but pure logic       | `test:node`, `typecheck`                                |
-|         6 | Large root logic tests          |      10 |      ~4,500 | Medium — large files                  | `test:node`, `typecheck`                                |
-|         7 | Validators + entitlements       |      10 |      ~2,950 | Medium — cross-domain                 | `test:node`, `test:architect`, `typecheck`              |
-|         8 | `tests/trade/` remaining        |      18 |      ~4,200 | Medium — CBA logic heavy              | `test:trade`, `typecheck`                               |
-|         9 | `tests/architect/` JS           |      18 |      ~8,600 | Med-High — large integration tests    | `test:architect`, `typecheck`                           |
-|        10 | `tests/` JSX UI                 |       4 |      ~1,060 | Medium — component rendering          | `test:ui`, `test:architect`, `test:roster`, `typecheck` |
-|        11 | `src/tests/tradeMachine/`       |       9 |      ~3,400 | Medium — draft pick logic             | `test:trade`, `typecheck`                               |
-|        12 | `src/tests/trade/` JS           |      11 |      ~3,700 | Medium — guardrails                   | `test:trade`, `typecheck`                               |
-|        13 | `src/tests/trade/` JSX + misc   |       6 |      ~1,650 | Medium — JSX + scouting               | `test:trade`, `test:scouting`, `test:ui`, `typecheck`   |
-|        14 | `src/tests/architect/` small JS |      15 |      ~5,500 | Medium — many guardrails              | `test:architect`, `typecheck`                           |
-|        15 | `src/tests/architect/` large JS |      55 |     ~18,000 | High — largest batch; split if needed | `test:architect`, `typecheck`                           |
-|        16 | `src/tests/architect/` JSX      |       6 |      ~2,600 | Medium — component tests              | `test:architect`, `test:ui`, `typecheck`                |
-|        17 | Post-conversion verification    |       0 |           0 | N/A                                   | Full validation pass                                    |
-| **Total** |                                 | **227** | **~63,700** |                                       |                                                         |
+|      Step | Scope                           |   Files |       Lines | Risk                               | Scoped validation                                       |
+| --------: | ------------------------------- | ------: | ----------: | ---------------------------------- | ------------------------------------------------------- |
+|         1 | Support infrastructure          |       9 |      ~2,356 | Low — no test logic changes        | `test:fast`, `test:diff`, `typecheck`                   |
+|         2 | Smoke + small root tests        |      18 |        ~850 | Low — tiny isolated files          | `test:fast`, `test:node`, `typecheck`                   |
+|         3 | Small trade + validator tests   |      17 |      ~1,150 | Low — small, self-contained        | `test:trade`, `test:node`, `typecheck`                  |
+|         4 | Small JSX UI tests              |       8 |        ~440 | Low — validates JSX→TSX path       | `test:architect`, `test:ui`, `typecheck`                |
+|         5 | Mid-size root logic tests       |      16 |      ~3,122 | Low-Med — larger but pure logic    | `test:node`, `typecheck`                                |
+|         6 | Large root logic tests          |      10 |      ~4,082 | Medium — large files               | `test:node`, `typecheck`                                |
+|         7 | Validators + entitlements       |      10 |      ~2,950 | Medium — cross-domain              | `test:node`, `test:architect`, `typecheck`              |
+|         8 | `tests/trade/` remaining        |      18 |      ~3,933 | Medium — CBA logic heavy           | `test:trade`, `typecheck`                               |
+|         9 | `tests/architect/` JS           |      19 |     ~14,617 | Med-High — large integration tests | `test:architect`, `typecheck`                           |
+|        10 | `tests/` JSX UI                 |       4 |      ~1,287 | Medium — component rendering       | `test:ui`, `test:architect`, `test:roster`, `typecheck` |
+|        11 | `src/tests/tradeMachine/`       |       9 |      ~3,400 | Medium — draft pick logic          | `test:trade`, `typecheck`                               |
+|        12 | `src/tests/trade/` JS           |      11 |      ~3,700 | Medium — guardrails                | `test:trade`, `typecheck`                               |
+|        13 | `src/tests/trade/` JSX + misc   |       6 |      ~1,650 | Medium — JSX + scouting            | `test:trade`, `test:scouting`, `test:ui`, `typecheck`   |
+|        14 | `src/tests/architect/` small JS |      15 |      ~5,500 | Medium — many guardrails           | `test:architect`, `typecheck`                           |
+|        15 | `src/tests/architect/` large JS |      55 |     ~24,200 | High — mandatory 3-way split       | `test:architect`, `typecheck`                           |
+|        16 | `src/tests/architect/` JSX      |       6 |      ~2,344 | Medium — component tests           | `test:architect`, `test:ui`, `typecheck`                |
+|        17 | Post-conversion verification    |       0 |           0 | N/A                                | Full validation pass                                    |
+| **Total** |                                 | **231** | **~70,200** |                                    |                                                         |
