@@ -28,6 +28,7 @@ import {
   SALARY_MATCHING_TIERS,
   SALARY_MATCHING_RULE_KEYS,
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
+import type { TradeTeam } from '@/features/architect/utils/tradeMachine/constants/types';
 import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
@@ -42,15 +43,54 @@ const DEFAULT_CAP_SETTINGS = {
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
+type GoldenTradePlayer = {
+  name: string;
+  salary: number;
+  matchIncoming: number;
+  matchOutgoing: number;
+  isTwoWay: boolean;
+  absorptionMode: 'MATCH';
+  signAndTrade: boolean;
+  contractYears: number;
+  firstYearGuaranteed: boolean;
+  isBYC?: boolean;
+  previousSalary?: number;
+  newSalary?: number;
+  contract: { salariesByYear: Array<{ season: string; salary: number }> };
+};
+
+type GoldenTradeTeam = NonNullable<TradeTeam['team']> & {
+  totalSalary: number;
+  players: GoldenTradePlayer[];
+  picks: [];
+};
+
 // Helper to create a player with salary
-const makePlayer = (name, salary, extras = {}) => ({
+const makePlayer = (
+  name: string,
+  salary: number,
+  extras: Partial<GoldenTradePlayer> = {}
+): GoldenTradePlayer => ({
   name,
+  salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
   contract: { salariesByYear: [{ season, salary }] },
   ...extras,
 });
 
 // Helper to create a team
-const makeTeam = (name, totalSalary, rosterSize = 14, extras = {}) => ({
+const makeTeam = (
+  name: string,
+  totalSalary: number,
+  rosterSize = 14,
+  extras: Partial<GoldenTradeTeam> = {}
+): GoldenTradeTeam => ({
   teamName: name,
   totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
@@ -101,15 +141,11 @@ describe('Golden Trade Regression Tests', () => {
 
   describe('BYC Outgoing Matching Value', () => {
     it('GOLDEN-04: BYC player outgoing uses max(prior, 50% new)', () => {
-      const player = {
-        name: 'BYC Player',
+      const player = makePlayer('BYC Player', 20_000_000, {
         isBYC: true,
         previousSalary: 12_000_000,
         newSalary: 20_000_000,
-        contract: {
-          salariesByYear: [{ season, salary: 20_000_000 }],
-        },
-      };
+      });
 
       computeMatchingValues({ teams: [{ sends: [player] }], yearKey: currentYear });
 
@@ -119,15 +155,11 @@ describe('Golden Trade Regression Tests', () => {
     });
 
     it('GOLDEN-05: BYC uses 50% when larger than prior salary', () => {
-      const player = {
-        name: 'BYC Player',
+      const player = makePlayer('BYC Player', 30_000_000, {
         isBYC: true,
         previousSalary: 10_000_000,
         newSalary: 30_000_000,
-        contract: {
-          salariesByYear: [{ season, salary: 30_000_000 }],
-        },
-      };
+      });
 
       computeMatchingValues({ teams: [{ sends: [player] }], yearKey: currentYear });
 

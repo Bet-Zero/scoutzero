@@ -500,7 +500,9 @@ npm run typecheck
 
 ### Step 12 — `src/tests/trade/` JS tests (11 files, ~3,700 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all 11 Step 12 `src/tests/trade/` files from `.js` to `.ts`. Most files stayed logic-identical; the only TS migration edits were local helper typing in `goldenTrades.test.ts`, spreading the canonical empty snapshot shape into two partial fixtures in `tradeMultiSurfaceOfficialValues.test.ts`, and narrowing the local `severity` helper literal union in `tradeSnapshotWiring.test.ts`. `npm run typecheck` passes, and `npm run test:trade -- --reporter=dot` passes (72 files / 632 tests in 87.49s).
 
 **Files:**
 

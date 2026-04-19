@@ -34,7 +34,11 @@ import {
   getValidationIssueText,
 } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
-const issue = (message, rule, severity = 'error') =>
+const issue = (
+  message: string,
+  rule: string,
+  severity: 'error' | 'warning' = 'error'
+) =>
   createValidationIssue(message, { rule, severity });
 
 // Mock validator result structure (from tradeValidator.js output)

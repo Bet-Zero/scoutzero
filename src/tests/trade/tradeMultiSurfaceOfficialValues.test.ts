@@ -276,6 +276,7 @@ describe('Official Salary Matching Snapshot - Canonical Selector', () => {
 
     it('returns null if allowableIncoming is null', () => {
       const snapshot = {
+        ...getOfficialSalaryMatchingSnapshot(null),
         hasValidator: true,
         allowableIncoming: null,
         salaryIn: 100,
@@ -287,6 +288,7 @@ describe('Official Salary Matching Snapshot - Canonical Selector', () => {
 
     it('returns null if salaryIn is null', () => {
       const snapshot = {
+        ...getOfficialSalaryMatchingSnapshot(null),
         hasValidator: true,
         allowableIncoming: 100,
         salaryIn: null,
