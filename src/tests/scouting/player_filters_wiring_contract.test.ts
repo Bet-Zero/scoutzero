@@ -1,5 +1,5 @@
 /**
- * @file player_filters_wiring_contract.test.js
+ * @file player_filters_wiring_contract.test.ts
  * @description Phase 2S Filter Wiring Contract Tests
  *
  * These tests serve as guardrails to ensure filter logic remains consistent
@@ -13,18 +13,32 @@
  * - Trait keys like min_Defense/max_Playmaking (capitalized)
  * - Player fields like p.PTS, p.REB (uppercase abbreviations from enrichPlayerData)
  *
- * USAGE: npm run test -- --run src/tests/scouting/player_filters_wiring_contract.test.js
+ * USAGE: npm run test:scouting -- --reporter=dot src/tests/scouting/player_filters_wiring_contract.test.ts
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { filterPlayers } from '@/shared/utils/filtering/playerFilterUtils';
+import type { FilterablePlayer } from '@/shared/utils/filtering/playerFilterUtils';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
-import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
+import {
+  enrichPlayerData,
+  type EnrichablePlayerData,
+} from '@/features/roster/utils/enrichPlayerData';
 import fixtureData from '../fixtures/players_enriched_minimal.json';
 
 // Extract players array from fixture
 const FIXTURE_PLAYERS = fixtureData.players;
 const FILTER_DEFAULTS = getDefaultPlayerFilters();
+const toFilterablePlayer = (
+  playerData: EnrichablePlayerData
+): FilterablePlayer => {
+  const enrichedPlayer = enrichPlayerData(playerData);
+  expect(enrichedPlayer).not.toBeNull();
+  if (!enrichedPlayer) {
+    throw new Error('Expected player fixture to enrich successfully');
+  }
+  return enrichedPlayer as unknown as FilterablePlayer;
+};
 
 describe('Phase 2S Filter Wiring Contract Tests', () => {
   beforeAll(() => {
@@ -73,7 +87,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
   describe('Free Agency Filters', () => {
     it('freeAgentYear: filters by specific FA year', () => {
-      const filters = { ...FILTER_DEFAULTS, freeAgentYear: 2025 };
+      const filters = { ...FILTER_DEFAULTS, freeAgentYear: '2025' };
       const result = filterPlayers(FIXTURE_PLAYERS, filters);
 
       // Marcus Freeman, DeShawn Williams, Kevin Morrison, Marcus Bell
@@ -213,7 +227,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
      */
     it('optionTypes: season-string format uses start year (SSOT regression)', () => {
       // Simulate raw Firestore player data with season-string format in salariesByYear
-      const rawPlayerWithSeasonString = {
+      const rawPlayerWithSeasonString: EnrichablePlayerData = {
         id: 'fixture-season-string-option',
         bio: {
           displayName: 'Season String Player',
@@ -231,11 +245,11 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
       };
 
       // Enrich the player data (this is where optionByYear gets built)
-      const enrichedPlayer = enrichPlayerData(rawPlayerWithSeasonString);
+      const enrichedPlayer = toFilterablePlayer(rawPlayerWithSeasonString);
 
       // Validate the key is 2025 (start year), NOT 2026 (end year)
-      expect(enrichedPlayer.optionByYear[2025]).toBe('ETO');
-      expect(enrichedPlayer.optionByYear[2026]).toBeUndefined();
+      expect(enrichedPlayer.optionByYear?.[2025]).toBe('ETO');
+      expect(enrichedPlayer.optionByYear?.[2026]).toBeUndefined();
 
       // Now filter with salaryYear: 2025 + optionTypes: ["ETO"]
       const filters = {
@@ -305,7 +319,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
      */
     it('optionTypes: uses optionsByYear from main doc when present (Phase 2Y SSOT)', () => {
       // Simulate raw Firestore player data with optionsByYear in currentContractView
-      const rawPlayerWithOptionsByYear = {
+      const rawPlayerWithOptionsByYear: EnrichablePlayerData = {
         id: 'fixture-options-by-year-ssot',
         bio: {
           displayName: 'OptionsByYear SSOT Player',
@@ -323,11 +337,11 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
       };
 
       // Enrich the player data
-      const enrichedPlayer = enrichPlayerData(rawPlayerWithOptionsByYear);
+      const enrichedPlayer = toFilterablePlayer(rawPlayerWithOptionsByYear);
 
       // Validate optionByYear is correctly populated from main doc
-      expect(enrichedPlayer.optionByYear[2025]).toBe('TO');
-      expect(enrichedPlayer.optionByYear[2026]).toBe('PO');
+      expect(enrichedPlayer.optionByYear?.[2025]).toBe('TO');
+      expect(enrichedPlayer.optionByYear?.[2026]).toBe('PO');
 
       // Filter with TO option for 2025
       const filters = {
@@ -348,7 +362,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
      */
     it('optionTypes: optionsByYear takes priority over salariesByYear fallback (Phase 2Y)', () => {
       // Simulate player with both SSOT and fallback data (SSOT should win)
-      const rawPlayerWithBoth = {
+      const rawPlayerWithBoth: EnrichablePlayerData = {
         id: 'fixture-options-priority-test',
         bio: {
           displayName: 'Priority Test Player',
@@ -372,10 +386,10 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
       };
 
       // Enrich the player data
-      const enrichedPlayer = enrichPlayerData(rawPlayerWithBoth);
+      const enrichedPlayer = toFilterablePlayer(rawPlayerWithBoth);
 
       // Validate SSOT wins (ETO from optionsByYear, not PO from salariesByYear)
-      expect(enrichedPlayer.optionByYear[2025]).toBe('ETO');
+      expect(enrichedPlayer.optionByYear?.[2025]).toBe('ETO');
     });
   });
 
@@ -440,7 +454,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
         ...FILTER_DEFAULTS,
         freeAgentType: 'UFA',
         birdRights: 'Full Bird',
-        freeAgentYear: 2025,
+        freeAgentYear: '2025',
       };
       const result = filterPlayers(FIXTURE_PLAYERS, filters);
 

@@ -1,5 +1,5 @@
 /**
- * FILE: src/tests/videoExamples.undefined.test.js
+ * FILE: src/tests/videoExamples.undefined.test.ts
  * PURPOSE: Test that video examples never include undefined field values
  * OWNERSHIP: Testing (hotfix validation)
  *

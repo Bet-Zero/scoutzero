@@ -5,8 +5,20 @@ import ValidationDetailsPanel from '@/features/architect/tradeMachine/Validation
 import { validateTradeExceptions as validateLegacyTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/tradeExceptions';
 import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
-const issue = (message, rule, severity = 'error') =>
-  createValidationIssue(message, { rule, severity });
+type ValidationDetailsPanelProps = Parameters<typeof ValidationDetailsPanel>[0];
+type IssueSeverity = 'error' | 'warning';
+
+const issue = (
+  message: string,
+  rule: string,
+  severity: IssueSeverity = 'error'
+) => {
+  const normalizedIssue = createValidationIssue(message, { rule, severity });
+  if (!normalizedIssue) {
+    throw new Error('Expected validation issue to normalize');
+  }
+  return normalizedIssue;
+};
 
 afterEach(() => {
   cleanup();
@@ -207,6 +219,10 @@ const snapshotValidationDetails = {
   ],
 };
 
+const emptyIncomingAssets: NonNullable<
+  ValidationDetailsPanelProps['incomingAssets']
+> = [{ players: [], entitlements: [] }, { players: [], entitlements: [] }];
+
 describe('validator contract consumers', () => {
   it('renders canonical validator blockers and warnings across official panels', () => {
     render(
@@ -219,7 +235,7 @@ describe('validator contract consumers', () => {
         capProjections={snapshotValidationDetails.capSettings}
         yearKey={2026}
         salaryOut={[0, 0]}
-        incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+        incomingAssets={emptyIncomingAssets}
         calculatorTeamIndex={0}
       />
     );
@@ -321,7 +337,7 @@ describe('validator contract consumers', () => {
         capProjections={legacyConsumerResult.capSettings}
         yearKey={2026}
         salaryOut={[0, 0]}
-        incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+        incomingAssets={emptyIncomingAssets}
         calculatorTeamIndex={0}
       />
     );

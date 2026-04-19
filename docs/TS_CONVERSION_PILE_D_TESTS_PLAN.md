@@ -533,7 +533,9 @@ npm run typecheck
 
 ### Step 13 — `src/tests/trade/` JSX tests + scouting + root tests (6 files, ~1,650 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-19
+
+**Progress note (2026-04-19):** Renamed all six Step 13 files to `.ts` / `.tsx`. Minimal TS migration edits were limited to a small `enrichPlayerData` helper cast in `player_filters_wiring_contract`, replacing stale `incomingAssets[].picks` test fixtures with the current `entitlements` shape, and a typed input interaction in `TradeSalaryCalculator.guardrail`. `npm run typecheck`, `npm run validate:project`, targeted `npm run test:ui -- --reporter=dot src/tests/trade/TradeSalaryCalculator.guardrail.test.tsx src/tests/trade/validatorContractConsumers.test.tsx src/tests/trade/TradeValidationGating.guardrail.test.tsx`, and targeted `npm run test:node -- --reporter=dot src/tests/scouting/player_filters_wiring_contract.test.ts src/tests/stripUndefinedDeep.test.ts src/tests/videoExamples.undefined.test.ts` all pass. The broader `test:trade` and `test:scouting` commands listed below were intentionally narrowed because `test:trade` defaults to `tests/trade`, and `test:scouting` runs both node and UI across the whole scouting tree, which is broader than the Step 13 diff and unnecessary under AGENTS.md's targeted-validation rule.
 
 **Files:**
 

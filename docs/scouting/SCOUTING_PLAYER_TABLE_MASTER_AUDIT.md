@@ -1107,7 +1107,7 @@ Then add predicates for `birdRights` and `overallGrade` to `playerFilterUtils.js
 | Artifact              | Location                                                    | Purpose                                     |
 | :-------------------- | :---------------------------------------------------------- | :------------------------------------------ |
 | Filter Catalog        | `src/shared/utils/filtering/playerFilterCatalog.ts`         | SSOT for all filter keys, types, predicates |
-| Filter Contract Tests | `src/tests/scouting/player_filters_wiring_contract.test.js` | 12 guardrail tests                          |
+| Filter Contract Tests | `src/tests/scouting/player_filters_wiring_contract.test.ts` | 12 guardrail tests                          |
 | Diagnostics Hook      | `src/features/table/hooks/useFilterDiagnostics.js`          | Dev panel data                              |
 | Diagnostics Panel     | `src/features/table/PlayerTable/FilterDiagnosticsPanel.jsx` | Visual debug UI                             |
 | Test Fixtures         | `src/tests/fixtures/players_enriched_minimal.json`          | 8 canonical players                         |
@@ -1169,7 +1169,7 @@ parseInt(key.split('-')[0], 10);
 | Task                     | File                                     | Change                                                                      |
 | :----------------------- | :--------------------------------------- | :-------------------------------------------------------------------------- |
 | 1. Fix optionByYear SSOT | `enrichPlayerData.js`                    | Removed `+ 1` from season-string parsing: `"2025-26"` → `2025` (start year) |
-| 2. Add Regression Test   | `player_filters_wiring_contract.test.js` | New test validates season-string option format uses start year              |
+| 2. Add Regression Test   | `player_filters_wiring_contract.test.ts` | New test validates season-string option format uses start year              |
 | 3. Fix Diagnostics Bug   | `useFilterDiagnostics.js`                | Changed `c.filterKey` → `c.key`                                             |
 | 4. Clarify Year Label    | `TopControlsBar.jsx`                     | Year dropdown now shows `2025-26` format instead of `2025`                  |
 
@@ -1291,7 +1291,7 @@ With `?debugFilters=1`, a new "Option Coverage" section displays:
 | `src/shared/utils/filtering/playerFilterUtils.js`           | Filter uses `optionYear ?? salaryYear` |
 | `src/features/filters/.../ContractFilters.jsx`              | UI label updates                       |
 | `src/features/table/hooks/useFilterDiagnostics.js`          | Track new SSOT source                  |
-| `src/tests/scouting/player_filters_wiring_contract.test.js` | 3 new Phase 2X tests                   |
+| `src/tests/scouting/player_filters_wiring_contract.test.ts` | 3 new Phase 2X tests                   |
 | `scripts/migrations/backfill_optionsByYear.ts`              | NEW: Backfill script                   |
 
 **Validation**:
@@ -1371,7 +1371,7 @@ All year-keyed data uses **seasonStartYear** convention:
 | :---------------------------------------------------------- | :-------------------------------------------------- |
 | `scripts/migrations/phase2y_backfill_optionsByYear.js`      | NEW: Migration script                               |
 | `src/features/table/PlayerTable/FilterDiagnosticsPanel.jsx` | Added optionsByYear count and "Data not backfilled" |
-| `src/tests/scouting/player_filters_wiring_contract.test.js` | 2 new Phase 2Y tests                                |
+| `src/tests/scouting/player_filters_wiring_contract.test.ts` | 2 new Phase 2Y tests                                |
 
 **Validation**:
 

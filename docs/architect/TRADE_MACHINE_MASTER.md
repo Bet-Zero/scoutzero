@@ -1692,7 +1692,7 @@ Date: 2026-02-26
 - Validation:
   - `npm run typecheck`: PASS
   - `npm run test:node -- --reporter=dot src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.js src/tests/architect/tradeMachineValidationPresentation.compatibility.guardrail.test.ts`: PASS
-  - `npm run test:ui -- --reporter=dot src/tests/trade/TradeValidationGating.guardrail.test.jsx src/tests/trade/validatorContractConsumers.test.jsx src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx src/tests/architect/validationDetailsPanel.devSntInjector.test.tsx`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/trade/TradeValidationGating.guardrail.test.tsx src/tests/trade/validatorContractConsumers.test.tsx src/tests/trade/TradeSalaryCalculator.guardrail.test.tsx src/tests/architect/validationDetailsPanel.devSntInjector.test.tsx`: PASS
   - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, browser externalization of `fs`, mixed static/dynamic imports, and large chunk sizes outside the E97 boundary
   - `npm run validate:project`: PASS
 - Follow-up:

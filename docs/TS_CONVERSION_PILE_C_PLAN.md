@@ -47,8 +47,8 @@ Recount: `140` runtime JS/JSX files remain under `src/`, excluding `src/tests/**
 | Tree | Count | Nearby coverage | Recommended step |
 | --- | ---: | --- | --- |
 | `src/config`, `src/firebaseConfig.js`, `src/firebaseHelpers.js`, `src/fonts`, `src/hooks` | 6 | No direct component tests; validate with `typecheck`, `validate:project`, and `test:diff`. | Step 2 |
-| `src/shared/components/**`, `src/components/diagnostic/**` | 11 | `tests/PlayerHeadshot.test.jsx`, `src/tests/videoExamples.undefined.test.js`; most shell components have no direct smoke coverage. | Step 3 |
-| `src/features/filters/**` | 16 | `src/tests/filters/useActiveFilterCount.test.tsx`, `src/tests/scouting/player_filters_wiring_contract.test.js`; component coverage is mostly indirect. | Step 4 |
+| `src/shared/components/**`, `src/components/diagnostic/**` | 11 | `tests/PlayerHeadshot.test.jsx`, `src/tests/videoExamples.undefined.test.ts`; most shell components have no direct smoke coverage. | Step 3 |
+| `src/features/filters/**` | 16 | `src/tests/filters/useActiveFilterCount.test.tsx`, `src/tests/scouting/player_filters_wiring_contract.test.ts`; component coverage is mostly indirect. | Step 4 |
 | `src/features/table/**` | 17 | `src/tests/table/useFilterDiagnostics.test.tsx`, `src/tests/table/useFilteredPlayers.test.tsx`, `src/tests/table/usePlayerTableDensity.test.tsx`; row/header components are mostly indirect. | Step 4 |
 | `src/features/profile/**` | 17 | `src/tests/scouting/playerProfile.behavior.test.tsx`, `src/tests/scouting/useAutoSavePlayer.test.tsx`, `src/tests/scouting/usePlayerProfileState.test.tsx`. | Step 5 |
 | `src/features/roster/**` | 22 | `tests/roster/rosterBuilder.ui.test.jsx`, `src/tests/roster/rosterBuilderHelpers.test.ts`, `src/tests/roster/rosterBuilderUtils.test.ts`, `src/tests/roster/rosterHelpers.smoke.test.ts`. | Step 6 |

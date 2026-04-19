@@ -59,12 +59,12 @@ Primary location for pure function tests and business logic:
 
 Tests for React components and feature integration:
 
-- `stripUndefinedDeep.test.js` - Utility function tests
+- `stripUndefinedDeep.test.ts` - Utility function tests
 - `roster/rosterBuilderUtils.test.ts` - Roster building logic
 - `trade/` - Trade machine integration tests:
   - `goldenTrades.test.js` - Known-good trade scenarios
   - `tradeSnapshotWiring.test.js` - Trade snapshot functionality
-  - `TradeValidationGating.guardrail.test.jsx` - Validation flow
+  - `TradeValidationGating.guardrail.test.tsx` - Validation flow
 - `entitlements/` - Draft pick entitlement tests
 - `scouting/` - Scouting feature tests
 - `architect/` - GM dashboard tests

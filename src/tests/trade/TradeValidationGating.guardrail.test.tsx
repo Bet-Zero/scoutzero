@@ -1,16 +1,18 @@
 /**
- * FILE: TradeValidationGating.guardrail.test.jsx
+ * FILE: TradeValidationGating.guardrail.test.tsx
  * PURPOSE: Guardrail tests ensuring UX clarity for Trade Machine validation gating and mode tags
  * OWNERSHIP: Trade Machine Team
  * HISTORY:
  *  - Jan 2026: Created for UX/Mode Legend requirement (Tasks A-F)
- * LINKS: ValidationStateHeader.jsx, ValidationDetailsPanel.jsx, MASTER_TRADE_MACHINE_ALIGNMENT.md
+ * LINKS: ValidationStateHeader.tsx, ValidationDetailsPanel.tsx, MASTER_TRADE_MACHINE_ALIGNMENT.md
  */
 
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 import ValidationStateHeader, { ModeTag, MODE_TAGS } from '@/features/architect/tradeMachine/ValidationStateHeader';
 import ValidationDetailsPanel from '@/features/architect/tradeMachine/ValidationDetailsPanel';
+
+type ValidationDetailsPanelProps = Parameters<typeof ValidationDetailsPanel>[0];
 
 // Mock team data for tests
 const mockTeams = [
@@ -89,6 +91,10 @@ const mockCapProjections = {
   firstApron: 178_132_000,
   secondApron: 188_931_000,
 };
+
+const emptyIncomingAssets: NonNullable<
+  ValidationDetailsPanelProps['incomingAssets']
+> = [{ players: [], entitlements: [] }, { players: [], entitlements: [] }];
 
 describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
   afterEach(() => {
@@ -272,7 +278,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
           capProjections={mockCapProjections}
           yearKey={2025}
           salaryOut={[0, 0]}
-          incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+          incomingAssets={emptyIncomingAssets}
           calculatorTeamIndex={0}
         />
       );
@@ -311,7 +317,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
           capProjections={mockCapProjections}
           yearKey={2025}
           salaryOut={[0, 0]}
-          incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+          incomingAssets={emptyIncomingAssets}
           calculatorTeamIndex={0}
         />
       );
@@ -334,7 +340,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
           capProjections={mockCapProjections}
           yearKey={2025}
           salaryOut={[0, 0]}
-          incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+          incomingAssets={emptyIncomingAssets}
           calculatorTeamIndex={0}
         />
       );
@@ -356,7 +362,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
           capProjections={mockCapProjections}
           yearKey={2025}
           salaryOut={[0, 0]}
-          incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+          incomingAssets={emptyIncomingAssets}
           calculatorTeamIndex={0}
         />
       );
@@ -378,7 +384,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
           capProjections={mockCapProjections}
           yearKey={2025}
           salaryOut={[0, 0]}
-          incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+          incomingAssets={emptyIncomingAssets}
           calculatorTeamIndex={0}
         />
       );
@@ -401,7 +407,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
           capProjections={mockCapProjections}
           yearKey={2025}
           salaryOut={[0, 0]}
-          incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+          incomingAssets={emptyIncomingAssets}
           calculatorTeamIndex={0}
         />
       );
@@ -426,7 +432,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
           capProjections={mockCapProjections}
           yearKey={2025}
           salaryOut={[0, 0]}
-          incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+          incomingAssets={emptyIncomingAssets}
           calculatorTeamIndex={0}
         />
       );

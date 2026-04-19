@@ -1,10 +1,10 @@
 /**
- * FILE: TradeSalaryCalculator.guardrail.test.jsx
+ * FILE: TradeSalaryCalculator.guardrail.test.tsx
  * PURPOSE: Guardrail test ensuring P2 visual separation per Master Doc Section 3.4
  * OWNERSHIP: Trade Machine Team
  * HISTORY:
  *  - 2026-01-01: Created for P2 DONE pass (MASTER_TRADE_MACHINE_ALIGNMENT.md v1.2.1)
- * LINKS: TradeSalaryCalculator.jsx, MASTER_TRADE_MACHINE_ALIGNMENT.md Section 3.4
+ * LINKS: TradeSalaryCalculator.tsx, MASTER_TRADE_MACHINE_ALIGNMENT.md Section 3.4
  */
 
 /**
@@ -20,7 +20,7 @@
  * 3. Official allowableIncoming displayed is from props, not local calc
  * 4. Disclaimer is always present
  */
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 import TradeSalaryCalculator from '@/features/architect/tradeMachine/TradeSalaryCalculator';
 
@@ -276,8 +276,10 @@ describe('TradeSalaryCalculator Guardrail Tests (P2)', () => {
       );
 
       // Type in an incoming salary that passes sandbox but fails validator
-      const input = screen.getByPlaceholderText('Enter amount to test');
-      input.value = 10_000_000; // Above validator's 5M but below sandbox's typical allowable
+      const input = screen.getByPlaceholderText(
+        'Enter amount to test'
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { value: '10000000' } }); // Above validator's 5M but below sandbox's typical allowable
       
       // Re-render with the value set
       rerender(

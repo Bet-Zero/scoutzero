@@ -1,5 +1,5 @@
 /**
- * FILE: src/tests/stripUndefinedDeep.test.js
+ * FILE: src/tests/stripUndefinedDeep.test.ts
  * PURPOSE: Test the stripUndefinedDeep utility for preventing Firestore errors
  * OWNERSHIP: Testing (hotfix validation)
  *
