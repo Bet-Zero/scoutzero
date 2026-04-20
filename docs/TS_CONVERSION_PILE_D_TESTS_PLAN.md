@@ -718,7 +718,9 @@ npm run typecheck
 
 ## Post-Conversion Verification (Step 17)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-20
+
+Completed 2026-04-20: `npm run typecheck`, `npm run build`, and `npm run validate:project` all passed after the final test conversions. `find src/tests tests \( -name '*.js' -o -name '*.jsx' \)` returned no results, and `docs/TS_CONVERSION_NEXT_STEPS.md` was updated to record Pile D completion.
 
 After all steps are complete:
 

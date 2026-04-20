@@ -579,7 +579,8 @@ For each hook:
 ## Step 13 — Final checkpoint and close out the living plan
 
 **Status:** DONE
-Completed 2026-04-18: Final closeout recorded. Pile A and Pile B are complete; remaining JS/JSX is deferred Pile C UI, app shell/bootstrap/config leftovers, and tests.
+Completed 2026-04-18: Final closeout recorded. Pile A and Pile B are complete; at that checkpoint remaining JS/JSX was deferred Pile C UI, app shell/bootstrap/config leftovers, and tests.
+Updated 2026-04-20: Pile D completed the separate test migration track, so tests no longer remain in JS/JSX.
 
 **Goal:** After Pile A, the Step 8-9 review loop, and Pile B are complete, explicitly record what remains for Pile C and then close this plan cleanly.
 
@@ -620,12 +621,18 @@ Remaining JS/JSX inventory as of 2026-04-18:
 - `104` test files remain under `src/tests/**`.
 - Runtime split: `106` feature UI files, `17` page/app-shell files, `11` shared/diagnostic UI files, and `6` bootstrap/config/legacy support files.
 
+Pile D follow-up closeout on 2026-04-20:
+
+- `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md` completed the separate test migration track.
+- No `.js` or `.jsx` files remain under `src/tests/` or `tests/`.
+- The remaining JS/JSX surface after Pile D is runtime-only and stays governed by the dedicated Pile C plan plus the app shell/bootstrap/config follow-up noted in this document.
+
 Intentionally deferred Pile C UI:
 
 - Feature UI components are the main deferred Pile C surface: filters `16`, lists `19`, profile `17`, ranker `10`, roster `22`, table `17`, tierMaker `5`.
 - Page/app-shell JSX remains outside Pile A/B: `src/App.jsx`, `src/main.jsx`, `src/PasswordGate.jsx`, `src/core/layout/SiteLayout.jsx`, and route views in `src/pages/`.
 - Shared UI remains opportunistic: `src/shared/components/**` plus the legacy diagnostic component in `src/components/diagnostic/`.
-- Test JS/JSX is not part of Pile C and should stay on a separate test-migration track unless a touched test needs typing for the related source change.
+- Test JS/JSX was not part of Pile C at this 2026-04-18 checkpoint; that separate track is now complete via `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`.
 
 Open follow-up items after Pile B:
 
