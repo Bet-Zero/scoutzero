@@ -29,6 +29,11 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
 import CapSheet from '@/features/architect/capSheet/CapSheet/CapSheet';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
+type TeamCapTotals = ReturnType<typeof computeTeamCapTotals>;
+
+const mockedComputeTeamCapTotals = vi.mocked(computeTeamCapTotals);
+const asTeamCapTotals = (value: unknown) => value as TeamCapTotals;
+
 function parseCurrency(value) {
   if (!value) return 0;
   const parsed = Number(String(value).replace(/[^0-9.-]/g, ''));
@@ -112,11 +117,11 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
   });
 
   it('RC1: incompleteChargesTotal = 0 → row NOT rendered', () => {
-    computeTeamCapTotals.mockReturnValue({
+    mockedComputeTeamCapTotals.mockReturnValue(asTeamCapTotals({
       ...baseTotals,
       incompleteChargesTotal: 0,
       _meta: { ...baseTotals._meta, incompleteRosterCharge: null },
-    });
+    }));
 
     render(
       <CapSheet
@@ -133,7 +138,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
   it('RC2: incompleteChargesTotal > 0 → row rendered with correct amount', () => {
     const chargeAmount = 1_119_563; // 1 missing slot at rookie min
 
-    computeTeamCapTotals.mockReturnValue({
+    mockedComputeTeamCapTotals.mockReturnValue(asTeamCapTotals({
       ...baseTotals,
       incompleteChargesTotal: chargeAmount,
       totalCapAllocations: baseTotals.playersTotal + chargeAmount,
@@ -146,7 +151,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
           chargePerSlot: chargeAmount,
         },
       },
-    });
+    }));
 
     render(
       <CapSheet
@@ -172,7 +177,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
     const missingSlots = 3;
     const chargeAmount = chargePerSlot * missingSlots;
 
-    computeTeamCapTotals.mockReturnValue({
+    mockedComputeTeamCapTotals.mockReturnValue(asTeamCapTotals({
       ...baseTotals,
       incompleteChargesTotal: chargeAmount,
       totalCapAllocations: baseTotals.playersTotal + chargeAmount,
@@ -185,7 +190,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
           chargePerSlot,
         },
       },
-    });
+    }));
 
     render(
       <CapSheet
@@ -207,7 +212,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
     const chargePerSlot = 1_119_563;
     const chargeAmount = chargePerSlot;
 
-    computeTeamCapTotals.mockReturnValue({
+    mockedComputeTeamCapTotals.mockReturnValue(asTeamCapTotals({
       ...baseTotals,
       incompleteChargesTotal: chargeAmount,
       totalCapAllocations: baseTotals.playersTotal + chargeAmount,
@@ -220,7 +225,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
           chargePerSlot,
         },
       },
-    });
+    }));
 
     render(
       <CapSheet
@@ -237,10 +242,10 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
   });
 
   it('RC4: breakdown shows Player Salaries row', () => {
-    computeTeamCapTotals.mockReturnValue({
+    mockedComputeTeamCapTotals.mockReturnValue(asTeamCapTotals({
       ...baseTotals,
       incompleteChargesTotal: 0,
-    });
+    }));
 
     render(
       <CapSheet
@@ -256,11 +261,11 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
   });
 
   it('RC5: dead money row shown only when > 0', () => {
-    computeTeamCapTotals.mockReturnValue({
+    mockedComputeTeamCapTotals.mockReturnValue(asTeamCapTotals({
       ...baseTotals,
       deadMoneyTotal: 2_500_000,
       totalCapAllocations: baseTotals.playersTotal + 2_500_000,
-    });
+    }));
 
     render(
       <CapSheet
@@ -274,11 +279,11 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
   });
 
   it('RC6: cap holds row shown only when > 0', () => {
-    computeTeamCapTotals.mockReturnValue({
+    mockedComputeTeamCapTotals.mockReturnValue(asTeamCapTotals({
       ...baseTotals,
       capHoldsTotal: 3_000_000,
       totalCapAllocations: baseTotals.playersTotal + 3_000_000,
-    });
+    }));
 
     render(
       <CapSheet
@@ -292,7 +297,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
   });
 
   it('RC7: summary, breakdown, and footer stay canonicalTotals-driven even when rows/detail surfaces differ', () => {
-    computeTeamCapTotals.mockReturnValue({
+    mockedComputeTeamCapTotals.mockReturnValue(asTeamCapTotals({
       ...baseTotals,
       playersTotal: 9_876_543,
       deadMoneyTotal: 4_321_000,
@@ -314,7 +319,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
           chargePerSlot: 1_119_563,
         },
       },
-    });
+    }));
 
     render(
       <CapSheet

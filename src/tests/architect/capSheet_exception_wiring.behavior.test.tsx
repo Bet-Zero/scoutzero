@@ -15,6 +15,7 @@ import ManageDeadMoneyModal from '@/features/architect/capSheet/modals/ManageDea
 import {
   getCapSettingsForYear,
   getExceptionDefaultAmountFromCapSettings,
+  type ExceptionDefaultCapSettings,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
@@ -42,7 +43,7 @@ const hoistedMocks = vi.hoisted(() => ({
 vi.mock(
   '@/features/architect/utils/tradeMachine/utils/capSettingsProvider',
   async (importOriginal) => {
-    const actual = await importOriginal();
+    const actual = (await importOriginal()) as Record<string, unknown>;
     return {
       ...actual,
       getCapSettingsForYear: vi.fn(() => hoistedMocks.buildCapSettings()),
@@ -69,6 +70,15 @@ function expectBefore(first, second) {
     first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
   ).not.toBe(0);
 }
+
+const asExceptionDefaultCapSettings = (value: Record<string, unknown>) =>
+  value as unknown as Partial<ExceptionDefaultCapSettings>;
+
+const getExceptionCard = (trackerSection: HTMLElement, label: string) => {
+  const card = within(trackerSection).getByText(label).closest('div.relative');
+  expect(card).not.toBeNull();
+  return card as HTMLElement;
+};
 
 describe('Cap Sheet Exception Wiring (E1)', () => {
   beforeEach(() => {
@@ -114,18 +124,18 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
       getExceptionDefaultAmountFromCapSettings('mle', {
         nonTaxMLE: 91_000_000,
         mle: 92_000_000,
-      })
+      } as unknown as Partial<ExceptionDefaultCapSettings>)
     ).toBe(0);
     expect(
       getExceptionDefaultAmountFromCapSettings('tpmle', {
         taxMLE: 93_000_000,
         tpmle: 94_000_000,
-      })
+      } as unknown as Partial<ExceptionDefaultCapSettings>)
     ).toBe(0);
     expect(
       getExceptionDefaultAmountFromCapSettings('room', {
         room: 95_000_000,
-      })
+      } as unknown as Partial<ExceptionDefaultCapSettings>)
     ).toBe(0);
     expect(getExceptionDefaultAmountFromCapSettings('bae', { bae: 3_333_333 })).toBe(
       3_333_333
@@ -161,15 +171,8 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
-    const ntMleCard = within(trackerSection)
-      .getByText('NT-MLE')
-      .closest('div.relative');
-    const tpMleCard = within(trackerSection)
-      .getByText('TP-MLE')
-      .closest('div.relative');
-
-    expect(ntMleCard).not.toBeNull();
-    expect(tpMleCard).not.toBeNull();
+    const ntMleCard = getExceptionCard(trackerSection, 'NT-MLE');
+    const tpMleCard = getExceptionCard(trackerSection, 'TP-MLE');
     expect(within(ntMleCard).getByText('$0')).toBeInTheDocument();
     expect(within(ntMleCard).getByText('N/A')).toBeInTheDocument();
     expect(within(tpMleCard).getByText('$0')).toBeInTheDocument();
@@ -224,6 +227,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
               enabled: true,
               totalAmount: 9_876_543,
               usedAmount: 1_234_567,
+              remainingAmount: 8_641_976,
             },
           },
         }));
@@ -284,9 +288,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
-    const tpMleCard = within(trackerSection).getByText('TP-MLE').closest('div.relative');
-
-    expect(tpMleCard).not.toBeNull();
+    const tpMleCard = getExceptionCard(trackerSection, 'TP-MLE');
     expect(within(tpMleCard).getByText('$4,000,000')).toBeInTheDocument();
     expect(within(tpMleCard).queryByText('$99,000,000')).not.toBeInTheDocument();
   });
@@ -323,10 +325,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
-    const tpMleCard = within(trackerSection)
-      .getByText('TP-MLE')
-      .closest('div.relative');
-    expect(tpMleCard).not.toBeNull();
+    const tpMleCard = getExceptionCard(trackerSection, 'TP-MLE');
     expect(within(tpMleCard).getByText('$0')).toBeInTheDocument();
     expect(within(tpMleCard).getByText('N/A')).toBeInTheDocument();
     expect(within(tpMleCard).queryByText('$88,000,000')).not.toBeInTheDocument();
@@ -358,9 +357,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
-    const baeCard = within(trackerSection).getByText('BAE').closest('div.relative');
-
-    expect(baeCard).not.toBeNull();
+    const baeCard = getExceptionCard(trackerSection, 'BAE');
     expect(within(baeCard).getByText('$0')).toBeInTheDocument();
     expect(within(baeCard).getByText('N/A')).toBeInTheDocument();
     expect(within(baeCard).queryByText('$3,700,000')).not.toBeInTheDocument();
@@ -391,9 +388,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
-    const mleCard = within(trackerSection).getByText('NT-MLE').closest('div.relative');
-
-    expect(mleCard).not.toBeNull();
+    const mleCard = getExceptionCard(trackerSection, 'NT-MLE');
     expect(within(mleCard).getByText('$0')).toBeInTheDocument();
     expect(within(mleCard).getByText('N/A')).toBeInTheDocument();
     expect(within(mleCard).queryByText('$99,000,000')).not.toBeInTheDocument();
@@ -429,8 +424,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
-    const roomCard = within(trackerSection).getByText('ROOM').closest('div.relative');
-    expect(roomCard).not.toBeNull();
+    const roomCard = getExceptionCard(trackerSection, 'ROOM');
     expect(within(roomCard).getByText('$0')).toBeInTheDocument();
     expect(within(roomCard).getByText('N/A')).toBeInTheDocument();
     expect(within(trackerSection).queryByText('$4,444,444')).not.toBeInTheDocument();
@@ -490,8 +484,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
-    const roomCard = within(trackerSection).getByText('ROOM').closest('div.relative');
-    expect(roomCard).not.toBeNull();
+    const roomCard = getExceptionCard(trackerSection, 'ROOM');
     expect(within(roomCard).getByText('$0')).toBeInTheDocument();
     expect(within(roomCard).getByText('N/A')).toBeInTheDocument();
     expect(within(trackerSection).queryByText('$5,900,000')).not.toBeInTheDocument();

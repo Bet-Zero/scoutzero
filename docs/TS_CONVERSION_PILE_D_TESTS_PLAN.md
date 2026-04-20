@@ -689,7 +689,9 @@ npm run typecheck
 
 ### Step 16 — `src/tests/architect/` JSX tests (6 files, ~2,344 lines)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-20
+
+**Progress note (2026-04-20):** Renamed all six Step 16 architect JSX tests from `.jsx` to `.tsx`. TSX migration edits stayed narrow and test-local: typed the cap-settings/UI fixture helpers in `capSheet_exception_wiring`, added a small DOM-card helper plus one `remainingAmount` field to a saved exception-state test fixture, typed the grouped-owner / modal-availability builders in `freeAgentPool.offerSheetInitiation`, and switched `rosterChargeDisplay` to `vi.mocked(computeTeamCapTotals)` with local return-value casts. `npm run typecheck` passes, `npm run validate:project` passes, and a targeted `npm run test:ui -- --reporter=dot` run over the six converted files passes (6 files / 51 tests in 12.54s). The broad `npm run test:architect -- --reporter=dot` step listed below was intentionally skipped because these six files are UI-config tests and the targeted `test:ui` run covered every converted Step 16 file directly while matching AGENTS.md's default targeted-validation rule.
 
 **Files:**
 

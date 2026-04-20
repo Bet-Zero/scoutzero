@@ -10,6 +10,11 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool/FreeAgentPool';
+import type {
+  FreeAgentOfferSheetInitiation,
+  FreeAgentModalVisibleAction,
+  FreeAgentSignAndTradeInitiation,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 
 vi.mock('@/features/architect/hooks/useCapValidation', () => ({
   __esModule: true,
@@ -58,7 +63,9 @@ const playersMap = {
   [PLAYER.name]: PLAYER,
 };
 
-const buildWorldOnlyActionOwner = (overrides = {}) => ({
+const buildWorldOnlyActionOwner = (
+  overrides: Partial<Record<string, unknown>> = {}
+) => ({
   signAndTrade: vi.fn().mockResolvedValue({ success: true }),
   getSignAndTradePreflight: vi.fn().mockResolvedValue({
     status: 'legal',
@@ -82,7 +89,22 @@ const buildWorldOnlyActionOwner = (overrides = {}) => ({
 const buildFreeAgentModalAvailability = ({
   worldOnlyActionOwner,
   overrides = {},
-} = {}) => {
+}: {
+  worldOnlyActionOwner: ReturnType<typeof buildWorldOnlyActionOwner> | null;
+  overrides?: Partial<{
+    visibleActions: FreeAgentModalVisibleAction[];
+    actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+    showOfferSheetToggle: boolean;
+    signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
+    offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
+  }>;
+}): {
+  visibleActions: FreeAgentModalVisibleAction[];
+  actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+  showOfferSheetToggle: boolean;
+  signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
+  offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
+} => {
   const signAndTradeInitiation =
     worldOnlyActionOwner?.signAndTrade &&
     worldOnlyActionOwner?.getSignAndTradePreflight
@@ -113,10 +135,20 @@ const buildFreeAgentModalAvailability = ({
 };
 
 const buildActionOwner = ({
-  dualPathSigning = {},
+  dualPathSigning,
   worldOnly = {},
-  freeAgentModalAvailability = {},
-} = {}) => {
+  freeAgentModalAvailability,
+}: {
+  dualPathSigning?: Partial<Record<string, unknown>>;
+  worldOnly?: Partial<Record<string, unknown>> | null;
+  freeAgentModalAvailability?: Partial<{
+    visibleActions: FreeAgentModalVisibleAction[];
+    actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+    showOfferSheetToggle: boolean;
+    signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
+    offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
+  }>;
+} = {}): React.ComponentProps<typeof FreeAgentPool>['actionOwner'] => {
   const resolvedWorldOnlyActionOwner = worldOnly
     ? buildWorldOnlyActionOwner(worldOnly)
     : null;
@@ -126,24 +158,10 @@ const buildActionOwner = ({
       signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
       ...dualPathSigning,
     },
-    worldOnly: resolvedWorldOnlyActionOwner,
     freeAgentModalAvailability: buildFreeAgentModalAvailability({
       worldOnlyActionOwner: resolvedWorldOnlyActionOwner,
       overrides: freeAgentModalAvailability,
     }),
-    offerSheetSectionAvailability: {
-      lifecycleActionOwner: resolvedWorldOnlyActionOwner
-        ? {
-            matchOfferSheet: resolvedWorldOnlyActionOwner.matchOfferSheet,
-            declineOfferSheet: resolvedWorldOnlyActionOwner.declineOfferSheet,
-            finalizeOfferSheet: resolvedWorldOnlyActionOwner.finalizeOfferSheet,
-          }
-        : null,
-      actionsDisabled: !resolvedWorldOnlyActionOwner,
-      actionsDisabledReason: resolvedWorldOnlyActionOwner
-        ? null
-        : 'Offer-sheet lifecycle actions require an active world to commit.',
-    },
   };
 };
 
