@@ -604,15 +604,15 @@ npm run typecheck
 
 **Status:** IN PROGRESS — 2026-04-20
 
-**Progress note (2026-04-20):** Completed sub-batch 15a. Renamed the 15 remaining `dare/`, `capTotals/`, and `capLegalityValidation` files from `.js` to `.ts`. TS migration edits stayed narrow: typed helper-option objects in `capLegalityValidation`, `vi.mocked(...)` mock narrowing plus literal ladder typing in the DARE unit tests, object casts for `importOriginal()` mock spreads, and updating stale DARE `resolutionReceipt` test doubles to include the current `byOutcome`/metadata shape expected by `seasonManager`. `npm run typecheck`, targeted `npm run test:node -- --reporter=dot` over all 15 converted files (15 files / 214 tests), and `npm run validate:project` pass. `npm run test:architect -- --reporter=dot` was started first and surfaced the stale receipt-shape issue in the converted DARE smoke tests; after fixing that issue, validation was intentionally narrowed to the direct 15-file node run so the converted 15a batch was fully covered without rerunning the broader architect sweep.
+**Progress note (2026-04-20):** Completed sub-batches 15a and 15b. For 15a, the 15 remaining `dare/`, `capTotals/`, and `capLegalityValidation` files were renamed from `.js` to `.ts`; TS migration edits stayed narrow: typed helper-option objects in `capLegalityValidation`, `vi.mocked(...)` mock narrowing plus literal ladder typing in the DARE unit tests, object casts for `importOriginal()` mock spreads, and updating stale DARE `resolutionReceipt` test doubles to include the current `byOutcome`/metadata shape expected by `seasonManager`. For 15b, the 21 Phase 47–70 guardrail files were renamed from `.js` to `.ts`; TS migration edits stayed narrow again and were limited to local helper/team fixture types for canonicalized TPE and exception-history assertions, one typed `importOriginal()` narrowing in the trade-machine mock, a typed sanitizer wrapper for `sanitizeTransientFieldsForPersistence(...)` returning `unknown`, and aligning Phase 55 expectations with the current `ValidatedTradeContext` shape via `_rawValidation.valid`. `npm run typecheck`, targeted `npm run test:node -- --reporter=dot` over the 15 converted 15a files (15 files / 214 tests) and the 21 converted 15b files (21 files / 395 tests), and `npm run validate:project` pass. `npm run test:architect -- --reporter=dot` was started during 15a and surfaced the stale receipt-shape issue in the converted DARE smoke tests; after fixing that issue, validation for both sub-batches was intentionally narrowed to direct `test:node` runs over the converted files so the batch stayed fully covered without rerunning the broader architect sweep.
 
 **Why large:** These are the heavyweight architect guardrail, integration, and persistence tests. They share similar import patterns and can be converted in a single batch after Step 14 proves the smaller files.
 
 **Mandatory split:** This step is too large for a single commit. Split into three sub-commits:
 
-- **15a** — `dare/` + `capTotals/` + `capLegality/` subdirectory files (~15 files)
-- **15b** — Phase 47–70 guardrails (~21 files)
-- **15c** — Phase 72–86 + remaining non-phase files (~19 files)
+- **15a** — `dare/` + `capTotals/` + `capLegality/` subdirectory files (~15 files) — DONE 2026-04-20
+- **15b** — Phase 47–70 guardrails (~21 files) — DONE 2026-04-20
+- **15c** — Phase 72–86 + remaining non-phase files (~19 files) — NEXT
 
 **Files (all remaining JS in `src/tests/architect/` including `dare/`, `capTotals/`):**
 
