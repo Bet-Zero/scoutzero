@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { DAREInput } from '@/features/architect/utils/entitlements/dare/types';
 
 // Mock all adapter modules with correct function names
 vi.mock(
@@ -79,15 +80,38 @@ import {
   pickRulesMapToObject,
 } from '@/features/architect/utils/entitlements/pickRulesResolver';
 
+const mockedResolveSwapForEntitlement = vi.mocked(resolveSwapForEntitlement);
+const mockedResolveConveyanceForEntitlement = vi.mocked(
+  resolveConveyanceForEntitlement
+);
+const mockedBuildEntitlementWritesFromResolution = vi.mocked(
+  buildEntitlementWritesFromResolution
+);
+const mockedBuildTeamUpdatesFromResolutions = vi.mocked(
+  buildTeamUpdatesFromResolutions
+);
+const mockedBuildResolutionReceipt = vi.mocked(buildResolutionReceipt);
+const mockedResolutionToReceiptEntry = vi.mocked(resolutionToReceiptEntry);
+const mockedBuildProtectionLadder = vi.mocked(buildProtectionLadder);
+const mockedResolveEntitlementsForTeamWithDb = vi.mocked(
+  resolveEntitlementsForTeamWithDb
+);
+const mockedResolvePickRulesByIdsWithDb = vi.mocked(
+  resolvePickRulesByIdsWithDb
+);
+const mockedPickRulesMapToObject = vi.mocked(pickRulesMapToObject);
+
 describe('DARE Resolver', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Default mock implementations - matching actual function names
-    resolveSwapForEntitlement.mockReturnValue({
+    mockedResolveSwapForEntitlement.mockReturnValue({
       entitlementId: 'test-ent',
-      outcome: 'resolved',
-      winner: 'BOS',
+      outcome: 'swap_resolved',
+      swapWinner: 'BOS',
+      swapPosition: 10,
+      swapLoser: 'LAL',
       position: 10,
       year: 2026,
       originalOwner: 'BOS',
@@ -95,7 +119,7 @@ describe('DARE Resolver', () => {
       resolvedAt: new Date().toISOString(),
       method: 'lottery',
     });
-    resolveConveyanceForEntitlement.mockReturnValue({
+    mockedResolveConveyanceForEntitlement.mockReturnValue({
       entitlementId: 'test-ent',
       outcome: 'conveyed',
       year: 2026,
@@ -105,19 +129,34 @@ describe('DARE Resolver', () => {
       resolvedAt: new Date().toISOString(),
       method: 'lottery',
     });
-    buildEntitlementWritesFromResolution.mockReturnValue([]);
-    buildTeamUpdatesFromResolutions.mockReturnValue([]);
-    buildResolutionReceipt.mockReturnValue({
+    mockedBuildEntitlementWritesFromResolution.mockReturnValue([]);
+    mockedBuildTeamUpdatesFromResolutions.mockReturnValue([]);
+    mockedBuildResolutionReceipt.mockReturnValue({
       draftYear: 2026,
       resolvedAt: new Date().toISOString(),
+      totalResolutions: 0,
+      byOutcome: {
+        conveyed: 0,
+        rolled: 0,
+        converted: 0,
+        swap_resolved: 0,
+        expired: 0,
+        unchanged: 0,
+      },
       entries: [],
       warnings: [],
     });
-    resolutionToReceiptEntry.mockReturnValue({});
-    buildProtectionLadder.mockReturnValue(null);
-    resolveEntitlementsForTeamWithDb.mockResolvedValue([]);
-    resolvePickRulesByIdsWithDb.mockResolvedValue(new Map());
-    pickRulesMapToObject.mockReturnValue({});
+    mockedResolutionToReceiptEntry.mockReturnValue({
+      entitlementId: 'test-ent',
+      teamCode: 'BOS',
+      description: 'Test receipt entry',
+      outcome: 'conveyed',
+      details: 'Pick conveyed',
+    });
+    mockedBuildProtectionLadder.mockReturnValue(null);
+    mockedResolveEntitlementsForTeamWithDb.mockResolvedValue([]);
+    mockedResolvePickRulesByIdsWithDb.mockResolvedValue(new Map());
+    mockedPickRulesMapToObject.mockReturnValue({});
   });
 
   // ============================================================================
@@ -125,11 +164,13 @@ describe('DARE Resolver', () => {
   // ============================================================================
   describe('validateDAREInput', () => {
     it('should return issues for missing worldId', () => {
-      const issues = validateDAREInput({
-        draftYear: 2026,
-        positionsMap: { BOS: 5 },
-        teams: [{ teamCode: 'BOS', entitlementIds: [] }],
-      });
+      const issues = validateDAREInput(
+        {
+          draftYear: 2026,
+          positionsMap: { BOS: 5 },
+          teams: [{ teamCode: 'BOS', entitlementIds: [] }],
+        } as unknown as DAREInput
+      );
       expect(issues).toContain('worldId is required');
     });
 
@@ -241,7 +282,7 @@ describe('DARE Resolver', () => {
 
       expect(result.success).toBe(true);
       // Should have processed via resolveConveyanceForEntitlement
-      expect(resolveConveyanceForEntitlement).toHaveBeenCalled();
+      expect(mockedResolveConveyanceForEntitlement).toHaveBeenCalled();
     });
 
     it('should call resolveSwapForEntitlement for swap_right entitlements', async () => {
@@ -267,7 +308,7 @@ describe('DARE Resolver', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(resolveSwapForEntitlement).toHaveBeenCalled();
+      expect(mockedResolveSwapForEntitlement).toHaveBeenCalled();
     });
 
     it('should call resolveConveyanceForEntitlement for pick_ownership entitlements', async () => {
@@ -293,7 +334,7 @@ describe('DARE Resolver', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(resolveConveyanceForEntitlement).toHaveBeenCalled();
+      expect(mockedResolveConveyanceForEntitlement).toHaveBeenCalled();
     });
 
     it('should skip entitlements for different draft year', async () => {
@@ -319,7 +360,7 @@ describe('DARE Resolver', () => {
       });
 
       // Should NOT have called resolution for 2027 entitlement
-      expect(resolveConveyanceForEntitlement).not.toHaveBeenCalled();
+      expect(mockedResolveConveyanceForEntitlement).not.toHaveBeenCalled();
     });
 
     it('should skip already resolved entitlements', async () => {
@@ -345,7 +386,7 @@ describe('DARE Resolver', () => {
         ],
       });
 
-      expect(resolveConveyanceForEntitlement).not.toHaveBeenCalled();
+      expect(mockedResolveConveyanceForEntitlement).not.toHaveBeenCalled();
     });
 
     it('should return success with meta containing processing counts', async () => {
@@ -363,8 +404,13 @@ describe('DARE Resolver', () => {
     });
 
     it('should build team updates from resolutions', async () => {
-      buildTeamUpdatesFromResolutions.mockReturnValue([
-        { teamCode: 'BOS', addIds: ['new-ent'], removeIds: ['old-ent'] },
+      mockedBuildTeamUpdatesFromResolutions.mockReturnValue([
+        {
+          teamCode: 'BOS',
+          entitlementIds: ['new-ent'],
+          addedIds: ['new-ent'],
+          removedIds: ['old-ent'],
+        },
       ]);
 
       const entitlement = {
@@ -389,7 +435,7 @@ describe('DARE Resolver', () => {
       });
 
       expect(result.teamEntitlementIdUpdates).toBeDefined();
-      expect(buildTeamUpdatesFromResolutions).toHaveBeenCalled();
+      expect(mockedBuildTeamUpdatesFromResolutions).toHaveBeenCalled();
     });
   });
 
@@ -398,7 +444,7 @@ describe('DARE Resolver', () => {
   // ============================================================================
   describe('resolveTeamDraftAssets', () => {
     it('should resolve draft assets for a single team', async () => {
-      resolveEntitlementsForTeamWithDb.mockResolvedValue([
+      mockedResolveEntitlementsForTeamWithDb.mockResolvedValue([
         {
           id: 'ent-1',
           kind: 'pick_ownership',
@@ -417,7 +463,7 @@ describe('DARE Resolver', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(resolveEntitlementsForTeamWithDb).toHaveBeenCalledWith(
+      expect(mockedResolveEntitlementsForTeamWithDb).toHaveBeenCalledWith(
         null,
         'world-1',
         'BOS'

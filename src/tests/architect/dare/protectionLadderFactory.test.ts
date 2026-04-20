@@ -4,6 +4,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import type { ProtectionLadder } from '@/features/architect/utils/entitlements/dare/types';
+import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import {
   buildProtectionLadder,
   parseProtectionCondition,
@@ -17,7 +19,7 @@ import {
 describe('Protection Ladder Factory (B4)', () => {
   describe('buildProtectionLadder', () => {
     it('transforms protections array to ladder', () => {
-      const pickRule = {
+      const pickRule: PickRuleDoc = {
         pickId: 'LAL_2026_1st',
         seasonYear: 2026,
         round: 1,
@@ -55,7 +57,7 @@ describe('Protection Ladder Factory (B4)', () => {
     });
 
     it('handles single-year protection', () => {
-      const pickRule = {
+      const pickRule: PickRuleDoc = {
         pickId: 'BOS_2026_1st',
         seasonYear: 2026,
         round: 1,
@@ -77,7 +79,7 @@ describe('Protection Ladder Factory (B4)', () => {
     });
 
     it('handles conversion conditions', () => {
-      const pickRule = {
+      const pickRule: PickRuleDoc = {
         pickId: 'PHI_2026_1st',
         seasonYear: 2026,
         round: 1,
@@ -103,7 +105,7 @@ describe('Protection Ladder Factory (B4)', () => {
     });
 
     it('returns null when no protections', () => {
-      const pickRule = {
+      const pickRule: PickRuleDoc = {
         pickId: 'MIA_2026_1st',
         seasonYear: 2026,
         round: 1,
@@ -208,7 +210,7 @@ describe('Protection Ladder Factory (B4)', () => {
   });
 
   describe('ladder lookup functions', () => {
-    const testLadder = [
+    const testLadder: ProtectionLadder = [
       { year: 2026, condition: 'Top 3', ifTriggered: 'roll', rollToYear: 2027 },
       { year: 2027, condition: 'Top 5', ifTriggered: 'roll', rollToYear: 2028 },
       { year: 2028, condition: 'Lottery', ifTriggered: 'cancel' },

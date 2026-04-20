@@ -14,6 +14,35 @@ import {
 } from '@/features/architect/utils/capLegalityValidation';
 import capProjections from '@/features/architect/utils/capProjections';
 
+type ContractOptions = {
+  contractType?: string;
+  capHit?: number;
+  exceptionType?: string | null;
+};
+
+type PlayerOptions = {
+  playerId?: string;
+  name?: string;
+  teamId?: string | null;
+  contract?: unknown;
+  freeAgency?: unknown;
+  age?: number;
+  draftYear?: number;
+};
+
+type CapHoldOptions = {
+  playerName?: string;
+  active?: boolean;
+  isSigned?: boolean;
+  season?: string;
+  type?: string;
+};
+
+type MaxViolationDetails = {
+  yearsOfService?: number;
+  maxSalarySource?: string;
+};
+
 describe('capLegalityValidation - Phase 19: Cap Hold / Cap Space Enforcement', () => {
   const YEAR = 2025; // 2024-25 season
   const CAP = capProjections['2024-25'];
@@ -24,9 +53,9 @@ describe('capLegalityValidation - Phase 19: Cap Hold / Cap Space Enforcement', (
    * Creates 14 players to avoid incomplete roster charges.
    */
   function createTeamWithCapHoldsAndCapHit(
-    totalPlayerCapHit,
-    capHolds = [],
-    options = {}
+    totalPlayerCapHit: number,
+    capHolds: Array<Record<string, unknown>> = [],
+    options: Record<string, unknown> = {}
   ) {
     // Create 14 players to satisfy minimum roster requirement and avoid incomplete roster charges
     // Distribute the total cap hit across the players
@@ -64,7 +93,7 @@ describe('capLegalityValidation - Phase 19: Cap Hold / Cap Space Enforcement', (
   /**
    * Creates a mock contract.
    */
-  function createContract(salary = 5_000_000, options = {}) {
+  function createContract(salary = 5_000_000, options: ContractOptions = {}) {
     return {
       contractType: options.contractType || 'Standard',
       salariesByYear: [
@@ -77,7 +106,7 @@ describe('capLegalityValidation - Phase 19: Cap Hold / Cap Space Enforcement', (
   /**
    * Creates a mock player.
    */
-  function createPlayer(playerId = 'p1', options = {}) {
+  function createPlayer(playerId = 'p1', options: PlayerOptions = {}) {
     return {
       player_id: playerId,
       name: options.name || 'Test Player',
@@ -90,7 +119,11 @@ describe('capLegalityValidation - Phase 19: Cap Hold / Cap Space Enforcement', (
   /**
    * Creates a mock cap hold.
    */
-  function createCapHold(playerId, amount, options = {}) {
+  function createCapHold(
+    playerId: string,
+    amount: number,
+    options: CapHoldOptions = {}
+  ) {
     return {
       playerId,
       playerName: options.playerName || `Player ${playerId}`,
@@ -482,7 +515,7 @@ describe('capLegalityValidation - Phase 31: Max Salary Enforcement', () => {
   /**
    * Creates a mock player with specified YOS
    */
-  function createPlayerWithYOS(yos, options = {}) {
+  function createPlayerWithYOS(yos: number, options: PlayerOptions = {}) {
     return {
       player_id: options.playerId || 'p1',
       name: options.name || 'Test Player',
@@ -500,7 +533,10 @@ describe('capLegalityValidation - Phase 31: Max Salary Enforcement', () => {
   /**
    * Creates a contract with specified salary
    */
-  function createContractWithSalary(salary, options = {}) {
+  function createContractWithSalary(
+    salary: number,
+    options: ContractOptions = {}
+  ) {
     return {
       contractType: options.contractType || 'Standard',
       salariesByYear: [
@@ -546,8 +582,9 @@ describe('capLegalityValidation - Phase 31: Max Salary Enforcement', () => {
       const maxViolation = result.violations.find(
         (v) => v.rule === 'max_salary_violation'
       );
+      const maxDetails = maxViolation?.details as MaxViolationDetails | undefined;
       expect(maxViolation).toBeDefined();
-      expect(maxViolation.details.yearsOfService).toBe(0);
+      expect(maxDetails?.yearsOfService).toBe(0);
     });
 
     it('MAX-3: allows salary at 25% max for 6-year veteran', () => {
@@ -606,8 +643,9 @@ describe('capLegalityValidation - Phase 31: Max Salary Enforcement', () => {
       const maxViolation = result.violations.find(
         (v) => v.rule === 'max_salary_violation'
       );
+      const maxDetails = maxViolation?.details as MaxViolationDetails | undefined;
       expect(maxViolation).toBeDefined();
-      expect(maxViolation.details.yearsOfService).toBe(7);
+      expect(maxDetails?.yearsOfService).toBe(7);
     });
 
     it('MAX-6: allows salary at 30% max for 9-year veteran', () => {
@@ -666,8 +704,9 @@ describe('capLegalityValidation - Phase 31: Max Salary Enforcement', () => {
       const maxViolation = result.violations.find(
         (v) => v.rule === 'max_salary_violation'
       );
+      const maxDetails = maxViolation?.details as MaxViolationDetails | undefined;
       expect(maxViolation).toBeDefined();
-      expect(maxViolation.details.yearsOfService).toBe(10);
+      expect(maxDetails?.yearsOfService).toBe(10);
     });
 
     it('MAX-8b: allows salary at 35% max for 15-year veteran (10+ tier)', () => {
@@ -822,10 +861,9 @@ describe('capLegalityValidation - Phase 31: Max Salary Enforcement', () => {
       const maxViolation = result.violations.find(
         (v) => v.rule === 'max_salary_violation'
       );
+      const maxDetails = maxViolation?.details as MaxViolationDetails | undefined;
       expect(maxViolation).toBeDefined();
-      expect(maxViolation.details.maxSalarySource).toBe(
-        'yos_tier_conservative'
-      );
+      expect(maxDetails?.maxSalarySource).toBe('yos_tier_conservative');
     });
 
     it('MAX-14: normal enforcement when YOS=0 but draftYear exists (rookie)', () => {
@@ -853,8 +891,9 @@ describe('capLegalityValidation - Phase 31: Max Salary Enforcement', () => {
       const maxViolation = result.violations.find(
         (v) => v.rule === 'max_salary_violation'
       );
+      const maxDetails = maxViolation?.details as MaxViolationDetails | undefined;
       expect(maxViolation).toBeDefined();
-      expect(maxViolation.details.maxSalarySource).toBe('yos_tier_fallback');
+      expect(maxDetails?.maxSalarySource).toBe('yos_tier_fallback');
     });
   });
 

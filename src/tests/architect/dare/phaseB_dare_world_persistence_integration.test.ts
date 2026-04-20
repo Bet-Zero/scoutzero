@@ -57,7 +57,7 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
 
 // Mock DARE Barrel (ensure resolveAllDraftAssets is intercepted)
 vi.mock('@/features/architect/utils/entitlements/dare', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     resolveAllDraftAssets: mocks.mockResolveAllDraftAssets,
@@ -169,6 +169,24 @@ describe('Phase B: DARE World Persistence Integration', () => {
   const FROM_SEASON = '2025-26';
   const TO_SEASON = '2026-27';
 
+  function createMockResolutionReceipt(totalResolutions = 0) {
+    return {
+      draftYear: 2026,
+      resolvedAt: '2026-02-04T00:00:00.000Z',
+      totalResolutions,
+      byOutcome: {
+        conveyed: 0,
+        rolled: 0,
+        converted: 0,
+        swap_resolved: 0,
+        expired: 0,
+        unchanged: 0,
+      },
+      entries: [],
+      warnings: [],
+    };
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -192,7 +210,7 @@ describe('Phase B: DARE World Persistence Integration', () => {
       success: true,
       entitlementDocWrites: [],
       teamEntitlementIdUpdates: [],
-      resolutionReceipt: { totalResolutions: 0, entries: [] },
+      resolutionReceipt: createMockResolutionReceipt(),
     });
     
     // Default Entitlement Resolver
@@ -234,7 +252,7 @@ describe('Phase B: DARE World Persistence Integration', () => {
             removedIds: ['e1'],
           }
         ],
-        resolutionReceipt: { totalResolutions: 1, entries: [] },
+        resolutionReceipt: createMockResolutionReceipt(1),
       };
       
       mocks.mockResolveAllDraftAssets.mockResolvedValue(mockDAREOutput);
@@ -310,7 +328,7 @@ describe('Phase B: DARE World Persistence Integration', () => {
             removedIds: [],
           },
         ],
-        resolutionReceipt: { totalResolutions: 1, entries: [] },
+        resolutionReceipt: createMockResolutionReceipt(1),
       });
 
       const result = await advanceSeasonInWorld(WORLD_ID);
@@ -328,7 +346,7 @@ describe('Phase B: DARE World Persistence Integration', () => {
         success: true,
         entitlementDocWrites: [],
         teamEntitlementIdUpdates: [],
-        resolutionReceipt: { totalResolutions: 0, entries: [] },
+        resolutionReceipt: createMockResolutionReceipt(),
       });
       mocks.mockResolveEntitlementsForTeam.mockRejectedValue({
         code: 'ENTITLEMENT_INVARIANT_VIOLATION',
@@ -362,7 +380,7 @@ describe('Phase B: DARE World Persistence Integration', () => {
              success: true,
              entitlementDocWrites: [], // Result does not matter for this test
              teamEntitlementIdUpdates: [],
-             resolutionReceipt: { totalResolutions: 0, entries: [] },
+             resolutionReceipt: createMockResolutionReceipt(),
            };
         }
         return { success: false, error: 'DARE Input Mismatch' };

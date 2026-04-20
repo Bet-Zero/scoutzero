@@ -602,7 +602,9 @@ npm run typecheck
 
 ### Step 15 — `src/tests/architect/` large JS guardrails + dare/, part 2 (55 files, ~24,200 lines)
 
-**Status:** TODO
+**Status:** IN PROGRESS — 2026-04-20
+
+**Progress note (2026-04-20):** Completed sub-batch 15a. Renamed the 15 remaining `dare/`, `capTotals/`, and `capLegalityValidation` files from `.js` to `.ts`. TS migration edits stayed narrow: typed helper-option objects in `capLegalityValidation`, `vi.mocked(...)` mock narrowing plus literal ladder typing in the DARE unit tests, object casts for `importOriginal()` mock spreads, and updating stale DARE `resolutionReceipt` test doubles to include the current `byOutcome`/metadata shape expected by `seasonManager`. `npm run typecheck`, targeted `npm run test:node -- --reporter=dot` over all 15 converted files (15 files / 214 tests), and `npm run validate:project` pass. `npm run test:architect -- --reporter=dot` was started first and surfaced the stale receipt-shape issue in the converted DARE smoke tests; after fixing that issue, validation was intentionally narrowed to the direct 15-file node run so the converted 15a batch was fully covered without rerunning the broader architect sweep.
 
 **Why large:** These are the heavyweight architect guardrail, integration, and persistence tests. They share similar import patterns and can be converted in a single batch after Step 14 proves the smaller files.
 

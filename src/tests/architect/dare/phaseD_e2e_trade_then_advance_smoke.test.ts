@@ -70,7 +70,7 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
 vi.mock(
   '@/features/architect/utils/entitlements/dare',
   async (importOriginal) => {
-    const actual = await importOriginal();
+    const actual = (await importOriginal()) as Record<string, unknown>;
     return {
       ...actual,
       resolveAllDraftAssets: mocks.mockResolveAllDraftAssets,
@@ -192,6 +192,24 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
   const FROM_SEASON = '2025-26';
   const TO_SEASON = '2026-27';
 
+  function createMockResolutionReceipt(totalResolutions = 0) {
+    return {
+      draftYear: 2026,
+      resolvedAt: '2026-02-04T00:00:00.000Z',
+      totalResolutions,
+      byOutcome: {
+        conveyed: 0,
+        rolled: 0,
+        converted: 0,
+        swap_resolved: 0,
+        expired: 0,
+        unchanged: 0,
+      },
+      entries: [],
+      warnings: [],
+    };
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -234,7 +252,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
       success: true,
       entitlementDocWrites: [],
       teamEntitlementIdUpdates: [],
-      resolutionReceipt: { totalResolutions: 0, entries: [] },
+      resolutionReceipt: createMockResolutionReceipt(),
     });
 
     // Default Entitlement Resolver
@@ -285,7 +303,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
           success: true,
           entitlementDocWrites: [],
           teamEntitlementIdUpdates: [],
-          resolutionReceipt: { totalResolutions: 0, entries: [] },
+          resolutionReceipt: createMockResolutionReceipt(),
         };
       });
 
@@ -353,7 +371,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
           success: true,
           entitlementDocWrites: [],
           teamEntitlementIdUpdates: [],
-          resolutionReceipt: { totalResolutions: 0, entries: [] },
+          resolutionReceipt: createMockResolutionReceipt(),
         };
       });
 
@@ -479,7 +497,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
           success: true,
           entitlementDocWrites: [],
           teamEntitlementIdUpdates: [],
-          resolutionReceipt: { totalResolutions: 0, entries: [] },
+          resolutionReceipt: createMockResolutionReceipt(),
         };
       });
 
@@ -567,7 +585,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
           },
         ],
         resolutionReceipt: {
-          totalResolutions: 2,
+          ...createMockResolutionReceipt(2),
           entries: [
             { entitlementId: 'ent:BOS:2026:1:conv:abc', outcome: 'conveyed' },
             { entitlementId: 'ent:LAL:2026:1:swap:xyz', outcome: 'resolved' },
@@ -610,7 +628,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
         success: true,
         entitlementDocWrites: [],
         teamEntitlementIdUpdates: [],
-        resolutionReceipt: { totalResolutions: 0, entries: [] },
+        resolutionReceipt: createMockResolutionReceipt(),
       });
 
       const result = await advanceSeasonInWorld(WORLD_ID);

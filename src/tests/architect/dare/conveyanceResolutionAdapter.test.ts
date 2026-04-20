@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ProtectionLadder } from '@/features/architect/utils/entitlements/dare/types';
 
 // Mock the protection ladder factory functions
 vi.mock(
@@ -29,15 +30,20 @@ import {
   isFinalProtectionYear,
 } from '@/features/architect/utils/entitlements/dare/protectionLadderFactory';
 
+const mockProtectionTriggers = vi.mocked(protectionTriggers);
+const mockGetCurrentProtectionTier = vi.mocked(getCurrentProtectionTier);
+const mockGetNextProtectionTier = vi.mocked(getNextProtectionTier);
+const mockIsFinalProtectionYear = vi.mocked(isFinalProtectionYear);
+
 describe('conveyanceResolutionAdapter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Default mocks: no protection triggers
-    protectionTriggers.mockReturnValue(false);
-    getCurrentProtectionTier.mockReturnValue(null);
-    getNextProtectionTier.mockReturnValue(null);
-    isFinalProtectionYear.mockReturnValue(false);
+    mockProtectionTriggers.mockReturnValue(false);
+    mockGetCurrentProtectionTier.mockReturnValue(null);
+    mockGetNextProtectionTier.mockReturnValue(null);
+    mockIsFinalProtectionYear.mockReturnValue(false);
   });
 
   describe('resolveConveyanceForEntitlement', () => {
@@ -76,7 +82,7 @@ describe('conveyanceResolutionAdapter', () => {
         underlyingPickId: 'CHI_2026_1st',
       };
 
-      const ladder = [
+      const ladder: ProtectionLadder = [
         {
           year: 2026,
           condition: 'Top 10',
@@ -89,13 +95,13 @@ describe('conveyanceResolutionAdapter', () => {
           ifTriggered: 'roll',
           rollToYear: 2028,
         },
-        { year: 2028, condition: 'Unprotected', ifTriggered: 'convey' },
+        { year: 2028, condition: 'Unprotected', ifTriggered: 'cancel' },
       ];
 
-      protectionTriggers.mockReturnValue(true);
-      getCurrentProtectionTier.mockReturnValue(ladder[0]);
-      getNextProtectionTier.mockReturnValue(ladder[1]);
-      isFinalProtectionYear.mockReturnValue(false);
+      mockProtectionTriggers.mockReturnValue(true);
+      mockGetCurrentProtectionTier.mockReturnValue(ladder[0]);
+      mockGetNextProtectionTier.mockReturnValue(ladder[1]);
+      mockIsFinalProtectionYear.mockReturnValue(false);
 
       const positionsMap = { CHI: 8 };
 
@@ -122,7 +128,7 @@ describe('conveyanceResolutionAdapter', () => {
         underlyingPickId: 'DET_2026_1st',
       };
 
-      const ladder = [
+      const ladder: ProtectionLadder = [
         {
           year: 2026,
           condition: 'Lottery',
@@ -131,9 +137,9 @@ describe('conveyanceResolutionAdapter', () => {
         },
       ];
 
-      protectionTriggers.mockReturnValue(true);
-      getCurrentProtectionTier.mockReturnValue(ladder[0]);
-      isFinalProtectionYear.mockReturnValue(false);
+      mockProtectionTriggers.mockReturnValue(true);
+      mockGetCurrentProtectionTier.mockReturnValue(ladder[0]);
+      mockIsFinalProtectionYear.mockReturnValue(false);
 
       const positionsMap = { DET: 5 };
 
@@ -160,13 +166,13 @@ describe('conveyanceResolutionAdapter', () => {
         underlyingPickId: 'ORL_2026_1st',
       };
 
-      const ladder = [
+      const ladder: ProtectionLadder = [
         { year: 2026, condition: 'Top 3', ifTriggered: 'cancel' },
       ];
 
-      protectionTriggers.mockReturnValue(true);
-      getCurrentProtectionTier.mockReturnValue(ladder[0]);
-      isFinalProtectionYear.mockReturnValue(true);
+      mockProtectionTriggers.mockReturnValue(true);
+      mockGetCurrentProtectionTier.mockReturnValue(ladder[0]);
+      mockIsFinalProtectionYear.mockReturnValue(true);
 
       const positionsMap = { ORL: 2 };
 
@@ -264,20 +270,20 @@ describe('conveyanceResolutionAdapter', () => {
         underlyingPickId: 'WAS_2026_1st',
       };
 
-      const ladder = [
+      const ladder: ProtectionLadder = [
         {
           year: 2026,
           condition: 'Lottery',
           ifTriggered: 'roll',
           rollToYear: 2027,
         },
-        { year: 2027, condition: 'Unprotected', ifTriggered: 'convey' },
+        { year: 2027, condition: 'Unprotected', ifTriggered: 'cancel' },
       ];
 
-      protectionTriggers.mockReturnValue(true);
-      getCurrentProtectionTier.mockReturnValue(ladder[0]);
-      getNextProtectionTier.mockReturnValue(ladder[1]);
-      isFinalProtectionYear.mockReturnValue(false);
+      mockProtectionTriggers.mockReturnValue(true);
+      mockGetCurrentProtectionTier.mockReturnValue(ladder[0]);
+      mockGetNextProtectionTier.mockReturnValue(ladder[1]);
+      mockIsFinalProtectionYear.mockReturnValue(false);
 
       let positionsMap = { WAS: 14 };
       let result = resolveConveyanceForEntitlement(
@@ -290,7 +296,7 @@ describe('conveyanceResolutionAdapter', () => {
       );
       expect(result.outcome).toBe('rolled');
 
-      protectionTriggers.mockReturnValue(false);
+      mockProtectionTriggers.mockReturnValue(false);
 
       positionsMap = { WAS: 15 };
       result = resolveConveyanceForEntitlement(
@@ -337,20 +343,20 @@ describe('conveyanceResolutionAdapter', () => {
         underlyingPickId: 'SAS_2026_1st',
       };
 
-      const ladder = [
+      const ladder: ProtectionLadder = [
         {
           year: 2026,
           condition: 'Top 5',
           ifTriggered: 'roll',
           rollToYear: 2027,
         },
-        { year: 2027, condition: 'Unprotected', ifTriggered: 'convey' },
+        { year: 2027, condition: 'Unprotected', ifTriggered: 'cancel' },
       ];
 
-      protectionTriggers.mockReturnValue(true);
-      getCurrentProtectionTier.mockReturnValue(ladder[0]);
-      getNextProtectionTier.mockReturnValue(ladder[1]);
-      isFinalProtectionYear.mockReturnValue(false);
+      mockProtectionTriggers.mockReturnValue(true);
+      mockGetCurrentProtectionTier.mockReturnValue(ladder[0]);
+      mockGetNextProtectionTier.mockReturnValue(ladder[1]);
+      mockIsFinalProtectionYear.mockReturnValue(false);
 
       let positionsMap = { SAS: 5 };
       let result = resolveConveyanceForEntitlement(
@@ -363,7 +369,7 @@ describe('conveyanceResolutionAdapter', () => {
       );
       expect(result.outcome).toBe('rolled');
 
-      protectionTriggers.mockReturnValue(false);
+      mockProtectionTriggers.mockReturnValue(false);
 
       positionsMap = { SAS: 6 };
       result = resolveConveyanceForEntitlement(
