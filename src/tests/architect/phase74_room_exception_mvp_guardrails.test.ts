@@ -36,7 +36,7 @@ import capProjections from '@/features/architect/utils/capProjections';
 vi.mock(
   '@/features/architect/utils/capTotals/computeTeamCapTotals',
   async (importOriginal) => {
-    const actual = await importOriginal();
+    const actual = (await importOriginal()) as Record<string, unknown>;
     return {
       ...actual,
       computeTeamCapTotals: vi.fn((team) => ({
@@ -63,10 +63,54 @@ const SALARY_CAP = CAP.cap;
 const FIRST_APRON = CAP.firstApron;
 const SECOND_APRON = CAP.secondApron;
 
+type RoomExceptionOptions = {
+  enabled?: boolean;
+  totalAmount?: number;
+  usedAmount?: number;
+  remainingAmount?: number;
+};
+
+type RoomExceptionTeam = {
+  teamCode: string;
+  teamName: string;
+  players: unknown[];
+  roster: unknown[];
+  capHolds: unknown[];
+  exceptions: {
+    room: {
+      enabled: boolean;
+      totalAmount: number;
+      usedAmount: number;
+      remainingAmount: number;
+      seasonKey: string;
+    };
+  };
+  totals: {
+    capHit: number;
+    totalSalary: number;
+    totalCapAllocations: number;
+    isHardCapped?: boolean;
+    hardCapLevel?: string | null;
+    hardCapDetail?: string | null;
+  };
+};
+
+type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type SignFreeAgentMutationArgs = Extract<
+  ComputeWorldMutationArgs,
+  { mutationType: 'signFreeAgent' }
+>;
+type MutationCurrentState = SignFreeAgentMutationArgs['currentState'];
+
+const asCurrentState = (value: unknown) => value as MutationCurrentState;
+
 /**
  * Creates a mock team with the specified cap hit and optional room exception.
  */
-function createTeamWithRoomException(capHit, roomExceptionOptions = {}) {
+function createTeamWithRoomException(
+  capHit: number,
+  roomExceptionOptions: RoomExceptionOptions = {}
+): RoomExceptionTeam {
   const {
     enabled = true,
     totalAmount = CAP.roomMLE || 8_000_000,
@@ -286,11 +330,11 @@ describe('Phase 74: Room Exception Mutation Pipeline Guardrails', () => {
         contract: createContract(signingValue, signingValue),
         signedUsing: 'room',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'new_player_1', displayName: 'New Player' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });
@@ -322,11 +366,11 @@ describe('Phase 74: Room Exception Mutation Pipeline Guardrails', () => {
         contract: createContract(signingValue, signingValue),
         signedUsing: 'Room MLE',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'new_player_2', displayName: 'New Player 2' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });
@@ -355,11 +399,11 @@ describe('Phase 74: Room Exception Mutation Pipeline Guardrails', () => {
         contract: createContract(5_000_000, 5_000_000),
         signedUsing: 'room',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'new_player_3', displayName: 'New Player 3' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });
@@ -393,11 +437,11 @@ describe('Phase 74: Room Exception Mutation Pipeline Guardrails', () => {
         contract: createContract(newSigningValue, newSigningValue),
         signedUsing: 'room',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'new_player_4', displayName: 'New Player 4' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });
@@ -431,11 +475,11 @@ describe('Phase 74: Room Exception Persistence Shape Guardrails', () => {
         contract: createContract(4_000_000, 4_000_000),
         signedUsing: 'room',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'new_player_5', displayName: 'New Player 5' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });
@@ -462,11 +506,11 @@ describe('Phase 74: Room Exception Persistence Shape Guardrails', () => {
         contract: createContract(3_000_000, 3_000_000),
         signedUsing: 'room',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'new_player_6', displayName: 'New Player 6' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });
@@ -501,11 +545,11 @@ describe('Phase 74: Room Exception Reload Proof Guardrails', () => {
         contract: createContract(2_500_000, 2_500_000),
         signedUsing: 'room',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'reload_player_1', displayName: 'Reload Player' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });
@@ -543,11 +587,11 @@ describe('Phase 74: Room Exception Reload Proof Guardrails', () => {
         contract: createContract(2_000_000, 2_000_000),
         signedUsing: 'room',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'seq_player_1', displayName: 'Seq Player 1' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });
@@ -566,11 +610,11 @@ describe('Phase 74: Room Exception Reload Proof Guardrails', () => {
         contract: createContract(3_000_000, 3_000_000),
         signedUsing: 'room',
       },
-      currentState: {
+      currentState: asCurrentState({
         team,
         player: { player_id: 'seq_player_2', displayName: 'Seq Player 2' },
         teamCode: 'TST',
-      },
+      }),
       seasonId: '2025-26',
       timestamp: Date.now(),
     });

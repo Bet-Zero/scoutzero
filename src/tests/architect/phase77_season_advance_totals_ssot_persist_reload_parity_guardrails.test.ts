@@ -56,10 +56,19 @@ const TEST_YEAR_2027 = 2027; // 2026-27 season
 const FROM_SEASON = '2025-26';
 const TO_SEASON = '2026-27';
 
+type CreateTeamWithContractsOptions = {
+  teamCode?: string;
+  playerCount?: number;
+  salaryPerPlayer?: number;
+  seasonKey?: string;
+};
+
 /**
  * Creates a minimal team with contracts for totals testing.
  */
-function createTeamWithContracts(options = {}) {
+function createTeamWithContracts(
+  options: CreateTeamWithContractsOptions = {}
+) {
   const {
     teamCode = 'TST',
     playerCount = 10, // Less than 14 to test incomplete roster charges

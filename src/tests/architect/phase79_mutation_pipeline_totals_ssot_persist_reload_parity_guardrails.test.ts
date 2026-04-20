@@ -68,6 +68,13 @@ const TRADE_CONTEXT_PATH = path.resolve(
 const TEST_YEAR_2026 = 2026; // 2025-26 season
 const TEST_SEASON = '2025-26';
 
+type CreateTestTeamOptions = {
+  teamCode?: string;
+  playerCount?: number;
+  salaryPerPlayer?: number;
+  seasonKey?: string;
+};
+
 /**
  * SSOT Totals Assertion Helper
  * Verifies team.totals matches computeTeamCapTotals output exactly.
@@ -96,7 +103,7 @@ function assertTotalsMatchSSoT(team, yearKey, context = '') {
 /**
  * Creates a minimal team for testing totals.
  */
-function createTestTeam(options = {}) {
+function createTestTeam(options: CreateTestTeamOptions = {}) {
   const {
     teamCode = 'TST',
     playerCount = 10,

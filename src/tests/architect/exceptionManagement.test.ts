@@ -344,7 +344,7 @@ describe('Exception Management (setExceptions)', () => {
         mutationType: 'setExceptions',
         payload: {
           teamCode: 'LAL',
-          exceptions: [],
+          exceptions: [] as unknown as Record<string, unknown>,
         },
         currentState: { team: { teamCode: 'LAL' } },
         seasonId: '2025-26',

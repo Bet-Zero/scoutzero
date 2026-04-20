@@ -68,7 +68,7 @@ describe('Phase 75: Source Scan Guardrails', () => {
   it('canUseRoomException remains available from the extensionless capTotals barrel', async () => {
     const barrel = await import('@/features/architect/utils/capTotals');
     const authority = await import(
-      '@/features/architect/utils/capTotals/computeTeamCapTotals.ts'
+      '@/features/architect/utils/capTotals/computeTeamCapTotals'
     );
 
     expect(barrel.canUseRoomException).toBe(authority.canUseRoomException);

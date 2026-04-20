@@ -17,6 +17,16 @@ import {
   __test__selectDraftPicksSource,
 } from '@/features/architect/utils/entitlements/seasonManagerProjection';
 
+type ProjectionArgs = Parameters<typeof projectEntitlementsToSeasonManagerView>[0];
+type PickRulesById = NonNullable<ProjectionArgs['pickRulesById']>;
+type DraftPicksSourceInput = Parameters<typeof __test__selectDraftPicksSource>[0];
+
+const asPickRulesById = (value: Record<string, unknown>) =>
+  value as unknown as PickRulesById;
+
+const asDraftPicksSourceInput = (value: Record<string, unknown>) =>
+  value as unknown as DraftPicksSourceInput;
+
 describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
   // ==========================================================================
   // SECTION 1: Projection Mapping Tests
@@ -141,7 +151,7 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
         },
       ];
 
-      const pickRulesById = {
+      const pickRulesById = asPickRulesById({
         MIA_2027_1st: {
           pickId: 'MIA_2027_1st',
           protections: [
@@ -151,7 +161,7 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
             { kind: 'conveys', description: 'Conveys if outside lottery' },
           ],
         },
-      };
+      });
 
       const result = projectEntitlementsToSeasonManagerView({
         entitlements,
@@ -286,10 +296,10 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
         },
       ];
 
-      const pickRulesById = {
+      const pickRulesById = asPickRulesById({
         // Different pick ID - no match
         BOS_2027_1st: { pickId: 'BOS_2027_1st', protections: [] },
-      };
+      });
 
       const result = projectEntitlementsToSeasonManagerView({
         entitlements,
@@ -328,10 +338,10 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
   // ==========================================================================
   describe('__test__selectDraftPicksSource - dual-read pattern', () => {
     it('prefers _derivedDraftPicks when present', () => {
-      const teamData = {
+      const teamData = asDraftPicksSourceInput({
         _derivedDraftPicks: [{ id: 'derived-1', year: 2027 }],
         draftPicks: [{ id: 'legacy-1', year: 2027 }],
-      };
+      });
 
       const result = __test__selectDraftPicksSource(teamData);
 
@@ -339,9 +349,9 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
     });
 
     it('falls back to draftPicks when _derivedDraftPicks is missing', () => {
-      const teamData = {
+      const teamData = asDraftPicksSourceInput({
         draftPicks: [{ id: 'legacy-1', year: 2027 }],
-      };
+      });
 
       const result = __test__selectDraftPicksSource(teamData);
 
@@ -349,10 +359,10 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
     });
 
     it('falls back to draftPicks when _derivedDraftPicks is empty', () => {
-      const teamData = {
+      const teamData = asDraftPicksSourceInput({
         _derivedDraftPicks: [],
         draftPicks: [{ id: 'legacy-1', year: 2027 }],
-      };
+      });
 
       // Empty array is falsy in || context, so falls back
       const result = __test__selectDraftPicksSource(teamData);
@@ -444,12 +454,12 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
         },
       ];
 
-      const pickRulesById = {
+      const pickRulesById = asPickRulesById({
         LAL_2027_1st: {
           pickId: 'LAL_2027_1st',
           protections: [{ type: 'top_n', protectedRange: '1-10' }],
         },
-      };
+      });
 
       const result = projectEntitlementsToSeasonManagerView({
         entitlements,
@@ -471,12 +481,12 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
         },
       ];
 
-      const pickRulesById = {
+      const pickRulesById = asPickRulesById({
         LAL_2027_1st: {
           pickId: 'LAL_2027_1st',
           protections: [{ type: 'range', protectedRange: '1-5' }],
         },
-      };
+      });
 
       const result = projectEntitlementsToSeasonManagerView({
         entitlements,

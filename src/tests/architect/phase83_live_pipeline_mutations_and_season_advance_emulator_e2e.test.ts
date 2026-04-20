@@ -1,5 +1,5 @@
 /**
- * FILE: src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js
+ * FILE: src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.ts
  * PURPOSE: Guardrail tests that verify Phase 83 E2E test infrastructure exists and uses correct
  *          patterns for calling real mutation pipeline entrypoints.
  * OWNERSHIP: Feature: architect/capSheet
@@ -44,7 +44,7 @@ describe('Phase 83: Source Code Guardrails', () => {
     const path = await import('path');
     const testFilePath = path.resolve(
       process.cwd(),
-      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js'
+      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.ts'
     );
     expect(fs.existsSync(testFilePath)).toBe(true);
   });
@@ -54,7 +54,7 @@ describe('Phase 83: Source Code Guardrails', () => {
     const path = await import('path');
     const testFilePath = path.resolve(
       process.cwd(),
-      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js'
+      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.ts'
     );
     const content = fs.readFileSync(testFilePath, 'utf-8');
     
@@ -121,7 +121,7 @@ describe('Phase 83: Integration Pattern Documentation', () => {
     const path = await import('path');
     const testFilePath = path.resolve(
       process.cwd(),
-      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js'
+      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.ts'
     );
     const content = fs.readFileSync(testFilePath, 'utf-8');
     
@@ -135,7 +135,7 @@ describe('Phase 83: Integration Pattern Documentation', () => {
     const path = await import('path');
     const testFilePath = path.resolve(
       process.cwd(),
-      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js'
+      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.ts'
     );
     const content = fs.readFileSync(testFilePath, 'utf-8');
     
@@ -149,7 +149,7 @@ describe('Phase 83: Integration Pattern Documentation', () => {
     const path = await import('path');
     const testFilePath = path.resolve(
       process.cwd(),
-      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js'
+      'src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.ts'
     );
     const content = fs.readFileSync(testFilePath, 'utf-8');
     

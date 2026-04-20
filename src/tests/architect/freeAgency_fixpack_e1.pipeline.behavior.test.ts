@@ -3,6 +3,21 @@ import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline'
 import { getPlayer, getTeam } from '@/features/architect/utils/teamLoader';
 import { updateWorldStats } from '@/features/architect/utils/worldManager';
 
+type LoadedTeam = Awaited<ReturnType<typeof getTeam>>;
+type LoadedPlayer = Awaited<ReturnType<typeof getPlayer>>;
+type RenouncedPlayerView = {
+  rightsRenounced?: boolean;
+  contract?: {
+    birdRights?: {
+      status?: string | null;
+    } | null;
+  } | null;
+};
+
+const mockedGetTeam = vi.mocked(getTeam);
+const mockedGetPlayer = vi.mocked(getPlayer);
+const mockedUpdateWorldStats = vi.mocked(updateWorldStats);
+
 const firestoreMocks = vi.hoisted(() => ({
   batchSet: vi.fn(),
   batchUpdate: vi.fn(),
@@ -136,8 +151,8 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
       exceptionType: 'Taxpayer MLE',
     };
 
-    getTeam.mockResolvedValue(team);
-    getPlayer.mockResolvedValue(player);
+    mockedGetTeam.mockResolvedValue(team as LoadedTeam);
+    mockedGetPlayer.mockResolvedValue(player as LoadedPlayer);
 
     const result = await applyWorldMutation({
       userId,
@@ -180,7 +195,7 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
         (path) => path.includes('/teams/') && !path.includes('/architect_worlds/')
       )
     ).toBe(false);
-    expect(updateWorldStats).toHaveBeenCalledWith(
+    expect(mockedUpdateWorldStats).toHaveBeenCalledWith(
       worldId,
       'signing',
       expect.arrayContaining([teamCode])
@@ -236,8 +251,8 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
       },
     };
 
-    getTeam.mockResolvedValue(team);
-    getPlayer.mockResolvedValue(player);
+    mockedGetTeam.mockResolvedValue(team as LoadedTeam);
+    mockedGetPlayer.mockResolvedValue(player as LoadedPlayer);
 
     const result = await applyWorldMutation({
       userId,
@@ -259,7 +274,7 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
     expect(changedTeam.capHolds).toHaveLength(0);
     const changedPlayer = changedTeam.players.find(
       (p) => (p.player_id || p.id) === playerId
-    );
+    ) as RenouncedPlayerView | undefined;
     expect(changedPlayer.rightsRenounced).toBe(true);
     expect(changedPlayer.contract.birdRights.status).toBe('None');
 

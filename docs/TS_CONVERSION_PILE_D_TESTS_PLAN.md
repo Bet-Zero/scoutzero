@@ -602,9 +602,9 @@ npm run typecheck
 
 ### Step 15 — `src/tests/architect/` large JS guardrails + dare/, part 2 (55 files, ~24,200 lines)
 
-**Status:** IN PROGRESS — 2026-04-20
+**Status:** DONE — 2026-04-20
 
-**Progress note (2026-04-20):** Completed sub-batches 15a and 15b. For 15a, the 15 remaining `dare/`, `capTotals/`, and `capLegalityValidation` files were renamed from `.js` to `.ts`; TS migration edits stayed narrow: typed helper-option objects in `capLegalityValidation`, `vi.mocked(...)` mock narrowing plus literal ladder typing in the DARE unit tests, object casts for `importOriginal()` mock spreads, and updating stale DARE `resolutionReceipt` test doubles to include the current `byOutcome`/metadata shape expected by `seasonManager`. For 15b, the 21 Phase 47–70 guardrail files were renamed from `.js` to `.ts`; TS migration edits stayed narrow again and were limited to local helper/team fixture types for canonicalized TPE and exception-history assertions, one typed `importOriginal()` narrowing in the trade-machine mock, a typed sanitizer wrapper for `sanitizeTransientFieldsForPersistence(...)` returning `unknown`, and aligning Phase 55 expectations with the current `ValidatedTradeContext` shape via `_rawValidation.valid`. `npm run typecheck`, targeted `npm run test:node -- --reporter=dot` over the 15 converted 15a files (15 files / 214 tests) and the 21 converted 15b files (21 files / 395 tests), and `npm run validate:project` pass. `npm run test:architect -- --reporter=dot` was started during 15a and surfaced the stale receipt-shape issue in the converted DARE smoke tests; after fixing that issue, validation for both sub-batches was intentionally narrowed to direct `test:node` runs over the converted files so the batch stayed fully covered without rerunning the broader architect sweep.
+**Progress note (2026-04-20):** Completed sub-batch 15c and closed Step 15. The remaining 19 root `src/tests/architect/` guardrail/integration files were renamed from `.js` to `.ts`. TS migration edits stayed narrow: local invalid-payload casts in the exception/entitlement guardrails, `vi.mocked(...)` narrowing for mocked team-loader and validation functions, typed helper-option objects for room-exception / season-advance fixtures, local casts for partial `currentState` fixtures passed to `computeWorldMutation(...)`, and updating Phase 83 source-scan assertions to self-reference the new `.ts` filename. `npm run typecheck` passes, `npm run validate:project` passes, and a targeted `npm run test:node -- --reporter=dot` run over the 19 converted 15c files passes (19 files / 308 tests in 21.14s). Sub-batches 15a and 15b remain complete as previously recorded; as with those earlier slices, the broad `npm run test:architect -- --reporter=dot` step was intentionally skipped here because that script is directory-scoped to the full architect suite, while the targeted node run covered every converted Step 15c file directly and matched AGENTS.md's default targeted-validation rule.
 
 **Why large:** These are the heavyweight architect guardrail, integration, and persistence tests. They share similar import patterns and can be converted in a single batch after Step 14 proves the smaller files.
 
@@ -612,7 +612,7 @@ npm run typecheck
 
 - **15a** — `dare/` + `capTotals/` + `capLegality/` subdirectory files (~15 files) — DONE 2026-04-20
 - **15b** — Phase 47–70 guardrails (~21 files) — DONE 2026-04-20
-- **15c** — Phase 72–86 + remaining non-phase files (~19 files) — NEXT
+- **15c** — Phase 72–86 + remaining non-phase files (~19 files) — DONE 2026-04-20
 
 **Files (all remaining JS in `src/tests/architect/` including `dare/`, `capTotals/`):**
 

@@ -26,6 +26,9 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
 
 import { getLeague } from '@/features/architect/utils/teamLoader';
 
+type LoadedLeague = Awaited<ReturnType<typeof getLeague>>;
+const mockedGetLeague = vi.mocked(getLeague);
+
 describe('League Invariants - Phase 86', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -201,7 +204,7 @@ describe('League Invariants - Phase 86', () => {
 
   describe('assertPlayerNotOnOtherTeam', () => {
     it('returns valid when player is not on any other team', async () => {
-      getLeague.mockResolvedValue([
+      mockedGetLeague.mockResolvedValue([
         {
           teamCode: 'LAL',
           players: [{ player_id: 'existing_player' }],
@@ -210,7 +213,7 @@ describe('League Invariants - Phase 86', () => {
           teamCode: 'BOS',
           players: [],
         },
-      ]);
+      ] as LoadedLeague);
 
       const result = await assertPlayerNotOnOtherTeam(
         'world123',
@@ -223,7 +226,7 @@ describe('League Invariants - Phase 86', () => {
     });
 
     it('returns invalid when player exists on another team', async () => {
-      getLeague.mockResolvedValue([
+      mockedGetLeague.mockResolvedValue([
         {
           teamCode: 'LAL',
           players: [
@@ -234,7 +237,7 @@ describe('League Invariants - Phase 86', () => {
           teamCode: 'BOS',
           players: [],
         },
-      ]);
+      ] as LoadedLeague);
 
       const result = await assertPlayerNotOnOtherTeam(
         'world123',
@@ -250,12 +253,12 @@ describe('League Invariants - Phase 86', () => {
     });
 
     it('skips the target team when checking', async () => {
-      getLeague.mockResolvedValue([
+      mockedGetLeague.mockResolvedValue([
         {
           teamCode: 'LAL',
           players: [{ player_id: 'existing_player' }],
         },
-      ]);
+      ] as LoadedLeague);
 
       // Player already on LAL, adding to LAL (e.g., extension)
       const result = await assertPlayerNotOnOtherTeam(
@@ -270,7 +273,7 @@ describe('League Invariants - Phase 86', () => {
 
   describe('validateMutationLeagueInvariants', () => {
     it('validates trade post-trade state for duplicates', async () => {
-      getLeague.mockResolvedValue([
+      mockedGetLeague.mockResolvedValue([
         {
           teamCode: 'LAL',
           players: [{ player_id: 'player_a' }],
@@ -283,7 +286,7 @@ describe('League Invariants - Phase 86', () => {
           teamCode: 'CHI',
           players: [{ player_id: 'player_c' }],
         },
-      ]);
+      ] as LoadedLeague);
 
       // Compute result shows post-trade state where player_a is now on BOS
       const computeResult = {
@@ -317,7 +320,7 @@ describe('League Invariants - Phase 86', () => {
     });
 
     it('detects duplicate in post-trade state', async () => {
-      getLeague.mockResolvedValue([
+      mockedGetLeague.mockResolvedValue([
         {
           teamCode: 'LAL',
           players: [{ player_id: 'player_a' }],
@@ -330,7 +333,7 @@ describe('League Invariants - Phase 86', () => {
           teamCode: 'CHI',
           players: [{ player_id: 'player_a' }], // BUG: player_a already here!
         },
-      ]);
+      ] as LoadedLeague);
 
       // Trade tries to move player_a to BOS, but CHI also has player_a
       const computeResult = {
@@ -364,7 +367,7 @@ describe('League Invariants - Phase 86', () => {
     });
 
     it('validates signing does not create duplicate', async () => {
-      getLeague.mockResolvedValue([
+      mockedGetLeague.mockResolvedValue([
         {
           teamCode: 'LAL',
           players: [{ player_id: 'existing_player' }],
@@ -373,7 +376,7 @@ describe('League Invariants - Phase 86', () => {
           teamCode: 'BOS',
           players: [],
         },
-      ]);
+      ] as LoadedLeague);
 
       const payload = {
         teamCode: 'BOS',
@@ -391,7 +394,7 @@ describe('League Invariants - Phase 86', () => {
     });
 
     it('blocks signing if player already on another team', async () => {
-      getLeague.mockResolvedValue([
+      mockedGetLeague.mockResolvedValue([
         {
           teamCode: 'LAL',
           players: [{ player_id: 'player_x', displayName: 'Player X' }],
@@ -400,7 +403,7 @@ describe('League Invariants - Phase 86', () => {
           teamCode: 'BOS',
           players: [],
         },
-      ]);
+      ] as LoadedLeague);
 
       const payload = {
         teamCode: 'BOS',
@@ -433,7 +436,7 @@ describe('League Invariants - Phase 86', () => {
       );
 
       expect(result.valid).toBe(true);
-      expect(getLeague).not.toHaveBeenCalled();
+      expect(mockedGetLeague).not.toHaveBeenCalled();
     });
   });
 });

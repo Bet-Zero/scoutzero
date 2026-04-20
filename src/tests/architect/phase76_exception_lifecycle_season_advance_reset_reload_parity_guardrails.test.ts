@@ -51,10 +51,63 @@ const __dirname = path.dirname(__filename);
 const TEST_YEAR_2026 = 2026; // 2025-26 season
 const TEST_YEAR_2027 = 2027; // 2026-27 season
 
+type ExceptionEnabledFlags = {
+  bae?: boolean;
+  tpmle?: boolean;
+  mle?: boolean;
+  room?: boolean;
+  dpe?: boolean;
+};
+
+type ExceptionState = {
+  enabled: boolean;
+  maxAmount: number;
+  totalAmount: number;
+  usedAmount: number;
+  remainingAmount: number;
+  seasonKey: string;
+  notes?: string;
+};
+
+type TeamWithUsedExceptions = {
+  teamCode: string;
+  teamName: string;
+  players: unknown[];
+  roster: unknown[];
+  exceptions?: {
+    bae: ExceptionState;
+    tpmle: ExceptionState;
+    mle: ExceptionState;
+    room: ExceptionState;
+    dpe: ExceptionState;
+    tpe: Array<{
+      id: string;
+      amount: number;
+      remainingAmount: number;
+      expiresOn: string;
+    }>;
+  };
+  totals?: {
+    capHit: number;
+  };
+};
+
+type CreateTeamWithUsedExceptionsOptions = {
+  baeUsed?: number;
+  tpmleUsed?: number;
+  mleUsed?: number;
+  roomUsed?: number;
+  dpeUsed?: number;
+  seasonKey?: string;
+  enabledFlags?: ExceptionEnabledFlags;
+};
+
 /**
  * Creates a team with pre-existing exception state (simulating mid-season usage).
  */
-function createTeamWithUsedExceptions(options = {}) {
+function createTeamWithUsedExceptions(
+  options: CreateTeamWithUsedExceptionsOptions = {}
+): TeamWithUsedExceptions {
   const {
     baeUsed = 2_000_000,
     tpmleUsed = 1_000_000,
@@ -62,59 +115,61 @@ function createTeamWithUsedExceptions(options = {}) {
     roomUsed = 3_000_000,
     dpeUsed = 500_000,
     seasonKey = '2025-26',
-    enabledFlags = {
-      bae: true,
-      tpmle: true,
-      mle: true,
-      room: true,
-      dpe: true,
-    },
+    enabledFlags = {},
   } = options;
+  const resolvedFlags: Required<ExceptionEnabledFlags> = {
+    bae: true,
+    tpmle: true,
+    mle: true,
+    room: true,
+    dpe: true,
+    ...enabledFlags,
+  };
 
   return {
     teamCode: 'TST',
     teamName: 'Test Team',
     players: [],
-    roster: [],
-    exceptions: {
-      bae: {
-        enabled: enabledFlags.bae,
-        maxAmount: 4_700_000,
-        totalAmount: 4_700_000,
-        usedAmount: baeUsed,
-        remainingAmount: 4_700_000 - baeUsed,
-        seasonKey,
-      },
-      tpmle: {
-        enabled: enabledFlags.tpmle,
-        maxAmount: 5_000_000,
-        totalAmount: 5_000_000,
-        usedAmount: tpmleUsed,
-        remainingAmount: 5_000_000 - tpmleUsed,
-        seasonKey,
-      },
-      mle: {
-        enabled: enabledFlags.mle,
-        maxAmount: 12_900_000,
-        totalAmount: 12_900_000,
-        usedAmount: mleUsed,
-        remainingAmount: 12_900_000 - mleUsed,
-        seasonKey,
-      },
-      room: {
-        enabled: enabledFlags.room,
-        maxAmount: 8_000_000,
-        totalAmount: 8_000_000,
-        usedAmount: roomUsed,
-        remainingAmount: 8_000_000 - roomUsed,
-        seasonKey,
-      },
-      dpe: {
-        enabled: enabledFlags.dpe,
-        maxAmount: 0,
-        totalAmount: 0,
-        usedAmount: dpeUsed,
-        remainingAmount: 0,
+      roster: [],
+      exceptions: {
+        bae: {
+          enabled: resolvedFlags.bae,
+          maxAmount: 4_700_000,
+          totalAmount: 4_700_000,
+          usedAmount: baeUsed,
+          remainingAmount: 4_700_000 - baeUsed,
+          seasonKey,
+        },
+        tpmle: {
+          enabled: resolvedFlags.tpmle,
+          maxAmount: 5_000_000,
+          totalAmount: 5_000_000,
+          usedAmount: tpmleUsed,
+          remainingAmount: 5_000_000 - tpmleUsed,
+          seasonKey,
+        },
+        mle: {
+          enabled: resolvedFlags.mle,
+          maxAmount: 12_900_000,
+          totalAmount: 12_900_000,
+          usedAmount: mleUsed,
+          remainingAmount: 12_900_000 - mleUsed,
+          seasonKey,
+        },
+        room: {
+          enabled: resolvedFlags.room,
+          maxAmount: 8_000_000,
+          totalAmount: 8_000_000,
+          usedAmount: roomUsed,
+          remainingAmount: 8_000_000 - roomUsed,
+          seasonKey,
+        },
+        dpe: {
+          enabled: resolvedFlags.dpe,
+          maxAmount: 0,
+          totalAmount: 0,
+          usedAmount: dpeUsed,
+          remainingAmount: 0,
         seasonKey,
       },
       // Include TPE to verify it's NOT touched
@@ -451,9 +506,9 @@ describe('Phase 76: Reload Parity Tests', () => {
   });
 });
 
-describe('Phase 76: Edge Cases', () => {
+  describe('Phase 76: Edge Cases', () => {
   it('TEST 14: Handles team with no existing exceptions gracefully', () => {
-    const team = {
+    const team: TeamWithUsedExceptions = {
       teamCode: 'NEW',
       teamName: 'New Team',
       players: [],

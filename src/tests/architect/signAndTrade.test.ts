@@ -26,6 +26,20 @@ import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 
+type LoadedTeam = Awaited<ReturnType<typeof getTeam>>;
+type LoadedPlayer = Awaited<ReturnType<typeof getPlayer>>;
+type SigningValidationResult = ReturnType<typeof validateSigning>;
+type TradeValidationResult = ReturnType<typeof validateTrade>;
+type SignAndTradeContractView = {
+  contractType?: string | null;
+  signAndTrade?: boolean | null;
+};
+
+const mockedGetTeam = vi.mocked(getTeam);
+const mockedGetPlayer = vi.mocked(getPlayer);
+const mockedValidateSigning = vi.mocked(validateSigning);
+const mockedValidateTrade = vi.mocked(validateTrade);
+
 // Mock dependencies
 vi.mock('@/firebaseConfig', () => ({
   db: {},
@@ -119,6 +133,18 @@ describe('Sign and Trade Mutation', () => {
   };
 
   const FILLER_SALARY = 2_000_000;
+  const makeValidSigningResult = (): SigningValidationResult =>
+    ({
+      valid: true,
+      violations: [],
+      warnings: [],
+    }) as SigningValidationResult;
+  const makeValidTradeResult = (): TradeValidationResult =>
+    ({
+      valid: true,
+      success: true,
+      legal: true,
+    }) as TradeValidationResult;
 
   const makeRosterFiller = (teamCode, index) => ({
     id: `${teamCode.toLowerCase()}_filler_${index}`,
@@ -150,7 +176,7 @@ describe('Sign and Trade Mutation', () => {
     vi.clearAllMocks();
 
     // Default successful mocks
-    getTeam.mockImplementation((wid, code) => {
+    mockedGetTeam.mockImplementation((wid, code) => {
       if (code === sourceTeamCode)
         return Promise.resolve({
           ...mockSourceTeam,
@@ -160,7 +186,7 @@ describe('Sign and Trade Mutation', () => {
             totalSalary: sourceFillers.length * FILLER_SALARY,
             capHit: sourceFillers.length * FILLER_SALARY,
           },
-        });
+        } as LoadedTeam);
       if (code === destTeamCode)
         return Promise.resolve({
           ...mockDestTeam,
@@ -170,16 +196,12 @@ describe('Sign and Trade Mutation', () => {
             totalSalary: destFillers.length * FILLER_SALARY,
             capHit: destFillers.length * FILLER_SALARY,
           },
-        });
-      return Promise.resolve(null);
+        } as LoadedTeam);
+      return Promise.resolve(null as unknown as LoadedTeam);
     });
-    getPlayer.mockResolvedValue({ ...mockPlayer });
-    validateSigning.mockReturnValue({
-      valid: true,
-      violations: [],
-      warnings: [],
-    });
-    validateTrade.mockReturnValue({ valid: true, success: true, legal: true });
+    mockedGetPlayer.mockResolvedValue({ ...mockPlayer } as LoadedPlayer);
+    mockedValidateSigning.mockReturnValue(makeValidSigningResult());
+    mockedValidateTrade.mockReturnValue(makeValidTradeResult());
   });
 
   // ============================================================================
@@ -250,7 +272,7 @@ describe('Sign and Trade Mutation', () => {
       );
       expect(playerInDest).toBeDefined();
       // Contract should be marked as Sign & Trade - check for either format
-      const contract = playerInDest.contract;
+      const contract = playerInDest.contract as SignAndTradeContractView;
       expect(
         contract.contractType === 'Sign & Trade' ||
           contract.signAndTrade === true
@@ -289,22 +311,22 @@ describe('Sign and Trade Mutation', () => {
     it('closes the old source-team drift by allowing a SAT that is legal for the receiving team post-trade', async () => {
       const firstApron = 178_000_000;
       const sourceTotalSalary = firstApron + 2_000_000;
-      getTeam.mockImplementation((wid, code) => {
+      mockedGetTeam.mockImplementation((wid, code) => {
         if (code === sourceTeamCode) {
           return Promise.resolve({
             ...mockSourceTeam,
             totals: { totalSalary: sourceTotalSalary, capHit: sourceTotalSalary },
-          });
+          } as LoadedTeam);
         }
         if (code === destTeamCode) {
           return Promise.resolve({
             ...mockDestTeam,
             totals: { totalSalary: firstApron - 12_000_000, capHit: firstApron - 12_000_000 },
-          });
+          } as LoadedTeam);
         }
-        return Promise.resolve(null);
+        return Promise.resolve(null as unknown as LoadedTeam);
       });
-      validateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue({
         valid: true,
         legal: true,
         reason: null,
@@ -331,7 +353,7 @@ describe('Sign and Trade Mutation', () => {
         asOfDate: '2025-07-01',
         tradeDate: '2025-07-01',
         offseason: true,
-      });
+      } as TradeValidationResult);
 
       const oldLocalWouldBlock = sourceTotalSalary > firstApron;
       expect(oldLocalWouldBlock).toBe(true);
@@ -359,22 +381,22 @@ describe('Sign and Trade Mutation', () => {
     it('blocks SAT from receiving-team post-trade context even when the source team local total is under the apron', async () => {
       const firstApron = 178_000_000;
       const sourceTotalSalary = firstApron - 15_000_000;
-      getTeam.mockImplementation((wid, code) => {
+      mockedGetTeam.mockImplementation((wid, code) => {
         if (code === sourceTeamCode) {
           return Promise.resolve({
             ...mockSourceTeam,
             totals: { totalSalary: sourceTotalSalary, capHit: sourceTotalSalary },
-          });
+          } as LoadedTeam);
         }
         if (code === destTeamCode) {
           return Promise.resolve({
             ...mockDestTeam,
             totals: { totalSalary: firstApron - 1_000_000, capHit: firstApron - 1_000_000 },
-          });
+          } as LoadedTeam);
         }
-        return Promise.resolve(null);
+        return Promise.resolve(null as unknown as LoadedTeam);
       });
-      validateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue({
         valid: false,
         legal: false,
         reason: 'Receiver would exceed First Apron after sign-and-trade.',
@@ -401,7 +423,7 @@ describe('Sign and Trade Mutation', () => {
         asOfDate: '2025-07-01',
         tradeDate: '2025-07-01',
         offseason: true,
-      });
+      } as TradeValidationResult);
 
       const oldLocalWouldBlock = sourceTotalSalary > firstApron;
       expect(oldLocalWouldBlock).toBe(false);
@@ -446,7 +468,7 @@ describe('Sign and Trade Mutation', () => {
     });
 
     it('fails closed as incomplete when authoritative SAT hard-cap context is unavailable', async () => {
-      validateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue({
         valid: false,
         legal: false,
         reason: 'Cannot validate sign-and-trade hard cap: firstApron not available for season',
@@ -473,7 +495,7 @@ describe('Sign and Trade Mutation', () => {
         asOfDate: '2025-07-01',
         tradeDate: '2025-07-01',
         offseason: true,
-      });
+      } as TradeValidationResult);
 
       const result = await preflightSignAndTradeMutation({
         worldId,
@@ -573,13 +595,13 @@ describe('Sign and Trade Mutation', () => {
   describe('SAT5: Signing Validation Failure', () => {
     it('should block transaction if signing validation fails', async () => {
       // Configure signing validation to fail
-      validateSigning.mockReturnValue({
+      mockedValidateSigning.mockReturnValue({
         valid: false,
         violations: [
           { rule: 'roster_size', message: 'Roster is full', severity: 'error' },
         ],
         warnings: [],
-      });
+      } as SigningValidationResult);
 
       const result = await applyWorldMutation({
         userId,
@@ -600,7 +622,7 @@ describe('Sign and Trade Mutation', () => {
     });
 
     it('should block on minimum salary violation', async () => {
-      validateSigning.mockReturnValue({
+      mockedValidateSigning.mockReturnValue({
         valid: false,
         violations: [
           {
@@ -610,7 +632,7 @@ describe('Sign and Trade Mutation', () => {
           },
         ],
         warnings: [],
-      });
+      } as SigningValidationResult);
 
       const result = await applyWorldMutation({
         userId,
@@ -621,7 +643,7 @@ describe('Sign and Trade Mutation', () => {
           teamCode: sourceTeamCode,
           destinationTeamCode: destTeamCode,
           playerId,
-          contract: { ...validSigningContract, base: 100 }, // Too low
+          contract: { ...validSigningContract, firstYearSalary: 100 }, // Too low
           signedUsing: 'Bird Rights',
         },
       });
@@ -637,12 +659,12 @@ describe('Sign and Trade Mutation', () => {
   describe('SAT6: Trade Validation Failure', () => {
     it('should block transaction if trade validation fails', async () => {
       // Configure trade validation to fail
-      validateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue({
         legal: false,
         success: false,
         reason: 'Salary matching violation',
         teamResults: [{ violations: ['Salary matching failed'] }],
-      });
+      } as TradeValidationResult);
 
       const result = await applyWorldMutation({
         userId,
@@ -664,12 +686,12 @@ describe('Sign and Trade Mutation', () => {
     });
 
     it('should block on hard cap violation', async () => {
-      validateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue({
         legal: false,
         success: false,
         reason: 'Team would exceed hard cap after receiving S&T player',
         teamResults: [{ violations: ['Hard cap exceeded'] }],
-      });
+      } as TradeValidationResult);
 
       const result = await applyWorldMutation({
         userId,
@@ -694,7 +716,7 @@ describe('Sign and Trade Mutation', () => {
   // ============================================================================
   describe('SAT7: Roster Size Constraints', () => {
     it('should enforce roster size via signing validation', async () => {
-      validateSigning.mockReturnValue({
+      mockedValidateSigning.mockReturnValue({
         valid: false,
         violations: [
           {
@@ -704,7 +726,7 @@ describe('Sign and Trade Mutation', () => {
           },
         ],
         warnings: [],
-      });
+      } as SigningValidationResult);
 
       const result = await applyWorldMutation({
         userId,
@@ -731,12 +753,12 @@ describe('Sign and Trade Mutation', () => {
   describe('SAT8: Salary Matching', () => {
     it('should validate salary matching through trade validator', async () => {
       // Trade validator is called for salary matching
-      validateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue({
         legal: false,
         success: false,
         reason: 'Incoming salary exceeds 125% + $100k of outgoing',
         teamResults: [{ violations: ['Salary matching failed'] }],
-      });
+      } as TradeValidationResult);
 
       const result = await applyWorldMutation({
         userId,
@@ -753,7 +775,7 @@ describe('Sign and Trade Mutation', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(validateTrade).toHaveBeenCalled();
+      expect(mockedValidateTrade).toHaveBeenCalled();
     });
   });
 
@@ -785,7 +807,7 @@ describe('Sign and Trade Mutation', () => {
     });
 
     it('should not update either team if signing fails', async () => {
-      validateSigning.mockReturnValue({
+      mockedValidateSigning.mockReturnValue({
         valid: false,
         violations: [
           {
@@ -795,7 +817,7 @@ describe('Sign and Trade Mutation', () => {
           },
         ],
         warnings: [],
-      });
+      } as SigningValidationResult);
 
       const result = await applyWorldMutation({
         userId,
@@ -821,7 +843,7 @@ describe('Sign and Trade Mutation', () => {
   // ============================================================================
   describe('SAT10: Warnings Preserved', () => {
     it('should preserve warnings from signing validation', async () => {
-      validateSigning.mockReturnValue({
+      mockedValidateSigning.mockReturnValue({
         valid: true,
         violations: [],
         warnings: [
@@ -831,7 +853,7 @@ describe('Sign and Trade Mutation', () => {
             severity: 'warning',
           },
         ],
-      });
+      } as SigningValidationResult);
 
       const result = await applyWorldMutation({
         userId,
@@ -863,7 +885,7 @@ describe('Sign and Trade Mutation', () => {
         position: 'SF',
         age: 41,
       };
-      getPlayer.mockResolvedValue(playerWithData);
+      mockedGetPlayer.mockResolvedValue(playerWithData as LoadedPlayer);
 
       const result = await applyWorldMutation({
         userId,
@@ -897,7 +919,7 @@ describe('Sign and Trade Mutation', () => {
   // ============================================================================
   describe('SAT12: Two-Way Contract Limit', () => {
     it('should block S&T of two-way contracts via signing validation', async () => {
-      validateSigning.mockReturnValue({
+      mockedValidateSigning.mockReturnValue({
         valid: false,
         violations: [
           {
@@ -907,7 +929,7 @@ describe('Sign and Trade Mutation', () => {
           },
         ],
         warnings: [],
-      });
+      } as SigningValidationResult);
 
       const twoWayContract = {
         ...validSigningContract,
@@ -953,10 +975,10 @@ describe('Sign and Trade Mutation', () => {
       });
 
       // Verify validateTrade was called
-      expect(validateTrade).toHaveBeenCalled();
+      expect(mockedValidateTrade).toHaveBeenCalled();
 
       // Get the call arguments
-      const callArgs = validateTrade.mock.calls[0][0];
+      const callArgs = mockedValidateTrade.mock.calls[0][0];
 
       // Should have teams array with 2 teams
       expect(callArgs.teams).toBeDefined();
@@ -971,14 +993,14 @@ describe('Sign and Trade Mutation', () => {
     it('should call signing validator before trade validator', async () => {
       const callOrder = [];
 
-      validateSigning.mockImplementation(() => {
+      mockedValidateSigning.mockImplementation(() => {
         callOrder.push('signing');
-        return { valid: true, violations: [], warnings: [] };
+        return makeValidSigningResult();
       });
 
-      validateTrade.mockImplementation(() => {
+      mockedValidateTrade.mockImplementation(() => {
         callOrder.push('trade');
-        return { legal: true, success: true };
+        return makeValidTradeResult();
       });
 
       await applyWorldMutation({
@@ -1000,13 +1022,13 @@ describe('Sign and Trade Mutation', () => {
     });
 
     it('should not call trade validator if signing fails', async () => {
-      validateSigning.mockReturnValue({
+      mockedValidateSigning.mockReturnValue({
         valid: false,
         violations: [
           { rule: 'test_fail', message: 'Signing blocked', severity: 'error' },
         ],
         warnings: [],
-      });
+      } as SigningValidationResult);
 
       await applyWorldMutation({
         userId,
@@ -1022,7 +1044,7 @@ describe('Sign and Trade Mutation', () => {
         },
       });
 
-      expect(validateTrade).not.toHaveBeenCalled();
+      expect(mockedValidateTrade).not.toHaveBeenCalled();
     });
   });
 
