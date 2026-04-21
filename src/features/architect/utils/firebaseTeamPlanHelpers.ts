@@ -39,6 +39,17 @@ import {
 import { normalizeTeamExceptionOwnership } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 import type { TeamTotals } from '@/features/architect/types';
+import {
+  hasArchitectField,
+  readArchitectBoolean,
+  readArchitectContract,
+  readArchitectNumber,
+  readArchitectRecord,
+  readArchitectString,
+  readArchitectStringArray,
+  readArchitectUnknownArray,
+  requireArchitectRecord,
+} from '@/features/architect/utils/architectFirestoreBoundary';
 
 type UnknownRecord = Record<string, unknown>;
 type TeamIdLike = string | null | undefined;
@@ -153,6 +164,17 @@ interface LooseFreeAgent extends UnknownRecord {
   name?: string;
 }
 
+type TeamCodeMapValue = (typeof TeamCodeMap)[keyof typeof TeamCodeMap];
+
+const TEAM_SLUG_TO_CODE_LOOKUP = TeamSlugToCode as Record<
+  string,
+  string | undefined
+>;
+const TEAM_CODE_LOOKUP = TeamCodeMap as Record<
+  string,
+  TeamCodeMapValue | undefined
+>;
+
 // ===== Utility to Prepare Cap Sheet =====
 
 // In the new model, cap holds are managed in the `capHolds` array in state.
@@ -173,10 +195,385 @@ export const prepareCapSheet = <TCapSheet extends LooseCapSheet>(
 
 const resolveTeamCode = (teamId: TeamIdLike) => {
   if (!teamId) return null;
-  if (TeamSlugToCode[teamId]) return TeamSlugToCode[teamId];
-  if (TeamCodeMap[teamId]) return teamId;
+  const slugTeamCode = TEAM_SLUG_TO_CODE_LOOKUP[teamId];
+  if (slugTeamCode) return slugTeamCode;
+  if (TEAM_CODE_LOOKUP[teamId]) return teamId;
   return teamId.toUpperCase();
 };
+
+function readNullableString(
+  value: unknown,
+  context: string
+): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw new Error(`${context} must be a string or null when present`);
+  }
+
+  return value;
+}
+
+function readNullableNumber(
+  value: unknown,
+  context: string
+): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  const numberValue = readArchitectNumber(value);
+  if (numberValue === null) {
+    throw new Error(`${context} must be a finite number or null when present`);
+  }
+
+  return numberValue;
+}
+
+function readNullableBoolean(
+  value: unknown,
+  context: string
+): boolean | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  const booleanValue = readArchitectBoolean(value);
+  if (booleanValue === undefined) {
+    throw new Error(`${context} must be a boolean or null when present`);
+  }
+
+  return booleanValue;
+}
+
+function readLooseBirdRights(
+  value: unknown,
+  context: string
+): LooseBirdRights | null {
+  if (value == null) {
+    return null;
+  }
+
+  const record = requireArchitectRecord(value, context);
+  const normalized = { ...record } as LooseBirdRights;
+  const status = readNullableString(record.status, `${context}.status`);
+  if (status !== undefined) {
+    normalized.status = status;
+  }
+  const yearsOfService = readNullableNumber(
+    record.yearsOfService,
+    `${context}.yearsOfService`
+  );
+  if (yearsOfService !== undefined) {
+    normalized.yearsOfService = yearsOfService;
+  }
+  const yearsWithTeam = readNullableNumber(
+    record.yearsWithTeam,
+    `${context}.yearsWithTeam`
+  );
+  if (yearsWithTeam !== undefined) {
+    normalized.yearsWithTeam = yearsWithTeam;
+  }
+  const eligibleFor = readArchitectStringArray(
+    record.eligibleFor,
+    `${context}.eligibleFor`
+  );
+  if (eligibleFor !== undefined) {
+    normalized.eligibleFor = eligibleFor;
+  }
+
+  return normalized;
+}
+
+function readLooseContract(value: unknown, context: string): LooseContract | null {
+  const contract = readArchitectContract(value, context);
+  if (!contract) {
+    return null;
+  }
+
+  const normalized = { ...contract } as LooseContract;
+  const yearsRemaining = readNullableNumber(
+    contract.yearsRemaining,
+    `${context}.yearsRemaining`
+  );
+  if (yearsRemaining !== undefined) {
+    normalized.yearsRemaining = yearsRemaining;
+  }
+
+  for (const field of [
+    'contractType',
+    'signedUsing',
+    'signingTeam',
+    'signingDate',
+  ]) {
+    const value = readNullableString(contract[field], `${context}.${field}`);
+    if (value !== undefined) {
+      normalized[field] = value;
+    }
+  }
+
+  for (const field of ['isExtension', 'isRookieScale']) {
+    const value = readNullableBoolean(contract[field], `${context}.${field}`);
+    if (value !== undefined) {
+      normalized[field] = value;
+    }
+  }
+
+  const totalValue = readNullableNumber(contract.totalValue, `${context}.totalValue`);
+  if (totalValue !== undefined) {
+    normalized.totalValue = totalValue;
+  }
+
+  const birdRights = readLooseBirdRights(
+    contract.birdRights,
+    `${context}.birdRights`
+  );
+  if (hasArchitectField(contract, 'birdRights')) {
+    normalized.birdRights = birdRights;
+  }
+
+  if (hasArchitectField(contract, 'freeAgency')) {
+    if (
+      contract.freeAgency == null ||
+      typeof contract.freeAgency === 'string'
+    ) {
+      normalized.freeAgency = contract.freeAgency;
+    } else {
+      const freeAgency = requireArchitectRecord(
+        contract.freeAgency,
+        `${context}.freeAgency`
+      );
+      let year: number | string | null | undefined;
+      if (freeAgency.year === undefined) {
+        year = undefined;
+      } else if (freeAgency.year === null) {
+        year = null;
+      } else if (typeof freeAgency.year === 'number') {
+        year = readNullableNumber(
+          freeAgency.year,
+          `${context}.freeAgency.year`
+        );
+      } else if (typeof freeAgency.year === 'string') {
+        year = freeAgency.year;
+      } else {
+        throw new Error(
+          `${context}.freeAgency.year must be a string, finite number, or null when present`
+        );
+      }
+
+      normalized.freeAgency = {
+        ...freeAgency,
+        ...(year !== undefined ? { year } : {}),
+        type:
+          readNullableString(freeAgency.type, `${context}.freeAgency.type`) ??
+          null,
+      };
+    }
+  }
+
+  return normalized;
+}
+
+function readLooseBio(value: unknown, context: string): LooseBio | null {
+  if (value == null) {
+    return null;
+  }
+
+  const record = requireArchitectRecord(value, context);
+  const normalized = { ...record } as LooseBio;
+
+  const position = readNullableString(record.position, `${context}.position`);
+  if (position !== undefined) {
+    normalized.position = position;
+  }
+  const age = readNullableNumber(record.age, `${context}.age`);
+  if (age !== undefined) {
+    normalized.age = age;
+  }
+  const experience = readNullableNumber(record.experience, `${context}.experience`);
+  if (experience !== undefined) {
+    normalized.experience = experience;
+  }
+
+  return normalized;
+}
+
+function readLooseBasePlayerDoc(
+  value: unknown,
+  playerId: string,
+  context: string
+): LooseBasePlayerDoc {
+  const record = requireArchitectRecord(value, context);
+  const normalized = { ...record } as LooseBasePlayerDoc;
+
+  normalized.playerId = readArchitectString(record.playerId) ?? playerId;
+  normalized.displayName = readArchitectString(record.displayName);
+  normalized.bio = readLooseBio(record.bio, `${context}.bio`);
+  normalized.teamCode = readNullableString(record.teamCode, `${context}.teamCode`);
+  normalized.teamName = readNullableString(record.teamName, `${context}.teamName`);
+  normalized.contract = readLooseContract(record.contract, `${context}.contract`);
+  normalized.futureContract = readLooseContract(
+    record.futureContract,
+    `${context}.futureContract`
+  );
+  if (hasArchitectField(record, 'representation')) {
+    normalized.representation = record.representation;
+  }
+
+  return normalized;
+}
+
+function readLooseExceptionData(
+  value: unknown,
+  context: string
+): LooseExceptionData | null {
+  if (value == null) {
+    return null;
+  }
+
+  const record = requireArchitectRecord(value, context);
+  const normalized = { ...record } as LooseExceptionData;
+  const tpe = readArchitectUnknownArray(record.tpe, `${context}.tpe`);
+  if (tpe !== undefined) {
+    normalized.tpe = tpe.map((entry, index) => {
+      const tradeException = requireArchitectRecord(
+        entry,
+        `${context}.tpe[${index}]`
+      );
+      return { ...tradeException } as LooseTradeException;
+    });
+  }
+
+  return normalized;
+}
+
+function readLooseTradeExceptions(
+  value: unknown,
+  context: string
+): LooseTradeException[] | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+
+  return readArchitectUnknownArray(value, context)?.map((entry, index) => {
+    const record = requireArchitectRecord(entry, `${context}[${index}]`);
+    return { ...record } as LooseTradeException;
+  });
+}
+
+function readLooseBaseTeamDoc(
+  value: unknown,
+  teamCode: string,
+  context: string
+): LooseBaseTeamDoc {
+  const record = requireArchitectRecord(value, context);
+  const normalized = { ...record } as LooseBaseTeamDoc;
+
+  normalized.roster = readArchitectUnknownArray(record.roster, `${context}.roster`);
+  normalized.teamName = readArchitectString(record.teamName);
+  normalized.season = readArchitectString(record.season);
+  normalized.abbreviation = readNullableString(
+    record.abbreviation,
+    `${context}.abbreviation`
+  );
+  normalized.capHolds = readArchitectUnknownArray(
+    record.capHolds,
+    `${context}.capHolds`
+  );
+  normalized.draftPicks = readArchitectUnknownArray(
+    record.draftPicks,
+    `${context}.draftPicks`
+  );
+  normalized.draftPicksInventory = readArchitectUnknownArray(
+    record.draftPicksInventory,
+    `${context}.draftPicksInventory`
+  );
+  normalized.draftPicksObligations = readArchitectUnknownArray(
+    record.draftPicksObligations,
+    `${context}.draftPicksObligations`
+  );
+  normalized.draftPicksContested = readArchitectUnknownArray(
+    record.draftPicksContested,
+    `${context}.draftPicksContested`
+  );
+  normalized.entitlementIds = readArchitectStringArray(
+    record.entitlementIds,
+    `${context}.entitlementIds`
+  );
+  normalized.offerSheets = readArchitectUnknownArray(
+    record.offerSheets,
+    `${context}.offerSheets`
+  );
+  normalized.incomingOfferSheets = readArchitectUnknownArray(
+    record.incomingOfferSheets,
+    `${context}.incomingOfferSheets`
+  );
+  normalized.exceptions = readLooseExceptionData(
+    record.exceptions,
+    `${context}.exceptions`
+  );
+  normalized.tradeExceptions = readLooseTradeExceptions(
+    record['tradeExceptions'],
+    `${context}.tradeExceptions`
+  );
+  normalized.hardCapLevel = readNullableString(
+    record.hardCapLevel,
+    `${context}.hardCapLevel`
+  );
+  normalized.hardCapReason = readNullableString(
+    record.hardCapReason,
+    `${context}.hardCapReason`
+  );
+  normalized.hardCapTriggeredBy = readNullableString(
+    record.hardCapTriggeredBy,
+    `${context}.hardCapTriggeredBy`
+  );
+  normalized.deadCap = readArchitectUnknownArray(record.deadCap, `${context}.deadCap`);
+  if (record.totals === null) {
+    normalized.totals = null;
+  } else if (record.totals !== undefined) {
+    normalized.totals = requireArchitectRecord(record.totals, `${context}.totals`);
+  }
+
+  if (!normalized.teamName) {
+    normalized.teamName = TEAM_CODE_LOOKUP[teamCode]?.teamName;
+  }
+
+  return normalized;
+}
+
+function readLooseFreeAgent(
+  value: unknown,
+  fallbackId: string,
+  context: string
+): LooseFreeAgent {
+  const record = requireArchitectRecord(value, context);
+  const normalized = { id: fallbackId, ...record } as LooseFreeAgent;
+  const id = readArchitectString(record.id);
+  if (id) {
+    normalized.id = id;
+  }
+  const name = readArchitectString(record.name);
+  if (hasArchitectField(record, 'name')) {
+    if (!name) {
+      throw new Error(`${context}.name must be a non-empty string when present`);
+    }
+    normalized.name = name;
+  }
+
+  return normalized;
+}
 
 // Simplified player entry builder - returns new schema format directly
 const buildPlayerEntry = (
@@ -189,9 +586,9 @@ const buildPlayerEntry = (
       player_id: playerId,
       name: playerId,
       displayName: playerId,
-      contract: null as any, // load-bearing: placeholder satisfies broader player type at call sites without requiring full contract structure in fallback
+      contract: null,
       bio: {} as Record<string, unknown>,
-      original: null as any, // load-bearing: same as contract — fallback path, callers expect field to exist but never read it here
+      original: null,
     };
   }
 
@@ -219,6 +616,10 @@ const buildPlayerEntry = (
 
 type HydratedBaseTeamPlayer = ReturnType<typeof buildPlayerEntry>;
 
+type HydratedBaseTeamPlayerWithActiveContract = HydratedBaseTeamPlayer & {
+  contract: LooseContract & { salariesByYear: unknown[] };
+};
+
 type HydratedBaseTeamActiveContract = {
   name: HydratedBaseTeamPlayer['name'];
   player_id: HydratedBaseTeamPlayer['player_id'];
@@ -235,6 +636,15 @@ type HydratedBaseTeamExceptions = Pick<
   LooseExceptionData,
   'mle' | 'tpmle' | 'bae' | 'room' | 'dpe' | 'tpe'
 >;
+
+function hasActiveContract(
+  player: HydratedBaseTeamPlayer
+): player is HydratedBaseTeamPlayerWithActiveContract {
+  return (
+    Array.isArray(player.contract?.salariesByYear) &&
+    player.contract.salariesByYear.length > 0
+  );
+}
 
 export type HydratedBaseTeamCapSheet = {
   id: string;
@@ -274,8 +684,13 @@ export const hydrateBaseTeam = async (
   teamCode: string,
   baseDoc: LooseBaseTeamDoc
 ): Promise<HydratedBaseTeamCapSheet> => {
+  const boundaryBaseDoc = readLooseBaseTeamDoc(
+    baseDoc,
+    teamCode,
+    `hydrateBaseTeam(${teamCode})`
+  );
   const normalizedBaseDoc = normalizeTeamExceptionOwnership(
-    normalizeTeamTpeSchema(baseDoc)
+    normalizeTeamTpeSchema(boundaryBaseDoc)
   ) as LooseBaseTeamDoc & {
     exceptions?: HydratedBaseTeamExceptions | null;
   };
@@ -292,7 +707,11 @@ export const hydrateBaseTeam = async (
         continue;
       }
 
-      const playerData = playerSnap.data() as LooseBasePlayerDoc;
+      const playerData = readLooseBasePlayerDoc(
+        playerSnap.data(),
+        playerId,
+        `architect_basePlayers/${playerId}`
+      );
       // Return player in new schema format - no conversion needed
       const playerEntry = buildPlayerEntry(playerId, playerData);
       players.push(playerEntry);
@@ -304,27 +723,31 @@ export const hydrateBaseTeam = async (
 
   // Build activeContracts from new schema format
   const activeContracts: HydratedBaseTeamActiveContract[] = players
-    .filter((p) => p.contract?.salariesByYear?.length > 0)
+    .filter(hasActiveContract)
     .map((p) => {
       const contract = p.contract;
+      const yearsOfService =
+        readArchitectNumber(p.bio?.experience) ??
+        readArchitectNumber(contract.birdRights?.yearsOfService) ??
+        null;
+
       return {
         name: p.name,
         player_id: p.player_id,
         contract: contract,
-        years: contract?.yearsRemaining || 0,
-        type: contract?.contractType || 'Contract',
+        years: contract.yearsRemaining || 0,
+        type: contract.contractType || 'Contract',
         signAndTrade: false,
         guaranteed: true,
         isMinimum: false,
-        yearsOfService:
-          p.bio?.experience || contract?.birdRights?.yearsOfService || null,
+        yearsOfService,
       };
     });
 
   const exceptionData =
     (normalizedBaseDoc.exceptions as HydratedBaseTeamExceptions | null) || {};
 
-  const teamMeta = TeamCodeMap[teamCode] || null;
+  const teamMeta = TEAM_CODE_LOOKUP[teamCode] || null;
   const hardCapLevel =
     normalizedBaseDoc.hardCapLevel ||
     normalizedBaseDoc.totals?.hardCapLevel ||
@@ -399,7 +822,11 @@ export const loadTeamCapSheet = async (teamId: TeamIdLike) => {
       console.warn('No base team data found for:', teamCode);
       return null;
     }
-    const baseDoc = docSnap.data() as LooseBaseTeamDoc;
+    const baseDoc = readLooseBaseTeamDoc(
+      docSnap.data(),
+      teamCode,
+      `architect_baseTeams/${teamCode}`
+    );
     return hydrateBaseTeam(teamCode, baseDoc);
   } catch (error) {
     console.error('Error loading base team:', error);
@@ -413,12 +840,12 @@ export const getAllTeams = async () => {
     if (!snapshot.empty) {
       return snapshot.docs.map((docSnap) => {
         const code = docSnap.id;
-        const meta = TeamCodeMap[code];
-        const teamData = docSnap.data() as UnknownRecord | undefined;
+        const meta = TEAM_CODE_LOOKUP[code];
+        const teamData = readArchitectRecord(docSnap.data()) ?? {};
         return {
           id: meta?.id || code.toLowerCase(),
           code,
-          name: meta?.teamName || teamData?.teamName || code,
+          name: meta?.teamName || readArchitectString(teamData.teamName) || code,
           conference: meta?.conference || null,
         };
       });
@@ -441,11 +868,11 @@ export const saveFreeAgents = async (agents: LooseFreeAgent[]) => {
   try {
     const batch = writeBatch(db);
     agents.forEach((agent) => {
-      const agentRef = doc(
-        db,
-        FREE_AGENTS_COLLECTION,
-        (agent.id || agent.name) as string
-      );
+      const agentId = readArchitectString(agent.id) ?? readArchitectString(agent.name);
+      if (!agentId) {
+        throw new Error('Free agent id or name is required');
+      }
+      const agentRef = doc(db, FREE_AGENTS_COLLECTION, agentId);
       batch.set(agentRef, agent);
     });
     await batch.commit();
@@ -460,10 +887,13 @@ export const saveFreeAgents = async (agents: LooseFreeAgent[]) => {
 export const loadFreeAgents = async () => {
   try {
     const snap = await getDocs(collection(db, FREE_AGENTS_COLLECTION));
-    const agents = snap.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    }));
+    const agents = snap.docs.map((docSnap) =>
+      readLooseFreeAgent(
+        docSnap.data(),
+        docSnap.id,
+        `${FREE_AGENTS_COLLECTION}/${docSnap.id}`
+      )
+    );
     return agents;
   } catch (error) {
     console.error('Error loading free agents:', error);

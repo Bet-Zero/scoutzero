@@ -318,7 +318,9 @@ Validation after each file or tight batch:
 
 ## Step 7 — Harden Architect/base-data Firestore boundaries (wave 2) and classify what can defer
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Hardened `worldManager.ts` world metadata reads and `firebaseTeamPlanHelpers.ts` base team/player/free-agent reads with runtime boundary readers, then added the Architect Boundary Review classification to the baseline.
 
 **Goal:** Finish the next most important Architect/base-data boundaries, then explicitly classify what remaining Architect type debt is real but safe to defer.
 

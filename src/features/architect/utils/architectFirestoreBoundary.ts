@@ -58,6 +58,10 @@ export function readArchitectNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+export function readArchitectBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
 export function readArchitectUnknownArray(
   value: unknown,
   context: string
@@ -233,6 +237,6 @@ function readArchitectSalaryRows(
   });
 }
 
-function hasArchitectField(record: UnknownRecord, key: string): boolean {
+export function hasArchitectField(record: UnknownRecord, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(record, key);
 }

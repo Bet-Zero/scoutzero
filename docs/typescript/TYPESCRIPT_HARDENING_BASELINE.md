@@ -197,6 +197,33 @@ Step 4 also removed the stale `src/global-shims.d.ts` include from
 global ambient-module blocker, but the `PlayerNameMini` sibling declaration
 remains a small local cleanup target.
 
+## Architect Boundary Review
+
+Reviewed: 2026-04-21, after Steps 6-7 hardened the primary Architect/base-data
+Firestore ingress points.
+
+Step 6 routed `subscribeArchitectPlayerData`, `loadArchitectBasePlayer`, and
+`teamLoader` through the shared Architect Firestore boundary helpers. Step 7
+added runtime readers for world metadata in `worldManager.ts` and for base
+team, base player, and free-agent documents in
+`firebaseTeamPlanHelpers.ts`. The hardened wave removes cast-only trust from
+the planned world/base read stack while preserving the existing hydrated output
+shapes.
+
+| File or group | Classification | Why | Resume point |
+| --- | --- | --- | --- |
+| `src/features/architect/utils/worldManager.ts` | Safe to defer | World metadata reads now require object-shaped documents and validate known scalar, list, stats, and draft-position fields before returning `WorldMetadata`. | Revisit only if world metadata schema becomes canonical Zod. |
+| `src/features/architect/utils/firebaseTeamPlanHelpers.ts` | Safe to defer | Base team, base player, contract, bio, exception, and free-agent reads now pass through boundary readers before hydration; remaining loose fields are preserved as unknown passthrough for legacy compatibility. | Revisit when a canonical hydrated-base-team schema exists. |
+| `src/features/architect/utils/mutationPipeline.ts` current-state Firestore reads | Next-wave candidate | The strict scan still shows casted offer-sheet team/player override snapshot reads in the committed mutation pipeline, and the strict probe concentrates many downstream optional/nullability errors there. | Step 10/11 candidate if the strict checkpoint supports one narrow runtime wave. |
+| `src/features/architect/utils/entitlements/*` resolver and pick-rule reads | Safe to defer | These casts are real boundary debt, but they are scoped to entitlement resolution rather than the Step 6-7 world/base read stack and did not block the wave validation. | Track for a future entitlement-boundary pass. |
+| `src/features/architect/GMDashboard/**` dashboard/action adapter contracts | Needs separate product/architecture decision | Strict errors show broad disagreement between dashboard cap-sheet/player shapes, mutation-pipeline carrier shapes, and trade/cap consumers; fixing this is a contract-alignment pass, not another Firestore-boundary patch. | Separate Architect contract-normalization plan or Step 11 only if narrowed by evidence. |
+| `tests/__mocks__/firebase.ts` and cast-heavy Architect suites | Next-wave candidate | Tests remain the biggest typed bypass layer and still dominate strict-probe output. | Step 8. |
+
+The Architect strict probe still fails on the known broader backlog, but a
+filtered strict check after Step 7 showed no errors in
+`architectFirestoreBoundary.ts`, `worldManager.ts`, or
+`firebaseTeamPlanHelpers.ts`.
+
 ## Evidence Commands
 
 - `rg --files`

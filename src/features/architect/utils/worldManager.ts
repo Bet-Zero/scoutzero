@@ -27,6 +27,13 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { worldMetadataRef, worldsCol } from './architectFirestorePaths';
+import {
+  hasArchitectField,
+  readArchitectBoolean,
+  readArchitectNumber,
+  readArchitectStringArray,
+  requireArchitectRecord,
+} from '@/features/architect/utils/architectFirestoreBoundary';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -115,6 +122,228 @@ interface CallableErrorLike {
 }
 
 const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function readStringField(
+  record: UnknownRecord,
+  field: string,
+  context: string
+): string | undefined {
+  if (!hasArchitectField(record, field) || record[field] === undefined) {
+    return undefined;
+  }
+  if (typeof record[field] !== 'string') {
+    throw new Error(`${context}.${field} must be a string when present`);
+  }
+
+  return record[field];
+}
+
+function readNullableStringField(
+  record: UnknownRecord,
+  field: string,
+  context: string
+): string | null | undefined {
+  if (!hasArchitectField(record, field) || record[field] === undefined) {
+    return undefined;
+  }
+  if (record[field] === null) {
+    return null;
+  }
+  if (typeof record[field] !== 'string') {
+    throw new Error(`${context}.${field} must be a string or null when present`);
+  }
+
+  return record[field];
+}
+
+function readBooleanField(
+  record: UnknownRecord,
+  field: string,
+  context: string
+): boolean | undefined {
+  if (!hasArchitectField(record, field) || record[field] === undefined) {
+    return undefined;
+  }
+  const value = readArchitectBoolean(record[field]);
+  if (value === undefined) {
+    throw new Error(`${context}.${field} must be a boolean when present`);
+  }
+
+  return value;
+}
+
+function readNumberField(
+  record: UnknownRecord,
+  field: string,
+  context: string
+): number | undefined {
+  if (!hasArchitectField(record, field) || record[field] === undefined) {
+    return undefined;
+  }
+  const value = readArchitectNumber(record[field]);
+  if (value === null) {
+    throw new Error(`${context}.${field} must be a finite number when present`);
+  }
+
+  return value;
+}
+
+function readWorldStats(value: unknown, context: string): WorldStats | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  const record = requireArchitectRecord(value, context);
+  const stats = { ...record } as WorldStats;
+
+  for (const field of [
+    'totalTrades',
+    'totalSignings',
+    'totalWaives',
+    'totalRenounces',
+    'teamsInvolved',
+  ]) {
+    const normalizedValue = readNumberField(record, field, context);
+    if (normalizedValue !== undefined) {
+      stats[field] = normalizedValue;
+    }
+  }
+
+  return stats;
+}
+
+function readDraftPositionsEntry(
+  value: unknown,
+  context: string
+): DraftPositionsEntry | null {
+  if (value == null) {
+    return null;
+  }
+
+  const record = requireArchitectRecord(value, context);
+  const entry = { ...record } as DraftPositionsEntry;
+  const positionsMapValue = record.positionsMap;
+
+  if (positionsMapValue !== undefined) {
+    const positionsMapRecord = requireArchitectRecord(
+      positionsMapValue,
+      `${context}.positionsMap`
+    );
+    const positionsMap: Record<string, number> = {};
+    for (const [teamCode, position] of Object.entries(positionsMapRecord)) {
+      const normalizedPosition = readArchitectNumber(position);
+      if (normalizedPosition === null) {
+        throw new Error(
+          `${context}.positionsMap.${teamCode} must be a finite number`
+        );
+      }
+      positionsMap[teamCode] = normalizedPosition;
+    }
+    entry.positionsMap = positionsMap;
+  }
+
+  const method = readStringField(record, 'method', context);
+  if (method !== undefined) {
+    entry.method = method;
+  }
+  const updatedAtIso = readStringField(record, 'updatedAtIso', context);
+  if (updatedAtIso !== undefined) {
+    entry.updatedAtIso = updatedAtIso;
+  }
+
+  return entry;
+}
+
+function readDraftPositionsByYear(
+  value: unknown,
+  context: string
+): Record<string, DraftPositionsEntry | null | undefined> | undefined {
+  if (value == null) {
+    return undefined;
+  }
+
+  const record = requireArchitectRecord(value, context);
+  const byYear: Record<string, DraftPositionsEntry | null> = {};
+  for (const [year, entry] of Object.entries(record)) {
+    byYear[year] = readDraftPositionsEntry(entry, `${context}.${year}`);
+  }
+
+  return byYear;
+}
+
+function readWorldMetadataDoc(
+  value: unknown,
+  context: string,
+  fallbackWorldId?: string
+): WorldMetadata {
+  const record = requireArchitectRecord(value, context);
+  const metadata = { ...record } as WorldMetadata;
+
+  const worldId = readStringField(record, 'worldId', context) ?? fallbackWorldId;
+  if (worldId) {
+    metadata.worldId = worldId;
+  }
+
+  for (const field of [
+    'worldName',
+    'description',
+    'createdBy',
+    'currentSeason',
+    'baselineSeason',
+  ]) {
+    const normalizedValue = readStringField(record, field, context);
+    if (normalizedValue !== undefined) {
+      metadata[field] = normalizedValue;
+    }
+  }
+
+  const parentWorldId = readNullableStringField(record, 'parentWorldId', context);
+  if (parentWorldId !== undefined) {
+    metadata.parentWorldId = parentWorldId;
+  }
+  const asOfDate = readNullableStringField(record, 'asOfDate', context);
+  if (asOfDate !== undefined) {
+    metadata.asOfDate = asOfDate;
+  }
+
+  for (const field of ['childWorlds', 'modifiedTeams', 'tags']) {
+    const normalizedValue = readArchitectStringArray(
+      record[field],
+      `${context}.${field}`
+    );
+    if (normalizedValue !== undefined) {
+      metadata[field] = normalizedValue;
+    }
+  }
+
+  const actionCount = readNumberField(record, 'actionCount', context);
+  if (actionCount !== undefined) {
+    metadata.actionCount = actionCount;
+  }
+
+  const isArchived = readBooleanField(record, 'isArchived', context);
+  if (isArchived !== undefined) {
+    metadata.isArchived = isArchived;
+  }
+  const isFavorite = readBooleanField(record, 'isFavorite', context);
+  if (isFavorite !== undefined) {
+    metadata.isFavorite = isFavorite;
+  }
+
+  const stats = readWorldStats(record.stats, `${context}.stats`);
+  if (stats !== undefined) {
+    metadata.stats = stats;
+  }
+
+  const draftPositionsByYear = readDraftPositionsByYear(
+    record.draftPositionsByYear,
+    `${context}.draftPositionsByYear`
+  );
+  if (draftPositionsByYear !== undefined) {
+    metadata.draftPositionsByYear = draftPositionsByYear;
+  }
+
+  return metadata;
+}
 
 /**
  * Generate unique world ID
@@ -239,7 +468,11 @@ export async function getWorldMetadata(
     throw new Error(`World ${worldId} not found`);
   }
 
-  return docSnap.data() as WorldMetadata;
+  return readWorldMetadataDoc(
+    docSnap.data(),
+    `architect_worlds/${worldId}`,
+    worldId
+  );
 }
 
 /**
@@ -278,7 +511,13 @@ export async function listUserWorlds(
     );
 
     const snapshot = await getDocs(worldsQuery);
-    return snapshot.docs.map((docSnap) => docSnap.data() as WorldMetadata);
+    return snapshot.docs.map((docSnap) =>
+      readWorldMetadataDoc(
+        docSnap.data(),
+        `architect_worlds/${docSnap.id}`,
+        docSnap.id
+      )
+    );
   } catch (error) {
     const queryError = error as CallableErrorLike;
 
@@ -298,8 +537,11 @@ export async function listUserWorlds(
 
     // 2) Build worlds from snapshot docs, filtering archived in memory
     for (const docSnap of snapshot.docs) {
-      const metadata = docSnap.data() as WorldMetadata | undefined;
-      if (!metadata) continue;
+      const metadata = readWorldMetadataDoc(
+        docSnap.data(),
+        `architect_worlds/${docSnap.id}`,
+        docSnap.id
+      );
 
       if (!includeArchived && metadata.isArchived) continue;
 
