@@ -58,7 +58,9 @@
 
 ## Step 1 — Create the post-migration hardening evidence baseline
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Created `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md` with live inventory, compiler posture, dishonesty-marker counts, strict-probe baselines, and audit risk themes.
 
 **Goal:** Create a baseline doc that records the live hardening state of the repo so future steps can prove improvement rather than vaguely claiming it.
 
