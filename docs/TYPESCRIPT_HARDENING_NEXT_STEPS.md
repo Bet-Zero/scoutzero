@@ -109,7 +109,9 @@ This is a read-only baseline step. Do not change source files here.
 
 ## Step 2 — Turn the audit into a tracked execution map
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Created `docs/typescript/TYPESCRIPT_HARDENING_EXECUTION_MAP.md` with ordered declaration, shared/runtime, Architect, typed-test, and strict-prep waves mapped to Steps 3-12.
 
 **Goal:** Convert the hardening audit into a concrete, ordered work map so future execution is driven by file groups and risk categories instead of ad hoc guesses.
 
