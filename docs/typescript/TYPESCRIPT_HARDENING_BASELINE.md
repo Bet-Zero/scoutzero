@@ -224,10 +224,68 @@ filtered strict check after Step 7 showed no errors in
 `architectFirestoreBoundary.ts`, `worldManager.ts`, or
 `firebaseTeamPlanHelpers.ts`.
 
+## Test Typing Review
+
+Reviewed: 2026-04-21, after Step 8 tightened the central Firebase mock and the
+first targeted Architect suites.
+
+### Updated Test-Side Dishonesty Markers
+
+| Marker | Step 1 baseline tests | Current tests | Delta |
+| --- | ---: | ---: | ---: |
+| `any` | 755 | 637 | -118 |
+| `as any` | 395 | 332 | -63 |
+| `as unknown as` | 43 | 44 | +1 |
+| `@ts-ignore` | 0 | 0 | 0 |
+| `@ts-expect-error` | 1 | 1 | 0 |
+| `Record<string, any>` | 59 | 42 | -17 |
+
+`unknown` remains a visibility metric rather than a dishonesty score. Test-side
+`unknown` moved from `1,047` to `1,096` (`+49`) because Step 8 converted
+central mock and fixture surfaces away from `any` and toward explicit boundary
+unknowns that must be narrowed by the consuming test.
+
+### Step 8 Improvements That Landed
+
+- `tests/__mocks__/firebase.ts` now has `0` `any`, `0` `as any`, and `0`
+  `Record<string, any>` matches. Its remaining `38` `unknown` usages are
+  boundary-shaped mock I/O rather than permissive trust.
+- `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` now has `0`
+  matches for every tracked dishonesty marker. The suite uses explicit fixture
+  contracts plus localized `Record<string, unknown>` passthrough where
+  compatibility extras are intentional.
+- `src/tests/architect/useArchitectActions.freeAgency.test.tsx` improved
+  materially from the audit hotspot state (`133` `any`, `91` `as any`) to `32`
+  `any` and `28` `as any`, but it is still one of the biggest remaining typed
+  bypass clusters in the test layer.
+
+### Remaining Test Debt Classification
+
+| File or group | Classification | Why | Resume point |
+| --- | --- | --- | --- |
+| `src/tests/architect/useArchitectActions.freeAgency.test.tsx` | High-value next-wave candidate | This is still a central action-layer proof surface with `32` `any` and `28` `as any`, mostly in hook-state setup, mutation-call assertions, and trade/apply payloads. | If Step 10/11 supports another test-focused wave, revisit this suite first. |
+| `src/tests/architect/tmCapIntegration.*`, `src/tests/architect/tmCapIntegration.executeTrade_writePaths.guardrail.test.ts`, `src/tests/architect/capSheet.transactionMatrix.behavior.test.tsx` | High-value next-wave candidate | The heaviest remaining `any`/`as any` density now lives in trade/cap integration harnesses, so critical guardrails still accept loosely shaped inputs too easily. | Best next cluster after `useArchitectActions.freeAgency.test.tsx` if the plan takes one more typed-test pass. |
+| `src/tests/architect/mutationPipeline.boundary.e107.test.ts`, `src/tests/architect/mutationPipeline.computeResultBridge.test.ts`, `src/tests/architect/mutationPipeline.compatibility.guardrail.test.ts` | High-value next-wave candidate | Mutation-pipeline guardrails still rely on cast-heavy fixtures, which weakens the same runtime contracts Steps 6-7 just hardened. | Keep grouped as one follow-on harness wave rather than fixing them piecemeal. |
+| `tests/__mocks__/firebase.ts` | Acceptable temporary compromise | The mock remains central, but it no longer uses tracked dishonesty markers. The remaining `unknown` usage reflects mock-boundary truth, not bag-typed trust. | Revisit only if Step 10 shows strict-prep leverage in the mock layer. |
+| `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` | Acceptable temporary compromise | This suite now proves persistence behavior with explicit fixture contracts and no tracked dishonesty markers. | Leave it alone unless runtime contract changes require new fixture shape coverage. |
+| `src/tests/architect/teamHistory.eventPayloadEnrichment.matrix.guardrail.test.ts`, `src/tests/architect/firebaseTeamPlanHelpers.compatibility.guardrail.test.ts`, `tests/trade/useTradeMachine.validatorTrust.test.ts` | Acceptable temporary compromise | These compatibility-style suites still carry some `Record<string, any>` bag typing, but they are lower leverage than the action/trade/cap harnesses above and would likely widen into runtime contract redesign. | Revisit only in a dedicated compatibility-contract cleanup pass. |
+| Scattered leaf suites with `1-4` `as unknown as` occurrences, including `src/tests/architect/capSheet_exception_wiring.behavior.test.tsx`, `src/tests/architect/deadCapManagement.test.ts`, `src/tests/architect/signAndTrade.test.ts`, `src/tests/architect/worldTime.test.ts`, and `tests/architect/capHolds.test.ts` | Not worth targeted hardening right now | These are real casts, but they are sparse and isolated enough that a dedicated cleanup wave would not materially change trust metrics. | Leave them for opportunistic cleanup when those suites already need behavior work. |
+
+### Conclusion
+
+The typed test layer is materially more honest than the Step 1 baseline, but it
+is not yet mostly truthful. The central Firebase mock and one persistence-truth
+suite now reinforce runtime contracts instead of bypassing them, but the
+highest-value remaining dishonesty is still concentrated in Architect
+action/trade/cap integration harnesses. In plain terms: the support layer is
+helping more, but the most important Architect tests still bypass runtime truth
+too often to call the test layer fully trustworthy.
+
 ## Evidence Commands
 
 - `rg --files`
 - `node -e '<inventory and marker counting script>'`
+- `node - <<'NODE' <tests-only marker count and hotspot script> NODE`
 - `sed -n '1,220p' tsconfig.json`
 - `sed -n '1,220p' tsconfig.architect-strict.json`
 - `sed -n '1,220p' tsconfig.shared-boundaries-strict.json`
@@ -235,3 +293,4 @@ filtered strict check after Step 7 showed no errors in
 - `npm run typecheck -- --project tsconfig.architect-strict.json`
 - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
+- `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

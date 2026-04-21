@@ -396,7 +396,12 @@ Validation:
 
 ## Step 9 — Review test typing posture and classify what remains
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Added the baseline `Test Typing Review` with updated
+test-only marker counts, Step 8 deltas, a classified remainder list, and a
+plain-language conclusion that central mocks improved materially but Architect
+action/trade/cap harnesses still dominate the typed-bypass debt.
 
 **Goal:** Re-measure the test layer after Step 8 and classify remaining typed-test debt so the repo has a truthful picture of whether tests are now reinforcing runtime contracts or still mostly bypassing them.
 
