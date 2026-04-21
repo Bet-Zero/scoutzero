@@ -26,39 +26,28 @@ import {
   worldTeamsCol,
   worldPlayerRef,
 } from '@/features/architect/utils/architectFirestorePaths';
+import {
+  readArchitectPlayer,
+  readArchitectRecord,
+  readArchitectTeam,
+  readArchitectString,
+  type ArchitectBoundaryContract,
+  type ArchitectBoundaryPlayer,
+  type ArchitectBoundaryRecord,
+  type ArchitectBoundarySalaryRow,
+  type ArchitectBoundaryTeam,
+} from '@/features/architect/utils/architectFirestoreBoundary';
 
-type UnknownRecord = Record<string, unknown>;
+type UnknownRecord = ArchitectBoundaryRecord;
 
 interface WorldMetadataLike extends UnknownRecord {
   parentWorldId?: string | null;
 }
 
-interface SalaryByYearEntry extends UnknownRecord {
-  season: string;
-}
-
-interface ContractLike extends UnknownRecord {
-  salariesByYear?: SalaryByYearEntry[];
-}
-
-interface PlayerLike extends UnknownRecord {
-  displayName?: string;
-  playerId?: string;
-  player_id?: string;
-  teamCode?: string;
-  contract?: ContractLike | null;
-  bio?: UnknownRecord | null;
-}
-
-interface TeamLike extends UnknownRecord {
-  entitlementIds?: string[];
-  players?: PlayerLike[];
-  roster?: unknown[];
-  season?: string;
-  teamCode?: string;
-  teamName?: string;
-  totals?: UnknownRecord | null;
-}
+type SalaryByYearEntry = ArchitectBoundarySalaryRow;
+type ContractLike = ArchitectBoundaryContract;
+type PlayerLike = ArchitectBoundaryPlayer;
+type TeamLike = ArchitectBoundaryTeam;
 
 function deriveTeamTotalsYear(team: TeamLike | null | undefined): number | null {
   const seasonYear =
@@ -113,7 +102,11 @@ export async function getTeam(
   const worldSnapshotSnap = await getDoc(worldSnapshotRef);
 
   if (worldSnapshotSnap.exists()) {
-    const snapshotData = worldSnapshotSnap.data() as TeamLike;
+    const snapshotData = readTeamDoc(
+      worldSnapshotSnap.data(),
+      teamCode,
+      `architect_worlds/${worldId}/teams/${teamCode}`
+    );
     // Hydrate roster from base players if needed
     return synchronizeLoadedTeam(
       await hydrateTeamFromSnapshot(snapshotData, teamCode)
@@ -122,7 +115,7 @@ export async function getTeam(
 
   // Try parent world (recursive)
   try {
-    const worldMeta = (await getWorldMetadata(worldId)) as WorldMetadataLike;
+    const worldMeta = readWorldMetadata(await getWorldMetadata(worldId));
     if (worldMeta.parentWorldId) {
       const parentTeam = await getTeam(worldMeta.parentWorldId, teamCode);
       if (parentTeam) {
@@ -154,9 +147,18 @@ async function getBaseTeam(teamCode: string): Promise<TeamLike> {
     throw new Error(`Base team ${teamCode} not found`);
   }
 
-  const baseDoc = baseTeamSnap.data() as TeamLike;
+  const baseDoc = readTeamDoc(
+    baseTeamSnap.data(),
+    teamCode,
+    `architect_baseTeams/${teamCode}`
+  );
+  const hydratedTeam = await hydrateBaseTeam(teamCode, baseDoc);
   return synchronizeLoadedTeam(
-    (await hydrateBaseTeam(teamCode, baseDoc)) as TeamLike
+    readTeamDoc(
+      hydratedTeam,
+      teamCode,
+      `hydrated architect_baseTeams/${teamCode}`
+    )
   );
 }
 
@@ -180,8 +182,9 @@ async function hydrateTeamFromSnapshot(
   }
 
   // Otherwise, hydrate from base players
+  const hydratedTeam = await hydrateBaseTeam(teamCode, snapshotData);
   return synchronizeLoadedTeam(
-    (await hydrateBaseTeam(teamCode, snapshotData)) as TeamLike
+    readTeamDoc(hydratedTeam, teamCode, `hydrated team snapshot ${teamCode}`)
   );
 }
 
@@ -238,13 +241,20 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
 
   const snapshotMap = new Map<string, TeamLike>();
   snapshotQuery.docs.forEach((docSnap) => {
-    snapshotMap.set(docSnap.id, docSnap.data() as TeamLike);
+    snapshotMap.set(
+      docSnap.id,
+      readTeamDoc(
+        docSnap.data(),
+        docSnap.id,
+        `architect_worlds/${worldId}/teams/${docSnap.id}`
+      )
+    );
   });
 
   // Get world metadata for parent lookup
   let parentWorldId: string | null = null;
   try {
-    const worldMeta = (await getWorldMetadata(worldId)) as WorldMetadataLike;
+    const worldMeta = readWorldMetadata(await getWorldMetadata(worldId));
     parentWorldId = worldMeta.parentWorldId ?? null;
   } catch (error) {
     console.warn(`Failed to load world metadata for ${worldId}:`, error);
@@ -253,8 +263,8 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
   // Load all teams: use snapshot if available, otherwise try parent or base
   const teams = await Promise.all(
     TEAM_CODES.map(async (code) => {
-      if (snapshotMap.has(code)) {
-        const snapshotData = snapshotMap.get(code) as TeamLike;
+      const snapshotData = snapshotMap.get(code);
+      if (snapshotData) {
         return await hydrateTeamFromSnapshot(snapshotData, code);
       }
 
@@ -302,7 +312,11 @@ export async function getPlayer(
   if (!basePlayerSnap.exists()) {
     throw new Error(`Base player ${playerId} not found`);
   }
-  const basePlayer = basePlayerSnap.data() as PlayerLike;
+  const basePlayer = readPlayerDoc(
+    basePlayerSnap.data(),
+    playerId,
+    `architect_basePlayers/${playerId}`
+  );
 
   // Base mode: No world, return base player
   if (!worldId) {
@@ -315,13 +329,17 @@ export async function getPlayer(
   const playerOverrideSnap = await getDoc(playerOverrideRef);
 
   if (playerOverrideSnap.exists()) {
-    const override = playerOverrideSnap.data() as PlayerLike;
+    const override = readPlayerDoc(
+      playerOverrideSnap.data(),
+      playerId,
+      `architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`
+    );
     return mergePlayerOverride(basePlayer, override);
   }
 
   // Try parent world
   try {
-    const worldMeta = (await getWorldMetadata(worldId)) as WorldMetadataLike;
+    const worldMeta = readWorldMetadata(await getWorldMetadata(worldId));
     if (worldMeta.parentWorldId) {
       const parentPlayer = await getPlayer(
         worldMeta.parentWorldId,
@@ -360,24 +378,26 @@ export function mergePlayerOverride(
 
   // Merge contract if override has contract changes
   if (override.contract) {
-    merged.contract = {
-      ...((basePlayer.contract ?? {}) as ContractLike),
+    const mergedContract: ContractLike = {
+      ...(basePlayer.contract ?? {}),
       ...override.contract,
     };
 
     // Merge salariesByYear array if present
     if (override.contract.salariesByYear) {
-      merged.contract.salariesByYear = mergeSalariesByYear(
+      mergedContract.salariesByYear = mergeSalariesByYear(
         basePlayer.contract?.salariesByYear || [],
         override.contract.salariesByYear
       );
     }
+
+    merged.contract = mergedContract;
   }
 
   // Merge bio if override has bio changes
   if (override.bio) {
     merged.bio = {
-      ...((basePlayer.bio ?? {}) as UnknownRecord),
+      ...(basePlayer.bio ?? {}),
       ...override.bio,
     };
   }
@@ -426,4 +446,32 @@ function mergeSalariesByYear(
     const bYear = parseInt(b.season.split('-')[0]);
     return aYear - bYear;
   });
+}
+
+function readTeamDoc(
+  value: unknown,
+  fallbackTeamCode: string,
+  context: string
+): TeamLike {
+  return readArchitectTeam(value, context, fallbackTeamCode);
+}
+
+function readPlayerDoc(
+  value: unknown,
+  fallbackPlayerId: string,
+  context: string
+): PlayerLike {
+  return readArchitectPlayer(value, context, fallbackPlayerId);
+}
+
+function readWorldMetadata(value: unknown): WorldMetadataLike {
+  const record = readArchitectRecord(value);
+  if (!record) {
+    return {};
+  }
+
+  return {
+    ...record,
+    parentWorldId: readArchitectString(record.parentWorldId) ?? null,
+  };
 }

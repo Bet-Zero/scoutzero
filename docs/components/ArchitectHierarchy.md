@@ -182,6 +182,7 @@ types/
 utils/
   ARCHITECT_LAYERING.md
   architectCore.ts
+  architectFirestoreBoundary.ts
   architectFirestorePaths.ts
   basicArchitectUtils.ts
   buildRuleContext.ts
@@ -372,5 +373,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-08T04:05:15.919Z*
+*Generated on: 2026-04-21T09:18:02.226Z*
 *Auto-updated by: npm run docs*

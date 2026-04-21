@@ -277,7 +277,9 @@ Validation after each file or tight batch:
 
 ## Step 6 — Harden Architect/base-data Firestore boundaries (wave 1)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Added Architect Firestore boundary guards and routed `subscribeArchitectPlayerData`, `loadArchitectBasePlayer`, and `teamLoader` through record/player/team normalization; root typecheck, project validation, and targeted `teamLoader` tests pass, while the Architect strict probe still fails on the known broader strict backlog.
 
 **Goal:** Fix the most important Architect/base-data read paths that currently reconstruct trust through casts rather than honest boundary validation.
 

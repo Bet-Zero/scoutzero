@@ -13,13 +13,16 @@
  * feature's player-data subscription.
  */
 
-import {
-  onSnapshot,
-  query,
-  QuerySnapshot,
-  FirestoreError,
-} from 'firebase/firestore';
+import { onSnapshot, query, FirestoreError } from 'firebase/firestore';
 import { basePlayersCol } from '@/data/firestorePaths';
+import {
+  readArchitectContract,
+  readArchitectNumber,
+  readArchitectPlayer,
+  readArchitectRecord,
+  readArchitectString,
+  type ArchitectBoundaryContract,
+} from '@/features/architect/utils/architectFirestoreBoundary';
 
 /**
  * Arguments for subscribeArchitectPlayerData
@@ -42,15 +45,15 @@ interface SubscribeArchitectPlayerDataArgs {
  * Note: Uses Record<string, unknown> to accommodate the ...data spread
  * which can include any additional fields from BasePlayerDoc.
  */
-interface ArchitectPlayerData {
+export interface ArchitectPlayerData {
   id: string;
   player_id: string;
   name: string;
   displayName: string;
   position: string;
   age: number | null;
-  contract: unknown;
-  futureContract: unknown;
+  contract: ArchitectBoundaryContract | null;
+  futureContract: ArchitectBoundaryContract | null;
   bio: {
     playerId: string;
     displayName: string;
@@ -78,45 +81,60 @@ export function subscribeArchitectPlayerData(
 
   // Real-time updates - matches exact behavior from useArchitectPlayerData
   const unsubscribe = onSnapshot(
-    playersQuery as unknown as Parameters<typeof onSnapshot>[0],
-    ((snapshot: QuerySnapshot) => {
+    playersQuery,
+    (snapshot) => {
       // Perform the exact same mapping as useArchitectPlayerData
-      const playerData: ArchitectPlayerData[] = snapshot.docs.map((doc) => {
-        const data = doc.data();
-
-        // Map architect_basePlayers schema to expected format
-        // Note: ...data spread at end can overwrite earlier keys (preserving behavior)
-        return {
-          // Spread first, then override with constructed fields
-          ...data,
-          id: data.playerId || doc.id,
-          player_id: data.playerId || doc.id,
-          name: data.displayName || 'Unknown',
-          displayName: data.displayName || 'Unknown',
-          position: data.bio?.position || '',
-          age: data.bio?.age || null,
-          contract: data.contract || null,
-          futureContract: data.futureContract || null,
-          bio: {
-            ...(data.bio || {}),
-            playerId: data.playerId || doc.id,
-            displayName: data.displayName || 'Unknown',
-          },
-          representation: data.representation || null,
-        } as ArchitectPlayerData;
-      });
+      const playerData: ArchitectPlayerData[] = snapshot.docs.map((docSnap) =>
+        mapArchitectPlayerDoc(docSnap.id, docSnap.data())
+      );
 
       // Sort by name on client side (same as useArchitectPlayerData)
       playerData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
       // Invoke callback with mapped and sorted data
       args.onData(playerData);
-    }) as Parameters<typeof onSnapshot>[1],
-    ((err: FirestoreError) => {
+    },
+    (err: FirestoreError) => {
       // Invoke error callback (hook will handle console.error and state updates)
       args.onError(err);
-    }) as unknown as Parameters<typeof onSnapshot>[2]
+    }
   );
 
   return unsubscribe;
+}
+
+function mapArchitectPlayerDoc(
+  docId: string,
+  value: unknown
+): ArchitectPlayerData {
+  const data = readArchitectPlayer(
+    value,
+    `architect_basePlayers/${docId}`,
+    docId
+  );
+  const playerId = data.playerId ?? docId;
+  const displayName = data.displayName ?? 'Unknown';
+  const bio = readArchitectRecord(data.bio) ?? {};
+
+  // Map architect_basePlayers schema to expected format.
+  return {
+    ...data,
+    id: playerId,
+    player_id: playerId,
+    name: displayName,
+    displayName,
+    position: readArchitectString(bio.position) ?? '',
+    age: readArchitectNumber(bio.age),
+    contract: readArchitectContract(data.contract, `${docId}.contract`),
+    futureContract: readArchitectContract(
+      data.futureContract,
+      `${docId}.futureContract`
+    ),
+    bio: {
+      ...bio,
+      playerId,
+      displayName,
+    },
+    representation: data.representation ?? null,
+  };
 }
