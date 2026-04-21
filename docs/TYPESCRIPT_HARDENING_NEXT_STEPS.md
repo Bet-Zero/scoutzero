@@ -552,7 +552,9 @@ Then give a plain-language verdict for the repo’s new state using this scale:
 
 ## Step 13 — Final closeout and next-phase recommendation
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Added the final closeout summary, recorded what this plan materially hardened, and closed the living plan with an Architect follow-on recommendation.
 
 **Goal:** Close this living plan cleanly and state what, if anything, should happen next.
 
@@ -575,6 +577,50 @@ This is the only step in this document that may declare the plan complete.
 - The plan is complete only after this explicit closeout is done.
 
 **Done when:** This doc has a `Final Closeout` section, all prior steps are explicitly marked, and the next-phase recommendation is stated plainly. Commit message: `docs: close out TypeScript hardening living plan`.
+
+## Final Closeout
+
+This living plan is now complete. Steps 1-4 and 9-13 were doc-only
+measurement/review/closeout steps. Steps 5-8 completed source changes that
+removed or reduced the main dishonesty mechanisms identified by the
+post-migration audit.
+
+The biggest dishonesty reductions came from deleting `src/global-shims.d.ts`,
+replacing fake ambient module contracts with real exports, hardening the shared
+player/storage/route ingress points away from cast-only trust, hardening the
+planned Architect/base-data Firestore ingress files, and tightening the
+central Firebase mock plus selected Architect persistence/free-agency tests so
+they no longer depend on the worst typed-bypass patterns.
+
+The runtime boundaries that are now materially more trustworthy are the shared
+player hooks and adjacent route/storage surfaces, plus the planned Architect
+world/base-data read stack:
+`subscribeArchitectPlayerData.ts`, `loadArchitectBasePlayer.ts`,
+`teamLoader.ts`, `worldManager.ts`, and `firebaseTeamPlanHelpers.ts`. The
+shared strict probe improved meaningfully from `244` errors to `0`, which is
+the clearest evidence that the shared/runtime surface now has stronger type
+truth at its ingress points.
+
+Test and mocking debt still remains in the highest-value Architect
+action/trade/cap harnesses and in the broader `tsconfig.architect-strict.json`
+backlog. The central mock layer is better than the baseline, but Architect
+integration suites such as `seasonManager`, trade persistence, and offer-sheet
+persistence still contain enough contract disagreement, nullability churn, and
+typed-test bypasses that they need a dedicated follow-on plan rather than
+another small cleanup wave here.
+
+Strict-scoped readiness improved in a split way, not uniformly. Shared/runtime
+strictness is now ready on its dedicated probe. Architect/test strictness did
+not meaningfully improve toward readiness inside this plan and remains a large
+normalization problem rather than a bounded late-step cleanup.
+
+A separate next-phase plan is warranted. The next honest phase is an Architect
+contract-normalization and test-harness tightening plan centered on
+`src/features/architect/utils/mutationPipeline.ts`,
+`src/features/architect/GMDashboard/**`,
+`src/features/architect/hooks/useTradeMachine.ts`,
+`src/features/architect/GMDashboard/hooks/useArchitectActions.ts`, and the
+highest-value strict-backlog suites called out in the follow-up section below.
 
 ---
 
