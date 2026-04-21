@@ -430,7 +430,12 @@ Include:
 
 ## Step 10 — Checkpoint: reassess strict-mode readiness with evidence
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Added the baseline `Strictness Checkpoint`; the shared
+strict probe moved from `244` errors to `0`, while the Architect strict probe
+shifted from `2,567` to `2,632`, so Step 10 recommends Option C rather than a
+single bounded Step 11 prep wave inside this plan.
 
 **Goal:** Re-run the strictness measurement after the earlier hardening waves and decide whether a narrow strict-prep pass is worth doing now.
 
@@ -572,6 +577,14 @@ This is the only step in this document that may declare the plan complete.
 ## Follow-up items (populate during execution)
 
 _Anything surfaced during hardening that is real but not in scope for the step that found it. Examples: duplicated schemas, policy inconsistencies, low-value leaf files still using weak types, or strictness-ready clusters that deserve their own later plan. Do not try to fix these in the same step they are found — add them here and address separately if they become the focus of a later dedicated plan._
+
+- Architect strict-prep follow-on plan: treat the remaining `tsconfig.architect-strict.json`
+  backlog as a separate contract-normalization phase centered on
+  `src/features/architect/utils/mutationPipeline.ts`,
+  `src/features/architect/GMDashboard/**`, `tests/architect/seasonManager.test.ts`,
+  `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`,
+  and `tests/architect/offerSheetPersistence.test.ts` rather than trying to fit
+  it into one bounded Step 11 wave here.
 
 ---
 

@@ -281,6 +281,110 @@ action/trade/cap integration harnesses. In plain terms: the support layer is
 helping more, but the most important Architect tests still bypass runtime truth
 too often to call the test layer fully trustworthy.
 
+## Strictness Checkpoint
+
+Reviewed: 2026-04-21, after Steps 3-9.
+
+### Probe Delta
+
+| Command | Step 1 baseline | Current result | Delta | Reading |
+| --- | ---: | ---: | ---: | --- |
+| `npm run typecheck` | 0 | 0 | 0 | Root compatibility gate still passes, but root `strict: false` means this is not hardening proof by itself. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | -244 | Shared/runtime probe moved materially and now passes. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | +65 | Architect/test probe did not improve at repo scale; it is slightly worse overall despite local boundary wins. |
+
+### Which Probes Moved Meaningfully
+
+- The shared/runtime probe moved decisively. The declaration cleanup plus Step 5
+  boundary work removed the full `244`-error backlog, so there is no remaining
+  shared strict-prep family to chase inside this plan.
+- The Architect/test probe did not move meaningfully at whole-probe level.
+  Earlier waves did harden the targeted boundary files, but that progress did
+  not collapse the broader strict backlog.
+
+### What Improved Without Changing the Whole-Repo Architect Count
+
+- The Step 6-7 Architect boundary files are now clean under the Architect
+  strict probe: `subscribeArchitectPlayerData.ts`,
+  `loadArchitectBasePlayer.ts`, `teamLoader.ts`, `worldManager.ts`, and
+  `firebaseTeamPlanHelpers.ts` each show `0` current strict errors.
+- The central Firebase mock no longer contributes Architect strict errors:
+  `tests/__mocks__/firebase.ts` fell from the Step 1 hotspot list (`87`) to
+  `0`.
+- `src/tests/architect/useArchitectActions.freeAgency.test.tsx` is no longer a
+  top strict hotspot. It still carries typed-test debt, but the Architect
+  strict probe now reports `4` errors there instead of it dominating the list.
+
+These local wins matter, but they exposed the real shape of the remaining
+Architect debt rather than reducing it enough to justify a narrow Step 11 wave.
+
+### Remaining Error Families
+
+The shared/runtime probe has no remaining strict error family.
+
+The Architect/test probe is now dominated by broad contract and nullability
+families rather than by the specific boundary files already hardened:
+
+| Error family | Current count | What it signals | Where it lives now |
+| --- | ---: | --- | --- |
+| `TS18048` / `TS18049` / `TS2533` | 891 | Possibly-null and optionality churn after truthful boundary contracts meet looser downstream consumers. | Concentrated across Architect persistence/season tests plus `mutationPipeline.ts` and dashboard adapters. |
+| `TS2322` / `TS2345` | 649 | Cross-contract assignability mismatches between dashboard, mutation, cap-sheet, and test-harness shapes. | Strongest in `seasonManager.test.ts`, `GMDashboard*`, `useArchitectActions.ts`, and persistence/offer-sheet suites. |
+| `TS7006` / `TS7005` / `TS18046` | 583 | Untyped parameters, untyped locals, and `unknown`-not-narrowed patterns that still dominate older Architect tests. | Mostly in large Architect test harnesses rather than the shared runtime surface. |
+
+### Concentration vs. Spread
+
+- The Architect strict backlog currently spans `194` files.
+- The top `10` files account for `731 / 2,632` errors (`27.8%`).
+- The top `20` files account for `1,144 / 2,632` errors (`43.5%`).
+- That means there are real hotspots, but the remaining debt is still spread
+  too broadly to call it one bounded strict-prep cluster.
+
+Current top Architect strict hotspots:
+
+| File | Errors | Dominant families |
+| --- | ---: | --- |
+| `tests/architect/seasonManager.test.ts` | 117 | `TS2322`, `TS18046`, `TS7006`, `TS7005` |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 | `TS18048`, `TS18049` |
+| `tests/architect/offerSheetPersistence.test.ts` | 80 | `TS18048`, `TS18049`, `TS2532`, `TS2533` |
+| `tests/architect/capLegalityValidation.test.ts` | 67 | Mixed contract/nullability debt |
+| `tests/architect/teamLoader.test.ts` | 67 | Mixed contract/nullability debt |
+| `tests/architect/worldManager.test.ts` | 66 | Mixed contract/nullability debt |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` | 64 | Mixed contract/nullability debt |
+| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` | 62 | Mixed contract/nullability debt |
+| `src/tests/architect/exceptionManagement.test.ts` | 58 | Mixed contract/nullability debt |
+| `src/features/architect/utils/mutationPipeline.ts` | 55 | `TS18048`, `TS2322`, `TS18049`, `TS2533`, `TS2345` |
+
+### Readiness Verdict
+
+- Is the repo still nowhere near ready?
+  Shared/runtime is now ready on its own probe, but the combined Architect/test
+  surface is still nowhere near strict-ready.
+- Is it now somewhat ready with a narrow prep pass?
+  Not inside this plan. The remaining Architect/test debt is too cross-cutting
+  across runtime contracts and large test harnesses to fit one bounded Step 11
+  wave honestly.
+- Which exact error families are most worth targeting next, and where do they
+  live?
+  Architect-only nullability/optionality (`TS18048`, `TS18049`, `TS2533`),
+  assignability (`TS2322`, `TS2345`), and test-harness typing gaps (`TS7006`,
+  `TS7005`, `TS18046`) across `mutationPipeline`, `GMDashboard` contract
+  adapters, `seasonManager.test.ts`, `phase50_executeTrade_integration_persistence.test.ts`,
+  and `offerSheetPersistence.test.ts`.
+- Which probe moved meaningfully and which did not?
+  `tsconfig.shared-boundaries-strict.json` moved meaningfully to pass; the
+  Architect/test probe did not.
+
+### Recommendation
+
+**Option C:** Do not start broader strict-prep inside this plan.
+
+Reason: the shared boundary surface is already clear, but the remaining
+Architect/test strict debt is still a separate contract-alignment problem, not a
+single narrow cleanup wave. The next honest move is a dedicated follow-on plan
+focused on Architect nullability and contract normalization across
+`mutationPipeline`, the dashboard/action adapters, and the dominant persistence
+and season-advance test harnesses.
+
 ## Evidence Commands
 
 - `rg --files`
