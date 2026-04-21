@@ -5,7 +5,6 @@
   },
   "include": [
     "src/vite-env.d.ts",
-    "src/global-shims.d.ts",
     "src/features/architect/**/*",
     "src/tests/architect/**/*",
     "src/tests/tradeMachine/**/*",

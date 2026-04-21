@@ -199,7 +199,9 @@ Validation after each meaningful batch:
 
 ## Step 4 — Re-audit the declaration layer and classify what remains
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Classified the three remaining project `.d.ts` files, confirmed there are no remaining live `declare module` shims, removed the stale strict-probe include for deleted `src/global-shims.d.ts`, and recorded `PlayerNameMini.d.ts` as the only suspicious local declaration bridge.
 
 **Goal:** Confirm the declaration-layer cleanup actually changed type truth, and explicitly classify any remaining `.d.ts` shims as justified or still suspect.
 

@@ -179,6 +179,24 @@ live repo evidence where Step 1 needed counts.
 9. Repo-wide strict mode is not ready. The current strict probes are useful
    measurement tools, not evidence that root `strict: true` is close.
 
+## Declaration Layer Review
+
+Reviewed: 2026-04-21, after Step 3 removed `src/global-shims.d.ts`.
+
+Live code search found no remaining `declare module` blocks outside docs. The
+project now has three non-library `.d.ts` files:
+
+| File | Classification | Why it still exists | Type posture | Blocks later hardening? |
+| --- | --- | --- | --- | --- |
+| `src/vite-env.d.ts` | Justified boundary declaration | Provides Vite client references and the app's `VITE_*` environment variable surface. | No broad placeholders or `any`; it declares optional string env values. | No. Keep as the Vite/env boundary. |
+| `src/types/player.d.ts` | Temporary legacy bridge | Preserves the legacy player type import surface while canonical player schemas live in `src/schemas/players_v2.ts`. | Core document exports forward to schema-derived types; legacy view interfaces still allow extra fields with `unknown`, not `any`. | Not a live blocker, but future code should prefer schema exports directly and avoid adding new declarations here. |
+| `src/features/table/PlayerTable/PlayerRow/PlayerNameMini.d.ts` | Still suspicious | Sits beside a real `PlayerNameMini.tsx` implementation whose props are not typed in the implementation file. | No `any`, but it is a duplicate declaration facade that can drift from runtime props. | Not a Step 5 blocker; revisit when strict-prep or table UI typing reaches this component. |
+
+Step 4 also removed the stale `src/global-shims.d.ts` include from
+`tsconfig.architect-strict.json`. Declaration-layer dishonesty is no longer a
+global ambient-module blocker, but the `PlayerNameMini` sibling declaration
+remains a small local cleanup target.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -189,3 +207,4 @@ live repo evidence where Step 1 needed counts.
 - `npm run typecheck`
 - `npm run typecheck -- --project tsconfig.architect-strict.json`
 - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+- `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
