@@ -472,7 +472,9 @@ Do not choose beyond what the evidence supports.
 
 ## Step 11 — Narrow strict-prep wave (only if Step 10 proves it is worth it)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Step 10 recommended Option C, so no Step 11 strict-prep wave was run; the remaining Architect/test strict backlog stays in the separate follow-up plan rather than widening this living plan.
 
 **Goal:** Execute a small, high-leverage strict-prep wave only if Step 10 shows there is real payoff.
 
@@ -508,7 +510,9 @@ If Step 10 recommended Option C, mark Step 11 `DONE` with a note that broader st
 
 ## Step 12 — Final hardening review and residual-risk classification
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Created `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md` with resolved, deferred, follow-up, and architecture-decision classifications plus a `PASS WITH DEBT` verdict.
 
 **Goal:** Recheck the full hardening plan as one system and classify what risk remains after the completed waves.
 
