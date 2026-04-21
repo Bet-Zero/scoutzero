@@ -1,12 +1,19 @@
 import React from 'react';
 import { Filter } from 'lucide-react';
 
+type PlayerSearchBarProps = {
+  search: string;
+  onSearchChange: (value: string) => void;
+  showFilters: boolean;
+  onToggleFilters: () => void;
+};
+
 const PlayerSearchBar = ({
   search,
   onSearchChange,
   showFilters,
   onToggleFilters,
-}) => (
+}: PlayerSearchBarProps) => (
   <div className="flex-shrink-0 px-3 py-2 border-b border-white/10">
     <div className="flex items-center gap-2">
       <input

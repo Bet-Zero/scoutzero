@@ -354,7 +354,8 @@ export function enrichPlayerData<TPlayer extends EnrichablePlayerData>(
 
   // v2 nested position data (ONLY v2 structure)
   const rawPosition = playerData.bio?.position || null;
-  const formattedPosition = POSITION_MAP[rawPosition] || rawPosition || '—';
+  const formattedPosition =
+    (rawPosition ? POSITION_MAP[rawPosition] : undefined) || rawPosition || '—';
 
   // Prioritize denormalized views from main document, fallback to subcollections
   // Contract data: use currentContractView if available

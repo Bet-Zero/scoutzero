@@ -5,6 +5,20 @@ import React from 'react';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { POSITION_MAP } from '@/shared/utils/roles';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
+
+type ListPlayerRowProps = {
+  player: SimplePlayer;
+  index: number;
+  rank?: number;
+  note?: string;
+  onNoteChange?: (id: string, text: string) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
+  onRemove: (index: number) => void;
+  showReorder?: boolean;
+  showRank?: boolean;
+};
 
 const ListPlayerRow = ({
   player,
@@ -17,17 +31,16 @@ const ListPlayerRow = ({
   onRemove,
   showReorder = true,
   showRank = true, // 🔁 new toggle for rank display
-}) => {
+}: ListPlayerRowProps) => {
   const processedPlayer = {
     ...player,
     id: player.id,
     formattedPosition:
       player.formattedPosition ||
-      POSITION_MAP[player.bio?.position] ||
+      (player.bio?.position ? POSITION_MAP[player.bio.position] : undefined) ||
       player.bio?.position ||
       '—',
     headshotUrl:
-      player.headshot ||
       player.headshotUrl ||
       `/assets/headshots/${player.bio?.playerId || player.id}.png`,
     offenseRole: player.offenseRole || '—',

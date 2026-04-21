@@ -234,7 +234,9 @@ Then update this living plan with a short progress note under Step 4 explaining 
 
 ## Step 5 — Harden shared data boundaries before widening Architect work
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Added runtime schema parsing for shared player Firestore reads, guarded Tier Maker session-storage restore, and typed the route/list/roster/table surfaces required for the shared strict probe to pass.
 
 **Goal:** Strengthen the highest-value shared runtime data boundaries so the general app surface stops relying on permissive casts where it should validate or narrow.
 

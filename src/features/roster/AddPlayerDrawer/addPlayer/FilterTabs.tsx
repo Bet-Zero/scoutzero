@@ -5,7 +5,9 @@ import ContractFilters from './ContractFilters';
 import PhysicalFilters from './PhysicalFilters';
 import StatsFilters from './StatsFilters';
 import { getDefaultAddPlayerFilters } from '@/shared/utils/filtering';
+import type { AddPlayerFilters } from '@/shared/utils/filtering';
 import { X } from 'lucide-react';
+import type { Dispatch, SetStateAction } from 'react';
 
 const TABS = [
   { id: 'basic',    label: 'Basic',    accent: 'border-blue-500'   },
@@ -15,7 +17,13 @@ const TABS = [
   { id: 'stats',    label: 'Stats',    accent: 'border-cyan-500'   },
 ];
 
-const FilterTabs = ({ filters, setFilters, onCloseFilters }) => {
+type FilterTabsProps = {
+  filters: AddPlayerFilters;
+  setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
+  onCloseFilters: () => void;
+};
+
+const FilterTabs = ({ filters, setFilters, onCloseFilters }: FilterTabsProps) => {
   const [activeTab, setActiveTab] = useState('basic');
 
   return (

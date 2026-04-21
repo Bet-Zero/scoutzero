@@ -3,6 +3,15 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 
+type ListControlsProps = {
+  showReorder: boolean;
+  onToggleReorder: () => void;
+  onAddDivider: () => void;
+  onSave: () => void;
+  isSaving: boolean;
+  isRanked?: boolean;
+};
+
 const ListControls = ({
   showReorder,
   onToggleReorder,
@@ -10,7 +19,7 @@ const ListControls = ({
   onSave,
   isSaving,
   isRanked = true,
-}) => (
+}: ListControlsProps) => (
   <>
     <div className="w-full max-w-[1100px] mx-auto px-4 mt-4 flex justify-start gap-2">
       <button

@@ -16,12 +16,20 @@
 
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query } from 'firebase/firestore';
+import { PlayerMainDocZ } from '@/schemas/players_v2';
 import type { PlayerMainDoc } from '@/schemas/players_v2';
 import { PLAYERS_COLLECTION } from '@/constants/collections';
 import { db } from '@/firebaseConfig';
 import { enrichPlayerData } from '@/features/roster/utils';
+import type { EnrichedPlayerData } from '@/features/roster/utils';
 
-export type SimplePlayer = (PlayerMainDoc & { id: string; name: string }) & Record<string, unknown>;
+type SimplePlayerSource = PlayerMainDoc & { id: string };
+type SimplePlayerEnrichment = EnrichedPlayerData<SimplePlayerSource>;
+
+export type SimplePlayer = SimplePlayerSource & {
+  id: string;
+  name: string;
+} & Partial<Omit<SimplePlayerEnrichment, keyof SimplePlayerSource | 'id' | 'name'>>;
 
 interface UseSimplePlayerDataResult {
   players: SimplePlayer[];
@@ -55,18 +63,29 @@ const useSimplePlayerData = (): UseSimplePlayerDataResult => {
       playersQuery,
       (snapshot) => {
         const playerData = snapshot.docs.reduce<SimplePlayer[]>((acc, docSnap) => {
-          const data = docSnap.data();
+          const parsed = PlayerMainDocZ.safeParse(docSnap.data());
+
+          if (!parsed.success) {
+            console.warn(
+              'players_v2 main doc failed schema validation',
+              docSnap.id,
+              parsed.error.issues
+            );
+            return acc;
+          }
+
           const enriched = enrichPlayerData({
             id: docSnap.id,
-            ...data // Spread v2 schema fields at top level for easier access
+            ...parsed.data // Spread v2 schema fields at top level for easier access
           });
 
           if (!enriched) return acc;
 
-          acc.push({
+          const namedPlayer: SimplePlayer = {
             ...enriched,
             name: enriched.bio?.displayName || 'Unknown'
-          } as SimplePlayer);
+          };
+          acc.push(namedPlayer);
 
           return acc;
         }, []);

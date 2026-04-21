@@ -83,9 +83,9 @@ type PlayerWithOptions = {
   optionByYear?: Record<string, string | null | undefined> | null;
   original?: {
     optionByYear?: Record<string, string | null | undefined> | null;
-    options?: Array<{ type?: string } | string> | null;
+    options?: Array<{ type?: string | null } | string | null | undefined> | null;
   } | null;
-  options?: Array<{ type?: string } | string> | null;
+  options?: Array<{ type?: string | null } | string | null | undefined> | null;
 };
 
 export const playerHasOptionType = (
@@ -121,7 +121,10 @@ type PlayerWithContract = {
   original?: PlayerWithContract | null;
   contract?: { signedUsing?: string | null; contractType?: string | null } | null;
   primaryContract?: { signedUsing?: string | null; contractType?: string | null } | null;
-  contracts?: Record<string, { signedUsing?: string | null; contractType?: string | null }> | null;
+  contracts?: Record<
+    string,
+    { signedUsing?: string | null; contractType?: string | null } | null | undefined
+  > | null;
   contractView?: { signedUsing?: string | null; contractType?: string | null } | null;
   currentContractView?: { signedUsing?: string | null; contractType?: string | null } | null;
 };

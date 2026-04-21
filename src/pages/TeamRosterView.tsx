@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import RosterViewer from '@/features/roster/RosterViewer';
 
 const TeamRosterView = () => {
-  const { rosterId } = useParams();
+  const { rosterId } = useParams<{ rosterId?: string }>();
 
   return (
     <div className="px-4 pt-4">

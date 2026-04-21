@@ -2,7 +2,12 @@
 import React from 'react';
 import ToggleButton from '@/shared/components/ui/ToggleButton';
 
-const ListColumnToggle = ({ twoColumn, onChange }) => {
+type ListColumnToggleProps = {
+  twoColumn: boolean;
+  onChange: (value: boolean) => void;
+};
+
+const ListColumnToggle = ({ twoColumn, onChange }: ListColumnToggleProps) => {
   return (
     <div className="flex gap-2">
       <ToggleButton selected={!twoColumn} onClick={() => onChange(false)}>

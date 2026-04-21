@@ -192,9 +192,13 @@ export function buildInitialRoster(
   }
 
   const starterIds = new Set(
-    starterSlots.map((p) => p?.id).filter((id) => id !== null && id !== undefined)
+    starterSlots
+      .map((p) => p?.id)
+      .filter((id): id is PlayerId => id !== null && id !== undefined)
   );
-  const remaining = teamPlayers.filter((p) => !starterIds.has(p.id));
+  const remaining = teamPlayers.filter(
+    (p) => p.id === null || p.id === undefined || !starterIds.has(p.id)
+  );
   return {
     starters: starterSlots.map((p) => (p ? normalizePlayer(p) : null)),
     rotation: remaining.slice(0, 4).map((p) => normalizePlayer(p)),

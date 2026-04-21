@@ -3,8 +3,13 @@
 import React from 'react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatHeight } from '@/shared/utils/formatting';
+import type { ListDisplayPlayer } from '@/features/lists/ListPreviewModal/ListExportWrapper';
 
-const TierPlayerTile = ({ player }) => {
+type TierPlayerTileProps = {
+  player: ListDisplayPlayer | null | undefined;
+};
+
+const TierPlayerTile = ({ player }: TierPlayerTileProps) => {
   if (!player) return null;
 
   const headshot =

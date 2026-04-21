@@ -55,6 +55,7 @@ type RosterManagerContract = {
 export type RosterManagerPlayer = RosterDrawerOriginalPlayer & {
   id: string;
   name?: string | null;
+  headshotUrl?: string | null;
   formattedPosition?: string | null;
   team?: string | number | null;
   MIN?: number | string | null;

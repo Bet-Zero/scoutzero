@@ -1,9 +1,16 @@
 // src/features/lists/ExportOptionsModal.tsx
 import React from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
+import type { ListExportType } from '@/features/lists/ListPreviewModal/ListExportWrapper';
 
-const ExportOptionsModal = ({ open, onClose, onSelect }) => {
-  const handleSelect = (type) => {
+type ExportOptionsModalProps = {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (type: ListExportType) => void;
+};
+
+const ExportOptionsModal = ({ open, onClose, onSelect }: ExportOptionsModalProps) => {
+  const handleSelect = (type: ListExportType) => {
     onSelect(type);
     onClose();
   };

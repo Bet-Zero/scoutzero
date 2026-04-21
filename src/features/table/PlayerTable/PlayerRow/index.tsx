@@ -13,11 +13,29 @@ import {
   getYearsRemaining,
 } from '@/shared/utils/contracts';
 import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
-const PlayerRow = ({ player, isExpanded, onToggleExpand }) => {
+type PlayerRowProps = {
+  player: SimplePlayer;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+};
+
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const PlayerRow = ({ player, isExpanded, onToggleExpand }: PlayerRowProps) => {
   const navigate = useNavigate();
 
-  const handleNameClick = (event) => {
+  const handleNameClick = (
+    event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
+  ) => {
     // Prevent row expand/collapse toggle
     event.stopPropagation();
     const profileUrl = getPlayerProfileUrl(player);
@@ -143,9 +161,9 @@ const PlayerRow = ({ player, isExpanded, onToggleExpand }) => {
                 const salaryEntry = contractData.salariesByYear.find(
                   (s) =>
                     s.year === CURRENT_YEAR ||
-                    s.season?.startsWith(String(CURRENT_YEAR))
+                    String(s.season ?? '').startsWith(String(CURRENT_YEAR))
                 );
-                currentSalary = salaryEntry?.salary ?? 0;
+                currentSalary = toNumber(salaryEntry?.salary);
               }
 
               if (!freeAgentYear && currentSalary === 0) {
@@ -153,7 +171,7 @@ const PlayerRow = ({ player, isExpanded, onToggleExpand }) => {
               }
 
               const yearsLeft = freeAgentYear
-                ? getYearsRemaining(freeAgentYear, CURRENT_YEAR)
+                ? getYearsRemaining(toNumber(freeAgentYear), CURRENT_YEAR)
                 : (contractView?.yearsRemaining ?? 0);
               const formattedSalary =
                 currentSalary > 0

@@ -10,8 +10,8 @@ import { expandPositionGroup } from '@/shared/utils/roles';
 
 type SalarySeason = {
   year?: number | string | null;
-  season?: string | null;
-  salary?: number | null;
+  season?: number | string | null;
+  salary?: number | string | null;
 };
 
 type SalaryContractData = {
@@ -185,10 +185,17 @@ export const findSalaryForYear = (
 
   const salaryEntry = contractData.salariesByYear.find(
     (season) =>
-      Number(season?.year) === year || season?.season?.startsWith?.(String(year))
+      Number(season?.year) === year ||
+      String(season?.season ?? '').startsWith(String(year))
   );
 
-  return salaryEntry?.salary ?? null;
+  const salary = salaryEntry?.salary;
+  if (typeof salary === 'number') return salary;
+  if (typeof salary === 'string') {
+    const parsed = Number(salary);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 };
 
 export const hasActiveAddPlayerFilters = (

@@ -1,6 +1,19 @@
 import React from 'react';
 
-const formatFullName = (name) => {
+type PlayerNameMiniProps = {
+  name?: string;
+  scale?: number;
+  width?: number;
+  firstWeightClass?: string;
+  lastWeightClass?: string;
+};
+
+type NameFontSize = {
+  first: number;
+  last: number;
+};
+
+const formatFullName = (name: string): [string, string] => {
   if (!name) return ['', ''];
   const suffixes = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];
 
@@ -27,7 +40,7 @@ const formatFullName = (name) => {
 };
 
 // Specific name overrides for spacing/sizing
-const fontSizeOverrides = {
+const fontSizeOverrides: Record<string, NameFontSize> = {
   'Giannis Antetokounmpo': { first: 20, last: 17 },
   'Shai Gilgeous-Alexander': { first: 21, last: 13 },
   'Nickeil Alexander-Walker': { first: 20, last: 13 },
@@ -53,11 +66,11 @@ const PlayerNameMini = ({
   width = 140,
   firstWeightClass = 'font-light',
   lastWeightClass = 'font-bold',
-}) => {
+}: PlayerNameMiniProps) => {
   const [firstName, lastName] = formatFullName(name);
-  const override = fontSizeOverrides[name] || {};
-  const firstSize = (override.first || 22) * scale;
-  const lastSize = (override.last || 21) * scale;
+  const override = fontSizeOverrides[name];
+  const firstSize = (override?.first ?? 22) * scale;
+  const lastSize = (override?.last ?? 21) * scale;
 
   return (
     <div

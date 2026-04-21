@@ -48,7 +48,7 @@ const PlayerContractMini = ({
             : salary.year
               ? parseInt(String(salary.year), 10)
               : salary.season
-                ? parseInt(salary.season.split('-')[0], 10) + 1
+                ? parseInt(String(salary.season).split('-')[0], 10) + 1
                 : null;
         if (parsedYear && parsedYear >= CURRENT_YEAR) {
           acc[parsedYear] = salary;

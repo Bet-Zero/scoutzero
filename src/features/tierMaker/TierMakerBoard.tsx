@@ -158,7 +158,7 @@ const TierMakerBoard = ({
           shootingProfile: (player.shootingProfile || '').toLowerCase(),
           badges: player.badges || [],
           salary: contractData?.salariesByYear?.find(
-            (s) => s.year === 2025 || s.season?.startsWith('2025')
+            (s) => s.year === 2025 || String(s.season ?? '').startsWith('2025')
           )?.salary,
           freeAgentYear:
             player.bio?.display?.freeAgentYear?.toString() ||

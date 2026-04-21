@@ -1,11 +1,26 @@
 import React, { useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
+import type {
+  MissingRosterPlayer,
+  NormalizedRosterPlayer,
+  RosterShape,
+  SelectedRosterTeam,
+} from '@/features/roster/utils';
 
-const RosterExportModal = ({ open, onClose, roster, team }) => {
+type RosterExportPlayer = NormalizedRosterPlayer | MissingRosterPlayer;
+
+type RosterExportModalProps = {
+  open: boolean;
+  onClose: () => void;
+  roster: RosterShape<RosterExportPlayer> | null;
+  team: SelectedRosterTeam | null;
+};
+
+const RosterExportModal = ({ open, onClose, roster, team }: RosterExportModalProps) => {
   const exportData = useMemo(() => {
     if (!roster) return null;
-    const formatPlayers = (players = []) =>
+    const formatPlayers = (players: Array<RosterExportPlayer | null> = []) =>
       players.map((player) =>
         player
           ? {

@@ -13,13 +13,18 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { RosterViewerActions } from './RosterViewerActions';
 import type { RosterShape } from '@/features/roster/utils';
 
+type RosterViewerProps = {
+  isExport?: boolean;
+  initialRosterId?: string;
+};
+
 type RosterSectionName = keyof RosterShape;
 type SlotTarget = {
   section: RosterSectionName | '';
   index: number;
 };
 
-const RosterViewer = ({ isExport = false, initialRosterId }) => {
+const RosterViewer = ({ isExport = false, initialRosterId }: RosterViewerProps) => {
   const { players: allPlayers, loading: isLoading } = useSimplePlayerData();
   const { userId, loading: authLoading } = useAuth();
   const {

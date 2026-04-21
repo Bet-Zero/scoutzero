@@ -2,8 +2,13 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import AddToListModal from '@/features/lists/AddToListButton/AddToListModal';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
-const AddToListButton = ({ player }) => {
+type AddToListButtonProps = {
+  player: SimplePlayer;
+};
+
+const AddToListButton = ({ player }: AddToListButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (

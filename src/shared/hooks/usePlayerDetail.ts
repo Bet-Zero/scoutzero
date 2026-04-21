@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getDoc, getDocs } from 'firebase/firestore';
+import type { z } from 'zod';
 import {
   playerRef,
   contractsCol,
@@ -24,6 +25,25 @@ interface UsePlayerDetailResult {
   loading: boolean;
   error: string | null;
 }
+
+const formatSchemaIssues = (error: z.ZodError): string =>
+  error.issues
+    .map((issue) => `${issue.path.join('.') || '<root>'}: ${issue.message}`)
+    .join('; ');
+
+const parseFirestoreDoc = <T>(
+  schema: z.ZodType<T>,
+  data: unknown,
+  label: string
+): T => {
+  const parsed = schema.safeParse(data);
+
+  if (!parsed.success) {
+    throw new Error(`${label} failed schema validation: ${formatSchemaIssues(parsed.error)}`);
+  }
+
+  return parsed.data;
+};
 
 /**
  * Hook for fetching full player details including subcollections.
@@ -65,18 +85,11 @@ const usePlayerDetail = (
           throw new Error(`Player ${playerId} not found`);
         }
 
-        const mainDoc = mainDocSnap.data();
-        if (import.meta.env.DEV) {
-          const res = PlayerMainDocZ.safeParse(mainDoc);
-          if (!res.success) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              'players_v2 main doc failed schema validation',
-              playerId,
-              res.error?.issues
-            );
-          }
-        }
+        const mainDoc = parseFirestoreDoc(
+          PlayerMainDocZ,
+          mainDocSnap.data(),
+          `players_v2/${playerId}`
+        );
 
         // Step 2: Fetch all subcollections in parallel
         const [contractsSnap, seasonsSnap, evalsSnap] = await Promise.all([
@@ -90,62 +103,35 @@ const usePlayerDetail = (
         contractsSnap.forEach((doc) => {
           // Filter out metadata fields like last_updated
           if (!doc.id.startsWith('last_')) {
-            const data = doc.data();
-            if (import.meta.env.DEV) {
-              const r = ContractDocZ.safeParse(data);
-              if (!r.success) {
-                // eslint-disable-next-line no-console
-                console.warn(
-                  'contract doc failed schema validation',
-                  playerId,
-                  doc.id,
-                  r.error?.issues
-                );
-              }
-            }
-            contracts[doc.id] = data as ContractDoc;
+            contracts[doc.id] = parseFirestoreDoc(
+              ContractDocZ,
+              doc.data(),
+              `players_v2/${playerId}/contracts/${doc.id}`
+            );
           }
         });
 
         const seasons: Record<string, SeasonDoc> = {};
         seasonsSnap.forEach((doc) => {
-          const data = doc.data();
-          if (import.meta.env.DEV) {
-            const r = SeasonDocZ.safeParse(data);
-            if (!r.success) {
-              // eslint-disable-next-line no-console
-              console.warn(
-                'season doc failed schema validation',
-                playerId,
-                doc.id,
-                r.error?.issues
-              );
-            }
-          }
-          seasons[doc.id] = data as SeasonDoc;
+          seasons[doc.id] = parseFirestoreDoc(
+            SeasonDocZ,
+            doc.data(),
+            `players_v2/${playerId}/seasons/${doc.id}`
+          );
         });
 
         const evaluations: Record<string, EvaluationDoc> = {};
         evalsSnap.forEach((doc) => {
-          const data = doc.data();
-          if (import.meta.env.DEV) {
-            const r = EvaluationDocZ.safeParse(data);
-            if (!r.success) {
-              // eslint-disable-next-line no-console
-              console.warn(
-                'evaluation doc failed schema validation',
-                playerId,
-                doc.id,
-                r.error?.issues
-              );
-            }
-          }
-          evaluations[doc.id] = data as EvaluationDoc;
+          evaluations[doc.id] = parseFirestoreDoc(
+            EvaluationDocZ,
+            doc.data(),
+            `players_v2/${playerId}/evaluations/${doc.id}`
+          );
         });
 
         // Step 4: Build v2 player structure with spread pattern for easier access
         const playerV2: PlayerV2 = {
-          ...(mainDoc as PlayerV2),
+          ...mainDoc,
           id: playerId,
           contracts: Object.keys(contracts).length > 0 ? contracts : undefined,
           seasons: Object.keys(seasons).length > 0 ? seasons : undefined,

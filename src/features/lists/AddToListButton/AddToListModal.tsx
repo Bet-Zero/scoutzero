@@ -8,10 +8,17 @@ import {
   fetchAllLists,
   createListWithPlayer,
   addPlayerToList,
+  type PlayerList,
 } from '@/firebase/listHelpers';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
-const AddToListModal = ({ player, onClose }) => {
-  const [lists, setLists] = useState([]);
+type AddToListModalProps = {
+  player: SimplePlayer;
+  onClose: () => void;
+};
+
+const AddToListModal = ({ player, onClose }: AddToListModalProps) => {
+  const [lists, setLists] = useState<PlayerList[]>([]);
   const [selectedList, setSelectedList] = useState('');
   const [newListName, setNewListName] = useState('');
   const { userId } = useAuth();
@@ -34,9 +41,17 @@ const AddToListModal = ({ player, onClose }) => {
     try {
       const trimmedNewName = newListName.trim();
       const playerId = getPlayerId(player);
+      if (!playerId) {
+        toast.error('Player ID unavailable', { style: toastStyle });
+        return;
+      }
+      if (!userId) {
+        toast.error('Sign in to save lists', { style: toastStyle });
+        return;
+      }
 
       // Helper: check if player is already in a given list
-      const isAlreadyInList = (listId) => {
+      const isAlreadyInList = (listId: string) => {
         const target = lists.find((l) => l.id === listId);
         return target?.playerIds?.includes(playerId);
       };

@@ -3,6 +3,36 @@ import React from 'react';
 import ListExportPlayerRow from './ListExportPlayerRow';
 import ListExportRowCompact from './ListExportRowCompact';
 import ListTierExport from './ListTierExport';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
+
+export type ListExportType = 'list' | 'tier';
+
+export type ListDisplayPlayer = SimplePlayer & {
+  player_id?: string;
+  headshot?: string | null;
+};
+
+export type ListExportTier = {
+  label: string;
+  players: ListDisplayPlayer[];
+};
+
+export type ListExportWrapperProps = {
+  players?: ListDisplayPlayer[];
+  tiers?: ListExportTier[];
+  playersMap?: Record<string, ListDisplayPlayer>;
+  isExport?: boolean;
+  isRanked?: boolean;
+  exportType?: ListExportType;
+  compact?: boolean;
+  twoColumn?: boolean;
+  title?: string;
+  subtitle?: string;
+};
+
+type RankedColumnItem =
+  | { type: 'heading'; label: string }
+  | { type: 'player'; player: ListDisplayPlayer; rank: number };
 
 const ListExportWrapper = ({
   players = [],
@@ -15,12 +45,12 @@ const ListExportWrapper = ({
   twoColumn = true,
   title = '',
   subtitle = '',
-}) => {
+}: ListExportWrapperProps) => {
   if (!isExport) return null;
 
   const Row = compact ? ListExportRowCompact : ListExportPlayerRow;
 
-  const renderColumn = (plist, startIdx) => (
+  const renderColumn = (plist: ListDisplayPlayer[], startIdx: number) => (
     <div className="flex flex-col gap-[3px] w-1/2 items-center">
       {plist.map((player, idx) => (
         <Row
@@ -79,7 +109,7 @@ const ListExportWrapper = ({
     );
   };
 
-  const renderRankedColumn = (items) => (
+  const renderRankedColumn = (items: RankedColumnItem[]) => (
     <div className="flex flex-col gap-[1px] w-1/2 items-start">
       {items.map((it, idx) =>
         it.type === 'heading' ? (
@@ -102,8 +132,8 @@ const ListExportWrapper = ({
 
   const renderTwoColumnRanked = () => {
     let rankCounter = 1;
-    const left = [];
-    const right = [];
+    const left: RankedColumnItem[] = [];
+    const right: RankedColumnItem[] = [];
 
     tiers.forEach((tier, tIdx) => {
       if (rankCounter > 30) return;

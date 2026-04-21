@@ -86,7 +86,7 @@ const RosterSection = ({
               key={player.id}
               player={player}
               onRemove={
-                showMutationControls
+                showMutationControls && onRemove
                   ? (e) => onRemove(section, idx, e)
                   : undefined
               }

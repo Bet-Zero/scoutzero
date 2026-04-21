@@ -1,6 +1,17 @@
 // src/features/roster/RosterControls.tsx
 import React from 'react';
 import { TeamListFull, TeamMap } from '@/constants/teamList';
+import type { TeamEntry, TeamSlug } from '@/constants/teamList';
+import type { RosterProject } from '@/firebase/rosterHelpers';
+
+type RosterControlsProps = {
+  selectedTeam: TeamEntry | null;
+  onTeamChange: (team: TeamEntry | null) => void;
+  loadMethod: string;
+  onLoadMethodChange: (value: string) => void;
+  savedRosters?: RosterProject[];
+  teamSelectionDisabled?: boolean;
+};
 
 const RosterControls = ({
   selectedTeam,
@@ -9,7 +20,7 @@ const RosterControls = ({
   onLoadMethodChange,
   savedRosters = [],
   teamSelectionDisabled = false,
-}) => {
+}: RosterControlsProps) => {
   const filteredRosters = savedRosters.filter((r) => {
     if (selectedTeam) {
       return r.team === selectedTeam.id || !r.team;
@@ -25,7 +36,11 @@ const RosterControls = ({
           <label className="text-sm text-white/60">Team:</label>
           <select
             value={selectedTeam?.id || ''}
-            onChange={(e) => onTeamChange(TeamMap[e.target.value])}
+            onChange={(e) =>
+              onTeamChange(
+                e.target.value ? TeamMap[e.target.value as TeamSlug] : null
+              )
+            }
             disabled={teamSelectionDisabled}
             title={
               teamSelectionDisabled

@@ -44,6 +44,77 @@ export interface UseTierDraftReturn {
 const STORAGE_KEY = 'tiermaker_draft_v1';
 const DEBOUNCE_MS = 1000;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isStringArrayRecord = (value: unknown): value is Record<string, string[]> =>
+  isRecord(value) &&
+  Object.values(value).every(
+    (items) =>
+      Array.isArray(items) &&
+      items.every((item): item is string => typeof item === 'string')
+  );
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) &&
+  value.every((item): item is string => typeof item === 'string');
+
+const parseDraftStandard = (value: unknown): DraftStandard | null => {
+  if (!isRecord(value)) return null;
+  if (!isStringArrayRecord(value.tiers) || !isStringArray(value.tierOrder)) {
+    return null;
+  }
+
+  return {
+    tiers: value.tiers,
+    tierOrder: value.tierOrder,
+  };
+};
+
+const parseDraftTieramid = (value: unknown): DraftTieramid | null => {
+  if (!isRecord(value)) return null;
+  if (!isStringArrayRecord(value.rows) || !isStringArray(value.rowOrder)) {
+    return null;
+  }
+
+  return {
+    rows: value.rows,
+    rowOrder: value.rowOrder,
+  };
+};
+
+const parseDraftEnvelope = (value: unknown): DraftEnvelope | null => {
+  if (!isRecord(value)) return null;
+
+  const draftStandard =
+    value.draftStandard === null || value.draftStandard === undefined
+      ? null
+      : parseDraftStandard(value.draftStandard);
+  const draftTieramid =
+    value.draftTieramid === null || value.draftTieramid === undefined
+      ? null
+      : parseDraftTieramid(value.draftTieramid);
+
+  if (
+    (value.draftStandard !== null && value.draftStandard !== undefined && !draftStandard) ||
+    (value.draftTieramid !== null && value.draftTieramid !== undefined && !draftTieramid)
+  ) {
+    return null;
+  }
+
+  const draftUpdatedAt =
+    typeof value.draftUpdatedAt === 'number' &&
+    Number.isFinite(value.draftUpdatedAt)
+      ? value.draftUpdatedAt
+      : null;
+
+  return {
+    draftStandard,
+    draftTieramid,
+    draftUpdatedAt,
+  };
+};
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useTierDraft(isDraftMode: boolean): UseTierDraftReturn {
@@ -70,10 +141,15 @@ export function useTierDraft(isDraftMode: boolean): UseTierDraftReturn {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed: DraftEnvelope = JSON.parse(raw);
+        const parsed = parseDraftEnvelope(JSON.parse(raw));
+        if (!parsed) {
+          sessionStorage.removeItem(STORAGE_KEY);
+          setRestored(true);
+          return;
+        }
         if (parsed.draftStandard) setDraftStandard(parsed.draftStandard);
         if (parsed.draftTieramid) setDraftTieramid(parsed.draftTieramid);
-        if (parsed.draftUpdatedAt) setDraftUpdatedAt(parsed.draftUpdatedAt);
+        if (parsed.draftUpdatedAt !== null) setDraftUpdatedAt(parsed.draftUpdatedAt);
       }
     } catch {
       // Corrupted data — clear it and start fresh

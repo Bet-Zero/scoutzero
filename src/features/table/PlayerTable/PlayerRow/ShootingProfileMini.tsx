@@ -7,16 +7,25 @@ const SHOOTING_TIERS = {
   Willing: 'text-orange-400 border-orange-400',
   Hesitant: 'text-orange-600 border-orange-600',
   Non: 'text-red-600 border-red-600',
+} as const;
+
+type ShootingProfileMiniProps = {
+  value?: string | null;
+  compact?: boolean;
 };
 
-const ShootingProfileMini = ({ value = '', compact = false }) => {
+const ShootingProfileMini = ({
+  value = '',
+  compact = false,
+}: ShootingProfileMiniProps) => {
   const cleaned = value?.replace('Shooter', '').trim();
   const label = cleaned || '—';
   const isEmpty = label === '—';
 
   const style = isEmpty
     ? 'text-white/30 border-white/20'
-    : SHOOTING_TIERS[cleaned] || 'text-white border-white';
+    : SHOOTING_TIERS[cleaned as keyof typeof SHOOTING_TIERS] ||
+      'text-white border-white';
 
   // Phase 2L: compact mode for tighter row density
   const sizeClasses = compact

@@ -1,8 +1,13 @@
 // src/features/lists/ListTierExport.tsx
 import React from 'react';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';
+import type { ListExportTier } from '..';
 
-const ListTierExport = ({ tiers }) => {
+type ListTierExportProps = {
+  tiers: ListExportTier[];
+};
+
+const ListTierExport = ({ tiers }: ListTierExportProps) => {
   return (
     <div className="flex flex-col items-center w-full pt-2">
       <div className="w-full max-w-[950px] flex flex-col gap-[4px]">

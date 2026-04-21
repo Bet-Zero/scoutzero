@@ -2,6 +2,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import useImageDownload from '@/shared/hooks/useImageDownload';
 import ListExportWrapper from './ListExportWrapper';
+import type { ListExportWrapperProps } from './ListExportWrapper';
 
 const ListPreviewModal = ({
   open,
@@ -15,8 +16,8 @@ const ListPreviewModal = ({
   twoColumn = true,
   title = '',
   subtitle = '',
-}) => {
-  const previewRef = useRef(null);
+}: ListExportWrapperProps & { open: boolean; onClose: () => void }) => {
+  const previewRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.6);
 
   useLayoutEffect(() => {

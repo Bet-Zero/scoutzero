@@ -4,12 +4,35 @@ import {
   generateWeightOptions,
   generateAgeOptions,
 } from '@/shared/utils/filtering';
+import type { AddPlayerFilters } from '@/shared/utils/filtering';
+import type { Dispatch, SetStateAction } from 'react';
 
 const heightOptions = generateHeightOptions();
 const weightOptions = generateWeightOptions();
 const ageOptions = generateAgeOptions();
 
-const RangeSelects = ({ label, minVal, maxVal, onMinChange, onMaxChange, options, minLabel, maxLabel }) => (
+type FilterProps = {
+  filters: AddPlayerFilters;
+  setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
+};
+
+type RangeOption = {
+  value: number;
+  label: string;
+};
+
+type RangeSelectsProps = {
+  label: string;
+  minVal: number | undefined;
+  maxVal: number | undefined;
+  onMinChange: (value: number | undefined) => void;
+  onMaxChange: (value: number | undefined) => void;
+  options: RangeOption[];
+  minLabel: string;
+  maxLabel: string;
+};
+
+const RangeSelects = ({ label, minVal, maxVal, onMinChange, onMaxChange, options, minLabel, maxLabel }: RangeSelectsProps) => (
   <div>
     <label className="block mb-1 text-white/70 text-xs">{label}</label>
     <div className="flex items-center gap-1.5">
@@ -38,7 +61,7 @@ const RangeSelects = ({ label, minVal, maxVal, onMinChange, onMaxChange, options
   </div>
 );
 
-const PhysicalFilters = ({ filters, setFilters }) => (
+const PhysicalFilters = ({ filters, setFilters }: FilterProps) => (
   <div className="p-2 space-y-3">
     <RangeSelects
       label="Height"

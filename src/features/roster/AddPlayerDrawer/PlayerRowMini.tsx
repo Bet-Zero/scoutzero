@@ -5,13 +5,19 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatSalary } from '@/shared/utils/formatting';
 import { findSalaryForYear, normalizeHeadshotId } from '@/features/roster/utils';
+import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 
-const PlayerRowMini = ({ player, onClick }) => {
+type PlayerRowMiniProps = {
+  player: RosterManagerPlayer;
+  onClick: () => void;
+};
+
+const PlayerRowMini = ({ player, onClick }: PlayerRowMiniProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const name = player.bio?.displayName || player.name || 'Unknown Player';
   const headshot =
-    player.headshot ||
+    player.headshotUrl ||
     `/assets/headshots/${normalizeHeadshotId(player.bio?.playerId || player.id)}.png`;
 
   const rawPosition = player.bio?.position || player.formattedPosition || '—';
@@ -22,9 +28,11 @@ const PlayerRowMini = ({ player, onClick }) => {
   const currentYearSalary = findSalaryForYear(player);
   const formattedSalary = formatSalary(currentYearSalary);
   const rightSideValue =
-    formattedSalary !== '—' ? formattedSalary : (player.freeAgentType || player.bio?.display?.freeAgentType || '—');
+    formattedSalary !== '—'
+      ? formattedSalary
+      : player.bio?.display?.freeAgentType || '—';
 
-  const handleChevronClick = (e) => {
+  const handleChevronClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     setIsExpanded(!isExpanded);
   };

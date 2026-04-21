@@ -1,23 +1,42 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search } from 'lucide-react';
+import type { PlayerList } from '@/firebase/listHelpers';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
+
+type PlayerSearchResult = {
+  id: string;
+  name: string;
+  lists: string[];
+};
+
+type ListSearchBarProps = {
+  listsData: Record<string, PlayerList>;
+  playersData?: Record<string, SimplePlayer>;
+  onSelect?: (id: string) => void;
+  placeholder?: string;
+};
 
 const ListSearchBar = ({
   listsData,
   playersData = {},
   onSelect,
   placeholder = 'Search lists...',
-}) => {
+}: ListSearchBarProps) => {
   const [search, setSearch] = useState('');
-  const [listResults, setListResults] = useState([]);
-  const [playerResults, setPlayerResults] = useState([]);
+  const [listResults, setListResults] = useState<string[]>([]);
+  const [playerResults, setPlayerResults] = useState<PlayerSearchResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const wrapperRef = useRef(null);
-  const debounceRef = useRef(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Close suggestions when clicking outside the search area
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        wrapperRef.current &&
+        e.target instanceof Node &&
+        !wrapperRef.current.contains(e.target)
+      ) {
         setShowSuggestions(false);
       }
     };
@@ -28,7 +47,7 @@ const ListSearchBar = ({
   }, []);
 
   const runSearch = useCallback(
-    (query) => {
+    (query: string) => {
       const lower = query.toLowerCase();
 
       // Lists matching the input
@@ -62,17 +81,19 @@ const ListSearchBar = ({
   );
 
   useEffect(() => {
-    clearTimeout(debounceRef.current);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!search) {
       setListResults([]);
       setPlayerResults([]);
       return;
     }
     debounceRef.current = setTimeout(() => runSearch(search), 250);
-    return () => clearTimeout(debounceRef.current);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [search, runSearch]);
 
-  const handleSelect = (id) => {
+  const handleSelect = (id: string) => {
     if (!id) return;
     setSearch('');
     setListResults([]);

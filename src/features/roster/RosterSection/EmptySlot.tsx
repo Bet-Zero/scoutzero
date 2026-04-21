@@ -2,7 +2,14 @@
 import React from 'react';
 
 // EmptySlot – Displays a plus sign button to add a player to a given slot
-const EmptySlot = ({ onAdd, size = 'starter' }) => {
+type EmptySlotSize = 'starter' | 'rotation' | 'bench';
+
+type EmptySlotProps = {
+  onAdd: () => void;
+  size?: EmptySlotSize;
+};
+
+const EmptySlot = ({ onAdd, size = 'starter' }: EmptySlotProps) => {
   const sizeClasses = {
     starter: 'w-40 h-44 text-3xl',
     rotation: 'w-32 h-36 text-2xl',

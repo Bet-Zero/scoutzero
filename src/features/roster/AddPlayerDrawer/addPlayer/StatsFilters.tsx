@@ -1,6 +1,29 @@
 import React from 'react';
+import type { AddPlayerFilters } from '@/shared/utils/filtering';
+import type { Dispatch, SetStateAction } from 'react';
 
-const STAT_DEFS = [
+type NumericFilterKey = {
+  [K in keyof AddPlayerFilters]: AddPlayerFilters[K] extends number | undefined ? K : never;
+}[keyof AddPlayerFilters];
+
+type OperatorFilterKey = {
+  [K in keyof AddPlayerFilters]: K extends `${string}_op` ? K : never;
+}[keyof AddPlayerFilters];
+
+type StatDef = {
+  label: string;
+  opKey: OperatorFilterKey;
+  minKey: NumericFilterKey;
+  maxKey: NumericFilterKey;
+  step: number;
+};
+
+type FilterProps = {
+  filters: AddPlayerFilters;
+  setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
+};
+
+const STAT_DEFS: StatDef[] = [
   { label: 'PPG',  opKey: 'PPG_op',  minKey: 'min_PPG',  maxKey: 'max_PPG',  step: 0.5 },
   { label: 'RPG',  opKey: 'RPG_op',  minKey: 'min_RPG',  maxKey: 'max_RPG',  step: 0.5 },
   { label: 'APG',  opKey: 'APG_op',  minKey: 'min_APG',  maxKey: 'max_APG',  step: 0.5 },
@@ -14,11 +37,11 @@ const STAT_DEFS = [
 
 const inputCls = 'flex-1 min-w-0 bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs';
 
-const StatRow = ({ def, filters, setFilters }) => {
+const StatRow = ({ def, filters, setFilters }: FilterProps & { def: StatDef }) => {
   const { label, opKey, minKey, maxKey, step } = def;
   const op = filters[opKey] || '';
 
-  const handleOpChange = (newOp) => {
+  const handleOpChange = (newOp: string) => {
     setFilters({
       ...filters,
       [opKey]: newOp,
@@ -28,9 +51,9 @@ const StatRow = ({ def, filters, setFilters }) => {
     });
   };
 
-  const setMin = (raw) =>
+  const setMin = (raw: string) =>
     setFilters({ ...filters, [minKey]: raw === '' ? undefined : parseFloat(raw) });
-  const setMax = (raw) =>
+  const setMax = (raw: string) =>
     setFilters({ ...filters, [maxKey]: raw === '' ? undefined : parseFloat(raw) });
 
   return (
@@ -79,7 +102,7 @@ const StatRow = ({ def, filters, setFilters }) => {
   );
 };
 
-const StatsFilters = ({ filters, setFilters }) => (
+const StatsFilters = ({ filters, setFilters }: FilterProps) => (
   <div className="p-2 space-y-2">
     {STAT_DEFS.map((def) => (
       <StatRow key={def.opKey} def={def} filters={filters} setFilters={setFilters} />

@@ -1,8 +1,15 @@
 // src/features/roster/AddPlayerDrawer/addPlayer/ContractFilters.tsx
 import React from 'react';
 import { normalizeFreeAgentType } from '@/shared/utils/filtering';
+import type { AddPlayerFilters } from '@/shared/utils/filtering';
+import type { Dispatch, SetStateAction } from 'react';
 
-const ContractFilters = ({ filters, setFilters }) => (
+type FilterProps = {
+  filters: AddPlayerFilters;
+  setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
+};
+
+const ContractFilters = ({ filters, setFilters }: FilterProps) => (
   <div className="p-2 space-y-3">
     {/* First Section - Matches other tabs */}
     <div className="space-y-3">

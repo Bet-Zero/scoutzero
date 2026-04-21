@@ -2,9 +2,16 @@
 import React from 'react';
 import BadgeFilterSelect from '@/shared/components/ui/filters/BadgeFilterSelect';
 import { teamOptions } from '@/shared/utils/filtering';
+import type { AddPlayerFilters } from '@/shared/utils/filtering';
 import { shootingProfileTiers } from '@/shared/utils/roles';
+import type { Dispatch, SetStateAction } from 'react';
 
-const BasicFilters = ({ filters, setFilters }) => {
+type FilterProps = {
+  filters: AddPlayerFilters;
+  setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
+};
+
+const BasicFilters = ({ filters, setFilters }: FilterProps) => {
   return (
     <div className="p-2 space-y-3">
       {/* First Filter Row (matches ContractFilters' FA Year + FA Type structure) */}
@@ -67,7 +74,7 @@ const BasicFilters = ({ filters, setFilters }) => {
       <div className="flex flex-col">
         <BadgeFilterSelect
           selected={filters.badges}
-          onChange={(badges) => setFilters({ ...filters, badges })}
+          onChange={(badges: string[]) => setFilters({ ...filters, badges })}
           buttonClass="w-full bg-[#2a2a2a] hover:bg-[#3a3a3a] px-2 py-1 rounded text-xs flex justify-between items-center"
           gridClass="mt-1 max-h-60 overflow-y-auto bg-[#2a2a2a] p-2 rounded grid-cols-2 gap-2"
           labelClass="text-xs"

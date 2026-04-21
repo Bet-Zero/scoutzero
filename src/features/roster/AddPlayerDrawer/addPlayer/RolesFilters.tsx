@@ -7,15 +7,29 @@ import {
   defensiveRoles,
 } from '@/shared/utils/roles';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
+import type { AddPlayerFilters } from '@/shared/utils/filtering';
+import type { Dispatch, SetStateAction } from 'react';
 
-const RolesFilters = ({ filters, setFilters }) => {
+type FilterProps = {
+  filters: AddPlayerFilters;
+  setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
+};
+
+const RolesFilters = ({ filters, setFilters }: FilterProps) => {
   const [showSubroles, setShowSubroles] = useState(false);
 
-  const handleToggleSubrole = (roleName) => {
-    setFilters((prev) => ({
-      ...prev,
-      subRoles: toggleSubroleSelection(prev.subRoles, roleName),
-    }));
+  const handleToggleSubrole = (roleName: string) => {
+    setFilters((prev) => {
+      const nextSubRoles = toggleSubroleSelection(prev.subRoles, roleName);
+
+      return {
+        ...prev,
+        subRoles: {
+          offense: nextSubRoles.offense ?? [],
+          defense: nextSubRoles.defense ?? [],
+        },
+      };
+    });
   };
 
   return (

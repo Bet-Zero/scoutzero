@@ -3,6 +3,28 @@
 import React from 'react';
 import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import RankedListPlayerRow from './ListPlayerRow';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
+
+export type RankedTierPlayer = {
+  id: string;
+  index: number;
+  rankIndex: number;
+};
+
+type RankedListTierProps = {
+  label: string;
+  headerIndex: number | null;
+  players: RankedTierPlayer[];
+  playersMap: Record<string, SimplePlayer>;
+  notes: Record<string, string>;
+  showReorder: boolean;
+  onLabelChange: (index: number, label: string) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
+  onRemove: (index: number) => void;
+  onNoteChange: (id: string, text: string) => void;
+  orderLength: number;
+};
 
 const RankedListTier = ({
   label,
@@ -17,7 +39,7 @@ const RankedListTier = ({
   onRemove,
   onNoteChange,
   orderLength,
-}) => {
+}: RankedListTierProps) => {
   return (
     <div className="w-full">
       {headerIndex !== null && (

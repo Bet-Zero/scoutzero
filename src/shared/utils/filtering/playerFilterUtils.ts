@@ -78,7 +78,7 @@ export type FilterablePlayer = {
     salariesByYear?: Array<{
       option?: string | null;
       salary?: number | string | null;
-      season?: string | null;
+      season?: string | number | null;
       voidedByExtension?: boolean | null;
       year?: string | number | null;
     }> | null;

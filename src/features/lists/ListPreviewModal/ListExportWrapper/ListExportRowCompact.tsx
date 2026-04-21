@@ -4,8 +4,14 @@
 import React from 'react';
 import TeamLogo from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import type { ListDisplayPlayer } from '.';
 
-const ListExportRowCompact = ({ player, rank }) => {
+type ListExportRowCompactProps = {
+  player: ListDisplayPlayer;
+  rank: number | null;
+};
+
+const ListExportRowCompact = ({ player, rank }: ListExportRowCompactProps) => {
   const name = player.bio?.displayName || player.name || 'Unknown Player';
   const nameParts = name.split(' ');
   const firstName = nameParts[0]?.toUpperCase() || '';
@@ -14,7 +20,7 @@ const ListExportRowCompact = ({ player, rank }) => {
   const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
-  const formatHeight = (inches) => {
+  const formatHeight = (inches: number | null | undefined) => {
     if (!inches || inches === 0) return '—';
     return `${Math.floor(inches / 12)}-${inches % 12}`;
   };
