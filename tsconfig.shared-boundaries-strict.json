@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true
+  },
+  "include": [
+    "src/**/*.d.ts",
+    "src/shared/hooks/usePlayerDetail.ts",
+    "src/shared/hooks/useSimplePlayerData.ts",
+    "src/features/profile/hooks/usePlayerNavigation.ts",
+    "src/pages/ListManager.tsx",
+    "src/pages/TeamRosterView.tsx",
+    "src/features/tierMaker/hooks/useTierDraft.ts"
+  ]
+}

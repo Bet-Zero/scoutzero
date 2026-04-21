@@ -1,6 +1,6 @@
 # TypeScript Hardening — Living Plan
 
-**How this doc works:** When the user says "keep working on `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is truly trivial. Do not skip ahead. Do not invent new steps unless the user explicitly asks to revise this plan. Checkpoints, reviews, and cleanup loops inside this doc must always reconnect to the next numbered step; they are not standalone end states. When all steps are `DONE`, tell the user this hardening plan is complete and state what remains as optional future work.
+**How this doc works:** When the user says "keep working on `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is truly trivial or Steps 1 and 2 are being completed together as the kickoff evidence package. Do not skip ahead. Do not invent new steps unless the user explicitly asks to revise this plan. Checkpoints, reviews, and cleanup loops inside this doc must always reconnect to the next numbered step; they are not standalone end states. When all steps are `DONE`, tell the user this hardening plan is complete and state what remains as optional future work.
 
 **Commit & status hygiene (REQUIRED — do not skip):**
 
@@ -17,6 +17,7 @@
 - The strongest dishonesty signal surfaced by the audit is `src/global-shims.d.ts`, which still contains ambient module shims exporting `any`, including at least one shim that invents exports that the real implementation does not provide.
 - Root TypeScript still runs with `strict: false`, so root `npm run typecheck` is not a proof of strong typing by itself.
 - A scoped strict config exists (`tsconfig.architect-strict.json`) and currently fails with thousands of errors. That failure count is not a failure of this plan — it is the map of where hardening work still lives.
+- A dedicated shared/runtime strict probe also exists (`tsconfig.shared-boundaries-strict.json`) so shared-boundary hardening is measured on the surface it actually changes rather than disappearing inside Architect-only metrics.
 - The audit also found that user-content Firebase helpers (`src/firebase/listHelpers.ts`, `src/firebase/rosterHelpers.ts`, `src/firebase/rankerHelpers.ts`) are relatively honest and Zod-backed, while many Architect/base-data Firestore reads still rely on broad casts or bag types rather than schema-guarded boundaries.
 - The audit found that tests are typed by extension but often bypass type truth with `any`, `as any`, broad mocks, and bag fixtures. That means test files can look "TS-complete" while still failing to reinforce runtime contracts.
 - The goal of this plan is **not** to flip `strict: true` immediately. The goal is to remove the biggest dishonesty mechanisms first, harden the highest-value boundaries second, reduce the most damaging test/type bypass patterns third, and only then reassess strict-mode readiness with evidence.
@@ -31,12 +32,12 @@
 
 **Current planned flow:**
 
-- Steps 1–2: establish hardening baseline and create a tracked evidence inventory
+- Steps 1–2: establish the hardening baseline and execution map as one kickoff evidence package
 - Steps 3–4: remove type-dishonesty shims and declaration-layer masking
 - Steps 5–7: harden the highest-value runtime boundaries (shared data hooks + architect/base-data Firestore reads)
 - Steps 8–9: reduce the worst typed-test dishonesty in the highest-value suites and mocks
-- Step 10: checkpoint strictness readiness and decide whether a narrow prep pass is justified
-- Steps 11–12: execute the highest-leverage strict-prep fixes only if the checkpoint proves they are ripe
+- Step 10: checkpoint strictness readiness across the active probes and decide whether a narrow prep pass is justified
+- Steps 11–12: execute one high-leverage strict-prep wave only if the checkpoint proves it is ripe, then close out residual risk honestly
 - Step 13: final closeout and next-phase recommendation
 
 **Universal constraints (apply to every step):**
@@ -46,6 +47,8 @@
 - `any` is not an acceptable escape hatch except at a truly unavoidable third-party boundary, and even there it must be localized and documented.
 - At data boundaries (Firestore, JSON parsing, route params, local/session storage, external scraper inputs), use truthful runtime guards or Zod where appropriate. Cast + validation is acceptable; cast alone is not.
 - Keep validation scoped. Use the cheapest approved commands that actually prove the touched area. Always append `--reporter=dot` to test scripts.
+- `npm run typecheck` is a compatibility gate only; it is never sufficient by itself as evidence of hardening progress.
+- Use the strict probe that matches the surface being hardened: `tsconfig.shared-boundaries-strict.json` for shared/runtime work, `tsconfig.architect-strict.json` for Architect/test work, and both when declaration-layer changes cross those surfaces.
 - Do not run the full suite unless the prompt contains the exact phrase `RUN FULL SUITE`.
 - If a step reveals duplicated utilities, duplicated schemas, or product/policy inconsistencies that are real but not in scope, record them in the Follow-up section at the bottom rather than widening the step.
 - If a step removes a legacy shim or broad declaration, fix the downstream call sites or imports that break. Those breakages are the point.
@@ -73,19 +76,21 @@ The baseline must include:
    - whether `strict` is on or off
    - other relevant safety flags already enabled/disabled
    - which additional tsconfig(s) exist and what they are for
-3. Weak-marker counts for the full repo and split by runtime vs tests:
+3. Primary dishonesty-marker counts for the full repo and split by runtime vs tests:
    - `any`
    - `as any`
    - `as unknown as`
-   - `unknown`
    - `@ts-ignore`
    - `@ts-expect-error`
    - `Record<string, any>`
-4. The current strict-check baseline using the existing strict-scoped config:
-   - command run
-   - current error count
-   - short note that this is a measurement baseline, not a pass/fail goal for Step 1
-5. A list of the strongest audit-proven risk themes from the hardening audit return package.
+4. Visibility counts tracked separately from dishonesty markers:
+   - `unknown`
+5. The current strict-check baselines for the active hardening probes:
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - current error counts
+   - short note that these are measurement baselines, not pass/fail goals for Step 1
+6. A list of the strongest audit-proven risk themes from the hardening audit return package.
 
 This is a read-only baseline step. Do not change source files here.
 
@@ -94,8 +99,9 @@ This is a read-only baseline step. Do not change source files here.
 - Use live repo evidence, not prior plan docs as truth.
 - Keep the baseline concise but concrete.
 - This step must give later steps a before/after reference point.
+- Steps 1 and 2 may be completed in the same kickoff session if the same evidence pass supports both docs.
 
-**Done when:** `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md` exists with the baseline counts, compiler posture, weak-marker counts, strict-scoped error baseline, and risk themes. Commit message: `docs: record TypeScript hardening baseline`.
+**Done when:** `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md` exists with the baseline counts, compiler posture, primary dishonesty-marker counts, separate `unknown` visibility counts, both strict-probe baselines, and risk themes. Commit message: `docs: record TypeScript hardening baseline`.
 
 ---
 
@@ -132,12 +138,15 @@ For each candidate file or file group, record:
 - risk category
 - one-sentence reason it matters
 - whether it is runtime-critical, test-critical, or declaration-only
+- which strict probe should measure progress (`tsconfig.shared-boundaries-strict.json`, `tsconfig.architect-strict.json`, or both)
 - recommended execution wave
 - recommended validation commands
 
 End the doc with a `Recommended execution order` section that clearly maps to Steps 3–12 below.
 
 Do not change source files in this step.
+
+This step may be completed in the same kickoff session as Step 1 when the audit already exists and the same evidence pass can support both docs.
 
 **Constraints specific to this step:**
 
@@ -168,6 +177,7 @@ Work through the declaration layer in priority order:
 Validation after each meaningful batch:
 
 - `npm run typecheck`
+- the relevant strict probe(s): `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` and/or `npm run typecheck -- --project tsconfig.architect-strict.json`
 - `npm run validate:project` if declaration removals or structural exports change
 - the narrowest relevant scoped tests with `--reporter=dot`
 
@@ -241,6 +251,7 @@ For each file:
 Validation after each file or tight batch:
 
 - `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
 - `npm run test:scouting -- --reporter=dot` and/or the narrowest relevant suite from the execution map
 - `npm run build` after a meaningful shared-boundary batch
 
@@ -250,7 +261,7 @@ Validation after each file or tight batch:
 - Preserve existing behavior unless the old behavior depended on false typing.
 - If a runtime boundary reveals inconsistent real data, record it in the Follow-up section and keep the fix localized.
 
-**Done when:** The highest-value shared runtime boundaries from the execution map stop relying on cast-only trust and pass scoped validation. Commit message: `refactor: harden shared runtime data boundaries`.
+**Done when:** The highest-value shared runtime boundaries from the execution map stop relying on cast-only trust and pass both compatibility validation and the shared strict probe. Commit message: `refactor: harden shared runtime data boundaries`.
 
 ---
 
@@ -279,6 +290,7 @@ For each file:
 Validation after each file or tight batch:
 
 - `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
 - `npm run test:architect -- --reporter=dot`
 - any narrower architect-scoped test command identified in the execution map
 
@@ -311,7 +323,7 @@ For each file/group:
 
 1. Harden the live ingress path.
 2. Fix the downstream consumers exposed by truthful contracts.
-3. Run the narrowest relevant architect-scoped validation.
+3. Run the narrowest relevant architect-scoped validation, including `npm run typecheck -- --project tsconfig.architect-strict.json`.
 
 Then append an `Architect Boundary Review` section to the baseline or execution-map docs that classifies remaining Architect type debt as:
 
@@ -353,6 +365,7 @@ For each target:
 Validation:
 
 - `npm run typecheck`
+- the relevant strict probe(s): `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` and/or `npm run typecheck -- --project tsconfig.architect-strict.json`
 - the narrowest relevant test scripts with `--reporter=dot`
 
 **Constraints specific to this step:**
@@ -376,13 +389,14 @@ Append a `Test Typing Review` section to `docs/typescript/TYPESCRIPT_HARDENING_B
 
 Include:
 
-1. Updated weak-marker counts for tests only.
-2. Which central mocks/suites were improved in Step 8.
-3. Which remaining test debt is:
+1. Updated primary dishonesty-marker counts for tests only.
+2. `unknown` counts for tests only, recorded separately as context rather than scored as dishonesty.
+3. Which central mocks/suites were improved in Step 8.
+4. Which remaining test debt is:
    - `High-value next-wave candidate`
    - `Acceptable temporary compromise`
    - `Not worth targeted hardening right now`
-4. A plain-language conclusion on whether the typed test layer is now mostly helping or still too often bypassing runtime truth.
+5. A plain-language conclusion on whether the typed test layer is now mostly helping or still too often bypassing runtime truth.
 
 **Constraints specific to this step:**
 
@@ -402,20 +416,21 @@ Include:
 **Instructions:**
 This is a decision step, not an automatic strict-mode step.
 
-1. Re-run the same strict-scoped measurement used in Step 1.
-2. Record the new error count and compare it to the baseline.
-3. Identify which error families dropped meaningfully because of Steps 3–9.
+1. Re-run the strict probes from Step 1 that cover the work completed so far.
+2. Record the new error counts and compare each relevant probe to its baseline.
+3. Identify which error families dropped meaningfully because of Steps 3–9, separated by shared/runtime probe vs Architect/test probe when applicable.
 4. Identify which remaining strict errors are concentrated in a narrow set of files vs spread everywhere.
 5. Append a `Strictness Checkpoint` section to the baseline doc answering:
    - Is the repo still nowhere near ready?
    - Is it now somewhat ready with a narrow prep pass?
-   - Which exact error families are now most worth targeting?
+   - Which exact error families are now most worth targeting, and in which probe do they live?
+   - Which probe(s) moved meaningfully and which did not?
 
 Then propose one of:
 
-- **Option A:** Stop after current hardening plan; strict-prep is still too wide.
-- **Option B:** Run one narrow strict-prep wave focused only on the highest-leverage error families.
-- **Option C:** Add a larger strict-prep phase because the checkpoint shows the repo is meaningfully closer.
+- **Option A:** Stop after current hardening plan; no strict-prep wave is justified yet.
+- **Option B:** Run one narrow strict-prep wave focused only on the highest-leverage error families already covered by the current probes.
+- **Option C:** Do not start broader strict-prep inside this plan; record that a separate follow-on plan is warranted because the remaining work exceeds one bounded wave.
 
 Do not choose beyond what the evidence supports.
 
@@ -425,7 +440,7 @@ Do not choose beyond what the evidence supports.
 - If strict error counts barely move, say so plainly.
 - The user should not have to make a technical decision; recommend one option.
 
-**Done when:** The `Strictness Checkpoint` section exists with a before/after count, error-family analysis, and a clear recommendation that feeds Step 11. Commit message: `docs: record strictness readiness checkpoint`.
+**Done when:** The `Strictness Checkpoint` section exists with before/after counts for each relevant probe, error-family analysis, and a clear recommendation that feeds Step 11. Commit message: `docs: record strictness readiness checkpoint`.
 
 ---
 
@@ -436,7 +451,7 @@ Do not choose beyond what the evidence supports.
 **Goal:** Execute a small, high-leverage strict-prep wave only if Step 10 shows there is real payoff.
 
 **Instructions:**
-If Step 10 recommends Option B or C, perform exactly one bounded strict-prep wave focused on the highest-leverage remaining error family or file cluster.
+If Step 10 recommends Option B, perform exactly one bounded strict-prep wave focused on the highest-leverage remaining error family or file cluster.
 
 Examples of acceptable targets:
 
@@ -448,10 +463,12 @@ For the chosen wave:
 
 1. State explicitly in this plan what the wave targets and why.
 2. Fix the chosen error family/file cluster truthfully.
-3. Run `npm run typecheck` and the narrowest relevant tests with `--reporter=dot`.
-4. Re-run the strict-scoped measurement and record the delta.
+3. Run `npm run typecheck`, the relevant strict probe(s), and the narrowest relevant tests with `--reporter=dot`.
+4. Re-run the same strict probe(s) and record the delta.
 
 If Step 10 recommended Option A, mark Step 11 `DONE` with a note that no strict-prep wave was justified yet and move directly to Step 12.
+
+If Step 10 recommended Option C, mark Step 11 `DONE` with a note that broader strict-prep must move into a separate follow-on plan, do not improvise that phase here, and move directly to Step 12.
 
 **Constraints specific to this step:**
 
@@ -478,7 +495,7 @@ Review together:
 - shared/runtime boundaries after Step 5
 - Architect/base-data boundaries after Steps 6–7
 - typed-test posture after Steps 8–9
-- strictness checkpoint and any narrow prep wave after Steps 10–11
+- strictness checkpoint and any narrow prep wave or separate-plan recommendation after Steps 10–11
 
 Classify the remaining issues into:
 
@@ -533,7 +550,7 @@ This is the only step in this document that may declare the plan complete.
 
 ## Follow-up items (populate during execution)
 
-*Anything surfaced during hardening that is real but not in scope for the step that found it. Examples: duplicated schemas, policy inconsistencies, low-value leaf files still using weak types, or strictness-ready clusters that deserve their own later plan. Do not try to fix these in the same step they are found — add them here and address separately if they become the focus of a later dedicated plan.*
+_Anything surfaced during hardening that is real but not in scope for the step that found it. Examples: duplicated schemas, policy inconsistencies, low-value leaf files still using weak types, or strictness-ready clusters that deserve their own later plan. Do not try to fix these in the same step they are found — add them here and address separately if they become the focus of a later dedicated plan._
 
 ---
 
