@@ -2,14 +2,16 @@
 
 **Purpose:** Convert the remaining JS/JSX test and test-support files to TypeScript without breaking any existing test behavior.
 
+**Status:** COMPLETE — 2026-04-20
+
 **Relationship to prior plans:**
 
 - Pile A (constants, data, Firestore helpers): complete.
 - Pile B (shared utils, hooks, schemas): complete.
 - Pile C (runtime UI/page/component): `docs/TS_CONVERSION_PILE_C_PLAN.md` — in progress, separate track.
-- Pile D (this document): test and test-support JS/JSX under `src/tests/**` and `tests/**`.
+- Pile D (this document): test and test-support JS/JSX under `src/tests/**` and `tests/**` — complete.
 
-**How this doc works:** When the user says "keep working on Pile D" or "keep working on `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`," resume the first step below with status `IN PROGRESS`; otherwise take the first step with status `TODO`, do it, update the status/note, validate narrowly, and commit the source change plus this plan update together.
+**How this doc works:** This plan is complete. If the user says "keep working on Pile D" or "keep working on `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`," confirm that no Pile D JS/JSX files remain under `src/tests/**` or `tests/**`, reference the completion snapshot and Step 17 below, and continue the broader JS→TS effort in `docs/TS_CONVERSION_PILE_C_PLAN.md` or `docs/TS_CONVERSION_NEXT_STEPS.md` instead of adding new Pile D steps unless the user explicitly asks to re-scope this document.
 
 **Commit & status hygiene:**
 
@@ -42,7 +44,14 @@
 
 ---
 
-## Inventory Summary (2026-04-19)
+## Completion Snapshot (2026-04-20)
+
+- Final status: complete through Step 17.
+- Remaining `.js` / `.jsx` files under `src/tests/**` and `tests/**`: `0`.
+- Final verification recorded in this document: `npm run typecheck`, `npm run build`, `npm run validate:project`, and `find src/tests tests \( -name '*.js' -o -name '*.jsx' \)`.
+- Next JS→TS track: runtime UI/page/component work in `docs/TS_CONVERSION_PILE_C_PLAN.md`.
+
+## Inventory Summary (2026-04-19 baseline before conversion)
 
 ### Counts
 
