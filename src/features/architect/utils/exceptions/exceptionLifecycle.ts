@@ -27,13 +27,13 @@ import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
 type ExceptionStateLike = {
   enabled?: boolean;
-  maxAmount?: number;
-  totalAmount?: number;
-  amount?: number;
-  usedAmount?: number;
-  remainingAmount?: number;
-  seasonKey?: string;
-  notes?: string;
+  maxAmount?: number | string | null;
+  totalAmount?: number | string | null;
+  amount?: number | string | null;
+  usedAmount?: number | string | null;
+  remainingAmount?: number | string | null;
+  seasonKey?: string | null;
+  notes?: string | null;
   [key: string]: unknown;
 };
 
@@ -61,6 +61,11 @@ type ValidationResult = {
 };
 
 type NonTpeExceptionType = 'mle' | 'tpmle' | 'bae' | 'room';
+
+function toAmountNumber(value: number | string | null | undefined): number {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) ? amount : 0;
+}
 
 /**
  * Non-TPE exception types managed by this lifecycle module.
@@ -199,11 +204,14 @@ export function resetTeamNonTpeExceptionsForNewSeason(
     const seasonKey = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
 
     // Check if anything actually changed
-    const oldMaxAmount =
-      existing.maxAmount ?? existing.totalAmount ?? existing.amount ?? 0;
-    const oldUsedAmount = existing.usedAmount ?? 0;
+    const oldMaxAmount = toAmountNumber(
+      existing.maxAmount ?? existing.totalAmount ?? existing.amount
+    );
+    const oldUsedAmount = toAmountNumber(existing.usedAmount);
     const oldRemainingAmount =
-      existing.remainingAmount ?? oldMaxAmount - oldUsedAmount;
+      existing.remainingAmount != null
+        ? toAmountNumber(existing.remainingAmount)
+        : oldMaxAmount - oldUsedAmount;
     const oldSeasonKey = existing.seasonKey ?? '';
 
     const changed =
@@ -236,9 +244,9 @@ export function resetTeamNonTpeExceptionsForNewSeason(
   const existingDpe = (team.exceptions.dpe || {}) as ExceptionStateLike;
   const dpeWasActive =
     existingDpe.enabled ||
-    (existingDpe.totalAmount ?? 0) > 0 ||
-    (existingDpe.usedAmount ?? 0) > 0 ||
-    (existingDpe.remainingAmount ?? 0) > 0 ||
+    toAmountNumber(existingDpe.totalAmount) > 0 ||
+    toAmountNumber(existingDpe.usedAmount) > 0 ||
+    toAmountNumber(existingDpe.remainingAmount) > 0 ||
     existingDpe.seasonKey !== dpeSeasonKey;
 
   team.exceptions.dpe = {

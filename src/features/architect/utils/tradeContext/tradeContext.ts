@@ -66,6 +66,7 @@ import type {
 import type {
   TradeExceptionRecord,
   TradeValidationResult,
+  TradeValidatorContext,
 } from '@/features/architect/utils/tradeMachine/constants/types';
 import {
   validateTradePreviewAuthority,
@@ -87,6 +88,7 @@ import type {
   ValidationIssue,
   PayloadPlayerIngress,
   PayloadTeamIngress,
+  TradeContextValidationPlayer,
   TradeContextPayload,
   TradeContextNormalizedPayload,
   TradeContextCurrentState,
@@ -523,15 +525,79 @@ function buildTradeValidationPlayer({
 }: {
   player: ArchitectTradePayloadPlayer;
   sourceTeamState: AnyRecord | null | undefined;
-}): AnyRecord {
+}): TradeContextValidationPlayer {
   const authoritativeSnapshot = findTradePlayerSnapshot(
     sourceTeamState,
     getTradePayloadPlayerId(player)
   );
 
-  return authoritativeSnapshot
+  const merged = authoritativeSnapshot
     ? { ...authoritativeSnapshot, ...player }
     : { ...player };
+  const matchIncoming = toFiniteNumberOrUndefined(merged.matchIncoming);
+  const matchOutgoing = toFiniteNumberOrUndefined(merged.matchOutgoing);
+
+  if (matchIncoming !== undefined) {
+    merged.matchIncoming = matchIncoming;
+  } else {
+    delete merged.matchIncoming;
+  }
+
+  if (matchOutgoing !== undefined) {
+    merged.matchOutgoing = matchOutgoing;
+  } else {
+    delete merged.matchOutgoing;
+  }
+
+  return merged as TradeContextValidationPlayer;
+}
+
+function buildTradeValidationTeamRecord(
+  team: ArchitectMutationTeamRecord,
+  fallbackTeamCode: string | null
+): ValidationTeam['team'] {
+  const teamRecord = team as Record<string, unknown>;
+  const teamCode = normalizeTradeTeamCodeLike(team.teamCode) ?? fallbackTeamCode;
+  const teamId =
+    teamRecord.teamId != null ? String(teamRecord.teamId) : undefined;
+
+  return {
+    ...team,
+    ...(teamRecord.id != null ? { id: String(teamRecord.id) } : {}),
+    ...(teamId != null ? { teamId } : {}),
+    ...(teamCode != null ? { teamCode } : {}),
+  } as ValidationTeam['team'];
+}
+
+function buildTradeValidatorContext(
+  payload: TradeContextPayload
+): TradeValidatorContext {
+  const rawTradeCtx = payload.tradeCtx || {};
+  const tradeCtx: TradeValidatorContext = {};
+  const asOfDate = payload.asOfDate ?? rawTradeCtx.asOfDate;
+  if (typeof rawTradeCtx.worldId === 'string') {
+    tradeCtx.worldId = rawTradeCtx.worldId;
+  }
+  if (typeof rawTradeCtx.source === 'string') {
+    tradeCtx.source = rawTradeCtx.source;
+  }
+  if (asOfDate != null) {
+    tradeCtx.asOfDate = String(asOfDate);
+  }
+  if (typeof rawTradeCtx.tradeDate === 'string') {
+    tradeCtx.tradeDate = rawTradeCtx.tradeDate;
+  }
+  if (typeof rawTradeCtx.offseason === 'boolean') {
+    tradeCtx.offseason = rawTradeCtx.offseason;
+  }
+  const normalizedYearKey =
+    rawTradeCtx.yearKey != null ? toEndYear(rawTradeCtx.yearKey) : null;
+
+  if (Number.isFinite(normalizedYearKey)) {
+    tradeCtx.yearKey = normalizedYearKey;
+  }
+
+  return tradeCtx;
 }
 
 function buildTradeIncomingPlayerSnapshot({
@@ -614,8 +680,8 @@ export function buildPostTradeTeamsSnapshot({
       team,
     ])
   );
-  const validationSendsByTeam: AnyRecord[][] = payloadTeams.map(
-    (teamTrade, senderIndex) => {
+  const validationSendsByTeam: TradeContextValidationPlayer[][] =
+    payloadTeams.map((teamTrade, senderIndex) => {
       const senderTeamCode = payloadTeamCodes[senderIndex];
       const senderTeamState =
         currentTeamByCode.get(senderTeamCode) ||
@@ -627,9 +693,9 @@ export function buildPostTradeTeamsSnapshot({
           sourceTeamState: senderTeamState,
         })
       );
-    }
-  );
-  const validationReceivesByTeam: AnyRecord[][] = payloadTeams.map(() => []);
+    });
+  const validationReceivesByTeam: TradeContextValidationPlayer[][] =
+    payloadTeams.map(() => []);
 
   if (enforceSatPreflight) {
     payloadTeams.forEach((teamTrade, senderIndex) => {
@@ -1044,7 +1110,10 @@ export function buildPostTradeTeamsSnapshot({
     (teamTrade, idx) => {
       const teamUpdate = teamUpdates[idx];
       return {
-        team: teamUpdate.team,
+        team: buildTradeValidationTeamRecord(
+          teamUpdate.team,
+          teamUpdate.teamCode
+        ),
         teamCode: teamUpdate.teamCode,
         sends: validationSendsByTeam[idx] || [],
         receives: validationReceivesByTeam[idx] || [],
@@ -1091,10 +1160,7 @@ export function validatePostTradeSnapshotForContext({
       teams: snapshot.validationTeams,
       capProjections: payload.capProjections || {},
       currentYear,
-      tradeCtx: {
-        ...(payload.tradeCtx || {}),
-        ...(payload.asOfDate ? { asOfDate: payload.asOfDate } : {}),
-      },
+      tradeCtx: buildTradeValidatorContext(payload),
     };
 
     const validation = validateTrade(validationInput) as TradeValidationResult;

@@ -15,7 +15,7 @@ import { TeamListFull } from '@/constants/teamList';
 import { getTeamColors } from '@/shared/utils/formatting';
 
 type TeamOption = (typeof TeamListFull)[number];
-type TeamSelectValue = TeamOption['id'] | TeamOption['code'] | TeamOption['teamId'];
+type TeamSelectValue = string;
 type TeamSelectValueFormat = 'id' | 'teamCode';
 
 type TeamSelectDropdownProps = {

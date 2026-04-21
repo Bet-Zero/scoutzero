@@ -487,10 +487,9 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
       });
 
       expect(validatedContext._isValidatedTradeContext).toBe(true);
-      // Either legal:false or valid:false depending on how error manifests
+      // Either legal:false or an empty team-result set depending on how error manifests.
       expect(
         validatedContext.legal === false ||
-          validatedContext.valid === false ||
           validatedContext.teamResults.length === 0
       ).toBe(true);
     });

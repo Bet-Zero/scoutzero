@@ -3,6 +3,8 @@ import type {
   TradeValidationResult,
   TradeValidatorCapProjections,
   TradeValidatorContext,
+  TradeExceptionPlayer,
+  TradeTeam,
   ValidationIssue as TradeValidationIssue,
 } from '@/features/architect/utils/tradeMachine/constants/types';
 import type {
@@ -24,12 +26,15 @@ export type ValidationIssue = TradeValidationIssue;
 
 export type TeamResult = TradeTeamResult;
 type TradeContextScalarId = string | number | null | undefined;
+export type TradeContextValidationPlayer = TradeExceptionPlayer &
+  Pick<ArchitectTradePayloadPlayer, 'signAndTradeContract'> &
+  Record<string, unknown>;
 
 export interface ValidationTeam {
-  team: ArchitectMutationTeamRecord;
+  team: NonNullable<TradeTeam['team']>;
   teamCode: string | null;
-  sends: ArchitectTradePayloadPlayer[];
-  receives: ArchitectTradePayloadPlayer[];
+  sends: TradeContextValidationPlayer[];
+  receives: TradeContextValidationPlayer[];
   picksOut: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   picksIn: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   cashSent: number;

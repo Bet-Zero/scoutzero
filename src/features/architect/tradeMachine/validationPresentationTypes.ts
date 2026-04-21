@@ -1,3 +1,5 @@
+type UnknownRecord = Record<string, unknown>;
+
 export interface ValidationIssueLike {
   message?: string;
   reason?: string;
@@ -41,7 +43,7 @@ export interface TeamEntitlementLike {
   toTeamId?: string;
 }
 
-export interface TpeLike {
+export interface TpeLike extends UnknownRecord {
   id?: string;
   amount?: number;
   remaining?: number;
@@ -53,7 +55,7 @@ export interface TpeLike {
   expiresOn?: string;
 }
 
-export interface FaExceptionBucketLike {
+export interface FaExceptionBucketLike extends UnknownRecord {
   type?: string;
   remaining?: number;
   amount?: number;
@@ -61,7 +63,7 @@ export interface FaExceptionBucketLike {
   name?: string;
 }
 
-export interface TeamCoreLike {
+export interface TeamCoreLike extends UnknownRecord {
   id?: string;
   nickname?: string;
   teamName?: string;

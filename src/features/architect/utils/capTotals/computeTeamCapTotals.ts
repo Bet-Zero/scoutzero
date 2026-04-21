@@ -59,7 +59,7 @@ interface TeamCapTotalsMeta {
   } | null;
 }
 
-export interface ComputedTeamCapTotals {
+export interface ComputedTeamCapTotals extends UnknownRecord {
   yearKey: number;
   playersTotal: number;
   deadMoneyTotal: number;
@@ -154,7 +154,7 @@ export type LoadedTeamCapTotals = Partial<
   hardCapRoom?: number | null;
   hardCapTriggered?: string | boolean | null;
   hardCapped?: boolean | number | null;
-};
+} & UnknownRecord;
 
 export type TeamCapTotalsSnapshot =
   | LoadedTeamCapTotals
@@ -163,7 +163,7 @@ export type TeamCapTotalsSnapshot =
 export interface TeamCapSheetLike extends TeamDeadMoneySourcesLike {
   players?: unknown[] | null;
   capHolds?: unknown[] | null;
-  totals?: TeamCapTotalsSnapshot | null;
+  totals?: TeamCapTotalsSnapshot | UnknownRecord | null;
   hardCapLevel?: unknown;
   hardCapDetail?: unknown;
   hardCapReason?: unknown;

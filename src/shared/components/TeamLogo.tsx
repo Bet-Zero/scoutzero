@@ -9,13 +9,13 @@ import React from 'react';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 
 type TeamLogoProps = {
-  teamAbbr?: string | null;
-  teamId?: string | null;
+  teamAbbr?: string | number | null;
+  teamId?: string | number | null;
   className?: string;
 };
 
 const TeamLogo = ({ teamAbbr, teamId, className = '' }: TeamLogoProps) => {
-  const key = teamId || teamAbbr;
+  const key = teamId ?? teamAbbr;
   const fileName = getTeamLogoFilename(key);
   const logoPath = `/assets/logos/${fileName}.png`;
   const sizeClasses = className || 'w-[3.5rem] h-[3.5rem]';
@@ -24,7 +24,7 @@ const TeamLogo = ({ teamAbbr, teamId, className = '' }: TeamLogoProps) => {
     <div className={`relative ${sizeClasses}`}>
       <img
         src={logoPath}
-        alt={`${key} logo`}
+        alt={`${key ?? 'default'} logo`}
         className="w-full h-full object-contain"
         onError={(e) => {
           e.currentTarget.onerror = null;

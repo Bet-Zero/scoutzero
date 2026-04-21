@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTeam } from '@/features/architect/utils/teamLoader';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import capProjections from '@/features/architect/utils/capProjections';
+import type {
+  NormalizedPlayer,
+  TradeTeam,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 type DocShape = Record<string, unknown> | null;
 
@@ -71,19 +75,32 @@ vi.mock('@/features/architect/utils/architectFirestorePaths', () => ({
 
 const SEASON = '2024-25';
 const CURRENT_YEAR = 2025;
+type TradeValidatorTeamState = NonNullable<TradeTeam['team']>;
 
-function makePlayer(id: string, salary: number) {
+function makePlayer(id: string, salary: number): NormalizedPlayer {
   return {
     id,
     player_id: id,
     name: id,
+    salary,
+    matchIncoming: salary,
+    matchOutgoing: salary,
+    absorptionMode: 'MATCH',
+    signAndTrade: false,
+    isTwoWay: false,
+    contractYears: 1,
+    firstYearGuaranteed: true,
     contract: {
       salariesByYear: [{ season: SEASON, salary, capHit: salary }],
     },
   };
 }
 
-function makeTeam(teamCode: string, totalSalary: number, players: Array<Record<string, unknown>>) {
+function makeTeam(
+  teamCode: string,
+  totalSalary: number,
+  players: NormalizedPlayer[]
+): TradeValidatorTeamState {
   return {
     id: teamCode,
     teamCode,
@@ -128,7 +145,7 @@ describe('World Context Parent Fallback + Cap Legality Guardrail', () => {
     const validation = validateTrade({
       teams: [
         {
-          team: loadedLakers,
+          team: loadedLakers as unknown as TradeValidatorTeamState,
           sends: [lakersOutgoing],
           hardCapped: true,
           entitlementsOut: [],

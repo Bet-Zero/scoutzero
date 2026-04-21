@@ -98,7 +98,13 @@ export const TEAM_LOGO_MAP: Record<string, string> = {
   WAS: 'wizards',
 };
 
-export function getTeamLogoFilename(teamName: string | null | undefined): string {
+export function getTeamLogoFilename(
+  teamName: string | number | null | undefined
+): string {
   if (!teamName) return 'default';
-  return TEAM_LOGO_MAP[teamName] || teamName.toLowerCase().replace(/\s+/g, '');
+  const normalizedTeamName = String(teamName);
+  return (
+    TEAM_LOGO_MAP[normalizedTeamName] ||
+    normalizedTeamName.toLowerCase().replace(/\s+/g, '')
+  );
 }

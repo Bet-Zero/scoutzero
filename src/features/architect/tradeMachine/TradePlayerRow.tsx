@@ -363,7 +363,6 @@ const TradePlayerRow = ({
           <TeamLogo
             teamAbbr={team}
             className="w-5 h-5"
-            fallbackClassName="bg-neutral-800 rounded-full"
           />
           <div>
             {player.bio?.height || player.height || player.height_ft_in || '—'}{' '}

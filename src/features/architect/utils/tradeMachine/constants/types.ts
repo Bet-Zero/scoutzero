@@ -486,6 +486,9 @@ export interface TradeTeam {
     nickname?: string;
     teamTotalSalary?: number;
     totalSalary?: number;
+    roster?: string[];
+    draftPicks?: unknown[];
+    totals?: Record<string, unknown>;
     hardCapTriggered?: boolean | 'FirstApron' | 'SecondApron';
     twoWayPlayers?: Array<Record<string, unknown>>;
     picks?: NormalizedTeamPick[];

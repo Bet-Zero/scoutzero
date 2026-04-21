@@ -30,6 +30,8 @@
  * - Telemetry hooks retained for future debugging; can be removed in Phase 68+
  */
 
+import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
+
 type UnknownRecord = Record<string, unknown>;
 
 export interface TeamTpeLike extends UnknownRecord {
@@ -39,19 +41,9 @@ export interface TeamTpeLike extends UnknownRecord {
   exceptions?: (UnknownRecord & { tpe?: unknown }) | null;
 }
 
-export interface TradeExceptionLike extends UnknownRecord {
-  id?: unknown;
-  totalAmount?: unknown;
-  amount?: unknown;
-  createdFrom?: unknown;
-  createdOn?: unknown;
-  expiresOn?: unknown;
-  createdSeason?: unknown;
-  remainingAmount?: unknown;
-  remaining?: unknown;
-  expirationDate?: unknown;
-  name?: unknown;
-}
+export interface TradeExceptionLike
+  extends TradeExceptionRecord,
+    UnknownRecord {}
 
 interface LegacyTpeFallbackTelemetry {
   count: number;

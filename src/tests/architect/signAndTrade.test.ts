@@ -139,12 +139,35 @@ describe('Sign and Trade Mutation', () => {
       violations: [],
       warnings: [],
     }) as SigningValidationResult;
+  const makeTradeValidationResult = (
+    overrides: Partial<TradeValidationResult> = {}
+  ): TradeValidationResult => ({
+    legal: true,
+    valid: true,
+    error: null,
+    reason: '',
+    violations: [],
+    warnings: [],
+    teamResults: [],
+    summaryByTeamIndex: [],
+    performance: {
+      validationTime: 0,
+    },
+    tradeReceipt: null,
+    dataWarnings: [],
+    hasDataIssues: false,
+    yearKey: null,
+    seasonKey: null,
+    capSettings: null,
+    capSettingsSource: null,
+    capSettingsWarnings: [],
+    asOfDate: null,
+    tradeDate: null,
+    offseason: null,
+    ...overrides,
+  });
   const makeValidTradeResult = (): TradeValidationResult =>
-    ({
-      valid: true,
-      success: true,
-      legal: true,
-    }) as TradeValidationResult;
+    makeTradeValidationResult();
 
   const makeRosterFiller = (teamCode, index) => ({
     id: `${teamCode.toLowerCase()}_filler_${index}`,
@@ -659,12 +682,20 @@ describe('Sign and Trade Mutation', () => {
   describe('SAT6: Trade Validation Failure', () => {
     it('should block transaction if trade validation fails', async () => {
       // Configure trade validation to fail
-      mockedValidateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue(makeTradeValidationResult({
         legal: false,
-        success: false,
+        valid: false,
+        error: 'Salary matching violation',
         reason: 'Salary matching violation',
-        teamResults: [{ violations: ['Salary matching failed'] }],
-      } as TradeValidationResult);
+        violations: [
+          {
+            message: 'Salary matching failed',
+            severity: 'error',
+            rule: 'salaryMatching',
+            code: 'SALARY_MATCHING_FAILED',
+          },
+        ],
+      }));
 
       const result = await applyWorldMutation({
         userId,
@@ -686,12 +717,20 @@ describe('Sign and Trade Mutation', () => {
     });
 
     it('should block on hard cap violation', async () => {
-      mockedValidateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue(makeTradeValidationResult({
         legal: false,
-        success: false,
+        valid: false,
+        error: 'Team would exceed hard cap after receiving S&T player',
         reason: 'Team would exceed hard cap after receiving S&T player',
-        teamResults: [{ violations: ['Hard cap exceeded'] }],
-      } as TradeValidationResult);
+        violations: [
+          {
+            message: 'Hard cap exceeded',
+            severity: 'error',
+            rule: 'hardCap',
+            code: 'HARD_CAP_EXCEEDED',
+          },
+        ],
+      }));
 
       const result = await applyWorldMutation({
         userId,
@@ -753,12 +792,20 @@ describe('Sign and Trade Mutation', () => {
   describe('SAT8: Salary Matching', () => {
     it('should validate salary matching through trade validator', async () => {
       // Trade validator is called for salary matching
-      mockedValidateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue(makeTradeValidationResult({
         legal: false,
-        success: false,
+        valid: false,
+        error: 'Incoming salary exceeds 125% + $100k of outgoing',
         reason: 'Incoming salary exceeds 125% + $100k of outgoing',
-        teamResults: [{ violations: ['Salary matching failed'] }],
-      } as TradeValidationResult);
+        violations: [
+          {
+            message: 'Salary matching failed',
+            severity: 'error',
+            rule: 'salaryMatching',
+            code: 'SALARY_MATCHING_FAILED',
+          },
+        ],
+      }));
 
       const result = await applyWorldMutation({
         userId,

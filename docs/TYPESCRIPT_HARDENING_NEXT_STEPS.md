@@ -164,7 +164,9 @@ This step may be completed in the same kickoff session as Step 1 when the audit 
 
 ## Step 3 — Remove dishonest ambient shims that mask real module types
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Deleted `src/global-shims.d.ts`, removed the fake ambient module contracts, and fixed the downstream shared UI, cap totals, TPE, trade-context, and guardrail-test contracts exposed by real module types.
 
 **Goal:** Eliminate or sharply narrow the declaration shims that make downstream TypeScript look safer than it is.
 
