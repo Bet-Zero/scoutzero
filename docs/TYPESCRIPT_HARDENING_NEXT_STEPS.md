@@ -356,7 +356,9 @@ Then append an `Architect Boundary Review` section to the baseline or execution-
 
 ## Step 8 — Reduce typed-test dishonesty in the highest-value mocks and suites
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-21: Typed the shared Firebase mock, replaced trade-persistence bag fixtures with explicit fixture contracts, tightened the free-agency harness away from repeated fixture `as any` casts, and kept the diff-selected Architect suite green while the broader Architect strict probe still fails on known backlog outside these edited files.
 
 **Goal:** Make the most important typed tests reinforce runtime contracts instead of bypassing them with broad mocks and bag fixtures.
 

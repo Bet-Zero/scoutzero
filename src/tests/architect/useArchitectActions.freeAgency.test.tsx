@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useState } from 'react';
-import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import {
+  useArchitectActions,
+  type UseArchitectActionsParams,
+  type UseArchitectActionsReturn,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
@@ -73,6 +77,27 @@ vi.mock('react-hot-toast', () => ({
   default: toastMocks,
 }));
 
+type FreeAgencyPlayerFixture = Parameters<UseArchitectActionsReturn['handleSign']>[0];
+type FreeAgencyContractFixture = Parameters<
+  UseArchitectActionsReturn['handleSign']
+>[1];
+type FreeAgencyMutationResult = Awaited<
+  ReturnType<UseArchitectActionsReturn['handleSign']>
+>;
+type FreeAgencySignAndTradePreflight = Awaited<
+  ReturnType<UseArchitectActionsReturn['getSignAndTradePreflight']>
+>;
+type FreeAgencyOfferSheetPreflight = Awaited<
+  ReturnType<UseArchitectActionsReturn['getOfferSheetPreflight']>
+>;
+type FreeAgencyTeamCapSheet = NonNullable<
+  UseArchitectActionsParams['state']['teamCapSheet']
+>;
+type FreeAgencyCapHold = NonNullable<FreeAgencyTeamCapSheet['capHolds']>[number];
+type ReloadActiveWorldTeamData = NonNullable<
+  UseArchitectActionsParams['state']['reloadActiveWorldTeamData']
+>;
+
 const playerFixture = {
   id: 'player_1',
   player_id: 'player_1',
@@ -82,7 +107,7 @@ const playerFixture = {
   contract: {
     salariesByYear: [],
   },
-};
+} satisfies FreeAgencyPlayerFixture;
 
 const contractFixture = {
   salariesByYear: [
@@ -95,30 +120,31 @@ const contractFixture = {
   ],
   totalValue: 12_000_000,
   signedUsing: 'Full MLE',
-};
+} satisfies FreeAgencyContractFixture;
 
 const buildStagedScalarSigningFixture = (
   overrides: Record<string, unknown> = {}
-) => ({
-  years: 2,
-  salaries: [12_000_000, 12_600_000],
-  startYear: 2026,
-  contractType: 'Staged Modal Contract',
-  exceptionType: 'Full MLE',
-  signedUsing: 'Full MLE',
-  contractYears: 1,
-  totalValue: 1,
-  firstYearGuaranteed: false,
-  salariesByYear: [
-    {
-      season: '1999-00',
-      salary: 1,
-      capHit: 1,
-      guaranteed: false,
-    },
-  ],
-  ...overrides,
-});
+) =>
+  ({
+    years: 2,
+    salaries: [12_000_000, 12_600_000],
+    startYear: 2026,
+    contractType: 'Staged Modal Contract',
+    exceptionType: 'Full MLE',
+    signedUsing: 'Full MLE',
+    contractYears: 1,
+    totalValue: 1,
+    firstYearGuaranteed: false,
+    salariesByYear: [
+      {
+        season: '1999-00',
+        salary: 1,
+        capHit: 1,
+        guaranteed: false,
+      },
+    ],
+    ...overrides,
+  }) satisfies FreeAgencyContractFixture;
 
 const baseTeamFixture = {
   teamCode: 'LAL',
@@ -136,10 +162,10 @@ const baseTeamFixture = {
   totals: {
     isHardCapped: false,
   },
-};
+} satisfies FreeAgencyTeamCapSheet;
 
 function buildSignedTeamFixture(
-  baseTeam: any = baseTeamFixture,
+  baseTeam: Partial<FreeAgencyTeamCapSheet> & Record<string, unknown> = baseTeamFixture,
   overrides: Record<string, unknown> = {}
 ) {
   return {
@@ -175,7 +201,7 @@ function buildSignedTeamFixture(
 }
 
 function buildSignAndTradeCommittedSourceTeamFixture(
-  baseTeam: any = baseTeamFixture,
+  baseTeam: Partial<FreeAgencyTeamCapSheet> & Record<string, unknown> = baseTeamFixture,
   overrides: Record<string, unknown> = {}
 ) {
   return {
@@ -249,17 +275,17 @@ function buildOutgoingOfferSheetLifecycleTeamFixture(
 }
 
 function summarizeStandardSignPostState(current: {
-  teamCapSheet: any;
-  freeAgents: any[];
+  teamCapSheet: FreeAgencyTeamCapSheet | null | undefined;
+  freeAgents: FreeAgencyPlayerFixture[];
 }) {
   return {
     roster: [...(current.teamCapSheet?.roster || [])],
     playerIds: (current.teamCapSheet?.players || [])
-      .map((player: any) => String(player?.id || player?.player_id || ''))
+      .map((player) => String(player?.id || player?.player_id || ''))
       .filter(Boolean)
       .sort(),
     capHoldPlayerIds: (current.teamCapSheet?.capHolds || [])
-      .map((hold: any) => String(hold?.playerId || ''))
+      .map((hold: FreeAgencyCapHold) => String(hold?.playerId || ''))
       .filter(Boolean)
       .sort(),
     mleUsedAmount: current.teamCapSheet?.exceptions?.mle?.usedAmount ?? null,
@@ -275,7 +301,9 @@ function summarizeStandardSignPostState(current: {
       null,
     hardCapTriggeredBy: current.teamCapSheet?.hardCapTriggeredBy || null,
     freeAgentIds: (current.freeAgents || [])
-      .map((player: any) => String(player?.id || player?.player_id || player?.name || ''))
+      .map((player) =>
+        String(player?.id || player?.player_id || player?.name || '')
+      )
       .filter(Boolean)
       .sort(),
   };
@@ -310,25 +338,8 @@ function renderActionsHarness({
 }: {
   worldId: string | null;
   userId?: string | null;
-  initialTeam?: any;
-  reloadActiveWorldTeamData?: ((
-    ...args: unknown[]
-  ) => Promise<
-    | {
-        outcome: 'applied';
-        committedWorldTeam: {
-          committedTeam: any;
-          committedTeamSource: 'changedTeams' | 'reload';
-        };
-      }
-    | {
-        outcome: 'stale-drop';
-        reason:
-          | 'active-world-changed'
-          | 'superseded-by-newer-request';
-      }
-    | null
-  >) | null;
+  initialTeam?: FreeAgencyTeamCapSheet;
+  reloadActiveWorldTeamData?: ReloadActiveWorldTeamData | null;
 }) {
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
@@ -340,12 +351,13 @@ function renderActionsHarness({
   };
 
   const { result } = renderHook(() => {
-    const [teamCapSheet, setTeamCapSheet] = useState<any>(initialTeam);
+    const [teamCapSheet, setTeamCapSheet] =
+      useState<FreeAgencyTeamCapSheet>(initialTeam);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
     const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
     const [freeAgents, setFreeAgents] = useState<any[]>([playerFixture]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-    const [offseasonSummary, setOffseasonSummary] = useState<any>(null);
+    const [offseasonSummary, setOffseasonSummary] = useState<unknown>(null);
 
     const actions = useArchitectActions({
       teamId: 'LAL',
@@ -526,11 +538,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
     const sandboxOwner = result.current.actions.freeAgencyActionOwner;
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await sandboxOwner.dualPathSigning.signFreeAgent(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -556,43 +568,43 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     const { result } = renderActionsHarness({ worldId: null });
     const sandboxOwner = result.current.actions.freeAgencyActionOwner;
 
-    let satPreflightResult: any;
-    let offerSheetPreflightResult: any;
-    let signAndTradeResult: any;
-    let offerSheetStoreResult: any;
+    let satPreflightResult: FreeAgencySignAndTradePreflight | undefined;
+    let offerSheetPreflightResult: FreeAgencyOfferSheetPreflight | undefined;
+    let signAndTradeResult: FreeAgencyMutationResult | undefined;
+    let offerSheetStoreResult: FreeAgencyMutationResult | undefined;
 
     await act(async () => {
       satPreflightResult =
         await result.current.actions.getSignAndTradePreflight(
-          playerFixture as any,
-          contractFixture as any,
+          playerFixture,
+          contractFixture,
           'BOS'
         );
       offerSheetPreflightResult =
         await result.current.actions.getOfferSheetPreflight(
-          playerFixture as any,
-          contractFixture as any
+          playerFixture,
+          contractFixture
         );
       signAndTradeResult = await result.current.actions.handleSignAndTrade(
-        playerFixture as any,
-        contractFixture as any,
+        playerFixture,
+        contractFixture,
         'BOS'
       );
       offerSheetStoreResult =
         await result.current.actions.handleStoreOfferSheet(
-          playerFixture as any,
-          contractFixture as any
+          playerFixture,
+          contractFixture
         );
     });
 
-    expect(satPreflightResult.reasons).toEqual([
+    expect(satPreflightResult?.reasons).toEqual([
       'Sign-and-trade requires an active world to preview.',
     ]);
     expect(signAndTradeResult).toEqual({
       success: false,
       message: 'Sign-and-trade requires an active world to commit.',
     });
-    expect(offerSheetPreflightResult.reasons).toEqual([
+    expect(offerSheetPreflightResult?.reasons).toEqual([
       'Offer sheet actions require an active world to preview.',
     ]);
     expect(offerSheetStoreResult).toEqual({
@@ -642,11 +654,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       worldId: 'world_1',
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -723,8 +735,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await worldResult.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -741,8 +753,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await vacuumResult.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -795,8 +807,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -835,11 +847,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       worldId: 'world_1',
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -888,11 +900,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       reloadActiveWorldTeamData,
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -947,8 +959,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -985,11 +997,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     const beforeTeamSnapshot = result.current.teamCapSheet;
     const beforeFreeAgents = result.current.freeAgents;
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -1043,11 +1055,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       result.current
     ).freeAgentIds;
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -1084,8 +1096,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await result.current.actions.handleSign(
-        playerFixture as any,
-        buildStagedScalarSigningFixture() as any
+        playerFixture,
+        buildStagedScalarSigningFixture()
       );
     });
 
@@ -1144,11 +1156,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     const { result } = renderActionsHarness({ worldId: null });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
-        buildStagedScalarSigningFixture() as any
+        playerFixture,
+        buildStagedScalarSigningFixture()
       );
     });
 
@@ -1202,11 +1214,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       },
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -1242,10 +1254,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       },
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
+        playerFixture,
         {
           ...contractFixture,
           totalValue: 5_000_000,
@@ -1283,11 +1295,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       worldId: 'world_1',
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSign(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -1307,8 +1319,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     act(() => {
       result.current.actions.handleSignAndTrade(
-        playerFixture as any,
-        contractFixture as any,
+        playerFixture,
+        contractFixture,
         'BOS'
       );
     });
@@ -1342,10 +1354,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSignAndTrade(
-        playerFixture as any,
+        playerFixture,
         buildStagedScalarSigningFixture({
           startYear: 2028,
           contractType: 'Conflicting SAT Type',
@@ -1419,7 +1431,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await result.current.actions.getSignAndTradePreflight(
-        playerFixture as any,
+        playerFixture,
         stagedContract as any,
         'celtics'
       );
@@ -1427,7 +1439,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await result.current.actions.handleSignAndTrade(
-        playerFixture as any,
+        playerFixture,
         stagedContract as any,
         'celtics'
       );
@@ -1476,11 +1488,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       worldId: 'world_1',
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSignAndTrade(
-        playerFixture as any,
-        buildStagedScalarSigningFixture() as any,
+        playerFixture,
+        buildStagedScalarSigningFixture(),
         'BOS'
       );
     });
@@ -1524,11 +1536,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       worldId: 'world_1',
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSignAndTrade(
-        playerFixture as any,
-        buildStagedScalarSigningFixture() as any,
+        playerFixture,
+        buildStagedScalarSigningFixture(),
         'BOS'
       );
     });
@@ -1565,11 +1577,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     const beforeTeamSnapshot = result.current.teamCapSheet;
     const beforeFreeAgents = result.current.freeAgents;
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleSignAndTrade(
-        playerFixture as any,
-        buildStagedScalarSigningFixture() as any,
+        playerFixture,
+        buildStagedScalarSigningFixture(),
         'BOS'
       );
     });
@@ -1640,7 +1652,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       initialTeam,
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleRenounceRights(
         {
@@ -1684,10 +1696,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       worldId: 'world_1',
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleStoreOfferSheet(
-        playerFixture as any,
+        playerFixture,
         buildStagedScalarSigningFixture({
           salaries: [12_000_000, 12_960_000],
           exceptionType: 'Minimum',
@@ -1773,10 +1785,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       reloadActiveWorldTeamData,
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleStoreOfferSheet(
-        playerFixture as any,
+        playerFixture,
         buildStagedScalarSigningFixture({
           salaries: [12_000_000, 12_960_000],
           exceptionType: 'Minimum',
@@ -1831,10 +1843,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       worldId: 'world_1',
     });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleStoreOfferSheet(
-        playerFixture as any,
+        playerFixture,
         buildStagedScalarSigningFixture({
           salaries: [12_000_000, 12_960_000],
           exceptionType: 'Minimum',
@@ -1883,11 +1895,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     const beforeTeamSnapshot = result.current.teamCapSheet;
     const beforeFreeAgents = result.current.freeAgents;
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleStoreOfferSheet(
-        playerFixture as any,
-        buildStagedScalarSigningFixture() as any
+        playerFixture,
+        buildStagedScalarSigningFixture()
       );
     });
 
@@ -1948,11 +1960,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
     const beforeTeamSnapshot = result.current.teamCapSheet;
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleStoreOfferSheet(
-        playerFixture as any,
-        buildStagedScalarSigningFixture() as any
+        playerFixture,
+        buildStagedScalarSigningFixture()
       );
     });
 
@@ -1973,11 +1985,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
   it('blocks offer-sheet storage in base mode (no authoritative write)', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
-    let actionResult: any;
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
       actionResult = await result.current.actions.handleStoreOfferSheet(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -2895,11 +2907,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
   it('returns a conservative blocked SAT preflight result in base mode', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
-    let preflightResult: any;
+    let preflightResult: FreeAgencyOfferSheetPreflight | undefined;
     await act(async () => {
       preflightResult = await result.current.actions.getSignAndTradePreflight(
-        playerFixture as any,
-        contractFixture as any,
+        playerFixture,
+        contractFixture,
         'BOS'
       );
     });
@@ -2916,11 +2928,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
   it('returns a conservative blocked offer-sheet preflight result in base mode', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
-    let preflightResult: any;
+    let preflightResult: FreeAgencyOfferSheetPreflight | undefined;
     await act(async () => {
       preflightResult = await result.current.actions.getOfferSheetPreflight(
-        playerFixture as any,
-        contractFixture as any
+        playerFixture,
+        contractFixture
       );
     });
 
@@ -2938,7 +2950,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await result.current.actions.getSignAndTradePreflight(
-        playerFixture as any,
+        playerFixture,
         buildStagedScalarSigningFixture({
           startYear: 2028,
           contractType: 'Conflicting SAT Preflight Type',
@@ -2987,7 +2999,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await act(async () => {
       await result.current.actions.getOfferSheetPreflight(
-        playerFixture as any,
+        playerFixture,
         buildStagedScalarSigningFixture({
           salaries: [12_000_000, 12_960_000],
           exceptionType: 'Minimum',

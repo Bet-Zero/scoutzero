@@ -7,21 +7,180 @@
  * @file tests/__mocks__/firebase.ts
  */
 
+type UnknownRecord = Record<string, unknown>;
+
 type MockFieldValue = {
   __type?: 'serverTimestamp' | 'arrayUnion' | 'arrayRemove' | 'increment';
   elements?: unknown[];
-  value?: number;
+  value?: number | string;
 };
 
+type MockParentRef = {
+  id: string | null;
+  path: string;
+};
+
+type MockDocumentRef = {
+  id: string;
+  path: string;
+  parent: MockParentRef | null;
+};
+
+type MockCollectionRef = {
+  id: string | null;
+  path: string;
+  parent: MockParentRef | null;
+};
+
+type MockCollectionGroupRef = {
+  id: string;
+  type: 'collectionGroup';
+};
+
+type MockWhereOperator = '==' | '!=' | '>' | '<' | '>=' | '<=';
+type MockOrderDirection = 'asc' | 'desc';
+
+type MockWhereConstraint = {
+  type: 'where';
+  field: string;
+  operator: MockWhereOperator;
+  value: unknown;
+};
+
+type MockOrderByConstraint = {
+  type: 'orderBy';
+  field: string;
+  direction: MockOrderDirection;
+};
+
+type MockLimitConstraint = {
+  type: 'limit';
+  count: number;
+};
+
+type MockQueryConstraint =
+  | MockWhereConstraint
+  | MockOrderByConstraint
+  | MockLimitConstraint;
+
+type MockOrderBySpec = {
+  field: string;
+  direction: MockOrderDirection;
+};
+
+type MockCollectionQuery = {
+  collection: MockCollectionRef;
+  filters: MockWhereConstraint[];
+  orderBy: MockOrderBySpec | null;
+  limit: number | null;
+};
+
+type MockCollectionGroupQuery = {
+  type: 'collectionGroup';
+  id: string;
+  filters: MockWhereConstraint[];
+  orderBy: MockOrderBySpec | null;
+  limit: number | null;
+};
+
+type MockQueryTarget =
+  | MockCollectionRef
+  | MockCollectionQuery
+  | MockCollectionGroupQuery;
+
+type MockDocumentSnapshot = {
+  id: string;
+  path: string;
+  data: () => unknown;
+  exists: () => boolean;
+  ref?: string | MockDocumentRef;
+};
+
+type MockQuerySnapshot = {
+  docs: MockDocumentSnapshot[];
+  empty: boolean;
+  size: number;
+};
+
+type MockSetOptions = UnknownRecord;
+
+type MockBatchOperation =
+  | {
+      type: 'set';
+      path: string;
+      data: unknown;
+      options: MockSetOptions;
+    }
+  | {
+      type: 'update';
+      path: string;
+      data: UnknownRecord;
+    }
+  | {
+      type: 'delete';
+      path: string;
+    };
+
+type MockBatch = {
+  operations: MockBatchOperation[];
+  set: (
+    docRef: string | MockDocumentRef,
+    data: unknown,
+    options?: MockSetOptions
+  ) => MockBatch;
+  update: (docRef: string | MockDocumentRef, updates: UnknownRecord) => MockBatch;
+  delete: (docRef: string | MockDocumentRef) => MockBatch;
+  commit: () => Promise<void>;
+};
+
+type MockCallableImplementation = (data: unknown) => unknown | Promise<unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function cloneMockValue<T>(value: T): T {
+  if (value === undefined) {
+    return value;
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function toPath(ref: string | MockDocumentRef | MockCollectionRef): string {
+  return typeof ref === 'string' ? ref : ref.path;
+}
+
+function toId(ref: string | MockDocumentRef): string {
+  if (typeof ref !== 'string') {
+    return ref.id;
+  }
+
+  const segments = ref.split('/').filter(Boolean);
+  return segments[segments.length - 1] || ref;
+}
+
+function createSnapshot(
+  path: string,
+  data: unknown,
+  id: string
+): MockDocumentSnapshot {
+  return {
+    id,
+    path,
+    data: () => cloneMockValue(data),
+    exists: () => true,
+  };
+}
+
 // In-memory data store
-const mockDataStore = new Map();
+const mockDataStore = new Map<string, unknown>();
 let autoIdCounter = 0;
 
 // Track batch operations
-let currentBatch = null;
+let currentBatch: MockBatch | null = null;
 
 // Mock serverTimestamp - returns fixed timestamp for tests
-const mockServerTimestamp = () => {
+const mockServerTimestamp = (): MockFieldValue => {
   return {
     __type: 'serverTimestamp',
     value: new Date('2025-01-01T00:00:00Z').toISOString(),
@@ -29,110 +188,183 @@ const mockServerTimestamp = () => {
 };
 
 // Helper to build document path string
-function buildPath(...segments) {
-  return segments.filter(Boolean).join('/');
+function buildPath(...segments: Array<string | null | undefined>): string {
+  return segments.filter((segment): segment is string => Boolean(segment)).join('/');
 }
 
 // Helper to get data from store
-function getDataFromStore(path) {
+function getDataFromStore(path: string): unknown {
   const data = mockDataStore.get(path);
-  // Return deep clone to prevent mutations affecting stored data
-  // Note: This is used by getDoc, so it should always return a clone
-  return data ? JSON.parse(JSON.stringify(data)) : data;
+  return data === undefined ? undefined : cloneMockValue(data);
 }
 
 // Helper to set data in store
-function setDataInStore(path, data) {
-  // Deep clone to prevent reference issues
-  // CRITICAL: This must store the data immediately and synchronously
-  const cloned = data ? JSON.parse(JSON.stringify(data)) : data;
-  mockDataStore.set(path, cloned);
-  // Verify the data was stored (for debugging)
-  // console.log('setDataInStore:', path, 'stats.totalTrades:', cloned?.stats?.totalTrades);
+function setDataInStore(path: string, data: unknown): void {
+  mockDataStore.set(path, cloneMockValue(data));
 }
 
 // Helper to delete data from store
-function deleteDataFromStore(path) {
+function deleteDataFromStore(path: string): void {
   mockDataStore.delete(path);
 }
 
+// Helper to get nested value
+function getNestedValue(obj: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((current, key) => {
+    if (!isRecord(current) && !Array.isArray(current)) {
+      return undefined;
+    }
+    return (current as UnknownRecord)[key];
+  }, obj);
+}
+
+function compareMockValues(left: unknown, right: unknown): number {
+  if (typeof left === 'number' && typeof right === 'number') {
+    return left > right ? 1 : left < right ? -1 : 0;
+  }
+
+  if (typeof left === 'string' && typeof right === 'string') {
+    return left > right ? 1 : left < right ? -1 : 0;
+  }
+
+  if (typeof left === 'bigint' && typeof right === 'bigint') {
+    return left > right ? 1 : left < right ? -1 : 0;
+  }
+
+  if (typeof left === 'boolean' && typeof right === 'boolean') {
+    if (left === right) {
+      return 0;
+    }
+    return left ? 1 : -1;
+  }
+
+  if (left instanceof Date && right instanceof Date) {
+    return left > right ? 1 : left < right ? -1 : 0;
+  }
+
+  return 0;
+}
+
 // Helper to query collection
-function queryCollection(collectionPath, filters = []) {
-  const results = [];
-  const prefix = collectionPath + '/';
+function queryCollection(
+  collectionPath: string,
+  filters: MockWhereConstraint[] = []
+): MockDocumentSnapshot[] {
+  const results: MockDocumentSnapshot[] = [];
+  const prefix = `${collectionPath}/`;
 
   for (const [path, data] of mockDataStore.entries()) {
-    if (path.startsWith(prefix) && path !== collectionPath) {
-      // Extract document ID
-      const docId = path.substring(prefix.length).split('/')[0];
-      const docPath = prefix + docId;
+    if (!path.startsWith(prefix) || path === collectionPath) {
+      continue;
+    }
 
-      // Apply filters
-      let matches = true;
-      for (const filter of filters) {
-        if (filter.type === 'where') {
-          const { field, operator, value } = filter;
-          const fieldValue = getNestedValue(data, field);
+    const docId = path.substring(prefix.length).split('/')[0];
+    const docPath = `${prefix}${docId}`;
 
-          switch (operator) {
-            case '==':
-              matches = matches && fieldValue === value;
-              break;
-            case '!=':
-              matches = matches && fieldValue !== value;
-              break;
-            case '>':
-              matches = matches && fieldValue > value;
-              break;
-            case '<':
-              matches = matches && fieldValue < value;
-              break;
-            case '>=':
-              matches = matches && fieldValue >= value;
-              break;
-            case '<=':
-              matches = matches && fieldValue <= value;
-              break;
-            default:
-              matches = false;
-          }
-        }
+    let matches = true;
+    for (const filter of filters) {
+      const fieldValue = getNestedValue(data, filter.field);
+
+      switch (filter.operator) {
+        case '==':
+          matches = matches && fieldValue === filter.value;
+          break;
+        case '!=':
+          matches = matches && fieldValue !== filter.value;
+          break;
+        case '>':
+          matches = matches && compareMockValues(fieldValue, filter.value) > 0;
+          break;
+        case '<':
+          matches = matches && compareMockValues(fieldValue, filter.value) < 0;
+          break;
+        case '>=':
+          matches = matches && compareMockValues(fieldValue, filter.value) >= 0;
+          break;
+        case '<=':
+          matches = matches && compareMockValues(fieldValue, filter.value) <= 0;
+          break;
+        default:
+          matches = false;
       }
+    }
 
-      if (matches) {
-        results.push({
-          id: docId,
-          path: docPath,
-          data: () => data,
-          exists: () => true,
-        });
-      }
+    if (matches) {
+      results.push(createSnapshot(docPath, data, docId));
     }
   }
 
   return results;
 }
 
-// Helper to get nested value
-function getNestedValue(obj, path) {
-  return path.split('.').reduce((current, key) => current?.[key], obj);
+function sortSnapshots(
+  snapshots: MockDocumentSnapshot[],
+  orderBy: MockOrderBySpec | null
+): MockDocumentSnapshot[] {
+  if (!orderBy) {
+    return snapshots;
+  }
+
+  return [...snapshots].sort((a, b) => {
+    const aValue = getNestedValue(a.data(), orderBy.field);
+    const bValue = getNestedValue(b.data(), orderBy.field);
+    const comparison = compareMockValues(aValue, bValue);
+    return orderBy.direction === 'desc' ? -comparison : comparison;
+  });
+}
+
+function sliceSnapshots(
+  snapshots: MockDocumentSnapshot[],
+  limitCount: number | null
+): MockDocumentSnapshot[] {
+  return typeof limitCount === 'number' ? snapshots.slice(0, limitCount) : snapshots;
+}
+
+function buildQuerySnapshot(docs: MockDocumentSnapshot[]): MockQuerySnapshot {
+  return {
+    docs,
+    empty: docs.length === 0,
+    size: docs.length,
+  };
+}
+
+function isCollectionGroupQuery(
+  target: MockQueryTarget
+): target is MockCollectionGroupQuery {
+  return 'type' in target && target.type === 'collectionGroup' && 'filters' in target;
+}
+
+function isCollectionQuery(target: MockQueryTarget): target is MockCollectionQuery {
+  return 'collection' in target;
+}
+
+function isCollectionGroupRef(
+  target: MockCollectionRef | MockCollectionGroupRef
+): target is MockCollectionGroupRef {
+  return 'type' in target && target.type === 'collectionGroup';
 }
 
 // Mock doc function
-export function doc(db, ...pathSegments) {
+export function doc(_db: unknown, ...pathSegments: string[]): MockDocumentRef {
   const path = buildPath(...pathSegments);
   return {
-    id: pathSegments[pathSegments.length - 1],
+    id: pathSegments[pathSegments.length - 1] || path,
     path,
-    parent: {
-      id: pathSegments[pathSegments.length - 2] || null,
-      path: buildPath(...pathSegments.slice(0, -1)),
-    },
+    parent:
+      pathSegments.length > 1
+        ? {
+            id: pathSegments[pathSegments.length - 2] || null,
+            path: buildPath(...pathSegments.slice(0, -1)),
+          }
+        : null,
   };
 }
 
 // Mock collection function
-export function collection(db, ...pathSegments) {
+export function collection(
+  _db: unknown,
+  ...pathSegments: string[]
+): MockCollectionRef {
   const path = buildPath(...pathSegments);
   return {
     id: pathSegments[pathSegments.length - 1] || null,
@@ -140,7 +372,7 @@ export function collection(db, ...pathSegments) {
     parent:
       pathSegments.length > 1
         ? {
-            id: pathSegments[pathSegments.length - 2],
+            id: pathSegments[pathSegments.length - 2] || null,
             path: buildPath(...pathSegments.slice(0, -1)),
           }
         : null,
@@ -148,7 +380,10 @@ export function collection(db, ...pathSegments) {
 }
 
 // Mock collectionGroup function
-export function collectionGroup(db, collectionId) {
+export function collectionGroup(
+  _db: unknown,
+  collectionId: string
+): MockCollectionGroupRef {
   return {
     id: collectionId,
     type: 'collectionGroup',
@@ -156,29 +391,33 @@ export function collectionGroup(db, collectionId) {
 }
 
 // Mock getDoc function
-export async function getDoc(docRef) {
-  const path = typeof docRef === 'string' ? docRef : docRef.path;
+export async function getDoc(
+  docRef: string | MockDocumentRef
+): Promise<MockDocumentSnapshot & { ref: string | MockDocumentRef }> {
+  const path = toPath(docRef);
   const data = getDataFromStore(path);
 
   return {
     exists: () => data !== undefined,
-    id: docRef.id || path.split('/').pop(),
+    id: toId(docRef),
     data: () => {
-      if (!data) {
+      if (data === undefined) {
         throw new Error('Document does not exist');
       }
-      // Deep clone to prevent mutations
-      return JSON.parse(JSON.stringify(data));
+      return cloneMockValue(data);
     },
     ref: docRef,
+    path,
   };
 }
 
 // Mock setDoc function
-export async function setDoc(docRef, data, options = {}) {
-  const path = typeof docRef === 'string' ? docRef : docRef.path;
-
-  // Process serverTimestamp values
+export async function setDoc(
+  docRef: string | MockDocumentRef,
+  data: unknown,
+  options: MockSetOptions = {}
+): Promise<void> {
+  const path = toPath(docRef);
   const processedData = processServerTimestamps(data, {});
 
   if (currentBatch) {
@@ -188,20 +427,23 @@ export async function setDoc(docRef, data, options = {}) {
       data: processedData,
       options,
     });
-  } else {
-    setDataInStore(path, processedData);
+    return;
   }
+
+  setDataInStore(path, processedData);
 }
 
 // Mock addDoc function
-export async function addDoc(collectionRef, data) {
+export async function addDoc(
+  collectionRef: MockCollectionRef,
+  data: unknown
+): Promise<MockDocumentRef> {
   const generatedId = `${collectionRef.id || 'doc'}_${autoIdCounter++}`;
-  const docRef = {
+  const docRef: MockDocumentRef = {
     id: generatedId,
     path: buildPath(collectionRef.path, generatedId),
     parent: collectionRef,
   };
-
   const processedData = processServerTimestamps(data, {});
 
   if (currentBatch) {
@@ -219,19 +461,17 @@ export async function addDoc(collectionRef, data) {
 }
 
 // Mock updateDoc function
-export async function updateDoc(docRef, updates) {
-  const path = typeof docRef === 'string' ? docRef : docRef.path;
-  // Get existing data directly from store - must get fresh copy to avoid stale data
-  // This is critical: if getWorldMetadata was called just before this, we need
-  // the latest data from the store, not a cached clone
+export async function updateDoc(
+  docRef: string | MockDocumentRef,
+  updates: UnknownRecord
+): Promise<void> {
+  const path = toPath(docRef);
   const existingRaw = mockDataStore.get(path);
-  const existing = existingRaw ? JSON.parse(JSON.stringify(existingRaw)) : {};
-
-  // Process serverTimestamp values, passing existing data for increment support
+  const existingClone = existingRaw === undefined ? {} : cloneMockValue(existingRaw);
+  const existing = isRecord(existingClone) ? existingClone : {};
   const processedUpdates = processServerTimestamps(updates, existing);
-
-  // Deep merge updates
-  const updated = deepMerge(existing, processedUpdates);
+  const processedRecord = isRecord(processedUpdates) ? processedUpdates : {};
+  const updated = deepMerge(existing, processedRecord);
 
   if (currentBatch) {
     currentBatch.operations.push({
@@ -239,237 +479,151 @@ export async function updateDoc(docRef, updates) {
       path,
       data: updated,
     });
-  } else {
-    // Immediately update the store (not in a batch)
-    // This must happen synchronously so subsequent reads get the updated data
-    // CRITICAL: Store the merged data directly - don't clone again here as setDataInStore will clone
-    mockDataStore.set(path, JSON.parse(JSON.stringify(updated)));
+    return;
   }
+
+  mockDataStore.set(path, cloneMockValue(updated));
 }
 
 // Mock deleteDoc function
-export async function deleteDoc(docRef) {
-  const path = typeof docRef === 'string' ? docRef : docRef.path;
+export async function deleteDoc(docRef: string | MockDocumentRef): Promise<void> {
+  const path = toPath(docRef);
 
   if (currentBatch) {
     currentBatch.operations.push({
       type: 'delete',
       path,
     });
-  } else {
-    deleteDataFromStore(path);
+    return;
   }
+
+  deleteDataFromStore(path);
 }
 
 // Mock getDocs function
-export async function getDocs(queryOrCollection) {
-  if (queryOrCollection.type === 'collectionGroup') {
-    // Collection group query - finds all documents in subcollections with the given name
-    // For path "architect_worlds/world_1", if querying collectionGroup('metadata'),
-    // we want to find documents where the last segment before the doc ID is 'metadata'
-    const collectionId = queryOrCollection.id;
-    const results = [];
+export async function getDocs(
+  queryOrCollection: MockQueryTarget
+): Promise<MockQuerySnapshot> {
+  if (isCollectionGroupQuery(queryOrCollection)) {
+    const results: MockDocumentSnapshot[] = [];
 
     for (const [path, data] of mockDataStore.entries()) {
       const segments = path.split('/').filter(Boolean);
-      // For collectionGroup('metadata'), find all documents where the last segment is 'metadata'
-      // This handles paths like "architect_worlds/world_1" where the world doc is the metadata
-      // In Firestore, collectionGroup queries find documents in collections with the given name
-      // But in our structure, 'metadata' is a document name, so we match paths ending with it
-      if (segments.length > 0) {
-        const lastSegment = segments[segments.length - 1];
+      if (segments.length === 0) {
+        continue;
+      }
 
-        // Match if the last segment (document name) is the collection name we're querying
-        // This works for our structure where metadata is a document
-        if (lastSegment === collectionId) {
-          results.push({
-            id: lastSegment,
-            path,
-            data: () => JSON.parse(JSON.stringify(data)),
-            exists: () => true,
-          });
-        }
+      const lastSegment = segments[segments.length - 1];
+      if (lastSegment === queryOrCollection.id) {
+        results.push(createSnapshot(path, data, lastSegment));
       }
     }
 
-    // Apply filters if present
-    let filteredResults = results;
-    if (queryOrCollection.filters && queryOrCollection.filters.length > 0) {
-      filteredResults = results.filter((doc) => {
-        const docData = doc.data();
-        let matches = true;
-        for (const filter of queryOrCollection.filters) {
-          if (filter.type === 'where') {
-            const { field, operator, value } = filter;
-            const fieldValue = getNestedValue(docData, field);
+    const filtered = results.filter((snapshot) => {
+      const docData = snapshot.data();
+      return queryOrCollection.filters.every((filter) => {
+        const fieldValue = getNestedValue(docData, filter.field);
 
-            switch (operator) {
-              case '==':
-                matches = matches && fieldValue === value;
-                break;
-              case '!=':
-                matches = matches && fieldValue !== value;
-                break;
-              case '>':
-                matches = matches && fieldValue > value;
-                break;
-              case '<':
-                matches = matches && fieldValue < value;
-                break;
-              case '>=':
-                matches = matches && fieldValue >= value;
-                break;
-              case '<=':
-                matches = matches && fieldValue <= value;
-                break;
-              default:
-                matches = false;
-            }
-          }
+        switch (filter.operator) {
+          case '==':
+            return fieldValue === filter.value;
+          case '!=':
+            return fieldValue !== filter.value;
+          case '>':
+            return compareMockValues(fieldValue, filter.value) > 0;
+          case '<':
+            return compareMockValues(fieldValue, filter.value) < 0;
+          case '>=':
+            return compareMockValues(fieldValue, filter.value) >= 0;
+          case '<=':
+            return compareMockValues(fieldValue, filter.value) <= 0;
+          default:
+            return false;
         }
-        return matches;
       });
-    }
+    });
 
-    // Apply orderBy if present
-    if (queryOrCollection.orderBy) {
-      const { field, direction = 'asc' } = queryOrCollection.orderBy;
-      filteredResults.sort((a, b) => {
-        const aVal = getNestedValue(a.data(), field);
-        const bVal = getNestedValue(b.data(), field);
-        const comparison = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-        return direction === 'desc' ? -comparison : comparison;
-      });
-    }
-
-    if (typeof queryOrCollection.limit === 'number') {
-      filteredResults = filteredResults.slice(0, queryOrCollection.limit);
-    }
-
-    return {
-      docs: filteredResults,
-      empty: filteredResults.length === 0,
-      size: filteredResults.length,
-    };
+    return buildQuerySnapshot(
+      sliceSnapshots(sortSnapshots(filtered, queryOrCollection.orderBy), queryOrCollection.limit)
+    );
   }
 
-  if (queryOrCollection.filters) {
-    // Query with filters
-    const collectionPath = queryOrCollection.collection.path;
-    const results = queryCollection(collectionPath, queryOrCollection.filters);
-
-    // Apply orderBy if present
-    if (queryOrCollection.orderBy) {
-      const { field, direction = 'asc' } = queryOrCollection.orderBy;
-      results.sort((a, b) => {
-        const aVal = getNestedValue(a.data(), field);
-        const bVal = getNestedValue(b.data(), field);
-        const comparison = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-        return direction === 'desc' ? -comparison : comparison;
-      });
-    }
-
-    const limitedResults =
-      typeof queryOrCollection.limit === 'number'
-        ? results.slice(0, queryOrCollection.limit)
-        : results;
-
-    return {
-      docs: limitedResults,
-      empty: limitedResults.length === 0,
-      size: limitedResults.length,
-    };
+  if (isCollectionQuery(queryOrCollection)) {
+    const results = queryCollection(
+      queryOrCollection.collection.path,
+      queryOrCollection.filters
+    );
+    return buildQuerySnapshot(
+      sliceSnapshots(sortSnapshots(results, queryOrCollection.orderBy), queryOrCollection.limit)
+    );
   }
 
-  // Simple collection query
   const collectionPath = queryOrCollection.path;
-  const results = [];
-  const prefix = collectionPath + '/';
+  const results: MockDocumentSnapshot[] = [];
+  const prefix = `${collectionPath}/`;
 
   for (const [path, data] of mockDataStore.entries()) {
-    if (path.startsWith(prefix) && path !== collectionPath) {
-      const docId = path.substring(prefix.length).split('/')[0];
-      const docPath = prefix + docId;
+    if (!path.startsWith(prefix) || path === collectionPath) {
+      continue;
+    }
 
-      // Only include direct children (not subcollections)
-      if (path === docPath) {
-        results.push({
-          id: docId,
-          path: docPath,
-          data: () => JSON.parse(JSON.stringify(data)),
-          exists: () => true,
-        });
-      }
+    const docId = path.substring(prefix.length).split('/')[0];
+    const docPath = `${prefix}${docId}`;
+
+    if (path === docPath) {
+      results.push(createSnapshot(docPath, data, docId));
     }
   }
 
-  return {
-    docs: results,
-    empty: results.length === 0,
-    size: results.length,
-  };
+  return buildQuerySnapshot(results);
 }
 
 // Mock query function
-export function query(collectionRef, ...queryConstraints) {
-  // Check if this is a collectionGroup query
-  if (collectionRef.type === 'collectionGroup') {
-    const filters = [];
-    let orderByField = null;
-    let orderDirection = 'asc';
-    let limitCount = null;
-
-    for (const constraint of queryConstraints) {
-      if (constraint.type === 'where') {
-        filters.push(constraint);
-      } else if (constraint.type === 'orderBy') {
-        orderByField = constraint.field;
-        orderDirection = constraint.direction || 'asc';
-      } else if (constraint.type === 'limit') {
-        limitCount = constraint.count;
-      }
-    }
-
-    return {
-      type: 'collectionGroup',
-      id: collectionRef.id,
-      filters,
-      orderBy: orderByField
-        ? { field: orderByField, direction: orderDirection }
-        : null,
-      limit: limitCount,
-    };
-  }
-
-  // Regular collection query
-  const filters = [];
-  let orderByField = null;
-  let orderDirection = 'asc';
-  let limitCount = null;
+export function query(
+  collectionRef: MockCollectionRef | MockCollectionGroupRef,
+  ...queryConstraints: MockQueryConstraint[]
+): MockCollectionQuery | MockCollectionGroupQuery {
+  const filters: MockWhereConstraint[] = [];
+  let orderBySpec: MockOrderBySpec | null = null;
+  let limitCount: number | null = null;
 
   for (const constraint of queryConstraints) {
     if (constraint.type === 'where') {
       filters.push(constraint);
     } else if (constraint.type === 'orderBy') {
-      orderByField = constraint.field;
-      orderDirection = constraint.direction || 'asc';
+      orderBySpec = {
+        field: constraint.field,
+        direction: constraint.direction || 'asc',
+      };
     } else if (constraint.type === 'limit') {
       limitCount = constraint.count;
     }
   }
 
+  if (isCollectionGroupRef(collectionRef)) {
+    return {
+      type: 'collectionGroup',
+      id: collectionRef.id,
+      filters,
+      orderBy: orderBySpec,
+      limit: limitCount,
+    };
+  }
+
   return {
     collection: collectionRef,
     filters,
-    orderBy: orderByField
-      ? { field: orderByField, direction: orderDirection }
-      : null,
+    orderBy: orderBySpec,
     limit: limitCount,
   };
 }
 
 // Mock where function
-export function where(field, operator, value) {
+export function where(
+  field: string,
+  operator: MockWhereOperator,
+  value: unknown
+): MockWhereConstraint {
   return {
     type: 'where',
     field,
@@ -479,7 +633,10 @@ export function where(field, operator, value) {
 }
 
 // Mock orderBy function
-export function orderBy(field, direction = 'asc') {
+export function orderBy(
+  field: string,
+  direction: MockOrderDirection = 'asc'
+): MockOrderByConstraint {
   return {
     type: 'orderBy',
     field,
@@ -488,7 +645,7 @@ export function orderBy(field, direction = 'asc') {
 }
 
 // Mock limit function
-export function limit(count) {
+export function limit(count: number): MockLimitConstraint {
   return {
     type: 'limit',
     count,
@@ -496,58 +653,53 @@ export function limit(count) {
 }
 
 // Mock writeBatch function
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function writeBatch(db) {
-  // Parameter accepted for signature parity with Firebase v9+, but not used in mock
-  const batch = {
+export function writeBatch(_db: unknown): MockBatch {
+  const batch: MockBatch = {
     operations: [],
-    set: function (docRef, data, options) {
-      this.operations.push({
+    set(docRef, data, options = {}) {
+      batch.operations.push({
         type: 'set',
-        path: typeof docRef === 'string' ? docRef : docRef.path,
+        path: toPath(docRef),
         data: processServerTimestamps(data, {}),
         options,
       });
-      return this;
+      return batch;
     },
-    update: function (docRef, updates) {
-      const path = typeof docRef === 'string' ? docRef : docRef.path;
-      // Get raw data from store for batch operations
+    update(docRef, updates) {
+      const path = toPath(docRef);
       const existingRaw = mockDataStore.get(path);
-      const existing = existingRaw
-        ? JSON.parse(JSON.stringify(existingRaw))
-        : {};
+      const existingClone = existingRaw === undefined ? {} : cloneMockValue(existingRaw);
+      const existing = isRecord(existingClone) ? existingClone : {};
       const processedUpdates = processServerTimestamps(updates, existing);
-      const updated = deepMerge(existing, processedUpdates);
+      const processedRecord = isRecord(processedUpdates) ? processedUpdates : {};
+      const updated = deepMerge(existing, processedRecord);
 
-      this.operations.push({
+      batch.operations.push({
         type: 'update',
         path,
         data: updated,
       });
-      return this;
+      return batch;
     },
-    delete: function (docRef) {
-      this.operations.push({
+    delete(docRef) {
+      batch.operations.push({
         type: 'delete',
-        path: typeof docRef === 'string' ? docRef : docRef.path,
+        path: toPath(docRef),
       });
-      return this;
+      return batch;
     },
-    commit: async function () {
-      // Execute all operations atomically
-      for (const op of this.operations) {
-        if (op.type === 'set') {
-          setDataInStore(op.path, op.data);
-        } else if (op.type === 'update') {
-          // For batch updates, op.data already contains the merged result
-          setDataInStore(op.path, op.data);
-        } else if (op.type === 'delete') {
-          deleteDataFromStore(op.path);
+    async commit() {
+      for (const operation of batch.operations) {
+        if (operation.type === 'set') {
+          setDataInStore(operation.path, operation.data);
+        } else if (operation.type === 'update') {
+          setDataInStore(operation.path, operation.data);
+        } else {
+          deleteDataFromStore(operation.path);
         }
       }
-      this.operations = [];
-      // CRITICAL: Reset currentBatch so subsequent updateDoc calls work independently
+
+      batch.operations = [];
       currentBatch = null;
     },
   };
@@ -557,7 +709,7 @@ export function writeBatch(db) {
 }
 
 // Mock arrayUnion function
-export function arrayUnion(...elements) {
+export function arrayUnion(...elements: unknown[]): MockFieldValue {
   return {
     __type: 'arrayUnion',
     elements,
@@ -565,7 +717,7 @@ export function arrayUnion(...elements) {
 }
 
 // Mock arrayRemove function
-export function arrayRemove(...elements) {
+export function arrayRemove(...elements: unknown[]): MockFieldValue {
   return {
     __type: 'arrayRemove',
     elements,
@@ -573,7 +725,7 @@ export function arrayRemove(...elements) {
 }
 
 // Mock increment function
-export function increment(value) {
+export function increment(value: number): MockFieldValue {
   return {
     __type: 'increment',
     value,
@@ -581,13 +733,16 @@ export function increment(value) {
 }
 
 // Mock serverTimestamp function
-export function serverTimestamp() {
+export function serverTimestamp(): MockFieldValue {
   return mockServerTimestamp();
 }
 
 // Process serverTimestamp values in data
-function processServerTimestamps(data, existingData = {}) {
-  if (!data || typeof data !== 'object') {
+function processServerTimestamps(
+  data: unknown,
+  existingData: unknown = {}
+): unknown {
+  if (!isRecord(data) && !Array.isArray(data)) {
     return data;
   }
 
@@ -595,53 +750,67 @@ function processServerTimestamps(data, existingData = {}) {
     return data.map((item) => processServerTimestamps(item, {}));
   }
 
-  const processed = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (value && typeof value === 'object') {
-      const mockValue = value as MockFieldValue;
+  const processed: UnknownRecord = {};
+  const existingRecord = isRecord(existingData) ? existingData : {};
 
-      if (mockValue.__type === 'serverTimestamp') {
-        processed[key] = new Date().toISOString();
-      } else if (mockValue.__type === 'arrayUnion') {
-        // Handle arrayUnion
-        const existing = existingData[key] || [];
-        processed[key] = [
-          ...new Set([...existing, ...(mockValue.elements ?? [])]),
-        ];
-      } else if (mockValue.__type === 'arrayRemove') {
-        // Handle arrayRemove
-        const existing = existingData[key] || [];
-        const toRemove = new Set(mockValue.elements ?? []);
-        processed[key] = existing.filter((item) => !toRemove.has(item));
-      } else if (mockValue.__type === 'increment') {
-        // Handle increment - ensure existing value is a number
-        const existing = existingData[key];
-        const existingNum = typeof existing === 'number' ? existing : 0;
-        processed[key] = existingNum + (mockValue.value ?? 0);
-      } else {
-        processed[key] = processServerTimestamps(value, existingData[key] || {});
-      }
-    } else {
-      processed[key] = value;
+  for (const [key, value] of Object.entries(data)) {
+    if (Array.isArray(value)) {
+      processed[key] = value.map((item) => processServerTimestamps(item, {}));
+      continue;
     }
+
+    if (!isRecord(value)) {
+      processed[key] = value;
+      continue;
+    }
+
+    const mockValue = value as MockFieldValue;
+    if (mockValue.__type === 'serverTimestamp') {
+      processed[key] = new Date().toISOString();
+      continue;
+    }
+
+    if (mockValue.__type === 'arrayUnion') {
+      const existingArray = Array.isArray(existingRecord[key])
+        ? existingRecord[key]
+        : [];
+      processed[key] = [...new Set([...existingArray, ...(mockValue.elements ?? [])])];
+      continue;
+    }
+
+    if (mockValue.__type === 'arrayRemove') {
+      const existingArray = Array.isArray(existingRecord[key])
+        ? existingRecord[key]
+        : [];
+      const toRemove = new Set(mockValue.elements ?? []);
+      processed[key] = existingArray.filter((item) => !toRemove.has(item));
+      continue;
+    }
+
+    if (mockValue.__type === 'increment') {
+      const existingValue = existingRecord[key];
+      const existingNumber = typeof existingValue === 'number' ? existingValue : 0;
+      const incrementBy = typeof mockValue.value === 'number' ? mockValue.value : 0;
+      processed[key] = existingNumber + incrementBy;
+      continue;
+    }
+
+    processed[key] = processServerTimestamps(value, existingRecord[key] ?? {});
   }
 
   return processed;
 }
 
 // Deep merge helper
-function deepMerge(target, source) {
-  const output = { ...target };
+function deepMerge(target: UnknownRecord, source: UnknownRecord): UnknownRecord {
+  const output: UnknownRecord = { ...target };
 
-  for (const key in source) {
-    if (
-      source[key] &&
-      typeof source[key] === 'object' &&
-      !Array.isArray(source[key])
-    ) {
-      output[key] = deepMerge(target[key] || {}, source[key]);
+  for (const [key, value] of Object.entries(source)) {
+    const targetValue = target[key];
+    if (isRecord(value)) {
+      output[key] = deepMerge(isRecord(targetValue) ? targetValue : {}, value);
     } else {
-      output[key] = source[key];
+      output[key] = value;
     }
   }
 
@@ -649,27 +818,26 @@ function deepMerge(target, source) {
 }
 
 // Reset mock data store (for test cleanup)
-export function resetMockDataStore() {
+export function resetMockDataStore(): void {
   mockDataStore.clear();
   currentBatch = null;
   autoIdCounter = 0;
 }
 
 // Get all data (for debugging)
-export function getAllMockData() {
+export function getAllMockData(): Map<string, unknown> {
   return new Map(mockDataStore);
 }
 
 // Seed data helper
-export function seedMockData(path, data) {
+export function seedMockData(path: string, data: unknown): void {
   setDataInStore(path, data);
 }
 
 // Get data helper (for assertions)
-export function getMockData(path) {
+export function getMockData(path: string): unknown {
   const data = getDataFromStore(path);
-  // Return deep clone to prevent mutations affecting stored data
-  return data ? JSON.parse(JSON.stringify(data)) : data;
+  return data === undefined ? undefined : cloneMockValue(data);
 }
 
 // ==============================================================================
@@ -677,22 +845,20 @@ export function getMockData(path) {
 // ==============================================================================
 
 // Store for mock callable function responses
-const mockCallableFunctions = new Map();
+const mockCallableFunctions = new Map<string, MockCallableImplementation>();
 
 /**
  * Mock httpsCallable function
  * Returns a function that can be called with data and returns a result
  */
-export function httpsCallable(functions, functionName) {
-  return async (data) => {
-    // Check if we have a mock implementation for this function
+export function httpsCallable(_functions: unknown, functionName: string) {
+  return async (data: unknown) => {
     const mockImpl = mockCallableFunctions.get(functionName);
     if (mockImpl) {
       const result = await mockImpl(data);
       return { data: result };
     }
-    
-    // Default behavior: return success
+
     return {
       data: {
         ok: true,
@@ -707,23 +873,30 @@ export function httpsCallable(functions, functionName) {
  * @param {string} functionName - Name of the function to mock
  * @param {Function} implementation - Mock implementation that receives data and returns result
  */
-export function setMockCallable(functionName, implementation) {
+export function setMockCallable(
+  functionName: string,
+  implementation: MockCallableImplementation
+): void {
   mockCallableFunctions.set(functionName, implementation);
 }
 
 /**
  * Clear all mock callable implementations
  */
-export function clearMockCallables() {
+export function clearMockCallables(): void {
   mockCallableFunctions.clear();
 }
 
 // Mock getFunctions function
-export function getFunctions(app) {
-  return { app, type: 'functions-mock' };
+export function getFunctions(app: unknown) {
+  return { app, type: 'functions-mock' as const };
 }
 
 // Mock connectFunctionsEmulator function
-export function connectFunctionsEmulator(functions, host, port) {
+export function connectFunctionsEmulator(
+  _functions: unknown,
+  _host: string,
+  _port: number
+): void {
   // No-op in tests
 }

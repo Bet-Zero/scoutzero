@@ -79,7 +79,14 @@ describe('rosterHelpers', () => {
     });
 
     await renameRosterProject(created.id, 'Renamed Roster', USER_ID);
-    expect(getMockData(storedPath)?.name).toBe('Renamed Roster');
+    const renamedRoster = getMockData(storedPath);
+    const renamedRosterName =
+      renamedRoster &&
+      typeof renamedRoster === 'object' &&
+      'name' in renamedRoster
+        ? renamedRoster.name
+        : undefined;
+    expect(renamedRosterName).toBe('Renamed Roster');
 
     await deleteRosterProject(created.id, USER_ID);
     expect(getMockData(storedPath)).toBeUndefined();

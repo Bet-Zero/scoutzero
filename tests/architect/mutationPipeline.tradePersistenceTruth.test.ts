@@ -44,7 +44,7 @@ vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
 }));
 
 vi.mock('@/features/architect/utils/tradeMachine', () => ({
-  validateTrade: vi.fn((input: Record<string, any>) => ({
+  validateTrade: vi.fn((input: { teams?: unknown[] | null }) => ({
     valid: true,
     success: true,
     legal: true,
@@ -78,10 +78,99 @@ const SEASON_ID = '2025-26';
 const TIMESTAMP = Date.UTC(2026, 6, 2, 12, 0, 0);
 const USER_ID = 'user_trade_truth';
 
+type TradeSalaryRowFixture = {
+  season: string;
+  salary: number;
+  capHit: number;
+  guaranteed: boolean;
+};
+
+type TradeContractFixture = {
+  contractType: string;
+  totalValue: number;
+  salariesByYear: TradeSalaryRowFixture[];
+  signedUsing?: string;
+  signingTeam?: string;
+  rfaOfferSheet?: boolean;
+  rfaOfferSheetOnly?: boolean;
+  rfaOfferSheetStatus?: string;
+  contractYears?: number;
+} & Record<string, unknown>;
+
+type TradePlayerFixture = {
+  id: string;
+  playerId: string;
+  player_id: string;
+  name: string;
+  displayName: string;
+  teamCode: string;
+  teamName: string;
+  bio: {
+    playerId: string;
+    displayName: string;
+    position: string;
+    age: number;
+    experience: number;
+  };
+  contract: TradeContractFixture;
+  source: {
+    provider: string;
+  };
+  lastUpdated: string;
+  version: string;
+} & Record<string, unknown>;
+
+type TradeCapHoldFixture = {
+  playerId: string;
+  amount: number;
+  playerName?: string;
+  season?: string;
+  active?: boolean;
+  isSigned?: boolean;
+} & Record<string, unknown>;
+
+type TradeOfferSheetFixture = {
+  id: string;
+  dedupKey: string;
+  playerId: string;
+  playerName: string;
+  offeringTeamCode: string;
+  homeTeamCode: string;
+  seasonKey: string;
+  year: number;
+  status: string;
+  contractYears: number;
+  totalValue: number;
+  salariesByYear: TradeSalaryRowFixture[];
+} & Record<string, unknown>;
+
+type TradeTeamFixture = {
+  teamCode: string;
+  teamName: string;
+  season: string;
+  roster: string[];
+  players: TradePlayerFixture[];
+  capHolds: TradeCapHoldFixture[];
+  draftPicks: unknown[];
+  tradeExceptions: unknown[];
+  exceptionHistory: unknown[];
+  exceptions: Record<string, unknown>;
+  totals: {
+    totalSalary: number;
+    capHit: number;
+  };
+  source: {
+    type: string;
+    worldId: string;
+  };
+  offerSheets?: TradeOfferSheetFixture[];
+  incomingOfferSheets?: TradeOfferSheetFixture[];
+} & Record<string, unknown>;
+
 function makeContract(
   salary: number,
-  extra: Record<string, any> = {}
-): Record<string, any> {
+  extra: Partial<TradeContractFixture> = {}
+): TradeContractFixture {
   return {
     contractType: 'Standard',
     totalValue: salary,
@@ -101,8 +190,8 @@ function makePlayer(
   id: string,
   teamCode: string,
   salary: number,
-  extra: Record<string, any> = {}
-): Record<string, any> {
+  extra: Partial<TradePlayerFixture> = {}
+): TradePlayerFixture {
   return {
     id,
     playerId: id,
@@ -130,9 +219,9 @@ function makePlayer(
 
 function makeTeam(
   teamCode: string,
-  players: Array<Record<string, any>>,
-  capHolds: Array<Record<string, any>> = []
-): Record<string, any> {
+  players: TradePlayerFixture[],
+  capHolds: TradeCapHoldFixture[] = []
+): TradeTeamFixture {
   const totalSalary = players.reduce(
     (sum, player) =>
       sum + Number(player?.contract?.salariesByYear?.[0]?.capHit ?? 0),
@@ -162,8 +251,8 @@ function makeTeam(
 }
 
 function makeOfferSheet(
-  overrides: Record<string, any> = {}
-): Record<string, any> {
+  overrides: Partial<TradeOfferSheetFixture> = {}
+): TradeOfferSheetFixture {
   return {
     id: 'os_default',
     dedupKey: 'os:world_default:LAL:player_default:2025-26',
@@ -207,8 +296,8 @@ function makeOfferSheet(
 }
 
 function makeStoredOfferSheetContract(
-  overrides: Record<string, any> = {}
-): Record<string, any> {
+  overrides: Partial<TradeContractFixture> = {}
+): TradeContractFixture {
   return {
     contractType: 'Offer Sheet',
     rfaOfferSheet: true,
@@ -246,14 +335,14 @@ function makeStoredOfferSheetContract(
   };
 }
 
-function seedBasePlayer(player: Record<string, any>) {
+function seedBasePlayer(player: TradePlayerFixture) {
   seedMockData(`architect_basePlayers/${player.playerId}`, player);
 }
 
 function seedPlayerOverride(
   worldId: string,
   teamCode: string,
-  player: Record<string, any>
+  player: TradePlayerFixture
 ) {
   seedMockData(`architect_worlds/${worldId}/teams/${teamCode}/players/${player.playerId}`, {
     playerId: player.playerId,
@@ -968,7 +1057,7 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(offeringSnapshot.offerSheets || []).toHaveLength(0);
     expect(
       (homeSnapshot.capHolds || []).some(
-        (hold: Record<string, any>) => hold.playerId === 'matched_rfa'
+        (hold: TradeCapHoldFixture) => hold.playerId === 'matched_rfa'
       )
     ).toBe(false);
 
@@ -1084,12 +1173,12 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(offeringSnapshot.offerSheets || []).toHaveLength(0);
     expect(
       (homeSnapshot.capHolds || []).some(
-        (hold: Record<string, any>) => hold.playerId === 'declined_rfa'
+        (hold: TradeCapHoldFixture) => hold.playerId === 'declined_rfa'
       )
     ).toBe(false);
     expect(
       (offeringSnapshot.capHolds || []).some(
-        (hold: Record<string, any>) => hold.playerId === 'declined_rfa'
+        (hold: TradeCapHoldFixture) => hold.playerId === 'declined_rfa'
       )
     ).toBe(false);
 
