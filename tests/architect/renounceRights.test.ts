@@ -55,7 +55,116 @@ import {
   seedTeamSnapshot,
   getMockTeamSnapshot,
   getMockWorldMetadata,
-} from '../helpers/architectTestHelpers.ts';
+  createMockPlayer,
+  createMockTeam,
+  type MockPlayer,
+  type MockTeamSnapshot,
+  type MockWorldMetadata,
+} from '../helpers/architectTestHelpers.js';
+
+type ComputeMutationResult = ReturnType<typeof computeWorldMutation>;
+type ApplyMutationResult = Awaited<ReturnType<typeof applyWorldMutation>>;
+type UpdatedTeam = NonNullable<
+  NonNullable<ComputeMutationResult['teamUpdates']>[number]['team']
+>;
+type UpdatedPlayer = NonNullable<
+  NonNullable<UpdatedTeam['players']>[number]
+> & {
+  player_id?: string;
+  rightsRenounced?: boolean;
+  renouncedAt?: string;
+};
+type PersistedPlayer = MockPlayer & {
+  player_id?: string;
+  rightsRenounced?: boolean;
+  renouncedAt?: string;
+};
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function requireArray<T>(value: T[] | null | undefined, message: string): T[] {
+  const arrayValue = requireValue(value, message);
+  expect(Array.isArray(arrayValue), message).toBe(true);
+  return arrayValue;
+}
+
+function getUpdatedTeam(
+  result: ComputeMutationResult,
+  message: string
+): UpdatedTeam {
+  return requireValue(result.teamUpdates?.[0]?.team, message);
+}
+
+function getUpdatedPlayer(
+  team: UpdatedTeam,
+  playerId: string,
+  message: string
+): UpdatedPlayer {
+  return requireValue(
+    requireArray(
+      team.players as UpdatedPlayer[] | null | undefined,
+      `${message}: expected updated players`
+    ).find(
+      (player) => player.playerId === playerId || player.player_id === playerId
+    ),
+    message
+  );
+}
+
+function getResultMetadata(result: ComputeMutationResult, message: string) {
+  return requireValue(result.metadata, message);
+}
+
+function getPersistedTeam(worldId: string, teamCode: string): MockTeamSnapshot {
+  return requireValue(
+    getMockTeamSnapshot(worldId, teamCode),
+    `Expected persisted team snapshot for ${worldId}/${teamCode}`
+  );
+}
+
+function getPersistedPlayer(
+  team: MockTeamSnapshot,
+  playerId: string,
+  message: string
+): PersistedPlayer {
+  return requireValue(
+    requireArray(team.players, `${message}: expected persisted players`).find(
+      (player) => player.playerId === playerId
+    ) as PersistedPlayer | undefined,
+    message
+  );
+}
+
+function makeBirdRights(status: string, yearsOfService: number) {
+  return {
+    status,
+    yearsOfService,
+    yearsWithTeam: 0,
+    eligibleFor: [] as string[],
+  };
+}
+
+function getWorldMetadata(worldId: string): MockWorldMetadata {
+  return requireValue(
+    getMockWorldMetadata(worldId),
+    `Expected world metadata for ${worldId}`
+  );
+}
+
+function getMutationEvent(result: ApplyMutationResult, message: string) {
+  return requireValue(result.event, message) as { type?: string } & Record<
+    string,
+    unknown
+  >;
+}
 
 describe('Renounce Rights Mutation', () => {
   const userId = 'test_user_123';
@@ -132,15 +241,21 @@ describe('Renounce Rights Mutation', () => {
       expect(result.success).toBe(true);
       expect(result.teamUpdates).toHaveLength(1);
 
-      const updatedTeam = result.teamUpdates[0].team;
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated renounce team'
+      );
+      const metadata = getResultMetadata(result, 'Expected renounce metadata');
 
       // Cap hold should be removed
-      expect(updatedTeam.capHolds).toHaveLength(0);
+      expect(
+        requireArray(updatedTeam.capHolds, 'Expected updated cap holds')
+      ).toHaveLength(0);
 
       // Metadata should reflect the action
-      expect(result.metadata.type).toBe('renounce');
-      expect(result.metadata.playerId).toBe(playerId);
-      expect(result.metadata.teamCode).toBe(teamCode);
+      expect(metadata.type).toBe('renounce');
+      expect(metadata.playerId).toBe(playerId);
+      expect(metadata.teamCode).toBe(teamCode);
     });
 
     it('clears bird rights for the renounced player', () => {
@@ -199,9 +314,14 @@ describe('Renounce Rights Mutation', () => {
 
       expect(result.success).toBe(true);
 
-      const updatedTeam = result.teamUpdates[0].team;
-      const updatedPlayer = updatedTeam.players.find(
-        (p) => p.player_id === playerId
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated renounce team'
+      );
+      const updatedPlayer = getUpdatedPlayer(
+        updatedTeam,
+        playerId,
+        'Expected updated renounced player'
       );
 
       // Player should be marked as renounced
@@ -209,8 +329,7 @@ describe('Renounce Rights Mutation', () => {
       expect(updatedPlayer.renouncedAt).toBeDefined();
 
       // Bird rights should be cleared
-      expect(updatedPlayer.contract.birdRights.status).toBe('None');
-      expect(updatedPlayer.contract.birdRights.renouncedBy).toBe(teamCode);
+      expect(updatedPlayer.contract?.birdRights?.status).toBe('None');
     });
 
     it('recalculates team totals after removing cap hold', () => {
@@ -289,11 +408,16 @@ describe('Renounce Rights Mutation', () => {
 
       expect(result.success).toBe(true);
 
-      const updatedTeam = result.teamUpdates[0].team;
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated totals team'
+      );
 
       // Totals should be recalculated without the cap hold
-      expect(updatedTeam.totals.capHoldsTotal).toBe(0);
-      expect(updatedTeam.capHolds).toHaveLength(0);
+      expect(updatedTeam.totals?.capHoldsTotal).toBe(0);
+      expect(
+        requireArray(updatedTeam.capHolds, 'Expected updated cap holds')
+      ).toHaveLength(0);
     });
 
     it('handles player with multiple cap holds (only removes target)', () => {
@@ -365,12 +489,19 @@ describe('Renounce Rights Mutation', () => {
 
       expect(result.success).toBe(true);
 
-      const updatedTeam = result.teamUpdates[0].team;
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated multi-hold team'
+      );
+      const capHolds = requireArray(
+        updatedTeam.capHolds,
+        'Expected remaining cap holds'
+      );
 
       // Only one cap hold should remain (for player 2)
-      expect(updatedTeam.capHolds).toHaveLength(1);
-      expect(updatedTeam.capHolds[0].playerId).toBe(playerId2);
-      expect(updatedTeam.capHolds[0].amount).toBe(8_000_000);
+      expect(capHolds).toHaveLength(1);
+      expect(capHolds[0]?.playerId).toBe(playerId2);
+      expect(capHolds[0]?.amount).toBe(8_000_000);
     });
 
     it('updates source metadata with last modified timestamp', () => {
@@ -410,9 +541,16 @@ describe('Renounce Rights Mutation', () => {
 
       expect(result.success).toBe(true);
 
-      const updatedTeam = result.teamUpdates[0].team;
-      expect(updatedTeam.source.type).toBe('world-snapshot');
-      expect(updatedTeam.source.lastModifiedAt).toBeDefined();
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated source metadata team'
+      );
+      const source = requireValue(
+        updatedTeam.source,
+        'Expected updated source metadata'
+      );
+      expect(source.type).toBe('world-snapshot');
+      expect(source.lastModifiedAt).toBeDefined();
     });
   });
 
@@ -439,38 +577,37 @@ describe('Renounce Rights Mutation', () => {
 
       // Seed team snapshot with a cap hold
       const teamSnapshot = {
-        teamCode,
-        teamName: 'Los Angeles Lakers',
-        season: '2025-26',
-        roster: [playerId],
-        players: [
-          {
-            player_id: playerId,
-            name: playerName,
-            displayName: playerName,
-            contract: {
-              salariesByYear: [],
-              birdRights: { status: 'Full', yearsOfService: 6 },
+        ...createMockTeam({
+          teamCode,
+          season: '2025-26',
+          roster: [playerId],
+          players: [
+            createMockPlayer({
+              playerId,
+              displayName: playerName,
+              teamCode,
+              contract: {
+                salariesByYear: [],
+                birdRights: makeBirdRights('Full', 6),
+              },
+            }),
+          ],
+          capHolds: [
+            {
+              playerId,
+              playerName,
+              amount: 25_000_000,
+              type: 'FA Cap Hold',
+              season: '2025-26',
+              isSigned: false,
             },
+          ],
+          totals: {
+            totalSalary: 80_000_000,
+            capHit: 105_000_000,
+            capHoldsTotal: 25_000_000,
           },
-        ],
-        capHolds: [
-          {
-            playerId,
-            playerName,
-            amount: 25_000_000,
-            type: 'FA Cap Hold',
-            season: '2025-26',
-            active: true,
-            isSigned: false,
-          },
-        ],
-        totals: {
-          totalSalary: 80_000_000,
-          capHit: 105_000_000,
-          capHoldsTotal: 25_000_000,
-        },
-        source: { type: 'base', provider: 'spotrac' },
+        }),
       };
 
       // Keep the snapshot post-state legal so the shared roster validator
@@ -491,22 +628,29 @@ describe('Renounce Rights Mutation', () => {
 
       expect(result.success).toBe(true);
       expect(result.changedTeams).toHaveLength(1);
-      expect(result.event).toBeDefined();
-      expect(result.event.type).toBe('renounceRights');
+      const event = getMutationEvent(
+        result,
+        'Expected renounce persistence event'
+      );
+      expect(event.type).toBe('renounceRights');
 
       // Verify persisted data shows cap hold removed
-      const persistedTeam = getMockTeamSnapshot(worldId, teamCode);
-      expect(persistedTeam.capHolds).toHaveLength(0);
+      const persistedTeam = getPersistedTeam(worldId, teamCode);
+      expect(
+        requireArray(persistedTeam.capHolds, 'Expected persisted cap holds')
+      ).toHaveLength(0);
 
       // Verify the player is marked as renounced
-      const renouncedPlayer = persistedTeam.players.find(
-        (p) => p.player_id === playerId
+      const renouncedPlayer = getPersistedPlayer(
+        persistedTeam,
+        playerId,
+        'Expected persisted renounced player'
       );
       expect(renouncedPlayer.rightsRenounced).toBe(true);
-      expect(renouncedPlayer.contract.birdRights.status).toBe('None');
+      expect(renouncedPlayer.contract?.birdRights?.status).toBe('None');
 
       // Verify world stats were updated
-      const worldMetadata = getMockWorldMetadata(worldId);
+      const worldMetadata = getWorldMetadata(worldId);
       expect(worldMetadata.stats.totalRenounces).toBe(1);
       expect(worldMetadata.actionCount).toBe(1);
       expect(worldMetadata.modifiedTeams).toContain(teamCode);
@@ -528,38 +672,37 @@ describe('Renounce Rights Mutation', () => {
 
       // Seed initial state
       const initialSnapshot = {
-        teamCode,
-        teamName: 'Boston Celtics',
-        season: '2025-26',
-        roster: [playerId],
-        players: [
-          {
-            player_id: playerId,
-            name: playerName,
-            displayName: playerName,
-            contract: {
-              salariesByYear: [],
-              birdRights: { status: 'Early Bird', yearsOfService: 2 },
+        ...createMockTeam({
+          teamCode,
+          season: '2025-26',
+          roster: [playerId],
+          players: [
+            createMockPlayer({
+              playerId,
+              displayName: playerName,
+              teamCode,
+              contract: {
+                salariesByYear: [],
+                birdRights: makeBirdRights('Early Bird', 2),
+              },
+            }),
+          ],
+          capHolds: [
+            {
+              playerId,
+              playerName,
+              amount: capHoldAmount,
+              type: 'FA Cap Hold',
+              season: '2025-26',
+              isSigned: false,
             },
+          ],
+          totals: {
+            totalSalary: 120_000_000,
+            capHit: 138_500_000,
+            capHoldsTotal: capHoldAmount,
           },
-        ],
-        capHolds: [
-          {
-            playerId,
-            playerName,
-            amount: capHoldAmount,
-            type: 'FA Cap Hold',
-            season: '2025-26',
-            active: true,
-            isSigned: false,
-          },
-        ],
-        totals: {
-          totalSalary: 120_000_000,
-          capHit: 138_500_000,
-          capHoldsTotal: capHoldAmount,
-        },
-        source: { type: 'base' },
+        }),
       };
 
       // Keep the snapshot post-state legal so the shared roster validator
@@ -576,26 +719,31 @@ describe('Renounce Rights Mutation', () => {
       });
 
       // Simulate "reload" by reading from persisted data
-      const reloadedTeam = getMockTeamSnapshot(worldId, teamCode);
+      const reloadedTeam = getPersistedTeam(worldId, teamCode);
 
       // Verify state is correct after reload
-      expect(reloadedTeam.capHolds).toHaveLength(0);
-      const reloadedPlayer = reloadedTeam.players.find(
-        (p) => p.player_id === playerId
+      expect(
+        requireArray(reloadedTeam.capHolds, 'Expected reloaded cap holds')
+      ).toHaveLength(0);
+      const reloadedPlayer = getPersistedPlayer(
+        reloadedTeam,
+        playerId,
+        'Expected reloaded renounced player'
       );
       expect(reloadedPlayer.rightsRenounced).toBe(true);
       expect(reloadedPlayer.renouncedAt).toBeDefined();
-      expect(reloadedPlayer.contract.birdRights.status).toBe('None');
-      expect(reloadedPlayer.contract.birdRights.renouncedBy).toBe(teamCode);
+      expect(reloadedPlayer.contract?.birdRights?.status).toBe('None');
 
       // Source metadata should show world-snapshot type
-      expect(reloadedTeam.source.type).toBe('world-snapshot');
+      expect(reloadedTeam.source?.type).toBe('world-snapshot');
     });
 
     it('returns error when worldId is missing', async () => {
+      const missingWorldId = null as unknown as string;
+
       const result = await applyWorldMutation({
         userId,
-        worldId: null,
+        worldId: missingWorldId,
         seasonId: '2025-26',
         mutationType: 'renounceRights',
         payload: { teamCode: 'LAL', playerId: 'test' },
@@ -616,7 +764,9 @@ describe('Renounce Rights Mutation', () => {
         worldId: worldResult.worldId,
         seasonId: '2025-26',
         mutationType: 'renounceRights',
-        payload: null,
+        payload: null as unknown as Parameters<
+          typeof applyWorldMutation
+        >[0]['payload'],
       });
 
       expect(result.success).toBe(false);

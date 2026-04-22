@@ -89,17 +89,18 @@ const USER_ID = 'user_trade_truth';
 
 type TradeSalaryRowFixture = MockSalaryRow;
 
-type TradeContractFixture = ArchitectMutationContract & MockPlayerContract & {
-  contractType: string;
-  totalValue: number;
-  salariesByYear: TradeSalaryRowFixture[];
-  signedUsing?: string;
-  signingTeam?: string;
-  rfaOfferSheet?: boolean;
-  rfaOfferSheetOnly?: boolean;
-  rfaOfferSheetStatus?: string;
-  contractYears?: number;
-};
+type TradeContractFixture = ArchitectMutationContract &
+  MockPlayerContract & {
+    contractType: string;
+    totalValue: number;
+    salariesByYear: TradeSalaryRowFixture[];
+    signedUsing?: string;
+    signingTeam?: string;
+    rfaOfferSheet?: boolean;
+    rfaOfferSheetOnly?: boolean;
+    rfaOfferSheetStatus?: string;
+    contractYears?: number;
+  };
 
 type TradePlayerFixture = MockPlayer & {
   id: string;
@@ -420,19 +421,22 @@ function seedPlayerOverride(
   teamCode: string,
   player: TradePlayerFixture
 ) {
-  seedMockData(`architect_worlds/${worldId}/teams/${teamCode}/players/${player.playerId}`, {
-    playerId: player.playerId,
-    displayName: player.displayName,
-    teamCode: player.teamCode,
-    teamName: player.teamName,
-    contract: player.contract,
-    source: {
-      type: 'world-override',
-      worldId,
-    },
-    lastUpdated: '2026-07-01T00:00:00.000Z',
-    version: 'override-1',
-  });
+  seedMockData(
+    `architect_worlds/${worldId}/teams/${teamCode}/players/${player.playerId}`,
+    {
+      playerId: player.playerId,
+      displayName: player.displayName,
+      teamCode: player.teamCode,
+      teamName: player.teamName,
+      contract: player.contract,
+      source: {
+        type: 'world-override',
+        worldId,
+      },
+      lastUpdated: '2026-07-01T00:00:00.000Z',
+      version: 'override-1',
+    }
+  );
 }
 
 describe('mutationPipeline trade persistence truth', () => {
@@ -488,9 +492,9 @@ describe('mutationPipeline trade persistence truth', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.changedPlayers?.map((entry) => entry.playerId).sort()).toEqual(
-      ['bos_out_10m', 'lal_out_18m']
-    );
+    expect(
+      result.changedPlayers?.map((entry) => entry.playerId).sort()
+    ).toEqual(['bos_out_10m', 'lal_out_18m']);
 
     const lalSnapshot = requireTeamSnapshot(worldId, 'LAL');
     const bosSnapshot = requireTeamSnapshot(worldId, 'BOS');
@@ -533,16 +537,20 @@ describe('mutationPipeline trade persistence truth', () => {
     seedTeamSnapshot(
       worldId,
       'LAL',
-      makeTeam('LAL', [satBasePlayer], [
-        {
-          playerId: 'sat_player',
-          playerName: 'sat_player',
-          season: SEASON_ID,
-          amount: 12_000_000,
-          active: true,
-          isSigned: false,
-        },
-      ]),
+      makeTeam(
+        'LAL',
+        [satBasePlayer],
+        [
+          {
+            playerId: 'sat_player',
+            playerName: 'sat_player',
+            season: SEASON_ID,
+            amount: 12_000_000,
+            active: true,
+            isSigned: false,
+          },
+        ]
+      ),
       { padRoster: false }
     );
     seedTeamSnapshot(worldId, 'BOS', makeTeam('BOS', [bosKeeper]), {
@@ -556,9 +564,24 @@ describe('mutationPipeline trade persistence truth', () => {
       contractYears: 3,
       firstYearGuaranteed: true,
       salariesByYear: [
-        { season: SEASON_ID, salary: 15_000_000, capHit: 15_000_000, guaranteed: true },
-        { season: '2026-27', salary: 15_750_000, capHit: 15_750_000, guaranteed: true },
-        { season: '2027-28', salary: 16_537_500, capHit: 16_537_500, guaranteed: true },
+        {
+          season: SEASON_ID,
+          salary: 15_000_000,
+          capHit: 15_000_000,
+          guaranteed: true,
+        },
+        {
+          season: '2026-27',
+          salary: 15_750_000,
+          capHit: 15_750_000,
+          guaranteed: true,
+        },
+        {
+          season: '2027-28',
+          salary: 16_537_500,
+          capHit: 16_537_500,
+          guaranteed: true,
+        },
       ],
     };
 
@@ -734,7 +757,9 @@ describe('mutationPipeline trade persistence truth', () => {
       'could not resolve an authoritative home team'
     );
     expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
-    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
+    expect(
+      getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))
+    ).toHaveLength(0);
   });
 
   it('fails closed when multiple world snapshots claim roster ownership of the same player', async () => {
@@ -779,8 +804,12 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(result.success).toBe(false);
     expect(String(result.error)).toContain('multiple roster owners found');
     expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
-    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
-    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'NYK'))).toHaveLength(0);
+    expect(
+      getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))
+    ).toHaveLength(0);
+    expect(
+      getIncomingOfferSheets(requireTeamSnapshot(worldId, 'NYK'))
+    ).toHaveLength(0);
   });
 
   it('fails closed when a candidate owner snapshot roster and players[] disagree', async () => {
@@ -832,7 +861,9 @@ describe('mutationPipeline trade persistence truth', () => {
       'roster membership disagrees with players[] membership'
     );
     expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
-    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
+    expect(
+      getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))
+    ).toHaveLength(0);
   });
 
   it('keeps E4 matched finalization compatible for offer sheets created under the strict store path', async () => {
@@ -857,16 +888,20 @@ describe('mutationPipeline trade persistence truth', () => {
       worldId,
       'BOS',
       {
-        ...makeTeam('BOS', [matchedPlayer], [
-          {
-            playerId: 'store_match_rfa',
-            playerName: 'Strict Store Match Player',
-            season: SEASON_ID,
-            amount: 14_000_000,
-            active: true,
-            isSigned: false,
-          },
-        ]),
+        ...makeTeam(
+          'BOS',
+          [matchedPlayer],
+          [
+            {
+              playerId: 'store_match_rfa',
+              playerName: 'Strict Store Match Player',
+              season: SEASON_ID,
+              amount: 14_000_000,
+              active: true,
+              isSigned: false,
+            },
+          ]
+        ),
         incomingOfferSheets: [],
       },
       { padRoster: false }
@@ -934,7 +969,9 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(persistedPlayer.teamCode).toBe('BOS');
     expect(persistedPlayer.contract?.signedUsing).toBe('Match');
     expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
-    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
+    expect(
+      getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))
+    ).toHaveLength(0);
   });
 
   it('keeps E4 declined finalization compatible for offer sheets created under the strict store path', async () => {
@@ -959,16 +996,20 @@ describe('mutationPipeline trade persistence truth', () => {
       worldId,
       'BOS',
       {
-        ...makeTeam('BOS', [declinedPlayer], [
-          {
-            playerId: 'store_decline_rfa',
-            playerName: 'Strict Store Decline Player',
-            season: SEASON_ID,
-            amount: 13_500_000,
-            active: true,
-            isSigned: false,
-          },
-        ]),
+        ...makeTeam(
+          'BOS',
+          [declinedPlayer],
+          [
+            {
+              playerId: 'store_decline_rfa',
+              playerName: 'Strict Store Decline Player',
+              season: SEASON_ID,
+              amount: 13_500_000,
+              active: true,
+              isSigned: false,
+            },
+          ]
+        ),
         incomingOfferSheets: [],
       },
       { padRoster: false }
@@ -977,16 +1018,20 @@ describe('mutationPipeline trade persistence truth', () => {
       worldId,
       'LAL',
       {
-        ...makeTeam('LAL', [lalKeeper], [
-          {
-            playerId: 'store_decline_rfa',
-            playerName: 'Strict Store Decline Player',
-            season: SEASON_ID,
-            amount: 3_500_000,
-            active: true,
-            isSigned: false,
-          },
-        ]),
+        ...makeTeam(
+          'LAL',
+          [lalKeeper],
+          [
+            {
+              playerId: 'store_decline_rfa',
+              playerName: 'Strict Store Decline Player',
+              season: SEASON_ID,
+              amount: 3_500_000,
+              active: true,
+              isSigned: false,
+            },
+          ]
+        ),
         offerSheets: [],
       },
       { padRoster: false }
@@ -1052,7 +1097,9 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(persistedPlayer.teamCode).toBe('LAL');
     expect(persistedPlayer.contract?.signedUsing).toBe('Offer Sheet');
     expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
-    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
+    expect(
+      getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))
+    ).toHaveLength(0);
     expect(requireTeamSnapshot(worldId, 'BOS').roster).not.toContain(
       'store_decline_rfa'
     );
@@ -1090,16 +1137,20 @@ describe('mutationPipeline trade persistence truth', () => {
       worldId,
       'BOS',
       {
-        ...makeTeam('BOS', [matchedPlayer], [
-          {
-            playerId: 'matched_rfa',
-            playerName: 'Canonical Matched Player',
-            season: SEASON_ID,
-            amount: 14_000_000,
-            active: true,
-            isSigned: false,
-          },
-        ]),
+        ...makeTeam(
+          'BOS',
+          [matchedPlayer],
+          [
+            {
+              playerId: 'matched_rfa',
+              playerName: 'Canonical Matched Player',
+              season: SEASON_ID,
+              amount: 14_000_000,
+              active: true,
+              isSigned: false,
+            },
+          ]
+        ),
         incomingOfferSheets: [matchedOfferSheet],
       },
       { padRoster: false }
@@ -1159,7 +1210,9 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(persistedPlayer.contract?.signedUsing).toBe('Match');
     expect(persistedPlayer.contract?.signingTeam).toBe('BOS');
     expect(persistedPlayer.contract?.contractLength).toBe(4);
-    expect(persistedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(18_000_000);
+    expect(persistedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(
+      18_000_000
+    );
   });
 
   it('persists finalizeDeclinedOfferSheet as canonical movement with destination upsert and source delete', async () => {
@@ -1194,16 +1247,20 @@ describe('mutationPipeline trade persistence truth', () => {
       worldId,
       'BOS',
       {
-        ...makeTeam('BOS', [declinedPlayer], [
-          {
-            playerId: 'declined_rfa',
-            playerName: 'Canonical Declined Player',
-            season: SEASON_ID,
-            amount: 13_500_000,
-            active: true,
-            isSigned: false,
-          },
-        ]),
+        ...makeTeam(
+          'BOS',
+          [declinedPlayer],
+          [
+            {
+              playerId: 'declined_rfa',
+              playerName: 'Canonical Declined Player',
+              season: SEASON_ID,
+              amount: 13_500_000,
+              active: true,
+              isSigned: false,
+            },
+          ]
+        ),
         incomingOfferSheets: [declinedOfferSheet],
       },
       { padRoster: false }
@@ -1212,16 +1269,20 @@ describe('mutationPipeline trade persistence truth', () => {
       worldId,
       'LAL',
       {
-        ...makeTeam('LAL', [lalKeeper], [
-          {
-            playerId: 'declined_rfa',
-            playerName: 'Canonical Declined Player',
-            season: SEASON_ID,
-            amount: 3_500_000,
-            active: true,
-            isSigned: false,
-          },
-        ]),
+        ...makeTeam(
+          'LAL',
+          [lalKeeper],
+          [
+            {
+              playerId: 'declined_rfa',
+              playerName: 'Canonical Declined Player',
+              season: SEASON_ID,
+              amount: 3_500_000,
+              active: true,
+              isSigned: false,
+            },
+          ]
+        ),
         offerSheets: [declinedOfferSheet],
       },
       { padRoster: false }
@@ -1294,8 +1355,14 @@ describe('mutationPipeline trade persistence truth', () => {
             makeTeam('LAL', [duplicatePlayer])
           ),
         },
-        { teamCode: 'BOS', team: toExecuteTradeCurrentStateTeam(makeTeam('BOS', [])) },
-        { teamCode: 'NYK', team: toExecuteTradeCurrentStateTeam(makeTeam('NYK', [])) },
+        {
+          teamCode: 'BOS',
+          team: toExecuteTradeCurrentStateTeam(makeTeam('BOS', [])),
+        },
+        {
+          teamCode: 'NYK',
+          team: toExecuteTradeCurrentStateTeam(makeTeam('NYK', [])),
+        },
       ],
     };
 

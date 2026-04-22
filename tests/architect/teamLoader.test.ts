@@ -34,10 +34,7 @@ function requireValue<T>(value: T | null | undefined, message: string): T {
   return value;
 }
 
-function requireArray<T>(
-  value: T[] | null | undefined,
-  message: string
-): T[] {
+function requireArray<T>(value: T[] | null | undefined, message: string): T[] {
   const arrayValue = requireValue(value, message);
   expect(Array.isArray(arrayValue), message).toBe(true);
   return arrayValue;
@@ -107,14 +104,23 @@ describe('Team Loader', () => {
         season: '2025-26',
         roster: ['lebron_james', 'anthony_davis'],
         players: [
-          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
-          createMockPlayer({ playerId: 'anthony_davis', displayName: 'Anthony Davis' }),
+          createMockPlayer({
+            playerId: 'lebron_james',
+            displayName: 'LeBron James',
+          }),
+          createMockPlayer({
+            playerId: 'anthony_davis',
+            displayName: 'Anthony Davis',
+          }),
         ],
       });
       seedTeamSnapshot(worldId, 'LAL', modifiedTeam, { padRoster: false });
 
       const team = await getTeam(worldId, 'LAL');
-      const players = requireArray(team.players, 'Expected snapshot team players');
+      const players = requireArray(
+        team.players,
+        'Expected snapshot team players'
+      );
 
       expect(team.teamCode).toBe('LAL');
       // players array is used for roster content, roster array contains IDs
@@ -143,12 +149,17 @@ describe('Team Loader', () => {
       );
 
       const team = await getTeam(worldId, 'LAL');
-      const players = requireArray(team.players, 'Expected hydrated team players');
+      const players = requireArray(
+        team.players,
+        'Expected hydrated team players'
+      );
 
       expect(team.teamCode).toBe('LAL');
       expect(team.season).toBe('2026-27');
       expect(Array.isArray(team.players)).toBe(true);
-      expect(players.map((player) => player.player_id)).toEqual(['lebron_james']);
+      expect(players.map((player) => player.player_id)).toEqual([
+        'lebron_james',
+      ]);
     });
 
     it('canonicalizes stale stored totals when loading a world snapshot', async () => {
@@ -177,7 +188,10 @@ describe('Team Loader', () => {
       });
 
       const team = await getTeam(worldId, 'LAL');
-      const totals = requireValue(team.totals, 'Expected canonicalized team totals');
+      const totals = requireValue(
+        team.totals,
+        'Expected canonicalized team totals'
+      );
 
       expect(totals.yearKey).toBe(2026);
       expect(totals.capHit).toBe(totals.totalCapAllocations);
@@ -195,7 +209,10 @@ describe('Team Loader', () => {
         teamCode: 'LAL',
         roster: ['lebron_james'],
         players: [
-          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+          createMockPlayer({
+            playerId: 'lebron_james',
+            displayName: 'LeBron James',
+          }),
         ],
       });
       seedTeamSnapshot(parentWorldId, 'LAL', parentTeam, { padRoster: false });
@@ -210,10 +227,15 @@ describe('Team Loader', () => {
 
       // Get team from child world - should fall back to parent
       const team = await getTeam(childWorldId, 'LAL');
-      const players = requireArray(team.players, 'Expected parent fallback players');
+      const players = requireArray(
+        team.players,
+        'Expected parent fallback players'
+      );
 
       expect(team.teamCode).toBe('LAL');
-      expect(players.map((player) => player.playerId)).toEqual(['lebron_james']);
+      expect(players.map((player) => player.playerId)).toEqual([
+        'lebron_james',
+      ]);
     });
 
     it('falls back to base when no snapshot', async () => {
@@ -238,10 +260,15 @@ describe('Team Loader', () => {
         teamCode: 'LAL',
         roster: ['lebron_james'],
         players: [
-          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+          createMockPlayer({
+            playerId: 'lebron_james',
+            displayName: 'LeBron James',
+          }),
         ],
       });
-      seedTeamSnapshot(grandparentWorldId, 'LAL', grandparentTeam, { padRoster: false });
+      seedTeamSnapshot(grandparentWorldId, 'LAL', grandparentTeam, {
+        padRoster: false,
+      });
 
       // Create parent world
       const parentWorldId = 'world_parent';
@@ -267,7 +294,9 @@ describe('Team Loader', () => {
       );
 
       expect(team.teamCode).toBe('LAL');
-      expect(players.map((player) => player.playerId)).toEqual(['lebron_james']);
+      expect(players.map((player) => player.playerId)).toEqual([
+        'lebron_james',
+      ]);
     });
 
     it('throws error when teamCode is missing', async () => {
@@ -308,18 +337,34 @@ describe('Team Loader', () => {
         teamCode: 'LAL',
         roster: ['lebron_james'],
         players: [
-          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+          createMockPlayer({
+            playerId: 'lebron_james',
+            displayName: 'LeBron James',
+          }),
         ],
       });
       seedTeamSnapshot(worldId, 'LAL', modifiedTeam, { padRoster: false });
 
       const teams = await getLeague(worldId);
-      const lalTeam = findTeamByCode(teams, 'LAL', 'Expected LAL team in league');
-      const lalPlayers = requireArray(lalTeam.players, 'Expected LAL league players');
-      const gswTeam = findTeamByCode(teams, 'GSW', 'Expected GSW team in league');
+      const lalTeam = findTeamByCode(
+        teams,
+        'LAL',
+        'Expected LAL team in league'
+      );
+      const lalPlayers = requireArray(
+        lalTeam.players,
+        'Expected LAL league players'
+      );
+      const gswTeam = findTeamByCode(
+        teams,
+        'GSW',
+        'Expected GSW team in league'
+      );
 
       expect(teams.length).toBe(30);
-      expect(lalPlayers.map((player) => player.playerId)).toEqual(['lebron_james']);
+      expect(lalPlayers.map((player) => player.playerId)).toEqual([
+        'lebron_james',
+      ]);
       // Other teams should come from base
       expect(gswTeam.teamCode).toBe('GSW');
     });
@@ -334,7 +379,10 @@ describe('Team Loader', () => {
         teamCode: 'LAL',
         roster: ['lebron_james'],
         players: [
-          createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
+          createMockPlayer({
+            playerId: 'lebron_james',
+            displayName: 'LeBron James',
+          }),
         ],
       });
       seedTeamSnapshot(parentWorldId, 'LAL', parentTeam, { padRoster: false });
@@ -359,7 +407,9 @@ describe('Team Loader', () => {
       );
 
       expect(teams.length).toBe(30);
-      expect(lalPlayers.map((player) => player.playerId)).toEqual(['lebron_james']);
+      expect(lalPlayers.map((player) => player.playerId)).toEqual([
+        'lebron_james',
+      ]);
     });
   });
 
@@ -460,9 +510,9 @@ describe('Team Loader', () => {
     it('throws error when playerId is missing', async () => {
       const missingPlayerId = null as unknown as string;
 
-      await expect(getPlayer('world_123', 'LAL', missingPlayerId)).rejects.toThrow(
-        'teamCode and playerId are required'
-      );
+      await expect(
+        getPlayer('world_123', 'LAL', missingPlayerId)
+      ).rejects.toThrow('teamCode and playerId are required');
     });
 
     it('throws error when base player not found', async () => {
@@ -487,7 +537,10 @@ describe('Team Loader', () => {
       };
 
       const merged = mergePlayerOverride(basePlayer, override);
-      const contract = requireValue(merged.contract, 'Expected merged contract');
+      const contract = requireValue(
+        merged.contract,
+        'Expected merged contract'
+      );
 
       expect(merged.playerId).toBe('test_player');
       expect(contract.contractType).toBe('Extension');
@@ -521,7 +574,10 @@ describe('Team Loader', () => {
       };
 
       const merged = mergePlayerOverride(basePlayer, override);
-      const contract = requireValue(merged.contract, 'Expected merged contract');
+      const contract = requireValue(
+        merged.contract,
+        'Expected merged contract'
+      );
       const salariesByYear = requireArray(
         contract.salariesByYear,
         'Expected merged salariesByYear rows'
@@ -556,7 +612,10 @@ describe('Team Loader', () => {
       };
 
       const merged = mergePlayerOverride(basePlayer, override);
-      const contract = requireValue(merged.contract, 'Expected merged contract');
+      const contract = requireValue(
+        merged.contract,
+        'Expected merged contract'
+      );
       const salariesByYear = requireArray(
         contract.salariesByYear,
         'Expected merged salariesByYear rows'

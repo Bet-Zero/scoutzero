@@ -575,7 +575,9 @@ Validation:
 
 ## Step 24 — Harden the cap legality / rights persistence cluster (wave 4)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Hardened the `capLegalityValidation` and `renounceRights` harnesses around truthful cap/rules fixtures, required violation/warning readers, and persisted-state payload guards; the Architect strict probe dropped from `2,050` to `1,914`, neither Step 24 file still appears in that output, and the targeted node run passed `248 / 248` tests.
 
 **Goal:** Tighten the next highest-value cap/rules persistence harnesses after the world/persistence truth cluster.
 

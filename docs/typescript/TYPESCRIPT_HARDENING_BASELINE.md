@@ -22,13 +22,13 @@ regex/file inventory measurements, not semantic type-safety proof.
 
 Inventory source: live `rg --files` scan of repo files.
 
-| Scope | `.ts` | `.tsx` | `.js` | `.jsx` | `.d.ts` |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Repo-wide | 879 | 331 | 26 | 0 | 4 |
-| `src/` | 600 | 321 | 0 | 0 | 4 |
-| `tests/` | 147 | 10 | 0 | 0 | 0 |
-| `src/tests/` | 294 | 99 | 0 | 0 | 0 |
-| `tests/` + `src/tests/` | 441 | 109 | 0 | 0 | 0 |
+| Scope                   | `.ts` | `.tsx` | `.js` | `.jsx` | `.d.ts` |
+| ----------------------- | ----: | -----: | ----: | -----: | ------: |
+| Repo-wide               |   879 |    331 |    26 |      0 |       4 |
+| `src/`                  |   600 |    321 |     0 |      0 |       4 |
+| `tests/`                |   147 |     10 |     0 |      0 |       0 |
+| `src/tests/`            |   294 |     99 |     0 |      0 |       0 |
+| `tests/` + `src/tests/` |   441 |    109 |     0 |      0 |       0 |
 
 The remaining repo-wide `.js` files are outside runtime `src/` and live in
 scripts/config-style surfaces. They are not the main app migration blocker, but
@@ -38,18 +38,18 @@ they are also not checked by root TypeScript unless imported into included TS.
 
 ### Root `tsconfig.json`
 
-| Setting | Current value | Hardening meaning |
-| --- | --- | --- |
-| `strict` | `false` | Root typecheck does not enforce the strict family. |
-| `strictFunctionTypes` | `true` | One strict sub-flag is enabled explicitly. |
-| `skipLibCheck` | `true` | Library declaration checks are skipped. |
-| `isolatedModules` | `true` | Vite-compatible single-file transform safety is on. |
-| `noEmit` | `true` | Typecheck does not emit build output. |
-| `moduleResolution` | `"bundler"` | Matches Vite/bundler resolution. |
-| `resolveJsonModule` | `true` | JSON imports are allowed. |
-| `allowJs` | not enabled | JS files are not part of root TS checking. |
-| `checkJs` | not enabled | Remaining JS is not type-checked as JS. |
-| `baseUrl`/`paths` | `.` and `@/* -> ./src/*` | Repo alias is configured. |
+| Setting               | Current value            | Hardening meaning                                   |
+| --------------------- | ------------------------ | --------------------------------------------------- |
+| `strict`              | `false`                  | Root typecheck does not enforce the strict family.  |
+| `strictFunctionTypes` | `true`                   | One strict sub-flag is enabled explicitly.          |
+| `skipLibCheck`        | `true`                   | Library declaration checks are skipped.             |
+| `isolatedModules`     | `true`                   | Vite-compatible single-file transform safety is on. |
+| `noEmit`              | `true`                   | Typecheck does not emit build output.               |
+| `moduleResolution`    | `"bundler"`              | Matches Vite/bundler resolution.                    |
+| `resolveJsonModule`   | `true`                   | JSON imports are allowed.                           |
+| `allowJs`             | not enabled              | JS files are not part of root TS checking.          |
+| `checkJs`             | not enabled              | Remaining JS is not type-checked as JS.             |
+| `baseUrl`/`paths`     | `.` and `@/* -> ./src/*` | Repo alias is configured.                           |
 
 Root includes runtime `src/**/*`, several scrape/pipeline script trees, and
 `capTotals`. Root excludes `node_modules`, `dist`, `archive`, and
@@ -57,11 +57,11 @@ Root includes runtime `src/**/*`, several scrape/pipeline script trees, and
 
 ### Additional TypeScript Configs
 
-| Config | Purpose | Current posture |
-| --- | --- | --- |
-| `tsconfig.architect-strict.json` | Strict probe for Architect runtime and Architect/trade tests. | Extends root, sets `strict: true`, currently fails with `2,567` TS errors. |
-| `tsconfig.shared-boundaries-strict.json` | Strict probe for shared player hooks plus selected route/storage boundaries. | Extends root, sets `strict: true`, currently fails with `244` TS errors. |
-| `functions/tsconfig.json` | Separate Firebase Functions compiler config. | Outside the current runtime hardening flow. |
+| Config                                   | Purpose                                                                      | Current posture                                                            |
+| ---------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `tsconfig.architect-strict.json`         | Strict probe for Architect runtime and Architect/trade tests.                | Extends root, sets `strict: true`, currently fails with `2,567` TS errors. |
+| `tsconfig.shared-boundaries-strict.json` | Strict probe for shared player hooks plus selected route/storage boundaries. | Extends root, sets `strict: true`, currently fails with `244` TS errors.   |
+| `functions/tsconfig.json`                | Separate Firebase Functions compiler config.                                 | Outside the current runtime hardening flow.                                |
 
 ## Dishonesty Markers
 
@@ -71,82 +71,82 @@ Marker corpus: code files from live `rg --files`, excluding `docs/`,
 These are regex occurrence counts. The `any` count includes occurrences inside
 more specific markers such as `as any` and `Record<string, any>`.
 
-| Marker | Full repo code corpus | Runtime `src/` excluding `src/tests/` | Tests (`tests/` + `src/tests/`) | Other code |
-| --- | ---: | ---: | ---: | ---: |
-| `any` | 1,223 | 174 | 755 | 294 |
-| `as any` | 441 | 5 | 395 | 41 |
-| `as unknown as` | 56 | 7 | 43 | 6 |
-| `@ts-ignore` | 0 | 0 | 0 | 0 |
-| `@ts-expect-error` | 1 | 0 | 1 | 0 |
-| `Record<string, any>` | 78 | 4 | 59 | 15 |
+| Marker                | Full repo code corpus | Runtime `src/` excluding `src/tests/` | Tests (`tests/` + `src/tests/`) | Other code |
+| --------------------- | --------------------: | ------------------------------------: | ------------------------------: | ---------: |
+| `any`                 |                 1,223 |                                   174 |                             755 |        294 |
+| `as any`              |                   441 |                                     5 |                             395 |         41 |
+| `as unknown as`       |                    56 |                                     7 |                              43 |          6 |
+| `@ts-ignore`          |                     0 |                                     0 |                               0 |          0 |
+| `@ts-expect-error`    |                     1 |                                     0 |                               1 |          0 |
+| `Record<string, any>` |                    78 |                                     4 |                              59 |         15 |
 
 ### Visibility Counts
 
 `unknown` is tracked separately because it can represent honest boundary work or
 unresolved data-shape debt depending on how it is narrowed.
 
-| Marker | Full repo code corpus | Runtime `src/` excluding `src/tests/` | Tests (`tests/` + `src/tests/`) | Other code |
-| --- | ---: | ---: | ---: | ---: |
-| `unknown` | 2,679 | 1,471 | 1,047 | 161 |
+| Marker    | Full repo code corpus | Runtime `src/` excluding `src/tests/` | Tests (`tests/` + `src/tests/`) | Other code |
+| --------- | --------------------: | ------------------------------------: | ------------------------------: | ---------: |
+| `unknown` |                 2,679 |                                 1,471 |                           1,047 |        161 |
 
 ## Strict Probe Baselines
 
 These failures are measurement baselines, not Step 1 pass/fail goals.
 
-| Command | Result | Error count |
-| --- | --- | ---: |
-| `npm run typecheck` | PASS | 0 |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | FAIL as expected | 2,567 |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | FAIL as expected | 244 |
+| Command                                                                 | Result           | Error count |
+| ----------------------------------------------------------------------- | ---------------- | ----------: |
+| `npm run typecheck`                                                     | PASS             |           0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         | FAIL as expected |       2,567 |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | FAIL as expected |         244 |
 
 ### Architect Strict Probe Concentration
 
 Top error codes:
 
-| Code | Count |
-| --- | ---: |
-| `TS18048` | 549 |
-| `TS7006` | 398 |
-| `TS2322` | 389 |
-| `TS18049` | 237 |
-| `TS2345` | 225 |
+| Code      | Count |
+| --------- | ----: |
+| `TS18048` |   549 |
+| `TS7006`  |   398 |
+| `TS2322`  |   389 |
+| `TS18049` |   237 |
+| `TS2345`  |   225 |
 
 Top files by current error count:
 
-| File | Errors |
-| --- | ---: |
-| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 |
-| `tests/__mocks__/firebase.ts` | 87 |
-| `tests/architect/seasonManager.test.ts` | 84 |
-| `tests/architect/offerSheetPersistence.test.ts` | 80 |
-| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` | 70 |
-| `tests/architect/capLegalityValidation.test.ts` | 67 |
-| `tests/architect/teamLoader.test.ts` | 67 |
-| `src/features/architect/utils/mutationPipeline.ts` | 55 |
+| File                                                                                                    | Errors |
+| ------------------------------------------------------------------------------------------------------- | -----: |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`                              |     95 |
+| `tests/__mocks__/firebase.ts`                                                                           |     87 |
+| `tests/architect/seasonManager.test.ts`                                                                 |     84 |
+| `tests/architect/offerSheetPersistence.test.ts`                                                         |     80 |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` |     70 |
+| `tests/architect/capLegalityValidation.test.ts`                                                         |     67 |
+| `tests/architect/teamLoader.test.ts`                                                                    |     67 |
+| `src/features/architect/utils/mutationPipeline.ts`                                                      |     55 |
 
 ### Shared Boundary Strict Probe Concentration
 
 Top error codes:
 
-| Code | Count |
-| --- | ---: |
-| `TS7031` | 98 |
-| `TS7006` | 49 |
-| `TS2339` | 49 |
-| `TS2345` | 16 |
-| `TS7053` | 13 |
+| Code     | Count |
+| -------- | ----: |
+| `TS7031` |    98 |
+| `TS7006` |    49 |
+| `TS2339` |    49 |
+| `TS2345` |    16 |
+| `TS7053` |    13 |
 
 Top files by current error count:
 
-| File | Errors |
-| --- | ---: |
-| `src/pages/ListManager.tsx` | 43 |
-| `src/features/lists/ListPreviewModal/ListExportWrapper/index.tsx` | 26 |
-| `src/features/lists/ListSearchBar.tsx` | 19 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/PhysicalFilters.tsx` | 18 |
-| `src/features/lists/AddToListButton/AddToListModal.tsx` | 16 |
-| `src/features/lists/ListTierHeader/index.tsx` | 15 |
-| `src/features/roster/RosterControls.tsx` | 10 |
+| File                                                                | Errors |
+| ------------------------------------------------------------------- | -----: |
+| `src/pages/ListManager.tsx`                                         |     43 |
+| `src/features/lists/ListPreviewModal/ListExportWrapper/index.tsx`   |     26 |
+| `src/features/lists/ListSearchBar.tsx`                              |     19 |
+| `src/features/roster/AddPlayerDrawer/addPlayer/PhysicalFilters.tsx` |     18 |
+| `src/features/lists/AddToListButton/AddToListModal.tsx`             |     16 |
+| `src/features/lists/ListTierHeader/index.tsx`                       |     15 |
+| `src/features/roster/RosterControls.tsx`                            |     10 |
 
 ## Audit-Proven Risk Themes
 
@@ -186,11 +186,11 @@ Reviewed: 2026-04-21, after Step 3 removed `src/global-shims.d.ts`.
 Live code search found no remaining `declare module` blocks outside docs. The
 project now has three non-library `.d.ts` files:
 
-| File | Classification | Why it still exists | Type posture | Blocks later hardening? |
-| --- | --- | --- | --- | --- |
-| `src/vite-env.d.ts` | Justified boundary declaration | Provides Vite client references and the app's `VITE_*` environment variable surface. | No broad placeholders or `any`; it declares optional string env values. | No. Keep as the Vite/env boundary. |
-| `src/types/player.d.ts` | Temporary legacy bridge | Preserves the legacy player type import surface while canonical player schemas live in `src/schemas/players_v2.ts`. | Core document exports forward to schema-derived types; legacy view interfaces still allow extra fields with `unknown`, not `any`. | Not a live blocker, but future code should prefer schema exports directly and avoid adding new declarations here. |
-| `src/features/table/PlayerTable/PlayerRow/PlayerNameMini.d.ts` | Still suspicious | Sits beside a real `PlayerNameMini.tsx` implementation whose props are not typed in the implementation file. | No `any`, but it is a duplicate declaration facade that can drift from runtime props. | Not a Step 5 blocker; revisit when strict-prep or table UI typing reaches this component. |
+| File                                                           | Classification                 | Why it still exists                                                                                                 | Type posture                                                                                                                      | Blocks later hardening?                                                                                           |
+| -------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `src/vite-env.d.ts`                                            | Justified boundary declaration | Provides Vite client references and the app's `VITE_*` environment variable surface.                                | No broad placeholders or `any`; it declares optional string env values.                                                           | No. Keep as the Vite/env boundary.                                                                                |
+| `src/types/player.d.ts`                                        | Temporary legacy bridge        | Preserves the legacy player type import surface while canonical player schemas live in `src/schemas/players_v2.ts`. | Core document exports forward to schema-derived types; legacy view interfaces still allow extra fields with `unknown`, not `any`. | Not a live blocker, but future code should prefer schema exports directly and avoid adding new declarations here. |
+| `src/features/table/PlayerTable/PlayerRow/PlayerNameMini.d.ts` | Still suspicious               | Sits beside a real `PlayerNameMini.tsx` implementation whose props are not typed in the implementation file.        | No `any`, but it is a duplicate declaration facade that can drift from runtime props.                                             | Not a Step 5 blocker; revisit when strict-prep or table UI typing reaches this component.                         |
 
 Step 4 also removed the stale `src/global-shims.d.ts` include from
 `tsconfig.architect-strict.json`. Declaration-layer dishonesty is no longer a
@@ -210,14 +210,14 @@ team, base player, and free-agent documents in
 the planned world/base read stack while preserving the existing hydrated output
 shapes.
 
-| File or group | Classification | Why | Resume point |
-| --- | --- | --- | --- |
-| `src/features/architect/utils/worldManager.ts` | Safe to defer | World metadata reads now require object-shaped documents and validate known scalar, list, stats, and draft-position fields before returning `WorldMetadata`. | Revisit only if world metadata schema becomes canonical Zod. |
-| `src/features/architect/utils/firebaseTeamPlanHelpers.ts` | Safe to defer | Base team, base player, contract, bio, exception, and free-agent reads now pass through boundary readers before hydration; remaining loose fields are preserved as unknown passthrough for legacy compatibility. | Revisit when a canonical hydrated-base-team schema exists. |
-| `src/features/architect/utils/mutationPipeline.ts` current-state Firestore reads | Next-wave candidate | The strict scan still shows casted offer-sheet team/player override snapshot reads in the committed mutation pipeline, and the strict probe concentrates many downstream optional/nullability errors there. | Step 10/11 candidate if the strict checkpoint supports one narrow runtime wave. |
-| `src/features/architect/utils/entitlements/*` resolver and pick-rule reads | Safe to defer | These casts are real boundary debt, but they are scoped to entitlement resolution rather than the Step 6-7 world/base read stack and did not block the wave validation. | Track for a future entitlement-boundary pass. |
-| `src/features/architect/GMDashboard/**` dashboard/action adapter contracts | Needs separate product/architecture decision | Strict errors show broad disagreement between dashboard cap-sheet/player shapes, mutation-pipeline carrier shapes, and trade/cap consumers; fixing this is a contract-alignment pass, not another Firestore-boundary patch. | Separate Architect contract-normalization plan or Step 11 only if narrowed by evidence. |
-| `tests/__mocks__/firebase.ts` and cast-heavy Architect suites | Next-wave candidate | Tests remain the biggest typed bypass layer and still dominate strict-probe output. | Step 8. |
+| File or group                                                                    | Classification                               | Why                                                                                                                                                                                                                         | Resume point                                                                            |
+| -------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `src/features/architect/utils/worldManager.ts`                                   | Safe to defer                                | World metadata reads now require object-shaped documents and validate known scalar, list, stats, and draft-position fields before returning `WorldMetadata`.                                                                | Revisit only if world metadata schema becomes canonical Zod.                            |
+| `src/features/architect/utils/firebaseTeamPlanHelpers.ts`                        | Safe to defer                                | Base team, base player, contract, bio, exception, and free-agent reads now pass through boundary readers before hydration; remaining loose fields are preserved as unknown passthrough for legacy compatibility.            | Revisit when a canonical hydrated-base-team schema exists.                              |
+| `src/features/architect/utils/mutationPipeline.ts` current-state Firestore reads | Next-wave candidate                          | The strict scan still shows casted offer-sheet team/player override snapshot reads in the committed mutation pipeline, and the strict probe concentrates many downstream optional/nullability errors there.                 | Step 10/11 candidate if the strict checkpoint supports one narrow runtime wave.         |
+| `src/features/architect/utils/entitlements/*` resolver and pick-rule reads       | Safe to defer                                | These casts are real boundary debt, but they are scoped to entitlement resolution rather than the Step 6-7 world/base read stack and did not block the wave validation.                                                     | Track for a future entitlement-boundary pass.                                           |
+| `src/features/architect/GMDashboard/**` dashboard/action adapter contracts       | Needs separate product/architecture decision | Strict errors show broad disagreement between dashboard cap-sheet/player shapes, mutation-pipeline carrier shapes, and trade/cap consumers; fixing this is a contract-alignment pass, not another Firestore-boundary patch. | Separate Architect contract-normalization plan or Step 11 only if narrowed by evidence. |
+| `tests/__mocks__/firebase.ts` and cast-heavy Architect suites                    | Next-wave candidate                          | Tests remain the biggest typed bypass layer and still dominate strict-probe output.                                                                                                                                         | Step 8.                                                                                 |
 
 The Architect strict probe still fails on the known broader backlog, but a
 filtered strict check after Step 7 showed no errors in
@@ -231,14 +231,14 @@ first targeted Architect suites.
 
 ### Updated Test-Side Dishonesty Markers
 
-| Marker | Step 1 baseline tests | Current tests | Delta |
-| --- | ---: | ---: | ---: |
-| `any` | 755 | 637 | -118 |
-| `as any` | 395 | 332 | -63 |
-| `as unknown as` | 43 | 44 | +1 |
-| `@ts-ignore` | 0 | 0 | 0 |
-| `@ts-expect-error` | 1 | 1 | 0 |
-| `Record<string, any>` | 59 | 42 | -17 |
+| Marker                | Step 1 baseline tests | Current tests | Delta |
+| --------------------- | --------------------: | ------------: | ----: |
+| `any`                 |                   755 |           637 |  -118 |
+| `as any`              |                   395 |           332 |   -63 |
+| `as unknown as`       |                    43 |            44 |    +1 |
+| `@ts-ignore`          |                     0 |             0 |     0 |
+| `@ts-expect-error`    |                     1 |             1 |     0 |
+| `Record<string, any>` |                    59 |            42 |   -17 |
 
 `unknown` remains a visibility metric rather than a dishonesty score. Test-side
 `unknown` moved from `1,047` to `1,096` (`+49`) because Step 8 converted
@@ -261,15 +261,15 @@ unknowns that must be narrowed by the consuming test.
 
 ### Remaining Test Debt Classification
 
-| File or group | Classification | Why | Resume point |
-| --- | --- | --- | --- |
-| `src/tests/architect/useArchitectActions.freeAgency.test.tsx` | High-value next-wave candidate | This is still a central action-layer proof surface with `32` `any` and `28` `as any`, mostly in hook-state setup, mutation-call assertions, and trade/apply payloads. | If Step 10/11 supports another test-focused wave, revisit this suite first. |
-| `src/tests/architect/tmCapIntegration.*`, `src/tests/architect/tmCapIntegration.executeTrade_writePaths.guardrail.test.ts`, `src/tests/architect/capSheet.transactionMatrix.behavior.test.tsx` | High-value next-wave candidate | The heaviest remaining `any`/`as any` density now lives in trade/cap integration harnesses, so critical guardrails still accept loosely shaped inputs too easily. | Best next cluster after `useArchitectActions.freeAgency.test.tsx` if the plan takes one more typed-test pass. |
-| `src/tests/architect/mutationPipeline.boundary.e107.test.ts`, `src/tests/architect/mutationPipeline.computeResultBridge.test.ts`, `src/tests/architect/mutationPipeline.compatibility.guardrail.test.ts` | High-value next-wave candidate | Mutation-pipeline guardrails still rely on cast-heavy fixtures, which weakens the same runtime contracts Steps 6-7 just hardened. | Keep grouped as one follow-on harness wave rather than fixing them piecemeal. |
-| `tests/__mocks__/firebase.ts` | Acceptable temporary compromise | The mock remains central, but it no longer uses tracked dishonesty markers. The remaining `unknown` usage reflects mock-boundary truth, not bag-typed trust. | Revisit only if Step 10 shows strict-prep leverage in the mock layer. |
-| `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` | Acceptable temporary compromise | This suite now proves persistence behavior with explicit fixture contracts and no tracked dishonesty markers. | Leave it alone unless runtime contract changes require new fixture shape coverage. |
-| `src/tests/architect/teamHistory.eventPayloadEnrichment.matrix.guardrail.test.ts`, `src/tests/architect/firebaseTeamPlanHelpers.compatibility.guardrail.test.ts`, `tests/trade/useTradeMachine.validatorTrust.test.ts` | Acceptable temporary compromise | These compatibility-style suites still carry some `Record<string, any>` bag typing, but they are lower leverage than the action/trade/cap harnesses above and would likely widen into runtime contract redesign. | Revisit only in a dedicated compatibility-contract cleanup pass. |
-| Scattered leaf suites with `1-4` `as unknown as` occurrences, including `src/tests/architect/capSheet_exception_wiring.behavior.test.tsx`, `src/tests/architect/deadCapManagement.test.ts`, `src/tests/architect/signAndTrade.test.ts`, `src/tests/architect/worldTime.test.ts`, and `tests/architect/capHolds.test.ts` | Not worth targeted hardening right now | These are real casts, but they are sparse and isolated enough that a dedicated cleanup wave would not materially change trust metrics. | Leave them for opportunistic cleanup when those suites already need behavior work. |
+| File or group                                                                                                                                                                                                                                                                                                           | Classification                         | Why                                                                                                                                                                                                              | Resume point                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `src/tests/architect/useArchitectActions.freeAgency.test.tsx`                                                                                                                                                                                                                                                           | High-value next-wave candidate         | This is still a central action-layer proof surface with `32` `any` and `28` `as any`, mostly in hook-state setup, mutation-call assertions, and trade/apply payloads.                                            | If Step 10/11 supports another test-focused wave, revisit this suite first.                                   |
+| `src/tests/architect/tmCapIntegration.*`, `src/tests/architect/tmCapIntegration.executeTrade_writePaths.guardrail.test.ts`, `src/tests/architect/capSheet.transactionMatrix.behavior.test.tsx`                                                                                                                          | High-value next-wave candidate         | The heaviest remaining `any`/`as any` density now lives in trade/cap integration harnesses, so critical guardrails still accept loosely shaped inputs too easily.                                                | Best next cluster after `useArchitectActions.freeAgency.test.tsx` if the plan takes one more typed-test pass. |
+| `src/tests/architect/mutationPipeline.boundary.e107.test.ts`, `src/tests/architect/mutationPipeline.computeResultBridge.test.ts`, `src/tests/architect/mutationPipeline.compatibility.guardrail.test.ts`                                                                                                                | High-value next-wave candidate         | Mutation-pipeline guardrails still rely on cast-heavy fixtures, which weakens the same runtime contracts Steps 6-7 just hardened.                                                                                | Keep grouped as one follow-on harness wave rather than fixing them piecemeal.                                 |
+| `tests/__mocks__/firebase.ts`                                                                                                                                                                                                                                                                                           | Acceptable temporary compromise        | The mock remains central, but it no longer uses tracked dishonesty markers. The remaining `unknown` usage reflects mock-boundary truth, not bag-typed trust.                                                     | Revisit only if Step 10 shows strict-prep leverage in the mock layer.                                         |
+| `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`                                                                                                                                                                                                                                                        | Acceptable temporary compromise        | This suite now proves persistence behavior with explicit fixture contracts and no tracked dishonesty markers.                                                                                                    | Leave it alone unless runtime contract changes require new fixture shape coverage.                            |
+| `src/tests/architect/teamHistory.eventPayloadEnrichment.matrix.guardrail.test.ts`, `src/tests/architect/firebaseTeamPlanHelpers.compatibility.guardrail.test.ts`, `tests/trade/useTradeMachine.validatorTrust.test.ts`                                                                                                  | Acceptable temporary compromise        | These compatibility-style suites still carry some `Record<string, any>` bag typing, but they are lower leverage than the action/trade/cap harnesses above and would likely widen into runtime contract redesign. | Revisit only in a dedicated compatibility-contract cleanup pass.                                              |
+| Scattered leaf suites with `1-4` `as unknown as` occurrences, including `src/tests/architect/capSheet_exception_wiring.behavior.test.tsx`, `src/tests/architect/deadCapManagement.test.ts`, `src/tests/architect/signAndTrade.test.ts`, `src/tests/architect/worldTime.test.ts`, and `tests/architect/capHolds.test.ts` | Not worth targeted hardening right now | These are real casts, but they are sparse and isolated enough that a dedicated cleanup wave would not materially change trust metrics.                                                                           | Leave them for opportunistic cleanup when those suites already need behavior work.                            |
 
 ### Conclusion
 
@@ -287,11 +287,11 @@ Reviewed: 2026-04-21, after Steps 3-9.
 
 ### Probe Delta
 
-| Command | Step 1 baseline | Current result | Delta | Reading |
-| --- | ---: | ---: | ---: | --- |
-| `npm run typecheck` | 0 | 0 | 0 | Root compatibility gate still passes, but root `strict: false` means this is not hardening proof by itself. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | -244 | Shared/runtime probe moved materially and now passes. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | +65 | Architect/test probe did not improve at repo scale; it is slightly worse overall despite local boundary wins. |
+| Command                                                                 | Step 1 baseline | Current result | Delta | Reading                                                                                                       |
+| ----------------------------------------------------------------------- | --------------: | -------------: | ----: | ------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |               0 |              0 |     0 | Root compatibility gate still passes, but root `strict: false` means this is not hardening proof by itself.   |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |             244 |              0 |  -244 | Shared/runtime probe moved materially and now passes.                                                         |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |           2,567 |          2,632 |   +65 | Architect/test probe did not improve at repo scale; it is slightly worse overall despite local boundary wins. |
 
 ### Which Probes Moved Meaningfully
 
@@ -325,11 +325,11 @@ The shared/runtime probe has no remaining strict error family.
 The Architect/test probe is now dominated by broad contract and nullability
 families rather than by the specific boundary files already hardened:
 
-| Error family | Current count | What it signals | Where it lives now |
-| --- | ---: | --- | --- |
-| `TS18048` / `TS18049` / `TS2533` | 891 | Possibly-null and optionality churn after truthful boundary contracts meet looser downstream consumers. | Concentrated across Architect persistence/season tests plus `mutationPipeline.ts` and dashboard adapters. |
-| `TS2322` / `TS2345` | 649 | Cross-contract assignability mismatches between dashboard, mutation, cap-sheet, and test-harness shapes. | Strongest in `seasonManager.test.ts`, `GMDashboard*`, `useArchitectActions.ts`, and persistence/offer-sheet suites. |
-| `TS7006` / `TS7005` / `TS18046` | 583 | Untyped parameters, untyped locals, and `unknown`-not-narrowed patterns that still dominate older Architect tests. | Mostly in large Architect test harnesses rather than the shared runtime surface. |
+| Error family                     | Current count | What it signals                                                                                                    | Where it lives now                                                                                                  |
+| -------------------------------- | ------------: | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `TS18048` / `TS18049` / `TS2533` |           891 | Possibly-null and optionality churn after truthful boundary contracts meet looser downstream consumers.            | Concentrated across Architect persistence/season tests plus `mutationPipeline.ts` and dashboard adapters.           |
+| `TS2322` / `TS2345`              |           649 | Cross-contract assignability mismatches between dashboard, mutation, cap-sheet, and test-harness shapes.           | Strongest in `seasonManager.test.ts`, `GMDashboard*`, `useArchitectActions.ts`, and persistence/offer-sheet suites. |
+| `TS7006` / `TS7005` / `TS18046`  |           583 | Untyped parameters, untyped locals, and `unknown`-not-narrowed patterns that still dominate older Architect tests. | Mostly in large Architect test harnesses rather than the shared runtime surface.                                    |
 
 ### Concentration vs. Spread
 
@@ -341,18 +341,18 @@ families rather than by the specific boundary files already hardened:
 
 Current top Architect strict hotspots:
 
-| File | Errors | Dominant families |
-| --- | ---: | --- |
-| `tests/architect/seasonManager.test.ts` | 117 | `TS2322`, `TS18046`, `TS7006`, `TS7005` |
-| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 | `TS18048`, `TS18049` |
-| `tests/architect/offerSheetPersistence.test.ts` | 80 | `TS18048`, `TS18049`, `TS2532`, `TS2533` |
-| `tests/architect/capLegalityValidation.test.ts` | 67 | Mixed contract/nullability debt |
-| `tests/architect/teamLoader.test.ts` | 67 | Mixed contract/nullability debt |
-| `tests/architect/worldManager.test.ts` | 66 | Mixed contract/nullability debt |
-| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` | 64 | Mixed contract/nullability debt |
-| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` | 62 | Mixed contract/nullability debt |
-| `src/tests/architect/exceptionManagement.test.ts` | 58 | Mixed contract/nullability debt |
-| `src/features/architect/utils/mutationPipeline.ts` | 55 | `TS18048`, `TS2322`, `TS18049`, `TS2533`, `TS2345` |
+| File                                                                                                    | Errors | Dominant families                                  |
+| ------------------------------------------------------------------------------------------------------- | -----: | -------------------------------------------------- |
+| `tests/architect/seasonManager.test.ts`                                                                 |    117 | `TS2322`, `TS18046`, `TS7006`, `TS7005`            |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`                              |     95 | `TS18048`, `TS18049`                               |
+| `tests/architect/offerSheetPersistence.test.ts`                                                         |     80 | `TS18048`, `TS18049`, `TS2532`, `TS2533`           |
+| `tests/architect/capLegalityValidation.test.ts`                                                         |     67 | Mixed contract/nullability debt                    |
+| `tests/architect/teamLoader.test.ts`                                                                    |     67 | Mixed contract/nullability debt                    |
+| `tests/architect/worldManager.test.ts`                                                                  |     66 | Mixed contract/nullability debt                    |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` |     64 | Mixed contract/nullability debt                    |
+| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts`                                     |     62 | Mixed contract/nullability debt                    |
+| `src/tests/architect/exceptionManagement.test.ts`                                                       |     58 | Mixed contract/nullability debt                    |
+| `src/features/architect/utils/mutationPipeline.ts`                                                      |     55 | `TS18048`, `TS2322`, `TS18049`, `TS2533`, `TS2345` |
 
 ### Readiness Verdict
 
@@ -392,10 +392,10 @@ mission backlog.
 
 ### Current Strict-Probe Truth
 
-| Command | Current result | Error count | Reading |
-| --- | --- | ---: | --- |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | PASS | 0 | Shared/runtime strict debt remains cleared; there is no live evidence of shared-boundary regression. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | FAIL as expected | 2,632 | The remaining mission-area backlog is still concentrated in Architect runtime contracts plus Architect-heavy test harnesses. |
+| Command                                                                 | Current result   | Error count | Reading                                                                                                                      |
+| ----------------------------------------------------------------------- | ---------------- | ----------: | ---------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | PASS             |           0 | Shared/runtime strict debt remains cleared; there is no live evidence of shared-boundary regression.                         |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         | FAIL as expected |       2,632 | The remaining mission-area backlog is still concentrated in Architect runtime contracts plus Architect-heavy test harnesses. |
 
 The shared/runtime probe is now green. The mission is still blocked by the
 Architect side of the repo: central runtime carrier/adapter contracts remain
@@ -406,31 +406,31 @@ sheet, season, and guardrail harnesses that exercise those contracts.
 
 Top error families from the live `tsconfig.architect-strict.json` run:
 
-| Error family | Count | What it now signals |
-| --- | ---: | --- |
-| `TS18048` | 557 | Optional/null values still flowing into code paths that assume presence. |
-| `TS2322` | 410 | Assignability disagreements between runtime carrier shapes and consuming adapters/tests. |
-| `TS7006` | 305 | Untyped parameters still concentrated in older Architect/trade harnesses. |
-| `TS18049` | 241 | Values may be `null` or `undefined` where downstream code expects real objects. |
-| `TS2345` | 239 | Function-call contracts still disagree across mutation, dashboard, and test layers. |
-| `TS18046` | 153 | `unknown` values are reaching assertions and helpers without truthful narrowing. |
-| `TS18047` | 144 | Nullable values are still used as present in key test/runtime flows. |
-| `TS7005` | 125 | Older Architect/trade harnesses still rely on implicitly-`any` locals. |
+| Error family | Count | What it now signals                                                                      |
+| ------------ | ----: | ---------------------------------------------------------------------------------------- |
+| `TS18048`    |   557 | Optional/null values still flowing into code paths that assume presence.                 |
+| `TS2322`     |   410 | Assignability disagreements between runtime carrier shapes and consuming adapters/tests. |
+| `TS7006`     |   305 | Untyped parameters still concentrated in older Architect/trade harnesses.                |
+| `TS18049`    |   241 | Values may be `null` or `undefined` where downstream code expects real objects.          |
+| `TS2345`     |   239 | Function-call contracts still disagree across mutation, dashboard, and test layers.      |
+| `TS18046`    |   153 | `unknown` values are reaching assertions and helpers without truthful narrowing.         |
+| `TS18047`    |   144 | Nullable values are still used as present in key test/runtime flows.                     |
+| `TS7005`     |   125 | Older Architect/trade harnesses still rely on implicitly-`any` locals.                   |
 
 Top failing files from the same live run:
 
-| File | Errors | Why it matters now |
-| --- | ---: | --- |
-| `tests/architect/seasonManager.test.ts` | 117 | Highest single-file test hotspot; central season lifecycle harness still bypasses real contracts too often. |
-| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 | Persistence truth harness still has heavy nullability churn across execute-trade flows. |
-| `tests/architect/offerSheetPersistence.test.ts` | 80 | Offer-sheet persistence coverage still depends on loosely aligned fixture/runtime shapes. |
-| `tests/architect/capLegalityValidation.test.ts` | 67 | Cap legality integration harness still carries broad contract mismatch debt. |
-| `tests/architect/teamLoader.test.ts` | 67 | Team-loader test surface still has mixed assignability/nullability fallout even after the runtime boundary hardening. |
-| `tests/architect/worldManager.test.ts` | 66 | World-manager harness still reflects older loose contracts rather than the hardened readers. |
-| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` | 64 | High-value parity/season-advance guardrail harness remains contract-heavy and nullable. |
-| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` | 62 | Exception guardrails still rely on overly permissive compatibility fixtures. |
-| `src/tests/architect/exceptionManagement.test.ts` | 58 | Exception lifecycle harness still reflects inconsistent runtime shapes. |
-| `src/features/architect/utils/mutationPipeline.ts` | 55 | Highest-leverage runtime contract owner still failing across nullability and assignability families. |
+| File                                                                                                    | Errors | Why it matters now                                                                                                    |
+| ------------------------------------------------------------------------------------------------------- | -----: | --------------------------------------------------------------------------------------------------------------------- |
+| `tests/architect/seasonManager.test.ts`                                                                 |    117 | Highest single-file test hotspot; central season lifecycle harness still bypasses real contracts too often.           |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`                              |     95 | Persistence truth harness still has heavy nullability churn across execute-trade flows.                               |
+| `tests/architect/offerSheetPersistence.test.ts`                                                         |     80 | Offer-sheet persistence coverage still depends on loosely aligned fixture/runtime shapes.                             |
+| `tests/architect/capLegalityValidation.test.ts`                                                         |     67 | Cap legality integration harness still carries broad contract mismatch debt.                                          |
+| `tests/architect/teamLoader.test.ts`                                                                    |     67 | Team-loader test surface still has mixed assignability/nullability fallout even after the runtime boundary hardening. |
+| `tests/architect/worldManager.test.ts`                                                                  |     66 | World-manager harness still reflects older loose contracts rather than the hardened readers.                          |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` |     64 | High-value parity/season-advance guardrail harness remains contract-heavy and nullable.                               |
+| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts`                                     |     62 | Exception guardrails still rely on overly permissive compatibility fixtures.                                          |
+| `src/tests/architect/exceptionManagement.test.ts`                                                       |     58 | Exception lifecycle harness still reflects inconsistent runtime shapes.                                               |
+| `src/features/architect/utils/mutationPipeline.ts`                                                      |     55 | Highest-leverage runtime contract owner still failing across nullability and assignability families.                  |
 
 ### Concentration Snapshot
 
@@ -465,10 +465,10 @@ Reviewed: 2026-04-22, after the second runtime contract-normalization wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 16 close | After Step 17 | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,549 | 2,501 | -48 |
-| `src/features/architect/utils/mutationPipeline.ts` | 57 | 34 | -23 |
+| Measurement                                                                                    |                                                          Step 16 close |   After Step 17 |   Delta |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------: | --------------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                |                                                                  2,549 |           2,501 |     -48 |
+| `src/features/architect/utils/mutationPipeline.ts`                                             |                                                                     57 |              34 |     -23 |
 | `src/features/architect/tradeMachine/TradeEditor.tsx` and touched child trade-machine UI files | 13 direct `TradeEditor.tsx` errors plus child nullable-contract errors | 0 direct errors | Cleared |
 
 ### Runtime Surfaces Improved
@@ -505,14 +505,14 @@ contract-normalization waves.
 
 ### Updated Architect Strict-Probe Counts
 
-| Measurement | Step 14 resume baseline | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,632 | 2,501 | -131 |
-| `src/features/architect/` runtime surfaces | 202 | 123 | -79 |
-| `src/features/architect/utils/mutationPipeline.ts` | 55 | 34 | -21 |
-| `src/features/architect/GMDashboard/**` | 31 | 2 | -29 |
-| `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` | 22 | 0 | Cleared |
-| `src/features/architect/hooks/useTradeMachine.ts` | 5 | 0 | Cleared |
+| Measurement                                                       | Step 14 resume baseline | Current |   Delta |
+| ----------------------------------------------------------------- | ----------------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`   |                   2,632 |   2,501 |    -131 |
+| `src/features/architect/` runtime surfaces                        |                     202 |     123 |     -79 |
+| `src/features/architect/utils/mutationPipeline.ts`                |                      55 |      34 |     -21 |
+| `src/features/architect/GMDashboard/**`                           |                      31 |       2 |     -29 |
+| `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` |                      22 |       0 | Cleared |
+| `src/features/architect/hooks/useTradeMachine.ts`                 |                       5 |       0 | Cleared |
 
 ### Runtime Hotspots Materially Improved
 
@@ -530,11 +530,11 @@ contract-normalization waves.
 
 ### Remaining Runtime Backlog Classification
 
-| Classification | File or group | Why it belongs here now |
-| --- | --- | --- |
-| `Immediate next-wave candidate` | `src/features/architect/utils/mutationPipeline.ts` (`34`) | This is the only remaining concentrated runtime-owner hotspot. The surviving errors are mostly offer-sheet/signing nullability plus final mutation-result assignability, so if another runtime wave is needed it should stay tightly bounded here. |
+| Classification                            | File or group                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Why it belongs here now                                                                                                                                                                                                                                                     |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Immediate next-wave candidate`           | `src/features/architect/utils/mutationPipeline.ts` (`34`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | This is the only remaining concentrated runtime-owner hotspot. The surviving errors are mostly offer-sheet/signing nullability plus final mutation-result assignability, so if another runtime wave is needed it should stay tightly bounded here.                          |
 | `Safe to defer until tests are tightened` | `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx` (`8`), `src/features/architect/utils/capLegalityValidation.ts` (`8`), `src/features/architect/utils/leagueInvariants.ts` (`8`), `src/features/architect/utils/tradeContext/tradeContext.ts` (`8`), `src/features/architect/utils/seasonManager.ts` (`7`), `src/features/architect/utils/offseason/resolveOffseasonTransition.ts` (`6`), `src/features/architect/utils/capTotals/computeTeamCapTotals.ts` (`5`), `src/features/architect/utils/tradeMachine/rules/miscRules.ts` (`5`) | These pockets are real but dispersed, and the dominant failing test harnesses exercise the same season, persistence, and cap flows. Tightening the tests first should show which of these pockets still need truthful runtime fixes versus local fixture/narrowing cleanup. |
-| `Needs product/architecture decision` | None currently identified from live repo evidence | The remaining runtime backlog is technical contract debt, not a blocked user-facing requirement. If a later wave promotes a canonical world/team/offseason carrier choice, that is an internal architecture decision rather than a product-direction question for the user. |
+| `Needs product/architecture decision`     | None currently identified from live repo evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | The remaining runtime backlog is technical contract debt, not a blocked user-facing requirement. If a later wave promotes a canonical world/team/offseason carrier choice, that is an internal architecture decision rather than a product-direction question for the user. |
 
 ### Recommendation
 
@@ -554,11 +554,11 @@ Reviewed: 2026-04-22, after the first Architect test-harness hardening wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 18 baseline | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,501 | 2,403 | -98 |
-| `tests/architect/seasonManager.test.ts` | 117 | 0 | Cleared |
-| `tests/helpers/architectTestHelpers.ts` | 18 | 0 | Cleared |
+| Measurement                                                     | Step 18 baseline | Current |   Delta |
+| --------------------------------------------------------------- | ---------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |            2,501 |   2,403 |     -98 |
+| `tests/architect/seasonManager.test.ts`                         |              117 |       0 | Cleared |
+| `tests/helpers/architectTestHelpers.ts`                         |               18 |       0 | Cleared |
 
 ### What Changed
 
@@ -597,11 +597,11 @@ Reviewed: 2026-04-22, after the second Architect test-harness hardening wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 19 close | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,403 | 2,228 | -175 |
-| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 at the Step 18 baseline | 0 | Cleared |
-| `tests/architect/offerSheetPersistence.test.ts` | 80 at the Step 18 baseline | 0 | Cleared |
+| Measurement                                                                |              Step 19 close | Current |   Delta |
+| -------------------------------------------------------------------------- | -------------------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`            |                      2,403 |   2,228 |    -175 |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 at the Step 18 baseline |       0 | Cleared |
+| `tests/architect/offerSheetPersistence.test.ts`                            | 80 at the Step 18 baseline |       0 | Cleared |
 
 ### What Changed
 
@@ -650,14 +650,14 @@ harness waves.
 
 ### Updated Test-Side Marker Counts
 
-| Marker | Step 9 review | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `any` | 637 | 637 | 0 |
-| `as any` | 332 | 332 | 0 |
-| `as unknown as` | 44 | 44 | 0 |
-| `@ts-ignore` | 0 | 0 | 0 |
-| `@ts-expect-error` | 1 | 1 | 0 |
-| `Record<string, any>` | 42 | 41 | -1 |
+| Marker                | Step 9 review | Current | Delta |
+| --------------------- | ------------: | ------: | ----: |
+| `any`                 |           637 |     637 |     0 |
+| `as any`              |           332 |     332 |     0 |
+| `as unknown as`       |            44 |      44 |     0 |
+| `@ts-ignore`          |             0 |       0 |     0 |
+| `@ts-expect-error`    |             1 |       1 |     0 |
+| `Record<string, any>` |            42 |      41 |    -1 |
 
 `unknown` remains a visibility metric rather than a dishonesty score. Test-side
 `unknown` moved from `1,096` in the Step 9 review to `1,121` (`+25`) because
@@ -701,11 +701,11 @@ Current top remaining test hotspots:
 
 ### Remaining Test Backlog Classification
 
-| Classification | File or group | Why it belongs here now |
-| --- | --- | --- |
-| `Immediate next-wave candidate` | `tests/architect/capLegalityValidation.test.ts`, `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`, `tests/architect/worldManager.test.ts`, `tests/architect/teamLoader.test.ts`, and `tests/architect/renounceRights.test.ts` | These files now dominate the remaining persistence/world/cap truth layer. They sit closest to the hardened runtime readers and mutation carriers, so tightening them should collapse the next highest-leverage assignability/nullable test debt rather than widening into broad parity suites. |
-| `Safe to defer only if runtime strictness is otherwise mission-complete` | `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts`, `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts`, `src/tests/architect/exceptionManagement.test.ts`, plus broader integration-style suites like `tests/architect/contractNormalization.test.ts`, `tests/architect/e2e-workflows.test.ts`, and `tests/architect/integration.test.ts` | These remain important, but they are broader exception/parity or end-to-end harnesses rather than the next closest trust boundary. They should not outrank the persistence/world/cap truth cluster unless the master checkpoint shows the remaining backlog is otherwise nearly closed. |
-| `Needs architecture-contract decision` | None currently identified from live evidence | The remaining backlog still reads as technical contract/test debt rather than a blocked product or architecture choice. |
+| Classification                                                           | File or group                                                                                                                                                                                                                                                                                                                                                                                                   | Why it belongs here now                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Immediate next-wave candidate`                                          | `tests/architect/capLegalityValidation.test.ts`, `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`, `tests/architect/worldManager.test.ts`, `tests/architect/teamLoader.test.ts`, and `tests/architect/renounceRights.test.ts`                                                                                                                                                                   | These files now dominate the remaining persistence/world/cap truth layer. They sit closest to the hardened runtime readers and mutation carriers, so tightening them should collapse the next highest-leverage assignability/nullable test debt rather than widening into broad parity suites. |
+| `Safe to defer only if runtime strictness is otherwise mission-complete` | `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts`, `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts`, `src/tests/architect/exceptionManagement.test.ts`, plus broader integration-style suites like `tests/architect/contractNormalization.test.ts`, `tests/architect/e2e-workflows.test.ts`, and `tests/architect/integration.test.ts` | These remain important, but they are broader exception/parity or end-to-end harnesses rather than the next closest trust boundary. They should not outrank the persistence/world/cap truth cluster unless the master checkpoint shows the remaining backlog is otherwise nearly closed.        |
+| `Needs architecture-contract decision`                                   | None currently identified from live evidence                                                                                                                                                                                                                                                                                                                                                                    | The remaining backlog still reads as technical contract/test debt rather than a blocked product or architecture choice.                                                                                                                                                                        |
 
 ### Conclusion
 
@@ -725,11 +725,11 @@ normalization wave.
 
 ### Probe Delta
 
-| Command | Original baseline | Step 14 resume baseline | Current | Reading |
-| --- | ---: | ---: | ---: | --- |
-| `npm run typecheck` | 0 | compatibility-only pass | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | Architect/test strict posture improved materially (`-339` vs the original baseline, `-404` vs Step 14), but it remains the mission blocker by a large margin. |
+| Command                                                                 | Original baseline | Step 14 resume baseline | Current | Reading                                                                                                                                                       |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | ------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                               |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |   2,228 | Architect/test strict posture improved materially (`-339` vs the original baseline, `-404` vs Step 14), but it remains the mission blocker by a large margin. |
 
 ### Current Architect Strict Concentration
 
@@ -791,12 +791,12 @@ Reviewed: 2026-04-22, after the third Architect persistence/world-truth wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 22 checkpoint | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,228 | 2,050 | -178 |
-| `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` | 64 at the Step 22 checkpoint | 0 | Cleared |
-| `tests/architect/worldManager.test.ts` | 64 at the Step 22 checkpoint | 0 | Cleared |
-| `tests/architect/teamLoader.test.ts` | 52 at the Step 22 checkpoint | 0 | Cleared |
+| Measurement                                                      |           Step 22 checkpoint | Current |   Delta |
+| ---------------------------------------------------------------- | ---------------------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`  |                        2,228 |   2,050 |    -178 |
+| `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` | 64 at the Step 22 checkpoint |       0 | Cleared |
+| `tests/architect/worldManager.test.ts`                           | 64 at the Step 22 checkpoint |       0 | Cleared |
+| `tests/architect/teamLoader.test.ts`                             | 52 at the Step 22 checkpoint |       0 | Cleared |
 
 ### What Changed
 

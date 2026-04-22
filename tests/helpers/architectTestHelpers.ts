@@ -11,10 +11,7 @@ import { expect } from 'vitest';
 import type { TeamTotals } from '@/features/architect/types';
 import type { LoadedWorldTeamCapSheet } from '@/features/architect/utils/worldTeamData';
 import { seedMockData, getMockData } from '../__mocks__/firebase.js';
-import {
-  BASE_TEAMS,
-  LAL_BASE_TEAM,
-} from '../fixtures/architect/teams.js';
+import { BASE_TEAMS, LAL_BASE_TEAM } from '../fixtures/architect/teams.js';
 import { BASE_PLAYERS } from '../fixtures/architect/players.js';
 import { SAMPLE_WORLD_METADATA } from '../fixtures/architect/worlds.js';
 
@@ -25,7 +22,9 @@ type BasePlayerFixture = (typeof BASE_PLAYERS)[FixturePlayerId];
 type BaseContractFixture = BasePlayerFixture['contract'];
 type BaseBioFixture = BasePlayerFixture['bio'];
 type BaseWorldFixture = typeof SAMPLE_WORLD_METADATA;
-type MockTradeException = NonNullable<BaseTeamFixture['exceptions']['tpe']>[number];
+type MockTradeException = NonNullable<
+  BaseTeamFixture['exceptions']['tpe']
+>[number];
 
 export type MockDraftPositionsEntry = {
   positionsMap: Record<string, number>;
@@ -312,9 +311,13 @@ function isMockTeamSnapshot(value: unknown): value is MockTeamSnapshot {
   return (
     isRecord(value) &&
     typeof value.teamCode === 'string' &&
-    (value.season === undefined || value.season === null || typeof value.season === 'string') &&
+    (value.season === undefined ||
+      value.season === null ||
+      typeof value.season === 'string') &&
     Array.isArray(value.roster) &&
-    (value.players === undefined || value.players === null || Array.isArray(value.players))
+    (value.players === undefined ||
+      value.players === null ||
+      Array.isArray(value.players))
   );
 }
 
@@ -341,7 +344,9 @@ function readMockDataWithGuard<T>(
     return undefined;
   }
   if (!guard(value)) {
-    throw new Error(`${label} at ${path} does not match the expected test shape`);
+    throw new Error(
+      `${label} at ${path} does not match the expected test shape`
+    );
   }
   return value;
 }
@@ -402,7 +407,8 @@ export function createMockTeam({
     season,
     roster,
     players,
-    draftPicks: draftPicks ?? (baseTeam.draftPicks as MockDraftPick[] | undefined),
+    draftPicks:
+      draftPicks ?? (baseTeam.draftPicks as MockDraftPick[] | undefined),
     capHolds: capHolds ?? (baseTeam.capHolds as MockCapHold[] | undefined),
     totals: nextTotals,
     ...overrides,
@@ -561,9 +567,36 @@ function createFillerPlayer(playerId: string, teamCode: string): MockPlayer {
  * All 30 NBA team codes
  */
 const ALL_TEAM_CODES = [
-  'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
-  'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK',
-  'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
+  'ATL',
+  'BOS',
+  'BKN',
+  'CHA',
+  'CHI',
+  'CLE',
+  'DAL',
+  'DEN',
+  'DET',
+  'GSW',
+  'HOU',
+  'IND',
+  'LAC',
+  'LAL',
+  'MEM',
+  'MIA',
+  'MIL',
+  'MIN',
+  'NOP',
+  'NYK',
+  'OKC',
+  'ORL',
+  'PHI',
+  'PHX',
+  'POR',
+  'SAC',
+  'SAS',
+  'TOR',
+  'UTA',
+  'WAS',
 ] as const;
 
 // CBA minimum is 13 standard players; pad to 15 to absorb contract expirations during transitions
@@ -579,7 +612,7 @@ export function seedBaseData(
   players: readonly string[] | null = null
 ): void {
   const teamCodesToSeed = teams === 'all' ? ALL_TEAM_CODES : teams;
-  
+
   // Seed base teams
   for (const teamCode of teamCodesToSeed) {
     const baseTeam = getFixtureTeam(teamCode);
@@ -594,7 +627,10 @@ export function seedBaseData(
         : [];
       const needed = Math.max(0, MIN_ROSTER_PAD_TARGET - existingRoster.length);
       if (needed > 0) {
-        const fillerRoster = Array.from({ length: needed }, (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`);
+        const fillerRoster = Array.from(
+          { length: needed },
+          (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`
+        );
         const fillerPlayers = fillerRoster.map((playerId) =>
           createFillerPlayer(playerId, teamCode)
         );
@@ -610,7 +646,10 @@ export function seedBaseData(
     } else {
       // Create minimal team data for teams not in fixtures.
       // Include filler players to meet CBA minimum offseason roster.
-      const fillerRoster = Array.from({ length: MIN_ROSTER_PAD_TARGET }, (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`);
+      const fillerRoster = Array.from(
+        { length: MIN_ROSTER_PAD_TARGET },
+        (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`
+      );
       const fillerPlayers = fillerRoster.map((playerId) =>
         createFillerPlayer(playerId, teamCode)
       );
@@ -668,9 +707,14 @@ export function seedTeamSnapshot(
   // unless padRoster is explicitly false
   const existingRoster = teamData.roster || [];
   const existingPlayers = teamData.players || [];
-  const needed = padRoster ? Math.max(0, MIN_ROSTER_PAD_TARGET - existingRoster.length) : 0;
+  const needed = padRoster
+    ? Math.max(0, MIN_ROSTER_PAD_TARGET - existingRoster.length)
+    : 0;
   if (needed > 0) {
-    const fillerRoster = Array.from({ length: needed }, (_, i) => `${teamCode.toLowerCase()}_snap_filler_${i + 1}`);
+    const fillerRoster = Array.from(
+      { length: needed },
+      (_, i) => `${teamCode.toLowerCase()}_snap_filler_${i + 1}`
+    );
     const fillerPlayers = fillerRoster.map((playerId) =>
       createFillerPlayer(playerId, teamCode)
     );
@@ -744,7 +788,11 @@ export function getMockWorldMetadata(
   worldId: string
 ): MockWorldMetadata | undefined {
   const worldPath = `architect_worlds/${worldId}`;
-  return readMockDataWithGuard(worldPath, isMockWorldMetadata, 'mock world metadata');
+  return readMockDataWithGuard(
+    worldPath,
+    isMockWorldMetadata,
+    'mock world metadata'
+  );
 }
 
 /**

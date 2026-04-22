@@ -59,14 +59,81 @@ import {
   createMockTeam,
   createMockPlayer,
   createMockCapProjections,
-} from '../helpers/architectTestHelpers.ts';
+} from '../helpers/architectTestHelpers.js';
 import {
-  computeExpectedCapHoldAmount,
   computeExpectedCapHoldAmount,
   deriveFreeAgencyYearFromOptionSeason,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { CAP_HOLD_MULTIPLIERS } from '@/features/architect/utils/capHolds';
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+
+type ComputeWorldMutationInput = Parameters<typeof computeWorldMutation>[0];
+type SignFreeAgentCurrentState = Extract<
+  ComputeWorldMutationInput,
+  { mutationType: 'signFreeAgent' }
+>['currentState'];
+type ValidationTeam = Parameters<typeof validateSigning>[0]['team'];
+type ExtensionTerms = NonNullable<
+  Parameters<typeof validateExtensionTermsAndRaises>[0]['extensionTerms']
+>;
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function requireRuleEntry<T extends { rule?: string }>(
+  entries: T[] | null | undefined,
+  rule: string,
+  message: string
+): T {
+  return requireValue(
+    entries?.find((entry) => entry.rule === rule),
+    message
+  );
+}
+
+function requireFieldEntry<T extends { field?: string }>(
+  entries: T[] | null | undefined,
+  field: string,
+  message: string
+): T {
+  return requireValue(
+    entries?.find((entry) => entry.field === field),
+    message
+  );
+}
+
+function getUpdatedTeam(
+  result: ReturnType<typeof computeWorldMutation>,
+  message: string
+) {
+  return requireValue(result.teamUpdates?.[0]?.team, message);
+}
+
+function requireFreeAgencyPayload(
+  value: unknown,
+  message: string
+): {
+  type?: string;
+  year?: number;
+  qualifyingOffer?: number;
+} {
+  if (typeof value !== 'object' || value == null) {
+    throw new Error(message);
+  }
+
+  return value as {
+    type?: string;
+    year?: number;
+    qualifyingOffer?: number;
+  };
+}
 
 describe('Cap Legality Validation', () => {
   const seasonId = '2025-26';
@@ -213,10 +280,12 @@ describe('Cap Legality Validation', () => {
         },
       };
 
-      const newPlayer = createMockPlayer({
-        playerId: 'new_player',
+      const newPlayer = {
+        player_id: 'new_player',
+        name: 'New Player',
         displayName: 'New Player',
-      });
+        bio: { experience: 0 },
+      };
 
       // Contract that would push over hard cap (193M + 5M = 198M > 196M firstApron)
       const contract = {
@@ -277,7 +346,11 @@ describe('Cap Legality Validation', () => {
 
       // Should be valid (allowed) but with a warning
       expect(result.valid).toBe(true);
-      const foundWarning = result.warnings.find((w) => w.rule === 'roster_minimum');
+      const foundWarning = requireRuleEntry(
+        result.warnings,
+        'roster_minimum',
+        'Expected roster minimum warning'
+      );
       expect(foundWarning).toBeDefined();
       expect(foundWarning.severity).toBe('warning');
     });
@@ -316,7 +389,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(true);
-      expect(result.warnings.some((w) => w.rule === 'roster_minimum')).toBe(false);
+      expect(result.warnings.some((w) => w.rule === 'roster_minimum')).toBe(
+        false
+      );
     });
   });
 
@@ -355,8 +430,13 @@ describe('Cap Legality Validation', () => {
         displayName: 'New Player',
       };
 
-      const currentState = {
-        team,
+      const currentState: SignFreeAgentCurrentState = {
+        team: {
+          ...team,
+          capHolds: [],
+          deadCap: [],
+          exceptions: null,
+        },
         player: newPlayer,
         teamCode,
       };
@@ -381,7 +461,9 @@ describe('Cap Legality Validation', () => {
 
       expect(result.success).toBe(true);
       expect(result.teamUpdates).toHaveLength(1);
-      expect(result.teamUpdates[0].team.roster).toContain('new_player');
+      expect(
+        getUpdatedTeam(result, 'Expected signFreeAgent team update').roster
+      ).toContain('new_player');
     });
   });
 
@@ -450,18 +532,23 @@ describe('Cap Legality Validation', () => {
         },
       ];
 
-      const team = {
+      const team: ValidationTeam = {
         teamCode: 'LAL',
         teamName: 'Los Angeles Lakers',
-        players,
+        players: players as ValidationTeam['players'],
         roster: players.map((p) => p.player_id),
-        totals: { rosterCount: 3 },
+        capHolds: [],
+        deadCap: [],
+        exceptions: null,
+        totals: { capHit: 0, totalSalary: 0 },
       };
 
-      const newPlayer = createMockPlayer({
-        playerId: 'new_twoway',
+      const newPlayer = {
+        player_id: 'new_twoway',
+        name: 'New Two-Way',
         displayName: 'New Two-Way',
-      });
+        bio: { experience: 0 },
+      };
 
       const contract = {
         contractType: 'Two-Way',
@@ -477,7 +564,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'two_way_limit')).toBe(true);
+      expect(result.violations.some((v) => v.rule === 'two_way_limit')).toBe(
+        true
+      );
     });
   });
 
@@ -526,8 +615,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'min_salary_violation')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'min_salary_violation').message).toMatch(/below CBA minimum/);
+      expect(
+        result.violations.some((v) => v.rule === 'min_salary_violation')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'min_salary_violation',
+          'Expected min salary violation'
+        ).message
+      ).toMatch(/below CBA minimum/);
     });
 
     it('blocks signing when first-year salary is below minimum for veteran (5 YOS)', () => {
@@ -562,7 +659,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'min_salary_violation')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'min_salary_violation')
+      ).toBe(true);
     });
 
     it('allows signing when first-year salary exactly meets minimum', () => {
@@ -596,7 +695,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should pass (no min_salary_violation)
-      const minSalaryViolation = result.violations.find((v) => v.rule === 'min_salary_violation');
+      const minSalaryViolation = result.violations.find(
+        (v) => v.rule === 'min_salary_violation'
+      );
       expect(minSalaryViolation).toBeUndefined();
     });
 
@@ -630,7 +731,9 @@ describe('Cap Legality Validation', () => {
         year,
       });
 
-      const minSalaryViolation = result.violations.find((v) => v.rule === 'min_salary_violation');
+      const minSalaryViolation = result.violations.find(
+        (v) => v.rule === 'min_salary_violation'
+      );
       expect(minSalaryViolation).toBeUndefined();
     });
 
@@ -666,7 +769,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should fail because salary is below rookie minimum
-      expect(result.violations.some((v) => v.rule === 'min_salary_violation')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'min_salary_violation')
+      ).toBe(true);
 
       // Contract at or above rookie minimum - should pass this check
       const atMinContract = {
@@ -682,7 +787,9 @@ describe('Cap Legality Validation', () => {
         year,
       });
 
-      const minSalaryViolation2 = result2.violations.find((v) => v.rule === 'min_salary_violation');
+      const minSalaryViolation2 = result2.violations.find(
+        (v) => v.rule === 'min_salary_violation'
+      );
       expect(minSalaryViolation2).toBeUndefined();
     });
 
@@ -718,7 +825,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have min_salary_violation for two-way contracts
-      const minSalaryViolation = result.violations.find((v) => v.rule === 'min_salary_violation');
+      const minSalaryViolation = result.violations.find(
+        (v) => v.rule === 'min_salary_violation'
+      );
       expect(minSalaryViolation).toBeUndefined();
     });
 
@@ -742,11 +851,13 @@ describe('Cap Legality Validation', () => {
       // This tests the edge case where capHit differs from salary
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{
-          season: '2025-26',
-          salary: ROOKIE_MIN_2026,  // Salary meets minimum
-          capHit: 1_000_000,        // But capHit is below minimum
-        }],
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: ROOKIE_MIN_2026, // Salary meets minimum
+            capHit: 1_000_000, // But capHit is below minimum
+          },
+        ],
       };
 
       const result = validateSigning({
@@ -759,8 +870,16 @@ describe('Cap Legality Validation', () => {
 
       // Should fail because capHit is below minimum
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'min_salary_violation')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'min_salary_violation').message).toMatch(/cap hit/i);
+      expect(
+        result.violations.some((v) => v.rule === 'min_salary_violation')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'min_salary_violation',
+          'Expected min salary violation'
+        ).message
+      ).toMatch(/cap hit/i);
     });
 
     it('confirms min_salary_violation is a HARD_BLOCK rule', () => {
@@ -818,8 +937,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'signing_terms_invalid').message).toMatch(/Salary Engine max.*4.*FULL MLE/);
+      expect(
+        result.violations.some((v) => v.rule === 'signing_terms_invalid')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'signing_terms_invalid',
+          'Expected signing terms violation'
+        ).message
+      ).toMatch(/Salary Engine max.*4.*FULL MLE/);
     });
 
     it('blocks MINIMUM signing when contract exceeds max years (3-year minimum)', () => {
@@ -857,8 +984,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'signing_terms_invalid').message).toMatch(/Salary Engine max.*2.*MINIMUM/);
+      expect(
+        result.violations.some((v) => v.rule === 'signing_terms_invalid')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'signing_terms_invalid',
+          'Expected signing terms violation'
+        ).message
+      ).toMatch(/Salary Engine max.*2.*MINIMUM/);
     });
 
     it('blocks BAE signing when contract exceeds max years (3-year BAE)', () => {
@@ -896,7 +1031,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'signing_terms_invalid')
+      ).toBe(true);
     });
 
     it('allows MLE signing at max years (4-year MLE)', () => {
@@ -935,7 +1072,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have contract_years_invalid violation
-      const yearsViolation = result.violations.find((v) => v.rule === 'contract_years_invalid');
+      const yearsViolation = result.violations.find(
+        (v) => v.rule === 'contract_years_invalid'
+      );
       expect(yearsViolation).toBeUndefined();
     });
 
@@ -969,7 +1108,9 @@ describe('Cap Legality Validation', () => {
         year,
       });
 
-      expect(result1.violations.find((v) => v.rule === 'contract_years_invalid')).toBeUndefined();
+      expect(
+        result1.violations.find((v) => v.rule === 'contract_years_invalid')
+      ).toBeUndefined();
 
       // 2-year minimum contract (at max)
       const twoYearContract = {
@@ -988,7 +1129,9 @@ describe('Cap Legality Validation', () => {
         year,
       });
 
-      expect(result2.violations.find((v) => v.rule === 'contract_years_invalid')).toBeUndefined();
+      expect(
+        result2.violations.find((v) => v.rule === 'contract_years_invalid')
+      ).toBeUndefined();
     });
 
     it('excludes two-way contracts from years validation', () => {
@@ -1026,7 +1169,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have contract_years_invalid for two-way
-      const yearsViolation = result.violations.find((v) => v.rule === 'contract_years_invalid');
+      const yearsViolation = result.violations.find(
+        (v) => v.rule === 'contract_years_invalid'
+      );
       expect(yearsViolation).toBeUndefined();
     });
 
@@ -1066,8 +1211,12 @@ describe('Cap Legality Validation', () => {
         year,
       });
 
-      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
-      const yearsViolation = result.violations.find((v) => v.rule === 'contract_years_invalid');
+      expect(
+        result.violations.some((v) => v.rule === 'signing_terms_invalid')
+      ).toBe(true);
+      const yearsViolation = result.violations.find(
+        (v) => v.rule === 'contract_years_invalid'
+      );
       expect(yearsViolation).toBeUndefined();
     });
 
@@ -1104,7 +1253,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should block because contractLength (5) exceeds MLE max (4)
-      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'signing_terms_invalid')
+      ).toBe(true);
     });
 
     it('confirms contract_years_invalid is a HARD_BLOCK rule', () => {
@@ -1126,13 +1277,15 @@ describe('Cap Legality Validation', () => {
         ],
       };
 
-      const violation = validateSigningRaises({
-        contract,
-        raisePercentage: 0.05,
-        mechanism: 'FULL_MLE',
-      });
+      const violation = requireValue(
+        validateSigningRaises({
+          contract,
+          raisePercentage: 0.05,
+          mechanism: 'FULL_MLE',
+        }),
+        'Expected signing raise violation'
+      );
 
-      expect(violation).toBeDefined();
       expect(violation.rule).toBe('signing_raise_invalid');
     });
 
@@ -1177,7 +1330,9 @@ describe('Cap Legality Validation', () => {
         mechanism: 'FULL_MLE',
       });
 
-      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'signing_terms_invalid')
+      ).toBe(true);
     });
 
     it('does not enforce raise rule when engine terms are unavailable', () => {
@@ -1202,7 +1357,9 @@ describe('Cap Legality Validation', () => {
         mechanism: 'FULL_MLE',
       });
 
-      expect(result.violations.some((v) => v.rule === 'signing_raise_invalid')).toBe(false);
+      expect(
+        result.violations.some((v) => v.rule === 'signing_raise_invalid')
+      ).toBe(false);
     });
 
     it('confirms signing term rules are HARD_BLOCK rules', () => {
@@ -1259,8 +1416,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'first_year_max_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'first_year_max_invalid').message).toMatch(/exceeds FULL MLE maximum/);
+      expect(
+        result.violations.some((v) => v.rule === 'first_year_max_invalid')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'first_year_max_invalid',
+          'Expected first year max violation'
+        ).message
+      ).toMatch(/exceeds FULL MLE maximum/);
     });
 
     it('blocks TPMLE signing when first-year salary exceeds taxpayerMLE amount', () => {
@@ -1294,8 +1459,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'first_year_max_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'first_year_max_invalid').message).toMatch(/exceeds TPMLE maximum/);
+      expect(
+        result.violations.some((v) => v.rule === 'first_year_max_invalid')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'first_year_max_invalid',
+          'Expected first year max violation'
+        ).message
+      ).toMatch(/exceeds TPMLE maximum/);
     });
 
     it('blocks BAE signing when first-year salary exceeds bae amount', () => {
@@ -1329,7 +1502,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'first_year_max_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'first_year_max_invalid')
+      ).toBe(true);
     });
 
     it('blocks ROOM_MLE signing when first-year salary exceeds roomMLE amount', () => {
@@ -1363,7 +1538,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'first_year_max_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'first_year_max_invalid')
+      ).toBe(true);
     });
 
     it('blocks MINIMUM signing when first-year salary exceeds minimum (exactness check)', () => {
@@ -1397,8 +1574,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'first_year_max_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'first_year_max_invalid').message).toMatch(/exceeds minimum salary.*for MINIMUM signing/);
+      expect(
+        result.violations.some((v) => v.rule === 'first_year_max_invalid')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'first_year_max_invalid',
+          'Expected first year max violation'
+        ).message
+      ).toMatch(/exceeds minimum salary.*for MINIMUM signing/);
     });
 
     it('allows signing at exactly the exception max', () => {
@@ -1432,7 +1617,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have first_year_max_invalid violation
-      const maxViolation = result.violations.find((v) => v.rule === 'first_year_max_invalid');
+      const maxViolation = result.violations.find(
+        (v) => v.rule === 'first_year_max_invalid'
+      );
       expect(maxViolation).toBeUndefined();
     });
 
@@ -1467,7 +1654,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have first_year_max_invalid for two-way
-      const maxViolation = result.violations.find((v) => v.rule === 'first_year_max_invalid');
+      const maxViolation = result.violations.find(
+        (v) => v.rule === 'first_year_max_invalid'
+      );
       expect(maxViolation).toBeUndefined();
     });
 
@@ -1519,8 +1708,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'second_apron_minimum_only')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'second_apron_minimum_only').message).toMatch(/at\/above second apron/);
+      expect(
+        result.violations.some((v) => v.rule === 'second_apron_minimum_only')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'second_apron_minimum_only',
+          'Expected second apron minimum-only violation'
+        ).message
+      ).toMatch(/at\/above second apron/);
     });
 
     it('allows above-second-apron signing when salary exactly equals minimum', () => {
@@ -1554,7 +1751,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have second_apron_minimum_only violation
-      const apronViolation = result.violations.find((v) => v.rule === 'second_apron_minimum_only');
+      const apronViolation = result.violations.find(
+        (v) => v.rule === 'second_apron_minimum_only'
+      );
       expect(apronViolation).toBeUndefined();
     });
 
@@ -1589,7 +1788,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have second_apron_minimum_only violation
-      const apronViolation = result.violations.find((v) => v.rule === 'second_apron_minimum_only');
+      const apronViolation = result.violations.find(
+        (v) => v.rule === 'second_apron_minimum_only'
+      );
       expect(apronViolation).toBeUndefined();
     });
 
@@ -1624,7 +1825,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have second_apron_minimum_only for two-way
-      const apronViolation = result.violations.find((v) => v.rule === 'second_apron_minimum_only');
+      const apronViolation = result.violations.find(
+        (v) => v.rule === 'second_apron_minimum_only'
+      );
       expect(apronViolation).toBeUndefined();
     });
 
@@ -1660,7 +1863,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should trigger second_apron_minimum_only because projected cap hit >= second apron
-      expect(result.violations.some((v) => v.rule === 'second_apron_minimum_only')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'second_apron_minimum_only')
+      ).toBe(true);
     });
 
     it('uses capHit (not salary) for second apron projection when capHit differs (Phase 2.5 patch)', () => {
@@ -1687,11 +1892,13 @@ describe('Cap Legality Validation', () => {
       // capHit ($2M) > $1.5M needed to push over second apron
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{
-          season: '2025-26',
-          salary: 1_200_000,   // Above min salary, but below $1.5M needed to push over
-          capHit: 2_000_000,   // Above the $1.5M needed to push over
-        }],
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: 1_200_000, // Above min salary, but below $1.5M needed to push over
+            capHit: 2_000_000, // Above the $1.5M needed to push over
+          },
+        ],
       };
 
       const result = validateSigning({
@@ -1706,7 +1913,9 @@ describe('Cap Legality Validation', () => {
       // With capHit-based projection: apron - 1.5M + 2M = apron + 500k (ABOVE apron)
       // Phase 2.5 patch ensures we use capHit, so this SHOULD trigger second_apron_minimum_only
       // because salary ($1.2M) > min salary ($1.164M) while team is above second apron
-      expect(result.violations.some((v) => v.rule === 'second_apron_minimum_only')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'second_apron_minimum_only')
+      ).toBe(true);
     });
 
     it('confirms second_apron_minimum_only is a HARD_BLOCK rule', () => {
@@ -1719,13 +1928,12 @@ describe('Cap Legality Validation', () => {
   // ==========================================================================
 
   describe('getOverridePolicy Defensive Checks', () => {
-
     it('handles normal valid violations and warnings', () => {
       const violations = [{ rule: HARD_BLOCK_RULES[0], message: 'Hard block' }];
       const warnings = [{ rule: 'some_warning', message: 'Just a warning' }];
-      
+
       const result = getOverridePolicy(violations, warnings);
-      
+
       expect(result.canOverride).toBe(false);
       expect(result.hasHardBlock).toBe(true);
       expect(result.hardBlockReasons).toContain('Hard block');
@@ -1734,52 +1942,66 @@ describe('Cap Legality Validation', () => {
 
     it('handles malformed violations (missing rule)', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const violations = [{ message: 'Missing rule' }];
-      
+      const violations = [{ message: 'Missing rule' }] as Parameters<
+        typeof getOverridePolicy
+      >[0];
+
       const result = getOverridePolicy(violations, []);
-      
-      expect(result.softWarningReasons[0]).toMatch(/Malformed violation: Missing rule/);
+
+      expect(result.softWarningReasons[0]).toMatch(
+        /Malformed violation: Missing rule/
+      );
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
 
     it('handles malformed violations (missing message)', () => {
-        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        const violations = [{ rule: 'roster_size' }];
-        
-        const result = getOverridePolicy(violations, []);
-        
-        expect(result.softWarningReasons[0]).toMatch(/Malformed violation detected/);
-        expect(consoleSpy).toHaveBeenCalled();
-        consoleSpy.mockRestore();
-      });
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const violations = [{ rule: 'roster_size' }] as Parameters<
+        typeof getOverridePolicy
+      >[0];
+
+      const result = getOverridePolicy(violations, []);
+
+      expect(result.softWarningReasons[0]).toMatch(
+        /Malformed violation detected/
+      );
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
 
     it('handles malformed warnings', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const warnings = [{ rule: 'something', message: '' }]; // Empty message
-      
+      const warnings = [{ rule: 'something', message: '' }] as Parameters<
+        typeof getOverridePolicy
+      >[1]; // Empty message
+
       const result = getOverridePolicy([], warnings);
-      
-      expect(result.softWarningReasons[0]).toMatch(/Malformed warning detected/);
+
+      expect(result.softWarningReasons[0]).toMatch(
+        /Malformed warning detected/
+      );
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
 
     it('promotes warnings to hard blocks if rule is in HARD_BLOCK_RULES', () => {
       // Simulate a scenario where a hard block rule ended up in the warnings array
-      const warnings = [{ rule: HARD_BLOCK_RULES[0], message: 'Should be hard block' }];
-      
+      const warnings = [
+        { rule: HARD_BLOCK_RULES[0], message: 'Should be hard block' },
+      ];
+
       const result = getOverridePolicy([], warnings);
-      
+
       expect(result.hasHardBlock).toBe(true);
       expect(result.hardBlockReasons).toContain('Should be hard block');
       expect(result.softWarningReasons).not.toContain('Should be hard block');
     });
 
     it('handles null/undefined inputs gracefully', () => {
-        const result = getOverridePolicy(undefined, undefined);
-        expect(result.canOverride).toBe(true);
-        expect(result.hardBlockReasons).toHaveLength(0);
+      const result = getOverridePolicy(undefined, undefined);
+      expect(result.canOverride).toBe(true);
+      expect(result.hardBlockReasons).toHaveLength(0);
     });
   });
 
@@ -1789,7 +2011,10 @@ describe('Cap Legality Validation', () => {
 
   describe('validateExtension - Phase 3 Extension Validation', () => {
     // Helper to create player with contract
-    const createPlayerWithContract = (lastYearSalary, options = {}) => ({
+    const createPlayerWithContract = (
+      lastYearSalary: number,
+      options: { experience?: number; contractType?: string } = {}
+    ) => ({
       player_id: 'player_1',
       name: 'Test Player',
       displayName: 'Test Player',
@@ -1812,12 +2037,12 @@ describe('Cap Legality Validation', () => {
 
     it('blocks extension for two-way contracts', () => {
       const team = createTeam();
-      const player = createPlayerWithContract(500_000, { contractType: 'Two-Way' });
+      const player = createPlayerWithContract(500_000, {
+        contractType: 'Two-Way',
+      });
 
       const extension = {
-        salariesByYear: [
-          { season: '2025-26', salary: 2_000_000 },
-        ],
+        salariesByYear: [{ season: '2025-26', salary: 2_000_000 }],
       };
 
       const result = validateExtension({
@@ -1828,8 +2053,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'extension_ineligible')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'extension_ineligible').message).toMatch(/Two-way contracts cannot be extended/);
+      expect(
+        result.violations.some((v) => v.rule === 'extension_ineligible')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'extension_ineligible',
+          'Expected extension ineligible violation'
+        ).message
+      ).toMatch(/Two-way contracts cannot be extended/);
     });
 
     it('blocks extension when years exceed max (5-year extension)', () => {
@@ -1855,8 +2088,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'extension_years_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'extension_years_invalid').message).toMatch(/exceeds maximum.*4 years/);
+      expect(
+        result.violations.some((v) => v.rule === 'extension_years_invalid')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'extension_years_invalid',
+          'Expected extension years violation'
+        ).message
+      ).toMatch(/exceeds maximum.*4 years/);
     });
 
     it('blocks extension when first year exceeds max (150% exceeds any baseline/engine max)', () => {
@@ -1881,8 +2122,18 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'extension_first_year_max_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'extension_first_year_max_invalid').message).toMatch(/exceeds maximum/);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'extension_first_year_max_invalid'
+        )
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'extension_first_year_max_invalid',
+          'Expected extension first year max violation'
+        ).message
+      ).toMatch(/exceeds maximum/);
     });
 
     it('blocks extension when raises exceed 8%', () => {
@@ -1891,7 +2142,7 @@ describe('Cap Legality Validation', () => {
       const player = createPlayerWithContract(lastYearSalary);
 
       // First year at 120% (valid under baseline), but second year at 15% raise (invalid)
-      const firstYearSalary = lastYearSalary * 1.20; // $12M (valid under 120% baseline)
+      const firstYearSalary = lastYearSalary * 1.2; // $12M (valid under 120% baseline)
       const secondYearSalary = firstYearSalary * 1.15; // $13.8M (15% raise - exceeds 8%)
       const extension = {
         salariesByYear: [
@@ -1908,8 +2159,16 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'extension_raise_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'extension_raise_invalid').message).toMatch(/exceeds allowed 8% raise/);
+      expect(
+        result.violations.some((v) => v.rule === 'extension_raise_invalid')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'extension_raise_invalid',
+          'Expected extension raise violation'
+        ).message
+      ).toMatch(/exceeds allowed 8% raise/);
     });
 
     it('allows extension at baseline boundary values (4 years, 120%, 8% raises)', () => {
@@ -1922,9 +2181,24 @@ describe('Cap Legality Validation', () => {
       const extension = {
         salariesByYear: [
           { season: '2025-26', salary: firstYearSalary },
-          { season: '2026-27', salary: Math.round(firstYearSalary * (1 + EXTENSION_MAX_RAISE_PERCENT)) },
-          { season: '2027-28', salary: Math.round(firstYearSalary * Math.pow(1 + EXTENSION_MAX_RAISE_PERCENT, 2)) },
-          { season: '2028-29', salary: Math.round(firstYearSalary * Math.pow(1 + EXTENSION_MAX_RAISE_PERCENT, 3)) },
+          {
+            season: '2026-27',
+            salary: Math.round(
+              firstYearSalary * (1 + EXTENSION_MAX_RAISE_PERCENT)
+            ),
+          },
+          {
+            season: '2027-28',
+            salary: Math.round(
+              firstYearSalary * Math.pow(1 + EXTENSION_MAX_RAISE_PERCENT, 2)
+            ),
+          },
+          {
+            season: '2028-29',
+            salary: Math.round(
+              firstYearSalary * Math.pow(1 + EXTENSION_MAX_RAISE_PERCENT, 3)
+            ),
+          },
         ],
       };
 
@@ -1936,10 +2210,11 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have any extension-related violations
-      const extensionViolations = result.violations.filter((v) =>
-        v.rule.startsWith('extension_years') ||
-        v.rule.startsWith('extension_first_year') ||
-        v.rule.startsWith('extension_raise')
+      const extensionViolations = result.violations.filter(
+        (v) =>
+          v.rule.startsWith('extension_years') ||
+          v.rule.startsWith('extension_first_year') ||
+          v.rule.startsWith('extension_raise')
       );
       expect(extensionViolations).toHaveLength(0);
     });
@@ -1955,9 +2230,7 @@ describe('Cap Legality Validation', () => {
       };
 
       const extension = {
-        salariesByYear: [
-          { season: '2025-26', salary: 10_000_000 },
-        ],
+        salariesByYear: [{ season: '2025-26', salary: 10_000_000 }],
       };
 
       const result = validateExtension({
@@ -1968,7 +2241,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'no_contract')).toBe(true);
+      expect(result.violations.some((v) => v.rule === 'no_contract')).toBe(
+        true
+      );
     });
 
     it('confirms extension rule IDs are in HARD_BLOCK_RULES', () => {
@@ -1981,7 +2256,7 @@ describe('Cap Legality Validation', () => {
     it('exports extension constants correctly (Phase 3.25: baseline is now 120%)', () => {
       expect(EXTENSION_YEARS_LIMITS.min).toBe(1);
       expect(EXTENSION_YEARS_LIMITS.max).toBe(4);
-      expect(EXTENSION_FIRST_YEAR_MAX_PERCENT).toBe(1.20); // Changed from 1.40 in Phase 3.25
+      expect(EXTENSION_FIRST_YEAR_MAX_PERCENT).toBe(1.2); // Changed from 1.40 in Phase 3.25
       expect(EXTENSION_MAX_RAISE_PERCENT).toBe(0.08);
     });
 
@@ -2014,8 +2289,18 @@ describe('Cap Legality Validation', () => {
 
       // Should block because 125% > 120% baseline
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'extension_first_year_max_invalid')).toBe(true);
-      expect(result.violations.find((v) => v.rule === 'extension_first_year_max_invalid').message).toMatch(/exceeds maximum/);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'extension_first_year_max_invalid'
+        )
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'extension_first_year_max_invalid',
+          'Expected extension first year max violation'
+        ).message
+      ).toMatch(/exceeds maximum/);
     });
 
     it('allows extension at exactly 120% of last-year salary (Phase 3.25 baseline)', () => {
@@ -2024,7 +2309,7 @@ describe('Cap Legality Validation', () => {
       const player = createPlayerWithContract(lastYearSalary);
 
       // First year at exactly 120% of last year
-      const firstYearSalary = lastYearSalary * 1.20; // $12M
+      const firstYearSalary = lastYearSalary * 1.2; // $12M
       const extension = {
         salariesByYear: [
           { season: '2025-26', salary: firstYearSalary },
@@ -2040,14 +2325,16 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have first-year max violation at exactly 120%
-      const firstYearViolation = result.violations.find((v) => v.rule === 'extension_first_year_max_invalid');
+      const firstYearViolation = result.violations.find(
+        (v) => v.rule === 'extension_first_year_max_invalid'
+      );
       expect(firstYearViolation).toBeUndefined();
     });
 
     it('validateExtensionTermsAndRaises uses engine maxFirstYearSalary when provided (Phase 3.25)', () => {
       // This tests the pure validation function directly with mocked engine terms
       // validateExtensionTermsAndRaises is imported at the top of the file
-      
+
       const lastYearSalary = 10_000_000;
       const player = {
         player_id: 'test_player',
@@ -2073,13 +2360,21 @@ describe('Cap Legality Validation', () => {
         extension,
         extensionTerms: null,
       });
-      expect(resultWithoutEngine.violations.some((v) => v.rule === 'extension_first_year_max_invalid')).toBe(true);
+      expect(
+        resultWithoutEngine.violations.some(
+          (v) => v.rule === 'extension_first_year_max_invalid'
+        )
+      ).toBe(true);
 
       // WITH engine terms that allow 140% ($14M max)
-      const engineTerms = {
+      const engineTerms: ExtensionTerms = {
         maxYears: 4,
         maxFirstYearSalary: 14_000_000, // 140% of $10M
+        minFirstYearSalary: null,
         raisePercentage: 0.08,
+        extensionType: 'Bird Extension',
+        basedOn: 'test fixture',
+        notes: '',
       };
       const resultWithEngine = validateExtensionTermsAndRaises({
         player,
@@ -2087,7 +2382,11 @@ describe('Cap Legality Validation', () => {
         extensionTerms: engineTerms,
       });
       // Should pass because $13.5M < $14M engine max
-      expect(resultWithEngine.violations.find((v) => v.rule === 'extension_first_year_max_invalid')).toBeUndefined();
+      expect(
+        resultWithEngine.violations.find(
+          (v) => v.rule === 'extension_first_year_max_invalid'
+        )
+      ).toBeUndefined();
     });
   });
 
@@ -2136,7 +2435,9 @@ describe('Cap Legality Validation', () => {
       );
       // Engine may or may not provide a lower max - test that rule is applied when it does
       // For integration, we check the rule is in HARD_BLOCK_RULES
-      expect(HARD_BLOCK_RULES).toContain('signing_first_year_engine_max_invalid');
+      expect(HARD_BLOCK_RULES).toContain(
+        'signing_first_year_engine_max_invalid'
+      );
     });
 
     it('allows signing at exact engine boundary', () => {
@@ -2196,7 +2497,9 @@ describe('Cap Legality Validation', () => {
       // Full MLE is $14.104M, so set salary at $14M and capHit at $15M
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{ season: '2025-26', salary: 14_000_000, capHit: 15_000_000 }],
+        salariesByYear: [
+          { season: '2025-26', salary: 14_000_000, capHit: 15_000_000 },
+        ],
       };
 
       const result = validateSigning({
@@ -2211,7 +2514,8 @@ describe('Cap Legality Validation', () => {
       // This could be first_year_max_invalid (fallback) or signing_first_year_engine_max_invalid
       const hasCapHitViolation = result.violations.some(
         (v) =>
-          (v.rule === 'first_year_max_invalid' || v.rule === 'signing_first_year_engine_max_invalid') &&
+          (v.rule === 'first_year_max_invalid' ||
+            v.rule === 'signing_first_year_engine_max_invalid') &&
           v.message.includes('cap hit')
       );
       expect(hasCapHitViolation).toBe(true);
@@ -2256,7 +2560,9 @@ describe('Cap Legality Validation', () => {
     });
 
     it('confirms signing_first_year_engine_max_invalid is a HARD_BLOCK rule', () => {
-      expect(HARD_BLOCK_RULES).toContain('signing_first_year_engine_max_invalid');
+      expect(HARD_BLOCK_RULES).toContain(
+        'signing_first_year_engine_max_invalid'
+      );
     });
 
     it('excludes two-way contracts from engine first-year max enforcement', () => {
@@ -2318,7 +2624,9 @@ describe('Cap Legality Validation', () => {
     it('blocks negative capHit in contract row', () => {
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{ season: '2025-26', salary: 5_000_000, capHit: -1_000_000 }],
+        salariesByYear: [
+          { season: '2025-26', salary: 5_000_000, capHit: -1_000_000 },
+        ],
       };
 
       const result = validateContractRows(contract);
@@ -2349,18 +2657,22 @@ describe('Cap Legality Validation', () => {
 
       expect(result.violations.length).toBeGreaterThan(0);
       expect(result.violations[0].rule).toBe('contract_row_schema_invalid');
-      expect(result.violations[0].message).toMatch(/missing or invalid season/i);
+      expect(result.violations[0].message).toMatch(
+        /missing or invalid season/i
+      );
     });
 
     it('blocks guaranteedAmount > salary', () => {
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{
-          season: '2025-26',
-          salary: 5_000_000,
-          guaranteed: true,
-          guaranteedAmount: 10_000_000, // More than salary
-        }],
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: 5_000_000,
+            guaranteed: true,
+            guaranteedAmount: 10_000_000, // More than salary
+          },
+        ],
       };
 
       const result = validateContractRows(contract);
@@ -2373,12 +2685,14 @@ describe('Cap Legality Validation', () => {
     it('blocks guaranteed=false with positive guaranteedAmount', () => {
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{
-          season: '2025-26',
-          salary: 5_000_000,
-          guaranteed: false,
-          guaranteedAmount: 1_000_000, // Non-zero when not guaranteed - contradictory
-        }],
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: 5_000_000,
+            guaranteed: false,
+            guaranteedAmount: 1_000_000, // Non-zero when not guaranteed - contradictory
+          },
+        ],
       };
 
       const result = validateContractRows(contract);
@@ -2391,11 +2705,13 @@ describe('Cap Legality Validation', () => {
     it('blocks invalid option enum value', () => {
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{
-          season: '2025-26',
-          salary: 5_000_000,
-          option: 'Invalid Option Type',
-        }],
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: 5_000_000,
+            option: 'Invalid Option Type',
+          },
+        ],
       };
 
       const result = validateContractRows(contract);
@@ -2408,12 +2724,14 @@ describe('Cap Legality Validation', () => {
     it('flags optionUsed normalization when option is null but optionUsed is boolean', () => {
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{
-          season: '2025-26',
-          salary: 5_000_000,
-          option: null,
-          optionUsed: true, // Boolean when option is null - should be normalized
-        }],
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: 5_000_000,
+            option: null,
+            optionUsed: true, // Boolean when option is null - should be normalized
+          },
+        ],
       };
 
       const result = validateContractRows(contract);
@@ -2480,7 +2798,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'contract_row_schema_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'contract_row_schema_invalid')
+      ).toBe(true);
     });
 
     it('validates apron projection uses capHit when capHit differs from salary', () => {
@@ -2492,7 +2812,7 @@ describe('Cap Legality Validation', () => {
       // Both values trigger, but we verify capHit ($5M) is what triggers the minimum-only check
       const SECOND_APRON_2026 = 207_824_000;
       const VET_5_YOS_MIN = 2_912_000;
-      
+
       const team = {
         teamCode: 'LAL',
         teamName: 'Los Angeles Lakers',
@@ -2513,11 +2833,13 @@ describe('Cap Legality Validation', () => {
       // Since capHit ($5M) > minimum ($2.912M), should trigger second_apron_minimum_only
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{
-          season: '2025-26',
-          salary: VET_5_YOS_MIN, // Exactly at 5 YOS minimum 
-          capHit: 5_000_000, // Higher capHit for projection
-        }],
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: VET_5_YOS_MIN, // Exactly at 5 YOS minimum
+            capHit: 5_000_000, // Higher capHit for projection
+          },
+        ],
       };
 
       const result = validateSigning({
@@ -2531,7 +2853,11 @@ describe('Cap Legality Validation', () => {
       // Should trigger second_apron_minimum_only because:
       // - Projected capHit (205M + 5M = 210M) >= second apron (207.824M)
       // - CapHit ($5M) exceeds minimum ($2.912M) for 5 YOS
-      const secondApronViolation = result.violations.find((v) => v.rule === 'second_apron_minimum_only');
+      const secondApronViolation = requireRuleEntry(
+        result.violations,
+        'second_apron_minimum_only',
+        'Expected second apron minimum-only violation'
+      );
       expect(secondApronViolation).toBeDefined();
       // The violation message should mention cap hit since capHit differs from salary
       expect(secondApronViolation.message).toMatch(/cap hit/i);
@@ -2567,7 +2893,9 @@ describe('Cap Legality Validation', () => {
         maxYears: 4,
       };
 
-      const normalized = normalizeSigningTerms(legacyTerms, { fallbackMechanism: 'FULL_MLE' });
+      const normalized = normalizeSigningTerms(legacyTerms, {
+        fallbackMechanism: 'FULL_MLE',
+      });
 
       expect(normalized.rightsType).toBe('FULL_BIRD');
       expect(normalized.mechanism).toBe('FULL_MLE');
@@ -2603,7 +2931,9 @@ describe('Cap Legality Validation', () => {
     });
 
     it('handles null/undefined input gracefully', () => {
-      const normalized = normalizeSigningTerms(null, { fallbackMechanism: 'MINIMUM' });
+      const normalized = normalizeSigningTerms(null, {
+        fallbackMechanism: 'MINIMUM',
+      });
 
       expect(normalized.source).toBe('baseline');
       expect(normalized.mechanism).toBe('MINIMUM');
@@ -2649,9 +2979,15 @@ describe('Cap Legality Validation', () => {
         mechanism: 'FULL_MLE',
       });
 
-      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
-      const violation = result.violations.find((v) => v.rule === 'signing_terms_invalid');
-      
+      expect(
+        result.violations.some((v) => v.rule === 'signing_terms_invalid')
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'signing_terms_invalid',
+        'Expected signing terms violation'
+      );
+
       // Phase 6: Verify violation payload
       expect(violation.mechanism).toBe('FULL_MLE');
       expect(violation.rightsType).toBe('FULL_BIRD');
@@ -2680,9 +3016,15 @@ describe('Cap Legality Validation', () => {
         mechanism: 'TPMLE',
       });
 
-      expect(result.violations.some((v) => v.rule === 'signing_raise_invalid')).toBe(true);
-      const violation = result.violations.find((v) => v.rule === 'signing_raise_invalid');
-      
+      expect(
+        result.violations.some((v) => v.rule === 'signing_raise_invalid')
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'signing_raise_invalid',
+        'Expected signing raise violation'
+      );
+
       // Phase 6: Verify violation payload
       expect(violation.mechanism).toBe('TPMLE');
       expect(violation.rightsType).toBe('NON_BIRD');
@@ -2721,8 +3063,14 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should block because 5 years > maxYears 4
-      expect(result.violations.some((v) => v.rule === 'signing_terms_invalid')).toBe(true);
-      const violation = result.violations.find((v) => v.rule === 'signing_terms_invalid');
+      expect(
+        result.violations.some((v) => v.rule === 'signing_terms_invalid')
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'signing_terms_invalid',
+        'Expected signing terms violation'
+      );
       expect(violation.rightsType).toBe('FULL_BIRD');
       expect(violation.engineMaxYears).toBe(4);
     });
@@ -2766,7 +3114,9 @@ describe('Cap Legality Validation', () => {
       // Should have signing_raise_invalid if raises exceed engine max
       // Note: The actual raise enforcement depends on Salary Engine providing raisePercentage
       // If signed without exception, the validation uses engine terms which include raisePercentage
-      const raiseViolation = result.violations.find((v) => v.rule === 'signing_raise_invalid');
+      const raiseViolation = result.violations.find(
+        (v) => v.rule === 'signing_raise_invalid'
+      );
       // This may or may not trigger depending on how the engine computes raisePercentage
       // The key is that the system is WIRED to enforce it
     });
@@ -2802,7 +3152,11 @@ describe('Cap Legality Validation', () => {
       });
 
       // Should NOT have signing_first_year_engine_max_invalid for MINIMUM
-      expect(result.violations.find((v) => v.rule === 'signing_first_year_engine_max_invalid')).toBeUndefined();
+      expect(
+        result.violations.find(
+          (v) => v.rule === 'signing_first_year_engine_max_invalid'
+        )
+      ).toBeUndefined();
     });
   });
 
@@ -2811,7 +3165,9 @@ describe('Cap Legality Validation', () => {
       // Verify that the system treats mechanism as exception bucket
       expect(HARD_BLOCK_RULES).toContain('exception_blocked');
       expect(HARD_BLOCK_RULES).toContain('first_year_max_invalid');
-      expect(HARD_BLOCK_RULES).toContain('signing_first_year_engine_max_invalid');
+      expect(HARD_BLOCK_RULES).toContain(
+        'signing_first_year_engine_max_invalid'
+      );
     });
 
     it('confirms normalizeSigningTerms is exported for consumer use', () => {
@@ -2835,7 +3191,7 @@ describe('Cap Legality Validation', () => {
 
     it('validateFreeAgencyState blocks when freeAgency is a legacy string', () => {
       const result = validateFreeAgencyState('2026 (UFA)');
-      
+
       expect(result.valid).toBe(false);
       expect(result.violations).toHaveLength(1);
       expect(result.violations[0].rule).toBe('free_agency_state_invalid');
@@ -2844,7 +3200,7 @@ describe('Cap Legality Validation', () => {
 
     it('validateFreeAgencyState allows canonical object format', () => {
       const result = validateFreeAgencyState({ type: 'UFA', year: 2026 });
-      
+
       expect(result.valid).toBe(true);
       expect(result.violations).toHaveLength(0);
     });
@@ -2857,28 +3213,34 @@ describe('Cap Legality Validation', () => {
     it('validateFreeAgencyState hard-blocks when RFA missing qualifyingOffer (Phase 8)', () => {
       // Phase 8 upgraded this from warning to hard-block
       const result = validateFreeAgencyState({ type: 'RFA', year: 2026 });
-      
+
       expect(result.valid).toBe(false); // Now a blocking violation in Phase 8
-      expect(result.violations.some(v => v.rule === 'rfa_missing_qualifying_offer')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'rfa_missing_qualifying_offer')
+      ).toBe(true);
       expect(result.violations[0].message).toContain('qualifyingOffer');
     });
 
     it('validateFreeAgencyState warns when UFA has qualifyingOffer', () => {
-      const result = validateFreeAgencyState({ 
-        type: 'UFA', 
-        year: 2026, 
-        qualifyingOffer: 5_000_000 
+      const result = validateFreeAgencyState({
+        type: 'UFA',
+        year: 2026,
+        qualifyingOffer: 5_000_000,
       });
-      
+
       expect(result.valid).toBe(true); // Not a blocking violation
       expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0].rule).toBe('non_rfa_has_qualifying_offer'); // Phase 8 renamed
-      expect(result.warnings[0].message).toContain('UFAs should not have QO');
+      const warning = requireValue(
+        result.warnings[0],
+        'Expected non-RFA qualifying offer warning'
+      );
+      expect(warning.rule).toBe('non_rfa_has_qualifying_offer'); // Phase 8 renamed
+      expect(warning.message).toContain('UFAs should not have QO');
     });
 
     it('validateFreeAgencyState blocks when year is not a number', () => {
       const result = validateFreeAgencyState({ type: 'UFA', year: '2026' });
-      
+
       expect(result.valid).toBe(false);
       expect(result.violations[0].rule).toBe('free_agency_state_invalid');
       expect(result.violations[0].message).toContain('Must be a number');
@@ -2916,7 +3278,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'free_agency_state_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'free_agency_state_invalid')
+      ).toBe(true);
     });
 
     it('validateSigning allows contract with canonical freeAgency object', () => {
@@ -2951,7 +3315,9 @@ describe('Cap Legality Validation', () => {
       });
 
       // free_agency_state_invalid should NOT be in violations
-      expect(result.violations.find((v) => v.rule === 'free_agency_state_invalid')).toBeUndefined();
+      expect(
+        result.violations.find((v) => v.rule === 'free_agency_state_invalid')
+      ).toBeUndefined();
     });
   });
 
@@ -2975,7 +3341,7 @@ describe('Cap Legality Validation', () => {
         birdRights: { status: 'Full Bird' },
       },
     };
-    const buildPlayerWithRights = (status) => ({
+    const buildPlayerWithRights = (status: string | null | undefined) => ({
       ...basePlayer,
       contract: {
         ...basePlayer.contract,
@@ -2986,8 +3352,8 @@ describe('Cap Legality Validation', () => {
       ...playerInput,
       contract: {
         ...playerInput.contract,
-        salariesByYear: (playerInput.contract?.salariesByYear || []).map((row) =>
-          row?.option ? { ...row, optionUsed: true } : row
+        salariesByYear: (playerInput.contract?.salariesByYear || []).map(
+          (row) => (row?.option ? { ...row, optionUsed: true } : row)
         ),
       },
     });
@@ -3019,8 +3385,14 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'cap_hold_transition_invalid')).toBe(true);
-      expect(result.violations.some(v => /accepted option but a cap hold was created/i.test(v.message))).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'cap_hold_transition_invalid')
+      ).toBe(true);
+      expect(
+        result.violations.some((v) =>
+          /accepted option but a cap hold was created/i.test(v.message)
+        )
+      ).toBe(true);
     });
 
     it('accepts option when optionUsed is true and player remains rostered', () => {
@@ -3065,7 +3437,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'cap_hold_transition_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'cap_hold_transition_invalid')
+      ).toBe(true);
       expect(result.violations[0].message).toMatch(/none was created/i);
     });
 
@@ -3078,7 +3452,7 @@ describe('Cap Legality Validation', () => {
           freeAgency: { type: 'UFA', year: 2025 }, // Correct FA year (2025-26 option => 2025)
         },
       };
-      
+
       const updatedTeam = {
         ...team,
         players: [updatedPlayer],
@@ -3169,7 +3543,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.multiplier).toBe(CAP_HOLD_MULTIPLIERS.EARLY_BIRD);
-      expect(result.amount).toBe(Math.round(10_000_000 * CAP_HOLD_MULTIPLIERS.EARLY_BIRD));
+      expect(result.amount).toBe(
+        Math.round(10_000_000 * CAP_HOLD_MULTIPLIERS.EARLY_BIRD)
+      );
     });
 
     it('derives freeAgency.year from option season code', () => {
@@ -3197,7 +3573,11 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(true);
-      expect(result.warnings.some((w) => w.rule === 'cap_hold_transition_inputs_missing')).toBe(true);
+      expect(
+        result.warnings.some(
+          (w) => w.rule === 'cap_hold_transition_inputs_missing'
+        )
+      ).toBe(true);
     });
 
     it('blocks created cap hold with invalid amount (negative)', () => {
@@ -3205,7 +3585,7 @@ describe('Cap Legality Validation', () => {
         ...team,
         players: [],
         roster: [],
-        capHolds: [{ playerId, amount: -100 }] // Invalid
+        capHolds: [{ playerId, amount: -100 }], // Invalid
       };
 
       const result = validateOptionDecision({
@@ -3218,7 +3598,9 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'cap_hold_transition_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'cap_hold_transition_invalid')
+      ).toBe(true);
       expect(result.violations[0].message).toMatch(/negative/i);
     });
 
@@ -3229,15 +3611,15 @@ describe('Cap Legality Validation', () => {
         ...player,
         contract: {
           salariesByYear: [],
-          freeAgency: { type: 'UFA', year: 2029 } // WRONG YEAR (Expected 2025)
-        }
+          freeAgency: { type: 'UFA', year: 2029 }, // WRONG YEAR (Expected 2025)
+        },
       };
 
       const updatedTeam = {
         ...team,
         players: [updatedPlayer],
         roster: [],
-        capHolds: [{ playerId, amount: 19_000_000 }]
+        capHolds: [{ playerId, amount: 19_000_000 }],
       };
 
       const result = validateOptionDecision({
@@ -3251,7 +3633,11 @@ describe('Cap Legality Validation', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some((v) => v.rule === 'option_decline_free_agency_year_mismatch')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'option_decline_free_agency_year_mismatch'
+        )
+      ).toBe(true);
     });
   });
 });
@@ -3311,8 +3697,16 @@ describe('Phase 8: RFA/QO and Re-Signing Guardrails', () => {
       const result = validateFreeAgencyState(freeAgency);
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_state_invalid')).toBe(true);
-      expect(result.violations.find(v => v.rule === 'rfa_state_invalid').message).toMatch(/plausible/i);
+      expect(
+        result.violations.some((v) => v.rule === 'rfa_state_invalid')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'rfa_state_invalid',
+          'Expected invalid RFA state violation'
+        ).message
+      ).toMatch(/plausible/i);
     });
 
     it('warns on non-RFA (UFA) having qualifyingOffer set', () => {
@@ -3327,7 +3721,12 @@ describe('Phase 8: RFA/QO and Re-Signing Guardrails', () => {
       // Should be valid but with warning
       expect(result.valid).toBe(true);
       expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0].rule).toBe('non_rfa_has_qualifying_offer');
+      expect(
+        requireValue(
+          result.warnings[0],
+          'Expected non-RFA qualifying offer warning'
+        ).rule
+      ).toBe('non_rfa_has_qualifying_offer');
     });
 
     it('allows valid RFA with proper qualifyingOffer', () => {
@@ -3387,8 +3786,18 @@ describe('Phase 8: RFA/QO and Re-Signing Guardrails', () => {
 
       expect(result.valid).toBe(false);
       // Phase 10: Now triggers rfa_offer_sheet_not_supported instead of rfa_signing_not_supported
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(true);
-      expect(result.violations.find(v => v.rule === 'rfa_offer_sheet_not_supported').message).toMatch(/offer sheet/i);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_not_supported'
+        )
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'rfa_offer_sheet_not_supported',
+          'Expected RFA offer sheet violation'
+        ).message
+      ).toMatch(/offer sheet/i);
     });
 
     it('allows signing UFA player (not RFA)', () => {
@@ -3425,8 +3834,16 @@ describe('Phase 8: RFA/QO and Re-Signing Guardrails', () => {
       });
 
       // Should NOT be blocked by any RFA rules
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_team_identity_unverifiable')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_not_supported'
+        )
+      ).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_team_identity_unverifiable'
+        )
+      ).toBe(false);
     });
   });
 
@@ -3479,8 +3896,16 @@ describe('Phase 8: RFA/QO and Re-Signing Guardrails', () => {
 
       // Since player has Full Bird rights status but teamId doesn't match,
       // the re-signing eligibility check SHOULD block this
-      expect(result.violations.some(v => v.rule === 'resigning_ineligible')).toBe(true);
-      expect(result.violations.find(v => v.rule === 'resigning_ineligible').message).toMatch(/does not match/i);
+      expect(
+        result.violations.some((v) => v.rule === 'resigning_ineligible')
+      ).toBe(true);
+      expect(
+        requireRuleEntry(
+          result.violations,
+          'resigning_ineligible',
+          'Expected re-signing eligibility violation'
+        ).message
+      ).toMatch(/does not match/i);
     });
 
     it('blocks re-signing when player has None Bird rights status', () => {
@@ -3600,7 +4025,9 @@ describe('Phase 8: RFA/QO and Re-Signing Guardrails', () => {
       });
 
       // Should NOT have resigning_ineligible violation because normalized team codes match
-      const eligibilityViolation = result.violations.find(v => v.rule === 'resigning_ineligible');
+      const eligibilityViolation = result.violations.find(
+        (v) => v.rule === 'resigning_ineligible'
+      );
       expect(eligibilityViolation).toBeUndefined();
     });
 
@@ -3645,7 +4072,9 @@ describe('Phase 8: RFA/QO and Re-Signing Guardrails', () => {
       });
 
       // Should NOT have resigning_ineligible violation
-      const eligibilityViolation = result.violations.find(v => v.rule === 'resigning_ineligible');
+      const eligibilityViolation = result.violations.find(
+        (v) => v.rule === 'resigning_ineligible'
+      );
       expect(eligibilityViolation).toBeUndefined();
     });
 
@@ -3797,60 +4226,105 @@ describe('Phase 8: RFA/QO and Re-Signing Guardrails', () => {
   describe('Phase 9 - FA Year Plausibility Policy', () => {
     it('still hard-blocks truly absurd years (e.g., 1900, 9999)', () => {
       // Year 1900 - way before any plausible range
-      const result1900 = validateFreeAgencyState({ type: 'UFA', year: 1900 }, { contextYear: 2026 });
+      const result1900 = validateFreeAgencyState(
+        { type: 'UFA', year: 1900 },
+        { contextYear: 2026 }
+      );
       expect(result1900.valid).toBe(false);
-      expect(result1900.violations.some(v => v.rule === 'rfa_state_invalid')).toBe(true);
+      expect(
+        result1900.violations.some((v) => v.rule === 'rfa_state_invalid')
+      ).toBe(true);
 
       // Year 9999 - way after any plausible range
-      const result9999 = validateFreeAgencyState({ type: 'RFA', year: 9999, qualifyingOffer: 5_000_000 }, { contextYear: 2026 });
+      const result9999 = validateFreeAgencyState(
+        { type: 'RFA', year: 9999, qualifyingOffer: 5_000_000 },
+        { contextYear: 2026 }
+      );
       expect(result9999.valid).toBe(false);
-      expect(result9999.violations.some(v => v.rule === 'rfa_state_invalid')).toBe(true);
+      expect(
+        result9999.violations.some((v) => v.rule === 'rfa_state_invalid')
+      ).toBe(true);
     });
 
     it('uses context year for plausibility range calculation', () => {
       // With context year 2026: range is [2021, 2036]
       // Year 2021 should be valid (contextYear - 5)
-      const resultMinBoundary = validateFreeAgencyState({ type: 'UFA', year: 2021 }, { contextYear: 2026 });
+      const resultMinBoundary = validateFreeAgencyState(
+        { type: 'UFA', year: 2021 },
+        { contextYear: 2026 }
+      );
       expect(resultMinBoundary.valid).toBe(true);
 
       // Year 2036 should be valid (contextYear + 10)
-      const resultMaxBoundary = validateFreeAgencyState({ type: 'UFA', year: 2036 }, { contextYear: 2026 });
+      const resultMaxBoundary = validateFreeAgencyState(
+        { type: 'UFA', year: 2036 },
+        { contextYear: 2026 }
+      );
       expect(resultMaxBoundary.valid).toBe(true);
 
       // Year 2020 should be invalid (below range)
-      const resultBelowRange = validateFreeAgencyState({ type: 'UFA', year: 2020 }, { contextYear: 2026 });
+      const resultBelowRange = validateFreeAgencyState(
+        { type: 'UFA', year: 2020 },
+        { contextYear: 2026 }
+      );
       expect(resultBelowRange.valid).toBe(false);
-      expect(resultBelowRange.violations.some(v => v.rule === 'rfa_state_invalid')).toBe(true);
+      expect(
+        resultBelowRange.violations.some((v) => v.rule === 'rfa_state_invalid')
+      ).toBe(true);
 
       // Year 2037 should be invalid (above range)
-      const resultAboveRange = validateFreeAgencyState({ type: 'UFA', year: 2037 }, { contextYear: 2026 });
+      const resultAboveRange = validateFreeAgencyState(
+        { type: 'UFA', year: 2037 },
+        { contextYear: 2026 }
+      );
       expect(resultAboveRange.valid).toBe(false);
-      expect(resultAboveRange.violations.some(v => v.rule === 'rfa_state_invalid')).toBe(true);
+      expect(
+        resultAboveRange.violations.some((v) => v.rule === 'rfa_state_invalid')
+      ).toBe(true);
     });
 
     it('shifts plausibility range when context year changes', () => {
       // With context year 2030: range is [2025, 2040]
       // Year 2025 should be valid (contextYear - 5)
-      const resultYear2025With2030Context = validateFreeAgencyState({ type: 'UFA', year: 2025 }, { contextYear: 2030 });
+      const resultYear2025With2030Context = validateFreeAgencyState(
+        { type: 'UFA', year: 2025 },
+        { contextYear: 2030 }
+      );
       expect(resultYear2025With2030Context.valid).toBe(true);
 
       // But year 2024 should be invalid with 2030 context (below range)
-      const resultYear2024With2030Context = validateFreeAgencyState({ type: 'UFA', year: 2024 }, { contextYear: 2030 });
+      const resultYear2024With2030Context = validateFreeAgencyState(
+        { type: 'UFA', year: 2024 },
+        { contextYear: 2030 }
+      );
       expect(resultYear2024With2030Context.valid).toBe(false);
 
       // Year 2040 should be valid (contextYear + 10)
-      const resultYear2040With2030Context = validateFreeAgencyState({ type: 'UFA', year: 2040 }, { contextYear: 2030 });
+      const resultYear2040With2030Context = validateFreeAgencyState(
+        { type: 'UFA', year: 2040 },
+        { contextYear: 2030 }
+      );
       expect(resultYear2040With2030Context.valid).toBe(true);
 
       // Year 2041 should be invalid (above range)
-      const resultYear2041With2030Context = validateFreeAgencyState({ type: 'UFA', year: 2041 }, { contextYear: 2030 });
+      const resultYear2041With2030Context = validateFreeAgencyState(
+        { type: 'UFA', year: 2041 },
+        { contextYear: 2030 }
+      );
       expect(resultYear2041With2030Context.valid).toBe(false);
     });
 
     it('includes contextYear in violation payload', () => {
-      const result = validateFreeAgencyState({ type: 'UFA', year: 1990 }, { contextYear: 2026 });
+      const result = validateFreeAgencyState(
+        { type: 'UFA', year: 1990 },
+        { contextYear: 2026 }
+      );
       expect(result.valid).toBe(false);
-      const violation = result.violations.find(v => v.rule === 'rfa_state_invalid');
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_state_invalid',
+        'Expected invalid free agency state violation'
+      );
       expect(violation).toBeDefined();
       expect(violation.contextYear).toBe(2026);
       expect(violation.minYear).toBe(2021); // 2026 - 5
@@ -3912,7 +4386,11 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_not_supported'
+        )
+      ).toBe(true);
     });
 
     it('includes correct payload in offer sheet violation', () => {
@@ -3949,12 +4427,20 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
         year,
       });
 
-      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_not_supported');
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_offer_sheet_not_supported',
+        'Expected RFA offer sheet violation'
+      );
+      const freeAgency = requireFreeAgencyPayload(
+        violation.freeAgency,
+        'Expected offer sheet free agency payload'
+      );
       expect(violation).toBeDefined();
       expect(violation.normalizedPlayerTeam).toBe('BOS');
       expect(violation.normalizedSigningTeam).toBe('LAL');
-      expect(violation.freeAgency.year).toBe(2026);
-      expect(violation.freeAgency.qualifyingOffer).toBe(6_500_000);
+      expect(freeAgency.year).toBe(2026);
+      expect(freeAgency.qualifyingOffer).toBe(6_500_000);
     });
   });
 
@@ -4000,9 +4486,17 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       // Should NOT be blocked by offer sheet rule
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_not_supported'
+        )
+      ).toBe(false);
       // Should NOT be blocked by team identity rule
-      expect(result.violations.some(v => v.rule === 'rfa_team_identity_unverifiable')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_team_identity_unverifiable'
+        )
+      ).toBe(false);
     });
 
     it('still enforces QO hard-block even for home team RFA', () => {
@@ -4046,7 +4540,9 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       // Should still catch the missing QO from validateFreeAgencyState on contract.freeAgency
-      expect(result.violations.some(v => v.rule === 'rfa_missing_qualifying_offer')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'rfa_missing_qualifying_offer')
+      ).toBe(true);
     });
   });
 
@@ -4091,7 +4587,11 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_team_identity_unverifiable')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_team_identity_unverifiable'
+        )
+      ).toBe(true);
     });
 
     it('hard-blocks RFA signing when signing team ref is missing', () => {
@@ -4129,7 +4629,11 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_team_identity_unverifiable')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_team_identity_unverifiable'
+        )
+      ).toBe(true);
     });
 
     it('includes raw refs in unverifiable violation payload', () => {
@@ -4166,11 +4670,19 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
         year,
       });
 
-      const violation = result.violations.find(v => v.rule === 'rfa_team_identity_unverifiable');
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_team_identity_unverifiable',
+        'Expected unverifiable RFA team identity violation'
+      );
+      const freeAgency = requireFreeAgencyPayload(
+        violation.freeAgency,
+        'Expected unverifiable identity free agency payload'
+      );
       expect(violation).toBeDefined();
       expect(violation.rawSigningTeamRef).toBe('LAL');
       expect(violation.rawPlayerTeamRef).toBe('missing');
-      expect(violation.freeAgency.type).toBe('RFA');
+      expect(freeAgency.type).toBe('RFA');
     });
   });
 
@@ -4192,7 +4704,11 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
 
       // Should be valid (warning not hard block)
       expect(result.valid).toBe(true);
-      expect(result.warnings.some(w => w.rule === 'rfa_qualifying_offer_suspicious')).toBe(true);
+      expect(
+        result.warnings.some(
+          (w) => w.rule === 'rfa_qualifying_offer_suspicious'
+        )
+      ).toBe(true);
     });
 
     it('includes correct payload in suspicious QO warning', () => {
@@ -4206,7 +4722,11 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
         lastYearSalary: 10_000_000, // $10M last salary -> 3.5x ratio
       });
 
-      const warning = result.warnings.find(w => w.rule === 'rfa_qualifying_offer_suspicious');
+      const warning = requireRuleEntry(
+        result.warnings,
+        'rfa_qualifying_offer_suspicious',
+        'Expected suspicious qualifying offer warning'
+      );
       expect(warning).toBeDefined();
       expect(warning.qualifyingOffer).toBe(35_000_000);
       expect(warning.lastYearSalary).toBe(10_000_000);
@@ -4225,7 +4745,11 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(true);
-      expect(result.warnings.some(w => w.rule === 'rfa_qualifying_offer_suspicious')).toBe(false);
+      expect(
+        result.warnings.some(
+          (w) => w.rule === 'rfa_qualifying_offer_suspicious'
+        )
+      ).toBe(false);
     });
 
     it('does NOT warn when lastYearSalary is not provided', () => {
@@ -4240,7 +4764,11 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(true);
-      expect(result.warnings.some(w => w.rule === 'rfa_qualifying_offer_suspicious')).toBe(false);
+      expect(
+        result.warnings.some(
+          (w) => w.rule === 'rfa_qualifying_offer_suspicious'
+        )
+      ).toBe(false);
     });
   });
 
@@ -4271,7 +4799,7 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
     // 100% = 10,474,200
     // 80% = 8,379,360
     // 120% = 12,569,040
-    
+
     // We'll use 2024-25 season for these tests
     const rookieYear = 2025; // 2024-25
 
@@ -4305,7 +4833,9 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(true);
-      expect(result.violations.some(v => v.rule === 'rookie_scale_invalid')).toBe(false);
+      expect(
+        result.violations.some((v) => v.rule === 'rookie_scale_invalid')
+      ).toBe(false);
     });
 
     it('allows 80% rookie scale salary', () => {
@@ -4324,7 +4854,9 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(true);
-      expect(result.violations.some(v => v.rule === 'rookie_scale_invalid')).toBe(false);
+      expect(
+        result.violations.some((v) => v.rule === 'rookie_scale_invalid')
+      ).toBe(false);
     });
 
     it('blocks 121% rookie scale salary', () => {
@@ -4343,7 +4875,9 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rookie_scale_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'rookie_scale_invalid')
+      ).toBe(true);
     });
 
     it('blocks 79% rookie scale salary', () => {
@@ -4362,18 +4896,22 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rookie_scale_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'rookie_scale_invalid')
+      ).toBe(true);
     });
 
     it('checks capHit if different from salary', () => {
       // Valid salary (100%) but invalid capHit (130%)
       const contract = {
         contractType: 'Standard',
-        salariesByYear: [{ 
-          season: '2024-25', 
-          salary: 10_474_200,          // 100% (Valid)
-          capHit: 14_000_000           // >120% (Invalid)
-        }],
+        salariesByYear: [
+          {
+            season: '2024-25',
+            salary: 10_474_200, // 100% (Valid)
+            capHit: 14_000_000, // >120% (Invalid)
+          },
+        ],
         draftPick: { year: 2024, pick: 1 },
       };
 
@@ -4386,10 +4924,12 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rookie_scale_invalid')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'rookie_scale_invalid')
+      ).toBe(true);
       expect(result.violations[0].message).toMatch(/cap hit/);
     });
-    
+
     it('uses tolerance (allows $1 off)', () => {
       const contract = {
         contractType: 'Standard',
@@ -4413,26 +4953,26 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
   // ==========================================================================
   // PHASE 11: YEAR COVERAGE POLICY
   // ==========================================================================
-  
+
   describe('Year Coverage Policy - getCapSettings', () => {
     it('returns explicit projected source for future years (2030-31)', () => {
       const result = getCapSettings({ year: 2031 });
-      
+
       expect(result.resolved).toBe(true);
       // Should NOT be the emergency 2024-25 fallback
       expect(result.source).not.toContain('2024-25_emergency');
       expect(result.seasonKey).toBe('2030-31');
       // Should contain explicit projection warning
-      expect(result.warnings.some(w => w.includes('projected'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('projected'))).toBe(true);
     });
 
     it('returns emergency fallback WITH critical warning for invalid input', () => {
       // Strictly invalid input
       const result = getCapSettings({ year: null });
-      
+
       expect(result.resolved).toBe(true);
       expect(result.source).toContain('invalid_input');
-      expect(result.warnings.some(w => w.includes('CRITICAL'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('CRITICAL'))).toBe(true);
     });
 
     it('throws error in strict mode for invalid input', () => {
@@ -4441,7 +4981,6 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       }).toThrow(/Invalid year input/);
     });
   });
-
 });
 
 // ==============================================================================
@@ -4499,7 +5038,11 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_not_supported'
+        )
+      ).toBe(true);
     });
 
     it('allows offer sheet attempt when rfaOfferSheet === true and terms valid (with MATCHED status)', () => {
@@ -4544,9 +5087,17 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       });
 
       // Should NOT have offer sheet not supported violation
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_not_supported'
+        )
+      ).toBe(false);
       // Should NOT have resolution required violation (status is MATCHED)
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(false);
     });
 
     it('hard-blocks offer sheet with invalid years (>4)', () => {
@@ -4593,8 +5144,16 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_invalid_terms')).toBe(true);
-      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_invalid_terms');
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_invalid_terms'
+        )
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_offer_sheet_invalid_terms',
+        'Expected RFA offer sheet invalid terms violation'
+      );
       expect(violation.field).toBe('years');
     });
 
@@ -4640,8 +5199,16 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_invalid_terms')).toBe(true);
-      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_invalid_terms');
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_invalid_terms'
+        )
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_offer_sheet_invalid_terms',
+        'Expected RFA offer sheet invalid terms violation'
+      );
       expect(violation.field).toBe('raises');
     });
   });
@@ -4692,8 +5259,16 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
-      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_resolution_required');
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_offer_sheet_resolution_required',
+        'Expected RFA offer sheet resolution violation'
+      );
       expect(violation.currentStatus).toBe('PENDING_MATCH');
     });
 
@@ -4738,7 +5313,11 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(true);
     });
 
     it('allows offer sheet with MATCHED status', () => {
@@ -4782,9 +5361,12 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       });
 
       // Should NOT have resolution required violation
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(false);
     });
-
   });
 
   // ==========================================================================
@@ -4810,7 +5392,7 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       for (let years = 1; years <= 4; years++) {
         const salaries = Array.from({ length: years }, (_, i) => ({
           season: `202${5 + i}-2${6 + i}`,
-          salary: 10_000_000 + (i * 500_000), // Within 8% raise limit
+          salary: 10_000_000 + i * 500_000, // Within 8% raise limit
         }));
         const contract = { salariesByYear: salaries };
         const result = validateOfferSheetTerms(contract);
@@ -4822,18 +5404,25 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       const contract = { salariesByYear: [] };
       const result = validateOfferSheetTerms(contract);
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_invalid_terms')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_invalid_terms'
+        )
+      ).toBe(true);
     });
 
     it('blocks 5+ year contracts', () => {
       const salaries = Array.from({ length: 5 }, (_, i) => ({
         season: `202${5 + i}-2${6 + i}`,
-        salary: 10_000_000 + (i * 500_000),
+        salary: 10_000_000 + i * 500_000,
       }));
       const contract = { salariesByYear: salaries };
       const result = validateOfferSheetTerms(contract);
       expect(result.valid).toBe(false);
-      const violation = result.violations.find(v => v.field === 'years');
+      const violation = requireValue(
+        result.violations.find((entry) => entry.field === 'years'),
+        'Expected offer sheet years violation'
+      );
       expect(violation).toBeDefined();
       expect(violation.actual).toBe(5);
     });
@@ -4925,7 +5514,11 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       // Should NOT have resolution_required violation
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(false);
     });
 
     it('blocks PENDING_MATCH when finalizing (default behavior)', () => {
@@ -4961,8 +5554,16 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
-      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_resolution_required');
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_offer_sheet_resolution_required',
+        'Expected RFA offer sheet resolution violation'
+      );
       expect(violation.isFinalizingAttempt).toBe(true);
       expect(violation.message).toMatch(/rfaOfferSheetOnly/);
     });
@@ -4992,7 +5593,11 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(true);
     });
   });
 
@@ -5043,7 +5648,9 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
 
       expect(result.valid).toBe(true);
       // Should NOT be blocked by rfa_offer_sheet_declined anymore (Phase 16)
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(false);
+      expect(
+        result.violations.some((v) => v.rule === 'rfa_offer_sheet_declined')
+      ).toBe(false);
     });
 
     it('blocks DECLINED even with rfaOfferSheetOnly === true', () => {
@@ -5078,7 +5685,9 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'rfa_offer_sheet_declined')
+      ).toBe(true);
     });
   });
 
@@ -5127,8 +5736,14 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       // Should NOT have resolution_required or declined violations
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(false);
+      expect(
+        result.violations.some((v) => v.rule === 'rfa_offer_sheet_declined')
+      ).toBe(false);
     });
   });
 
@@ -5152,7 +5767,10 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
 
   describe('Phase 14: validateStoreOnlyInvariants helper', () => {
     it('returns valid when rfaOfferSheetOnly is not set', () => {
-      const contract = { rfaOfferSheet: true, rfaOfferSheetStatus: 'PENDING_MATCH' };
+      const contract = {
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      };
       const result = validateStoreOnlyInvariants({ contract });
       expect(result.valid).toBe(true);
       expect(result.violations).toHaveLength(0);
@@ -5166,33 +5784,68 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
     });
 
     it('blocks store-only when rfaOfferSheet is missing', () => {
-      const contract = { rfaOfferSheetOnly: true, rfaOfferSheetStatus: 'PENDING_MATCH' };
+      const contract = {
+        rfaOfferSheetOnly: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      };
       const result = validateStoreOnlyInvariants({ contract });
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
-      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_store_only_invalid');
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_store_only_invalid'
+        )
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_offer_sheet_store_only_invalid',
+        'Expected store-only invariant violation'
+      );
       expect(violation.invariant).toBe('A');
     });
 
     it('blocks store-only when rfaOfferSheet is false', () => {
-      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: false, rfaOfferSheetStatus: 'PENDING_MATCH' };
+      const contract = {
+        rfaOfferSheetOnly: true,
+        rfaOfferSheet: false,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      };
       const result = validateStoreOnlyInvariants({ contract });
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_store_only_invalid'
+        )
+      ).toBe(true);
     });
 
     it('blocks store-only when status is MATCHED', () => {
-      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: true, rfaOfferSheetStatus: 'MATCHED' };
+      const contract = {
+        rfaOfferSheetOnly: true,
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'MATCHED',
+      };
       const result = validateStoreOnlyInvariants({ contract });
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
-      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_store_only_invalid');
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_store_only_invalid'
+        )
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_offer_sheet_store_only_invalid',
+        'Expected store-only invariant violation'
+      );
       expect(violation.invariant).toBe('C');
       expect(violation.message).toMatch(/MATCHED/);
     });
 
     it('allows store-only when rfaOfferSheet is true and status is PENDING_MATCH', () => {
-      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: true, rfaOfferSheetStatus: 'PENDING_MATCH' };
+      const contract = {
+        rfaOfferSheetOnly: true,
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      };
       const result = validateStoreOnlyInvariants({ contract });
       expect(result.valid).toBe(true);
       expect(result.violations).toHaveLength(0);
@@ -5206,10 +5859,18 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
 
     it('does not block DECLINED status directly (handled by rfa_offer_sheet_declined)', () => {
       // DECLINED is not a store-only invariant violation - it's caught by a separate rule
-      const contract = { rfaOfferSheetOnly: true, rfaOfferSheet: true, rfaOfferSheetStatus: 'DECLINED' };
+      const contract = {
+        rfaOfferSheetOnly: true,
+        rfaOfferSheet: true,
+        rfaOfferSheetStatus: 'DECLINED',
+      };
       const result = validateStoreOnlyInvariants({ contract });
       // Should not have store_only_invalid for DECLINED (that's a different rule)
-      expect(result.violations.filter(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toHaveLength(0);
+      expect(
+        result.violations.filter(
+          (v) => v.rule === 'rfa_offer_sheet_store_only_invalid'
+        )
+      ).toHaveLength(0);
     });
   });
 
@@ -5259,7 +5920,11 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_store_only_invalid'
+        )
+      ).toBe(true);
     });
 
     it('hard-blocks store-only with MATCHED status', () => {
@@ -5278,8 +5943,16 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(true);
-      const violation = result.violations.find(v => v.rule === 'rfa_offer_sheet_store_only_invalid');
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_store_only_invalid'
+        )
+      ).toBe(true);
+      const violation = requireRuleEntry(
+        result.violations,
+        'rfa_offer_sheet_store_only_invalid',
+        'Expected store-only invalid signing violation'
+      );
       expect(violation.message).toMatch(/MATCHED/);
     });
 
@@ -5299,10 +5972,22 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       // Should NOT have store_only_invalid violation
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_store_only_invalid')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_store_only_invalid'
+        )
+      ).toBe(false);
       // Should have store_only_flag_in_use warning
-      expect(result.warnings.some(w => w.rule === 'rfa_offer_sheet_store_only_flag_in_use')).toBe(true);
-      const warning = result.warnings.find(w => w.rule === 'rfa_offer_sheet_store_only_flag_in_use');
+      expect(
+        result.warnings.some(
+          (w) => w.rule === 'rfa_offer_sheet_store_only_flag_in_use'
+        )
+      ).toBe(true);
+      const warning = requireRuleEntry(
+        result.warnings,
+        'rfa_offer_sheet_store_only_flag_in_use',
+        'Expected store-only warning'
+      );
       expect(warning.storeOnlyFlag).toBe(true);
     });
 
@@ -5323,7 +6008,9 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
 
       expect(result.valid).toBe(false);
       // Should be blocked by rfa_offer_sheet_declined, not store_only_invalid
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'rfa_offer_sheet_declined')
+      ).toBe(true);
     });
 
     it('regression: finalizing + PENDING_MATCH still hard-blocks with resolution_required', () => {
@@ -5342,7 +6029,11 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(true);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(true);
     });
 
     it('regression: finalizing + MATCHED is allowed', () => {
@@ -5360,8 +6051,14 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
       });
 
       // Should NOT have resolution_required or declined violations
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
-      expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_declined')).toBe(false);
+      expect(
+        result.violations.some(
+          (v) => v.rule === 'rfa_offer_sheet_resolution_required'
+        )
+      ).toBe(false);
+      expect(
+        result.violations.some((v) => v.rule === 'rfa_offer_sheet_declined')
+      ).toBe(false);
     });
   });
 
@@ -5375,7 +6072,9 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
     });
 
     it('confirms rfa_offer_sheet_store_only_flag_in_use is SOFT_WARNING', () => {
-      expect(SOFT_WARNING_RULES).toContain('rfa_offer_sheet_store_only_flag_in_use');
+      expect(SOFT_WARNING_RULES).toContain(
+        'rfa_offer_sheet_store_only_flag_in_use'
+      );
     });
   });
 });

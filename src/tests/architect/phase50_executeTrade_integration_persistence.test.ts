@@ -428,7 +428,7 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
       // Find the created TPE
       const createdTPE = requireValue(
         tradeExceptions.find(
-        (tpe) => tpe.amount === 8_000_000 || tpe.totalAmount === 8_000_000
+          (tpe) => tpe.amount === 8_000_000 || tpe.totalAmount === 8_000_000
         ),
         'Expected created TPE for Team A'
       );
@@ -553,9 +553,10 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
       expect(consumedTPE.isUsed).toBe(false); // Not fully consumed
 
       // Exception history should contain exactly one TPE_CONSUMED entry
-      const consumptionEntries = getExceptionHistory(updatedTeamA, 'TMA').filter(
-        isTpeConsumptionHistoryEntry
-      );
+      const consumptionEntries = getExceptionHistory(
+        updatedTeamA,
+        'TMA'
+      ).filter(isTpeConsumptionHistoryEntry);
       expect(consumptionEntries.length).toBe(1);
 
       const consumptionEntry = requireValue(
@@ -579,9 +580,7 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
         'Expected absorbed player history entry'
       );
       expect(absorbedPlayer.name).toBe('Absorbed Player');
-      expect(absorbedPlayer.amountAbsorbed).toBe(
-        12_000_000
-      );
+      expect(absorbedPlayer.amountAbsorbed).toBe(12_000_000);
     });
 
     test('fully consuming TPE sets isUsed=true and fullyConsumed=true', () => {
@@ -838,8 +837,8 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
       expect(tpeIds.length).toBe(uniqueTpeIds.length);
 
       // Verify no duplicate historyKeys in exceptionHistory
-      const historyKeys = exceptionHistory2.map(
-        (entry) => String(entry.historyKey ?? '')
+      const historyKeys = exceptionHistory2.map((entry) =>
+        String(entry.historyKey ?? '')
       );
       const uniqueHistoryKeys = [...new Set(historyKeys)];
       expect(historyKeys.length).toBe(uniqueHistoryKeys.length);

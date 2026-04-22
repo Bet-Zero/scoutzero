@@ -1,9 +1,9 @@
 /**
  * World Manager Tests
- * 
+ *
  * Comprehensive unit tests for worldManager.js covering all CRUD operations,
  * branching, archiving, purging, and world statistics updates.
- * 
+ *
  * @file tests/architect/worldManager.test.js
  */
 
@@ -137,12 +137,17 @@ describe('World Manager', () => {
       expect(result.metadata.description).toBe('A test world');
       expect(result.metadata.createdBy).toBe(userId);
       expect(result.metadata.currentSeason).toBeDefined();
-      expect(result.metadata.baselineSeason).toBe(result.metadata.currentSeason);
+      expect(result.metadata.baselineSeason).toBe(
+        result.metadata.currentSeason
+      );
       expect(result.metadata.parentWorldId).toBeNull();
       expect(result.metadata.childWorlds).toEqual([]);
       expect(result.metadata.modifiedTeams).toEqual([]);
       expect(result.metadata.actionCount).toBe(0);
-      const stats = getWorldStats(result.metadata.stats, 'Expected createWorld stats');
+      const stats = getWorldStats(
+        result.metadata.stats,
+        'Expected createWorld stats'
+      );
       expect(stats.totalTrades).toBe(0);
       expect(stats.totalSignings).toBe(0);
       expect(stats.totalWaives).toBe(0);
@@ -222,23 +227,34 @@ describe('World Manager', () => {
     });
 
     it('throws error when worldId is missing', async () => {
-      await expect(getWorldMetadata(null)).rejects.toThrow('worldId is required');
+      await expect(getWorldMetadata(null)).rejects.toThrow(
+        'worldId is required'
+      );
     });
   });
 
   describe('listUserWorlds', () => {
     beforeEach(() => {
       // Seed multiple worlds for different users
-      seedWorldMetadata('world_1', createMockWorld({ worldId: 'world_1', userId }));
-      seedWorldMetadata('world_2', createMockWorld({ worldId: 'world_2', userId }));
-      seedWorldMetadata('world_3', createMockWorld({ worldId: 'world_3', userId: otherUserId }));
+      seedWorldMetadata(
+        'world_1',
+        createMockWorld({ worldId: 'world_1', userId })
+      );
+      seedWorldMetadata(
+        'world_2',
+        createMockWorld({ worldId: 'world_2', userId })
+      );
+      seedWorldMetadata(
+        'world_3',
+        createMockWorld({ worldId: 'world_3', userId: otherUserId })
+      );
       seedWorldMetadata(
         'world_4',
         createMockWorld({ worldId: 'world_4', userId, isArchived: true })
       );
     });
 
-    it('returns only user\'s worlds', async () => {
+    it("returns only user's worlds", async () => {
       const worlds = await listUserWorlds(userId);
 
       expect(worlds.length).toBeGreaterThanOrEqual(2);
@@ -266,8 +282,14 @@ describe('World Manager', () => {
 
       // Check that worlds are sorted (most recent first)
       for (let i = 0; i < worlds.length - 1; i++) {
-        const currentWorld = requireValue(worlds[i], 'Expected current world entry');
-        const nextWorld = requireValue(worlds[i + 1], 'Expected next world entry');
+        const currentWorld = requireValue(
+          worlds[i],
+          'Expected current world entry'
+        );
+        const nextWorld = requireValue(
+          worlds[i + 1],
+          'Expected next world entry'
+        );
         const current = new Date(
           getSortableTimestamp(currentWorld, 'Expected current world timestamp')
         );
@@ -285,8 +307,14 @@ describe('World Manager', () => {
       });
 
       for (let i = 0; i < worlds.length - 1; i++) {
-        const currentWorld = requireValue(worlds[i], 'Expected current sorted world');
-        const nextWorld = requireValue(worlds[i + 1], 'Expected next sorted world');
+        const currentWorld = requireValue(
+          worlds[i],
+          'Expected current sorted world'
+        );
+        const nextWorld = requireValue(
+          worlds[i + 1],
+          'Expected next sorted world'
+        );
         const currentWorldName = requireValue(
           currentWorld.worldName,
           'Expected current worldName'
@@ -414,9 +442,9 @@ describe('World Manager', () => {
     });
 
     it('throws error when worldId is missing', async () => {
-      await expect(updateWorldMetadata(null, { worldName: 'Test' })).rejects.toThrow(
-        'worldId is required'
-      );
+      await expect(
+        updateWorldMetadata(null, { worldName: 'Test' })
+      ).rejects.toThrow('worldId is required');
     });
   });
 
@@ -474,9 +502,9 @@ describe('World Manager', () => {
         userId,
       });
 
-      await expect(branchWorld(parentResult.worldId, '', '', userId)).rejects.toThrow(
-        'Branch name is required'
-      );
+      await expect(
+        branchWorld(parentResult.worldId, '', '', userId)
+      ).rejects.toThrow('Branch name is required');
     });
   });
 
@@ -577,7 +605,9 @@ describe('World Manager', () => {
     });
 
     it('throws error when worldId is missing', async () => {
-      await expect(updateWorldStats(null, 'trade', [])).rejects.toThrow('worldId is required');
+      await expect(updateWorldStats(null, 'trade', [])).rejects.toThrow(
+        'worldId is required'
+      );
     });
   });
 
@@ -627,7 +657,9 @@ describe('World Manager', () => {
       seedWorldMetadata(world.worldId, world);
 
       await expect(getDraftPositions(world.worldId, 2028)).resolves.toBeNull();
-      await expect(getDraftPositionsMap(world.worldId, 2028)).resolves.toBeNull();
+      await expect(
+        getDraftPositionsMap(world.worldId, 2028)
+      ).resolves.toBeNull();
     });
 
     it('preserves the exact updateDoc payload shape when saving draft positions', async () => {
@@ -637,9 +669,14 @@ describe('World Manager', () => {
       const updateDocSpy = vi.spyOn(firestore, 'updateDoc');
       const positionsMap = { ATL: 1, BOS: 2 };
 
-      const result = await saveDraftPositions(world.worldId, 2026, positionsMap, {
-        method: 'manual',
-      });
+      const result = await saveDraftPositions(
+        world.worldId,
+        2026,
+        positionsMap,
+        {
+          method: 'manual',
+        }
+      );
 
       expect(result).toEqual({ success: true });
       expect(updateDocSpy).toHaveBeenCalledTimes(1);
@@ -715,21 +752,21 @@ describe('World Manager', () => {
 
       // Before archive - world should be visible
       let worlds = await listUserWorlds(userId);
-      expect(worlds.some(w => w.worldId === worldResult.worldId)).toBe(true);
+      expect(worlds.some((w) => w.worldId === worldResult.worldId)).toBe(true);
 
       // Archive the world
       await archiveWorld(worldResult.worldId, userId);
 
       // After archive - world should be hidden from default list
       worlds = await listUserWorlds(userId);
-      expect(worlds.some(w => w.worldId === worldResult.worldId)).toBe(false);
+      expect(worlds.some((w) => w.worldId === worldResult.worldId)).toBe(false);
 
       // But visible with includeArchived option
       worlds = await listUserWorlds(userId, { includeArchived: true });
-      expect(worlds.some(w => w.worldId === worldResult.worldId)).toBe(true);
+      expect(worlds.some((w) => w.worldId === worldResult.worldId)).toBe(true);
     });
 
-    it('throws error if user doesn\'t own world', async () => {
+    it("throws error if user doesn't own world", async () => {
       const world = createMockWorld({ userId });
       seedWorldMetadata(world.worldId, world);
 
@@ -739,11 +776,15 @@ describe('World Manager', () => {
     });
 
     it('throws error when worldId is missing', async () => {
-      await expect(archiveWorld(null, userId)).rejects.toThrow('worldId is required');
+      await expect(archiveWorld(null, userId)).rejects.toThrow(
+        'worldId is required'
+      );
     });
 
     it('throws error when userId is missing', async () => {
-      await expect(archiveWorld('world_123', null)).rejects.toThrow('userId is required');
+      await expect(archiveWorld('world_123', null)).rejects.toThrow(
+        'userId is required'
+      );
     });
   });
 
