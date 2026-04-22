@@ -356,7 +356,13 @@ Validation:
 
 ## Step 18 — Review runtime contract posture and classify the remaining runtime backlog
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Added the baseline `Runtime Contract Review` with the
+confirmed `2,501` Architect-strict count, runtime-vs-test concentration
+breakdown, remaining runtime classification, and a recommendation to shift the
+next wave to the highest-value test harnesses while keeping
+`mutationPipeline.ts` as the next bounded runtime candidate.
 
 **Goal:** After the first two runtime normalization waves, classify what Architect runtime debt remains and decide whether more runtime normalization is still needed before pushing harder on tests.
 

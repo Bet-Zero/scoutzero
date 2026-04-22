@@ -498,6 +498,56 @@ did not make `mutationPipeline.ts` strict-ready. Step 18 should classify whether
 that remaining mutation-pipeline cluster should be attacked before moving into
 the planned test-harness waves.
 
+## Runtime Contract Review
+
+Reviewed: 2026-04-22, after Steps 16-17 completed the planned runtime
+contract-normalization waves.
+
+### Updated Architect Strict-Probe Counts
+
+| Measurement | Step 14 resume baseline | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,632 | 2,501 | -131 |
+| `src/features/architect/` runtime surfaces | 202 | 123 | -79 |
+| `src/features/architect/utils/mutationPipeline.ts` | 55 | 34 | -21 |
+| `src/features/architect/GMDashboard/**` | 31 | 2 | -29 |
+| `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` | 22 | 0 | Cleared |
+| `src/features/architect/hooks/useTradeMachine.ts` | 5 | 0 | Cleared |
+
+### Runtime Hotspots Materially Improved
+
+- `useArchitectActions.ts` no longer appears in the Architect strict output, so
+  the earlier dashboard/action carrier disagreement is no longer a dominant
+  runtime blocker.
+- `useTradeMachine.ts` and the `TradeEditor.tsx` trade-machine adapter cluster
+  are clear, so the trade-editor seam is not driving the remaining runtime
+  backlog.
+- `GMDashboard/**` collapsed from `31` errors to `2`, leaving only a small
+  residual state seam instead of a wave-sized dashboard/apply/reload mismatch.
+- `mutationPipeline.ts` still matters, but it is down from `55` to `34`; the
+  remaining runtime concentration is now a smaller offer-sheet/signing/result
+  carrier cluster rather than a repo-wide adapter failure.
+
+### Remaining Runtime Backlog Classification
+
+| Classification | File or group | Why it belongs here now |
+| --- | --- | --- |
+| `Immediate next-wave candidate` | `src/features/architect/utils/mutationPipeline.ts` (`34`) | This is the only remaining concentrated runtime-owner hotspot. The surviving errors are mostly offer-sheet/signing nullability plus final mutation-result assignability, so if another runtime wave is needed it should stay tightly bounded here. |
+| `Safe to defer until tests are tightened` | `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx` (`8`), `src/features/architect/utils/capLegalityValidation.ts` (`8`), `src/features/architect/utils/leagueInvariants.ts` (`8`), `src/features/architect/utils/tradeContext/tradeContext.ts` (`8`), `src/features/architect/utils/seasonManager.ts` (`7`), `src/features/architect/utils/offseason/resolveOffseasonTransition.ts` (`6`), `src/features/architect/utils/capTotals/computeTeamCapTotals.ts` (`5`), `src/features/architect/utils/tradeMachine/rules/miscRules.ts` (`5`) | These pockets are real but dispersed, and the dominant failing test harnesses exercise the same season, persistence, and cap flows. Tightening the tests first should show which of these pockets still need truthful runtime fixes versus local fixture/narrowing cleanup. |
+| `Needs product/architecture decision` | None currently identified from live repo evidence | The remaining runtime backlog is technical contract debt, not a blocked user-facing requirement. If a later wave promotes a canonical world/team/offseason carrier choice, that is an internal architecture decision rather than a product-direction question for the user. |
+
+### Recommendation
+
+The next wave should prioritize tests, not a third standalone runtime pass.
+Runtime strict debt has narrowed from `202` to `123` errors, while the current
+test layer now carries `2,252` of the `2,501` total Architect-strict errors
+(`1,029` in `src/tests/architect`, `784` in `tests/architect`, and `439` in
+`tests/trade`). Step 19 should therefore start with
+`tests/helpers/architectTestHelpers.ts` plus
+`tests/architect/seasonManager.test.ts`, while allowing only the minimum
+runtime support edits needed if those harnesses expose the remaining
+`mutationPipeline.ts` carrier seam.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -510,5 +560,6 @@ the planned test-harness waves.
 - `npm run typecheck -- --project tsconfig.architect-strict.json`
 - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
 - `node -e '<architect strict output parser for live file/code hotspot counts>'`
+- `node -e '<architect strict output parser for runtime-vs-test concentration buckets>'`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`
