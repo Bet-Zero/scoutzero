@@ -1,6 +1,6 @@
 # TypeScript Hardening Execution Map
 
-Captured: 2026-04-21
+Initial capture: 2026-04-21
 
 This map converts the post-migration audit and live baseline into the ordered
 work queue for `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`. It is intentionally
@@ -80,7 +80,71 @@ proves a narrow strict-prep wave is worth doing.
 | `src/features/architect/utils/mutationPipeline.ts` | Core nullable/unknown carrier errors | It is the highest runtime file in the Architect strict probe (`55` errors) and may pay off if Steps 6-8 reduce upstream looseness. | Runtime Architect core | `architect-strict` | Step 11 or follow-on plan | `root`, `architect-strict`, `architect-tests`, `trade-tests` |
 | `src/features/architect/GMDashboard/**` optional/nullability family | Exact optional/null readiness debt | Strict output shows optional/null interchange remains widespread; only target it if errors concentrate after earlier waves. | Runtime Architect UI/actions | `architect-strict` | Step 11 or follow-on plan | `root`, `architect-strict`, `architect-tests`, `build` |
 
-## Recommended Execution Order
+## Master Plan Remaining Waves
+
+Reviewed: 2026-04-22 from a live
+`npm run typecheck -- --project tsconfig.architect-strict.json` run (`2,632`
+errors) plus direct hotspot file inspection.
+
+This section supersedes the old foundation-wave ordering for current work. It
+only maps the remaining Architect/runtime/test backlog that still blocks
+mission completion after Steps 1-14.
+
+### Architect Runtime Contract-Normalization Hotspots
+
+| Path or group | Current strict footprint | Why it still matters | Criticality | Dominant current error families | Recommended wave order | Validation |
+| --- | ---: | --- | --- | --- | --- | --- |
+| `src/features/architect/utils/mutationPipeline.ts` | 55 | Canonical committed mutation authority still disagrees with current-state team/player carriers and still accepts too many `unknown` or nullable values at trade, offer-sheet, and season-adjacent ingress points. | Runtime-critical | `TS18048`, `TS2322`, `TS18049`, `TS2533`, `TS2345` | Step 16 first | `root`, `architect-strict`, `architect-tests`, `trade-tests` |
+| `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`, `src/features/architect/GMDashboard/GMDashboard.tsx`, `src/features/architect/GMDashboard/components/SeasonAdvanceModal.tsx` | 29 direct errors in the main adapter seam (`31` across `GMDashboard/**`) | Dashboard reload/apply state still does not line up with mutation-pipeline team/player/dead-cap/exception contracts, and season-advance option decisions still pass nullable fields into stricter carriers. | Runtime-critical | `TS2322`, `TS2345`, `TS18048`, `TS2339` | Step 16 second half, then Step 17 cleanup | `root`, `architect-strict`, `architect-tests`, `build` |
+| `src/features/architect/hooks/useTradeMachine.ts` | 5 | The trade editor still resolves team data by raw `string` keys against canonical maps, which keeps the preview/export boundary stringly typed even after the dashboard and mutation contracts improve. | Runtime-critical | `TS7053` | Step 17 after the dashboard/mutation seam is aligned | `root`, `architect-strict`, `trade-tests`, `architect-tests` |
+
+### Architect Persistence / Offer-Sheet / Season Harnesses
+
+| Path or group | Current strict footprint | Why it still matters | Criticality | Dominant current error families | Recommended wave order | Validation |
+| --- | ---: | --- | --- | --- | --- | --- |
+| `tests/architect/seasonManager.test.ts` | 117 | Highest single-file strict hotspot. The core season lifecycle harness still leans on loose helper factories, raw mock reads, and older import/fixture conventions instead of truthful runtime-aligned contracts. | Test-critical | `TS2322`, `TS18046`, `TS7006`, `TS7005`, `TS2353`, `TS5097` | Step 19 first, with its shared helper layer | `root`, `architect-strict`, `architect-tests` |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 | Highest-value execute-trade persistence harness still builds key fixtures with implicit `any` parameters and then runs into nullability churn when it inspects mutation results. | Test-critical | `TS18048`, `TS18049`, `TS7006`, `TS2322` | Step 20 first | `root`, `architect-strict`, `architect-tests`, `trade-tests` |
+| `tests/architect/offerSheetPersistence.test.ts` | 80 | Offer-sheet idempotency and resolution coverage still relies on bag-shaped state objects and unchecked mutation outputs, so it is not yet reinforcing the real runtime contract. | Test-critical | `TS18048`, `TS18049`, `TS2532`, `TS2533`, `TS2339` | Step 20 with the persistence cluster | `root`, `architect-strict`, `architect-tests` |
+| `tests/architect/capLegalityValidation.test.ts`, `tests/architect/teamLoader.test.ts`, `tests/architect/worldManager.test.ts`, `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` | 230 combined | These are the next strongest trade/cap integration harnesses by live strict count. They sit closest to the runtime readers and persistence contracts, so tightening them should collapse repeated unknown/null/assignability churn across many smaller guardrails. | Test-critical | `TS18046`, `TS18048`, `TS2322`, `TS2532`, `TS18049`, `TS2571`, `TS5097` | Step 21 review target; Step 22 extension candidate if they still dominate after Steps 19-20 | `root`, `architect-strict`, `architect-tests`, `trade-tests` |
+
+### Architect Remaining Mock / Fixture / Compatibility Layers
+
+| Path or group | Current strict footprint | Why it still matters | Criticality | Dominant current error families | Recommended wave order | Validation |
+| --- | ---: | --- | --- | --- | --- | --- |
+| `tests/helpers/architectTestHelpers.ts` | 18 | Central season/team/world helper still uses raw string indexing into narrow fixture maps, has implicit-`any` parameters, and even carries a `teams === 'all'` signature mismatch. It amplifies the `seasonManager`, `teamLoader`, and `worldManager` harness errors. | Support-critical | `TS7006`, `TS7053`, `TS2367` | Step 19 with `seasonManager.test.ts` | `root`, `architect-strict`, `architect-tests` |
+| `tests/__mocks__/firebase.ts` | 0 direct strict errors | The central Firebase mock is no longer a direct hotspot, but it still deliberately returns `unknown` from `getMockData()` and snapshot readers. Test waves should add typed accessors or local narrowing where needed instead of re-widening this boundary. | Support-critical | Downstream `TS18046`, `TS2571`, `TS2532` in consuming harnesses | Touch only as required by Steps 19-20 | `architect-strict`, `architect-tests` |
+
+### Strict-Prep Families That May Still Remain After Runtime/Test Normalization
+
+| Path or group | Current strict footprint | Why it may still matter later | Criticality | Dominant current error families | Recommended wave order | Validation |
+| --- | ---: | --- | --- | --- | --- | --- |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts`, `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts`, `src/tests/architect/exceptionManagement.test.ts` | 184 combined | If the runtime owners plus the top persistence/season harnesses are normalized, this exception/parity cluster becomes the next concentrated remaining family rather than random leaf debt. | Test-critical | `TS18048`, `TS18049`, `TS2533`, `TS2345`, `TS2322` | Do not front-load; Step 22 extension candidate if still dominant | `root`, `architect-strict`, `architect-tests` |
+| Legacy compatibility residue in `tests/architect/seasonManager.test.ts`, `tests/architect/teamLoader.test.ts`, `tests/architect/worldManager.test.ts`, `tests/architect/capLegalityValidation.test.ts`, plus string-indexing residue in `useTradeMachine.ts` and `tests/helpers/architectTestHelpers.ts` | Small but repeated cross-cluster family | The remaining `TS5097` and `TS7053` issues are not the mission's highest-leverage blockers today, but they can become a final bounded cleanup family after the higher-value contract waves land. | Support-critical | `TS5097`, `TS7053`, `TS7006` | Step 21 classification only; promote in Step 22 only if they remain concentrated | `root`, `architect-strict`, `architect-tests`, `trade-tests` |
+
+### Recommended Continuation Order
+
+1. Step 16: Normalize `mutationPipeline.ts` together with the minimum
+   `useArchitectActions.ts` / `GMDashboard.tsx` reload and apply seam needed to
+   make `MutationTeam`, `MutationPlayer`, and committed reload snapshots agree.
+2. Step 17: Finish the remaining `GMDashboard/**` adapter surfaces and
+   `useTradeMachine.ts`, then record the runtime-wave delta in the baseline doc.
+3. Step 18: Review runtime posture. If the mutation pipeline and dashboard
+   adapters stop dominating runtime errors, shift the next wave to tests.
+4. Step 19: Harden `tests/helpers/architectTestHelpers.ts` plus
+   `tests/architect/seasonManager.test.ts`, because that helper-driven season
+   harness is still the single biggest test hotspot.
+5. Step 20: Harden the execute-trade persistence cluster:
+   `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`,
+   `tests/architect/offerSheetPersistence.test.ts`, and only the minimum
+   supporting persistence-truth helpers needed to make those suites honest.
+6. Step 21: Re-review typed-test posture and decide whether the next immediate
+   cluster is the `capLegalityValidation` / `teamLoader` / `worldManager`
+   family or the exception/parity guardrails.
+7. Step 22: Re-run the mission-level checkpoint. If the exception/parity or
+   legacy compatibility families still remain substantial, append the next
+   numbered wave inside this same master plan rather than closing it.
+
+## Foundation Execution Order (Historical)
 
 1. Step 3: Remove or truthfully narrow `src/global-shims.d.ts`, starting with
    real shared UI and Architect barrel modules whose TS implementations already

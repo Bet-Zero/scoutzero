@@ -227,7 +227,9 @@ Do not change source files in this step.
 
 ## Step 15 — Convert the remaining Architect/test backlog into an execution map inside this same plan
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Added `Master Plan Remaining Waves` to the execution map with live Architect strict hotspots, support-layer dependencies, and a Step 16-22 continuation order.
 
 **Goal:** Turn the remaining Architect runtime + test strict backlog into a concrete execution map for the next hardening waves inside this same document.
 
