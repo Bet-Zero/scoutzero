@@ -548,6 +548,49 @@ test layer now carries `2,252` of the `2,501` total Architect-strict errors
 runtime support edits needed if those harnesses expose the remaining
 `mutationPipeline.ts` carrier seam.
 
+## Step 19 Test Harness Wave Delta
+
+Reviewed: 2026-04-22, after the first Architect test-harness hardening wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 18 baseline | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,501 | 2,403 | -98 |
+| `tests/architect/seasonManager.test.ts` | 117 | 0 | Cleared |
+| `tests/helpers/architectTestHelpers.ts` | 18 | 0 | Cleared |
+
+### What Changed
+
+- `tests/helpers/architectTestHelpers.ts` now exports explicit mock
+  world/team/player contracts plus typed mock readers, so the shared helper
+  layer no longer feeds `unknown`, implicit-`any`, or string-indexing fallout
+  into the season harness.
+- `tests/architect/seasonManager.test.ts` now consumes those typed helpers,
+  narrows season-advance success vs. failure results explicitly, replaces raw
+  `getMockData()` team reads with truthful helper-backed accessors, and keeps
+  deliberately invalid inputs inside the callable string domain instead of
+  depending on null casts.
+- The targeted harness still preserves the same runtime coverage: the focused
+  node test for `tests/architect/seasonManager.test.ts` passes with all
+  `29 / 29` tests green.
+
+### Remaining Test Hotspots After Step 19
+
+The Step 19 wave removed the highest season-harness hotspot cleanly, but it did
+not finish the broader persistence cluster. The next highest-value remaining
+targets are still:
+
+- `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
+  (`95` at the Step 18 baseline)
+- `tests/architect/offerSheetPersistence.test.ts` (`80` at the Step 18
+  baseline)
+
+Plain-language read: the season-manager harness is now aligned with the current
+runtime contracts, and the shared helper it depended on is no longer amplifying
+typed debt. Step 20 should move directly to the execute-trade / offer-sheet
+persistence cluster rather than reopening this season-helper seam.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -558,6 +601,7 @@ runtime support edits needed if those harnesses expose the remaining
 - `sed -n '1,220p' tsconfig.shared-boundaries-strict.json`
 - `npm run typecheck`
 - `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/architect/seasonManager.test.ts`
 - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
 - `node -e '<architect strict output parser for live file/code hotspot counts>'`
 - `node -e '<architect strict output parser for runtime-vs-test concentration buckets>'`

@@ -7,6 +7,11 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import type {
+  SeasonAdvanceFailureResult,
+  SeasonAdvanceResult,
+  SeasonAdvanceSuccessResult,
+} from '@/features/architect/utils/seasonManager';
 import {
   advanceSeasonLegacy as advanceSeason,
   processSeasonTransitionLegacy as processSeasonTransition,
@@ -18,13 +23,118 @@ import {
   createMockWorld,
   createMockTeam,
   createMockPlayer,
+  getMockTeamSnapshot,
   getMockWorldMetadata,
-} from '../helpers/architectTestHelpers.ts';
-import { getMockData } from '../__mocks__/firebase.ts';
+} from '../helpers/architectTestHelpers.js';
+import type {
+  MockTeam,
+  MockWorldMetadata,
+} from '../helpers/architectTestHelpers.js';
+import { getMockData } from '../__mocks__/firebase.js';
 
 describe('Season Manager', () => {
   const worldId = 'world_123';
   const userId = 'user_123';
+  type AdvanceSeasonInWorld = typeof import('@/features/architect/utils/seasonManager').advanceSeasonInWorld;
+  type PersistedSeasonAdvanceEvent = {
+    seasonId: string;
+    metadata: {
+      toSeason: string;
+    };
+  };
+  type PersistedTeamSnapshotView = {
+    season?: string;
+    roster?: unknown[];
+    players?: unknown[];
+    capHolds?: unknown[];
+    totals?: unknown;
+  };
+
+  function requireDefined<T>(
+    value: T | null | undefined,
+    label: string
+  ): T {
+    expect(value, `${label} should be defined`).toBeDefined();
+    if (value == null) {
+      throw new Error(`${label} should be defined`);
+    }
+    return value;
+  }
+
+  function requireWorldMetadata(targetWorldId: string): MockWorldMetadata {
+    return requireDefined(
+      getMockWorldMetadata(targetWorldId),
+      `world metadata ${targetWorldId}`
+    );
+  }
+
+  function requireTeamSnapshot(teamCode: string): MockTeam {
+    return requireDefined(
+      getMockTeamSnapshot(worldId, teamCode),
+      `team snapshot ${teamCode}`
+    );
+  }
+
+  function requirePersistedTeamSnapshotView(
+    teamCode: string
+  ): PersistedTeamSnapshotView {
+    const snapshot = getMockData(`architect_worlds/${worldId}/teams/${teamCode}`);
+    expect(snapshot).toBeDefined();
+    if (typeof snapshot !== 'object' || snapshot === null) {
+      throw new Error(`persisted team snapshot ${teamCode} should be an object`);
+    }
+    return snapshot as PersistedTeamSnapshotView;
+  }
+
+  function isPersistedSeasonAdvanceEvent(
+    value: unknown
+  ): value is PersistedSeasonAdvanceEvent {
+    if (typeof value !== 'object' || value === null) {
+      return false;
+    }
+    const event = value as Record<string, unknown>;
+    const metadata = event.metadata;
+    return (
+      typeof event.seasonId === 'string' &&
+      typeof metadata === 'object' &&
+      metadata !== null &&
+      'toSeason' in metadata &&
+      typeof metadata.toSeason === 'string'
+    );
+  }
+
+  function requirePersistedSeasonAdvanceEvent(
+    eventId: string
+  ): PersistedSeasonAdvanceEvent {
+    const event = getMockData(
+      `architect_worlds/${worldId}/events/${eventId}`
+    );
+    expect(event).toBeDefined();
+    if (!isPersistedSeasonAdvanceEvent(event)) {
+      throw new Error(`season advance event ${eventId} was not persisted correctly`);
+    }
+    return event;
+  }
+
+  function expectSeasonAdvanceSuccess(
+    result: SeasonAdvanceResult
+  ): SeasonAdvanceSuccessResult {
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error(result.error ?? 'Expected season advance success');
+    }
+    return result;
+  }
+
+  function expectSeasonAdvanceFailure(
+    result: SeasonAdvanceResult
+  ): SeasonAdvanceFailureResult {
+    expect(result.success).toBe(false);
+    if (result.success) {
+      throw new Error('Expected season advance failure');
+    }
+    return result;
+  }
 
   beforeEach(() => {
     // processSeasonTransition calls getLeague which needs all 30 teams
@@ -45,7 +155,7 @@ describe('Season Manager', () => {
       expect(result.fromSeason).toBe('2025-26');
       expect(result.toSeason).toBe('2026-27');
 
-      const metadata = getMockWorldMetadata(worldId);
+      const metadata = requireWorldMetadata(worldId);
       expect(metadata.currentSeason).toBe('2026-27');
     });
 
@@ -56,12 +166,12 @@ describe('Season Manager', () => {
       expect(result.fromSeason).toBe('2025-26');
       expect(result.toSeason).toBe('2027-28');
 
-      const metadata = getMockWorldMetadata(worldId);
+      const metadata = requireWorldMetadata(worldId);
       expect(metadata.currentSeason).toBe('2027-28');
     });
 
     it('throws error when worldId is missing', async () => {
-      await expect(advanceSeason(null)).rejects.toThrow('worldId is required');
+      await expect(advanceSeason('')).rejects.toThrow('worldId is required');
     });
   });
 
@@ -100,7 +210,7 @@ describe('Season Manager', () => {
       );
 
       expect(result.success).toBe(true);
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const updatedTeam = requireTeamSnapshot('LAL');
       expect(updatedTeam.roster).not.toContain('player_expiring');
     });
 
@@ -152,7 +262,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const updatedTeam = requireTeamSnapshot('LAL');
       expect(updatedTeam.roster).toContain('player1');
       expect(updatedTeam.roster).not.toContain('player_expiring');
     });
@@ -193,9 +303,12 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const player = updatedTeam.players.find(
-        (p) => p.playerId === 'player_with_option'
+      const updatedTeam = requireTeamSnapshot('LAL');
+      const player = requireDefined(
+        updatedTeam.players.find((existingPlayer) => {
+          return existingPlayer.playerId === 'player_with_option';
+        }),
+        'player_with_option after exercising option'
       );
       // Player should still be on roster since option was exercised (default behavior)
       expect(updatedTeam.roster).toContain('player_with_option');
@@ -232,7 +345,7 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const updatedTeam = requireTeamSnapshot('LAL');
       expect(updatedTeam.roster).not.toContain('player_with_option');
     });
 
@@ -250,10 +363,18 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const updatedTeam = requireTeamSnapshot('LAL');
+      const updatedTotals = requireDefined(
+        updatedTeam.totals,
+        'LAL totals after season transition'
+      );
+      const incompleteRosterCharge = requireDefined(
+        updatedTotals._meta?.incompleteRosterCharge,
+        'LAL incomplete roster charge metadata'
+      );
       // Phase 77 replaces totals with computeTeamCapTotals output which uses incompleteChargesTotal
-      expect(updatedTeam.totals.incompleteChargesTotal).toBeGreaterThan(0);
-      expect(updatedTeam.totals._meta.incompleteRosterCharge.standardRosterCount).toBe(2);
+      expect(updatedTotals.incompleteChargesTotal).toBeGreaterThan(0);
+      expect(incompleteRosterCharge.standardRosterCount).toBe(2);
     });
 
     it('updates cap holds', async () => {
@@ -282,10 +403,10 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/BOS`);
+      const updatedTeam = requireTeamSnapshot('BOS');
       // Signed player's cap hold should be removed
       const signedHold = updatedTeam.capHolds?.find(
-        (h) => h.playerId === 'signed_player'
+        (capHold) => capHold.playerId === 'signed_player'
       );
       expect(signedHold).toBeUndefined();
     });
@@ -308,8 +429,10 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const pick = updatedTeam.draftPicks.find((p) => p.id === 'lal_2026_1');
+      const updatedTeam = requireTeamSnapshot('LAL');
+      const pick = updatedTeam.draftPicks?.find(
+        (draftPick) => draftPick.id === 'lal_2026_1'
+      );
       // Pick year has passed, status may be updated
       expect(pick).toBeDefined();
     });
@@ -317,7 +440,7 @@ describe('Season Manager', () => {
     it('updates world metadata season', async () => {
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const metadata = getMockWorldMetadata(worldId);
+      const metadata = requireWorldMetadata(worldId);
       expect(metadata.currentSeason).toBe('2026-27');
       expect(metadata.lastModifiedAt).toBeDefined();
     });
@@ -361,8 +484,11 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const player = updatedTeam.players.find((p) => p.playerId === 'player1');
+      const updatedTeam = requireTeamSnapshot('LAL');
+      const player = requireDefined(
+        updatedTeam.players.find((existingPlayer) => existingPlayer.playerId === 'player1'),
+        'player1 after season transition'
+      );
       expect(player.contract.yearsRemaining).toBe(2);
     });
 
@@ -403,11 +529,15 @@ describe('Season Manager', () => {
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const player = updatedTeam.players.find((p) => p.playerId === 'player1');
+      const updatedTeam = requireTeamSnapshot('LAL');
+      const player = requireDefined(
+        updatedTeam.players.find((existingPlayer) => existingPlayer.playerId === 'player1'),
+        'player1 salary history after season transition'
+      );
       // Expired years (2024-25, 2025-26) should be removed
       const expiredYears = player.contract.salariesByYear.filter(
-        (y) => y.season === '2024-25' || y.season === '2025-26'
+        (salaryYear) =>
+          salaryYear.season === '2024-25' || salaryYear.season === '2025-26'
       );
       expect(expiredYears.length).toBe(0);
       // Only future years should remain
@@ -417,19 +547,19 @@ describe('Season Manager', () => {
 
     it('throws error when worldId is missing', async () => {
       await expect(
-        processSeasonTransition(null, '2025-26', '2026-27')
+        processSeasonTransition('', '2025-26', '2026-27')
       ).rejects.toThrow('worldId, fromSeason, and toSeason are required');
     });
 
     it('throws error when fromSeason is missing', async () => {
       await expect(
-        processSeasonTransition(worldId, null, '2026-27')
+        processSeasonTransition(worldId, '', '2026-27')
       ).rejects.toThrow('worldId, fromSeason, and toSeason are required');
     });
 
     it('throws error when toSeason is missing', async () => {
       await expect(
-        processSeasonTransition(worldId, '2025-26', null)
+        processSeasonTransition(worldId, '2025-26', '')
       ).rejects.toThrow('worldId, fromSeason, and toSeason are required');
     });
   });
@@ -438,7 +568,7 @@ describe('Season Manager', () => {
   // Phase 3B: advanceSeasonInWorld Tests
   // ===========================================================================
   describe('advanceSeasonInWorld', () => {
-    let advanceSeasonInWorld;
+    let advanceSeasonInWorld: AdvanceSeasonInWorld;
 
     beforeEach(async () => {
       // Import the new function
@@ -447,30 +577,29 @@ describe('Season Manager', () => {
     });
 
     it('requires worldId', async () => {
-      const result = await advanceSeasonInWorld(null);
-      expect(result.success).toBe(false);
+      const result = expectSeasonAdvanceFailure(await advanceSeasonInWorld(''));
       expect(result.error).toBe('worldId is required');
     });
 
     it('fails closed when caller fromSeason disagrees with world metadata', async () => {
-      const result = await advanceSeasonInWorld(worldId, {
-        fromSeason: '2024-25',
-        optionDecisions: {},
-      });
-
-      expect(result.success).toBe(false);
+      const result = expectSeasonAdvanceFailure(
+        await advanceSeasonInWorld(worldId, {
+          fromSeason: '2024-25',
+          optionDecisions: {},
+        })
+      );
       expect(result.error).toContain('Season mismatch');
       expect(result.worldSeason).toBe('2025-26');
       expect(result.attemptedFromSeason).toBe('2024-25');
     });
 
     it('fails closed when caller toSeason disagrees with the next world season', async () => {
-      const result = await advanceSeasonInWorld(worldId, {
-        toSeason: '2027-28',
-        optionDecisions: {},
-      });
-
-      expect(result.success).toBe(false);
+      const result = expectSeasonAdvanceFailure(
+        await advanceSeasonInWorld(worldId, {
+          toSeason: '2027-28',
+          optionDecisions: {},
+        })
+      );
       expect(result.error).toContain('Season mismatch');
       expect(result.worldSeason).toBe('2025-26');
       expect(result.attemptedToSeason).toBe('2027-28');
@@ -499,9 +628,9 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithoutOptions);
 
-      const result = await advanceSeasonInWorld(worldId);
-
-      expect(result.success).toBe(true);
+      const result = expectSeasonAdvanceSuccess(
+        await advanceSeasonInWorld(worldId)
+      );
       expect(result.fromSeason).toBe('2025-26');
       expect(result.toSeason).toBe('2026-27');
     });
@@ -529,18 +658,22 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithOption);
 
-      const result = await advanceSeasonInWorld(worldId, {
-        optionDecisions: {
-          player_with_option: { decision: 'exercise', optionType: 'player', season: '2026-27' },
-        },
-      });
-
-      expect(result.success).toBe(true);
+      const result = expectSeasonAdvanceSuccess(
+        await advanceSeasonInWorld(worldId, {
+          optionDecisions: {
+            player_with_option: {
+              decision: 'exercise',
+              optionType: 'player',
+              season: '2026-27',
+            },
+          },
+        })
+      );
       expect(result.summary.exercisedOptions).toHaveLength(1);
       expect(result.summary.exercisedOptions[0].playerName).toBe('Option Player');
 
       // Player should still be on roster
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const updatedTeam = requireTeamSnapshot('LAL');
       expect(updatedTeam.roster).toContain('player_with_option');
     });
 
@@ -567,18 +700,22 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithOption);
 
-      const result = await advanceSeasonInWorld(worldId, {
-        optionDecisions: {
-          player_with_option: { decision: 'decline', optionType: 'player', season: '2026-27' },
-        },
-      });
-
-      expect(result.success).toBe(true);
+      const result = expectSeasonAdvanceSuccess(
+        await advanceSeasonInWorld(worldId, {
+          optionDecisions: {
+            player_with_option: {
+              decision: 'decline',
+              optionType: 'player',
+              season: '2026-27',
+            },
+          },
+        })
+      );
       expect(result.summary.declinedOptions).toHaveLength(1);
       expect(result.summary.declinedOptions[0].playerName).toBe('Option Player');
 
       // Player should be removed from roster
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const updatedTeam = requireTeamSnapshot('LAL');
       expect(updatedTeam.roster).not.toContain('player_with_option');
     });
 
@@ -606,30 +743,39 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithOption);
 
-      const result = await advanceSeasonInWorld(worldId, {
-        optionDecisions: {
-          player_with_option: { decision: 'decline', optionType: 'player', season: '2026-27' },
-        },
-      });
-
-      expect(result.success).toBe(true);
+      const result = expectSeasonAdvanceSuccess(
+        await advanceSeasonInWorld(worldId, {
+          optionDecisions: {
+            player_with_option: {
+              decision: 'decline',
+              optionType: 'player',
+              season: '2026-27',
+            },
+          },
+        })
+      );
 
       // Should have a cap hold created
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
+      const updatedTeam = requireTeamSnapshot('LAL');
       expect(updatedTeam.capHolds).toBeDefined();
-      const hold = updatedTeam.capHolds.find((h) => h.playerId === 'player_with_option');
+      const hold = requireDefined(
+        updatedTeam.capHolds?.find(
+          (capHold) => capHold.playerId === 'player_with_option'
+        ),
+        'player_with_option cap hold after decline'
+      );
       expect(hold).toBeDefined();
       expect(hold.amount).toBeGreaterThan(0);
     });
 
     it('updates world metadata season', async () => {
-      const result = await advanceSeasonInWorld(worldId, {
-        focusTeamCode: 'LAL',
-      });
+      const result = expectSeasonAdvanceSuccess(
+        await advanceSeasonInWorld(worldId, {
+          focusTeamCode: 'LAL',
+        })
+      );
 
-      expect(result.success).toBe(true);
-
-      const metadata = getMockWorldMetadata(worldId);
+      const metadata = requireWorldMetadata(worldId);
       expect(metadata.currentSeason).toBe('2026-27');
       expect(result.committedState.metadata).toEqual({
         currentSeason: '2026-27',
@@ -637,9 +783,7 @@ describe('Season Manager', () => {
         lastModifiedTeams: result.updatedTeams,
       });
       expect(result.committedState.focusTeamCode).toBe('LAL');
-      const persistedFocusTeam = getMockData(
-        `architect_worlds/${worldId}/teams/LAL`
-      );
+      const persistedFocusTeam = requirePersistedTeamSnapshotView('LAL');
       expect(result.committedState.focusTeamSnapshot).toEqual(
         expect.objectContaining({
           teamCode: 'LAL',
@@ -651,8 +795,8 @@ describe('Season Manager', () => {
         })
       );
 
-      const persistedEvent = getMockData(
-        `architect_worlds/${worldId}/events/${result.committedState.event.eventId}`
+      const persistedEvent = requirePersistedSeasonAdvanceEvent(
+        result.committedState.event.eventId
       );
       expect(result.committedState.event.eventId).toContain('seasonAdvance_');
       expect(result.committedState.event.occurredAt).toBeDefined();
@@ -695,9 +839,9 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithExpiring);
 
-      const result = await advanceSeasonInWorld(worldId);
-
-      expect(result.success).toBe(true);
+      const result = expectSeasonAdvanceSuccess(
+        await advanceSeasonInWorld(worldId)
+      );
       // Other base teams may also have expiring contracts, so just check our player is included
       const expiringEntry = result.summary.expiredContracts.find(
         (c) => c.playerName === 'Expiring Player'
@@ -753,18 +897,21 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'MIA', teamWithProtectedPick);
 
-      const result = await advanceSeasonInWorld(worldId);
+      const result = expectSeasonAdvanceSuccess(
+        await advanceSeasonInWorld(worldId)
+      );
 
-      expect(result.success).toBe(true);
-
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/MIA`);
-      const protectedPick = updatedTeam.draftPicks.find(
+      const updatedTeam = requireTeamSnapshot('MIA');
+      const protectedPick = requireDefined(
+        updatedTeam.draftPicks?.find(
         (pick) => pick.id === 'lal_2026_1'
+        ),
+        'protected pick after season advance'
       );
 
       expect(protectedPick.status).toBe('rolled');
       expect(protectedPick.year).toBe(2027);
-      expect(protectedPick.conveyanceResult.outcome).toBe('rolled');
+      expect(protectedPick.conveyanceResult?.outcome).toBe('rolled');
     });
 
     // Stepien recalculation tests
@@ -786,12 +933,13 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithTradedPicks);
 
-      const result = await advanceSeasonInWorld(worldId);
+      expectSeasonAdvanceSuccess(await advanceSeasonInWorld(worldId));
 
-      expect(result.success).toBe(true);
-
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const pick2027 = updatedTeam.draftPicks.find((p) => p.id === 'lal_2027_1');
+      const updatedTeam = requireTeamSnapshot('LAL');
+      const pick2027 = requireDefined(
+        updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2027_1'),
+        '2027 pick after Stepien recalculation'
+      );
       
       // 2027 pick should be stepien-blocked because both 2026 and 2028 are traded
       expect(pick2027.stepienBlocked).toBe(true);
@@ -816,13 +964,17 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithOneTradedPick);
 
-      const result = await advanceSeasonInWorld(worldId);
+      expectSeasonAdvanceSuccess(await advanceSeasonInWorld(worldId));
 
-      expect(result.success).toBe(true);
-
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const pick2027 = updatedTeam.draftPicks.find((p) => p.id === 'lal_2027_1');
-      const pick2028 = updatedTeam.draftPicks.find((p) => p.id === 'lal_2028_1');
+      const updatedTeam = requireTeamSnapshot('LAL');
+      const pick2027 = requireDefined(
+        updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2027_1'),
+        '2027 pick when adjacent years are not both traded'
+      );
+      const pick2028 = requireDefined(
+        updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2028_1'),
+        '2028 pick when adjacent years are not both traded'
+      );
       
       // Neither pick should be blocked
       expect(pick2027.stepienBlocked).toBeFalsy();
@@ -843,12 +995,13 @@ describe('Season Manager', () => {
       });
       seedTeamSnapshot(worldId, 'LAL', teamWithPastPick);
 
-      const result = await advanceSeasonInWorld(worldId);
+      expectSeasonAdvanceSuccess(await advanceSeasonInWorld(worldId));
 
-      expect(result.success).toBe(true);
-
-      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      const pick2026 = updatedTeam.draftPicks.find((p) => p.id === 'lal_2026_1');
+      const updatedTeam = requireTeamSnapshot('LAL');
+      const pick2026 = requireDefined(
+        updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2026_1'),
+        '2026 pick after season advance'
+      );
       
       // 2026 pick should now be 'available' since we advanced to 2026-27
       expect(pick2026.status).toBe('available');

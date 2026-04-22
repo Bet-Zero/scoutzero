@@ -390,7 +390,9 @@ Include:
 
 ## Step 19 — Harden the highest-value remaining Architect persistence / season / offer-sheet harnesses (wave 1)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Hardened `tests/helpers/architectTestHelpers.ts` and `tests/architect/seasonManager.test.ts` with truthful helper contracts, typed mock readers, and explicit season-advance success/failure narrowing; Architect strict moved from `2,501` to `2,403`, while both targeted files fell to `0` strict errors.
 
 **Goal:** Make the most important remaining Architect tests enforce the newly normalized runtime contracts instead of bypassing them with broad fixtures and compatibility casts.
 
