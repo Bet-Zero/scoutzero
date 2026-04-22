@@ -10,11 +10,120 @@
 
 import { describe, it, expect } from 'vitest';
 import { validateOfferSheetResolution } from '../../src/features/architect/utils/capLegalityValidation';
-import { computeWorldMutation } from '../../src/features/architect/utils/mutationPipeline';
+import {
+    computeWorldMutation,
+    findUpdatedTeamSnapshot,
+    type ArchitectMutationOfferSheet,
+    type ArchitectMutationPlayerRecord,
+    type ArchitectMutationResult,
+    type ArchitectMutationTeamRecord,
+} from '../../src/features/architect/utils/mutationPipeline';
+
+type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type StoreOfferSheetArgs = Extract<
+    ComputeWorldMutationArgs,
+    { mutationType: 'storeOfferSheet' }
+>;
+type StoreOfferSheetState = Extract<
+    StoreOfferSheetArgs['currentState'],
+    { team?: unknown; player?: unknown; teamCode?: unknown; homeTeam?: unknown }
+>;
+type StoreOfferSheetTeam = NonNullable<StoreOfferSheetState['team']>;
+type StoreOfferSheetPlayer = NonNullable<StoreOfferSheetState['player']>;
+type StoreOfferSheetHomeTeam = NonNullable<StoreOfferSheetState['homeTeam']>;
+type UpdatedTeamSnapshot = NonNullable<ReturnType<typeof findUpdatedTeamSnapshot>>;
+
+type StoreOfferSheetStateOverrides = {
+    team?: Partial<StoreOfferSheetTeam> | UpdatedTeamSnapshot;
+    player?: Partial<StoreOfferSheetPlayer>;
+    teamCode?: string;
+    homeTeam?: Partial<StoreOfferSheetHomeTeam> | UpdatedTeamSnapshot | null;
+};
+
+type OfferSheetContractPayload = {
+    rfaOfferSheet: boolean;
+    rfaOfferSheetOnly: boolean;
+    rfaOfferSheetStatus?: string;
+    contractYears: number;
+    totalValue: number;
+    salariesByYear: Array<{
+        season: string;
+        salary: number;
+        capHit: number;
+        guaranteed: boolean;
+    }>;
+};
+
+type StoreOfferSheetPayload = {
+    teamCode: string;
+    playerId: string;
+    worldId: string;
+    offerSheetId?: string;
+    contract: OfferSheetContractPayload;
+};
+
+type StoreOfferSheetPayloadOverrides = Partial<Omit<StoreOfferSheetPayload, 'contract'>> & {
+    contract?: Partial<Omit<OfferSheetContractPayload, 'salariesByYear'>> & {
+        salariesByYear?: OfferSheetContractPayload['salariesByYear'];
+    };
+};
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+    expect(value, message).toBeDefined();
+
+    if (value == null) {
+        throw new Error(message);
+    }
+
+    return value;
+}
+
+function getUpdatedTeam(
+    result: ArchitectMutationResult,
+    teamCode: string,
+): NonNullable<ReturnType<typeof findUpdatedTeamSnapshot>> {
+    return requireValue(
+        findUpdatedTeamSnapshot(result.teamUpdates, teamCode),
+        `Expected updated team for ${teamCode}`,
+    );
+}
+
+function getOfferSheets(
+    team: Pick<ArchitectMutationTeamRecord, 'offerSheets'>,
+    teamCode: string,
+): ArchitectMutationOfferSheet[] {
+    expect(Array.isArray(team.offerSheets), `Expected offerSheets for ${teamCode}`).toBe(true);
+    return team.offerSheets ?? [];
+}
+
+function getIncomingOfferSheets(
+    team: Pick<ArchitectMutationTeamRecord, 'incomingOfferSheets'>,
+    teamCode: string,
+): ArchitectMutationOfferSheet[] {
+    expect(
+        Array.isArray(team.incomingOfferSheets),
+        `Expected incomingOfferSheets for ${teamCode}`,
+    ).toBe(true);
+    return team.incomingOfferSheets ?? [];
+}
+
+function getUpdatedPlayer(
+    result: ArchitectMutationResult,
+    playerId: string,
+): ArchitectMutationPlayerRecord {
+    const playerUpdate = (result.playerUpdates ?? []).find(
+        (candidate) => candidate.playerId === playerId && candidate.player,
+    );
+
+    return requireValue(
+        playerUpdate?.player,
+        `Expected updated player ${playerId}`,
+    );
+}
 
 describe('Phase 18.1: Offer Sheet Persistence & Idempotency', () => {
     // Mock offer sheet with dedupKey
-    const mockOfferSheet = {
+    const mockOfferSheet: ArchitectMutationOfferSheet = {
         id: 'os_LAL_player123_1705700000000',
         dedupKey: 'os:world1:LAL:player123:2025-26',
         offeringTeamCode: 'LAL',
@@ -178,56 +287,81 @@ describe('Phase 18.1: Offer Sheet Persistence & Idempotency', () => {
 
 describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
     // Helper to create minimal mock state for storeOfferSheet
-    const createMockState = (overrides = {}) => ({
-        team: {
+    const createMockState = (
+        overrides: StoreOfferSheetStateOverrides = {},
+    ): StoreOfferSheetState => {
+        const baseTeam: StoreOfferSheetTeam = {
             teamCode: 'LAL',
             teamName: 'Los Angeles Lakers',
             players: [],
             roster: [],
             offerSheets: [],
-            ...overrides.team
-        },
-        player: {
+        };
+
+        const basePlayer: StoreOfferSheetPlayer = {
             player_id: 'player123',
             id: 'player123',
             name: 'Test Player',
             displayName: 'Test Player',
-            teamCode: 'BOS', // Home team
+            teamCode: 'BOS',
             contract: { signingTeam: 'BOS' },
-            ...overrides.player
-        },
-        teamCode: 'LAL',
-        homeTeam: {
+        };
+
+        const baseHomeTeam: StoreOfferSheetHomeTeam = {
             teamCode: 'BOS',
             teamName: 'Boston Celtics',
             players: [{
                 player_id: 'player123',
                 id: 'player123',
                 name: 'Test Player',
-                contract: { signingTeam: 'BOS' }
+                contract: { signingTeam: 'BOS' },
             }],
             roster: ['player123'],
             incomingOfferSheets: [],
-            ...overrides.homeTeam
-        }
-    });
+        };
 
-    const createMockPayload = (overrides = {}) => ({
-        teamCode: 'LAL',
-        playerId: 'player123',
-        worldId: 'world_test_123',
-        contract: {
-            rfaOfferSheet: true,
-            rfaOfferSheetOnly: true,
-            rfaOfferSheetStatus: 'PENDING_MATCH',
-            contractYears: 4,
-            totalValue: 100000000,
-            salariesByYear: [
-                { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
-            ]
-        },
-        ...overrides
-    });
+        return {
+            team: {
+                ...baseTeam,
+                ...overrides.team,
+            },
+            player: {
+                ...basePlayer,
+                ...overrides.player,
+            },
+            teamCode: overrides.teamCode ?? 'LAL',
+            homeTeam: overrides.homeTeam === null
+                ? null
+                : {
+                    ...baseHomeTeam,
+                    ...overrides.homeTeam,
+                },
+        };
+    };
+
+    const createMockPayload = (
+        overrides: StoreOfferSheetPayloadOverrides = {},
+    ): StoreOfferSheetPayload => {
+        const contractOverrides = overrides.contract ?? {};
+
+        return {
+            teamCode: overrides.teamCode ?? 'LAL',
+            playerId: overrides.playerId ?? 'player123',
+            worldId: overrides.worldId ?? 'world_test_123',
+            ...(overrides.offerSheetId ? { offerSheetId: overrides.offerSheetId } : {}),
+            contract: {
+                rfaOfferSheet: true,
+                rfaOfferSheetOnly: true,
+                rfaOfferSheetStatus: 'PENDING_MATCH',
+                contractYears: 4,
+                totalValue: 100000000,
+                salariesByYear: contractOverrides.salariesByYear ?? [
+                    { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+                ],
+                ...contractOverrides,
+            },
+        };
+    };
 
     describe('A1: Store twice with different offerSheetId → Still 1 entry', () => {
         it('should produce only 1 offer sheet when stored twice with different IDs but same dedupKey inputs', () => {
@@ -244,14 +378,15 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
             });
             
             expect(result1.success).toBe(true);
-            const offeringTeamAfter1 = result1.teamUpdates.find(u => u.teamCode === 'LAL').team;
-            expect(offeringTeamAfter1.offerSheets).toHaveLength(1);
-            expect(offeringTeamAfter1.offerSheets[0].id).toBe('os_test_1');
+            const offeringTeamAfter1 = getUpdatedTeam(result1, 'LAL');
+            const offeringTeamAfter1OfferSheets = getOfferSheets(offeringTeamAfter1, 'LAL');
+            expect(offeringTeamAfter1OfferSheets).toHaveLength(1);
+            expect(requireValue(offeringTeamAfter1OfferSheets[0], 'Expected first stored offer sheet').id).toBe('os_test_1');
             
             // Second store with DIFFERENT offerSheetId but same identity
             const stateAfterFirst = createMockState({
                 team: offeringTeamAfter1,
-                homeTeam: result1.teamUpdates.find(u => u.teamCode === 'BOS')?.team || currentState.homeTeam
+                homeTeam: getUpdatedTeam(result1, 'BOS')
             });
             
             const payload2 = createMockPayload({ offerSheetId: 'os_test_2' });
@@ -264,14 +399,15 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
             });
             
             expect(result2.success).toBe(true);
-            const offeringTeamAfter2 = result2.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            const offeringTeamAfter2 = getUpdatedTeam(result2, 'LAL');
+            const offeringTeamAfter2OfferSheets = getOfferSheets(offeringTeamAfter2, 'LAL');
             
             // CRITICAL: Should still be only 1 entry (deduped by dedupKey)
-            expect(offeringTeamAfter2.offerSheets).toHaveLength(1);
+            expect(offeringTeamAfter2OfferSheets).toHaveLength(1);
             // Original ID should be preserved
-            expect(offeringTeamAfter2.offerSheets[0].id).toBe('os_test_1');
+            expect(requireValue(offeringTeamAfter2OfferSheets[0], 'Expected deduped offer sheet').id).toBe('os_test_1');
             // dedupKey should match expected format
-            expect(offeringTeamAfter2.offerSheets[0].dedupKey).toBe('os:world_test_123:LAL:player123:2025-26');
+            expect(requireValue(offeringTeamAfter2OfferSheets[0], 'Expected deduped offer sheet').dedupKey).toBe('os:world_test_123:LAL:player123:2025-26');
         });
 
         it('should update contract terms in place on second store', () => {
@@ -298,12 +434,12 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
                 timestamp: Date.now(),
             });
             
-            const offeringTeamAfter1 = result1.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            const offeringTeamAfter1 = getUpdatedTeam(result1, 'LAL');
             
             // Second store with UPDATED salary
             const stateAfterFirst = createMockState({
                 team: offeringTeamAfter1,
-                homeTeam: result1.teamUpdates.find(u => u.teamCode === 'BOS')?.team || currentState.homeTeam
+                homeTeam: getUpdatedTeam(result1, 'BOS')
             });
             
             const payload2 = createMockPayload({ 
@@ -326,13 +462,18 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
                 timestamp: Date.now() + 1000,
             });
             
-            const offeringTeamAfter2 = result2.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            const offeringTeamAfter2 = getUpdatedTeam(result2, 'LAL');
+            const offeringTeamAfter2OfferSheets = getOfferSheets(offeringTeamAfter2, 'LAL');
+            const updatedOfferSheet = requireValue(
+                offeringTeamAfter2OfferSheets[0],
+                'Expected updated offer sheet after second store',
+            );
             
             // Should still be 1 entry
-            expect(offeringTeamAfter2.offerSheets).toHaveLength(1);
+            expect(offeringTeamAfter2OfferSheets).toHaveLength(1);
             // Should have UPDATED totalValue
-            expect(offeringTeamAfter2.offerSheets[0].totalValue).toBe(120000000);
-            expect(offeringTeamAfter2.offerSheets[0].salariesByYear[0].salary).toBe(30000000);
+            expect(updatedOfferSheet.totalValue).toBe(120000000);
+            expect(requireValue(updatedOfferSheet.salariesByYear?.[0], 'Expected updated salary row').salary).toBe(30000000);
         });
     });
 
@@ -354,16 +495,21 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
             });
             
             expect(result1.success).toBe(true);
-            const offeringTeamAfter1 = result1.teamUpdates.find(u => u.teamCode === 'LAL').team;
-            expect(offeringTeamAfter1.offerSheets).toHaveLength(1);
+            const offeringTeamAfter1 = getUpdatedTeam(result1, 'LAL');
+            const offeringTeamAfter1OfferSheets = getOfferSheets(offeringTeamAfter1, 'LAL');
+            expect(offeringTeamAfter1OfferSheets).toHaveLength(1);
             
-            const firstId = offeringTeamAfter1.offerSheets[0].id;
-            const firstCreatedAt = offeringTeamAfter1.offerSheets[0].createdAt;
+            const firstOfferSheet = requireValue(
+                offeringTeamAfter1OfferSheets[0],
+                'Expected first auto-generated offer sheet',
+            );
+            const firstId = firstOfferSheet.id;
+            const firstCreatedAt = firstOfferSheet.createdAt;
             
             // Second store with NO offerSheetId (different timestamp generates different ID)
             const stateAfterFirst = createMockState({
                 team: offeringTeamAfter1,
-                homeTeam: result1.teamUpdates.find(u => u.teamCode === 'BOS')?.team || currentState.homeTeam
+                homeTeam: getUpdatedTeam(result1, 'BOS')
             });
             
             const payload2 = createMockPayload();
@@ -378,14 +524,19 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
             });
             
             expect(result2.success).toBe(true);
-            const offeringTeamAfter2 = result2.teamUpdates.find(u => u.teamCode === 'LAL').team;
+            const offeringTeamAfter2 = getUpdatedTeam(result2, 'LAL');
+            const offeringTeamAfter2OfferSheets = getOfferSheets(offeringTeamAfter2, 'LAL');
+            const dedupedOfferSheet = requireValue(
+                offeringTeamAfter2OfferSheets[0],
+                'Expected deduped auto-generated offer sheet',
+            );
             
             // CRITICAL: Should still be only 1 entry (deduped by dedupKey)
-            expect(offeringTeamAfter2.offerSheets).toHaveLength(1);
+            expect(offeringTeamAfter2OfferSheets).toHaveLength(1);
             // Original ID should be preserved
-            expect(offeringTeamAfter2.offerSheets[0].id).toBe(firstId);
+            expect(dedupedOfferSheet.id).toBe(firstId);
             // Original createdAt should be preserved
-            expect(offeringTeamAfter2.offerSheets[0].createdAt).toBe(firstCreatedAt);
+            expect(dedupedOfferSheet.createdAt).toBe(firstCreatedAt);
         });
     });
 
@@ -648,12 +799,12 @@ describe('Phase 18.2: finalizeDeclinedOfferSheet Cleanup by dedupKey', () => {
 
         expect(result.success).toBe(true);
         
-        const offeringTeamResult = result.teamUpdates.find(u => u.teamCode === 'LAL').team;
-        const homeTeamResult = result.teamUpdates.find(u => u.teamCode === 'BOS').team;
+    const offeringTeamResult = getUpdatedTeam(result, 'LAL');
+    const homeTeamResult = getUpdatedTeam(result, 'BOS');
         
         // Both arrays should be empty
-        expect(offeringTeamResult.offerSheets).toHaveLength(0);
-        expect(homeTeamResult.incomingOfferSheets).toHaveLength(0);
+    expect(getOfferSheets(offeringTeamResult, 'LAL')).toHaveLength(0);
+    expect(getIncomingOfferSheets(homeTeamResult, 'BOS')).toHaveLength(0);
         
         // Player should be added to offering team roster
         expect(offeringTeamResult.roster).toContain('player123');
@@ -727,15 +878,16 @@ describe('E4: Offer sheet finalization canonical persistence manifests', () => {
         });
 
         expect(result.success).toBe(true);
-        expect(result.playerUpdates).toHaveLength(1);
+    expect(result.playerUpdates ?? []).toHaveLength(1);
         expect(result.playerDeletes).toEqual([]);
-        expect(result.playerUpdates[0].playerId).toBe('player123');
-        expect(result.playerUpdates[0].player.teamCode).toBe('BOS');
-        expect(result.playerUpdates[0].player.displayName).toBe('Canonical Matched Name');
-        expect(result.playerUpdates[0].player.contract.signedUsing).toBe('Match');
+    const matchedPlayer = getUpdatedPlayer(result, 'player123');
+    expect(matchedPlayer.playerId).toBe('player123');
+    expect(matchedPlayer.teamCode).toBe('BOS');
+    expect(matchedPlayer.displayName).toBe('Canonical Matched Name');
+    expect(matchedPlayer.contract?.signedUsing).toBe('Match');
 
-        const homeTeamResult = result.teamUpdates.find((u) => u.teamCode === 'BOS').team;
-        expect(homeTeamResult.incomingOfferSheets).toHaveLength(0);
+    const homeTeamResult = getUpdatedTeam(result, 'BOS');
+    expect(getIncomingOfferSheets(homeTeamResult, 'BOS')).toHaveLength(0);
         expect(homeTeamResult.capHolds).toHaveLength(0);
     });
 
@@ -810,17 +962,18 @@ describe('E4: Offer sheet finalization canonical persistence manifests', () => {
         });
 
         expect(result.success).toBe(true);
-        expect(result.playerUpdates).toHaveLength(1);
+        expect(result.playerUpdates ?? []).toHaveLength(1);
         expect(result.playerDeletes).toEqual([
             { playerId: 'player123', teamCode: 'BOS' },
         ]);
-        expect(result.playerUpdates[0].player.teamCode).toBe('LAL');
-        expect(result.playerUpdates[0].player.displayName).toBe('Canonical Source Name');
-        expect(result.playerUpdates[0].player.displayName).not.toBe('Fragment-Only Name');
-        expect(result.playerUpdates[0].player.contract.signedUsing).toBe('Offer Sheet');
+        const declinedPlayer = getUpdatedPlayer(result, 'player123');
+        expect(declinedPlayer.teamCode).toBe('LAL');
+        expect(declinedPlayer.displayName).toBe('Canonical Source Name');
+        expect(declinedPlayer.displayName).not.toBe('Fragment-Only Name');
+        expect(declinedPlayer.contract?.signedUsing).toBe('Offer Sheet');
 
-        const offeringTeamResult = result.teamUpdates.find((u) => u.teamCode === 'LAL').team;
-        const homeTeamResult = result.teamUpdates.find((u) => u.teamCode === 'BOS').team;
+        const offeringTeamResult = getUpdatedTeam(result, 'LAL');
+        const homeTeamResult = getUpdatedTeam(result, 'BOS');
         expect(offeringTeamResult.roster).toContain('player123');
         expect(offeringTeamResult.capHolds).toHaveLength(0);
         expect(homeTeamResult.roster).not.toContain('player123');

@@ -19,9 +19,24 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import {
+  computeWorldMutation,
+  findUpdatedTeamSnapshot,
+  type ArchitectMutationPlayerRecord,
+  type ArchitectMutationResult,
+  type ArchitectMutationTeamRecord,
+} from '@/features/architect/utils/mutationPipeline';
+
+type TpeCreationHistoryEntryLike = {
+  type: 'TPE_CREATED';
+  teamCode: string;
+  amountCreated: number;
+  createdFrom: string;
+  historyKey: string;
+};
 
 type TpeConsumptionHistoryEntryLike = {
+  type: 'TPE_CONSUMED';
   teamCode: string;
   tpeId: string;
   amountConsumed: number;
@@ -33,6 +48,124 @@ type TpeConsumptionHistoryEntryLike = {
     amountAbsorbed?: number;
   }>;
 };
+
+type TestTradePlayer = {
+  player_id: string;
+  id: string;
+  playerId: string;
+  name: string;
+  displayName: string;
+  teamCode: string;
+  salary: number;
+  contract: NonNullable<ArchitectMutationPlayerRecord['contract']>;
+  bio: NonNullable<ArchitectMutationPlayerRecord['bio']>;
+};
+
+type TestTradeTeam = ArchitectMutationTeamRecord & {
+  teamCode: string;
+  teamName: string;
+  players: TestTradePlayer[];
+  roster: string[];
+  tradeExceptions: NonNullable<ArchitectMutationTeamRecord['tradeExceptions']>;
+  exceptionHistory: unknown[];
+  entitlementIds: string[];
+  draftPicks: NonNullable<ArchitectMutationTeamRecord['draftPicks']>;
+  capHolds: NonNullable<ArchitectMutationTeamRecord['capHolds']>;
+  deadCap: NonNullable<ArchitectMutationTeamRecord['deadCap']>;
+  exceptions: NonNullable<ArchitectMutationTeamRecord['exceptions']>;
+  totals: NonNullable<ArchitectMutationTeamRecord['totals']>;
+  source: NonNullable<ArchitectMutationTeamRecord['source']>;
+};
+
+type TradeCurrentStateTeam =
+  | TestTradeTeam
+  | NonNullable<ReturnType<typeof findUpdatedTeamSnapshot>>;
+
+type TradeCurrentState = {
+  teams: Array<{ teamCode: string; team: TradeCurrentStateTeam }>;
+};
+
+type TradeHistoryEntry = Record<string, unknown>;
+type TestTradeException = NonNullable<
+  ArchitectMutationTeamRecord['tradeExceptions']
+>[number];
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isTpeCreationHistoryEntry(
+  value: unknown
+): value is TpeCreationHistoryEntryLike {
+  return (
+    isRecord(value) &&
+    value.type === 'TPE_CREATED' &&
+    typeof value.teamCode === 'string' &&
+    typeof value.amountCreated === 'number' &&
+    typeof value.createdFrom === 'string' &&
+    typeof value.historyKey === 'string'
+  );
+}
+
+function isTpeConsumptionHistoryEntry(
+  value: unknown
+): value is TpeConsumptionHistoryEntryLike {
+  return (
+    isRecord(value) &&
+    value.type === 'TPE_CONSUMED' &&
+    typeof value.teamCode === 'string' &&
+    typeof value.tpeId === 'string' &&
+    typeof value.amountConsumed === 'number' &&
+    typeof value.remainingAmountAfter === 'number' &&
+    typeof value.fullyConsumed === 'boolean' &&
+    typeof value.historyKey === 'string' &&
+    Array.isArray(value.absorbedPlayers)
+  );
+}
+
+function getUpdatedTeam(
+  result: ArchitectMutationResult,
+  teamCode: string
+): NonNullable<ReturnType<typeof findUpdatedTeamSnapshot>> {
+  return requireValue(
+    findUpdatedTeamSnapshot(result.teamUpdates, teamCode),
+    `Expected updated team for ${teamCode}`
+  );
+}
+
+function getTradeExceptions(
+  team: Pick<ArchitectMutationTeamRecord, 'tradeExceptions'>,
+  teamCode: string
+): NonNullable<ArchitectMutationTeamRecord['tradeExceptions']> {
+  expect(
+    Array.isArray(team.tradeExceptions),
+    `Expected tradeExceptions for ${teamCode}`
+  ).toBe(true);
+
+  return team.tradeExceptions ?? [];
+}
+
+function getExceptionHistory(
+  team: Pick<ArchitectMutationTeamRecord, 'exceptionHistory'>,
+  teamCode: string
+): TradeHistoryEntry[] {
+  expect(
+    Array.isArray(team.exceptionHistory),
+    `Expected exceptionHistory for ${teamCode}`
+  ).toBe(true);
+
+  return (team.exceptionHistory ?? []).filter(isRecord);
+}
 
 // ============================================================================
 // TEST FIXTURES
@@ -53,7 +186,13 @@ const FIXED_TIMESTAMP_ISO = '2026-01-29T12:00:00.000Z';
  * @param {string} teamCode - Team code
  * @param {Object} [options] - Additional overrides
  */
-const makePlayer = (id, name, salary, teamCode, options = {}) => ({
+const makePlayer = (
+  id: string,
+  name: string,
+  salary: number,
+  teamCode: string,
+  options: Partial<TestTradePlayer> = {}
+): TestTradePlayer => ({
   player_id: id,
   id,
   playerId: id,
@@ -86,7 +225,12 @@ const makePlayer = (id, name, salary, teamCode, options = {}) => ({
  * @param {Array} players - Array of player objects
  * @param {Object} [options] - Additional overrides
  */
-const makeTeam = (teamCode, totalSalary, players = [], options = {}) => ({
+const makeTeam = (
+  teamCode: string,
+  totalSalary: number,
+  players: TestTradePlayer[] = [],
+  options: Partial<TestTradeTeam> = {}
+): TestTradeTeam => ({
   id: teamCode.toLowerCase(),
   teamCode,
   teamName: `Team ${teamCode}`,
@@ -120,7 +264,11 @@ const makeTeam = (teamCode, totalSalary, players = [], options = {}) => ({
  * @param {number} amount - Total TPE amount
  * @param {Object} [options] - Additional overrides
  */
-const makeTPE = (id, amount, options = {}) => ({
+const makeTPE = (
+  id: string,
+  amount: number,
+  options: Partial<TestTradeException> = {}
+): TestTradeException => ({
   id,
   amount,
   totalAmount: amount,
@@ -151,7 +299,9 @@ const makeCapProjections = () => ({
  * Builds currentState in the format expected by computeWorldMutation for trades.
  * @param {Array<{teamCode: string, team: Object}>} teamData - Array of { teamCode, team } objects
  */
-const buildTradeCurrentState = (teamData) => ({
+const buildTradeCurrentState = (
+  teamData: Array<{ teamCode: string; team: TradeCurrentStateTeam }>
+): TradeCurrentState => ({
   teams: teamData.map(({ teamCode, team }) => ({ teamCode, team })),
 });
 
@@ -267,39 +417,36 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
 
       // ASSERTIONS
       expect(result.success).toBe(true);
-      expect(result.teamUpdates).toBeDefined();
-      expect(result.teamUpdates.length).toBe(2);
+      const teamUpdates = result.teamUpdates ?? [];
+      expect(teamUpdates).toHaveLength(2);
 
       // Find Team A's update (the over-cap team that should get a TPE)
-      const teamAUpdate = result.teamUpdates.find((u) => u.teamCode === 'TMA');
-      expect(teamAUpdate).toBeDefined();
-
-      const updatedTeamA = teamAUpdate.team;
+      const updatedTeamA = getUpdatedTeam(result, 'TMA');
+      const tradeExceptions = getTradeExceptions(updatedTeamA, 'TMA');
 
       // TPE should be created (8M = 18M out - 10M in)
-      expect(updatedTeamA.tradeExceptions).toBeDefined();
-      expect(Array.isArray(updatedTeamA.tradeExceptions)).toBe(true);
-
       // Find the created TPE
-      const createdTPE = updatedTeamA.tradeExceptions.find(
+      const createdTPE = requireValue(
+        tradeExceptions.find(
         (tpe) => tpe.amount === 8_000_000 || tpe.totalAmount === 8_000_000
+        ),
+        'Expected created TPE for Team A'
       );
-      expect(createdTPE).toBeDefined();
       expect(createdTPE.remainingAmount).toBe(8_000_000);
       expect(createdTPE.usedAmount).toBe(0);
       expect(createdTPE.isUsed).toBe(false);
       expect(createdTPE.createdFrom).toContain('Player Out');
 
       // Exception history should contain exactly one TPE_CREATED entry
-      expect(updatedTeamA.exceptionHistory).toBeDefined();
-      expect(Array.isArray(updatedTeamA.exceptionHistory)).toBe(true);
-
-      const creationEntries = updatedTeamA.exceptionHistory.filter(
-        (e) => e.type === 'TPE_CREATED'
+      const creationEntries = getExceptionHistory(updatedTeamA, 'TMA').filter(
+        isTpeCreationHistoryEntry
       );
       expect(creationEntries.length).toBe(1);
 
-      const creationEntry = creationEntries[0];
+      const creationEntry = requireValue(
+        creationEntries[0],
+        'Expected a TPE_CREATED history entry'
+      );
       expect(creationEntry.teamCode).toBe('TMA');
       expect(creationEntry.amountCreated).toBe(8_000_000);
       expect(creationEntry.createdFrom).toContain('Player Out');
@@ -393,27 +540,28 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
       expect(result.success).toBe(true);
 
       // Find Team A's update
-      const teamAUpdate = result.teamUpdates.find((u) => u.teamCode === 'TMA');
-      expect(teamAUpdate).toBeDefined();
-
-      const updatedTeamA = teamAUpdate.team;
+      const updatedTeamA = getUpdatedTeam(result, 'TMA');
+      const tradeExceptions = getTradeExceptions(updatedTeamA, 'TMA');
 
       // Find the consumed TPE
-      const consumedTPE = updatedTeamA.tradeExceptions.find(
-        (tpe) => tpe.id === 'tpe_existing_consume'
+      const consumedTPE = requireValue(
+        tradeExceptions.find((tpe) => tpe.id === 'tpe_existing_consume'),
+        'Expected consumed TPE'
       );
-      expect(consumedTPE).toBeDefined();
       expect(consumedTPE.remainingAmount).toBe(3_000_000); // 15M - 12M
       expect(consumedTPE.usedAmount).toBe(12_000_000);
       expect(consumedTPE.isUsed).toBe(false); // Not fully consumed
 
       // Exception history should contain exactly one TPE_CONSUMED entry
-      const consumptionEntries = updatedTeamA.exceptionHistory.filter(
-        (e) => e.type === 'TPE_CONSUMED'
-      ) as TpeConsumptionHistoryEntryLike[];
+      const consumptionEntries = getExceptionHistory(updatedTeamA, 'TMA').filter(
+        isTpeConsumptionHistoryEntry
+      );
       expect(consumptionEntries.length).toBe(1);
 
-      const consumptionEntry = consumptionEntries[0];
+      const consumptionEntry = requireValue(
+        consumptionEntries[0],
+        'Expected a TPE_CONSUMED history entry'
+      );
       expect(consumptionEntry.teamCode).toBe('TMA');
       expect(consumptionEntry.tpeId).toBe('tpe_existing_consume');
       expect(consumptionEntry.amountConsumed).toBe(12_000_000);
@@ -426,8 +574,12 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
       expect(consumptionEntry.absorbedPlayers).toBeDefined();
       expect(Array.isArray(consumptionEntry.absorbedPlayers)).toBe(true);
       expect(consumptionEntry.absorbedPlayers.length).toBe(1);
-      expect(consumptionEntry.absorbedPlayers[0].name).toBe('Absorbed Player');
-      expect(consumptionEntry.absorbedPlayers[0].amountAbsorbed).toBe(
+      const absorbedPlayer = requireValue(
+        consumptionEntry.absorbedPlayers[0],
+        'Expected absorbed player history entry'
+      );
+      expect(absorbedPlayer.name).toBe('Absorbed Player');
+      expect(absorbedPlayer.amountAbsorbed).toBe(
         12_000_000
       );
     });
@@ -506,23 +658,27 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
 
       expect(result.success).toBe(true);
 
-      const teamAUpdate = result.teamUpdates.find((u) => u.teamCode === 'TMA');
-      const updatedTeamA = teamAUpdate.team;
+      const updatedTeamA = getUpdatedTeam(result, 'TMA');
+      const tradeExceptions = getTradeExceptions(updatedTeamA, 'TMA');
 
       // TPE should be fully consumed
-      const consumedTPE = updatedTeamA.tradeExceptions.find(
-        (tpe) => tpe.id === 'tpe_full_consume'
+      const consumedTPE = requireValue(
+        tradeExceptions.find((tpe) => tpe.id === 'tpe_full_consume'),
+        'Expected fully consumed TPE'
       );
-      expect(consumedTPE).toBeDefined();
       expect(consumedTPE.remainingAmount).toBe(0);
       expect(consumedTPE.usedAmount).toBe(10_000_000);
       expect(consumedTPE.isUsed).toBe(true);
 
       // History entry should show fullyConsumed
-      const consumptionEntry = updatedTeamA.exceptionHistory.find(
-        (e) => e.type === 'TPE_CONSUMED' && e.tpeId === 'tpe_full_consume'
+      const consumptionEntry = requireValue(
+        getExceptionHistory(updatedTeamA, 'TMA').find(
+          (entry): entry is TpeConsumptionHistoryEntryLike =>
+            isTpeConsumptionHistoryEntry(entry) &&
+            entry.tpeId === 'tpe_full_consume'
+        ),
+        'Expected TPE_CONSUMED entry for fully consumed TPE'
       );
-      expect(consumptionEntry).toBeDefined();
       expect(consumptionEntry.fullyConsumed).toBe(true);
       expect(consumptionEntry.remainingAmountAfter).toBe(0);
     });
@@ -624,13 +780,12 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
 
       expect(result1.success).toBe(true);
 
-      const teamAUpdate1 = result1.teamUpdates.find(
-        (u) => u.teamCode === 'TMA'
-      );
-      const updatedTeamA1 = teamAUpdate1.team;
+      const updatedTeamA1 = getUpdatedTeam(result1, 'TMA');
+      const tradeExceptions1 = getTradeExceptions(updatedTeamA1, 'TMA');
+      const exceptionHistory1 = getExceptionHistory(updatedTeamA1, 'TMA');
 
-      const tpeCount1 = updatedTeamA1.tradeExceptions.length;
-      const historyCount1 = updatedTeamA1.exceptionHistory.length;
+      const tpeCount1 = tradeExceptions1.length;
+      const historyCount1 = exceptionHistory1.length;
 
       // Should have exactly 1 TPE and 1 history entry
       expect(tpeCount1).toBe(1);
@@ -638,9 +793,7 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
 
       // RUN 2: Second execution with same payload but using updated state
       // Simulate that the world state now includes the TPE from run 1
-      const updatedTeamB1 = result1.teamUpdates.find(
-        (u) => u.teamCode === 'TMB'
-      ).team;
+      const updatedTeamB1 = getUpdatedTeam(result1, 'TMB');
       const currentState2 = buildTradeCurrentState([
         { teamCode: 'TMA', team: updatedTeamA1 },
         { teamCode: 'TMB', team: updatedTeamB1 },
@@ -665,13 +818,12 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
 
       expect(result2.success).toBe(true);
 
-      const teamAUpdate2 = result2.teamUpdates.find(
-        (u) => u.teamCode === 'TMA'
-      );
-      const updatedTeamA2 = teamAUpdate2.team;
+      const updatedTeamA2 = getUpdatedTeam(result2, 'TMA');
+      const tradeExceptions2 = getTradeExceptions(updatedTeamA2, 'TMA');
+      const exceptionHistory2 = getExceptionHistory(updatedTeamA2, 'TMA');
 
-      const tpeCount2 = updatedTeamA2.tradeExceptions.length;
-      const historyCount2 = updatedTeamA2.exceptionHistory.length;
+      const tpeCount2 = tradeExceptions2.length;
+      const historyCount2 = exceptionHistory2.length;
 
       // IDEMPOTENCY ASSERTIONS:
       // TPE count should remain the same (no duplicates)
@@ -681,13 +833,13 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
       expect(historyCount2).toBe(historyCount1);
 
       // Verify no duplicate IDs in tradeExceptions
-      const tpeIds = updatedTeamA2.tradeExceptions.map((t) => t.id);
+      const tpeIds = tradeExceptions2.map((tpe) => tpe.id);
       const uniqueTpeIds = [...new Set(tpeIds)];
       expect(tpeIds.length).toBe(uniqueTpeIds.length);
 
       // Verify no duplicate historyKeys in exceptionHistory
-      const historyKeys = updatedTeamA2.exceptionHistory.map(
-        (e) => e.historyKey
+      const historyKeys = exceptionHistory2.map(
+        (entry) => String(entry.historyKey ?? '')
       );
       const uniqueHistoryKeys = [...new Set(historyKeys)];
       expect(historyKeys.length).toBe(uniqueHistoryKeys.length);
@@ -778,18 +930,18 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
 
       expect(result1.success).toBe(true);
 
-      const teamAUpdate1 = result1.teamUpdates.find(
-        (u) => u.teamCode === 'TMA'
-      );
-      const updatedTeamA1 = teamAUpdate1.team;
+      const updatedTeamA1 = getUpdatedTeam(result1, 'TMA');
+      const tradeExceptions1 = getTradeExceptions(updatedTeamA1, 'TMA');
+      const exceptionHistory1 = getExceptionHistory(updatedTeamA1, 'TMA');
 
-      const tpe1 = updatedTeamA1.tradeExceptions.find(
-        (t) => t.id === 'tpe_idem_consume'
+      const tpe1 = requireValue(
+        tradeExceptions1.find((tpe) => tpe.id === 'tpe_idem_consume'),
+        'Expected first idempotent consumption TPE'
       );
       expect(tpe1.remainingAmount).toBe(4_000_000); // 12M - 8M
       expect(tpe1.usedAmount).toBe(8_000_000);
 
-      const historyCount1 = updatedTeamA1.exceptionHistory.length;
+      const historyCount1 = exceptionHistory1.length;
       expect(historyCount1).toBe(1);
 
       // RUN 2: Second execution with SAME initial state (simulating retry)
@@ -804,13 +956,13 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
 
       expect(result2.success).toBe(true);
 
-      const teamAUpdate2 = result2.teamUpdates.find(
-        (u) => u.teamCode === 'TMA'
-      );
-      const updatedTeamA2 = teamAUpdate2.team;
+      const updatedTeamA2 = getUpdatedTeam(result2, 'TMA');
+      const tradeExceptions2 = getTradeExceptions(updatedTeamA2, 'TMA');
+      const exceptionHistory2 = getExceptionHistory(updatedTeamA2, 'TMA');
 
-      const tpe2 = updatedTeamA2.tradeExceptions.find(
-        (t) => t.id === 'tpe_idem_consume'
+      const tpe2 = requireValue(
+        tradeExceptions2.find((tpe) => tpe.id === 'tpe_idem_consume'),
+        'Expected second idempotent consumption TPE'
       );
 
       // IDEMPOTENCY: Both runs should produce identical TPE state
@@ -819,12 +971,12 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
 
       // IDEMPOTENCY: Both runs should produce identical history
       // (same historyKey, so deduplication would apply if merged)
-      const historyCount2 = updatedTeamA2.exceptionHistory.length;
+      const historyCount2 = exceptionHistory2.length;
       expect(historyCount2).toBe(historyCount1); // Same count = 1
 
       // Verify the history entries are identical (same historyKey)
-      const historyKey1 = updatedTeamA1.exceptionHistory[0]?.historyKey;
-      const historyKey2 = updatedTeamA2.exceptionHistory[0]?.historyKey;
+      const historyKey1 = exceptionHistory1[0]?.historyKey;
+      const historyKey2 = exceptionHistory2[0]?.historyKey;
       expect(historyKey1).toBe(historyKey2);
     });
   });

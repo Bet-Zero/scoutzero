@@ -428,7 +428,9 @@ Validation:
 
 ## Step 20 — Harden the next highest-value Architect test cluster (wave 2)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Hardened `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` and `tests/architect/offerSheetPersistence.test.ts` around typed mutation fixtures and required result helpers; the Architect strict probe dropped from `2,403` to `2,228`, both target files cleared from the strict output, and the narrow node test run passed for both harnesses.
 
 **Goal:** Continue test-harness tightening through the next most central Architect cluster after Step 19.
 

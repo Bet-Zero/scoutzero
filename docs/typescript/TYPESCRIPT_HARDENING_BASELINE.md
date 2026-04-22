@@ -591,6 +591,58 @@ runtime contracts, and the shared helper it depended on is no longer amplifying
 typed debt. Step 20 should move directly to the execute-trade / offer-sheet
 persistence cluster rather than reopening this season-helper seam.
 
+## Step 20 Test Harness Wave Delta
+
+Reviewed: 2026-04-22, after the second Architect test-harness hardening wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 19 close | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,403 | 2,228 | -175 |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 at the Step 18 baseline | 0 | Cleared |
+| `tests/architect/offerSheetPersistence.test.ts` | 80 at the Step 18 baseline | 0 | Cleared |
+
+### What Changed
+
+- `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
+  now uses typed trade fixture builders plus required updated-team,
+  trade-exception, and history readers aligned with
+  `ArchitectMutationResult` instead of assuming optional mutation output is
+  always present.
+- `tests/architect/offerSheetPersistence.test.ts` now builds
+  `storeOfferSheet` state/payload fixtures against the live
+  `computeWorldMutation` signature and resolves offer-sheet/team/player updates
+  through required helper functions instead of raw optional arrays.
+- The approved narrow node test run passed for both touched harnesses:
+  `npm run test:node -- --reporter=dot tests/architect/offerSheetPersistence.test.ts src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
+  finished with `37 / 37` tests green.
+
+### Remaining Test Hotspots After Step 20
+
+The Step 20 wave cleared the planned execute-trade / offer-sheet persistence
+cluster. The next strongest remaining Architect strict hotspots are now:
+
+- `tests/architect/capLegalityValidation.test.ts` (`69`)
+- `tests/architect/renounceRights.test.ts` (`66`)
+- `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` (`64`)
+- `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` (`64`)
+- `tests/architect/worldManager.test.ts` (`64`)
+- `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` (`62`)
+- `src/tests/architect/exceptionManagement.test.ts` (`58`)
+- `tests/architect/teamLoader.test.ts` (`52`)
+
+`src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
+and `tests/architect/offerSheetPersistence.test.ts` no longer appear anywhere
+in the Architect strict output.
+
+Plain-language read: Step 20 finished the planned execute-trade / offer-sheet
+persistence cluster and shifted the remaining test backlog toward cap legality,
+renounce-rights persistence, exception/season parity guardrails, and the
+mutation persistence-truth/world-manager family. Step 21 should classify those
+remaining clusters before the master checkpoint decides whether another wave is
+still required.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -605,5 +657,8 @@ persistence cluster rather than reopening this season-helper seam.
 - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
 - `node -e '<architect strict output parser for live file/code hotspot counts>'`
 - `node -e '<architect strict output parser for runtime-vs-test concentration buckets>'`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step20.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step20.log; grep -E "src/tests/architect/phase50_executeTrade_integration_persistence.test.ts|tests/architect/offerSheetPersistence.test.ts" /tmp/architect_step20.log`
+- `node -e '<architect strict output parser for Step 20 post-wave hotspot counts>'`
+- `npm run test:node -- --reporter=dot tests/architect/offerSheetPersistence.test.ts src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`
