@@ -718,6 +718,73 @@ persistence/world/cap truth layer. In plain terms: the plan should not declare
 the test layer mostly hardened yet, but the remaining priority is now much more
 focused than it was before Steps 19-20.
 
+## Master Hardening Checkpoint
+
+Reviewed: 2026-04-22, after Steps 19-21 completed the first persistence/test
+normalization wave.
+
+### Probe Delta
+
+| Command | Original baseline | Step 14 resume baseline | Current | Reading |
+| --- | ---: | ---: | ---: | --- |
+| `npm run typecheck` | 0 | compatibility-only pass | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | Architect/test strict posture improved materially (`-339` vs the original baseline, `-404` vs Step 14), but it remains the mission blocker by a large margin. |
+
+### Current Architect Strict Concentration
+
+- The Architect strict probe still reports `2,228` errors across `168` files.
+- The top `10` files still account for `598 / 2,228` errors (`26.8%`).
+- The top `20` files would still account for `962 / 2,228` errors (`43.2%`).
+
+That is materially improved from the Step 14 resume state, but it is still too
+broad to describe as one small final cleanup pass.
+
+Top current error families:
+
+- `TS18048` (`555`)
+- `TS7006` (`269`)
+- `TS2322` (`251`)
+- `TS2345` (`238`)
+- `TS18049` (`192`)
+- `TS18047` (`147`)
+
+Top current hotspots:
+
+- `tests/architect/capLegalityValidation.test.ts` (`69`)
+- `tests/architect/renounceRights.test.ts` (`66`)
+- `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` (`64`)
+- `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` (`64`)
+- `tests/architect/worldManager.test.ts` (`64`)
+- `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` (`62`)
+- `src/tests/architect/exceptionManagement.test.ts` (`58`)
+- `tests/architect/teamLoader.test.ts` (`52`)
+- `tests/architect/contractNormalization.test.ts` (`50`)
+- `tests/architect/e2e-workflows.test.ts` (`49`)
+
+### Readiness Verdict
+
+- Are we now close to complete project hardening?
+  No. Shared/runtime is complete on its strict probe, but the Architect/test
+  surface still has a large mission-area backlog.
+- If not, exactly what remains?
+  The remaining backlog is now concentrated in three families:
+  persistence/world truth harnesses (`mutationPipeline.tradePersistenceTruth`,
+  `worldManager`, `teamLoader`), cap/rules persistence harnesses
+  (`capLegalityValidation`, `renounceRights`), and broader exception/parity /
+  integration guardrails (`phase76`, `phase74`, `exceptionManagement`, plus
+  larger integration suites).
+- What is the next highest-leverage wave?
+  The persistence/world/cap truth layer remains highest leverage. The next
+  honest move is multiple additional waves, starting with the persistence/world
+  truth cluster and then the cap legality / renounce-rights cluster.
+
+### Checkpoint Decision
+
+The remaining mission-area backlog is still broad enough to require multiple
+additional waves. This checkpoint therefore extends the same master plan with
+Steps 23-25 rather than allowing any final-review or closeout path.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -737,5 +804,8 @@ focused than it was before Steps 19-20.
 - `npm run test:node -- --reporter=dot tests/architect/offerSheetPersistence.test.ts src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
 - `node -e '<test marker count script for tests/ and src/tests/>'`
 - `node -e '<architect strict concentration parser for tests/architect, src/tests/architect, tests/trade, and src/features/architect>'`
+- `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step22.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step22.log`
+- `node -e '<architect strict family and concentration parser for Step 22>'`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

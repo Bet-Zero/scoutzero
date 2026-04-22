@@ -61,7 +61,9 @@
 - Steps 16–18: normalize the highest-leverage Architect runtime carrier and adapter contracts
 - Steps 19–21: harden the highest-value remaining Architect persistence / trade / season test harnesses and central supporting mocks/fixtures
 - Step 22: reassess strictness readiness after the Architect normalization wave
-- Steps 23+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
+- Steps 23–24: harden the next persistence/world/cap truth clusters exposed by the master checkpoint
+- Step 25: reassess post-wave readiness and decide whether the remaining exception/parity/integration debt is one bounded wave or still multiple waves
+- Steps 26+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
 - Final closeout: only after the mission-level gates are satisfied
 
 **Universal constraints (apply to every step):**
@@ -491,7 +493,9 @@ Include:
 
 ## Step 22 — Master checkpoint: reassess full-project hardening readiness
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Re-ran the root, shared-strict, and architect-strict probes; shared remains green while Architect improved to `2,228`, but the backlog is still broad across `168` files and dominated by test clusters. Added the `Master Hardening Checkpoint`, then extended this same plan with Steps 23-25 for the next persistence/world/cap waves instead of allowing any completion path.
 
 **Goal:** Re-run the mission-level measurements after the runtime and test normalization waves and determine whether the project is now actually close to complete hardening or whether another numbered wave must be appended.
 
@@ -530,14 +534,120 @@ Then do one of the following:
 
 ---
 
-## Step 23 — Final review (only when the mission-level gates are truly satisfied)
+## Step 23 — Harden the remaining persistence/world truth cluster (wave 3)
+
+**Status:** TODO
+
+**Goal:** Tighten the highest-leverage remaining persistence/world test harnesses that still sit closest to the hardened runtime readers and mutation carriers.
+
+**Instructions:**
+Use the Step 22 master checkpoint and the Step 21 test review. Focus this wave on the current persistence/world truth cluster, starting with:
+
+- `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`
+- `tests/architect/worldManager.test.ts`
+- `tests/architect/teamLoader.test.ts`
+- only the minimum supporting mock/helper readers needed to make those harnesses truthful
+
+For the chosen cluster:
+
+1. Replace bag-shaped persisted team/world snapshots with truthful helper-backed fixtures.
+2. Align mock snapshot readers with the current hardened reader/runtime contracts instead of broad object assumptions.
+3. Remove typed bypasses that only exist to paper over persistence-shape disagreement.
+4. Keep runtime behavior the same unless the previous harness shape depended on false persistence truth.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/architect/mutationPipeline.tradePersistenceTruth.test.ts tests/architect/worldManager.test.ts tests/architect/teamLoader.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep the wave bounded to the persistence/world truth cluster.
+- Do not drift into cap legality, renounce rights, or exception parity in this step.
+- Runtime helper edits are allowed only when they are the minimum needed to make the selected harnesses truthful.
+
+**Done when:** The persistence/world truth cluster is materially more truthful, the targeted tests pass, and the Architect strict probe shows a meaningful drop in those files. Commit message: `test: harden architect persistence truth wave 3`.
+
+---
+
+## Step 24 — Harden the cap legality / rights persistence cluster (wave 4)
+
+**Status:** TODO
+
+**Goal:** Tighten the next highest-value cap/rules persistence harnesses after the world/persistence truth cluster.
+
+**Instructions:**
+Use the next hotspot cluster from the Step 22 checkpoint. Focus on:
+
+- `tests/architect/capLegalityValidation.test.ts`
+- `tests/architect/renounceRights.test.ts`
+- the minimum supporting cap/rights helpers or runtime contract nips required to keep those harnesses truthful
+
+For the chosen cluster:
+
+1. Remove raw persisted-state assumptions and broad typed bypasses.
+2. Normalize fixture/state builders around the current cap legality and renounce-rights contracts.
+3. Keep behavior unchanged unless the old harness depended on a dishonest shape.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/architect/capLegalityValidation.test.ts tests/architect/renounceRights.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to cap legality / renounce-rights truth.
+- Do not widen into the exception/parity guardrail suites yet.
+
+**Done when:** The cap legality / rights persistence cluster is materially more truthful and the plan records the resulting strict-probe delta plus what still remains. Commit message: `test: harden architect cap and rights harnesses`.
+
+---
+
+## Step 25 — Post-wave checkpoint: classify the remaining exception/parity backlog
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 23-24 and decide whether the remaining exception/parity/integration debt is one final bounded wave or still broad enough to require multiple additional waves.
+
+**Instructions:**
+Append a `Post-Step-24 Hardening Checkpoint` section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint.
+3. Classify whether the remaining backlog is now:
+   - one bounded exception/parity wave,
+   - still multiple waves,
+   - blocked on a real architecture decision.
+4. Append the next numbered steps to this same plan immediately after Step 25 if substantial mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion gates are actually satisfied.
+
+**Done when:** The baseline doc contains the post-wave checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-wave architect hardening checkpoint`.
+
+---
+
+## Step 26 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
 **Goal:** Recheck the full project as one system and produce a final review that truthfully supports mission completion.
 
 **Instructions:**
-Create or update `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md` only when the Step 22 master checkpoint proves that no substantial mission-area backlog remains.
+Create or update `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md` only when the latest master checkpoint proves that no substantial mission-area backlog remains.
 
 The final review must cover:
 
@@ -565,7 +675,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 24 — Final closeout (only when the mission is actually done)
+## Step 27 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
