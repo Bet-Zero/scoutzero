@@ -4,6 +4,9 @@ import { getSalaryWithFallback } from '@/features/architect/utils/contractSalary
 
 type TradePlayerRowProps = Parameters<typeof TradePlayerRow>[0];
 type PlayerLike = TradePlayerRowProps['player'];
+type SignAndTradeCapHold = NonNullable<
+  TradePlayerRowProps['sourceTeamCapHolds']
+>[number];
 
 type TeamLike = {
   players?: PlayerLike[];
@@ -66,6 +69,14 @@ export const OutgoingPlayersList = ({
     () => sends.some((p) => p.signAndTrade),
     [sends]
   );
+  const normalizedSourceTeamCapHolds = useMemo(
+    () =>
+      sourceTeamCapHolds.filter(
+        (capHold): capHold is SignAndTradeCapHold =>
+          Boolean(capHold) && typeof capHold === 'object'
+      ),
+    [sourceTeamCapHolds]
+  );
 
   const sortedAvailable = useMemo(() => {
     return available.slice().sort((a, b) => {
@@ -101,7 +112,7 @@ export const OutgoingPlayersList = ({
             setContractPlayer={onEditContract}
             signAndTradeActive={signAndTradeActive}
             sourceTeamId={sourceTeamId}
-            sourceTeamCapHolds={sourceTeamCapHolds}
+            sourceTeamCapHolds={normalizedSourceTeamCapHolds}
             worldId={worldId}
             onRequestSignAndTrade={onRequestSignAndTrade}
             compact={compact}

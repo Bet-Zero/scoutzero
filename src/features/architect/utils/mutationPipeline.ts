@@ -49,7 +49,6 @@ import { getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import {
   getTeam,
   getPlayer,
-  mergePlayerOverride,
 } from '@/features/architect/utils/teamLoader';
 import {
   getWorldMetadata,
@@ -480,15 +479,15 @@ export type ArchitectMutationOfferSheet = {
 
 type ArchitectMutationCapHold = {
   playerId?: string | number | null;
-  playerName?: string | null;
-  amount?: number | null;
-  type?: string | null;
-  season?: string | null;
-  isSigned?: boolean | null;
+  playerName?: string;
+  amount?: number;
+  type?: string;
+  season?: string;
+  isSigned?: boolean;
   expiresOn?: string | null;
   notes?: string;
-  active?: boolean | null;
-  reason?: string | null;
+  active?: boolean;
+  reason?: string;
 };
 
 type ArchitectMutationPlayerRfaContextIngress = {
@@ -884,8 +883,8 @@ type CurrentStateTradeException = {
   usedAmount?: number;
   createdSeason?: number;
   expiresOn?: string | null;
-  createdFrom?: string | null;
-  isUsed?: boolean | null;
+  createdFrom?: string;
+  isUsed?: boolean;
 };
 type LoadedMutationTeam = Awaited<ReturnType<typeof getTeam>>;
 type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
@@ -1147,24 +1146,28 @@ type LineageOverrideMergeBio = Pick<
   NonNullable<NormalizedCurrentStatePlayer['bio']>,
   'playerId' | 'displayName'
 >;
-type LineageOverrideMergePlayer = Omit<
-  Pick<
-    NormalizedCurrentStatePlayer,
-    | 'player_id'
-    | 'id'
-    | 'playerId'
-    | 'teamCode'
-    | 'teamName'
-    | 'name'
-    | 'displayName'
-    | 'playerName'
-    | 'bio'
-    | 'contract'
-  >,
-  'bio'
-> & {
-  bio?: LineageOverrideMergeBio | null;
-};
+type LineageOverrideMergePlayer = LooseRecord &
+  Omit<
+    Pick<
+      NormalizedCurrentStatePlayer,
+      | 'player_id'
+      | 'id'
+      | 'playerId'
+      | 'teamCode'
+      | 'teamName'
+      | 'name'
+      | 'displayName'
+      | 'playerName'
+      | 'bio'
+      | 'contract'
+    >,
+    'bio'
+  > & {
+    bio?: LineageOverrideMergeBio | null;
+  };
+type LineageOverrideSalaryRow = NonNullable<
+  NonNullable<LineageOverrideMergePlayer['contract']>['salariesByYear']
+>[number];
 type PersistablePlayerOverride = Pick<
   CurrentStatePlayerComputeCore,
   | 'displayName'
@@ -4452,7 +4455,7 @@ function normalizeCurrentStateTeamSource(
 }
 
 function normalizeCurrentStatePlayerBioDisplay(
-  value: MutationPlayerBioLike['display'] | null | undefined
+  value: unknown
 ): CurrentStatePlayerBioDisplay | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -4486,7 +4489,7 @@ function normalizeCurrentStatePlayerBioDisplay(
 }
 
 function normalizeCurrentStatePlayerBioDraft(
-  value: MutationPlayerBioLike['draft'] | null | undefined
+  value: unknown
 ): CurrentStatePlayerBioDraft | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -4752,7 +4755,7 @@ function normalizeCurrentStatePlayerContractGuaranteeSchedule(
 }
 
 function normalizeCurrentStatePlayerContractTradeEligibilityRules(
-  value: ArchitectMutationTradeEligibilityRules | null | undefined
+  value: unknown
 ): CurrentStatePlayerContractTradeEligibilityRules | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -4780,7 +4783,7 @@ function normalizeCurrentStatePlayerContractTradeEligibilityRules(
 }
 
 function normalizeCurrentStatePlayerContractTradeEligibility(
-  value: ArchitectMutationTradeEligibility | null | undefined
+  value: unknown
 ): CurrentStatePlayerContractTradeEligibility | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -5282,18 +5285,24 @@ function normalizeCurrentStatePlayerRepresentation(
     return undefined;
   }
 
-  const normalized: NonNullable<BasePlayerDoc['representation']> = {};
+  const normalized: NonNullable<BasePlayerDoc['representation']> = {
+    agent: null,
+    agency: null,
+  };
+  let hasRepresentationField = false;
   const agent = toOptionalTrimmedString(record.agent);
   const agency = toOptionalTrimmedString(record.agency);
 
   if (agent !== undefined) {
     normalized.agent = agent;
+    hasRepresentationField = true;
   }
   if (agency !== undefined) {
     normalized.agency = agency;
+    hasRepresentationField = true;
   }
 
-  return Object.keys(normalized).length > 0 ? normalized : undefined;
+  return hasRepresentationField ? normalized : undefined;
 }
 
 function normalizeCurrentStatePlayerSource(
@@ -5523,7 +5532,7 @@ type CurrentStatePlayerBoundaryInput =
   | PlayerLike;
 
 function normalizeCurrentStatePlayerArray(
-  value: Array<CurrentStatePlayerBoundaryInput> | null | undefined
+  value: unknown
 ): PlayerLike[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -6593,7 +6602,7 @@ function toCurrentStatePlayer(
 // Mixed raw/direct-compute player compatibility is tolerated only where
 // current-state ingress or persistence round-trips still truthfully need it.
 function normalizeCurrentStatePlayerSnapshot(
-  player: CurrentStatePlayerBoundaryInput | null | undefined
+  player: unknown
 ): PlayerLike | null {
   if (!player || typeof player !== 'object' || Array.isArray(player)) {
     return null;
@@ -6603,7 +6612,11 @@ function normalizeCurrentStatePlayerSnapshot(
 }
 
 function normalizeTradeMutationCurrentStateTeamEntry(
-  entry: MutationCurrentStateTradeTeamEntryInput | null | undefined
+  entry:
+    | MutationCurrentStateTradeTeamEntryInput
+    | MutationCurrentStateTeamEntry
+    | null
+    | undefined
 ): MutationCurrentStateTeamEntry {
   const team = normalizeCurrentStateTeamSnapshot(entry?.team, 'trade');
   const normalized: MutationCurrentStateTeamEntry = {};
@@ -6812,9 +6825,7 @@ function toLineageOverrideMergeBio(
 function toLineageOverrideMergePlayer(
   player: unknown
 ): LineageOverrideMergePlayer {
-  const playerRecord = normalizeCurrentStatePlayerSnapshot(
-    player as CurrentStatePlayerBoundaryInput | null | undefined
-  );
+  const playerRecord = normalizeCurrentStatePlayerSnapshot(player);
   const normalized: LineageOverrideMergePlayer = {};
 
   if (!playerRecord) {
@@ -6867,6 +6878,69 @@ function toLineageOverrideMergePlayer(
   }
 
   return normalized;
+}
+
+function mergeLineageOverrideSalariesByYear(
+  baseSalaries: LineageOverrideSalaryRow[] | null | undefined,
+  overrideSalaries: LineageOverrideSalaryRow[] | null | undefined
+): LineageOverrideSalaryRow[] | undefined {
+  if (!overrideSalaries || overrideSalaries.length === 0) {
+    return baseSalaries ? [...baseSalaries] : undefined;
+  }
+
+  const merged = baseSalaries ? [...baseSalaries] : [];
+  overrideSalaries.forEach((override) => {
+    const existingIndex = merged.findIndex(
+      (salaryRow) => salaryRow.season === override.season
+    );
+    if (existingIndex >= 0) {
+      merged[existingIndex] = { ...merged[existingIndex], ...override };
+    } else {
+      merged.push(override);
+    }
+  });
+
+  return merged.sort((first, second) => {
+    const firstYear = Number.parseInt(first.season.split('-')[0], 10);
+    const secondYear = Number.parseInt(second.season.split('-')[0], 10);
+    return firstYear - secondYear;
+  });
+}
+
+function mergeLineageOverridePlayers(
+  basePlayer: LineageOverrideMergePlayer,
+  overridePlayer: LineageOverrideMergePlayer
+): LineageOverrideMergePlayer {
+  const merged: LineageOverrideMergePlayer = { ...basePlayer };
+
+  if (overridePlayer.contract) {
+    merged.contract = {
+      ...(basePlayer.contract ?? {}),
+      ...overridePlayer.contract,
+    };
+    const mergedSalaries = mergeLineageOverrideSalariesByYear(
+      basePlayer.contract?.salariesByYear,
+      overridePlayer.contract.salariesByYear
+    );
+    if (mergedSalaries) {
+      merged.contract.salariesByYear = mergedSalaries;
+    }
+  }
+
+  if (overridePlayer.bio) {
+    merged.bio = {
+      ...(basePlayer.bio ?? {}),
+      ...overridePlayer.bio,
+    };
+  }
+
+  Object.entries(overridePlayer).forEach(([key, value]) => {
+    if (key !== 'contract' && key !== 'bio') {
+      merged[key] = value;
+    }
+  });
+
+  return merged;
 }
 
 function getMutationRosterEntryId(entry: unknown) {
@@ -7291,7 +7365,7 @@ async function resolveStoreOfferSheetAuthority({
 
   const canonicalPlayer = overrideEntry
     ? normalizeCurrentStatePlayerSnapshot(
-        mergePlayerOverride(
+        mergeLineageOverridePlayers(
           toLineageOverrideMergePlayer(resolvedOwner.snapshotPlayer),
           toLineageOverrideMergePlayer(overrideEntry.player)
         )
@@ -7749,7 +7823,7 @@ function normalizeDashboardReloadContractDateLike(
 }
 
 function normalizeDashboardReloadContractFreeAgency(
-  value: ArchitectMutationContract['freeAgency']
+  value: unknown
 ):
   | ArchitectGeneralMutationDashboardReloadContractFreeAgency
   | string
@@ -7780,7 +7854,7 @@ function normalizeDashboardReloadContractFreeAgency(
 }
 
 function normalizeDashboardReloadContractBirdRights(
-  value: ArchitectMutationBirdRights | null | undefined
+  value: unknown
 ): ArchitectGeneralMutationDashboardReloadBirdRights | null | undefined {
   if (value === null) {
     return null;
@@ -7848,7 +7922,7 @@ function normalizeDashboardReloadPlayerContract<
   }
 
   const freeAgency = normalizeDashboardReloadContractFreeAgency(
-    value.freeAgency
+    record.freeAgency
   );
   if (freeAgency !== undefined) {
     normalized.freeAgency = freeAgency;
@@ -7857,7 +7931,7 @@ function normalizeDashboardReloadPlayerContract<
   }
 
   const birdRights = normalizeDashboardReloadContractBirdRights(
-    'birdRights' in value ? value.birdRights : undefined
+    record.birdRights
   );
   if (birdRights !== undefined) {
     normalized.birdRights = birdRights;
@@ -9910,7 +9984,7 @@ function toPersistablePlayerOverrideFromNormalizedPlayer(
 }
 
 function toPersistablePlayerOverrideFromSnapshot(
-  player: CurrentStatePlayerBoundaryInput | null | undefined
+  player: unknown
 ): PersistablePlayerOverride | null {
   const normalizedPlayer = normalizeCurrentStatePlayerSnapshot(player);
   if (!normalizedPlayer) {
@@ -10158,9 +10232,9 @@ function buildNormalizedOfferSheetFinalContract({
   signedUsing: string;
   timestamp: number;
 }) {
-  const salariesByYear = (offerSheet.salariesByYear || []).map(
-    normalizeSalaryRow
-  );
+  const salariesByYear = (offerSheet.salariesByYear || [])
+    .map(normalizeSalaryRow)
+    .filter((row): row is NormalizedMutationSalaryRow => row != null);
   const contractYearsCandidate =
     Number(offerSheet.contractYears) || salariesByYear.length;
 
@@ -10595,7 +10669,7 @@ function computeTradeResult({
   const playerDeletes: PlayerDeleteLike[] = [];
   const tradeTeams = Array.isArray(payload.teams) ? payload.teams : [];
 
-  const currentYear = toEndYear(seasonId);
+  const currentYear = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
   const timestampISO = new Date(timestamp).toISOString();
   const resolvedWorldId =
     historyContext.worldId || payload?.tradeCtx?.worldId || null;
@@ -10648,6 +10722,7 @@ function computeTradeResult({
     if (!teamResult) return;
 
     const updatedTeam = teamUpdate.team;
+    if (!updatedTeam) return;
     const lifecycleResult = applyTradeExceptionLifecycle({
       currentTradeExceptions: updatedTeam.tradeExceptions || [],
       hasTradeExceptionsValidation: Boolean(teamResult.rules?.tradeExceptions),
@@ -11112,7 +11187,8 @@ function computeSigningResult({
   }
 
   // Update or add player to players array
-  const existingIndex = (updatedTeam.players || []).findIndex(
+  const existingPlayers = updatedTeam.players || [];
+  const existingIndex = existingPlayers.findIndex(
     (existingPlayer) => getMutationPlayerId(existingPlayer) === playerId
   );
 
@@ -11131,10 +11207,10 @@ function computeSigningResult({
   };
 
   if (existingIndex >= 0) {
-    updatedTeam.players = [...updatedTeam.players];
+    updatedTeam.players = [...existingPlayers];
     updatedTeam.players[existingIndex] = updatedPlayer;
   } else {
-    updatedTeam.players = [...(updatedTeam.players || []), updatedPlayer];
+    updatedTeam.players = [...existingPlayers, updatedPlayer];
   }
 
   // Update exceptions if signing consumed one
@@ -12123,11 +12199,12 @@ async function persistWorldMutation({
       });
       // Then remove undefined values
       const sanitizedTeam = removeUndefinedDeep(persistenceReadyTeam);
+      if (!teamCode) {
+        continue;
+      }
       const teamRef = worldTeamRef(worldId, teamCode);
       batch.set(teamRef, sanitizedTeam);
-      if (teamCode) {
-        teamCodesPatched.push(String(teamCode));
-      }
+      teamCodesPatched.push(String(teamCode));
     }
 
     // 2. Write player overrides (if any)

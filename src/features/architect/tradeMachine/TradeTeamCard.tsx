@@ -65,10 +65,10 @@ type PlayerLike = HookTradePlayer &
     bucketType?: string | null;
   };
 type EntitlementLike = HookTradeEntitlement & {
-  id?: string | number;
-  entitlementId?: string | number;
-  identityKey?: string;
-  underlyingStatus?: string;
+  id?: string | number | null;
+  entitlementId?: string | number | null;
+  identityKey?: string | null;
+  underlyingStatus?: string | null;
   seasonYear?: number | string | null;
   round?: number | string | null;
   kind?: string | null;
@@ -80,37 +80,25 @@ type EntitlementLike = HookTradeEntitlement & {
   __vacuumSessionOnly?: boolean;
   __vacuumEdited?: boolean;
 };
-type TeamOptionLike = ChildTeamOptionLike &
-  ChildEntitlementTeamOptionLike & {
-    id?: string;
-    teamName?: string;
-    teamCode?: string;
-  };
-type TeamLike = Omit<
-  HookTradeTeam,
-  | 'id'
-  | 'teamId'
-  | 'teamCode'
-  | 'teamName'
-  | 'abbreviation'
-  | 'players'
-  | 'entitlements'
-  | 'pickRulesById'
-  | 'capHolds'
-  | 'teamTotalSalary'
-  | 'totalSalary'
+type TeamOptionLike = Omit<
+  ChildTeamOptionLike & ChildEntitlementTeamOptionLike,
+  'id' | 'teamName' | 'teamCode'
 > & {
+  id?: string | number | null;
+  teamName?: string | null;
+  teamCode?: string | null;
+};
+type TeamLike = Omit<HookTradeTeam, 'pickRulesById'> & {
   id?: string | null;
   teamId?: string | null;
   teamCode?: string | null;
   teamName?: string | null;
   abbreviation?: string | null;
-  players?: PlayerLike[];
-  entitlements?: EntitlementLike[];
+  players?: HookTradePlayer[] | null;
+  entitlements?: HookTradeEntitlement[] | null;
   pickRulesById?: Record<string, unknown>;
-  capHolds?: unknown[];
+  capHolds?: unknown[] | null;
   teamTotalSalary?: number;
-  totalSalary?: number;
 };
 type TeamTradeException = TradeExceptionLike & {
   id?: string | number;
@@ -136,6 +124,23 @@ const getEntitlementKey = (entitlement: EntitlementLike) =>
   `${entitlement.seasonYear ?? 'unknown'}-${entitlement.round ?? 'unknown'}-${
     entitlement.kind ?? 'unknown'
   }`;
+
+const toPlayerTeamOption = (
+  team: TeamOptionLike
+): ChildTeamOptionLike => ({
+  ...team,
+  id: team.id == null ? undefined : String(team.id),
+  teamName: team.teamName ?? undefined,
+});
+
+const toEntitlementTeamOption = (
+  team: TeamOptionLike
+): ChildEntitlementTeamOptionLike => ({
+  ...team,
+  id: team.id ?? undefined,
+  teamName: team.teamName ?? undefined,
+  teamCode: team.teamCode ?? undefined,
+});
 
 interface TradeTeamCardProps {
   team?: TeamLike | null;
@@ -388,6 +393,20 @@ const TradeTeamCard = ({
   const playersCount = useMemo(
     () => (team?.players?.length || 0) - sends.length + incomingPlayers.length,
     [team, sends, incomingPlayers]
+  );
+  const outgoingPlayersTeam = useMemo(
+    () => ({
+      players: team?.players ?? [],
+    }),
+    [team?.players]
+  );
+  const playerOtherTeams = useMemo(
+    () => otherTeams.map(toPlayerTeamOption),
+    [otherTeams]
+  );
+  const entitlementOtherTeams = useMemo(
+    () => otherTeams.map(toEntitlementTeamOption),
+    [otherTeams]
   );
 
   // Phase 14.2: Count based on entitlements, not legacy picks
@@ -970,12 +989,12 @@ const TradeTeamCard = ({
 
       {activeTab === 'players' && (
         <OutgoingPlayersList
-          team={team}
+          team={outgoingPlayersTeam}
           sends={sends}
           incomingPlayers={filteredIncomingPlayers}
           yearKey={yearKey}
           worldId={worldId}
-          otherTeams={otherTeams}
+          otherTeams={playerOtherTeams}
           playersMap={playersMap}
           sourceTeamId={team?.teamCode || team?.id || null}
           sourceTeamCapHolds={team?.capHolds || []}
@@ -1008,12 +1027,7 @@ const TradeTeamCard = ({
           // Phase 14: Empty state hint for debugging
           emptyStateHint="Check emulator seed / baseTeams.entitlementIds"
           // Phase 17: Pass multi-team destination routing props
-          otherTeams={otherTeams.map((otherTeam) => ({
-            ...otherTeam,
-            id: otherTeam.id ?? undefined,
-            teamName: otherTeam.teamName ?? undefined,
-            teamCode: otherTeam.teamCode ?? undefined,
-          }))}
+          otherTeams={entitlementOtherTeams}
           entitlementsOut={entitlementsOut}
           onSetDestination={
             onSetEntitlementDestination

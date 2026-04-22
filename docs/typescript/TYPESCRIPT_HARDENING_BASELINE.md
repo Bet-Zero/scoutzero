@@ -459,6 +459,45 @@ explicitly treated as an intermediate phase result, not a mission-complete
 result, because the live strict evidence still shows a large unresolved
 Architect/runtime/test backlog inside this same plan.
 
+## Step 17 Runtime Contract Wave Delta
+
+Reviewed: 2026-04-22, after the second runtime contract-normalization wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 16 close | After Step 17 | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,549 | 2,501 | -48 |
+| `src/features/architect/utils/mutationPipeline.ts` | 57 | 34 | -23 |
+| `src/features/architect/tradeMachine/TradeEditor.tsx` and touched child trade-machine UI files | 13 direct `TradeEditor.tsx` errors plus child nullable-contract errors | 0 direct errors | Cleared |
+
+### Runtime Surfaces Improved
+
+- `mutationPipeline.ts` now accepts unknown/current-state ingress only at named
+  normalizer boundaries for player bio display/draft, trade-eligibility rules,
+  player arrays, representation, dashboard reload contract slices, lineage
+  override merging, and persistable player override snapshots.
+- `TradeEditor.tsx` now hands sign-and-trade modal callbacks and entitlement
+  destination routing through explicit adapters instead of relying on nullable
+  IDs being accepted by narrower consumers.
+- `TradeTeamCard.tsx`, `OutgoingPlayersList.tsx`, `TradePlayerRow.tsx`,
+  `EntitlementPicksList.tsx`, and `EntitlementPickRow.tsx` now accept the
+  nullable team/entitlement/player fields produced by the hook layer and
+  normalize them before narrower child/projection calls.
+
+### Remaining Runtime Hotspots
+
+`mutationPipeline.ts` remains the only major runtime hotspot from this wave at
+`34` strict errors. The remaining families are mostly offer-sheet/signing
+nullability and final mutation-result carrier assignability. The trade-editor
+adapter cluster no longer appears in the Architect strict output.
+
+Plain-language read: Step 17 finished the dashboard/trade-machine adapter side
+of the runtime wave and reduced the central mutation-pipeline backlog, but it
+did not make `mutationPipeline.ts` strict-ready. Step 18 should classify whether
+that remaining mutation-pipeline cluster should be attacked before moving into
+the planned test-harness waves.
+
 ## Evidence Commands
 
 - `rg --files`

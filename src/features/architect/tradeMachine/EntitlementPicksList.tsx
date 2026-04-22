@@ -10,26 +10,26 @@ import { getKindSortPriority } from '@/features/architect/utils/entitlements/for
 import { EntitlementEditorCreateButton } from '@/features/architect/admin/EntitlementEditorCreateButton';
 
 type EntitlementLike = {
-  id?: string | number;
-  entitlementId?: string | number;
-  identityKey?: string;
-  underlyingStatus?: string;
-  seasonYear?: number | string;
-  round?: number | string;
-  kind?: string;
-  secondaryText?: string;
+  id?: string | number | null;
+  entitlementId?: string | number | null;
+  identityKey?: string | null;
+  underlyingStatus?: string | null;
+  seasonYear?: number | string | null;
+  round?: number | string | null;
+  kind?: string | null;
+  secondaryText?: string | null;
 };
 
 type OutgoingEntitlementLike = {
-  id?: string | number;
-  entitlementId?: string | number;
+  id?: string | number | null;
+  entitlementId?: string | number | null;
   toTeamId?: string | number | null;
 };
 
 type TeamOptionLike = {
-  id?: string | number;
-  teamName?: string;
-  teamCode?: string;
+  id?: string | number | null;
+  teamName?: string | null;
+  teamCode?: string | null;
 };
 
 interface EntitlementPicksListProps {

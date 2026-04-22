@@ -18,14 +18,14 @@ import { AlertTriangle, Info, Layers, Link2, GitBranch } from 'lucide-react';
 import TeamLogo from '@/shared/components/TeamLogo';
 
 type EntitlementLike = {
-  id?: string | number;
-  entitlementId?: string | number;
-  identityKey?: string;
-  kind?: string;
-  seasonYear?: number | string;
-  year?: number | string;
-  round?: number | string;
-  secondaryText?: string;
+  id?: string | number | null;
+  entitlementId?: string | number | null;
+  identityKey?: string | null;
+  kind?: string | null;
+  seasonYear?: number | string | null;
+  year?: number | string | null;
+  round?: number | string | null;
+  secondaryText?: string | null;
   toTeamId?: string | number | null;
   holderTeam?: string | number | null;
   holder_team?: string | number | null;
@@ -34,7 +34,7 @@ type EntitlementLike = {
   protectionDetails?: string | null;
   protection?: string | null;
   fromTeamId?: string | null;
-  underlyingStatus?: string;
+  underlyingStatus?: string | null;
   linkedEntitlementIds?: Array<string | number>;
   residualOfEntitlementId?: string | number | null;
   __vacuumSessionOnly?: boolean;
@@ -42,9 +42,9 @@ type EntitlementLike = {
 };
 
 type TeamOptionLike = {
-  id?: string | number;
-  teamName?: string;
-  teamCode?: string;
+  id?: string | number | null;
+  teamName?: string | null;
+  teamCode?: string | null;
 };
 
 interface EntitlementPickRowProps {
@@ -113,7 +113,21 @@ const EntitlementPickRow = ({
   if (!entitlement) return null;
 
   const pickRow = projectEntitlementToPickRow(
-    entitlement,
+    {
+      ...entitlement,
+      id: entitlement.id ?? undefined,
+      entitlementId: entitlement.entitlementId ?? undefined,
+      kind: entitlement.kind ?? undefined,
+      seasonYear: entitlement.seasonYear ?? undefined,
+      year: entitlement.year ?? undefined,
+      round: entitlement.round ?? undefined,
+      secondaryText: entitlement.secondaryText ?? undefined,
+      originalTeamId: entitlement.originalTeamId ?? undefined,
+      originalTeam: entitlement.originalTeam ?? undefined,
+      holderTeam:
+        entitlement.holderTeam ?? entitlement.holder_team ?? undefined,
+      underlyingStatus: entitlement.underlyingStatus ?? undefined,
+    },
     {
       teamCode: teamId,
       pickRulesById,
@@ -148,7 +162,7 @@ const EntitlementPickRow = ({
         if (!isSelected) {
           onToggle(entitlement);
         }
-        if (onSetDestination) {
+        if (onSetDestination && entitlementId != null) {
           onSetDestination(entitlementId, toTeamId);
         }
       }

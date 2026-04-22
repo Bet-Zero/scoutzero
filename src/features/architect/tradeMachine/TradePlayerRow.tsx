@@ -22,13 +22,13 @@ type PlayerLike = {
   teamCode?: string | null;
   teamAbbr?: string | null;
   teamId?: string | null;
-  team?: string;
+  team?: string | null;
   originTeamId?: string | number | null;
-  position?: string;
-  height?: string | number;
-  height_ft_in?: string | number;
-  weight?: string | number;
-  weight_lbs?: string | number;
+  position?: string | null;
+  height?: string | number | null;
+  height_ft_in?: string | number | null;
+  weight?: string | number | null;
+  weight_lbs?: string | number | null;
   contract?:
     | {
         salariesByYear?: Array<Record<string, unknown>>;
@@ -72,16 +72,16 @@ type PlayerLike = {
   yearsOfService?: unknown;
   mockSalary?: number;
   bio?: {
-    displayName?: string;
-    playerId?: string | number;
-    team?: string;
+    displayName?: string | null;
+    playerId?: string | number | null;
+    team?: string | null;
     display?: {
-      team?: string;
+      team?: string | null;
       freeAgentYear?: number | string | null;
     };
-    position?: string;
-    height?: string | number;
-    weight?: string | number;
+    position?: string | null;
+    height?: string | number | null;
+    weight?: string | number | null;
   };
 };
 
@@ -347,7 +347,7 @@ const TradePlayerRow = ({
           onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
             e.currentTarget.src = '/assets/headshots/default.png';
           }}
-          alt={player.bio?.displayName || player.name}
+          alt={player.bio?.displayName || player.name || 'Player headshot'}
           className="h-full w-full object-cover"
         />
       </div>
@@ -355,7 +355,7 @@ const TradePlayerRow = ({
       <div className="flex flex-col justify-center ml-3 min-w-0 max-w-[180px]">
         <div className="h-[32px] flex items-center mb-2">
           <PlayerNameMini
-            name={player.bio?.displayName || player.name}
+            name={player.bio?.displayName || player.name || 'Unnamed player'}
             scale={0.85}
           />
         </div>

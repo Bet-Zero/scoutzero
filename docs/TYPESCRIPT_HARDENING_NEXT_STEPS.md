@@ -317,7 +317,9 @@ Validation after each meaningful batch:
 
 ## Step 17 — Normalize the next Architect runtime contract owners (wave 2)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Normalized the remaining trade-editor/team-card runtime display adapters around nullable hook team and entitlement payloads, tightened current-state normalizers in `mutationPipeline.ts`, and recorded the Architect strict probe delta from `2,549` to `2,501`; `TradeEditor.tsx` / child trade-machine UI files no longer appear in the Architect strict output, while remaining runtime debt is concentrated in `mutationPipeline.ts` for Step 18 classification.
 
 **Goal:** Continue Architect runtime contract normalization through the next highest-leverage cluster exposed by Step 16 and the execution map.
 

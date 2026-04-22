@@ -44,16 +44,16 @@ type PlayerLike = CardPlayerLike;
 type TeamLike = CardTeamLike;
 
 type EntitlementLike = CardEntitlementLike & {
-  identityKey?: string;
-  underlyingStatus?: string;
+  identityKey?: string | null;
+  underlyingStatus?: string | null;
   holderTeam?: string | number | null;
   holder_team?: string | number | null;
   originalTeamId?: string | number | null;
   originalTeam?: string | number | null;
-  seasonYear?: number | string;
-  year?: number | string;
-  round?: number | string;
-  kind?: string;
+  seasonYear?: number | string | null;
+  year?: number | string | null;
+  round?: number | string | null;
+  kind?: string | null;
   secondaryText?: string | null;
   protectionDetails?: string | null;
   protection?: string | null;
@@ -115,7 +115,9 @@ const normalizeTradeActionMeta = (
   return isRecord(actionMeta) ? actionMeta : null;
 };
 
-const toHookTradePlayer = (player: PlayerLike): HookTradePlayer => ({
+const toHookTradePlayer = (
+  player: PlayerLike | ModalPlayerLike
+): HookTradePlayer => ({
   ...player,
 });
 
@@ -155,9 +157,9 @@ const normalizeRecordArray = (items: unknown) => {
 
 const toEditContractModalTeamCapSheet = (
   team: TeamLike | null | undefined
-): ModalTeamCapSheetLike | null => {
+): ModalTeamCapSheetLike | undefined => {
   if (!team) {
-    return null;
+    return undefined;
   }
 
   return {
@@ -500,11 +502,9 @@ const TradeEditor = ({
     setTradeMachineSatModal(null);
   };
 
-  const handleTradeMachineSignAndTrade = (
-    player: PlayerLike,
-    contractPayload: Record<string, unknown>,
-    destinationTeamId: string | null | undefined
-  ): SignAndTradeResult => {
+  const handleTradeMachineSignAndTrade: NonNullable<
+    EditContractModalProps['onSignAndTrade']
+  > = (player, contractPayload, destinationTeamId): SignAndTradeResult => {
     if (!tradeMachineSatModal) {
       return { success: false, message: 'Sign-and-trade modal is not active.' };
     }
@@ -567,7 +567,7 @@ const TradeEditor = ({
 
     setPlayerTrade(
       tradeMachineSatModal.teamIndex,
-      player,
+      toHookTradePlayer(player),
       'signAndTrade',
       destinationTradeTeamId,
       {
@@ -688,9 +688,16 @@ const TradeEditor = ({
                 entitlementsOut={t.entitlementsOut || []}
                 onToggleEntitlement={(e) => toggleEntitlement(idx, e)}
                 // Phase 17: Pass destination setter for multi-team entitlement routing
-                onSetEntitlementDestination={(entitlementId, toTeamId) =>
-                  setEntitlementDestination(idx, entitlementId, toTeamId)
-                }
+                onSetEntitlementDestination={(entitlementId, toTeamId) => {
+                  if (!entitlementId) {
+                    return;
+                  }
+                  setEntitlementDestination(
+                    idx,
+                    entitlementId,
+                    toTeamId ?? null
+                  );
+                }}
                 onEditEntitlement={
                   canEditEntitlements ? handleEditEntitlement : null
                 }
