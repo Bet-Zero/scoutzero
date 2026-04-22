@@ -28,12 +28,87 @@ import {
   seedWorldMetadata,
   getMockWorldMetadata,
   createMockWorld,
-} from '../helpers/architectTestHelpers.ts';
+  type MockWorldMetadata,
+  type MockWorldStats,
+} from '../helpers/architectTestHelpers.js';
 import {
   setMockCallable,
   clearMockCallables,
   resetMockDataStore,
-} from '../__mocks__/firebase.ts';
+} from '../__mocks__/firebase.js';
+
+type FirestoreUpdatePayload = Record<string, unknown>;
+type PurgeDetails = {
+  teamsDeleted?: number;
+  playersDeleted?: number;
+  worldDeleted?: boolean;
+} & Record<string, unknown>;
+type ErrorWithCode = Error & { code?: string };
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getRequiredWorldMetadata(worldId: string): MockWorldMetadata {
+  return requireValue(
+    getMockWorldMetadata(worldId),
+    `Expected mock world metadata for ${worldId}`
+  );
+}
+
+function getWorldStats(value: unknown, message: string): MockWorldStats {
+  if (!isRecord(value)) {
+    throw new Error(message);
+  }
+
+  return value as MockWorldStats;
+}
+
+function getSortableTimestamp(
+  world: { lastModifiedAt?: unknown; createdAt?: unknown },
+  message: string
+): string {
+  const timestamp = world.lastModifiedAt ?? world.createdAt;
+
+  if (typeof timestamp !== 'string') {
+    throw new Error(message);
+  }
+
+  return timestamp;
+}
+
+function getUpdateDocCall(mockCalls: unknown[][], message: string) {
+  const call = requireValue(mockCalls[0], message);
+
+  return {
+    metadataRef: call[0] as { path: string },
+    payload: call[1] as FirestoreUpdatePayload,
+  };
+}
+
+function getPurgeDetails(value: unknown, message: string): PurgeDetails {
+  if (!isRecord(value)) {
+    throw new Error(message);
+  }
+
+  return value as PurgeDetails;
+}
+
+function createErrorWithCode(message: string, code?: string): ErrorWithCode {
+  const error = new Error(message) as ErrorWithCode;
+  error.code = code;
+  return error;
+}
 
 describe('World Manager', () => {
   const userId = 'user_123';
@@ -67,12 +142,13 @@ describe('World Manager', () => {
       expect(result.metadata.childWorlds).toEqual([]);
       expect(result.metadata.modifiedTeams).toEqual([]);
       expect(result.metadata.actionCount).toBe(0);
-      expect(result.metadata.stats.totalTrades).toBe(0);
-      expect(result.metadata.stats.totalSignings).toBe(0);
-      expect(result.metadata.stats.totalWaives).toBe(0);
+      const stats = getWorldStats(result.metadata.stats, 'Expected createWorld stats');
+      expect(stats.totalTrades).toBe(0);
+      expect(stats.totalSignings).toBe(0);
+      expect(stats.totalWaives).toBe(0);
 
       // Verify world was saved to Firestore
-      const saved = getMockWorldMetadata(result.worldId);
+      const saved = getRequiredWorldMetadata(result.worldId);
       expect(saved).toBeDefined();
       expect(saved.worldName).toBe('Test World');
     });
@@ -95,7 +171,7 @@ describe('World Manager', () => {
       expect(childResult.metadata.branchedFrom).toBeDefined();
 
       // Verify parent's childWorlds was updated
-      const parentMetadata = getMockWorldMetadata(parentResult.worldId);
+      const parentMetadata = getRequiredWorldMetadata(parentResult.worldId);
       expect(parentMetadata.childWorlds).toContain(childResult.worldId);
     });
 
@@ -190,8 +266,14 @@ describe('World Manager', () => {
 
       // Check that worlds are sorted (most recent first)
       for (let i = 0; i < worlds.length - 1; i++) {
-        const current = new Date(worlds[i].lastModifiedAt || worlds[i].createdAt);
-        const next = new Date(worlds[i + 1].lastModifiedAt || worlds[i + 1].createdAt);
+        const currentWorld = requireValue(worlds[i], 'Expected current world entry');
+        const nextWorld = requireValue(worlds[i + 1], 'Expected next world entry');
+        const current = new Date(
+          getSortableTimestamp(currentWorld, 'Expected current world timestamp')
+        );
+        const next = new Date(
+          getSortableTimestamp(nextWorld, 'Expected next world timestamp')
+        );
         expect(current.getTime()).toBeGreaterThanOrEqual(next.getTime());
       }
     });
@@ -203,7 +285,17 @@ describe('World Manager', () => {
       });
 
       for (let i = 0; i < worlds.length - 1; i++) {
-        expect(worlds[i].worldName <= worlds[i + 1].worldName).toBe(true);
+        const currentWorld = requireValue(worlds[i], 'Expected current sorted world');
+        const nextWorld = requireValue(worlds[i + 1], 'Expected next sorted world');
+        const currentWorldName = requireValue(
+          currentWorld.worldName,
+          'Expected current worldName'
+        );
+        const nextWorldName = requireValue(
+          nextWorld.worldName,
+          'Expected next worldName'
+        );
+        expect(currentWorldName <= nextWorldName).toBe(true);
       }
     });
 
@@ -281,7 +373,7 @@ describe('World Manager', () => {
         createdBy: 'hacked_user',
       });
 
-      const updated = getMockWorldMetadata(world.worldId);
+      const updated = getRequiredWorldMetadata(world.worldId);
       expect(updated.worldName).toBe('Updated Name');
       expect(updated.description).toBe('Updated description');
       expect(updated.tags).toEqual(['tag1', 'tag2']);
@@ -303,7 +395,7 @@ describe('World Manager', () => {
         worldName: 'Updated',
       });
 
-      const updated = getMockWorldMetadata(world.worldId);
+      const updated = getRequiredWorldMetadata(world.worldId);
       expect(updated.lastModifiedAt).toBeDefined();
       // In mock, timestamps are processed, so we just check it exists
     });
@@ -311,13 +403,13 @@ describe('World Manager', () => {
     it('does nothing when no valid updates provided', async () => {
       const world = createMockWorld({ userId });
       seedWorldMetadata(world.worldId, world);
-      const original = getMockWorldMetadata(world.worldId);
+      const original = getRequiredWorldMetadata(world.worldId);
 
       await updateWorldMetadata(world.worldId, {
         invalidField: 'should be ignored',
       });
 
-      const updated = getMockWorldMetadata(world.worldId);
+      const updated = getRequiredWorldMetadata(world.worldId);
       expect(updated.worldName).toBe(original.worldName);
     });
 
@@ -348,7 +440,7 @@ describe('World Manager', () => {
       expect(branchResult.metadata.branchedFrom).toBeDefined();
 
       // Verify parent's childWorlds was updated
-      const parentMetadata = getMockWorldMetadata(parentResult.worldId);
+      const parentMetadata = getRequiredWorldMetadata(parentResult.worldId);
       expect(parentMetadata.childWorlds).toContain(branchResult.worldId);
     });
 
@@ -398,7 +490,7 @@ describe('World Manager', () => {
       // Update stats for trade
       await updateWorldStats(worldResult.worldId, 'trade', ['LAL', 'GSW']);
 
-      let metadata = getMockWorldMetadata(worldResult.worldId);
+      let metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.stats.totalTrades).toBe(1);
       expect(metadata.actionCount).toBe(1);
       expect(metadata.modifiedTeams).toContain('LAL');
@@ -408,7 +500,7 @@ describe('World Manager', () => {
       // Update stats for signing
       await updateWorldStats(worldResult.worldId, 'signing', ['BOS']);
 
-      metadata = getMockWorldMetadata(worldResult.worldId);
+      metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.stats.totalSignings).toBe(1);
       expect(metadata.stats.totalTrades).toBe(1); // Should still be 1
       expect(metadata.actionCount).toBe(2);
@@ -418,7 +510,7 @@ describe('World Manager', () => {
       // Update stats for waive
       await updateWorldStats(worldResult.worldId, 'waive', ['LAL']);
 
-      metadata = getMockWorldMetadata(worldResult.worldId);
+      metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.stats.totalWaives).toBe(1);
       expect(metadata.actionCount).toBe(3);
     });
@@ -432,7 +524,7 @@ describe('World Manager', () => {
       await updateWorldStats(worldResult.worldId, 'trade', ['LAL', 'GSW']);
       await updateWorldStats(worldResult.worldId, 'signing', ['BOS', 'LAL']);
 
-      const metadata = getMockWorldMetadata(worldResult.worldId);
+      const metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.modifiedTeams).toContain('LAL');
       expect(metadata.modifiedTeams).toContain('GSW');
       expect(metadata.modifiedTeams).toContain('BOS');
@@ -447,7 +539,7 @@ describe('World Manager', () => {
 
       await updateWorldStats(worldResult.worldId, 'trade', []);
 
-      const updated = getMockWorldMetadata(worldResult.worldId);
+      const updated = getRequiredWorldMetadata(worldResult.worldId);
       expect(updated.lastModifiedAt).toBeDefined();
     });
 
@@ -459,7 +551,7 @@ describe('World Manager', () => {
 
       await updateWorldStats(worldResult.worldId, 'renounce', ['LAL']);
 
-      const metadata = getMockWorldMetadata(worldResult.worldId);
+      const metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.stats.totalRenounces).toBe(1);
       expect(metadata.actionCount).toBe(1);
       expect(metadata.modifiedTeams).toContain('LAL');
@@ -474,7 +566,7 @@ describe('World Manager', () => {
 
       await updateWorldStats(worldResult.worldId, 'mystery-action', ['LAL']);
 
-      const metadata = getMockWorldMetadata(worldResult.worldId);
+      const metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.stats.totalTrades).toBe(0);
       expect(metadata.stats.totalSignings).toBe(0);
       expect(metadata.stats.totalWaives).toBe(0);
@@ -552,13 +644,17 @@ describe('World Manager', () => {
       expect(result).toEqual({ success: true });
       expect(updateDocSpy).toHaveBeenCalledTimes(1);
 
-      const [metadataRef, payload] = updateDocSpy.mock.calls[0];
+      const { metadataRef, payload } = getUpdateDocCall(
+        updateDocSpy.mock.calls as unknown[][],
+        'Expected saveDraftPositions updateDoc call'
+      );
+      const draftPositionsKey = 'draftPositionsByYear.2026';
       expect(metadataRef.path).toBe(`architect_worlds/${world.worldId}`);
       expect(Object.keys(payload)).toEqual([
         'draftPositionsByYear.2026',
         'lastModifiedAt',
       ]);
-      expect(payload['draftPositionsByYear.2026']).toEqual({
+      expect(payload[draftPositionsKey]).toEqual({
         positionsMap,
         method: 'manual',
         updatedAtIso: expect.any(String),
@@ -580,13 +676,17 @@ describe('World Manager', () => {
       expect(result).toEqual({ success: true });
       expect(updateDocSpy).toHaveBeenCalledTimes(1);
 
-      const [metadataRef, payload] = updateDocSpy.mock.calls[0];
+      const { metadataRef, payload } = getUpdateDocCall(
+        updateDocSpy.mock.calls as unknown[][],
+        'Expected clearDraftPositions updateDoc call'
+      );
+      const draftPositionsKey = 'draftPositionsByYear.2026';
       expect(metadataRef.path).toBe(`architect_worlds/${world.worldId}`);
       expect(Object.keys(payload)).toEqual([
         'draftPositionsByYear.2026',
         'lastModifiedAt',
       ]);
-      expect(payload['draftPositionsByYear.2026']).toBeNull();
+      expect(payload[draftPositionsKey]).toBeNull();
       expect(payload.lastModifiedAt).toEqual({
         __type: 'serverTimestamp',
         value: '2025-01-01T00:00:00.000Z',
@@ -603,7 +703,7 @@ describe('World Manager', () => {
 
       await archiveWorld(worldResult.worldId, userId);
 
-      const metadata = getMockWorldMetadata(worldResult.worldId);
+      const metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.isArchived).toBe(true);
     });
 
@@ -677,10 +777,11 @@ describe('World Manager', () => {
       }));
 
       const result = await purgeWorld('test_world_id');
+      const details = getPurgeDetails(result.details, 'Expected purge details');
 
       expect(result.ok).toBe(true);
-      expect(result.details.teamsDeleted).toBe(5);
-      expect(result.details.playersDeleted).toBe(12);
+      expect(details.teamsDeleted).toBe(5);
+      expect(details.playersDeleted).toBe(12);
     });
 
     it('handles queued response for large worlds', async () => {
@@ -703,9 +804,10 @@ describe('World Manager', () => {
 
     it('throws user-friendly error for permission denied', async () => {
       setMockCallable('purgeArchitectWorld', () => {
-        const error = new Error('Permission denied');
-        error.code = 'functions/permission-denied';
-        throw error;
+        throw createErrorWithCode(
+          'Permission denied',
+          'functions/permission-denied'
+        );
       });
 
       await expect(purgeWorld('other_user_world')).rejects.toThrow(
@@ -715,9 +817,10 @@ describe('World Manager', () => {
 
     it('throws user-friendly error for unauthenticated users', async () => {
       setMockCallable('purgeArchitectWorld', () => {
-        const error = new Error('Unauthenticated');
-        error.code = 'functions/unauthenticated';
-        throw error;
+        throw createErrorWithCode(
+          'Unauthenticated',
+          'functions/unauthenticated'
+        );
       });
 
       await expect(purgeWorld('auth_world')).rejects.toThrow(
@@ -727,9 +830,7 @@ describe('World Manager', () => {
 
     it('throws user-friendly error when the world does not exist', async () => {
       setMockCallable('purgeArchitectWorld', () => {
-        const error = new Error('World missing');
-        error.code = 'functions/not-found';
-        throw error;
+        throw createErrorWithCode('World missing', 'functions/not-found');
       });
 
       await expect(purgeWorld('missing_world')).rejects.toThrow(
@@ -739,9 +840,10 @@ describe('World Manager', () => {
 
     it('preserves failed-precondition message text', async () => {
       setMockCallable('purgeArchitectWorld', () => {
-        const error = new Error('Cannot delete world with child branches');
-        error.code = 'functions/failed-precondition';
-        throw error;
+        throw createErrorWithCode(
+          'Cannot delete world with child branches',
+          'functions/failed-precondition'
+        );
       });
 
       await expect(purgeWorld('branch_world')).rejects.toThrow(
@@ -771,7 +873,7 @@ describe('World Manager', () => {
 
       await fixWorldOwnership(world.worldId, 'new_owner');
 
-      const updated = getMockWorldMetadata(world.worldId);
+      const updated = getRequiredWorldMetadata(world.worldId);
       expect(updated.createdBy).toBe('new_owner');
       expect(logSpy).toHaveBeenCalledTimes(2);
     });

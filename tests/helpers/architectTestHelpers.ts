@@ -33,7 +33,29 @@ export type MockDraftPositionsEntry = {
   updatedAtIso: string;
 };
 
-export type MockWorldMetadata = BaseWorldFixture & {
+export type MockWorldStats = {
+  totalTrades: number;
+  totalSignings: number;
+  totalWaives: number;
+  teamsInvolved: number;
+  totalRenounces?: number;
+} & Record<string, unknown>;
+
+export type MockWorldMetadata = Omit<
+  BaseWorldFixture,
+  | 'worldId'
+  | 'worldName'
+  | 'description'
+  | 'createdBy'
+  | 'currentSeason'
+  | 'baselineSeason'
+  | 'parentWorldId'
+  | 'childWorlds'
+  | 'modifiedTeams'
+  | 'stats'
+  | 'draftPositionsByYear'
+  | 'asOfDate'
+> & {
   worldId: string;
   worldName: string;
   description: string;
@@ -43,6 +65,7 @@ export type MockWorldMetadata = BaseWorldFixture & {
   parentWorldId: string | null;
   childWorlds: string[];
   modifiedTeams: string[];
+  stats: MockWorldStats;
   draftPositionsByYear?: Record<string, MockDraftPositionsEntry>;
   asOfDate?: string | null;
 };
@@ -191,6 +214,10 @@ export type MockTeam = Omit<
   lastUpdated?: string;
   version?: string;
 };
+export type MockTeamSnapshot = Omit<MockTeam, 'season' | 'players'> & {
+  season?: string | null;
+  players?: MockPlayer[] | null;
+};
 
 type CreateMockWorldInput = Partial<MockWorldMetadata> & {
   userId?: string;
@@ -278,6 +305,16 @@ function isMockTeam(value: unknown): value is MockTeam {
     typeof value.season === 'string' &&
     Array.isArray(value.roster) &&
     Array.isArray(value.players)
+  );
+}
+
+function isMockTeamSnapshot(value: unknown): value is MockTeamSnapshot {
+  return (
+    isRecord(value) &&
+    typeof value.teamCode === 'string' &&
+    (value.season === undefined || value.season === null || typeof value.season === 'string') &&
+    Array.isArray(value.roster) &&
+    (value.players === undefined || value.players === null || Array.isArray(value.players))
   );
 }
 
@@ -717,9 +754,13 @@ export function getMockWorldMetadata(
 export function getMockTeamSnapshot(
   worldId: string,
   teamCode: string
-): MockTeam | undefined {
+): MockTeamSnapshot | undefined {
   const snapshotPath = `architect_worlds/${worldId}/teams/${teamCode}`;
-  return readMockDataWithGuard(snapshotPath, isMockTeam, 'mock team snapshot');
+  return readMockDataWithGuard(
+    snapshotPath,
+    isMockTeamSnapshot,
+    'mock team snapshot'
+  );
 }
 
 /**

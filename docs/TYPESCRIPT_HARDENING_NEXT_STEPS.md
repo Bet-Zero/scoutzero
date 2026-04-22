@@ -536,7 +536,9 @@ Then do one of the following:
 
 ## Step 23 — Harden the remaining persistence/world truth cluster (wave 3)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Hardened truthful persisted world/team readers plus the `mutationPipeline.tradePersistenceTruth`, `worldManager`, and `teamLoader` harnesses; the Architect strict probe dropped from `2,228` to `2,050`, none of the Step 23 files still appear in that output, and the targeted node run passed `87 / 87` tests.
 
 **Goal:** Tighten the highest-leverage remaining persistence/world test harnesses that still sit closest to the hardened runtime readers and mutation carriers.
 

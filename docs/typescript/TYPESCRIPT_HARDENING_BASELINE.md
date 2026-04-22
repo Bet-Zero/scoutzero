@@ -785,6 +785,61 @@ The remaining mission-area backlog is still broad enough to require multiple
 additional waves. This checkpoint therefore extends the same master plan with
 Steps 23-25 rather than allowing any final-review or closeout path.
 
+## Step 23 Persistence/World Truth Wave Delta
+
+Reviewed: 2026-04-22, after the third Architect persistence/world-truth wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 22 checkpoint | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,228 | 2,050 | -178 |
+| `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` | 64 at the Step 22 checkpoint | 0 | Cleared |
+| `tests/architect/worldManager.test.ts` | 64 at the Step 22 checkpoint | 0 | Cleared |
+| `tests/architect/teamLoader.test.ts` | 52 at the Step 22 checkpoint | 0 | Cleared |
+
+### What Changed
+
+- `tests/helpers/architectTestHelpers.ts` now distinguishes persisted world
+  team snapshots from fully hydrated mock teams via `MockTeamSnapshot`, and its
+  `MockWorldMetadata` type now truthfully overrides `parentWorldId` and `stats`
+  instead of inheriting the base fixture's narrower literals.
+- `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` now uses
+  required snapshot and offer-sheet readers, helper-derived fixture builders,
+  and explicit `computeWorldMutation` current-state adapters instead of raw
+  optional persisted blobs.
+- `tests/architect/worldManager.test.ts` and
+  `tests/architect/teamLoader.test.ts` now use required metadata/player/totals
+  readers, truthful snapshot seeding for missing-player coverage, and `.js`
+  helper imports instead of `.ts` extension imports.
+- The approved narrow node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot tests/architect/teamLoader.test.ts tests/architect/worldManager.test.ts tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`
+  finished with `87 / 87` tests green.
+
+### Remaining Hotspots After Step 23
+
+The Step 23 wave cleared the planned persistence/world truth cluster. The next
+strongest remaining Architect strict hotspots are now:
+
+- `tests/architect/capLegalityValidation.test.ts` (`69`)
+- `tests/architect/renounceRights.test.ts` (`67`)
+- `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` (`64`)
+- `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` (`62`)
+- `src/tests/architect/exceptionManagement.test.ts` (`58`)
+- `tests/architect/contractNormalization.test.ts` (`50`)
+- `tests/architect/e2e-workflows.test.ts` (`49`)
+
+`tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`,
+`tests/architect/worldManager.test.ts`, and
+`tests/architect/teamLoader.test.ts` no longer appear in the Architect strict
+output.
+
+Plain-language read: Step 23 finished the planned persistence/world truth
+cluster and removed three of the most direct post-checkpoint contract tests
+from the Architect strict backlog. The next honest move is the bounded cap
+legality / renounce-rights wave rather than drifting into the broader
+exception/parity integration surfaces.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -807,5 +862,8 @@ Steps 23-25 rather than allowing any final-review or closeout path.
 - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
 - `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step22.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step22.log`
 - `node -e '<architect strict family and concentration parser for Step 22>'`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step23.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step23.log; grep -E "tests/architect/mutationPipeline.tradePersistenceTruth.test.ts|tests/architect/worldManager.test.ts|tests/architect/teamLoader.test.ts" /tmp/architect_step23.log`
+- `grep -E "tests/architect/capLegalityValidation.test.ts|tests/architect/renounceRights.test.ts|src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts|src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts|src/tests/architect/exceptionManagement.test.ts|tests/architect/contractNormalization.test.ts|tests/architect/e2e-workflows.test.ts" /tmp/architect_step23.log | sed -E 's/\([0-9]+,[0-9]+\):.*$//' | sort | uniq -c | sort -nr`
+- `npm run test:node -- --reporter=dot tests/architect/teamLoader.test.ts tests/architect/worldManager.test.ts tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

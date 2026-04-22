@@ -3,13 +3,22 @@ import { getDoc } from 'firebase/firestore';
 import {
   applyWorldMutation,
   computeWorldMutation,
+  type ArchitectMutationContract,
 } from '@/features/architect/utils/mutationPipeline';
 import { getMockTeamSnapshot } from '../helpers/architectTestHelpers.js';
 import {
+  createMockPlayer,
+  createMockTeam,
   createMockWorld,
   seedMockData,
   seedTeamSnapshot,
   seedWorldMetadata,
+  type MockCapHold,
+  type MockPlayer,
+  type MockPlayerContract,
+  type MockSalaryRow,
+  type MockTeam,
+  type MockTeamSnapshot,
 } from '../helpers/architectTestHelpers.js';
 import { resetMockDataStore } from '../__mocks__/firebase.js';
 import { getPlayer } from '@/features/architect/utils/teamLoader';
@@ -78,14 +87,9 @@ const SEASON_ID = '2025-26';
 const TIMESTAMP = Date.UTC(2026, 6, 2, 12, 0, 0);
 const USER_ID = 'user_trade_truth';
 
-type TradeSalaryRowFixture = {
-  season: string;
-  salary: number;
-  capHit: number;
-  guaranteed: boolean;
-};
+type TradeSalaryRowFixture = MockSalaryRow;
 
-type TradeContractFixture = {
+type TradeContractFixture = ArchitectMutationContract & MockPlayerContract & {
   contractType: string;
   totalValue: number;
   salariesByYear: TradeSalaryRowFixture[];
@@ -95,39 +99,30 @@ type TradeContractFixture = {
   rfaOfferSheetOnly?: boolean;
   rfaOfferSheetStatus?: string;
   contractYears?: number;
-} & Record<string, unknown>;
+};
 
-type TradePlayerFixture = {
+type TradePlayerFixture = MockPlayer & {
   id: string;
-  playerId: string;
   player_id: string;
   name: string;
-  displayName: string;
-  teamCode: string;
-  teamName: string;
-  bio: {
-    playerId: string;
-    displayName: string;
-    position: string;
-    age: number;
-    experience: number;
-  };
   contract: TradeContractFixture;
-  source: {
-    provider: string;
-  };
-  lastUpdated: string;
-  version: string;
 } & Record<string, unknown>;
 
-type TradeCapHoldFixture = {
-  playerId: string;
-  amount: number;
-  playerName?: string;
-  season?: string;
-  active?: boolean;
-  isSigned?: boolean;
-} & Record<string, unknown>;
+type ComputeWorldMutationInput = Parameters<typeof computeWorldMutation>[0];
+type ExecuteTradeCurrentState = Extract<
+  ComputeWorldMutationInput,
+  { mutationType: 'executeTrade' }
+>['currentState'];
+type ExecuteTradeTeamState = NonNullable<
+  NonNullable<ExecuteTradeCurrentState['teams']>[number]['team']
+>;
+type ExtendPlayerCurrentState = Extract<
+  ComputeWorldMutationInput,
+  { mutationType: 'extendPlayer' }
+>['currentState'];
+type ExtendPlayerTeamState = NonNullable<ExtendPlayerCurrentState['team']>;
+
+type TradeCapHoldFixture = MockCapHold & Record<string, unknown>;
 
 type TradeOfferSheetFixture = {
   id: string;
@@ -144,28 +139,58 @@ type TradeOfferSheetFixture = {
   salariesByYear: TradeSalaryRowFixture[];
 } & Record<string, unknown>;
 
-type TradeTeamFixture = {
-  teamCode: string;
-  teamName: string;
-  season: string;
-  roster: string[];
+type TradeTeamFixture = MockTeam & {
   players: TradePlayerFixture[];
   capHolds: TradeCapHoldFixture[];
-  draftPicks: unknown[];
-  tradeExceptions: unknown[];
-  exceptionHistory: unknown[];
-  exceptions: Record<string, unknown>;
-  totals: {
-    totalSalary: number;
-    capHit: number;
-  };
-  source: {
-    type: string;
-    worldId: string;
-  };
-  offerSheets?: TradeOfferSheetFixture[];
-  incomingOfferSheets?: TradeOfferSheetFixture[];
+  offerSheets?: TradeOfferSheetFixture[] | null;
+  incomingOfferSheets?: TradeOfferSheetFixture[] | null;
 } & Record<string, unknown>;
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isOfferSheetSnapshot(value: unknown): value is TradeOfferSheetFixture {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.dedupKey === 'string' &&
+    typeof value.playerId === 'string' &&
+    typeof value.playerName === 'string' &&
+    typeof value.offeringTeamCode === 'string' &&
+    typeof value.homeTeamCode === 'string'
+  );
+}
+
+function requireTeamSnapshot(
+  worldId: string,
+  teamCode: string
+): MockTeamSnapshot {
+  return requireValue(
+    getMockTeamSnapshot(worldId, teamCode),
+    `Expected mock team snapshot for ${worldId}/${teamCode}`
+  );
+}
+
+function getOfferSheets(snapshot: MockTeamSnapshot): TradeOfferSheetFixture[] {
+  return (snapshot.offerSheets ?? []).filter(isOfferSheetSnapshot);
+}
+
+function getIncomingOfferSheets(
+  snapshot: MockTeamSnapshot
+): TradeOfferSheetFixture[] {
+  return (snapshot.incomingOfferSheets ?? []).filter(isOfferSheetSnapshot);
+}
 
 function makeContract(
   salary: number,
@@ -190,29 +215,23 @@ function makePlayer(
   id: string,
   teamCode: string,
   salary: number,
-  extra: Partial<TradePlayerFixture> = {}
+  extra: Partial<TradePlayerFixture> & Record<string, unknown> = {}
 ): TradePlayerFixture {
+  const contract = makeContract(salary);
+  const basePlayer = createMockPlayer({
+    playerId: id,
+    displayName: id,
+    teamCode,
+    contract,
+  });
+
   return {
+    ...basePlayer,
     id,
     playerId: id,
     player_id: id,
     name: id,
-    displayName: id,
-    teamCode,
-    teamName: `Team ${teamCode}`,
-    bio: {
-      playerId: id,
-      displayName: id,
-      position: 'SG',
-      age: 27,
-      experience: 5,
-    },
-    contract: makeContract(salary),
-    source: {
-      provider: 'test',
-    },
-    lastUpdated: '2025-01-01T00:00:00.000Z',
-    version: '1.0.0',
+    contract,
     ...extra,
   };
 }
@@ -228,25 +247,28 @@ function makeTeam(
     0
   );
 
-  return {
+  const baseTeam = createMockTeam({
     teamCode,
-    teamName: `Team ${teamCode}`,
     season: SEASON_ID,
     roster: players.map((player) => String(player.player_id || player.id)),
     players,
     capHolds,
     draftPicks: [],
-    tradeExceptions: [],
-    exceptionHistory: [],
-    exceptions: {},
     totals: {
       totalSalary,
       capHit: totalSalary,
     },
-    source: {
-      type: 'world-snapshot',
-      worldId: 'seeded-world',
-    },
+  });
+
+  return {
+    ...baseTeam,
+    roster: players.map((player) => String(player.player_id || player.id)),
+    players,
+    capHolds,
+    tradeExceptions: [],
+    exceptionHistory: [],
+    offerSheets: [],
+    incomingOfferSheets: [],
   };
 }
 
@@ -292,6 +314,60 @@ function makeOfferSheet(
       },
     ],
     ...overrides,
+  };
+}
+
+function toExecuteTradeCurrentStateTeam(
+  team: TradeTeamFixture
+): ExecuteTradeTeamState {
+  const totalSalary = Number(team.totals?.totalSalary ?? 0);
+
+  return {
+    teamCode: team.teamCode,
+    teamName: team.teamName,
+    players: team.players,
+    roster: team.roster,
+    capHolds: team.capHolds,
+    deadCap: team.deadCap ?? [],
+    exceptions: team.exceptions ?? null,
+    totals: { totalSalary, capHit: Number(team.totals?.capHit ?? totalSalary) },
+    tradeExceptions: team.tradeExceptions ?? [],
+    cashLedger: team.cashLedger ?? null,
+    exceptionHistory: team.exceptionHistory ?? [],
+    draftPicks: [],
+    entitlementIds: team.entitlementIds ?? [],
+    twoWayPlayers: [],
+    teamTotalSalary: totalSalary,
+    hardCapped: team.hardCapped ?? null,
+    hardCapLevel: team.hardCapLevel ?? null,
+    hardCapReason: team.hardCapReason ?? null,
+    hardCapTriggeredBy: team.hardCapTriggeredBy ?? null,
+  };
+}
+
+function toExtendPlayerCurrentStateTeam(
+  team: TradeTeamFixture
+): ExtendPlayerTeamState {
+  const totalSalary = Number(team.totals?.totalSalary ?? 0);
+
+  return {
+    teamCode: team.teamCode,
+    teamName: team.teamName,
+    players: team.players,
+    roster: team.roster,
+    capHolds: team.capHolds,
+    deadCap: team.deadCap ?? [],
+    exceptions: team.exceptions ?? null,
+    totals: { totalSalary, capHit: Number(team.totals?.capHit ?? totalSalary) },
+    tradeExceptions: team.tradeExceptions ?? [],
+    cashLedger: team.cashLedger ?? null,
+    exceptionHistory: team.exceptionHistory ?? [],
+    draftPicks: [],
+    entitlementIds: team.entitlementIds ?? [],
+    hardCapped: team.hardCapped ?? null,
+    hardCapLevel: team.hardCapLevel ?? null,
+    hardCapReason: team.hardCapReason ?? null,
+    hardCapTriggeredBy: team.hardCapTriggeredBy ?? null,
   };
 }
 
@@ -416,8 +492,8 @@ describe('mutationPipeline trade persistence truth', () => {
       ['bos_out_10m', 'lal_out_18m']
     );
 
-    const lalSnapshot = getMockTeamSnapshot(worldId, 'LAL');
-    const bosSnapshot = getMockTeamSnapshot(worldId, 'BOS');
+    const lalSnapshot = requireTeamSnapshot(worldId, 'LAL');
+    const bosSnapshot = requireTeamSnapshot(worldId, 'BOS');
     expect(lalSnapshot.roster).toContain('bos_out_10m');
     expect(lalSnapshot.roster).not.toContain('lal_out_18m');
     expect(bosSnapshot.roster).toContain('lal_out_18m');
@@ -594,10 +670,16 @@ describe('mutationPipeline trade persistence truth', () => {
 
     expect(result.success).toBe(true);
 
-    const offeringSnapshot = getMockTeamSnapshot(worldId, 'LAL');
-    const homeSnapshot = getMockTeamSnapshot(worldId, 'BOS');
-    const storedSheet = offeringSnapshot.offerSheets?.[0];
-    const mirroredSheet = homeSnapshot.incomingOfferSheets?.[0];
+    const offeringSnapshot = requireTeamSnapshot(worldId, 'LAL');
+    const homeSnapshot = requireTeamSnapshot(worldId, 'BOS');
+    const storedSheet = requireValue(
+      getOfferSheets(offeringSnapshot)[0],
+      'Expected stored offer sheet on offering snapshot'
+    );
+    const mirroredSheet = requireValue(
+      getIncomingOfferSheets(homeSnapshot)[0],
+      'Expected mirrored offer sheet on home snapshot'
+    );
 
     expect(storedSheet).toBeTruthy();
     expect(mirroredSheet).toBeTruthy();
@@ -651,8 +733,8 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(String(result.error)).toContain(
       'could not resolve an authoritative home team'
     );
-    expect(getMockTeamSnapshot(worldId, 'LAL').offerSheets || []).toHaveLength(0);
-    expect(getMockTeamSnapshot(worldId, 'BOS').incomingOfferSheets || []).toHaveLength(0);
+    expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
+    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
   });
 
   it('fails closed when multiple world snapshots claim roster ownership of the same player', async () => {
@@ -696,9 +778,9 @@ describe('mutationPipeline trade persistence truth', () => {
 
     expect(result.success).toBe(false);
     expect(String(result.error)).toContain('multiple roster owners found');
-    expect(getMockTeamSnapshot(worldId, 'LAL').offerSheets || []).toHaveLength(0);
-    expect(getMockTeamSnapshot(worldId, 'BOS').incomingOfferSheets || []).toHaveLength(0);
-    expect(getMockTeamSnapshot(worldId, 'NYK').incomingOfferSheets || []).toHaveLength(0);
+    expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
+    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
+    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'NYK'))).toHaveLength(0);
   });
 
   it('fails closed when a candidate owner snapshot roster and players[] disagree', async () => {
@@ -749,8 +831,8 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(String(result.error)).toContain(
       'roster membership disagrees with players[] membership'
     );
-    expect(getMockTeamSnapshot(worldId, 'LAL').offerSheets || []).toHaveLength(0);
-    expect(getMockTeamSnapshot(worldId, 'BOS').incomingOfferSheets || []).toHaveLength(0);
+    expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
+    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
   });
 
   it('keeps E4 matched finalization compatible for offer sheets created under the strict store path', async () => {
@@ -817,7 +899,7 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(storeResult.success).toBe(true);
 
     const offerSheetId =
-      getMockTeamSnapshot(worldId, 'LAL').offerSheets?.[0]?.id || null;
+      getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))[0]?.id || null;
     expect(offerSheetId).toBeTruthy();
 
     const matchResult = await applyWorldMutation({
@@ -851,8 +933,8 @@ describe('mutationPipeline trade persistence truth', () => {
     const persistedPlayer = await getPlayer(worldId, 'BOS', 'store_match_rfa');
     expect(persistedPlayer.teamCode).toBe('BOS');
     expect(persistedPlayer.contract?.signedUsing).toBe('Match');
-    expect(getMockTeamSnapshot(worldId, 'LAL').offerSheets || []).toHaveLength(0);
-    expect(getMockTeamSnapshot(worldId, 'BOS').incomingOfferSheets || []).toHaveLength(0);
+    expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
+    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
   });
 
   it('keeps E4 declined finalization compatible for offer sheets created under the strict store path', async () => {
@@ -927,9 +1009,10 @@ describe('mutationPipeline trade persistence truth', () => {
     });
     expect(storeResult.success).toBe(true);
 
-    const storedOfferSheet =
-      getMockTeamSnapshot(worldId, 'LAL').offerSheets?.[0] || null;
-    expect(storedOfferSheet).toBeTruthy();
+    const storedOfferSheet = requireValue(
+      getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))[0],
+      'Expected stored offer sheet for declined finalization path'
+    );
 
     const declineResult = await applyWorldMutation({
       userId: USER_ID,
@@ -968,9 +1051,9 @@ describe('mutationPipeline trade persistence truth', () => {
     );
     expect(persistedPlayer.teamCode).toBe('LAL');
     expect(persistedPlayer.contract?.signedUsing).toBe('Offer Sheet');
-    expect(getMockTeamSnapshot(worldId, 'LAL').offerSheets || []).toHaveLength(0);
-    expect(getMockTeamSnapshot(worldId, 'BOS').incomingOfferSheets || []).toHaveLength(0);
-    expect(getMockTeamSnapshot(worldId, 'BOS').roster).not.toContain(
+    expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toHaveLength(0);
+    expect(getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))).toHaveLength(0);
+    expect(requireTeamSnapshot(worldId, 'BOS').roster).not.toContain(
       'store_decline_rfa'
     );
   });
@@ -1051,10 +1134,10 @@ describe('mutationPipeline trade persistence truth', () => {
     ]);
     expect(result.writesSummary?.playersPatched).toBe(1);
 
-    const homeSnapshot = getMockTeamSnapshot(worldId, 'BOS');
-    const offeringSnapshot = getMockTeamSnapshot(worldId, 'LAL');
-    expect(homeSnapshot.incomingOfferSheets || []).toHaveLength(0);
-    expect(offeringSnapshot.offerSheets || []).toHaveLength(0);
+    const homeSnapshot = requireTeamSnapshot(worldId, 'BOS');
+    const offeringSnapshot = requireTeamSnapshot(worldId, 'LAL');
+    expect(getIncomingOfferSheets(homeSnapshot)).toHaveLength(0);
+    expect(getOfferSheets(offeringSnapshot)).toHaveLength(0);
     expect(
       (homeSnapshot.capHolds || []).some(
         (hold: TradeCapHoldFixture) => hold.playerId === 'matched_rfa'
@@ -1165,12 +1248,12 @@ describe('mutationPipeline trade persistence truth', () => {
       'declined_rfa',
     ]);
 
-    const homeSnapshot = getMockTeamSnapshot(worldId, 'BOS');
-    const offeringSnapshot = getMockTeamSnapshot(worldId, 'LAL');
+    const homeSnapshot = requireTeamSnapshot(worldId, 'BOS');
+    const offeringSnapshot = requireTeamSnapshot(worldId, 'LAL');
     expect(homeSnapshot.roster).not.toContain('declined_rfa');
     expect(offeringSnapshot.roster).toContain('declined_rfa');
-    expect(homeSnapshot.incomingOfferSheets || []).toHaveLength(0);
-    expect(offeringSnapshot.offerSheets || []).toHaveLength(0);
+    expect(getIncomingOfferSheets(homeSnapshot)).toHaveLength(0);
+    expect(getOfferSheets(offeringSnapshot)).toHaveLength(0);
     expect(
       (homeSnapshot.capHolds || []).some(
         (hold: TradeCapHoldFixture) => hold.playerId === 'declined_rfa'
@@ -1203,11 +1286,16 @@ describe('mutationPipeline trade persistence truth', () => {
 
   it('fails closed when duplicate move candidates resolve to conflicting destinations', () => {
     const duplicatePlayer = makePlayer('dup_player', 'LAL', 9_000_000);
-    const currentState = {
+    const currentState: ExecuteTradeCurrentState = {
       teams: [
-        { teamCode: 'LAL', team: makeTeam('LAL', [duplicatePlayer]) },
-        { teamCode: 'BOS', team: makeTeam('BOS', []) },
-        { teamCode: 'NYK', team: makeTeam('NYK', []) },
+        {
+          teamCode: 'LAL',
+          team: toExecuteTradeCurrentStateTeam(
+            makeTeam('LAL', [duplicatePlayer])
+          ),
+        },
+        { teamCode: 'BOS', team: toExecuteTradeCurrentStateTeam(makeTeam('BOS', [])) },
+        { teamCode: 'NYK', team: toExecuteTradeCurrentStateTeam(makeTeam('NYK', [])) },
       ],
     };
 
@@ -1243,8 +1331,8 @@ describe('mutationPipeline trade persistence truth', () => {
         salariesByYear: [],
       },
     });
-    const currentState = {
-      team: makeTeam('LAL', [player]),
+    const currentState: ExtendPlayerCurrentState = {
+      team: toExtendPlayerCurrentStateTeam(makeTeam('LAL', [player])),
       player,
       teamCode: 'LAL',
     };
