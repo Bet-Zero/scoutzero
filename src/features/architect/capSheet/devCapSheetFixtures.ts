@@ -51,12 +51,12 @@ type DevCapSheetFixtureBoundaryMetadata = typeof DEV_CAP_SHEET_FIXTURE_BOUNDARY 
 };
 
 type FixturePlayer = {
-  id?: string;
-  player_id?: string;
-  playerId?: string;
-  name?: string;
-  displayName?: string;
-  position?: string;
+  id?: string | null;
+  player_id?: string | null;
+  playerId?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  position?: string | null;
   contract?: unknown;
   futureContract?: unknown;
   bio?: unknown;
@@ -67,11 +67,11 @@ type FixturePlayer = {
 };
 
 type TeamCapSheetLike = {
-  teamCode?: string;
-  abbreviation?: string;
-  id?: string;
-  players?: FixturePlayer[];
-  roster?: unknown[];
+  teamCode?: string | null;
+  abbreviation?: string | null;
+  id?: string | null;
+  players?: FixturePlayer[] | null;
+  roster?: unknown[] | null;
 };
 
 function resolveTeamCode(teamCapSheet: TeamCapSheetLike): string {
@@ -213,10 +213,10 @@ export function buildCapSheetFixturePlayers(
   ];
 }
 
-export function injectCapSheetFixtures(
-  teamCapSheet: TeamCapSheetLike,
+export function injectCapSheetFixtures<TTeamCapSheet extends TeamCapSheetLike>(
+  teamCapSheet: TTeamCapSheet,
   currentYear: number
-): TeamCapSheetLike {
+): TTeamCapSheet {
   if (!teamCapSheet) return teamCapSheet;
 
   const teamCode = resolveTeamCode(teamCapSheet);
@@ -245,12 +245,12 @@ export function injectCapSheetFixtures(
     ...teamCapSheet,
     players: [...cleanedPlayers, ...fixturePlayers],
     roster: [...cleanedRoster, ...fixtureRoster],
-  };
+  } as TTeamCapSheet;
 }
 
-export function clearCapSheetFixtures(
-  teamCapSheet: TeamCapSheetLike
-): TeamCapSheetLike {
+export function clearCapSheetFixtures<TTeamCapSheet extends TeamCapSheetLike>(
+  teamCapSheet: TTeamCapSheet
+): TTeamCapSheet {
   if (!teamCapSheet) return teamCapSheet;
 
   const existingPlayers = Array.isArray(teamCapSheet.players)
@@ -269,11 +269,11 @@ export function clearCapSheetFixtures(
     ...teamCapSheet,
     players: filteredPlayers,
     roster: filteredRoster,
-  };
+  } as TTeamCapSheet;
 }
 
-export function hasInjectedCapSheetFixtures(
-  teamCapSheet: TeamCapSheetLike | null | undefined
+export function hasInjectedCapSheetFixtures<TTeamCapSheet extends TeamCapSheetLike>(
+  teamCapSheet: TTeamCapSheet | null | undefined
 ): boolean {
   if (!teamCapSheet) return false;
 

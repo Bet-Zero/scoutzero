@@ -224,6 +224,7 @@ type MutationSourceMetadata = Pick<
 >;
 type MutationPlayerSourceLike = MutationSourceMetadata | null;
 type MutationTradeExceptionRecord = TradeExceptionRecord & {
+  isUsed?: boolean | null;
   used?: number | null;
 };
 type MutationTeamSourceLike =
@@ -478,7 +479,7 @@ export type ArchitectMutationOfferSheet = {
 };
 
 type ArchitectMutationCapHold = {
-  playerId?: string | null;
+  playerId?: string | number | null;
   playerName?: string | null;
   amount?: number | null;
   type?: string | null;
@@ -556,7 +557,7 @@ export type ArchitectMutationTeamRecord = {
   teamCode?: string | null;
   teamName?: string | null;
   players?: ArchitectMutationPlayerRecord[];
-  roster?: string[];
+  roster?: Array<string | number>;
   twoWayPlayers?: ArchitectMutationPlayerRecord[];
   capHolds?: ArchitectMutationCapHold[];
   deadCap?: ArchitectMutationDeadCapEntry[];
@@ -1524,7 +1525,6 @@ type ArchitectGeneralMutationDashboardReloadPlayer = Omit<
 // and leaves round-trip-only baggage on the persistence contract.
 export type ArchitectGeneralMutationDashboardReloadTeamSnapshot = Pick<
   ArchitectGeneralMutationCommittedTeamSnapshot,
-  | 'teamCode'
   | 'roster'
   | 'capHolds'
   | 'totals'
@@ -1544,6 +1544,7 @@ export type ArchitectGeneralMutationDashboardReloadTeamSnapshot = Pick<
     | ArchitectGeneralMutationDashboardReloadOfferSheet[]
     | null;
   hardCapped?: boolean | null;
+  teamCode?: string;
 };
 export type ArchitectGeneralMutationDashboardReloadTeamUpdate = {
   teamCode?: string | null;
@@ -1596,18 +1597,22 @@ type MutationCurrentStateTeamCoreIngress = Omit<
     | 'hardCapReason'
     | 'hardCapTriggeredBy'
   >,
-  'players'
+  'players' | 'roster' | 'capHolds' | 'deadCap' | 'exceptions' | 'totals'
 > & {
-  players?: MutationCurrentStatePlayerIngress[];
+  players?: unknown[] | null;
+  roster?: unknown[] | null;
+  capHolds?: unknown[] | null;
+  deadCap?: unknown[] | null;
+  exceptions?: ArchitectMutationTeamRecord['exceptions'] | null;
+  totals?: ArchitectMutationTeamRecord['totals'] | null;
 };
-type MutationCurrentStateTeamRoundTripIngress = Pick<
-  ArchitectMutationTeamRecord,
-  | 'tradeExceptions'
-  | 'cashLedger'
-  | 'exceptionHistory'
-  | 'draftPicks'
-  | 'entitlementIds'
->;
+type MutationCurrentStateTeamRoundTripIngress = {
+  tradeExceptions?: unknown[] | null;
+  cashLedger?: ArchitectMutationCashLedger | null;
+  exceptionHistory?: ArchitectMutationTeamRecord['exceptionHistory'] | null;
+  draftPicks?: ArchitectMutationTeamRecord['draftPicks'] | null;
+  entitlementIds?: ArchitectMutationTeamRecord['entitlementIds'] | null;
+};
 type MutationCurrentStateBaseTeamIngress = MutationCurrentStateTeamCoreIngress &
   MutationCurrentStateTeamRoundTripIngress;
 type MutationCurrentStateOfferSheetTeamIngress =
@@ -1624,7 +1629,7 @@ type MutationCurrentStateTradeTeamIngress =
       | 'draftPicks'
       | 'entitlementIds'
     > & {
-      twoWayPlayers?: MutationCurrentStatePlayerIngress[];
+      twoWayPlayers?: unknown[] | null;
     };
 export type MutationTeamMap = Record<string, TeamLike>;
 type BuildTotalsTeamMap = Record<
@@ -7920,9 +7925,12 @@ export function buildGeneralMutationDashboardReloadTeamSnapshot(
     return null;
   }
 
-  const reloadSnapshot: ArchitectGeneralMutationDashboardReloadTeamSnapshot = {
-    teamCode: team.teamCode,
-  };
+  const reloadSnapshot: ArchitectGeneralMutationDashboardReloadTeamSnapshot = {};
+  const teamCode = toOptionalTrimmedString(team.teamCode);
+
+  if (teamCode !== undefined) {
+    reloadSnapshot.teamCode = teamCode;
+  }
 
   const teamName = toOptionalTrimmedString(team.teamName);
   if (teamName !== undefined) {

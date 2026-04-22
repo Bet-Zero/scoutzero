@@ -278,9 +278,11 @@ Do not change source files in this step.
 
 ## Step 16 — Normalize the highest-leverage Architect runtime contract owners (wave 1)
 
-**Status:** IN PROGRESS
+**Status:** DONE
 
 Progress note 2026-04-22: Landed the isolated `SeasonAdvanceModal.tsx` null-to-undefined cleanup that cleared that 2-error pocket under `tsconfig.architect-strict.json`, but the broader `GMDashboard` / `useArchitectActions` / `mutationPipeline` runtime-carrier normalization attempt was reverted after it regressed the root compatibility gate. Resume from the current live hotspot cluster (`mutationPipeline.ts`: 55, `useArchitectActions.ts`: 22, `GMDashboard.tsx`: 5, `SeasonAdvanceModal.tsx`: 0).
+
+Completed 2026-04-22: Normalized the dashboard/action runtime adapter wave, manual cap-sheet payload handoffs, dev fixture generics, and trade-machine team lookup contracts while keeping root typecheck green. Architect strict probe moved from the Step 16 resume count of `2,632` to `2,549`; `useArchitectActions.ts`, `GMDashboard.tsx`, cap-sheet handoffs, and `useTradeMachine.ts` no longer appear in the runtime hotspot list. Remaining runtime work is concentrated in `mutationPipeline.ts` and `TradeEditor.tsx` for Step 17.
 
 **Goal:** Reduce the most central Architect runtime assignability/nullability debt by normalizing the contract owners that many downstream consumers depend on.
 

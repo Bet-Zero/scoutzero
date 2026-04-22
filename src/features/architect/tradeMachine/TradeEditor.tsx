@@ -100,7 +100,7 @@ interface TradeEditorProps {
     | ((tradeData: TradeDataEntryLike[]) => Promise<unknown> | unknown)
     | null;
   primaryTeamData?: PrimaryTeamDataLike;
-  onEditContract?: ((player: unknown) => unknown) | null;
+  onEditContract?: ((player: PlayerLike) => void) | null;
   worldId?: string | null;
   worldAsOfDate?: string | Date | null;
   userId?: string | null;

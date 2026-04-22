@@ -34,6 +34,7 @@ import {
   findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation,
   preflightOfferSheetMutation,
+  type ArchitectGeneralMutationDashboardReloadTeamSnapshot,
   type ArchitectGeneralMutationCommittedTeamUpdate,
   type ArchitectMutationContract,
   type ArchitectMutationDeadCapEntry,
@@ -45,6 +46,7 @@ import {
   type OfferSheetPreflightResult,
   type NormalizedMutationSalaryRow,
 } from '@/features/architect/utils/mutationPipeline';
+import type { ManualExceptionsSavePayload } from '@/features/architect/capSheet/CapSheet/CapSheet';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
@@ -74,10 +76,12 @@ import {
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
 import {
   type SignAndTradeContractLike,
+  type SignAndTradeSalaryRow,
   validateSignAndTradeContractPayload,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type {
   BasePlayerContract,
+  BasePlayerDoc,
   DeadCapItem,
   Exceptions,
   PlayerRulesProfileInput,
@@ -112,21 +116,30 @@ import type {
 // ==== Type Definitions ====
 
 type StatePlayersMap = UseArchitectStateReturn['playersMap'];
+type ArchitectActionTeamCapSheet = NonNullable<
+  UseArchitectStateReturn['teamCapSheet']
+>;
 type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
-type ComputeWorldMutationCurrentState = NonNullable<
-  ComputeWorldMutationArgs['currentState']
+type SignFreeAgentComputeArgs = Extract<
+  ComputeWorldMutationArgs,
+  { mutationType: 'signFreeAgent' }
 >;
-type FreeAgentComputeState = Pick<
-  ComputeWorldMutationCurrentState,
-  'team' | 'player' | 'teamCode'
+type ExecuteTradeComputeArgs = Extract<
+  ComputeWorldMutationArgs,
+  { mutationType: 'executeTrade' }
 >;
-type TradeComputeState = Pick<ComputeWorldMutationCurrentState, 'teams'>;
-type TradeComputeTeamEntry = NonNullable<TradeComputeState['teams']>[number];
+type FreeAgentComputeState = SignFreeAgentComputeArgs['currentState'];
+type ExecuteTradeCurrentState = ExecuteTradeComputeArgs['currentState'];
 type TradeMutationPayloadTeam = NonNullable<
   ArchitectMutationPayload['teams']
 >[number];
 type TradeMutationPayloadEntitlement = NonNullable<
   TradeMutationPayloadTeam['outgoingEntitlements']
+>[number];
+type SigningValidationTeam = Parameters<typeof validateSigning>[0]['team'];
+type SigningValidationPlayer = Parameters<typeof validateSigning>[0]['player'];
+type SigningValidationCapHold = NonNullable<
+  SigningValidationTeam['capHolds']
 >[number];
 
 /** Salary entry by year in a contract — canonical (normalized) form. */
@@ -151,7 +164,10 @@ interface LocalBirdRights {
 type LocalContract = ArchitectMutationContract &
   Omit<
     Partial<BasePlayerContract>,
-    'birdRights' | 'freeAgency' | 'salariesByYear'
+    | 'birdRights'
+    | 'freeAgency'
+    | 'salariesByYear'
+    | keyof ArchitectMutationContract
   > & {
     salariesByYear?: SalaryByYear[];
     salaries?: LocalContractLegacySalaryInput[];
@@ -170,15 +186,15 @@ type LocalContract = ArchitectMutationContract &
 
 /** Bio structure for player data (avoids schema naming pattern) */
 interface LocalBio {
-  playerId?: string;
-  displayName?: string;
-  position?: string;
+  playerId?: string | null;
+  displayName?: string | null;
+  position?: string | null;
   age?: number;
   height?: number | string | null;
   weight?: number | string | null;
   draftRound?: number | null;
   draftPick?: number | string | null;
-  yearsExperience?: number | null;
+  yearsExperience?: number;
   experience?: number | string | null;
   'Years Pro'?: number | string | null;
   display?: { freeAgentType?: string | null; team?: string | null } | null;
@@ -194,7 +210,7 @@ type ArchitectPlayer = Omit<
   contract?: LocalContract | null;
   futureContract?: LocalContract | null;
   bio?: LocalBio;
-  representation?: unknown;
+  representation?: BasePlayerDoc['representation'] | null;
   options?: Record<string, unknown>;
   isMinimum?: boolean;
   yearsOfService?: number | string | null;
@@ -211,9 +227,9 @@ type ArchitectPlayer = Omit<
   rightsRenounced?: boolean;
   contractYears?: number | string | null;
   firstYearGuaranteed?: boolean | null;
-  contractType?: string;
-  isExtension?: boolean;
-  isRookieScale?: boolean;
+  contractType?: string | null;
+  isExtension?: boolean | null;
+  isRookieScale?: boolean | null;
   // Physical attributes (fallback from bio)
   height?: number | string | null;
   height_ft_in?: string | null;
@@ -342,8 +358,16 @@ type DeadCapEntry = ArchitectMutationDeadCapEntry & {
   stretched?: boolean | null;
 };
 
-type ArchitectExceptionsLike = Exceptions &
+type ArchitectExceptionsLike = Omit<
+  Exceptions,
+  'mle' | 'taxpayerMle' | 'room' | 'bae' | 'dpe' | 'tpe'
+> &
   ArchitectMutationExceptions & {
+    mle?: ArchitectMutationExceptionEntry | null;
+    taxpayerMle?: ArchitectMutationExceptionEntry | null;
+    room?: ArchitectMutationExceptionEntry | null;
+    bae?: ArchitectMutationExceptionEntry | null;
+    dpe?: ArchitectMutationExceptionEntry | null;
     roomMLE?: ArchitectMutationExceptionEntry | null;
   };
 type ManualCapSheetLedgerMutationParams =
@@ -353,7 +377,7 @@ type ManualCapSheetLedgerMutationParams =
     }
   | {
       type: 'exceptions';
-      exceptions: NonNullable<CapSheet['exceptions']>;
+      exceptions: ManualExceptionsSavePayload;
     };
 
 /** Override audit log entry */
@@ -390,6 +414,419 @@ interface MutationActionResult {
   success: boolean;
   message?: string;
 }
+
+const normalizeOptionalMutationString = (
+  value: string | null | undefined
+): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeOptionalMutationNumber = (
+  value: number | null | undefined
+): number | undefined => {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+};
+
+const normalizeManualExceptionsForMutation = (
+  exceptions: ManualExceptionsSavePayload
+): NonNullable<CapSheet['exceptions']> => {
+  const { tpe, ...rest } = exceptions;
+  const normalized: Record<string, unknown> = { ...rest };
+
+  if (Array.isArray(tpe)) {
+    normalized.tpe = tpe.map((exception) => ({
+      id: exception.id,
+      totalAmount: normalizeOptionalMutationNumber(exception.totalAmount),
+      usedAmount: normalizeOptionalMutationNumber(exception.usedAmount),
+      remainingAmount: normalizeOptionalMutationNumber(
+        exception.remainingAmount
+      ),
+      createdFrom: normalizeOptionalMutationString(exception.createdFrom),
+      createdOn: normalizeOptionalMutationString(exception.createdOn),
+      expiresOn: exception.expiresOn ?? null,
+      notes: normalizeOptionalMutationString(exception.notes),
+    }));
+  }
+
+  return normalized as NonNullable<CapSheet['exceptions']>;
+};
+
+const toNormalizedSalaryRow = (
+  row: LocalContractLegacySalaryInput | SalaryByYear | null | undefined
+): SalaryByYear | null => {
+  if (row == null || typeof row === 'number' || typeof row === 'string') {
+    return null;
+  }
+
+  const salaryRow = row as Partial<SalaryByYear> & {
+    season?: string | number | null;
+    year?: number | string | null;
+    salary?: number | string | null;
+  };
+
+  const normalizedSeason =
+    normalizeOptionalMutationString(
+      typeof salaryRow.season === 'string' ? salaryRow.season : undefined
+    ) ??
+    (typeof salaryRow.season === 'number' && Number.isFinite(salaryRow.season)
+      ? toSeasonCode(salaryRow.season)
+      : undefined) ??
+    (typeof salaryRow.year === 'number' && Number.isFinite(salaryRow.year)
+      ? toSeasonCode(salaryRow.year)
+      : undefined) ??
+    (typeof salaryRow.year === 'string' &&
+    Number.isFinite(Number(salaryRow.year))
+      ? toSeasonCode(Number(salaryRow.year))
+      : undefined);
+
+  if (!normalizedSeason) {
+    return null;
+  }
+
+  return {
+    ...salaryRow,
+    season: normalizedSeason,
+    year:
+      typeof salaryRow.year === 'number'
+        ? salaryRow.year
+        : typeof salaryRow.year === 'string' &&
+            Number.isFinite(Number(salaryRow.year))
+          ? Number(salaryRow.year)
+          : null,
+    salary:
+      typeof salaryRow.salary === 'number'
+        ? salaryRow.salary
+        : typeof salaryRow.salary === 'string' &&
+            Number.isFinite(Number(salaryRow.salary))
+          ? Number(salaryRow.salary)
+          : null,
+    capHit:
+      typeof salaryRow.capHit === 'number'
+        ? salaryRow.capHit
+        : typeof salaryRow.capHit === 'string' &&
+            Number.isFinite(Number(salaryRow.capHit))
+          ? Number(salaryRow.capHit)
+          : null,
+    guaranteed:
+      typeof salaryRow.guaranteed === 'boolean'
+        ? salaryRow.guaranteed
+        : null,
+    guaranteedAmount:
+      typeof salaryRow.guaranteedAmount === 'number'
+        ? salaryRow.guaranteedAmount
+        : typeof salaryRow.guaranteedAmount === 'string' &&
+            Number.isFinite(Number(salaryRow.guaranteedAmount))
+          ? Number(salaryRow.guaranteedAmount)
+          : null,
+    option: normalizeOptionalMutationString(salaryRow.option) ?? null,
+    optionType: normalizeOptionalMutationString(salaryRow.optionType) ?? null,
+    optionUsed:
+      typeof salaryRow.optionUsed === 'boolean'
+        ? salaryRow.optionUsed
+        : null,
+    tradeBonus:
+      typeof salaryRow.tradeBonus === 'number'
+        ? salaryRow.tradeBonus
+        : typeof salaryRow.tradeBonus === 'string' &&
+            Number.isFinite(Number(salaryRow.tradeBonus))
+          ? Number(salaryRow.tradeBonus)
+          : null,
+  };
+};
+
+const toLocalBio = (
+  bio: ArchitectDashboardPlayer['bio'] | ArchitectPlayer['bio'] | null | undefined
+): LocalBio | undefined => {
+  if (!bio) {
+    return undefined;
+  }
+
+  const bioRecord = bio as Record<string, unknown>;
+
+  const yearsExperience =
+    typeof bioRecord.yearsExperience === 'number'
+      ? bioRecord.yearsExperience
+      : typeof bioRecord.yearsExperience === 'string' &&
+          Number.isFinite(Number(bioRecord.yearsExperience))
+        ? Number(bioRecord.yearsExperience)
+        : undefined;
+  const experience =
+    typeof bioRecord.experience === 'number' ||
+    typeof bioRecord.experience === 'string'
+      ? bioRecord.experience
+      : null;
+  const yearsPro =
+    typeof bioRecord['Years Pro'] === 'number' ||
+    typeof bioRecord['Years Pro'] === 'string'
+      ? bioRecord['Years Pro']
+      : null;
+
+  return {
+    playerId:
+      typeof bioRecord.playerId === 'string'
+        ? bioRecord.playerId
+        : null,
+    displayName:
+      typeof bioRecord.displayName === 'string'
+        ? bioRecord.displayName
+        : null,
+    position:
+      typeof bioRecord.position === 'string'
+        ? bioRecord.position
+        : null,
+    age: typeof bioRecord.age === 'number' ? bioRecord.age : undefined,
+    height:
+      typeof bioRecord.height === 'number' || typeof bioRecord.height === 'string'
+        ? bioRecord.height
+        : null,
+    weight:
+      typeof bioRecord.weight === 'number' || typeof bioRecord.weight === 'string'
+        ? bioRecord.weight
+        : null,
+    draftRound:
+      typeof bioRecord.draftRound === 'number' ? bioRecord.draftRound : null,
+    draftPick:
+      typeof bioRecord.draftPick === 'number' ||
+      typeof bioRecord.draftPick === 'string'
+        ? bioRecord.draftPick
+        : null,
+    yearsExperience,
+    experience,
+    'Years Pro': yearsPro,
+    display:
+      bioRecord.display &&
+      typeof bioRecord.display === 'object' &&
+      !Array.isArray(bioRecord.display)
+        ? {
+            freeAgentType:
+              typeof (bioRecord.display as Record<string, unknown>)
+                .freeAgentType === 'string'
+                ? ((bioRecord.display as Record<string, unknown>)
+                    .freeAgentType as string)
+                : null,
+            team:
+              typeof (bioRecord.display as Record<string, unknown>).team ===
+              'string'
+                ? ((bioRecord.display as Record<string, unknown>).team as string)
+                : null,
+          }
+        : null,
+    team:
+      typeof bioRecord.team === 'string' ? bioRecord.team : null,
+  };
+};
+
+const toLocalContract = (
+  contract:
+    | ArchitectDashboardPlayer['contract']
+    | ArchitectPlayer['contract']
+    | null
+    | undefined
+): LocalContract | undefined => {
+  if (!contract) {
+    return undefined;
+  }
+
+  return {
+    ...contract,
+    salariesByYear: Array.isArray(contract.salariesByYear)
+      ? contract.salariesByYear
+          .map((row) => toNormalizedSalaryRow(row))
+          .filter((row): row is SalaryByYear => row !== null)
+      : undefined,
+    birdRights: contract.birdRights
+      ? { ...contract.birdRights }
+      : undefined,
+    freeAgency: contract.freeAgency ?? undefined,
+  };
+};
+
+const toArchitectActionPlayer = (
+  player: ArchitectDashboardPlayer | ArchitectPlayer | null | undefined
+): ArchitectPlayer | null => {
+  if (!player) {
+    return null;
+  }
+
+  return {
+    ...player,
+    contract: toLocalContract(player.contract) ?? null,
+    futureContract: toLocalContract(player.futureContract) ?? null,
+    bio: toLocalBio(player.bio),
+    experience:
+      typeof player.experience === 'number' || typeof player.experience === 'string'
+        ? player.experience
+        : null,
+    'Years Pro':
+      typeof player['Years Pro'] === 'number' ||
+      typeof player['Years Pro'] === 'string'
+        ? player['Years Pro']
+        : null,
+  };
+};
+
+const toSigningValidationTeam = (
+  team: UseArchitectStateReturn['teamCapSheet'] | CapSheet | null | undefined
+): SigningValidationTeam | null => {
+  if (!team) {
+    return null;
+  }
+
+  return {
+    teamCode: normalizeOptionalMutationString(team.teamCode) ?? null,
+    teamName: normalizeOptionalMutationString(team.teamName) ?? null,
+    players: Array.isArray(team.players)
+      ? team.players
+          .map((player) => toArchitectActionPlayer(player))
+          .filter((player): player is ArchitectPlayer => player !== null)
+      : undefined,
+    roster: Array.isArray(team.roster) ? team.roster : undefined,
+    capHolds: toSigningValidationCapHolds(team.capHolds),
+    deadCap: Array.isArray(team.deadCap) ? team.deadCap : undefined,
+    exceptions: team.exceptions ?? undefined,
+    totals: team.totals ?? undefined,
+  };
+};
+
+const toSigningValidationCapHolds = (
+  capHolds: ArchitectActionTeamCapSheet['capHolds'] | CapSheet['capHolds']
+): SigningValidationCapHold[] | undefined => {
+  if (!Array.isArray(capHolds)) {
+    return undefined;
+  }
+
+  return capHolds.map((hold): SigningValidationCapHold => {
+    const holdRecord =
+      hold && typeof hold === 'object'
+        ? (hold as Record<string, unknown>)
+        : {};
+
+    return {
+      playerId:
+        typeof holdRecord.playerId === 'string' ||
+        typeof holdRecord.playerId === 'number'
+          ? holdRecord.playerId
+          : null,
+      playerName: normalizeOptionalMutationString(
+        typeof holdRecord.playerName === 'string'
+          ? holdRecord.playerName
+          : undefined
+      ),
+      amount:
+        typeof holdRecord.amount === 'number' ? holdRecord.amount : undefined,
+      type: normalizeOptionalMutationString(
+        typeof holdRecord.type === 'string' ? holdRecord.type : undefined
+      ),
+      season: normalizeOptionalMutationString(
+        typeof holdRecord.season === 'string' ? holdRecord.season : undefined
+      ),
+      reason: normalizeOptionalMutationString(
+        typeof holdRecord.reason === 'string' ? holdRecord.reason : undefined
+      ),
+      active:
+        typeof holdRecord.active === 'boolean' ? holdRecord.active : undefined,
+      isSigned:
+        typeof holdRecord.isSigned === 'boolean'
+          ? holdRecord.isSigned
+          : undefined,
+    };
+  });
+};
+
+const toSigningValidationPlayer = (
+  player: ArchitectDashboardPlayer | ArchitectPlayer | null | undefined
+): SigningValidationPlayer | null => {
+  return toArchitectActionPlayer(player);
+};
+
+const toFreeAgentComputeTeam = (
+  team: UseArchitectStateReturn['teamCapSheet'] | CapSheet | null | undefined
+): FreeAgentComputeState['team'] | null => {
+  if (!team) {
+    return null;
+  }
+
+  return {
+    ...team,
+    players: Array.isArray(team.players)
+      ? team.players
+          .map((player) => toArchitectActionPlayer(player))
+          .filter((player): player is ArchitectPlayer => player !== null)
+      : undefined,
+    roster: Array.isArray(team.roster)
+      ? team.roster.map((playerId) => String(playerId))
+      : undefined,
+    capHolds: Array.isArray(team.capHolds) ? team.capHolds : undefined,
+    deadCap: Array.isArray(team.deadCap) ? team.deadCap : undefined,
+    exceptions: team.exceptions ?? undefined,
+    totals: team.totals ?? undefined,
+    offerSheets: team.offerSheets ?? undefined,
+    incomingOfferSheets: team.incomingOfferSheets ?? undefined,
+  };
+};
+
+const toFreeAgentComputeState = (
+  team: UseArchitectStateReturn['teamCapSheet'] | CapSheet | null | undefined,
+  player: ArchitectDashboardPlayer | ArchitectPlayer | null | undefined,
+  teamCode: string
+): FreeAgentComputeState | null => {
+  const normalizedTeam = toFreeAgentComputeTeam(team);
+  const normalizedPlayer = toSigningValidationPlayer(player);
+
+  if (!normalizedTeam || !normalizedPlayer) {
+    return null;
+  }
+
+  return {
+    team: normalizedTeam,
+    player: normalizedPlayer,
+    teamCode,
+  } as FreeAgentComputeState;
+};
+
+const toSignAndTradeValidationContract = (
+  contract: SignAndTradeContractLike | LocalContract | null | undefined
+): SignAndTradeContractLike | null => {
+  if (!contract) {
+    return null;
+  }
+
+  return {
+    ...contract,
+    signAndTrade:
+      contract.signAndTrade === null ? undefined : contract.signAndTrade,
+    years:
+      typeof contract.years === 'string'
+        ? Number(contract.years) || null
+        : contract.years ?? null,
+    contractYears:
+      typeof contract.contractYears === 'string'
+        ? Number(contract.contractYears) || null
+        : contract.contractYears ?? null,
+    firstYearGuaranteed:
+      typeof contract.firstYearGuaranteed === 'boolean'
+        ? contract.firstYearGuaranteed
+        : null,
+    salariesByYear: Array.isArray(contract.salariesByYear)
+      ? contract.salariesByYear.map(
+          (row): SignAndTradeSalaryRow => ({
+            ...row,
+            guaranteed:
+              typeof row.guaranteed === 'boolean'
+                ? row.guaranteed
+                : undefined,
+          })
+        )
+      : null,
+  };
+};
 
 interface CapSheetDevTools {
   injectLocalFixtures: () => MutationActionResult;
@@ -827,7 +1264,9 @@ export interface UseArchitectActionsReturn {
     playerObj: ArchitectPlayer,
     contract: SigningDetails
   ) => Promise<OfferSheetPreflightResult>;
-  handleEditContract: (player: ArchitectPlayer) => void;
+  handleEditContract: (
+    player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer
+  ) => void;
   handleCapTableModalAction: (
     player: PlayerRulesProfileInput,
     actionType: CapSheetModalActionType,
@@ -876,7 +1315,7 @@ export interface UseArchitectActionsReturn {
 
   // Manual Exception Management (Phase 27)
   handleSetExceptions: (
-    exceptions: NonNullable<CapSheet['exceptions']>
+    exceptions: ManualExceptionsSavePayload
   ) => Promise<boolean>;
 
   // DEV-only tool surfaces
@@ -1089,6 +1528,15 @@ type WorldCommittedTeamSource = 'changedTeams' | 'reload';
 type DashboardCommittedTeamSnapshot = NonNullable<
   UseArchitectStateReturn['teamCapSheet']
 >;
+const toDashboardCommittedTeamSnapshot = (
+  team: ArchitectGeneralMutationDashboardReloadTeamSnapshot
+): DashboardCommittedTeamSnapshot =>
+  ({
+    ...team,
+    hardCapped:
+      typeof team.hardCapped === 'boolean' ? team.hardCapped : undefined,
+  }) as DashboardCommittedTeamSnapshot;
+
 /**
  * Dashboard post-mutation propagation lane.
  * - `world-committed`: authoritative world persistence already succeeded, so
@@ -1831,7 +2279,12 @@ export function useArchitectActions({
   const { openContractModal } = modals;
 
   const setTeamCapSheetSafe = useCallback(
-    (nextTeam: CapSheet | null): void => {
+    (
+      nextTeam:
+        | CapSheet
+        | UseArchitectStateReturn['teamCapSheet']
+        | null
+    ): void => {
       setTeamCapSheet(nextTeam as UseArchitectStateReturn['teamCapSheet']);
     },
     [setTeamCapSheet]
@@ -2219,7 +2672,7 @@ export function useArchitectActions({
       if (dashboardChangedTeam) {
         return {
           propagationMode: 'world-committed',
-          committedTeam: dashboardChangedTeam,
+          committedTeam: toDashboardCommittedTeamSnapshot(dashboardChangedTeam),
           committedTeamSource: 'changedTeams',
         };
       }
@@ -2993,10 +3446,7 @@ export function useArchitectActions({
           'signFreeAgent',
           result
         );
-        const committedTeam =
-          committedWorldReloadPlan?.committedWorldTeam.committedTeam || null;
-
-        if (!committedTeam) {
+        if (!committedWorldReloadPlan) {
           const message =
             'Signing saved but the committed team snapshot could not be reloaded.';
           reportMutationError(message, {
@@ -3071,10 +3521,23 @@ export function useArchitectActions({
         playersMap[playerObj.player_id || ''] ||
         playersMap[playerObj.id || ''] ||
         playerObj;
+      const validationTeam = toSigningValidationTeam(teamCapSheet);
+      const validationPlayer = toSigningValidationPlayer(canonicalPlayer);
+
+      if (!validationTeam || !validationPlayer) {
+        const message =
+          'Cannot sign player: the local team or player snapshot is incomplete.';
+        reportMutationError(message, {
+          playerId: idToSign,
+          teamLoaded: Boolean(teamCapSheet),
+          playerLoaded: Boolean(canonicalPlayer),
+        });
+        return { success: false, message };
+      }
 
       const validation = validateSigning({
-        team: teamCapSheet,
-        player: canonicalPlayer,
+        team: validationTeam,
+        player: validationPlayer,
         contract: standardSigningPayload.contract,
         signedUsing: standardSigningPayload.signedUsing,
         year: actionSeasonContext.actionYear,
@@ -3092,17 +3555,28 @@ export function useArchitectActions({
         return { success: false, message };
       }
 
+      const freeAgentComputeState = toFreeAgentComputeState(
+        teamCapSheet,
+        canonicalPlayer,
+        teamCode
+      );
+
+      if (!freeAgentComputeState) {
+        const message =
+          'Cannot sign player: the canonical current state could not be normalized.';
+        reportMutationError(message, {
+          playerId: idToSign,
+          teamCode,
+        });
+        return { success: false, message };
+      }
+
       const computeResult = computeWorldMutation({
         mutationType: 'signFreeAgent',
         payload: standardSigningPayload,
-        currentState: {
-          team: teamCapSheet as FreeAgentComputeState['team'],
-          player: canonicalPlayer as FreeAgentComputeState['player'],
-          teamCode,
-        } satisfies FreeAgentComputeState,
+        currentState: freeAgentComputeState,
         seasonId: actionSeasonContext.seasonId,
         timestamp: Date.now(),
-        worldId: null,
       }) as ComputeMutationResult;
 
       if (!computeResult.success) {
@@ -3388,6 +3862,7 @@ export function useArchitectActions({
         currentYear
       );
       const signedUsing = deriveSigningMechanism(contract);
+      const signedUsingForContract = normalizeOptionalMutationString(signedUsing);
       const normalizedExceptionType =
         typeof contract.exceptionType === 'string'
           ? contract.exceptionType.trim()
@@ -3397,8 +3872,9 @@ export function useArchitectActions({
         contractType: overrides.contractType,
         signingTeam: teamCode,
         startYear: actionSeasonContext.actionYear,
-        signedUsing,
-        exceptionType: normalizedExceptionType || signedUsing || undefined,
+        signedUsing: signedUsingForContract,
+        exceptionType:
+          normalizedExceptionType || signedUsingForContract || undefined,
       });
 
       if (!preparedContract) {
@@ -3440,8 +3916,9 @@ export function useArchitectActions({
           guaranteed:
             preparedContract.guaranteed ??
             salaryRows.every((row) => row?.guaranteed !== false),
-          signedUsing,
-          exceptionType: normalizedExceptionType || signedUsing || undefined,
+          signedUsing: signedUsingForContract,
+          exceptionType:
+            normalizedExceptionType || signedUsingForContract || undefined,
           yearsOfService: yearsOfService ?? undefined,
           isMinimum:
             signedUsing?.toLowerCase() === 'minimum' ||
@@ -3637,9 +4114,7 @@ export function useArchitectActions({
         tradeData.map(
           (t, teamIndex): TradeMutationPayloadTeam => ({
             teamCode: resolvedTeamCodes[teamIndex],
-            sends: (
-              (t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]
-            ).map((p) => {
+            sends: ((t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]).map((p) => {
               const rawDestination =
                 p.receivingTeamId || p.tradeTo || p.toTeamId || p.destTeamId;
               const destinationTeamCode = rawDestination
@@ -3652,27 +4127,9 @@ export function useArchitectActions({
                   : undefined;
 
               const tradeContract =
-                p.signAndTradeContract ||
+                toSignAndTradeValidationContract(p.signAndTradeContract) ||
                 (p.contract
-                  ? {
-                      ...p.contract,
-                      years:
-                        typeof p.contract.years === 'string'
-                          ? Number(p.contract.years) || null
-                          : typeof p.contract.years === 'number'
-                            ? p.contract.years
-                            : null,
-                      contractYears:
-                        typeof p.contract.contractYears === 'string'
-                          ? Number(p.contract.contractYears) || null
-                          : typeof p.contract.contractYears === 'number'
-                            ? p.contract.contractYears
-                            : null,
-                      firstYearGuaranteed:
-                        typeof p.contract.firstYearGuaranteed === 'boolean'
-                          ? p.contract.firstYearGuaranteed
-                          : null,
-                    }
+                  ? toSignAndTradeValidationContract(p.contract)
                   : null);
               const signAndTradeValidation = p.signAndTrade
                 ? validateSignAndTradeContractPayload(
@@ -3740,7 +4197,7 @@ export function useArchitectActions({
         );
 
       for (const team of teams) {
-        for (const player of team.sends) {
+        for (const player of team.sends || []) {
           if (!player.playerId) {
             console.error('Trade missing playerId', { player, team });
             toast.error('Cannot save trade: Player ID missing');
@@ -3787,29 +4244,23 @@ export function useArchitectActions({
       const teams = payload.teams;
 
       try {
-        const loadedTeams: NonNullable<TradeComputeState['teams']> =
-          await Promise.all(
-            resolvedTeamCodes.map(
-              async (
-                resolvedTeamCode,
-                index
-              ): Promise<TradeComputeTeamEntry> => {
-                const baseTeamSnapshot = await loadWorldTeamData(
-                  null,
-                  resolvedTeamCode
-                );
-                if (!baseTeamSnapshot) {
-                  throw new Error(
-                    `Unable to load base-state snapshot for team ${resolvedTeamCode} (trade index ${index})`
-                  );
-                }
-                return {
-                  teamCode: resolvedTeamCode,
-                  team: baseTeamSnapshot as TradeComputeTeamEntry['team'],
-                };
-              }
-            )
-          );
+        const loadedTeams = await Promise.all(
+          resolvedTeamCodes.map(async (resolvedTeamCode, index) => {
+            const baseTeamSnapshot = await loadWorldTeamData(
+              null,
+              resolvedTeamCode
+            );
+            if (!baseTeamSnapshot) {
+              throw new Error(
+                `Unable to load base-state snapshot for team ${resolvedTeamCode} (trade index ${index})`
+              );
+            }
+            return {
+              teamCode: resolvedTeamCode,
+              team: baseTeamSnapshot,
+            };
+          })
+        );
 
         const tradePayload = {
           ...payload,
@@ -3819,16 +4270,17 @@ export function useArchitectActions({
           },
         } satisfies TradeExecutionPayload;
 
+        const tradeCurrentState = {
+          teams: loadedTeams,
+        } as ExecuteTradeCurrentState;
+
         const computeResult = computeWorldMutation({
           mutationType: 'executeTrade',
           payload: tradePayload,
-          currentState: {
-            teams: loadedTeams,
-          } satisfies TradeComputeState,
+          currentState: tradeCurrentState,
           seasonId,
           timestamp: Date.now(),
           asOfDate: worldAsOfDate || undefined,
-          worldId: null,
         }) as ComputeMutationResult;
 
         if (!computeResult?.success) {
@@ -4137,6 +4589,13 @@ export function useArchitectActions({
 
         toast.success('Saved changes');
         finishSave();
+        if (!committedWorldTeam) {
+          return {
+            success: false,
+            message:
+              'Sign-and-trade saved but the committed team snapshot could not be reloaded.',
+          };
+        }
         return {
           success: true,
           ...committedWorldTeam,
@@ -4618,6 +5077,10 @@ export function useArchitectActions({
 
   const runManualCapSheetLedgerMutation = useCallback(
     (params: ManualCapSheetLedgerMutationParams): Promise<boolean> => {
+      const normalizedExceptions =
+        params.type === 'exceptions'
+          ? normalizeManualExceptionsForMutation(params.exceptions)
+          : null;
       const mutationConfig =
         params.type === 'deadCap'
           ? {
@@ -4649,14 +5112,14 @@ export function useArchitectActions({
                     ...beforeTeam,
                     exceptions: mergeManualExceptionSnapshot(
                       beforeTeam.exceptions as Record<string, unknown> | null,
-                      params.exceptions as Record<string, unknown> | null
+                      normalizedExceptions as Record<string, unknown> | null
                     ) as NonNullable<CapSheet['exceptions']>,
                   },
                   currentYear
                 ) as CapSheet,
               persistPayload: {
                 teamCode,
-                exceptions: params.exceptions,
+                exceptions: normalizedExceptions,
               },
             };
       const mutationResult = applyCapAuditedTeamMutation(mutationConfig);
@@ -4680,7 +5143,7 @@ export function useArchitectActions({
 
   // === Exception Management Actions (Phase 27) ===
   const handleSetExceptions = useCallback(
-    (exceptions: NonNullable<CapSheet['exceptions']>): Promise<boolean> =>
+    (exceptions: ManualExceptionsSavePayload): Promise<boolean> =>
       runManualCapSheetLedgerMutation({
         type: 'exceptions',
         exceptions,
@@ -4716,7 +5179,7 @@ export function useArchitectActions({
           : clearCapSheetFixtures(teamCapSheet);
 
       // Local DEV seam only: fixture players never enter mutation persistence.
-      setTeamCapSheetSafe(nextTeam as CapSheet);
+      setTeamCapSheetSafe(nextTeam);
       return { success: true };
     },
     [currentYear, setTeamCapSheetSafe, teamCapSheet]
@@ -4798,9 +5261,11 @@ export function useArchitectActions({
   );
 
   const handleEditContract = useCallback(
-    (player: ArchitectPlayer): void => {
+    (
+      player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer
+    ): void => {
       openPlayerContractModalRoute({
-        player,
+        player: player as PlayerRulesProfileInput | ArchitectPlayer,
         rulesYear: currentYear,
         initialAction: null,
         targetYear: null,
@@ -5086,7 +5551,9 @@ export function useArchitectActions({
                 'extend',
                 extensionContract.overrideReasons || [],
                 playerId,
-                player.name || player.displayName
+                normalizeOptionalMutationString(
+                  player.name || player.displayName
+                )
               )
             : beforeTeam.overrideAuditLog;
 
@@ -5241,7 +5708,9 @@ export function useArchitectActions({
                 stretch ? 'waiveStretch' : buyout ? 'buyout' : 'waive',
                 overrideReasons || [],
                 playerId,
-                player.name || player.displayName
+                normalizeOptionalMutationString(
+                  player.name || player.displayName
+                )
               )
             : beforeTeam.overrideAuditLog;
 
@@ -5439,7 +5908,9 @@ export function useArchitectActions({
                 accepted ? 'accept' : 'decline',
                 overrideMetadata.overrideReasons || [],
                 playerId,
-                player.name || player.displayName
+                normalizeOptionalMutationString(
+                  player.name || player.displayName
+                )
               )
             : beforeTeam.overrideAuditLog;
 

@@ -52,16 +52,22 @@ type DeadCapAmountByYearObjectValue =
   | NumericLike
   | { amount?: NumericLike };
 type DeadCapSourceEntry = {
-  playerId?: string | null;
+  playerId?: string | number | null;
   playerName?: string | null;
   label?: string | null;
+  originalSalary?: NumericLike;
   amountByYear?:
     | DeadCapAmountByYearArrayEntry[]
     | Record<string, DeadCapAmountByYearObjectValue>
     | null;
-  stretched?: boolean;
+  waiveDate?: string | null;
+  notes?: string | null;
+  stretched?: boolean | null;
 };
-type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
+type TeamCapSheetLike = Omit<
+  PlayerRulesProfileTeamCapSheet,
+  'players' | 'deadCap'
+> & {
   players?: CapSheetPlayerLike[] | null;
   deadCap?: DeadCapSourceEntry[] | null;
 };
@@ -81,7 +87,7 @@ type ManualDeadCapSavePayloadEntry = {
   stretched?: boolean | null;
 };
 type ManualDeadCapSavePayload = ManualDeadCapSavePayloadEntry[];
-type ManualExceptionEntry = {
+export type ManualExceptionEntry = {
   type?: string | null;
   enabled?: boolean | null;
   available?: boolean | null;
@@ -97,7 +103,7 @@ type ManualExceptionEntry = {
   seasonKey?: string | null;
   lastUsedAt?: string | null;
 };
-type ManualTradeExceptionEntry = {
+export type ManualTradeExceptionEntry = {
   id: string;
   totalAmount?: number | null;
   usedAmount?: number | null;
@@ -107,7 +113,7 @@ type ManualTradeExceptionEntry = {
   expiresOn?: string | null;
   notes?: string | null;
 };
-type ManualExceptionsSavePayload = {
+export type ManualExceptionsSavePayload = {
   mle?: ManualExceptionEntry | null;
   taxpayerMle?: ManualExceptionEntry | null;
   tpmle?: ManualExceptionEntry | null;

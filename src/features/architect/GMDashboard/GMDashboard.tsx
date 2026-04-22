@@ -310,7 +310,10 @@ const GMDashboard = () => {
     playersMap,
     onApplyTrade: actions.applyTradeToCapSheet as TradeSectionProps['onApplyTrade'],
     primaryTeamData: teamCapSheet,
-    onEditContract: actions.handleEditContract,
+    onEditContract: (player) =>
+      actions.handleEditContract(
+        player as Parameters<typeof actions.handleEditContract>[0]
+      ),
     worldId,
     worldAsOfDate,
     userId,

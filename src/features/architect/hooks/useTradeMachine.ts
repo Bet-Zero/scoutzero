@@ -3,7 +3,7 @@ import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 // Phase 14.2: Removed ensurePickId import (legacy picks state removed)
 // Phase 16.3: Removed all rawPicks/picksWithIds processing - draft assets are entitlements-only
-import { TeamMap, TeamCodeMap } from '@/constants/teamList';
+import { TeamMap, TeamCodeMap, type TeamEntry } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import {
   computeTradeDraftKey,
@@ -40,6 +40,8 @@ import type {
 } from '@/features/architect/utils/tradeContext/types';
 
 type UnknownRecord = Record<string, unknown>;
+const TEAM_BY_SLUG = TeamMap as Record<string, TeamEntry | undefined>;
+const TEAM_BY_CODE = TeamCodeMap as Record<string, TeamEntry | undefined>;
 
 type TradeMachinePlayer = UnknownRecord &
   NonNullable<TradeContextPayload['teams'][number]['sends']>[number];
@@ -56,13 +58,13 @@ type TradeMachineTeam = UnknownRecord & {
   teamCode?: string | null;
   teamName?: string | null;
   abbreviation?: string | null;
-  players?: TradeMachinePlayer[];
-  capHolds?: unknown[];
-  deadCap?: unknown[];
-  entitlementIds?: Array<string | null | undefined>;
-  entitlements?: TradeMachineEntitlement[];
+  players?: TradeMachinePlayer[] | null;
+  capHolds?: unknown[] | null;
+  deadCap?: unknown[] | null;
+  entitlementIds?: Array<string | null | undefined> | null;
+  entitlements?: TradeMachineEntitlement[] | null;
   pickRulesById?: Record<string, PickRuleDoc>;
-  tradeExceptions?: unknown[];
+  tradeExceptions?: unknown[] | null;
   totals?: UnknownRecord | null;
   hardCapped?: unknown;
   hardCapLevel?: string | null;
@@ -192,9 +194,9 @@ function resolveBaseTeamLike(
 ) {
   if (typeof teamObjOrId === 'string') {
     const directBaseTeam =
-      TeamMap[teamObjOrId] ||
-      TeamCodeMap[teamObjOrId] ||
-      TeamCodeMap[teamObjOrId.toUpperCase()];
+      TEAM_BY_SLUG[teamObjOrId] ||
+      TEAM_BY_CODE[teamObjOrId] ||
+      TEAM_BY_CODE[teamObjOrId.toUpperCase()];
 
     if (directBaseTeam) {
       return directBaseTeam;
@@ -202,8 +204,8 @@ function resolveBaseTeamLike(
   }
 
   const resolvedTeamCode = resolveTeamCodeLike(teamObjOrId, teamDataMaybe);
-  if (resolvedTeamCode && TeamCodeMap[resolvedTeamCode]) {
-    return TeamCodeMap[resolvedTeamCode];
+  if (resolvedTeamCode && TEAM_BY_CODE[resolvedTeamCode]) {
+    return TEAM_BY_CODE[resolvedTeamCode];
   }
 
   return null;
@@ -546,7 +548,7 @@ export const useTradeMachine = (
             ...data,
             // Phase 65: Use canonical accessor but store in tradeExceptions for runtime compatibility
             tradeExceptions: getTeamTpeList(data),
-          };
+          } as TradeMachineTeam & Partial<TeamEntry>;
 
           if (worldId || (data.entitlementIds && data.entitlementIds.length)) {
             try {
@@ -607,7 +609,7 @@ export const useTradeMachine = (
           // LOG A) After computing teamObj.teamTotalSalary in init()
           console.log(
             '[init payroll SSOT]',
-            teamObj.nickname || teamObj.name || teamObj.id,
+            teamObj.nickname || teamObj.teamName || teamObj.id,
             {
               year: yearKey,
               baseline,
@@ -945,7 +947,7 @@ export const useTradeMachine = (
           ...data,
           // Phase 65: Use canonical accessor but store in tradeExceptions for runtime compatibility
           tradeExceptions: getTeamTpeList(data),
-        };
+        } as TradeMachineTeam & Partial<TeamEntry>;
 
         // Phase 11.4: Load entitlements for secondary teams (slots 1+)
         // Same logic as primary team init, but for any slot
@@ -1028,7 +1030,7 @@ export const useTradeMachine = (
         // LOG B) After computing payroll in selectTeam()
         console.log(
           '[select payroll SSOT]',
-          teamObj.nickname || teamObj.name || teamObj.id,
+          teamObj.nickname || teamObj.teamName || teamObj.id,
           {
             year: yearKey,
             baseline,

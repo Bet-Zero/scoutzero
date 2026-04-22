@@ -32,7 +32,7 @@ type DeadCapSourceEntry = {
     | null;
   waiveDate?: string | null;
   notes?: string | null;
-  stretched?: boolean;
+  stretched?: boolean | null;
 };
 type FlatDeadMoneyEntry = {
   id: number;

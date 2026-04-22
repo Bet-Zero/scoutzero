@@ -61,9 +61,11 @@ import {
   type OffseasonTeamCapSheet,
 } from '@/features/architect/offseason/OffseasonTab/types';
 import type {
+  ArchitectDashboardCapSheet,
   ReloadActiveWorldTeamDataOptions,
   ReloadActiveWorldTeamDataResult,
   DashboardOffseasonSummary,
+  UseArchitectStateReturn,
 } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 
 type WorldAdvanceReloadRequest = Pick<
@@ -76,7 +78,7 @@ type WorldAdvanceReloadHandler = (
 
 type OffseasonSectionProps = {
   teamCapSheet: OffseasonTeamCapSheet | null | undefined;
-  setTeamCapSheet?: (sheet: unknown) => void;
+  setTeamCapSheet?: UseArchitectStateReturn['setTeamCapSheet'];
   currentYear: number;
   setCurrentYear: (year: number) => void;
   capProjections: Record<string, unknown> | null | undefined;
@@ -233,7 +235,7 @@ function getCommittedWorldAdvanceAftermath(
 function applyCommittedWorldAdvanceAftermath(
   committedWorldAdvanceAftermath: WorldAdvanceAftermath,
   callbacks: {
-    setTeamCapSheet?: (sheet: unknown) => void;
+    setTeamCapSheet?: UseArchitectStateReturn['setTeamCapSheet'];
     setCurrentYear: (year: number) => void;
     setOffseasonRun: (run: boolean) => void;
     setOffseasonSummary: (summary: DashboardOffseasonSummary | null) => void;
@@ -244,9 +246,23 @@ function applyCommittedWorldAdvanceAftermath(
     callbacks.setTeamCapSheet &&
     committedWorldAdvanceAftermath.committedTeamCapSheet
   ) {
-    callbacks.setTeamCapSheet(
-      committedWorldAdvanceAftermath.committedTeamCapSheet
-    );
+    const committedTeamCapSheet =
+      committedWorldAdvanceAftermath.committedTeamCapSheet;
+
+    callbacks.setTeamCapSheet((previousTeamCapSheet) => {
+      return {
+        ...(previousTeamCapSheet || {}),
+        ...committedTeamCapSheet,
+        id:
+          typeof committedTeamCapSheet.id === 'string'
+            ? committedTeamCapSheet.id
+            : previousTeamCapSheet?.id ?? null,
+        teamCode:
+          typeof committedTeamCapSheet.teamCode === 'string'
+            ? committedTeamCapSheet.teamCode
+            : previousTeamCapSheet?.teamCode ?? null,
+      } as ArchitectDashboardCapSheet;
+    });
   }
 
   callbacks.setCurrentYear(committedWorldAdvanceAftermath.nextViewingYear);
