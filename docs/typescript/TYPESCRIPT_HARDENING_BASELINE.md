@@ -643,6 +643,81 @@ mutation persistence-truth/world-manager family. Step 21 should classify those
 remaining clusters before the master checkpoint decides whether another wave is
 still required.
 
+## Master Plan Test Review
+
+Reviewed: 2026-04-22, after Steps 19-20 completed the planned high-value test
+harness waves.
+
+### Updated Test-Side Marker Counts
+
+| Marker | Step 9 review | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `any` | 637 | 637 | 0 |
+| `as any` | 332 | 332 | 0 |
+| `as unknown as` | 44 | 44 | 0 |
+| `@ts-ignore` | 0 | 0 | 0 |
+| `@ts-expect-error` | 1 | 1 | 0 |
+| `Record<string, any>` | 42 | 41 | -1 |
+
+`unknown` remains a visibility metric rather than a dishonesty score. Test-side
+`unknown` moved from `1,096` in the Step 9 review to `1,121` (`+25`) because
+the latest harness waves tightened optional/result access around truthful
+mutation outputs rather than removing boundary-shaped `unknown` usage.
+
+### Which Central Harnesses Improved Materially In Steps 19–20
+
+- `tests/helpers/architectTestHelpers.ts` and
+  `tests/architect/seasonManager.test.ts` are now clear under the Architect
+  strict probe after Step 19.
+- `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
+  and `tests/architect/offerSheetPersistence.test.ts` are now also clear under
+  the Architect strict probe after Step 20.
+- The Architect strict probe dropped from `2,501` at the Step 18 runtime review
+  to `2,228` after Steps 19-20 (`-273` total), and the combined high-value
+  season / execute-trade / offer-sheet cluster no longer appears in the failing
+  file list.
+
+### Current Test Concentration
+
+The remaining Architect strict backlog is still overwhelmingly test-driven:
+
+- `tests/architect/`: `624`
+- `src/tests/architect/`: `934`
+- `tests/trade/`: `439`
+
+That is `1,997 / 2,228` current Architect strict errors (`89.6%`) still living
+in tests, while `src/features/architect/` runtime code is down to `123`.
+
+Current top remaining test hotspots:
+
+- `tests/architect/capLegalityValidation.test.ts` (`69`)
+- `tests/architect/renounceRights.test.ts` (`66`)
+- `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` (`64`)
+- `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts` (`64`)
+- `tests/architect/worldManager.test.ts` (`64`)
+- `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` (`62`)
+- `src/tests/architect/exceptionManagement.test.ts` (`58`)
+- `tests/architect/teamLoader.test.ts` (`52`)
+
+### Remaining Test Backlog Classification
+
+| Classification | File or group | Why it belongs here now |
+| --- | --- | --- |
+| `Immediate next-wave candidate` | `tests/architect/capLegalityValidation.test.ts`, `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`, `tests/architect/worldManager.test.ts`, `tests/architect/teamLoader.test.ts`, and `tests/architect/renounceRights.test.ts` | These files now dominate the remaining persistence/world/cap truth layer. They sit closest to the hardened runtime readers and mutation carriers, so tightening them should collapse the next highest-leverage assignability/nullable test debt rather than widening into broad parity suites. |
+| `Safe to defer only if runtime strictness is otherwise mission-complete` | `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts`, `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts`, `src/tests/architect/exceptionManagement.test.ts`, plus broader integration-style suites like `tests/architect/contractNormalization.test.ts`, `tests/architect/e2e-workflows.test.ts`, and `tests/architect/integration.test.ts` | These remain important, but they are broader exception/parity or end-to-end harnesses rather than the next closest trust boundary. They should not outrank the persistence/world/cap truth cluster unless the master checkpoint shows the remaining backlog is otherwise nearly closed. |
+| `Needs architecture-contract decision` | None currently identified from live evidence | The remaining backlog still reads as technical contract/test debt rather than a blocked product or architecture choice. |
+
+### Conclusion
+
+The high-value test layer is materially better than it was at the Step 18
+runtime review, but it is not yet mostly reinforcing runtime truth. The most
+important season, execute-trade, and offer-sheet harnesses are now aligned with
+the runtime contracts, yet almost ninety percent of the remaining Architect
+strict backlog still sits in tests and the next strongest cluster is still the
+persistence/world/cap truth layer. In plain terms: the plan should not declare
+the test layer mostly hardened yet, but the remaining priority is now much more
+focused than it was before Steps 19-20.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -660,5 +735,7 @@ still required.
 - `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step20.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step20.log; grep -E "src/tests/architect/phase50_executeTrade_integration_persistence.test.ts|tests/architect/offerSheetPersistence.test.ts" /tmp/architect_step20.log`
 - `node -e '<architect strict output parser for Step 20 post-wave hotspot counts>'`
 - `npm run test:node -- --reporter=dot tests/architect/offerSheetPersistence.test.ts src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
+- `node -e '<test marker count script for tests/ and src/tests/>'`
+- `node -e '<architect strict concentration parser for tests/architect, src/tests/architect, tests/trade, and src/features/architect>'`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

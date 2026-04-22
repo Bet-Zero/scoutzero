@@ -461,7 +461,9 @@ Validation:
 
 ## Step 21 — Review typed-test posture again and classify what remains
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Added the baseline `Master Plan Test Review` with live test-side marker counts, current Architect-strict test concentration, the Step 19-20 harness improvements, and a classification that keeps the next wave centered on cap/world/persistence truth while deferring the broader exception/parity guardrails.
 
 **Goal:** Re-measure the Architect test layer after the new harness waves and classify what test debt remains inside the mission.
 
