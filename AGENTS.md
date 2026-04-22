@@ -116,6 +116,69 @@ Every Return Package must include:
 
 ---
 
+## Continuous-Run Execution Mode (MANDATORY when the user wants a plan to keep running)
+
+When the user explicitly wants a long-running plan to keep moving without waiting for new instructions, agents must treat the active plan doc as an execution loop rather than a one-step-only workflow.
+
+### Continuous-run rules
+
+1. **Keep going by default.** If the active plan doc says the next numbered step is executable, do it. Do not stop merely because one step finished.
+2. **Commit at safe checkpoints.** After a completed source-change step (or a tightly-coupled same-session batch explicitly allowed by the plan), commit the work, update the plan status, and continue to the next executable step in the same session unless a blocking condition below applies.
+3. **Doc-only steps do not force a stop.** If a doc-only checkpoint/review step is complete and the next numbered step is executable, continue immediately.
+4. **Validation gates before continuing.** After each source-change checkpoint, run the plan-required validation. If validation fails, fix the failure or narrow the scope until the step is truthful before moving on.
+5. **Stop only for real blockers.** Valid blockers are:
+   - the plan says a user/product decision is required;
+   - validation exposes a true ambiguous direction that the docs do not answer;
+   - the next safe step would violate AGENTS.md or the active plan;
+   - the environment/tooling prevents further safe execution.
+6. **Do not treat phase completion as mission completion.** If the plan is a self-extending master plan, checkpoint findings must extend the plan rather than end the run.
+
+### Commit cadence for long-running plan execution
+
+- **Required:** commit after each completed source-change step unless the plan explicitly allows a same-session tightly-coupled batch.
+- **Allowed:** multiple doc-only steps may be committed together if they are part of the same evidence/review checkpoint.
+- **Never:** leave large unrelated piles of changes uncommitted while moving across multiple plan phases.
+
+### PR / merge behavior
+
+- Do **not** create branches unless the user explicitly asks. Repo rule remains: agents must not create new git branches.
+- Do **not** create PRs by default. PR creation is optional workflow overhead, not a required checkpoint for continuous local execution.
+- Do **not** merge anything automatically unless the user explicitly asked for an agent workflow that includes PR creation/merge.
+- In the normal local/connected-repo workflow, commit to the active branch after each safe checkpoint and continue.
+
+### If validation fails during a long run
+
+Agents must handle failure in this order:
+
+1. inspect whether the failure is directly caused by the current changes;
+2. fix the failure if it is in-scope for the current plan step;
+3. if the failure is pre-existing or belongs to a different mission area, document it and keep the step narrow;
+4. only stop if the failure prevents truthful completion of the current step and the next move requires user direction.
+
+### Concurrency rules
+
+Concurrent agents are allowed only when their work is split by **non-overlapping surfaces**. Safe concurrency requires all of the following:
+
+1. different files or clearly isolated file groups;
+2. no shared contract-owner file being edited by more than one agent at a time;
+3. no shared plan step being executed by multiple agents unless the step explicitly says so;
+4. each agent has its own explicit validation scope.
+
+Unsafe concurrency examples:
+
+- two agents editing `mutationPipeline.ts` and its primary consumers at the same time;
+- two agents both changing central Architect test harnesses that share fixtures;
+- one agent changing a contract owner while another changes many consumers of that same contract blindly.
+
+Safe concurrency examples:
+
+- one agent on a runtime contract-owner cluster, another on a fully separate low-coupling test fixture cluster;
+- one agent on docs/baseline review while another waits; or two agents on separate features that do not share central files.
+
+When in doubt, prefer one continuous agent over risky concurrency.
+
+---
+
 ## Project
 
 HoopZero is a public-facing NBA scouting platform built with React + Vite + Firebase. Player data is loaded from Firestore.
