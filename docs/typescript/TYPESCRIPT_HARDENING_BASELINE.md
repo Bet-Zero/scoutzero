@@ -385,6 +385,80 @@ focused on Architect nullability and contract normalization across
 `mutationPipeline`, the dashboard/action adapters, and the dominant persistence
 and season-advance test harnesses.
 
+## Master Plan Resume Baseline
+
+Reviewed: 2026-04-22, after Step 13 reset the plan around the real remaining
+mission backlog.
+
+### Current Strict-Probe Truth
+
+| Command | Current result | Error count | Reading |
+| --- | --- | ---: | --- |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | PASS | 0 | Shared/runtime strict debt remains cleared; there is no live evidence of shared-boundary regression. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | FAIL as expected | 2,632 | The remaining mission-area backlog is still concentrated in Architect runtime contracts plus Architect-heavy test harnesses. |
+
+The shared/runtime probe is now green. The mission is still blocked by the
+Architect side of the repo: central runtime carrier/adapter contracts remain
+misaligned, and the biggest strict backlog still sits in persistence, offer
+sheet, season, and guardrail harnesses that exercise those contracts.
+
+### Current Architect Strict Hotspots
+
+Top error families from the live `tsconfig.architect-strict.json` run:
+
+| Error family | Count | What it now signals |
+| --- | ---: | --- |
+| `TS18048` | 557 | Optional/null values still flowing into code paths that assume presence. |
+| `TS2322` | 410 | Assignability disagreements between runtime carrier shapes and consuming adapters/tests. |
+| `TS7006` | 305 | Untyped parameters still concentrated in older Architect/trade harnesses. |
+| `TS18049` | 241 | Values may be `null` or `undefined` where downstream code expects real objects. |
+| `TS2345` | 239 | Function-call contracts still disagree across mutation, dashboard, and test layers. |
+| `TS18046` | 153 | `unknown` values are reaching assertions and helpers without truthful narrowing. |
+| `TS18047` | 144 | Nullable values are still used as present in key test/runtime flows. |
+| `TS7005` | 125 | Older Architect/trade harnesses still rely on implicitly-`any` locals. |
+
+Top failing files from the same live run:
+
+| File | Errors | Why it matters now |
+| --- | ---: | --- |
+| `tests/architect/seasonManager.test.ts` | 117 | Highest single-file test hotspot; central season lifecycle harness still bypasses real contracts too often. |
+| `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts` | 95 | Persistence truth harness still has heavy nullability churn across execute-trade flows. |
+| `tests/architect/offerSheetPersistence.test.ts` | 80 | Offer-sheet persistence coverage still depends on loosely aligned fixture/runtime shapes. |
+| `tests/architect/capLegalityValidation.test.ts` | 67 | Cap legality integration harness still carries broad contract mismatch debt. |
+| `tests/architect/teamLoader.test.ts` | 67 | Team-loader test surface still has mixed assignability/nullability fallout even after the runtime boundary hardening. |
+| `tests/architect/worldManager.test.ts` | 66 | World-manager harness still reflects older loose contracts rather than the hardened readers. |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` | 64 | High-value parity/season-advance guardrail harness remains contract-heavy and nullable. |
+| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` | 62 | Exception guardrails still rely on overly permissive compatibility fixtures. |
+| `src/tests/architect/exceptionManagement.test.ts` | 58 | Exception lifecycle harness still reflects inconsistent runtime shapes. |
+| `src/features/architect/utils/mutationPipeline.ts` | 55 | Highest-leverage runtime contract owner still failing across nullability and assignability families. |
+
+### Concentration Snapshot
+
+- `tests/architect/` contributes `784` strict errors.
+- `src/tests/architect/` contributes `1,081` strict errors.
+- `tests/trade/` still contributes `439` strict errors inside the Architect
+  strict probe, so the remaining backlog is not limited to one Architect-only
+  folder.
+- `src/features/architect/` contributes `202` strict errors, with the most
+  important runtime owner still in `mutationPipeline.ts` (`55`) plus the
+  `GMDashboard/**` action/adapter surface (`31`) and
+  `GMDashboard/hooks/useArchitectActions.ts` (`22`).
+
+In plain terms: the shared boundary work held, but full project type hardening
+is still blocked because the repo does not yet have truthful end-to-end
+Architect contracts. The mutation pipeline, dashboard/action adapters, and the
+largest persistence/season/offer-sheet harnesses still disagree about what data
+is present, nullable, or assignable, so root compatibility passing is still not
+evidence of real hardening completion.
+
+### Final Review Correction
+
+`PASS WITH DEBT` from `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md`
+remains a valid verdict for the completed foundation phase only. It is now
+explicitly treated as an intermediate phase result, not a mission-complete
+result, because the live strict evidence still shows a large unresolved
+Architect/runtime/test backlog inside this same plan.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -396,5 +470,6 @@ and season-advance test harnesses.
 - `npm run typecheck`
 - `npm run typecheck -- --project tsconfig.architect-strict.json`
 - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+- `node -e '<architect strict output parser for live file/code hotspot counts>'`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`
