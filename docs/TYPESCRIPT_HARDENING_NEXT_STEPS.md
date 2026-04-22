@@ -1,6 +1,29 @@
-# TypeScript Hardening — Living Plan
+# TypeScript Hardening — Self-Extending Master Plan
 
-**How this doc works:** When the user says "keep working on `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is truly trivial or Steps 1 and 2 are being completed together as the kickoff evidence package. Do not skip ahead. Do not invent new steps unless the user explicitly asks to revise this plan. Checkpoints, reviews, and cleanup loops inside this doc must always reconnect to the next numbered step; they are not standalone end states. When all steps are `DONE`, tell the user this hardening plan is complete and state what remains as optional future work.
+**How this doc works:** When the user says "keep working on `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is truly trivial or the current step explicitly allows a tightly coupled same-session batch. Do not skip ahead. Do not invent unrelated work. If a checkpoint, review, or strictness measurement reveals additional work that is still inside this document's mission, append new numbered steps to this same document immediately after the checkpoint that discovered it and continue. Do not close this plan while substantial mission-area debt remains.
+
+**Mission statement (non-negotiable):** The mission of this document is to drive the repo to **complete TypeScript hardening across the full project**. This plan is not complete when a bounded phase ends. It is complete only when the repo is materially hardened end-to-end and no substantial hardening backlog remains inside the mission area.
+
+**What counts as complete hardening for this plan:**
+
+- No repo-wide declaration-layer dishonesty remains (no fake ambient module shims masking real TS/TSX exports).
+- Shared/runtime boundaries are honestly typed and validated where appropriate.
+- Architect/runtime boundaries are honestly typed and validated where appropriate.
+- High-value typed tests and mocks reinforce runtime contracts rather than broadly bypassing them.
+- Strictness readiness is no longer blocked by a large, known, mission-area backlog.
+- Final review truthfully supports a completion-level verdict for the mission, not merely a phase-level win.
+
+**Hard anti-loophole rules (REQUIRED — do not violate):**
+
+1. **No fake completion:** Do not mark this plan complete if any step, checkpoint, review, return package, or strictness measurement states that a substantial remaining phase is still required inside this plan's mission.
+2. **No separate-plan escape hatch:** Do not recommend or create a separate follow-on plan for work that is still inside the mission of this document. If more work is needed, append new numbered steps to this same plan and continue.
+3. **Verdict must match closure:** If the most honest repo verdict is anything less than true completion of the mission (for example `PASS WITH DEBT`, `CONCERN`, or equivalent), this plan must remain open unless the remaining debt is explicitly outside scope by user instruction.
+4. **Checkpoint extension rule:** If a checkpoint reveals broader remaining work than expected, the agent must add new numbered steps immediately after the checkpoint rather than closing the plan or deferring to a future plan.
+5. **Final closeout gate:** The final closeout step may be marked `DONE` only if all of the following are true:
+   - no substantial hardening backlog remains inside the mission area;
+   - no baseline/review/probe says a dedicated follow-up is still required for mission-area work;
+   - remaining issues are explicitly minor, optional, or user-declared out of scope;
+   - the final review supports a completion-level verdict.
 
 **Commit & status hygiene (REQUIRED — do not skip):**
 
@@ -9,36 +32,37 @@
 3. Include the plan-doc update in the same commit as the step's work.
 4. If you cannot complete the step in one session, change the status to `IN PROGRESS` and add a brief note describing where you left off.
 5. If a step is blocked on a real product-direction decision, mark it `BLOCKED`, ask the user one plain-language question, and stop. Do not widen the step to stay busy.
+6. If a checkpoint forces the plan to extend, update the flow summary near the top of this document in the same commit that adds the new steps.
 
 **Background context (read before starting any step):**
 
-- The repo-wide TypeScript migration is structurally complete in runtime app code, but the post-migration hardening audit returned **CONCERN** rather than PASS.
-- The audit found that runtime `src/` has no `.js` or `.jsx`, but the repo still behaves like a permissive TS repo rather than a hardened one.
-- The strongest dishonesty signal surfaced by the audit is `src/global-shims.d.ts`, which still contains ambient module shims exporting `any`, including at least one shim that invents exports that the real implementation does not provide.
-- Root TypeScript still runs with `strict: false`, so root `npm run typecheck` is not a proof of strong typing by itself.
-- A scoped strict config exists (`tsconfig.architect-strict.json`) and currently fails with thousands of errors. That failure count is not a failure of this plan — it is the map of where hardening work still lives.
-- A dedicated shared/runtime strict probe also exists (`tsconfig.shared-boundaries-strict.json`) so shared-boundary hardening is measured on the surface it actually changes rather than disappearing inside Architect-only metrics.
-- The audit also found that user-content Firebase helpers (`src/firebase/listHelpers.ts`, `src/firebase/rosterHelpers.ts`, `src/firebase/rankerHelpers.ts`) are relatively honest and Zod-backed, while many Architect/base-data Firestore reads still rely on broad casts or bag types rather than schema-guarded boundaries.
-- The audit found that tests are typed by extension but often bypass type truth with `any`, `as any`, broad mocks, and bag fixtures. That means test files can look "TS-complete" while still failing to reinforce runtime contracts.
-- The goal of this plan is **not** to flip `strict: true` immediately. The goal is to remove the biggest dishonesty mechanisms first, harden the highest-value boundaries second, reduce the most damaging test/type bypass patterns third, and only then reassess strict-mode readiness with evidence.
+- The repo-wide TypeScript migration is structurally complete in runtime app code, but the original post-migration hardening audit returned **CONCERN** rather than PASS.
+- The first hardening phase removed the largest declaration-layer lie (`src/global-shims.d.ts`), hardened the shared/runtime strict probe from `244` errors to `0`, hardened a planned set of Architect/base-data ingress points, and improved central Firebase mock truth.
+- That phase did **not** complete the full mission. The Architect/test strict probe still reports a large remaining backlog and the earlier phase incorrectly treated that as a separate follow-on plan instead of extending this master plan.
+- This rewritten master plan absorbs the already-completed hardening work and explicitly continues from there. The earlier phase is now part of this document's history, not a reason to close the mission.
+- Root TypeScript still runs with `strict: false`, so root `npm run typecheck` remains only a compatibility gate, never sufficient proof of hardening.
+- Active strict probes exist and must be used as mission progress instruments:
+  - `tsconfig.shared-boundaries-strict.json`
+  - `tsconfig.architect-strict.json`
+- The remaining large mission-area backlog is concentrated in Architect runtime contracts, Architect dashboard/action adapter contracts, mutation-pipeline carrier contracts, and the highest-value Architect persistence / trade / season harnesses.
 
 **Plan continuity invariant (applies to the entire doc):**
 
-- This is one living plan, not a set of disconnected cleanup ideas.
+- This is one self-extending master plan, not a series of disconnected phase plans.
 - Completing one step never throws the document off route; it only advances the plan to the next numbered step.
-- Reviews, audits, cleanup loops, and prep phases are allowed only if they are written as bounded numbered steps that explicitly reconnect to the next phase or final closeout.
-- Only the final closeout step may declare the plan complete.
-- If future hardening phases are added later, they must be inserted into the numbered flow with an explicit resume point and an explicit path back to final closeout.
+- Reviews, audits, cleanup loops, checkpoint decisions, and strictness assessments are allowed only if they explicitly reconnect to the next numbered step.
+- New phases discovered by evidence must be appended to this same plan.
+- The plan ends only when the mission ends.
 
 **Current planned flow:**
 
-- Steps 1–2: establish the hardening baseline and execution map as one kickoff evidence package
-- Steps 3–4: remove type-dishonesty shims and declaration-layer masking
-- Steps 5–7: harden the highest-value runtime boundaries (shared data hooks + architect/base-data Firestore reads)
-- Steps 8–9: reduce the worst typed-test dishonesty in the highest-value suites and mocks
-- Step 10: checkpoint strictness readiness across the active probes and decide whether a narrow prep pass is justified
-- Steps 11–12: execute one high-leverage strict-prep wave only if the checkpoint proves it is ripe, then close out residual risk honestly
-- Step 13: final closeout and next-phase recommendation
+- Steps 1–13: completed hardening foundation phase (baseline, execution map, declaration cleanup, shared/runtime hardening, initial Architect ingress hardening, initial typed-test hardening, strictness checkpoint)
+- Steps 14–15: reset the master-plan truth and turn the remaining Architect/test backlog into an execution map inside this same plan
+- Steps 16–18: normalize the highest-leverage Architect runtime carrier and adapter contracts
+- Steps 19–21: harden the highest-value remaining Architect persistence / trade / season test harnesses and central supporting mocks/fixtures
+- Step 22: reassess strictness readiness after the Architect normalization wave
+- Steps 23+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
+- Final closeout: only after the mission-level gates are satisfied
 
 **Universal constraints (apply to every step):**
 
@@ -56,54 +80,15 @@
 
 ---
 
+## Phase History — Completed foundation work (Steps 1-13)
+
+The following steps are already complete and remain part of this master plan's history. They do not close the mission by themselves.
+
 ## Step 1 — Create the post-migration hardening evidence baseline
 
 **Status:** DONE
 
 Completed 2026-04-21: Created `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md` with live inventory, compiler posture, dishonesty-marker counts, strict-probe baselines, and audit risk themes.
-
-**Goal:** Create a baseline doc that records the live hardening state of the repo so future steps can prove improvement rather than vaguely claiming it.
-
-**Instructions:**
-Create `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
-
-The baseline must include:
-
-1. Live file inventory counts for:
-   - repo-wide `.ts`, `.tsx`, `.js`, `.jsx`, `.d.ts`
-   - `src/` only
-   - `tests/` + `src/tests/`
-2. Current compiler posture:
-   - root `tsconfig.json`
-   - whether `strict` is on or off
-   - other relevant safety flags already enabled/disabled
-   - which additional tsconfig(s) exist and what they are for
-3. Primary dishonesty-marker counts for the full repo and split by runtime vs tests:
-   - `any`
-   - `as any`
-   - `as unknown as`
-   - `@ts-ignore`
-   - `@ts-expect-error`
-   - `Record<string, any>`
-4. Visibility counts tracked separately from dishonesty markers:
-   - `unknown`
-5. The current strict-check baselines for the active hardening probes:
-   - `npm run typecheck -- --project tsconfig.architect-strict.json`
-   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
-   - current error counts
-   - short note that these are measurement baselines, not pass/fail goals for Step 1
-6. A list of the strongest audit-proven risk themes from the hardening audit return package.
-
-This is a read-only baseline step. Do not change source files here.
-
-**Constraints specific to this step:**
-
-- Use live repo evidence, not prior plan docs as truth.
-- Keep the baseline concise but concrete.
-- This step must give later steps a before/after reference point.
-- Steps 1 and 2 may be completed in the same kickoff session if the same evidence pass supports both docs.
-
-**Done when:** `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md` exists with the baseline counts, compiler posture, primary dishonesty-marker counts, separate `unknown` visibility counts, both strict-probe baselines, and risk themes. Commit message: `docs: record TypeScript hardening baseline`.
 
 ---
 
@@ -113,53 +98,6 @@ This is a read-only baseline step. Do not change source files here.
 
 Completed 2026-04-21: Created `docs/typescript/TYPESCRIPT_HARDENING_EXECUTION_MAP.md` with ordered declaration, shared/runtime, Architect, typed-test, and strict-prep waves mapped to Steps 3-12.
 
-**Goal:** Convert the hardening audit into a concrete, ordered work map so future execution is driven by file groups and risk categories instead of ad hoc guesses.
-
-**Instructions:**
-Create `docs/typescript/TYPESCRIPT_HARDENING_EXECUTION_MAP.md`.
-
-Using the hardening audit and live repo inspection, group the hardening work into these buckets:
-
-1. **Declaration-layer dishonesty**
-   - `src/global-shims.d.ts`
-   - any sibling `.d.ts` files that shadow or overstate implementation types
-2. **Shared/runtime boundary honesty**
-   - shared data hooks
-   - JSON/storage boundaries
-   - route-param boundaries
-3. **Architect/base-data Firestore boundary honesty**
-   - the highest-value loader/subscribe/helper files surfaced by the audit
-4. **Typed-test dishonesty**
-   - broad mocks
-   - cast-heavy guardrail/integration tests
-   - bag fixtures that bypass runtime truth
-5. **Strict-prep candidates**
-   - areas likely to give the biggest reduction in strict-scoped errors per file touched
-
-For each candidate file or file group, record:
-
-- path
-- risk category
-- one-sentence reason it matters
-- whether it is runtime-critical, test-critical, or declaration-only
-- which strict probe should measure progress (`tsconfig.shared-boundaries-strict.json`, `tsconfig.architect-strict.json`, or both)
-- recommended execution wave
-- recommended validation commands
-
-End the doc with a `Recommended execution order` section that clearly maps to Steps 3–12 below.
-
-Do not change source files in this step.
-
-This step may be completed in the same kickoff session as Step 1 when the audit already exists and the same evidence pass can support both docs.
-
-**Constraints specific to this step:**
-
-- The map must stay narrow and high leverage. Do not expand into every weak file in the repo.
-- Prioritize files that change how much the rest of the repo can trust types.
-- Favor central boundaries over low-impact leaf components.
-
-**Done when:** `docs/typescript/TYPESCRIPT_HARDENING_EXECUTION_MAP.md` exists and provides a truthful execution map that directly feeds the remaining numbered steps. Commit message: `docs: map TypeScript hardening execution waves`.
-
 ---
 
 ## Step 3 — Remove dishonest ambient shims that mask real module types
@@ -167,33 +105,6 @@ This step may be completed in the same kickoff session as Step 1 when the audit 
 **Status:** DONE
 
 Completed 2026-04-21: Deleted `src/global-shims.d.ts`, removed the fake ambient module contracts, and fixed the downstream shared UI, cap totals, TPE, trade-context, and guardrail-test contracts exposed by real module types.
-
-**Goal:** Eliminate or sharply narrow the declaration shims that make downstream TypeScript look safer than it is.
-
-**Instructions:**
-Use Step 2's execution map and start with `src/global-shims.d.ts`.
-
-Work through the declaration layer in priority order:
-
-1. Remove `declare module` blocks for modules that now have real `.ts` / `.tsx` implementations and should expose their actual exported types.
-2. Where a declaration cannot yet be fully removed because a legacy consumer still depends on it, narrow it to the truthful minimum rather than exporting `any`.
-3. If any declaration invents exports that the implementation does not actually provide, fix that mismatch immediately.
-4. If a removed shim exposes downstream call-site or import errors, fix the real consumers rather than replacing the shim with a new lie.
-
-Validation after each meaningful batch:
-
-- `npm run typecheck`
-- the relevant strict probe(s): `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` and/or `npm run typecheck -- --project tsconfig.architect-strict.json`
-- `npm run validate:project` if declaration removals or structural exports change
-- the narrowest relevant scoped tests with `--reporter=dot`
-
-**Constraints specific to this step:**
-
-- Do not widen runtime code to preserve fake compatibility.
-- Prefer deleting bad shims over preserving them.
-- If a shim is still needed temporarily, add a one-line comment stating why it remains and what real file still depends on it.
-
-**Done when:** The dishonest ambient shims surfaced by the audit are either removed or narrowed to truthful minimums, and downstream consumers now see real module types. Commit message: `refactor: remove dishonest TypeScript ambient shims`.
 
 ---
 
@@ -203,33 +114,6 @@ Validation after each meaningful batch:
 
 Completed 2026-04-21: Classified the three remaining project `.d.ts` files, confirmed there are no remaining live `declare module` shims, removed the stale strict-probe include for deleted `src/global-shims.d.ts`, and recorded `PlayerNameMini.d.ts` as the only suspicious local declaration bridge.
 
-**Goal:** Confirm the declaration-layer cleanup actually changed type truth, and explicitly classify any remaining `.d.ts` shims as justified or still suspect.
-
-**Instructions:**
-After Step 3, append a `Declaration Layer Review` section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md` or create a focused companion doc if that reads better.
-
-For every remaining non-library `.d.ts` file or ambient module declaration in the repo, classify it as:
-
-- `Justified boundary declaration`
-- `Temporary legacy bridge`
-- `Still suspicious`
-
-For each, give:
-
-- file path
-- why it still exists
-- whether it exports real types or broad placeholders
-- whether it blocks later hardening work
-
-Then update this living plan with a short progress note under Step 4 explaining what remains and whether later steps must revisit it.
-
-**Constraints specific to this step:**
-
-- This is a review/classification step, not a broad new cleanup phase.
-- Only make tiny source changes if the review exposes an obvious false statement that must be corrected.
-
-**Done when:** Remaining declaration files are explicitly classified and the plan truthfully records whether declaration-layer dishonesty is mostly resolved or still a live blocker. Commit message: `docs: classify remaining TypeScript declaration bridges`.
-
 ---
 
 ## Step 5 — Harden shared data boundaries before widening Architect work
@@ -238,81 +122,13 @@ Then update this living plan with a short progress note under Step 4 explaining 
 
 Completed 2026-04-21: Added runtime schema parsing for shared player Firestore reads, guarded Tier Maker session-storage restore, and typed the route/list/roster/table surfaces required for the shared strict probe to pass.
 
-**Goal:** Strengthen the highest-value shared runtime data boundaries so the general app surface stops relying on permissive casts where it should validate or narrow.
-
-**Instructions:**
-Use Step 2's execution map and start with the shared/runtime boundary files the audit called out, especially:
-
-- `src/shared/hooks/usePlayerDetail.ts`
-- `src/shared/hooks/useSimplePlayerData.ts`
-- any nearby route/storage helper files proven to be weak in the execution map
-
-For each file:
-
-1. Identify every runtime data ingress point:
-   - Firestore read
-   - JSON parse
-   - route param
-   - local/session storage read
-2. Replace cast-only flows with truthful validation or narrowing where appropriate.
-3. If a DEV-only validation pattern exists and production still trusts unchecked data, convert it to an honest runtime boundary or clearly justify why the runtime cost must stay DEV-only.
-4. Export or reuse existing schema-derived types rather than inventing local bag types.
-
-Validation after each file or tight batch:
-
-- `npm run typecheck`
-- `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
-- `npm run test:scouting -- --reporter=dot` and/or the narrowest relevant suite from the execution map
-- `npm run build` after a meaningful shared-boundary batch
-
-**Constraints specific to this step:**
-
-- Do not rewrite whole hooks just to be cleaner.
-- Preserve existing behavior unless the old behavior depended on false typing.
-- If a runtime boundary reveals inconsistent real data, record it in the Follow-up section and keep the fix localized.
-
-**Done when:** The highest-value shared runtime boundaries from the execution map stop relying on cast-only trust and pass both compatibility validation and the shared strict probe. Commit message: `refactor: harden shared runtime data boundaries`.
-
 ---
 
 ## Step 6 — Harden Architect/base-data Firestore boundaries (wave 1)
 
 **Status:** DONE
 
-Completed 2026-04-21: Added Architect Firestore boundary guards and routed `subscribeArchitectPlayerData`, `loadArchitectBasePlayer`, and `teamLoader` through record/player/team normalization; root typecheck, project validation, and targeted `teamLoader` tests pass, while the Architect strict probe still fails on the known broader strict backlog.
-
-**Goal:** Fix the most important Architect/base-data read paths that currently reconstruct trust through casts rather than honest boundary validation.
-
-**Instructions:**
-Use Step 2's execution map and target the most central files first — the ones that many downstream Architect surfaces depend on.
-
-Likely first-wave candidates include files surfaced by the audit such as:
-
-- `src/features/architect/utils/subscribeArchitectPlayerData.ts`
-- `src/features/architect/utils/loadArchitectBasePlayer.ts`
-- `src/features/architect/utils/teamLoader.ts`
-
-For each file:
-
-1. Trace the Firestore/base-data ingress points.
-2. Replace broad `snapshot.data() as ...` or bag-type reconstruction with truthful narrowing/validation.
-3. Reuse canonical schema-derived types where possible.
-4. Keep output contracts stable unless the old contract was itself dishonest; if so, fix the dependent callers.
-
-Validation after each file or tight batch:
-
-- `npm run typecheck`
-- `npm run typecheck -- --project tsconfig.architect-strict.json`
-- `npm run test:architect -- --reporter=dot`
-- any narrower architect-scoped test command identified in the execution map
-
-**Constraints specific to this step:**
-
-- This is a boundary-hardening step, not a full Architect redesign.
-- Do not widen mutation or world logic unless the boundary hardening makes a downstream type bug visible.
-- Stop and record any schema/contract mismatch that clearly belongs to a later dedicated cleanup pass.
-
-**Done when:** The highest-value Architect/base-data boundary files in wave 1 are hardened away from cast-only trust and pass scoped Architect validation. Commit message: `refactor: harden architect Firestore boundaries wave 1`.
+Completed 2026-04-21: Added Architect Firestore boundary guards and routed `subscribeArchitectPlayerData`, `loadArchitectBasePlayer`, and `teamLoader` through record/player/team normalization; root typecheck, project validation, and targeted `teamLoader` tests pass.
 
 ---
 
@@ -322,75 +138,13 @@ Validation after each file or tight batch:
 
 Completed 2026-04-21: Hardened `worldManager.ts` world metadata reads and `firebaseTeamPlanHelpers.ts` base team/player/free-agent reads with runtime boundary readers, then added the Architect Boundary Review classification to the baseline.
 
-**Goal:** Finish the next most important Architect/base-data boundaries, then explicitly classify what remaining Architect type debt is real but safe to defer.
-
-**Instructions:**
-Continue from Step 6 using the next wave from the execution map.
-
-Likely candidates include files such as:
-
-- `src/features/architect/utils/worldManager.ts`
-- `src/features/architect/utils/firebaseTeamPlanHelpers.ts`
-- other map-designated base-data or helper boundaries that still use bag types or cast-only trust
-
-For each file/group:
-
-1. Harden the live ingress path.
-2. Fix the downstream consumers exposed by truthful contracts.
-3. Run the narrowest relevant architect-scoped validation, including `npm run typecheck -- --project tsconfig.architect-strict.json`.
-
-Then append an `Architect Boundary Review` section to the baseline or execution-map docs that classifies remaining Architect type debt as:
-
-- `Next-wave candidate`
-- `Safe to defer`
-- `Needs separate product/architecture decision`
-
-**Constraints specific to this step:**
-
-- Keep the step bounded to boundary honesty, not all strict errors.
-- If a remaining file is ugly but not central, classify it rather than dragging it into this wave.
-
-**Done when:** Wave 2 boundary hardening is complete and the remaining Architect boundary debt is explicitly classified rather than vaguely implied. Commit message: `refactor: harden architect Firestore boundaries wave 2`.
-
 ---
 
 ## Step 8 — Reduce typed-test dishonesty in the highest-value mocks and suites
 
 **Status:** DONE
 
-Completed 2026-04-21: Typed the shared Firebase mock, replaced trade-persistence bag fixtures with explicit fixture contracts, tightened the free-agency harness away from repeated fixture `as any` casts, and kept the diff-selected Architect suite green while the broader Architect strict probe still fails on known backlog outside these edited files.
-
-**Goal:** Make the most important typed tests reinforce runtime contracts instead of bypassing them with broad mocks and bag fixtures.
-
-**Instructions:**
-Use Step 2's execution map and start with the most central mock/test-support files, especially the Firebase mock layer and the highest-value integration/guardrail suites that the audit flagged.
-
-Prioritize:
-
-- `tests/__mocks__/firebase.ts`
-- the most central Architect integration/closure/guardrail tests identified in the execution map
-- any tests that directly exercise the boundaries hardened in Steps 5–7
-
-For each target:
-
-1. Remove unnecessary `any`, `as any`, and bag fixtures where a truthful narrowed type can be used.
-2. Update mocks so they better match the real runtime shape instead of permissively swallowing everything.
-3. Keep tests focused on proving behavior — do not rewrite whole suites just for aesthetics.
-4. If a test truly needs a deliberately invalid value, keep that invalidity explicit rather than smuggling it through a broad cast.
-
-Validation:
-
-- `npm run typecheck`
-- the relevant strict probe(s): `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` and/or `npm run typecheck -- --project tsconfig.architect-strict.json`
-- the narrowest relevant test scripts with `--reporter=dot`
-
-**Constraints specific to this step:**
-
-- Do not try to remove every `any` from tests in one pass.
-- Focus on trust-critical mocks and suites, not low-value leaf tests.
-- If a runtime file needs a small export/type tweak to let a test become truthful, that is allowed.
-
-**Done when:** The highest-value mock/test-support surfaces and their most important consuming suites are noticeably more truthful and pass scoped validation. Commit message: `test: harden typed mocks and high-value suites`.
+Completed 2026-04-21: Typed the shared Firebase mock, replaced trade-persistence bag fixtures with explicit fixture contracts, tightened the free-agency harness away from repeated fixture `as any` casts, and improved the first selected Architect suites.
 
 ---
 
@@ -398,33 +152,7 @@ Validation:
 
 **Status:** DONE
 
-Completed 2026-04-21: Added the baseline `Test Typing Review` with updated
-test-only marker counts, Step 8 deltas, a classified remainder list, and a
-plain-language conclusion that central mocks improved materially but Architect
-action/trade/cap harnesses still dominate the typed-bypass debt.
-
-**Goal:** Re-measure the test layer after Step 8 and classify remaining typed-test debt so the repo has a truthful picture of whether tests are now reinforcing runtime contracts or still mostly bypassing them.
-
-**Instructions:**
-Append a `Test Typing Review` section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md` or create a companion doc if that reads better.
-
-Include:
-
-1. Updated primary dishonesty-marker counts for tests only.
-2. `unknown` counts for tests only, recorded separately as context rather than scored as dishonesty.
-3. Which central mocks/suites were improved in Step 8.
-4. Which remaining test debt is:
-   - `High-value next-wave candidate`
-   - `Acceptable temporary compromise`
-   - `Not worth targeted hardening right now`
-5. A plain-language conclusion on whether the typed test layer is now mostly helping or still too often bypassing runtime truth.
-
-**Constraints specific to this step:**
-
-- This is a measurement/classification step.
-- Do not widen back into another large cleanup wave here.
-
-**Done when:** The repo has a truthful post-Step-8 review of test typing posture and a classified remainder list. Commit message: `docs: review typed test hardening posture`.
+Completed 2026-04-21: Added the baseline `Test Typing Review` with updated test-only marker counts, Step 8 deltas, a classified remainder list, and a plain-language conclusion that central mocks improved materially but Architect action/trade/cap harnesses still dominate the typed-bypass debt.
 
 ---
 
@@ -432,209 +160,418 @@ Include:
 
 **Status:** DONE
 
-Completed 2026-04-21: Added the baseline `Strictness Checkpoint`; the shared
-strict probe moved from `244` errors to `0`, while the Architect strict probe
-shifted from `2,567` to `2,632`, so Step 10 recommends Option C rather than a
-single bounded Step 11 prep wave inside this plan.
+Completed 2026-04-21: Added the baseline `Strictness Checkpoint`; the shared strict probe moved from `244` errors to `0`, while the Architect strict probe shifted from `2,567` to `2,632`.
 
-**Goal:** Re-run the strictness measurement after the earlier hardening waves and decide whether a narrow strict-prep pass is worth doing now.
-
-**Instructions:**
-This is a decision step, not an automatic strict-mode step.
-
-1. Re-run the strict probes from Step 1 that cover the work completed so far.
-2. Record the new error counts and compare each relevant probe to its baseline.
-3. Identify which error families dropped meaningfully because of Steps 3–9, separated by shared/runtime probe vs Architect/test probe when applicable.
-4. Identify which remaining strict errors are concentrated in a narrow set of files vs spread everywhere.
-5. Append a `Strictness Checkpoint` section to the baseline doc answering:
-   - Is the repo still nowhere near ready?
-   - Is it now somewhat ready with a narrow prep pass?
-   - Which exact error families are now most worth targeting, and in which probe do they live?
-   - Which probe(s) moved meaningfully and which did not?
-
-Then propose one of:
-
-- **Option A:** Stop after current hardening plan; no strict-prep wave is justified yet.
-- **Option B:** Run one narrow strict-prep wave focused only on the highest-leverage error families already covered by the current probes.
-- **Option C:** Do not start broader strict-prep inside this plan; record that a separate follow-on plan is warranted because the remaining work exceeds one bounded wave.
-
-Do not choose beyond what the evidence supports.
-
-**Constraints specific to this step:**
-
-- This step must be measurement-driven, not optimism-driven.
-- If strict error counts barely move, say so plainly.
-- The user should not have to make a technical decision; recommend one option.
-
-**Done when:** The `Strictness Checkpoint` section exists with before/after counts for each relevant probe, error-family analysis, and a clear recommendation that feeds Step 11. Commit message: `docs: record strictness readiness checkpoint`.
+**Important correction:** In the earlier bounded-phase version of this plan, Step 10 treated the remaining Architect/test backlog as a reason to create a separate follow-on plan. Under this self-extending master-plan contract, that outcome no longer permits closure. It instead forces this document to continue with new numbered steps.
 
 ---
 
-## Step 11 — Narrow strict-prep wave (only if Step 10 proves it is worth it)
+## Step 11 — Strict-prep wave decision correction
 
 **Status:** DONE
 
-Completed 2026-04-21: Step 10 recommended Option C, so no Step 11 strict-prep wave was run; the remaining Architect/test strict backlog stays in the separate follow-up plan rather than widening this living plan.
-
-**Goal:** Execute a small, high-leverage strict-prep wave only if Step 10 shows there is real payoff.
-
-**Instructions:**
-If Step 10 recommends Option B, perform exactly one bounded strict-prep wave focused on the highest-leverage remaining error family or file cluster.
-
-Examples of acceptable targets:
-
-- one concentrated family of implicit-any or index-access issues
-- one central file group whose cleanup will collapse many repeated strict errors
-- one boundary contract family whose optionality/nullability is producing repeated strict churn
-
-For the chosen wave:
-
-1. State explicitly in this plan what the wave targets and why.
-2. Fix the chosen error family/file cluster truthfully.
-3. Run `npm run typecheck`, the relevant strict probe(s), and the narrowest relevant tests with `--reporter=dot`.
-4. Re-run the same strict probe(s) and record the delta.
-
-If Step 10 recommended Option A, mark Step 11 `DONE` with a note that no strict-prep wave was justified yet and move directly to Step 12.
-
-If Step 10 recommended Option C, mark Step 11 `DONE` with a note that broader strict-prep must move into a separate follow-on plan, do not improvise that phase here, and move directly to Step 12.
-
-**Constraints specific to this step:**
-
-- Keep the wave narrow. Do not try to "just keep going" into a broad strict migration.
-- Do not flip `strict: true` in root config here.
-- The point is leverage, not volume.
-
-**Done when:** One justified strict-prep wave is complete (or explicitly skipped based on Step 10 evidence), and the plan records the resulting strict-scoped delta. Commit message: `refactor: execute narrow TypeScript strict-prep wave`.
+Completed 2026-04-21: The earlier bounded-phase plan skipped a strict-prep wave because the remaining Architect/test debt was too broad for one narrow pass. Under this master-plan rewrite, that result is preserved as evidence, but it no longer authorizes closure or a separate follow-on plan.
 
 ---
 
-## Step 12 — Final hardening review and residual-risk classification
+## Step 12 — Final hardening review from the foundation phase
 
 **Status:** DONE
 
 Completed 2026-04-21: Created `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md` with resolved, deferred, follow-up, and architecture-decision classifications plus a `PASS WITH DEBT` verdict.
 
-**Goal:** Recheck the full hardening plan as one system and classify what risk remains after the completed waves.
-
-**Instructions:**
-Create or update `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md`.
-
-Review together:
-
-- declaration layer after Steps 3–4
-- shared/runtime boundaries after Step 5
-- Architect/base-data boundaries after Steps 6–7
-- typed-test posture after Steps 8–9
-- strictness checkpoint and any narrow prep wave or separate-plan recommendation after Steps 10–11
-
-Classify the remaining issues into:
-
-- `Resolved in this plan`
-- `Safe to defer`
-- `Needs dedicated follow-up plan`
-- `Needs product/architecture decision`
-
-Then give a plain-language verdict for the repo’s new state using this scale:
-
-- `PASS — materially hardened`
-- `PASS WITH DEBT — hardening meaningfully improved, targeted debt remains`
-- `CONCERN — key trust issues remain`
-
-**Constraints specific to this step:**
-
-- Be honest. If major trust problems still remain, say so.
-- This review is not a new execution wave.
-- Only make tiny doc corrections here, not new source changes.
-
-**Done when:** The final review doc exists and clearly states what this plan resolved, what remains, and the repo’s new post-hardening posture. Commit message: `docs: record final TypeScript hardening review`.
+**Important correction:** `PASS WITH DEBT` is a valid phase result, but under this master-plan contract it is not a completion verdict for the mission. The plan therefore remains open.
 
 ---
 
-## Step 13 — Final closeout and next-phase recommendation
+## Step 13 — Absorb the former closeout into this master plan
 
 **Status:** DONE
 
-Completed 2026-04-21: Added the final closeout summary, recorded what this plan materially hardened, and closed the living plan with an Architect follow-on recommendation.
+Completed 2026-04-22: The previous closeout language has been superseded by this self-extending master-plan rewrite. The former claim that a separate next-phase plan was warranted is now treated as a checkpoint discovery that extends this same document rather than ending it.
 
-**Goal:** Close this living plan cleanly and state what, if anything, should happen next.
+---
+
+## Step 14 — Reset the master-plan truth and create the remaining-work baseline
+
+**Status:** TODO
+
+**Goal:** Create a truthful post-Step-13 baseline that explicitly records what remains inside the mission after the completed foundation phase, so the master plan resumes from the real remaining backlog rather than the old false closeout.
 
 **Instructions:**
-Append a `Final Closeout` section to this doc that answers:
+Update `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md` with a new section named `Master Plan Resume Baseline`.
 
-1. Which numbered steps completed source changes vs doc-only measurement/review?
-2. What dishonesty mechanisms were removed or reduced?
-3. Which runtime boundaries are now materially more trustworthy?
-4. What test/mocking debt still remains?
-5. Did strict-scoped readiness meaningfully improve?
-6. Is a separate next-phase plan warranted, and if so, what should it be?
+That section must include:
 
-This is the only step in this document that may declare the plan complete.
+1. The current strict-probe counts for:
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. A concise statement that the shared/runtime probe is now green and that the mission-area backlog is now concentrated in Architect runtime contracts and Architect tests.
+3. Updated top Architect strict hotspots by file and error family.
+4. A plain-language statement of what is still preventing full project type hardening.
+5. A short explanation that `PASS WITH DEBT` from the earlier final review is now treated as an intermediate phase result, not a mission-complete result.
+
+Do not change source files in this step.
 
 **Constraints specific to this step:**
 
-- Do not create Step 14+ unless the user explicitly asks to extend or re-scope the work.
-- If the repo is improved but not perfect, say that directly.
-- The plan is complete only after this explicit closeout is done.
+- This step is doc-only.
+- Use live repo evidence, not old summaries as truth.
+- The output must make it impossible for later steps to pretend the mission is done before the Architect/test backlog is addressed.
 
-**Done when:** This doc has a `Final Closeout` section, all prior steps are explicitly marked, and the next-phase recommendation is stated plainly. Commit message: `docs: close out TypeScript hardening living plan`.
+**Done when:** The baseline doc has a `Master Plan Resume Baseline` section that truthfully resets the plan around the remaining mission backlog. Commit message: `docs: reset TypeScript hardening master-plan baseline`.
 
-## Final Closeout
+---
 
-This living plan is now complete. Steps 1-4 and 9-13 were doc-only
-measurement/review/closeout steps. Steps 5-8 completed source changes that
-removed or reduced the main dishonesty mechanisms identified by the
-post-migration audit.
+## Step 15 — Convert the remaining Architect/test backlog into an execution map inside this same plan
 
-The biggest dishonesty reductions came from deleting `src/global-shims.d.ts`,
-replacing fake ambient module contracts with real exports, hardening the shared
-player/storage/route ingress points away from cast-only trust, hardening the
-planned Architect/base-data Firestore ingress files, and tightening the
-central Firebase mock plus selected Architect persistence/free-agency tests so
-they no longer depend on the worst typed-bypass patterns.
+**Status:** TODO
 
-The runtime boundaries that are now materially more trustworthy are the shared
-player hooks and adjacent route/storage surfaces, plus the planned Architect
-world/base-data read stack:
-`subscribeArchitectPlayerData.ts`, `loadArchitectBasePlayer.ts`,
-`teamLoader.ts`, `worldManager.ts`, and `firebaseTeamPlanHelpers.ts`. The
-shared strict probe improved meaningfully from `244` errors to `0`, which is
-the clearest evidence that the shared/runtime surface now has stronger type
-truth at its ingress points.
+**Goal:** Turn the remaining Architect runtime + test strict backlog into a concrete execution map for the next hardening waves inside this same document.
 
-Test and mocking debt still remains in the highest-value Architect
-action/trade/cap harnesses and in the broader `tsconfig.architect-strict.json`
-backlog. The central mock layer is better than the baseline, but Architect
-integration suites such as `seasonManager`, trade persistence, and offer-sheet
-persistence still contain enough contract disagreement, nullability churn, and
-typed-test bypasses that they need a dedicated follow-on plan rather than
-another small cleanup wave here.
+**Instructions:**
+Update `docs/typescript/TYPESCRIPT_HARDENING_EXECUTION_MAP.md` with a new section named `Master Plan Remaining Waves`.
 
-Strict-scoped readiness improved in a split way, not uniformly. Shared/runtime
-strictness is now ready on its dedicated probe. Architect/test strictness did
-not meaningfully improve toward readiness inside this plan and remains a large
-normalization problem rather than a bounded late-step cleanup.
+Using the current Architect strict-probe output and live file inspection, group the remaining mission-area backlog into these buckets:
 
-A separate next-phase plan is warranted. The next honest phase is an Architect
-contract-normalization and test-harness tightening plan centered on
-`src/features/architect/utils/mutationPipeline.ts`,
-`src/features/architect/GMDashboard/**`,
-`src/features/architect/hooks/useTradeMachine.ts`,
-`src/features/architect/GMDashboard/hooks/useArchitectActions.ts`, and the
-highest-value strict-backlog suites called out in the follow-up section below.
+1. **Architect runtime contract-normalization hotspots**
+   - `src/features/architect/utils/mutationPipeline.ts`
+   - `src/features/architect/GMDashboard/**`
+   - `src/features/architect/hooks/useTradeMachine.ts`
+   - `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+2. **Architect persistence / offer-sheet / season harnesses**
+   - `tests/architect/seasonManager.test.ts`
+   - `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
+   - `tests/architect/offerSheetPersistence.test.ts`
+   - the next strongest trade/cap integration harnesses by live strict count
+3. **Architect remaining mock / fixture / compatibility layers**
+   - any central helper or fixture files that still amplify test-side dishonesty or assignability churn
+4. **Strict-prep families that remain after runtime/test normalization**
+   - only if the evidence suggests a later focused cluster may still be needed
+
+For each file or tight file group, record:
+
+- path
+- why it still matters
+- whether it is runtime-critical, test-critical, or support-critical
+- dominant current error families
+- recommended wave order
+- recommended validation commands
+
+End the new section with a `Recommended continuation order` that maps directly to Steps 16–22 below.
+
+Do not change source files in this step.
+
+**Constraints specific to this step:**
+
+- Keep the map centered on the remaining mission backlog. Do not reopen already-hardened shared/runtime work unless the live evidence says it regressed.
+- Favor central contract owners over low-value leaf tests.
+- This map must feed the next execution waves without requiring user decisions.
+
+**Done when:** The execution map doc contains a truthful remaining-wave map for the Architect/runtime/test hardening backlog and the next steps below can execute directly from it. Commit message: `docs: map remaining TypeScript hardening waves`.
+
+---
+
+## Step 16 — Normalize the highest-leverage Architect runtime contract owners (wave 1)
+
+**Status:** TODO
+
+**Goal:** Reduce the most central Architect runtime assignability/nullability debt by normalizing the contract owners that many downstream consumers depend on.
+
+**Instructions:**
+Use Step 15's remaining-wave map and begin with the highest-leverage runtime contract owners. Likely first-wave targets include:
+
+- `src/features/architect/utils/mutationPipeline.ts`
+- one tightly coupled dashboard/action adapter cluster that directly feeds it or receives its outputs
+
+For the chosen wave:
+
+1. Identify the concrete contract disagreements causing the dominant strict errors.
+2. Normalize the runtime carrier types truthfully rather than layering more casts on top.
+3. Fix downstream consumers that rely on the old dishonest contract.
+4. Keep runtime behavior stable unless a behavior difference was only possible because the type contract was false.
+
+Validation after each meaningful batch:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- the narrowest relevant Architect/runtime suites with `--reporter=dot`
+
+**Constraints specific to this step:**
+
+- This is a contract-normalization step, not a broad logic rewrite.
+- Do not widen types to preserve false compatibility.
+- If a product/architecture choice is truly required, ask one plain-language question and stop.
+
+**Done when:** The first runtime contract-owner wave is normalized, the downstream consumers compile truthfully, and the Architect strict probe shows a meaningful reduction in the targeted error families. Commit message: `refactor: normalize architect runtime contracts wave 1`.
+
+---
+
+## Step 17 — Normalize the next Architect runtime contract owners (wave 2)
+
+**Status:** TODO
+
+**Goal:** Continue Architect runtime contract normalization through the next highest-leverage cluster exposed by Step 16 and the execution map.
+
+**Instructions:**
+Use the next wave from Step 15 and continue with the next highest-leverage contract cluster. Likely targets include:
+
+- the remaining `GMDashboard/**` adapter surfaces
+- `useTradeMachine.ts`
+- `useArchitectActions.ts`
+- any tight runtime bridge identified by the map as still central after Step 16
+
+For the chosen wave:
+
+1. Normalize the carrier/adapter contracts.
+2. Remove casts or bag types that were only hiding disagreements.
+3. Fix the consuming runtime surfaces truthfully.
+4. Re-run the Architect strict probe and record the wave delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- the narrowest relevant Architect/runtime suites with `--reporter=dot`
+
+**Constraints specific to this step:**
+
+- Keep the wave bounded to the chosen cluster.
+- Do not drift into unrelated low-value tests just because they also error.
+- If Step 16 already collapses this cluster more than expected, record that and tighten the scope rather than over-expanding.
+
+**Done when:** The second runtime contract wave is complete and the plan records the strict-probe delta plus what runtime hotspots remain. Commit message: `refactor: normalize architect runtime contracts wave 2`.
+
+---
+
+## Step 18 — Review runtime contract posture and classify the remaining runtime backlog
+
+**Status:** TODO
+
+**Goal:** After the first two runtime normalization waves, classify what Architect runtime debt remains and decide whether more runtime normalization is still needed before pushing harder on tests.
+
+**Instructions:**
+Append a `Runtime Contract Review` section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+Include:
+
+1. Updated Architect strict-probe counts after Steps 16–17.
+2. Which runtime hotspots were materially improved.
+3. Which remaining runtime backlog is:
+   - `Immediate next-wave candidate`
+   - `Safe to defer until tests are tightened`
+   - `Needs product/architecture decision`
+4. A plain-language recommendation for whether the next wave should prioritize tests, more runtime normalization, or a mixed runtime/test cluster.
+
+**Constraints specific to this step:**
+
+- This is a review/classification step.
+- Do not launch a third runtime wave inside this step; classify it instead.
+
+**Done when:** The baseline doc truthfully records the runtime contract posture after the first normalization waves and the next priority is unambiguous. Commit message: `docs: review architect runtime contract posture`.
+
+---
+
+## Step 19 — Harden the highest-value remaining Architect persistence / season / offer-sheet harnesses (wave 1)
+
+**Status:** TODO
+
+**Goal:** Make the most important remaining Architect tests enforce the newly normalized runtime contracts instead of bypassing them with broad fixtures and compatibility casts.
+
+**Instructions:**
+Use Step 15's map and Step 18's recommendation. Start with the highest-value remaining test harness cluster, likely among:
+
+- `tests/architect/seasonManager.test.ts`
+- `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`
+- `tests/architect/offerSheetPersistence.test.ts`
+
+For the chosen cluster:
+
+1. Remove unnecessary `any`, `as any`, and bag fixtures.
+2. Replace fake carrier shapes with truthful fixture contracts tied to the current runtime types.
+3. Keep deliberately invalid test inputs explicit rather than hiding them inside permissive casts.
+4. Update any shared fixture helpers needed by the selected cluster.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- the narrowest relevant test scripts with `--reporter=dot`
+
+**Constraints specific to this step:**
+
+- Focus on high-value harnesses only.
+- Do not try to cleanse the entire test tree in one pass.
+- If a runtime export/type tweak is needed to let the tests become truthful, that is allowed.
+
+**Done when:** The first selected high-value Architect test cluster is materially more truthful and the strict probe drops meaningfully in its targeted files/error families. Commit message: `test: harden architect persistence harnesses wave 1`.
+
+---
+
+## Step 20 — Harden the next highest-value Architect test cluster (wave 2)
+
+**Status:** TODO
+
+**Goal:** Continue test-harness tightening through the next most central Architect cluster after Step 19.
+
+**Instructions:**
+Use the next cluster from the execution map and continue with the next highest-value remaining test hotspot.
+
+For the chosen cluster:
+
+1. Tighten fixtures, mocks, and helper contracts.
+2. Remove broad typed bypasses where a truthful narrow contract can be used.
+3. Keep test behavior the same unless the old behavior depended on a dishonest harness.
+4. Re-run the Architect strict probe and record the delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- the narrowest relevant test scripts with `--reporter=dot`
+
+**Constraints specific to this step:**
+
+- Keep the wave bounded to one tight cluster.
+- Do not drift into opportunistic cleanup of low-value leaf suites.
+
+**Done when:** The second selected Architect test cluster is materially more truthful and the plan records the resulting strict-probe delta plus the remaining test hotspots. Commit message: `test: harden architect persistence harnesses wave 2`.
+
+---
+
+## Step 21 — Review typed-test posture again and classify what remains
+
+**Status:** TODO
+
+**Goal:** Re-measure the Architect test layer after the new harness waves and classify what test debt remains inside the mission.
+
+**Instructions:**
+Append a `Master Plan Test Review` section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+Include:
+
+1. Updated test-side marker counts.
+2. Which central Architect harnesses were materially improved in Steps 19–20.
+3. Which remaining test backlog is:
+   - `Immediate next-wave candidate`
+   - `Safe to defer only if runtime strictness is otherwise mission-complete`
+   - `Needs architecture-contract decision`
+4. A plain-language conclusion on whether the high-value test layer is now mostly reinforcing runtime truth.
+
+**Constraints specific to this step:**
+
+- This is a measurement/classification step.
+- Do not widen into another cleanup wave here.
+
+**Done when:** The repo has a truthful post-wave review of the remaining Architect test debt and the next priority is clear. Commit message: `docs: review architect typed-test posture`.
+
+---
+
+## Step 22 — Master checkpoint: reassess full-project hardening readiness
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after the runtime and test normalization waves and determine whether the project is now actually close to complete hardening or whether another numbered wave must be appended.
+
+**Instructions:**
+This is the master checkpoint for the mission, not an exit ramp.
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Record the current counts and compare them to both:
+   - the original baseline
+   - the Step 14 master-plan resume baseline
+3. Identify whether the remaining backlog is now:
+   - small and localized enough for one final bounded wave,
+   - still broad enough to require multiple additional waves,
+   - blocked on a real product/architecture decision.
+4. Append a `Master Hardening Checkpoint` section to the baseline doc that answers, plainly:
+   - Are we now close to complete project hardening?
+   - If not, exactly what remains?
+   - What is the next highest-leverage wave?
+
+Then do one of the following:
+
+- If substantial mission-area backlog remains, append new numbered steps to this same plan immediately after Step 22 and update the flow summary near the top.
+- If only a small final bounded wave remains, set up that final bounded wave as Steps 23–24 and continue.
+- Only if the mission-level completion gates are truly satisfied may the plan proceed to the final review/closeout steps already at the bottom.
+
+**Constraints specific to this step:**
+
+- This step may not declare the mission complete by itself.
+- If any substantial mission-area backlog remains, the plan must extend.
+- Do not write "separate follow-on plan required" here. Extend this plan instead.
+
+**Done when:** The baseline doc has a `Master Hardening Checkpoint` section and, if needed, this plan has been extended with the next numbered wave(s) inside the same document. Commit message: `docs: record master TypeScript hardening checkpoint`.
+
+---
+
+## Step 23 — Final review (only when the mission-level gates are truly satisfied)
+
+**Status:** TODO
+
+**Goal:** Recheck the full project as one system and produce a final review that truthfully supports mission completion.
+
+**Instructions:**
+Create or update `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md` only when the Step 22 master checkpoint proves that no substantial mission-area backlog remains.
+
+The final review must cover:
+
+- declaration layer
+- shared/runtime boundaries
+- Architect/runtime boundaries
+- typed tests and mocks
+- strictness posture
+- remaining issues, if any
+
+Classify the remaining issues only as:
+
+- `Resolved in this master plan`
+- `Minor optional follow-up`
+- `User-declared out of scope`
+
+The verdict must be a true mission-complete verdict. If the most honest verdict is still `PASS WITH DEBT`, `CONCERN`, or equivalent, this step is **not allowed to complete** and the plan must extend instead.
+
+**Constraints specific to this step:**
+
+- Do not use this step to smuggle in a phase-level win and call it project-complete.
+- Only make tiny doc corrections here, not new source changes.
+
+**Done when:** The final review doc truthfully supports completion of the mission and not merely completion of a phase. Commit message: `docs: record final project TypeScript hardening review`.
+
+---
+
+## Step 24 — Final closeout (only when the mission is actually done)
+
+**Status:** TODO
+
+**Goal:** Close this self-extending master plan only when the project is actually completely hardened according to the mission statement and the hard anti-loophole rules above.
+
+**Instructions:**
+Append a `Final Closeout` section to this doc only when all mission-level completion gates are satisfied.
+
+The closeout must state:
+
+1. Why the mission is now actually complete.
+2. Which major dishonesty mechanisms were removed across the life of the master plan.
+3. Which probes/measurements now support the completion claim.
+4. Any remaining issues that are truly minor, optional, or user-declared out of scope.
+5. Why no further mission-area numbered steps are required.
+
+**Constraints specific to this step:**
+
+- This step is forbidden unless the mission-level completion gates are satisfied.
+- If a substantial mission-area backlog still exists, return to Step 22 behavior and extend the plan.
+
+**Done when:** This document has a truthful final closeout and the repo is actually completely hardened for the mission defined at the top. Commit message: `docs: close out self-extending TypeScript hardening master plan`.
 
 ---
 
 ## Follow-up items (populate during execution)
 
-_Anything surfaced during hardening that is real but not in scope for the step that found it. Examples: duplicated schemas, policy inconsistencies, low-value leaf files still using weak types, or strictness-ready clusters that deserve their own later plan. Do not try to fix these in the same step they are found — add them here and address separately if they become the focus of a later dedicated plan._
-
-- Architect strict-prep follow-on plan: treat the remaining `tsconfig.architect-strict.json`
-  backlog as a separate contract-normalization phase centered on
-  `src/features/architect/utils/mutationPipeline.ts`,
-  `src/features/architect/GMDashboard/**`, `tests/architect/seasonManager.test.ts`,
-  `src/tests/architect/phase50_executeTrade_integration_persistence.test.ts`,
-  and `tests/architect/offerSheetPersistence.test.ts` rather than trying to fit
-  it into one bounded Step 11 wave here.
+_Anything surfaced during hardening that is real but not in scope for the step that found it. Examples: duplicated schemas, policy inconsistencies, low-value leaf files still using weak types, or minor optional cleanup that does not block mission completion. Do not use this section as a dumping ground for substantial mission-area backlog; substantial remaining hardening work must become numbered steps in this same plan._
 
 ---
 
