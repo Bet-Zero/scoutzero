@@ -238,9 +238,9 @@ function reconcileStagedOptionDecisions(
     const previousDecision = previous[player.playerId];
     next[player.playerId] = {
       decision: previousDecision?.decision ?? null,
-      optionType: player.optionType,
+      optionType: player.optionType ?? undefined,
       season: player.season,
-      playerName: player.playerName,
+      playerName: player.playerName ?? undefined,
     };
   }
 
@@ -257,9 +257,11 @@ function buildOrderedStagedOptionDecisions(
     return {
       playerId: player.playerId,
       decision: stagedDecision?.decision ?? null,
-      optionType: stagedDecision?.optionType ?? player.optionType,
+      optionType:
+        stagedDecision?.optionType ?? player.optionType ?? undefined,
       season: stagedDecision?.season ?? player.season,
-      playerName: stagedDecision?.playerName ?? player.playerName,
+      playerName:
+        stagedDecision?.playerName ?? player.playerName ?? undefined,
     };
   });
 }
