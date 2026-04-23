@@ -64,8 +64,10 @@
 - Steps 23–24: harden the next persistence/world/cap truth clusters exposed by the master checkpoint
 - Step 25: reassess post-wave readiness and split the remaining Architect/test debt into the next bounded waves
 - Steps 26–27: harden the remaining exception/parity guardrail cluster, then the remaining integration/normalization harness cluster
-- Step 28: reassess final-review readiness after those waves and extend again if substantial mission-area debt remains
-- Steps 29+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
+- Step 28: reassess final-review readiness after the exception/parity and integration/normalization waves, then extend the plan again from the remaining backlog
+- Steps 29–30: harden the next Architect/trade guardrail cluster and the next trade validator/unit truth cluster exposed by the Step 28 checkpoint
+- Step 31: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
+- Steps 32+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
 - Final closeout: only after the mission-level gates are satisfied
 
 **Universal constraints (apply to every step):**
@@ -728,7 +730,9 @@ Validation:
 
 ## Step 28 — Post-wave checkpoint: reassess final-review readiness
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Re-ran the root/shared/architect probes after Steps 26-27, confirmed root/shared remain green while Architect strict still sits at `1,502`, and extended the plan with new bounded waves instead of routing dishonestly to final review.
 
 **Goal:** Re-run the mission-level measurements after Steps 26-27 and decide whether the plan is honestly ready for final review or still needs more numbered waves.
 
@@ -758,7 +762,114 @@ That section must:
 
 ---
 
-## Step 29 — Final review (only when the mission-level gates are truly satisfied)
+## Step 29 — Harden the next Architect / trade guardrail cluster (wave 7)
+
+**Status:** TODO
+
+**Goal:** Tighten the next highest-leverage Architect/trade guardrail cluster now that the integration/normalization wave is clear.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/phase17_entitlement_routing_guardrail.test.ts`
+- `src/tests/tradeMachine/phase5DraftPositions.test.ts`
+- `src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts`
+- `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts`
+- `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts`
+- any tiny `src/features/architect/utils/mutationPipeline.ts` contract-owner fixups that are directly required to keep this cluster truthful
+
+For the chosen cluster:
+
+1. Remove raw optional update/validation assumptions and stale fixture shapes.
+2. Tighten entitlement-routing, draft-position, allowlist, and totals/persistence expectations around the live runtime contracts.
+3. Keep any `mutationPipeline.ts` edits narrowly coupled to the failing guardrail cluster rather than reopening a broad runtime wave.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase17_entitlement_routing_guardrail.test.ts src/tests/tradeMachine/phase5DraftPositions.test.ts src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the Architect/trade guardrail cluster.
+- Do not widen into the remaining trade validator/unit tests except for minimal shared helper truth that this cluster directly requires.
+
+**Done when:** The guardrail cluster is materially more truthful, any coupled `mutationPipeline.ts` fixups stay bounded, and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden architect trade guardrail truth cluster`.
+
+---
+
+## Step 30 — Harden the next trade validator / unit truth cluster (wave 8)
+
+**Status:** TODO
+
+**Goal:** Tighten the remaining high-value trade validator/unit harnesses that still dominate the post-Step-28 backlog outside the Architect guardrail cluster.
+
+**Instructions:**
+Focus this wave on:
+
+- `tests/trade/validatorContractCleanup.test.ts`
+- `tests/trade/validatorTrustFixes.test.ts`
+- `tests/trade/consent_and_reacq.test.ts`
+- `tests/architect/extension_voidedByExtension.test.ts`
+- any tiny shared trade-rule helper truth fixups that are directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove broad bag/object assumptions and default `never[]` / implicit-any fixture traps.
+2. Align validator and rule-envelope assertions with the live trade validation contracts.
+3. Keep behavior unchanged unless a test was only passing because it depended on a dishonest shape.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/trade/validatorContractCleanup.test.ts tests/trade/validatorTrustFixes.test.ts tests/trade/consent_and_reacq.test.ts tests/architect/extension_voidedByExtension.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the validator/unit truth cluster.
+- Do not widen into the larger DARE/e2e smoke surfaces unless a tiny helper truth fix is required to make these files honest.
+
+**Done when:** The validator/unit cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden trade validator truth cluster`.
+
+---
+
+## Step 31 — Post-wave checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 29-30 and decide whether the plan is honestly ready for final review or still needs more numbered waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 28 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs more numbered waves.
+4. Append additional numbered steps immediately after Step 31 if substantial mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-guardrail hardening checkpoint`.
+
+---
+
+## Step 32 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -793,7 +904,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 27 — Final closeout (only when the mission is actually done)
+## Step 33 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 

@@ -1064,6 +1064,57 @@ Step 28 therefore needs to act as a real checkpoint and extend the plan again
 unless the cross-probe evidence says the remaining mission-area backlog has
 collapsed more than this wave suggests.
 
+## Post-Step-27 Hardening Checkpoint
+
+Reviewed: 2026-04-23, after Steps 26-27 completed the planned
+exception/parity and integration/normalization waves.
+
+### Probe Delta
+
+| Command | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 25 checkpoint | Current | Reading |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `npm run typecheck` | 0 | compatibility-only pass | 0 | 0 | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | 1,914 | 1,502 | Architect/test strict posture improved materially (`-1,065` vs the original baseline, `-1,130` vs Step 14, `-726` vs Step 22, `-412` vs Step 25), but it remains the mission blocker by a large margin. |
+
+### Current Architect Strict Concentration
+
+- The remaining backlog is now led by the next guardrail/runtime-owner tier:
+  `src/tests/architect/phase17_entitlement_routing_guardrail.test.ts` (`37`),
+  `src/tests/tradeMachine/phase5DraftPositions.test.ts` (`34`),
+  `src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts` (`34`),
+  `src/features/architect/utils/mutationPipeline.ts` (`34`), and
+  `tests/architect/extension_voidedByExtension.test.ts` (`33`).
+- The next strongest validator/unit tier is
+  `tests/trade/validatorContractCleanup.test.ts` (`32`),
+  `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts` (`31`),
+  `tests/trade/validatorTrustFixes.test.ts` (`30`),
+  `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts` (`30`), and
+  `tests/trade/consent_and_reacq.test.ts` (`29`).
+- The Step 26-27 target files no longer lead the backlog, and shared strict is
+  still fully green. That is real progress, but it does not collapse the
+  remaining Architect/test work into a truthful final-review-sized cleanup.
+
+### Checkpoint Decision
+
+The mission is **not** honestly ready for final review. `1,502`
+Architect-strict errors still represent substantial mission-area backlog, and
+the remaining debt is split across at least two more bounded waves rather than
+one small final pass.
+
+The next honest split is:
+
+1. one bounded wave for the remaining Architect/trade guardrail cluster,
+   including only the tiny `mutationPipeline.ts` fixups directly required to
+   keep that guardrail cluster truthful;
+2. one follow-up wave for the remaining trade validator/unit truth cluster;
+3. another checkpoint after those waves before any final-review claim.
+
+Plain-language read: after Steps 26-27, the plan is materially healthier and
+shared/runtime strict remains fully green, but final review is still blocked by
+large Architect/test debt. The plan must extend again rather than route to
+closeout.
+
 ## Evidence Commands
 
 - `rg --files`
