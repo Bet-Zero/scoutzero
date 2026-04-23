@@ -84,7 +84,7 @@ describe('Phase D3: TRUE E2E Gate Guardrails', () => {
   // ============================================================================
 
   describe('B) No Simulation Markers (Regression Prevention)', () => {
-    let content;
+    let content: string;
 
     beforeAll(() => {
       content = fs.readFileSync(CI_SCRIPT_PATH, 'utf8');
@@ -157,7 +157,7 @@ describe('Phase D3: TRUE E2E Gate Guardrails', () => {
   // ============================================================================
 
   describe('C) Real Entrypoint Calls', () => {
-    let content;
+    let content: string;
 
     beforeAll(() => {
       content = fs.readFileSync(CI_SCRIPT_PATH, 'utf8');
@@ -228,7 +228,7 @@ describe('Phase D3: TRUE E2E Gate Guardrails', () => {
   // ============================================================================
 
   describe('E) Quality Indicators', () => {
-    let content;
+    let content: string;
 
     beforeAll(() => {
       content = fs.readFileSync(CI_SCRIPT_PATH, 'utf8');

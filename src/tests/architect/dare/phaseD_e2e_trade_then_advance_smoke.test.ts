@@ -22,6 +22,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { advanceSeasonInWorld } from '@/features/architect/utils/seasonManager';
 
+type MockLeagueTeam = {
+  teamCode: string;
+  entitlementIds: string[];
+  roster: unknown[];
+  players: unknown[];
+  totals: Record<string, unknown>;
+};
+
+type MockDareInput = {
+  teams?: MockLeagueTeam[];
+};
+
+type OffseasonTransitionParams = {
+  teamCapSheet: unknown;
+};
+
+function getCapturedDareInput(message: string): MockDareInput {
+  const firstCall = mocks.mockResolveAllDraftAssets.mock.calls[0];
+
+  expect(firstCall, message).toBeDefined();
+
+  if (!firstCall) {
+    throw new Error(message);
+  }
+
+  return (firstCall[1] ?? {}) as MockDareInput;
+}
+
 // =============================================================================
 // MOCKS (same pattern as phaseB_dare_world_persistence_integration.test.js)
 // =============================================================================
@@ -46,9 +74,9 @@ vi.mock('firebase/firestore', () => ({
     delete: mocks.mockBatchDelete,
     commit: mocks.mockBatchCommit,
   }),
-  doc: (db, ...pathParts) => pathParts.join('/'),
+  doc: (_db: unknown, ...pathParts: string[]) => pathParts.join('/'),
   serverTimestamp: () => '2026-02-04T00:00:00.000Z',
-  increment: (n) => n,
+  increment: (n: number) => n,
 }));
 
 vi.mock('@/firebaseConfig', () => ({
@@ -85,7 +113,7 @@ vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
 
 // Mock Season Manager dependencies
 vi.mock('@/features/architect/utils/capTotals', () => ({
-  computeTeamCapTotals: (_team, year) => ({
+  computeTeamCapTotals: (_team: unknown, year: number | string) => ({
     yearKey: year,
     playersTotal: 0,
     deadMoneyTotal: 0,
@@ -100,9 +128,9 @@ vi.mock('@/features/architect/utils/capTotals', () => ({
 }));
 
 vi.mock('@/features/architect/utils/seasonFormat', () => ({
-  toEndYear: (s) => parseInt(s.split('-')[0]) + 1,
-  getDraftYearForSeasonAdvance: (s) => parseInt(s.split('-')[0]) + 1,
-  getSeasonAdvanceDraftContext: (s) => {
+  toEndYear: (s: string) => parseInt(s.split('-')[0]) + 1,
+  getDraftYearForSeasonAdvance: (s: string) => parseInt(s.split('-')[0]) + 1,
+  getSeasonAdvanceDraftContext: (s: string) => {
     const nextUsedDraftYear = parseInt(s.split('-')[0]) + 1;
     return {
       authoritativeSeason: s,
@@ -110,8 +138,8 @@ vi.mock('@/features/architect/utils/seasonFormat', () => ({
       nextSeason: `${nextUsedDraftYear}-${String(nextUsedDraftYear + 1).slice(2)}`,
     };
   },
-  toSeasonCode: (y) => `${y - 1}-${y.toString().slice(2)}`,
-  toSeasonKey: (s) => parseInt(s.split('-')[0]) + 1,
+  toSeasonCode: (y: number) => `${y - 1}-${y.toString().slice(2)}`,
+  toSeasonKey: (s: string) => parseInt(s.split('-')[0]) + 1,
 }));
 
 vi.mock('@/features/architect/utils/salaryEngine', () => ({
@@ -128,14 +156,14 @@ vi.mock('@/features/architect/utils/tpeLifecycle', () => ({
 }));
 
 vi.mock('@/features/architect/utils/persistenceContracts', () => ({
-  normalizeTeamTpeSchema: (team) => team,
+  normalizeTeamTpeSchema: (team: unknown) => team,
   getTeamTpeList: () => [],
   assertPersistableOrThrow: () => {},
   PERSISTENCE_CONTRACTS: { TEAM: { topLevel: [], deepRules: null } },
 }));
 
 vi.mock('@/features/architect/utils/persistenceContracts/enforcement', () => ({
-  sanitizeTransientFieldsForPersistence: (team) => team,
+  sanitizeTransientFieldsForPersistence: (team: unknown) => team,
 }));
 
 vi.mock('@/features/architect/utils/exceptions', () => ({
@@ -157,7 +185,7 @@ vi.mock('@/features/architect/utils/exceptionHistory/historyHelpers', () => ({
 }));
 
 vi.mock('@/features/architect/utils/offseason', () => ({
-  resolveOffseasonTransition: (params) => ({
+  resolveOffseasonTransition: (params: OffseasonTransitionParams) => ({
     success: true,
     nextTeamCapSheet: params.teamCapSheet,
     appliedChangesSummary: {},
@@ -296,9 +324,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
       });
 
       // Capture DARE input to verify correct owner
-      let capturedDAREInput = null;
-      mocks.mockResolveAllDraftAssets.mockImplementation(async (db, input) => {
-        capturedDAREInput = input;
+      mocks.mockResolveAllDraftAssets.mockImplementation(async (_db: unknown, input: MockDareInput) => {
         return {
           success: true,
           entitlementDocWrites: [],
@@ -314,17 +340,18 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
       expect(mocks.mockResolveAllDraftAssets).toHaveBeenCalled();
 
       // Assert the entitlement is in LAL's input (new owner), not BOS's
-      if (capturedDAREInput?.teams) {
-        const lalTeam = capturedDAREInput.teams.find(
-          (t) => t.teamCode === 'LAL'
-        );
-        const bosTeam = capturedDAREInput.teams.find(
-          (t) => t.teamCode === 'BOS'
-        );
+      const capturedDareInput = getCapturedDareInput(
+        'Expected resolveAllDraftAssets to receive the traded entitlement input'
+      );
+      const lalTeam = capturedDareInput.teams?.find(
+        (t: MockLeagueTeam) => t.teamCode === 'LAL'
+      );
+      const bosTeam = capturedDareInput.teams?.find(
+        (t: MockLeagueTeam) => t.teamCode === 'BOS'
+      );
 
-        expect(lalTeam?.entitlementIds).toContain('ent:BOS:2027:1:own:abc');
-        expect(bosTeam?.entitlementIds).not.toContain('ent:BOS:2027:1:own:abc');
-      }
+      expect(lalTeam?.entitlementIds).toContain('ent:BOS:2027:1:own:abc');
+      expect(bosTeam?.entitlementIds).not.toContain('ent:BOS:2027:1:own:abc');
     });
   });
 
@@ -364,9 +391,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
         MIA: 15,
       });
 
-      let capturedDAREInput = null;
-      mocks.mockResolveAllDraftAssets.mockImplementation(async (db, input) => {
-        capturedDAREInput = input;
+      mocks.mockResolveAllDraftAssets.mockImplementation(async (_db: unknown, input: MockDareInput) => {
         return {
           success: true,
           entitlementDocWrites: [],
@@ -380,21 +405,22 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
       expect(mocks.mockResolveAllDraftAssets).toHaveBeenCalled();
 
       // Assert entitlement is ONLY on MIA, not LAL or BOS
-      if (capturedDAREInput?.teams) {
-        const miaTeam = capturedDAREInput.teams.find(
-          (t) => t.teamCode === 'MIA'
-        );
-        const lalTeam = capturedDAREInput.teams.find(
-          (t) => t.teamCode === 'LAL'
-        );
-        const bosTeam = capturedDAREInput.teams.find(
-          (t) => t.teamCode === 'BOS'
-        );
+      const capturedDareInput = getCapturedDareInput(
+        'Expected resolveAllDraftAssets to receive the routed entitlement input'
+      );
+      const miaTeam = capturedDareInput.teams?.find(
+        (t: MockLeagueTeam) => t.teamCode === 'MIA'
+      );
+      const lalTeam = capturedDareInput.teams?.find(
+        (t: MockLeagueTeam) => t.teamCode === 'LAL'
+      );
+      const bosTeam = capturedDareInput.teams?.find(
+        (t: MockLeagueTeam) => t.teamCode === 'BOS'
+      );
 
-        expect(miaTeam?.entitlementIds).toContain('ent:BOS:2027:1:own:xyz');
-        expect(lalTeam?.entitlementIds).not.toContain('ent:BOS:2027:1:own:xyz');
-        expect(bosTeam?.entitlementIds).not.toContain('ent:BOS:2027:1:own:xyz');
-      }
+      expect(miaTeam?.entitlementIds).toContain('ent:BOS:2027:1:own:xyz');
+      expect(lalTeam?.entitlementIds).not.toContain('ent:BOS:2027:1:own:xyz');
+      expect(bosTeam?.entitlementIds).not.toContain('ent:BOS:2027:1:own:xyz');
     });
   });
 
@@ -490,9 +516,7 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
         MIA: 15,
       });
 
-      let capturedDAREInput = null;
-      mocks.mockResolveAllDraftAssets.mockImplementation(async (db, input) => {
-        capturedDAREInput = input;
+      mocks.mockResolveAllDraftAssets.mockImplementation(async (_db: unknown, input: MockDareInput) => {
         return {
           success: true,
           entitlementDocWrites: [],
@@ -504,12 +528,13 @@ describe('Phase D: E2E Trade → Season Advance Smoke Tests', () => {
       await advanceSeasonInWorld(WORLD_ID);
 
       // Stepien uses the current holder's inventory - verify LAL has it
-      if (capturedDAREInput?.teams) {
-        const lalTeam = capturedDAREInput.teams.find(
-          (t) => t.teamCode === 'LAL'
-        );
-        expect(lalTeam?.entitlementIds).toContain('ent:BOS:2027:1:swap:step');
-      }
+      const capturedDareInput = getCapturedDareInput(
+        'Expected resolveAllDraftAssets to receive the Stepien holder input'
+      );
+      const lalTeam = capturedDareInput.teams?.find(
+        (t: MockLeagueTeam) => t.teamCode === 'LAL'
+      );
+      expect(lalTeam?.entitlementIds).toContain('ent:BOS:2027:1:swap:step');
     });
   });
 

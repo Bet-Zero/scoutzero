@@ -879,7 +879,9 @@ That section must:
 
 ## Step 32 — Harden the next Architect DARE / trade-apply truth cluster (wave 9)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Hardened the planned Architect DARE / trade-apply cluster across `phaseD3_true_e2e_gate_guardrails`, `phaseD_e2e_trade_then_advance_smoke`, `signAndTrade`, `phase57_forbid_validateTrade_in_compute_guardrail`, and `phase49_tpe_exception_history_logging_guardrails`; kept root typecheck green, passed the bounded node pack at `83 / 83`, and reduced Architect strict from `1,212` to `1,079` without widening into the remaining trade-rule / TPE unit backlog.
 
 **Goal:** Tighten the next highest-leverage Architect/test cluster now that the validator/unit wave is clear and the remaining backlog is led by DARE, sign-and-trade, and trade-apply guardrails.
 

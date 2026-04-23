@@ -1293,6 +1293,71 @@ large Architect/test debt concentrated in the next DARE/runtime-adjacent and
 trade-rule unit clusters. The plan must extend again rather than route to
 closeout.
 
+## Step 32 Architect DARE / Trade-Apply Wave Delta
+
+Reviewed: 2026-04-23, after the ninth Architect DARE / trade-apply wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 31 checkpoint | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,212 | 1,079 | -133 |
+| `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts` | 29 after Step 31 | 0 | Cleared |
+| `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts` | 28 after Step 31 | 0 | Cleared |
+| `src/tests/architect/signAndTrade.test.ts` | 27 after Step 31 | 0 | Cleared |
+| `src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts` | 26 after Step 31 | 0 | Cleared |
+| `src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts` | 23 after Step 31 | 0 | Cleared |
+
+### What Changed
+
+- `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts` now
+  types its reused script-content variables explicitly instead of relying on
+  implicit `any` across regex/text assertions.
+- `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts` now
+  types its mocked Firestore/season helper parameters, DARE input bridge, and
+  mock-call assertions so the smoke tests read the actual captured DARE payload
+  instead of closure-local `null` placeholders.
+- `src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts`
+  now types its source-scan helpers and validation-call accumulators so the
+  guardrail stays strict without changing any of the purity assertions it
+  enforces.
+- `src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts`
+  now requires non-null TPE history entries before reading them and uses a
+  truthful partial-history model for legacy exception-history rows.
+- `src/tests/architect/signAndTrade.test.ts` now routes its changed-team and
+  player assertions through required readers, types the local roster filler and
+  validation-order arrays, and builds mocked trade-validation results through
+  the file's canonical result helper instead of ad hoc casts.
+- The approved bounded node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts src/tests/architect/signAndTrade.test.ts src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts`
+  finished with `83 / 83` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 32
+  edits.
+
+### Remaining Hotspots After Step 32
+
+The Step 32 wave cleared the planned Architect DARE / trade-apply cluster. The
+strongest remaining Architect strict hotspots are now:
+
+- `src/features/architect/utils/mutationPipeline.ts` (`34`)
+- `tests/trade/tpe_creation_expiry_usage.test.ts` (`26`)
+- `tests/trade/secondApronBoundary.test.ts` (`26`)
+- `tests/trade/timingEnforcement_authoritative.test.ts` (`24`)
+- `tests/trade/reacquisition_bar.test.ts` (`24`)
+- `src/tests/architect/deadCapManagement.test.ts` (`24`)
+- `tests/trade/tpe_absorption_fail_closed.test.ts` (`23`)
+- `src/shared/components/EditContractModal.tsx` (`22`)
+- `src/tests/tradeMachine/seasonSwapResolution.test.ts` (`21`)
+- `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts` (`20`)
+
+The five Step 32 target files no longer appear in the Architect strict output.
+
+Plain-language read: Step 32 removed the largest remaining Architect DARE /
+trade-apply truth cluster and pulled Architect strict down to `1,079`. The next
+highest-leverage wave is now the trade-rule / TPE unit cluster already queued in
+Step 33, with `mutationPipeline.ts` still sitting as the top runtime-owner
+hotspot but not yet forcing a standalone runtime wave.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -1337,5 +1402,10 @@ closeout.
 - `awk '/^[[:space:]]+[0-9]+[[:space:]]/ {sum += $1} END {print sum}' /tmp/step30_architect_strict.log`
 - `awk '/^[[:space:]]+[0-9]+[[:space:]]/ {print $1, $2}' /tmp/step30_architect_strict.log | sort -nr | head -12`
 - `grep -E "^(tests/architect/extension_voidedByExtension.test.ts|tests/trade/validatorContractCleanup.test.ts|tests/trade/validatorTrustFixes.test.ts|tests/trade/consent_and_reacq.test.ts)" /tmp/step30_architect_strict.log || true`
+- `npm run test:node -- --reporter=dot src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts src/tests/architect/signAndTrade.test.ts src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step32_architect_strict.log 2>&1; echo EXIT:$?`
+- `awk '/^[[:space:]]+[0-9]+[[:space:]]/ {sum += $1} END {print sum}' /tmp/step32_architect_strict.log`
+- `awk '/^[[:space:]]+[0-9]+[[:space:]]/ {print $1, $2}' /tmp/step32_architect_strict.log | sort -nr | head -12`
+- `grep -E "^(src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts|src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts|src/tests/architect/signAndTrade.test.ts|src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts|src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts)" /tmp/step32_architect_strict.log || true`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

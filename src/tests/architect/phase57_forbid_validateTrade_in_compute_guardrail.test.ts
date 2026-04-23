@@ -37,13 +37,17 @@ import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
 // Helper to read source file content
-function readSourceFile(relativePath) {
+function readSourceFile(relativePath: string): string {
   const absolutePath = resolve(process.cwd(), relativePath);
   return readFileSync(absolutePath, 'utf-8');
 }
 
 // Helper to extract a region of code between two markers
-function extractRegion(source, startMarker, endMarkerOrEOF = null) {
+function extractRegion(
+  source: string,
+  startMarker: string,
+  endMarkerOrEOF: string | null = null
+): string {
   const startIndex = source.indexOf(startMarker);
   if (startIndex === -1) {
     throw new Error(`Region start marker not found: ${startMarker}`);
@@ -64,9 +68,9 @@ function extractRegion(source, startMarker, endMarkerOrEOF = null) {
 }
 
 // Helper to check if validateTrade( appears in code (excluding allowed patterns)
-function findValidateTradeCallsInRegion(regionCode, regionName) {
+function findValidateTradeCallsInRegion(regionCode: string, regionName: string) {
   const lines = regionCode.split('\n');
-  const violations = [];
+  const violations: Array<{ line: number; content: string; region: string }> = [];
 
   // Patterns that are ALLOWED (not violations)
   const allowedPatterns = [
@@ -83,7 +87,7 @@ function findValidateTradeCallsInRegion(regionCode, regionName) {
   // The actual violation pattern: calling validateTrade as a function
   const violationPattern = /validateTrade\s*\(/;
 
-  lines.forEach((line, index) => {
+  lines.forEach((line: string, index: number) => {
     // Skip if line matches any allowed pattern
     const isAllowed = allowedPatterns.some((pattern) => pattern.test(line));
     if (isAllowed) return;
@@ -457,7 +461,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       // Find all lines that call validateTrade (not imports/comments)
       const lines = source.split('\n');
-      const validateTradeCalls = [];
+      const validateTradeCalls: Array<{ line: number; content: string }> = [];
 
       lines.forEach((line, index) => {
         // Skip comments and imports

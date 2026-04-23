@@ -30,10 +30,55 @@ type LoadedTeam = Awaited<ReturnType<typeof getTeam>>;
 type LoadedPlayer = Awaited<ReturnType<typeof getPlayer>>;
 type SigningValidationResult = ReturnType<typeof validateSigning>;
 type TradeValidationResult = ReturnType<typeof validateTrade>;
+type ApplyMutationResult = Awaited<ReturnType<typeof applyWorldMutation>>;
+type ChangedTeamUpdate = NonNullable<ApplyMutationResult['changedTeams']>[number];
 type SignAndTradeContractView = {
   contractType?: string | null;
   signAndTrade?: boolean | null;
 };
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getChangedTeam(
+  result: ApplyMutationResult,
+  teamCode: string
+): ChangedTeamUpdate & { team: NonNullable<ChangedTeamUpdate['team']> } {
+  const changedTeams = requireValue(
+    result.changedTeams,
+    'Expected changedTeams for successful sign-and-trade mutation'
+  );
+  const update = requireValue(
+    changedTeams.find((team) => team.teamCode === teamCode),
+    `Expected changed team update for ${teamCode}`
+  );
+
+  return {
+    ...update,
+    team: requireValue(update.team, `Expected team payload for ${teamCode}`),
+  };
+}
+
+function getChangedTeamPlayer(
+  result: ApplyMutationResult,
+  teamCode: string,
+  playerId: string
+) {
+  const teamUpdate = getChangedTeam(result, teamCode);
+  const player = requireValue(
+    teamUpdate.team.players?.find((entry) => (entry.player_id || entry.id) === playerId),
+    `Expected player ${playerId} in changed team ${teamCode}`
+  );
+
+  return { teamUpdate, player };
+}
 
 const mockedGetTeam = vi.mocked(getTeam);
 const mockedGetPlayer = vi.mocked(getPlayer);
@@ -169,7 +214,7 @@ describe('Sign and Trade Mutation', () => {
   const makeValidTradeResult = (): TradeValidationResult =>
     makeTradeValidationResult();
 
-  const makeRosterFiller = (teamCode, index) => ({
+  const makeRosterFiller = (teamCode: string, index: number) => ({
     id: `${teamCode.toLowerCase()}_filler_${index}`,
     player_id: `${teamCode.toLowerCase()}_filler_${index}`,
     name: `Filler ${teamCode} ${index}`,
@@ -249,12 +294,9 @@ describe('Sign and Trade Mutation', () => {
       expect(result.success).toBe(true);
       expect(result.changedTeams).toHaveLength(2);
 
-      const sourceUpdate = result.changedTeams.find(
-        (t) => t.teamCode === sourceTeamCode
-      );
-      const destUpdate = result.changedTeams.find(
-        (t) => t.teamCode === destTeamCode
-      );
+      const sourceUpdate = getChangedTeam(result, sourceTeamCode);
+      const { teamUpdate: destUpdate, player: playerInDest } =
+        getChangedTeamPlayer(result, destTeamCode, playerId);
 
       // Source team should NOT have the player (traded away)
       expect(sourceUpdate.team.roster).not.toContain(playerId);
@@ -263,10 +305,6 @@ describe('Sign and Trade Mutation', () => {
       expect(destUpdate.team.roster).toContain(playerId);
 
       // Player should be in destination team's players array
-      const playerInDest = destUpdate.team.players?.find(
-        (p) => (p.player_id || p.id) === playerId
-      );
-      expect(playerInDest).toBeDefined();
       expect(playerInDest.teamCode).toBe(destTeamCode);
     });
 
@@ -287,13 +325,11 @@ describe('Sign and Trade Mutation', () => {
 
       expect(result.success).toBe(true);
 
-      const destUpdate = result.changedTeams.find(
-        (t) => t.teamCode === destTeamCode
+      const { player: playerInDest } = getChangedTeamPlayer(
+        result,
+        destTeamCode,
+        playerId
       );
-      const playerInDest = destUpdate.team.players?.find(
-        (p) => (p.player_id || p.id) === playerId
-      );
-      expect(playerInDest).toBeDefined();
       // Contract should be marked as Sign & Trade - check for either format
       const contract = playerInDest.contract as SignAndTradeContractView;
       expect(
@@ -349,34 +385,36 @@ describe('Sign and Trade Mutation', () => {
         }
         return Promise.resolve(null as unknown as LoadedTeam);
       });
-      mockedValidateTrade.mockReturnValue({
-        valid: true,
-        legal: true,
-        reason: null,
-        error: null,
-        violations: [],
-        warnings: [
+      mockedValidateTrade.mockReturnValue(
+        makeTradeValidationResult({
+          valid: true,
+          legal: true,
+          reason: '',
+          error: null,
+          violations: [],
+          warnings: [
           {
             message: 'Sign-and-trade will hard cap receiving team at First Apron',
             severity: 'warning',
             rule: 'signAndTrade',
             code: 'SIGN_AND_TRADE__RECEIVER_HARD_CAP_TRIGGER',
           },
-        ],
-        teamResults: [],
-        summaryByTeamIndex: [],
-        tradeReceipt: null,
-        dataWarnings: [],
-        hasDataIssues: false,
-        yearKey: 2026,
-        seasonKey: '2025-26',
-        capSettings: { firstApron },
-        capSettingsSource: 'test',
-        capSettingsWarnings: [],
-        asOfDate: '2025-07-01',
-        tradeDate: '2025-07-01',
-        offseason: true,
-      } as TradeValidationResult);
+          ],
+          teamResults: [],
+          summaryByTeamIndex: [],
+          tradeReceipt: null,
+          dataWarnings: [],
+          hasDataIssues: false,
+          yearKey: 2026,
+          seasonKey: '2025-26',
+          capSettings: { firstApron },
+          capSettingsSource: 'test',
+          capSettingsWarnings: [],
+          asOfDate: '2025-07-01',
+          tradeDate: '2025-07-01',
+          offseason: true,
+        })
+      );
 
       const oldLocalWouldBlock = sourceTotalSalary > firstApron;
       expect(oldLocalWouldBlock).toBe(true);
@@ -419,7 +457,8 @@ describe('Sign and Trade Mutation', () => {
         }
         return Promise.resolve(null as unknown as LoadedTeam);
       });
-      mockedValidateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue(
+        makeTradeValidationResult({
         valid: false,
         legal: false,
         reason: 'Receiver would exceed First Apron after sign-and-trade.',
@@ -446,7 +485,8 @@ describe('Sign and Trade Mutation', () => {
         asOfDate: '2025-07-01',
         tradeDate: '2025-07-01',
         offseason: true,
-      } as TradeValidationResult);
+        })
+      );
 
       const oldLocalWouldBlock = sourceTotalSalary > firstApron;
       expect(oldLocalWouldBlock).toBe(false);
@@ -491,7 +531,8 @@ describe('Sign and Trade Mutation', () => {
     });
 
     it('fails closed as incomplete when authoritative SAT hard-cap context is unavailable', async () => {
-      mockedValidateTrade.mockReturnValue({
+      mockedValidateTrade.mockReturnValue(
+        makeTradeValidationResult({
         valid: false,
         legal: false,
         reason: 'Cannot validate sign-and-trade hard cap: firstApron not available for season',
@@ -518,7 +559,8 @@ describe('Sign and Trade Mutation', () => {
         asOfDate: '2025-07-01',
         tradeDate: '2025-07-01',
         offseason: true,
-      } as TradeValidationResult);
+        })
+      );
 
       const result = await preflightSignAndTradeMutation({
         worldId,
@@ -848,7 +890,10 @@ describe('Sign and Trade Mutation', () => {
       expect(result.success).toBe(true);
       expect(result.changedTeams).toHaveLength(2);
 
-      const teamCodes = result.changedTeams.map((t) => t.teamCode);
+      const teamCodes = requireValue(
+        result.changedTeams,
+        'Expected changedTeams for atomic sign-and-trade update'
+      ).map((t) => t.teamCode);
       expect(teamCodes).toContain(sourceTeamCode);
       expect(teamCodes).toContain(destTeamCode);
     });
@@ -950,13 +995,11 @@ describe('Sign and Trade Mutation', () => {
 
       expect(result.success).toBe(true);
 
-      const destUpdate = result.changedTeams.find(
-        (t) => t.teamCode === destTeamCode
+      const { player: playerInDest } = getChangedTeamPlayer(
+        result,
+        destTeamCode,
+        playerId
       );
-      const playerInDest = destUpdate.team.players?.find(
-        (p) => (p.player_id || p.id) === playerId
-      );
-      expect(playerInDest).toBeDefined();
       expect(playerInDest.teamCode).toBe(destTeamCode);
     });
   });
@@ -1026,10 +1069,13 @@ describe('Sign and Trade Mutation', () => {
 
       // Get the call arguments
       const callArgs = mockedValidateTrade.mock.calls[0][0];
+      const tradeTeams = requireValue(
+        callArgs.teams,
+        'Expected validateTrade call to include teams array'
+      );
 
       // Should have teams array with 2 teams
-      expect(callArgs.teams).toBeDefined();
-      expect(callArgs.teams.length).toBe(2);
+      expect(tradeTeams).toHaveLength(2);
     });
   });
 
@@ -1038,7 +1084,7 @@ describe('Sign and Trade Mutation', () => {
   // ============================================================================
   describe('SAT14: Validation Order', () => {
     it('should call signing validator before trade validator', async () => {
-      const callOrder = [];
+      const callOrder: string[] = [];
 
       mockedValidateSigning.mockImplementation(() => {
         callOrder.push('signing');
