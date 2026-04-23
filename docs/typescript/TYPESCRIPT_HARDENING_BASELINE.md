@@ -840,6 +840,60 @@ from the Architect strict backlog. The next honest move is the bounded cap
 legality / renounce-rights wave rather than drifting into the broader
 exception/parity integration surfaces.
 
+## Step 24 Cap Legality / Rights Wave Delta
+
+Reviewed: 2026-04-22, after the fourth Architect cap-legality/rights wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 23 wave | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,050 | 1,914 | -136 |
+| `tests/architect/capLegalityValidation.test.ts` | 69 after Step 23 | 0 | Cleared |
+| `tests/architect/renounceRights.test.ts` | 67 after Step 23 | 0 | Cleared |
+
+### What Changed
+
+- `tests/architect/capLegalityValidation.test.ts` now imports the shared
+  architect helpers through the live `.js` surface, uses local
+  required-reader helpers for violations/warnings/team updates, aligns its
+  sign/free-agent and cap-legality fixtures with the current validator
+  contracts, and narrows free-agency payload reads before asserting on them.
+- `tests/architect/renounceRights.test.ts` now uses helper-backed player/team
+  fixtures, required persisted-state readers, and explicit mutation-result
+  readers instead of raw optional persisted snapshots and stale shape
+  assumptions.
+- The approved narrow node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot tests/architect/capLegalityValidation.test.ts tests/architect/renounceRights.test.ts`
+  finished with `248 / 248` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 24
+  edits.
+
+### Remaining Hotspots After Step 24
+
+The Step 24 wave cleared the planned cap-legality / renounce-rights cluster.
+The strongest remaining Architect strict hotspots are now:
+
+- `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` (`64`)
+- `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` (`62`)
+- `src/tests/architect/exceptionManagement.test.ts` (`58`)
+- `tests/architect/contractNormalization.test.ts` (`50`)
+- `tests/architect/integration.test.ts` (`49`)
+- `tests/architect/e2e-workflows.test.ts` (`49`)
+- `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts` (`41`)
+- `tests/architect/schemaAdapter.test.ts` (`39`)
+
+`tests/architect/capLegalityValidation.test.ts` and
+`tests/architect/renounceRights.test.ts` no longer appear in the Architect
+strict output.
+
+Plain-language read: Step 24 removed the remaining cap-legality / renounce-rights
+truth cluster exactly as planned and pulled the Architect strict backlog down to
+`1,914`. The remaining debt is no longer primarily about cap/rule fixture truth;
+it is concentrated in exception lifecycle/parity guardrails plus a smaller set
+of integration/normalization harnesses, which is the right input for the Step 25
+checkpoint.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -865,5 +919,9 @@ exception/parity integration surfaces.
 - `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step23.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step23.log; grep -E "tests/architect/mutationPipeline.tradePersistenceTruth.test.ts|tests/architect/worldManager.test.ts|tests/architect/teamLoader.test.ts" /tmp/architect_step23.log`
 - `grep -E "tests/architect/capLegalityValidation.test.ts|tests/architect/renounceRights.test.ts|src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts|src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts|src/tests/architect/exceptionManagement.test.ts|tests/architect/contractNormalization.test.ts|tests/architect/e2e-workflows.test.ts" /tmp/architect_step23.log | sed -E 's/\([0-9]+,[0-9]+\):.*$//' | sort | uniq -c | sort -nr`
 - `npm run test:node -- --reporter=dot tests/architect/teamLoader.test.ts tests/architect/worldManager.test.ts tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`
+- `npm run test:node -- --reporter=dot tests/architect/capLegalityValidation.test.ts tests/architect/renounceRights.test.ts`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step24.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step24.log`
+- `grep -E "^tests/architect/(capLegalityValidation|renounceRights)\.test\.ts" /tmp/architect_step24.log || true`
+- `grep "error TS" /tmp/architect_step24.log | sed -E 's/^([^(:]+).*/\1/' | sort | uniq -c | sort -nr | head -10`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`
