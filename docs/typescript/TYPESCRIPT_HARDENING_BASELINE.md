@@ -1240,6 +1240,59 @@ cluster and pulled Architect strict down to `1,212`. The backlog is now back in
 the DARE/runtime-adjacent guardrail and trade-rule families, which is exactly
 what Step 31 needs to reassess before extending the master plan again.
 
+## Post-Step-30 Hardening Checkpoint
+
+Reviewed: 2026-04-23, after Steps 29-30 completed the planned
+Architect/trade guardrail and validator/unit truth waves.
+
+### Probe Delta
+
+| Command | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 28 checkpoint | Current | Reading |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `npm run typecheck` | 0 | compatibility-only pass | 0 | 0 | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | 1,502 | 1,212 | Architect/test strict posture improved materially (`-1,355` vs the original baseline, `-1,420` vs Step 14, `-1,016` vs Step 22, `-290` vs Step 28), but it remains the mission blocker by a large margin. |
+
+### Current Architect Strict Concentration
+
+- The remaining backlog is now led by the next runtime-owner and Architect
+  DARE/trade-apply tier: `src/features/architect/utils/mutationPipeline.ts`
+  (`34`), `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts`
+  (`29`), `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts`
+  (`28`), `src/tests/architect/signAndTrade.test.ts` (`27`), and
+  `src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts`
+  (`26`).
+- The next strongest trade-rule unit tier is
+  `tests/trade/tpe_creation_expiry_usage.test.ts` (`26`),
+  `tests/trade/secondApronBoundary.test.ts` (`26`),
+  `tests/trade/timingEnforcement_authoritative.test.ts` (`24`),
+  `tests/trade/reacquisition_bar.test.ts` (`24`), and
+  `tests/trade/tpe_absorption_fail_closed.test.ts` (`23`).
+- The Step 29-30 target files no longer lead the backlog, and shared strict is
+  still fully green. That is real progress, but it does not collapse the
+  remaining Architect/test work into a truthful final-review-sized cleanup.
+
+### Checkpoint Decision
+
+The mission is **not** honestly ready for final review. `1,212`
+Architect-strict errors still represent substantial mission-area backlog, and
+the remaining debt is still split across at least two more bounded waves rather
+than one small final pass.
+
+The next honest split is:
+
+1. one bounded wave for the remaining Architect DARE / trade-apply cluster,
+   including only the tiny `mutationPipeline.ts` fixups directly required to
+   keep that cluster truthful;
+2. one follow-up wave for the remaining trade-rule / TPE unit truth cluster;
+3. another checkpoint after those waves before any final-review claim.
+
+Plain-language read: after Steps 29-30, the plan is materially healthier and
+shared/runtime strict remains fully green, but final review is still blocked by
+large Architect/test debt concentrated in the next DARE/runtime-adjacent and
+trade-rule unit clusters. The plan must extend again rather than route to
+closeout.
+
 ## Evidence Commands
 
 - `rg --files`

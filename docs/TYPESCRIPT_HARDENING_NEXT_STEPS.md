@@ -67,7 +67,9 @@
 - Step 28: reassess final-review readiness after the exception/parity and integration/normalization waves, then extend the plan again from the remaining backlog
 - Steps 29–30: harden the next Architect/trade guardrail cluster and the next trade validator/unit truth cluster exposed by the Step 28 checkpoint
 - Step 31: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
-- Steps 32+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
+- Steps 32–33: harden the next Architect DARE/trade-apply cluster, then the next trade-rule/TPE unit cluster exposed by the Step 31 checkpoint
+- Step 34: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
+- Steps 35+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
 - Final closeout: only after the mission-level gates are satisfied
 
 **Universal constraints (apply to every step):**
@@ -843,7 +845,9 @@ Validation:
 
 ## Step 31 — Post-wave checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Re-ran the root/shared/architect probes after Steps 29-30, confirmed root/shared remain green while Architect strict now sits at `1,212`, and extended the plan again into one bounded Architect DARE/trade-apply wave plus one bounded trade-rule/TPE unit wave instead of routing dishonestly to final review.
 
 **Goal:** Re-run the mission-level measurements after Steps 29-30 and decide whether the plan is honestly ready for final review or still needs more numbered waves.
 
@@ -873,7 +877,116 @@ That section must:
 
 ---
 
-## Step 32 — Final review (only when the mission-level gates are truly satisfied)
+## Step 32 — Harden the next Architect DARE / trade-apply truth cluster (wave 9)
+
+**Status:** TODO
+
+**Goal:** Tighten the next highest-leverage Architect/test cluster now that the validator/unit wave is clear and the remaining backlog is led by DARE, sign-and-trade, and trade-apply guardrails.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts`
+- `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts`
+- `src/tests/architect/signAndTrade.test.ts`
+- `src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts`
+- `src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts`
+- any tiny `src/features/architect/utils/mutationPipeline.ts` fixups that are directly required to keep this cluster truthful
+
+For the chosen cluster:
+
+1. Remove stale trade-apply fixtures, raw optional validated-context reads, and any remaining legacy executeTrade assumptions.
+2. Keep DARE/smoke and sign-and-trade assertions aligned with the live trade-apply and validated-trade-context contracts.
+3. Keep `mutationPipeline.ts` edits tightly coupled to this cluster rather than reopening a broad runtime wave.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts src/tests/architect/signAndTrade.test.ts src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the Architect DARE / trade-apply cluster.
+- Do not widen into the remaining trade-rule unit tests except for tiny shared truth fixups that this cluster directly requires.
+
+**Done when:** The Architect DARE / trade-apply cluster is materially more truthful, any coupled runtime fixups stay bounded, and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden architect dare trade apply cluster`.
+
+---
+
+## Step 33 — Harden the next trade-rule / TPE unit cluster (wave 10)
+
+**Status:** TODO
+
+**Goal:** Tighten the next highest-value trade-rule / TPE unit cluster exposed by the Step 31 checkpoint after the Architect DARE/trade-apply wave is clear.
+
+**Instructions:**
+Focus this wave on:
+
+- `tests/trade/tpe_creation_expiry_usage.test.ts`
+- `tests/trade/secondApronBoundary.test.ts`
+- `tests/trade/timingEnforcement_authoritative.test.ts`
+- `tests/trade/reacquisition_bar.test.ts`
+- `tests/trade/tpe_absorption_fail_closed.test.ts`
+- `tests/trade/validation_caching.test.ts`
+- any tiny shared trade-rule helper truth fixups that are directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove implicit-any fixture builders, `never[]` defaults, and stale TPE/second-apron assumption bags.
+2. Keep TPE lifecycle, timing, reacquisition, and second-apron assertions aligned with the live rule contracts.
+3. Keep behavior unchanged unless a test only passed because it depended on a dishonest fixture shape.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/trade/tpe_creation_expiry_usage.test.ts tests/trade/secondApronBoundary.test.ts tests/trade/timingEnforcement_authoritative.test.ts tests/trade/reacquisition_bar.test.ts tests/trade/tpe_absorption_fail_closed.test.ts tests/trade/validation_caching.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the trade-rule / TPE unit cluster.
+- Do not widen back into the Architect DARE/e2e cluster except for tiny shared rule truth that this cluster directly requires.
+
+**Done when:** The trade-rule / TPE unit cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden trade rule tpe truth cluster`.
+
+---
+
+## Step 34 — Post-wave checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 32-33 and decide whether the plan is honestly ready for final review or still needs more numbered waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 31 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs more numbered waves.
+4. Append additional numbered steps immediately after Step 34 if substantial mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-dare hardening checkpoint`.
+
+---
+
+## Step 35 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -908,7 +1021,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 33 — Final closeout (only when the mission is actually done)
+## Step 36 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
