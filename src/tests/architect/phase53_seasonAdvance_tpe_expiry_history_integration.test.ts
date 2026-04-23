@@ -35,6 +35,7 @@ import {
   buildExpiryHistoryKey,
   appendExceptionHistory,
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
+import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
 
 type TpeFixtureOptions = {
   remainingAmount?: number;
@@ -42,6 +43,44 @@ type TpeFixtureOptions = {
   isUsed?: boolean;
   createdFrom?: string;
 } & Record<string, unknown>;
+type TpeExpiryHistoryEntry = NonNullable<
+  ReturnType<typeof createTpeExpiryHistoryEntry>
+>;
+type HistoryEntryLike = Omit<
+  Partial<TpeExpiryHistoryEntry>,
+  'historyKey' | 'type' | 'teamCode' | 'tpeId' | 'timestamp'
+> & {
+  historyKey?: string;
+  type?: string;
+  teamCode?: string;
+  tpeId?: string;
+  timestamp?: string;
+};
+type TeamFixture = {
+  teamCode: string;
+  tradeExceptions?: TradeExceptionRecord[];
+  exceptions?: {
+    tpe?: TradeExceptionRecord[];
+  };
+  exceptionHistory?: HistoryEntryLike[];
+} & Record<string, unknown>;
+type SeasonAdvanceTpeExpiryResult = {
+  persistedTradeExceptions: TradeExceptionRecord[];
+  expiredTPEs: TradeExceptionRecord[];
+  hasChanges: boolean;
+  exceptionHistory: HistoryEntryLike[];
+  historyEntriesGenerated: TpeExpiryHistoryEntry[];
+  mergedCount: number;
+  dedupeApplied: boolean;
+};
+
+const requireValue = <T,>(value: T | null | undefined, label: string): T => {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  return value;
+};
 
 // ============================================================================
 // TEST FIXTURES
@@ -61,7 +100,12 @@ const TIMESTAMP_ISO = '2026-01-29T12:00:00.000Z';
 /**
  * Creates a TPE fixture with canonical schema.
  */
-const makeTPE = (id, amount, expiresOn, options: TpeFixtureOptions = {}) => ({
+const makeTPE = (
+  id: string,
+  amount: number,
+  expiresOn: string,
+  options: TpeFixtureOptions = {}
+): TradeExceptionRecord => ({
   id,
   amount,
   totalAmount: amount,
@@ -77,7 +121,11 @@ const makeTPE = (id, amount, expiresOn, options: TpeFixtureOptions = {}) => ({
 /**
  * Creates a legacy TPE fixture using expiryISO instead of expiresOn.
  */
-const makeLegacyTPE = (id, amount, expiryISO) => ({
+const makeLegacyTPE = (
+  id: string,
+  amount: number,
+  expiryISO: string
+): TradeExceptionRecord => ({
   id,
   amount,
   totalAmount: amount,
@@ -92,8 +140,8 @@ const makeLegacyTPE = (id, amount, expiryISO) => ({
 /**
  * Simulates the Phase 47C dedupeById function for dual-source merging.
  */
-const dedupeById = (tpes) => {
-  const seen = new Map();
+const dedupeById = (tpes: TradeExceptionRecord[]): TradeExceptionRecord[] => {
+  const seen = new Map<string, TradeExceptionRecord>();
   for (const tpe of tpes) {
     if (!tpe.id) continue;
     const existing = seen.get(tpe.id);
@@ -125,10 +173,10 @@ const dedupeById = (tpes) => {
  * 5) Return persisted state
  */
 const simulateSeasonAdvanceTPEExpiryWithHistory = (
-  team,
-  toSeason,
-  worldId = WORLD_ID
-) => {
+  team: TeamFixture,
+  toSeason: string,
+  worldId: string | null = WORLD_ID
+): SeasonAdvanceTpeExpiryResult => {
   const teamCode = team.teamCode;
   const timestampISO = TIMESTAMP_ISO;
 
@@ -153,7 +201,7 @@ const simulateSeasonAdvanceTPEExpiryWithHistory = (
   };
 
   // Step 5: Generate TPE_EXPIRED history entries for each expired TPE
-  const historyEntries = [];
+  const historyEntries: TpeExpiryHistoryEntry[] = [];
   if (result.expiredTPEs && result.expiredTPEs.length > 0) {
     for (const expiredTpe of result.expiredTPEs) {
       const expiresOn = getTpeExpiryISO(expiredTpe);
@@ -171,7 +219,7 @@ const simulateSeasonAdvanceTPEExpiryWithHistory = (
         toSeason,
         createdFrom: expiredTpe.createdFrom,
         timestampISO,
-        worldId,
+        worldId: worldId ?? undefined,
       });
 
       if (entry) {
@@ -486,15 +534,18 @@ describe('Phase 53: Season Advance TPE Expiry History Integration Tests', () => 
       };
 
       // Manually try to add the same entry again
-      const duplicateEntry = createTpeExpiryHistoryEntry({
-        teamCode: 'OKC',
-        tpeId: 'tpe_dupe_test',
-        amountExpired: 6_000_000,
-        expiresOn: '2026-04-01T00:00:00.000Z',
-        toSeason: TO_SEASON,
-        timestampISO: TIMESTAMP_ISO,
-        worldId: WORLD_ID,
-      });
+      const duplicateEntry = requireValue(
+        createTpeExpiryHistoryEntry({
+          teamCode: 'OKC',
+          tpeId: 'tpe_dupe_test',
+          amountExpired: 6_000_000,
+          expiresOn: '2026-04-01T00:00:00.000Z',
+          toSeason: TO_SEASON,
+          timestampISO: TIMESTAMP_ISO,
+          worldId: WORLD_ID,
+        }),
+        'duplicateEntry'
+      );
 
       appendExceptionHistory(teamWithHistory, [duplicateEntry]);
 
@@ -615,7 +666,7 @@ describe('Phase 53: Season Advance TPE Expiry History Integration Tests', () => 
       expect(result.expiredTPEs).toHaveLength(1);
       expect(result.exceptionHistory).toHaveLength(1);
 
-      const entry = result.exceptionHistory[0];
+      const entry = requireValue(result.exceptionHistory[0], 'result.exceptionHistory[0]');
       expect(entry.amountExpired).toBe(4_000_000); // remainingAmount
       expect(entry.totalAmount).toBe(10_000_000);
     });
@@ -692,17 +743,19 @@ describe('Phase 53: Helper Function Validation', () => {
   });
 
   test('createTpeExpiryHistoryEntry returns valid entry with required fields', () => {
-    const entry = createTpeExpiryHistoryEntry({
-      teamCode: 'BOS',
-      tpeId: 'tpe-1',
-      amountExpired: 5_000_000,
-      expiresOn: '2026-06-15T00:00:00.000Z',
-      toSeason: '2026-27',
-      timestampISO: '2026-01-29T12:00:00.000Z',
-      worldId: 'test-world',
-    });
+    const entry = requireValue(
+      createTpeExpiryHistoryEntry({
+        teamCode: 'BOS',
+        tpeId: 'tpe-1',
+        amountExpired: 5_000_000,
+        expiresOn: '2026-06-15T00:00:00.000Z',
+        toSeason: '2026-27',
+        timestampISO: '2026-01-29T12:00:00.000Z',
+        worldId: 'test-world',
+      }),
+      'entry'
+    );
 
-    expect(entry).not.toBeNull();
     expect(entry.type).toBe('TPE_EXPIRED');
     expect(entry.teamCode).toBe('BOS');
     expect(entry.tpeId).toBe('tpe-1');

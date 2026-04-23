@@ -12,6 +12,19 @@
 import { describe, it, expect } from 'vitest';
 import { resolveDraftPickSwapsForYear } from '@/features/architect/utils/seasonManager';
 
+type SwapResolutionResult = ReturnType<typeof resolveDraftPickSwapsForYear>;
+
+const requireValue = <T,>(value: T | null | undefined, label: string): T => {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  return value;
+};
+
+const getDraftPick = (result: SwapResolutionResult, index: number) =>
+  requireValue(result.draftPicks?.[index], `result.draftPicks[${index}]`);
+
 /**
  * Season Advance Swap Resolution Tests
  *
@@ -38,10 +51,11 @@ describe('resolveDraftPickSwapsForYear()', () => {
       };
 
       const result = resolveDraftPickSwapsForYear(team, 2026, null);
+      const draftPick = getDraftPick(result, 0);
 
       // Should return team unchanged
-      expect(result.draftPicks[0].resolved).toBe(false);
-      expect(result.draftPicks[0].resolvedOwner).toBeUndefined();
+      expect(draftPick.resolved).toBe(false);
+      expect(draftPick.resolvedOwner).toBeUndefined();
     });
 
     it('returns team unchanged when positionsMap is undefined', () => {
@@ -80,9 +94,10 @@ describe('resolveDraftPickSwapsForYear()', () => {
       };
 
       const result = resolveDraftPickSwapsForYear(team, 2026, {});
+      const draftPick = getDraftPick(result, 0);
 
       // Should return team unchanged (no positions to resolve with)
-      expect(result.draftPicks[0].resolved).toBeUndefined();
+      expect(draftPick.resolved).toBeUndefined();
     });
   });
 
@@ -105,9 +120,10 @@ describe('resolveDraftPickSwapsForYear()', () => {
       const positionsMap = { PHI: 12, OKC: 5 };
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(result, 0);
 
-      expect(result.draftPicks[0].resolved).toBe(true);
-      expect(result.draftPicks[0].resolvedOwner).toBe('OKC');
+      expect(draftPick.resolved).toBe(true);
+      expect(draftPick.resolvedOwner).toBe('OKC');
     });
 
     it('leaves future-year swaps unresolved', () => {
@@ -129,8 +145,9 @@ describe('resolveDraftPickSwapsForYear()', () => {
 
       // Resolving for 2026 should not affect 2027 picks
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(result, 0);
 
-      expect(result.draftPicks[0].resolved).toBeUndefined();
+      expect(draftPick.resolved).toBeUndefined();
     });
 
     it('resolves multiple swaps in the same year', () => {
@@ -160,14 +177,16 @@ describe('resolveDraftPickSwapsForYear()', () => {
       const positionsMap = { PHI: 12, OKC: 5, LAL: 3, MIA: 20 };
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const firstDraftPick = getDraftPick(result, 0);
+      const secondDraftPick = getDraftPick(result, 1);
 
       // First swap: best_of PHI vs OKC -> OKC wins
-      expect(result.draftPicks[0].resolved).toBe(true);
-      expect(result.draftPicks[0].resolvedOwner).toBe('OKC');
+      expect(firstDraftPick.resolved).toBe(true);
+      expect(firstDraftPick.resolvedOwner).toBe('OKC');
 
       // Second swap: worst_of LAL vs MIA -> MIA wins (20 > 3)
-      expect(result.draftPicks[1].resolved).toBe(true);
-      expect(result.draftPicks[1].resolvedOwner).toBe('MIA');
+      expect(secondDraftPick.resolved).toBe(true);
+      expect(secondDraftPick.resolvedOwner).toBe('MIA');
     });
   });
 
@@ -191,9 +210,10 @@ describe('resolveDraftPickSwapsForYear()', () => {
 
       // Should NOT throw during season advance
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(result, 0);
 
       // Pick should remain unresolved
-      expect(result.draftPicks[0].resolved).toBeUndefined();
+      expect(draftPick.resolved).toBeUndefined();
     });
 
     it('leaves swap unresolved when swapWithTeamId is missing', () => {
@@ -214,8 +234,9 @@ describe('resolveDraftPickSwapsForYear()', () => {
       const positionsMap = { PHI: 12, OKC: 5 };
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(result, 0);
 
-      expect(result.draftPicks[0].resolved).toBeUndefined();
+      expect(draftPick.resolved).toBeUndefined();
     });
 
     it('preserves already-resolved swaps (idempotent)', () => {
@@ -239,11 +260,12 @@ describe('resolveDraftPickSwapsForYear()', () => {
       const positionsMap = { PHI: 12, OKC: 5 }; // Different positions
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(result, 0);
 
       // Should preserve original resolution
-      expect(result.draftPicks[0].resolved).toBe(true);
-      expect(result.draftPicks[0].resolvedOwner).toBe('PHI');
-      expect(result.draftPicks[0].resolvedPosition).toBe(3);
+      expect(draftPick.resolved).toBe(true);
+      expect(draftPick.resolvedOwner).toBe('PHI');
+      expect(draftPick.resolvedPosition).toBe(3);
     });
   });
 
@@ -266,9 +288,10 @@ describe('resolveDraftPickSwapsForYear()', () => {
       const positionsMap = { PHI: 42, OKC: 35 };
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(result, 0);
 
       // Second-round swaps should NOT be resolved in Phase 3
-      expect(result.draftPicks[0].resolved).toBeUndefined();
+      expect(draftPick.resolved).toBeUndefined();
     });
   });
 
@@ -289,8 +312,9 @@ describe('resolveDraftPickSwapsForYear()', () => {
       const positionsMap = { PHI: 12, OKC: 5 };
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(result, 0);
 
-      expect(result.draftPicks[0]).toEqual(outrightPick);
+      expect(draftPick).toEqual(outrightPick);
     });
   });
 });
@@ -318,8 +342,9 @@ describe('resolveDraftPickSwapsForYear() options', () => {
     const customTime = '2026-06-25T20:00:00Z';
 
     const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap, { nowIso: customTime });
+    const draftPick = getDraftPick(result, 0);
 
-    expect(result.draftPicks[0].resolutionMeta.resolvedAt).toBe(customTime);
+    expect(requireValue(draftPick.resolutionMeta, 'draftPick.resolutionMeta').resolvedAt).toBe(customTime);
   });
 
   it('accepts method option for resolution method', () => {
@@ -340,7 +365,8 @@ describe('resolveDraftPickSwapsForYear() options', () => {
     const positionsMap = { PHI: 12, OKC: 5 };
 
     const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap, { method: 'manual' });
+    const draftPick = getDraftPick(result, 0);
 
-    expect(result.draftPicks[0].resolutionMeta.method).toBe('manual');
+    expect(requireValue(draftPick.resolutionMeta, 'draftPick.resolutionMeta').method).toBe('manual');
   });
 });

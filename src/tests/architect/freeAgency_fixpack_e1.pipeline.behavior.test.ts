@@ -5,6 +5,7 @@ import { updateWorldStats } from '@/features/architect/utils/worldManager';
 
 type LoadedTeam = Awaited<ReturnType<typeof getTeam>>;
 type LoadedPlayer = Awaited<ReturnType<typeof getPlayer>>;
+type ApplyWorldMutationResult = Awaited<ReturnType<typeof applyWorldMutation>>;
 type RenouncedPlayerView = {
   rightsRenounced?: boolean;
   contract?: {
@@ -13,6 +14,26 @@ type RenouncedPlayerView = {
     } | null;
   } | null;
 };
+
+const requireValue = <T,>(value: T | null | undefined, label: string): T => {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  return value;
+};
+
+const getWritesSummary = (result: ApplyWorldMutationResult) =>
+  requireValue(result.writesSummary, 'result.writesSummary');
+
+const getChangedTeam = (
+  result: ApplyWorldMutationResult,
+  expectedTeamCode: string
+) =>
+  requireValue(
+    result.changedTeams?.find((entry) => entry.teamCode === expectedTeamCode)?.team,
+    `changed team ${expectedTeamCode}`
+  );
 
 const mockedGetTeam = vi.mocked(getTeam);
 const mockedGetPlayer = vi.mocked(getPlayer);
@@ -167,18 +188,21 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
       },
     });
 
+    const writesSummary = getWritesSummary(result);
+    const changedTeam = getChangedTeam(result, teamCode);
+    const tpmle = requireValue(changedTeam.exceptions?.tpmle, 'changedTeam.exceptions.tpmle');
+
     expect(result.success).toBe(true);
     expect(result.appliedToLocalState).toBe(true);
     expect(result.persistedToWorld).toBe(true);
-    expect(result.writesSummary.teamsPatched).toBeGreaterThan(0);
-    expect(result.writesSummary.playersPatched).toBeGreaterThan(0);
-    expect(result.writesSummary.eventsWritten).toBeGreaterThan(0);
-    expect(result.writesSummary.worldMetadataPatched).toBeGreaterThan(0);
+    expect(writesSummary.teamsPatched).toBeGreaterThan(0);
+    expect(writesSummary.playersPatched).toBeGreaterThan(0);
+    expect(writesSummary.eventsWritten).toBeGreaterThan(0);
+    expect(writesSummary.worldMetadataPatched).toBeGreaterThan(0);
 
-    const changedTeam = result.changedTeams.find((t) => t.teamCode === teamCode)?.team;
     expect(changedTeam).toBeDefined();
-    expect(changedTeam.exceptions.tpmle.usedAmount).toBe(5_000_000);
-    expect(changedTeam.exceptions.tpmle.remainingAmount).toBe(685_000);
+    expect(tpmle.usedAmount).toBe(5_000_000);
+    expect(tpmle.remainingAmount).toBe(685_000);
 
     const setPaths = firestoreMocks.batchSet.mock.calls.map(([ref]) => String(ref));
     expect(setPaths.some((path) => path.includes('architect_worlds/world_1/teams/LAL'))).toBe(
@@ -265,18 +289,23 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
       },
     });
 
+    const writesSummary = getWritesSummary(result);
+    const changedTeam = getChangedTeam(result, teamCode);
+    const changedPlayer = requireValue(
+      changedTeam.players?.find((player) => (player.player_id || player.id) === playerId),
+      `changed player ${playerId}`
+    ) as RenouncedPlayerView;
+
     expect(result.success).toBe(true);
     expect(result.appliedToLocalState).toBe(true);
     expect(result.persistedToWorld).toBe(true);
-    expect(result.writesSummary.eventsWritten).toBeGreaterThan(0);
+    expect(writesSummary.eventsWritten).toBeGreaterThan(0);
 
-    const changedTeam = result.changedTeams.find((t) => t.teamCode === teamCode)?.team;
-    expect(changedTeam.capHolds).toHaveLength(0);
-    const changedPlayer = changedTeam.players.find(
-      (p) => (p.player_id || p.id) === playerId
-    ) as RenouncedPlayerView | undefined;
+    expect(requireValue(changedTeam.capHolds, 'changedTeam.capHolds')).toHaveLength(0);
     expect(changedPlayer.rightsRenounced).toBe(true);
-    expect(changedPlayer.contract.birdRights.status).toBe('None');
+    expect(requireValue(changedPlayer.contract, 'changedPlayer.contract').birdRights?.status).toBe(
+      'None'
+    );
 
     const setPaths = firestoreMocks.batchSet.mock.calls.map(([ref]) => String(ref));
     expect(setPaths.some((path) => path.includes('renounceRights_'))).toBe(true);

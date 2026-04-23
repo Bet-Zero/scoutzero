@@ -21,6 +21,29 @@
  */
 
 import { describe, test, expect, vi } from 'vitest';
+import type {
+  NormalizedTradeExceptionRecord,
+  TradeExceptionPlayer,
+  TradeExceptionRecord,
+} from '@/features/architect/utils/tradeMachine/constants/types';
+
+type ConsumptionWarning = {
+  playerId: string;
+  tpeId: string;
+  reason: string;
+};
+type IdempotentCreationResult = {
+  shouldAdd: boolean;
+  reason: 'duplicate_by_id' | 'duplicate_by_signature' | null;
+};
+
+const requireValue = <T,>(value: T | null | undefined, label: string): T => {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  return value;
+};
 
 // ============================================================================
 // Test Helpers
@@ -32,7 +55,11 @@ import { describe, test, expect, vi } from 'vitest';
  * @param {number} amount - TPE amount
  * @param {Object} options - Additional TPE fields
  */
-const makeTPE = (id, amount, options = {}) => ({
+const makeTPE = (
+  id: string,
+  amount: number,
+  options: Partial<TradeExceptionRecord> = {}
+): TradeExceptionRecord => ({
   id,
   amount,
   totalAmount: amount,
@@ -47,13 +74,16 @@ const makeTPE = (id, amount, options = {}) => ({
 /**
  * Simulates the Phase 47C normalizeTPE function
  */
-const normalizeTPE = (t) => ({
+const normalizeTPE = (
+  t: TradeExceptionRecord
+): NormalizedTradeExceptionRecord => ({
   ...t,
   id:
     t.id ||
     `tpe_legacy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
   amount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
   totalAmount: t.totalAmount ?? t.amount ?? 0,
+  remaining: t.remaining ?? t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
   remainingAmount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
   usedAmount: t.usedAmount ?? 0,
 });
@@ -61,8 +91,10 @@ const normalizeTPE = (t) => ({
 /**
  * Simulates the Phase 47C dedupeById function
  */
-const dedupeById = (tpes) => {
-  const seen = new Map();
+const dedupeById = (
+  tpes: NormalizedTradeExceptionRecord[]
+): NormalizedTradeExceptionRecord[] => {
+  const seen = new Map<string, NormalizedTradeExceptionRecord>();
   for (const tpe of tpes) {
     if (!tpe.id) continue;
     const existing = seen.get(tpe.id);
@@ -91,16 +123,21 @@ const dedupeById = (tpes) => {
  * Simulates the Phase 47C TPE consumption logic (matchIncoming only)
  * Returns { tpeUsageMap, warnings }
  */
-const simulateTPEConsumption = (incomingPlayers) => {
-  const tpeUsageMap = new Map();
-  const warnings = [];
+const simulateTPEConsumption = (
+  incomingPlayers: TradeExceptionPlayer[]
+): {
+  tpeUsageMap: Map<string, number>;
+  warnings: ConsumptionWarning[];
+} => {
+  const tpeUsageMap = new Map<string, number>();
+  const warnings: ConsumptionWarning[] = [];
 
   incomingPlayers.forEach((player) => {
     if (!player.tpeId) return;
 
     if (player.matchIncoming === undefined || player.matchIncoming === null) {
       warnings.push({
-        playerId: player.player_id || player.name,
+        playerId: String(player.player_id || player.name || 'unknown-player'),
         tpeId: player.tpeId,
         reason:
           'matchIncoming missing for TPE consumption - consumption skipped',
@@ -120,7 +157,11 @@ const simulateTPEConsumption = (incomingPlayers) => {
  * Simulates the Phase 47C idempotent TPE creation logic
  * Returns { shouldAdd, reason }
  */
-const checkIdempotentCreation = (createdTPE, existingTPEs, createdFrom) => {
+const checkIdempotentCreation = (
+  createdTPE: TradeExceptionRecord,
+  existingTPEs: TradeExceptionRecord[],
+  createdFrom: string
+): IdempotentCreationResult => {
   const tpeId = createdTPE.id || 'tpe_new_generated';
 
   const newTPESignature = [
@@ -130,8 +171,8 @@ const checkIdempotentCreation = (createdTPE, existingTPEs, createdFrom) => {
     createdFrom,
   ].join('|');
 
-  const hasDuplicateById = existingTPEs.some((t) => t.id === tpeId);
-  const hasDuplicateBySignature = existingTPEs.some((t) => {
+  const hasDuplicateById = existingTPEs.some((t: TradeExceptionRecord) => t.id === tpeId);
+  const hasDuplicateBySignature = existingTPEs.some((t: TradeExceptionRecord) => {
     const existingSignature = [
       t.createdSeason,
       t.expiresOn,
@@ -319,8 +360,8 @@ describe('Phase 47C: TPE Persistence Hardening Guardrails', () => {
     });
 
     test('TC-B4: Empty sources produce empty result', () => {
-      const primaryTPEs = [];
-      const legacyTPEs = [];
+      const primaryTPEs: NormalizedTradeExceptionRecord[] = [];
+      const legacyTPEs: NormalizedTradeExceptionRecord[] = [];
 
       const allTPEs = [...primaryTPEs, ...legacyTPEs];
       const result = dedupeById(allTPEs);
@@ -407,7 +448,7 @@ describe('Phase 47C: TPE Persistence Hardening Guardrails', () => {
 
   describe('Task C (continued): Validator ID Preservation', () => {
     test('TC-C4: If createdTPE.id exists, persisted TPE id matches it', () => {
-      const existingTPEs = [];
+      const existingTPEs: TradeExceptionRecord[] = [];
 
       const createdTPE = {
         id: 'validator_provided_id_123', // Validator set this
@@ -535,12 +576,15 @@ describe('Phase 47C: TPE Persistence Hardening Guardrails', () => {
         return {
           ...tpe,
           remainingAmount: Math.max(0, tpe.remainingAmount - consumed),
-          usedAmount: tpe.usedAmount + consumed,
+          usedAmount: (tpe.usedAmount ?? 0) + consumed,
           isUsed: tpe.remainingAmount - consumed === 0,
         };
       });
 
-      const primaryAfter = consumedTPEs.find((t) => t.id === 'tpe_primary');
+      const primaryAfter = requireValue(
+        consumedTPEs.find((t) => t.id === 'tpe_primary'),
+        'primaryAfter'
+      );
       expect(primaryAfter.remainingAmount).toBe(10_000_000); // 15M - 5M consumed
 
       // Step 4: Try to create new TPE (first time)

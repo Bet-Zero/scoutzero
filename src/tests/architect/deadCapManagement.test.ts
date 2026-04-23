@@ -3,6 +3,19 @@ import { describe, it, expect } from 'vitest';
 import { validateDeadCap } from '@/features/architect/utils/capLegalityValidation';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 
+type ComputeWorldMutationResult = ReturnType<typeof computeWorldMutation>;
+
+const requireValue = <T,>(value: T | null | undefined, label: string): T => {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  return value;
+};
+
+const getUpdatedTeam = (result: ComputeWorldMutationResult) =>
+  requireValue(result.teamUpdates?.[0]?.team, 'result.teamUpdates[0].team');
+
 /**
  * Phase 24: Manual Dead Money Management Tests
  * 
@@ -102,15 +115,16 @@ describe('Dead Money Management (setDeadCap)', () => {
               seasonId: '2025-26',
               timestamp: Date.now()
           } as unknown as Parameters<typeof computeWorldMutation>[0]);
+          const updatedTeam = getUpdatedTeam(result);
           
           expect(result.success).toBe(true);
           expect(result.teamUpdates).toHaveLength(1);
-          expect(result.teamUpdates[0].team.deadCap).toEqual(newDeadCap);
+          expect(updatedTeam.deadCap).toEqual(newDeadCap);
           // Ensure it fully replaced, not appended
-          expect(result.teamUpdates[0].team.deadCap).toHaveLength(1);
+          expect(updatedTeam.deadCap).toHaveLength(1);
           expect(
             (
-              result.teamUpdates[0].team.deadCap as Array<{
+              updatedTeam.deadCap as Array<{
                 reason?: string;
               }>
             )[0].reason
@@ -159,15 +173,16 @@ describe('Dead Money Management (setDeadCap)', () => {
               seasonId: '2025-26',
               timestamp: Date.now()
           } as unknown as Parameters<typeof computeWorldMutation>[0]);
+            const updatedTeam = getUpdatedTeam(result);
 
           expect(result.success).toBe(true);
-          expect(result.teamUpdates[0].team.totals.yearKey).toBe(2026);
-          expect(typeof result.teamUpdates[0].team.totals.totalCapAllocations).toBe('number');
-          expect(result.teamUpdates[0].team.totals.capHit).toBe(
-              result.teamUpdates[0].team.totals.totalCapAllocations
+            expect(updatedTeam.totals?.yearKey).toBe(2026);
+            expect(typeof updatedTeam.totals?.totalCapAllocations).toBe('number');
+            expect(updatedTeam.totals?.capHit).toBe(
+              updatedTeam.totals?.totalCapAllocations
           );
-          expect(result.teamUpdates[0].team.totals.totalSalary).toBe(
-              result.teamUpdates[0].team.totals.totalCapAllocations
+            expect(updatedTeam.totals?.totalSalary).toBe(
+              updatedTeam.totals?.totalCapAllocations
           );
       });
   });

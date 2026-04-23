@@ -1481,6 +1481,73 @@ the next dead-cap / season-state tier, the top runtime-owner hotspot, and the
 residual trade aftermath unit cluster. The plan must extend again rather than
 route to closeout.
 
+## Step 35 Architect Dead-Cap / Season-State Wave Delta
+
+Reviewed: 2026-04-23, after the eleventh Architect dead-cap / season-state wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 34 checkpoint | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 944 | 823 | -121 |
+| `src/tests/architect/deadCapManagement.test.ts` | 24 after Step 34 | 0 | Cleared |
+| `src/tests/tradeMachine/seasonSwapResolution.test.ts` | 21 after Step 34 | 0 | Cleared |
+| `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts` | 20 after Step 34 | 0 | Cleared |
+| `src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts` | 19 after Step 34 | 0 | Cleared |
+| `src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts` | 19 after Step 34 | 0 | Cleared |
+| `src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts` | 18 after Step 34 | 0 | Cleared |
+
+### What Changed
+
+- `src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts`
+  now types its salary-fixture inputs and routes optional totals, nullable
+  violation results, and regex match captures through required readers instead
+  of raw optional chains.
+- `src/tests/tradeMachine/seasonSwapResolution.test.ts` now uses a required
+  draft-pick reader for swap-resolution assertions so the test no longer
+  dereferences optional `draftPicks` and `resolutionMeta` values directly.
+- `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts` now
+  uses required readers for `applyWorldMutation()` result summaries, changed
+  teams, exception buckets, and changed players instead of assuming those
+  optional result surfaces are always present.
+- `src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts`
+  and `src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts`
+  now type their TPE record, history-entry, and helper-layer fixtures against
+  the live trade-exception/history contracts, including truthful support for
+  mixed legacy/canonical history rows.
+- `src/tests/architect/deadCapManagement.test.ts` now routes mutation results
+  through a required updated-team reader so the dead-cap assertions no longer
+  depend on unchecked `teamUpdates[0]` access.
+- The approved bounded node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot src/tests/architect/deadCapManagement.test.ts src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts src/tests/tradeMachine/seasonSwapResolution.test.ts`
+  finished with `85 / 85` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 35
+  edits.
+
+### Remaining Hotspots After Step 35
+
+The Step 35 wave cleared the planned Architect dead-cap / season-state cluster.
+The strongest remaining Architect strict hotspots are now:
+
+- `src/features/architect/utils/mutationPipeline.ts` (`34`)
+- `src/shared/components/EditContractModal.tsx` (`22`)
+- `tests/trade/twoWayPlayers_snapshot.test.ts` (`19`)
+- `tests/architect/tradeManager.test.ts` (`19`)
+- `tests/trade/secondApron_tpeBan.test.ts` (`18`)
+- `tests/trade/poisonPill_average.test.ts` (`17`)
+- `src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts` (`17`)
+- `src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts` (`17`)
+- `tests/trade/signAndTrade_completeness.test.ts` (`16`)
+- `tests/trade/consent_and_birdVeto.test.ts` (`16`)
+
+The six Step 35 target files no longer appear in the Architect strict output.
+
+Plain-language read: Step 35 removed the queued Architect dead-cap /
+season-state truth cluster and pulled Architect strict down to `823`. The next
+highest-leverage work is now the trade aftermath / snapshot cluster already
+queued in Step 36, with `mutationPipeline.ts` and `EditContractModal.tsx`
+remaining as the loudest non-cluster hotspots.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -1538,5 +1605,9 @@ route to closeout.
 - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
 - `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step34_architect_strict.log 2>&1; echo EXIT:$?; grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step34_architect_strict.log | wc -l`
 - `grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step34_architect_strict.log | sed -E 's#^([^(:]+)\([0-9]+,[0-9]+\): error TS.*#\1#' | sort | uniq -c | sort -nr | head -12`
+- `npm run test:node -- --reporter=dot src/tests/architect/deadCapManagement.test.ts src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts src/tests/tradeMachine/seasonSwapResolution.test.ts`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step35_architect_strict.log 2>&1; echo EXIT:$?; grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step35_architect_strict.log | wc -l`
+- `grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step35_architect_strict.log | sed -E 's#^([^(:]+)\([0-9]+,[0-9]+\): error TS.*#\1#' | sort | uniq -c | sort -nr | head -12`
+- `grep -E '^(src/tests/architect/deadCapManagement|src/tests/architect/freeAgency_fixpack_e1\.pipeline\.behavior|src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration|src/tests/architect/phase47c_tpe_persistence_hardening_guardrails|src/tests/architect/phase75_room_exception_auto_eligibility_guardrails|src/tests/tradeMachine/seasonSwapResolution)\.test\.ts' /tmp/step35_architect_strict.log || true`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

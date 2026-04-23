@@ -996,7 +996,9 @@ That section must:
 
 ## Step 35 — Harden the next Architect dead-cap / season-state truth cluster (wave 11)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Hardened the planned Architect dead-cap / season-state cluster, kept root typecheck green, passed the bounded node pack at `85 / 85`, and reduced Architect strict from `944` to `823`.
 
 **Goal:** Tighten the next highest-value Architect season-state / dead-cap cluster exposed by the Step 34 checkpoint while keeping runtime-owner edits tightly bounded.
 
