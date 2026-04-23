@@ -62,8 +62,10 @@
 - Steps 19–21: harden the highest-value remaining Architect persistence / trade / season test harnesses and central supporting mocks/fixtures
 - Step 22: reassess strictness readiness after the Architect normalization wave
 - Steps 23–24: harden the next persistence/world/cap truth clusters exposed by the master checkpoint
-- Step 25: reassess post-wave readiness and decide whether the remaining exception/parity/integration debt is one bounded wave or still multiple waves
-- Steps 26+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
+- Step 25: reassess post-wave readiness and split the remaining Architect/test debt into the next bounded waves
+- Steps 26–27: harden the remaining exception/parity guardrail cluster, then the remaining integration/normalization harness cluster
+- Step 28: reassess final-review readiness after those waves and extend again if substantial mission-area debt remains
+- Steps 29+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
 - Final closeout: only after the mission-level gates are satisfied
 
 **Universal constraints (apply to every step):**
@@ -612,7 +614,9 @@ Validation:
 
 ## Step 25 — Post-wave checkpoint: classify the remaining exception/parity backlog
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Re-ran the root compatibility gate plus the shared and Architect strict probes, confirmed the shared probe remains green while Architect strict sits at `1,914`, and classified the remaining backlog as two more bounded waves rather than one last cleanup pass or an architecture blocker.
 
 **Goal:** Re-run the mission-level measurements after Steps 23-24 and decide whether the remaining exception/parity/integration debt is one final bounded wave or still broad enough to require multiple additional waves.
 
@@ -644,7 +648,113 @@ That section must:
 
 ---
 
-## Step 26 — Final review (only when the mission-level gates are truly satisfied)
+## Step 26 — Harden the exception lifecycle / parity guardrail cluster (wave 5)
+
+**Status:** TODO
+
+**Goal:** Tighten the remaining exception/parity guardrail harnesses that now dominate the Architect strict backlog after the cap-legality / rights wave.
+
+**Instructions:**
+Focus this wave on the tightest remaining exception/parity cluster:
+
+- `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts`
+- `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts`
+- `src/tests/architect/exceptionManagement.test.ts`
+- only the minimum supporting helper/runtime edits required to make those harnesses truthful
+
+For the chosen cluster:
+
+1. Replace raw optional exception snapshots and parity assumptions with required-reader helpers.
+2. Align fixture builders with the current exception lifecycle and season-advance contracts instead of bag-shaped state.
+3. Keep runtime behavior unchanged unless a harness depended on a dishonest contract.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts src/tests/architect/exceptionManagement.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to exception lifecycle / parity truth.
+- Do not widen into the broader integration/normalization suites in this step.
+
+**Done when:** The exception/parity guardrail cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden architect exception parity guardrails`.
+
+---
+
+## Step 27 — Harden the remaining integration / normalization harness cluster (wave 6)
+
+**Status:** TODO
+
+**Goal:** Tighten the next highest-leverage integration/normalization harnesses after the exception/parity cluster is reduced.
+
+**Instructions:**
+Focus this wave on:
+
+- `tests/architect/contractNormalization.test.ts`
+- `tests/architect/integration.test.ts`
+- `tests/architect/e2e-workflows.test.ts`
+- `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts`
+- `tests/architect/schemaAdapter.test.ts`
+- any tiny follow-up helper fixups from the earlier cap-legality/rights wave only if they are required to keep this cluster truthful
+
+For the chosen cluster:
+
+1. Remove broad typed bypasses and raw optional integration-state assumptions.
+2. Align normalization/integration fixtures with the current runtime contracts.
+3. Keep runtime behavior unchanged unless an assertion depended on a dishonest shape.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/architect/contractNormalization.test.ts tests/architect/integration.test.ts tests/architect/e2e-workflows.test.ts src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts tests/architect/schemaAdapter.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the integration/normalization cluster.
+- Do not reopen the already-cleared persistence/world/cap truth harnesses except for minimal shared helper truth.
+
+**Done when:** The integration/normalization cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden architect integration normalization harnesses`.
+
+---
+
+## Step 28 — Post-wave checkpoint: reassess final-review readiness
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 26-27 and decide whether the plan is honestly ready for final review or still needs more numbered waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 25 post-wave checkpoint.
+3. State whether the mission is honestly ready for final review or still needs more numbered waves.
+4. Append additional numbered steps immediately after Step 28 if substantial mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-exception architect hardening checkpoint`.
+
+---
+
+## Step 29 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 

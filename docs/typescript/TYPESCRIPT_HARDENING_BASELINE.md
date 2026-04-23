@@ -894,6 +894,55 @@ it is concentrated in exception lifecycle/parity guardrails plus a smaller set
 of integration/normalization harnesses, which is the right input for the Step 25
 checkpoint.
 
+## Post-Step-24 Hardening Checkpoint
+
+Reviewed: 2026-04-22, after Steps 23-24 completed the planned persistence/world/cap truth waves.
+
+### Probe Delta
+
+| Command | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Current | Reading |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `npm run typecheck` | 0 | compatibility-only pass | 0 | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | 1,914 | Architect/test strict posture improved materially (`-653` vs the original baseline, `-718` vs Step 14, `-314` vs Step 22), but it remains the mission blocker by a large margin. |
+
+### Current Architect Strict Concentration
+
+- The remaining backlog is now led by the exception/parity guardrail cluster:
+  `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` (`64`),
+  `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` (`62`), and
+  `src/tests/architect/exceptionManagement.test.ts` (`58`).
+- The next tier is the integration/normalization cluster:
+  `tests/architect/contractNormalization.test.ts` (`50`),
+  `tests/architect/integration.test.ts` (`49`),
+  `tests/architect/e2e-workflows.test.ts` (`49`),
+  `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts` (`41`), and
+  `tests/architect/schemaAdapter.test.ts` (`39`).
+- The previous persistence/world/cap truth hotspots from Steps 23-24 no longer
+  lead the backlog. That is real progress, but it does not collapse the
+  remaining Architect/test debt into one tiny final pass.
+
+### Checkpoint Decision
+
+The remaining mission-area backlog is still **multiple waves**, not one final
+bounded cleanup pass and not an architecture-decision blocker.
+
+The next honest split is:
+
+1. one bounded wave for the remaining exception lifecycle / parity guardrail
+   harnesses;
+2. one follow-up wave for the remaining integration / normalization harnesses;
+3. a fresh checkpoint after those waves before any final-review claim.
+
+Plain-language read: the hardening plan is substantially healthier than it was
+at the Step 22 checkpoint, and the cap-legality / renounce-rights cluster is no
+longer in the way. But `1,914` Architect-strict errors is still far beyond a
+truthful final-review threshold, and the remaining debt is clearly split across
+at least two bounded test waves. The plan must therefore continue with a
+dedicated exception/parity wave first, then an integration/normalization wave,
+before another readiness checkpoint can honestly decide whether closeout is in
+range.
+
 ## Evidence Commands
 
 - `rg --files`
