@@ -15,6 +15,23 @@ import { describe, it, expect } from 'vitest';
 import { validateExceptions } from '@/features/architect/utils/capLegalityValidation';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getUpdatedTeam(
+  result: ReturnType<typeof computeWorldMutation>,
+  message: string
+) {
+  return requireValue(result.teamUpdates?.[0]?.team, message);
+}
+
 /**
  * Phase 27: Manual Exception Management Tests
  *
@@ -249,7 +266,15 @@ describe('Exception Management (setExceptions)', () => {
 
       expect(result.success).toBe(true);
       expect(result.teamUpdates).toHaveLength(1);
-      expect(result.teamUpdates[0].team.exceptions.mle).toEqual(
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated team for setExceptions replacement test'
+      );
+      const updatedExceptions = requireValue(
+        updatedTeam.exceptions,
+        'Expected exceptions for setExceptions replacement test'
+      );
+      expect(updatedExceptions.mle).toEqual(
         expect.objectContaining({
           ...newExceptions.mle,
           available: true,
@@ -258,16 +283,19 @@ describe('Exception Management (setExceptions)', () => {
           remainingAmount: 7500000,
         })
       );
-      expect(result.teamUpdates[0].team.exceptions.bae).toBeUndefined();
-      expect(result.teamUpdates[0].team.exceptions.dpe).toEqual(
+      expect(updatedExceptions.bae).toBeUndefined();
+      expect(updatedExceptions.dpe).toEqual(
         currentState.team.exceptions.dpe
       );
-      expect(result.teamUpdates[0].team.exceptions.tpe).toEqual(
+      expect(updatedExceptions.tpe).toEqual(
         currentState.team.exceptions.tpe
       );
-      expect(result.teamUpdates[0].team.exceptions.mle.seasonKey).toBe(
-        '2025-26'
-      );
+      expect(
+        requireValue(
+          updatedExceptions.mle,
+          'Expected MLE exception after setExceptions replacement test'
+        ).seasonKey
+      ).toBe('2025-26');
     });
 
     // Test 12: Persistence contract (returns teamUpdates including updated team exceptions field)
@@ -294,8 +322,12 @@ describe('Exception Management (setExceptions)', () => {
 
       expect(result.success).toBe(true);
       expect(result.teamUpdates).toHaveLength(1);
-      expect(result.teamUpdates[0].teamCode).toBe('BOS');
-      expect(result.teamUpdates[0].team.exceptions).toEqual({
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated team for teamUpdates coverage test'
+      );
+      expect(requireValue(result.teamUpdates?.[0]?.teamCode, 'Expected updated team code')).toBe('BOS');
+      expect(updatedTeam.exceptions).toEqual({
         mle: expect.objectContaining({
           ...newExceptions.mle,
           available: true,
@@ -333,7 +365,12 @@ describe('Exception Management (setExceptions)', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.teamUpdates[0].team.exceptions).toEqual({
+      expect(
+        getUpdatedTeam(
+          result,
+          'Expected updated team for empty exceptions clearing test'
+        ).exceptions
+      ).toEqual({
         tpe: [{ id: 'keep_tpe', totalAmount: 2_000_000 }],
       });
     });
@@ -396,13 +433,39 @@ describe('Exception Management (setExceptions)', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(Object.keys(result.teamUpdates[0].team.exceptions)).toHaveLength(
-        4
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated team for all exception types test'
       );
-      expect(result.teamUpdates[0].team.exceptions.mle.enabled).toBe(true);
-      expect(result.teamUpdates[0].team.exceptions.tpmle.enabled).toBe(true);
-      expect(result.teamUpdates[0].team.exceptions.bae.enabled).toBe(false);
-      expect(result.teamUpdates[0].team.exceptions.room.enabled).toBe(true);
+      const updatedExceptions = requireValue(
+        updatedTeam.exceptions,
+        'Expected exceptions for all exception types test'
+      );
+      expect(Object.keys(updatedExceptions)).toHaveLength(4);
+      expect(
+        requireValue(
+          updatedExceptions.mle,
+          'Expected MLE exception for all exception types test'
+        ).enabled
+      ).toBe(true);
+      expect(
+        requireValue(
+          updatedExceptions.tpmle,
+          'Expected TPMLE exception for all exception types test'
+        ).enabled
+      ).toBe(true);
+      expect(
+        requireValue(
+          updatedExceptions.bae,
+          'Expected BAE exception for all exception types test'
+        ).enabled
+      ).toBe(false);
+      expect(
+        requireValue(
+          updatedExceptions.room,
+          'Expected room exception for all exception types test'
+        ).enabled
+      ).toBe(true);
     });
 
     it('recomputes canonical totals after setExceptions updates', () => {
@@ -435,16 +498,18 @@ describe('Exception Management (setExceptions)', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.teamUpdates[0].team.totals.yearKey).toBe(2026);
-      expect(typeof result.teamUpdates[0].team.totals.totalCapAllocations).toBe(
-        'number'
+      const updatedTeam = getUpdatedTeam(
+        result,
+        'Expected updated team for canonical totals recompute test'
       );
-      expect(result.teamUpdates[0].team.totals.capHit).toBe(
-        result.teamUpdates[0].team.totals.totalCapAllocations
+      const updatedTotals = requireValue(
+        updatedTeam.totals,
+        'Expected totals to be recomputed after setExceptions update'
       );
-      expect(result.teamUpdates[0].team.totals.totalSalary).toBe(
-        result.teamUpdates[0].team.totals.totalCapAllocations
-      );
+      expect(updatedTotals.yearKey).toBe(2026);
+      expect(typeof updatedTotals.totalCapAllocations).toBe('number');
+      expect(updatedTotals.capHit).toBe(updatedTotals.totalCapAllocations);
+      expect(updatedTotals.totalSalary).toBe(updatedTotals.totalCapAllocations);
     });
   });
 

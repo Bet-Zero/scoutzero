@@ -69,24 +69,26 @@ type ExceptionState = {
   notes?: string;
 };
 
+type TeamExceptions = {
+  bae: ExceptionState;
+  tpmle: ExceptionState;
+  mle: ExceptionState;
+  room: ExceptionState;
+  dpe: ExceptionState;
+  tpe: Array<{
+    id: string;
+    amount: number;
+    remainingAmount: number;
+    expiresOn: string;
+  }>;
+};
+
 type TeamWithUsedExceptions = {
   teamCode: string;
   teamName: string;
   players: unknown[];
   roster: unknown[];
-  exceptions?: {
-    bae: ExceptionState;
-    tpmle: ExceptionState;
-    mle: ExceptionState;
-    room: ExceptionState;
-    dpe: ExceptionState;
-    tpe: Array<{
-      id: string;
-      amount: number;
-      remainingAmount: number;
-      expiresOn: string;
-    }>;
-  };
+  exceptions: TeamExceptions;
   totals?: {
     capHit: number;
   };
@@ -101,6 +103,16 @@ type CreateTeamWithUsedExceptionsOptions = {
   seasonKey?: string;
   enabledFlags?: ExceptionEnabledFlags;
 };
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
 
 /**
  * Creates a team with pre-existing exception state (simulating mid-season usage).
@@ -508,7 +520,13 @@ describe('Phase 76: Reload Parity Tests', () => {
 
   describe('Phase 76: Edge Cases', () => {
   it('TEST 14: Handles team with no existing exceptions gracefully', () => {
-    const team: TeamWithUsedExceptions = {
+    const team: {
+      teamCode: string;
+      teamName: string;
+      players: unknown[];
+      roster: unknown[];
+      exceptions?: TeamExceptions;
+    } = {
       teamCode: 'NEW',
       teamName: 'New Team',
       players: [],
@@ -517,23 +535,27 @@ describe('Phase 76: Reload Parity Tests', () => {
     };
 
     const result = resetTeamNonTpeExceptionsForNewSeason(team, TEST_YEAR_2027);
+    const exceptions = requireValue(
+      team.exceptions,
+      'Expected exceptions to be created for empty team state'
+    );
 
     // Should create exceptions object
-    expect(team.exceptions).toBeDefined();
+    expect(exceptions).toBeDefined();
     expect(result.hasChanges).toBe(true);
 
     // All non-TPE exceptions should be initialized (disabled by default)
     for (const type of NON_TPE_EXCEPTION_TYPES) {
-      expect(team.exceptions[type]).toBeDefined();
-      expect(team.exceptions[type].enabled).toBe(false);
-      expect(team.exceptions[type].usedAmount).toBe(0);
-      expect(team.exceptions[type].maxAmount).toBeGreaterThan(0);
-      expect(team.exceptions[type].remainingAmount).toBe(0); // disabled
+      expect(exceptions[type]).toBeDefined();
+      expect(exceptions[type].enabled).toBe(false);
+      expect(exceptions[type].usedAmount).toBe(0);
+      expect(exceptions[type].maxAmount).toBeGreaterThan(0);
+      expect(exceptions[type].remainingAmount).toBe(0); // disabled
     }
 
-    expect(team.exceptions.dpe).toBeDefined();
-    expect(team.exceptions.dpe.enabled).toBe(false);
-    expect(team.exceptions.dpe.totalAmount).toBe(0);
+    expect(exceptions.dpe).toBeDefined();
+    expect(exceptions.dpe.enabled).toBe(false);
+    expect(exceptions.dpe.totalAmount).toBe(0);
   });
 
   it('TEST 15: Handles null team gracefully', () => {

@@ -650,7 +650,9 @@ That section must:
 
 ## Step 26 — Harden the exception lifecycle / parity guardrail cluster (wave 5)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-22: Hardened the `phase76` exception lifecycle parity, `phase74` room exception, and `exceptionManagement` harnesses around truthful exception fixtures plus required violation/team-update readers; the Architect strict probe dropped from `1,914` to `1,730`, none of the Step 26 files still appear in that output, and the targeted node run passed `59 / 59` tests.
 
 **Goal:** Tighten the remaining exception/parity guardrail harnesses that now dominate the Architect strict backlog after the cap-legality / rights wave.
 

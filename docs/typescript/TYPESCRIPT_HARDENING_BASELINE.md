@@ -943,6 +943,63 @@ dedicated exception/parity wave first, then an integration/normalization wave,
 before another readiness checkpoint can honestly decide whether closeout is in
 range.
 
+## Step 26 Exception / Parity Wave Delta
+
+Reviewed: 2026-04-22, after the fifth Architect exception/parity wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 25 checkpoint | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,914 | 1,730 | -184 |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` | 64 after Step 25 | 0 | Cleared |
+| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` | 62 after Step 25 | 0 | Cleared |
+| `src/tests/architect/exceptionManagement.test.ts` | 58 after Step 25 | 0 | Cleared |
+
+### What Changed
+
+- `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts`
+  now treats helper-built teams as always carrying exception state, uses a
+  required-reader handoff only for the explicit missing-exceptions edge case,
+  and no longer leaks optionality across the entire harness.
+- `src/tests/architect/exceptionManagement.test.ts` now resolves mutation
+  results through required updated-team, updated-exceptions, and totals readers
+  instead of repeatedly assuming `teamUpdates[0]` and nested exception bags are
+  always present.
+- `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` now uses
+  typed room-exception fixtures, required violation/team-update readers, and
+  explicit room-exception narrowing across its mutation and reload proofs.
+- The approved narrow node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts src/tests/architect/exceptionManagement.test.ts`
+  finished with `59 / 59` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 26
+  edits.
+
+### Remaining Hotspots After Step 26
+
+The Step 26 wave cleared the planned exception/parity guardrail cluster. The
+strongest remaining Architect strict hotspots are now:
+
+- `tests/architect/contractNormalization.test.ts` (`50`)
+- `tests/architect/integration.test.ts` (`49`)
+- `tests/architect/e2e-workflows.test.ts` (`49`)
+- `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts` (`41`)
+- `tests/architect/schemaAdapter.test.ts` (`39`)
+- `src/tests/architect/phase17_entitlement_routing_guardrail.test.ts` (`37`)
+- `src/tests/tradeMachine/phase5DraftPositions.test.ts` (`34`)
+- `src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts` (`34`)
+- `src/features/architect/utils/mutationPipeline.ts` (`34`)
+- `tests/architect/extension_voidedByExtension.test.ts` (`33`)
+
+The three Step 26 target files no longer appear in the Architect strict output.
+
+Plain-language read: Step 26 removed the full exception/parity guardrail wave as
+planned and pushed the Architect strict backlog down to `1,730`. The remaining
+debt is now led by the integration/normalization cluster identified in Step 25,
+with a smaller tail of trade/entitlement/mutation guardrails behind it. The next
+honest move is Step 27's integration/normalization wave rather than reopening
+the cleared exception/parity cluster.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -972,5 +1029,9 @@ range.
 - `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step24.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step24.log`
 - `grep -E "^tests/architect/(capLegalityValidation|renounceRights)\.test\.ts" /tmp/architect_step24.log || true`
 - `grep "error TS" /tmp/architect_step24.log | sed -E 's/^([^(:]+).*/\1/' | sort | uniq -c | sort -nr | head -10`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts src/tests/architect/exceptionManagement.test.ts`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step26.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step26.log`
+- `grep -E "^src/tests/architect/(phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails|phase74_room_exception_mvp_guardrails|exceptionManagement)\.test\.ts" /tmp/architect_step26.log || true`
+- `grep "error TS" /tmp/architect_step26.log | sed -E 's/^([^(:]+).*/\1/' | sort | uniq -c | sort -nr | head -10`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`
