@@ -1423,6 +1423,64 @@ Architect checkpoint in this resumed master-plan run. That is real progress,
 but the remaining backlog is still large enough that Step 34 must reassess the
 mission honestly rather than routing to final review.
 
+## Post-Step-33 Hardening Checkpoint
+
+Reviewed: 2026-04-23, after Steps 32-33 completed the planned
+Architect DARE/trade-apply and trade-rule/TPE unit waves.
+
+### Probe Delta
+
+| Command | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 31 checkpoint | Current | Reading |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `npm run typecheck` | 0 | compatibility-only pass | 0 | 0 | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | 1,212 | 944 | Architect/test strict posture improved materially (`-1,623` vs the original baseline, `-1,688` vs Step 14, `-1,284` vs Step 22, `-268` vs Step 31), but it remains the mission blocker by a wide margin. |
+
+### Current Architect Strict Concentration
+
+- The remaining backlog is now led by the next runtime-owner and
+  season-state-cap tier: `src/features/architect/utils/mutationPipeline.ts`
+  (`34`), `src/tests/architect/deadCapManagement.test.ts` (`24`),
+  `src/shared/components/EditContractModal.tsx` (`22`), and
+  `src/tests/tradeMachine/seasonSwapResolution.test.ts` (`21`).
+- The strongest remaining Architect/test follow-on tier is
+  `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts` (`20`),
+  `src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts` (`19`),
+  `src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts` (`19`),
+  `tests/architect/tradeManager.test.ts` (`19`), and
+  `src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts` (`18`).
+- The residual trade aftermath tier is now led by
+  `tests/trade/twoWayPlayers_snapshot.test.ts` (`19`),
+  `tests/trade/secondApron_tpeBan.test.ts` (`18`),
+  `tests/trade/poisonPill_average.test.ts` (`17`), plus the next sign-and-trade,
+  timing-soft-enforcement, and trade-kicker unit files that still sit outside a
+  truthful final-review-sized cleanup.
+- The Step 32-33 target files no longer lead the backlog, and shared strict is
+  still fully green. That is real progress, but it does not collapse the
+  remaining Architect/test work into a truthful final-review-sized cleanup.
+
+### Checkpoint Decision
+
+The mission is **not** honestly ready for final review. `944`
+Architect-strict errors still represent substantial mission-area backlog, and
+the remaining debt is still split across at least two more bounded waves rather
+than one small final pass.
+
+The next honest split is:
+
+1. one bounded wave for the remaining Architect dead-cap / season-state truth
+   cluster, including only the tiny `mutationPipeline.ts` fixups directly
+   required to keep that cluster truthful;
+2. one follow-up wave for the remaining trade aftermath / snapshot truth
+   cluster;
+3. another checkpoint after those waves before any final-review claim.
+
+Plain-language read: after Steps 32-33, the plan is materially healthier and
+shared/runtime strict remains fully green, but final review is still blocked by
+the next dead-cap / season-state tier, the top runtime-owner hotspot, and the
+residual trade aftermath unit cluster. The plan must extend again rather than
+route to closeout.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -1477,5 +1535,8 @@ mission honestly rather than routing to final review.
 - `grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step33_architect_strict.log | wc -l`
 - `grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step33_architect_strict.log | sed -E 's#^([^(:]+)\([0-9]+,[0-9]+\): error TS.*#\1#' | sort | uniq -c | sort -nr | head -12`
 - `grep -E '^(tests/trade/tpe_creation_expiry_usage|tests/trade/secondApronBoundary|tests/trade/timingEnforcement_authoritative|tests/trade/reacquisition_bar|tests/trade/tpe_absorption_fail_closed|tests/trade/validation_caching)\.test\.ts' /tmp/step33_architect_strict.log || true`
+- `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step34_architect_strict.log 2>&1; echo EXIT:$?; grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step34_architect_strict.log | wc -l`
+- `grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step34_architect_strict.log | sed -E 's#^([^(:]+)\([0-9]+,[0-9]+\): error TS.*#\1#' | sort | uniq -c | sort -nr | head -12`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

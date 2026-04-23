@@ -69,7 +69,9 @@
 - Step 31: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
 - Steps 32–33: harden the next Architect DARE/trade-apply cluster, then the next trade-rule/TPE unit cluster exposed by the Step 31 checkpoint
 - Step 34: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
-- Steps 35+ : append additional numbered waves as required until the mission-level completion gates are actually satisfied
+- Steps 35–36: harden the next Architect dead-cap/season-state cluster, then the next trade aftermath/snapshot cluster exposed by the Step 34 checkpoint
+- Step 37: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
+- Steps 38–39: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
 - Final closeout: only after the mission-level gates are satisfied
 
 **Universal constraints (apply to every step):**
@@ -960,7 +962,9 @@ Validation:
 
 ## Step 34 — Post-wave checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Root compatibility and shared strict stayed green, Architect strict dropped again to `944`, and the plan was extended with another Architect season-state wave, another trade-aftermath wave, and a follow-up checkpoint instead of routing to final review.
 
 **Goal:** Re-run the mission-level measurements after Steps 32-33 and decide whether the plan is honestly ready for final review or still needs more numbered waves.
 
@@ -990,7 +994,119 @@ That section must:
 
 ---
 
-## Step 35 — Final review (only when the mission-level gates are truly satisfied)
+## Step 35 — Harden the next Architect dead-cap / season-state truth cluster (wave 11)
+
+**Status:** TODO
+
+**Goal:** Tighten the next highest-value Architect season-state / dead-cap cluster exposed by the Step 34 checkpoint while keeping runtime-owner edits tightly bounded.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/deadCapManagement.test.ts`
+- `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts`
+- `src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts`
+- `src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts`
+- `src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts`
+- `src/tests/tradeMachine/seasonSwapResolution.test.ts`
+- any tiny `src/features/architect/utils/mutationPipeline.ts` or season/exception helper truth fixups directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove implicit-any fixture builders, stale dead-cap / season-state bag fixtures, and optional-read chains that hide required mutation or persistence results.
+2. Keep dead-cap, TPE expiry/history, room-exception, season-swap, and free-agency assertions aligned with the live Architect mutation and persistence contracts.
+3. Keep runtime-owner edits tightly coupled to this cluster; do not reopen a broad `mutationPipeline.ts` hardening wave unless the touched tests directly force it.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/deadCapManagement.test.ts src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts src/tests/tradeMachine/seasonSwapResolution.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the Architect dead-cap / season-state cluster.
+- Do not widen into the residual trade aftermath unit tests except for tiny shared truth fixups that this cluster directly requires.
+
+**Done when:** The Architect dead-cap / season-state cluster is materially more truthful, any coupled runtime fixups stay bounded, and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden architect dead cap season truth cluster`.
+
+---
+
+## Step 36 — Harden the next trade aftermath / snapshot truth cluster (wave 12)
+
+**Status:** TODO
+
+**Goal:** Tighten the next highest-value residual trade aftermath / snapshot cluster exposed by the Step 34 checkpoint after the next Architect season-state wave is clear.
+
+**Instructions:**
+Focus this wave on:
+
+- `tests/trade/twoWayPlayers_snapshot.test.ts`
+- `tests/architect/tradeManager.test.ts`
+- `tests/trade/secondApron_tpeBan.test.ts`
+- `tests/trade/signAndTrade_completeness.test.ts`
+- `tests/trade/timingGates_softEnforcement.test.ts`
+- `tests/trade/poisonPill_average.test.ts`
+- `tests/trade/tradeKicker_proration.test.ts`
+- `tests/trade/tradeKicker_zeroGuarantee.test.ts`
+- any tiny shared trade-rule helper truth fixups directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove implicit-any builders, `never[]` defaults, and stale aftermath/snapshot bag fixtures.
+2. Keep snapshot, second-apron TPE-ban, sign-and-trade completeness, timing soft-enforcement, and poison-pill / kicker assertions aligned with the live trade-rule contracts.
+3. Keep behavior unchanged unless a test only passed because it depended on a dishonest fixture shape.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/trade/twoWayPlayers_snapshot.test.ts tests/architect/tradeManager.test.ts tests/trade/secondApron_tpeBan.test.ts tests/trade/signAndTrade_completeness.test.ts tests/trade/timingGates_softEnforcement.test.ts tests/trade/poisonPill_average.test.ts tests/trade/tradeKicker_proration.test.ts tests/trade/tradeKicker_zeroGuarantee.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the trade aftermath / snapshot cluster.
+- Do not widen back into the Architect dead-cap / season-state cluster except for tiny shared truth fixups that this cluster directly requires.
+
+**Done when:** The trade aftermath / snapshot cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden trade aftermath snapshot truth cluster`.
+
+---
+
+## Step 37 — Post-wave checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 35-36 and decide whether the plan is honestly ready for final review or still needs more numbered waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 34 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs more numbered waves.
+4. Append additional numbered steps immediately after Step 37 if substantial mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-season-state hardening checkpoint`.
+
+---
+
+## Step 38 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -1025,7 +1141,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 36 — Final closeout (only when the mission is actually done)
+## Step 39 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
