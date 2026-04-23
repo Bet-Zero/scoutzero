@@ -24,9 +24,123 @@ import {
   seedBaseData,
   createMockCapProjections,
   getMockWorldMetadata,
+  getMockTeamSnapshot,
   seedMockData,
-} from '../helpers/architectTestHelpers.ts';
-import { getMockData } from '../__mocks__/firebase.ts';
+} from '../helpers/architectTestHelpers.js';
+
+type ComputeMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type ExecuteTradeArgs = Extract<
+  ComputeMutationArgs,
+  { mutationType: 'executeTrade' }
+>;
+type TradePayload = ExecuteTradeArgs['payload'];
+type TradeCurrentState = ExecuteTradeArgs['currentState'];
+type MutationResult = ReturnType<typeof computeWorldMutation>;
+type TradeComputeResult = {
+  success: true;
+  teams: NonNullable<MutationResult['teamUpdates']>;
+  validation: MutationResult['_validatedTradeContext'];
+};
+type TradeTeamUpdate = TradeComputeResult['teams'][number];
+type TradeTeam = NonNullable<TradeTeamUpdate['team']>;
+type StoredWorldMetadata = NonNullable<ReturnType<typeof getMockWorldMetadata>>;
+type StoredTeamSnapshot = NonNullable<ReturnType<typeof getMockTeamSnapshot>>;
+type TeamSource = { type?: string; worldId?: string } & Record<string, unknown>;
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getPlayerId(value: unknown, message: string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (isRecord(value)) {
+    const playerId = value.player_id ?? value.playerId ?? value.id;
+    if (typeof playerId === 'string') {
+      return playerId;
+    }
+  }
+
+  throw new Error(message);
+}
+
+function getRosterIds(roster: unknown, message: string): string[] {
+  const rosterEntries = requireValue(
+    Array.isArray(roster) ? roster : undefined,
+    message
+  );
+
+  return rosterEntries.map((player, index) =>
+    getPlayerId(player, `${message} at index ${index}`)
+  );
+}
+
+function getTradeTeam(
+  result: TradeComputeResult,
+  teamCode: string,
+  message: string
+): TradeTeam {
+  const teamUpdate = requireValue(
+    result.teams.find((candidate) => candidate.teamCode === teamCode),
+    message
+  );
+
+  return requireValue(teamUpdate.team, `${message} with hydrated team data`);
+}
+
+function getTeamSource(
+  team: unknown,
+  message: string
+): TeamSource {
+  const source = isRecord(team) ? team.source : undefined;
+
+  return requireValue(
+    isRecord(source) ? (source as TeamSource) : undefined,
+    message
+  );
+}
+
+function getRequiredWorldMetadata(worldId: string): StoredWorldMetadata {
+  return requireValue(
+    getMockWorldMetadata(worldId),
+    `Expected mock world metadata for ${worldId}`
+  );
+}
+
+function getRequiredTeamSnapshot(
+  worldId: string,
+  teamCode: string
+): StoredTeamSnapshot {
+  return requireValue(
+    getMockTeamSnapshot(worldId, teamCode),
+    `Expected mock team snapshot for ${teamCode} in ${worldId}`
+  );
+}
+
+function getSnapshotPlayer(
+  team: StoredTeamSnapshot,
+  playerId: string,
+  message: string
+) {
+  const players = requireValue(team.players, `${message}: expected players array`);
+
+  return requireValue(
+    players.find((player) => player.playerId === playerId),
+    message
+  );
+}
 
 // Mock validateTrade to return valid trades for testing
 vi.mock('@/features/architect/utils/tradeMachine', () => ({
@@ -37,7 +151,7 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
   })),
 }));
 
-function toSeasonId(currentYear) {
+function toSeasonId(currentYear: string | number | null | undefined) {
   if (typeof currentYear === 'string' && currentYear) {
     return currentYear;
   }
@@ -46,10 +160,26 @@ function toSeasonId(currentYear) {
   return `${year}-${String(year + 1).slice(-2)}`;
 }
 
-async function computeTrade(worldId, tradeData) {
+async function computeTrade(
+  worldId: string,
+  tradeData: TradePayload
+): Promise<TradeComputeResult> {
+  const tradeTeams = requireValue(
+    Array.isArray(tradeData.teams) ? tradeData.teams : undefined,
+    'Expected teams array for authoritative trade compute'
+  );
+
   const teams = await Promise.all(
-    tradeData.teams.map(async (tradeTeam) => {
-      const teamCode = tradeTeam.teamCode || tradeTeam.team?.teamCode;
+    tradeTeams.map(async (tradeTeam) => {
+      const teamCode = requireValue(
+        typeof tradeTeam.teamCode === 'string'
+          ? tradeTeam.teamCode
+          : typeof tradeTeam.team?.teamCode === 'string'
+            ? tradeTeam.team.teamCode
+            : undefined,
+        'Expected trade team code for authoritative compute'
+      );
+
       return {
         teamCode,
         team: await getTeam(worldId, teamCode),
@@ -60,19 +190,26 @@ async function computeTrade(worldId, tradeData) {
   const result = computeWorldMutation({
     mutationType: 'executeTrade',
     payload: tradeData,
-    currentState: { teams },
-    seasonId: toSeasonId(tradeData.currentYear),
+    currentState: { teams } as TradeCurrentState,
+    seasonId: toSeasonId((tradeData as { currentYear?: string | number }).currentYear),
     timestamp: Date.now(),
     worldId,
-  });
+  } as ExecuteTradeArgs);
 
   if (!result.success) {
-    throw new Error(result.error || 'Authoritative trade compute failed');
+    throw new Error(
+      typeof result.error === 'string'
+        ? result.error
+        : 'Authoritative trade compute failed'
+    );
   }
 
   return {
     success: true,
-    teams: result.teamUpdates,
+    teams: requireValue(
+      result.teamUpdates,
+      'Expected team updates from authoritative trade compute'
+    ),
     validation: result._validatedTradeContext,
   };
 }
@@ -118,13 +255,23 @@ describe('Architect Integration Tests', () => {
       expect(tradeResult.success).toBe(true);
 
       // Verify updated teams returned (executeTrade is read-only, doesn't persist)
-      const lalTeam = tradeResult.teams.find((t) => t.teamCode === 'LAL');
-      const gswTeam = tradeResult.teams.find((t) => t.teamCode === 'GSW');
+      const lalTeam = getTradeTeam(
+        tradeResult,
+        'LAL',
+        'Expected LAL team update after trade compute'
+      );
+      const gswTeam = getTradeTeam(
+        tradeResult,
+        'GSW',
+        'Expected GSW team update after trade compute'
+      );
+      const lalSource = getTeamSource(
+        lalTeam,
+        'Expected source metadata for updated LAL trade team'
+      );
 
-      expect(lalTeam).toBeDefined();
-      expect(gswTeam).toBeDefined();
-      expect(lalTeam.team.source.type).toBe('world-snapshot');
-      expect(lalTeam.team.source.worldId).toBeUndefined();
+      expect(lalSource.type).toBe('world-snapshot');
+      expect(lalSource.worldId).toBeUndefined();
     });
 
     it('verifies cap totals updated correctly', async () => {
@@ -154,12 +301,20 @@ describe('Architect Integration Tests', () => {
 
       const tradeResult = await computeTrade(worldResult.worldId, tradeData);
 
-      const lalTeam = tradeResult.teams.find((t) => t.teamCode === 'LAL');
+      const lalTeam = getTradeTeam(
+        tradeResult,
+        'LAL',
+        'Expected LAL team update for cap totals verification'
+      );
+      const totals = requireValue(
+        lalTeam.totals,
+        'Expected cap totals for updated LAL team'
+      );
 
-      expect(lalTeam.team.totals).toBeDefined();
+      expect(totals).toBeDefined();
       // Phase 77: totals now comes from computeTeamCapTotals SSOT
-      expect(typeof lalTeam.team.totals.playersTotal).toBe('number');
-      expect(typeof lalTeam.team.totals.totalCapAllocations).toBe('number');
+      expect(typeof totals.playersTotal).toBe('number');
+      expect(typeof totals.totalCapAllocations).toBe('number');
     });
 
     it('verifies authoritative trade compute is read-only (does not modify world metadata)', async () => {
@@ -188,13 +343,13 @@ describe('Architect Integration Tests', () => {
       };
 
       // Get metadata before trade
-      const metadataBefore = getMockWorldMetadata(worldResult.worldId);
+      const metadataBefore = getRequiredWorldMetadata(worldResult.worldId);
       const statsBefore = metadataBefore.stats.totalTrades;
 
       await computeTrade(worldResult.worldId, tradeData);
 
       // Verify world metadata was not modified (computeWorldMutation is read-only)
-      const metadataAfter = getMockWorldMetadata(worldResult.worldId);
+      const metadataAfter = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadataAfter.stats.totalTrades).toBe(statsBefore);
       expect(metadataAfter.actionCount).toBe(metadataBefore.actionCount);
     });
@@ -282,7 +437,10 @@ describe('Architect Integration Tests', () => {
       const lalTeam = await getTeam(branchResult.worldId, 'LAL');
       // Base LAL team has lebron_james in roster, trade was not persisted
       // Note: getTeam hydrates team with players array in roster field
-      const rosterIds = lalTeam.roster.map(p => p.player_id || p.id);
+      const rosterIds = getRosterIds(
+        lalTeam.roster,
+        'Expected hydrated roster entries for branch fallback LAL team'
+      );
       expect(rosterIds).toContain('lebron_james');
       expect(rosterIds).not.toContain('stephen_curry');
     });
@@ -346,15 +504,25 @@ describe('Architect Integration Tests', () => {
       const branchTradeResult = await computeTrade(branchResult.worldId, branchTradeData);
 
       // Verify branch trade result (computeWorldMutation doesn't persist, so no snapshots created)
-      const branchLalTeam = branchTradeResult.teams.find((t) => t.teamCode === 'LAL');
-      const branchRosterIds = branchLalTeam.team.roster;
+      const branchLalTeam = getTradeTeam(
+        branchTradeResult,
+        'LAL',
+        'Expected LAL team update for branch trade isolation test'
+      );
+      const branchRosterIds = getRosterIds(
+        branchLalTeam.roster,
+        'Expected branch trade roster entries for LAL'
+      );
       expect(branchRosterIds).not.toContain('anthony_davis');
       expect(branchRosterIds).toContain('jayson_tatum');
 
       // Parent data is unchanged since trades don't persist
       // Both parent and branch start from same base data
       const parentLalTeam = await getTeam(parentResult.worldId, 'LAL');
-      const parentRosterIds = parentLalTeam.roster.map(p => p.player_id || p.id);
+      const parentRosterIds = getRosterIds(
+        parentLalTeam.roster,
+        'Expected parent LAL roster entries after branch trade isolation test'
+      );
       // Parent has base LAL roster (no trade was persisted)
       expect(parentRosterIds).toContain('lebron_james');
     });
@@ -396,7 +564,7 @@ describe('Architect Integration Tests', () => {
       expect(advanceResult.fromSeason).toBe('2025-26');
       expect(advanceResult.toSeason).toBe('2026-27');
 
-      const metadata = getMockWorldMetadata(worldResult.worldId);
+      const metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.currentSeason).toBe('2026-27');
     });
 
@@ -440,9 +608,7 @@ describe('Architect Integration Tests', () => {
       // Advance season
       await advanceSeason(worldResult.worldId);
 
-      const updatedTeam = getMockData(
-        `architect_worlds/${worldResult.worldId}/teams/LAL`
-      );
+      const updatedTeam = getRequiredTeamSnapshot(worldResult.worldId, 'LAL');
       expect(updatedTeam.roster).not.toContain('player_expiring');
     });
 
@@ -475,9 +641,7 @@ describe('Architect Integration Tests', () => {
 
       await advanceSeason(worldResult.worldId);
 
-      const updatedTeam = getMockData(
-        `architect_worlds/${worldResult.worldId}/teams/BOS`
-      );
+      const updatedTeam = getRequiredTeamSnapshot(worldResult.worldId, 'BOS');
       // Cap holds should still exist (not expired yet)
       expect(updatedTeam.capHolds).toBeDefined();
     });
@@ -491,7 +655,7 @@ describe('Architect Integration Tests', () => {
 
       await advanceSeason(worldResult.worldId);
 
-      const metadata = getMockWorldMetadata(worldResult.worldId);
+      const metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.currentSeason).toBe('2026-27');
     });
   });
@@ -506,12 +670,12 @@ describe('Architect Integration Tests', () => {
 
       // Advance first season
       await advanceSeason(worldResult.worldId);
-      let metadata = getMockWorldMetadata(worldResult.worldId);
+      let metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.currentSeason).toBe('2026-27');
 
       // Advance second season
       await advanceSeason(worldResult.worldId);
-      metadata = getMockWorldMetadata(worldResult.worldId);
+      metadata = getRequiredWorldMetadata(worldResult.worldId);
       expect(metadata.currentSeason).toBe('2027-28');
     });
 
@@ -565,18 +729,22 @@ describe('Architect Integration Tests', () => {
 
       // Advance first season
       await advanceSeason(worldResult.worldId);
-      let updatedTeam = getMockData(
-        `architect_worlds/${worldResult.worldId}/teams/LAL`
+      let updatedTeam = getRequiredTeamSnapshot(worldResult.worldId, 'LAL');
+      let player = getSnapshotPlayer(
+        updatedTeam,
+        'player1',
+        'Expected player1 after first season advance'
       );
-      let player = updatedTeam.players.find((p) => p.playerId === 'player1');
       expect(player.contract.yearsRemaining).toBe(2);
 
       // Advance second season
       await advanceSeason(worldResult.worldId);
-      updatedTeam = getMockData(
-        `architect_worlds/${worldResult.worldId}/teams/LAL`
+      updatedTeam = getRequiredTeamSnapshot(worldResult.worldId, 'LAL');
+      player = getSnapshotPlayer(
+        updatedTeam,
+        'player1',
+        'Expected player1 after second season advance'
       );
-      player = updatedTeam.players.find((p) => p.playerId === 'player1');
       expect(player.contract.yearsRemaining).toBe(1);
     });
   });
@@ -638,7 +806,12 @@ describe('Architect Integration Tests', () => {
       // Verify operations returned updated data (functions are read-only, don't persist)
       expect(signResult.team.roster).toContain('test_fa');
       expect(waiveResult.team.roster).not.toContain('stephen_curry');
-      expect(waiveResult.team.deadCap.length).toBeGreaterThan(0);
+      expect(
+        requireValue(
+          waiveResult.team.deadCap,
+          'Expected dead cap entries after waiving stephen_curry'
+        ).length
+      ).toBeGreaterThan(0);
     });
 
     it('verifies cap totals accurate throughout', async () => {
@@ -728,7 +901,12 @@ describe('Architect Integration Tests', () => {
 
       // Verify player removed from roster and dead cap added
       expect(waiveResult.team.roster).not.toContain('test_fa');
-      expect(waiveResult.team.deadCap.length).toBeGreaterThan(0);
+      expect(
+        requireValue(
+          waiveResult.team.deadCap,
+          'Expected dead cap entries after waiving test_fa'
+        ).length
+      ).toBeGreaterThan(0);
     });
   });
 });

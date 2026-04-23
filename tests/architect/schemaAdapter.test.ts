@@ -9,7 +9,50 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildTradeTeamInput, buildTradeInput } from '@/features/architect/utils/schemaAdapter';
-import { createMockTeam } from '../helpers/architectTestHelpers.ts';
+import { createMockTeam } from '../helpers/architectTestHelpers.js';
+
+type BuildTradeTeamInputArg = Parameters<typeof buildTradeTeamInput>[0];
+type BuildTradeInputArg = Parameters<typeof buildTradeInput>[0];
+
+type TradeTeamResult = {
+  team: {
+    teamCode?: string;
+    roster?: string[];
+  };
+  sends: Array<{ player_id?: string }>;
+  picksOut: Array<{ id?: string; year?: number; round?: number }>;
+  cashSent?: number;
+};
+
+type TradeInputResult = {
+  teams: Array<TradeTeamResult>;
+  capProjections?: Record<string, unknown>;
+  currentYear?: number;
+};
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getTradeTeamResult(input: unknown, message: string): TradeTeamResult {
+  return requireValue(
+    buildTradeTeamInput(input as BuildTradeTeamInputArg),
+    message
+  ) as TradeTeamResult;
+}
+
+function getTradeInputResult(input: unknown, message: string): TradeInputResult {
+  return requireValue(
+    buildTradeInput(input as BuildTradeInputArg),
+    message
+  ) as TradeInputResult;
+}
 
 describe('Schema Adapter', () => {
   describe('buildTradeTeamInput', () => {
@@ -19,7 +62,10 @@ describe('Schema Adapter', () => {
         roster: ['lebron_james', 'anthony_davis'],
       });
 
-      const result = buildTradeTeamInput(teamState);
+      const result = getTradeTeamResult(
+        teamState,
+        'Expected structured trade team input'
+      );
 
       expect(result).toBeDefined();
       expect(result.team).toBeDefined();
@@ -49,7 +95,10 @@ describe('Schema Adapter', () => {
         cashSent: 1_000_000,
       };
 
-      const result = buildTradeTeamInput(teamState, tradeData);
+      const result = requireValue(
+        buildTradeTeamInput(teamState as BuildTradeTeamInputArg, tradeData),
+        'Expected merged trade team input'
+      ) as TradeTeamResult;
 
       expect(result.sends).toEqual(tradeData.sends);
       expect(result.picksOut).toEqual(tradeData.picksOut);
@@ -61,7 +110,10 @@ describe('Schema Adapter', () => {
         teamCode: 'LAL',
       });
 
-      const result = buildTradeTeamInput(teamState);
+      const result = getTradeTeamResult(
+        teamState,
+        'Expected trade team input with default trade data'
+      );
 
       expect(result).toBeDefined();
       expect(result.team).toBeDefined();
@@ -81,9 +133,12 @@ describe('Schema Adapter', () => {
         sends: [],
       };
 
-      const result = buildTradeTeamInput(teamState, {
-        sends: [{ player_id: 'anthony_davis' }],
-      });
+      const result = requireValue(
+        buildTradeTeamInput(teamState as BuildTradeTeamInputArg, {
+          sends: [{ player_id: 'anthony_davis' }],
+        }),
+        'Expected trade team input for nested team structure'
+      ) as TradeTeamResult;
 
       expect(result.team.teamCode).toBe('LAL');
       expect(result.sends).toEqual([{ player_id: 'anthony_davis' }]);
@@ -115,7 +170,10 @@ describe('Schema Adapter', () => {
         ],
       };
 
-      const result = buildTradeInput(tradeInput);
+      const result = getTradeInputResult(
+        tradeInput,
+        'Expected complete trade input structure'
+      );
 
       expect(result).toBeDefined();
       expect(result.teams).toBeDefined();
@@ -145,7 +203,10 @@ describe('Schema Adapter', () => {
         currentYear: 2025,
       };
 
-      const result = buildTradeInput(tradeInput);
+      const result = getTradeInputResult(
+        tradeInput,
+        'Expected trade input with cap projections and current year'
+      );
 
       expect(result.capProjections).toEqual(capProjections);
       expect(result.currentYear).toBe(2025);
@@ -158,7 +219,10 @@ describe('Schema Adapter', () => {
         currentYear: 2025,
       };
 
-      const result = buildTradeInput(tradeInput);
+      const result = getTradeInputResult(
+        tradeInput,
+        'Expected trade input for empty teams array'
+      );
 
       expect(result).toBeDefined();
       expect(result.teams).toEqual([]);
@@ -172,7 +236,10 @@ describe('Schema Adapter', () => {
         ],
       };
 
-      const result = buildTradeInput(tradeInput);
+      const result = getTradeInputResult(
+        tradeInput,
+        'Expected trade input for direct team array'
+      );
 
       // Should still build structure using team directly
       expect(result).toBeDefined();

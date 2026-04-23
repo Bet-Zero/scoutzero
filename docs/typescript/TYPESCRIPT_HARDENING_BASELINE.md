@@ -1000,6 +1000,70 @@ with a smaller tail of trade/entitlement/mutation guardrails behind it. The next
 honest move is Step 27's integration/normalization wave rather than reopening
 the cleared exception/parity cluster.
 
+## Step 27 Integration / Normalization Wave Delta
+
+Reviewed: 2026-04-23, after the sixth Architect integration/normalization wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 26 wave | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,730 | 1,502 | -228 |
+| `tests/architect/contractNormalization.test.ts` | 50 after Step 26 | 0 | Cleared |
+| `tests/architect/integration.test.ts` | 49 after Step 26 | 0 | Cleared |
+| `tests/architect/e2e-workflows.test.ts` | 49 after Step 26 | 0 | Cleared |
+| `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts` | 41 after Step 26 | 0 | Cleared |
+| `tests/architect/schemaAdapter.test.ts` | 39 after Step 26 | 0 | Cleared |
+
+### What Changed
+
+- `tests/architect/contractNormalization.test.ts` now requires normalized
+  contract/free-agency structures before property reads and no longer assumes
+  optional normalization outputs are always present.
+- `tests/architect/schemaAdapter.test.ts` now imports the helper layer through
+  the live `.js` surface, uses typed adapter input/result helpers, and resolves
+  trade input/team output through required readers instead of raw optional
+  return shapes.
+- `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts` now
+  types its minimal team fixtures truthfully and resolves updated post-trade
+  teams through required readers before asserting on entitlement transfer state.
+- `tests/architect/integration.test.ts` and
+  `tests/architect/e2e-workflows.test.ts` now use typed authoritative trade
+  compute helpers, required world/team/source/roster readers, and current `.js`
+  helper imports instead of stale `.ts` imports and repeated raw optional-state
+  assumptions.
+- The approved narrow node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot tests/architect/contractNormalization.test.ts tests/architect/integration.test.ts tests/architect/e2e-workflows.test.ts src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts tests/architect/schemaAdapter.test.ts`
+  finished with `100 / 100` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 27
+  edits.
+
+### Remaining Hotspots After Step 27
+
+The Step 27 wave cleared the planned integration/normalization cluster. The
+strongest remaining Architect strict hotspots are now:
+
+- `src/tests/architect/phase17_entitlement_routing_guardrail.test.ts` (`37`)
+- `src/tests/tradeMachine/phase5DraftPositions.test.ts` (`34`)
+- `src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts` (`34`)
+- `src/features/architect/utils/mutationPipeline.ts` (`34`)
+- `tests/architect/extension_voidedByExtension.test.ts` (`33`)
+- `tests/trade/validatorContractCleanup.test.ts` (`32`)
+- `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts` (`31`)
+- `tests/trade/validatorTrustFixes.test.ts` (`30`)
+- `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts` (`30`)
+- `tests/trade/consent_and_reacq.test.ts` (`29`)
+
+The five Step 27 target files no longer appear in the Architect strict output.
+
+Plain-language read: Step 27 removed the remaining integration/normalization
+cluster exactly as planned and pulled the Architect strict backlog down to
+`1,502`. That is real progress, but the remaining debt is still spread across
+multiple trade/entitlement guardrail and mutation-pipeline-adjacent surfaces.
+Step 28 therefore needs to act as a real checkpoint and extend the plan again
+unless the cross-probe evidence says the remaining mission-area backlog has
+collapsed more than this wave suggests.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -1033,5 +1097,8 @@ the cleared exception/parity cluster.
 - `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/architect_step26.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/architect_step26.log`
 - `grep -E "^src/tests/architect/(phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails|phase74_room_exception_mvp_guardrails|exceptionManagement)\.test\.ts" /tmp/architect_step26.log || true`
 - `grep "error TS" /tmp/architect_step26.log | sed -E 's/^([^(:]+).*/\1/' | sort | uniq -c | sort -nr | head -10`
+- `npm run test:node -- --reporter=dot tests/architect/contractNormalization.test.ts tests/architect/integration.test.ts tests/architect/e2e-workflows.test.ts src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts tests/architect/schemaAdapter.test.ts`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step27_architect_strict.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/step27_architect_strict.log`
+- `awk -F'(' '/error TS/{print $1}' /tmp/step27_architect_strict.log | sort | uniq -c | sort -nr | head -12`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

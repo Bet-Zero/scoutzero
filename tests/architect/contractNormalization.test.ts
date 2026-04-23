@@ -23,6 +23,29 @@ import {
   hasOptionDecision,
 } from '@/features/architect/utils/contractNormalization';
 
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function requireFreeAgencyObject(
+  value: string | { year?: unknown; type?: unknown; capHold?: unknown } | null | undefined,
+  message: string
+) {
+  const freeAgency = requireValue(value, message);
+
+  if (typeof freeAgency === 'string') {
+    throw new Error(message);
+  }
+
+  return freeAgency;
+}
+
 describe('contractNormalization', () => {
   // ===========================================================================
   // isPlausibleFreeAgencyYear
@@ -158,7 +181,10 @@ describe('contractNormalization', () => {
         salary: 5000000,
         optionUsed: 'accepted',
       };
-      const result = normalizeSalaryRow(row);
+      const result = requireValue(
+        normalizeSalaryRow(row),
+        'Expected normalized salary row for optionUsed conversion'
+      );
       expect(result.optionUsed).toBe(true);
     });
 
@@ -167,7 +193,10 @@ describe('contractNormalization', () => {
         season: '2025-26',
         salary: 5000000,
       };
-      const result = normalizeSalaryRow(row);
+      const result = requireValue(
+        normalizeSalaryRow(row),
+        'Expected normalized salary row for default capHit'
+      );
       expect(result.capHit).toBe(5000000);
     });
 
@@ -177,7 +206,10 @@ describe('contractNormalization', () => {
         salary: 5000000,
         capHit: 4500000,
       };
-      const result = normalizeSalaryRow(row);
+      const result = requireValue(
+        normalizeSalaryRow(row),
+        'Expected normalized salary row preserving capHit'
+      );
       expect(result.capHit).toBe(4500000);
     });
 
@@ -190,7 +222,10 @@ describe('contractNormalization', () => {
         option: 'Player Option',
         tradeBonus: 100000,
       };
-      const result = normalizeSalaryRow(row);
+      const result = requireValue(
+        normalizeSalaryRow(row),
+        'Expected normalized salary row preserving extra fields'
+      );
       expect(result.season).toBe('2025-26');
       expect(result.guaranteed).toBe(true);
       expect(result.guaranteedAmount).toBe(5000000);
@@ -219,7 +254,10 @@ describe('contractNormalization', () => {
 
     it('passes through object format', () => {
       const input = { year: 2026, type: 'RFA', capHold: 5000000 };
-      const result = normalizeFreeAgency(input);
+      const result = requireValue(
+        normalizeFreeAgency(input),
+        'Expected normalized free agency object'
+      );
       expect(result.year).toBe(2026);
       expect(result.type).toBe('RFA');
       expect(result.capHold).toBe(5000000);
@@ -284,7 +322,10 @@ describe('contractNormalization', () => {
         signedAt: '2025-07-01T00:00:00.000Z',
         totalValue: 10000000,
       };
-      const result = normalizeContractForWorld(contract);
+      const result = requireValue(
+        normalizeContractForWorld(contract),
+        'Expected normalized contract for signedAt rename'
+      );
       expect(result.signingDate).toBe('2025-07-01T00:00:00.000Z');
       expect(result.signedAt).toBeUndefined();
     });
@@ -294,7 +335,10 @@ describe('contractNormalization', () => {
         extension: true,
         totalValue: 10000000,
       };
-      const result = normalizeContractForWorld(contract);
+      const result = requireValue(
+        normalizeContractForWorld(contract),
+        'Expected normalized contract for extension rename'
+      );
       expect(result.isExtension).toBe(true);
       expect(result.extension).toBeUndefined();
     });
@@ -306,16 +350,36 @@ describe('contractNormalization', () => {
           { season: '2026-27', salary: 5500000, optionUsed: 'declined' },
         ],
       };
-      const result = normalizeContractForWorld(contract);
-      expect(result.salariesByYear[0].optionUsed).toBe(true);
-      expect(result.salariesByYear[1].optionUsed).toBe(false);
+      const result = requireValue(
+        normalizeContractForWorld(contract),
+        'Expected normalized contract for salary row normalization'
+      );
+      const salariesByYear = requireValue(
+        result.salariesByYear,
+        'Expected normalized salariesByYear for salary row normalization'
+      );
+      expect(
+        requireValue(
+          salariesByYear[0],
+          'Expected first normalized salary row for salary row normalization'
+        ).optionUsed
+      ).toBe(true);
+      expect(
+        requireValue(
+          salariesByYear[1],
+          'Expected second normalized salary row for salary row normalization'
+        ).optionUsed
+      ).toBe(false);
     });
 
     it('normalizes freeAgency string to object', () => {
       const contract = {
         freeAgency: '2027 (UFA)',
       };
-      const result = normalizeContractForWorld(contract);
+      const result = requireValue(
+        normalizeContractForWorld(contract),
+        'Expected normalized contract for free agency normalization'
+      );
       expect(result.freeAgency).toEqual({ year: 2027, type: 'UFA' });
     });
 
@@ -326,7 +390,10 @@ describe('contractNormalization', () => {
         yearsRemaining: 3,
         signingTeam: 'LAL',
       };
-      const result = normalizeContractForWorld(contract);
+      const result = requireValue(
+        normalizeContractForWorld(contract),
+        'Expected normalized contract preserving fields'
+      );
       expect(result.contractType).toBe('Standard');
       expect(result.totalValue).toBe(50000000);
       expect(result.yearsRemaining).toBe(3);
@@ -346,7 +413,10 @@ describe('contractNormalization', () => {
       const futureContract = {
         salariesByYear: [{ season: '2028-29', salary: 10000000 }],
       };
-      const result = normalizeFutureContract(futureContract);
+      const result = requireValue(
+        normalizeFutureContract(futureContract),
+        'Expected normalized future contract for extension flag'
+      );
       expect(result.isExtension).toBe(true);
     });
 
@@ -356,11 +426,23 @@ describe('contractNormalization', () => {
         extensionSignedAt: '2025-07-01T00:00:00.000Z',
         salariesByYear: [{ season: '2028-29', salary: 10000000, optionUsed: 'accepted' }],
       };
-      const result = normalizeFutureContract(futureContract);
+      const result = requireValue(
+        normalizeFutureContract(futureContract),
+        'Expected normalized future contract for combined normalization'
+      );
+      const salariesByYear = requireValue(
+        result.salariesByYear,
+        'Expected normalized salariesByYear for combined future contract normalization'
+      );
       expect(result.isExtension).toBe(true);
       expect(result.signingDate).toBe('2025-07-01T00:00:00.000Z');
       expect(result.extensionSignedAt).toBeUndefined();
-      expect(result.salariesByYear[0].optionUsed).toBe(true);
+      expect(
+        requireValue(
+          salariesByYear[0],
+          'Expected first normalized salary row for combined future contract normalization'
+        ).optionUsed
+      ).toBe(true);
     });
 
     it('handles null input', () => {
@@ -448,7 +530,10 @@ describe('contractNormalization', () => {
           { season: '2025-26', salary: 5000000 },
         ],
       };
-      const result = normalizeContractForWorld(signingContract);
+      const result = requireValue(
+        normalizeContractForWorld(signingContract),
+        'Expected normalized signing contract'
+      );
       
       expect(result.signingDate).toBeDefined();
       expect(result.signedAt).toBeUndefined();
@@ -464,7 +549,10 @@ describe('contractNormalization', () => {
           { season: '2028-29', salary: 10000000, isExtensionSeason: true },
         ],
       };
-      const result = normalizeFutureContract(extensionContract);
+      const result = requireValue(
+        normalizeFutureContract(extensionContract),
+        'Expected normalized extension contract'
+      );
       
       expect(result.isExtension).toBe(true);
       expect(result.extension).toBeUndefined();
@@ -480,7 +568,10 @@ describe('contractNormalization', () => {
         option: 'Player Option',
         optionUsed: true, // Should be boolean now
       };
-      const result = normalizeSalaryRow(salaryRow);
+      const result = requireValue(
+        normalizeSalaryRow(salaryRow),
+        'Expected normalized option decision salary row'
+      );
       
       expect(typeof result.optionUsed).toBe('boolean');
       expect(result.optionUsed).toBe(true);
@@ -490,13 +581,27 @@ describe('contractNormalization', () => {
       const contract1 = { freeAgency: '2027 (UFA)' };
       const contract2 = { freeAgency: { year: 2027, type: 'UFA' } };
       
-      const result1 = normalizeContractForWorld(contract1);
-      const result2 = normalizeContractForWorld(contract2);
+      const result1 = requireValue(
+        normalizeContractForWorld(contract1),
+        'Expected normalized contract from string free agency'
+      );
+      const result2 = requireValue(
+        normalizeContractForWorld(contract2),
+        'Expected normalized contract from object free agency'
+      );
+      const freeAgency1 = requireFreeAgencyObject(
+        result1.freeAgency,
+        'Expected object free agency after string normalization'
+      );
+      const freeAgency2 = requireFreeAgencyObject(
+        result2.freeAgency,
+        'Expected object free agency after object normalization'
+      );
       
       expect(typeof result1.freeAgency).toBe('object');
       expect(typeof result2.freeAgency).toBe('object');
-      expect(result1.freeAgency.year).toBe(2027);
-      expect(result2.freeAgency.year).toBe(2027);
+      expect(freeAgency1.year).toBe(2027);
+      expect(freeAgency2.year).toBe(2027);
     });
   });
 });

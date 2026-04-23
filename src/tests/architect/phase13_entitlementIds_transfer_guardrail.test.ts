@@ -21,11 +21,35 @@
 import { describe, it, expect } from 'vitest';
 import { buildPostTradeTeamsSnapshot } from '@/features/architect/utils/mutationPipeline';
 
+type PostTradeSnapshot = ReturnType<typeof buildPostTradeTeamsSnapshot>;
+type UpdatedTeam = NonNullable<PostTradeSnapshot['teamUpdates'][number]['team']>;
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getUpdatedTeam(
+  snapshot: PostTradeSnapshot,
+  teamCode: string,
+  message: string
+): UpdatedTeam {
+  return requireValue(
+    snapshot.teamUpdates.find((teamUpdate) => teamUpdate.teamCode === teamCode)?.team,
+    message
+  );
+}
+
 // ============================================================================
 // Minimal Fixtures
 // ============================================================================
 
-const makeMinimalTeam = (teamCode, entitlementIds = []) => ({
+const makeMinimalTeam = (teamCode: string, entitlementIds: string[] = []) => ({
   teamCode,
   teamName: `Team ${teamCode}`,
   roster: [],
@@ -76,12 +100,16 @@ describe('Phase 13: entitlementIds Transfer Guardrails', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade team A in 2-team entitlement transfer test'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade team B in 2-team entitlement transfer test'
+      );
 
       expect(postTradeA.entitlementIds).not.toContain('e1');
       expect(postTradeA.entitlementIds).toContain('e2');
@@ -122,12 +150,16 @@ describe('Phase 13: entitlementIds Transfer Guardrails', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade team A in bidirectional entitlement exchange test'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade team B in bidirectional entitlement exchange test'
+      );
 
       expect(postTradeA.entitlementIds).toContain('e2');
       expect(postTradeA.entitlementIds).not.toContain('e1');
@@ -180,15 +212,21 @@ describe('Phase 13: entitlementIds Transfer Guardrails', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
-      const postTradeC = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMC'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade team A in routed entitlement transfer test'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade team B in routed entitlement transfer test'
+      );
+      const postTradeC = getUpdatedTeam(
+        snapshot,
+        'TMC',
+        'Expected post-trade team C in routed entitlement transfer test'
+      );
 
       expect(postTradeA.entitlementIds).not.toContain('e1');
       expect(postTradeA.entitlementIds).not.toContain('e2');
@@ -245,15 +283,21 @@ describe('Phase 13: entitlementIds Transfer Guardrails', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
-      const postTradeC = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMC'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade team A in mixed routed/unrouted entitlement test'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade team B in mixed routed/unrouted entitlement test'
+      );
+      const postTradeC = getUpdatedTeam(
+        snapshot,
+        'TMC',
+        'Expected post-trade team C in mixed routed/unrouted entitlement test'
+      );
 
       // Team A loses e1 (routed) but e2 is removed from sender even though skipped
       expect(postTradeA.entitlementIds).not.toContain('e1');
@@ -311,15 +355,21 @@ describe('Phase 13: entitlementIds Transfer Guardrails', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
-      const postTradeC = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMC'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade team A in unrouted 3-team entitlement test'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade team B in unrouted 3-team entitlement test'
+      );
+      const postTradeC = getUpdatedTeam(
+        snapshot,
+        'TMC',
+        'Expected post-trade team C in unrouted 3-team entitlement test'
+      );
 
       // Team A loses e1 (it's in entitlementsOut)
       expect(postTradeA.entitlementIds).not.toContain('e1');
@@ -369,11 +419,17 @@ describe('Phase 13: entitlementIds Transfer Guardrails', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade team B in entitlement dedupe test'
+      );
+      const entitlementIds = requireValue(
+        postTradeB.entitlementIds,
+        'Expected entitlementIds for post-trade team B in entitlement dedupe test'
+      );
 
-      const e1Count = postTradeB.entitlementIds.filter(
+      const e1Count = entitlementIds.filter(
         (id) => id === 'e1'
       ).length;
       expect(e1Count).toBe(1);
@@ -406,12 +462,16 @@ describe('Phase 13: entitlementIds Transfer Guardrails', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade team A in empty entitlementsOut test'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade team B in empty entitlementsOut test'
+      );
 
       expect(postTradeA.entitlementIds).toEqual(['e1', 'e2']);
       expect(postTradeB.entitlementIds).toEqual(['e3']);
@@ -474,12 +534,16 @@ describe('Phase 13: entitlementIds Transfer Guardrails', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade team A when entitlementId fallback is used'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade team B when entitlementId fallback is used'
+      );
 
       expect(postTradeA.entitlementIds).not.toContain('e1');
       expect(postTradeB.entitlementIds).toContain('e1');

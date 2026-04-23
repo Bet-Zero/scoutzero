@@ -688,7 +688,9 @@ Validation:
 
 ## Step 27 — Harden the remaining integration / normalization harness cluster (wave 6)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Hardened the planned integration/normalization harness cluster across `contractNormalization`, `schemaAdapter`, `integration`, `e2e-workflows`, and the Phase 13 entitlement guardrail; Step 27 validation passed with root typecheck green, the targeted node pack at `100 / 100`, and Architect strict reduced from `1,730` to `1,502`.
 
 **Goal:** Tighten the next highest-leverage integration/normalization harnesses after the exception/parity cluster is reduced.
 

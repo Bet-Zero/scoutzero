@@ -25,15 +25,114 @@ import {
   seedBaseData,
   createMockCapProjections,
   seedTeamSnapshot,
-} from '../helpers/architectTestHelpers.ts';
-import { seedMockData as seedMockDataDirect } from '../__mocks__/firebase.ts';
+} from '../helpers/architectTestHelpers.js';
+import { seedMockData as seedMockDataDirect } from '../__mocks__/firebase.js';
+
+type ComputeMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type ExecuteTradeArgs = Extract<
+  ComputeMutationArgs,
+  { mutationType: 'executeTrade' }
+>;
+type TradePayload = ExecuteTradeArgs['payload'];
+type TradeCurrentState = ExecuteTradeArgs['currentState'];
+type MutationResult = ReturnType<typeof computeWorldMutation>;
+type TradeComputeResult = {
+  success: true;
+  teams: NonNullable<MutationResult['teamUpdates']>;
+  validation: MutationResult['_validatedTradeContext'];
+};
+type TradeTeam = NonNullable<TradeComputeResult['teams'][number]['team']>;
+type ListedWorld = Awaited<ReturnType<typeof listUserWorlds>>[number];
+type TeamSource = { type?: string; worldId?: string } & Record<string, unknown>;
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getPlayerId(value: unknown, message: string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (isRecord(value)) {
+    const playerId = value.player_id ?? value.playerId ?? value.id;
+    if (typeof playerId === 'string') {
+      return playerId;
+    }
+  }
+
+  throw new Error(message);
+}
+
+function getRosterIds(roster: unknown, message: string): string[] {
+  const rosterEntries = requireValue(
+    Array.isArray(roster) ? roster : undefined,
+    message
+  );
+
+  return rosterEntries.map((player, index) =>
+    getPlayerId(player, `${message} at index ${index}`)
+  );
+}
+
+function getTradeTeam(
+  result: TradeComputeResult,
+  teamCode: string,
+  message: string
+): TradeTeam {
+  const teamUpdate = requireValue(
+    result.teams.find((candidate) => candidate.teamCode === teamCode),
+    message
+  );
+
+  return requireValue(teamUpdate.team, `${message} with hydrated team data`);
+}
+
+function getTeamSource(
+  team: unknown,
+  message: string
+): TeamSource {
+  const source = isRecord(team) ? team.source : undefined;
+
+  return requireValue(
+    isRecord(source) ? (source as TeamSource) : undefined,
+    message
+  );
+}
+
+function getListedWorld(
+  worlds: ListedWorld[],
+  worldId: string,
+  message: string
+): ListedWorld {
+  return requireValue(
+    worlds.find((world) => world.worldId === worldId),
+    message
+  );
+}
 
 /**
  * Helper to persist team snapshot to mock Firestore
  * (Simulates what a server-side write would do)
  */
-function saveTeamSnapshotToMock(worldId, team) {
-  const teamCode = team.teamCode;
+function saveTeamSnapshotToMock(
+  worldId: string,
+  team: Record<string, unknown> & { teamCode?: unknown }
+) {
+  const teamCode = requireValue(
+    typeof team.teamCode === 'string' ? team.teamCode : undefined,
+    'Expected teamCode when saving mock team snapshot'
+  );
   const snapshotPath = `architect_worlds/${worldId}/teams/${teamCode}`;
   seedMockDataDirect(snapshotPath, team);
 }
@@ -41,13 +140,7 @@ function saveTeamSnapshotToMock(worldId, team) {
 /**
  * Helper to extract player IDs from roster (handles both string and object formats)
  */
-function getRosterIds(roster) {
-  return roster.map((p) =>
-    typeof p === 'string' ? p : p.player_id || p.playerId || p.id
-  );
-}
-
-function toSeasonId(currentYear) {
+function toSeasonId(currentYear: string | number | null | undefined) {
   if (typeof currentYear === 'string' && currentYear) {
     return currentYear;
   }
@@ -56,10 +149,26 @@ function toSeasonId(currentYear) {
   return `${year}-${String(year + 1).slice(-2)}`;
 }
 
-async function computeTrade(worldId, tradeData) {
+async function computeTrade(
+  worldId: string,
+  tradeData: TradePayload
+): Promise<TradeComputeResult> {
+  const tradeTeams = requireValue(
+    Array.isArray(tradeData.teams) ? tradeData.teams : undefined,
+    'Expected teams array for authoritative trade compute'
+  );
+
   const teams = await Promise.all(
-    tradeData.teams.map(async (tradeTeam) => {
-      const teamCode = tradeTeam.teamCode || tradeTeam.team?.teamCode;
+    tradeTeams.map(async (tradeTeam) => {
+      const teamCode = requireValue(
+        typeof tradeTeam.teamCode === 'string'
+          ? tradeTeam.teamCode
+          : typeof tradeTeam.team?.teamCode === 'string'
+            ? tradeTeam.team.teamCode
+            : undefined,
+        'Expected trade team code for authoritative compute'
+      );
+
       return {
         teamCode,
         team: await getTeam(worldId, teamCode),
@@ -70,19 +179,26 @@ async function computeTrade(worldId, tradeData) {
   const result = computeWorldMutation({
     mutationType: 'executeTrade',
     payload: tradeData,
-    currentState: { teams },
-    seasonId: toSeasonId(tradeData.currentYear),
+    currentState: { teams } as TradeCurrentState,
+    seasonId: toSeasonId((tradeData as { currentYear?: string | number }).currentYear),
     timestamp: Date.now(),
     worldId,
-  });
+  } as ExecuteTradeArgs);
 
   if (!result.success) {
-    throw new Error(result.error || 'Authoritative trade compute failed');
+    throw new Error(
+      typeof result.error === 'string'
+        ? result.error
+        : 'Authoritative trade compute failed'
+    );
   }
 
   return {
     success: true,
-    teams: result.teamUpdates,
+    teams: requireValue(
+      result.teamUpdates,
+      'Expected team updates from authoritative trade compute'
+    ),
     validation: result._validatedTradeContext,
   };
 }
@@ -139,8 +255,11 @@ describe('E2E Workflow Tests', () => {
 
       // Verify world still visible in list
       userWorlds = await listUserWorlds(userId);
-      const renamedWorld = userWorlds.find((w) => w.worldId === worldId);
-      expect(renamedWorld).toBeDefined();
+      const renamedWorld = getListedWorld(
+        userWorlds,
+        worldId,
+        'Expected renamed world in default user world list'
+      );
       expect(renamedWorld.worldName).toBe('Renamed Test World');
 
       // Step 3: Archive the world
@@ -156,8 +275,11 @@ describe('E2E Workflow Tests', () => {
 
       // Step 5: Verify world is still accessible with includeArchived option
       const allWorlds = await listUserWorlds(userId, { includeArchived: true });
-      const archivedWorld = allWorlds.find((w) => w.worldId === worldId);
-      expect(archivedWorld).toBeDefined();
+      const archivedWorld = getListedWorld(
+        allWorlds,
+        worldId,
+        'Expected archived world when includeArchived is enabled'
+      );
       expect(archivedWorld.isArchived).toBe(true);
       expect(archivedWorld.worldName).toBe('Renamed Test World');
     });
@@ -216,7 +338,10 @@ describe('E2E Workflow Tests', () => {
 
       // Step 2: Verify initial LAL roster from base data
       let lalTeam = await getTeam(worldId, 'LAL');
-      const initialRosterIds = getRosterIds(lalTeam.roster);
+      const initialRosterIds = getRosterIds(
+        lalTeam.roster,
+        'Expected initial LAL roster entries in offseason workflow test'
+      );
       expect(initialRosterIds).toContain('lebron_james');
 
       // Step 3: Seed a free agent player in base players
@@ -263,7 +388,10 @@ describe('E2E Workflow Tests', () => {
 
       // Step 5: Verify signing succeeded and roster updated
       expect(signResult.success).toBe(true);
-      const signedRosterIds = getRosterIds(signResult.team.roster);
+      const signedRosterIds = getRosterIds(
+        signResult.team.roster,
+        'Expected signed LAL roster entries after free-agent signing'
+      );
       expect(signedRosterIds).toContain(faPlayerId);
 
       // Save the updated team snapshot
@@ -271,7 +399,10 @@ describe('E2E Workflow Tests', () => {
 
       // Step 6: Verify signing persisted by reloading team
       lalTeam = await getTeam(worldId, 'LAL');
-      const reloadedRosterIds = getRosterIds(lalTeam.roster);
+      const reloadedRosterIds = getRosterIds(
+        lalTeam.roster,
+        'Expected reloaded LAL roster entries after saving free-agent snapshot'
+      );
       expect(reloadedRosterIds).toContain(faPlayerId);
     });
 
@@ -318,8 +449,14 @@ describe('E2E Workflow Tests', () => {
       let lalTeam = await getTeam(worldId, 'LAL');
       let gswTeam = await getTeam(worldId, 'GSW');
 
-      const lalInitialRosterIds = getRosterIds(lalTeam.roster);
-      const gswInitialRosterIds = getRosterIds(gswTeam.roster);
+      const lalInitialRosterIds = getRosterIds(
+        lalTeam.roster,
+        'Expected initial LAL roster entries in e2e trade workflow test'
+      );
+      const gswInitialRosterIds = getRosterIds(
+        gswTeam.roster,
+        'Expected initial GSW roster entries in e2e trade workflow test'
+      );
 
       expect(lalInitialRosterIds).toContain('lebron_james');
       expect(gswInitialRosterIds).toContain('stephen_curry');
@@ -350,21 +487,40 @@ describe('E2E Workflow Tests', () => {
       expect(tradeResult.success).toBe(true);
       expect(tradeResult.teams).toHaveLength(2);
 
-      const lalTradeResult = tradeResult.teams.find((t) => t.teamCode === 'LAL');
-      const gswTradeResult = tradeResult.teams.find((t) => t.teamCode === 'GSW');
-
-      expect(lalTradeResult).toBeDefined();
-      expect(gswTradeResult).toBeDefined();
+      const lalTradeResult = getTradeTeam(
+        tradeResult,
+        'LAL',
+        'Expected LAL team update after executing trade in e2e workflow test'
+      );
+      const gswTradeResult = getTradeTeam(
+        tradeResult,
+        'GSW',
+        'Expected GSW team update after executing trade in e2e workflow test'
+      );
+      const lalTradeSource = getTeamSource(
+        lalTradeResult,
+        'Expected source metadata for post-trade LAL team result'
+      );
+      const gswTradeSource = getTeamSource(
+        gswTradeResult,
+        'Expected source metadata for post-trade GSW team result'
+      );
 
       // Verify source metadata updated
-      expect(lalTradeResult.team.source.type).toBe('world-snapshot');
-      expect(lalTradeResult.team.source.worldId).toBeUndefined();
-      expect(gswTradeResult.team.source.type).toBe('world-snapshot');
-      expect(gswTradeResult.team.source.worldId).toBeUndefined();
+      expect(lalTradeSource.type).toBe('world-snapshot');
+      expect(lalTradeSource.worldId).toBeUndefined();
+      expect(gswTradeSource.type).toBe('world-snapshot');
+      expect(gswTradeSource.worldId).toBeUndefined();
 
       // Step 5: Verify trade result includes incoming players (added as string IDs)
-      const lalTradeRosterIds = getRosterIds(lalTradeResult.team.roster);
-      const gswTradeRosterIds = getRosterIds(gswTradeResult.team.roster);
+      const lalTradeRosterIds = getRosterIds(
+        lalTradeResult.roster,
+        'Expected post-trade LAL roster entries in e2e trade workflow test'
+      );
+      const gswTradeRosterIds = getRosterIds(
+        gswTradeResult.roster,
+        'Expected post-trade GSW roster entries in e2e trade workflow test'
+      );
 
       // LAL should have gained stephen_curry
       expect(lalTradeRosterIds).toContain('stephen_curry');
@@ -407,20 +563,40 @@ describe('E2E Workflow Tests', () => {
 
       // Save the trade result snapshots
       for (const teamResult of tradeResult.teams) {
-        saveTeamSnapshotToMock(worldId, teamResult.team);
+        saveTeamSnapshotToMock(
+          worldId,
+          requireValue(
+            teamResult.team,
+            `Expected hydrated team snapshot for ${teamResult.teamCode}`
+          )
+        );
       }
 
       // Reload teams from the world
       const lalTeam = await getTeam(worldId, 'LAL');
       const gswTeam = await getTeam(worldId, 'GSW');
+      const lalSource = getTeamSource(
+        lalTeam,
+        'Expected source metadata for persisted LAL world snapshot'
+      );
+      const gswSource = getTeamSource(
+        gswTeam,
+        'Expected source metadata for persisted GSW world snapshot'
+      );
 
       // Verify snapshots were saved and retrieved
-      expect(lalTeam.source.type).toBe('world-snapshot');
-      expect(gswTeam.source.type).toBe('world-snapshot');
+      expect(lalSource.type).toBe('world-snapshot');
+      expect(gswSource.type).toBe('world-snapshot');
 
       // Verify the rosters include the incoming players
-      const lalRosterIds = getRosterIds(lalTeam.roster);
-      const gswRosterIds = getRosterIds(gswTeam.roster);
+      const lalRosterIds = getRosterIds(
+        lalTeam.roster,
+        'Expected persisted LAL roster entries after saving trade snapshot'
+      );
+      const gswRosterIds = getRosterIds(
+        gswTeam.roster,
+        'Expected persisted GSW roster entries after saving trade snapshot'
+      );
 
       expect(lalRosterIds).toContain('stephen_curry');
       expect(gswRosterIds).toContain('lebron_james');
@@ -472,22 +648,48 @@ describe('E2E Workflow Tests', () => {
 
       // All teams should have snapshot source metadata
       for (const teamResult of tradeResult.teams) {
-        expect(teamResult.team.source.type).toBe('world-snapshot');
-        expect(teamResult.team.source.worldId).toBeUndefined();
+        const updatedTeam = requireValue(
+          teamResult.team,
+          `Expected hydrated team snapshot for ${teamResult.teamCode}`
+        );
+        const source = getTeamSource(
+          updatedTeam,
+          `Expected source metadata for ${teamResult.teamCode} in multi-team trade`
+        );
+
+        expect(source.type).toBe('world-snapshot');
+        expect(source.worldId).toBeUndefined();
       }
 
       // Verify each team received exactly the player routed to them
-      const lalTeamResult = tradeResult.teams.find((t) => t.teamCode === 'LAL');
-      const gswTeamResult = tradeResult.teams.find((t) => t.teamCode === 'GSW');
-      const bosTeamResult = tradeResult.teams.find((t) => t.teamCode === 'BOS');
+      const lalTeamResult = getTradeTeam(
+        tradeResult,
+        'LAL',
+        'Expected LAL team result in multi-team routed trade test'
+      );
+      const gswTeamResult = getTradeTeam(
+        tradeResult,
+        'GSW',
+        'Expected GSW team result in multi-team routed trade test'
+      );
+      const bosTeamResult = getTradeTeam(
+        tradeResult,
+        'BOS',
+        'Expected BOS team result in multi-team routed trade test'
+      );
 
-      expect(lalTeamResult).toBeDefined();
-      expect(gswTeamResult).toBeDefined();
-      expect(bosTeamResult).toBeDefined();
-
-      const lalRosterIds = getRosterIds(lalTeamResult.team.roster);
-      const gswRosterIds = getRosterIds(gswTeamResult.team.roster);
-      const bosRosterIds = getRosterIds(bosTeamResult.team.roster);
+      const lalRosterIds = getRosterIds(
+        lalTeamResult.roster,
+        'Expected routed roster entries for LAL in multi-team trade'
+      );
+      const gswRosterIds = getRosterIds(
+        gswTeamResult.roster,
+        'Expected routed roster entries for GSW in multi-team trade'
+      );
+      const bosRosterIds = getRosterIds(
+        bosTeamResult.roster,
+        'Expected routed roster entries for BOS in multi-team trade'
+      );
 
       // LAL receives jayson_tatum from BOS (not stephen_curry or lebron_james)
       expect(lalRosterIds).toContain('jayson_tatum');
