@@ -3,29 +3,96 @@ import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tr
 import { validateConsent } from '@/features/architect/utils/tradeMachine/rules/validateConsent';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import capProjections from '@/features/architect/utils/capProjections';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+  TradeTeam,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 const salary = 10_000_000;
 
-const makePlayer = (name, extra = {}) => ({
+type TradeSlot = NonNullable<
+  NonNullable<Parameters<typeof validateTrade>[0]['teams']>[number]
+>;
+type TradeTeamData = NonNullable<TradeSlot['team']>;
+type SalaryRow = {
+  season: string;
+  salary: number;
+  capHit: number;
+  guaranteed: boolean;
+};
+type TestTradePlayer = TradeExceptionPlayer &
+  Pick<
+    NormalizedPlayer,
+    | 'name'
+    | 'salary'
+    | 'matchIncoming'
+    | 'matchOutgoing'
+    | 'isTwoWay'
+    | 'absorptionMode'
+    | 'signAndTrade'
+    | 'contractYears'
+    | 'firstYearGuaranteed'
+  > & {
+    contract: {
+      salariesByYear: SalaryRow[];
+    };
+    hasFullNTC?: boolean;
+    consent?: boolean;
+    oneYearBirdVeto?: boolean;
+  };
+type TestTradeTeamData = TradeTeamData & {
+  players: TestTradePlayer[];
+  roster: string[];
+};
+
+const makePlayer = (
+  name: string,
+  extra: Partial<TestTradePlayer> = {}
+): TestTradePlayer => ({
   id: name,
+  player_id: name,
   name,
-  contract: { salariesByYear: [{ season, salary }] },
+  salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
+  contract: {
+    salariesByYear: [{ season, salary, capHit: salary, guaranteed: true }],
+  },
   ...extra,
 });
 
-const makeTeam = (id, extraPlayers = []) => ({
+const makeTeam = (
+  id: string,
+  extraPlayers: TestTradePlayer[] = []
+): TestTradeTeamData => ({
   id,
+  teamId: id,
+  teamCode: id,
   teamName: id,
+  nickname: id,
   totalSalary: 100_000_000,
+  teamTotalSalary: 100_000_000,
   picks: [],
+  draftPicks: [],
   players: Array.from({ length: 14 }, (_, i) => makePlayer(`${id}${i}`)).concat(
     extraPlayers
   ),
+  roster: Array.from({ length: 14 }, (_, i) => `${id}${i}`).concat(
+    extraPlayers.map((player) => String(player.player_id ?? player.id))
+  ),
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 describe('consent and re-acquisition rules', () => {
   it('validateConsent emits canonical issues for full NTC without consent', () => {

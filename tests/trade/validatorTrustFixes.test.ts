@@ -3,13 +3,133 @@ import capProjections from '@/features/architect/utils/capProjections';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+  TradeExceptionRecord,
+  TradeFaExceptionBucket,
+  TradeRuleEnvelope,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const CURRENT_YEAR = 2026;
 const SEASON = '2025-26';
 const SEASON_ID = '2025-26';
 const FIXED_TIMESTAMP = Date.UTC(2025, 6, 10, 12, 0, 0);
 
-const makeContract = (salary, extra = {}) => ({
+type TradeSlot = NonNullable<
+  NonNullable<Parameters<typeof validateTrade>[0]['teams']>[number]
+>;
+type TradeTeamData = NonNullable<TradeSlot['team']>;
+type SalaryRow = {
+  season: string;
+  salary: number;
+  capHit: number;
+  guaranteed: boolean;
+};
+type TestContract = {
+  contractType?: string | null;
+  isTwoWay?: boolean;
+  contractYears?: number;
+  firstYearGuaranteed?: boolean;
+  salariesByYear: SalaryRow[];
+  [key: string]: unknown;
+};
+type TestTradePlayer = Omit<TradeExceptionPlayer, 'teamCode'> &
+  Pick<
+    NormalizedPlayer,
+    | 'name'
+    | 'salary'
+    | 'matchIncoming'
+    | 'matchOutgoing'
+    | 'isTwoWay'
+    | 'absorptionMode'
+    | 'signAndTrade'
+    | 'contractYears'
+    | 'firstYearGuaranteed'
+  > & {
+    id: string;
+    player_id: string;
+    teamCode: string | null;
+    contract: TestContract;
+    [key: string]: unknown;
+  };
+type TestTradeTeamData = Omit<
+  TradeTeamData,
+  | 'players'
+  | 'roster'
+  | 'capHolds'
+  | 'draftPicks'
+  | 'tradeExceptions'
+  | 'faExceptionBuckets'
+  | 'totals'
+> & {
+  players: TestTradePlayer[];
+  roster: string[];
+  capHolds: NonNullable<TradeTeamData['capHolds']>;
+  draftPicks: unknown[];
+  tradeExceptions: TradeExceptionRecord[];
+  faExceptionBuckets: TradeFaExceptionBucket[];
+  totals: {
+    totalSalary: number;
+    capHit: number;
+  };
+};
+type TestTradeSlot = Omit<TradeSlot, 'team' | 'sends' | 'entitlementsOut'> & {
+  team: TestTradeTeamData;
+  sends?: TestTradePlayer[];
+  entitlementsOut?: unknown[];
+};
+type MakePlayerExtra = Partial<TestTradePlayer> & {
+  contractType?: string | null;
+  contract?: TestContract;
+  guaranteed?: boolean;
+};
+type ComputeMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type ExecuteTradeArgs = Extract<
+  ComputeMutationArgs,
+  { mutationType: 'executeTrade' }
+>;
+type ExecuteTradePayload = ExecuteTradeArgs['payload'];
+type ExecuteTradeCurrentState = ExecuteTradeArgs['currentState'];
+
+function asValidateTradeTeams(teams: TestTradeSlot[]) {
+  return teams as NonNullable<Parameters<typeof validateTrade>[0]['teams']>;
+}
+
+function issueTexts(issues: ValidationIssue[] | undefined = []) {
+  return issues.map((issue) => getValidationIssueText(issue));
+}
+
+function getRuleSkipReason(rule: TradeRuleEnvelope | undefined) {
+  const ruleWithSkipReason = rule as TradeRuleEnvelope & {
+    skipReason?: string | null;
+    details?: { skipReason?: string | null } | null;
+  };
+
+  return ruleWithSkipReason.skipReason ?? ruleWithSkipReason.details?.skipReason;
+}
+
+function computeTradeMutation(
+  payload: ExecuteTradePayload,
+  currentState: ExecuteTradeCurrentState,
+  asOfDate: string
+) {
+  return computeWorldMutation({
+    mutationType: 'executeTrade',
+    payload,
+    currentState,
+    seasonId: SEASON_ID,
+    timestamp: FIXED_TIMESTAMP,
+    worldId: 'world_test',
+    asOfDate,
+  } as ExecuteTradeArgs);
+}
+
+const makeContract = (
+  salary: number,
+  extra: MakePlayerExtra = {}
+): TestContract => ({
   contractType: extra.contractType,
   isTwoWay: extra.isTwoWay,
   salariesByYear: [
@@ -22,24 +142,49 @@ const makeContract = (salary, extra = {}) => ({
   ],
 });
 
-const makePlayer = (id, salary, extra = {}) => ({
-  id,
-  player_id: id,
-  name: extra.name || id,
-  teamCode: extra.teamCode || null,
-  contract: extra.contract || makeContract(salary, extra),
-  ...extra,
-});
+const makePlayer = (
+  id: string,
+  salary: number,
+  extra: MakePlayerExtra = {}
+): TestTradePlayer => {
+  const {
+    name = id,
+    teamCode = null,
+    contract,
+    ...rest
+  } = extra;
 
-const makeRoster = (teamCode, count, salary = 1_000_000) =>
+  return {
+    id,
+    player_id: id,
+    name,
+    salary,
+    matchIncoming: salary,
+    matchOutgoing: salary,
+    isTwoWay: false,
+    absorptionMode: 'MATCH',
+    signAndTrade: false,
+    contractYears: 1,
+    firstYearGuaranteed: true,
+    teamCode,
+    contract: contract ?? makeContract(salary, extra),
+    ...rest,
+  };
+};
+
+const makeRoster = (teamCode: string, count: number, salary = 1_000_000) =>
   Array.from({ length: count }, (_, index) =>
     makePlayer(`${teamCode}_player_${index}`, salary, { teamCode })
   );
 
-const makeTeam = (teamCode, players, extra = {}) => {
+const makeTeam = (
+  teamCode: string,
+  players: TestTradePlayer[],
+  extra: Partial<TestTradeTeamData> = {}
+): TestTradeTeamData => {
   const computedTotalSalary = players.reduce((sum, player) => {
-    const row = player.contract?.salariesByYear?.[0] || {};
-    return sum + Number(row.capHit ?? row.salary ?? 0);
+    const row = player.contract.salariesByYear[0];
+    return sum + Number(row?.capHit ?? row?.salary ?? 0);
   }, 0);
 
   const totalSalary = extra.totalSalary ?? computedTotalSalary;
@@ -51,10 +196,10 @@ const makeTeam = (teamCode, players, extra = {}) => {
     teamName: `Team ${teamCode}`,
     players,
     roster: players.map((player) => String(player.player_id || player.id)),
-    capHolds: extra.capHolds || [],
+    capHolds: extra.capHolds ?? [],
     draftPicks: [],
-    tradeExceptions: extra.tradeExceptions || [],
-    faExceptionBuckets: extra.faExceptionBuckets,
+    tradeExceptions: extra.tradeExceptions ?? [],
+    faExceptionBuckets: extra.faExceptionBuckets ?? [],
     totals: { totalSalary, capHit: totalSalary },
     teamTotalSalary: totalSalary,
     totalSalary,
@@ -62,7 +207,7 @@ const makeTeam = (teamCode, players, extra = {}) => {
   };
 };
 
-const makeSatContract = (firstYearSalary) => ({
+const makeSatContract = (firstYearSalary: number): TestContract => ({
   contractType: 'Sign & Trade',
   contractYears: 3,
   firstYearGuaranteed: true,
@@ -88,8 +233,6 @@ const makeSatContract = (firstYearSalary) => ({
   ],
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
-
 describe('validator trust fixes', () => {
   it('blocks outgoing two-way players through validateTrade', () => {
     const twoWayPlayer = makePlayer('lal_two_way', 600_000, {
@@ -105,10 +248,10 @@ describe('validator trust fixes', () => {
     });
 
     const result = validateTrade({
-      teams: [
+      teams: asValidateTradeTeams([
         { team: lakers, sends: [twoWayPlayer], entitlementsOut: [] },
         { team: celtics, sends: [], entitlementsOut: [] },
-      ],
+      ]),
       capProjections,
       currentYear: CURRENT_YEAR,
     });
@@ -148,10 +291,10 @@ describe('validator trust fixes', () => {
     });
 
     const result = validateTrade({
-      teams: [
+      teams: asValidateTradeTeams([
         { team: lakers, sends: [faExceptionIncoming], entitlementsOut: [] },
         { team: celtics, sends: [], entitlementsOut: [] },
-      ],
+      ]),
       capProjections,
       currentYear: CURRENT_YEAR,
     });
@@ -162,7 +305,7 @@ describe('validator trust fixes', () => {
 
     expect(result.legal).toBe(true);
     expect(celticsResult?.rules?.faExceptionUsage?.passed).toBe(true);
-    expect(celticsResult?.rules?.salaryMatching?.skipReason).toBe(
+    expect(getRuleSkipReason(celticsResult?.rules?.salaryMatching)).toBe(
       'FA_EXCEPTION'
     );
     expect(celticsResult?.hardCapped).toBe(true);
@@ -192,10 +335,10 @@ describe('validator trust fixes', () => {
     );
 
     const result = validateTrade({
-      teams: [
+      teams: asValidateTradeTeams([
         { team: lakers, sends: [faExceptionIncoming], entitlementsOut: [] },
         { team: celtics, sends: [counterPlayer], entitlementsOut: [] },
-      ],
+      ]),
       capProjections,
       currentYear: CURRENT_YEAR,
     });
@@ -236,7 +379,9 @@ describe('validator trust fixes', () => {
         {
           playerId: 'sat_player',
           playerName: 'sat_player',
+          amount: 0,
           season: SEASON,
+          type: 'FA_CAP_HOLD',
           active: true,
           isSigned: false,
         },
@@ -264,25 +409,17 @@ describe('validator trust fixes', () => {
       ],
     };
 
-    const offseasonResult = computeWorldMutation({
-      mutationType: 'executeTrade',
-      payload,
-      currentState,
-      seasonId: SEASON_ID,
-      timestamp: FIXED_TIMESTAMP,
-      worldId: 'world_test',
-      asOfDate: '2025-07-10',
-    });
+    const offseasonResult = computeTradeMutation(
+      payload as ExecuteTradePayload,
+      currentState as ExecuteTradeCurrentState,
+      '2025-07-10'
+    );
 
-    const inSeasonResult = computeWorldMutation({
-      mutationType: 'executeTrade',
-      payload,
-      currentState,
-      seasonId: SEASON_ID,
-      timestamp: FIXED_TIMESTAMP,
-      worldId: 'world_test',
-      asOfDate: '2026-02-01',
-    });
+    const inSeasonResult = computeTradeMutation(
+      payload as ExecuteTradePayload,
+      currentState as ExecuteTradeCurrentState,
+      '2026-02-01'
+    );
 
     const offseasonSignAndTradeRule =
       offseasonResult._validatedTradeContext?._rawValidation?.teamResults?.[0]
@@ -360,15 +497,11 @@ describe('validator trust fixes', () => {
       ],
     };
 
-    const result = computeWorldMutation({
-      mutationType: 'executeTrade',
-      payload,
-      currentState,
-      seasonId: SEASON_ID,
-      timestamp: FIXED_TIMESTAMP,
-      worldId: 'world_test',
-      asOfDate: '2026-02-01',
-    });
+    const result = computeTradeMutation(
+      payload as ExecuteTradePayload,
+      currentState as ExecuteTradeCurrentState,
+      '2026-02-01'
+    );
 
     const lakersResult = result._validatedTradeContext?._rawValidation?.teamResults?.find(
       (entry) => entry.teamId === 'LAL'
@@ -434,15 +567,11 @@ describe('validator trust fixes', () => {
       ],
     };
 
-    const result = computeWorldMutation({
-      mutationType: 'executeTrade',
-      payload,
-      currentState,
-      seasonId: SEASON_ID,
-      timestamp: FIXED_TIMESTAMP,
-      worldId: 'world_test',
-      asOfDate: '2025-07-10',
-    });
+    const result = computeTradeMutation(
+      payload as ExecuteTradePayload,
+      currentState as ExecuteTradeCurrentState,
+      '2025-07-10'
+    );
 
     const lakersResult = result._validatedTradeContext?._rawValidation?.teamResults?.find(
       (entry) => entry.teamId === 'LAL'

@@ -804,7 +804,9 @@ Validation:
 
 ## Step 30 — Harden the next trade validator / unit truth cluster (wave 8)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Hardened the planned validator/unit truth cluster across `validatorContractCleanup`, `validatorTrustFixes`, `consent_and_reacq`, and `extension_voidedByExtension`; kept root typecheck green, passed the bounded node pack at `21 / 21`, and reduced Architect strict from `1,336` to `1,212` without widening into the DARE/e2e backlog.
 
 **Goal:** Tighten the remaining high-value trade validator/unit harnesses that still dominate the post-Step-28 backlog outside the Architect guardrail cluster.
 

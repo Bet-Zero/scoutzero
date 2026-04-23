@@ -3,11 +3,163 @@ import capProjections from '@/features/architect/utils/capProjections';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validatePostTradeSnapshotForContext } from '@/features/architect/utils/tradeContext/tradeContext';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+  TradeExceptionRecord,
+  TradeFaExceptionBucket,
+  TradeValidationResult,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
+import type { ArchitectTradePayloadTeam } from '@/features/architect/utils/mutationPipeline';
+import type {
+  PostTradeSnapshot,
+  ValidationTeam,
+} from '@/features/architect/utils/tradeContext/types';
 
 const CURRENT_YEAR = 2026;
 const SEASON = '2025-26';
 
-const expectCanonicalIssue = (issue, { rule, severity } = {}) => {
+type TradeSlot = NonNullable<
+  NonNullable<Parameters<typeof validateTrade>[0]['teams']>[number]
+>;
+type TradeTeamData = NonNullable<TradeSlot['team']>;
+type SalaryRow = {
+  season: string;
+  salary: number;
+  capHit: number;
+  guaranteed: boolean;
+};
+type TestContract = {
+  contractType?: string | null;
+  salariesByYear: SalaryRow[];
+  [key: string]: unknown;
+};
+type TestTradePlayer = Omit<TradeExceptionPlayer, 'teamCode'> &
+  Pick<
+    NormalizedPlayer,
+    | 'name'
+    | 'salary'
+    | 'matchIncoming'
+    | 'matchOutgoing'
+    | 'isTwoWay'
+    | 'absorptionMode'
+    | 'signAndTrade'
+    | 'contractYears'
+    | 'firstYearGuaranteed'
+  > & {
+    id: string;
+    player_id: string;
+    teamCode: string | null;
+    contract: TestContract;
+  };
+type TestTradeSlot = Omit<TradeSlot, 'team'> & {
+  teamCode?: string | null;
+  team: TestTradeTeamData;
+  sends?: TestTradePlayer[];
+  entitlementsOut?: unknown[];
+  validationEntitlements?: unknown[];
+};
+type TestTradeTeamData = Omit<
+  TradeTeamData,
+  | 'players'
+  | 'roster'
+  | 'capHolds'
+  | 'draftPicks'
+  | 'tradeExceptions'
+  | 'faExceptionBuckets'
+  | 'entitlementIds'
+  | 'totals'
+> & {
+  players: TestTradePlayer[];
+  roster: string[];
+  capHolds: NonNullable<TradeTeamData['capHolds']>;
+  draftPicks: unknown[];
+  tradeExceptions: TradeExceptionRecord[];
+  faExceptionBuckets: TradeFaExceptionBucket[];
+  entitlementIds: string[];
+  totals: {
+    totalSalary: number;
+    capHit: number;
+  };
+};
+type MakePlayerExtra = Partial<TestTradePlayer> & {
+  contractType?: string | null;
+  contract?: TestContract;
+};
+type CanonicalIssueExpectation = {
+  rule?: string;
+  severity?: ValidationIssue['severity'];
+};
+type CanonicalValidatedTradeContext = ReturnType<
+  typeof validatePostTradeSnapshotForContext
+> &
+  Pick<TradeValidationResult, 'summaryByTeamIndex' | 'capSettings'> & {
+    _rawValidation: TradeValidationResult;
+  };
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getTeamResult(
+  result: TradeValidationResult,
+  teamId: string,
+  message: string
+) {
+  return requireValue(
+    result.teamResults.find((team) => team.teamId === teamId),
+    message
+  );
+}
+
+function getTradeReceipt(
+  result: TradeValidationResult,
+  message: string
+) {
+  return requireValue(result.tradeReceipt, message);
+}
+
+function asValidateTradeTeams(teams: TestTradeSlot[]) {
+  return teams as NonNullable<Parameters<typeof validateTrade>[0]['teams']>;
+}
+
+function toValidationTeam(team: TestTradeSlot): ValidationTeam {
+  return {
+    team: requireValue(team.team, 'Expected validation team data') as ValidationTeam['team'],
+    teamCode: team.teamCode ?? null,
+    sends: (team.sends ?? []) as ValidationTeam['sends'],
+    receives: [],
+    picksOut: team.picksOut ?? [],
+    picksIn: [],
+    cashSent: Number(team.cashSent ?? 0),
+    cashReceived: Number(team.cashReceived ?? 0),
+    entitlementsOut: team.entitlementsOut ?? [],
+    validationEntitlements: team.validationEntitlements ?? [],
+  } as ValidationTeam;
+}
+
+function toPayloadTeam(team: ValidationTeam): ArchitectTradePayloadTeam {
+  return {
+    teamCode: team.teamCode,
+    sends: team.sends as ArchitectTradePayloadTeam['sends'],
+    receives: team.receives as ArchitectTradePayloadTeam['receives'],
+    picksOut: team.picksOut,
+    cashSent: team.cashSent,
+    cashReceived: team.cashReceived,
+  };
+}
+
+const expectCanonicalIssue = (
+  issue: ValidationIssue,
+  { rule, severity }: CanonicalIssueExpectation = {}
+) => {
   expect(issue).toMatchObject({
     message: expect.any(String),
     severity: severity || expect.any(String),
@@ -16,31 +168,58 @@ const expectCanonicalIssue = (issue, { rule, severity } = {}) => {
   });
 };
 
-const makePlayer = (id, salary, extra = {}) => ({
-  id,
-  player_id: id,
-  name: extra.name || id,
-  teamCode: extra.teamCode || null,
-  contract: {
-    contractType: extra.contractType,
-    salariesByYear: [
-      {
-        season: SEASON,
-        salary,
-        capHit: salary,
-        guaranteed: true,
-      },
-    ],
-  },
-  ...extra,
-});
+const makePlayer = (
+  id: string,
+  salary: number,
+  extra: MakePlayerExtra = {}
+): TestTradePlayer => {
+  const {
+    name = id,
+    teamCode = null,
+    contractType,
+    contract,
+    ...rest
+  } = extra;
 
-const makeRoster = (teamCode, count, salary = 1_000_000) =>
+  return {
+    id,
+    player_id: id,
+    name,
+    salary,
+    matchIncoming: salary,
+    matchOutgoing: salary,
+    isTwoWay: false,
+    absorptionMode: 'MATCH',
+    signAndTrade: false,
+    contractYears: 1,
+    firstYearGuaranteed: true,
+    teamCode,
+    contract:
+      contract ?? {
+        contractType,
+        salariesByYear: [
+          {
+            season: SEASON,
+            salary,
+            capHit: salary,
+            guaranteed: true,
+          },
+        ],
+      },
+    ...rest,
+  };
+};
+
+const makeRoster = (teamCode: string, count: number, salary = 1_000_000) =>
   Array.from({ length: count }, (_, index) =>
     makePlayer(`${teamCode}_player_${index}`, salary, { teamCode })
   );
 
-const makeTeam = (teamCode, players, extra = {}) => {
+const makeTeam = (
+  teamCode: string,
+  players: TestTradePlayer[],
+  extra: Partial<TestTradeTeamData> = {}
+): TestTradeTeamData => {
   const totalSalary = extra.totalSalary ?? players.length * 1_000_000;
 
   return {
@@ -51,11 +230,11 @@ const makeTeam = (teamCode, players, extra = {}) => {
     nickname: `Team ${teamCode}`,
     players,
     roster: players.map((player) => player.player_id || player.id),
-    capHolds: extra.capHolds || [],
+    capHolds: extra.capHolds ?? [],
     draftPicks: [],
-    tradeExceptions: extra.tradeExceptions || [],
-    faExceptionBuckets: extra.faExceptionBuckets || [],
-    entitlementIds: extra.entitlementIds || [],
+    tradeExceptions: extra.tradeExceptions ?? [],
+    faExceptionBuckets: extra.faExceptionBuckets ?? [],
+    entitlementIds: extra.entitlementIds ?? [],
     totals: { totalSalary, capHit: totalSalary },
     teamTotalSalary: totalSalary,
     totalSalary,
@@ -77,7 +256,7 @@ function buildSimpleTrade() {
     teams: [
       { team: celtics, sends: [teamAPlayer], entitlementsOut: [] },
       { team: lakers, sends: [teamBPlayer], entitlementsOut: [] },
-    ],
+    ] as TestTradeSlot[],
     celtics,
     lakers,
   };
@@ -94,7 +273,7 @@ function buildRoutingFailureTrade() {
     totalSalary: 150_000_000,
   });
 
-  const validationTeams = [
+  const teams: TestTradeSlot[] = [
     {
       team: teamA,
       teamCode: 'BOS',
@@ -117,9 +296,10 @@ function buildRoutingFailureTrade() {
       entitlementsOut: [],
     },
   ];
+  const validationTeams = teams.map((team) => toValidationTeam(team));
 
   return {
-    teams: validationTeams,
+    teams,
     snapshot: {
       teamUpdates: [
         { teamCode: 'BOS', team: teamA },
@@ -127,9 +307,9 @@ function buildRoutingFailureTrade() {
         { teamCode: 'NYK', team: teamC },
       ],
       validationTeams,
-      payloadTeams: validationTeams,
+      payloadTeams: validationTeams.map((team) => toPayloadTeam(team)),
       _isPostTradeSnapshot: true,
-    },
+    } as PostTradeSnapshot,
   };
 }
 
@@ -170,7 +350,7 @@ function buildLinkageFailureTrade() {
         sends: [],
         entitlementsOut: [],
       },
-    ],
+    ] as TestTradeSlot[],
   };
 }
 
@@ -179,14 +359,17 @@ describe('validateTrade contract cleanup', () => {
     const { teams } = buildSimpleTrade();
 
     const result = validateTrade({
-      teams,
+      teams: asValidateTradeTeams(teams),
       capProjections,
       currentYear: CURRENT_YEAR,
       tradeCtx: { asOfDate: '2025-07-10' },
     });
 
-    const celticsResult = result.teamResults.find((team) => team.teamId === 'BOS');
-    expect(celticsResult).toBeDefined();
+    const celticsResult = getTeamResult(
+      result,
+      'BOS',
+      'Expected BOS team result from validateTrade'
+    );
 
     Object.entries(celticsResult.rules).forEach(([ruleName, rule]) => {
       expect(ruleName).toBeTruthy();
@@ -212,11 +395,15 @@ describe('validateTrade contract cleanup', () => {
     const { teams } = buildSimpleTrade();
 
     const result = validateTrade({
-      teams,
+      teams: asValidateTradeTeams(teams),
       capProjections,
       currentYear: CURRENT_YEAR,
       tradeCtx: { asOfDate: '2025-07-10' },
     });
+    const tradeReceipt = getTradeReceipt(
+      result,
+      'Expected tradeReceipt for successful canonical validateTrade output'
+    );
 
     expect(result.legal).toBe(true);
     expect(result.capSettings).toMatchObject({
@@ -254,7 +441,7 @@ describe('validateTrade contract cleanup', () => {
       },
     ]);
 
-    expect(result.tradeReceipt).toMatchObject({
+    expect(tradeReceipt).toMatchObject({
       isLegal: true,
       primaryViolation: null,
       yearKey: CURRENT_YEAR,
@@ -296,16 +483,16 @@ describe('validateTrade contract cleanup', () => {
         },
       ],
     });
-    expect(result.tradeReceipt.teams[0].violations).toEqual(
+    expect(tradeReceipt.teams[0].violations).toEqual(
       result.teamResults[0].violations
     );
-    expect(result.tradeReceipt.teams[0].warnings).toEqual(
+    expect(tradeReceipt.teams[0].warnings).toEqual(
       result.teamResults[0].warnings
     );
-    expect(result.tradeReceipt.teams[1].violations).toEqual(
+    expect(tradeReceipt.teams[1].violations).toEqual(
       result.teamResults[1].violations
     );
-    expect(result.tradeReceipt.teams[1].warnings).toEqual(
+    expect(tradeReceipt.teams[1].warnings).toEqual(
       result.teamResults[1].warnings
     );
   });
@@ -314,7 +501,7 @@ describe('validateTrade contract cleanup', () => {
     const { teams } = buildRoutingFailureTrade();
 
     const result = validateTrade({
-      teams,
+      teams: asValidateTradeTeams(teams),
       capProjections,
       currentYear: CURRENT_YEAR,
       tradeCtx: { asOfDate: '2025-07-10' },
@@ -358,7 +545,7 @@ describe('validateTrade contract cleanup', () => {
     const { teams } = buildLinkageFailureTrade();
 
     const result = validateTrade({
-      teams,
+      teams: asValidateTradeTeams(teams),
       capProjections,
       currentYear: CURRENT_YEAR,
       tradeCtx: { asOfDate: '2025-07-10' },
@@ -406,24 +593,16 @@ describe('validateTrade contract cleanup', () => {
         tradeCtx: {},
       },
       seasonId: SEASON,
-    });
+    }) as CanonicalValidatedTradeContext;
 
     expect(validatedContext._isValidatedTradeContext).toBe(true);
     expect(validatedContext.legal).toBe(false);
-    expect(validatedContext.violations).toEqual(
-      validatedContext._rawValidation.violations
-    );
-    expect(validatedContext.warnings).toEqual(
-      validatedContext._rawValidation.warnings
-    );
+    expect(validatedContext.violations).toEqual(validatedContext._rawValidation.violations);
+    expect(validatedContext.warnings).toEqual(validatedContext._rawValidation.warnings);
     validatedContext.violations.forEach((issue) =>
       expectCanonicalIssue(issue, { severity: 'error' })
     );
-    expect(validatedContext.summaryByTeamIndex).toEqual(
-      validatedContext._rawValidation.summaryByTeamIndex
-    );
-    expect(validatedContext.capSettings).toEqual(
-      validatedContext._rawValidation.capSettings
-    );
+    expect(validatedContext.summaryByTeamIndex).toEqual(validatedContext._rawValidation.summaryByTeamIndex);
+    expect(validatedContext.capSettings).toEqual(validatedContext._rawValidation.capSettings);
   });
 });

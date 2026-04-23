@@ -6,11 +6,47 @@
  */
 import { describe, it, expect } from 'vitest';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import type { NormalizedMutationSalaryRow } from '@/features/architect/utils/mutationPipeline';
 
 const TEAM_CODE = 'LAL';
 const PLAYER_ID = 'player-42';
 
-function makePlayer(salariesByYear = []) {
+type ComputeMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type ExtendPlayerArgs = Extract<
+  ComputeMutationArgs,
+  { mutationType: 'extendPlayer' }
+>;
+type ExtensionCurrentState = ExtendPlayerArgs['currentState'];
+type MutationResult = ReturnType<typeof computeWorldMutation>;
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getUpdatedSalaries(
+  result: MutationResult,
+  message: string
+): NormalizedMutationSalaryRow[] {
+  const playerUpdate = requireValue(result.playerUpdates?.[0], message);
+  const player = requireValue(playerUpdate.player, `${message}: player`);
+  const futureContract = requireValue(
+    player.futureContract,
+    `${message}: futureContract`
+  );
+
+  return requireValue(
+    futureContract.salariesByYear,
+    `${message}: salariesByYear`
+  );
+}
+
+function makePlayer(salariesByYear: NormalizedMutationSalaryRow[] = []) {
   return {
     player_id: PLAYER_ID,
     name: 'Test Player',
@@ -21,7 +57,7 @@ function makePlayer(salariesByYear = []) {
   };
 }
 
-function makeTeam(player) {
+function makeTeam(player: ReturnType<typeof makePlayer>) {
   return {
     teamCode: TEAM_CODE,
     players: [player],
@@ -31,9 +67,9 @@ function makeTeam(player) {
 describe('computeExtensionResult — voidedByExtension marking', () => {
   it('marks overlapping original years as voidedByExtension', () => {
     const player = makePlayer([
-      { year: 2026, salary: 10_000_000 },
-      { year: 2027, salary: 11_000_000 },
-      { year: 2028, salary: 12_000_000 },
+        { season: '2025-26', year: 2026, salary: 10_000_000 },
+        { season: '2026-27', year: 2027, salary: 11_000_000 },
+        { season: '2027-28', year: 2028, salary: 12_000_000 },
     ]);
     const team = makeTeam(player);
 
@@ -43,32 +79,35 @@ describe('computeExtensionResult — voidedByExtension marking', () => {
         playerId: PLAYER_ID,
         extension: {
           salariesByYear: [
-            { year: 2027, salary: 14_000_000 },
-            { year: 2028, salary: 15_000_000 },
-            { year: 2029, salary: 16_000_000 },
+            { season: '2026-27', year: 2027, salary: 14_000_000 },
+            { season: '2027-28', year: 2028, salary: 15_000_000 },
+            { season: '2028-29', year: 2029, salary: 16_000_000 },
           ],
         },
       },
-      currentState: { team, player, teamCode: TEAM_CODE },
+      currentState: { team, player, teamCode: TEAM_CODE } as ExtensionCurrentState,
       seasonId: '2025-2026',
-      timestamp: new Date().toISOString(),
-    });
+      timestamp: Date.now(),
+    } as ExtendPlayerArgs);
 
     expect(result.success).toBe(true);
 
-    const salaries = result.playerUpdates[0].player.futureContract.salariesByYear;
+    const salaries = getUpdatedSalaries(
+      result,
+      'Expected future-contract salary rows after overlapping extension mutation'
+    );
 
     // Year 2026 is not overlapping — should NOT be voided
     const y2026 = salaries.find((r) => r.year === 2026);
     expect(y2026).toBeDefined();
-    expect(y2026.voidedByExtension).toBeFalsy();
+    expect(requireValue(y2026, 'Expected 2026 salary row').voidedByExtension).toBeFalsy();
 
     // Years 2027 and 2028 overlap — original rows should be voided
     const originalRows = salaries.filter((r) => !r.isExtensionSeason);
     const voided2027 = originalRows.find((r) => r.year === 2027);
     const voided2028 = originalRows.find((r) => r.year === 2028);
-    expect(voided2027.voidedByExtension).toBe(true);
-    expect(voided2028.voidedByExtension).toBe(true);
+    expect(requireValue(voided2027, 'Expected original 2027 salary row').voidedByExtension).toBe(true);
+    expect(requireValue(voided2028, 'Expected original 2028 salary row').voidedByExtension).toBe(true);
 
     // Extension rows for 2027-2029 should be present and NOT voided
     const extRows = salaries.filter((r) => r.isExtensionSeason);
@@ -78,8 +117,8 @@ describe('computeExtensionResult — voidedByExtension marking', () => {
 
   it('does not mark any year as voided when there is no overlap', () => {
     const player = makePlayer([
-      { year: 2026, salary: 10_000_000 },
-      { year: 2027, salary: 11_000_000 },
+        { season: '2025-26', year: 2026, salary: 10_000_000 },
+        { season: '2026-27', year: 2027, salary: 11_000_000 },
     ]);
     const team = makeTeam(player);
 
@@ -89,19 +128,22 @@ describe('computeExtensionResult — voidedByExtension marking', () => {
         playerId: PLAYER_ID,
         extension: {
           salariesByYear: [
-            { year: 2028, salary: 14_000_000 },
-            { year: 2029, salary: 15_000_000 },
+            { season: '2027-28', year: 2028, salary: 14_000_000 },
+            { season: '2028-29', year: 2029, salary: 15_000_000 },
           ],
         },
       },
-      currentState: { team, player, teamCode: TEAM_CODE },
+      currentState: { team, player, teamCode: TEAM_CODE } as ExtensionCurrentState,
       seasonId: '2025-2026',
-      timestamp: new Date().toISOString(),
-    });
+      timestamp: Date.now(),
+    } as ExtendPlayerArgs);
 
     expect(result.success).toBe(true);
 
-    const salaries = result.playerUpdates[0].player.futureContract.salariesByYear;
+    const salaries = getUpdatedSalaries(
+      result,
+      'Expected future-contract salary rows after non-overlapping extension mutation'
+    );
     const originalRows = salaries.filter((r) => !r.isExtensionSeason);
     expect(originalRows.every((r) => !r.voidedByExtension)).toBe(true);
   });
@@ -123,14 +165,17 @@ describe('computeExtensionResult — voidedByExtension marking', () => {
           ],
         },
       },
-      currentState: { team, player, teamCode: TEAM_CODE },
+      currentState: { team, player, teamCode: TEAM_CODE } as ExtensionCurrentState,
       seasonId: '2025-2026',
-      timestamp: new Date().toISOString(),
-    });
+      timestamp: Date.now(),
+    } as ExtendPlayerArgs);
 
     expect(result.success).toBe(true);
 
-    const salaries = result.playerUpdates[0].player.futureContract.salariesByYear;
+    const salaries = getUpdatedSalaries(
+      result,
+      'Expected future-contract salary rows after season-string extension mutation'
+    );
     const originalRows = salaries.filter((r) => !r.isExtensionSeason);
 
     // The row corresponding to 2026-27 should be voided

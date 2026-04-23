@@ -1179,6 +1179,67 @@ the validator/unit cluster called out in Step 30, with `mutationPipeline.ts`
 still sitting as the top runtime-owner hotspot but not yet forcing a dedicated
 runtime wave by itself.
 
+## Step 30 Trade Validator / Unit Truth Wave Delta
+
+Reviewed: 2026-04-23, after the eighth validator/unit truth wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 29 | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,336 | 1,212 | -124 |
+| `tests/architect/extension_voidedByExtension.test.ts` | 33 after Step 29 | 0 | Cleared |
+| `tests/trade/validatorContractCleanup.test.ts` | 32 after Step 29 | 0 | Cleared |
+| `tests/trade/validatorTrustFixes.test.ts` | 30 after Step 29 | 0 | Cleared |
+| `tests/trade/consent_and_reacq.test.ts` | 29 after Step 29 | 0 | Cleared |
+
+### What Changed
+
+- `tests/architect/extension_voidedByExtension.test.ts` now types its salary
+  rows against the live mutation-pipeline contract, uses a numeric mutation
+  timestamp, and routes future-contract assertions through required salary-row
+  readers instead of raw optional chains.
+- `tests/trade/consent_and_reacq.test.ts` now uses normalized-player and
+  validator-team fixture shapes that match the live consent/reacquisition
+  rules instead of minimal ad hoc objects that only compiled because of loose
+  inference.
+- `tests/trade/validatorContractCleanup.test.ts` now uses typed validator
+  player/team/slot fixtures, preserves routing entitlement data across the
+  post-trade snapshot bridge, and narrows canonical team-result / trade-receipt
+  / validated-context reads instead of relying on implicit-any bags.
+- `tests/trade/validatorTrustFixes.test.ts` now uses typed contract/player/team
+  fixtures, a narrow skip-reason reader for rule envelopes, and an extracted
+  `executeTrade` mutation helper so its apply-time validation assertions match
+  the real `computeWorldMutation` contract.
+- The approved bounded node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot tests/trade/validatorContractCleanup.test.ts tests/trade/validatorTrustFixes.test.ts tests/trade/consent_and_reacq.test.ts tests/architect/extension_voidedByExtension.test.ts`
+  finished with `21 / 21` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 30
+  edits.
+
+### Remaining Hotspots After Step 30
+
+The Step 30 wave cleared the planned validator/unit cluster. The strongest
+remaining Architect strict hotspots are now:
+
+- `src/features/architect/utils/mutationPipeline.ts` (`34`)
+- `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts` (`29`)
+- `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts` (`28`)
+- `src/tests/architect/signAndTrade.test.ts` (`27`)
+- `tests/trade/tpe_creation_expiry_usage.test.ts` (`26`)
+- `tests/trade/secondApronBoundary.test.ts` (`26`)
+- `src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts` (`26`)
+- `tests/trade/timingEnforcement_authoritative.test.ts` (`24`)
+- `tests/trade/reacquisition_bar.test.ts` (`24`)
+- `src/tests/architect/deadCapManagement.test.ts` (`24`)
+
+The four Step 30 target files no longer appear in the Architect strict output.
+
+Plain-language read: Step 30 removed the next high-value validator/unit truth
+cluster and pulled Architect strict down to `1,212`. The backlog is now back in
+the DARE/runtime-adjacent guardrail and trade-rule families, which is exactly
+what Step 31 needs to reassess before extending the master plan again.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -1218,5 +1279,10 @@ runtime wave by itself.
 - `npm run test:node -- --reporter=dot src/tests/architect/phase17_entitlement_routing_guardrail.test.ts src/tests/tradeMachine/phase5DraftPositions.test.ts src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts`
 - `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step29_architect_strict.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/step29_architect_strict.log`
 - `awk -F'(' '/error TS/{print $1}' /tmp/step29_architect_strict.log | sort | uniq -c | sort -nr | head -12`
+- `npm run test:node -- --reporter=dot tests/trade/validatorContractCleanup.test.ts tests/trade/validatorTrustFixes.test.ts tests/trade/consent_and_reacq.test.ts tests/architect/extension_voidedByExtension.test.ts`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step30_architect_strict.log 2>&1; echo EXIT:$?`
+- `awk '/^[[:space:]]+[0-9]+[[:space:]]/ {sum += $1} END {print sum}' /tmp/step30_architect_strict.log`
+- `awk '/^[[:space:]]+[0-9]+[[:space:]]/ {print $1, $2}' /tmp/step30_architect_strict.log | sort -nr | head -12`
+- `grep -E "^(tests/architect/extension_voidedByExtension.test.ts|tests/trade/validatorContractCleanup.test.ts|tests/trade/validatorTrustFixes.test.ts|tests/trade/consent_and_reacq.test.ts)" /tmp/step30_architect_strict.log || true`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`
