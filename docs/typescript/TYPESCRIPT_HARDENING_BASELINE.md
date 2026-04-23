@@ -1358,6 +1358,71 @@ highest-leverage wave is now the trade-rule / TPE unit cluster already queued in
 Step 33, with `mutationPipeline.ts` still sitting as the top runtime-owner
 hotspot but not yet forcing a standalone runtime wave.
 
+## Step 33 Trade-Rule / TPE Unit Wave Delta
+
+Reviewed: 2026-04-23, after the tenth trade-rule / TPE unit wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 32 | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,079 | 944 | -135 |
+| `tests/trade/tpe_creation_expiry_usage.test.ts` | 26 after Step 32 | 0 | Cleared |
+| `tests/trade/secondApronBoundary.test.ts` | 26 after Step 32 | 0 | Cleared |
+| `tests/trade/timingEnforcement_authoritative.test.ts` | 24 after Step 32 | 0 | Cleared |
+| `tests/trade/reacquisition_bar.test.ts` | 24 after Step 32 | 0 | Cleared |
+| `tests/trade/tpe_absorption_fail_closed.test.ts` | 23 after Step 32 | 0 | Cleared |
+
+### What Changed
+
+- `tests/trade/validation_caching.test.ts` now uses typed validator-input,
+  player, and team fixtures plus a narrow warning-shape helper so the caching
+  assertions no longer depend on implicit-any builders or `never[]` defaults.
+- `tests/trade/tpe_absorption_fail_closed.test.ts` and
+  `tests/trade/tpe_creation_expiry_usage.test.ts` now build team-held TPE,
+  player, and team fixtures against the live validator contracts and route
+  repeated `validateTrade` calls through shared params helpers instead of ad
+  hoc object bags.
+- `tests/trade/reacquisition_bar.test.ts` now types its helper issue arrays and
+  reacquisition player fixtures truthfully, including string team identifiers
+  that match the live eligibility rule contracts.
+- `tests/trade/timingEnforcement_authoritative.test.ts` now types its trade
+  harness builders, roster reducers, and warning readers so the timing rule
+  assertions stay aligned with the live validator-team/player shapes.
+- `tests/trade/secondApronBoundary.test.ts` now uses typed player/team/pick
+  fixtures and a shared `validateTrade` params builder so the second-apron
+  boundary assertions are enforced through the real trade-rule contract instead
+  of loose fixture inference.
+- The approved bounded node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot tests/trade/tpe_creation_expiry_usage.test.ts tests/trade/secondApronBoundary.test.ts tests/trade/timingEnforcement_authoritative.test.ts tests/trade/reacquisition_bar.test.ts tests/trade/tpe_absorption_fail_closed.test.ts tests/trade/validation_caching.test.ts`
+  finished with `30 / 30` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 33
+  edits.
+
+### Remaining Hotspots After Step 33
+
+The Step 33 wave cleared the planned trade-rule / TPE unit cluster. The
+strongest remaining Architect strict hotspots are now:
+
+- `src/features/architect/utils/mutationPipeline.ts` (`34`)
+- `src/tests/architect/deadCapManagement.test.ts` (`24`)
+- `src/shared/components/EditContractModal.tsx` (`22`)
+- `src/tests/tradeMachine/seasonSwapResolution.test.ts` (`21`)
+- `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts` (`20`)
+- `tests/trade/twoWayPlayers_snapshot.test.ts` (`19`)
+- `tests/architect/tradeManager.test.ts` (`19`)
+- `src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts` (`19`)
+- `src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts` (`19`)
+- `tests/trade/secondApron_tpeBan.test.ts` (`18`)
+
+The six Step 33 target files no longer appear in the Architect strict output.
+
+Plain-language read: Step 33 removed the entire queued trade-rule / TPE unit
+cluster and pulled Architect strict down to `944`, which is the first sub-1000
+Architect checkpoint in this resumed master-plan run. That is real progress,
+but the remaining backlog is still large enough that Step 34 must reassess the
+mission honestly rather than routing to final review.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -1407,5 +1472,10 @@ hotspot but not yet forcing a standalone runtime wave.
 - `awk '/^[[:space:]]+[0-9]+[[:space:]]/ {sum += $1} END {print sum}' /tmp/step32_architect_strict.log`
 - `awk '/^[[:space:]]+[0-9]+[[:space:]]/ {print $1, $2}' /tmp/step32_architect_strict.log | sort -nr | head -12`
 - `grep -E "^(src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts|src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts|src/tests/architect/signAndTrade.test.ts|src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts|src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts)" /tmp/step32_architect_strict.log || true`
+- `npm run test:node -- --reporter=dot tests/trade/tpe_creation_expiry_usage.test.ts tests/trade/secondApronBoundary.test.ts tests/trade/timingEnforcement_authoritative.test.ts tests/trade/reacquisition_bar.test.ts tests/trade/tpe_absorption_fail_closed.test.ts tests/trade/validation_caching.test.ts`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step33_architect_strict.log 2>&1; echo EXIT:$?`
+- `grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step33_architect_strict.log | wc -l`
+- `grep -E '^[^[:space:]][^(:]*\([0-9]+,[0-9]+\): error TS' /tmp/step33_architect_strict.log | sed -E 's#^([^(:]+)\([0-9]+,[0-9]+\): error TS.*#\1#' | sort | uniq -c | sort -nr | head -12`
+- `grep -E '^(tests/trade/tpe_creation_expiry_usage|tests/trade/secondApronBoundary|tests/trade/timingEnforcement_authoritative|tests/trade/reacquisition_bar|tests/trade/tpe_absorption_fail_closed|tests/trade/validation_caching)\.test\.ts' /tmp/step33_architect_strict.log || true`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

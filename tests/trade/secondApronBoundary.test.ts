@@ -15,29 +15,105 @@ import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  NormalizedTeamPick,
+  TradeExceptionPlayer,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 // Use 2024-25 season where secondApron = 190,000,000
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
+type ValidateTradeParams = Parameters<typeof validateTrade>[0];
+type TradeSlot = NonNullable<NonNullable<ValidateTradeParams['teams']>[number]>;
+type TradeTeamData = NonNullable<TradeSlot['team']>;
+type TestTradePlayer = TradeExceptionPlayer &
+  Pick<
+    NormalizedPlayer,
+    | 'name'
+    | 'salary'
+    | 'matchIncoming'
+    | 'matchOutgoing'
+    | 'isTwoWay'
+    | 'absorptionMode'
+    | 'signAndTrade'
+    | 'contractYears'
+    | 'firstYearGuaranteed'
+  > & {
+    contract: {
+      salariesByYear: Array<{
+        season: string;
+        salary: number;
+      }>;
+    };
+  };
+type TestTradeTeamData = TradeTeamData & {
+  players: TestTradePlayer[];
+  picks: NormalizedTeamPick[];
+  draftPicks: NormalizedTeamPick[];
+};
+
 // Helpers (same pattern as tradeValidator.test.js)
-const makePlayer = (name, salary, signAndTrade = false, contractYears = 4) => ({
+const makePlayer = (
+  name: string,
+  salary: number,
+  signAndTrade = false,
+  contractYears = 4
+): TestTradePlayer => ({
+  id: name,
+  player_id: name,
   name,
+  salary,
+  currentSalary: salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
   signAndTrade,
   contractYears,
+  firstYearGuaranteed: true,
   contract: { salariesByYear: [{ season, salary }] },
 });
 
-const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
+const makeTeam = (
+  name: string,
+  totalSalary: number,
+  rosterSize = 14,
+  picks: NormalizedTeamPick[] = []
+): TestTradeTeamData => ({
+  id: name,
+  teamId: name,
+  teamCode: name,
   teamName: name,
+  nickname: name,
   totalSalary,
+  teamTotalSalary: totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000)
   ),
   picks,
+  draftPicks: picks,
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
+
+const makeValidateTradeParams = (
+  teamA: TestTradeTeamData,
+  teamB: TestTradeTeamData,
+  teamASends: TestTradePlayer[],
+  teamBSends: TestTradePlayer[],
+  hardCapped = false
+): ValidateTradeParams => ({
+  teams: [
+    { team: teamA, sends: teamASends, picksOut: [], ...(hardCapped ? { hardCapped: true } : {}) },
+    { team: teamB, sends: teamBSends, picksOut: [] },
+  ] as ValidateTradeParams['teams'],
+  capProjections,
+  currentYear,
+});
 
 /**
  * Per CBA Article VII, Section 2(f), Rule Card 6:
@@ -65,14 +141,9 @@ describe('second apron boundary cases', () => {
     const incomingPlayer = makePlayer('Incoming', 10_000_000);
     teamB.players.push(incomingPlayer);
 
-    const result = validateTrade({
-      teams: [
-        { team: teamA, sends: [], picksOut: [] },
-        { team: teamB, sends: [incomingPlayer], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-    });
+    const result = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [], [incomingPlayer])
+    );
 
     // Team A's projected salary = 180M + 10M = 190M (equals secondApron)
     // Should NOT trigger second apron restrictions
@@ -95,8 +166,9 @@ describe('second apron boundary cases', () => {
     expect(hasSecondApronSalaryMatchingViolation).toBe(false);
 
     // Also verify aggregation rule didn't flag second apron
-    const aggregationResult = result.teamResults[0].rules?.aggregation || {};
-    const aggregationViolations = issueTexts(aggregationResult.violations || []);
+    const aggregationViolations = issueTexts(
+      result.teamResults[0].rules?.aggregation?.violations || []
+    );
     const hasSecondApronAggregation = aggregationViolations.some((v) =>
       v.toLowerCase().includes('second apron')
     );
@@ -117,14 +189,9 @@ describe('second apron boundary cases', () => {
     const incomingPlayer = makePlayer('BigIncoming', 10_000_001);
     teamB.players.push(incomingPlayer);
 
-    const result = validateTrade({
-      teams: [
-        { team: teamA, sends: [], picksOut: [] },
-        { team: teamB, sends: [incomingPlayer], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-    });
+    const result = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [], [incomingPlayer])
+    );
 
     // Team A's projected salary = 180M + 10,000,001 = 190,000,001 > secondApron
     // Should trigger second apron restrictions (100% matching required, but A sends nothing)
@@ -165,14 +232,9 @@ describe('second apron boundary cases', () => {
     teamA.players.push(playerFromA);
     teamB.players.push(playerFromB);
 
-    const result = validateTrade({
-      teams: [
-        { team: teamA, sends: [playerFromA], picksOut: [] },
-        { team: teamB, sends: [playerFromB], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-    });
+    const result = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [playerFromA], [playerFromB])
+    );
 
     // Team A pre-trade = 190M, projected = 190M (equal swap)
     // Since 190M is NOT > 190M, should NOT trigger second apron restrictions
@@ -193,8 +255,9 @@ describe('second apron boundary cases', () => {
     );
     expect(hasSecondApronSalaryMatchingViolation).toBe(false);
 
-    const aggregationResult = result.teamResults[0].rules?.aggregation || {};
-    const aggregationViolations = issueTexts(aggregationResult.violations || []);
+    const aggregationViolations = issueTexts(
+      result.teamResults[0].rules?.aggregation?.violations || []
+    );
     const hasSecondApronAggregation = aggregationViolations.some((v) =>
       v.toLowerCase().includes('second apron')
     );
@@ -217,14 +280,9 @@ describe('second apron boundary cases', () => {
     teamA.players.push(playerFromA);
     teamB.players.push(playerFromB);
 
-    const result = validateTrade({
-      teams: [
-        { team: teamA, sends: [playerFromA], picksOut: [] },
-        { team: teamB, sends: [playerFromB], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-    });
+    const result = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [playerFromA], [playerFromB])
+    );
 
     // Team A at 190,000,001 > 190,000,000 → IS second apron team
     // Receiving 12M while sending 10M violates 100% matching
@@ -263,14 +321,9 @@ describe('second apron boundary cases', () => {
     const incoming = makePlayer('Bstar', 10_000_000);
     teamB.players.push(incoming);
 
-    const result = validateTrade({
-      teams: [
-        { team: teamA, sends: [], picksOut: [], hardCapped: true },
-        { team: teamB, sends: [incoming], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-    });
+    const result = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [], [incoming], true)
+    );
 
     // Team A projected = 180M + 10M = 190M (equals secondApron)
     // The aggregated violations array should NOT contain the spurious second apron message

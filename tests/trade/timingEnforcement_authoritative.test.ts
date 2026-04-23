@@ -3,16 +3,76 @@ import capProjections from '@/features/architect/utils/capProjections';
 import { validationFlags } from '@/config/validationFlags';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const CURRENT_YEAR = 2025;
 const SEASON = '2024-25';
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+type ValidateTradeParams = Parameters<typeof validateTrade>[0];
+type TradeSlot = NonNullable<NonNullable<ValidateTradeParams['teams']>[number]>;
+type TradeTeamData = NonNullable<TradeSlot['team']>;
+type TestTradePlayer = TradeExceptionPlayer &
+  Pick<
+    NormalizedPlayer,
+    | 'name'
+    | 'salary'
+    | 'matchIncoming'
+    | 'matchOutgoing'
+    | 'isTwoWay'
+    | 'absorptionMode'
+    | 'signAndTrade'
+    | 'contractYears'
+    | 'firstYearGuaranteed'
+  > & {
+    id: string;
+    player_id: string;
+    teamCode: string;
+    signedDate?: string;
+    contract: {
+      salariesByYear: Array<{
+        season: string;
+        salary: number;
+        capHit: number;
+        guaranteed: boolean;
+      }>;
+    };
+  };
+type TestTradeTeamData = TradeTeamData & {
+  players: TestTradePlayer[];
+  roster: string[];
+};
+type BuildTradeFixtureParams = {
+  teamASends: TestTradePlayer[];
+  teamBSends: TestTradePlayer[];
+  teamAFillers?: number;
+  teamBFillers?: number;
+};
 
-const makePlayer = (name, salary, teamCode, extra = {}) => ({
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
+
+const makePlayer = (
+  name: string,
+  salary: number,
+  teamCode: string,
+  extra: Partial<TestTradePlayer> = {}
+): TestTradePlayer => ({
   id: `${teamCode}_${name}`.toLowerCase().replace(/\s+/g, '-'),
   player_id: `${teamCode}_${name}`.toLowerCase().replace(/\s+/g, '-'),
   name,
+  salary,
+  currentSalary: salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 4,
+  firstYearGuaranteed: true,
   teamCode,
   contract: {
     salariesByYear: [
@@ -27,13 +87,20 @@ const makePlayer = (name, salary, teamCode, extra = {}) => ({
   ...extra,
 });
 
-const makeRoster = (teamCode, count, salary = 1_000_000) =>
+const makeRoster = (
+  teamCode: string,
+  count: number,
+  salary = 1_000_000
+): TestTradePlayer[] =>
   Array.from({ length: count }, (_, index) =>
     makePlayer(`filler_${index}`, salary, teamCode)
   );
 
-const makeTeam = (teamCode, players) => {
-  const totalSalary = players.reduce((sum, player) => {
+const makeTeam = (
+  teamCode: string,
+  players: TestTradePlayer[]
+): TestTradeTeamData => {
+  const totalSalary = players.reduce((sum: number, player: TestTradePlayer) => {
     const row = player.contract?.salariesByYear?.[0] || {};
     return sum + Number(row.capHit ?? row.salary ?? 0);
   }, 0);
@@ -58,7 +125,7 @@ function buildTradeFixture({
   teamBSends,
   teamAFillers = 13,
   teamBFillers = 13,
-}) {
+}: BuildTradeFixtureParams): Pick<ValidateTradeParams, 'teams'> {
   const teamAPlayers = [...teamASends, ...makeRoster('A', teamAFillers)];
   const teamBPlayers = [...teamBSends, ...makeRoster('B', teamBFillers)];
   const teamA = makeTeam('A', teamAPlayers);
@@ -68,7 +135,7 @@ function buildTradeFixture({
     teams: [
       { team: teamA, sends: teamASends, entitlementsOut: [] },
       { team: teamB, sends: teamBSends, entitlementsOut: [] },
-    ],
+    ] as ValidateTradeParams['teams'],
   };
 }
 

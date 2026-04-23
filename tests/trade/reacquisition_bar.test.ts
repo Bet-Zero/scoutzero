@@ -3,8 +3,13 @@ import { enforceEligibility } from '@/features/architect/utils/tradeMachine/rule
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
 import { validationFlags } from '@/config/validationFlags';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  TradeExceptionPlayer,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 describe('re-acquisition bar', () => {
   afterEach(() => {
@@ -15,11 +20,11 @@ describe('re-acquisition bar', () => {
     const player = {
       id: 'traded',
       name: 'Traded',
-      lastTradedFromTeamId: 1,
+      lastTradedFromTeamId: '1',
       lastTradeDate: new Date().toISOString(),
-    };
+    } satisfies TradeExceptionPlayer;
     const result = validateEligibility(
-      { teamId: 1, teamName: 'Team', incomingPlayers: [player] },
+      { teamId: '1', teamName: 'Team', incomingPlayers: [player] },
       { asOfDate: new Date(Date.now() + 100 * 24 * 3600 * 1000).toISOString() }
     );
 
@@ -34,18 +39,18 @@ describe('re-acquisition bar', () => {
   it('rejects trade-back within one year and preserves plain-string helper output', () => {
     const player = {
       name: 'Traded',
-      lastTradedFromTeamId: 1,
+      lastTradedFromTeamId: '1',
       lastTradeDate: new Date().toISOString(),
       eligibleReacqDate: new Date(
         Date.now() + 365 * 24 * 3600 * 1000
       ).toISOString(),
-    };
-    const rejects = [];
+    } satisfies TradeExceptionPlayer;
+    const rejects: string[] = [];
     const context = {
       asOfDate: new Date(Date.now() + 100 * 24 * 3600 * 1000).toISOString(),
     };
     const violations = enforceEligibility(
-      { teamId: 1, teamName: 'Team', incomingPlayers: [player] },
+      { teamId: '1', teamName: 'Team', incomingPlayers: [player] },
       context,
       { reject: (m) => rejects.push(m) }
     );
@@ -59,11 +64,11 @@ describe('re-acquisition bar', () => {
     const player = {
       id: 'waived',
       name: 'Waived',
-      wasWaivedByTeamId: 1,
+      wasWaivedByTeamId: '1',
       contractEndDate: new Date().toISOString(),
-    };
+    } satisfies TradeExceptionPlayer;
     const result = validateEligibility(
-      { teamId: 1, teamName: 'Team', incomingPlayers: [player] },
+      { teamId: '1', teamName: 'Team', incomingPlayers: [player] },
       { asOfDate: new Date().toISOString() }
     );
 
@@ -78,15 +83,15 @@ describe('re-acquisition bar', () => {
   it('rejects reacquiring waived player before July 1 after contract end', () => {
     const player = {
       name: 'Waived',
-      wasWaivedByTeamId: 1,
+      wasWaivedByTeamId: '1',
       contractEndDate: new Date().toISOString(),
       eligibleReacqDate: new Date(
         Date.now() + 365 * 24 * 3600 * 1000
       ).toISOString(),
-    };
-    const rejects = [];
+    } satisfies TradeExceptionPlayer;
+    const rejects: string[] = [];
     const violations = enforceEligibility(
-      { teamId: 1, teamName: 'Team', incomingPlayers: [player] },
+      { teamId: '1', teamName: 'Team', incomingPlayers: [player] },
       { asOfDate: new Date().toISOString() },
       { reject: (m) => rejects.push(m) }
     );
@@ -101,13 +106,13 @@ describe('re-acquisition bar', () => {
 
     const player = {
       name: 'Warned',
-      lastTradedFromTeamId: 1,
+      lastTradedFromTeamId: '1',
       lastTradeDate: new Date().toISOString(),
-    };
-    const warns = [];
-    const rejects = [];
+    } satisfies TradeExceptionPlayer;
+    const warns: string[] = [];
+    const rejects: string[] = [];
     const violations = enforceEligibility(
-      { teamId: 1, teamName: 'Team', incomingPlayers: [player] },
+      { teamId: '1', teamName: 'Team', incomingPlayers: [player] },
       { asOfDate: new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString() },
       {
         warn: (m) => warns.push(m),

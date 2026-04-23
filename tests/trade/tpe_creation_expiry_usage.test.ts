@@ -2,36 +2,103 @@ import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+  TradeExceptionRecord,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const DEFAULT_CURRENT_YEAR = 2025;
 const DEFAULT_TRADE_DATE = '2025-07-01T00:00:00.000Z';
 
-const seasonForYear = (year) => `${year - 1}-${String(year).slice(-2)}`;
+type ValidateTradeParams = Parameters<typeof validateTrade>[0];
+type TradeSlot = NonNullable<NonNullable<ValidateTradeParams['teams']>[number]>;
+type TradeTeamData = NonNullable<TradeSlot['team']>;
+type SalaryRow = {
+  season: string;
+  salary: number;
+};
+type TestTradePlayer = TradeExceptionPlayer &
+  Pick<
+    NormalizedPlayer,
+    | 'name'
+    | 'salary'
+    | 'matchIncoming'
+    | 'matchOutgoing'
+    | 'isTwoWay'
+    | 'absorptionMode'
+    | 'signAndTrade'
+    | 'contractYears'
+    | 'firstYearGuaranteed'
+  > & {
+    contract: {
+      salariesByYear: SalaryRow[];
+    };
+  };
+type TestTradeTeamData = TradeTeamData & {
+  players: TestTradePlayer[];
+  roster: string[];
+};
 
-const makePlayer = (name, salary, extra = {}, year = DEFAULT_CURRENT_YEAR) => ({
+const seasonForYear = (year: number) => `${year - 1}-${String(year).slice(-2)}`;
+
+const requireValue = <T,>(value: T | null | undefined, label: string): T => {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  return value;
+};
+
+const makePlayer = (
+  name: string,
+  salary: number,
+  extra: Partial<TestTradePlayer> = {},
+  year = DEFAULT_CURRENT_YEAR
+): TestTradePlayer => ({
+  id: name,
+  player_id: name,
   name,
   salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
   contract: { salariesByYear: [{ season: seasonForYear(year), salary }] },
   ...extra,
 });
 
 const makeTeam = (
-  name,
-  totalSalary,
+  name: string,
+  totalSalary: number,
   rosterSize = 14,
   year = DEFAULT_CURRENT_YEAR
-) => ({
+): TestTradeTeamData => ({
   id: name,
+  teamId: name,
+  teamCode: name,
   teamName: name,
+  nickname: name,
   totalSalary,
   teamTotalSalary: totalSalary,
+  draftPicks: [],
   players: Array.from({ length: rosterSize }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000, {}, year)
   ),
+  roster: Array.from({ length: rosterSize }, (_, i) => `${name}${i}`),
   picks: [],
 });
 
-const makeHeldTpe = (id, amount, expiresOn, createdSeason) => ({
+const makeHeldTpe = (
+  id: string,
+  amount: number,
+  expiresOn: string,
+  createdSeason: number
+): TradeExceptionRecord => ({
   id,
   amount,
   totalAmount: amount,
@@ -42,8 +109,25 @@ const makeHeldTpe = (id, amount, expiresOn, createdSeason) => ({
   createdSeason,
 });
 
-const issueTexts = (issues = []) =>
+const issueTexts = (issues: ValidationIssue[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
+
+const makeValidateTradeParams = (
+  teamA: TestTradeTeamData,
+  teamB: TestTradeTeamData,
+  outgoing: TestTradePlayer[],
+  incoming: TestTradePlayer[],
+  currentYear: number,
+  tradeDate: string
+): ValidateTradeParams => ({
+  teams: [
+    { team: teamA, sends: outgoing, picksOut: [] },
+    { team: teamB, sends: incoming, picksOut: [] },
+  ] as ValidateTradeParams['teams'],
+  capProjections,
+  currentYear,
+  tradeCtx: { tradeDate },
+});
 
 describe('TPE creation and usage', () => {
   it('creates a TPE when sending out more salary than received', () => {
@@ -60,19 +144,13 @@ describe('TPE creation and usage', () => {
     teamA.players.push(outgoing);
     teamB.players.push(incoming);
 
-    const res = validateTrade({
-      teams: [
-        { team: teamA, sends: [outgoing], picksOut: [] },
-        { team: teamB, sends: [incoming], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-      tradeCtx: { tradeDate },
-    });
+    const res = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [outgoing], [incoming], currentYear, tradeDate)
+    );
 
-    const tpe = res.teamResults[0].createdTPE;
+    const tpe = requireValue(res.teamResults[0].createdTPE, 'createdTPE');
     expect(tpe.amount).toBe(8_000_000);
-    const expiry = new Date(tpe.expiresOn);
+    const expiry = new Date(requireValue(tpe.expiresOn, 'createdTPE.expiresOn'));
     const expected = new Date(tradeDate);
     expected.setUTCFullYear(expected.getUTCFullYear() + 1);
     expect(expiry.getUTCFullYear()).toBe(expected.getUTCFullYear());
@@ -105,15 +183,9 @@ describe('TPE creation and usage', () => {
     };
     teamB.players.push(incoming);
 
-    const res = validateTrade({
-      teams: [
-        { team: teamA, sends: [], picksOut: [] },
-        { team: teamB, sends: [incoming], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-      tradeCtx: { tradeDate },
-    });
+    const res = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [], [incoming], currentYear, tradeDate)
+    );
 
     expect(res.teamResults[0].legal).toBe(true);
     expect(res.teamResults[0].rules.tradeExceptions.passed).toBe(true);
@@ -149,15 +221,9 @@ describe('TPE creation and usage', () => {
     };
     teamB.players.push(incoming);
 
-    const res = validateTrade({
-      teams: [
-        { team: teamA, sends: [], picksOut: [] },
-        { team: teamB, sends: [incoming], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-      tradeCtx: { tradeDate },
-    });
+    const res = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [], [incoming], currentYear, tradeDate)
+    );
 
     expect(res.teamResults[0].legal).toBe(false);
     expect(issueTexts(res.teamResults[0].violations)).toContain(
@@ -195,15 +261,9 @@ describe('TPE creation and usage', () => {
     teamA.players.push(outgoing);
     teamB.players.push(incoming);
 
-    const res = validateTrade({
-      teams: [
-        { team: teamA, sends: [outgoing], picksOut: [] },
-        { team: teamB, sends: [incoming], picksOut: [] },
-      ],
-      capProjections,
-      currentYear,
-      tradeCtx: { tradeDate },
-    });
+    const res = validateTrade(
+      makeValidateTradeParams(teamA, teamB, [outgoing], [incoming], currentYear, tradeDate)
+    );
 
     expect(res.teamResults[0].legal).toBe(false);
     expect(issueTexts(res.teamResults[0].violations)).toContain(

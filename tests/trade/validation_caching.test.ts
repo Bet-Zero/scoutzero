@@ -1,10 +1,62 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+} from '@/features/architect/utils/tradeMachine/constants/types';
+
+type TradeInput = Parameters<typeof validateTrade>[0];
+type TradeSlot = NonNullable<NonNullable<TradeInput['teams']>[number]>;
+type TradeTeamData = NonNullable<TradeSlot['team']>;
+type TradeValidationResult = ReturnType<typeof validateTrade>;
+type CacheDataWarning = TradeValidationResult['dataWarnings'][number];
+type SalaryRow = {
+  season: string;
+  salary: number;
+  capHit: number;
+  guaranteed: boolean;
+};
+type TestTradePlayer = TradeExceptionPlayer &
+  Pick<
+    NormalizedPlayer,
+    | 'name'
+    | 'salary'
+    | 'matchIncoming'
+    | 'matchOutgoing'
+    | 'isTwoWay'
+    | 'absorptionMode'
+    | 'signAndTrade'
+    | 'contractYears'
+    | 'firstYearGuaranteed'
+  > & {
+    id: string;
+    player_id: string;
+    currentSalary: number;
+    contract: {
+      salariesByYear: SalaryRow[];
+    };
+    [key: string]: unknown;
+  };
+type TestTradeTeamData = Omit<TradeTeamData, 'players'> & {
+  players: TestTradePlayer[];
+  hardCapped?: boolean;
+};
+type TestTradeSlot = Omit<TradeSlot, 'team' | 'sends' | 'picksOut'> & {
+  team: TestTradeTeamData;
+  sends: TestTradePlayer[];
+  picksOut: unknown[];
+};
+type TestTradeInput = Omit<TradeInput, 'teams'> & {
+  teams: TestTradeSlot[];
+};
+
+const asValidateTradeInput = (trade: TestTradeInput): TradeInput =>
+  trade as TradeInput;
 
 describe('Validation Caching', () => {
   const season = '2025-26';
-  const makeTrade = (params = {}) => ({
+  const makeTrade = (params: Partial<TestTradeInput> = {}): TestTradeInput => ({
       teams: [
         {
           team: {
@@ -26,7 +78,7 @@ describe('Validation Caching', () => {
           sends: [],
           picksOut: [],
         },
-      ],
+      ] as TestTradeInput['teams'],
       capProjections: {
         '2025-26': {
           salaryCap: 141_000_000,
@@ -37,12 +89,23 @@ describe('Validation Caching', () => {
       currentYear: 2025,
       ...params,
     });
-  const makePlayer = (id, salary, extra = {}) => ({
+  const makePlayer = (
+    id: string,
+    salary: number,
+    extra: Partial<TestTradePlayer> = {}
+  ): TestTradePlayer => ({
     id,
     player_id: id,
     name: id,
     salary,
     currentSalary: salary,
+    matchIncoming: salary,
+    matchOutgoing: salary,
+    isTwoWay: false,
+    absorptionMode: 'MATCH',
+    signAndTrade: false,
+    contractYears: 1,
+    firstYearGuaranteed: true,
     contract: {
       salariesByYear: [
         {
@@ -72,7 +135,7 @@ describe('Validation Caching', () => {
 
     return trade;
   };
-  const stripWarningTimestamps = (warnings = []) =>
+  const stripWarningTimestamps = (warnings: CacheDataWarning[] = []) =>
     warnings.map(({ timestamp, ...warning }) => warning);
 
   beforeEach(() => {
@@ -88,10 +151,10 @@ describe('Validation Caching', () => {
       const initialMetrics = validationCache.getMetrics();
 
       // First call - should compute
-      const result1 = validateTrade(trade);
+      const result1 = validateTrade(asValidateTradeInput(trade));
 
       // Second call - should use cache
-      const result2 = validateTrade(trade);
+      const result2 = validateTrade(asValidateTradeInput(trade));
 
       expect(result2).toBeDefined();
       expect(result1).toBeDefined();
@@ -106,12 +169,12 @@ describe('Validation Caching', () => {
       const initialMetrics = validationCache.getMetrics();
       
       const trade1 = makeTrade();
-      const result1 = validateTrade(trade1);
+      const result1 = validateTrade(asValidateTradeInput(trade1));
 
       // Create a different trade that will have different cache keys
       const trade2 = makeTrade();
       trade2.teams[0].team.teamTotalSalary = 200_000_000; // Much higher value
-      const result2 = validateTrade(trade2);
+      const result2 = validateTrade(asValidateTradeInput(trade2));
 
       expect(result2).toBeDefined();
       expect(result1).toBeDefined();
@@ -133,10 +196,10 @@ describe('Validation Caching', () => {
       const initialMetrics = validationCache.getMetrics();
 
       // First call - should compute
-      const result1 = validateTrade(trade);
+      const result1 = validateTrade(asValidateTradeInput(trade));
 
       // Second call - should use cache
-      const result2 = validateTrade(trade);
+      const result2 = validateTrade(asValidateTradeInput(trade));
 
       expect(result2).toBeDefined();
       expect(result1).toBeDefined();
@@ -153,12 +216,12 @@ describe('Validation Caching', () => {
       const trade1 = makeTrade();
       trade1.teams[0].team.hardCapped = true;
       trade1.teams[0].team.teamTotalSalary = 170_000_000;
-      const result1 = validateTrade(trade1);
+      const result1 = validateTrade(asValidateTradeInput(trade1));
 
       const trade2 = makeTrade();
       trade2.teams[0].team.hardCapped = true;
       trade2.teams[0].team.teamTotalSalary = 175_000_000;
-      const result2 = validateTrade(trade2);
+      const result2 = validateTrade(asValidateTradeInput(trade2));
 
       expect(result2).toBeDefined();
       expect(result1).toBeDefined();
@@ -177,10 +240,10 @@ describe('Validation Caching', () => {
       const initialMetrics = validationCache.getMetrics();
 
       // First call - should compute
-      const result1 = validateTrade(trade);
+      const result1 = validateTrade(asValidateTradeInput(trade));
 
       // Second call - should use cache
-      const result2 = validateTrade(trade);
+      const result2 = validateTrade(asValidateTradeInput(trade));
 
       expect(result2).toBeDefined();
       expect(result1).toBeDefined();
@@ -192,12 +255,12 @@ describe('Validation Caching', () => {
 
     it('handles different trade parameters correctly', () => {
       const trade1 = makeTrade();
-      const result1 = validateTrade(trade1);
+      const result1 = validateTrade(asValidateTradeInput(trade1));
 
       // Different trade structure
       const trade2 = makeTrade();
       trade2.teams[0].team.teamTotalSalary = 200_000_000;
-      const result2 = validateTrade(trade2);
+      const result2 = validateTrade(asValidateTradeInput(trade2));
 
       expect(result2).toBeDefined();
       expect(result1).toBeDefined();
@@ -211,9 +274,9 @@ describe('Validation Caching', () => {
       validationCache.clear();
       const initialMetrics = validationCache.getMetrics();
 
-      const result1 = validateTrade(makeTradeWithBycWarning());
+      const result1 = validateTrade(asValidateTradeInput(makeTradeWithBycWarning()));
       const metricsAfterFirst = validationCache.getMetrics();
-      const result2 = validateTrade(makeTradeWithBycWarning());
+      const result2 = validateTrade(asValidateTradeInput(makeTradeWithBycWarning()));
       const metricsAfterSecond = validationCache.getMetrics();
 
       expect(result1.hasDataIssues).toBe(true);

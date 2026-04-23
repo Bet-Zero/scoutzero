@@ -919,7 +919,9 @@ Validation:
 
 ## Step 33 — Harden the next trade-rule / TPE unit cluster (wave 10)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Hardened the planned trade-rule / TPE unit cluster, kept root typecheck green, passed the bounded node pack at `30 / 30`, and reduced Architect strict from `1,079` to `944`.
 
 **Goal:** Tighten the next highest-value trade-rule / TPE unit cluster exposed by the Step 31 checkpoint after the Architect DARE/trade-apply wave is clear.
 
