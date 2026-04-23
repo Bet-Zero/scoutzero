@@ -75,35 +75,85 @@ type CreateTestTeamOptions = {
   seasonKey?: string;
 };
 
+type TeamTotals = ReturnType<typeof computeTeamCapTotals>;
+type TestPlayer = {
+  player_id: string;
+  displayName: string;
+  contract: {
+    salariesByYear: Array<{
+      season: string;
+      salary: number;
+      capHit: number;
+      guaranteed: boolean;
+    }>;
+    endSeason: string;
+    yearsRemaining: number;
+  };
+};
+type TestDeadCapEntry = {
+  playerId: string;
+  playerName: string;
+  amountByYear: Array<{ season: string; amount: number }>;
+};
+type TestTeam = {
+  teamCode: string;
+  teamName: string;
+  season: string;
+  players: TestPlayer[];
+  roster: string[];
+  capHolds: unknown[];
+  deadCap: TestDeadCapEntry[];
+  exceptions: { tpe: unknown[] };
+  totals: TeamTotals | null;
+};
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getTeamTotals(team: TestTeam, message: string): TeamTotals {
+  return requireValue(team.totals, message);
+}
+
 /**
  * SSOT Totals Assertion Helper
  * Verifies team.totals matches computeTeamCapTotals output exactly.
  */
-function assertTotalsMatchSSoT(team, yearKey, context = '') {
+function assertTotalsMatchSSoT(
+  team: TestTeam,
+  yearKey: number,
+  context = ''
+) {
   const expectedTotals = computeTeamCapTotals(team, yearKey);
+  const actualTotals = getTeamTotals(team, `${context}: totals should exist`);
 
-  expect(team.totals, `${context}: totals should exist`).toBeDefined();
-  expect(team.totals.yearKey, `${context}: yearKey`).toBe(expectedTotals.yearKey);
-  expect(team.totals.playersTotal, `${context}: playersTotal`).toBe(expectedTotals.playersTotal);
-  expect(team.totals.deadMoneyTotal, `${context}: deadMoneyTotal`).toBe(expectedTotals.deadMoneyTotal);
-  expect(team.totals.capHoldsTotal, `${context}: capHoldsTotal`).toBe(expectedTotals.capHoldsTotal);
-  expect(team.totals.incompleteChargesTotal, `${context}: incompleteChargesTotal`).toBe(expectedTotals.incompleteChargesTotal);
-  expect(team.totals.totalCapAllocations, `${context}: totalCapAllocations`).toBe(expectedTotals.totalCapAllocations);
-  expect(team.totals.salaryCap, `${context}: salaryCap`).toBe(expectedTotals.salaryCap);
-  expect(team.totals.firstApron, `${context}: firstApron`).toBe(expectedTotals.firstApron);
-  expect(team.totals.secondApron, `${context}: secondApron`).toBe(expectedTotals.secondApron);
+  expect(actualTotals.yearKey, `${context}: yearKey`).toBe(expectedTotals.yearKey);
+  expect(actualTotals.playersTotal, `${context}: playersTotal`).toBe(expectedTotals.playersTotal);
+  expect(actualTotals.deadMoneyTotal, `${context}: deadMoneyTotal`).toBe(expectedTotals.deadMoneyTotal);
+  expect(actualTotals.capHoldsTotal, `${context}: capHoldsTotal`).toBe(expectedTotals.capHoldsTotal);
+  expect(actualTotals.incompleteChargesTotal, `${context}: incompleteChargesTotal`).toBe(expectedTotals.incompleteChargesTotal);
+  expect(actualTotals.totalCapAllocations, `${context}: totalCapAllocations`).toBe(expectedTotals.totalCapAllocations);
+  expect(actualTotals.salaryCap, `${context}: salaryCap`).toBe(expectedTotals.salaryCap);
+  expect(actualTotals.firstApron, `${context}: firstApron`).toBe(expectedTotals.firstApron);
+  expect(actualTotals.secondApron, `${context}: secondApron`).toBe(expectedTotals.secondApron);
 
   // Deltas
-  expect(team.totals.deltas, `${context}: deltas should exist`).toBeDefined();
-  expect(team.totals.deltas.vsCap, `${context}: deltas.vsCap`).toBe(expectedTotals.deltas.vsCap);
-  expect(team.totals.deltas.vsFirstApron, `${context}: deltas.vsFirstApron`).toBe(expectedTotals.deltas.vsFirstApron);
-  expect(team.totals.deltas.vsSecondApron, `${context}: deltas.vsSecondApron`).toBe(expectedTotals.deltas.vsSecondApron);
+  expect(actualTotals.deltas, `${context}: deltas should exist`).toBeDefined();
+  expect(actualTotals.deltas.vsCap, `${context}: deltas.vsCap`).toBe(expectedTotals.deltas.vsCap);
+  expect(actualTotals.deltas.vsFirstApron, `${context}: deltas.vsFirstApron`).toBe(expectedTotals.deltas.vsFirstApron);
+  expect(actualTotals.deltas.vsSecondApron, `${context}: deltas.vsSecondApron`).toBe(expectedTotals.deltas.vsSecondApron);
 }
 
 /**
  * Creates a minimal team for testing totals.
  */
-function createTestTeam(options: CreateTestTeamOptions = {}) {
+function createTestTeam(options: CreateTestTeamOptions = {}): TestTeam {
   const {
     teamCode = 'TST',
     playerCount = 10,
@@ -151,7 +201,7 @@ function createTestTeam(options: CreateTestTeamOptions = {}) {
 /**
  * Removes comment lines and multi-line comments from source code.
  */
-function stripComments(content) {
+function stripComments(content: string): string {
   return content.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '');
 }
 
@@ -192,8 +242,13 @@ describe('Phase 79: Source Scan Guardrails', () => {
         /function\s+computeSigningResult[\s\S]*?(?=\nfunction\s|\nexport\s|\n\/\*\*|$)/
       );
 
+      const signingFunction = requireValue(
+        signingFunctionMatch,
+        'Expected computeSigningResult source block in mutationPipeline.ts'
+      )[0];
+
       expect(signingFunctionMatch).not.toBeNull();
-      expect(signingFunctionMatch[0]).toMatch(
+      expect(signingFunction).toMatch(
         /computeTeamCapTotals|synchronizeTeamTotalsSnapshot/
       );
     });
@@ -206,8 +261,13 @@ describe('Phase 79: Source Scan Guardrails', () => {
         /function\s+computeWaiveResult[\s\S]*?(?=\nfunction\s|\nexport\s|\n\/\*\*|$)/
       );
 
+      const waiveFunction = requireValue(
+        waiveFunctionMatch,
+        'Expected computeWaiveResult source block in mutationPipeline.ts'
+      )[0];
+
       expect(waiveFunctionMatch).not.toBeNull();
-      expect(waiveFunctionMatch[0]).toMatch(
+      expect(waiveFunction).toMatch(
         /computeTeamCapTotals|synchronizeTeamTotalsSnapshot/
       );
     });
@@ -220,8 +280,13 @@ describe('Phase 79: Source Scan Guardrails', () => {
         /function\s+computeOptionResult[\s\S]*?(?=\nfunction\s|\nexport\s|\n\/\*\*|$)/
       );
 
+      const optionFunction = requireValue(
+        optionFunctionMatch,
+        'Expected computeOptionResult source block in mutationPipeline.ts'
+      )[0];
+
       expect(optionFunctionMatch).not.toBeNull();
-      expect(optionFunctionMatch[0]).toMatch(
+      expect(optionFunction).toMatch(
         /computeTeamCapTotals|synchronizeTeamTotalsSnapshot/
       );
     });
@@ -234,8 +299,13 @@ describe('Phase 79: Source Scan Guardrails', () => {
         /function\s+computeRenounceResult[\s\S]*?(?=\nfunction\s|\nexport\s|\n\/\*\*|$)/
       );
 
+      const renounceFunction = requireValue(
+        renounceFunctionMatch,
+        'Expected computeRenounceResult source block in mutationPipeline.ts'
+      )[0];
+
       expect(renounceFunctionMatch).not.toBeNull();
-      expect(renounceFunctionMatch[0]).toMatch(
+      expect(renounceFunction).toMatch(
         /computeTeamCapTotals|synchronizeTeamTotalsSnapshot/
       );
     });
@@ -248,8 +318,13 @@ describe('Phase 79: Source Scan Guardrails', () => {
         /function\s+buildPostTradeTeamsSnapshot[\s\S]*?(?=\nfunction\s|\nexport\s|\n\/\*\*|$)/
       );
 
+      const tradeFunction = requireValue(
+        tradeFunctionMatch,
+        'Expected buildPostTradeTeamsSnapshot source block in tradeContext.ts'
+      )[0];
+
       expect(tradeFunctionMatch).not.toBeNull();
-      expect(tradeFunctionMatch[0]).toContain('computeTeamCapTotals');
+      expect(tradeFunction).toContain('computeTeamCapTotals');
     });
   });
 
@@ -321,7 +396,7 @@ describe('Phase 79: Behavioral Guardrails', () => {
         'secondApron',
         'deltas',
         '_meta',
-      ];
+      ] as const;
 
       canonicalFields.forEach((field) => {
         expect(totals[field], `field ${field}`).toBeDefined();
@@ -339,9 +414,11 @@ describe('Phase 79: Behavioral Guardrails', () => {
         player_id: 'new_signing',
         displayName: 'New Signing',
         contract: {
-          salariesByYear: [{ season: TEST_SEASON, salary: 10_000_000, capHit: 10_000_000 }],
+          salariesByYear: [{ season: TEST_SEASON, salary: 10_000_000, capHit: 10_000_000, guaranteed: true }],
+          endSeason: TEST_SEASON,
+          yearsRemaining: 1,
         },
-      };
+      } satisfies TestPlayer;
       team.players.push(newPlayer);
       team.roster.push('new_signing');
 
@@ -352,14 +429,19 @@ describe('Phase 79: Behavioral Guardrails', () => {
       assertTotalsMatchSSoT(team, TEST_YEAR_2026, 'after signing');
 
       // Verify new player's salary is included
-      expect(team.totals.playersTotal).toBe(10 * 5_000_000 + 10_000_000);
+      expect(
+        getTeamTotals(team, 'Expected totals after simulated signing').playersTotal
+      ).toBe(10 * 5_000_000 + 10_000_000);
     });
 
     it('TEST 15: Simulated waive produces SSOT-compliant totals with dead money', () => {
       const team = createTestTeam({ playerCount: 10 });
 
       // Remove a player and add dead money (like waive does)
-      const waivedPlayer = team.players.pop();
+      const waivedPlayer = requireValue(
+        team.players.pop(),
+        'Expected waived player in simulated waive test'
+      );
       team.roster.pop();
       team.deadCap = [
         {
@@ -374,11 +456,12 @@ describe('Phase 79: Behavioral Guardrails', () => {
 
       // Verify totals match SSOT
       assertTotalsMatchSSoT(team, TEST_YEAR_2026, 'after waive');
+      const totals = getTeamTotals(team, 'Expected totals after simulated waive');
 
       // Verify dead money is included
-      expect(team.totals.deadMoneyTotal).toBe(3_000_000);
+      expect(totals.deadMoneyTotal).toBe(3_000_000);
       // Verify player salary removed (9 players now)
-      expect(team.totals.playersTotal).toBe(9 * 5_000_000);
+      expect(totals.playersTotal).toBe(9 * 5_000_000);
     });
   });
 });
@@ -406,18 +489,19 @@ describe('Phase 79: Persist→Reload Parity', () => {
 
     const serialized = JSON.stringify(team.totals);
     const reloaded = JSON.parse(serialized);
+    const totals = getTeamTotals(team, 'Expected totals before JSON roundtrip field check');
 
     // Verify each field survives
-    expect(reloaded.yearKey).toBe(team.totals.yearKey);
-    expect(reloaded.playersTotal).toBe(team.totals.playersTotal);
-    expect(reloaded.deadMoneyTotal).toBe(team.totals.deadMoneyTotal);
-    expect(reloaded.capHoldsTotal).toBe(team.totals.capHoldsTotal);
-    expect(reloaded.incompleteChargesTotal).toBe(team.totals.incompleteChargesTotal);
-    expect(reloaded.totalCapAllocations).toBe(team.totals.totalCapAllocations);
-    expect(reloaded.salaryCap).toBe(team.totals.salaryCap);
-    expect(reloaded.firstApron).toBe(team.totals.firstApron);
-    expect(reloaded.secondApron).toBe(team.totals.secondApron);
-    expect(reloaded.deltas).toEqual(team.totals.deltas);
+    expect(reloaded.yearKey).toBe(totals.yearKey);
+    expect(reloaded.playersTotal).toBe(totals.playersTotal);
+    expect(reloaded.deadMoneyTotal).toBe(totals.deadMoneyTotal);
+    expect(reloaded.capHoldsTotal).toBe(totals.capHoldsTotal);
+    expect(reloaded.incompleteChargesTotal).toBe(totals.incompleteChargesTotal);
+    expect(reloaded.totalCapAllocations).toBe(totals.totalCapAllocations);
+    expect(reloaded.salaryCap).toBe(totals.salaryCap);
+    expect(reloaded.firstApron).toBe(totals.firstApron);
+    expect(reloaded.secondApron).toBe(totals.secondApron);
+    expect(reloaded.deltas).toEqual(totals.deltas);
   });
 
   it('TEST 18: _meta field preserved through JSON roundtrip', () => {
@@ -426,23 +510,27 @@ describe('Phase 79: Persist→Reload Parity', () => {
 
     const serialized = JSON.stringify(team.totals);
     const reloaded = JSON.parse(serialized);
+    const totals = getTeamTotals(team, 'Expected totals before _meta roundtrip check');
 
     // _meta should be preserved (used by UI)
     expect(reloaded._meta).toBeDefined();
-    expect(reloaded._meta.source).toBe('computeTeamCapTotals');
+    expect(reloaded._meta.source).toBe(totals._meta?.source);
   });
 
   it('TEST 19: Totals with incompleteChargesTotal survive roundtrip', () => {
     const team = createTestTeam({ playerCount: 8 }); // 6 missing slots
     team.totals = computeTeamCapTotals(team, TEST_YEAR_2026);
+    const totals = getTeamTotals(team, 'Expected totals before incomplete-charge roundtrip check');
 
-    expect(team.totals.incompleteChargesTotal).toBeGreaterThan(0);
+    expect(totals.incompleteChargesTotal).toBeGreaterThan(0);
 
     const serialized = JSON.stringify(team.totals);
     const reloaded = JSON.parse(serialized);
 
-    expect(reloaded.incompleteChargesTotal).toBe(team.totals.incompleteChargesTotal);
-    expect(reloaded._meta.incompleteRosterCharge).toEqual(team.totals._meta.incompleteRosterCharge);
+    expect(reloaded.incompleteChargesTotal).toBe(totals.incompleteChargesTotal);
+    expect(reloaded._meta.incompleteRosterCharge).toEqual(
+      totals._meta?.incompleteRosterCharge
+    );
   });
 });
 
@@ -459,12 +547,16 @@ describe('Phase 79: Extension Mutation Exclusion', () => {
     const extensionFunctionMatch = codeOnly.match(
       /function\s+computeExtensionResult[\s\S]*?(?=\nfunction\s|\nexport\s|\n\/\*\*|$)/
     );
+    const extensionFunction = requireValue(
+      extensionFunctionMatch,
+      'Expected computeExtensionResult source block in mutationPipeline.ts'
+    )[0];
 
     expect(extensionFunctionMatch).not.toBeNull();
 
     // Extension should NOT call computeTeamCapTotals (it only creates futureContract)
     // This is intentional - extensions don't affect current-year cap allocations
-    const callsSSoT = extensionFunctionMatch[0].includes('computeTeamCapTotals');
+    const callsSSoT = extensionFunction.includes('computeTeamCapTotals');
 
     // Document this design decision in the test
     if (callsSSoT) {

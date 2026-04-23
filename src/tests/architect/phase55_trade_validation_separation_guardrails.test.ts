@@ -18,6 +18,101 @@
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import type { TradeContextCurrentState } from '@/features/architect/utils/tradeContext/types';
+
+type ComputeMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type ExecuteTradeArgs = Extract<
+  ComputeMutationArgs,
+  { mutationType: 'executeTrade' }
+>;
+type TradePayload = ExecuteTradeArgs['payload'];
+type TradeCurrentState = ExecuteTradeArgs['currentState'];
+type MutationResult = ReturnType<typeof computeWorldMutation>;
+type ValidatedTradeContext = NonNullable<MutationResult['_validatedTradeContext']>;
+
+type MockTradePlayer = {
+  player_id: string;
+  id: string;
+  playerId: string;
+  name: string;
+  displayName: string;
+  teamCode: string;
+  salary: number;
+  contract: {
+    contractType: string;
+    salariesByYear: Array<{
+      season: string;
+      salary: number;
+      capHit: number;
+      guaranteed: boolean;
+      guaranteedAmount: number;
+    }>;
+    birdRights: { status: string; yearsOfService: number };
+    freeAgency: { type: string; year: number };
+  };
+  bio: { position: string; age: number; experience: number };
+  matchOutgoing?: number;
+  matchIncoming?: number;
+};
+
+type MockTradeTeam = {
+  id: string;
+  teamCode: string;
+  teamName: string;
+  teamTotalSalary: number;
+  players: MockTradePlayer[];
+  roster: string[];
+  tradeExceptions: unknown[];
+  exceptionHistory: unknown[];
+  entitlementIds: string[];
+  draftPicks: unknown[];
+  capHolds: unknown[];
+  deadCap: unknown[];
+  exceptions: { mle: null; bae: null; tpe: unknown[] };
+  totals: {
+    teamSalary: number;
+    totalSalary: number;
+    capHit: number;
+    rosterCount: number;
+    isOverTax: boolean;
+    isFirstApron: boolean;
+    isSecondApron: boolean;
+    isHardCapped: boolean;
+  };
+  source: { type: string; lastModifiedAt: string };
+};
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getValidatedTradeContext(
+  result: MutationResult,
+  message: string
+): ValidatedTradeContext {
+  return requireValue(result._validatedTradeContext, message);
+}
+
+function computeTradeMutation(
+  payload: TradePayload,
+  currentState: TradeCurrentState,
+  worldId: string
+) {
+  return computeWorldMutation({
+    mutationType: 'executeTrade',
+    payload,
+    currentState,
+    seasonId: '2025-26',
+    timestamp: FIXED_TIMESTAMP,
+    worldId,
+  } as ExecuteTradeArgs);
+}
 
 // ============================================================================
 // TEST FIXTURES
@@ -32,7 +127,13 @@ const FIXED_TIMESTAMP_ISO = '2026-01-30T12:00:00.000Z';
 /**
  * Creates a minimal mock player for trade testing.
  */
-const makePlayer = (id, name, salary, teamCode, options = {}) => ({
+const makePlayer = (
+  id: string,
+  name: string,
+  salary: number,
+  teamCode: string,
+  options: Partial<MockTradePlayer> = {}
+): MockTradePlayer => ({
   player_id: id,
   id,
   playerId: id,
@@ -61,7 +162,12 @@ const makePlayer = (id, name, salary, teamCode, options = {}) => ({
 /**
  * Creates a minimal mock team for trade testing.
  */
-const makeTeam = (teamCode, totalSalary, players = [], options = {}) => ({
+const makeTeam = (
+  teamCode: string,
+  totalSalary: number,
+  players: MockTradePlayer[] = [],
+  options: Partial<MockTradeTeam> = {}
+): MockTradeTeam => ({
   id: teamCode.toLowerCase(),
   teamCode,
   teamName: `Team ${teamCode}`,
@@ -106,7 +212,15 @@ const makeCapProjections = () => ({
 /**
  * Builds currentState in the format expected by computeWorldMutation for trades.
  */
-const buildTradeCurrentState = (teamData) => ({
+const buildTradeCurrentState = (
+  teamData: Array<{ teamCode: string; team: MockTradeTeam }>
+): TradeCurrentState => ({
+  teams: teamData.map(({ teamCode, team }) => ({ teamCode, team })),
+} as TradeCurrentState);
+
+const buildLegacyTradeCurrentState = (
+  teamData: Array<{ teamCode: string; team: MockTradeTeam }>
+): TradeContextCurrentState => ({
   teams: teamData.map(({ teamCode, team }) => ({ teamCode, team })),
 });
 
@@ -168,24 +282,24 @@ describe('Phase 55: Trade Validation Separation Guardrails', () => {
         tradeCtx: { worldId: 'world_test_55', seasonId: '2025-26' },
       };
 
-      const result = computeWorldMutation({
-        mutationType: 'executeTrade',
-        payload,
+      const result = computeTradeMutation(
+        payload as TradePayload,
         currentState,
-        seasonId: '2025-26',
-        timestamp: FIXED_TIMESTAMP,
-        worldId: 'world_test_55',
-      });
+        'world_test_55'
+      );
 
       // ASSERTIONS
       expect(result.success).toBe(true);
 
       // Verify _validatedTradeContext is attached
-      expect(result._validatedTradeContext).toBeDefined();
-      expect(result._validatedTradeContext._isValidatedTradeContext).toBe(true);
+      const ctx = getValidatedTradeContext(
+        result,
+        'Expected validated trade context for balanced trade test'
+      );
+
+      expect(ctx._isValidatedTradeContext).toBe(true);
 
       // Verify context has correct structure
-      const ctx = result._validatedTradeContext;
       expect(typeof ctx.legal).toBe('boolean');
       expect(Array.isArray(ctx.violations)).toBe(true);
       expect(Array.isArray(ctx.warnings)).toBe(true);
@@ -239,14 +353,11 @@ describe('Phase 55: Trade Validation Separation Guardrails', () => {
         tradeCtx: { worldId: 'world_test_55_fail', seasonId: '2025-26' },
       };
 
-      const result = computeWorldMutation({
-        mutationType: 'executeTrade',
-        payload,
+      const result = computeTradeMutation(
+        payload as TradePayload,
         currentState,
-        seasonId: '2025-26',
-        timestamp: FIXED_TIMESTAMP,
-        worldId: 'world_test_55_fail',
-      });
+        'world_test_55_fail'
+      );
 
       // Whether success or failure, validation context should be attached
       if (result._validatedTradeContext) {
@@ -306,20 +417,19 @@ describe('Phase 55: Trade Validation Separation Guardrails', () => {
         tradeCtx: { worldId: 'world_test_55_tpe', seasonId: '2025-26' },
       };
 
-      const result = computeWorldMutation({
-        mutationType: 'executeTrade',
-        payload,
+      const result = computeTradeMutation(
+        payload as TradePayload,
         currentState,
-        seasonId: '2025-26',
-        timestamp: FIXED_TIMESTAMP,
-        worldId: 'world_test_55_tpe',
-      });
+        'world_test_55_tpe'
+      );
 
       expect(result.success).toBe(true);
-      expect(result._validatedTradeContext).toBeDefined();
+      const ctx = getValidatedTradeContext(
+        result,
+        'Expected validated trade context for TPE validation test'
+      );
 
       // Check that teamResults exist
-      const ctx = result._validatedTradeContext;
       expect(ctx.teamResults).toBeDefined();
       expect(ctx.teamResults.length).toBe(2);
 
@@ -342,7 +452,7 @@ describe('Phase 55: Trade Validation Separation Guardrails', () => {
       const teamA = makeTeam('TMA', 150_000_000, [playerA]);
       const teamB = makeTeam('TMB', 120_000_000, [playerB]);
 
-      const currentState = buildTradeCurrentState([
+      const currentState = buildLegacyTradeCurrentState([
         { teamCode: 'TMA', team: teamA },
         { teamCode: 'TMB', team: teamB },
       ]);
@@ -374,18 +484,19 @@ describe('Phase 55: Trade Validation Separation Guardrails', () => {
         tradeCtx: { worldId: 'world_test_55_dedup', seasonId: '2025-26' },
       };
 
-      const result = computeWorldMutation({
-        mutationType: 'executeTrade',
-        payload,
+      const result = computeTradeMutation(
+        payload as TradePayload,
         currentState,
-        seasonId: '2025-26',
-        timestamp: FIXED_TIMESTAMP,
-        worldId: 'world_test_55_dedup',
-      });
+        'world_test_55_dedup'
+      );
 
       expect(result.success).toBe(true);
-      expect(result._validatedTradeContext).toBeDefined();
-      expect(result._validatedTradeContext._isValidatedTradeContext).toBe(true);
+      expect(
+        getValidatedTradeContext(
+          result,
+          'Expected validated trade context for de-duplication flag test'
+        )._isValidatedTradeContext
+      ).toBe(true);
 
       // This flag allows validateMutation to detect and reuse the context
       // instead of re-running validation
@@ -408,7 +519,7 @@ describe('Phase 55: Trade Validation Separation Guardrails', () => {
       const teamA = makeTeam('TMA', 150_000_000, [playerA]);
       const teamB = makeTeam('TMB', 120_000_000, [playerB]);
 
-      const currentState = buildTradeCurrentState([
+      const currentState = buildLegacyTradeCurrentState([
         { teamCode: 'TMA', team: teamA },
         { teamCode: 'TMB', team: teamB },
       ]);

@@ -764,7 +764,9 @@ That section must:
 
 ## Step 29 — Harden the next Architect / trade guardrail cluster (wave 7)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-23: Hardened the planned Phase 17 / Phase 5 / Phase 55 / Phase 61 / Phase 79 guardrail cluster, kept root typecheck green, passed the bounded node pack at `100 / 100`, and reduced Architect strict from `1,502` to `1,336` without reopening `mutationPipeline.ts` beyond test-driven guardrail truth.
 
 **Goal:** Tighten the next highest-leverage Architect/trade guardrail cluster now that the integration/normalization wave is clear.
 

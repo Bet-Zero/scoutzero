@@ -23,11 +23,40 @@ import { describe, it, expect } from 'vitest';
 import { validateEntitlementRouting } from '@/features/architect/utils/tradeMachine/rules/validateEntitlementRouting';
 import { buildPostTradeTeamsSnapshot } from '@/features/architect/utils/mutationPipeline';
 
+type PostTradeSnapshot = ReturnType<typeof buildPostTradeTeamsSnapshot>;
+type UpdatedTeam = NonNullable<PostTradeSnapshot['teamUpdates'][number]['team']>;
+type EntitlementTransfer = {
+  id?: string;
+  entitlementId?: string;
+  toTeamId?: string;
+};
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getUpdatedTeam(
+  snapshot: PostTradeSnapshot,
+  teamCode: string,
+  message: string
+): UpdatedTeam {
+  return requireValue(
+    snapshot.teamUpdates.find((teamUpdate) => teamUpdate.teamCode === teamCode)?.team,
+    message
+  );
+}
+
 // ============================================================================
 // Minimal Fixtures
 // ============================================================================
 
-const makeMinimalTeam = (teamCode, entitlementIds = []) => ({
+const makeMinimalTeam = (teamCode: string, entitlementIds: string[] = []) => ({
   id: teamCode,
   teamCode,
   teamName: `Team ${teamCode}`,
@@ -41,9 +70,9 @@ const makeMinimalTeam = (teamCode, entitlementIds = []) => ({
 });
 
 const makeTradeSlot = (
-  teamCode,
-  entitlementIds = [],
-  entitlementsOut = []
+  teamCode: string,
+  entitlementIds: string[] = [],
+  entitlementsOut: EntitlementTransfer[] = []
 ) => ({
   team: makeMinimalTeam(teamCode, entitlementIds),
   sends: [],
@@ -252,15 +281,21 @@ describe('Phase 17: buildPostTradeTeamsSnapshot - Entitlement Transfer', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
-      const postTradeC = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMC'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade TMA snapshot in routed entitlement transfer test'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade TMB snapshot in routed entitlement transfer test'
+      );
+      const postTradeC = getUpdatedTeam(
+        snapshot,
+        'TMC',
+        'Expected post-trade TMC snapshot in routed entitlement transfer test'
+      );
 
       // Team A should no longer have e1
       expect(postTradeA.entitlementIds).not.toContain('e1');
@@ -312,12 +347,16 @@ describe('Phase 17: buildPostTradeTeamsSnapshot - Entitlement Transfer', () => {
         timestamp: Date.now(),
       });
 
-      const postTradeA = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      ).team;
-      const postTradeB = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      ).team;
+      const postTradeA = getUpdatedTeam(
+        snapshot,
+        'TMA',
+        'Expected post-trade TMA snapshot in 2-team entitlement fallback test'
+      );
+      const postTradeB = getUpdatedTeam(
+        snapshot,
+        'TMB',
+        'Expected post-trade TMB snapshot in 2-team entitlement fallback test'
+      );
 
       // Team A should no longer have e1
       expect(postTradeA.entitlementIds).not.toContain('e1');

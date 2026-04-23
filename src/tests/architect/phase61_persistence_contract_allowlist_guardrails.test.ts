@@ -36,8 +36,22 @@ import {
   EXCEPTION_HISTORY_ITEM_ALLOWLIST,
 } from '@/features/architect/utils/persistenceContracts';
 
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // Helper to read source files for source-scan tests
-function readSourceFile(relativePath) {
+function readSourceFile(relativePath: string): string {
   const absolutePath = resolve(process.cwd(), relativePath);
   return readFileSync(absolutePath, 'utf-8');
 }
@@ -266,7 +280,7 @@ describe('Phase 61: shouldEnforcePersistenceContracts gating', () => {
 // ==============================================================================
 
 describe('Phase 61: persistWorldMutation source-scan for contract enforcement', () => {
-  let mutationPipelineSource;
+  let mutationPipelineSource = '';
 
   beforeAll(() => {
     mutationPipelineSource = readSourceFile(
@@ -452,9 +466,11 @@ describe('Phase 61: Drift detection - assertPersistableOrThrow throws for violat
         label: 'TEAM',
       });
     } catch (error) {
-      expect(error.message).toContain('TEAM');
-      expect(error.message).toContain('team.debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.ts');
+      const message = getErrorMessage(error);
+
+      expect(message).toContain('TEAM');
+      expect(message).toContain('team.debugFoo');
+      expect(message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -564,7 +580,11 @@ describe('Phase 61: Persistence contract structure validation', () => {
   });
 
   it('TEST 31: TEAM contract has deepRules for nested arrays', () => {
-    const deepRules = PERSISTENCE_CONTRACTS.TEAM.deepRules;
+    const deepRules = requireValue(
+      PERSISTENCE_CONTRACTS.TEAM.deepRules,
+      'Expected TEAM persistence contract deepRules'
+    );
+
     expect(deepRules).toBeDefined();
     expect(deepRules['exceptions.tpe']).toBeDefined();
     expect(deepRules['exceptionHistory']).toBeDefined();

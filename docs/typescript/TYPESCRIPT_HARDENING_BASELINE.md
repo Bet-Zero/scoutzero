@@ -1115,6 +1115,70 @@ shared/runtime strict remains fully green, but final review is still blocked by
 large Architect/test debt. The plan must extend again rather than route to
 closeout.
 
+## Step 29 Architect / Trade Guardrail Wave Delta
+
+Reviewed: 2026-04-23, after the seventh Architect/trade guardrail wave.
+
+### Strict Probe Delta
+
+| Measurement | Step 28 checkpoint | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,502 | 1,336 | -166 |
+| `src/tests/architect/phase17_entitlement_routing_guardrail.test.ts` | 37 after Step 28 | 0 | Cleared |
+| `src/tests/tradeMachine/phase5DraftPositions.test.ts` | 34 after Step 28 | 0 | Cleared |
+| `src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts` | 34 after Step 28 | 0 | Cleared |
+| `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts` | 31 after Step 28 | 0 | Cleared |
+| `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts` | 30 after Step 28 | 0 | Cleared |
+
+### What Changed
+
+- `src/tests/architect/phase17_entitlement_routing_guardrail.test.ts` now uses
+  typed entitlement fixtures and required post-trade team readers instead of
+  `never[]` fixture defaults and raw `teamUpdates.find(...).team` assumptions.
+- `src/tests/tradeMachine/phase5DraftPositions.test.ts` now routes its draft
+  pick assertions through required draft-pick readers instead of repeatedly
+  assuming every season-manager result exposes `draftPicks[0]` directly.
+- `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts`
+  now types its source-scan reader/cache surfaces, narrows caught errors before
+  reading their message, and requires TEAM contract deep rules before use.
+- `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts`
+  now uses a typed test-team model, required totals readers, and explicit
+  source-scan match narrowing so its SSOT/persist-reload assertions line up with
+  the real totals contract.
+- `src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts`
+  now uses typed trade player/team fixtures, explicit mutation vs legacy
+  current-state helpers, and required validated-trade-context readers instead of
+  implicit-any fixture builders and raw optional context reads.
+- The approved narrow node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot src/tests/architect/phase17_entitlement_routing_guardrail.test.ts src/tests/tradeMachine/phase5DraftPositions.test.ts src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts`
+  finished with `100 / 100` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 29
+  edits.
+
+### Remaining Hotspots After Step 29
+
+The Step 29 wave cleared the planned Architect/trade guardrail cluster. The
+strongest remaining Architect strict hotspots are now:
+
+- `src/features/architect/utils/mutationPipeline.ts` (`34`)
+- `tests/architect/extension_voidedByExtension.test.ts` (`33`)
+- `tests/trade/validatorContractCleanup.test.ts` (`32`)
+- `tests/trade/validatorTrustFixes.test.ts` (`30`)
+- `tests/trade/consent_and_reacq.test.ts` (`29`)
+- `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts` (`29`)
+- `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts` (`28`)
+- `src/tests/architect/signAndTrade.test.ts` (`27`)
+- `tests/trade/tpe_creation_expiry_usage.test.ts` (`26`)
+- `tests/trade/secondApronBoundary.test.ts` (`26`)
+
+The five Step 29 target files no longer appear in the Architect strict output.
+
+Plain-language read: Step 29 removed the remaining planned guardrail cluster and
+pulled the Architect strict backlog down to `1,336`. The next blocker is now
+the validator/unit cluster called out in Step 30, with `mutationPipeline.ts`
+still sitting as the top runtime-owner hotspot but not yet forcing a dedicated
+runtime wave by itself.
+
 ## Evidence Commands
 
 - `rg --files`
@@ -1151,5 +1215,8 @@ closeout.
 - `npm run test:node -- --reporter=dot tests/architect/contractNormalization.test.ts tests/architect/integration.test.ts tests/architect/e2e-workflows.test.ts src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts tests/architect/schemaAdapter.test.ts`
 - `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step27_architect_strict.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/step27_architect_strict.log`
 - `awk -F'(' '/error TS/{print $1}' /tmp/step27_architect_strict.log | sort | uniq -c | sort -nr | head -12`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase17_entitlement_routing_guardrail.test.ts src/tests/tradeMachine/phase5DraftPositions.test.ts src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts`
+- `npm run typecheck -- --project tsconfig.architect-strict.json > /tmp/step29_architect_strict.log 2>&1; echo EXIT:$?; grep -c "error TS" /tmp/step29_architect_strict.log`
+- `awk -F'(' '/error TS/{print $1}' /tmp/step29_architect_strict.log | sort | uniq -c | sort -nr | head -12`
 - `rg -n "declare module|declare global|namespace |interface Window|/// <reference" -g '!node_modules' -g '!dist' -g '!coverage' -g '!functions/node_modules'`
 - `rg -n "Record<string, unknown>|as any|\\bany\\b|unknown" tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx tests/__mocks__/firebase.ts`

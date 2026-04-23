@@ -22,6 +22,50 @@ import {
   resolveDraftPickConveyanceForYear,
 } from '@/features/architect/utils/seasonManager';
 
+type DraftPickRecord = {
+  id?: string;
+  year?: number;
+  round?: number;
+  originalTeam?: string;
+  resolved?: boolean;
+  resolvedOwner?: string;
+  resolvedPosition?: number;
+  status?: string;
+  conveyanceResult?: {
+    outcome?: string;
+  };
+} & Record<string, unknown>;
+
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  expect(value, message).toBeDefined();
+
+  if (value == null) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function getDraftPicks(
+  team: { draftPicks?: unknown },
+  message: string
+): DraftPickRecord[] {
+  return requireValue(
+    Array.isArray(team.draftPicks)
+      ? (team.draftPicks as DraftPickRecord[])
+      : undefined,
+    message
+  );
+}
+
+function getDraftPick(
+  team: { draftPicks?: unknown },
+  index: number,
+  message: string
+): DraftPickRecord {
+  return requireValue(getDraftPicks(team, message)[index], message);
+}
+
 // ==============================================================================
 // SECTION 1: Data Model - validateDraftPositionsMap()
 // ==============================================================================
@@ -205,9 +249,14 @@ describe('Phase 5 - NO-OP Guarantees', () => {
   describe('resolveDraftPickSwapsForYear NO-OP', () => {
     it('returns team unchanged when positionsMap is null', () => {
       const result = resolveDraftPickSwapsForYear(teamWithSwaps, 2026, null);
+      const draftPick = getDraftPick(
+        result,
+        0,
+        'Expected draft pick result for swap NO-OP null positionsMap test'
+      );
 
-      expect(result.draftPicks[0].resolved).toBeUndefined();
-      expect(result.draftPicks[0]).toEqual(teamWithSwaps.draftPicks[0]);
+      expect(draftPick.resolved).toBeUndefined();
+      expect(draftPick).toEqual(teamWithSwaps.draftPicks[0]);
     });
 
     it('returns team unchanged when positionsMap is undefined', () => {
@@ -217,22 +266,39 @@ describe('Phase 5 - NO-OP Guarantees', () => {
         undefined
       );
 
-      expect(result.draftPicks[0].resolved).toBeUndefined();
+      expect(
+        getDraftPick(
+          result,
+          0,
+          'Expected draft pick result for swap NO-OP undefined positionsMap test'
+        ).resolved
+      ).toBeUndefined();
     });
 
     it('returns team unchanged when positionsMap is empty', () => {
       const result = resolveDraftPickSwapsForYear(teamWithSwaps, 2026, {});
 
-      expect(result.draftPicks[0].resolved).toBeUndefined();
+      expect(
+        getDraftPick(
+          result,
+          0,
+          'Expected draft pick result for swap NO-OP empty positionsMap test'
+        ).resolved
+      ).toBeUndefined();
     });
   });
 
   describe('resolveDraftPickConveyanceForYear NO-OP', () => {
     it('returns team unchanged when positionsMap is null', () => {
       const result = resolveDraftPickConveyanceForYear(teamWithConveyance, 2026, null);
+      const draftPick = getDraftPick(
+        result,
+        0,
+        'Expected draft pick result for conveyance NO-OP null positionsMap test'
+      );
 
-      expect(result.draftPicks[0].conveyanceResult).toBeUndefined();
-      expect(result.draftPicks[0]).toMatchObject({
+      expect(draftPick.conveyanceResult).toBeUndefined();
+      expect(draftPick).toMatchObject({
         id: teamWithConveyance.draftPicks[0].id,
         year: teamWithConveyance.draftPicks[0].year,
         round: teamWithConveyance.draftPicks[0].round,
@@ -247,13 +313,25 @@ describe('Phase 5 - NO-OP Guarantees', () => {
         undefined
       );
 
-      expect(result.draftPicks[0].conveyanceResult).toBeUndefined();
+      expect(
+        getDraftPick(
+          result,
+          0,
+          'Expected draft pick result for conveyance NO-OP undefined positionsMap test'
+        ).conveyanceResult
+      ).toBeUndefined();
     });
 
     it('returns team unchanged when positionsMap is empty', () => {
       const result = resolveDraftPickConveyanceForYear(teamWithConveyance, 2026, {});
 
-      expect(result.draftPicks[0].conveyanceResult).toBeUndefined();
+      expect(
+        getDraftPick(
+          result,
+          0,
+          'Expected draft pick result for conveyance NO-OP empty positionsMap test'
+        ).conveyanceResult
+      ).toBeUndefined();
     });
   });
 });
@@ -282,10 +360,15 @@ describe('Phase 5 - Resolution WITH positionsMap', () => {
       const positionsMap = { PHI: 12, OKC: 5 }; // OKC has better pick
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(
+        result,
+        0,
+        'Expected resolved draft pick for best_of swap test'
+      );
 
-      expect(result.draftPicks[0].resolved).toBe(true);
-      expect(result.draftPicks[0].resolvedOwner).toBe('OKC');
-      expect(result.draftPicks[0].resolvedPosition).toBe(5);
+      expect(draftPick.resolved).toBe(true);
+      expect(draftPick.resolvedOwner).toBe('OKC');
+      expect(draftPick.resolvedPosition).toBe(5);
     });
 
     it('resolves worst_of swap to worse pick', () => {
@@ -306,10 +389,15 @@ describe('Phase 5 - Resolution WITH positionsMap', () => {
       const positionsMap = { PHI: 12, OKC: 5 }; // PHI has worse pick
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(
+        result,
+        0,
+        'Expected resolved draft pick for worst_of swap test'
+      );
 
-      expect(result.draftPicks[0].resolved).toBe(true);
-      expect(result.draftPicks[0].resolvedOwner).toBe('PHI');
-      expect(result.draftPicks[0].resolvedPosition).toBe(12);
+      expect(draftPick.resolved).toBe(true);
+      expect(draftPick.resolvedOwner).toBe('PHI');
+      expect(draftPick.resolvedPosition).toBe(12);
     });
 
     it('does not resolve swap if year does not match', () => {
@@ -331,7 +419,13 @@ describe('Phase 5 - Resolution WITH positionsMap', () => {
 
       const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
 
-      expect(result.draftPicks[0].resolved).toBeUndefined();
+      expect(
+        getDraftPick(
+          result,
+          0,
+          'Expected unresolved draft pick when swap year does not match'
+        ).resolved
+      ).toBeUndefined();
     });
   });
 
@@ -360,10 +454,15 @@ describe('Phase 5 - Resolution WITH positionsMap', () => {
       const positionsMap = { LAL: 2 }; // Position 2 triggers Top 3
 
       const result = resolveDraftPickConveyanceForYear(team, 2026, positionsMap);
+      const draftPick = getDraftPick(
+        result,
+        0,
+        'Expected conveyed draft pick result when protection triggers'
+      );
 
-      expect(result.draftPicks[0].year).toBe(2027);
-      expect(result.draftPicks[0].status).toBe('rolled');
-      expect(result.draftPicks[0].conveyanceResult.outcome).toBe('rolled');
+      expect(draftPick.year).toBe(2027);
+      expect(draftPick.status).toBe('rolled');
+      expect(draftPick.conveyanceResult?.outcome).toBe('rolled');
     });
 
     it('conveys pick when protection does NOT trigger', () => {
@@ -391,8 +490,14 @@ describe('Phase 5 - Resolution WITH positionsMap', () => {
 
       const result = resolveDraftPickConveyanceForYear(team, 2026, positionsMap);
 
-      expect(result.draftPicks[0].status).toBe('conveyed');
-      expect(result.draftPicks[0].conveyanceResult.outcome).toBe('conveyed');
+      const draftPick = getDraftPick(
+        result,
+        0,
+        'Expected conveyed draft pick result when protection does not trigger'
+      );
+
+      expect(draftPick.status).toBe('conveyed');
+      expect(draftPick.conveyanceResult?.outcome).toBe('conveyed');
     });
 
     it('does not resolve conveyance if year does not match', () => {
@@ -417,7 +522,13 @@ describe('Phase 5 - Resolution WITH positionsMap', () => {
 
       const result = resolveDraftPickConveyanceForYear(team, 2026, positionsMap);
 
-      expect(result.draftPicks[0].conveyanceResult).toBeUndefined();
+      expect(
+        getDraftPick(
+          result,
+          0,
+          'Expected unresolved conveyance result when year does not match'
+        ).conveyanceResult
+      ).toBeUndefined();
     });
   });
 });
@@ -463,14 +574,24 @@ describe('Phase 5 - Mixed Resolution', () => {
     
     // Then resolve swaps
     const afterSwaps = resolveDraftPickSwapsForYear(afterConveyance, 2026, positionsMap);
+    const swapPick = getDraftPick(
+      afterSwaps,
+      0,
+      'Expected resolved swap pick after mixed resolution pipeline'
+    );
+    const conveyedPick = getDraftPick(
+      afterSwaps,
+      1,
+      'Expected conveyed pick after mixed resolution pipeline'
+    );
 
     // Swap should resolve
-    expect(afterSwaps.draftPicks[0].resolved).toBe(true);
-    expect(afterSwaps.draftPicks[0].resolvedOwner).toBe('OKC');
+    expect(swapPick.resolved).toBe(true);
+    expect(swapPick.resolvedOwner).toBe('OKC');
 
     // Conveyance should resolve (LAL pick rolls to 2027)
-    expect(afterSwaps.draftPicks[1].status).toBe('rolled');
-    expect(afterSwaps.draftPicks[1].year).toBe(2027);
+    expect(conveyedPick.status).toBe('rolled');
+    expect(conveyedPick.year).toBe(2027);
   });
 
   it('preserves outright picks unchanged', () => {
@@ -493,8 +614,14 @@ describe('Phase 5 - Mixed Resolution', () => {
     const afterSwaps = resolveDraftPickSwapsForYear(afterConveyance, 2026, positionsMap);
 
     // Outright pick should be unchanged
-    expect(afterSwaps.draftPicks[0].resolved).toBeUndefined();
-    expect(afterSwaps.draftPicks[0].conveyanceResult).toBeUndefined();
+    const draftPick = getDraftPick(
+      afterSwaps,
+      0,
+      'Expected outright draft pick after mixed-resolution preservation test'
+    );
+
+    expect(draftPick.resolved).toBeUndefined();
+    expect(draftPick.conveyanceResult).toBeUndefined();
   });
 });
 
@@ -512,7 +639,7 @@ describe('Phase 5 - Edge Cases', () => {
 
     const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
 
-    expect(result.draftPicks).toEqual([]);
+    expect(getDraftPicks(result, 'Expected draftPicks array for empty-draftPicks test')).toEqual([]);
   });
 
   it('handles team with no draftPicks property', () => {
@@ -550,7 +677,13 @@ describe('Phase 5 - Edge Cases', () => {
     const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
 
     // Should leave unresolved
-    expect(result.draftPicks[0].resolved).toBeUndefined();
+    expect(
+      getDraftPick(
+        result,
+        0,
+        'Expected unresolved draft pick when swap partner position is missing'
+      ).resolved
+    ).toBeUndefined();
   });
 
   it('preserves already-resolved picks (idempotent)', () => {
@@ -574,11 +707,16 @@ describe('Phase 5 - Edge Cases', () => {
     const positionsMap = { PHI: 12, OKC: 5 }; // Different positions
 
     const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
+    const draftPick = getDraftPick(
+      result,
+      0,
+      'Expected preserved resolved draft pick in idempotence test'
+    );
 
     // Should preserve original resolution
-    expect(result.draftPicks[0].resolved).toBe(true);
-    expect(result.draftPicks[0].resolvedOwner).toBe('PHI');
-    expect(result.draftPicks[0].resolvedPosition).toBe(3);
+    expect(draftPick.resolved).toBe(true);
+    expect(draftPick.resolvedOwner).toBe('PHI');
+    expect(draftPick.resolvedPosition).toBe(3);
   });
 
   it('only resolves first-round swaps (Phase 3/5 limitation)', () => {
@@ -601,6 +739,12 @@ describe('Phase 5 - Edge Cases', () => {
     const result = resolveDraftPickSwapsForYear(team, 2026, positionsMap);
 
     // Second-round swaps not resolved in Phase 3/5
-    expect(result.draftPicks[0].resolved).toBeUndefined();
+    expect(
+      getDraftPick(
+        result,
+        0,
+        'Expected unresolved draft pick for second-round swap limitation test'
+      ).resolved
+    ).toBeUndefined();
   });
 });
