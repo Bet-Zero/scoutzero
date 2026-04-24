@@ -42,6 +42,31 @@ type TeamSwapsExpectation = {
   warnings: string[];
 };
 
+const requireSwapResult = (
+  result: ReturnType<typeof resolvePickSwap>
+): SwapResolutionExpectation => {
+  expect(result).toBeDefined();
+  if (!result) {
+    throw new Error('Expected resolvePickSwap to return a pick');
+  }
+  return result as SwapResolutionExpectation;
+};
+
+const requireResolutionMeta = (
+  pick: SwapResolutionExpectation
+): ResolutionMetaExpectation => {
+  expect(pick.resolutionMeta).toBeDefined();
+  if (!pick.resolutionMeta) {
+    throw new Error('Expected resolved pick metadata');
+  }
+  return pick.resolutionMeta;
+};
+
+const invalidPositionsMap = (
+  value: null
+): Parameters<typeof resolveTeamSwaps>[1] =>
+  value as unknown as Parameters<typeof resolveTeamSwaps>[1];
+
 /**
  * Swap Resolution Core Logic
  *
@@ -169,7 +194,7 @@ describe('Resolved Pick Schema', () => {
     expect(resolvedPick.resolved).toBe(true);
     expect(resolvedPick.resolvedOwner).toBe('OKC');
     expect(resolvedPick.resolvedPosition).toBe(5);
-    expect(resolvedPick.resolutionMeta.method).toBe('lottery');
+    expect(requireResolutionMeta(resolvedPick).method).toBe('lottery');
   });
 
   // Non-swap picks should not have resolution fields
@@ -412,7 +437,7 @@ describe('Swap Resolution Edge Cases', () => {
       originalTeam: 'PHI',
     };
     const positions = { PHI: 12, OKC: 5 };
-    const result = resolvePickSwap(invalidSwap, positions);
+    const result = requireSwapResult(resolvePickSwap(invalidSwap, positions));
 
     // Should return unchanged - no resolution possible
     expect(result).toEqual(invalidSwap);
@@ -429,7 +454,7 @@ describe('Swap Resolution Edge Cases', () => {
       originalTeam: 'PHI',
     };
     const positions = { PHI: 12, OKC: 5 };
-    const result = resolvePickSwap(legacySwap, positions);
+    const result = requireSwapResult(resolvePickSwap(legacySwap, positions));
 
     // Should resolve as best_of - OKC wins with position 5
     expect(result.resolved).toBe(true);
@@ -450,7 +475,7 @@ describe('Swap Resolution Edge Cases', () => {
     };
     const positions = { PHI: 5, OKC: 12 }; // Different positions that would change result
 
-    const result = resolvePickSwap(alreadyResolved, positions);
+    const result = requireSwapResult(resolvePickSwap(alreadyResolved, positions));
 
     // Should return unchanged - already resolved
     expect(result).toEqual(alreadyResolved);
@@ -466,7 +491,7 @@ describe('Swap Resolution Edge Cases', () => {
     };
     const positions = { PHI: 12, OKC: 5 };
 
-    const result = resolvePickSwap(outrightPick, positions);
+    const result = requireSwapResult(resolvePickSwap(outrightPick, positions));
 
     expect(result).toEqual(outrightPick);
     expect(result.resolved).toBeUndefined();
@@ -488,19 +513,20 @@ describe('resolvePickSwap()', () => {
       swapWithTeamId: 'OKC',
     };
     const positions = { PHI: 12, OKC: 5 };
-    const result = resolvePickSwap(pick, positions, {
+    const result = requireSwapResult(resolvePickSwap(pick, positions, {
       nowIso: '2026-06-25T20:00:00Z',
       method: 'lottery',
-    }) as SwapResolutionExpectation;
+    }));
+    const resolutionMeta = requireResolutionMeta(result);
 
     // Schema A fields
     expect(result.resolved).toBe(true);
     expect(result.resolvedOwner).toBe('OKC'); // OKC has position 5 (better)
     expect(result.resolvedPosition).toBe(5);
     expect(result.resolutionMeta).toBeDefined();
-    expect(result.resolutionMeta.resolvedAt).toBe('2026-06-25T20:00:00Z');
-    expect(result.resolutionMeta.method).toBe('lottery');
-    expect(result.resolutionMeta.positions).toEqual({ PHI: 12, OKC: 5 });
+    expect(resolutionMeta.resolvedAt).toBe('2026-06-25T20:00:00Z');
+    expect(resolutionMeta.method).toBe('lottery');
+    expect(resolutionMeta.positions).toEqual({ PHI: 12, OKC: 5 });
 
     // Original fields preserved
     expect(result.year).toBe(2026);
@@ -630,7 +656,10 @@ describe('resolveTeamSwaps()', () => {
       },
     ];
 
-    const result = resolveTeamSwaps(picks, null) as TeamSwapsExpectation;
+    const result = resolveTeamSwaps(
+      picks,
+      invalidPositionsMap(null)
+    ) as TeamSwapsExpectation;
 
     expect(result.resolvedCount).toBe(0);
     expect(result.warnings).toContainEqual(
@@ -709,6 +738,9 @@ describe('Fixture Shape Validation', () => {
 
     // Swap pick exists
     expect(swapPick).toBeDefined();
+    if (!swapPick) {
+      throw new Error('Expected fixture to include a swap pick');
+    }
     expect(swapPick.isSwap).toBe(true);
 
     // Note: Legacy fixtures may not have swapType (backward compatibility)

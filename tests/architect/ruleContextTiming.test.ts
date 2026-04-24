@@ -23,6 +23,16 @@ import {
 } from '@/features/architect/utils/salaryEngine';
 import { getCapForSeason } from '@/features/architect/utils/capHelpers';
 
+type CapSeasonInput = Parameters<typeof getCapForSeason>[0];
+
+const getRequiredCapForSeason = (season: CapSeasonInput) => {
+  const cap = getCapForSeason(season);
+  if (!cap) {
+    throw new Error(`Missing cap settings for ${String(season)}`);
+  }
+  return cap;
+};
+
 /**
  * Test Fixtures
  */
@@ -83,7 +93,6 @@ const ROOKIE_0_YOS = {
   yearsOfService: 0,
   teamId: 'BOS',
   teamCode: 'BOS',
-  contract: null,
 };
 
 // 2-year veteran (for trade minimum cap hit)
@@ -242,13 +251,8 @@ describe('LeBron Full Bird UFA 2026 Case', () => {
     expect(ctx.timing.capSeasonId).toBe('2026-27');
 
     // Cap should be 2026-27 cap, NOT 2024-25
-    const cap2627 = getCapForSeason('2026-27');
-    const cap2425 = getCapForSeason('2024-25');
-    // Guard against null returns from getCapForSeason
-    expect(cap2627).toBeDefined();
-    expect(cap2627).not.toBeNull();
-    expect(cap2425).toBeDefined();
-    expect(cap2425).not.toBeNull();
+    const cap2627 = getRequiredCapForSeason('2026-27');
+    const cap2425 = getRequiredCapForSeason('2024-25');
     expect(ctx.cap.salaryCap).toBe(cap2627.salaryCap);
     expect(ctx.cap.salaryCap).not.toBe(cap2425.salaryCap);
   });
@@ -267,7 +271,7 @@ describe('LeBron Full Bird UFA 2026 Case', () => {
 
     // Max salary should be 35% of 2026-27 cap
     const maxResult = computeMaxSalaryFromRuleContext(ctx);
-    const cap2627 = getCapForSeason('2026-27');
+    const cap2627 = getRequiredCapForSeason('2026-27');
     const expectedMax = Math.round(cap2627.salaryCap * 0.35);
 
     expect(maxResult.maxSalary).toBe(expectedMax);
@@ -307,7 +311,7 @@ describe('LeBron Full Bird UFA 2026 Case', () => {
     });
 
     // Should use 2027-28 cap, not fall back to 2024-25
-    const cap2728 = getCapForSeason('2027-28');
+    const cap2728 = getRequiredCapForSeason('2027-28');
     expect(ctx.cap.salaryCap).toBe(cap2728.salaryCap);
     expect(ctx.timing.operationSeasonId).toBe('2027-28');
   });
@@ -339,10 +343,6 @@ describe('Minimum Salary and Trade Cap Hit', () => {
     // Compute minimum salary
     const minResult = computeMinimumSalary(ROOKIE_0_YOS, {
       currentSeason: '2025-26',
-      currentYear: 2026,
-      capSettings: {
-        salaryCap: ctx.cap.salaryCap,
-      },
     });
 
     // Rookie minimum should be lowest tier
@@ -363,10 +363,6 @@ describe('Minimum Salary and Trade Cap Hit', () => {
 
     const minResult = computeMinimumSalary(VET_2_YOS, {
       currentSeason: '2025-26',
-      currentYear: 2026,
-      capSettings: {
-        salaryCap: ctx.cap.salaryCap,
-      },
     });
 
     expect(minResult.yearsOfService).toBe(2);
@@ -375,10 +371,6 @@ describe('Minimum Salary and Trade Cap Hit', () => {
     // 2 YOS should have a higher minimum than rookie - compute rookie min for comparison
     const rookieMinResult = computeMinimumSalary(ROOKIE_0_YOS, {
       currentSeason: '2025-26',
-      currentYear: 2026,
-      capSettings: {
-        salaryCap: ctx.cap.salaryCap,
-      },
     });
     expect(minResult.minimumSalary).toBeGreaterThan(
       rookieMinResult.minimumSalary
@@ -397,10 +389,6 @@ describe('Minimum Salary and Trade Cap Hit', () => {
 
     const minResult = computeMinimumSalary(VET_10_YOS, {
       currentSeason: '2025-26',
-      currentYear: 2026,
-      capSettings: {
-        salaryCap: ctx.cap.salaryCap,
-      },
     });
 
     expect(minResult.yearsOfService).toBe(10);
@@ -421,13 +409,9 @@ describe('Minimum Salary and Trade Cap Hit', () => {
     // Compute minimum salary for both contexts and verify season fields are different
     const min2526 = computeMinimumSalary(VET_2_YOS, {
       currentSeason: '2025-26',
-      currentYear: 2026,
-      capSettings: { salaryCap: ctx2526.cap.salaryCap },
     });
     const min2728 = computeMinimumSalary(VET_2_YOS, {
       currentSeason: '2027-28',
-      currentYear: 2028,
-      capSettings: { salaryCap: ctx2728.cap.salaryCap },
     });
 
     // Verify season fields are correct
@@ -495,7 +479,7 @@ describe('Extension Timing', () => {
     // Cap season should match operation season for max calculation
     expect(ctx.timing.capSeasonId).toBe(ctx.timing.operationSeasonId);
 
-    const cap2728 = getCapForSeason('2027-28');
+    const cap2728 = getRequiredCapForSeason('2027-28');
     expect(ctx.cap.salaryCap).toBe(cap2728.salaryCap);
   });
 
@@ -511,7 +495,7 @@ describe('Extension Timing', () => {
     expect(ctx.player.maxPercentBucket).toBe(0.3);
 
     const maxResult = computeMaxSalaryFromRuleContext(ctx);
-    const cap2728 = getCapForSeason('2027-28');
+    const cap2728 = getRequiredCapForSeason('2027-28');
     const expectedMax = Math.round(cap2728.salaryCap * 0.3);
 
     expect(maxResult.maxSalary).toBe(expectedMax);
@@ -544,8 +528,8 @@ describe('View Season vs Operation Season', () => {
     expect(ctx.timing.operationSeasonId).not.toBe(viewSeasonId);
 
     // Cap should be for operation season, not view season
-    const cap2728 = getCapForSeason('2027-28');
-    const cap2526 = getCapForSeason('2025-26');
+    const cap2728 = getRequiredCapForSeason('2027-28');
+    const cap2526 = getRequiredCapForSeason('2025-26');
     expect(ctx.cap.salaryCap).toBe(cap2728.salaryCap);
     expect(ctx.cap.salaryCap).not.toBe(cap2526.salaryCap);
   });
@@ -581,7 +565,7 @@ describe('View Season vs Operation Season', () => {
     expect(ctx.timing.operationSeasonId).toBe(clickedColumnSeason);
 
     // Cap should be for clicked column season
-    const cap2930 = getCapForSeason('2029-30');
+    const cap2930 = getRequiredCapForSeason('2029-30');
     expect(ctx.cap.salaryCap).toBe(cap2930.salaryCap);
   });
 

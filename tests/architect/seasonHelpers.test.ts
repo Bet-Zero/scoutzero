@@ -24,6 +24,11 @@ import {
   getSeasonRange,
 } from '@/features/architect/utils/seasonHelpers';
 
+type SeasonIdInput = Parameters<typeof prevSeason>[0];
+
+const invalidSeasonRuntimeInput = (value: string): SeasonIdInput =>
+  value as SeasonIdInput;
+
 describe('SeasonId Helpers', () => {
   describe('isValidSeasonId', () => {
     it('validates correct season formats', () => {
@@ -220,35 +225,53 @@ describe('SeasonId Helpers', () => {
     });
 
     it('throws on invalid season IDs', () => {
-      expect(() => getSeasonRange('invalid', '2024-25')).toThrow();
-      expect(() => getSeasonRange('2024-25', 'bad')).toThrow();
-      expect(() => getSeasonRange('2024', '2025')).toThrow();
+      expect(() =>
+        getSeasonRange(invalidSeasonRuntimeInput('invalid'), '2024-25')
+      ).toThrow();
+      expect(() =>
+        getSeasonRange('2024-25', invalidSeasonRuntimeInput('bad'))
+      ).toThrow();
+      expect(() =>
+        getSeasonRange(
+          invalidSeasonRuntimeInput('2024'),
+          invalidSeasonRuntimeInput('2025')
+        )
+      ).toThrow();
     });
   });
 
   describe('navigation helpers with invalid input', () => {
     it('prevSeason throws on invalid input', () => {
-      expect(() => prevSeason('invalid')).toThrow();
-      expect(() => prevSeason('2024')).toThrow();
-      expect(() => prevSeason('bad')).toThrow();
+      expect(() => prevSeason(invalidSeasonRuntimeInput('invalid'))).toThrow();
+      expect(() => prevSeason(invalidSeasonRuntimeInput('2024'))).toThrow();
+      expect(() => prevSeason(invalidSeasonRuntimeInput('bad'))).toThrow();
     });
 
     it('nextSeason throws on invalid input', () => {
-      expect(() => nextSeason('invalid')).toThrow();
-      expect(() => nextSeason('2024')).toThrow();
-      expect(() => nextSeason('bad')).toThrow();
+      expect(() => nextSeason(invalidSeasonRuntimeInput('invalid'))).toThrow();
+      expect(() => nextSeason(invalidSeasonRuntimeInput('2024'))).toThrow();
+      expect(() => nextSeason(invalidSeasonRuntimeInput('bad'))).toThrow();
     });
 
     it('addSeasons throws on invalid input', () => {
-      expect(() => addSeasons('invalid', 1)).toThrow();
-      expect(() => addSeasons('2024', 1)).toThrow();
-      expect(() => addSeasons('bad', 0)).toThrow();
+      expect(() => addSeasons(invalidSeasonRuntimeInput('invalid'), 1)).toThrow();
+      expect(() => addSeasons(invalidSeasonRuntimeInput('2024'), 1)).toThrow();
+      expect(() => addSeasons(invalidSeasonRuntimeInput('bad'), 0)).toThrow();
     });
 
     it('compareSeasons throws on invalid input', () => {
-      expect(() => compareSeasons('invalid', '2024-25')).toThrow();
-      expect(() => compareSeasons('2024-25', 'bad')).toThrow();
-      expect(() => compareSeasons('2024', '2025')).toThrow();
+      expect(() =>
+        compareSeasons(invalidSeasonRuntimeInput('invalid'), '2024-25')
+      ).toThrow();
+      expect(() =>
+        compareSeasons('2024-25', invalidSeasonRuntimeInput('bad'))
+      ).toThrow();
+      expect(() =>
+        compareSeasons(
+          invalidSeasonRuntimeInput('2024'),
+          invalidSeasonRuntimeInput('2025')
+        )
+      ).toThrow();
     });
   });
 });

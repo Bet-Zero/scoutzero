@@ -1154,7 +1154,12 @@ Validation:
 
 ## Step 39 — Harden the next cap-sheet / timing / consent truth cluster (wave 14)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the planned cap-sheet / timing / consent truth
+cluster, kept root typecheck green, passed the bounded UI pack at `23 / 23`
+and node pack at `102 / 102`, and reduced Architect strict from `624` to `511`
+with no remaining hits in the Step 39 target files.
 
 **Goal:** Tighten the next mixed UI/runtime/test cluster exposed by the Step 37 checkpoint after the mutation-owner / persistence wave is clear.
 

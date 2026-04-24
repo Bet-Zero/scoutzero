@@ -2,9 +2,31 @@ import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  NormalizedTeamPick,
+  TradeTeam,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
-const makePlayer = (name, salary, year) => ({
+type TradeTeamDocument = NonNullable<TradeTeam['team']>;
+
+const makePlayer = (
+  name: string,
+  salary: number,
+  year: number
+): NormalizedPlayer => ({
+  id: name,
+  playerId: name,
   name,
+  salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
   contract: {
     salariesByYear: [
       { season: `${year - 1}-${String(year).slice(-2)}`, salary },
@@ -12,21 +34,29 @@ const makePlayer = (name, salary, year) => ({
   },
 });
 
-const makeTeam = (id, name, totalSalary, year, rosterSize = 14) => ({
+const makeTeam = (
+  id: string,
+  name: string,
+  totalSalary: number,
+  year: number,
+  rosterSize = 14
+): TradeTeamDocument => ({
   id,
+  teamId: id,
   teamName: name,
-  totalSalary,
+  teamTotalSalary: totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000, year)
   ),
   picks: [],
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
-function runPickTrade(pick, currentYear) {
-  const teamA = makeTeam(1, 'A', 220_000_000, currentYear); // Above 2025 second apron threshold
-  const teamB = makeTeam(2, 'B', 100_000_000, currentYear);
+function runPickTrade(pick: NormalizedTeamPick, currentYear: number) {
+  const teamA = makeTeam('1', 'A', 220_000_000, currentYear); // Above 2025 second apron threshold
+  const teamB = makeTeam('2', 'B', 100_000_000, currentYear);
   return validateTrade({
     teams: [
       { team: teamA, sends: [], picksOut: [pick] },
@@ -39,7 +69,7 @@ function runPickTrade(pick, currentYear) {
 
 describe('frozen pick consequences', () => {
   it('rejects 2032 first for second apron team', () => {
-    const pick = { year: 2032, round: 1, teamId: 1 };
+    const pick = { year: 2032, round: 1, teamId: '1' };
     const res = runPickTrade(pick, 2025);
     expect(res.teamResults[0].legal).toBe(false);
     expect(issueTexts(res.teamResults[0].violations)).toContain(
@@ -48,7 +78,7 @@ describe('frozen pick consequences', () => {
   });
 
   it('rejects protected 2032 first for second apron team', () => {
-    const pick = { year: 2032, round: 1, teamId: 1, protection: 'top 10' };
+    const pick = { year: 2032, round: 1, teamId: '1', protection: 'top 10' };
     const res = runPickTrade(pick, 2025);
     expect(res.teamResults[0].legal).toBe(false);
     expect(issueTexts(res.teamResults[0].violations)).toContain(
@@ -57,17 +87,13 @@ describe('frozen pick consequences', () => {
   });
 
   it('allows 2031 first for second apron team', () => {
-    const pick = { year: 2031, round: 1, teamId: 1 };
+    const pick = { year: 2031, round: 1, teamId: '1' };
     const res = runPickTrade(pick, 2025);
-    console.log('Team A salary:', res.teamResults[0].team?.totalSalary);
-    console.log('Team A violations:', res.teamResults[0].violations);
-    console.log('Team A legal:', res.teamResults[0].legal);
-    console.log('Cap settings:', res.capSettings);
     expect(res.teamResults[0].legal).toBe(true);
   });
 
   it('allows 2033 first for second apron team', () => {
-    const pick = { year: 2033, round: 1, teamId: 1 };
+    const pick = { year: 2033, round: 1, teamId: '1' };
     const res = runPickTrade(pick, 2027);
     expect(res.teamResults[0].legal).toBe(true);
   });

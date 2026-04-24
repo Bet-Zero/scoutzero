@@ -1711,6 +1711,55 @@ persistence truth cluster cleanly, but the mission still is not close to final
 review because the next cap-sheet / timing / consent / pick-rule cluster now
 dominates the live strict backlog.
 
+## Step 39 Cap-Sheet / Timing / Consent Wave Delta
+
+Reviewed: 2026-04-24, after Step 39 hardened the bounded cap-sheet / timing /
+consent / pick-rule cluster.
+
+| Measurement                                                                 | Step 38 wave | Current | Delta |
+| --------------------------------------------------------------------------- | -----------: | ------: | ----: |
+| `npm run typecheck`                                                         |            0 |       0 |     0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`             |          624 |     511 |  -113 |
+| `npm run test:ui -- --reporter=dot src/tests/architect/capSheet_exception_wiring.behavior.test.tsx` | not yet run | `23 / 23` | bounded pack green |
+| `npm run test:node -- --reporter=dot tests/architect/ruleContextTiming.test.ts tests/architect/seasonHelpers.test.ts tests/trade/consent_and_birdVeto.test.ts tests/trade/frozenPick_consequences.test.ts src/tests/tradeMachine/swapResolution.test.ts` | not yet run | `102 / 102` | bounded pack green |
+
+### Step 39 Surface Result
+
+- `src/shared/components/EditContractModal.tsx`,
+  `src/tests/architect/capSheet_exception_wiring.behavior.test.tsx`,
+  `tests/architect/ruleContextTiming.test.ts`,
+  `tests/architect/seasonHelpers.test.ts`,
+  `tests/trade/consent_and_birdVeto.test.ts`,
+  `tests/trade/frozenPick_consequences.test.ts`, and
+  `src/tests/tradeMachine/swapResolution.test.ts` no longer appear in the live
+  Architect strict output.
+- The wave stayed bounded to modal/player/year narrowing, cap-sheet table and
+  TPE fixture readers, required cap-season reads, intentional invalid-season
+  runtime probes, typed consent/pick fixtures, and swap-resolution required
+  metadata helpers.
+
+### Remaining Concentration After Step 39
+
+The next backlog is no longer led by the Step 39 cluster. The strongest live
+Architect strict hotspots are now:
+
+1. `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts` (`14`)
+2. `tests/trade/rosterWindow_softEnforcement.test.ts` (`13`)
+3. `src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts` (`13`)
+4. `src/tests/architect/batchB_cbaRules.test.ts` (`13`)
+5. `tests/architect/playerRulesProfile.test.ts` (`12`)
+6. `src/tests/architect/phase86_oste_offseason_transition_engine.test.ts` (`12`)
+7. `src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts` (`12`)
+8. `src/tests/architect/mutationPipeline.tradeSatHandoffContract.test.ts` (`12`)
+9. `src/tests/architect/mutationPipeline.tradeSatHandoffClosure.test.ts` (`12`)
+10. `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts` (`12`)
+
+Plain-language read: Step 39 removed the planned mixed cap-sheet / timing /
+consent / pick-rule truth cluster and reduced Architect strict to `511`.
+The mission remains open because the remaining backlog is still substantial and
+spread across multiple Architect/trade guardrail and roster-rule clusters, so
+Step 40 must reassess and extend rather than route directly to final closeout.
+
 ## Evidence Commands
 
 - `rg --files`

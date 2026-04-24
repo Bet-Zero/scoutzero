@@ -1,8 +1,21 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { enforceConsent } from '@/features/architect/utils/tradeMachine/rules/enforceConsent';
 import { validationFlags } from '@/config/validationFlags';
+import type {
+  TradeExceptionPlayer,
+  TradeTeam,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
-const makeTeam = (player) => ({ outgoingPlayers: [player] });
+type ConsentTestPlayer = TradeExceptionPlayer & {
+  hasFullNTC?: boolean;
+  onOneYearBirdDeal?: boolean;
+  consentGranted?: boolean;
+  currentTeamId?: string;
+};
+
+const makeTeam = (player: ConsentTestPlayer): TradeTeam => ({
+  outgoingPlayers: [player],
+});
 
 describe('player consent enforcement', () => {
   afterEach(() => {
@@ -10,9 +23,9 @@ describe('player consent enforcement', () => {
   });
 
   it('rejects full NTC without consent', () => {
-    const rejects = [];
+    const rejects: string[] = [];
     const violations = enforceConsent(
-      makeTeam({ name: 'Full NTC', hasFullNTC: true, tradeTo: 2 }),
+      makeTeam({ name: 'Full NTC', hasFullNTC: true, tradeTo: '2' }),
       {},
       { reject: (m) => rejects.push(m) }
     );
@@ -22,12 +35,12 @@ describe('player consent enforcement', () => {
   });
 
   it('rejects limited NTC without consent', () => {
-    const rejects = [];
+    const rejects: string[] = [];
     const violations = enforceConsent(
       makeTeam({
         name: 'Limited',
-        limitedNTCTeamIds: [2],
-        tradeTo: 3, // Changed to team 3 (NOT on approved list)
+        limitedNTCTeamIds: ['2'],
+        tradeTo: '3', // Changed to team 3 (NOT on approved list)
       }),
       {},
       { reject: (m) => rejects.push(m) }
@@ -38,13 +51,13 @@ describe('player consent enforcement', () => {
   });
 
   it('handles Bird rights veto', () => {
-    const rejects = [];
+    const rejects: string[] = [];
     const violations = enforceConsent(
       makeTeam({
         name: 'Bird',
         onOneYearBirdDeal: true,
-        currentTeamId: 1,
-        tradeTo: 2,
+        currentTeamId: '1',
+        tradeTo: '2',
       }),
       {},
       { reject: (m) => rejects.push(m) }
@@ -53,13 +66,13 @@ describe('player consent enforcement', () => {
     expect(typeof violations[0]).toBe('string');
     expect(rejects).toContain('1-yr Bird veto — consent required');
 
-    const none = [];
+    const none: string[] = [];
     enforceConsent(
       makeTeam({
         name: 'Bird',
         onOneYearBirdDeal: true,
-        currentTeamId: 1,
-        tradeTo: 2,
+        currentTeamId: '1',
+        tradeTo: '2',
         consentGranted: true,
       }),
       {},
@@ -71,10 +84,10 @@ describe('player consent enforcement', () => {
   it('warn mode preserves the plain-string helper contract', () => {
     validationFlags.consent = 'warn';
 
-    const warns = [];
-    const rejects = [];
+    const warns: string[] = [];
+    const rejects: string[] = [];
     const violations = enforceConsent(
-      makeTeam({ name: 'Warn NTC', hasFullNTC: true, tradeTo: 2 }),
+      makeTeam({ name: 'Warn NTC', hasFullNTC: true, tradeTo: '2' }),
       {},
       {
         warn: (m) => warns.push(m),

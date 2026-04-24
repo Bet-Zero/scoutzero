@@ -18,10 +18,11 @@ import {
   type ExceptionDefaultCapSettings,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import type { TradeExceptionLike } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
 const hoistedMocks = vi.hoisted(() => ({
-  tpeList: [],
-  buildCapSettings: (overrides = {}) => ({
+  tpeList: [] as TradeExceptionLike[],
+  buildCapSettings: (overrides: Record<string, unknown> = {}) => ({
     salaryCap: 141_000_000,
     firstApron: 179_000_000,
     secondApron: 189_000_000,
@@ -59,13 +60,13 @@ vi.mock('@/features/architect/utils/persistenceContracts/normalizeTeamTpe', () =
   getTeamTpeList: vi.fn(() => hoistedMocks.tpeList),
 }));
 
-function normalizedTexts(elements) {
+function normalizedTexts(elements: HTMLElement[]) {
   return elements.map((element) =>
     element.textContent?.replace(/\s+/g, ' ').trim() || ''
   );
 }
 
-function expectBefore(first, second) {
+function expectBefore(first: HTMLElement, second: HTMLElement) {
   expect(
     first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
   ).not.toBe(0);
@@ -78,6 +79,14 @@ const getExceptionCard = (trackerSection: HTMLElement, label: string) => {
   const card = within(trackerSection).getByText(label).closest('div.relative');
   expect(card).not.toBeNull();
   return card as HTMLElement;
+};
+
+const getExceptionTableRow = (table: HTMLElement, label: string) => {
+  const row = within(table)
+    .getAllByRole('row')
+    .find((candidate) => within(candidate).queryByText(label));
+  expect(row).toBeDefined();
+  return row as HTMLElement;
 };
 
 describe('Cap Sheet Exception Wiring (E1)', () => {
@@ -181,26 +190,22 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(trackerSection).queryByText('$2,222,222')).not.toBeInTheDocument();
 
     const table = screen.getByRole('table');
-    const findExceptionRow = (label) =>
-      within(table)
-        .getAllByRole('row')
-        .find((row) => within(row).queryByText(label));
 
     expect(
-      within(findExceptionRow('Mid-Level Exception (MLE)')).getByDisplayValue(
-        '11111111'
-      )
+      within(getExceptionTableRow(table, 'Mid-Level Exception (MLE)'))
+        .getByDisplayValue('11111111')
     ).toBeInTheDocument();
     expect(
-      within(findExceptionRow('Taxpayer MLE')).getByDisplayValue('2222222')
+      within(getExceptionTableRow(table, 'Taxpayer MLE'))
+        .getByDisplayValue('2222222')
     ).toBeInTheDocument();
     expect(
-      within(findExceptionRow('Bi-Annual Exception (BAE)')).getByDisplayValue(
-        '3333333'
-      )
+      within(getExceptionTableRow(table, 'Bi-Annual Exception (BAE)'))
+        .getByDisplayValue('3333333')
     ).toBeInTheDocument();
     expect(
-      within(findExceptionRow('Room Exception')).getByDisplayValue('4444444')
+      within(getExceptionTableRow(table, 'Room Exception'))
+        .getByDisplayValue('4444444')
     ).toBeInTheDocument();
   });
 
@@ -331,10 +336,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(tpMleCard).queryByText('$88,000,000')).not.toBeInTheDocument();
 
     const table = screen.getByRole('table');
-    const taxpayerRow = within(table)
-      .getAllByRole('row')
-      .find((row) => within(row).queryByText('Taxpayer MLE'));
-    expect(taxpayerRow).toBeDefined();
+    const taxpayerRow = getExceptionTableRow(table, 'Taxpayer MLE');
     expect(within(taxpayerRow).getByDisplayValue('5000000')).toBeInTheDocument();
     expect(within(taxpayerRow).getByDisplayValue('0')).toBeInTheDocument();
     expect(within(taxpayerRow).getByRole('checkbox')).not.toBeChecked();
@@ -430,10 +432,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(trackerSection).queryByText('$4,444,444')).not.toBeInTheDocument();
 
     const table = screen.getByRole('table');
-    const roomRow = within(table)
-      .getAllByRole('row')
-      .find((row) => within(row).queryByText('Room Exception'));
-    expect(roomRow).toBeDefined();
+    const roomRow = getExceptionTableRow(table, 'Room Exception');
     expect(roomRow).toHaveTextContent(
       'Only available to teams under the salary cap'
     );
@@ -490,10 +489,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(trackerSection).queryByText('$5,900,000')).not.toBeInTheDocument();
 
     const table = screen.getByRole('table');
-    const roomRow = within(table)
-      .getAllByRole('row')
-      .find((row) => within(row).queryByText('Room Exception'));
-    expect(roomRow).toBeDefined();
+    const roomRow = getExceptionTableRow(table, 'Room Exception');
     expect(roomRow).toHaveTextContent(
       'Only available to teams under the salary cap'
     );

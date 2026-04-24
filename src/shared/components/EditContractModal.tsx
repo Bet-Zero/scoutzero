@@ -75,6 +75,7 @@ type OfferSheetPreflightLike = OfferSheetPreflightResult | null;
 type ContractYearLike = NonNullable<
   ReturnType<typeof getContractYearsForDisplay>[number]
 >;
+type ContractYearWithNumberYear = ContractYearLike & { year: number };
 type ContractActionKey =
   | 'accept'
   | 'decline'
@@ -332,7 +333,7 @@ type EditContractModalProps = {
   targetYear?: number | null;
   actionYear?: number | null;
   actionContext?: ActionSetKey | null;
-  teamCapSheet?: TeamCapSheetLike;
+  teamCapSheet?: TeamCapSheetLike | null;
   currentYear?: number | null;
   playerRulesProfile?: PlayerRulesProfileLike;
   rulesLeagueContext?: RulesLeagueContextLike;
@@ -376,6 +377,11 @@ const DEFAULT_VALIDATION_STATE: ValidationStateLike = {
   warnings: [],
   errors: [],
 };
+
+const hasNumberContractYear = (
+  year: ContractYearLike
+): year is ContractYearWithNumberYear =>
+  typeof year.year === 'number' && Number.isFinite(year.year);
 
 const ADVISORY_MODAL_INCOMPLETE_MESSAGE =
   'Modal guardrails incomplete — some UI checks could not be evaluated.';
@@ -914,8 +920,8 @@ const EditContractModal = ({
     });
   }, [ACTION_YEAR, teamCapSheet]);
 
-  const contractYears = useMemo<ContractYearLike[]>(
-    () => getContractYearsForDisplay(player),
+  const contractYears = useMemo<ContractYearWithNumberYear[]>(
+    () => getContractYearsForDisplay(player).filter(hasNumberContractYear),
     [player]
   );
 
@@ -1047,10 +1053,7 @@ const EditContractModal = ({
     [extension, signingGuardrails, selectedException]
   );
   const resolvedSignAndTradeInitiation = useMemo<SignAndTradeInitiation | null>(() => {
-    if (
-      signAndTradeInitiation?.onSignAndTrade &&
-      signAndTradeInitiation?.getSignAndTradePreflight
-    ) {
+    if (signAndTradeInitiation) {
       return signAndTradeInitiation;
     }
 
@@ -1709,6 +1712,13 @@ const EditContractModal = ({
     async (
       overrideMetadata: OverrideMetadataLike | null
     ): Promise<ActionResultLike> => {
+      if (!player) {
+        return {
+          success: false,
+          message: 'Player is required before this contract action can be saved.',
+        };
+      }
+
       if (isOfferSheet && selectedAction === 'signNew') {
         return resolvedOfferSheetInitiation?.onStoreOfferSheet?.(
           player,
@@ -1773,6 +1783,13 @@ const EditContractModal = ({
   const handleConfirm = async () => {
     if (isSubmitting) return;
     setSaveError('');
+
+    if (!player) {
+      setSaveError(
+        'Player is required before this contract action can be saved.'
+      );
+      return;
+    }
 
     if (selectedAction === 'buyout' && !buyoutAmountIsValid) {
       setSaveError(
