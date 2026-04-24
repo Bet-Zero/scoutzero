@@ -30,6 +30,42 @@ type ConveyanceTestResult = {
     position?: number;
   };
 };
+type ConveyanceMetadata = NonNullable<ConveyanceTestResult['conveyanceResult']>;
+
+type PositionsMap = Record<string, number>;
+
+function requireResolvedPick(
+  result: unknown,
+  label: string
+): ConveyanceTestResult {
+  expect(result).toBeDefined();
+  if (!result || typeof result !== 'object') {
+    throw new Error(`Expected ${label}`);
+  }
+  return result as ConveyanceTestResult;
+}
+
+function requireConveyanceMetadata(
+  result: ConveyanceTestResult['conveyanceResult'],
+  label: string
+): ConveyanceMetadata {
+  expect(result).toBeDefined();
+  if (!result) {
+    throw new Error(`Expected ${label}`);
+  }
+  return result;
+}
+
+function resolveWithRuntimePositions<TPick>(
+  resolveConveyanceForPick: (
+    pick: TPick,
+    positionsMap: PositionsMap
+  ) => unknown,
+  pick: TPick,
+  positionsMap: unknown
+): unknown {
+  return resolveConveyanceForPick(pick, positionsMap as PositionsMap);
+}
 
 // ==============================================================================
 // SECTION 1: Current Behavior Assertions (Protection String Parsing)
@@ -191,16 +227,19 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     const positionsMap = { LAL: 2 }; // Position 2 triggers Top 3 protection
     
-    const resolved = resolveConveyanceForPick(
+    const resolved = requireResolvedPick(resolveConveyanceForPick(
       pick,
       positionsMap
-    ) as ConveyanceTestResult;
+    ), 'rolled conveyance result');
     
     expect(resolved.year).toBe(2027);
     expect(resolved.status).toBe('rolled');
-    expect(resolved.conveyanceResult).toBeDefined();
-    expect(resolved.conveyanceResult.outcome).toBe('rolled');
-    expect(resolved.conveyanceResult.position).toBe(2);
+    const conveyanceResult = requireConveyanceMetadata(
+      resolved.conveyanceResult,
+      'rolled conveyance metadata'
+    );
+    expect(conveyanceResult.outcome).toBe('rolled');
+    expect(conveyanceResult.position).toBe(2);
   });
 
   it('resolveConveyanceForPick() conveys pick when protection does NOT trigger', async () => {
@@ -209,15 +248,17 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     const positionsMap = { LAL: 7 }; // Position 7 does NOT trigger Top 3 protection
     
-    const resolved = resolveConveyanceForPick(
+    const resolved = requireResolvedPick(resolveConveyanceForPick(
       pick,
       positionsMap
-    ) as ConveyanceTestResult;
+    ), 'conveyed conveyance result');
     
     expect(resolved.year).toBe(2026); // Year unchanged
     expect(resolved.status).toBe('conveyed');
-    expect(resolved.conveyanceResult).toBeDefined();
-    expect(resolved.conveyanceResult.outcome).toBe('conveyed');
+    expect(
+      requireConveyanceMetadata(resolved.conveyanceResult, 'conveyed metadata')
+        .outcome
+    ).toBe('conveyed');
   });
 
   it('resolveConveyanceForPick() converts 1st to 2nd when conversion target exists', async () => {
@@ -226,15 +267,17 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
     const pick = conveyanceConvertsTo2nd.teams[0].picksOut[0];
     const positionsMap = { NYK: 10 }; // Position 10 triggers Lottery protection
     
-    const resolved = resolveConveyanceForPick(
+    const resolved = requireResolvedPick(resolveConveyanceForPick(
       pick,
       positionsMap
-    ) as ConveyanceTestResult;
+    ), 'converted conveyance result');
     
     expect(resolved.round).toBe(2);
     expect(resolved.status).toBe('converted');
-    expect(resolved.conveyanceResult).toBeDefined();
-    expect(resolved.conveyanceResult.outcome).toBe('converted');
+    expect(
+      requireConveyanceMetadata(resolved.conveyanceResult, 'converted metadata')
+        .outcome
+    ).toBe('converted');
   });
 
   it('resolveConveyanceForPick() is NO-OP when positionsMap is empty', async () => {
@@ -253,7 +296,11 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
     
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     
-    const resolved = resolveConveyanceForPick(pick, null);
+    const resolved = resolveWithRuntimePositions(
+      resolveConveyanceForPick,
+      pick,
+      null
+    );
     
     // Should return pick unchanged
     expect(resolved).toEqual(pick);
@@ -277,12 +324,18 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
     const pick = conveyanceMultiYearLadder.teams[0].picksOut[0];
     
     // Year 1: Top 3 protection triggers at position 2
-    const after2026 = resolveConveyanceForPick(pick, { CHI: 2 });
+    const after2026 = requireResolvedPick(
+      resolveConveyanceForPick(pick, { CHI: 2 }),
+      '2026 conveyance result'
+    );
     expect(after2026.year).toBe(2027);
     expect(after2026.status).toBe('rolled');
     
     // Year 2: Top 5 protection triggers at position 4
-    const after2027 = resolveConveyanceForPick(after2026, { CHI: 4 });
+    const after2027 = requireResolvedPick(
+      resolveConveyanceForPick(after2026, { CHI: 4 }),
+      '2027 conveyance result'
+    );
     expect(after2027.year).toBe(2028);
     expect(after2027.status).toBe('rolled');
   });

@@ -2036,6 +2036,54 @@ truth cluster and reduced Architect strict to `318`. The mission remains open:
 the Step 45 offseason / DARE / preflight cluster is still substantial and must
 run before the next readiness checkpoint.
 
+## Step 45 Offseason / DARE / Preflight Wave Delta
+
+Reviewed: 2026-04-24, after Step 45 hardened the bounded offseason / DARE /
+preflight truth cluster.
+
+| Measurement                                                                 | Step 44 checkpoint | Current | Delta |
+| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
+| `npm run typecheck`                                                         |                  0 |       0 |     0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                318 |     268 |   -50 |
+| `npm run test:node -- --reporter=dot src/tests/architect/phase86_oste_offseason_transition_engine.test.ts src/tests/architect/dare/dareResolver.test.ts src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts src/tests/tradeMachine/conveyancePreflight.test.ts` | not yet run | `86 / 86` | bounded pack green |
+
+### Step 45 Surface Result
+
+- `src/tests/architect/phase86_oste_offseason_transition_engine.test.ts`,
+  `src/tests/architect/dare/dareResolver.test.ts`,
+  `src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts`,
+  `src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts`, and
+  `src/tests/tradeMachine/conveyancePreflight.test.ts` no longer appear in the
+  live Architect strict output.
+- The wave stayed bounded to typed DARE Firestore fixtures, typed E2E
+  player/team helpers, canonical TPE lifecycle fixtures, explicit OSTE
+  transition readers, and localized runtime-invalid conveyance probes rather
+  than widening into UI or broad runtime-owner cleanup.
+
+### Remaining Concentration After Step 45
+
+The next backlog is now split between runtime owner files and smaller
+trade/Architect test clusters:
+
+1. `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx` (`8`)
+2. `src/features/architect/utils/capLegalityValidation.ts` (`8`)
+3. `src/features/architect/utils/leagueInvariants.ts` (`8`)
+4. `src/features/architect/utils/tradeContext/tradeContext.ts` (`8`)
+5. `src/features/architect/utils/seasonManager.ts` (`7`)
+6. `tests/architect/overrideBypass.test.ts` (`7`)
+7. `tests/trade/orderOfOps_conversionsBeforeMatching.test.ts` (`7`)
+8. `src/features/architect/utils/offseason/resolveOffseasonTransition.ts` (`6`)
+9. `src/tests/architect/dare/protectionLadderFactory.test.ts` (`6`)
+10. `src/tests/architect/phase47_tpe_persistence_guardrails.test.ts` (`6`)
+11. `src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts` (`6`)
+12. `src/tests/architect/phase86_league_invariants.test.ts` (`6`)
+
+Plain-language read: Step 45 removed the planned offseason / DARE / preflight
+truth cluster and reduced Architect strict to `268`. The mission remains open
+until the Step 46 checkpoint proves whether the remaining runtime-owner and
+smaller test clusters are final-review-safe or still require more numbered
+waves.
+
 ## Evidence Commands
 
 - `rg --files`

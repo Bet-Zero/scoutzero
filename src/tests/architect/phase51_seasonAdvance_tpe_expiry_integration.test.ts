@@ -28,6 +28,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   processTradeExceptions,
   getTpeExpiryISO,
+  type TpeLifecycleRecord,
 } from '@/features/architect/utils/tpeLifecycle';
 
 type TpeFixtureOptions = {
@@ -58,7 +59,22 @@ const AFTER_BOUNDARY_ISO = '2026-07-01T00:00:00.001Z';
  * @param {string} expiresOn - Expiry date ISO string (canonical field)
  * @param {Object} [options] - Additional overrides (e.g., legacy expiryISO)
  */
-const makeTPE = (id, amount, expiresOn, options: TpeFixtureOptions = {}) => ({
+type TpeFixture = TpeLifecycleRecord;
+
+type TpeTeamFixture = {
+  teamCode: string;
+  tradeExceptions?: TpeFixture[];
+  exceptions?: {
+    tpe?: TpeFixture[];
+  };
+};
+
+const makeTPE = (
+  id: string,
+  amount: number,
+  expiresOn: string,
+  options: TpeFixtureOptions = {}
+): TpeFixture => ({
   id,
   amount,
   totalAmount: amount,
@@ -78,7 +94,11 @@ const makeTPE = (id, amount, expiresOn, options: TpeFixtureOptions = {}) => ({
  * @param {number} amount - Total TPE amount
  * @param {string} expiryISO - Legacy expiry date ISO string
  */
-const makeLegacyTPE = (id, amount, expiryISO) => ({
+const makeLegacyTPE = (
+  id: string,
+  amount: number,
+  expiryISO: string
+): TpeFixture => ({
   id,
   amount,
   totalAmount: amount,
@@ -95,8 +115,8 @@ const makeLegacyTPE = (id, amount, expiryISO) => ({
  * Simulates the Phase 47C dedupeById function for dual-source merging.
  * Prefers TPEs with more canonical fields populated.
  */
-const dedupeById = (tpes) => {
-  const seen = new Map();
+const dedupeById = (tpes: TpeFixture[]): TpeFixture[] => {
+  const seen = new Map<string, TpeFixture>();
   for (const tpe of tpes) {
     if (!tpe.id) continue;
     const existing = seen.get(tpe.id);
@@ -129,7 +149,10 @@ const dedupeById = (tpes) => {
  *
  * This mirrors the flow in processTeamSeasonTransitionWithOptions.
  */
-const simulateSeasonAdvanceTPEExpiry = (team, toSeason) => {
+const simulateSeasonAdvanceTPEExpiry = (
+  team: TpeTeamFixture,
+  toSeason: string
+) => {
   // Step 1: Gather TPEs from both sources
   const primaryTPEs = team.tradeExceptions ?? [];
   const legacyTPEs = team.exceptions?.tpe ?? [];
@@ -150,6 +173,27 @@ const simulateSeasonAdvanceTPEExpiry = (team, toSeason) => {
     dedupeApplied: primaryTPEs.length + legacyTPEs.length > mergedTPEs.length,
   };
 };
+
+function requireTpe<T extends TpeLifecycleRecord>(
+  tpe: T | undefined,
+  label: string
+): T {
+  expect(tpe).toBeDefined();
+  if (!tpe) {
+    throw new Error(`Expected ${label}`);
+  }
+  return tpe;
+}
+
+function requireExpiryParams(
+  tpe: TpeLifecycleRecord
+): NonNullable<TpeLifecycleRecord['_expiryParams']> {
+  expect(tpe._expiryParams).toBeDefined();
+  if (!tpe._expiryParams) {
+    throw new Error('Expected TPE expiry params');
+  }
+  return tpe._expiryParams;
+}
 
 // ============================================================================
 // TEST SUITE
@@ -207,9 +251,9 @@ describe('Phase 51: Season Advance TPE Expiry Integration Tests', () => {
 
       // Expired list should contain the expired TPE
       expect(result.expiredTPEs).toHaveLength(1);
-      expect(result.expiredTPEs[0].id).toBe('tpe_expired_1');
-      expect(result.expiredTPEs[0]._expiryParams).toBeDefined();
-      expect(result.expiredTPEs[0]._expiryParams.boundaryStr).toBe(
+      const expiredTpe = requireTpe(result.expiredTPEs[0], 'expired TPE');
+      expect(expiredTpe.id).toBe('tpe_expired_1');
+      expect(requireExpiryParams(expiredTpe).boundaryStr).toBe(
         BOUNDARY_ISO
       );
     });

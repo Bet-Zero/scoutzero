@@ -1434,7 +1434,12 @@ Validation:
 
 ## Step 45 — Harden the next offseason / DARE / preflight truth cluster (wave 18)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the planned offseason / DARE / preflight truth
+cluster, kept root typecheck green, passed the bounded node pack at 86 / 86,
+and reduced Architect strict from 318 to 268 with no remaining hits in the Step
+45 target files.
 
 **Goal:** Tighten the next offseason transition, DARE resolver, season-advance,
 and conveyance-preflight cluster exposed by the Step 43 checkpoint without

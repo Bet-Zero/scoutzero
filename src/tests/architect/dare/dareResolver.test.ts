@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Firestore } from 'firebase/firestore';
 import type { DAREInput } from '@/features/architect/utils/entitlements/dare/types';
 
 // Mock all adapter modules with correct function names
@@ -100,6 +101,7 @@ const mockedResolvePickRulesByIdsWithDb = vi.mocked(
   resolvePickRulesByIdsWithDb
 );
 const mockedPickRulesMapToObject = vi.mocked(pickRulesMapToObject);
+const testDb = {} as Firestore;
 
 describe('DARE Resolver', () => {
   beforeEach(() => {
@@ -233,7 +235,7 @@ describe('DARE Resolver', () => {
   // ============================================================================
   describe('resolveAllDraftAssets', () => {
     it('should return no-op result when positionsMap is empty', async () => {
-      const result = await resolveAllDraftAssets(null, {
+      const result = await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: {},
@@ -245,7 +247,7 @@ describe('DARE Resolver', () => {
     });
 
     it('should return no-op result when teams array is empty', async () => {
-      const result = await resolveAllDraftAssets(null, {
+      const result = await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { BOS: 5 },
@@ -267,7 +269,7 @@ describe('DARE Resolver', () => {
         },
       ];
 
-      const result = await resolveAllDraftAssets(null, {
+      const result = await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { BOS: 10 },
@@ -294,7 +296,7 @@ describe('DARE Resolver', () => {
         underlyingPickId: 'BOS_2026_1st',
       };
 
-      const result = await resolveAllDraftAssets(null, {
+      const result = await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { BOS: 5, LAL: 10 },
@@ -320,7 +322,7 @@ describe('DARE Resolver', () => {
         underlyingPickId: 'BOS_2026_1st',
       };
 
-      const result = await resolveAllDraftAssets(null, {
+      const result = await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { BOS: 15 },
@@ -346,7 +348,7 @@ describe('DARE Resolver', () => {
         underlyingPickId: 'BOS_2027_1st',
       };
 
-      await resolveAllDraftAssets(null, {
+      await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026, // Resolving 2026
         positionsMap: { BOS: 5 },
@@ -373,7 +375,7 @@ describe('DARE Resolver', () => {
         resolved: true, // Already resolved
       };
 
-      await resolveAllDraftAssets(null, {
+      await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { BOS: 5 },
@@ -390,7 +392,7 @@ describe('DARE Resolver', () => {
     });
 
     it('should return success with meta containing processing counts', async () => {
-      const result = await resolveAllDraftAssets(null, {
+      const result = await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { BOS: 5 },
@@ -421,7 +423,7 @@ describe('DARE Resolver', () => {
         underlyingPickId: 'LAL_2026_1st',
       };
 
-      const result = await resolveAllDraftAssets(null, {
+      const result = await resolveAllDraftAssets(testDb, {
         worldId: 'world-1',
         draftYear: 2026,
         positionsMap: { LAL: 20 },
@@ -455,7 +457,7 @@ describe('DARE Resolver', () => {
       ]);
 
       const result = await resolveTeamDraftAssets(
-        null, // db
+        testDb,
         'world-1',
         'BOS',
         2026,
@@ -464,7 +466,7 @@ describe('DARE Resolver', () => {
 
       expect(result.success).toBe(true);
       expect(mockedResolveEntitlementsForTeamWithDb).toHaveBeenCalledWith(
-        null,
+        testDb,
         'world-1',
         'BOS'
       );

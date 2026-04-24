@@ -16,16 +16,46 @@ import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import { resolveOffseasonTransition } from '@/features/architect/utils/offseason';
 import { runOffseason } from '@/features/architect/utils/runOffseason';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import type { OffseasonTeamCapSheet } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
+
+type SeasonRow = ReturnType<typeof makeSeasonRow>;
+
+type OstePlayer = {
+  player_id: string;
+  name: string;
+  contract: {
+    salariesByYear: SeasonRow[];
+    yearsRemaining: number;
+    birdRights: { status: string };
+    [key: string]: unknown;
+  };
+};
+
+type OsteTeam = {
+  teamCode: string;
+  teamName: string;
+  players: OstePlayer[];
+  roster: string[];
+  capHolds: NonNullable<OffseasonTeamCapSheet['capHolds']>;
+  exceptions: Record<string, unknown>;
+  totals: Record<string, unknown>;
+  [key: string]: unknown;
+};
 
 const makeSeasonRow = (endYear: number, salary: number, option?: string | null) => ({
   season: toSeasonCode(endYear),
   salary,
   capHit: salary,
   option: option ?? null,
-  optionUsed: null,
+  optionUsed: false,
 });
 
-const makePlayer = (id: string, name: string, rows: any[], extra: any = {}) => ({
+const makePlayer = (
+  id: string,
+  name: string,
+  rows: SeasonRow[],
+  extra: Partial<OstePlayer['contract']> = {}
+): OstePlayer => ({
   player_id: id,
   name,
   contract: {
@@ -50,7 +80,10 @@ const makeStandardRoster = (
     )
   );
 
-const makeTeam = (players: any[], overrides: Record<string, any> = {}) => ({
+const makeTeam = (
+  players: OstePlayer[],
+  overrides: Partial<OsteTeam> & Record<string, unknown> = {}
+): OsteTeam => ({
   teamCode: 'TST',
   teamName: 'Test Team',
   players,
@@ -60,6 +93,28 @@ const makeTeam = (players: any[], overrides: Record<string, any> = {}) => ({
   totals: {},
   ...overrides,
 });
+
+type OffseasonTransitionResult = ReturnType<typeof resolveOffseasonTransition>;
+type NextTeamCapSheet = NonNullable<OffseasonTransitionResult['nextTeamCapSheet']>;
+
+function requireNextTeamCapSheet(
+  result: OffseasonTransitionResult
+): NextTeamCapSheet {
+  expect(result.nextTeamCapSheet).toBeDefined();
+  if (!result.nextTeamCapSheet) {
+    throw new Error('Expected next team cap sheet');
+  }
+  return result.nextTeamCapSheet;
+}
+
+function requireFirstItem<T>(items: T[] | null | undefined, label: string): T {
+  expect(items?.[0]).toBeDefined();
+  const item = items?.[0];
+  if (!item) {
+    throw new Error(`Expected ${label}`);
+  }
+  return item;
+}
 
 describe('Phase 86: OSTE core validation', () => {
   it('TEST 1: Standard expiration creates cap hold', () => {
@@ -82,7 +137,10 @@ describe('Phase 86: OSTE core validation', () => {
 
     expect(result.success).toBe(true);
     expect(result.nextTeamCapSheet?.capHolds?.length).toBe(1);
-    const hold = result.nextTeamCapSheet?.capHolds?.[0];
+    const hold = requireFirstItem(
+      result.nextTeamCapSheet?.capHolds,
+      'cap hold'
+    );
     expect(hold.playerId).toBe('p1');
     expect(hold.amount).toBeGreaterThan(0);
     expect(hold.season).toBe(toSeasonCode(toYear));
@@ -161,8 +219,8 @@ describe('Phase 86: OSTE core validation', () => {
     });
 
     expect(result.success).toBe(true);
-    const updated = result.nextTeamCapSheet;
-    const exceptions = updated!.exceptions as Record<string, Record<string, unknown>>;
+    const updated = requireNextTeamCapSheet(result);
+    const exceptions = updated.exceptions as Record<string, Record<string, unknown>>;
 
     expect(exceptions.mle.usedAmount).toBe(0);
     expect(exceptions.tpmle.usedAmount).toBe(0);
@@ -177,8 +235,14 @@ describe('Phase 86: OSTE core validation', () => {
     expect(exceptions.dpe.enabled).toBe(false);
     expect(exceptions.dpe.totalAmount).toBe(0);
 
-    expect(updated.exceptions.tpe).toHaveLength(1);
-    expect(updated.exceptions.tpe[0].id).toBe('tpe-active');
+    const updatedExceptions = updated.exceptions;
+    expect(updatedExceptions).toBeDefined();
+    if (!updatedExceptions) {
+      throw new Error('Expected updated exceptions');
+    }
+    const tpes = updatedExceptions.tpe as Array<{ id: string }>;
+    expect(tpes).toHaveLength(1);
+    expect(tpes[0]?.id).toBe('tpe-active');
   });
 
   it('TEST 4: Hard cap state resets on rollover', () => {
@@ -208,7 +272,7 @@ describe('Phase 86: OSTE core validation', () => {
     });
 
     expect(result.success).toBe(true);
-    const updated = result.nextTeamCapSheet;
+    const updated = requireNextTeamCapSheet(result);
 
     expect(updated.hardCapTriggered).toBeUndefined();
     expect(updated.hardCapFirstApron).toBeUndefined();

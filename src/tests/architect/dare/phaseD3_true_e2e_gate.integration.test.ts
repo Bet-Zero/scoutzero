@@ -46,7 +46,35 @@ const DRAFT_YEAR = 2026;
 // Fixture Helpers
 // ============================================================================
 
-function createMinimalPlayer(playerId, name, teamCode, salary = 10_000_000) {
+type MinimalPlayer = {
+  player_id: string;
+  id: string;
+  playerId: string;
+  name: string;
+  displayName: string;
+  teamCode: string;
+  salary: number;
+  contract: {
+    contractType: string;
+    salariesByYear: Array<{
+      season: string;
+      salary: number;
+      capHit: number;
+      guaranteed: boolean;
+      guaranteedAmount: number;
+    }>;
+    birdRights: { status: string; yearsOfService: number };
+    freeAgency: { type: string; year: number };
+  };
+  bio: { position: string; age: number; experience: number };
+};
+
+function createMinimalPlayer(
+  playerId: string,
+  name: string,
+  teamCode: string,
+  salary = 10_000_000
+): MinimalPlayer {
   return {
     player_id: playerId,
     id: playerId,
@@ -73,7 +101,11 @@ function createMinimalPlayer(playerId, name, teamCode, salary = 10_000_000) {
   };
 }
 
-function createMinimalTeam(teamCode, players = [], entitlementIds = []) {
+function createMinimalTeam(
+  teamCode: string,
+  players: MinimalPlayer[] = [],
+  entitlementIds: string[] = []
+) {
   const totalSalary = players.reduce((sum, p) => sum + (p.salary || 0), 0);
   return {
     id: teamCode.toLowerCase(),
