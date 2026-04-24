@@ -1760,6 +1760,73 @@ The mission remains open because the remaining backlog is still substantial and
 spread across multiple Architect/trade guardrail and roster-rule clusters, so
 Step 40 must reassess and extend rather than route directly to final closeout.
 
+## Step 40 Post-Wave Checkpoint
+
+Reviewed: 2026-04-24, after Steps 38-39 completed the mutation-owner /
+persistence and cap-sheet / timing / consent truth waves.
+
+### Probe Delta
+
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 37 checkpoint | Current | Reading                                                                                                                                                                                |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                        |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                          |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                709 |     511 | Architect/test strict posture improved materially (`-2,056` vs the original baseline, `-2,121` vs Step 14, `-1,717` vs Step 22, `-198` vs Step 37), but it remains the mission blocker. |
+
+### Current Architect Strict Concentration
+
+The current Architect strict backlog is concentrated in:
+
+1. Sign-and-trade / mutation / canonical TPE guardrails:
+   `src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts`
+   (`13`),
+   `src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts`
+   (`12`),
+   `src/tests/architect/mutationPipeline.tradeSatHandoffContract.test.ts`
+   (`12`),
+   `src/tests/architect/mutationPipeline.tradeSatHandoffClosure.test.ts`
+   (`12`),
+   `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts`
+   (`12`), and
+   `src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.ts`
+   (`11`).
+2. Roster / player-rules / timing / input validation:
+   `tests/trade/rosterWindow_softEnforcement.test.ts` (`13`),
+   `tests/architect/playerRulesProfile.test.ts` (`12`),
+   `tests/trade/rosterLegality_validateTrade.test.ts` (`11`),
+   `tests/trade/cashLedger_season_tracking.test.ts` (`10`),
+   `tests/trade/jan15_offseason_timing.test.ts` (`9`),
+   `tests/trade/input_validation.test.ts` (`9`), and
+   `tests/trade/roster_twoWay_enforcement.test.ts` (`8`).
+3. Offseason / DARE / tile-reactivity follow-on work:
+   `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts`
+   (`14`),
+   `src/tests/architect/batchB_cbaRules.test.ts` (`13`),
+   `src/tests/architect/phase86_oste_offseason_transition_engine.test.ts`
+   (`12`),
+   `src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts`
+   (`10`), and `src/tests/architect/dare/dareResolver.test.ts` (`10`).
+
+### Checkpoint Verdict
+
+The mission is not honestly ready for final review. The Step 38-39 waves
+removed their planned target clusters and kept root/shared strict green, but
+Architect strict still carries `511` errors across multiple meaningful
+guardrail, roster-rule, offseason, and DARE clusters.
+
+### Required Plan Extension
+
+The plan must extend again. The next bounded waves are now:
+
+- Step 41: Architect sign-and-trade / mutation guardrail truth cluster
+- Step 42: roster / rule validation truth cluster
+- Step 43: another master checkpoint after those waves
+
+Plain-language read: Step 40 confirms the hardening program is still making
+measurable progress, but the remaining mission-area debt is too broad for final
+review or closeout. The next move is another bounded execution wave, not a
+completion claim.
+
 ## Evidence Commands
 
 - `rg --files`

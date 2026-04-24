@@ -73,7 +73,9 @@
 - Step 37: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
 - Steps 38–39: harden the next mutation-owner/persistence cluster, then the next cap-sheet/timing/consent cluster exposed by the Step 37 checkpoint
 - Step 40: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
-- Steps 41–42: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
+- Steps 41–42: harden the next Architect sign-and-trade/mutation guardrail cluster, then the next roster/rule validation cluster exposed by the Step 40 checkpoint
+- Step 43: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
+- Steps 44–45: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
 
 **Universal constraints (apply to every step):**
 
@@ -1200,7 +1202,12 @@ Validation:
 
 ## Step 40 — Post-wave checkpoint: reassess final-review readiness once more
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Re-ran the root/shared/architect probes after Steps 38-39,
+confirmed root and shared strict remain green while Architect strict still sits
+at `511`, and extended the master plan with Steps 41-43 for the next bounded
+guardrail and roster/rule truth waves.
 
 **Goal:** Re-run the mission-level measurements after Steps 38-39 and decide whether the plan is honestly close to final review or still needs more numbered waves.
 
@@ -1230,7 +1237,134 @@ That section must:
 
 ---
 
-## Step 41 — Final review (only when the mission-level gates are truly satisfied)
+## Step 41 — Harden the next Architect sign-and-trade / mutation guardrail truth cluster (wave 15)
+
+**Status:** TODO
+
+**Goal:** Tighten the next high-value Architect sign-and-trade, mutation,
+canonical TPE, and persistence-guardrail cluster exposed by the Step 40
+checkpoint without reopening broad runtime-owner work.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts`
+- `src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts`
+- `src/tests/architect/mutationPipeline.tradeSatHandoffContract.test.ts`
+- `src/tests/architect/mutationPipeline.tradeSatHandoffClosure.test.ts`
+- `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts`
+- `src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.ts`
+- any tiny mutation-pipeline, trade-context, or TPE helper truth fixups directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove optional-chain shortcuts, implicit-any fixtures, stale sign-and-trade
+   bags, and compatibility TPE reads that hide the live mutation/trade carrier
+   contracts.
+2. Keep assertions aligned with canonical sign-and-trade, TPE, persistence, and
+   mutation-handoff contracts.
+3. Keep runtime edits tightly coupled to these guardrails; do not widen into
+   general offseason, DARE, or roster-rule cleanup except for tiny shared truth
+   fixups that these files directly require.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts src/tests/architect/mutationPipeline.tradeSatHandoffContract.test.ts src/tests/architect/mutationPipeline.tradeSatHandoffClosure.test.ts src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the sign-and-trade / mutation guardrail cluster.
+- Do not use casts to preserve legacy trade-exception reads; the point is to
+  keep canonical TPE and mutation-persistence truth visible.
+
+**Done when:** The sign-and-trade / mutation guardrail cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden architect sign and trade guardrail cluster`.
+
+---
+
+## Step 42 — Harden the next roster / rule validation truth cluster (wave 16)
+
+**Status:** TODO
+
+**Goal:** Tighten the next trade roster-window, roster-legality, player-rules,
+cash-ledger, and timing/input validation cluster exposed by the Step 40
+checkpoint.
+
+**Instructions:**
+Focus this wave on:
+
+- `tests/trade/rosterWindow_softEnforcement.test.ts`
+- `tests/trade/rosterLegality_validateTrade.test.ts`
+- `tests/architect/playerRulesProfile.test.ts`
+- `tests/trade/cashLedger_season_tracking.test.ts`
+- `tests/trade/jan15_offseason_timing.test.ts`
+- `tests/trade/input_validation.test.ts`
+- `tests/trade/roster_twoWay_enforcement.test.ts`
+- any tiny trade-rule, player-rules, or roster helper truth fixups directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove implicit-any builders, `never[]` collectors, stale player/team
+   fixtures, and optional reads that hide live roster/rule contracts.
+2. Keep roster-window, roster-legality, player-rules, cash-ledger, January 15,
+   and input-validation assertions aligned with the live validator contracts.
+3. Keep behavior unchanged unless a test only passed because it depended on a
+   dishonest fixture or optional-chain shortcut.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/trade/rosterWindow_softEnforcement.test.ts tests/trade/rosterLegality_validateTrade.test.ts tests/architect/playerRulesProfile.test.ts tests/trade/cashLedger_season_tracking.test.ts tests/trade/jan15_offseason_timing.test.ts tests/trade/input_validation.test.ts tests/trade/roster_twoWay_enforcement.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the roster / rule validation cluster.
+- Do not reopen sign-and-trade / mutation guardrail files except for tiny shared
+  helper truth fixups this wave directly requires.
+
+**Done when:** The roster / rule validation cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden roster rule validation truth cluster`.
+
+---
+
+## Step 43 — Post-wave checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 41-42 and decide
+whether the plan is honestly close to final review or still needs more numbered
+waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 40 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs more numbered waves.
+4. Append additional numbered steps immediately after Step 43 if substantial mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-sign-and-roster hardening checkpoint`.
+
+---
+
+## Step 44 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -1265,7 +1399,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 42 — Final closeout (only when the mission is actually done)
+## Step 45 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
