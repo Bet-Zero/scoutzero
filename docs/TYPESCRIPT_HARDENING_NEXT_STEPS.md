@@ -2205,7 +2205,7 @@ full-routed validation. Step 61 final closeout is now executable.
 
 ## Step 61 — Final closeout (only when the mission is actually done)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-24
 
 **Goal:** Close this self-extending master plan only when the project is actually completely hardened according to the mission statement and the hard anti-loophole rules above.
 
@@ -2226,6 +2226,60 @@ The closeout must state:
 - If a substantial mission-area backlog still exists, return to Step 22 behavior and extend the plan.
 
 **Done when:** This document has a truthful final closeout and the repo is actually completely hardened for the mission defined at the top. Commit message: `docs: close out self-extending TypeScript hardening master plan`.
+
+---
+
+## Final Closeout
+
+Captured: 2026-04-24
+
+The TypeScript hardening mission is complete. This is not a phase-complete
+claim: the mission-level probes now pass, the stale `PASS WITH DEBT` final
+review has been replaced, and the final checkpoint found no substantial
+remaining hardening backlog requiring another numbered wave.
+
+Why the mission is now actually complete:
+
+- Root TypeScript compatibility is green.
+- Shared/runtime strict is green.
+- Architect strict is green.
+- The final source-change wave was validated by the full routed node+UI test
+  suite after the user explicitly authorized `RUN FULL SUITE`.
+
+Major dishonesty mechanisms removed across the master plan:
+
+- Repo-wide ambient declaration shims that masked real module exports.
+- Shared/player runtime boundary casts that let unvalidated ingress flow into
+  app state.
+- Architect/base-data and world/mutation ingress trust gaps.
+- Broad fixture/test mock shapes that made Architect/trade tests pass while
+  avoiding the strict contracts they were supposed to protect.
+- Residual strict-probe debt in two-error and one-error test clusters.
+
+Completion evidence:
+
+- `npm run typecheck` passed in Step 59.
+- `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+  passed in Step 59.
+- `npm run typecheck -- --project tsconfig.architect-strict.json` passed in
+  Step 59.
+- `npm run test:diff -- --reporter=dot` passed after Step 58 and auto-selected
+  the full node+UI suite: `423` node files / `4,430` tests passed with `24`
+  skipped, and `115` UI files / `863` tests passed.
+
+Remaining issues:
+
+- Minor optional follow-up: a few tests retain local casts to represent
+  intentionally malformed external/runtime ingress. These are not substantial
+  mission debt because the strict probes are green and the casts are local to
+  invalid-shape tests.
+- Minor optional follow-up: the existing skipped tests remain skipped under the
+  suite configuration. The full routed validation passed with the existing skip
+  set.
+
+No further mission-area numbered steps are required because all hard completion
+gates pass and no checkpoint evidence points to a substantial remaining
+TypeScript hardening backlog.
 
 ---
 
