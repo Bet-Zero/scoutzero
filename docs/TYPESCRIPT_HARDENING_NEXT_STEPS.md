@@ -2130,7 +2130,7 @@ tests).
 
 ## Step 59 — Post-residual checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE — 2026-04-24
 
 **Goal:** Re-run the mission-level measurements after Steps 57-58 and decide
 whether final review is now truthful or the plan still needs more numbered
@@ -2157,6 +2157,10 @@ mission-area backlog remains.
 
 **Done when:** The baseline doc contains the new checkpoint and the plan has
 been extended again if needed. Commit message: `docs: record residual hardening checkpoint`.
+
+**Completion notes:** Root typecheck, shared-boundary strict, and Architect
+strict all passed after Step 58. No additional numbered hardening waves are
+needed at this checkpoint; Step 60 final review is now executable.
 
 ---
 
