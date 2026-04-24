@@ -75,7 +75,9 @@
 - Step 40: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
 - Steps 41–42: harden the next Architect sign-and-trade/mutation guardrail cluster, then the next roster/rule validation cluster exposed by the Step 40 checkpoint
 - Step 43: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
-- Steps 44–45: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
+- Steps 44–45: harden the next Architect reactivity/CBA guardrail cluster, then the next offseason/DARE/preflight truth cluster exposed by the Step 43 checkpoint
+- Step 46: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
+- Steps 47–48: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
 
 **Universal constraints (apply to every step):**
 
@@ -1342,7 +1344,12 @@ Validation:
 
 ## Step 43 — Post-wave checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Re-ran the mission-level probes after Steps 41-42,
+confirmed root and shared-boundaries strict remain green, confirmed Architect
+strict still carries 367 errors, and extended the plan with the next two
+bounded waves plus another checkpoint.
 
 **Goal:** Re-run the mission-level measurements after Steps 41-42 and decide
 whether the plan is honestly close to final review or still needs more numbered
@@ -1374,7 +1381,137 @@ That section must:
 
 ---
 
-## Step 44 — Final review (only when the mission-level gates are truly satisfied)
+## Step 44 — Harden the next Architect reactivity / CBA guardrail truth cluster (wave 17)
+
+**Status:** TODO
+
+**Goal:** Tighten the next Architect reactivity, CBA batch, legacy-import, pure
+compute, and current-state team guardrail cluster exposed by the Step 43
+checkpoint without widening into offseason or DARE runtime work.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts`
+- `src/tests/architect/batchB_cbaRules.test.ts`
+- `src/tests/architect/phase59_legacy_import_guardrail.test.ts`
+- `src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts`
+- `tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts`
+- any tiny Architect test-helper truth fixups directly required to keep this
+  cluster honest
+
+For the chosen cluster:
+
+1. Remove implicit-any fixtures, stale guardrail readers, nullable shortcut
+   assertions, and untyped collectors that hide the live Architect reactivity,
+   CBA, current-state, or compute contracts.
+2. Keep behavior unchanged unless a test only passed because it depended on a
+   dishonest fixture or optional-chain shortcut.
+3. Keep runtime edits tightly bounded to helper truth fixups these guardrails
+   directly require.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts src/tests/architect/batchB_cbaRules.test.ts src/tests/architect/phase59_legacy_import_guardrail.test.ts src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the reactivity / CBA / guardrail cluster.
+- Do not reopen the Step 42 roster/rule files except for tiny shared helper
+  truth fixups this wave directly requires.
+
+**Done when:** The reactivity / CBA guardrail cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden architect reactivity cba guardrail cluster`.
+
+---
+
+## Step 45 — Harden the next offseason / DARE / preflight truth cluster (wave 18)
+
+**Status:** TODO
+
+**Goal:** Tighten the next offseason transition, DARE resolver, season-advance,
+and conveyance-preflight cluster exposed by the Step 43 checkpoint without
+reopening the reactivity/CBA guardrail wave.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/phase86_oste_offseason_transition_engine.test.ts`
+- `src/tests/architect/dare/dareResolver.test.ts`
+- `src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts`
+- `src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts`
+- `src/tests/tradeMachine/conveyancePreflight.test.ts`
+- any tiny offseason, DARE, season-advance, or conveyance helper truth fixups
+  directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove implicit-any fixtures, stale offseason/DARE bags, nullable shortcut
+   assertions, and untyped collectors that hide the live transition/preflight
+   contracts.
+2. Keep assertions aligned with canonical offseason transition, DARE resolver,
+   TPE expiry, and conveyance preflight behavior.
+3. Keep runtime edits tightly coupled to this cluster; do not widen into general
+   UI or cap-sheet cleanup.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase86_oste_offseason_transition_engine.test.ts src/tests/architect/dare/dareResolver.test.ts src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts src/tests/tradeMachine/conveyancePreflight.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the offseason / DARE / preflight cluster.
+- Do not use broad casts to preserve stale transition or conveyance fixtures;
+  the point is to keep live contract truth visible.
+
+**Done when:** The offseason / DARE / preflight cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden offseason dare preflight truth cluster`.
+
+---
+
+## Step 46 — Post-wave checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 44-45 and decide
+whether the plan is honestly close to final review or still needs more numbered
+waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 40 checkpoint,
+   - the Step 43 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs
+   more numbered waves.
+4. Append additional numbered steps immediately after Step 46 if substantial
+   mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion
+  gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-reactivity-offseason checkpoint`.
+
+---
+
+## Step 47 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -1409,7 +1546,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 45 — Final closeout (only when the mission is actually done)
+## Step 48 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
