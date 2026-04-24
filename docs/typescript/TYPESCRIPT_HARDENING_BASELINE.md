@@ -2233,6 +2233,52 @@ but `167` Architect strict errors still include runtime utilities and several
 test clusters. Step 49 must reassess the mission and extend the plan if this
 remaining backlog is still substantial.
 
+## Step 49 Post-Runtime/Test Checkpoint
+
+Measured 2026-04-24 after Steps 47-48.
+
+| Probe                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Notes |
+| --------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ----- |
+| `npm run typecheck`                                                   |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`       |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 | Architect strict improved materially (`-2,400` vs original, `-2,465` vs Step 14, `-2,061` vs Step 22, `-344` vs Step 40, `-200` vs Step 43, `-101` vs Step 46), but remains the mission blocker. |
+
+### Current Architect Strict Concentration After Step 49
+
+The remaining top hotspots are:
+
+1. `src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts` (`5`)
+2. `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts` (`5`)
+3. `src/tests/architect/entitlementInvariants.test.ts` (`5`)
+4. `src/features/architect/utils/tradeMachine/rules/miscRules.ts` (`5`)
+5. `src/features/architect/utils/capTotals/computeTeamCapTotals.ts` (`5`)
+6. `tests/trade/faExceptions_as_trade_buckets.test.ts` (`4`)
+7. `tests/architect/salaryEngine.test.ts` (`4`)
+8. `tests/architect/ExceptionTracker.tpe.test.tsx` (`4`)
+9. `src/tests/architect/utils/seasonManager.tpe.test.ts` (`4`)
+10. `src/tests/architect/useArchitectActions.freeAgency.test.tsx` (`4`)
+11. `src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts` (`4`)
+12. `src/tests/architect/phase42_apron_derivation_consolidation.test.ts` (`4`)
+13. `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts` (`4`)
+14. `src/tests/architect/capLegalityValidation.batchedHardening.test.ts` (`4`)
+15. `src/features/architect/utils/worldTeamData.ts` (`4`)
+16. `src/features/architect/utils/tradeMachine/engine/tradeValidator.ts` (`4`)
+
+### Readiness Verdict After Step 49
+
+Not ready for final review. The project is meaningfully closer than the Step 46
+checkpoint, but `167` Architect strict errors are still substantial
+mission-area debt across runtime utility owners and test fixture clusters. The
+master plan has been extended with:
+
+- Step 50: remaining Architect runtime utility boundary wave
+- Step 51: remaining Architect/trade test fixture wave
+- Step 52: another master checkpoint after those waves
+
+Plain-language read: Steps 47-48 removed the planned runtime-owner and
+test-cluster debt, but the strictness mission is still not honestly complete.
+The correct next move is another bounded execution wave, not final review.
+
 ## Evidence Commands
 
 - `rg --files`

@@ -1633,7 +1633,11 @@ Validation:
 
 ## Step 49 — Post-wave checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Re-ran the mission-level probes after Steps 47-48;
+root and shared-boundaries strict remain green, while Architect strict is still
+expected-failing at `167` errors, so the plan extends with more numbered waves.
 
 **Goal:** Re-run the mission-level measurements after Steps 47-48 and decide
 whether the plan is honestly close to final review or still needs more numbered
@@ -1670,7 +1674,139 @@ That section must:
 
 ---
 
-## Step 50 — Final review (only when the mission-level gates are truly satisfied)
+## Step 50 — Harden remaining Architect runtime utility boundaries (wave 21)
+
+**Status:** TODO
+
+**Goal:** Tighten the next runtime utility cluster exposed by the Step 49
+checkpoint without widening into unrelated UI or broad test cleanup.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/features/architect/utils/capTotals/computeTeamCapTotals.ts`
+- `src/features/architect/utils/tradeMachine/rules/miscRules.ts`
+- `src/features/architect/utils/tradeMachine/engine/tradeValidator.ts`
+- `src/features/architect/utils/worldTeamData.ts`
+- `src/features/architect/utils/runOffseason.ts`
+- `src/features/architect/utils/seasonFormat.ts`
+- `src/features/architect/utils/salaryEngine/salaryEngine.ts`
+- `src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts`
+- any tiny directly-required type owner/helper fixup in the same runtime
+  utility boundary
+
+For the chosen cluster:
+
+1. Remove nullable year/value shortcut assumptions and stale loose-record
+   payload bridges.
+2. Prefer local normalization helpers at runtime boundaries over broad casts.
+3. Preserve runtime behavior except where the old code only worked by relying
+   on impossible strict-null assumptions.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:diff -- --reporter=dot`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the runtime utility cluster above.
+- Do not reopen Step 48 test files except for tiny direct fallout from a
+  runtime helper truth fix.
+
+**Done when:** The runtime utility cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `fix: harden architect runtime utility boundaries`.
+
+---
+
+## Step 51 — Harden remaining Architect/trade test fixture clusters (wave 22)
+
+**Status:** TODO
+
+**Goal:** Tighten the next remaining Architect/trade test clusters exposed by
+the Step 49 checkpoint after the runtime utility wave.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts`
+- `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts`
+- `src/tests/architect/entitlementInvariants.test.ts`
+- `tests/trade/faExceptions_as_trade_buckets.test.ts`
+- `tests/architect/salaryEngine.test.ts`
+- `tests/architect/ExceptionTracker.tpe.test.tsx`
+- `src/tests/architect/utils/seasonManager.tpe.test.ts`
+- `src/tests/architect/useArchitectActions.freeAgency.test.tsx`
+- `src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts`
+- `src/tests/architect/phase42_apron_derivation_consolidation.test.ts`
+- any tiny shared test helper truth fixup directly required by this cluster
+
+For the chosen cluster:
+
+1. Remove implicit-any fixtures, nullable shortcut assertions, and stale
+   partial runtime payloads.
+2. Keep assertions aligned with live behavior.
+3. Avoid runtime edits unless a tiny helper truth fix is directly required.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts src/tests/architect/entitlementInvariants.test.ts tests/trade/faExceptions_as_trade_buckets.test.ts tests/architect/salaryEngine.test.ts tests/architect/ExceptionTracker.tpe.test.tsx src/tests/architect/utils/seasonManager.tpe.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts src/tests/architect/phase42_apron_derivation_consolidation.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the listed test fixture cluster.
+- Do not treat UI TSX test files as requiring `npm run build`; this is a
+  test-only wave unless runtime files are changed.
+
+**Done when:** The listed test fixture cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden remaining architect trade fixtures`.
+
+---
+
+## Step 52 — Post-extension checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 50-51 and decide
+whether final review is now truthful or the plan still needs more numbered
+waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 40 checkpoint,
+   - the Step 43 checkpoint,
+   - the Step 46 checkpoint,
+   - the Step 49 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs
+   more numbered waves.
+4. Append additional numbered steps immediately after Step 52 if substantial
+   mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion
+  gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-extension hardening checkpoint`.
+
+---
+
+## Step 53 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -1705,7 +1841,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 51 — Final closeout (only when the mission is actually done)
+## Step 54 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
