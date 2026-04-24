@@ -2426,6 +2426,49 @@ Plain-language read: Steps 50-51 removed the planned runtime utility and
 test-fixture debt, but the strictness mission is still not honestly complete.
 The correct next move is another bounded execution wave, not final review.
 
+## Step 53 Runtime/Shared Boundary Checkpoint
+
+Measured 2026-04-24 after Step 53.
+
+| Probe                                                                 | Step 52 checkpoint | Step 53 checkpoint | Notes |
+| --------------------------------------------------------------------- | -----------------: | -----------------: | ----- |
+| `npm run typecheck`                                                   |                  0 |                  0 | Root compatibility remains green. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`       |                 95 |                 77 | Architect strict improved by `18` errors; the Step 53 runtime/shared target files are clear. |
+| `npm run build`                                                       |               pass |               pass | Build remains green with the existing Vite warnings about Browserslist, `fs` externalization in `tradeDebug.ts`, dynamic/static imports, and chunk size. |
+| `npm run test:node -- --reporter=dot src/tests/architect/capSheet_closure.gate.test.ts` |               pass |               pass | Source-scan sentinel remained intact after the runtime boundary edits. |
+| `npm run test:diff -- --reporter=dot`                                 |               fail |               fail | Full-routed because of shared/config branch history. Node full half passed; UI half failed only in the planned Step 54 fallout files. |
+
+The Step 53 target files are no longer represented in the Architect strict
+output. Remaining top hotspots after the `77`-error strict probe are:
+
+1. `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts` (`4`)
+2. `src/tests/architect/capLegalityValidation.batchedHardening.test.ts` (`4`)
+3. `tests/architect/CapSheetFull.rules.test.tsx` (`3`)
+4. `src/tests/architect/tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx` (`3`)
+5. `src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx` (`3`)
+6. `src/tests/architect/myct_step6_guardrails.test.tsx` (`3`)
+7. `src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts` (`3`)
+8. `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts` (`3`)
+9. `src/tests/architect/architectCoreTrioPassR2.test.ts` (`3`)
+10. `src/tests/architect/architectCoreLogicBlockerTrio.test.ts` (`3`)
+11. `tests/trade/secondApron_handcuffs.test.ts` (`2`)
+12. `tests/trade/basicRules.test.ts` (`2`)
+13. `tests/architect/worldsOnlyRegression.test.ts` (`2`)
+14. `src/tests/tradeMachine/pickIdUtils.test.ts` (`2`)
+15. `src/tests/architect/tmCapIntegration.ui.tradeApply_updatesCapSheet.integration.test.tsx` (`2`)
+16. `src/tests/architect/rosterChargeDisplay.test.tsx` (`2`)
+
+The Step 53 `test:diff` UI failures are the Step 54 scope:
+`src/tests/architect/myct_step6_guardrails.test.tsx`,
+`src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx`,
+`src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx`,
+`src/tests/architect/useArchitectActions.freeAgency.test.tsx`, and
+`src/tests/smoke/architect.uiSmoke.e1.test.tsx`.
+
+Readiness remains negative pending Step 54. Runtime/shared boundary debt was
+reduced, but full-suite UI guardrail drift is still blocking a truthful
+mission-complete claim.
+
 ## Evidence Commands
 
 - `rg --files`

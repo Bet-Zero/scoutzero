@@ -55,7 +55,7 @@ const TeamSelectDropdown = ({
     [selectedTeamId]
   );
   const optionValueFor = (team: TeamOption): TeamSelectValue =>
-    valueFormat === 'teamCode' ? team.code || team.teamId || team.id : team.id;
+    valueFormat === 'teamCode' ? team.code : team.id;
   const selectedColorInput = selectedTeam?.id || selectedTeamId;
   const { primary: selectedColor } = getTeamColors(selectedColorInput) || {};
 

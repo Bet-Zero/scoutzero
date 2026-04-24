@@ -1826,7 +1826,13 @@ That section must:
 
 ## Step 53 — Harden remaining Architect runtime/shared boundary cluster (wave 23)
 
-**Status:** TODO
+**Status:** DONE
+
+Completion note 2026-04-24: Hardened the listed runtime/shared boundary
+cluster with explicit null guards and local typed adapters; root typecheck,
+Architect strict target-file clearance, build, and the cap-sheet source-scan
+probe pass. The full-routed `test:diff` node half passed and the UI half
+failed only in the Step 54 fallout cluster, so that cleanup remains next.
 
 **Goal:** Tighten the next remaining runtime/shared strict-boundary cluster
 identified by the Step 52 checkpoint before returning to test-only cleanup.

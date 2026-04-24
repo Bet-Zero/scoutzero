@@ -155,9 +155,11 @@ type ArchitectPlayer = ArchitectDashboardPlayer;
 
 type WorldRosterPlayerLike = ArchitectDashboardPlayer &
   NonNullable<LeagueTeamSnapshot['players']>[number] & {
-  bio?: ArchitectDashboardPlayer['bio'] & {
-    playerId?: string | number | null;
-  };
+  bio?:
+    | (NonNullable<ArchitectDashboardPlayer['bio']> & {
+        playerId?: string | number | null;
+      })
+    | null;
 };
 
 type WorldLeagueTeamLike = Pick<LeagueTeamSnapshot, 'roster'> & {
@@ -257,7 +259,7 @@ type ArchitectExceptionsLike = {
   room?: ArchitectExceptionEntryLike | null;
   bae?: ArchitectExceptionEntryLike | null;
   dpe?: ArchitectExceptionEntryLike | null;
-  tpe?: Exceptions['tpe'];
+  tpe?: NonNullable<Exceptions>['tpe'];
   tpmle?: ArchitectExceptionEntryLike | null;
 };
 

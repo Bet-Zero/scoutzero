@@ -165,7 +165,7 @@ export async function signFreeAgent(
   // Recalculate cap totals using SSOT (Phase 78)
   const yearKey = toEndYear(
     updatedTeam.season || teamState.season || '2025-26'
-  );
+  ) ?? 2026;
   updatedTeam.totals = computeTeamCapTotals(updatedTeam, yearKey);
 
   // Update source metadata
@@ -272,7 +272,7 @@ export async function waivePlayer(
   // Recalculate cap totals using SSOT (Phase 78)
   const yearKeyForTotals = toEndYear(
     updatedTeam.season || teamState.season || '2025-26'
-  );
+  ) ?? 2026;
   updatedTeam.totals = computeTeamCapTotals(updatedTeam, yearKeyForTotals);
 
   // Update source metadata
@@ -334,7 +334,7 @@ export async function extendPlayer(
   const updatedTeam = { ...teamState };
   const yearKeyForExtend = toEndYear(
     updatedTeam.season || teamState.season || '2025-26'
-  );
+  ) ?? 2026;
   updatedTeam.totals = computeTeamCapTotals(updatedTeam, yearKeyForExtend);
 
   return {

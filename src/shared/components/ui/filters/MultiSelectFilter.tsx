@@ -61,7 +61,7 @@ const MultiSelectFilter = ({
       )}
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
         className={clsx(
           'bg-[#2a2a2a] px-2 py-1 rounded text-xs',
           selectClass,

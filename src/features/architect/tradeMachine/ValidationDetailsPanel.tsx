@@ -15,8 +15,10 @@ import type {
   PreviewAuthorityLike,
   SnapshotValidationDetailsLike,
   TeamEntitlementLike,
+  TeamCoreLike,
   TeamLike,
   TeamPlayerLike,
+  TpeLike,
 } from './validationPresentationTypes';
 import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 
@@ -55,6 +57,22 @@ const SectionHeader = ({ title, mode, children }: SectionHeaderProps) => (
     {children && <div className="text-xs text-white/50">{children}</div>}
   </div>
 );
+
+function getCalculatorTpes(team: TeamCoreLike | null | undefined): TpeLike[] {
+  return getTeamTpeList(
+    team as Parameters<typeof getTeamTpeList>[0]
+  ).map((tpe): TpeLike => ({
+    id: tpe.id ?? undefined,
+    amount: tpe.amount ?? undefined,
+    remaining: tpe.remaining ?? undefined,
+    totalAmount: tpe.totalAmount ?? undefined,
+    remainingAmount: tpe.remainingAmount ?? undefined,
+    name: tpe.name ?? undefined,
+    createdFrom: tpe.createdFrom ?? undefined,
+    expirationDate: tpe.expirationDate ?? undefined,
+    expiresOn: tpe.expiresOn ?? undefined,
+  }));
+}
 
 const NotValidatedCallout = () => (
   <div
@@ -298,7 +316,7 @@ const ValidationDetailsPanel = ({
                         }
                         outgoingSalary={salaryOut[calculatorTeamIndex] || 0}
                         incomingPlayers={incomingAssets[calculatorTeamIndex]?.players || []}
-                        tpes={getTeamTpeList(selectedTeam.team)}
+                        tpes={getCalculatorTpes(selectedTeam.team)}
                         capSettings={snapshotValidationDetails?.capSettings || capProjections}
                         yearKey={yearKey}
                         validatorAllowableIncoming={

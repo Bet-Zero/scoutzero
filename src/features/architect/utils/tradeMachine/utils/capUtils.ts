@@ -81,8 +81,10 @@ function asTeamData(team: CapUtilsTeamData | null | undefined): CapUtilsTeamData
 function isTeamWrapper(
   teamLike: CapUtilsTeamContainer
 ): teamLike is CapUtilsTeamWrapper {
+  if (!teamLike) {
+    return false;
+  }
   return (
-    Boolean(teamLike) &&
     typeof teamLike === 'object' &&
     ('team' in teamLike || 'sourceTeam' in teamLike || 'ctx' in teamLike)
   );

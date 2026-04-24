@@ -13,8 +13,15 @@
 import React, { useEffect, useRef } from 'react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
-import { TeamCodeMap } from '@/constants/teamList';
+import { TeamCodeMap, type TeamCode } from '@/constants/teamList';
 import type { FreeAgentRowProps } from './types';
+
+function getTeamLogoId(teamCode: string | null | undefined): string {
+  if (!teamCode || !(teamCode in TeamCodeMap)) {
+    return 'default';
+  }
+  return TeamCodeMap[teamCode as TeamCode].id;
+}
 
 const FreeAgentRow = ({
   entry,
@@ -118,7 +125,7 @@ const FreeAgentRow = ({
         {player.teamCode && (
           <img
             src={`/assets/logos/${
-              TeamCodeMap[player.teamCode]?.id || 'default'
+              getTeamLogoId(player.teamCode)
             }.png`}
             alt={player.teamCode}
             className="h-6 w-6 object-contain opacity-80"

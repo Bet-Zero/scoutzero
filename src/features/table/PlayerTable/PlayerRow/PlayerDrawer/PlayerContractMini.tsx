@@ -96,13 +96,13 @@ const PlayerContractMini = ({
     };
   });
 
-  const getAmountColor = (optionType) => {
+  const getAmountColor = (optionType: string | null | undefined) => {
     if (optionType === 'Player Option') return 'text-green-500';
     if (optionType === 'Team Option') return 'text-orange-400';
     return 'text-white';
   };
 
-  const getTagColor = (type) => {
+  const getTagColor = (type: string | null | undefined) => {
     if (type === 'UFA') return 'bg-blue-600';
     if (type === 'RFA') return 'bg-purple-600';
     return 'bg-gray-600';

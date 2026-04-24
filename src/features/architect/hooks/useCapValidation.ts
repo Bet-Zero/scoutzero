@@ -277,7 +277,13 @@ const calculateValidationPlayerOnlyCapHit = (
   return calculateTeamCapHit(
     players as Parameters<typeof calculateTeamCapHit>[0],
     year,
-    { getContractYearSlice }
+    {
+      getContractYearSlice: (player, endYear) =>
+        getContractYearSlice(
+          player as Parameters<typeof getContractYearSlice>[0],
+          endYear
+        ),
+    }
   );
 };
 

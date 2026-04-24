@@ -181,7 +181,8 @@ const ExceptionTracker = ({
 }: ExceptionTrackerProps) => {
   const isViewingCurrentYear = selectedYear === currentYear;
   const currentSeasonLabel = formatSeasonLabel(currentYear);
-  const selectedSeasonLabel = formatSeasonLabel(selectedYear);
+  const resolvedSelectedYear = selectedYear ?? currentYear;
+  const selectedSeasonLabel = formatSeasonLabel(resolvedSelectedYear);
 
   if (!isViewingCurrentYear) {
     return (

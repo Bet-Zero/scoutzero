@@ -11,8 +11,15 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import React from 'react';
-import { TeamCodeMap } from '@/constants/teamList';
+import { TeamCodeMap, type TeamCode } from '@/constants/teamList';
 import type { FreeAgentCardProps } from './types';
+
+function getTeamLogoId(teamCode: string | null | undefined): string {
+  if (!teamCode || !(teamCode in TeamCodeMap)) {
+    return 'default';
+  }
+  return TeamCodeMap[teamCode as TeamCode].id;
+}
 
 const FreeAgentCard = ({
   entry,
@@ -67,7 +74,7 @@ const FreeAgentCard = ({
         {player.teamCode && (
           <div className="absolute top-2 left-2 opacity-20 z-0">
             <img
-              src={`/assets/logos/${TeamCodeMap[player.teamCode]?.id || 'default'}.png`}
+              src={`/assets/logos/${getTeamLogoId(player.teamCode)}.png`}
               className="h-8 w-8 object-contain"
               alt=""
             />
