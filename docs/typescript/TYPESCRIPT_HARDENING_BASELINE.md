@@ -2332,6 +2332,49 @@ still meaningful hardening work. Step 51 remains the next executable wave, with
 the full-suite fallout to be handled only when it intersects a planned test
 cluster or a later checkpoint extends the plan.
 
+## Step 51 Architect / Trade Test Fixture Wave
+
+Measured 2026-04-24 after Step 51.
+
+| Probe | Result | Notes |
+| ----- | -----: | ----- |
+| `npm run typecheck` | pass | Root compatibility remains green after the test fixture hardening wave. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 95 | Expected strict failure while the master plan remains active; Step 51 target files are clear. |
+| `npm run test:node -- --reporter=dot src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts src/tests/architect/entitlementInvariants.test.ts tests/trade/faExceptions_as_trade_buckets.test.ts tests/architect/salaryEngine.test.ts tests/architect/ExceptionTracker.tpe.test.tsx src/tests/architect/utils/seasonManager.tpe.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts src/tests/architect/phase42_apron_derivation_consolidation.test.ts` | pass | Vitest reported `8` runnable node files and `100` tests passed. |
+
+Step 51 reduced the Architect strict backlog from `138` to `95` errors
+(`-43`). The cleared test fixture targets were:
+
+- `src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts`
+- `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts`
+- `src/tests/architect/entitlementInvariants.test.ts`
+- `tests/trade/faExceptions_as_trade_buckets.test.ts`
+- `tests/architect/salaryEngine.test.ts`
+- `tests/architect/ExceptionTracker.tpe.test.tsx`
+- `src/tests/architect/utils/seasonManager.tpe.test.ts`
+- `src/tests/architect/useArchitectActions.freeAgency.test.tsx`
+- `src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts`
+- `src/tests/architect/phase42_apron_derivation_consolidation.test.ts`
+
+The remaining top hotspots are:
+
+1. `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts` (`4`)
+2. `src/tests/architect/capLegalityValidation.batchedHardening.test.ts` (`4`)
+3. `tests/architect/CapSheetFull.rules.test.tsx` (`3`)
+4. `src/tests/architect/tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx` (`3`)
+5. `src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx` (`3`)
+6. `src/tests/architect/myct_step6_guardrails.test.tsx` (`3`)
+7. `src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts` (`3`)
+8. `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts` (`3`)
+9. `src/tests/architect/architectCoreTrioPassR2.test.ts` (`3`)
+10. `src/tests/architect/architectCoreLogicBlockerTrio.test.ts` (`3`)
+11. `src/features/architect/utils/tradeManager.ts` (`3`)
+12. `src/features/architect/utils/tradeMachine/utils/capUtils.ts` (`3`)
+
+Readiness remains negative pending the Step 52 checkpoint. The Step 51 cluster
+is clear, but `95` Architect strict errors still include runtime and test
+surfaces, and the Step 50 full-suite UI guardrail fallout remains unresolved.
+
 ## Evidence Commands
 
 - `rg --files`

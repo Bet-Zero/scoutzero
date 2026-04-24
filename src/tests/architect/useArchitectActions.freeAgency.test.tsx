@@ -93,6 +93,7 @@ type FreeAgencyOfferSheetPreflight = Awaited<
 type FreeAgencyTeamCapSheet = NonNullable<
   UseArchitectActionsParams['state']['teamCapSheet']
 >;
+type FreeAgencyStateCapSheet = UseArchitectActionsParams['state']['teamCapSheet'];
 type FreeAgencyCapHold = NonNullable<FreeAgencyTeamCapSheet['capHolds']>[number];
 type ReloadActiveWorldTeamData = NonNullable<
   UseArchitectActionsParams['state']['reloadActiveWorldTeamData']
@@ -352,7 +353,7 @@ function renderActionsHarness({
 
   const { result } = renderHook(() => {
     const [teamCapSheet, setTeamCapSheet] =
-      useState<FreeAgencyTeamCapSheet>(initialTeam);
+      useState<FreeAgencyStateCapSheet>(initialTeam);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
     const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
     const [freeAgents, setFreeAgents] = useState<any[]>([playerFixture]);
@@ -663,15 +664,15 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.teamCapSheet.capHolds).toHaveLength(0);
-      expect(result.current.teamCapSheet.totals?.isHardCapped).toBe(true);
-      expect(result.current.teamCapSheet.totals?.hardCapReason).toBe(
+      expect(result.current.teamCapSheet?.capHolds).toHaveLength(0);
+      expect(result.current.teamCapSheet?.totals?.isHardCapped).toBe(true);
+      expect(result.current.teamCapSheet?.totals?.hardCapReason).toBe(
         'Triggered by Non-Taxpayer MLE'
       );
-      expect(result.current.teamCapSheet.hardCapReason).toBe(
+      expect(result.current.teamCapSheet?.hardCapReason).toBe(
         'Triggered by Non-Taxpayer MLE'
       );
-      expect(result.current.teamCapSheet.exceptions?.mle?.usedAmount).toBe(
+      expect(result.current.teamCapSheet?.exceptions?.mle?.usedAmount).toBe(
         12_000_000
       );
     });
@@ -1500,7 +1501,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(actionResult).toEqual({ success: true });
     expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
     expect(result.current.teamCapSheet).toEqual(committedSourceTeam);
-    expect(result.current.teamCapSheet.capHolds).toEqual([]);
+    expect(result.current.teamCapSheet?.capHolds).toEqual([]);
     expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
     expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
   });
@@ -1665,8 +1666,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     expect(actionResult).toEqual({ success: true });
-    expect(result.current.teamCapSheet.capHolds).toHaveLength(0);
-    expect(result.current.teamCapSheet.totals.capHolds).toBe(0);
+    expect(result.current.teamCapSheet?.capHolds).toHaveLength(0);
+    expect(result.current.teamCapSheet?.totals?.capHolds).toBe(0);
     expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
       expect.objectContaining({
         mutationType: 'renounceRights',
@@ -1712,8 +1713,9 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(actionResult).toEqual({ success: true });
 
     await waitFor(() => {
-      expect(result.current.teamCapSheet.offerSheets).toHaveLength(1);
-      expect(result.current.teamCapSheet.offerSheets[0].id).toBe('os_1');
+      const offerSheets = result.current.teamCapSheet?.offerSheets ?? [];
+      expect(offerSheets).toHaveLength(1);
+      expect(offerSheets[0].id).toBe('os_1');
     });
 
     const worldMutationArgs =
@@ -1861,7 +1863,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       'LAL'
     );
     expect(result.current.teamCapSheet).toEqual(reloadedTeam);
-    expect(result.current.teamCapSheet.offerSheets).toEqual(
+    expect(result.current.teamCapSheet?.offerSheets).toEqual(
       reloadedTeam.offerSheets
     );
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
@@ -1998,7 +2000,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         success: false,
       })
     );
-    expect(actionResult.message).toContain('active world');
+    expect(actionResult?.message).toContain('active world');
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
     expect(toastMocks.error).toHaveBeenCalledWith(
       expect.stringContaining('active world')
@@ -2031,7 +2033,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await waitFor(() => {
       expect(
-        result.current.teamCapSheet.incomingOfferSheets?.[0]?.status
+        result.current.teamCapSheet?.incomingOfferSheets?.[0]?.status
       ).toBe('MATCHED');
     });
 
@@ -2082,7 +2084,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     await waitFor(() => {
       expect(
-        result.current.teamCapSheet.incomingOfferSheets?.[0]?.status
+        result.current.teamCapSheet?.incomingOfferSheets?.[0]?.status
       ).toBe('DECLINED');
     });
 
@@ -2138,7 +2140,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.teamCapSheet.incomingOfferSheets).toEqual([]);
+      expect(result.current.teamCapSheet?.incomingOfferSheets).toEqual([]);
     });
 
     expect(
@@ -2254,7 +2256,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.teamCapSheet.offerSheets).toEqual([]);
+      expect(result.current.teamCapSheet?.offerSheets).toEqual([]);
     });
 
     expect(
@@ -2320,7 +2322,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.teamCapSheet.offerSheets).toEqual([]);
+        expect(result.current.teamCapSheet?.offerSheets).toEqual([]);
       });
 
       expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);

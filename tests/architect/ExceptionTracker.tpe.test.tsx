@@ -19,16 +19,23 @@ vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () 
     firstApron: 150_000_000,
     secondApron: 175_000_000,
   }),
-  yearToSeasonKey: (year) => `${Number(year) - 1}-${String(year).slice(-2)}`,
-  getExceptionDefaultAmountFromCapSettings: (type, capSettings) =>
-    (
-      {
+  yearToSeasonKey: (year: number | string) =>
+    `${Number(year) - 1}-${String(year).slice(-2)}`,
+  getExceptionDefaultAmountFromCapSettings: (
+    type: 'mle' | 'tpmle' | 'bae' | 'room',
+    capSettings?: {
+      fullMLE?: number;
+      taxpayerMLE?: number;
+      bae?: number;
+      roomMLE?: number;
+    }
+  ) =>
+    ({
         mle: capSettings?.fullMLE ?? 0,
         tpmle: capSettings?.taxpayerMLE ?? 0,
         bae: capSettings?.bae ?? 0,
         room: capSettings?.roomMLE ?? 0,
-      }
-    )[type] ?? 0,
+      })[type] ?? 0,
 }));
 
 describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {

@@ -2,7 +2,44 @@ import { describe, it, expect } from 'vitest';
 import { validateFaExceptionUsage } from '@/features/architect/utils/tradeMachine/rules/validateFaExceptionUsage';
 import { validationFlags } from '@/config/validationFlags';
 
-const baseTeam = {
+type FaExceptionBucket = {
+  type: string;
+  remaining: number;
+};
+
+type FaExceptionPlayer = {
+  name: string;
+  matchIncoming: number;
+  player_id: number;
+  absorptionMode?: string;
+  bucketType?: string | string[];
+  fromTeamId?: number;
+  toTeamId?: number;
+  salary?: number;
+};
+
+type FaExceptionTeamFixture = {
+  context: {
+    yearKey: number;
+    capSettings: {
+      firstApron: number;
+      secondApron: number;
+    };
+  };
+  team: {
+    faExceptionBuckets: FaExceptionBucket[];
+    hardCapFirstApron?: { active?: boolean };
+  };
+  incomingPlayers: FaExceptionPlayer[];
+  outgoingPlayers: Array<Partial<FaExceptionPlayer>>;
+  salaryOut: number;
+  salaryIn: number;
+  teamTotalSalary: number;
+  projectedSalary: number;
+  notes?: string[];
+};
+
+const baseTeam: FaExceptionTeamFixture = {
   context: {
     yearKey: 2025,
     capSettings: { firstApron: 172_000_000, secondApron: 182_000_000 },
@@ -16,7 +53,10 @@ const baseTeam = {
   projectedSalary: 0,
 };
 
-const makePlayer = (salary, extra = {}) => ({
+const makePlayer = (
+  salary: number,
+  extra: Partial<FaExceptionPlayer> = {}
+): FaExceptionPlayer => ({
   name: 'Player',
   matchIncoming: salary,
   player_id: Math.random(),
@@ -26,7 +66,7 @@ const makePlayer = (salary, extra = {}) => ({
 describe('FA exceptions as trade buckets', () => {
   it('allows eligible usage and hard-caps team', () => {
     validationFlags.faExceptionTrade = 'on';
-    const team = {
+    const team: FaExceptionTeamFixture = {
       ...baseTeam,
       teamTotalSalary: 150_000_000,
       projectedSalary: 158_000_000,
@@ -42,11 +82,11 @@ describe('FA exceptions as trade buckets', () => {
     const v = validateFaExceptionUsage(team);
     expect(v).toEqual([]);
     expect(team.team.faExceptionBuckets[0].remaining).toBe(2_000_000);
-    expect(team.team.hardCapFirstApron.active).toBe(true);
+    expect(team.team.hardCapFirstApron?.active).toBe(true);
   });
 
   it('rejects usage at or above first apron', () => {
-    const team = {
+    const team: FaExceptionTeamFixture = {
       ...baseTeam,
       teamTotalSalary: 172_000_000,
       projectedSalary: 180_000_000,
@@ -64,7 +104,7 @@ describe('FA exceptions as trade buckets', () => {
   });
 
   it('rejects when post-trade salary exceeds first apron', () => {
-    const team = {
+    const team: FaExceptionTeamFixture = {
       ...baseTeam,
       teamTotalSalary: 170_000_000,
       projectedSalary: 175_000_000,
@@ -82,7 +122,7 @@ describe('FA exceptions as trade buckets', () => {
   });
 
   it('rejects usage for second apron teams', () => {
-    const team = {
+    const team: FaExceptionTeamFixture = {
       ...baseTeam,
       teamTotalSalary: 185_000_000,
       projectedSalary: 193_000_000,
@@ -100,7 +140,7 @@ describe('FA exceptions as trade buckets', () => {
   });
 
   it('rejects aggregation with outgoing salary', () => {
-    const team = {
+    const team: FaExceptionTeamFixture = {
       ...baseTeam,
       teamTotalSalary: 150_000_000,
       projectedSalary: 158_000_000,
@@ -165,6 +205,6 @@ describe('FA exceptions as trade buckets', () => {
     const v = validateFaExceptionUsage(team);
     expect(v).toEqual([]);
     expect(team.incomingPlayers[0].absorptionMode).toBe('FA_EXCEPTION');
-    expect(team.notes[0]).toMatch(/hard-capped/);
+    expect(team.notes?.[0]).toMatch(/hard-capped/);
   });
 });

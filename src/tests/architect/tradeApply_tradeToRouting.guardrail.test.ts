@@ -47,6 +47,8 @@ function makeTeam(teamCode: string, players: TradePlayer[]) {
   };
 }
 
+type TradeTeamFixture = ReturnType<typeof makeTeam>;
+
 describe('Trade Apply Routing Guardrails', () => {
   it('routes 3-team incoming players using tradeTo in apply snapshot', () => {
     const aOut = makePlayer('a_out', 10_000_000, { tradeTo: 'TMB' });
@@ -76,15 +78,12 @@ describe('Trade Apply Routing Guardrails', () => {
       timestamp: Date.now(),
     });
 
-    const postA = snapshot.teamUpdates.find(
-      (t: { teamCode?: string; team?: unknown }) => t.teamCode === 'TMA'
-    )?.team;
-    const postB = snapshot.teamUpdates.find(
-      (t: { teamCode?: string; team?: unknown }) => t.teamCode === 'TMB'
-    )?.team;
-    const postC = snapshot.teamUpdates.find(
-      (t: { teamCode?: string; team?: unknown }) => t.teamCode === 'TMC'
-    )?.team;
+    const postA = snapshot.teamUpdates.find((t) => t.teamCode === 'TMA')
+      ?.team as TradeTeamFixture | undefined;
+    const postB = snapshot.teamUpdates.find((t) => t.teamCode === 'TMB')
+      ?.team as TradeTeamFixture | undefined;
+    const postC = snapshot.teamUpdates.find((t) => t.teamCode === 'TMC')
+      ?.team as TradeTeamFixture | undefined;
 
     expect(postA?.roster).toContain('c_out');
     expect(postA?.roster).toContain('a_keep');
@@ -153,12 +152,10 @@ describe('Trade Apply Routing Guardrails', () => {
       timestamp: Date.now(),
     });
 
-    const postA = snapshot.teamUpdates.find(
-      (t: { teamCode?: string; team?: unknown }) => t.teamCode === 'TMA'
-    )?.team;
-    const postB = snapshot.teamUpdates.find(
-      (t: { teamCode?: string; team?: unknown }) => t.teamCode === 'TMB'
-    )?.team;
+    const postA = snapshot.teamUpdates.find((t) => t.teamCode === 'TMA')
+      ?.team as TradeTeamFixture | undefined;
+    const postB = snapshot.teamUpdates.find((t) => t.teamCode === 'TMB')
+      ?.team as TradeTeamFixture | undefined;
 
     expect(postA?.roster).toContain('b_out');
     expect(postA?.roster).toContain('a_keep');

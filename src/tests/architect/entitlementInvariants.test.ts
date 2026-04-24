@@ -36,10 +36,11 @@ describe('Entitlement Invariants', () => {
       expect(result.error).toContain('ent:2');
       expect(result.error).toContain('LAL');
       expect(result.error).toContain('BOS');
-      expect(result.duplicates).toHaveLength(1);
-      expect(result.duplicates[0].entitlementId).toBe('ent:2');
-      expect(result.duplicates[0].teams).toContain('LAL');
-      expect(result.duplicates[0].teams).toContain('BOS');
+      const duplicates = result.duplicates ?? [];
+      expect(duplicates).toHaveLength(1);
+      expect(duplicates[0].entitlementId).toBe('ent:2');
+      expect(duplicates[0].teams).toContain('LAL');
+      expect(duplicates[0].teams).toContain('BOS');
     });
 
     it('detects multiple duplicates', () => {
@@ -149,8 +150,9 @@ describe('Entitlement Invariants', () => {
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Missing: 1');
-      expect(result.missingSlots).toHaveLength(1);
-      expect(result.missingSlots[0]).toMatchObject({ year: 2026, round: 2, team: 'LAL' });
+      const missingSlots = result.missingSlots ?? [];
+      expect(missingSlots).toHaveLength(1);
+      expect(missingSlots[0]).toMatchObject({ year: 2026, round: 2, team: 'LAL' });
     });
 
     it('detects duplicate slot coverage', () => {
@@ -184,8 +186,9 @@ describe('Entitlement Invariants', () => {
       const result = validatePickSlotAccounting(teams, yearRange, TEAM_CODES);
 
       expect(result.valid).toBe(false);
-      expect(result.extraSlots).toHaveLength(1);
-      expect(result.extraSlots[0].entitlementId).toBe('ent:5');
+      const extraSlots = result.extraSlots ?? [];
+      expect(extraSlots).toHaveLength(1);
+      expect(extraSlots[0].entitlementId).toBe('ent:5');
     });
 
     it('only counts pick_ownership entitlements', () => {

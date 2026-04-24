@@ -221,7 +221,8 @@ describe('getSalaryProfile', () => {
     const cap2627 = getCapForSeason('2026-27');
 
     // Max salary should be 35% of 2026-27 cap
-    const expectedMax = Math.round(cap2627.salaryCap * 0.35);
+    expect(cap2627).not.toBeNull();
+    const expectedMax = Math.round((cap2627?.salaryCap ?? 0) * 0.35);
     expect(profile.maxSalary.maxSalary).toBe(expectedMax);
   });
 });
@@ -389,11 +390,14 @@ describe('getBirdRightsProfile', () => {
     // Early Bird max should be max of 175% prior or 105% avg
     const priorSalary = ctx.player.priorSeasonSalary || 15000000;
     const expected175 = priorSalary * 1.75;
-    const expected105 = cap.averagePlayerSalary * 1.05;
+    expect(cap).not.toBeNull();
+    const expected105 = (cap?.averagePlayerSalary ?? 0) * 1.05;
     const expectedMax = Math.max(expected175, expected105);
 
     // Allow for rounding differences (tolerance of 10000)
-    expect(Math.abs(birdInfo.signingAbilities.maxFirstYearSalary - expectedMax)).toBeLessThan(10000);
+    expect(
+      Math.abs((birdInfo.signingAbilities.maxFirstYearSalary ?? 0) - expectedMax)
+    ).toBeLessThan(10000);
   });
 });
 
@@ -494,7 +498,8 @@ describe('Full Profile Flow Integration', () => {
     const cap2930 = getCapForSeason('2029-30');
 
     // Max should use 2029-30 cap
-    const expectedMax = Math.round(cap2930.salaryCap * 0.35);
+    expect(cap2930).not.toBeNull();
+    const expectedMax = Math.round((cap2930?.salaryCap ?? 0) * 0.35);
     expect(profile.maxSalary.maxSalary).toBe(expectedMax);
   });
 

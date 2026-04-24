@@ -36,6 +36,12 @@ import { getApronStatus as getTradeHelpersApronStatus } from '../../features/arc
 import { canUseFaException } from '../../features/architect/utils/faExceptionUtils';
 
 describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
+  type TestCapSettings = {
+    salaryCap: number;
+    firstApron?: number;
+    secondApron?: number;
+  };
+
   const CAP_SETTINGS = {
     salaryCap: 140_000_000,
     firstApron: 178_000_000,
@@ -244,7 +250,10 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
       expiresAt: null,
     };
 
-    const buildTeamCtx = (salary, capSettingsOverride = CAP_SETTINGS) => ({
+    const buildTeamCtx = (
+      salary: number,
+      capSettingsOverride: TestCapSettings = CAP_SETTINGS
+    ) => ({
       teamTotalSalary: salary,
       teamSeasonState: { faExceptionBuckets: [mockBucket] },
       context: { capSettings: capSettingsOverride },

@@ -55,13 +55,19 @@ const DERIVATION_PATTERNS = [
 // Patterns in comments or docstrings are OK - we only care about code
 const COMMENT_LINE_REGEX = /^\s*(\/\/|\/\*|\*)/;
 
+type DerivationMatch = {
+  line: number;
+  content: string;
+  match: string;
+};
+
 /**
  * Scans a file for derivation patterns and returns matches
  */
-function scanFileForDerivationPatterns(filePath) {
+function scanFileForDerivationPatterns(filePath: string): DerivationMatch[] {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.split('\n');
-  const matches = [];
+  const matches: DerivationMatch[] = [];
 
   lines.forEach((line, index) => {
     // Skip comment lines
@@ -87,7 +93,7 @@ function scanFileForDerivationPatterns(filePath) {
 /**
  * Normalizes path for cross-platform comparison
  */
-function normalizePath(p) {
+function normalizePath(p: string): string {
   return p.replace(/\\/g, '/');
 }
 

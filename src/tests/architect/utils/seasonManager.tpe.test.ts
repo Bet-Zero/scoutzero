@@ -136,12 +136,12 @@ describe('TPE Schema Hygiene', () => {
     const tpe = createTPE({ teamCtx, outgoing, incoming, tradeDate });
     
     expect(tpe).not.toBeNull();
-    expect(tpe.expiresOn).toBeDefined();
-    expect(tpe.expiryISO).toBeUndefined(); // Phase 2: Removed
+    expect(tpe?.expiresOn).toBeDefined();
+    expect(tpe?.expiryISO).toBeUndefined(); // Phase 2: Removed
     // expect(tpe.expiresOn).toBe(tpe.expiryISO); // Removed
     
     // Check it is 1 year later
     const expectedYear = 2026;
-    expect(new Date(tpe.expiresOn).getUTCFullYear()).toBe(expectedYear);
+    expect(new Date(tpe?.expiresOn ?? '').getUTCFullYear()).toBe(expectedYear);
   });
 });

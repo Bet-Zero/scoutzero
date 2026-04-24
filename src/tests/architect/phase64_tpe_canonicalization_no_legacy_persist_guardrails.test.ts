@@ -52,7 +52,7 @@ type TestTeamWithExceptions = {
 };
 
 // Helper to read source files
-function readSourceFile(relativePath) {
+function readSourceFile(relativePath: string): string {
   const fullPath = path.resolve(process.cwd(), relativePath);
   return fs.readFileSync(fullPath, 'utf-8');
 }
@@ -92,9 +92,10 @@ describe('Phase 64: normalizeTeamTpeSchema() unit tests', () => {
     expect('tradeExceptions' in result).toBe(false);
 
     // TPE should be in canonical location
+    const canonicalTpes = result.exceptions?.tpe ?? [];
     expect(result.exceptions).toBeDefined();
-    expect(result.exceptions.tpe).toHaveLength(1);
-    expect(result.exceptions.tpe[0].id).toBe('tpe_1');
+    expect(canonicalTpes).toHaveLength(1);
+    expect(canonicalTpes[0].id).toBe('tpe_1');
   });
 
   it('removes empty tradeExceptions array (legacy cleanup)', () => {
@@ -111,7 +112,7 @@ describe('Phase 64: normalizeTeamTpeSchema() unit tests', () => {
     expect('tradeExceptions' in result).toBe(false);
 
     // exceptions.tpe should exist and be empty
-    expect(result.exceptions.tpe).toEqual([]);
+    expect(result.exceptions?.tpe).toEqual([]);
   });
 
   it('preserves existing exceptions.tpe when no legacy data', () => {

@@ -1729,7 +1729,13 @@ Validation:
 
 ## Step 51 — Harden remaining Architect/trade test fixture clusters (wave 22)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the listed Architect/trade test fixture
+cluster; root typecheck remains green and the Architect strict probe dropped
+to `95` errors with the Step 51 target files clear. The scoped node validation
+passed for the command listed below; Vitest reported the runnable node targets
+as `8` files and `100` tests passed.
 
 **Goal:** Tighten the next remaining Architect/trade test clusters exposed by
 the Step 49 checkpoint after the runtime utility wave.
