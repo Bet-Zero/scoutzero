@@ -35,6 +35,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SRC_ROOT = path.resolve(__dirname, '../../features/architect');
 
+type ForbiddenReadViolation = {
+  file: string;
+  line: number;
+  content: string;
+  pattern: string;
+};
+
 // ==============================================================================
 // CONFIGURATION
 // ==============================================================================
@@ -43,7 +50,7 @@ const SRC_ROOT = path.resolve(__dirname, '../../features/architect');
  * Files that are ALLOWED to reference .tradeExceptions directly.
  * These are bridge/normalization modules that need to read legacy data.
  */
-const ALLOWLISTED_FILES = [
+const ALLOWLISTED_FILES: readonly string[] = [
   // Core normalization helper (the canonical accessor lives here)
   'utils/persistenceContracts/normalizeTeamTpe.ts',
   // Schema adapter for building trade input structure
@@ -61,12 +68,18 @@ const ALLOWLISTED_FILES = [
 /**
  * Directories to scan (relative to SRC_ROOT)
  */
-const SCAN_DIRECTORIES = ['hooks', 'tradeMachine', 'utils', 'GMDashboard', 'capSheet'];
+const SCAN_DIRECTORIES: readonly string[] = [
+  'hooks',
+  'tradeMachine',
+  'utils',
+  'GMDashboard',
+  'capSheet',
+];
 
 /**
  * Patterns that indicate direct .tradeExceptions reads
  */
-const FORBIDDEN_PATTERNS = [
+const FORBIDDEN_PATTERNS: readonly RegExp[] = [
   // Direct property access
   /\.tradeExceptions(?!\s*=)/g,
 ];
@@ -74,7 +87,7 @@ const FORBIDDEN_PATTERNS = [
 /**
  * Patterns to EXCLUDE (allowed contexts)
  */
-const ALLOWED_CONTEXTS = [
+const ALLOWED_CONTEXTS: readonly RegExp[] = [
   // Comments
   /\/\/.*\.tradeExceptions/,
   /\/\*[\s\S]*?\.tradeExceptions[\s\S]*?\*\//,
@@ -103,7 +116,7 @@ const ALLOWED_CONTEXTS = [
 /**
  * Recursively get all JS/JSX/TS/TSX files in a directory
  */
-function getAllSourceFiles(dir, files = []) {
+function getAllSourceFiles(dir: string, files: string[] = []): string[] {
   if (!fs.existsSync(dir)) return files;
 
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -121,7 +134,7 @@ function getAllSourceFiles(dir, files = []) {
 /**
  * Check if a file is in the allowlist
  */
-function isAllowlisted(filePath) {
+function isAllowlisted(filePath: string): boolean {
   const relativePath = path.relative(SRC_ROOT, filePath);
   return ALLOWLISTED_FILES.some(
     (allowed) =>
@@ -132,17 +145,17 @@ function isAllowlisted(filePath) {
 /**
  * Check if a match is in an allowed context (comment, string, etc.)
  */
-function isAllowedContext(line) {
+function isAllowedContext(line: string): boolean {
   return ALLOWED_CONTEXTS.some((pattern) => pattern.test(line));
 }
 
 /**
  * Scan a file for forbidden patterns
  */
-function scanFileForForbiddenReads(filePath) {
+function scanFileForForbiddenReads(filePath: string): ForbiddenReadViolation[] {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.split('\n');
-  const violations = [];
+  const violations: ForbiddenReadViolation[] = [];
 
   lines.forEach((line, lineIndex) => {
     // Skip if line is an allowed context
@@ -164,7 +177,7 @@ function scanFileForForbiddenReads(filePath) {
   return violations;
 }
 
-function readAuthoritativeImplementationContent(filePath) {
+function readAuthoritativeImplementationContent(filePath: string): string {
   const content = fs.readFileSync(filePath, 'utf-8');
   const stripped = content
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -195,7 +208,7 @@ function readAuthoritativeImplementationContent(filePath) {
 describe('Phase 65: Forbid Direct .tradeExceptions Reads in Production Code', () => {
   describe('Source-scan production directories', () => {
     // Collect all files to scan
-    const filesToScan = [];
+    const filesToScan: string[] = [];
     SCAN_DIRECTORIES.forEach((dir) => {
       const fullDir = path.join(SRC_ROOT, dir);
       filesToScan.push(...getAllSourceFiles(fullDir));
@@ -206,7 +219,7 @@ describe('Phase 65: Forbid Direct .tradeExceptions Reads in Production Code', ()
     });
 
     it('should not find forbidden .tradeExceptions reads in non-allowlisted files', () => {
-      const allViolations = [];
+      const allViolations: ForbiddenReadViolation[] = [];
 
       filesToScan.forEach((filePath) => {
         // Skip allowlisted files

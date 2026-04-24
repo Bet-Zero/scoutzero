@@ -4,6 +4,8 @@ import {
   type ArchitectMutationBirdRights,
   type ArchitectMutationContract,
   type ArchitectMutationPlayerRecord,
+  type ArchitectMutationResult,
+  type ArchitectMutationTeamUpdate,
   type ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
 
@@ -132,6 +134,58 @@ function makeTeam(
   };
 }
 
+type SuccessfulMutationResult = ArchitectMutationResult & {
+  teamUpdates: ArchitectMutationTeamUpdate[];
+  playerUpdates: NonNullable<ArchitectMutationResult['playerUpdates']>;
+};
+type SignAndTradeArgs = Extract<
+  Parameters<typeof computeWorldMutation>[0],
+  { mutationType: 'signAndTrade' }
+>;
+type SignAndTradeCurrentStatePlayer = NonNullable<
+  SignAndTradeArgs['currentState']['player']
+>;
+
+const requireSuccessfulMutationResult = (
+  result: ArchitectMutationResult
+): SuccessfulMutationResult => {
+  expect(result.success).toBe(true);
+  expect(result.teamUpdates).toBeDefined();
+  expect(result.playerUpdates).toBeDefined();
+  if (!result.teamUpdates || !result.playerUpdates) {
+    throw new Error('Expected mutation result to include update arrays');
+  }
+  return result as SuccessfulMutationResult;
+};
+
+const requireTeamUpdate = (
+  result: SuccessfulMutationResult,
+  teamCode: string
+) => {
+  const update = result.teamUpdates.find(
+    (candidate) => candidate.teamCode === teamCode
+  );
+  expect(update?.team).toBeDefined();
+  if (!update?.team) {
+    throw new Error(`Expected team update for ${teamCode}`);
+  }
+  return update.team;
+};
+
+const requirePlayerUpdate = (
+  result: SuccessfulMutationResult,
+  playerId: string
+) => {
+  const update = result.playerUpdates.find(
+    (candidate) => candidate.playerId === playerId
+  );
+  expect(update?.player).toBeDefined();
+  if (!update?.player) {
+    throw new Error(`Expected player update for ${playerId}`);
+  }
+  return update.player;
+};
+
 describe('mutationPipeline trade/SAT handoff closure', () => {
   it('commits a two-team trade from the narrowed player payload while preserving authoritative player state', () => {
     const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'TMA', {
@@ -154,7 +208,7 @@ describe('mutationPipeline trade/SAT handoff closure', () => {
     const teamA = makeTeam('TMA', [playerA]);
     const teamB = makeTeam('TMB', [playerB]);
 
-    const result = computeWorldMutation({
+    const result = requireSuccessfulMutationResult(computeWorldMutation({
       mutationType: 'executeTrade',
       payload: {
         teams: [
@@ -185,26 +239,20 @@ describe('mutationPipeline trade/SAT handoff closure', () => {
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_trade_contract',
-    });
+    }));
 
-    expect(result.success).toBe(true);
+    const movedPlayer = requirePlayerUpdate(result, 'player_a');
+    const destinationTeam = requireTeamUpdate(result, 'TMB');
 
-    const movedPlayer = result.playerUpdates.find(
-      (update) => update.playerId === 'player_a'
-    )?.player;
-    const destinationTeam = result.teamUpdates.find(
-      (update) => update.teamCode === 'TMB'
-    )?.team;
-
-    expect(destinationTeam?.roster).toContain('player_a');
-    expect(movedPlayer?.teamCode).toBe('TMB');
-    expect(movedPlayer?.contract?.salariesByYear?.[0]?.salary).toBe(10_000_000);
-    expect(movedPlayer?.bio?.displayName).toBe('Player A Bio');
-    expect(movedPlayer?.representation).toEqual({
+    expect(destinationTeam.roster).toContain('player_a');
+    expect(movedPlayer.teamCode).toBe('TMB');
+    expect(movedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(10_000_000);
+    expect(movedPlayer.bio?.displayName).toBe('Player A Bio');
+    expect(movedPlayer.representation).toEqual({
       agent: 'Agent A',
       agency: 'Agency A',
     });
-    expect(movedPlayer?.source).toMatchObject({
+    expect(movedPlayer.source).toMatchObject({
       provider: 'legacy-import',
     });
   });
@@ -226,7 +274,7 @@ describe('mutationPipeline trade/SAT handoff closure', () => {
       makePlayer('c_keep', 'C Keep', 4_000_000, 'TMC'),
     ]);
 
-    const result = computeWorldMutation({
+    const result = requireSuccessfulMutationResult(computeWorldMutation({
       mutationType: 'executeTrade',
       payload: {
         teams: [
@@ -263,24 +311,21 @@ describe('mutationPipeline trade/SAT handoff closure', () => {
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_trade_routing',
-    });
+    }));
 
-    expect(result.success).toBe(true);
-    expect(
-      result.teamUpdates.find((update) => update.teamCode === 'TMA')?.team.roster
-    ).toEqual(expect.arrayContaining(['a_keep', 'c_out']));
-    expect(
-      result.teamUpdates.find((update) => update.teamCode === 'TMB')?.team.roster
-    ).toEqual(expect.arrayContaining(['b_keep', 'a_out']));
-    expect(
-      result.teamUpdates.find((update) => update.teamCode === 'TMC')?.team.roster
-    ).toEqual(expect.arrayContaining(['c_keep', 'b_out']));
+    expect(requireTeamUpdate(result, 'TMA').roster).toEqual(
+      expect.arrayContaining(['a_keep', 'c_out'])
+    );
+    expect(requireTeamUpdate(result, 'TMB').roster).toEqual(
+      expect.arrayContaining(['b_keep', 'a_out'])
+    );
+    expect(requireTeamUpdate(result, 'TMC').roster).toEqual(
+      expect.arrayContaining(['c_keep', 'b_out'])
+    );
 
-    const routedPlayer = result.playerUpdates.find(
-      (update) => update.playerId === 'c_out'
-    )?.player;
-    expect(routedPlayer?.teamCode).toBe('TMA');
-    expect(routedPlayer?.contract?.salariesByYear?.[0]?.salary).toBe(7_000_000);
+    const routedPlayer = requirePlayerUpdate(result, 'c_out');
+    expect(routedPlayer.teamCode).toBe('TMA');
+    expect(routedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(7_000_000);
   });
 
   it('completes sign-and-trade through the closed SAT handoff contract', () => {
@@ -294,6 +339,20 @@ describe('mutationPipeline trade/SAT handoff closure', () => {
       },
       birdRights: makeBirdRights(),
     });
+    const satCurrentStatePlayer = {
+      player_id: 'sat_player',
+      id: 'sat_player',
+      playerId: 'sat_player',
+      name: 'SAT Player',
+      displayName: 'SAT Player',
+      playerName: 'SAT Player',
+      teamCode: null,
+      teamName: null,
+      contract: {
+        contractType: 'Free Agent',
+      },
+      birdRights: makeBirdRights(),
+    } satisfies SignAndTradeCurrentStatePlayer;
     const sourceTeam = makeTeam('LAL', [], {
       capHolds: [
         {
@@ -310,7 +369,7 @@ describe('mutationPipeline trade/SAT handoff closure', () => {
       makePlayer('counter', 'Counter Player', 14_000_000, 'BOS'),
     ]);
 
-    const result = computeWorldMutation({
+    const result = requireSuccessfulMutationResult(computeWorldMutation({
       mutationType: 'signAndTrade',
       payload: {
         teamCode: 'LAL',
@@ -349,31 +408,25 @@ describe('mutationPipeline trade/SAT handoff closure', () => {
       },
       currentState: {
         team: sourceTeam,
-        player: satPlayer,
+        player: satCurrentStatePlayer,
         destinationTeam,
       },
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_sat_contract',
-    });
+    }));
 
-    expect(result.success).toBe(true);
-
-    const sourceUpdate = result.teamUpdates.find(
-      (update) => update.teamCode === 'LAL'
-    )?.team;
-    const destinationUpdate = result.teamUpdates.find(
-      (update) => update.teamCode === 'BOS'
-    )?.team;
-    const satInDestination = destinationUpdate?.players?.find(
+    const sourceUpdate = requireTeamUpdate(result, 'LAL');
+    const destinationUpdate = requireTeamUpdate(result, 'BOS');
+    const satInDestination = destinationUpdate.players?.find(
       (player) => String(player.player_id || player.id) === 'sat_player'
     );
 
-    expect(sourceUpdate?.roster).not.toContain('sat_player');
-    expect(sourceUpdate?.capHolds?.some((hold) => hold.playerId === 'sat_player')).toBe(
+    expect(sourceUpdate.roster).not.toContain('sat_player');
+    expect(sourceUpdate.capHolds?.some((hold) => hold.playerId === 'sat_player')).toBe(
       false
     );
-    expect(destinationUpdate?.roster).toContain('sat_player');
+    expect(destinationUpdate.roster).toContain('sat_player');
     expect(satInDestination?.contract?.contractType).toBe('Sign & Trade');
     expect(satInDestination?.contract?.salariesByYear?.[0]?.salary).toBe(
       15_000_000

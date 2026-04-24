@@ -1827,6 +1827,52 @@ measurable progress, but the remaining mission-area debt is too broad for final
 review or closeout. The next move is another bounded execution wave, not a
 completion claim.
 
+## Step 41 Sign-And-Trade / Mutation Guardrail Wave Delta
+
+Reviewed: 2026-04-24, after Step 41 hardened the bounded Architect
+sign-and-trade / mutation guardrail cluster.
+
+| Measurement                                                                 | Step 40 checkpoint | Current | Delta |
+| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
+| `npm run typecheck`                                                         |                  0 |       0 |     0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                511 |     439 |   -72 |
+| `npm run test:node -- --reporter=dot src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts src/tests/architect/mutationPipeline.tradeSatHandoffContract.test.ts src/tests/architect/mutationPipeline.tradeSatHandoffClosure.test.ts src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.ts` | not yet run | `55 / 55` | bounded pack green |
+
+### Step 41 Surface Result
+
+- `src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts`,
+  `src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts`,
+  `src/tests/architect/mutationPipeline.tradeSatHandoffContract.test.ts`,
+  `src/tests/architect/mutationPipeline.tradeSatHandoffClosure.test.ts`,
+  `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts`, and
+  `src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.ts`
+  no longer appear in the live Architect strict output.
+- The wave stayed bounded to required mutation-result readers, canonical
+  current-state player fixtures, typed source-scan helpers, and typed
+  sanitization probes rather than widening into the remaining roster-rule,
+  offseason, or DARE backlog.
+
+### Remaining Concentration After Step 41
+
+The next backlog is now led by the Step 42 roster / rule validation cluster and
+the known offseason / DARE follow-on tier:
+
+1. `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts` (`14`)
+2. `tests/trade/rosterWindow_softEnforcement.test.ts` (`13`)
+3. `src/tests/architect/batchB_cbaRules.test.ts` (`13`)
+4. `tests/architect/playerRulesProfile.test.ts` (`12`)
+5. `src/tests/architect/phase86_oste_offseason_transition_engine.test.ts` (`12`)
+6. `tests/trade/rosterLegality_validateTrade.test.ts` (`11`)
+7. `tests/trade/cashLedger_season_tracking.test.ts` (`10`)
+8. `src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts` (`10`)
+9. `src/tests/architect/dare/dareResolver.test.ts` (`10`)
+10. `tests/trade/jan15_offseason_timing.test.ts` (`9`)
+
+Plain-language read: Step 41 removed the planned sign-and-trade / mutation
+guardrail truth cluster and reduced Architect strict to `439`. The mission
+still remains open because the roster/rule validation cluster and the
+offseason/DARE follow-on tier remain substantial.
+
 ## Evidence Commands
 
 - `rg --files`

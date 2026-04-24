@@ -1239,7 +1239,12 @@ That section must:
 
 ## Step 41 — Harden the next Architect sign-and-trade / mutation guardrail truth cluster (wave 15)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the planned sign-and-trade / mutation
+guardrail cluster, kept root typecheck green, passed the bounded node pack at
+55 / 55, and reduced Architect strict from 511 to 439 with no remaining hits in
+the Step 41 target files.
 
 **Goal:** Tighten the next high-value Architect sign-and-trade, mutation,
 canonical TPE, and persistence-guardrail cluster exposed by the Step 40

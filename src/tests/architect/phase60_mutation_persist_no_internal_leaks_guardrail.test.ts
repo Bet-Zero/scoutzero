@@ -32,6 +32,11 @@ import {
 const sanitizeForTest = <T>(value: T): T =>
   sanitizeTransientFieldsForPersistence(value) as T;
 
+type UnknownRecord = Record<string, unknown>;
+
+const isUnknownRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 // ==============================================================================
 // HELPER: Deep-scan for forbidden keys
 // ==============================================================================
@@ -44,8 +49,12 @@ const sanitizeForTest = <T>(value: T): T =>
  * @param {string} [path=''] - Current path (for error reporting)
  * @returns {string[]} Array of paths with forbidden keys (e.g., ['teams.BOS._validatedTradeContext'])
  */
-function findForbiddenKeyPaths(obj, forbiddenKeys, path = '') {
-  const violations = [];
+function findForbiddenKeyPaths(
+  obj: unknown,
+  forbiddenKeys: readonly string[],
+  path = ''
+): string[] {
+  const violations: string[] = [];
 
   if (obj === null || obj === undefined) {
     return violations;
@@ -60,7 +69,7 @@ function findForbiddenKeyPaths(obj, forbiddenKeys, path = '') {
     return violations;
   }
 
-  if (typeof obj === 'object') {
+  if (isUnknownRecord(obj)) {
     for (const [key, value] of Object.entries(obj)) {
       const currentPath = path ? `${path}.${key}` : key;
 
@@ -80,7 +89,7 @@ function findForbiddenKeyPaths(obj, forbiddenKeys, path = '') {
 }
 
 // Helper to read source file content
-function readSourceFile(relativePath) {
+function readSourceFile(relativePath: string): string {
   const absolutePath = resolve(process.cwd(), relativePath);
   return readFileSync(absolutePath, 'utf-8');
 }
@@ -159,12 +168,16 @@ describe('Phase 60: sanitizeTransientFieldsForPersistence unit tests', () => {
   });
 
   it('TEST 5: handles arrays with nested forbidden keys', () => {
-    const input = [
+    const input: Array<{
+      teamCode: string;
+      _isPostTradeSnapshot?: boolean;
+      _signingValidation?: { valid: boolean };
+    }> = [
       { teamCode: 'BOS', _isPostTradeSnapshot: true },
       { teamCode: 'LAL', _signingValidation: { valid: true } },
     ];
 
-    const result = sanitizeTransientFieldsForPersistence(input);
+    const result = sanitizeForTest(input);
 
     expect(result).toHaveLength(2);
     expect(result[0].teamCode).toBe('BOS');

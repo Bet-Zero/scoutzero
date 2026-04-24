@@ -57,6 +57,11 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
 import {
   applyWorldMutation,
   computeWorldMutation,
+  type ArchitectMutationContract,
+  type ArchitectMutationPlayerRecord,
+  type ArchitectMutationResult,
+  type ArchitectMutationTeamRecord,
+  type ArchitectMutationTeamUpdate,
 } from '@/features/architect/utils/mutationPipeline';
 
 const CURRENT_YEAR = 2026;
@@ -64,7 +69,7 @@ const SEASON_ID = '2025-26';
 const SEASON = '2025-26';
 const FIXED_TIMESTAMP = Date.UTC(2026, 6, 1, 12, 0, 0);
 
-function makeSatContract(firstYearSalary: number) {
+function makeSatContract(firstYearSalary: number): ArchitectMutationContract {
   return {
     contractType: 'Sign & Trade',
     contractYears: 3,
@@ -80,8 +85,8 @@ function makeSatContract(firstYearSalary: number) {
 function makePlayer(
   id: string,
   salary: number,
-  extra: Record<string, any> = {}
-) {
+  extra: Partial<ArchitectMutationPlayerRecord> = {}
+): ArchitectMutationPlayerRecord {
   return {
     id,
     player_id: id,
@@ -94,7 +99,11 @@ function makePlayer(
   };
 }
 
-function makeTeam(teamCode: string, players: Array<Record<string, any>>, capHolds: any[] = []) {
+function makeTeam(
+  teamCode: string,
+  players: ArchitectMutationPlayerRecord[],
+  capHolds: NonNullable<ArchitectMutationTeamRecord['capHolds']> = []
+): ArchitectMutationTeamRecord {
   const totalSalary = players.reduce(
     (sum, player) =>
       sum +
@@ -115,6 +124,53 @@ function makeTeam(teamCode: string, players: Array<Record<string, any>>, capHold
     totals: { totalSalary, capHit: totalSalary },
   };
 }
+
+type SuccessfulMutationResult = ArchitectMutationResult & {
+  teamUpdates: ArchitectMutationTeamUpdate[];
+};
+
+type SignAndTradeRuleResult = {
+  passed?: boolean;
+  hardCapped?: boolean;
+};
+
+type ValidatedTeamResult = {
+  teamId?: string | null;
+  hardCapped?: boolean;
+  rules?: {
+    signAndTrade?: SignAndTradeRuleResult;
+  };
+};
+
+const requireSuccessfulMutationResult = (
+  result: ArchitectMutationResult
+): SuccessfulMutationResult => {
+  expect(result.success).toBe(true);
+  expect(result.teamUpdates).toBeDefined();
+  if (!result.teamUpdates) {
+    throw new Error('Expected mutation result to include team updates');
+  }
+  return result as SuccessfulMutationResult;
+};
+
+const requireTeamUpdate = (
+  result: SuccessfulMutationResult,
+  teamCode: string
+) => {
+  const update = result.teamUpdates.find(
+    (candidate) => candidate.teamCode === teamCode
+  );
+  expect(update?.team).toBeDefined();
+  if (!update?.team) {
+    throw new Error(`Expected team update for ${teamCode}`);
+  }
+  return update.team;
+};
+
+const getValidatedTeamResults = (
+  result: ArchitectMutationResult
+): ValidatedTeamResult[] =>
+  result._validatedTradeContext?._rawValidation?.teamResults ?? [];
 
 describe('executeTrade sign-and-trade apply semantics', () => {
   beforeEach(() => {
@@ -202,7 +258,7 @@ describe('executeTrade sign-and-trade apply semantics', () => {
     ]);
     const destinationTeam = makeTeam('BOS', [counterPlayer]);
 
-    const result = computeWorldMutation({
+    const result = requireSuccessfulMutationResult(computeWorldMutation({
       mutationType: 'executeTrade',
       payload: {
         teams: [
@@ -228,48 +284,40 @@ describe('executeTrade sign-and-trade apply semantics', () => {
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_test',
-    });
+    }));
 
-    expect(result.success).toBe(true);
-
-    const validatedReceiver =
-      (result._validatedTradeContext as any)?._rawValidation?.teamResults?.find(
-        (entry: any) => entry.teamId === 'BOS'
-      );
-    const sourceUpdate = result.teamUpdates.find(
-      (entry: { teamCode?: string }) => entry.teamCode === 'LAL'
+    const validatedReceiver = getValidatedTeamResults(result).find(
+      (entry) => entry.teamId === 'BOS'
     );
-    const destinationUpdate = result.teamUpdates.find(
-      (entry: { teamCode?: string }) => entry.teamCode === 'BOS'
-    );
+    const sourceUpdate = requireTeamUpdate(result, 'LAL');
+    const destinationUpdate = requireTeamUpdate(result, 'BOS');
 
-    expect(sourceUpdate).toBeDefined();
-    expect(destinationUpdate).toBeDefined();
     expect(result._validatedTradeContext?._isValidatedTradeContext).toBe(true);
     expect(validatedReceiver?.rules?.signAndTrade?.passed).toBe(true);
     expect(validatedReceiver?.rules?.signAndTrade?.hardCapped).toBe(true);
     expect(validatedReceiver?.hardCapped).toBe(true);
 
-    const playerInDestination = destinationUpdate?.team.players?.find(
-      (player: any) => (player.player_id || player.id) === 'sat_player'
+    const playerInDestination = destinationUpdate.players?.find(
+      (player) => (player.player_id || player.id) === 'sat_player'
     );
     expect(playerInDestination).toBeDefined();
+    if (!playerInDestination) {
+      throw new Error('Expected destination team to include SAT player');
+    }
     expect(playerInDestination.contract?.contractType).toBe('Sign & Trade');
     expect(playerInDestination.contract?.salariesByYear?.[0]?.salary).toBe(
       15_000_000
     );
 
     expect(
-      (sourceUpdate?.team.capHolds || []).some(
-        (hold: any) => hold.playerId === 'sat_player'
-      )
+      (sourceUpdate.capHolds || []).some((hold) => hold.playerId === 'sat_player')
     ).toBe(false);
 
-    expect(destinationUpdate?.team.hardCapTriggeredBy).toBe('signAndTrade');
-    expect(destinationUpdate?.team.hardCapReason).toBe(
+    expect(destinationUpdate.hardCapTriggeredBy).toBe('signAndTrade');
+    expect(destinationUpdate.hardCapReason).toBe(
       'Triggered by receiving sign-and-trade player'
     );
-    expect(destinationUpdate?.team.totals?.isHardCapped).toBe(true);
-    expect(destinationUpdate?.team.totals?.hardCapLevel).toBe('firstApron');
+    expect(destinationUpdate.totals?.isHardCapped).toBe(true);
+    expect(destinationUpdate.totals?.hardCapLevel).toBe('firstApron');
   });
 });

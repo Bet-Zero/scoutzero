@@ -32,9 +32,34 @@ import {
 // ==============================================================================
 // HELPER: Read source file
 // ==============================================================================
-function readSourceFile(relativePath) {
+function readSourceFile(relativePath: string): string {
   const absolutePath = resolve(process.cwd(), relativePath);
   return readFileSync(absolutePath, 'utf-8');
+}
+
+function requireMatchIndex(
+  match: RegExpMatchArray | null,
+  label: string
+): number {
+  expect(match).not.toBeNull();
+  if (!match || typeof match.index !== 'number') {
+    throw new Error(`Expected source match for ${label}`);
+  }
+  return match.index;
+}
+
+function getNextFunctionEndIndex(
+  source: string,
+  startIndex: number,
+  headerLength: number
+): number {
+  const remainingSource = source.slice(startIndex + headerLength);
+  const nextFuncMatch = remainingSource.match(
+    /\n(function|async function|export function|export async function)\s+\w+\s*\(/
+  );
+  return typeof nextFuncMatch?.index === 'number'
+    ? startIndex + headerLength + nextFuncMatch.index
+    : source.length;
 }
 
 // ==============================================================================
@@ -107,13 +132,11 @@ describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
     expect(funcStartIndex).toBeGreaterThan(-1);
 
     // Find the next function definition (approximate end of computeSignAndTradeResult)
-    const remainingSource = source.slice(funcStartIndex + funcHeader.length);
-    const nextFuncMatch = remainingSource.match(
-      /\n(function|async function|export function|export async function)\s+\w+\s*\(/
+    const funcEndIndex = getNextFunctionEndIndex(
+      source,
+      funcStartIndex,
+      funcHeader.length
     );
-    const funcEndIndex = nextFuncMatch
-      ? funcStartIndex + funcHeader.length + nextFuncMatch.index
-      : source.length;
 
     const funcBody = source.slice(funcStartIndex, funcEndIndex);
 
@@ -121,15 +144,19 @@ describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
     const signingMatch = funcBody.match(
       /validateSignAndTradeSigningPhase\s*\(/
     );
-    expect(signingMatch).not.toBeNull();
-    const signingIndex = signingMatch.index;
+    const signingIndex = requireMatchIndex(
+      signingMatch,
+      'validateSignAndTradeSigningPhase'
+    );
 
     // Find first occurrence of the SAT trade handoff helper
     const preparationMatch = funcBody.match(
       /buildSignAndTradeTradeHandoff\s*\(/
     );
-    expect(preparationMatch).not.toBeNull();
-    const preparationIndex = preparationMatch.index;
+    const preparationIndex = requireMatchIndex(
+      preparationMatch,
+      'buildSignAndTradeTradeHandoff'
+    );
 
     // Signing validation MUST come before SAT trade handoff
     expect(signingIndex).toBeLessThan(preparationIndex);
@@ -151,13 +178,11 @@ describe('Phase 63: Short-circuit on signing validation failure', () => {
     expect(funcStartIndex).toBeGreaterThan(-1);
 
     // Extract function body (approximate)
-    const remainingSource = source.slice(funcStartIndex + funcHeader.length);
-    const nextFuncMatch = remainingSource.match(
-      /\n(function|async function|export function|export async function)\s+\w+\s*\(/
+    const funcEndIndex = getNextFunctionEndIndex(
+      source,
+      funcStartIndex,
+      funcHeader.length
     );
-    const funcEndIndex = nextFuncMatch
-      ? funcStartIndex + funcHeader.length + nextFuncMatch.index
-      : source.length;
 
     const funcBody = source.slice(funcStartIndex, funcEndIndex);
 
@@ -191,9 +216,10 @@ describe('Phase 63: Phase 56 / TM-3B architecture pattern (prepare → compute/p
 
     // Find the computeWorldMutation function first
     const funcMatch = source.match(/function\s+computeWorldMutation\s*\(/);
-    expect(funcMatch).not.toBeNull();
-
-    const funcStartIndex = funcMatch.index;
+    const funcStartIndex = requireMatchIndex(
+      funcMatch,
+      'computeWorldMutation'
+    );
 
     // Get the function body (from start to next top-level function)
     const remainingFromFunc = source.slice(funcStartIndex);
@@ -214,18 +240,18 @@ describe('Phase 63: Phase 56 / TM-3B architecture pattern (prepare → compute/p
 
     // Find computeTradeResult function
     const funcMatch = source.match(/function\s+computeTradeResult\s*\(/);
-    expect(funcMatch).not.toBeNull();
-
-    const funcStartIndex = funcMatch.index;
+    const funcStartIndex = requireMatchIndex(funcMatch, 'computeTradeResult');
+    const funcHeaderLength = funcMatch?.[0].length;
+    if (typeof funcHeaderLength !== 'number') {
+      throw new Error('Expected computeTradeResult function header');
+    }
 
     // Extract function body (up to next function definition)
-    const remainingSource = source.slice(funcStartIndex + funcMatch[0].length);
-    const nextFuncMatch = remainingSource.match(
-      /\n(function|async function|export function|export async function)\s+\w+\s*\(/
+    const funcEndIndex = getNextFunctionEndIndex(
+      source,
+      funcStartIndex,
+      funcHeaderLength
     );
-    const funcEndIndex = nextFuncMatch
-      ? funcStartIndex + funcMatch[0].length + nextFuncMatch.index
-      : source.length;
 
     const funcBody = source.slice(funcStartIndex, funcEndIndex);
 
