@@ -12,7 +12,7 @@ describe('computeTeamCapTotals - Incomplete Roster Charge (G0-1)', () => {
    * @param {number} count - Number of standard roster players
    * @param {number} twoWayCount - Number of two-way players (defaults to 0)
    */
-  function createTeamWithRoster(count, twoWayCount = 0) {
+  function createTeamWithRoster(count: number, twoWayCount = 0) {
     const players = [];
     
     // Add standard roster players

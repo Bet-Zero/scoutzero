@@ -436,13 +436,14 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
     if (!savePromise) {
       throw new Error('Expected save promise to be created for optimistic mutation.');
     }
+    const pendingSavePromise = savePromise;
 
     await act(async () => {
       resolvePersistFailure?.({
         success: false,
         error: 'Simulated world save failure',
       });
-      saveResult = await savePromise;
+      saveResult = await pendingSavePromise;
     });
 
     expect(saveResult).toBe(false);

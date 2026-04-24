@@ -259,7 +259,8 @@ describe('E107 mutationPipeline boundary proof', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.metadata.type).toBe('trade');
+    expect(result.metadata).toBeDefined();
+    expect(result.metadata?.type).toBe('trade');
     expect(result.teamUpdates).toHaveLength(2);
     expect(result._validatedTradeContext?._isValidatedTradeContext).toBe(true);
     expect(harness.buildTradeApplyPreparationMock).toHaveBeenCalledTimes(1);

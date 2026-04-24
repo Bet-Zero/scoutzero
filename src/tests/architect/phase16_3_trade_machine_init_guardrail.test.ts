@@ -19,7 +19,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 // Helper to read source file content
-function readSourceFile(relativePath) {
+function readSourceFile(relativePath: string) {
   const absolutePath = resolve(process.cwd(), relativePath);
   return readFileSync(absolutePath, 'utf-8');
 }

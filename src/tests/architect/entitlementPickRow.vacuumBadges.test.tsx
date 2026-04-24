@@ -14,7 +14,10 @@ vi.mock('@/features/architect/utils/entitlements/formatEntitlement', () => ({
 vi.mock(
   '@/features/architect/utils/entitlements/entitlementPickRowProjection',
   () => ({
-    projectEntitlementToPickRow: (entitlement) => ({
+    projectEntitlementToPickRow: (entitlement: {
+      seasonYear: number;
+      round: number;
+    }) => ({
       year: entitlement.seasonYear,
       round: entitlement.round,
     }),

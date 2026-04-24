@@ -15,10 +15,7 @@ import {
   buildWorldMutationEventPayload,
   computeWorldMutation,
 } from '@/features/architect/utils/mutationPipeline';
-import type {
-  ArchitectMutationPlayerRecord,
-  ArchitectMutationTeamRecord,
-} from '@/features/architect/utils/mutationPipeline';
+import type { ArchitectMutationTeamRecord } from '@/features/architect/utils/mutationPipeline';
 
 const TEST_TIMESTAMP = Date.parse('2026-03-24T12:00:00.000Z');
 
@@ -154,7 +151,7 @@ describe('mutationPipeline catchall narrowing — ArchitectMutationContract expl
 describe('mutationPipeline catchall narrowing — totals behavioral proof', () => {
   it('computeTeamCapTotals writes numeric cap fields into totals on the renounceRights path', () => {
     const team = makeMinimalTeam('LAL');
-    const player: ArchitectMutationPlayerRecord = {
+    const player = {
       player_id: 'player_cap_1',
       displayName: 'Cap Player',
     };

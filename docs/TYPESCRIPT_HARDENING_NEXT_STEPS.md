@@ -2079,7 +2079,7 @@ passed (`423` node files / `4,430` tests, `115` UI files / `863` tests).
 
 ## Step 58 — Harden residual one-error strict test cluster (wave 27)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-24
 
 **Goal:** Clear the remaining one-error Architect/trade strict test files after
 Step 57.
@@ -2118,6 +2118,13 @@ Validation:
 **Done when:** The residual one-error cluster is cleared or reduced to a new
 explicit bounded set, and the baseline records the resulting strict-probe delta
 plus what remains. Commit message: `test: harden residual strict fixtures`.
+
+**Completion notes:** Cleared the residual one-error Architect/trade strict
+cluster, including the five additional one-error files found in the Step 57
+checkpoint. Architect strict moved from `19` errors to `0`; root typecheck
+passed; `npm run test:diff -- --reporter=dot` auto-selected the full node+UI
+suite and passed (`423` node files / `4,430` tests, `115` UI files / `863`
+tests).
 
 ---
 

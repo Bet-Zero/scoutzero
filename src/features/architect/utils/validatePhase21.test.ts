@@ -88,7 +88,7 @@ describe('Phase 21: Timing Warnings', () => {
         offerSheet: { status: 'PENDING_MATCH', homeTeamCode: 'HOU', createdAt },
         actingTeamCode: 'HOU',
         action: 'match',
-        asOfDate: null,
+        asOfDate: undefined,
       });
       expect(result.warnings.some(w => w.rule === 'offer_sheet_window_expired')).toBe(false);
     });

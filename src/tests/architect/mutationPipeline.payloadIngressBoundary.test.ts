@@ -331,7 +331,9 @@ describe('mutationPipeline payload ingress boundary', () => {
           active: true,
         },
       ],
-      draftPicks: [{ id: 'pick_keep', year: 2028, round: 1, owner: 'LAL' }],
+      draftPicks: [
+        { id: 'pick_keep', year: 2028, round: 1, pick: null, owner: 'LAL' },
+      ],
       entitlementIds: ['entitlement_keep'],
       cashLedger: { totalOut: 1_000_000 },
     });

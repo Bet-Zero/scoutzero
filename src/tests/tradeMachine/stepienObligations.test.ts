@@ -20,7 +20,9 @@ import { describe, it, expect } from 'vitest';
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien';
 
 describe('validateStepien - Phase 13 SSOT (Legacy Obligations Removed)', () => {
-  const makeTeam = (params) => ({
+  type StepienTeamInput = Parameters<typeof validateStepien>[0];
+
+  const makeTeam = (params: Record<string, unknown>): StepienTeamInput => ({
     teamId: 'TEST',
     teamCode: 'TEST',
     team: {
@@ -34,7 +36,7 @@ describe('validateStepien - Phase 13 SSOT (Legacy Obligations Removed)', () => {
     validationEntitlements: [], // Phase 13: baseline comes from here
     entitlementsOut: [],
     ...params,
-  });
+  } as unknown as StepienTeamInput);
 
   describe('Phase 13: draftPicksObligations is IGNORED', () => {
     it('does NOT read draftPicksObligations for baseline - single outgoing passes', () => {

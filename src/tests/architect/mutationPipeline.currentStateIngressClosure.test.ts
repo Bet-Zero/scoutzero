@@ -629,7 +629,9 @@ describe('mutationPipeline current-state ingress closure', () => {
           type: 'tpe-created',
         },
       ],
-      draftPicks: [{ id: 'pick_keep', year: 2028, round: 1, owner: 'LAL' }],
+      draftPicks: [
+        { id: 'pick_keep', year: 2028, round: 1, pick: null, owner: 'LAL' },
+      ],
       entitlementIds: ['entitlement_keep'],
     });
 

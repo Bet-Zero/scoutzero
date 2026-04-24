@@ -177,7 +177,7 @@ describe('Phase 16.1: SeasonManager Entitlements SSOT View', () => {
 
       // Conveyance object should exist with conditions
       expect(pick.conveyance).toBeDefined();
-      expect(pick.conveyance.conditions).toBeTruthy();
+      expect(pick.conveyance?.conditions).toBeTruthy();
     });
   });
 

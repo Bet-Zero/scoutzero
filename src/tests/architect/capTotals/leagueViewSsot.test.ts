@@ -19,7 +19,7 @@ describe('LeagueView SSOT Compliance (Phase 29)', () => {
   const YEAR = 2026; // 2025-26 season
 
   // Helper: Create a roster with specified count of standard players
-  function createRoster(count, salaryPerPlayer = 10000000) {
+  function createRoster(count: number, salaryPerPlayer = 10000000) {
     return Array.from({ length: count }, (_, i) => ({
       player_id: `player-${i}`,
       displayName: `Player ${i}`,

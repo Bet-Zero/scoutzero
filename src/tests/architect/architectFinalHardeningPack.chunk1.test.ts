@@ -142,12 +142,12 @@ const makeOffseasonTeam = (
 ): OffseasonTransitionParams['teamCapSheet'] => ({
   teamCode: 'TST',
   teamName: 'Test Team',
-  players,
-  roster: players.map((player) => player.player_id),
   capHolds: [],
   exceptions: {},
   totals: {},
   ...overrides,
+  players: players as OffseasonTransitionParams['teamCapSheet']['players'],
+  roster: players.map((player) => player.player_id),
 });
 
 describe('Architect final hardening pack chunk 1', () => {

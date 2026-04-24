@@ -256,11 +256,11 @@ describe('useTradeMachine validator trust contract', () => {
       requested: true,
       appliedToLegality: false,
     });
-    const signAndTradeRule = (
-      result.current.snapshotValidationDetails?.teamResults?.[0]?.rules as
-        | Record<string, { violations?: unknown[] } | undefined>
-        | undefined
-    )?.signAndTrade;
+    const firstTeamResult = result.current.snapshotValidationDetails
+      ?.teamResults?.[0] as
+      | { rules?: Record<string, { violations?: unknown[] } | undefined> }
+      | undefined;
+    const signAndTradeRule = firstTeamResult?.rules?.signAndTrade;
     expect(
       issueTexts(signAndTradeRule?.violations as any[] | undefined)
     ).toEqual(

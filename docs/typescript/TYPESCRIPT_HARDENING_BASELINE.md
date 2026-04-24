@@ -2637,6 +2637,27 @@ Not ready for final review. Step 57 eliminated the listed two-error cluster,
 but `19` Architect strict errors remain across residual one-error files. Step
 58 remains executable and should continue immediately.
 
+## Step 58 Residual Strict Fixture Checkpoint
+
+Measured 2026-04-24 after Step 58.
+
+| Probe                                                           | Step 57 checkpoint | Step 58 checkpoint | Notes |
+| --------------------------------------------------------------- | -----------------: | -----------------: | ----- |
+| `npm run typecheck`                                             |                  0 |                  0 | Root compatibility remains green. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |                 19 |                  0 | Architect strict is green after clearing the residual one-error fixture cluster. |
+| `npm run test:diff -- --reporter=dot`                           |               pass |               pass | Auto-selected full node+UI validation. Node: `423` files / `4,430` tests passed with `24` skipped. UI: `115` files / `863` tests passed. |
+
+### Current Architect Strict Concentration After Step 58
+
+No remaining Architect strict errors were reported by
+`npm run typecheck -- --project tsconfig.architect-strict.json`.
+
+### Readiness Verdict After Step 58
+
+Architect strict is now green and root typecheck remains green. Step 59 remains
+required as the mission-level post-residual checkpoint before final-review
+readiness can be recorded.
+
 ## Evidence Commands
 
 - `rg --files`

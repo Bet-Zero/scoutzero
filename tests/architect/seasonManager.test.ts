@@ -69,10 +69,13 @@ describe('Season Manager', () => {
   }
 
   function requireTeamSnapshot(teamCode: string): MockTeam {
-    return requireDefined(
+    const snapshot = requireDefined(
       getMockTeamSnapshot(worldId, teamCode),
       `team snapshot ${teamCode}`
     );
+    expect(snapshot.season, `team snapshot ${teamCode} season`).toBeDefined();
+    expect(snapshot.players, `team snapshot ${teamCode} players`).toBeDefined();
+    return snapshot as MockTeam;
   }
 
   function requirePersistedTeamSnapshotView(

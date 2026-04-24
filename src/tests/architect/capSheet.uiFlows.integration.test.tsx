@@ -629,7 +629,9 @@ function FixtureInjectorHarness() {
   return (
     <div>
       <CapSheetSection
-        teamCapSheet={teamCapSheet}
+        teamCapSheet={
+          teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
+        }
         currentYear={CURRENT_YEAR}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}

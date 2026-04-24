@@ -101,7 +101,12 @@ describe('capHoldTransitionHelpers', () => {
         valid: false,
         reason: 'Cap hold is null or undefined',
       });
-      expect(isCapHoldAmountValid({ amount: '5', playerId: 'p1' })).toEqual({
+      expect(
+        isCapHoldAmountValid({
+          amount: '5',
+          playerId: 'p1',
+        } as unknown as Parameters<typeof isCapHoldAmountValid>[0])
+      ).toEqual({
         valid: false,
         reason: 'Cap hold amount is not a number',
       });

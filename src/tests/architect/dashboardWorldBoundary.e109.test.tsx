@@ -730,7 +730,7 @@ function WorldSelectorHarness({
           ? {
               kind: 'world',
               worldId: currentWorldId,
-              onReloadWorldData: vi.fn(async () => undefined),
+              onReloadWorldData: vi.fn(async () => null),
             }
           : {
               kind: 'sandbox',
