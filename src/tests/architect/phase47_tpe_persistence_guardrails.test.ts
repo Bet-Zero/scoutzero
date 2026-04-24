@@ -16,12 +16,14 @@
 
 import { describe, test, expect, vi } from 'vitest';
 
+type TestRecord = Record<string, unknown>;
+
 // We'll test the computeTradeResult function directly by importing the pipeline
 // Since computeTradeResult is not exported, we need to test via the public interface
 // For unit testing, we'll mock the minimal dependencies
 
 // Helper to create a mock player
-const makePlayer = (name, salary, options = {}) => ({
+const makePlayer = (name: string, salary: number, options: TestRecord = {}) => ({
   name,
   player_id: `player_${name.toLowerCase().replace(/\s+/g, '_')}`,
   salary,
@@ -32,7 +34,11 @@ const makePlayer = (name, salary, options = {}) => ({
 });
 
 // Helper to create a mock team
-const makeTeam = (teamCode, totalSalary, options = {}) => ({
+const makeTeam = (
+  teamCode: string,
+  totalSalary: number,
+  options: TestRecord = {}
+) => ({
   id: teamCode.toLowerCase(),
   teamCode,
   teamName: `Team ${teamCode}`,
@@ -46,7 +52,7 @@ const makeTeam = (teamCode, totalSalary, options = {}) => ({
 });
 
 // Helper to create a mock TPE
-const makeTPE = (id, amount, options = {}) => ({
+const makeTPE = (id: string, amount: number, options: TestRecord = {}) => ({
   id,
   amount,
   totalAmount: amount,

@@ -22,13 +22,20 @@ import {
   seedBaseData,
   createMockTeam,
   createMockPlayer,
-} from '../helpers/architectTestHelpers.ts';
+} from '../helpers/architectTestHelpers';
+
+type OverrideIssue = NonNullable<Parameters<typeof getOverridePolicy>[0]>[number];
+type SigningTeam = Parameters<typeof validateSigning>[0]['team'];
+
+function asSigningTeam(team: SigningTeam): SigningTeam {
+  return team;
+}
 
 // ==============================================================================
 // HELPER: Mock environment variable
 // ==============================================================================
 
-const mockEnv = (value) => {
+const mockEnv = (value: string) => {
   vi.stubEnv('VITE_ENABLE_CBA_OVERRIDE', value);
 };
 
@@ -138,7 +145,7 @@ describe('isOverrideEnabled', () => {
   });
 
   it('returns false when VITE_ENABLE_CBA_OVERRIDE is not set', () => {
-    vi.stubEnv('VITE_ENABLE_CBA_OVERRIDE', undefined);
+    vi.unstubAllEnvs();
     expect(isOverrideEnabled()).toBe(false);
   });
 
@@ -185,13 +192,13 @@ describe('Validation Always Blocks Invalid States', () => {
       },
     }));
 
-    const team = {
+    const team = asSigningTeam({
       teamCode: 'LAL',
       teamName: 'Los Angeles Lakers',
       players,
       roster: players.map((p) => p.player_id),
-      totals: { rosterCount: 15 },
-    };
+      totals: {},
+    });
 
     const newPlayer = { player_id: 'new_player', name: 'New Player' };
     const contract = {
@@ -228,7 +235,7 @@ describe('Validation Always Blocks Invalid States', () => {
       },
     }));
 
-    const team = {
+    const team = asSigningTeam({
       teamCode: 'LAL',
       teamName: 'Los Angeles Lakers',
       players,
@@ -236,11 +243,10 @@ describe('Validation Always Blocks Invalid States', () => {
       totals: {
         totalSalary: 193_000_000,
         capHit: 193_000_000,
-        rosterCount: 10,
         isHardCapped: true,
         hardCapLevel: 'firstApron',
       },
-    };
+    });
 
     const newPlayer = { player_id: 'new_player', name: 'New Player' };
     const contract = {
@@ -270,13 +276,13 @@ describe('Validation Always Blocks Invalid States', () => {
       { player_id: 'tw3', name: 'Two-Way 3', contract: { contractType: 'Two-Way' } },
     ];
 
-    const team = {
+    const team = asSigningTeam({
       teamCode: 'LAL',
       teamName: 'Los Angeles Lakers',
       players,
       roster: players.map((p) => p.player_id),
-      totals: { rosterCount: 3 },
-    };
+      totals: {},
+    });
 
     const newPlayer = { player_id: 'new_tw', name: 'New Two-Way' };
     const contract = {
@@ -312,7 +318,7 @@ describe('Soft Warnings Can Be Overridden in Dev Mode', () => {
   });
 
   it('roster minimum warning is classified as soft (overridable)', () => {
-    const violations = [];
+    const violations: OverrideIssue[] = [];
     const warnings = [
       { rule: 'roster_minimum', message: 'Roster below 14 players', severity: 'warning' },
     ];

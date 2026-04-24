@@ -63,6 +63,40 @@ type CreateTeamWithContractsOptions = {
   seasonKey?: string;
 };
 
+type TestContractPlayer = {
+  player_id: string;
+  displayName: string;
+  contract: {
+    salariesByYear: Array<{
+      season: string;
+      salary: number;
+      guaranteed: boolean;
+    }>;
+    endSeason: string;
+    yearsRemaining: number;
+  };
+};
+
+type TestDeadCapEntry = {
+  playerId: string;
+  playerName: string;
+  amountByYear: Array<{ season: string; amount: number }>;
+};
+
+type TestCapHoldEntry = {
+  playerId: string;
+  playerName: string;
+  type: string;
+  amount: number;
+  season: string;
+  active: boolean;
+  isSigned: boolean;
+};
+
+type TestTotals = ReturnType<typeof computeTeamCapTotals> & {
+  _meta?: Record<string, unknown>;
+};
+
 /**
  * Creates a minimal team with contracts for totals testing.
  */
@@ -76,8 +110,8 @@ function createTeamWithContracts(
     seasonKey = FROM_SEASON,
   } = options;
 
-  const players = [];
-  const roster = [];
+  const players: TestContractPlayer[] = [];
+  const roster: string[] = [];
 
   for (let i = 0; i < playerCount; i++) {
     const playerId = `player_${i + 1}`;
@@ -110,8 +144,8 @@ function createTeamWithContracts(
     season: seasonKey,
     players,
     roster,
-    capHolds: [],
-    deadCap: [],
+    capHolds: [] as TestCapHoldEntry[],
+    deadCap: [] as TestDeadCapEntry[],
     exceptions: {
       biAnnual: {
         enabled: true,
@@ -155,7 +189,7 @@ function createTeamWithContracts(
       // Old totals (should be overwritten)
       playersTotal: 40_000_000,
       yearKey: TEST_YEAR_2026,
-    },
+    } as TestTotals,
   };
 }
 
@@ -163,14 +197,20 @@ function createTeamWithContracts(
  * Simulates processTeamSeasonTransitionWithOptions totals recompute behavior.
  * This mirrors the Phase 77 code path without the async/Firestore dependencies.
  */
-function simulateSeasonTransitionTotalsRecompute(team, toSeason) {
+function simulateSeasonTransitionTotalsRecompute(
+  team: ReturnType<typeof createTeamWithContracts>,
+  toSeason: string
+) {
   const toYear = toEndYear(toSeason);
+  if (toYear === null) {
+    throw new Error(`Invalid season code: ${toSeason}`);
+  }
 
   // Update team season (as done in processTeamSeasonTransitionWithOptions)
   const updatedTeam = { ...team, season: toSeason };
 
   // Phase 77: Recompute totals using SSOT
-  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toYear);
+  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toYear) as TestTotals;
 
   return updatedTeam;
 }
@@ -477,7 +517,7 @@ describe('Phase 77: Edge Cases', () => {
 
   it('TEST 11: Handles team with no existing totals', () => {
     const team = createTeamWithContracts({ playerCount: 5 });
-    delete team.totals; // Remove existing totals
+    delete (team as { totals?: unknown }).totals; // Remove existing totals
 
     // Simulate season transition
     const updatedTeam = simulateSeasonTransitionTotalsRecompute(

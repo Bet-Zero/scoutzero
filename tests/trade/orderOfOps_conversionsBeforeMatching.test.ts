@@ -5,12 +5,49 @@ import capProjections from '@/features/architect/utils/capProjections';
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
-const makePlayer = (name, salary) => ({
+type TradeTestPlayer = {
+  name: string;
+  salary: number;
+  matchIncoming: number;
+  matchOutgoing: number;
+  isTwoWay: boolean;
+  absorptionMode: 'MATCH';
+  signAndTrade: boolean;
+  contractYears: number;
+  firstYearGuaranteed: boolean;
+  isBYC?: boolean;
+  previousSalary?: number;
+  isPoisonPill?: boolean;
+  currentSalary?: number;
+  extensionYears?: Array<{ salary: number }>;
+  contract: { salariesByYear: Array<{ season: string; salary: number }> };
+};
+
+type TradeTestTeam = {
+  teamName: string;
+  totalSalary: number;
+  players: TradeTestPlayer[];
+  picks: never[];
+};
+
+const makePlayer = (name: string, salary: number): TradeTestPlayer => ({
   name,
+  salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
   contract: { salariesByYear: [{ season, salary }] },
 });
 
-const makeTeam = (name, totalSalary = 100_000_000, rosterSize = 14) => ({
+const makeTeam = (
+  name: string,
+  totalSalary = 100_000_000,
+  rosterSize = 14
+): TradeTestTeam => ({
   teamName: name,
   totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
@@ -23,9 +60,16 @@ describe('order of operations: conversions before matching', () => {
   it('BYC conversion runs before matching', () => {
     const bycPlayer = {
       name: 'BYC Guy',
+      salary: 10_000_000,
       isBYC: true,
       previousSalary: 9_000_000,
+      matchIncoming: 10_000_000,
       matchOutgoing: 5_000_000,
+      isTwoWay: false,
+      absorptionMode: 'MATCH' as const,
+      signAndTrade: false,
+      contractYears: 1,
+      firstYearGuaranteed: true,
       contract: { salariesByYear: [{ season, salary: 10_000_000 }] },
     };
 
@@ -50,6 +94,7 @@ describe('order of operations: conversions before matching', () => {
   it('poison pill average runs before matching', () => {
     const ppPlayer = {
       name: 'PP Player',
+      salary: 10_000_000,
       isPoisonPill: true,
       currentSalary: 4_000_000,
       extensionYears: [
@@ -58,6 +103,12 @@ describe('order of operations: conversions before matching', () => {
         { salary: 10_000_000 },
       ],
       matchIncoming: 4_000_000,
+      matchOutgoing: 10_000_000,
+      isTwoWay: false,
+      absorptionMode: 'MATCH' as const,
+      signAndTrade: false,
+      contractYears: 1,
+      firstYearGuaranteed: true,
       contract: { salariesByYear: [{ season, salary: 10_000_000 }] },
     };
 

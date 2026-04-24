@@ -2190,6 +2190,49 @@ Readiness remains negative: the runtime-owner wave was successful, but `223`
 Architect strict errors are still meaningful mission-area debt. Step 48 remains
 the next executable wave.
 
+## Step 48 Trade / Architect Test Truth Wave
+
+Measured 2026-04-24 after Step 48.
+
+| Probe | Result | Notes |
+| ----- | -----: | ----- |
+| `npm run typecheck` | pass | Root compatibility remains green after the test truth wave. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 167 | Expected strict failure while the master plan remains active; Step 48 target files are clear. |
+| `npm run test:node -- --reporter=dot tests/architect/overrideBypass.test.ts tests/trade/orderOfOps_conversionsBeforeMatching.test.ts src/tests/architect/dare/protectionLadderFactory.test.ts src/tests/architect/phase47_tpe_persistence_guardrails.test.ts src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts src/tests/architect/phase86_league_invariants.test.ts tests/architect/EditContractModal.rules.test.tsx tests/trade/byc_outgoing_max.test.ts tests/trade/salaryMatching.test.ts` | pass | Vitest reported `8` files and `118` tests passed; the UI-modal TSX target is accepted by the command but not listed separately by the node runner output. |
+
+Step 48 reduced the Architect strict backlog from `223` to `167` errors
+(`-56`). The cleared test-cluster targets were:
+
+- `tests/architect/overrideBypass.test.ts`
+- `tests/trade/orderOfOps_conversionsBeforeMatching.test.ts`
+- `src/tests/architect/dare/protectionLadderFactory.test.ts`
+- `src/tests/architect/phase47_tpe_persistence_guardrails.test.ts`
+- `src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts`
+- `src/tests/architect/phase86_league_invariants.test.ts`
+- `tests/architect/EditContractModal.rules.test.tsx`
+- `tests/trade/byc_outgoing_max.test.ts`
+- `tests/trade/salaryMatching.test.ts`
+
+The remaining top hotspots are:
+
+1. `src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts` (`5`)
+2. `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts` (`5`)
+3. `src/tests/architect/entitlementInvariants.test.ts` (`5`)
+4. `src/features/architect/utils/tradeMachine/rules/miscRules.ts` (`5`)
+5. `src/features/architect/utils/capTotals/computeTeamCapTotals.ts` (`5`)
+6. `tests/trade/faExceptions_as_trade_buckets.test.ts` (`4`)
+7. `tests/architect/salaryEngine.test.ts` (`4`)
+8. `tests/architect/ExceptionTracker.tpe.test.tsx` (`4`)
+9. `src/tests/architect/utils/seasonManager.tpe.test.ts` (`4`)
+10. `src/tests/architect/useArchitectActions.freeAgency.test.tsx` (`4`)
+11. `src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts` (`4`)
+12. `src/tests/architect/phase42_apron_derivation_consolidation.test.ts` (`4`)
+
+Readiness remains negative. The Step 48 wave removed the planned test cluster,
+but `167` Architect strict errors still include runtime utilities and several
+test clusters. Step 49 must reassess the mission and extend the plan if this
+remaining backlog is still substantial.
+
 ## Evidence Commands
 
 - `rg --files`

@@ -1582,7 +1582,11 @@ Validation:
 
 ## Step 48 — Harden the next remaining trade / Architect test truth cluster (wave 20)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the remaining trade / Architect test truth
+cluster; Architect strict moved from `223` to `167` errors and all Step 48
+target files are clear from the strict probe.
 
 **Goal:** Tighten the next remaining trade and Architect test clusters exposed
 by the Step 46 checkpoint after the runtime-owner wave.

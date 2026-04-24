@@ -16,6 +16,13 @@ import {
   isFinalProtectionYear,
 } from '@/features/architect/utils/entitlements/dare/protectionLadderFactory';
 
+function expectProtectionLadder(
+  ladder: ProtectionLadder | null
+): ProtectionLadder {
+  expect(ladder).not.toBeNull();
+  return ladder as ProtectionLadder;
+}
+
 describe('Protection Ladder Factory (B4)', () => {
   describe('buildProtectionLadder', () => {
     it('transforms protections array to ladder', () => {
@@ -34,7 +41,9 @@ describe('Protection Ladder Factory (B4)', () => {
       };
       const entitlement = { seasonYear: 2026 };
 
-      const ladder = buildProtectionLadder(pickRule, entitlement);
+      const ladder = expectProtectionLadder(
+        buildProtectionLadder(pickRule, entitlement)
+      );
 
       expect(ladder).toHaveLength(3);
       expect(ladder[0]).toMatchObject({
@@ -68,7 +77,9 @@ describe('Protection Ladder Factory (B4)', () => {
       };
       const entitlement = { seasonYear: 2026 };
 
-      const ladder = buildProtectionLadder(pickRule, entitlement);
+      const ladder = expectProtectionLadder(
+        buildProtectionLadder(pickRule, entitlement)
+      );
 
       expect(ladder).toHaveLength(1);
       expect(ladder[0]).toMatchObject({
@@ -97,7 +108,9 @@ describe('Protection Ladder Factory (B4)', () => {
       };
       const entitlement = { seasonYear: 2026 };
 
-      const ladder = buildProtectionLadder(pickRule, entitlement);
+      const ladder = expectProtectionLadder(
+        buildProtectionLadder(pickRule, entitlement)
+      );
 
       expect(ladder).toHaveLength(1);
       expect(ladder[0].ifTriggered).toBe('convert');

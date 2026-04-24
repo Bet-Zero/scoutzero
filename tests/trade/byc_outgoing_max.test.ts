@@ -4,7 +4,24 @@ import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/u
 const yearKey = 2025;
 const season = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
 
-function makePlayer({ previousSalary, newSalary }) {
+type BycTestPlayer = {
+  name: string;
+  isBYC: boolean;
+  previousSalary: number;
+  matchOutgoing?: number;
+  matchIncoming?: number;
+  contract: {
+    salariesByYear: Array<{ season: string; salary: number }>;
+  };
+};
+
+function makePlayer({
+  previousSalary,
+  newSalary,
+}: {
+  previousSalary: number;
+  newSalary: number;
+}): BycTestPlayer {
   return {
     name: 'BYC Guy',
     isBYC: true,

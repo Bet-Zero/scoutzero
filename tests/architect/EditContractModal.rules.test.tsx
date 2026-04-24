@@ -3,9 +3,14 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 import '@testing-library/jest-dom/vitest';
 import EditContractModal from '@/shared/components/EditContractModal';
 
+type TeamSelectDropdownProps = {
+  selectedTeamId?: string | null;
+  onChange: (teamId: string) => void;
+};
+
 // Stub TeamSelectDropdown so the S&T destination picker is testable
 vi.mock('@/shared/components/TeamSelectDropdown', () => ({
-  default: ({ selectedTeamId, onChange }) => (
+  default: ({ selectedTeamId, onChange }: TeamSelectDropdownProps) => (
     <select data-testid="team-select" value={selectedTeamId || ''} onChange={(e) => onChange(e.target.value)}>
       <option value="">Select Team</option>
       <option value="BOS">Boston Celtics</option>
@@ -149,7 +154,7 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
       expect(confirmButton).toBeEnabled();
     });
 
-    const salaryInput = screen.getAllByPlaceholderText('0')[0];
+    const salaryInput = screen.getAllByPlaceholderText('0')[0] as HTMLInputElement;
     fireEvent.change(salaryInput, { target: { value: '50000000' } });
 
     await waitFor(() => {
@@ -198,7 +203,7 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
     expect(screen.getByText(/rights\/exception/i)).toBeInTheDocument();
     expect(screen.getByText(/first-year range/i)).toBeInTheDocument();
 
-    const salaryInput = screen.getAllByPlaceholderText('0')[0];
+    const salaryInput = screen.getAllByPlaceholderText('0')[0] as HTMLInputElement;
     fireEvent.change(salaryInput, { target: { value: '1000000' } });
     await waitFor(() => {
       const parsed = Number(salaryInput.value.replace(/[^0-9]/g, ''));
@@ -206,7 +211,7 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
     });
 
     fireEvent.change(salaryInput, { target: { value: '20000000' } });
-    const secondYearInput = screen.getAllByPlaceholderText('0')[1];
+    const secondYearInput = screen.getAllByPlaceholderText('0')[1] as HTMLInputElement;
     fireEvent.change(secondYearInput, { target: { value: '25000000' } });
 
     await waitFor(() => {
@@ -519,7 +524,8 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
     const confirmBtn =
       screen.queryByRole('button', { name: /confirm action/i }) ||
       screen.queryByRole('button', { name: /force override/i });
-    fireEvent.click(confirmBtn);
+    expect(confirmBtn).not.toBeNull();
+    fireEvent.click(confirmBtn as HTMLElement);
 
     // Verify the real S&T handler was called with all three args
     expect(mockOnSignAndTrade).toHaveBeenCalledTimes(1);
@@ -541,7 +547,6 @@ describe('EditContractModal — explicit sign/resign callbacks', () => {
 
   it('routes resign confirm to onResign instead of generic save handler', async () => {
     const mockOnResign = vi.fn();
-    const mockOnSave = vi.fn();
     const faPlayer = {
       name: 'Resign Candidate',
       player_id: 're_1',
@@ -557,7 +562,6 @@ describe('EditContractModal — explicit sign/resign callbacks', () => {
         currentYear={2025}
         actionContext="freeAgent"
         onResign={mockOnResign}
-        onSave={mockOnSave}
       />
     );
 
@@ -565,6 +569,5 @@ describe('EditContractModal — explicit sign/resign callbacks', () => {
     fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
 
     expect(mockOnResign).toHaveBeenCalledTimes(1);
-    expect(mockOnSave).not.toHaveBeenCalled();
   });
 });

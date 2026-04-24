@@ -1,6 +1,38 @@
 import { describe, it, expect } from 'vitest';
 import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
+import type { NormalizedPlayer } from '@/features/architect/utils/tradeMachine/constants/types';
+
+type SalaryMatchingTeamInput = NonNullable<
+  Parameters<typeof validateSalaryMatching>[0]
+>;
+type SalaryMatchingResultWithEffective = ReturnType<
+  typeof validateSalaryMatching
+> & {
+  effectiveAllowableIncoming?: number;
+};
+
+function makeNormalizedPlayer(
+  id: string,
+  salary: number
+): NormalizedPlayer {
+  return {
+    id,
+    player_id: id,
+    name: id.toUpperCase(),
+    salary,
+    matchIncoming: salary,
+    matchOutgoing: salary,
+    isTwoWay: false,
+    absorptionMode: 'MATCH',
+    signAndTrade: false,
+    contractYears: 1,
+    firstYearGuaranteed: true,
+    contract: {
+      salariesByYear: [{ season: '2025-26', salary }],
+    },
+  };
+}
 
 describe('salary matching validation', () => {
   const capSettings = {
@@ -9,8 +41,11 @@ describe('salary matching validation', () => {
     secondApron: 188_000_000,
   };
 
-  const makeTeam = (salaryOut, salaryIn, extra = {}) => ({
-    teamName: 'Test Team',
+  const makeTeam = (
+    salaryOut: number,
+    salaryIn: number,
+    extra: Partial<SalaryMatchingTeamInput> = {}
+  ): SalaryMatchingTeamInput => ({
     salaryOut,
     salaryIn,
     ...extra,
@@ -54,7 +89,12 @@ describe('salary matching validation', () => {
 
   it('handles null/undefined team data', () => {
     expect(validateSalaryMatching(null).passed).toBe(false);
-    expect(validateSalaryMatching(undefined).passed).toBe(false);
+    expect(
+      validateSalaryMatching(
+        undefined as unknown as Parameters<typeof validateSalaryMatching>[0]
+      )
+        .passed
+    ).toBe(false);
     expect(validateSalaryMatching({}).passed).toBe(false);
   });
 
@@ -65,7 +105,7 @@ describe('salary matching validation', () => {
         hardCapLevel: 'firstApron',
         context: { capSettings },
       })
-    );
+    ) as SalaryMatchingResultWithEffective;
 
     expect(result.allowableIncoming).toBe(17_500_000);
     expect(result.hardCapIncomingCeiling).toBe(11_000_000);
@@ -100,7 +140,7 @@ describe('salary matching validation', () => {
         hardCapLevel: 'secondApron',
         context: { capSettings },
       })
-    );
+    ) as SalaryMatchingResultWithEffective;
 
     expect(result.details.hardCapStatus?.hardCapType).toBe('SECOND_APRON');
     expect(result.details.hardCapCeiling?.apronLabel).toBe('2nd Apron');
@@ -115,7 +155,7 @@ describe('salary matching validation', () => {
         hardCapLevel: 'firstApron',
         context: { capSettings, worldId: 'world_dev_1' },
       })
-    );
+    ) as SalaryMatchingResultWithEffective;
 
     expect(result.allowableIncoming).toBe(17_500_000);
     expect(result.hardCapIncomingCeiling).toBe(11_000_000);
@@ -130,7 +170,7 @@ describe('salary matching validation', () => {
         hardCapped: true, // Legacy boolean with no explicit typed level
         context: { capSettings },
       })
-    );
+    ) as SalaryMatchingResultWithEffective;
 
     expect(result.details.hardCapStatus?.hardCapType).toBe('UNKNOWN');
     expect(result.details.hardCapCeiling?.apronLabel).toContain('fail-closed');
@@ -146,7 +186,7 @@ describe('salary matching validation', () => {
         hardCapped: true,
         context: { capSettings },
       })
-    );
+    ) as SalaryMatchingResultWithEffective;
 
     expect(result.details.hardCapStatus?.hardCapType).toBe('UNKNOWN');
     expect(result.effectiveAllowableIncoming).toBe(11_000_000);
@@ -163,25 +203,11 @@ describe('salary matching validation', () => {
             teamName: 'A',
             totalSalary: 177_000_000,
             players: [
-              {
-                id: 'a1',
-                player_id: 'a1',
-                name: 'A1',
-                contract: {
-                  salariesByYear: [{ season: '2025-26', salary: 10_000_000 }],
-                },
-              },
+              makeNormalizedPlayer('a1', 10_000_000),
             ],
           },
           sends: [
-            {
-              id: 'a1',
-              player_id: 'a1',
-              name: 'A1',
-              contract: {
-                salariesByYear: [{ season: '2025-26', salary: 10_000_000 }],
-              },
-            },
+            makeNormalizedPlayer('a1', 10_000_000),
           ],
           hardCapped: true,
           entitlementsOut: [],
@@ -193,25 +219,11 @@ describe('salary matching validation', () => {
             teamName: 'B',
             totalSalary: 120_000_000,
             players: [
-              {
-                id: 'b1',
-                player_id: 'b1',
-                name: 'B1',
-                contract: {
-                  salariesByYear: [{ season: '2025-26', salary: 12_000_000 }],
-                },
-              },
+              makeNormalizedPlayer('b1', 12_000_000),
             ],
           },
           sends: [
-            {
-              id: 'b1',
-              player_id: 'b1',
-              name: 'B1',
-              contract: {
-                salariesByYear: [{ season: '2025-26', salary: 12_000_000 }],
-              },
-            },
+            makeNormalizedPlayer('b1', 12_000_000),
           ],
           entitlementsOut: [],
         },
@@ -229,6 +241,12 @@ describe('salary matching validation', () => {
     const teamA = result.teamResults.find((team) => team.teamId === 'A');
     expect(result.legal).toBe(false);
     expect(teamA?.rules?.hardCap?.passed).toBe(false);
-    expect(teamA?.rules?.salaryMatching?.effectiveAllowableIncoming).toBe(11_000_000);
+    expect(
+      (
+        teamA?.rules?.salaryMatching as
+          | { effectiveAllowableIncoming?: number }
+          | undefined
+      )?.effectiveAllowableIncoming
+    ).toBe(11_000_000);
   });
 });

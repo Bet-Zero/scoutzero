@@ -27,7 +27,15 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
 import { getLeague } from '@/features/architect/utils/teamLoader';
 
 type LoadedLeague = Awaited<ReturnType<typeof getLeague>>;
+type DuplicatePlayersResult = ReturnType<typeof validateNoDuplicatePlayers>;
 const mockedGetLeague = vi.mocked(getLeague);
+
+function expectDuplicatePlayers(
+  result: DuplicatePlayersResult
+): NonNullable<DuplicatePlayersResult['duplicates']> {
+  expect(result.duplicates).toBeDefined();
+  return result.duplicates ?? [];
+}
 
 describe('League Invariants - Phase 86', () => {
   beforeEach(() => {
@@ -72,9 +80,10 @@ describe('League Invariants - Phase 86', () => {
 
       const result = validateNoDuplicatePlayers(teams);
       expect(result.valid).toBe(false);
-      expect(result.duplicates).toHaveLength(1);
-      expect(result.duplicates[0].playerId).toBe('lebron_james');
-      expect(result.duplicates[0].teams).toEqual(['LAL', 'BOS']);
+      const duplicates = expectDuplicatePlayers(result);
+      expect(duplicates).toHaveLength(1);
+      expect(duplicates[0].playerId).toBe('lebron_james');
+      expect(duplicates[0].teams).toEqual(['LAL', 'BOS']);
       expect(result.error).toContain('LeBron James');
       expect(result.error).toContain('LAL, BOS');
     });
@@ -93,7 +102,8 @@ describe('League Invariants - Phase 86', () => {
 
       const result = validateNoDuplicatePlayers(teams);
       expect(result.valid).toBe(false);
-      expect(result.duplicates[0].playerId).toBe('player_1');
+      const duplicates = expectDuplicatePlayers(result);
+      expect(duplicates[0].playerId).toBe('player_1');
     });
 
     it('handles bio.playerId format', () => {
@@ -361,9 +371,10 @@ describe('League Invariants - Phase 86', () => {
       );
 
       expect(result.valid).toBe(false);
-      expect(result.duplicates[0].playerId).toBe('player_a');
-      expect(result.duplicates[0].teams).toContain('BOS');
-      expect(result.duplicates[0].teams).toContain('CHI');
+      const duplicates = expectDuplicatePlayers(result);
+      expect(duplicates[0].playerId).toBe('player_a');
+      expect(duplicates[0].teams).toContain('BOS');
+      expect(duplicates[0].teams).toContain('CHI');
     });
 
     it('validates signing does not create duplicate', async () => {
