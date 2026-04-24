@@ -2084,6 +2084,72 @@ until the Step 46 checkpoint proves whether the remaining runtime-owner and
 smaller test clusters are final-review-safe or still require more numbered
 waves.
 
+## Step 46 Post-Wave Checkpoint
+
+Reviewed: 2026-04-24, after Steps 44-45 completed the reactivity / CBA
+guardrail and offseason / DARE / preflight truth waves.
+
+### Probe Delta
+
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Current | Reading                                                                                                                                                                                                |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | ------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                        |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                                          |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                511 |                367 |     268 | Architect/test strict posture improved materially (`-2,299` vs the original baseline, `-2,364` vs Step 14, `-1,960` vs Step 22, `-243` vs Step 40, `-99` vs Step 43), but remains the mission blocker. |
+
+### Current Architect Strict Concentration
+
+The current Architect strict backlog is concentrated in:
+
+1. Runtime owner boundary files:
+   `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx` (`8`),
+   `src/features/architect/utils/capLegalityValidation.ts` (`8`),
+   `src/features/architect/utils/leagueInvariants.ts` (`8`),
+   `src/features/architect/utils/tradeContext/tradeContext.ts` (`8`),
+   `src/features/architect/utils/seasonManager.ts` (`7`), and
+   `src/features/architect/utils/offseason/resolveOffseasonTransition.ts` (`6`).
+2. Remaining trade / Architect test clusters:
+   `tests/architect/overrideBypass.test.ts` (`7`),
+   `tests/trade/orderOfOps_conversionsBeforeMatching.test.ts` (`7`),
+   `src/tests/architect/dare/protectionLadderFactory.test.ts` (`6`),
+   `src/tests/architect/phase47_tpe_persistence_guardrails.test.ts` (`6`),
+   `src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts` (`6`),
+   `src/tests/architect/phase86_league_invariants.test.ts` (`6`),
+   `tests/architect/EditContractModal.rules.test.tsx` (`6`),
+   `tests/trade/byc_outgoing_max.test.ts` (`6`), and
+   `tests/trade/salaryMatching.test.ts` (`6`).
+
+The top current hotspots are:
+
+1. `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx` (`8`)
+2. `src/features/architect/utils/capLegalityValidation.ts` (`8`)
+3. `src/features/architect/utils/leagueInvariants.ts` (`8`)
+4. `src/features/architect/utils/tradeContext/tradeContext.ts` (`8`)
+5. `src/features/architect/utils/seasonManager.ts` (`7`)
+6. `tests/architect/overrideBypass.test.ts` (`7`)
+7. `tests/trade/orderOfOps_conversionsBeforeMatching.test.ts` (`7`)
+8. `src/features/architect/utils/offseason/resolveOffseasonTransition.ts` (`6`)
+9. `src/tests/architect/dare/protectionLadderFactory.test.ts` (`6`)
+10. `src/tests/architect/phase47_tpe_persistence_guardrails.test.ts` (`6`)
+11. `src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts` (`6`)
+12. `src/tests/architect/phase86_league_invariants.test.ts` (`6`)
+
+### Readiness Verdict
+
+Not ready for final review. Root typecheck and shared-boundaries strict are
+green, but Architect strict still carries `268` errors across runtime-owner and
+test surfaces. The remaining work still needs at least two more bounded waves
+and another checkpoint:
+
+- Step 47: Architect runtime-owner boundary cluster
+- Step 48: remaining trade / Architect test truth cluster
+- Step 49: another master checkpoint after those waves
+
+Plain-language read: Step 46 confirms the hardening program is still making
+measurable progress, but the remaining Architect/runtime/test backlog is too
+large for a truthful completion claim. The next move is another bounded
+execution wave, not final review.
+
 ## Evidence Commands
 
 - `rg --files`

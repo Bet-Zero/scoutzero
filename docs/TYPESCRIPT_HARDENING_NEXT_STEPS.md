@@ -77,7 +77,9 @@
 - Step 43: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
 - Steps 44–45: harden the next Architect reactivity/CBA guardrail cluster, then the next offseason/DARE/preflight truth cluster exposed by the Step 43 checkpoint
 - Step 46: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
-- Steps 47–48: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
+- Steps 47–48: harden the next runtime-owner boundary cluster, then the next remaining trade/Architect test truth cluster exposed by the Step 46 checkpoint
+- Step 49: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
+- Steps 50–51: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
 
 **Universal constraints (apply to every step):**
 
@@ -1485,7 +1487,12 @@ Validation:
 
 ## Step 46 — Post-wave checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Re-ran the mission-level probes after Steps 44-45,
+confirmed root and shared-boundaries strict remain green, confirmed Architect
+strict still carries 268 errors, and extended the plan with the next two
+bounded waves plus another checkpoint.
 
 **Goal:** Re-run the mission-level measurements after Steps 44-45 and decide
 whether the plan is honestly close to final review or still needs more numbered
@@ -1521,7 +1528,141 @@ That section must:
 
 ---
 
-## Step 47 — Final review (only when the mission-level gates are truly satisfied)
+## Step 47 — Harden the next Architect runtime-owner boundary cluster (wave 19)
+
+**Status:** TODO
+
+**Goal:** Tighten the next highest-value Architect runtime-owner boundary
+cluster exposed by the Step 46 checkpoint without widening into unrelated UI or
+test-only cleanup.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx`
+- `src/features/architect/utils/capLegalityValidation.ts`
+- `src/features/architect/utils/leagueInvariants.ts`
+- `src/features/architect/utils/tradeContext/tradeContext.ts`
+- `src/features/architect/utils/seasonManager.ts`
+- `src/features/architect/utils/offseason/resolveOffseasonTransition.ts`
+- any tiny shared Architect runtime helper truth fixups directly required to
+  keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove nullable shortcut reads, stale cross-boundary bags, and implicit
+   compatibility assumptions that hide live runtime contracts.
+2. Keep behavior unchanged unless code only worked because it depended on an
+   impossible or stale type shape.
+3. Keep edits tightly bounded to the listed runtime-owner files and direct
+   helper truth fixups.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run build`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the runtime-owner boundary cluster.
+- Because this wave may touch `OffseasonTab.tsx`, run `npm run build` after the
+  strict probes.
+- Do not refactor UI layout or behavior except where a typed runtime-boundary
+  fix directly requires it.
+
+**Done when:** The runtime-owner boundary cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `fix: harden architect runtime owner boundaries`.
+
+---
+
+## Step 48 — Harden the next remaining trade / Architect test truth cluster (wave 20)
+
+**Status:** TODO
+
+**Goal:** Tighten the next remaining trade and Architect test clusters exposed
+by the Step 46 checkpoint after the runtime-owner wave.
+
+**Instructions:**
+Focus this wave on:
+
+- `tests/architect/overrideBypass.test.ts`
+- `tests/trade/orderOfOps_conversionsBeforeMatching.test.ts`
+- `src/tests/architect/dare/protectionLadderFactory.test.ts`
+- `src/tests/architect/phase47_tpe_persistence_guardrails.test.ts`
+- `src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts`
+- `src/tests/architect/phase86_league_invariants.test.ts`
+- `tests/architect/EditContractModal.rules.test.tsx`
+- `tests/trade/byc_outgoing_max.test.ts`
+- `tests/trade/salaryMatching.test.ts`
+- any tiny trade-test or Architect-test helper truth fixups directly required to
+  keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove implicit-any fixtures, stale bags, nullable shortcut assertions, and
+   untyped collectors that hide live trade or Architect contracts.
+2. Keep assertions aligned with live runtime behavior.
+3. Keep runtime edits out of this wave unless a tiny helper truth fix is
+   directly required by these tests.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot tests/architect/overrideBypass.test.ts tests/trade/orderOfOps_conversionsBeforeMatching.test.ts src/tests/architect/dare/protectionLadderFactory.test.ts src/tests/architect/phase47_tpe_persistence_guardrails.test.ts src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts src/tests/architect/phase86_league_invariants.test.ts tests/architect/EditContractModal.rules.test.tsx tests/trade/byc_outgoing_max.test.ts tests/trade/salaryMatching.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the remaining trade / Architect test cluster.
+- Do not reopen Step 47 runtime-owner files except for tiny shared helper truth
+  fixups this wave directly requires.
+
+**Done when:** The remaining trade / Architect test cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden remaining trade architect truth cluster`.
+
+---
+
+## Step 49 — Post-wave checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 47-48 and decide
+whether the plan is honestly close to final review or still needs more numbered
+waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 40 checkpoint,
+   - the Step 43 checkpoint,
+   - the Step 46 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs
+   more numbered waves.
+4. Append additional numbered steps immediately after Step 49 if substantial
+   mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion
+  gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-runtime-test hardening checkpoint`.
+
+---
+
+## Step 50 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -1556,7 +1697,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 48 — Final closeout (only when the mission is actually done)
+## Step 51 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
