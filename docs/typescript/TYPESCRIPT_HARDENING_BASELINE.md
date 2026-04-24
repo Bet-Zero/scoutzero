@@ -1621,6 +1621,56 @@ healthier, but it is still far from final-review readiness, so the Step 37
 checkpoint must reassess and extend the master plan again rather than route to
 closeout.
 
+## Step 37 Post-Wave Checkpoint
+
+Reviewed: 2026-04-24, after Steps 35-36 completed the dead-cap/season-state and
+trade aftermath/snapshot waves.
+
+### Probe Delta
+
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 34 checkpoint | Current | Reading                                                                                                                                                                                                      |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                              |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                                                |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                944 |     709 | Architect/test strict posture improved materially (`-1,858` vs the original baseline, `-1,923` vs Step 14, `-1,519` vs Step 22, `-235` vs Step 34), but it remains the mission blocker by a large margin. |
+
+### Current Architect Strict Concentration
+
+The current Architect strict backlog is concentrated in:
+
+1. Runtime-owner / persistence carriers:
+   `src/features/architect/utils/mutationPipeline.ts` (`34`),
+   `src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts` (`17`),
+   `src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts` (`16`),
+   `src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts` (`17`).
+2. Cap-sheet / timing / consent / pick-rule truth:
+   `src/shared/components/EditContractModal.tsx` (`22`),
+   `src/tests/architect/capSheet_exception_wiring.behavior.test.tsx` (`16`),
+   `tests/architect/ruleContextTiming.test.ts` (`16`),
+   `tests/architect/seasonHelpers.test.ts` (`15`),
+   `tests/trade/consent_and_birdVeto.test.ts` (`16`),
+   `tests/trade/frozenPick_consequences.test.ts` (`14`),
+   `src/tests/tradeMachine/swapResolution.test.ts` (`14`).
+
+### Checkpoint Verdict
+
+The mission is not honestly close to final review. Shared strict is already
+green, but Architect strict still carries `709` errors across a live
+runtime-owner hotspot plus multiple remaining Architect/trade truth clusters.
+Routing to final review here would violate the master-plan closure rules.
+
+### Required Plan Extension
+
+The plan must extend again. The next bounded waves are now:
+
+- Step 38: mutation-owner / persistence truth cluster
+- Step 39: cap-sheet / timing / consent truth cluster
+- Step 40: another master checkpoint after those waves
+
+Plain-language read: the hardening program is making real progress, but the
+repo is still in an evidence-backed `not ready for final review` state. The
+next move is another bounded execution wave, not closeout.
+
 ## Evidence Commands
 
 - `rg --files`

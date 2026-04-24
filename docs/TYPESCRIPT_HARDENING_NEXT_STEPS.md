@@ -71,8 +71,9 @@
 - Step 34: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
 - Steps 35–36: harden the next Architect dead-cap/season-state cluster, then the next trade aftermath/snapshot cluster exposed by the Step 34 checkpoint
 - Step 37: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
-- Steps 38–39: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
-- Final closeout: only after the mission-level gates are satisfied
+- Steps 38–39: harden the next mutation-owner/persistence cluster, then the next cap-sheet/timing/consent cluster exposed by the Step 37 checkpoint
+- Step 40: reassess readiness again after those new waves and extend again if substantial mission-area debt remains
+- Steps 41–42: reserved for final review and closeout only after a later checkpoint proves the mission-level completion gates are actually satisfied
 
 **Universal constraints (apply to every step):**
 
@@ -1080,7 +1081,9 @@ Validation:
 
 ## Step 37 — Post-wave checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Re-ran the mission checkpoints, confirmed shared strict remains green while Architect strict still sits at `709`, and extended the master plan with Steps 38-40 for the next bounded runtime/test truth waves.
 
 **Goal:** Re-run the mission-level measurements after Steps 35-36 and decide whether the plan is honestly ready for final review or still needs more numbered waves.
 
@@ -1110,7 +1113,117 @@ That section must:
 
 ---
 
-## Step 38 — Final review (only when the mission-level gates are truly satisfied)
+## Step 38 — Harden the next Architect mutation-owner / persistence truth cluster (wave 13)
+
+**Status:** TODO
+
+**Goal:** Tighten the highest-leverage remaining Architect runtime-owner and persistence truth cluster exposed by the Step 37 checkpoint without reopening a broad repo-wide runtime pass.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/features/architect/utils/mutationPipeline.ts`
+- `src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts`
+- `src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts`
+- `src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts`
+- any tiny supporting persistence/offer-sheet/helper truth fixups directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove nullable/optional carrier reads, stale persistence fixture bags, and contract-shape shortcuts that no longer match the authoritative mutation pipeline state.
+2. Keep `mutationPipeline.ts` edits tightly coupled to the selected persistence/DARE guardrail surfaces; do not reopen a broad trade/apply wave beyond what these tests directly force.
+3. Keep persistence and offer-sheet assertions aligned with the live mutation carrier contracts rather than compatibility fallbacks.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the mutation-owner / persistence cluster.
+- Do not widen into general season-management or cap-legality cleanup except for tiny shared truth fixups that these files directly require.
+
+**Done when:** The mutation-owner / persistence cluster is materially more truthful, any coupled runtime-owner edits stay bounded, and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden architect mutation persistence truth cluster`.
+
+---
+
+## Step 39 — Harden the next cap-sheet / timing / consent truth cluster (wave 14)
+
+**Status:** TODO
+
+**Goal:** Tighten the next mixed UI/runtime/test cluster exposed by the Step 37 checkpoint after the mutation-owner / persistence wave is clear.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/shared/components/EditContractModal.tsx`
+- `src/tests/architect/capSheet_exception_wiring.behavior.test.tsx`
+- `tests/architect/ruleContextTiming.test.ts`
+- `tests/architect/seasonHelpers.test.ts`
+- `tests/trade/consent_and_birdVeto.test.ts`
+- `tests/trade/frozenPick_consequences.test.ts`
+- `src/tests/tradeMachine/swapResolution.test.ts`
+- any tiny shared season-format / timing / pick-rule helper truth fixups directly required to keep this cluster honest
+
+For the chosen cluster:
+
+1. Remove implicit-any builders, stale cap-sheet/timing/pick fixtures, and optional reads that hide required contract wiring.
+2. Keep `EditContractModal`, cap-sheet exception wiring, rule-context timing, season-helper, consent, frozen-pick, and swap-resolution assertions aligned with the live season/timing/trade-rule contracts.
+3. Keep behavior unchanged unless a test only passed because it depended on a dishonest fixture or optional-chain shortcut.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:ui -- --reporter=dot src/tests/architect/capSheet_exception_wiring.behavior.test.tsx`
+- `npm run test:node -- --reporter=dot tests/architect/ruleContextTiming.test.ts tests/architect/seasonHelpers.test.ts tests/trade/consent_and_birdVeto.test.ts tests/trade/frozenPick_consequences.test.ts src/tests/tradeMachine/swapResolution.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the cap-sheet / timing / consent cluster.
+- Do not reopen the mutation-owner / persistence cluster except for tiny shared truth fixups that this wave directly requires.
+
+**Done when:** The cap-sheet / timing / consent cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden cap sheet timing consent truth cluster`.
+
+---
+
+## Step 40 — Post-wave checkpoint: reassess final-review readiness once more
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 38-39 and decide whether the plan is honestly close to final review or still needs more numbered waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 37 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs more numbered waves.
+4. Append additional numbered steps immediately after Step 40 if substantial mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record post-mutation-cluster hardening checkpoint`.
+
+---
+
+## Step 41 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -1145,7 +1258,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 39 — Final closeout (only when the mission is actually done)
+## Step 42 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
