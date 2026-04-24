@@ -2547,6 +2547,56 @@ Remaining top hotspots after the `41`-error strict probe are:
 Readiness remains negative pending Step 56. The planned Step 55 cluster is
 clear, but `41` Architect strict errors remain across smaller test surfaces.
 
+## Step 56 Continued Hardening Checkpoint
+
+Measured 2026-04-24 after Steps 53-55.
+
+| Probe                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Step 52 checkpoint | Step 56 checkpoint | Notes |
+| --------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ----- |
+| `npm run typecheck`                                                   |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`       |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 |                 95 |                 41 | Architect strict improved materially (`-2,526` vs original, `-2,591` vs Step 14, `-2,187` vs Step 22, `-470` vs Step 40, `-326` vs Step 43, `-227` vs Step 46, `-126` vs Step 49, `-54` vs Step 52), but remains the mission blocker. |
+
+### Current Architect Strict Concentration After Step 56
+
+The remaining top hotspots are:
+
+1. `tests/architect/worldsOnlyRegression.test.ts` (`2`)
+2. `src/tests/tradeMachine/pickIdUtils.test.ts` (`2`)
+3. `src/tests/architect/tmCapIntegration.ui.tradeApply_updatesCapSheet.integration.test.tsx` (`2`)
+4. `src/tests/architect/rosterChargeDisplay.test.tsx` (`2`)
+5. `src/tests/architect/dataValidation.test.ts` (`2`)
+6. `src/tests/architect/capSheetFull_ssot_parity_guardrails.test.ts` (`2`)
+7. `src/tests/architect/capSheetCloseoutBlockersRemediation2.hardCapOwnership.test.ts` (`2`)
+8. `src/tests/architect/capLegalityValidation.test.ts` (`2`)
+9. `src/tests/architect/architectRuntimeBlockers.pass1.test.ts` (`2`)
+10. `src/tests/architect/architectHardeningE4.polish.test.ts` (`2`)
+11. `src/tests/architect/architectCoreTrioPassR3.test.ts` (`2`)
+12. `tests/trade/useTradeMachine.validatorTrust.test.ts` (`1`)
+13. `tests/architect/seasonManager.test.ts` (`1`)
+14. `tests/architect/capHoldTransitionHelpers.test.ts` (`1`)
+15. `src/tests/tradeMachine/stepienObligations.test.ts` (`1`)
+16. `src/tests/architect/worldOptimistic_lock_serialization.behavior.test.ts` (`1`)
+17. `src/tests/architect/phase16_seasonmanager_entitlements_ssot_view_guardrail.test.ts` (`1`)
+18. `src/tests/architect/phase16_3_trade_machine_init_guardrail.test.ts` (`1`)
+19. `src/tests/architect/mutationPipeline.publicMutationIngressBoundary.test.ts` (`1`)
+20. `src/tests/architect/mutationPipeline.payloadIngressBoundary.test.ts` (`1`)
+
+### Readiness Verdict After Step 56
+
+Not ready for final review. The full-suite UI blocker is resolved and the
+planned Step 55 strict fixture cluster is clear, but `41` Architect strict
+errors remain. This is meaningful mission-area backlog, not optional cleanup.
+The master plan has been extended with:
+
+- Step 57: remaining two-error strict test cluster
+- Step 58: residual one-error strict test cluster
+- Step 59: post-residual checkpoint
+
+Plain-language read: the project is close, but a true mission-complete verdict
+still requires Architect strict to clear or for any remaining debt to be
+explicitly proven non-substantial by a later checkpoint.
+
 ## Evidence Commands
 
 - `rg --files`

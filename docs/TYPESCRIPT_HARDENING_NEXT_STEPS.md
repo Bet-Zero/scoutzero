@@ -1979,7 +1979,12 @@ Validation:
 
 ## Step 56 — Post-extension checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE
+
+Completion note 2026-04-24: Re-ran the mission-level probes; root typecheck
+and shared-boundaries strict pass, but Architect strict still reports `41`
+errors, so the plan has been extended with additional numbered waves instead
+of moving to final review.
 
 **Goal:** Re-run the mission-level measurements after Steps 53-55 and decide
 whether final review is now truthful or the plan still needs more numbered
@@ -2018,7 +2023,131 @@ That section must:
 
 ---
 
-## Step 57 — Final review (only when the mission-level gates are truly satisfied)
+## Step 57 — Harden remaining two-error strict test cluster (wave 26)
+
+**Status:** TODO
+
+**Goal:** Clear the remaining two-error Architect/trade strict test files
+identified by the Step 56 checkpoint.
+
+**Instructions:**
+Focus this wave on:
+
+- `tests/architect/worldsOnlyRegression.test.ts`
+- `src/tests/tradeMachine/pickIdUtils.test.ts`
+- `src/tests/architect/tmCapIntegration.ui.tradeApply_updatesCapSheet.integration.test.tsx`
+- `src/tests/architect/rosterChargeDisplay.test.tsx`
+- `src/tests/architect/dataValidation.test.ts`
+- `src/tests/architect/capSheetFull_ssot_parity_guardrails.test.ts`
+- `src/tests/architect/capSheetCloseoutBlockersRemediation2.hardCapOwnership.test.ts`
+- `src/tests/architect/capLegalityValidation.test.ts`
+- `src/tests/architect/architectRuntimeBlockers.pass1.test.ts`
+- `src/tests/architect/architectHardeningE4.polish.test.ts`
+- `src/tests/architect/architectCoreTrioPassR3.test.ts`
+- any tiny shared test helper truth fixup directly required by this cluster
+
+For the chosen cluster:
+
+1. Remove implicit-any probes and nullable shortcut assertions.
+2. Prefer typed local helpers over broad `as any` casts.
+3. Keep runtime behavior unchanged unless a test exposes a tiny source truth
+   bug.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:diff -- --reporter=dot`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the listed two-error test cluster.
+- Do not use this step to start final review.
+
+**Done when:** The listed two-error test cluster is materially more truthful
+and the baseline records the resulting strict-probe delta plus what remains.
+Commit message: `test: harden remaining two-error strict fixtures`.
+
+---
+
+## Step 58 — Harden residual one-error strict test cluster (wave 27)
+
+**Status:** TODO
+
+**Goal:** Clear the remaining one-error Architect/trade strict test files after
+Step 57.
+
+**Instructions:**
+Use the latest Architect strict probe from Step 57 and focus this wave on the
+remaining one-error files, including but not limited to:
+
+- `tests/trade/useTradeMachine.validatorTrust.test.ts`
+- `tests/architect/seasonManager.test.ts`
+- `tests/architect/capHoldTransitionHelpers.test.ts`
+- `src/tests/tradeMachine/stepienObligations.test.ts`
+- `src/tests/architect/worldOptimistic_lock_serialization.behavior.test.ts`
+- `src/tests/architect/phase16_seasonmanager_entitlements_ssot_view_guardrail.test.ts`
+- `src/tests/architect/phase16_3_trade_machine_init_guardrail.test.ts`
+- `src/tests/architect/mutationPipeline.publicMutationIngressBoundary.test.ts`
+- `src/tests/architect/mutationPipeline.payloadIngressBoundary.test.ts`
+- `src/tests/architect/mutationPipeline.currentStateIngressClosure.test.ts`
+- `src/tests/architect/mutationPipeline.catchallNarrowing.test.ts`
+- `src/tests/architect/mutationPipeline.boundary.e107.test.ts`
+- `src/tests/architect/entitlementPickRow.vacuumBadges.test.tsx`
+- `src/tests/architect/dashboardWorldBoundary.e109.test.tsx`
+- any tiny shared test helper truth fixup directly required by this cluster
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:diff -- --reporter=dot`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the residual one-error strict test cluster.
+- Do not widen into optional cleanup while Architect strict is still red.
+
+**Done when:** The residual one-error cluster is cleared or reduced to a new
+explicit bounded set, and the baseline records the resulting strict-probe delta
+plus what remains. Commit message: `test: harden residual strict fixtures`.
+
+---
+
+## Step 59 — Post-residual checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 57-58 and decide
+whether final review is now truthful or the plan still needs more numbered
+waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+Re-run:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+
+Compare the new results to all prior checkpoints and either proceed to final
+review or extend the numbered plan again if Architect strict or substantial
+mission-area backlog remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion
+  gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has
+been extended again if needed. Commit message: `docs: record residual hardening checkpoint`.
+
+---
+
+## Step 60 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -2053,7 +2182,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 58 — Final closeout (only when the mission is actually done)
+## Step 61 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 
