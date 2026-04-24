@@ -1781,7 +1781,12 @@ Validation:
 
 ## Step 52 — Post-extension checkpoint: reassess final-review readiness again
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Re-ran the mission-level probes after Steps 50-51;
+root typecheck and shared-boundaries strict remain green, while Architect
+strict is still expected-failing at `95` errors. The plan is extended with
+additional numbered waves before final review.
 
 **Goal:** Re-run the mission-level measurements after Steps 50-51 and decide
 whether final review is now truthful or the plan still needs more numbered
@@ -1819,7 +1824,184 @@ That section must:
 
 ---
 
-## Step 53 — Final review (only when the mission-level gates are truly satisfied)
+## Step 53 — Harden remaining Architect runtime/shared boundary cluster (wave 23)
+
+**Status:** TODO
+
+**Goal:** Tighten the next remaining runtime/shared strict-boundary cluster
+identified by the Step 52 checkpoint before returning to test-only cleanup.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/features/architect/capSheet/ExceptionTracker/ExceptionTracker.tsx`
+- `src/features/architect/freeAgency/FreeAgentPool/FreeAgentCard.tsx`
+- `src/features/architect/freeAgency/FreeAgentPool/FreeAgentRow.tsx`
+- `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
+- `src/features/architect/hooks/useCapValidation.ts`
+- `src/features/architect/tradeMachine/ValidationDetailsPanel.tsx`
+- `src/features/architect/utils/tradeManager.ts`
+- `src/features/architect/utils/tradeMachine/utils/capUtils.ts`
+- `src/shared/components/TeamSelectDropdown.tsx`
+- `src/shared/components/ui/filters/MultiSelectFilter.tsx`
+- `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.tsx`
+- any tiny directly-required type owner/helper fixup in the same boundary
+
+For the chosen cluster:
+
+1. Replace nullable shortcut assumptions with explicit normalization or guards.
+2. Avoid broad `as any` bridges; prefer local typed boundary helpers.
+3. Preserve UI and runtime behavior unless the old behavior was only reachable
+   through impossible strict-null assumptions.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run build`
+- `npm run test:diff -- --reporter=dot`
+
+**Constraints specific to this step:**
+
+- Keep runtime edits bounded to the listed runtime/shared files and direct
+  helper fallout.
+- Do not use this runtime wave to rewrite broad test fixtures except for a
+  directly required assertion update.
+
+**Done when:** The runtime/shared boundary cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `fix: harden remaining architect runtime boundaries`.
+
+---
+
+## Step 54 — Harden full-suite UI guardrail fallout cluster (wave 24)
+
+**Status:** TODO
+
+**Goal:** Fix the UI guardrail drift exposed by the `RUN FULL SUITE`
+validation after Step 50 without mixing it into unrelated strict-probe waves.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/myct_step6_guardrails.test.tsx`
+- `src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx`
+- `src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx`
+- `src/tests/architect/useArchitectActions.freeAgency.test.tsx`
+- `src/tests/smoke/architect.uiSmoke.e1.test.tsx`
+- any tiny direct source truth fix in the UI paths those tests exercise
+
+For the chosen cluster:
+
+1. Align guardrail assertions with live behavior after the hardening waves.
+2. Prefer testing the real state transition shape over brittle exact object
+   matches when runtime now uses updater functions or normalized payloads.
+3. Avoid broad runtime rewrites unless a test exposes a true product bug.
+4. Record the resulting validation status and strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:ui -- --reporter=dot src/tests/architect/myct_step6_guardrails.test.tsx src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/smoke/architect.uiSmoke.e1.test.tsx`
+- `npm run test:diff -- --reporter=dot`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the full-suite UI fallout cluster.
+- Do not treat the full suite failure as license to widen into unrelated UI
+  cleanup.
+
+**Done when:** The listed UI guardrail fallout is fixed or explicitly proven pre-existing and out of scope, and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden full-suite ui guardrail fallout`.
+
+---
+
+## Step 55 — Harden remaining low-volume Architect/trade strict test cluster (wave 25)
+
+**Status:** TODO
+
+**Goal:** Clear the next low-volume Architect/trade test strict cluster left
+after the runtime and full-suite fallout waves.
+
+**Instructions:**
+Focus this wave on:
+
+- `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts`
+- `src/tests/architect/capLegalityValidation.batchedHardening.test.ts`
+- `tests/architect/CapSheetFull.rules.test.tsx`
+- `src/tests/architect/tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx`
+- `src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts`
+- `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts`
+- `src/tests/architect/architectCoreTrioPassR2.test.ts`
+- `src/tests/architect/architectCoreLogicBlockerTrio.test.ts`
+- `tests/trade/secondApron_handcuffs.test.ts`
+- `tests/trade/basicRules.test.ts`
+- any tiny shared test helper truth fixup directly required by this cluster
+
+For the chosen cluster:
+
+1. Remove implicit-any fixtures, stale partial payloads, and nullable shortcut
+   assertions.
+2. Keep assertions aligned with live runtime behavior.
+3. Avoid runtime edits unless a tiny helper truth fix is directly required.
+4. Record the resulting Architect strict delta in the baseline doc.
+
+Validation:
+
+- `npm run typecheck`
+- `npm run typecheck -- --project tsconfig.architect-strict.json`
+- `npm run test:node -- --reporter=dot src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts src/tests/architect/capLegalityValidation.batchedHardening.test.ts tests/architect/CapSheetFull.rules.test.tsx src/tests/architect/tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts src/tests/architect/capSheet_toast_dedupe.behavior.test.ts src/tests/architect/architectCoreTrioPassR2.test.ts src/tests/architect/architectCoreLogicBlockerTrio.test.ts tests/trade/secondApron_handcuffs.test.ts tests/trade/basicRules.test.ts`
+
+**Constraints specific to this step:**
+
+- Keep this wave bounded to the listed low-volume test cluster.
+- Do not reopen runtime/shared files except for tiny direct fallout.
+
+**Done when:** The listed test cluster is materially more truthful and the baseline records the resulting strict-probe delta plus what remains. Commit message: `test: harden remaining architect strict fixtures`.
+
+---
+
+## Step 56 — Post-extension checkpoint: reassess final-review readiness again
+
+**Status:** TODO
+
+**Goal:** Re-run the mission-level measurements after Steps 53-55 and decide
+whether final review is now truthful or the plan still needs more numbered
+waves.
+
+**Instructions:**
+Append a new checkpoint section to `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`.
+
+That section must:
+
+1. Re-run:
+   - `npm run typecheck`
+   - `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json`
+   - `npm run typecheck -- --project tsconfig.architect-strict.json`
+2. Compare the new results to:
+   - the original baseline,
+   - the Step 14 master-plan resume baseline,
+   - the Step 22 master checkpoint,
+   - the Step 40 checkpoint,
+   - the Step 43 checkpoint,
+   - the Step 46 checkpoint,
+   - the Step 49 checkpoint,
+   - the Step 52 checkpoint.
+3. State whether the mission is honestly ready for final review or still needs
+   more numbered waves.
+4. Append additional numbered steps immediately after Step 56 if substantial
+   mission-area backlog still remains.
+
+**Constraints specific to this step:**
+
+- This is a checkpoint step, not a cleanup wave.
+- Do not route to final review/closeout unless the mission-level completion
+  gates are actually satisfied.
+
+**Done when:** The baseline doc contains the new checkpoint and the plan has been extended again if needed. Commit message: `docs: record continued hardening checkpoint`.
+
+---
+
+## Step 57 — Final review (only when the mission-level gates are truly satisfied)
 
 **Status:** TODO
 
@@ -1854,7 +2036,7 @@ The verdict must be a true mission-complete verdict. If the most honest verdict 
 
 ---
 
-## Step 54 — Final closeout (only when the mission is actually done)
+## Step 58 — Final closeout (only when the mission is actually done)
 
 **Status:** TODO
 

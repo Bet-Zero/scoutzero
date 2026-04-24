@@ -2375,6 +2375,57 @@ Readiness remains negative pending the Step 52 checkpoint. The Step 51 cluster
 is clear, but `95` Architect strict errors still include runtime and test
 surfaces, and the Step 50 full-suite UI guardrail fallout remains unresolved.
 
+## Step 52 Post-Extension Checkpoint
+
+Measured 2026-04-24 after Steps 50-51.
+
+| Probe                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Step 52 checkpoint | Notes |
+| --------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ----- |
+| `npm run typecheck`                                                   |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`       |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 |                 95 | Architect strict improved materially (`-2,472` vs original, `-2,537` vs Step 14, `-2,133` vs Step 22, `-416` vs Step 40, `-272` vs Step 43, `-173` vs Step 46, `-72` vs Step 49), but remains the mission blocker. |
+
+### Current Architect Strict Concentration After Step 52
+
+The remaining top hotspots are:
+
+1. `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts` (`4`)
+2. `src/tests/architect/capLegalityValidation.batchedHardening.test.ts` (`4`)
+3. `tests/architect/CapSheetFull.rules.test.tsx` (`3`)
+4. `src/tests/architect/tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx` (`3`)
+5. `src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx` (`3`)
+6. `src/tests/architect/myct_step6_guardrails.test.tsx` (`3`)
+7. `src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts` (`3`)
+8. `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts` (`3`)
+9. `src/tests/architect/architectCoreTrioPassR2.test.ts` (`3`)
+10. `src/tests/architect/architectCoreLogicBlockerTrio.test.ts` (`3`)
+11. `src/features/architect/utils/tradeManager.ts` (`3`)
+12. `src/features/architect/utils/tradeMachine/utils/capUtils.ts` (`3`)
+13. `tests/trade/secondApron_handcuffs.test.ts` (`2`)
+14. `tests/trade/basicRules.test.ts` (`2`)
+15. `tests/architect/worldsOnlyRegression.test.ts` (`2`)
+16. `src/tests/tradeMachine/pickIdUtils.test.ts` (`2`)
+17. `src/shared/components/TeamSelectDropdown.tsx` (`2`)
+18. `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.tsx` (`2`)
+19. `src/features/architect/GMDashboard/hooks/useArchitectState.ts` (`2`)
+
+### Readiness Verdict After Step 52
+
+Not ready for final review. The project is much closer than the Step 49
+checkpoint, but `95` Architect strict errors remain across runtime/shared
+boundaries and smaller test clusters. Full-suite UI validation also exposed
+guardrail drift that still needs a bounded cleanup wave. The master plan has
+been extended with:
+
+- Step 53: remaining Architect runtime/shared boundary cluster
+- Step 54: full-suite UI guardrail fallout cluster
+- Step 55: remaining low-volume Architect/trade strict test cluster
+- Step 56: another master checkpoint after those waves
+
+Plain-language read: Steps 50-51 removed the planned runtime utility and
+test-fixture debt, but the strictness mission is still not honestly complete.
+The correct next move is another bounded execution wave, not final review.
+
 ## Evidence Commands
 
 - `rg --files`
