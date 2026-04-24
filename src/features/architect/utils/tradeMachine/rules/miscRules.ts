@@ -16,6 +16,7 @@ import {
   seasonToYear,
 } from '../utils/seasonUtils';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
+import type { TradeTeam } from '@/features/architect/utils/tradeMachine/constants/types';
 
 type MiscRulesYearKey = number | string;
 
@@ -32,11 +33,17 @@ interface MiscRulesContext {
   daysInSeason?: number;
 }
 
+interface MiscRulesSalaryRow {
+  season?: string | null;
+  salary?: number;
+  capHit?: number | null;
+}
+
 interface MiscRulesPlayer {
   matchOutgoing?: number;
   isBYC?: boolean;
   previousSalary?: number;
-  salary?: number | null;
+  salary?: number;
   tradeKickerPct?: number | null;
   tradeKickerWaivedPct?: number | null;
   remainingGuaranteedOnCurrentContract?: number | null;
@@ -44,14 +51,14 @@ interface MiscRulesPlayer {
   hasProvidedConsent?: boolean;
   limitedNTCTeams?: Array<string | null | undefined> | null;
   hasBirdRights?: boolean;
-  contract?: { salariesByYear?: unknown[] | null } | null;
-  primaryContract?: { salariesByYear?: unknown[] | null } | null;
+  contract?: { salariesByYear?: MiscRulesSalaryRow[] | null } | null;
+  primaryContract?: { salariesByYear?: MiscRulesSalaryRow[] | null } | null;
   name?: string;
 }
 
 interface MiscRulesTeam {
-  sends?: MiscRulesPlayer[] | null;
-  teamId?: string | null;
+  sends?: MiscRulesPlayer[];
+  teamId?: string;
   tradedPicks?:
     | Array<{
         year?: MiscRulesYearKey;
@@ -62,7 +69,7 @@ interface MiscRulesTeam {
     | null;
   teamTotalSalary?: number;
   projectedSalary?: number;
-  cashSent?: number | null;
+  cashSent?: number;
   postTradeStatus?: {
     isAtOrAboveSecondApron?: boolean;
   };
@@ -182,16 +189,20 @@ export function validateAllNewRules(
   allTeams: unknown,
   tradeCtx: MiscRulesContext = {}
 ): unknown[] {
-  const tradeExceptionViolations = validateTradeExceptions(team).violations;
+  const tradeTeam = team as TradeTeam;
+  const tradeExceptionViolations = validateTradeExceptions(tradeTeam).violations;
   const draftPickViolations = validateDraftPicks(team, allTeams);
-  const cashViolations = validateCash(team, tradeCtx).violations;
+  const cashViolations = validateCash(
+    tradeTeam,
+    tradeCtx as Parameters<typeof validateCash>[1]
+  ).violations;
   const signAndTradeViolations = validateSignAndTrade(
-    team,
-    tradeCtx
+    tradeTeam,
+    tradeCtx as Parameters<typeof validateSignAndTrade>[1]
   ).violations;
   const bycViolations = validateBYC(team).violations;
   const secondApronViolations = validateSecondApronRules(
-    team
+    tradeTeam
   ).violations;
 
   return [

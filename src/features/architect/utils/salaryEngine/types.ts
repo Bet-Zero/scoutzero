@@ -111,7 +111,7 @@ export interface ExtensionEligibility {
   /** Type of extension available */
   extensionType: string;
   /** Date when extension becomes available (if not yet eligible) */
-  eligibleDate?: Date;
+  eligibleDate?: Date | null;
 }
 
 /**

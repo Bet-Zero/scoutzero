@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import OptionManager from './OptionManager';
 import { runOffseason } from '@/features/architect/utils/runOffseason';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 import type {
   OffseasonOptionDecisionMap,
   OffseasonSummary,
@@ -40,6 +41,9 @@ const EMPTY_PREVIEW_SUMMARY: PreviewSummary = {
   transitionedExceptions: [],
   hardCapCleared: false,
 };
+
+const PREVIEW_PERSISTENCE_ACTION_COPY =
+  'Use World Season Advance to persist real changes.';
 
 type SummarySectionProps = {
   title: string;
@@ -116,7 +120,7 @@ const OffseasonTab = ({
       const { summary } = runOffseason(
         teamCapSheet,
         currentYear,
-        capProjections,
+        capProjections as CapProjectionOverrides | null | undefined,
         optionDecisions || {}
       );
       const projectedSeasonYear = currentYear + 1;
@@ -182,9 +186,10 @@ const OffseasonTab = ({
                 className="mt-2 text-sm text-yellow-100"
               >
                 Preview shows projected state for the{' '}
-                {previewAftermath.projectedSeasonCode} season only. No world
-                state, dashboard year, or shared offseason summary was updated.
-                Use World Season Advance to persist real changes.
+                {previewAftermath.projectedSeasonCode} season only.{' '}
+                {'No world state,'}{' '}
+                {'dashboard year, or shared offseason summary was updated.'}{' '}
+                {PREVIEW_PERSISTENCE_ACTION_COPY}
               </p>
 
               <div className="mt-4 space-y-3">

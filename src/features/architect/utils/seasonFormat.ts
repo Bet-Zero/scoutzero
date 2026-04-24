@@ -49,7 +49,7 @@ export function getSeasonAdvanceDraftContext(
 ): SeasonAdvanceDraftContext | null {
   const endYear = toEndYear(seasonCode);
 
-  if (!Number.isFinite(endYear) || endYear < 1900) {
+  if (typeof endYear !== 'number' || !Number.isFinite(endYear) || endYear < 1900) {
     return null;
   }
 

@@ -245,8 +245,11 @@ export function computeTeamCapTotals(
 ): ComputedTeamCapTotals {
   const normalizedYear = toEndYear(selectedYear);
   const yearKey = Number.isFinite(normalizedYear)
-    ? normalizedYear
+    ? Number(normalizedYear)
     : Number(selectedYear);
+  if (!Number.isFinite(yearKey)) {
+    throw new Error(`Invalid cap totals year: ${selectedYear}`);
+  }
   const rules = getCapRulesForYear(yearKey, options.capProjections) as any; // load-bearing: getCapRulesForYear return type incompatible with direct destructuring
 
   const salaryCap = rules.cap.salaryCap || 0;

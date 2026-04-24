@@ -479,7 +479,7 @@ export function validateTradePreviewAuthority({
   const postStateStage = runTradePostStateLegalityStage({
     operationId,
     mutationType,
-    worldId,
+    worldId: worldId ?? 'preview-world',
     year,
     beforeTeamsByCode,
     afterTeamsByCode,

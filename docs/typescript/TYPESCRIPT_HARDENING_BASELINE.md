@@ -2279,6 +2279,59 @@ Plain-language read: Steps 47-48 removed the planned runtime-owner and
 test-cluster debt, but the strictness mission is still not honestly complete.
 The correct next move is another bounded execution wave, not final review.
 
+## Step 50 Runtime Utility Boundary Wave
+
+Measured 2026-04-24 after Step 50.
+
+| Probe | Result | Notes |
+| ----- | -----: | ----- |
+| `npm run typecheck` | pass | Root compatibility remains green after the runtime utility boundary changes. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` | 138 | Expected strict failure while the master plan remains active; Step 50 target files are clear. |
+| `npm run test:node -- --reporter=dot src/tests/architect/offseason.devGate.guardrail.test.ts` | pass | Focused validation for the preview-persistence guardrail sentinel adjusted by the Step 50 call-site cleanup. |
+| `npm run test:diff -- --reporter=dot` | fail outside Step 50 | The diff runner auto-routed to the full suite after `RUN FULL SUITE` permission. The node half passed; the UI half failed in broader UI/test guardrails outside the Step 50 runtime utility boundary. |
+
+Step 50 reduced the Architect strict backlog from `167` to `138` errors
+(`-29`). The cleared runtime utility targets were:
+
+- `src/features/architect/utils/capTotals/computeTeamCapTotals.ts`
+- `src/features/architect/utils/tradeMachine/rules/miscRules.ts`
+- `src/features/architect/utils/tradeMachine/engine/tradeValidator.ts`
+- `src/features/architect/utils/tradeMachine/engine/tradeDebug.ts`
+- `src/features/architect/utils/worldTeamData.ts`
+- `src/features/architect/utils/runOffseason.ts`
+- `src/features/architect/utils/seasonFormat.ts`
+- `src/features/architect/utils/salaryEngine/types.ts`
+- `src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts`
+
+The remaining top strict hotspots are now:
+
+1. `src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts` (`5`)
+2. `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts` (`5`)
+3. `src/tests/architect/entitlementInvariants.test.ts` (`5`)
+4. `tests/trade/faExceptions_as_trade_buckets.test.ts` (`4`)
+5. `tests/architect/salaryEngine.test.ts` (`4`)
+6. `tests/architect/ExceptionTracker.tpe.test.tsx` (`4`)
+7. `src/tests/architect/utils/seasonManager.tpe.test.ts` (`4`)
+8. `src/tests/architect/useArchitectActions.freeAgency.test.tsx` (`4`)
+9. `src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts` (`4`)
+10. `src/tests/architect/phase42_apron_derivation_consolidation.test.ts` (`4`)
+11. `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts` (`4`)
+12. `src/tests/architect/capLegalityValidation.batchedHardening.test.ts` (`4`)
+
+Full-suite UI validation also exposed non-Step-50 guardrail drift in:
+
+- `src/tests/architect/myct_step6_guardrails.test.tsx`
+- `src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx`
+- `src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx`
+- `src/tests/architect/useArchitectActions.freeAgency.test.tsx`
+- `src/tests/smoke/architect.uiSmoke.e1.test.tsx`
+
+Readiness remains negative. The Step 50 runtime utility wave was successful,
+but `138` Architect strict errors and the full-suite UI guardrail drift are
+still meaningful hardening work. Step 51 remains the next executable wave, with
+the full-suite fallout to be handled only when it intersects a planned test
+cluster or a later checkpoint extends the plan.
+
 ## Evidence Commands
 
 - `rg --files`

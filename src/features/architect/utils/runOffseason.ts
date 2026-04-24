@@ -12,26 +12,30 @@
  */
 
 import { resolveOffseasonTransition } from '@/features/architect/utils/offseason';
-
-type LooseRecord = Record<string, unknown>;
+import type {
+  OffseasonOptionDecisionMap,
+  OffseasonTeamCapSheet,
+} from '@/features/architect/utils/offseason/resolveOffseasonTransition';
+import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 
 export function runOffseason(
-  teamCapSheet: LooseRecord,
+  teamCapSheet: OffseasonTeamCapSheet | { teamCode?: string | null },
   currentYear: number,
-  capProjections: Record<string, unknown> | null | undefined,
-  optionDecisions: LooseRecord = {}
+  capProjections: CapProjectionOverrides | null | undefined,
+  optionDecisions: OffseasonOptionDecisionMap = {}
 ) {
   const fromYear = currentYear;
   const toYear = currentYear + 1;
+  const normalizedTeamCapSheet = teamCapSheet as OffseasonTeamCapSheet;
 
   const result = resolveOffseasonTransition({
-    teamCapSheet,
+    teamCapSheet: normalizedTeamCapSheet,
     fromYear,
     toYear,
     optionDecisions,
     context: {
       capProjections,
-      teamCode: teamCapSheet?.teamCode as string | undefined,
+      teamCode: teamCapSheet.teamCode,
     },
   });
 

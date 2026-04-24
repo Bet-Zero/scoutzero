@@ -1676,7 +1676,14 @@ That section must:
 
 ## Step 50 — Harden remaining Architect runtime utility boundaries (wave 21)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the planned runtime utility cluster; root
+typecheck remains green and the Architect strict probe dropped to `138` errors
+with the Step 50 target files clear. `npm run test:diff -- --reporter=dot`
+auto-routed to the full suite after the user allowed `RUN FULL SUITE`; the
+node half passed, while the UI half exposed out-of-scope guardrail drift in
+broader UI/test files that this step intentionally did not modify.
 
 **Goal:** Tighten the next runtime utility cluster exposed by the Step 49
 checkpoint without widening into unrelated UI or broad test cleanup.

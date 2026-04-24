@@ -20,11 +20,23 @@ interface DebugRecord {
   salary: boolean | number;
 }
 
+interface DebugSalaryRow {
+  season?: string | null;
+  salary?: number | null;
+  capHit?: number | null;
+}
+
+interface DebugPlayer {
+  name?: string;
+  contract?: { salariesByYear?: DebugSalaryRow[] | null } | null;
+  primaryContract?: { salariesByYear?: DebugSalaryRow[] | null } | null;
+}
+
 interface DebugTeam {
   team: { teamName?: string; totalSalary?: number };
   context?: { capSettings?: Record<string, unknown>; normalizedYear?: { seasonString?: string }; yearKey?: string | number | null };
-  sends?: Array<{ name?: string; contract?: { salariesByYear?: unknown[] | null } | null; primaryContract?: { salariesByYear?: unknown[] | null } | null }>;
-  incomingPlayers?: Array<{ name?: string; contract?: { salariesByYear?: unknown[] | null } | null; primaryContract?: { salariesByYear?: unknown[] | null } | null }>;
+  sends?: DebugPlayer[];
+  incomingPlayers?: DebugPlayer[];
   salaryOut?: number;
   salaryIn?: number;
   overSecondApron?: boolean;

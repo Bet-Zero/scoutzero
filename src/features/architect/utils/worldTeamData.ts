@@ -67,13 +67,16 @@ export type LoadedWorldTeamCapSheet = Pick<
  */
 export function resolveTeamCode(teamId: string | null | undefined): string | null {
   if (!teamId) return null;
+  const slugKey = teamId as keyof typeof TeamSlugToCode;
   // Check if it's a slug that maps to a code
-  if (TeamSlugToCode[teamId]) return TeamSlugToCode[teamId];
+  if (TeamSlugToCode[slugKey]) return TeamSlugToCode[slugKey];
   // Check if it's already a valid code
-  if (TeamCodeMap[teamId]) return teamId;
+  const teamCodeKey = teamId as keyof typeof TeamCodeMap;
+  if (TeamCodeMap[teamCodeKey]) return teamId;
   // Try uppercase
   const upper = teamId.toUpperCase();
-  if (TeamCodeMap[upper]) return upper;
+  const upperTeamCodeKey = upper as keyof typeof TeamCodeMap;
+  if (TeamCodeMap[upperTeamCodeKey]) return upper;
   return null;
 }
 

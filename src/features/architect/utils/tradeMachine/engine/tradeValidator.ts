@@ -55,6 +55,7 @@ import {
 import type { DataWarning } from '../utils/dataValidation';
 import type {
   TradeReceipt,
+  TradeReceiptTeamRow,
   TradeFaExceptionBucket,
   TradeRuleEnvelope,
   TradeSummaryByTeamIndexRow,
@@ -147,8 +148,8 @@ type TradeValidatorActiveTeamSlot = TradeValidatorTeamSlot & {
 
 type RuleEnvelopeObjectLike = {
   passed?: boolean;
-  violations?: unknown;
-  warnings?: unknown;
+  violations?: Parameters<typeof normalizeValidationIssues>[0];
+  warnings?: Parameters<typeof normalizeValidationIssues>[0];
   message?: string | null;
   sourceType?: string | null;
   details?: unknown;
@@ -583,8 +584,8 @@ function createRuleEnvelope(
 
   return {
     key: ruleKey,
-    sourceType: (rawResult.sourceType as string | undefined) || 'validator',
     ...rawResult,
+    sourceType: rawResult.sourceType || 'validator',
     passed,
     violations,
     warnings,
@@ -806,7 +807,7 @@ function generateTradeReceipt({
   reason,
   validationTime,
 }: GenerateTradeReceiptParams): TradeReceipt {
-  const teamReceipts = teamsWithAssets.map((team, index) => {
+  const teamReceipts: TradeReceiptTeamRow[] = teamsWithAssets.map((team, index) => {
     const teamResult = teamResults[index];
     const salaryMatchingResult = readSalaryMatchingRuleEnvelope(
       teamResult?.rules?.salaryMatching
@@ -895,7 +896,7 @@ function generateTradeReceipt({
           isPoisonPill && (player.extensionYears?.length ?? 0) > 0
             ? {
                 currentSalary: player.currentSalary || baseSalary,
-                extensionYears: player.extensionYears,
+                extensionYears: player.extensionYears ?? [],
                 averagedSalary: matchingValue,
                 method: poisonPillMethod,
               }
