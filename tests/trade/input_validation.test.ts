@@ -1,14 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import { validateTradeInput } from '@/features/architect/utils/tradeMachine/utils/validateInput.ts';
-import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts';
+import { validateTradeInput } from '@/features/architect/utils/tradeMachine/utils/validateInput';
+import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput';
 import { getMatchingValue } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 describe('Trade Input Validation', () => {
   it('catches missing teams array', () => {
@@ -136,6 +141,10 @@ describe('Trade Input Normalization', () => {
     const { teams } = normalizeTradeInput(input);
     const player = teams[0].sends[0];
 
+    expect(player).toBeDefined();
+    if (!player) {
+      throw new Error('Expected normalized outgoing player');
+    }
     expect(player.name).toBe('Player A');
     expect(player.salary).toBe(10_000_000);
     expect(player.signAndTrade).toBe(true);
@@ -157,7 +166,7 @@ describe('Trade Input Normalization', () => {
       contract: {
         salariesByYear: [{ season, salary: 10_000_000 }],
       },
-    };
+    } satisfies Partial<NormalizedPlayer>;
     const expectedLegacySalary = getMatchingValue(
       legacyConsumerPlayer,
       currentYear,
@@ -184,7 +193,12 @@ describe('Trade Input Normalization', () => {
     const { teams } = normalizeTradeInput(input);
 
     expect(expectedLegacySalary).toBe(16_000_000);
-    expect(teams[0].sends[0].salary).toBe(expectedLegacySalary);
+    const player = teams[0].sends[0];
+    expect(player).toBeDefined();
+    if (!player) {
+      throw new Error('Expected normalized legacy outgoing player');
+    }
+    expect(player.salary).toBe(expectedLegacySalary);
   });
 
   it('handles validation errors in main validator', () => {

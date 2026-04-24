@@ -4,14 +4,34 @@ import { validationFlags } from '@/config/validationFlags';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validateTiming } from '@/features/architect/utils/tradeMachine/rules/timingValidation';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+  TradeTeam,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const CURRENT_YEAR = 2025;
 const SEASON = '2024-25';
 
-const makePlayer = (name, salary, extra = {}) => ({
+type Jan15FixturePlayer = NormalizedPlayer &
+  TradeExceptionPlayer & {
+    isRecentlyExtended?: boolean;
+  };
+
+const makePlayer = (
+  name: string,
+  salary: number,
+  extra: Partial<Jan15FixturePlayer> = {}
+): Jan15FixturePlayer => ({
   id: name.toLowerCase().replace(/\s+/g, '-'),
   player_id: name.toLowerCase().replace(/\s+/g, '-'),
   name,
+  salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
   signAndTrade: false,
   contractYears: 4,
   firstYearGuaranteed: true,
@@ -21,7 +41,11 @@ const makePlayer = (name, salary, extra = {}) => ({
   ...extra,
 });
 
-const makeTeam = (id, players, totalSalary = 100_000_000) => ({
+const makeTeam = (
+  id: string,
+  players: Jan15FixturePlayer[],
+  totalSalary = 100_000_000
+): TradeTeam['team'] => ({
   id,
   teamId: id,
   teamCode: id,
@@ -29,14 +53,15 @@ const makeTeam = (id, players, totalSalary = 100_000_000) => ({
   totalSalary,
   teamTotalSalary: totalSalary,
   players,
-  roster: players.map((player) => player.player_id || player.id),
+  roster: players.map((player) => player.player_id || (player.id ?? player.name)),
   picks: [],
   capHolds: [],
   draftPicks: [],
   tradeExceptions: [],
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 function buildSignAndTradeFixture() {
   const satPlayer = makePlayer('SAT Player', 15_000_000, {

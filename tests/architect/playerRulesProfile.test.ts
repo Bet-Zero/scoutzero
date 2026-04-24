@@ -36,6 +36,39 @@ import {
   RFA_STATUS,
 } from '@/features/architect/utils/playerRulesProfile';
 
+type RequiredExtensionTerms = NonNullable<
+  ReturnType<typeof computeExtensionTerms>
+>;
+
+function requireExtensionTerms(
+  terms: ReturnType<typeof computeExtensionTerms>
+): RequiredExtensionTerms {
+  expect(terms).not.toBeNull();
+  if (!terms) {
+    throw new Error('Expected extension terms');
+  }
+  return terms;
+}
+
+function requireObject<T extends object>(
+  value: T | null | undefined,
+  label: string
+): T {
+  expect(value).not.toBeNull();
+  if (!value) {
+    throw new Error(`Expected ${label}`);
+  }
+  return value;
+}
+
+function requireNumber(value: number | null, label: string): number {
+  expect(value).not.toBeNull();
+  if (value === null) {
+    throw new Error(`Expected ${label}`);
+  }
+  return value;
+}
+
 /**
  * Test Fixtures - Representative player scenarios
  */
@@ -435,7 +468,10 @@ describe('computePlayerRulesProfile', () => {
       LEAGUE_CONTEXT
     );
 
-    expect(profile.teamContext).toBeDefined();
+    expect(profile.teamContext).not.toBeNull();
+    if (!profile.teamContext) {
+      throw new Error('Expected team context');
+    }
     expect(profile.teamContext.teamCode).toBe('LAL');
     expect(profile.teamContext.isOverCap).toBe(true);
   });
@@ -494,7 +530,13 @@ describe('computePlayerRulesProfile', () => {
       'extensionType',
       'eligibleDate',
     ]);
-    expect(Object.keys(profile.extensionTerms)).toEqual([
+    const extensionTerms = requireObject(
+      profile.extensionTerms,
+      'profile extension terms'
+    );
+    const teamContext = requireObject(profile.teamContext, 'team context');
+
+    expect(Object.keys(extensionTerms)).toEqual([
       'maxYears',
       'maxFirstYearSalary',
       'minFirstYearSalary',
@@ -535,7 +577,7 @@ describe('computePlayerRulesProfile', () => {
       'contractType',
       'isRookieScale',
     ]);
-    expect(Object.keys(profile.teamContext)).toEqual([
+    expect(Object.keys(teamContext)).toEqual([
       'teamCode',
       'isOverCap',
       'apronStatus',
@@ -633,18 +675,20 @@ describe('computeExtensionEligibility', () => {
  */
 describe('computeExtensionTerms', () => {
   it('returns terms for eligible veteran', () => {
-    const terms = computeExtensionTerms(VETERAN_STAR, LEAGUE_CONTEXT);
+    const terms = requireExtensionTerms(
+      computeExtensionTerms(VETERAN_STAR, LEAGUE_CONTEXT)
+    );
 
-    expect(terms).not.toBeNull();
     expect(terms.maxYears).toBeGreaterThan(0);
     expect(terms.maxFirstYearSalary).toBeGreaterThan(0);
     expect(terms.raisePercentage).toBeDefined();
   });
 
   it('returns terms for rookie extension', () => {
-    const terms = computeExtensionTerms(ROOKIE_FOURTH_YEAR, LEAGUE_CONTEXT);
+    const terms = requireExtensionTerms(
+      computeExtensionTerms(ROOKIE_FOURTH_YEAR, LEAGUE_CONTEXT)
+    );
 
-    expect(terms).not.toBeNull();
     expect(terms.maxYears).toBe(5); // Rookie extensions up to 5 years
     expect(terms.extensionType).toBe('Rookie Scale Extension');
   });
@@ -661,7 +705,9 @@ describe('computeExtensionTerms', () => {
       awards: [{ type: 'All-NBA', team: 1, year: 2024 }],
     };
 
-    const terms = computeExtensionTerms(allNbaRookie, LEAGUE_CONTEXT);
+    const terms = requireExtensionTerms(
+      computeExtensionTerms(allNbaRookie, LEAGUE_CONTEXT)
+    );
 
     expect(terms.basedOn).toContain('30%'); // Higher Max
   });
@@ -685,7 +731,12 @@ describe('computeBirdRights', () => {
     expect(birdRights.type).toBe(BIRD_RIGHTS_TYPES.EARLY);
     expect(birdRights.signingAbilities.canSignOverCap).toBe(true);
     expect(birdRights.signingAbilities.canSignToMax).toBe(false);
-    expect(birdRights.signingAbilities.maxFirstYearSalary).toBeGreaterThan(0);
+    expect(
+      requireNumber(
+        birdRights.signingAbilities.maxFirstYearSalary,
+        'Early Bird max first-year salary'
+      )
+    ).toBeGreaterThan(0);
   });
 
   it('identifies Non-Bird rights', () => {
@@ -714,7 +765,12 @@ describe('computeBirdRights', () => {
 
     // Allow for rounding differences (tolerance of 10000)
     expect(
-      Math.abs(birdRights.signingAbilities.maxFirstYearSalary - expectedMax)
+      Math.abs(
+        requireNumber(
+          birdRights.signingAbilities.maxFirstYearSalary,
+          'Early Bird max first-year salary'
+        ) - expectedMax
+      )
     ).toBeLessThan(10000);
   });
 });
@@ -750,7 +806,7 @@ describe('computeMinimumSalary', () => {
   });
 
   it('handles missing experience data', () => {
-    const playerNoExp = { playerId: 'no_exp' };
+    const playerNoExp = { bio: {} };
 
     const result = computeMinimumSalary(playerNoExp, LEAGUE_CONTEXT);
 

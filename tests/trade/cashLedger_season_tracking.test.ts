@@ -3,17 +3,48 @@ import { validateCash } from '@/features/architect/utils/tradeMachine/rules/vali
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+  TradeTeam,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
-const makePlayer = (name, salary, extra = {}) => ({
+type CashLedgerFixturePlayer = NormalizedPlayer & TradeExceptionPlayer;
+
+const makePlayer = (
+  name: string,
+  salary: number,
+  extra: Partial<CashLedgerFixturePlayer> = {}
+): CashLedgerFixturePlayer => ({
   name,
+  salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
   contract: { salariesByYear: [{ season, salary }] },
   ...extra,
 });
 
-const makeTeam = (name, totalSalary, rosterSize = 14) => ({
+type CashLedgerFixtureTeam = NonNullable<TradeTeam['team']> & {
+  players: CashLedgerFixturePlayer[];
+  cashLedger?: {
+    totalOut?: number;
+  };
+};
+
+const makeTeam = (
+  name: string,
+  totalSalary: number,
+  rosterSize = 14
+): CashLedgerFixtureTeam => ({
   id: name,
   teamName: name,
   totalSalary,
@@ -24,13 +55,13 @@ const makeTeam = (name, totalSalary, rosterSize = 14) => ({
   picks: [],
 });
 
-const issueTexts = (issues = []) =>
+const issueTexts = (issues: ValidationIssue[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
 describe('seasonal cash ledger tracking', () => {
   it('flags the helper rule when cashSent exceeds the seasonal cap', () => {
-    const team = {
-      teamId: 1,
+    const team: TradeTeam = {
+      teamId: '1',
       cashSent: 500_000,
       cashReceived: 0,
       team: {
@@ -79,7 +110,11 @@ describe('seasonal cash ledger tracking', () => {
 
     const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
     expect(result.legal).toBe(false);
-    expect(issueTexts(teamAResult?.rules?.cash?.violations)).toEqual(
+    expect(teamAResult).toBeDefined();
+    if (!teamAResult) {
+      throw new Error('Expected Team A validation result');
+    }
+    expect(issueTexts(teamAResult.rules.cash.violations)).toEqual(
       expect.arrayContaining([expect.stringMatching(/seasonal limit/i)])
     );
   });

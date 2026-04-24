@@ -1873,6 +1873,55 @@ guardrail truth cluster and reduced Architect strict to `439`. The mission
 still remains open because the roster/rule validation cluster and the
 offseason/DARE follow-on tier remain substantial.
 
+## Step 42 Roster / Rule Validation Wave Delta
+
+Reviewed: 2026-04-24, after Step 42 hardened the bounded roster / rule
+validation truth cluster.
+
+| Measurement                                                                 | Step 41 checkpoint | Current | Delta |
+| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
+| `npm run typecheck`                                                         |                  0 |       0 |     0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                439 |     367 |   -72 |
+| `npm run test:node -- --reporter=dot tests/trade/rosterWindow_softEnforcement.test.ts tests/trade/rosterLegality_validateTrade.test.ts tests/architect/playerRulesProfile.test.ts tests/trade/cashLedger_season_tracking.test.ts tests/trade/jan15_offseason_timing.test.ts tests/trade/input_validation.test.ts tests/trade/roster_twoWay_enforcement.test.ts` | not yet run | `73 / 73` | bounded pack green |
+
+### Step 42 Surface Result
+
+- `tests/trade/rosterWindow_softEnforcement.test.ts`,
+  `tests/trade/rosterLegality_validateTrade.test.ts`,
+  `tests/architect/playerRulesProfile.test.ts`,
+  `tests/trade/cashLedger_season_tracking.test.ts`,
+  `tests/trade/jan15_offseason_timing.test.ts`,
+  `tests/trade/input_validation.test.ts`, and
+  `tests/trade/roster_twoWay_enforcement.test.ts` no longer appear in the live
+  Architect strict output.
+- The wave stayed bounded to typed roster-window carriers, normalized
+  validateTrade fixtures, required profile/extension reads, canonical issue
+  arrays, and stale input import cleanup rather than widening into general
+  offseason, DARE, or UI hardening.
+
+### Remaining Concentration After Step 42
+
+The next backlog is now led by Architect tile/reactivity, CBA batch,
+offseason-transition, DARE, season-advance, and preflight truth clusters:
+
+1. `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts` (`14`)
+2. `src/tests/architect/batchB_cbaRules.test.ts` (`13`)
+3. `src/tests/architect/phase86_oste_offseason_transition_engine.test.ts` (`12`)
+4. `src/tests/architect/dare/dareResolver.test.ts` (`10`)
+5. `src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts` (`10`)
+6. `src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts` (`9`)
+7. `src/tests/tradeMachine/conveyancePreflight.test.ts` (`9`)
+8. `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx` (`8`)
+9. `src/features/architect/utils/capLegalityValidation.ts` (`8`)
+10. `src/features/architect/utils/leagueInvariants.ts` (`8`)
+11. `src/features/architect/utils/tradeContext/tradeContext.ts` (`8`)
+12. `src/tests/architect/phase59_legacy_import_guardrail.test.ts` (`8`)
+
+Plain-language read: Step 42 removed the planned roster / rule validation
+truth cluster and reduced Architect strict to `367`. The mission remains open:
+the next checkpoint must extend the plan again if these remaining clusters are
+still meaningful, which they currently are.
+
 ## Evidence Commands
 
 - `rg --files`

@@ -1291,7 +1291,12 @@ Validation:
 
 ## Step 42 — Harden the next roster / rule validation truth cluster (wave 16)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the planned roster / rule validation truth
+cluster, kept root typecheck green, passed the bounded node pack at 73 / 73,
+and reduced Architect strict from 439 to 367 with no remaining hits in the Step
+42 target files.
 
 **Goal:** Tighten the next trade roster-window, roster-legality, player-rules,
 cash-ledger, and timing/input validation cluster exposed by the Step 40

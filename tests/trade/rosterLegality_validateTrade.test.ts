@@ -2,18 +2,45 @@ import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  TradeExceptionPlayer,
+  TradeTeam,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
-const makePlayer = (name, salary, extra = {}) => ({
+type RosterLegalityFixturePlayer = NormalizedPlayer &
+  TradeExceptionPlayer &
+  Record<string, unknown>;
+
+const makePlayer = (
+  name: string,
+  salary: number,
+  extra: Partial<RosterLegalityFixturePlayer> = {}
+): RosterLegalityFixturePlayer => ({
   name,
   player_id: name.toLowerCase().replace(/\s/g, '_'),
+  salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
   contract: { salariesByYear: [{ season, salary }] },
   ...extra,
 });
 
-const makeTeam = (name, totalSalary, players, extra = {}) => ({
+const makeTeam = (
+  name: string,
+  totalSalary: number,
+  players: RosterLegalityFixturePlayer[],
+  extra: Partial<TradeTeam['team']> = {}
+): TradeTeam['team'] => ({
   teamName: name,
   teamId: name,
   totalSalary,
@@ -21,7 +48,8 @@ const makeTeam = (name, totalSalary, players, extra = {}) => ({
   ...extra,
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 describe('roster legality via validateTrade', () => {
   it('blocks trade that pushes a team over max standard roster (15)', () => {
