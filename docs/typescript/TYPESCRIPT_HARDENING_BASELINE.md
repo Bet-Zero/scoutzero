@@ -1671,6 +1671,46 @@ Plain-language read: the hardening program is making real progress, but the
 repo is still in an evidence-backed `not ready for final review` state. The
 next move is another bounded execution wave, not closeout.
 
+## Step 38 Mutation-Owner / Persistence Wave Delta
+
+Reviewed: 2026-04-24, after Step 38 hardened the bounded `mutationPipeline`
+/ persistence / DARE cluster.
+
+| Measurement                                                                 | Step 37 checkpoint | Current | Delta |
+| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
+| `npm run typecheck`                                                         |                  0 |       0 |     0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                709 |     624 |   -85 |
+| `npm run test:node -- --reporter=dot src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts` | not yet run | `56 / 56` | bounded pack green |
+
+### Step 38 Surface Result
+
+- `src/features/architect/utils/mutationPipeline.ts`,
+  `src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts`,
+  `src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts`,
+  and `src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts`
+  no longer appear in the live Architect strict output.
+- The wave stayed bounded to nullable totals synchronization, offer-sheet
+  carrier narrowing, sign-and-trade handoff truth, persistence fixture helper
+  typing, and DARE mock/input typing rather than widening into general season
+  or cap-legality cleanup.
+
+### Remaining Concentration After Step 38
+
+The next backlog is now led by the Step 39 cluster:
+
+1. `src/shared/components/EditContractModal.tsx` (`22`)
+2. `tests/trade/consent_and_birdVeto.test.ts` (`16`)
+3. `tests/architect/ruleContextTiming.test.ts` (`16`)
+4. `src/tests/architect/capSheet_exception_wiring.behavior.test.tsx` (`16`)
+5. `tests/architect/seasonHelpers.test.ts` (`15`)
+6. `tests/trade/frozenPick_consequences.test.ts` (`14`)
+7. `src/tests/tradeMachine/swapResolution.test.ts` (`14`)
+
+Plain-language read: Step 38 cleared the remaining mutation-owner /
+persistence truth cluster cleanly, but the mission still is not close to final
+review because the next cap-sheet / timing / consent / pick-rule cluster now
+dominates the live strict backlog.
+
 ## Evidence Commands
 
 - `rg --files`

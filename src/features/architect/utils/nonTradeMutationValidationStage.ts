@@ -230,7 +230,7 @@ function validateRosterAndContractMutation({
       const result = validateWaive({
         team,
         player,
-        stretch: payload.stretch,
+        stretch: payload.stretch ?? false,
         year: currentYear,
         isGracePeriod: payload.isGracePeriod || false,
         asOfDate: asOfDate ?? undefined,

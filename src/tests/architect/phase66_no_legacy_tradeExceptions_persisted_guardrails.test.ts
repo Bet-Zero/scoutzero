@@ -42,7 +42,7 @@ type TestTeamWithExceptions = {
   [key: string]: unknown;
 };
 
-function readAuthoritativeImplementationContent(filePath) {
+function readAuthoritativeImplementationContent(filePath: string): string {
   const content = fs.readFileSync(filePath, 'utf-8');
   const stripped = content
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -64,6 +64,16 @@ function readAuthoritativeImplementationContent(filePath) {
   }
 
   return content;
+}
+
+function requireCanonicalTpeList(team: TestTeamWithExceptions): TestTpe[] {
+  return Array.isArray(team.exceptions?.tpe) ? team.exceptions.tpe : [];
+}
+
+function getFirstCaptureGroup(content: string, pattern: RegExp): string {
+  const match = content.match(pattern);
+  expect(match).toBeTruthy();
+  return match?.[1] ?? '';
 }
 
 // ============================================================================
@@ -121,9 +131,9 @@ describe('Phase 66 Guardrail: Persistence Contracts Normalization', () => {
     expect(normalized).not.toHaveProperty('tradeExceptions');
 
     // Canonical location MUST be populated
-    expect(normalized.exceptions.tpe).toBeDefined();
-    expect(normalized.exceptions.tpe).toHaveLength(1);
-    expect(normalized.exceptions.tpe[0].id).toBe('tpe-1');
+    const normalizedTpes = requireCanonicalTpeList(normalized);
+    expect(normalizedTpes).toHaveLength(1);
+    expect(normalizedTpes[0]?.id).toBe('tpe-1');
   });
 
   it('normalizeTeamTpeSchema merges legacy and canonical, canonical wins', async () => {
@@ -146,13 +156,14 @@ describe('Phase 66 Guardrail: Persistence Contracts Normalization', () => {
     };
 
     const normalized = normalizeTeamTpeSchema(team);
+    const normalizedTpes = requireCanonicalTpeList(normalized);
 
     expect(normalized).not.toHaveProperty('tradeExceptions');
-    expect(normalized.exceptions.tpe).toHaveLength(3);
+    expect(normalizedTpes).toHaveLength(3);
 
     // Verify canonical wins for shared ID
-    const shared = normalized.exceptions.tpe.find((t) => t.id === 'tpe-shared');
-    expect(shared.amount).toBe(4000000);
+    const shared = normalizedTpes.find((tpe) => tpe.id === 'tpe-shared');
+    expect(shared?.amount).toBe(4000000);
   });
 
   it('NEGATIVE: team with only tradeExceptions gets normalized before persist', async () => {
@@ -174,8 +185,9 @@ describe('Phase 66 Guardrail: Persistence Contracts Normalization', () => {
 
     // Canonical location created and populated
     expect(normalized.exceptions).toBeDefined();
-    expect(normalized.exceptions.tpe).toHaveLength(1);
-    expect(normalized.exceptions.tpe[0].id).toBe('old-tpe');
+    const normalizedTpes = requireCanonicalTpeList(normalized);
+    expect(normalizedTpes).toHaveLength(1);
+    expect(normalizedTpes[0]?.id).toBe('old-tpe');
   });
 });
 
@@ -183,7 +195,7 @@ describe('Phase 66 Guardrail: Persistence Contracts Normalization', () => {
 // Test 3: Telemetry Fires on Legacy Fallback
 // ============================================================================
 describe('Phase 66 Guardrail: Legacy Fallback Telemetry', () => {
-  let consoleWarnSpy;
+  let consoleWarnSpy: { mockRestore(): void } | null = null;
 
   beforeEach(async () => {
     // Reset telemetry state before each test
@@ -306,12 +318,10 @@ describe('Phase 66 Guardrail: Persistence Allowlists Exclude tradeExceptions', (
     const content = readAuthoritativeImplementationContent(contractsPath);
 
     // Find the TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST definition
-    const match = content.match(
+    const keyList = getFirstCaptureGroup(
+      content,
       /TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST(?:\s*:\s*[^=]+)?\s*=\s*Object\.freeze\(\[([\s\S]*?)\]\)/
     );
-    expect(match).toBeTruthy();
-
-    const keyList = match[1];
 
     // Split into actual array entries (lines that are string values, not comments)
     const arrayEntries = keyList
@@ -336,12 +346,10 @@ describe('Phase 66 Guardrail: Persistence Allowlists Exclude tradeExceptions', (
     const content = readAuthoritativeImplementationContent(contractsPath);
 
     // Find the allowlist
-    const match = content.match(
+    const keyList = getFirstCaptureGroup(
+      content,
       /TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST(?:\s*:\s*[^=]+)?\s*=\s*Object\.freeze\(\[([\s\S]*?)\]\)/
     );
-    expect(match).toBeTruthy();
-
-    const keyList = match[1];
     // 'exceptions' should be in the allowlist (canonical location for TPE)
     expect(keyList).toContain("'exceptions'");
   });
@@ -432,8 +440,9 @@ describe('Phase 66 Guardrail: Persisted Team Fixture Shape', () => {
 
     // After normalization, tradeExceptions must be gone
     expect(Object.keys(normalized)).not.toContain('tradeExceptions');
-    expect(normalized.exceptions.tpe).toHaveLength(1);
-    expect(normalized.exceptions.tpe[0].id).toBe('legacy-tpe');
+    const normalizedTpes = requireCanonicalTpeList(normalized);
+    expect(normalizedTpes).toHaveLength(1);
+    expect(normalizedTpes[0]?.id).toBe('legacy-tpe');
   });
 });
 

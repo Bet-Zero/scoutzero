@@ -7417,6 +7417,18 @@ export function buildTotalsByTeam(
   return totalsByTeam;
 }
 
+function synchronizeTeamTotalsSnapshotOrTeam<
+  T extends
+    | CurrentStateTeamRoundTripMaterializable
+    | ArchitectGeneralMutationCommittedTeamSnapshot,
+>(team: T, year: number | null | undefined): T {
+  if (typeof year !== 'number' || !Number.isFinite(year)) {
+    return team;
+  }
+
+  return (synchronizeTeamTotalsSnapshot(team, year) || team) as T;
+}
+
 function prepareGeneralMutationPersistenceTeamSnapshot(
   team: CurrentStateTeamRoundTripMaterializable | null | undefined,
   seasonId: string
@@ -11275,7 +11287,7 @@ function computeSigningResult({
   };
 
   // Recalculate totals
-  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
     toEndYear(seasonId)
   ).totals;
@@ -11288,17 +11300,19 @@ function computeSigningResult({
   if (
     normalizedContract?.rfaOfferSheet &&
     currentState.homeTeam &&
-    currentState.homeTeam.incomingOfferSheets
+    Array.isArray(currentState.homeTeam.incomingOfferSheets)
   ) {
-    const updatedHomeTeam = { ...currentState.homeTeam };
-    updatedHomeTeam.incomingOfferSheets =
-      updatedHomeTeam.incomingOfferSheets.filter(
+    const existingIncomingOfferSheets = currentState.homeTeam.incomingOfferSheets;
+    const updatedHomeTeam = {
+      ...currentState.homeTeam,
+      incomingOfferSheets: existingIncomingOfferSheets.filter(
         (offerSheet) => String(offerSheet.playerId || '').trim() !== playerId
-      );
+      ),
+    };
     // Only add update if something changed
     if (
       updatedHomeTeam.incomingOfferSheets.length !==
-      currentState.homeTeam.incomingOfferSheets.length
+      existingIncomingOfferSheets.length
     ) {
       updatedHomeTeam.source = {
         ...getTeamSourceRecord(updatedHomeTeam.source),
@@ -11460,7 +11474,7 @@ function computeWaiveResult({
   };
 
   // Recalculate totals
-  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
     toEndYear(seasonId)
   ).totals;
@@ -11557,7 +11571,7 @@ function computeExtensionResult({
       : []
   ).map((row) => {
     const rowYear = getSalaryRowEndYear(row as MutationPipelineSalaryRow);
-    return extensionYearSet.has(rowYear)
+    return typeof rowYear === 'number' && extensionYearSet.has(rowYear)
       ? { ...row, voidedByExtension: true }
       : row;
   });
@@ -11706,7 +11720,6 @@ function computeOptionResult({
           type: 'UFA',
         },
       }) as ArchitectMutationContract | null,
-      freeAgentYear: freeAgencyYear,
     };
 
     // Create cap hold for declined option
@@ -11768,7 +11781,7 @@ function computeOptionResult({
   };
 
   // Recalculate totals
-  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
     toEndYear(seasonId)
   ).totals;
@@ -11865,7 +11878,7 @@ function computeRenounceResult({
   };
 
   // Recalculate totals (cap holds affect cap space)
-  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
     toEndYear(seasonId)
   ).totals;
@@ -11972,7 +11985,7 @@ function computeSetExceptionsResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
-  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
     toEndYear(seasonId)
   ).totals;
@@ -12109,15 +12122,26 @@ export function validateMutation({
     }
 
     default:
-      return validateNonTradeMutationStage({
-        mutationType,
-        payload,
-        currentState,
-        computeResult,
-        seasonId,
-        asOfDate,
-        dateDefaulted,
-      });
+      {
+        const stageResult = validateNonTradeMutationStage({
+          mutationType,
+          payload,
+          currentState,
+          computeResult,
+          seasonId,
+          asOfDate,
+          dateDefaulted,
+        });
+
+        return {
+          valid: stageResult.valid,
+          ...(stageResult.error ? { error: stageResult.error } : {}),
+          ...(stageResult.violations
+            ? { violations: stageResult.violations }
+            : {}),
+          ...(stageResult.warnings ? { warnings: stageResult.warnings } : {}),
+        };
+      }
   }
 }
 
@@ -12439,6 +12463,13 @@ function computeStoreOfferSheetResult({
         'storeOfferSheet requires canonical home-team player truth before offer-sheet creation.',
     };
   }
+  if (!contract) {
+    return {
+      success: false,
+      error:
+        'storeOfferSheet requires contract terms before offer-sheet creation.',
+    };
+  }
 
   // Validate store-only invariants programmatically just in case
   if (contract.rfaOfferSheetOnly !== true || contract.rfaOfferSheet !== true) {
@@ -12511,23 +12542,24 @@ function computeStoreOfferSheetResult({
   };
 
   const updatedOfferingTeam = { ...offeringTeam };
+  const offeringOfferSheets = updatedOfferingTeam.offerSheets ?? [];
 
   // Phase 18.1: DEDUPLICATION - Check by id first, then by dedupKey
   // This ensures retries don't create duplicates even with different timestamps
-  let existingIndex = (updatedOfferingTeam.offerSheets || []).findIndex(
+  let existingIndex = offeringOfferSheets.findIndex(
     (existingOfferSheet) => existingOfferSheet.id === offerSheetId
   );
   if (existingIndex === -1) {
     // Not found by ID, try dedupKey
-    existingIndex = (updatedOfferingTeam.offerSheets || []).findIndex(
+    existingIndex = offeringOfferSheets.findIndex(
       (existingOfferSheet) => existingOfferSheet.dedupKey === dedupKey
     );
   }
 
   if (existingIndex !== -1) {
     // UPDATE IN PLACE - preserve existing ID if found by dedupKey
-    const existingSheet = updatedOfferingTeam.offerSheets[existingIndex];
-    const newSheets = [...updatedOfferingTeam.offerSheets];
+    const existingSheet = offeringOfferSheets[existingIndex];
+    const newSheets = [...offeringOfferSheets];
     newSheets[existingIndex] = {
       ...offerSheet,
       id: existingSheet.id, // Preserve original ID
@@ -12553,21 +12585,21 @@ function computeStoreOfferSheetResult({
   // MIRRORING: Add to home team's incomingOfferSheets if home team exists
   if (homeTeam) {
     const updatedHomeTeam = { ...homeTeam };
+    const incomingOfferSheets = updatedHomeTeam.incomingOfferSheets ?? [];
 
     // Phase 18.1: Same dedup logic for home team
-    let existingHomeIndex = (
-      updatedHomeTeam.incomingOfferSheets || []
-    ).findIndex((existingOfferSheet) => existingOfferSheet.id === offerSheetId);
+    let existingHomeIndex = incomingOfferSheets.findIndex(
+      (existingOfferSheet) => existingOfferSheet.id === offerSheetId
+    );
     if (existingHomeIndex === -1) {
-      existingHomeIndex = (updatedHomeTeam.incomingOfferSheets || []).findIndex(
+      existingHomeIndex = incomingOfferSheets.findIndex(
         (existingOfferSheet) => existingOfferSheet.dedupKey === dedupKey
       );
     }
 
     if (existingHomeIndex !== -1) {
-      const existingSheet =
-        updatedHomeTeam.incomingOfferSheets[existingHomeIndex];
-      const newSheets = [...updatedHomeTeam.incomingOfferSheets];
+      const existingSheet = incomingOfferSheets[existingHomeIndex];
+      const newSheets = [...incomingOfferSheets];
       newSheets[existingHomeIndex] = {
         ...offerSheet,
         id: existingSheet.id,
@@ -12622,7 +12654,8 @@ function computeMatchOfferSheetResult({
   );
 
   // Find offer sheet on offering team
-  const offerSheetIndex = (offeringTeam.offerSheets || []).findIndex(
+  const offeringOfferSheets = offeringTeam.offerSheets ?? [];
+  const offerSheetIndex = offeringOfferSheets.findIndex(
     (offerSheet) => offerSheet.id === offerSheetId
   );
   if (offerSheetIndex === -1) {
@@ -12632,7 +12665,7 @@ function computeMatchOfferSheetResult({
     };
   }
 
-  const existingSheet = offeringTeam.offerSheets[offerSheetIndex];
+  const existingSheet = offeringOfferSheets[offerSheetIndex];
 
   if (existingSheet.status !== 'PENDING_MATCH') {
     return {
@@ -12649,7 +12682,7 @@ function computeMatchOfferSheetResult({
   };
 
   const updatedOfferingTeam = { ...offeringTeam };
-  updatedOfferingTeam.offerSheets = [...updatedOfferingTeam.offerSheets];
+  updatedOfferingTeam.offerSheets = [...offeringOfferSheets];
   updatedOfferingTeam.offerSheets[offerSheetIndex] = updatedOfferSheet;
   updatedOfferingTeam.source = {
     ...getTeamSourceRecord(updatedOfferingTeam.source),
@@ -12666,11 +12699,10 @@ function computeMatchOfferSheetResult({
       (offerSheet) => offerSheet.id === offerSheetId
     );
     if (homeIndex !== -1) {
-      const updatedHomeTeam = { ...homeTeam };
-      updatedHomeTeam.incomingOfferSheets = [
-        ...updatedHomeTeam.incomingOfferSheets,
-      ];
-      updatedHomeTeam.incomingOfferSheets[homeIndex] = updatedOfferSheet;
+    const updatedHomeTeam = { ...homeTeam };
+    const incomingOfferSheets = updatedHomeTeam.incomingOfferSheets ?? [];
+    updatedHomeTeam.incomingOfferSheets = [...incomingOfferSheets];
+    updatedHomeTeam.incomingOfferSheets[homeIndex] = updatedOfferSheet;
       updatedHomeTeam.source = {
         ...getTeamSourceRecord(updatedHomeTeam.source),
         lastModifiedAt: new Date(timestamp).toISOString(),
@@ -12712,14 +12744,15 @@ function computeDeclineOfferSheetResult({
   );
 
   // Find offer sheet
-  const offerSheetIndex = (offeringTeam.offerSheets || []).findIndex(
+  const offeringOfferSheets = offeringTeam.offerSheets ?? [];
+  const offerSheetIndex = offeringOfferSheets.findIndex(
     (offerSheet) => offerSheet.id === offerSheetId
   );
   if (offerSheetIndex === -1) {
     return { success: false, error: `Offer sheet ${offerSheetId} not found` };
   }
 
-  const existingSheet = offeringTeam.offerSheets[offerSheetIndex];
+  const existingSheet = offeringOfferSheets[offerSheetIndex];
   if (existingSheet.status !== 'PENDING_MATCH') {
     return {
       success: false,
@@ -12734,7 +12767,7 @@ function computeDeclineOfferSheetResult({
   };
 
   const updatedOfferingTeam = { ...offeringTeam };
-  updatedOfferingTeam.offerSheets = [...updatedOfferingTeam.offerSheets];
+  updatedOfferingTeam.offerSheets = [...offeringOfferSheets];
   updatedOfferingTeam.offerSheets[offerSheetIndex] = updatedOfferSheet;
   updatedOfferingTeam.source = {
     ...getTeamSourceRecord(updatedOfferingTeam.source),
@@ -12752,9 +12785,8 @@ function computeDeclineOfferSheetResult({
     );
     if (homeIndex !== -1) {
       const updatedHomeTeam = { ...homeTeam };
-      updatedHomeTeam.incomingOfferSheets = [
-        ...updatedHomeTeam.incomingOfferSheets,
-      ];
+      const incomingOfferSheets = updatedHomeTeam.incomingOfferSheets ?? [];
+      updatedHomeTeam.incomingOfferSheets = [...incomingOfferSheets];
       updatedHomeTeam.incomingOfferSheets[homeIndex] = updatedOfferSheet;
       updatedHomeTeam.source = {
         ...getTeamSourceRecord(updatedHomeTeam.source),
@@ -12831,7 +12863,8 @@ function computeFinalizeMatchedOfferSheetResult({
     };
   }
 
-  const playerIndex = (homeTeam.players || []).findIndex(
+  const homeTeamPlayers = homeTeam.players ?? [];
+  const playerIndex = homeTeamPlayers.findIndex(
     (teamPlayer) => getMutationPlayerId(teamPlayer) === playerId
   );
 
@@ -12856,7 +12889,7 @@ function computeFinalizeMatchedOfferSheetResult({
   }
 
   const updatedPlayer = {
-    ...homeTeam.players[playerIndex],
+    ...homeTeamPlayers[playerIndex],
     teamCode: homeTeam.teamCode,
     teamName: homeTeam.teamName,
     contract: normalizedContract,
@@ -12875,9 +12908,9 @@ function computeFinalizeMatchedOfferSheetResult({
     resolvedDedupKey
   );
   updatedHomeTeam.players = [
-    ...updatedHomeTeam.players.slice(0, playerIndex),
+    ...homeTeamPlayers.slice(0, playerIndex),
     updatedPlayer,
-    ...updatedHomeTeam.players.slice(playerIndex + 1),
+    ...homeTeamPlayers.slice(playerIndex + 1),
   ];
   if (Array.isArray(updatedHomeTeam.capHolds)) {
     updatedHomeTeam.capHolds = updatedHomeTeam.capHolds.filter(
@@ -12889,7 +12922,7 @@ function computeFinalizeMatchedOfferSheetResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
-  updatedHomeTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedHomeTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedHomeTeam,
     toEndYear(seasonId)
   ).totals;
@@ -13037,18 +13070,19 @@ function computeFinalizeDeclinedOfferSheetResult({
     offerSheetId || '',
     resolvedDedupKey
   );
-  const offeringPlayerIndex = (updatedOfferingTeam.players || []).findIndex(
+  const offeringTeamPlayers = updatedOfferingTeam.players ?? [];
+  const offeringPlayerIndex = offeringTeamPlayers.findIndex(
     (teamPlayer) => getMutationPlayerId(teamPlayer) === playerId
   );
   if (offeringPlayerIndex !== -1) {
     updatedOfferingTeam.players = [
-      ...updatedOfferingTeam.players.slice(0, offeringPlayerIndex),
+      ...offeringTeamPlayers.slice(0, offeringPlayerIndex),
       updatedPlayer,
-      ...updatedOfferingTeam.players.slice(offeringPlayerIndex + 1),
+      ...offeringTeamPlayers.slice(offeringPlayerIndex + 1),
     ];
   } else {
     updatedOfferingTeam.players = [
-      ...(updatedOfferingTeam.players || []),
+      ...offeringTeamPlayers,
       updatedPlayer,
     ];
   }
@@ -13072,7 +13106,7 @@ function computeFinalizeDeclinedOfferSheetResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
-  updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedOfferingTeam,
     toEndYear(seasonId)
   ).totals;
@@ -13099,7 +13133,7 @@ function computeFinalizeDeclinedOfferSheetResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
-  updatedHomeTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedHomeTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedHomeTeam,
     toEndYear(seasonId)
   ).totals;
@@ -13220,12 +13254,20 @@ function computeSignAndTradeResult({
   }
 
   // Extract updated source team and player (now signed) from signing result
+  const signingTeamUpdate = signingResult.teamUpdates?.[0]?.team;
+  const signedPlayer = signingResult.playerUpdates?.[0]?.player;
+  if (!signingTeamUpdate || !signedPlayer) {
+    return {
+      success: false,
+      error:
+        'Signing step did not return the source-team and player truth required for sign-and-trade handoff.',
+    };
+  }
   const updatedSourceTeam =
-    materializeCurrentStateBaseTeamPreservedFields(
-      signingResult.teamUpdates[0]
-        .team as CurrentStateTeamRoundTripMaterializable
-    ) || signingResult.teamUpdates[0].team;
-  const signedPlayer = signingResult.playerUpdates[0].player;
+    (materializeCurrentStateBaseTeamPreservedFields(
+      signingTeamUpdate as CurrentStateTeamRoundTripMaterializable
+    ) as ArchitectMutationTeamRecord | null) ||
+    (signingTeamUpdate as ArchitectMutationTeamRecord);
 
   // 2. Build the SAT handoff into the canonical trade preparation surface.
   const tradeHandoff = buildSignAndTradeTradeHandoff({
@@ -13348,7 +13390,7 @@ function computeSetDeadCapResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
-  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+  updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
     toEndYear(seasonId)
   ).totals;

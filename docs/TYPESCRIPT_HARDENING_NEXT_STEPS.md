@@ -1115,7 +1115,9 @@ That section must:
 
 ## Step 38 — Harden the next Architect mutation-owner / persistence truth cluster (wave 13)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the planned mutation-owner / persistence cluster, kept root typecheck green, passed the bounded node pack at `56 / 56`, and reduced Architect strict from `709` to `624` with no remaining hits in the Step 38 target files.
 
 **Goal:** Tighten the highest-leverage remaining Architect runtime-owner and persistence truth cluster exposed by the Step 37 checkpoint without reopening a broad repo-wide runtime pass.
 

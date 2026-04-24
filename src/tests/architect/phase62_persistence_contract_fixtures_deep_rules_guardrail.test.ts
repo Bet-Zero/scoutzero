@@ -36,6 +36,16 @@ import {
   TEAM_DEEP_RULES,
 } from '@/features/architect/utils/persistenceContracts';
 
+type FixtureRecord = Record<string, unknown>;
+
+function getThrownMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  throw error;
+}
+
 // ==============================================================================
 // HELPER: Build representative fixture objects
 // ==============================================================================
@@ -454,7 +464,7 @@ describe('Phase 62: Fixture-based contract validation', () => {
 /**
  * Helper to extract sorted top-level keys from an object.
  */
-function extractSortedKeys(obj) {
+function extractSortedKeys(obj: FixtureRecord): string[] {
   return Object.keys(obj).sort();
 }
 
@@ -462,12 +472,12 @@ function extractSortedKeys(obj) {
  * Helper to extract sorted item keys from the first item of an array (if present).
  * Returns union of all item keys if multiple items exist.
  */
-function extractArrayItemKeys(arr) {
+function extractArrayItemKeys(arr: readonly unknown[]): string[] {
   if (!Array.isArray(arr) || arr.length === 0) return [];
-  const keySet = new Set();
+  const keySet = new Set<string>();
   arr.forEach((item) => {
     if (item && typeof item === 'object') {
-      Object.keys(item).forEach((k) => keySet.add(k));
+      Object.keys(item as FixtureRecord).forEach((key) => keySet.add(key));
     }
   });
   return [...keySet].sort();
@@ -629,9 +639,10 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
       });
       expect.fail('Should have thrown');
     } catch (error) {
-      expect(error.message).toContain('TEAM');
-      expect(error.message).toContain('team.deadCap[0].debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.ts');
+      const message = getThrownMessage(error);
+      expect(message).toContain('TEAM');
+      expect(message).toContain('team.deadCap[0].debugFoo');
+      expect(message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -657,9 +668,10 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
       });
       expect.fail('Should have thrown');
     } catch (error) {
-      expect(error.message).toContain('TEAM');
-      expect(error.message).toContain('team.capHolds[0].debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.ts');
+      const message = getThrownMessage(error);
+      expect(message).toContain('TEAM');
+      expect(message).toContain('team.capHolds[0].debugFoo');
+      expect(message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -686,11 +698,12 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
       });
       expect.fail('Should have thrown');
     } catch (error) {
-      expect(error.message).toContain('TEAM');
-      expect(error.message).toContain(
+      const message = getThrownMessage(error);
+      expect(message).toContain('TEAM');
+      expect(message).toContain(
         'team.deadCap[0].amountByYear[0].debugFoo'
       );
-      expect(error.message).toContain('persistenceContracts/contracts.ts');
+      expect(message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -716,9 +729,10 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
       });
       expect.fail('Should have thrown');
     } catch (error) {
-      expect(error.message).toContain('TEAM');
-      expect(error.message).toContain('team.exceptions.tpe[0].debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.ts');
+      const message = getThrownMessage(error);
+      expect(message).toContain('TEAM');
+      expect(message).toContain('team.exceptions.tpe[0].debugFoo');
+      expect(message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -743,9 +757,10 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
       });
       expect.fail('Should have thrown');
     } catch (error) {
-      expect(error.message).toContain('TEAM');
-      expect(error.message).toContain('team.exceptionHistory[0].debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.ts');
+      const message = getThrownMessage(error);
+      expect(message).toContain('TEAM');
+      expect(message).toContain('team.exceptionHistory[0].debugFoo');
+      expect(message).toContain('persistenceContracts/contracts.ts');
     }
   });
 });

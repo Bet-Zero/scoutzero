@@ -7,6 +7,54 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { advanceSeasonInWorld } from '@/features/architect/utils/seasonManager';
 
+type MockLeagueTeam = {
+  teamCode: string;
+  entitlementIds: string[];
+  roster: unknown[];
+  players: unknown[];
+  totals: Record<string, unknown>;
+};
+
+type MockResolutionReceipt = {
+  draftYear: number;
+  resolvedAt: string;
+  totalResolutions: number;
+  byOutcome: {
+    conveyed: number;
+    rolled: number;
+    converted: number;
+    swap_resolved: number;
+    expired: number;
+    unchanged: number;
+  };
+  entries: unknown[];
+  warnings: unknown[];
+};
+
+type MockDareInput = {
+  teams?: MockLeagueTeam[];
+};
+
+function createMockLeagueTeam(
+  teamCode: string,
+  entitlementIds: string[] = []
+): MockLeagueTeam {
+  return {
+    teamCode,
+    entitlementIds,
+    roster: [],
+    players: [],
+    totals: {},
+  };
+}
+
+function findMockTeamByCode(
+  teams: MockLeagueTeam[] | undefined,
+  teamCode: string
+): MockLeagueTeam | undefined {
+  return teams?.find((team) => team.teamCode === teamCode);
+}
+
 // =============================================================================
 // MOCKS
 // =============================================================================
@@ -35,9 +83,9 @@ vi.mock('firebase/firestore', () => ({
     delete: mocks.mockBatchDelete,
     commit: mocks.mockBatchCommit,
   }),
-  doc: (db, ...pathParts) => pathParts.join('/'),
+  doc: (_db: unknown, ...pathParts: Array<string | number>) => pathParts.join('/'),
   serverTimestamp: () => '2026-02-04T00:00:00.000Z',
-  increment: (n) => n,
+  increment: (n: number) => n,
 }));
 
 vi.mock('@/firebaseConfig', () => ({
@@ -71,7 +119,7 @@ vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
 
 // Mock Season Manager dependencies that are not under test
 vi.mock('@/features/architect/utils/capTotals', () => ({
-  computeTeamCapTotals: (_team, year) => ({
+  computeTeamCapTotals: (_team: unknown, year: number) => ({
     yearKey: year,
     playersTotal: 0,
     deadMoneyTotal: 0,
@@ -86,18 +134,20 @@ vi.mock('@/features/architect/utils/capTotals', () => ({
 }));
 
 vi.mock('@/features/architect/utils/seasonFormat', () => ({
-  toEndYear: (s) => parseInt(s.split('-')[0]) + 1,
-  getDraftYearForSeasonAdvance: (s) => parseInt(s.split('-')[0]) + 1,
-  getSeasonAdvanceDraftContext: (s) => {
-    const nextUsedDraftYear = parseInt(s.split('-')[0]) + 1;
+  toEndYear: (seasonId: string) => parseInt(seasonId.split('-')[0]) + 1,
+  getDraftYearForSeasonAdvance: (seasonId: string) =>
+    parseInt(seasonId.split('-')[0]) + 1,
+  getSeasonAdvanceDraftContext: (seasonId: string) => {
+    const seasonStartYear = parseInt(seasonId.split('-')[0]);
+    const nextUsedDraftYear = seasonStartYear + 1;
     return {
-      authoritativeSeason: s,
+      authoritativeSeason: seasonId,
       nextUsedDraftYear,
       nextSeason: `${nextUsedDraftYear}-${String(nextUsedDraftYear + 1).slice(2)}`,
     };
   },
-  toSeasonCode: (y) => `${y - 1}-${y.toString().slice(2)}`,
-  toSeasonKey: (s) => parseInt(s.split('-')[0]) + 1,
+  toSeasonCode: (year: number) => `${year - 1}-${year.toString().slice(2)}`,
+  toSeasonKey: (seasonId: string) => parseInt(seasonId.split('-')[0]) + 1,
 }));
 
 // Mock other dependencies to isolate SeasonManager
@@ -106,19 +156,23 @@ vi.mock('@/features/architect/utils/salaryEngine', () => ({
 }));
 
 vi.mock('@/features/architect/utils/tpeLifecycle', () => ({
-  processTradeExceptions: () => ({ activeTPEs: [], expiredTPEs: [], hasChanges: false }),
+  processTradeExceptions: () => ({
+    activeTPEs: [],
+    expiredTPEs: [],
+    hasChanges: false,
+  }),
   getTpeExpiryISO: () => '2026-07-01T00:00:00.000Z',
 }));
 
 vi.mock('@/features/architect/utils/persistenceContracts', () => ({
-  normalizeTeamTpeSchema: (team) => team,
+  normalizeTeamTpeSchema: <T,>(team: T) => team,
   getTeamTpeList: () => [],
   assertPersistableOrThrow: () => {},
   PERSISTENCE_CONTRACTS: { TEAM: { topLevel: [], deepRules: null } },
 }));
 
 vi.mock('@/features/architect/utils/persistenceContracts/enforcement', () => ({
-  sanitizeTransientFieldsForPersistence: (team) => team,
+  sanitizeTransientFieldsForPersistence: <T,>(team: T) => team,
 }));
 
 vi.mock('@/features/architect/utils/exceptions', () => ({
@@ -137,7 +191,7 @@ vi.mock('@/features/architect/utils/exceptionHistory/historyHelpers', () => ({
 }));
 
 vi.mock('@/features/architect/utils/offseason', () => ({
-  resolveOffseasonTransition: (params) => ({
+  resolveOffseasonTransition: (params: { teamCapSheet: unknown }) => ({
     success: true,
     nextTeamCapSheet: params.teamCapSheet,
     appliedChangesSummary: {},
@@ -169,7 +223,7 @@ describe('Phase B: DARE World Persistence Integration', () => {
   const FROM_SEASON = '2025-26';
   const TO_SEASON = '2026-27';
 
-  function createMockResolutionReceipt(totalResolutions = 0) {
+  function createMockResolutionReceipt(totalResolutions = 0): MockResolutionReceipt {
     return {
       draftYear: 2026,
       resolvedAt: '2026-02-04T00:00:00.000Z',
@@ -201,8 +255,8 @@ describe('Phase B: DARE World Persistence Integration', () => {
 
     // Default League: 2 Teams
     mocks.mockGetLeague.mockResolvedValue([
-      { teamCode: 'MIN', entitlementIds: [], roster: [], players: [], totals: {} },
-      { teamCode: 'DET', entitlementIds: [], roster: [], players: [], totals: {} },
+      createMockLeagueTeam('MIN'),
+      createMockLeagueTeam('DET'),
     ]);
 
     // Default DARE Result: Success, no-op
@@ -212,7 +266,7 @@ describe('Phase B: DARE World Persistence Integration', () => {
       teamEntitlementIdUpdates: [],
       resolutionReceipt: createMockResolutionReceipt(),
     });
-    
+
     // Default Entitlement Resolver
     mocks.mockResolveEntitlementsForTeam.mockResolvedValue([]);
   });
@@ -222,8 +276,8 @@ describe('Phase B: DARE World Persistence Integration', () => {
       // 1. Setup World State
       mocks.mockGetDraftPositionsMap.mockResolvedValue({ MIN: 1, DET: 2 });
       mocks.mockGetLeague.mockResolvedValue([
-        { teamCode: 'MIN', entitlementIds: ['e1'], roster: [], players: [], totals: {} },
-        { teamCode: 'DET', entitlementIds: [], roster: [], players: [], totals: {} },
+        createMockLeagueTeam('MIN', ['e1']),
+        createMockLeagueTeam('DET'),
       ]);
 
       // 2. Setup DARE Output (Simulate a resolution)
@@ -242,7 +296,7 @@ describe('Phase B: DARE World Persistence Integration', () => {
             entitlementId: 'e1',
             document: { id: 'e1', resolved: true },
             reason: 'Resolved',
-          }
+          },
         ],
         teamEntitlementIdUpdates: [
           {
@@ -250,11 +304,11 @@ describe('Phase B: DARE World Persistence Integration', () => {
             entitlementIds: ['e2'],
             addedIds: ['e2'],
             removedIds: ['e1'],
-          }
+          },
         ],
         resolutionReceipt: createMockResolutionReceipt(1),
       };
-      
+
       mocks.mockResolveAllDraftAssets.mockResolvedValue(mockDAREOutput);
 
       // 3. Execute Season Advance
@@ -299,11 +353,11 @@ describe('Phase B: DARE World Persistence Integration', () => {
       const result = await advanceSeasonInWorld(WORLD_ID);
 
       expect(result.success).toBe(true); // Season advance proceeds
-      expect(result.summary.dareError).toBe('Simulated DARE failure');
+      expect(result.summary?.dareError).toBe('Simulated DARE failure');
 
       // Verify NO entitlement writes
-      const entitlementWrites = mocks.mockBatchSet.mock.calls.filter(args => 
-        args[0].includes('architect_entitlements')
+      const entitlementWrites = mocks.mockBatchSet.mock.calls.filter((args) =>
+        String(args[0]).includes('architect_entitlements')
       );
       expect(entitlementWrites.length).toBe(0);
     });
@@ -311,8 +365,8 @@ describe('Phase B: DARE World Persistence Integration', () => {
     it('fails season advance loudly when gated DARE persistence is blocked', async () => {
       mocks.mockGetDraftPositionsMap.mockResolvedValue({ MIN: 1 });
       mocks.mockGetLeague.mockResolvedValue([
-        { teamCode: 'MIN', entitlementIds: [], roster: [], players: [], totals: {} },
-        { teamCode: 'DET', entitlementIds: [], roster: [], players: [], totals: {} },
+        createMockLeagueTeam('MIN'),
+        createMockLeagueTeam('DET'),
       ]);
       mocks.mockResolveEntitlementsForTeam.mockResolvedValue([]);
 
@@ -339,8 +393,8 @@ describe('Phase B: DARE World Persistence Integration', () => {
     it('fails season advance loudly when resolver surfaces entitlement invariant violation', async () => {
       mocks.mockGetDraftPositionsMap.mockResolvedValue({ MIN: 1 });
       mocks.mockGetLeague.mockResolvedValue([
-        { teamCode: 'MIN', entitlementIds: [], roster: [], players: [], totals: {} },
-        { teamCode: 'DET', entitlementIds: [], roster: [], players: [], totals: {} },
+        createMockLeagueTeam('MIN'),
+        createMockLeagueTeam('DET'),
       ]);
       mocks.mockResolveAllDraftAssets.mockResolvedValue({
         success: true,
@@ -364,27 +418,29 @@ describe('Phase B: DARE World Persistence Integration', () => {
       // 1. Simulate "Post-Trade" State
       // Entitlement 'e_traded' is now in DET's inventory (was MIN)
       const postTradeLeague = [
-        { teamCode: 'MIN', entitlementIds: [], roster: [], players: [], totals: {} },
-        { teamCode: 'DET', entitlementIds: ['e_traded'], roster: [], players: [], totals: {} },
+        createMockLeagueTeam('MIN'),
+        createMockLeagueTeam('DET', ['e_traded']),
       ];
       mocks.mockGetLeague.mockResolvedValue(postTradeLeague);
       mocks.mockGetDraftPositionsMap.mockResolvedValue({ MIN: 1, DET: 2 });
 
       // 2. Setup DARE Response expectations
       // We don't implement full DARE logic here, but we verify DARE receives correct input
-      mocks.mockResolveAllDraftAssets.mockImplementation(async (db, input) => {
-        // ASSERTION INSIDE MOCK: Verify input teams structure
-        const detTeam = input.teams.find(t => t.teamCode === 'DET');
-        if (detTeam && detTeam.entitlementIds.includes('e_traded')) {
-           return {
-             success: true,
-             entitlementDocWrites: [], // Result does not matter for this test
-             teamEntitlementIdUpdates: [],
-             resolutionReceipt: createMockResolutionReceipt(),
-           };
+      mocks.mockResolveAllDraftAssets.mockImplementation(
+        async (_db: unknown, input: MockDareInput) => {
+          // ASSERTION INSIDE MOCK: Verify input teams structure
+          const detTeam = findMockTeamByCode(input.teams, 'DET');
+          if (detTeam?.entitlementIds.includes('e_traded')) {
+            return {
+              success: true,
+              entitlementDocWrites: [], // Result does not matter for this test
+              teamEntitlementIdUpdates: [],
+              resolutionReceipt: createMockResolutionReceipt(),
+            };
+          }
+          return { success: false, error: 'DARE Input Mismatch' };
         }
-        return { success: false, error: 'DARE Input Mismatch' };
-      });
+      );
 
       // 3. Execute Season Advance
       await advanceSeasonInWorld(WORLD_ID);
@@ -392,16 +448,16 @@ describe('Phase B: DARE World Persistence Integration', () => {
       // 4. Verify DARE was called with correct holder
       const dareCallArgs = mocks.mockResolveAllDraftAssets.mock.calls[0];
       if (!dareCallArgs) {
-         throw new Error('DARE not called');
+        throw new Error('DARE not called');
       }
-      const dareInput = dareCallArgs[1];
-      
-      const detInput = dareInput.teams ? dareInput.teams.find(t => t.teamCode === 'DET') : null;
+      const dareInput = dareCallArgs[1] as MockDareInput | undefined;
+
+      const detInput = findMockTeamByCode(dareInput?.teams, 'DET');
       expect(detInput).toBeDefined();
-      expect(detInput.entitlementIds).toContain('e_traded');
-      
-      const minInput = dareInput.teams ? dareInput.teams.find(t => t.teamCode === 'MIN') : null;
-      expect(minInput.entitlementIds).not.toContain('e_traded');
+      expect(detInput?.entitlementIds).toContain('e_traded');
+
+      const minInput = findMockTeamByCode(dareInput?.teams, 'MIN');
+      expect(minInput?.entitlementIds).not.toContain('e_traded');
     });
   });
 });
