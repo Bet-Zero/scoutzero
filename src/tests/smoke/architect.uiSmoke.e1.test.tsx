@@ -236,6 +236,18 @@ function buildTeamFixture(): TeamLike {
   };
 }
 
+function expectCommittedTeamCapSheetUpdate(
+  setTeamCapSheet: { mock: { calls: unknown[][] } },
+  expectedCommittedTeamCapSheet: TeamLike
+) {
+  const update = setTeamCapSheet.mock.calls.at(-1)?.[0];
+
+  expect(typeof update).toBe('function');
+  expect((update as (previousTeamCapSheet: TeamLike) => TeamLike)(buildTeamFixture())).toEqual(
+    expectedCommittedTeamCapSheet
+  );
+}
+
 function buildCommittedAdvanceExecutorResult(
   overrides: Partial<Record<string, unknown>> = {}
 ): Record<string, unknown> {
@@ -746,7 +758,7 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     });
 
     await waitFor(() => {
-      expect(setTeamCapSheet).toHaveBeenCalledWith(committedTeamCapSheet);
+      expectCommittedTeamCapSheetUpdate(setTeamCapSheet, committedTeamCapSheet);
       expect(setCurrentYear).toHaveBeenCalledWith(2027);
       expect(setOffseasonRun).toHaveBeenCalledWith(true);
       expect(setOffseasonSummary).toHaveBeenCalledWith({

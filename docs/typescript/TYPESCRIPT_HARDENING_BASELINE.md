@@ -2469,6 +2469,52 @@ Readiness remains negative pending Step 54. Runtime/shared boundary debt was
 reduced, but full-suite UI guardrail drift is still blocking a truthful
 mission-complete claim.
 
+## Step 54 Full-Suite UI Fallout Checkpoint
+
+Measured 2026-04-24 after Step 54.
+
+| Probe                                                                 | Step 53 checkpoint | Step 54 checkpoint | Notes |
+| --------------------------------------------------------------------- | -----------------: | -----------------: | ----- |
+| `npm run typecheck`                                                   |                  0 |                  0 | Root compatibility remains green after the UI guardrail fixes. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`       |                 77 |                 71 | Architect strict improved by `6` errors; the Step 54 target files are clear. |
+| `npm run test:ui -- --reporter=dot src/tests/architect/myct_step6_guardrails.test.tsx src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/smoke/architect.uiSmoke.e1.test.tsx` |               fail |               pass | Scoped fallout suite passed: `5` files, `85` tests. |
+| `npm run test:diff -- --reporter=dot`                                 |               fail |               pass | Full-routed because of shared/config branch history. Node full suite passed (`423` files, `4430` tests, `24` skipped); UI suite passed (`115` files, `863` tests). |
+
+Step 54 converted brittle exact-call UI assertions to the live updater/payload
+contracts:
+
+1. World-advance aftermath tests now exercise the `setTeamCapSheet` updater
+   function and assert committed snapshot results.
+2. Trade editor sign-and-trade assertions accept normalized player payload
+   shape while still pinning the required player identity and S&T contract.
+3. Free-agency action tests assert the canonical mutation payload fields rather
+   than a removed top-level `worldId`.
+4. The DEV cap-sheet fixture guardrail source sentinel is restored with the
+   local `CapSheet` cast at the controlled DEV-only boundary.
+
+Remaining top hotspots after the `71`-error strict probe are:
+
+1. `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts` (`4`)
+2. `src/tests/architect/capLegalityValidation.batchedHardening.test.ts` (`4`)
+3. `tests/architect/CapSheetFull.rules.test.tsx` (`3`)
+4. `src/tests/architect/tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx` (`3`)
+5. `src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts` (`3`)
+6. `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts` (`3`)
+7. `src/tests/architect/architectCoreTrioPassR2.test.ts` (`3`)
+8. `src/tests/architect/architectCoreLogicBlockerTrio.test.ts` (`3`)
+9. `tests/trade/secondApron_handcuffs.test.ts` (`2`)
+10. `tests/trade/basicRules.test.ts` (`2`)
+11. `tests/architect/worldsOnlyRegression.test.ts` (`2`)
+12. `src/tests/tradeMachine/pickIdUtils.test.ts` (`2`)
+13. `src/tests/architect/tmCapIntegration.ui.tradeApply_updatesCapSheet.integration.test.tsx` (`2`)
+14. `src/tests/architect/rosterChargeDisplay.test.tsx` (`2`)
+15. `src/tests/architect/dataValidation.test.ts` (`2`)
+16. `src/tests/architect/capSheetFull_ssot_parity_guardrails.test.ts` (`2`)
+
+Readiness remains negative pending Step 55. The full-suite UI blocker is now
+clear, but the Architect strict probe still has `71` errors across low-volume
+test clusters.
+
 ## Evidence Commands
 
 - `rg --files`

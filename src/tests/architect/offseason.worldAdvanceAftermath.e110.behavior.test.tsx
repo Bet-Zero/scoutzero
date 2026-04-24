@@ -169,7 +169,7 @@ function buildOffseasonSectionProps() {
     teamCode: 'LAL',
     worldSeason: '2025-26',
     worldSeasonLoading: false,
-    onReloadWorldData: vi.fn(async () => undefined),
+    onReloadWorldData: vi.fn(async () => null),
   };
 }
 
@@ -199,6 +199,24 @@ function buildSuccessfulAdvanceResult() {
       },
     },
   };
+}
+
+function expectCommittedTeamCapSheetUpdate(
+  setTeamCapSheet: { mock: { calls: unknown[][] } },
+  expectedCommittedTeamCapSheet: Record<string, unknown>
+) {
+  const update = setTeamCapSheet.mock.calls.at(-1)?.[0];
+
+  expect(typeof update).toBe('function');
+  expect(
+    (update as (previousTeamCapSheet: Record<string, unknown>) => Record<string, unknown>)({
+      id: 'LAL',
+      teamCode: 'LAL',
+      season: '2025-26',
+      players: [{ id: 'stale_player' }],
+      capHolds: [{ amount: 1 }],
+    })
+  ).toEqual(expect.objectContaining(expectedCommittedTeamCapSheet));
 }
 
 async function renderOffseasonSectionWithGate({
@@ -437,7 +455,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     await waitFor(() => {
       expect(props.setCurrentYear).toHaveBeenCalledWith(2027);
     });
-    expect(props.setTeamCapSheet).toHaveBeenCalledWith({
+    expectCommittedTeamCapSheetUpdate(props.setTeamCapSheet, {
       teamCode: 'LAL',
       season: '2026-27',
       players: [],
@@ -484,7 +502,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     await waitFor(() => {
       expect(props.setCurrentYear).toHaveBeenCalledWith(2027);
     });
-    expect(props.setTeamCapSheet).toHaveBeenCalledWith({
+    expectCommittedTeamCapSheetUpdate(props.setTeamCapSheet, {
       teamCode: 'LAL',
       season: '2026-27',
       players: [],
@@ -580,7 +598,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     await waitFor(() => {
       expect(props.setCurrentYear).toHaveBeenCalledWith(2027);
     });
-    expect(props.setTeamCapSheet).toHaveBeenCalledWith({
+    expectCommittedTeamCapSheetUpdate(props.setTeamCapSheet, {
       teamCode: 'LAL',
       season: '2026-27',
       players: [],

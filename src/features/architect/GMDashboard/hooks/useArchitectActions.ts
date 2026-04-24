@@ -5179,7 +5179,7 @@ export function useArchitectActions({
           : clearCapSheetFixtures(teamCapSheet);
 
       // Local DEV seam only: fixture players never enter mutation persistence.
-      setTeamCapSheetSafe(nextTeam);
+      setTeamCapSheetSafe(nextTeam as CapSheet);
       return { success: true };
     },
     [currentYear, setTeamCapSheetSafe, teamCapSheet]

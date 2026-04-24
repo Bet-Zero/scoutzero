@@ -1881,7 +1881,12 @@ Validation:
 
 ## Step 54 — Harden full-suite UI guardrail fallout cluster (wave 24)
 
-**Status:** TODO
+**Status:** DONE
+
+Completion note 2026-04-24: Aligned the five full-suite UI fallout tests with
+the live updater/payload shapes and restored the DEV fixture source sentinel;
+root typecheck passed, Architect strict fell from `77` to `71`, the scoped UI
+suite passed, and full-routed `test:diff` passed.
 
 **Goal:** Fix the UI guardrail drift exposed by the `RUN FULL SUITE`
 validation after Step 50 without mixing it into unrelated strict-probe waves.

@@ -551,7 +551,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
       expect.objectContaining({
         mutationType: 'signFreeAgent',
-        worldId: null,
+        payload: expect.objectContaining({
+          playerId: 'player_1',
+          signedUsing: 'Full MLE',
+          teamCode: 'LAL',
+        }),
       })
     );
     expect(sandboxOwner.worldOnly).toBeNull();
@@ -2782,7 +2786,12 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
       expect.objectContaining({
         mutationType: 'executeTrade',
-        worldId: null,
+        payload: expect.objectContaining({
+          tradeCtx: expect.objectContaining({
+            source: 'tradeMachine',
+            worldId: null,
+          }),
+        }),
       })
     );
     expect(result.current.teamCapSheet).toBe(beforeApplyTeam);

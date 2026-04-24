@@ -903,7 +903,12 @@ describe('TradeEditor boundary E105', () => {
     await waitFor(() => {
       expect(tradeMachine.setPlayerTrade).toHaveBeenCalledWith(
         0,
-        OUTGOING_PLAYER,
+        expect.objectContaining({
+          id: OUTGOING_PLAYER.id,
+          name: OUTGOING_PLAYER.name,
+          player_id: OUTGOING_PLAYER.player_id,
+          salary: OUTGOING_PLAYER.salary,
+        }),
         'signAndTrade',
         'BOS',
         expect.objectContaining({

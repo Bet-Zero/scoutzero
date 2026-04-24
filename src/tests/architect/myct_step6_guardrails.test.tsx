@@ -44,13 +44,17 @@ type FixturePlayer = Record<string, unknown> & {
   playerId?: string;
 };
 
-type FixtureTeam = {
+type CapSheetSectionTeam = NonNullable<
+  Parameters<typeof CapSheetSection>[0]['teamCapSheet']
+>;
+
+type FixtureTeam = CapSheetSectionTeam & {
   teamCode: string;
   teamName: string;
-  roster: unknown[];
+  roster: string[];
   players: FixturePlayer[];
-  deadCap: unknown[];
-  capHolds: unknown[];
+  deadCap: [];
+  capHolds: [];
   exceptions: Record<string, unknown>;
   totals: Record<string, unknown>;
 };
@@ -97,7 +101,9 @@ function getFixtureIdsForBaseTeam(): [string, string] {
 }
 
 function getFixturePlayers(team: FixtureTeam): FixturePlayer[] {
-  return team.players.filter((player) => isDevCapSheetFixturePlayer(player));
+  return team.players
+    .filter((player) => isDevCapSheetFixturePlayer(player))
+    .map((player) => player as FixturePlayer);
 }
 
 function getFixtureRosterIds(team: FixtureTeam): string[] {
