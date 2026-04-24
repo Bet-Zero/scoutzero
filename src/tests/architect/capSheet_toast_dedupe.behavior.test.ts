@@ -47,8 +47,8 @@ const mutationMocks = vi.hoisted(() => ({
   preflightSignAndTradeMutation: vi.fn(),
 }));
 
-const capTotalsMocks = vi.hoisted(() => ({
-  computeTeamCapTotals: vi.fn(() => ({
+const capTotalsMocks = vi.hoisted(() => {
+  const computeTeamCapTotals = vi.fn((_team?: unknown, _year?: number) => ({
     totalCapAllocations: 150000000,
     salaryCap: 141000000,
     playersTotal: 100000000,
@@ -58,25 +58,33 @@ const capTotalsMocks = vi.hoisted(() => ({
     capSpace: -9000000,
     yearKey: 2026,
     _meta: {},
-  })),
-  synchronizeTeamTotalsSnapshot: vi.fn((team: any, selectedYear: number) => {
-    if (!team || !Number.isFinite(selectedYear)) {
-      return team;
-    }
+  }));
 
-    return {
-      ...team,
-      totals: {
-        ...(team?.totals || {}),
-        ...capTotalsMocks.computeTeamCapTotals(team, Number(selectedYear)),
-        capHit: 150000000,
-        totalSalary: 150000000,
-        teamSalary: 150000000,
-        currentCapHit: 150000000,
-      },
-    };
-  }),
-}));
+  const synchronizeTeamTotalsSnapshot = vi.fn(
+    (team: Record<string, unknown> | null | undefined, selectedYear: number) => {
+      if (!team || !Number.isFinite(selectedYear)) {
+        return team;
+      }
+
+      return {
+        ...team,
+        totals: {
+          ...((team.totals as Record<string, unknown> | undefined) || {}),
+          ...computeTeamCapTotals(team, Number(selectedYear)),
+          capHit: 150000000,
+          totalSalary: 150000000,
+          teamSalary: 150000000,
+          currentCapHit: 150000000,
+        },
+      };
+    }
+  );
+
+  return {
+    computeTeamCapTotals,
+    synchronizeTeamTotalsSnapshot,
+  };
+});
 
 vi.mock('react-hot-toast', () => ({
   default: toastMocks,

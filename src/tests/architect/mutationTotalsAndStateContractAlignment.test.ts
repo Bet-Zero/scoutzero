@@ -316,17 +316,21 @@ describe('mutation totals and state contract alignment', () => {
 
     expect(result.success).toBe(true);
 
-    const destinationUpdate = result.teamUpdates.find(
+    const teamUpdates = result.teamUpdates ?? [];
+    const destinationUpdate = teamUpdates.find(
       (entry) => entry.teamCode === 'BOS'
     );
+    const destinationState = destinationUpdate?.team;
+    const destinationTotals = destinationState?.totals as
+      | Record<string, unknown>
+      | undefined;
 
-    expect(destinationUpdate?.team.totals).toMatchObject({
+    expect(destinationState).toBeDefined();
+    expect(destinationTotals).toMatchObject({
       isHardCapped: true,
       hardCapLevel: 'firstApron',
       hardCapDetail: 'Triggered by receiving sign-and-trade player',
     });
-    expect(typeof destinationUpdate?.team.totals?.totalCapAllocations).toBe(
-      'number'
-    );
+    expect(typeof destinationTotals?.totalCapAllocations).toBe('number');
   });
 });

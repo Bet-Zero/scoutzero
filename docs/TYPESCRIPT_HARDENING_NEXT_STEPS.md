@@ -1928,7 +1928,13 @@ Validation:
 
 ## Step 55 — Harden remaining low-volume Architect/trade strict test cluster (wave 25)
 
-**Status:** TODO
+**Status:** DONE
+
+Completion note 2026-04-24: Hardened the listed low-volume Architect/trade
+test cluster by adding explicit fixture types, defined-result guards, and live
+trade helper input shapes; root typecheck passed, Architect strict fell from
+`71` to `41` with the Step 55 target files clear, and the scoped node suite
+passed.
 
 **Goal:** Clear the next low-volume Architect/trade test strict cluster left
 after the runtime and full-suite fallout waves.

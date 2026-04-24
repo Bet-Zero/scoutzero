@@ -51,8 +51,8 @@ function makeTeamWith15Players() {
     teamCode: 'LAL',
     teamName: 'Los Angeles Lakers',
     players,
-    twoWayPlayers: [] as unknown[],
-    capHolds: [] as unknown[],
+    twoWayPlayers: [],
+    capHolds: [],
     roster: players.map((p) => p.player_id),
     totals: { totalSalary: 30_000_000, capHit: 30_000_000, totalCapAllocations: 30_000_000 },
   };
@@ -76,8 +76,8 @@ function makeSmallTeam() {
     teamCode: 'LAL',
     teamName: 'Los Angeles Lakers',
     players,
-    twoWayPlayers: [] as unknown[],
-    capHolds: [] as unknown[],
+    twoWayPlayers: [],
+    capHolds: [],
     roster: players.map((p) => p.player_id),
     totals: { totalSalary: 10_000_000, capHit: 10_000_000, totalCapAllocations: 10_000_000 },
   };

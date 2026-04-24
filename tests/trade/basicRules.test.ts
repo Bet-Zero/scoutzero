@@ -24,11 +24,9 @@ describe('basicRules compatibility surface', () => {
       validateSecondApronRules(
         {
           teamTotalSalary: 210_000_000,
-          tradeExceptions: [{ id: 'old', amount: 5_000_000, createdSeason: 2024 }],
-          sends: [{ id: 'p1' }, { id: 'p2' }],
           cashSent: 1,
         },
-        { capSettings, year: 2025 }
+        { capSettings }
       )
     ).toEqual({
       passed: false,
@@ -62,11 +60,9 @@ describe('basicRules compatibility surface', () => {
     const violations = enforceSecondApronHandcuffs(
       {
         teamTotalSalary: 210_000_000,
-        tradeExceptions: [{ id: 'old', amount: 5_000_000, createdSeason: 2024 }],
-        outgoingPlayers: [{ id: 'p1' }, { id: 'p2' }],
         cashSent: 1,
       },
-      { capSettings, year: 2025 },
+      { capSettings },
       { reject }
     );
 

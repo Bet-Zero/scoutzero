@@ -19,13 +19,14 @@ const capSettings = {
 const baseTeam = {
   context: { yearKey: 2025, capSettings },
   postTradeStatus: { isAtOrAboveSecondApron: true },
-  tradeExceptions: [],
   cashSent: 0,
   cashReceived: 0,
 };
 
 const makePlayer = (salary = 0, extra = {}) => ({ salary, ...extra });
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (
+  issues: Array<Parameters<typeof getValidationIssueText>[0]> = []
+) => issues.map((issue) => getValidationIssueText(issue));
 
 describe('second apron handcuffs', () => {
   it('routes aggregation blocking through validateAggregation', () => {
@@ -46,11 +47,8 @@ describe('second apron handcuffs', () => {
 
   it('rejects cash inclusion', () => {
     const team = {
-      ...baseTeam,
-      outgoingPlayers: [makePlayer(10_000_000)],
-      incomingPlayers: [makePlayer(10_000_000)],
-      salaryOut: 10_000_000,
-      salaryIn: 10_000_000,
+      teamTotalSalary: 200_000_000,
+      postTradeStatus: { isAtOrAboveSecondApron: true },
       cashSent: 1,
     };
     const v = enforceSecondApronHandcuffs(team, {});

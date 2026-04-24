@@ -2515,6 +2515,38 @@ Readiness remains negative pending Step 55. The full-suite UI blocker is now
 clear, but the Architect strict probe still has `71` errors across low-volume
 test clusters.
 
+## Step 55 Low-Volume Strict Test Cluster Checkpoint
+
+Measured 2026-04-24 after Step 55.
+
+| Probe                                                                 | Step 54 checkpoint | Step 55 checkpoint | Notes |
+| --------------------------------------------------------------------- | -----------------: | -----------------: | ----- |
+| `npm run typecheck`                                                   |                  0 |                  0 | Root compatibility remains green after the fixture hardening wave. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`       |                 71 |                 41 | Architect strict improved by `30` errors; the Step 55 target files are clear. |
+| `npm run test:node -- --reporter=dot src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts src/tests/architect/capLegalityValidation.batchedHardening.test.ts tests/architect/CapSheetFull.rules.test.tsx src/tests/architect/tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts src/tests/architect/capSheet_toast_dedupe.behavior.test.ts src/tests/architect/architectCoreTrioPassR2.test.ts src/tests/architect/architectCoreLogicBlockerTrio.test.ts tests/trade/secondApron_handcuffs.test.ts tests/trade/basicRules.test.ts` |                n/a |               pass | Scoped Step 55 node validation passed; Vitest reported `8` files and `39` tests executed under the node config. |
+
+Remaining top hotspots after the `41`-error strict probe are:
+
+1. `tests/architect/worldsOnlyRegression.test.ts` (`2`)
+2. `src/tests/tradeMachine/pickIdUtils.test.ts` (`2`)
+3. `src/tests/architect/tmCapIntegration.ui.tradeApply_updatesCapSheet.integration.test.tsx` (`2`)
+4. `src/tests/architect/rosterChargeDisplay.test.tsx` (`2`)
+5. `src/tests/architect/dataValidation.test.ts` (`2`)
+6. `src/tests/architect/capSheetFull_ssot_parity_guardrails.test.ts` (`2`)
+7. `src/tests/architect/capSheetCloseoutBlockersRemediation2.hardCapOwnership.test.ts` (`2`)
+8. `src/tests/architect/capLegalityValidation.test.ts` (`2`)
+9. `src/tests/architect/architectRuntimeBlockers.pass1.test.ts` (`2`)
+10. `src/tests/architect/architectHardeningE4.polish.test.ts` (`2`)
+11. `src/tests/architect/architectCoreTrioPassR3.test.ts` (`2`)
+12. `tests/trade/useTradeMachine.validatorTrust.test.ts` (`1`)
+13. `tests/architect/seasonManager.test.ts` (`1`)
+14. `tests/architect/capHoldTransitionHelpers.test.ts` (`1`)
+15. `src/tests/tradeMachine/stepienObligations.test.ts` (`1`)
+16. `src/tests/architect/worldOptimistic_lock_serialization.behavior.test.ts` (`1`)
+
+Readiness remains negative pending Step 56. The planned Step 55 cluster is
+clear, but `41` Architect strict errors remain across smaller test surfaces.
+
 ## Evidence Commands
 
 - `rg --files`

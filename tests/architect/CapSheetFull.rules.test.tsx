@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import CapSheetFull from '@/features/architect/capSheet/CapSheetFull';
+import type {
+  PlayerRulesProfile,
+  PlayerRulesProfileInput,
+} from '@/features/architect/types';
 
 const TEAM_CAP_SHEET = {
   teamCode: 'TST',
@@ -28,7 +32,9 @@ const TEAM_CAP_SHEET = {
   ],
 };
 
-const getRulesProfileForYear = (player) => {
+const getRulesProfileForYear = (
+  player: PlayerRulesProfileInput
+): PlayerRulesProfile | null => {
   if (player.name === 'Ext Player') {
     return {
       extensionEligibility: {
@@ -38,7 +44,7 @@ const getRulesProfileForYear = (player) => {
       },
       birdRights: { type: 'Full Bird' },
       contractSummary: { freeAgencyYear: 2027, freeAgencyType: 'Unrestricted' },
-    };
+    } as unknown as PlayerRulesProfile;
   }
 
   if (player.name === 'RFA Player') {
@@ -52,7 +58,7 @@ const getRulesProfileForYear = (player) => {
         reason: 'RFA rights active',
       },
       contractSummary: { freeAgencyYear: 2025, freeAgencyType: 'Restricted' },
-    };
+    } as unknown as PlayerRulesProfile;
   }
 
   return null;

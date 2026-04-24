@@ -33,6 +33,16 @@ const MODAL_PATH = path.resolve(
 
 const YEAR = 2026; // 2025-26 season
 
+type ModalDeadMoneyEntry = {
+  playerId?: string;
+  label: string;
+  seasonKey: string;
+  amount: number | string;
+  stretched?: boolean;
+  sourceGroupKey?: string;
+  notes?: string;
+};
+
 // Helper: create full roster to avoid incomplete roster charge noise
 function createFullRoster() {
   return Array.from({ length: 14 }, (_, i) => ({
@@ -46,8 +56,8 @@ function createFullRoster() {
 }
 
 // Simulate what the modal's handleSave now produces (canonical shape)
-function simulateModalOutput(entries) {
-  const groups = new Map();
+function simulateModalOutput(entries: ModalDeadMoneyEntry[]) {
+  const groups = new Map<string, ModalDeadMoneyEntry[]>();
 
   entries.forEach((entry, index) => {
     const groupKey = entry.sourceGroupKey || `manual-row-${index}`;

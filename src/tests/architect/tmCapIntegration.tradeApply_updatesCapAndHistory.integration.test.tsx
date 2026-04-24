@@ -203,12 +203,14 @@ describe('TM_CAP_INTEGRATION_E1 AC1: executeTrade updates cap and history payloa
 
     expect(result.success).toBe(true);
     expect(result.persistedToWorld).toBe(true);
-    expect(result.writesSummary.eventsWritten).toBeGreaterThan(0);
+    expect(result.writesSummary).toBeDefined();
+    expect(result.writesSummary?.eventsWritten).toBeGreaterThan(0);
 
-    const lalChangedTeam = result.changedTeams.find(
+    const changedTeams = result.changedTeams ?? [];
+    const lalChangedTeam = changedTeams.find(
       (entry: any) => entry.teamCode === 'LAL'
     )?.team;
-    const bosChangedTeam = result.changedTeams.find(
+    const bosChangedTeam = changedTeams.find(
       (entry: any) => entry.teamCode === 'BOS'
     )?.team;
 

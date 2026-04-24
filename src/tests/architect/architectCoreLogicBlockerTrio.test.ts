@@ -274,7 +274,8 @@ describe('Architect core logic blocker trio proof', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.metadata.type).toBe('trade');
+    expect(result.metadata).toBeDefined();
+    expect(result.metadata?.type).toBe('trade');
     expect(result.teamUpdates).toHaveLength(2);
     expect(result._validatedTradeContext?._isValidatedTradeContext).toBe(true);
     expect(mocks.buildTradeApplyPreparation).toHaveBeenCalledTimes(1);
@@ -332,8 +333,9 @@ describe('Architect core logic blocker trio proof', () => {
 
     expect(result.success).toBe(true);
     expect(result.toSeason).toBe('2026-27');
-    expect(result.summary.transitionedExceptions).toEqual(['room']);
-    expect(result.summary.expiredTPEs).toEqual(
+    expect(result.summary).toBeDefined();
+    expect(result.summary?.transitionedExceptions).toEqual(['room']);
+    expect(result.summary?.expiredTPEs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'tpe_1', teamCode: 'BOS' }),
       ])
