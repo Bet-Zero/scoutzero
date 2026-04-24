@@ -275,6 +275,16 @@ function makeTeam(
   };
 }
 
+function requireReloadTeam(
+  team: ReturnType<typeof buildGeneralMutationDashboardReloadTeamSnapshot>
+): NonNullable<ReturnType<typeof buildGeneralMutationDashboardReloadTeamSnapshot>> {
+  expect(team).not.toBeNull();
+  if (!team) {
+    throw new Error('Expected dashboard reload team snapshot');
+  }
+  return team;
+}
+
 function getPersistedTeamWrite(teamCode: string): Record<string, unknown> {
   const match = testState.batchSet.mock.calls.find(([path]) =>
     String(path).includes(`/teams/${teamCode}`)
@@ -332,7 +342,9 @@ describe('mutationPipeline current-state team boundary', () => {
         rosterCount: 1,
         isHardCapped: false,
       },
-      draftPicks: [{ id: 'lal_2029_1', year: 2029, round: 1, owner: 'LAL' }],
+      draftPicks: [
+        { id: 'lal_2029_1', year: 2029, round: 1, pick: null, owner: 'LAL' },
+      ],
       entitlementIds: ['ent_lal_keep'],
       cashLedger: { totalOut: 1_000_000 },
       tradeExceptions: [
@@ -429,7 +441,9 @@ describe('mutationPipeline current-state team boundary', () => {
         },
       ],
       cashLedger: { totalOut: 250_000 },
-      draftPicks: [{ id: 'lal_2028_1', year: 2028, round: 1, owner: 'LAL' }],
+      draftPicks: [
+        { id: 'lal_2028_1', year: 2028, round: 1, pick: null, owner: 'LAL' },
+      ],
       entitlementIds: ['ent_keep'],
       legacyTradeOnlyBlob: { shouldDrop: true },
     });
@@ -481,7 +495,9 @@ describe('mutationPipeline current-state team boundary', () => {
 
   it('keeps committed team, persistence, and dashboard reload snapshots continuous', async () => {
     const team = makeTeam('LAL', [], {
-      draftPicks: [{ id: 'lal_2030_2', year: 2030, round: 2, owner: 'LAL' }],
+      draftPicks: [
+        { id: 'lal_2030_2', year: 2030, round: 2, pick: null, owner: 'LAL' },
+      ],
       entitlementIds: ['ent_reload_keep'],
       exceptionHistory: [
         { historyKey: 'hist_reload_keep', type: 'exception-adjusted' },
@@ -519,8 +535,9 @@ describe('mutationPipeline current-state team boundary', () => {
       throw new Error('Expected committed LAL snapshot');
     }
 
-    const reloadTeam =
-      buildGeneralMutationDashboardReloadTeamSnapshot(committedTeam);
+    const reloadTeam = requireReloadTeam(
+      buildGeneralMutationDashboardReloadTeamSnapshot(committedTeam)
+    );
     const persistedTeam = getPersistedTeamWrite('LAL');
 
     expect(committedTeam.exceptions).toMatchObject({
@@ -567,7 +584,9 @@ describe('mutationPipeline current-state team boundary', () => {
         },
       ],
       cashLedger: { totalOut: 900_000 },
-      draftPicks: [{ id: 'lal_2027_1', year: 2027, round: 1, owner: 'LAL' }],
+      draftPicks: [
+        { id: 'lal_2027_1', year: 2027, round: 1, pick: null, owner: 'LAL' },
+      ],
       entitlementIds: ['ent_boundary_keep'],
       legacyRawLoaderBlob: { shouldDrop: true },
     });

@@ -19,6 +19,9 @@ import { buildTradeApplyPreparation } from '@/features/architect/utils/tradeCont
 import { validateTradeForContext } from '@/features/architect/utils/tradeContext/legacy';
 
 type TradeMachineModule = typeof import('@/features/architect/utils/tradeMachine');
+type PostTradeSnapshot = ReturnType<typeof buildPostTradeTeamsSnapshot>;
+type PostTradeTeamUpdate = PostTradeSnapshot['teamUpdates'][number];
+type PostTradeValidationTeam = PostTradeSnapshot['validationTeams'][number];
 
 // Mock validateTrade to track calls
 const validateTradeMock = vi.fn();
@@ -84,6 +87,43 @@ const mockTeamB = {
     capHit: 100000000,
   },
 };
+
+function requireTeamUpdate(
+  snapshot: PostTradeSnapshot,
+  teamCode: string
+): PostTradeTeamUpdate {
+  const teamUpdate = snapshot.teamUpdates.find((team) => team.teamCode === teamCode);
+  expect(teamUpdate).toBeDefined();
+  if (!teamUpdate) {
+    throw new Error(`Expected team update for ${teamCode}`);
+  }
+  return teamUpdate;
+}
+
+function requireValidationTeam(
+  snapshot: PostTradeSnapshot,
+  teamCode: string
+): PostTradeValidationTeam {
+  const validationTeam = snapshot.validationTeams.find(
+    (team) => team.teamCode === teamCode
+  );
+  expect(validationTeam).toBeDefined();
+  if (!validationTeam) {
+    throw new Error(`Expected validation team for ${teamCode}`);
+  }
+  return validationTeam;
+}
+
+function requireTradeCtx(
+  preparation: ReturnType<typeof buildTradeApplyPreparation>
+) {
+  expect(preparation.validationPayload.tradeCtx).toBeDefined();
+  const tradeCtx = preparation.validationPayload.tradeCtx;
+  if (!tradeCtx) {
+    throw new Error('Expected validation payload trade context');
+  }
+  return tradeCtx;
+}
 
 describe('Phase 56: Pure computeTradeResult Guardrails', () => {
   beforeEach(() => {
@@ -185,16 +225,12 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
       });
 
       // Team A should have player-b, not player-a
-      const teamASnapshot = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMA'
-      );
+      const teamASnapshot = requireTeamUpdate(snapshot, 'TMA');
       expect(teamASnapshot.team.roster).toContain('player-b');
       expect(teamASnapshot.team.roster).not.toContain('player-a');
 
       // Team B should have player-a, not player-b
-      const teamBSnapshot = snapshot.teamUpdates.find(
-        (t) => t.teamCode === 'TMB'
-      );
+      const teamBSnapshot = requireTeamUpdate(snapshot, 'TMB');
       expect(teamBSnapshot.team.roster).toContain('player-a');
       expect(teamBSnapshot.team.roster).not.toContain('player-b');
     });
@@ -359,9 +395,7 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
       expect(preparation.postTradeSnapshot.teamUpdates).toHaveLength(2);
       expect(preparation.validatedContext._isValidatedTradeContext).toBe(true);
       expect(preparation.validationPayload.asOfDate).toBe('2026-03-15');
-      expect(preparation.validationPayload.tradeCtx.asOfDate).toBe(
-        '2026-03-15'
-      );
+      expect(requireTradeCtx(preparation).asOfDate).toBe('2026-03-15');
       expect(validateTradeMock).toHaveBeenCalledTimes(1);
     });
   });
@@ -454,9 +488,7 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
       });
 
       // Validation teams should have POST-trade roster state
-      const validationTeamA = snapshot.validationTeams.find(
-        (t) => t.teamCode === 'TMA'
-      );
+      const validationTeamA = requireValidationTeam(snapshot, 'TMA');
       expect(validationTeamA.team.roster).toContain('player-b');
       expect(validationTeamA.team.roster).not.toContain('player-a');
     });

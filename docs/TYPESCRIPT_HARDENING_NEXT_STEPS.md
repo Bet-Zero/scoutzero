@@ -1383,7 +1383,12 @@ That section must:
 
 ## Step 44 — Harden the next Architect reactivity / CBA guardrail truth cluster (wave 17)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the planned Architect reactivity / CBA
+guardrail truth cluster, kept root typecheck green, passed the bounded node
+pack at 65 / 65, and reduced Architect strict from 367 to 318 with no
+remaining hits in the Step 44 target files.
 
 **Goal:** Tighten the next Architect reactivity, CBA batch, legacy-import, pure
 compute, and current-state team guardrail cluster exposed by the Step 43
@@ -1396,7 +1401,7 @@ Focus this wave on:
 - `src/tests/architect/batchB_cbaRules.test.ts`
 - `src/tests/architect/phase59_legacy_import_guardrail.test.ts`
 - `src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts`
-- `tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts`
+- `src/tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts`
 - any tiny Architect test-helper truth fixups directly required to keep this
   cluster honest
 
@@ -1415,7 +1420,7 @@ Validation:
 
 - `npm run typecheck`
 - `npm run typecheck -- --project tsconfig.architect-strict.json`
-- `npm run test:node -- --reporter=dot src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts src/tests/architect/batchB_cbaRules.test.ts src/tests/architect/phase59_legacy_import_guardrail.test.ts src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts`
+- `npm run test:node -- --reporter=dot src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts src/tests/architect/batchB_cbaRules.test.ts src/tests/architect/phase59_legacy_import_guardrail.test.ts src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts src/tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts`
 
 **Constraints specific to this step:**
 

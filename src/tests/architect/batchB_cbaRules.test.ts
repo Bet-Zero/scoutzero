@@ -14,26 +14,50 @@ import { describe, it, expect } from 'vitest';
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  TradeExceptionPlayer,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
+type BatchBPlayer = TradeExceptionPlayer & {
+  contractType?: string;
+  contract: {
+    salariesByYear: Array<{
+      season: string;
+      salary: number;
+      capHit?: number;
+    }>;
+    isTwoWay?: boolean;
+  };
+};
+
 // Helper to create a player with contract
-const makePlayer = (name, salary, extras = {}) => ({
+const makePlayer = (
+  name: string,
+  salary: number,
+  extras: Partial<BatchBPlayer> = {}
+): BatchBPlayer => ({
   name,
   contract: { salariesByYear: [{ season, salary, capHit: salary }] },
   ...extras,
 });
 
-// Helper to create a team
-const makeTeam = (name, players = [], extras = {}) => ({
-  teamId: name,
-  teamName: name,
-  players,
-  ...extras,
-});
+const issueTexts = (issues: ValidationIssue[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+function requireIncompleteRosterCharge(
+  totals: ReturnType<typeof computeTeamCapTotals>
+) {
+  expect(totals._meta.incompleteRosterCharge).not.toBeNull();
+  const charge = totals._meta.incompleteRosterCharge;
+  if (!charge) {
+    throw new Error('Expected incomplete roster charge metadata');
+  }
+  return charge;
+}
 
 describe('GAP-MISS-003: Incomplete Roster Charges (VERIFIED ALREADY IMPLEMENTED)', () => {
   describe('computeTeamCapTotals includes empty slot charges', () => {
@@ -55,8 +79,7 @@ describe('GAP-MISS-003: Incomplete Roster Charges (VERIFIED ALREADY IMPLEMENTED)
 
       // Should charge for 4 missing slots (14 - 10)
       // Charge per slot is rookieMin (around $1.1M)
-      expect(totals._meta.incompleteRosterCharge).toBeDefined();
-      expect(totals._meta.incompleteRosterCharge.missingSlots).toBe(4);
+      expect(requireIncompleteRosterCharge(totals).missingSlots).toBe(4);
     });
 
     it('no charges when roster has 14+ players', () => {

@@ -8,7 +8,15 @@
  *   - Behavioral: warnOnTotalsDivergence function
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  type MockInstance,
+} from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
@@ -140,7 +148,7 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
   // ==========================================================================
 
   describe('Behavioral: warnOnTotalsDivergence', () => {
-    let consoleWarnSpy;
+    let consoleWarnSpy: MockInstance;
 
     beforeEach(() => {
       // Reset warned keys before each test

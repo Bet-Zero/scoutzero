@@ -1943,7 +1943,7 @@ The current Architect strict backlog is concentrated in:
    `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts` (`14`),
    `src/tests/architect/batchB_cbaRules.test.ts` (`13`),
    `src/tests/architect/phase59_legacy_import_guardrail.test.ts` (`8`),
-   `tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts` (`7`),
+   `src/tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts` (`7`),
    and `src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts` (`7`).
 2. Offseason / DARE / season-advance / preflight tests:
    `src/tests/architect/phase86_oste_offseason_transition_engine.test.ts` (`12`),
@@ -1988,6 +1988,53 @@ Plain-language read: Step 43 confirms the hardening program is still making
 measurable progress, but the remaining Architect/test/runtime backlog is too
 large for a truthful completion claim. The next move is another bounded
 execution wave, not final review.
+
+## Step 44 Reactivity / CBA Guardrail Wave Delta
+
+Reviewed: 2026-04-24, after Step 44 hardened the bounded Architect reactivity /
+CBA guardrail truth cluster.
+
+| Measurement                                                                 | Step 43 checkpoint | Current | Delta |
+| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
+| `npm run typecheck`                                                         |                  0 |       0 |     0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                367 |     318 |   -49 |
+| `npm run test:node -- --reporter=dot src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts src/tests/architect/batchB_cbaRules.test.ts src/tests/architect/phase59_legacy_import_guardrail.test.ts src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts src/tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts` | not yet run | `65 / 65` | bounded pack green |
+
+### Step 44 Surface Result
+
+- `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts`,
+  `src/tests/architect/batchB_cbaRules.test.ts`,
+  `src/tests/architect/phase59_legacy_import_guardrail.test.ts`,
+  `src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts`, and
+  `src/tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts` no
+  longer appear in the live Architect strict output.
+- The wave stayed bounded to typed source-scan helpers, canonical validation
+  issue arrays, explicit snapshot/reload readers, normalized draft-pick
+  fixtures, and typed console spies rather than widening into offseason, DARE,
+  or runtime-owner cleanup.
+
+### Remaining Concentration After Step 44
+
+The next backlog is now led by the planned Step 45 offseason / DARE / preflight
+truth cluster and a smaller runtime / trade-rule follow-on tier:
+
+1. `src/tests/architect/phase86_oste_offseason_transition_engine.test.ts` (`12`)
+2. `src/tests/architect/dare/dareResolver.test.ts` (`10`)
+3. `src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts` (`10`)
+4. `src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts` (`9`)
+5. `src/tests/tradeMachine/conveyancePreflight.test.ts` (`9`)
+6. `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx` (`8`)
+7. `src/features/architect/utils/capLegalityValidation.ts` (`8`)
+8. `src/features/architect/utils/leagueInvariants.ts` (`8`)
+9. `src/features/architect/utils/tradeContext/tradeContext.ts` (`8`)
+10. `src/features/architect/utils/seasonManager.ts` (`7`)
+11. `tests/architect/overrideBypass.test.ts` (`7`)
+12. `tests/trade/orderOfOps_conversionsBeforeMatching.test.ts` (`7`)
+
+Plain-language read: Step 44 removed the planned reactivity / CBA guardrail
+truth cluster and reduced Architect strict to `318`. The mission remains open:
+the Step 45 offseason / DARE / preflight cluster is still substantial and must
+run before the next readiness checkpoint.
 
 ## Evidence Commands
 

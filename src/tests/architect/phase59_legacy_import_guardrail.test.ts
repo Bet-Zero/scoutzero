@@ -25,13 +25,13 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
 
 // Helper to read source file content
-function readSourceFile(relativePath) {
+function readSourceFile(relativePath: string): string {
   const absolutePath = resolve(process.cwd(), relativePath);
   return readFileSync(absolutePath, 'utf-8');
 }
 
 // Helper to recursively find all .js files in a directory
-function findJsFiles(dir, files = []) {
+function findJsFiles(dir: string, files: string[] = []): string[] {
   const items = readdirSync(dir);
   for (const item of items) {
     const fullPath = join(dir, item);
@@ -59,7 +59,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
 
       // Check for forbidden imports (actual import statements, not comments)
       const lines = source.split('\n');
-      const violations = [];
+      const violations: Array<{ line: number; content: string }> = [];
 
       lines.forEach((line, index) => {
         // Skip comments
@@ -114,7 +114,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
 
       // Skip comments and the marker that says it was removed
       const lines = source.split('\n');
-      const violations = [];
+      const violations: Array<{ line: number; content: string }> = [];
 
       lines.forEach((line, index) => {
         // Skip comments
@@ -236,7 +236,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       const utilsDir = resolve(process.cwd(), 'src/features/architect/utils');
       const files = findJsFiles(utilsDir);
 
-      const violations = [];
+      const violations: string[] = [];
 
       for (const filePath of files) {
         // Skip legacy directory itself
