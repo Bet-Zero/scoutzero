@@ -2025,7 +2025,7 @@ That section must:
 
 ## Step 57 — Harden remaining two-error strict test cluster (wave 26)
 
-**Status:** TODO
+**Status:** DONE — 2026-04-24
 
 **Goal:** Clear the remaining two-error Architect/trade strict test files
 identified by the Step 56 checkpoint.
@@ -2068,6 +2068,12 @@ Validation:
 **Done when:** The listed two-error test cluster is materially more truthful
 and the baseline records the resulting strict-probe delta plus what remains.
 Commit message: `test: harden remaining two-error strict fixtures`.
+
+**Completion notes:** Cleared the listed two-error strict cluster with typed
+test helpers and nullable assertion narrowing. Architect strict moved from `41`
+to `19` errors, and all Step 57 target files are clear. Root typecheck passed.
+`npm run test:diff -- --reporter=dot` auto-selected the full node+UI suite and
+passed (`423` node files / `4,430` tests, `115` UI files / `863` tests).
 
 ---
 

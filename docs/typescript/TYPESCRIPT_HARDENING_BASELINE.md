@@ -2597,6 +2597,46 @@ Plain-language read: the project is close, but a true mission-complete verdict
 still requires Architect strict to clear or for any remaining debt to be
 explicitly proven non-substantial by a later checkpoint.
 
+## Step 57 Two-Error Fixture Cluster Checkpoint
+
+Measured 2026-04-24 after Step 57.
+
+| Probe                                                           | Step 56 checkpoint | Step 57 checkpoint | Notes |
+| --------------------------------------------------------------- | -----------------: | -----------------: | ----- |
+| `npm run typecheck`                                             |                  0 |                  0 | Root compatibility remains green. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |                 41 |                 19 | The two-error fixture cluster is clear; remaining work is now the residual one-error cluster. |
+| `npm run test:diff -- --reporter=dot`                           |               pass |               pass | Auto-selected full node+UI validation. Node: `423` files / `4,430` tests passed with `24` skipped. UI: `115` files / `863` tests passed. |
+
+### Current Architect Strict Concentration After Step 57
+
+The remaining strict files are:
+
+1. `tests/trade/useTradeMachine.validatorTrust.test.ts` (`1`)
+2. `tests/architect/seasonManager.test.ts` (`1`)
+3. `tests/architect/capHoldTransitionHelpers.test.ts` (`1`)
+4. `src/tests/tradeMachine/stepienObligations.test.ts` (`1`)
+5. `src/tests/architect/worldOptimistic_lock_serialization.behavior.test.ts` (`1`)
+6. `src/tests/architect/phase16_seasonmanager_entitlements_ssot_view_guardrail.test.ts` (`1`)
+7. `src/tests/architect/phase16_3_trade_machine_init_guardrail.test.ts` (`1`)
+8. `src/tests/architect/mutationPipeline.publicMutationIngressBoundary.test.ts` (`1`)
+9. `src/tests/architect/mutationPipeline.payloadIngressBoundary.test.ts` (`1`)
+10. `src/tests/architect/mutationPipeline.currentStateIngressClosure.test.ts` (`1`)
+11. `src/tests/architect/mutationPipeline.catchallNarrowing.test.ts` (`1`)
+12. `src/tests/architect/mutationPipeline.boundary.e107.test.ts` (`1`)
+13. `src/tests/architect/entitlementPickRow.vacuumBadges.test.tsx` (`1`)
+14. `src/tests/architect/dashboardWorldBoundary.e109.test.tsx` (`1`)
+15. `src/tests/architect/capTotals/leagueViewSsot.test.ts` (`1`)
+16. `src/tests/architect/capTotals/incompleteRosterCharge.test.ts` (`1`)
+17. `src/tests/architect/capSheet.uiFlows.integration.test.tsx` (`1`)
+18. `src/tests/architect/architectFinalHardeningPack.chunk1.test.ts` (`1`)
+19. `src/features/architect/utils/validatePhase21.test.ts` (`1`)
+
+### Readiness Verdict After Step 57
+
+Not ready for final review. Step 57 eliminated the listed two-error cluster,
+but `19` Architect strict errors remain across residual one-error files. Step
+58 remains executable and should continue immediately.
+
 ## Evidence Commands
 
 - `rg --files`

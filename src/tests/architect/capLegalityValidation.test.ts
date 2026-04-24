@@ -824,8 +824,8 @@ describe('capLegalityValidation - Phase 31: Max Salary Enforcement', () => {
         (w) => w.rule === 'max_salary_yos_unverified'
       );
       expect(yosWarning).toBeDefined();
-      expect(yosWarning.message).toContain('YOS=0');
-      expect(yosWarning.message).toContain('age 30');
+      expect(yosWarning?.message).toContain('YOS=0');
+      expect(yosWarning?.message).toContain('age 30');
 
       // Should NOT have max_salary_violation because we used conservative 35% max
       const hasMaxViolation = result.violations.some(

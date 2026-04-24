@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { MockInstance } from 'vitest';
 import {
   normalizeRound,
   generatePickId,
@@ -113,7 +114,7 @@ describe('Pick ID Utilities', () => {
   });
 
   describe('ensurePickId', () => {
-    let consoleWarnSpy;
+    let consoleWarnSpy: MockInstance;
 
     beforeEach(() => {
       // Mock console.warn to suppress output during tests

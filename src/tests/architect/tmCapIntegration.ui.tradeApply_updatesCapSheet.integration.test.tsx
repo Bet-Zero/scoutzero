@@ -121,13 +121,13 @@ type TeamFixture = {
   teamName: string;
   roster: string[];
   players: PlayerFixture[];
-  capHolds: unknown[];
-  draftPicks: unknown[];
+  capHolds: [];
+  draftPicks: [];
   entitlementIds: string[];
-  tradeExceptions: unknown[];
-  exceptionHistory: unknown[];
-  exceptions: { tpe: unknown[] };
-  deadCap: unknown[];
+  tradeExceptions: [];
+  exceptionHistory: [];
+  exceptions: { tpe: [] };
+  deadCap: [];
   totals: {
     totalSalary: number;
     capHit: number;

@@ -157,12 +157,22 @@ const TEST_PLAYER = {
   },
 };
 
+type DeadCapPayloadEntry = {
+  playerId: string;
+  playerName: string;
+  amountByYear: Array<{
+    season: string;
+    amount: number;
+  }>;
+  notes: string;
+};
+
 const BASE_TEAM = {
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
   roster: ['p1'],
   players: [TEST_PLAYER],
-  deadCap: [],
+  deadCap: [] as DeadCapPayloadEntry[],
   capHolds: [],
   exceptions: {},
   totals: {},
@@ -197,7 +207,8 @@ const DEAD_CAP_PAYLOAD = [
 function makeTotals(team: typeof BASE_TEAM) {
   const deadMoneyTotal = (team.deadCap || []).reduce((sum, entry) => {
     const seasonRow = (entry.amountByYear || []).find(
-      (row) => row.season === '2025-26'
+      (row: DeadCapPayloadEntry['amountByYear'][number]) =>
+        row.season === '2025-26'
     );
     return sum + Number(seasonRow?.amount || 0);
   }, 0);

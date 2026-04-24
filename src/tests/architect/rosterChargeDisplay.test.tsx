@@ -34,13 +34,13 @@ type TeamCapTotals = ReturnType<typeof computeTeamCapTotals>;
 const mockedComputeTeamCapTotals = vi.mocked(computeTeamCapTotals);
 const asTeamCapTotals = (value: unknown) => value as TeamCapTotals;
 
-function parseCurrency(value) {
+function parseCurrency(value: string | null | undefined) {
   if (!value) return 0;
   const parsed = Number(String(value).replace(/[^0-9.-]/g, ''));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function readCurrencyForLabel(labelText) {
+function readCurrencyForLabel(labelText: string | RegExp) {
   const label = screen.getByText(labelText);
   const container = label.parentElement;
   const lastChild = container

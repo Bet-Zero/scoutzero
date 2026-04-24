@@ -342,7 +342,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         LAL: updatedTeam,
       },
       beforeTotalsByTeam: {
-        LAL: beforeTeam.totals || {},
+        LAL: beforeTeam?.totals || {},
       },
       afterTotalsByTeam: {
         LAL: updatedTeam?.totals || {},
@@ -432,7 +432,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         LAL: updatedTeam,
       },
       beforeTotalsByTeam: {
-        LAL: beforeTeam.totals || {},
+        LAL: beforeTeam?.totals || {},
       },
       afterTotalsByTeam: {
         LAL: updatedTeam?.totals || {},

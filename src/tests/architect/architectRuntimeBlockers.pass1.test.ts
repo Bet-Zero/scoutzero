@@ -14,6 +14,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import type { DashboardOffseasonSummary } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { resolveOffseasonTransition } from '@/features/architect/utils/offseason';
 import type {
@@ -181,7 +182,7 @@ const makeOffseasonTeam = (
 ): OffseasonTransitionParams['teamCapSheet'] => ({
   teamCode: 'TST',
   teamName: 'Test Team',
-  players,
+  players: players as OffseasonTransitionParams['teamCapSheet']['players'],
   roster: players.map((player) => player.player_id),
   capHolds: [],
   exceptions: {},
@@ -255,7 +256,8 @@ function renderActionsHarness({
     const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
     const [freeAgents, setFreeAgents] = useState<any[]>([playerFixture]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-    const [offseasonSummary, setOffseasonSummary] = useState(null);
+    const [offseasonSummary, setOffseasonSummary] =
+      useState<DashboardOffseasonSummary | null>(null);
 
     const actions = useArchitectActions({
       teamId: 'LAL',

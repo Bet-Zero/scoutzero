@@ -19,7 +19,7 @@ const srcRoot = path.resolve(__dirname, '../../src');
 /**
  * Recursively find all .js, .jsx, .ts, .tsx files in a directory
  */
-function findSourceFiles(dir, files = []) {
+function findSourceFiles(dir: string, files: string[] = []): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   
   for (const entry of entries) {
@@ -43,7 +43,7 @@ describe('Architect worlds-only regression', () => {
 
   it('should not import teamPlans save/load functions in Architect', () => {
     const sourceFiles = findSourceFiles(architectDir);
-    const violations = [];
+    const violations: string[] = [];
     
     // Functions that should no longer be imported
     const forbiddenImports = [
@@ -85,7 +85,7 @@ describe('Architect worlds-only regression', () => {
 
   it('should not reference teamPlans Firestore collection in Architect', () => {
     const sourceFiles = findSourceFiles(architectDir);
-    const violations = [];
+    const violations: string[] = [];
     
     // Pattern to detect direct Firestore teamPlans collection usage
     const teamPlansPattern = /['"`]teamPlans['"`]/;

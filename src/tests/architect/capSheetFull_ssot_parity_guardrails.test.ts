@@ -75,7 +75,7 @@ const YEAR = 2026; // 2025-26 season
 const FUTURE_YEAR = YEAR + 1; // 2026-27 season
 
 // Helper: create players to fill or partially fill a roster
-function createPlayers(count, salary = 5_000_000) {
+function createPlayers(count: number, salary = 5_000_000) {
   return Array.from({ length: count }, (_, i) => ({
     player_id: `player-${i}`,
     displayName: `Player ${i}`,
@@ -89,7 +89,7 @@ function createPlayers(count, salary = 5_000_000) {
 }
 
 function createMultiYearPlayers(
-  count,
+  count: number,
   currentYearSalary = 1_000_000,
   futureYearSalary = currentYearSalary
 ) {

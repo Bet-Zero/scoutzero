@@ -227,7 +227,7 @@ describe('GAP-DATA-002: Salary Field Normalization', () => {
         (w) => w.code === DATA_WARNING_CODES.SALARY_FIELD_FALLBACK
       );
       expect(fallbackWarning).toBeDefined();
-      expect(fallbackWarning.severity).toBe(DATA_WARNING_SEVERITY.INFO);
+      expect(fallbackWarning?.severity).toBe(DATA_WARNING_SEVERITY.INFO);
     });
 
     it('returns warning when no salary data found', () => {
@@ -245,7 +245,7 @@ describe('GAP-DATA-002: Salary Field Normalization', () => {
         (w) => w.code === DATA_WARNING_CODES.SALARY_FIELD_MISSING
       );
       expect(missingWarning).toBeDefined();
-      expect(missingWarning.severity).toBe(DATA_WARNING_SEVERITY.WARNING);
+      expect(missingWarning?.severity).toBe(DATA_WARNING_SEVERITY.WARNING);
     });
   });
 
