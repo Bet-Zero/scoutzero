@@ -2417,7 +2417,7 @@ export function validateSigningTermsAndRaises({
         message: `Contract length (${contractYears} years) exceeds Salary Engine max (${normalizedTerms.maxYears}) for ${label}`,
         severity: 'error',
         // Phase 6: Include both mechanism and rightsType in payload
-        mechanism: normalizedTerms.mechanism,
+        mechanism: normalizedTerms.mechanism ?? 'UNKNOWN',
         rightsType: normalizedTerms.rightsType,
         engineMaxYears: normalizedTerms.maxYears,
         engineRaisePercentage: normalizedTerms.raisePercentage,
@@ -2430,13 +2430,13 @@ export function validateSigningTermsAndRaises({
     const raiseViolation = validateSigningRaises({
       contract,
       raisePercentage: normalizedTerms.raisePercentage,
-      mechanism: normalizedTerms.mechanism,
+      mechanism: normalizedTerms.mechanism ?? 'UNKNOWN',
     });
     if (raiseViolation) {
       // Phase 6: Enhance raise violation with mechanism/rightsType
       violations.push({
         ...raiseViolation,
-        mechanism: normalizedTerms.mechanism,
+        mechanism: normalizedTerms.mechanism ?? 'UNKNOWN',
         rightsType: normalizedTerms.rightsType,
         engineRaisePercentage: normalizedTerms.raisePercentage,
       });
@@ -3475,7 +3475,7 @@ export function validateSigning({
     // and we have a valid season key to lookup scale data.
     const seasonKey = normalizeSeasonKey(year);
 
-    if (pickNumber >= 1 && pickNumber <= 30 && seasonKey) {
+    if (pickNumber !== null && pickNumber >= 1 && pickNumber <= 30 && seasonKey) {
       const scaleAmount = getRookieScaleAmount({ seasonKey, pick: pickNumber });
 
       // If we have authoritative scale data for this season/pick
@@ -4123,7 +4123,8 @@ export function validateExtension({
   // 2. PHASE 3.25: Validate extension terms, first-year max, and raises
   // Now wires in Salary Engine extensionTerms when available.
   // Baseline (120% first-year max, 8% raises, 4-year max) used when engine unavailable.
-  if (extension?.salariesByYear?.length > 0) {
+  const extensionSalaryRows = extension?.salariesByYear;
+  if (Array.isArray(extensionSalaryRows) && extensionSalaryRows.length > 0) {
     // Try to get type-specific terms from Salary Engine
     const engineResult = getExtensionTermsForPlayer({ player, team, year });
     const extensionTerms = engineResult?.extensionTerms ?? null;
@@ -4139,9 +4140,9 @@ export function validateExtension({
   }
 
   // 3. Hard cap projection for extension start year
-  if (extension?.salariesByYear?.length > 0) {
-    const firstExtensionYear = extension.salariesByYear[0];
-    const extStartYear = toEndYear(firstExtensionYear.season);
+  if (Array.isArray(extensionSalaryRows) && extensionSalaryRows.length > 0) {
+    const firstExtensionYear = extensionSalaryRows[0];
+    const extStartYear = toEndYear(firstExtensionYear?.season);
 
     // We try to get rules for extension start year.
     // If future year missing data, it might throw or return partial.

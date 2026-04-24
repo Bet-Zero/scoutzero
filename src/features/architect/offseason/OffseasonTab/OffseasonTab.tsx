@@ -26,7 +26,19 @@ import { NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY } from './types';
 
 type PreviewAftermath = {
   projectedSeasonCode: string;
-  previewSummary: OffseasonSummary;
+  previewSummary: PreviewSummary;
+};
+
+type PreviewSummary = NonNullable<OffseasonSummary>;
+
+const EMPTY_PREVIEW_SUMMARY: PreviewSummary = {
+  exercisedOptions: [],
+  declinedOptions: [],
+  expiredContracts: [],
+  expiredTPEs: [],
+  capHoldsCreated: 0,
+  transitionedExceptions: [],
+  hardCapCleared: false,
 };
 
 type SummarySectionProps = {
@@ -111,7 +123,7 @@ const OffseasonTab = ({
 
       setPreviewAftermath({
         projectedSeasonCode: toSeasonCode(projectedSeasonYear),
-        previewSummary: summary,
+        previewSummary: summary ?? EMPTY_PREVIEW_SUMMARY,
       });
     } catch (err: unknown) {
       console.error('Failed to advance offseason', err);
@@ -155,83 +167,88 @@ const OffseasonTab = ({
         </div>
       )}
 
-      {previewAftermath && (
-        <div
-          data-testid="offseason-preview-aftermath"
-          className="mt-5 rounded border border-yellow-500/40 bg-yellow-900/10 p-4"
-        >
-          <strong>Preview computed — not saved</strong>
-          <p
-            data-testid="offseason-preview-aftermath-copy"
-            className="mt-2 text-sm text-yellow-100"
-          >
-            Preview shows projected state for the{' '}
-            {previewAftermath.projectedSeasonCode} season only. No world state,
-            dashboard year, or shared offseason summary was updated. Use World
-            Season Advance to persist real changes.
-          </p>
+      {previewAftermath &&
+        (() => {
+          const previewSummary = previewAftermath.previewSummary;
 
-          <div className="mt-4 space-y-3">
-            <SummarySection
-              title="Projected Exercised Options"
-              items={previewAftermath.previewSummary.exercisedOptions.map(
-                (option) => option.playerName
-              )}
-            />
-            <SummarySection
-              title="Projected Declined Options"
-              items={previewAftermath.previewSummary.declinedOptions.map(
-                (option) => option.playerName
-              )}
-            />
-            <SummarySection
-              title="Projected Expired Contracts"
-              items={previewAftermath.previewSummary.expiredContracts.map(
-                (contract) => contract.playerName
-              )}
-            />
-            <SummarySection
-              title="Projected Expired Trade Exceptions"
-              items={previewAftermath.previewSummary.expiredTPEs.map((tpe) => {
-                const amount = Number(tpe.amount || 0).toLocaleString();
-                return `$${amount} from ${tpe.source || 'Trade Exception'}`;
-              })}
-            />
-            <SummarySection
-              title="Projected Exception Transitions"
-              items={previewAftermath.previewSummary.transitionedExceptions}
-            />
-            {previewAftermath.previewSummary.capHoldsCreated > 0 && (
-              <p className="text-sm text-white/70">
-                Projected cap holds created:{' '}
-                {previewAftermath.previewSummary.capHoldsCreated}
+          return (
+            <div
+              data-testid="offseason-preview-aftermath"
+              className="mt-5 rounded border border-yellow-500/40 bg-yellow-900/10 p-4"
+            >
+              <strong>Preview computed — not saved</strong>
+              <p
+                data-testid="offseason-preview-aftermath-copy"
+                className="mt-2 text-sm text-yellow-100"
+              >
+                Preview shows projected state for the{' '}
+                {previewAftermath.projectedSeasonCode} season only. No world
+                state, dashboard year, or shared offseason summary was updated.
+                Use World Season Advance to persist real changes.
               </p>
-            )}
-            {previewAftermath.previewSummary.hardCapCleared && (
-              <p className="text-sm text-white/70">
-                Hard cap would be cleared in this projected season.
-              </p>
-            )}
-          </div>
 
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={resetPreviewAftermath}
-              className="rounded bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
-            >
-              Reset Preview
-            </button>
-            <button
-              type="button"
-              onClick={handleEditDecisions}
-              className="rounded bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
-            >
-              Edit Decisions
-            </button>
-          </div>
-        </div>
-      )}
+              <div className="mt-4 space-y-3">
+                <SummarySection
+                  title="Projected Exercised Options"
+                  items={previewSummary.exercisedOptions.map(
+                    (option) => option.playerName
+                  )}
+                />
+                <SummarySection
+                  title="Projected Declined Options"
+                  items={previewSummary.declinedOptions.map(
+                    (option) => option.playerName
+                  )}
+                />
+                <SummarySection
+                  title="Projected Expired Contracts"
+                  items={previewSummary.expiredContracts.map(
+                    (contract) => contract.playerName
+                  )}
+                />
+                <SummarySection
+                  title="Projected Expired Trade Exceptions"
+                  items={previewSummary.expiredTPEs.map((tpe) => {
+                    const amount = Number(tpe.amount || 0).toLocaleString();
+                    return `$${amount} from ${tpe.source || 'Trade Exception'}`;
+                  })}
+                />
+                <SummarySection
+                  title="Projected Exception Transitions"
+                  items={previewSummary.transitionedExceptions}
+                />
+                {previewSummary.capHoldsCreated > 0 && (
+                  <p className="text-sm text-white/70">
+                    Projected cap holds created:{' '}
+                    {previewSummary.capHoldsCreated}
+                  </p>
+                )}
+                {previewSummary.hardCapCleared && (
+                  <p className="text-sm text-white/70">
+                    Hard cap would be cleared in this projected season.
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={resetPreviewAftermath}
+                  className="rounded bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
+                >
+                  Reset Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditDecisions}
+                  className="rounded bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
+                >
+                  Edit Decisions
+                </button>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 };

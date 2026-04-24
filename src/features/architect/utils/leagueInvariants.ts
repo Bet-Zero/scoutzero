@@ -40,8 +40,8 @@ type RawPlayerLike = {
 
 type RawTeamLike = {
   teamCode?: string | null;
-  players?: RawPlayerLike[];
-  roster?: RawPlayerLike[];
+  players?: unknown[] | null;
+  roster?: unknown[] | null;
 };
 
 /**
@@ -100,6 +100,30 @@ function extractPlayerName(
   );
 }
 
+function isRawPlayerLike(player: unknown): player is RawPlayerLike {
+  return Boolean(player && typeof player === 'object');
+}
+
+function projectEntitlementTeam(team: {
+  teamCode?: string | null;
+  entitlementIds?: unknown;
+}): { teamCode?: string; entitlementIds?: string[] } {
+  const projected: { teamCode?: string; entitlementIds?: string[] } = {};
+  if (team.teamCode) {
+    projected.teamCode = team.teamCode;
+  }
+  if (Array.isArray(team.entitlementIds)) {
+    projected.entitlementIds = team.entitlementIds
+      .map((entitlementId) =>
+        entitlementId == null ? null : String(entitlementId)
+      )
+      .filter((entitlementId): entitlementId is string =>
+        Boolean(entitlementId)
+      );
+  }
+  return projected;
+}
+
 /**
  * Collect all player IDs from a team's roster.
  * @param team - Team object with players array
@@ -114,7 +138,8 @@ function collectPlayersFromTeam(
   const players = team?.players || team?.roster || [];
   if (!Array.isArray(players)) return [];
 
-  return players.flatMap((player: RawPlayerLike): PlayerLocation[] => {
+  return players.flatMap((player): PlayerLocation[] => {
+    if (!isRawPlayerLike(player)) return [];
     const playerId = extractPlayerId(player);
     if (!playerId) return [];
     return [
@@ -385,24 +410,20 @@ export async function validateMutationLeagueInvariants(
   // For trades, we need to validate the POST-trade state, not current state
   // The compute phase has already moved players, so we validate the result
   if (mutationType === 'executeTrade' && computeResult?.teamUpdates) {
+    const teamUpdates = computeResult.teamUpdates;
     // Extract all player locations from post-trade team states
-    const postTradeTeams = computeResult.teamUpdates.map(
-      (update) => update.team
-    );
+    const postTradeTeams = teamUpdates.map((update) => update.team);
 
     // We also need teams NOT involved in the trade to check against
     // Load full league and replace with post-trade states
     const allTeams = await getLeague(worldId);
-    const updatedTeamCodes = new Set(
-      computeResult.teamUpdates.map((u) => u.teamCode)
-    );
+    const updatedTeamCodes = new Set(teamUpdates.map((u) => u.teamCode));
 
     // Build combined team list: post-trade for involved teams, current for others
     const combinedTeams = allTeams.map((team) => {
       if (updatedTeamCodes.has(team.teamCode)) {
         return (
-          computeResult.teamUpdates.find((u) => u.teamCode === team.teamCode)
-            ?.team || team
+          teamUpdates.find((u) => u.teamCode === team.teamCode)?.team || team
         );
       }
       return team;
@@ -535,22 +556,21 @@ export async function validateMutationEntitlementInvariants(
     return { valid: true };
   }
 
+  const teamUpdates = computeResult.teamUpdates;
+
   // Load full league and replace with post-trade states
   const allTeams = await getLeague(worldId);
-  const updatedTeamCodes = new Set(
-    computeResult.teamUpdates.map((u) => u.teamCode)
-  );
+  const updatedTeamCodes = new Set(teamUpdates.map((u) => u.teamCode));
 
   // Build combined team list: post-trade for involved teams, current for others
   const combinedTeams = allTeams.map((team) => {
     if (updatedTeamCodes.has(team.teamCode)) {
       return (
-        computeResult.teamUpdates.find((u) => u.teamCode === team.teamCode)
-          ?.team || team
+        teamUpdates.find((u) => u.teamCode === team.teamCode)?.team || team
       );
     }
     return team;
-  });
+  }).map(projectEntitlementTeam);
 
   return validateNoDuplicateEntitlements(combinedTeams);
 }
@@ -572,7 +592,9 @@ export async function assertEntitlementIntegrity(
   const teams = await getLeague(worldId);
 
   // Check for duplicate entitlements across teams
-  const dupeResult = validateNoDuplicateEntitlements(teams);
+  const dupeResult = validateNoDuplicateEntitlements(
+    teams.map(projectEntitlementTeam)
+  );
   if (!dupeResult.valid) {
     return dupeResult;
   }
@@ -776,9 +798,15 @@ export async function validateTradeApplyExclusivity(
   }
 
   // Also include teams that lost entitlements (from teamUpdates metadata)
-  if (computeResult.metadata?.entitlementsTraded) {
+  const entitlementsTradedByTeam =
+    computeResult.metadata?.entitlementsTraded &&
+    !Array.isArray(computeResult.metadata.entitlementsTraded)
+      ? computeResult.metadata.entitlementsTraded
+      : null;
+
+  if (entitlementsTradedByTeam) {
     for (const [teamCode, transfers] of Object.entries(
-      computeResult.metadata.entitlementsTraded as Record<
+      entitlementsTradedByTeam as Record<
         string,
         { out?: string[]; in?: string[] }
       >
@@ -815,9 +843,13 @@ export async function validateTradeApplyExclusivity(
       //    the entitlement is still referenced (via entitlementIds on the team).
       //  - Entitlements being transferred AWAY from this team: remove them.
       const outgoing = new Set<string>();
-      if (computeResult.metadata?.entitlementsTraded?.[teamCode]?.out) {
-        for (const id of computeResult.metadata.entitlementsTraded[teamCode]
-          .out) {
+      const transferredEntitlements = entitlementsTradedByTeam as Record<
+        string,
+        { out?: string[]; in?: string[] }
+      > | null;
+      const transferredForTeam = transferredEntitlements?.[teamCode];
+      if (transferredForTeam?.out) {
+        for (const id of transferredForTeam.out) {
           outgoing.add(id);
         }
       }
@@ -830,9 +862,8 @@ export async function validateTradeApplyExclusivity(
       // Add incoming entitlements that this team receives but might not yet be resolved
       // (The entitlementUpdates contain holderTeam patches for incoming entitlements)
       const incomingIds = new Set<string>();
-      if (computeResult.metadata?.entitlementsTraded?.[teamCode]?.in) {
-        for (const id of computeResult.metadata.entitlementsTraded[teamCode]
-          .in) {
+      if (transferredForTeam?.in) {
+        for (const id of transferredForTeam.in) {
           incomingIds.add(id);
         }
       }

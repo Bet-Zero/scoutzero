@@ -302,7 +302,7 @@ type SeasonManagerDraftPickResolutionMeta = {
   positions?: Record<string, number>;
 };
 
-type SeasonManagerDraftPick = {
+type SeasonManagerDraftPick = Record<string, unknown> & {
   id?: string;
   year: number;
   round: number;
@@ -363,7 +363,7 @@ type SeasonManagerDraftPickIngressList = ReadonlyArray<
 
 type DraftPickCarrier = {
   teamCode?: string | null;
-  draftPicks?: SeasonManagerDraftPick[];
+  draftPicks: SeasonManagerDraftPick[];
 };
 
 type SeasonManagerDraftPickIngressSource = {
@@ -384,6 +384,35 @@ type SeasonTransitionTeam = OffseasonTeamCapSheet &
     entitlementIds?: string[];
     entitlements?: SeasonManagerProjectionEntitlements;
   };
+
+function toSeasonTransitionTeam(team: LoadedWorldTeamCapSheet): SeasonTransitionTeam {
+  return {
+    ...team,
+    players: Array.isArray(team.players)
+      ? (team.players as SeasonTransitionTeam['players'])
+      : [],
+    roster: Array.isArray(team.roster)
+      ? (team.roster as SeasonTransitionTeam['roster'])
+      : [],
+    capHolds: Array.isArray(team.capHolds)
+      ? (team.capHolds as SeasonTransitionTeam['capHolds'])
+      : [],
+    exceptions: (team.exceptions ??
+      null) as SeasonTransitionTeam['exceptions'],
+    draftPicks: Array.isArray(team.draftPicks)
+      ? (team.draftPicks as SeasonManagerDraftPickIngressList)
+      : [],
+    entitlementIds: Array.isArray(team.entitlementIds)
+      ? team.entitlementIds
+          .map((entitlementId) =>
+            entitlementId == null ? null : String(entitlementId)
+          )
+          .filter((entitlementId): entitlementId is string =>
+            Boolean(entitlementId)
+          )
+      : [],
+  };
+}
 
 // These allowlisted persistence metadata fields are intentionally preserve-only:
 // season advance does not compute them, but legacy/base/world snapshots can carry
@@ -1313,7 +1342,8 @@ export async function advanceSeasonInWorld(
 
     // Process each team
     for (const team of teams) {
-      const teamCode = team.teamCode;
+      const transitionTeam = toSeasonTransitionTeam(team);
+      const teamCode = transitionTeam.teamCode;
       if (!isNonEmptyString(teamCode)) {
         throw new Error('Encountered team without teamCode during season advance');
       }
@@ -1321,13 +1351,18 @@ export async function advanceSeasonInWorld(
       // Process team for season transition with explicit option decisions
       // Phase 5: Also pass positionsMap + draftYear for auto-resolution
       // Phase 53: Pass worldId for TPE expiry history logging
+      const draftResolutionContext: DraftResolutionContext = { draftYear, worldId };
+      if (positionsMap) {
+        draftResolutionContext.positionsMap = positionsMap;
+      }
+
       const { committedTeam, teamSummary } =
         await processTeamSeasonTransitionWithOptions(
-          team,
+          transitionTeam,
           fromSeason,
           toSeason,
           optionDecisions,
-          { positionsMap, draftYear, worldId }
+          draftResolutionContext
         );
 
       // Merge summaries
@@ -2147,7 +2182,10 @@ export function resolveDraftPickSwapsForYear(
     try {
       return (
         toSeasonManagerDraftPick(
-          resolvePickSwap(pick, positionsMap, { nowIso, method })
+          resolvePickSwap(pick, positionsMap, {
+            nowIso,
+            method,
+          }) as SeasonManagerDraftPickIngress | null | undefined
         ) || pick
       );
     } catch {
@@ -2241,7 +2279,7 @@ export function resolveDraftPickConveyanceForYear(
             draftYear,
             nowIso,
             method,
-          })
+          }) as SeasonManagerDraftPickIngress | null | undefined
         ) || pick
       );
     } catch {

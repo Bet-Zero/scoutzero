@@ -55,6 +55,7 @@ import {
   isSignAndTradeEligible,
   resolveSignAndTradeContractPayload,
   validateSignAndTradeContractPayload,
+  type SignAndTradePlayerLike,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
@@ -132,6 +133,61 @@ function toNonEmptyString(value: unknown): string | undefined {
 
   const normalized = value.trim();
   return normalized ? normalized : undefined;
+}
+
+function toSignAndTradePlayerLike(
+  player:
+    | TradeContextValidationPlayer
+    | TradeApplyValidationPlayer
+    | ArchitectTradePayloadPlayer
+): SignAndTradePlayerLike {
+  const record = player as AnyRecord;
+  const normalized: SignAndTradePlayerLike = {};
+
+  if (record.id != null) normalized.id = record.id;
+  if (record.playerId != null) normalized.playerId = record.playerId;
+  if (record.player_id != null) normalized.player_id = record.player_id;
+  if (record.name != null) normalized.name = record.name;
+  if (record.displayName != null) normalized.displayName = record.displayName;
+  if (record.bio != null) normalized.bio = record.bio;
+  if (record.teamCode != null) normalized.teamCode = record.teamCode;
+  if (record.teamId != null) normalized.teamId = record.teamId;
+  if (record.teamAbbr != null) normalized.teamAbbr = record.teamAbbr;
+  if (record.team != null) normalized.team = record.team;
+  if (record.originTeamId != null) normalized.originTeamId = record.originTeamId;
+  if (record.contract != null) normalized.contract = record.contract;
+  if (record.primaryContract != null) {
+    normalized.primaryContract = record.primaryContract;
+  }
+  if (record.freeAgentYear != null) {
+    normalized.freeAgentYear = record.freeAgentYear;
+  }
+  if (typeof record.rightsRenounced === 'boolean') {
+    normalized.rightsRenounced = record.rightsRenounced;
+  }
+  if (record.signAndTrade === true) {
+    normalized.signAndTrade = true;
+  }
+  if (record.signAndTradeContract != null) {
+    normalized.signAndTradeContract = record.signAndTradeContract;
+  }
+  if (Array.isArray(record.salariesByYear)) {
+    normalized.salariesByYear = record.salariesByYear;
+  }
+  if (Array.isArray(record.salaries)) {
+    normalized.salaries = record.salaries;
+  }
+  if (typeof record.contractYears === 'number') {
+    normalized.contractYears = record.contractYears;
+  }
+  if (typeof record.years === 'number') {
+    normalized.years = record.years;
+  }
+  if (typeof record.firstYearGuaranteed === 'boolean') {
+    normalized.firstYearGuaranteed = record.firstYearGuaranteed;
+  }
+
+  return normalized;
 }
 
 function projectTradeApplyValidationPlayer(
@@ -593,7 +649,7 @@ function buildTradeValidatorContext(
   const normalizedYearKey =
     rawTradeCtx.yearKey != null ? toEndYear(rawTradeCtx.yearKey) : null;
 
-  if (Number.isFinite(normalizedYearKey)) {
+  if (typeof normalizedYearKey === 'number' && Number.isFinite(normalizedYearKey)) {
     tradeCtx.yearKey = normalizedYearKey;
   }
 
@@ -628,9 +684,10 @@ function buildTradeIncomingPlayerSnapshot({
     'originTeamId',
   ] as const;
 
+  const record = player as AnyRecord;
   keys.forEach((key) => {
-    if (player[key] !== undefined) {
-      fallback[key] = player[key];
+    if (record[key] !== undefined) {
+      fallback[key] = record[key];
     }
   });
 
@@ -735,7 +792,7 @@ export function buildPostTradeTeamsSnapshot({
           }
 
           const eligibility = isSignAndTradeEligible({
-            player,
+            player: toSignAndTradePlayerLike(player),
             yearKey: currentEndYear,
             sourceTeamId: senderTeamCode,
             sourceTeamCapHolds: senderCapHolds,
@@ -754,7 +811,7 @@ export function buildPostTradeTeamsSnapshot({
           }
 
           const contract = resolveSignAndTradeContractPayload(
-            player,
+            toSignAndTradePlayerLike(player),
             currentEndYear,
             { allowPlayerContractFallback: false }
           );
@@ -868,7 +925,7 @@ export function buildPostTradeTeamsSnapshot({
 
               if (player.signAndTrade === true) {
                 const satContract = resolveSignAndTradeContractPayload(
-                  mergedValidationPlayer,
+                  toSignAndTradePlayerLike(mergedValidationPlayer),
                   currentEndYear,
                   { allowPlayerContractFallback: false }
                 );
@@ -1064,7 +1121,7 @@ export function buildPostTradeTeamsSnapshot({
       lastModifiedAt: timestampISO,
     };
 
-    updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
+    updatedTeam.totals = computeTeamCapTotals(updatedTeam, currentEndYear);
 
     if (receivesSignAndTrade) {
       const totalsObj = updatedTeam.totals as AnyRecord | undefined;
@@ -1096,13 +1153,14 @@ export function buildPostTradeTeamsSnapshot({
       ? team.entitlementIds
       : [];
     for (const entId of entitlementIds) {
+      const ownershipTeamCode = teamCode ?? 'UNKNOWN_TEAM';
       if (entitlementOwnership.has(entId)) {
         const otherTeam = entitlementOwnership.get(entId);
         throw new Error(
-          `[tradeContext] INVARIANT VIOLATION: Entitlement "${entId}" would exist on both ${otherTeam} and ${teamCode} after trade. This indicates a routing bug.`
+          `[tradeContext] INVARIANT VIOLATION: Entitlement "${entId}" would exist on both ${otherTeam} and ${ownershipTeamCode} after trade. This indicates a routing bug.`
         );
       }
-      entitlementOwnership.set(entId, teamCode);
+      entitlementOwnership.set(entId, ownershipTeamCode);
     }
   }
 

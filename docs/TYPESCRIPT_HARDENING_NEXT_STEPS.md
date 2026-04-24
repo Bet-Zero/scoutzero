@@ -1530,7 +1530,11 @@ That section must:
 
 ## Step 47 — Harden the next Architect runtime-owner boundary cluster (wave 19)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the runtime-owner boundary cluster; Architect
+strict moved from `268` to `223` errors and all Step 47 target files are clear
+from the strict probe.
 
 **Goal:** Tighten the next highest-value Architect runtime-owner boundary
 cluster exposed by the Step 46 checkpoint without widening into unrelated UI or

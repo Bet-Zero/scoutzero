@@ -28,7 +28,11 @@ import {
   getCapHoldForPlayer,
   isCapHoldAmountValid,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
-import { calculateCapHold, type CapHold } from '@/features/architect/utils/capHolds';
+import {
+  calculateCapHold,
+  type CapHold,
+  type CapHoldPlayerInput,
+} from '@/features/architect/utils/capHolds';
 import {
   processTradeExceptions,
   getTpeExpiryISO,
@@ -303,6 +307,71 @@ function getPlayerId(player: OffseasonPlayer | null | undefined): string | null 
 
 function getPlayerName(player: OffseasonPlayer | null | undefined): string {
   return player?.displayName || player?.name || player?.playerName || '';
+}
+
+function normalizeCapHoldPlayer(
+  player: OffseasonPlayer
+): CapHoldPlayerInput & { birdRights?: unknown } {
+  const normalized: CapHoldPlayerInput & { birdRights?: unknown } = {};
+
+  if (player.renounced != null) {
+    normalized.renounced = player.renounced;
+  }
+
+  if (typeof player.bio?.yearsExperience === 'number') {
+    normalized.bio = { yearsExperience: player.bio.yearsExperience };
+  }
+
+  if (player.draft) {
+    const draft: NonNullable<CapHoldPlayerInput['draft']> = {};
+    if (typeof player.draft.pick === 'number') {
+      draft.pick = player.draft.pick;
+    }
+    if (typeof player.draft.round === 'number') {
+      draft.round = player.draft.round;
+    }
+    normalized.draft = draft;
+  }
+
+  const salaryRows = Array.isArray(player.contract?.salariesByYear)
+    ? player.contract.salariesByYear.flatMap((row) => {
+        const salaryRow: NonNullable<
+          NonNullable<CapHoldPlayerInput['contract']>['salariesByYear']
+        >[number] = {};
+
+        if (typeof row.season === 'string') {
+          salaryRow.season = row.season;
+        }
+        if (typeof row.salary === 'number') {
+          salaryRow.salary = row.salary;
+        }
+        if (typeof row.capHit === 'number') {
+          salaryRow.capHit = row.capHit;
+        }
+
+        return Object.keys(salaryRow).length > 0 ? [salaryRow] : [];
+      })
+    : undefined;
+
+  const contractBirdRights = player.contract?.birdRights;
+  const contract: NonNullable<CapHoldPlayerInput['contract']> = {};
+  if (
+    contractBirdRights &&
+    typeof contractBirdRights === 'object' &&
+    typeof contractBirdRights.status === 'string'
+  ) {
+    contract.birdRights = { status: contractBirdRights.status };
+  }
+  if (salaryRows !== undefined) {
+    contract.salariesByYear = salaryRows;
+  }
+  if (Object.keys(contract).length > 0) {
+    normalized.contract = contract;
+  }
+
+  normalized.birdRights = player.birdRights;
+
+  return normalized;
 }
 
 function getRosterEntryId(entry: OffseasonRosterEntry | null | undefined): string | null {
@@ -685,8 +754,9 @@ function validateOffseasonState(
 
   const rules = getCapRulesForYear(toYear, context?.capProjections);
 
-  const standardRosterCount = countStandardRoster(team?.players);
-  const twoWayCount = countTwoWayRoster(team?.players);
+  const rosterPlayers = team.players ?? [];
+  const standardRosterCount = countStandardRoster(rosterPlayers);
+  const twoWayCount = countTwoWayRoster(rosterPlayers);
 
   const minRoster = rules.roster.graceMin;
   const maxRoster = rules.roster.maxStandard;
@@ -968,9 +1038,10 @@ export function resolveOffseasonTransition({
       };
       player.freeAgentYear = freeAgencyYear;
 
-      const rightsType = getRightsTypeFromPlayer(player);
+      const capHoldPlayer = normalizeCapHoldPlayer(player);
+      const rightsType = getRightsTypeFromPlayer(capHoldPlayer);
       const capHoldResult = computeExpectedCapHoldAmount({
-        player,
+        player: capHoldPlayer,
         lastSalary,
         rules: null,
         rightsType,
@@ -1111,7 +1182,7 @@ export function resolveOffseasonTransition({
     const existingHold = getCapHoldForPlayer(nextTeam, playerId);
     if (existingHold) continue;
 
-    const holdCalc = calculateCapHold(player);
+    const holdCalc = calculateCapHold(normalizeCapHoldPlayer(player));
     if (!holdCalc || !Number.isFinite(holdCalc.amount)) {
       warnings.push({
         rule: 'cap_hold_missing_amount',
@@ -1169,9 +1240,14 @@ export function resolveOffseasonTransition({
   if (normalizedExceptions.changed) {
     nextTeam.exceptions = normalizedExceptions.normalized;
   }
+  if (!nextTeam.exceptions) {
+    nextTeam.exceptions = {};
+  }
 
   const exceptionReset = resetTeamNonTpeExceptionsForNewSeason(
-    nextTeam,
+    nextTeam as NonNullable<
+      Parameters<typeof resetTeamNonTpeExceptionsForNewSeason>[0]
+    >,
     toYear,
     {
       customCapProjections: context?.capProjections,

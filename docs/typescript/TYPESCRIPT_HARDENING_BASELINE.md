@@ -2150,6 +2150,46 @@ measurable progress, but the remaining Architect/runtime/test backlog is too
 large for a truthful completion claim. The next move is another bounded
 execution wave, not final review.
 
+## Step 47 Runtime-Owner Boundary Wave
+
+Measured 2026-04-24 after Step 47.
+
+| Probe                                                                 | Result | Notes |
+| --------------------------------------------------------------------- | -----: | ----- |
+| `npm run typecheck`                                                   | pass   | Root compatibility remains green after the runtime-owner boundary changes. |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`       |   223 | Expected strict failure while the master plan remains active; Step 47 target files are clear. |
+| `npm run build`                                                       | pass   | Production build passed; Vite reported existing dynamic/static import and chunk-size warnings. |
+
+Step 47 reduced the Architect strict backlog from `268` to `223` errors
+(`-45`). The cleared runtime-owner targets were:
+
+- `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx`
+- `src/features/architect/utils/capLegalityValidation.ts`
+- `src/features/architect/utils/leagueInvariants.ts`
+- `src/features/architect/utils/tradeContext/tradeContext.ts`
+- `src/features/architect/utils/seasonManager.ts`
+- `src/features/architect/utils/offseason/resolveOffseasonTransition.ts`
+
+The remaining top hotspots are now concentrated in the Step 48 test cluster
+and the next lower runtime utilities:
+
+1. `tests/trade/orderOfOps_conversionsBeforeMatching.test.ts` (`7`)
+2. `tests/architect/overrideBypass.test.ts` (`7`)
+3. `tests/trade/salaryMatching.test.ts` (`6`)
+4. `tests/trade/byc_outgoing_max.test.ts` (`6`)
+5. `tests/architect/EditContractModal.rules.test.tsx` (`6`)
+6. `src/tests/architect/phase86_league_invariants.test.ts` (`6`)
+7. `src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts` (`6`)
+8. `src/tests/architect/phase47_tpe_persistence_guardrails.test.ts` (`6`)
+9. `src/tests/architect/dare/protectionLadderFactory.test.ts` (`6`)
+10. `src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts` (`5`)
+11. `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts` (`5`)
+12. `src/tests/architect/entitlementInvariants.test.ts` (`5`)
+
+Readiness remains negative: the runtime-owner wave was successful, but `223`
+Architect strict errors are still meaningful mission-area debt. Step 48 remains
+the next executable wave.
+
 ## Evidence Commands
 
 - `rg --files`
