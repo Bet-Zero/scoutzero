@@ -4,8 +4,21 @@ import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/u
 const yearKey = 2025;
 const season = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
 
-const makePlayer = (overrides = {}) => ({
+type ComputeMatchingValuesParams = Parameters<typeof computeMatchingValues>[0];
+type MatchingPlayer = NonNullable<
+  NonNullable<NonNullable<ComputeMatchingValuesParams['teams']>[number]['sends']>[number]
+>;
+
+type TradeKickerPlayerOverrides = Partial<MatchingPlayer> & {
+  salary?: number;
+};
+
+const makePlayer = (
+  overrides: TradeKickerPlayerOverrides = {}
+): MatchingPlayer => ({
   name: 'Player',
+  salary: overrides.salary ?? 0,
+  currentSalary: overrides.salary ?? 0,
   contract: {
     salariesByYear: [{ season, salary: overrides.salary ?? 0 }],
   },

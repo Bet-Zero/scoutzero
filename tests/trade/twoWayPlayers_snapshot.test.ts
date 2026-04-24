@@ -1,8 +1,75 @@
 import { describe, it, expect } from 'vitest';
 import { buildPostTradeTeamsSnapshot } from '@/features/architect/utils/tradeContext/tradeContext';
 
-const makeTeam = (id, players = [], twoWayPlayers = undefined) => {
-  const base = {
+type SnapshotParams = Parameters<typeof buildPostTradeTeamsSnapshot>[0];
+type SnapshotResult = ReturnType<typeof buildPostTradeTeamsSnapshot>;
+type SnapshotPlayer = {
+  name: string;
+  player_id: string;
+  isTwoWay?: boolean;
+  [key: string]: unknown;
+};
+type TeamFixture = {
+  id: string;
+  teamCode: string;
+  teamName: string;
+  roster: string[];
+  players: SnapshotPlayer[];
+  draftPicks: unknown[];
+  entitlementIds: unknown[];
+  tradeExceptions: unknown[];
+  exceptions: { tpe: unknown[] };
+  activeContracts: unknown[];
+  twoWayPlayers?: SnapshotPlayer[];
+};
+type CurrentStateFixture = {
+  teams: Array<{
+    teamCode: string;
+    team: TeamFixture;
+  }>;
+};
+type PayloadFixture = {
+  teams: Array<{
+    teamCode: string;
+    team: { id: string };
+    sends: SnapshotPlayer[];
+    picksOut: unknown[];
+    outgoingEntitlements: unknown[];
+    entitlementsOut: unknown[];
+  }>;
+};
+
+const requireValue = <T>(value: T | null | undefined, label: string): T => {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  return value;
+};
+
+const buildSnapshot = (
+  payload: PayloadFixture,
+  currentState: CurrentStateFixture
+): SnapshotResult =>
+  buildPostTradeTeamsSnapshot({
+    payload: payload as SnapshotParams['payload'],
+    currentState: currentState as SnapshotParams['currentState'],
+    seasonId: '2025-26',
+    timestamp: Date.now(),
+  });
+
+const getTeamUpdate = (result: SnapshotResult, teamCode: string) =>
+  requireValue(
+    result.teamUpdates.find((update) => update.teamCode === teamCode),
+    `team update ${teamCode}`
+  );
+
+const makeTeam = (
+  id: string,
+  players: SnapshotPlayer[] = [],
+  twoWayPlayers: SnapshotPlayer[] | undefined = undefined
+): TeamFixture => {
+  const base: TeamFixture = {
     id,
     teamCode: id,
     teamName: `Team ${id}`,
@@ -20,7 +87,10 @@ const makeTeam = (id, players = [], twoWayPlayers = undefined) => {
   return base;
 };
 
-const makePayloadTeam = (teamCode, sends = []) => ({
+const makePayloadTeam = (
+  teamCode: string,
+  sends: SnapshotPlayer[] = []
+): PayloadFixture['teams'][number] => ({
   teamCode,
   team: { id: teamCode },
   sends,
@@ -29,7 +99,10 @@ const makePayloadTeam = (teamCode, sends = []) => ({
   entitlementsOut: [],
 });
 
-const makePlayer = (name, extra = {}) => ({
+const makePlayer = (
+  name: string,
+  extra: Partial<SnapshotPlayer> = {}
+): SnapshotPlayer => ({
   name,
   player_id: name.toLowerCase().replace(/\s/g, '_'),
   ...extra,
@@ -41,10 +114,7 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     const stdPlayer = makePlayer('Standard Guy');
 
     const payload = {
-      teams: [
-        makePayloadTeam('LAL', [twPlayer]),
-        makePayloadTeam('BOS', []),
-      ],
+      teams: [makePayloadTeam('LAL', [twPlayer]), makePayloadTeam('BOS', [])],
     };
 
     const currentState = {
@@ -54,14 +124,9 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
       ],
     };
 
-    const result = buildPostTradeTeamsSnapshot({
-      payload,
-      currentState,
-      seasonId: '2025-26',
-      timestamp: Date.now(),
-    });
+    const result = buildSnapshot(payload, currentState);
 
-    const lalUpdate = result.teamUpdates.find((u) => u.teamCode === 'LAL');
+    const lalUpdate = getTeamUpdate(result, 'LAL');
     expect(lalUpdate.team.twoWayPlayers).toEqual([]);
   });
 
@@ -69,10 +134,7 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     const twPlayer = makePlayer('Two Way Guy', { isTwoWay: true });
 
     const payload = {
-      teams: [
-        makePayloadTeam('LAL', [twPlayer]),
-        makePayloadTeam('BOS', []),
-      ],
+      teams: [makePayloadTeam('LAL', [twPlayer]), makePayloadTeam('BOS', [])],
     };
 
     const currentState = {
@@ -82,14 +144,9 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
       ],
     };
 
-    const result = buildPostTradeTeamsSnapshot({
-      payload,
-      currentState,
-      seasonId: '2025-26',
-      timestamp: Date.now(),
-    });
+    const result = buildSnapshot(payload, currentState);
 
-    const bosUpdate = result.teamUpdates.find((u) => u.teamCode === 'BOS');
+    const bosUpdate = getTeamUpdate(result, 'BOS');
     expect(bosUpdate.team.twoWayPlayers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ player_id: 'two_way_guy', isTwoWay: true }),
@@ -101,10 +158,7 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     const twPlayer = makePlayer('Two Way Guy', { isTwoWay: true });
 
     const payload = {
-      teams: [
-        makePayloadTeam('LAL', [twPlayer]),
-        makePayloadTeam('BOS', []),
-      ],
+      teams: [makePayloadTeam('LAL', [twPlayer]), makePayloadTeam('BOS', [])],
     };
 
     const currentState = {
@@ -117,15 +171,13 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
       ],
     };
 
-    const result = buildPostTradeTeamsSnapshot({
-      payload,
-      currentState,
-      seasonId: '2025-26',
-      timestamp: Date.now(),
-    });
+    const result = buildSnapshot(payload, currentState);
 
-    const bosUpdate = result.teamUpdates.find((u) => u.teamCode === 'BOS');
-    const twIds = bosUpdate.team.twoWayPlayers.map((p) => p.player_id);
+    const bosUpdate = getTeamUpdate(result, 'BOS');
+    const twIds = requireValue(
+      bosUpdate.team.twoWayPlayers,
+      'bosUpdate.team.twoWayPlayers'
+    ).map((player) => player.player_id);
     const uniqueIds = [...new Set(twIds)];
     expect(twIds.length).toBe(uniqueIds.length);
   });
@@ -134,10 +186,7 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     const twPlayer = makePlayer('Two Way Guy', { isTwoWay: true });
 
     const payload = {
-      teams: [
-        makePayloadTeam('LAL', [twPlayer]),
-        makePayloadTeam('BOS', []),
-      ],
+      teams: [makePayloadTeam('LAL', [twPlayer]), makePayloadTeam('BOS', [])],
     };
 
     const currentState = {
@@ -147,14 +196,9 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
       ],
     };
 
-    const result = buildPostTradeTeamsSnapshot({
-      payload,
-      currentState,
-      seasonId: '2025-26',
-      timestamp: Date.now(),
-    });
+    const result = buildSnapshot(payload, currentState);
 
-    const bosUpdate = result.teamUpdates.find((u) => u.teamCode === 'BOS');
+    const bosUpdate = getTeamUpdate(result, 'BOS');
     expect(bosUpdate.team).not.toHaveProperty('twoWayPlayers');
   });
 });

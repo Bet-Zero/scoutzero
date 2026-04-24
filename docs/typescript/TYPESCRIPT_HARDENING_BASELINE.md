@@ -846,11 +846,11 @@ Reviewed: 2026-04-22, after the fourth Architect cap-legality/rights wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 23 wave | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,050 | 1,914 | -136 |
-| `tests/architect/capLegalityValidation.test.ts` | 69 after Step 23 | 0 | Cleared |
-| `tests/architect/renounceRights.test.ts` | 67 after Step 23 | 0 | Cleared |
+| Measurement                                                     |     Step 23 wave | Current |   Delta |
+| --------------------------------------------------------------- | ---------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |            2,050 |   1,914 |    -136 |
+| `tests/architect/capLegalityValidation.test.ts`                 | 69 after Step 23 |       0 | Cleared |
+| `tests/architect/renounceRights.test.ts`                        | 67 after Step 23 |       0 | Cleared |
 
 ### What Changed
 
@@ -900,11 +900,11 @@ Reviewed: 2026-04-22, after Steps 23-24 completed the planned persistence/world/
 
 ### Probe Delta
 
-| Command | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Current | Reading |
-| --- | ---: | ---: | ---: | ---: | --- |
-| `npm run typecheck` | 0 | compatibility-only pass | 0 | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | 1,914 | Architect/test strict posture improved materially (`-653` vs the original baseline, `-718` vs Step 14, `-314` vs Step 22), but it remains the mission blocker by a large margin. |
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Current | Reading                                                                                                                                                                          |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | ------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                  |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                    |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |   1,914 | Architect/test strict posture improved materially (`-653` vs the original baseline, `-718` vs Step 14, `-314` vs Step 22), but it remains the mission blocker by a large margin. |
 
 ### Current Architect Strict Concentration
 
@@ -949,12 +949,12 @@ Reviewed: 2026-04-22, after the fifth Architect exception/parity wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 25 checkpoint | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,914 | 1,730 | -184 |
-| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` | 64 after Step 25 | 0 | Cleared |
-| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` | 62 after Step 25 | 0 | Cleared |
-| `src/tests/architect/exceptionManagement.test.ts` | 58 after Step 25 | 0 | Cleared |
+| Measurement                                                                                             | Step 25 checkpoint | Current |   Delta |
+| ------------------------------------------------------------------------------------------------------- | -----------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                         |              1,914 |   1,730 |    -184 |
+| `src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.ts` |   64 after Step 25 |       0 | Cleared |
+| `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts`                                     |   62 after Step 25 |       0 | Cleared |
+| `src/tests/architect/exceptionManagement.test.ts`                                                       |   58 after Step 25 |       0 | Cleared |
 
 ### What Changed
 
@@ -1006,14 +1006,14 @@ Reviewed: 2026-04-23, after the sixth Architect integration/normalization wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 26 wave | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,730 | 1,502 | -228 |
-| `tests/architect/contractNormalization.test.ts` | 50 after Step 26 | 0 | Cleared |
-| `tests/architect/integration.test.ts` | 49 after Step 26 | 0 | Cleared |
-| `tests/architect/e2e-workflows.test.ts` | 49 after Step 26 | 0 | Cleared |
-| `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts` | 41 after Step 26 | 0 | Cleared |
-| `tests/architect/schemaAdapter.test.ts` | 39 after Step 26 | 0 | Cleared |
+| Measurement                                                             |     Step 26 wave | Current |   Delta |
+| ----------------------------------------------------------------------- | ---------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |            1,730 |   1,502 |    -228 |
+| `tests/architect/contractNormalization.test.ts`                         | 50 after Step 26 |       0 | Cleared |
+| `tests/architect/integration.test.ts`                                   | 49 after Step 26 |       0 | Cleared |
+| `tests/architect/e2e-workflows.test.ts`                                 | 49 after Step 26 |       0 | Cleared |
+| `src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.ts` | 41 after Step 26 |       0 | Cleared |
+| `tests/architect/schemaAdapter.test.ts`                                 | 39 after Step 26 |       0 | Cleared |
 
 ### What Changed
 
@@ -1071,11 +1071,11 @@ exception/parity and integration/normalization waves.
 
 ### Probe Delta
 
-| Command | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 25 checkpoint | Current | Reading |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `npm run typecheck` | 0 | compatibility-only pass | 0 | 0 | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | 1,914 | 1,502 | Architect/test strict posture improved materially (`-1,065` vs the original baseline, `-1,130` vs Step 14, `-726` vs Step 22, `-412` vs Step 25), but it remains the mission blocker by a large margin. |
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 25 checkpoint | Current | Reading                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                         |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                                           |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |              1,914 |   1,502 | Architect/test strict posture improved materially (`-1,065` vs the original baseline, `-1,130` vs Step 14, `-726` vs Step 22, `-412` vs Step 25), but it remains the mission blocker by a large margin. |
 
 ### Current Architect Strict Concentration
 
@@ -1121,14 +1121,14 @@ Reviewed: 2026-04-23, after the seventh Architect/trade guardrail wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 28 checkpoint | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,502 | 1,336 | -166 |
-| `src/tests/architect/phase17_entitlement_routing_guardrail.test.ts` | 37 after Step 28 | 0 | Cleared |
-| `src/tests/tradeMachine/phase5DraftPositions.test.ts` | 34 after Step 28 | 0 | Cleared |
-| `src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts` | 34 after Step 28 | 0 | Cleared |
-| `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts` | 31 after Step 28 | 0 | Cleared |
-| `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts` | 30 after Step 28 | 0 | Cleared |
+| Measurement                                                                                          | Step 28 checkpoint | Current |   Delta |
+| ---------------------------------------------------------------------------------------------------- | -----------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                      |              1,502 |   1,336 |    -166 |
+| `src/tests/architect/phase17_entitlement_routing_guardrail.test.ts`                                  |   37 after Step 28 |       0 | Cleared |
+| `src/tests/tradeMachine/phase5DraftPositions.test.ts`                                                |   34 after Step 28 |       0 | Cleared |
+| `src/tests/architect/phase55_trade_validation_separation_guardrails.test.ts`                         |   34 after Step 28 |       0 | Cleared |
+| `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts`                      |   31 after Step 28 |       0 | Cleared |
+| `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts` |   30 after Step 28 |       0 | Cleared |
 
 ### What Changed
 
@@ -1185,13 +1185,13 @@ Reviewed: 2026-04-23, after the eighth validator/unit truth wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 29 | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,336 | 1,212 | -124 |
-| `tests/architect/extension_voidedByExtension.test.ts` | 33 after Step 29 | 0 | Cleared |
-| `tests/trade/validatorContractCleanup.test.ts` | 32 after Step 29 | 0 | Cleared |
-| `tests/trade/validatorTrustFixes.test.ts` | 30 after Step 29 | 0 | Cleared |
-| `tests/trade/consent_and_reacq.test.ts` | 29 after Step 29 | 0 | Cleared |
+| Measurement                                                     |          Step 29 | Current |   Delta |
+| --------------------------------------------------------------- | ---------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |            1,336 |   1,212 |    -124 |
+| `tests/architect/extension_voidedByExtension.test.ts`           | 33 after Step 29 |       0 | Cleared |
+| `tests/trade/validatorContractCleanup.test.ts`                  | 32 after Step 29 |       0 | Cleared |
+| `tests/trade/validatorTrustFixes.test.ts`                       | 30 after Step 29 |       0 | Cleared |
+| `tests/trade/consent_and_reacq.test.ts`                         | 29 after Step 29 |       0 | Cleared |
 
 ### What Changed
 
@@ -1247,11 +1247,11 @@ Architect/trade guardrail and validator/unit truth waves.
 
 ### Probe Delta
 
-| Command | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 28 checkpoint | Current | Reading |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `npm run typecheck` | 0 | compatibility-only pass | 0 | 0 | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | 1,502 | 1,212 | Architect/test strict posture improved materially (`-1,355` vs the original baseline, `-1,420` vs Step 14, `-1,016` vs Step 22, `-290` vs Step 28), but it remains the mission blocker by a large margin. |
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 28 checkpoint | Current | Reading                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                           |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                                             |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |              1,502 |   1,212 | Architect/test strict posture improved materially (`-1,355` vs the original baseline, `-1,420` vs Step 14, `-1,016` vs Step 22, `-290` vs Step 28), but it remains the mission blocker by a large margin. |
 
 ### Current Architect Strict Concentration
 
@@ -1299,14 +1299,14 @@ Reviewed: 2026-04-23, after the ninth Architect DARE / trade-apply wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 31 checkpoint | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,212 | 1,079 | -133 |
-| `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts` | 29 after Step 31 | 0 | Cleared |
-| `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts` | 28 after Step 31 | 0 | Cleared |
-| `src/tests/architect/signAndTrade.test.ts` | 27 after Step 31 | 0 | Cleared |
-| `src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts` | 26 after Step 31 | 0 | Cleared |
-| `src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts` | 23 after Step 31 | 0 | Cleared |
+| Measurement                                                                     | Step 31 checkpoint | Current |   Delta |
+| ------------------------------------------------------------------------------- | -----------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                 |              1,212 |   1,079 |    -133 |
+| `src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.ts`             |   29 after Step 31 |       0 | Cleared |
+| `src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.ts`          |   28 after Step 31 |       0 | Cleared |
+| `src/tests/architect/signAndTrade.test.ts`                                      |   27 after Step 31 |       0 | Cleared |
+| `src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.ts`  |   26 after Step 31 |       0 | Cleared |
+| `src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts` |   23 after Step 31 |       0 | Cleared |
 
 ### What Changed
 
@@ -1364,14 +1364,14 @@ Reviewed: 2026-04-23, after the tenth trade-rule / TPE unit wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 32 | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 1,079 | 944 | -135 |
-| `tests/trade/tpe_creation_expiry_usage.test.ts` | 26 after Step 32 | 0 | Cleared |
-| `tests/trade/secondApronBoundary.test.ts` | 26 after Step 32 | 0 | Cleared |
-| `tests/trade/timingEnforcement_authoritative.test.ts` | 24 after Step 32 | 0 | Cleared |
-| `tests/trade/reacquisition_bar.test.ts` | 24 after Step 32 | 0 | Cleared |
-| `tests/trade/tpe_absorption_fail_closed.test.ts` | 23 after Step 32 | 0 | Cleared |
+| Measurement                                                     |          Step 32 | Current |   Delta |
+| --------------------------------------------------------------- | ---------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |            1,079 |     944 |    -135 |
+| `tests/trade/tpe_creation_expiry_usage.test.ts`                 | 26 after Step 32 |       0 | Cleared |
+| `tests/trade/secondApronBoundary.test.ts`                       | 26 after Step 32 |       0 | Cleared |
+| `tests/trade/timingEnforcement_authoritative.test.ts`           | 24 after Step 32 |       0 | Cleared |
+| `tests/trade/reacquisition_bar.test.ts`                         | 24 after Step 32 |       0 | Cleared |
+| `tests/trade/tpe_absorption_fail_closed.test.ts`                | 23 after Step 32 |       0 | Cleared |
 
 ### What Changed
 
@@ -1430,11 +1430,11 @@ Architect DARE/trade-apply and trade-rule/TPE unit waves.
 
 ### Probe Delta
 
-| Command | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 31 checkpoint | Current | Reading |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `npm run typecheck` | 0 | compatibility-only pass | 0 | 0 | 0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` | 244 | 0 | 0 | 0 | 0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 2,567 | 2,632 | 2,228 | 1,212 | 944 | Architect/test strict posture improved materially (`-1,623` vs the original baseline, `-1,688` vs Step 14, `-1,284` vs Step 22, `-268` vs Step 31), but it remains the mission blocker by a wide margin. |
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 31 checkpoint | Current | Reading                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                          |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                                            |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |              1,212 |     944 | Architect/test strict posture improved materially (`-1,623` vs the original baseline, `-1,688` vs Step 14, `-1,284` vs Step 22, `-268` vs Step 31), but it remains the mission blocker by a wide margin. |
 
 ### Current Architect Strict Concentration
 
@@ -1487,15 +1487,15 @@ Reviewed: 2026-04-23, after the eleventh Architect dead-cap / season-state wave.
 
 ### Strict Probe Delta
 
-| Measurement | Step 34 checkpoint | Current | Delta |
-| --- | ---: | ---: | ---: |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 944 | 823 | -121 |
-| `src/tests/architect/deadCapManagement.test.ts` | 24 after Step 34 | 0 | Cleared |
-| `src/tests/tradeMachine/seasonSwapResolution.test.ts` | 21 after Step 34 | 0 | Cleared |
-| `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts` | 20 after Step 34 | 0 | Cleared |
-| `src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts` | 19 after Step 34 | 0 | Cleared |
-| `src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts` | 19 after Step 34 | 0 | Cleared |
-| `src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts` | 18 after Step 34 | 0 | Cleared |
+| Measurement                                                                        | Step 34 checkpoint | Current |   Delta |
+| ---------------------------------------------------------------------------------- | -----------------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                    |                944 |     823 |    -121 |
+| `src/tests/architect/deadCapManagement.test.ts`                                    |   24 after Step 34 |       0 | Cleared |
+| `src/tests/tradeMachine/seasonSwapResolution.test.ts`                              |   21 after Step 34 |       0 | Cleared |
+| `src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.ts`              |   20 after Step 34 |       0 | Cleared |
+| `src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.ts` |   19 after Step 34 |       0 | Cleared |
+| `src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.ts`        |   19 after Step 34 |       0 | Cleared |
+| `src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts`   |   18 after Step 34 |       0 | Cleared |
 
 ### What Changed
 
@@ -1547,6 +1547,79 @@ season-state truth cluster and pulled Architect strict down to `823`. The next
 highest-leverage work is now the trade aftermath / snapshot cluster already
 queued in Step 36, with `mutationPipeline.ts` and `EditContractModal.tsx`
 remaining as the loudest non-cluster hotspots.
+
+## Step 36 Trade Aftermath / Snapshot Wave Delta
+
+Reviewed: 2026-04-24, after the twelfth trade aftermath / snapshot wave.
+
+### Strict Probe Delta
+
+| Measurement                                                     | Step 35 wave | Current |   Delta |
+| --------------------------------------------------------------- | -----------: | ------: | ------: |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |          823 |     709 |    -114 |
+| `tests/trade/twoWayPlayers_snapshot.test.ts`                    |          19  |       0 | Cleared |
+| `tests/architect/tradeManager.test.ts`                          |          19  |       0 | Cleared |
+| `tests/trade/secondApron_tpeBan.test.ts`                        |          18  |       0 | Cleared |
+| `tests/trade/poisonPill_average.test.ts`                        |          17  |       0 | Cleared |
+| `tests/trade/signAndTrade_completeness.test.ts`                 |          16  |       0 | Cleared |
+| `tests/trade/tradeKicker_proration.test.ts`                     |           9  |       0 | Cleared |
+| `tests/trade/tradeKicker_zeroGuarantee.test.ts`                 |           9  |       0 | Cleared |
+| `tests/trade/timingGates_softEnforcement.test.ts`               |           7  |       0 | Cleared |
+
+### What Changed
+
+- `tests/architect/tradeManager.test.ts` now imports the helper/mocked Firebase
+  modules through real extension-safe paths, routes optional MLE, hard-cap,
+  cap-hold, dead-cap, and extension-contract reads through required readers,
+  and localizes the deliberate invalid-`worldId` runtime probes instead of
+  relying on dishonest call-site typing.
+- `tests/trade/secondApron_tpeBan.test.ts` now builds live-path and
+  compatibility-path trade/TPE fixtures against the validator contract types,
+  removing the implicit-any team/player/TPE builders and the `never[]`
+  defaults that were masking canonical TPE-shape expectations.
+- `tests/trade/timingGates_softEnforcement.test.ts` now types the enforcement
+  harness, callback collectors, and surfaced issue arrays so the retired
+  aggregation-rule assertions read through truthful warning/violation readers.
+- `tests/trade/poisonPill_average.test.ts`,
+  `tests/trade/tradeKicker_proration.test.ts`, and
+  `tests/trade/tradeKicker_zeroGuarantee.test.ts` now build players from the
+  live matching-value parameter contract instead of loose bag objects, which
+  removes the implicit-any extension/year payloads and stale kicker/player
+  fixture shortcuts.
+- The interrupted in-progress hardening already present in
+  `tests/trade/signAndTrade_completeness.test.ts` and
+  `tests/trade/twoWayPlayers_snapshot.test.ts` was carried forward to
+  completion by aligning both suites with the live validator/snapshot input
+  contracts and required update readers.
+- The approved bounded node validation passed for the touched cluster:
+  `npm run test:node -- --reporter=dot tests/trade/twoWayPlayers_snapshot.test.ts tests/architect/tradeManager.test.ts tests/trade/secondApron_tpeBan.test.ts tests/trade/signAndTrade_completeness.test.ts tests/trade/timingGates_softEnforcement.test.ts tests/trade/poisonPill_average.test.ts tests/trade/tradeKicker_proration.test.ts tests/trade/tradeKicker_zeroGuarantee.test.ts`
+  finished with `42 / 42` tests green.
+- Root compatibility still holds: `npm run typecheck` passed after the Step 36
+  edits.
+
+### Remaining Hotspots After Step 36
+
+The Step 36 wave cleared the planned trade aftermath / snapshot cluster. The
+strongest remaining Architect strict hotspots are now:
+
+- `src/features/architect/utils/mutationPipeline.ts` (`34`)
+- `src/shared/components/EditContractModal.tsx` (`22`)
+- `src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts` (`17`)
+- `src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts` (`17`)
+- `tests/trade/consent_and_birdVeto.test.ts` (`16`)
+- `tests/architect/ruleContextTiming.test.ts` (`16`)
+- `src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts` (`16`)
+- `src/tests/architect/capSheet_exception_wiring.behavior.test.tsx` (`16`)
+- `tests/architect/seasonHelpers.test.ts` (`15`)
+- `tests/trade/frozenPick_consequences.test.ts` (`14`)
+
+The eight Step 36 target files no longer appear in the Architect strict output.
+
+Plain-language read: Step 36 removed the queued trade aftermath / snapshot
+truth cluster and pulled Architect strict down to `709`. The mission is
+healthier, but it is still far from final-review readiness, so the Step 37
+checkpoint must reassess and extend the master plan again rather than route to
+closeout.
 
 ## Evidence Commands
 

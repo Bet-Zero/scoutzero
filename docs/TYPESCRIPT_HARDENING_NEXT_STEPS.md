@@ -1037,7 +1037,9 @@ Validation:
 
 ## Step 36 — Harden the next trade aftermath / snapshot truth cluster (wave 12)
 
-**Status:** TODO
+**Status:** DONE
+
+Completed 2026-04-24: Hardened the planned trade aftermath / snapshot cluster, kept root typecheck green, passed the bounded node pack at `42 / 42`, and reduced Architect strict from `823` to `709`.
 
 **Goal:** Tighten the next highest-value residual trade aftermath / snapshot cluster exposed by the Step 34 checkpoint after the next Architect season-state wave is clear.
 

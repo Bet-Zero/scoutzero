@@ -2,34 +2,111 @@ import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validateTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/validateTradeExceptions';
 import capProjections from '@/features/architect/utils/capProjections';
+import type {
+  NormalizedPlayer,
+  TradeExceptionRecord,
+  TradeTeam,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const currentYear = 2025;
 const tradeDate = '2025-07-10T00:00:00.000Z';
 
-const seasonForYear = (year) => `${year - 1}-${String(year).slice(-2)}`;
+type ValidateTradeParams = Parameters<typeof validateTrade>[0];
+type TradeSlot = NonNullable<NonNullable<ValidateTradeParams['teams']>[number]>;
+type TradeTeamData = NonNullable<TradeSlot['team']>;
+type TradePlayer = NonNullable<NonNullable<TradeSlot['sends']>[number]> &
+  Pick<
+    NormalizedPlayer,
+    | 'name'
+    | 'salary'
+    | 'matchIncoming'
+    | 'matchOutgoing'
+    | 'isTwoWay'
+    | 'absorptionMode'
+    | 'signAndTrade'
+    | 'contractYears'
+    | 'firstYearGuaranteed'
+  > & {
+    id: string;
+    player_id: string;
+    contract: {
+      salariesByYear: Array<{
+        season: string;
+        salary: number;
+      }>;
+    };
+  };
+type HeldTpe = TradeExceptionRecord & {
+  id: string;
+  amount: number;
+  totalAmount: number;
+  remaining: number;
+  remainingAmount: number;
+  expiresOn: string;
+  expirationDate: string;
+  createdSeason: number;
+};
+type TestTradeTeamData = TradeTeamData & {
+  players: TradePlayer[];
+  picks: unknown[];
+  draftPicks: unknown[];
+  exceptions: { tpe: HeldTpe[] };
+};
 
-const makePlayer = (name, salary, extra = {}, year = currentYear) => ({
+const seasonForYear = (year: number) => `${year - 1}-${String(year).slice(-2)}`;
+
+const makePlayer = (
+  name: string,
+  salary: number,
+  extra: Partial<TradePlayer> = {},
+  year = currentYear
+): TradePlayer => ({
+  id: name,
+  player_id: name,
   name,
   salary,
+  currentSalary: salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
   contract: {
     salariesByYear: [{ season: seasonForYear(year), salary }],
   },
   ...extra,
 });
 
-const makeTeam = (name, totalSalary, rosterSize = 14, year = currentYear) => ({
+const makeTeam = (
+  name: string,
+  totalSalary: number,
+  rosterSize = 14,
+  year = currentYear
+): TestTradeTeamData => ({
   id: name,
+  teamId: name,
+  teamCode: name,
   teamName: name,
+  nickname: name,
   totalSalary,
   teamTotalSalary: totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000, {}, year)
   ),
   picks: [],
+  draftPicks: [],
+  exceptions: { tpe: [] },
 });
 
-const makeHeldTpe = (id, amount, createdSeason) => ({
+const makeHeldTpe = (
+  id: string,
+  amount: number,
+  createdSeason: number
+): HeldTpe => ({
   id,
   amount,
   totalAmount: amount,
@@ -40,10 +117,14 @@ const makeHeldTpe = (id, amount, createdSeason) => ({
   createdSeason,
 });
 
-const issueTexts = (issues = []) =>
+const issueTexts = (issues: ValidationIssue[] | undefined = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
-function runTrade(tpe, teamSalary, otherTeamSalary = 100_000_000) {
+function runTrade(
+  tpe: HeldTpe,
+  teamSalary: number,
+  otherTeamSalary = 100_000_000
+) {
   const teamA = makeTeam('A', teamSalary);
   const teamB = makeTeam('B', otherTeamSalary);
   const incoming = makePlayer('Bstar', 5_000_000, {
@@ -106,7 +187,7 @@ describe('second apron prior-year TPE usage', () => {
       5_000_000,
       currentYear - 1
     );
-    const ruleContext = {
+    const ruleContext: TradeTeam = {
       teamTotalSalary: 220_000_000,
       context: {
         tradeDate,

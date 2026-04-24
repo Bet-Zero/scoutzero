@@ -4,8 +4,21 @@ import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/u
 const yearKey = 2025;
 const season = `${yearKey - 1}-${String(yearKey).slice(-2)}`;
 
-const makePlayer = (overrides = {}) => ({
+type ComputeMatchingValuesParams = Parameters<typeof computeMatchingValues>[0];
+type MatchingPlayer = NonNullable<
+  NonNullable<NonNullable<ComputeMatchingValuesParams['teams']>[number]['sends']>[number]
+>;
+
+type TradeKickerPlayerOverrides = Partial<MatchingPlayer> & {
+  salary?: number;
+};
+
+const makePlayer = (
+  overrides: TradeKickerPlayerOverrides = {}
+): MatchingPlayer => ({
   name: 'Player',
+  salary: overrides.salary ?? 0,
+  currentSalary: overrides.salary ?? 0,
   contract: {
     salariesByYear: [{ season, salary: overrides.salary ?? 0 }],
   },
@@ -23,7 +36,7 @@ describe('Trade kicker with zero guaranteed money', () => {
       teams: [{ sends: [player] }],
       yearKey,
     });
-    
+
     // With 0 guaranteed money, no kicker should be added
     expect(player.matchOutgoing).toBe(10_000_000);
     expect(player.matchIncoming).toBe(10_000_000); // Should NOT include kicker
@@ -39,7 +52,7 @@ describe('Trade kicker with zero guaranteed money', () => {
       teams: [{ sends: [player] }],
       yearKey,
     });
-    
+
     // With undefined guaranteed money, should fall back to using currentSalary
     // and calculate full kicker (15% of 10M = 1.5M)
     expect(player.matchOutgoing).toBe(10_000_000);
@@ -56,7 +69,7 @@ describe('Trade kicker with zero guaranteed money', () => {
       teams: [{ sends: [player] }],
       yearKey,
     });
-    
+
     // With guaranteed money > salary, full kicker should apply
     // Kicker: 15% of 20M = 3M, capped by maxKicker (Infinity by default)
     expect(player.matchOutgoing).toBe(10_000_000);
@@ -77,7 +90,7 @@ describe('Trade kicker with zero guaranteed money', () => {
       teams: [{ sends: [player] }],
       yearKey,
     });
-    
+
     // Raw kicker would be 15% of 50M = 7.5M, but capped at 2M max
     expect(player.matchOutgoing).toBe(10_000_000);
     expect(player.matchIncoming).toBe(12_000_000); // 10M + 2M (capped)

@@ -10,7 +10,7 @@
  * @file tests/architect/tradeManager.test.js
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import * as tradeManagerModule from '@/features/architect/utils/tradeManager';
 import {
   signFreeAgent,
@@ -22,8 +22,80 @@ import {
   seedWorldMetadata,
   createMockWorld,
   createMockTeam,
-} from '../helpers/architectTestHelpers.ts';
-import { seedMockData } from '../__mocks__/firebase.ts';
+} from '../helpers/architectTestHelpers.js';
+import { seedMockData } from '../__mocks__/firebase.js';
+
+type SignFreeAgentResult = Awaited<ReturnType<typeof signFreeAgent>>;
+type WaivePlayerResult = Awaited<ReturnType<typeof waivePlayer>>;
+type ExtendPlayerResult = Awaited<ReturnType<typeof extendPlayer>>;
+
+type MleException = {
+  usedAmount?: number;
+  remainingAmount?: number;
+};
+
+type HardCapStatus = {
+  active?: boolean;
+};
+
+type CapHoldEntry = {
+  playerId?: string;
+};
+
+type DeadCapAmountByYear = {
+  season?: string;
+  amount?: number;
+  isStretched?: boolean;
+};
+
+type DeadCapEntry = {
+  playerId?: string;
+  amountByYear?: DeadCapAmountByYear[];
+};
+
+type ExtensionYear = {
+  season?: string;
+  salary?: number;
+};
+
+type ExtendedContract = {
+  contractType?: string;
+  salariesByYear?: ExtensionYear[];
+};
+
+const invalidWorldId = null as unknown as string;
+
+const requireValue = <T>(value: T | null | undefined, label: string): T => {
+  if (value == null) {
+    throw new Error(`${label} is required`);
+  }
+
+  return value;
+};
+
+const getMleException = (result: SignFreeAgentResult): MleException =>
+  requireValue(result.team.exceptions?.mle, 'team.exceptions.mle');
+
+const getHardCapFirstApron = (result: SignFreeAgentResult): HardCapStatus =>
+  requireValue(
+    result.team.hardCapFirstApron as HardCapStatus | null | undefined,
+    'team.hardCapFirstApron'
+  );
+
+const getRemainingCapHolds = (result: SignFreeAgentResult): CapHoldEntry[] =>
+  result.team.capHolds ?? [];
+
+const getDeadCapEntries = (result: WaivePlayerResult): DeadCapEntry[] =>
+  requireValue(
+    result.team.deadCap as DeadCapEntry[] | null | undefined,
+    'team.deadCap'
+  );
+
+const getExtendedContract = (result: ExtendPlayerResult): ExtendedContract =>
+  requireValue(
+    result.player.contract as ExtendedContract | null | undefined,
+    'player.contract'
+  );
 
 describe('Trade Manager', () => {
   const worldId = 'world_123';
@@ -92,9 +164,10 @@ describe('Trade Manager', () => {
       };
 
       const result = await signFreeAgent(worldId, 'LAL', signingData);
+      const mle = getMleException(result);
 
-      expect(result.team.exceptions.mle.usedAmount).toBe(10_000_000);
-      expect(result.team.exceptions.mle.remainingAmount).toBe(2_860_000);
+      expect(mle.usedAmount).toBe(10_000_000);
+      expect(mle.remainingAmount).toBe(2_860_000);
     });
 
     it('triggers hard cap when using non-taxpayer MLE', async () => {
@@ -118,9 +191,10 @@ describe('Trade Manager', () => {
       };
 
       const result = await signFreeAgent(worldId, 'LAL', signingData);
+      const hardCapFirstApron = getHardCapFirstApron(result);
 
       expect(result.team.hardCapped).toBe(true);
-      expect(result.team.hardCapFirstApron.active).toBe(true);
+      expect(hardCapFirstApron.active).toBe(true);
     });
 
     it('removes cap hold after signing', async () => {
@@ -158,7 +232,7 @@ describe('Trade Manager', () => {
 
       const result = await signFreeAgent(worldId, 'BOS', signingData);
 
-      const remainingHolds = result.team.capHolds?.filter(
+      const remainingHolds = getRemainingCapHolds(result).filter(
         (h) => h.playerId === 'test_player'
       );
       expect(remainingHolds.length).toBe(0);
@@ -166,7 +240,7 @@ describe('Trade Manager', () => {
 
     it('throws error when worldId is missing', async () => {
       await expect(
-        signFreeAgent(null, 'LAL', {
+        signFreeAgent(invalidWorldId, 'LAL', {
           playerId: 'test',
           contract: {},
         })
@@ -185,12 +259,10 @@ describe('Trade Manager', () => {
 
     it('creates dead cap entry', async () => {
       const result = await waivePlayer(worldId, 'LAL', 'lebron_james');
+      const deadCap = getDeadCapEntries(result);
 
-      expect(result.team.deadCap).toBeDefined();
-      expect(Array.isArray(result.team.deadCap)).toBe(true);
-      const deadCapEntry = result.team.deadCap.find(
-        (d) => d.playerId === 'lebron_james'
-      );
+      expect(Array.isArray(deadCap)).toBe(true);
+      const deadCapEntry = deadCap.find((d) => d.playerId === 'lebron_james');
       expect(deadCapEntry).toBeDefined();
     });
 
@@ -199,17 +271,24 @@ describe('Trade Manager', () => {
         stretch: true,
         stretchYears: 3,
       });
+      const deadCap = getDeadCapEntries(result);
 
-      const deadCapEntry = result.team.deadCap.find(
-        (d) => d.playerId === 'lebron_james'
+      const deadCapEntry = requireValue(
+        deadCap.find((d) => d.playerId === 'lebron_james'),
+        'deadCapEntry'
       );
-      expect(deadCapEntry.amountByYear.length).toBeGreaterThan(1); // Stretched over multiple years
+      const amountByYear = requireValue(
+        deadCapEntry.amountByYear,
+        'deadCapEntry.amountByYear'
+      );
+
+      expect(amountByYear.length).toBeGreaterThan(1); // Stretched over multiple years
     });
 
     it('throws error when worldId is missing', async () => {
-      await expect(waivePlayer(null, 'LAL', 'lebron_james')).rejects.toThrow(
-        'worldId, teamCode, and playerId are required'
-      );
+      await expect(
+        waivePlayer(invalidWorldId, 'LAL', 'lebron_james')
+      ).rejects.toThrow('worldId, teamCode, and playerId are required');
     });
   });
 
@@ -248,10 +327,11 @@ describe('Trade Manager', () => {
         'lebron_james',
         extension
       );
+      const contract = getExtendedContract(result);
 
       expect(result.success).toBe(true);
       expect(Object.keys(result)).toEqual(['success', 'player', 'team']);
-      expect(result.player.contract.contractType).toBe('Extension');
+      expect(contract.contractType).toBe('Extension');
     });
 
     it('updates salariesByYear array', async () => {
@@ -282,20 +362,23 @@ describe('Trade Manager', () => {
         'lebron_james',
         extension
       );
-
-      expect(
-        result.player.contract.salariesByYear.length
-      ).toBeGreaterThanOrEqual(2);
-      const newYear = result.player.contract.salariesByYear.find(
-        (y) => y.season === '2026-27'
+      const contract = getExtendedContract(result);
+      const salariesByYear = requireValue(
+        contract.salariesByYear,
+        'player.contract.salariesByYear'
       );
-      expect(newYear).toBeDefined();
+
+      expect(salariesByYear.length).toBeGreaterThanOrEqual(2);
+      const newYear = requireValue(
+        salariesByYear.find((y) => y.season === '2026-27'),
+        'player.contract.salariesByYear[2026-27]'
+      );
       expect(newYear.salary).toBe(50_000_000);
     });
 
     it('throws error when worldId is missing', async () => {
       await expect(
-        extendPlayer(null, 'LAL', 'lebron_james', {})
+        extendPlayer(invalidWorldId, 'LAL', 'lebron_james', {})
       ).rejects.toThrow('worldId');
     });
   });
