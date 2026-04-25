@@ -11,6 +11,7 @@
  */
 
 import React from 'react';
+import type { UseAutoSavePlayerResult } from './hooks/useAutoSavePlayer';
 
 /**
  * Minimal save status indicator component.
@@ -20,7 +21,13 @@ import React from 'react';
  * @param {'idle'|'saving'|'saved'|'error'} props.saveState - Current save state
  * @param {string|null} props.saveError - Error message if save failed
  */
-const SaveStatusIndicator = ({ saveState, saveError }) => {
+const SaveStatusIndicator = ({
+  saveState,
+  saveError,
+}: {
+  saveState: UseAutoSavePlayerResult['saveState'];
+  saveError: string | null;
+}) => {
   // Don't render anything in idle state
   if (saveState === 'idle') {
     return null;

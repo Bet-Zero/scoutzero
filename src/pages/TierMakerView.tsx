@@ -19,11 +19,28 @@ import { fetchTierList } from '@/firebase/listHelpers';
 import { toast } from 'react-hot-toast';
 import { useRef } from 'react';
 
-const isValidViewMode = (value) =>
+type ViewMode = 'standard' | 'tieramid';
+
+type SavedRouteState = {
+  status: 'ready' | 'loading' | 'error';
+  errorCode: string | null;
+};
+
+const isValidViewMode = (
+  value: string | null | undefined
+): value is ViewMode =>
   value === 'standard' || value === 'tieramid';
 
-const toViewMode = (tierListMode) =>
+const toViewMode = (tierListMode: unknown): ViewMode =>
   tierListMode === 'pyramid' ? 'tieramid' : 'standard';
+
+const getErrorCode = (error: unknown): string => {
+  if (typeof error === 'object' && error && 'code' in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === 'string') return code;
+  }
+  return 'unknown';
+};
 
 const TierMakerView = () => {
   const { tierListId } = useParams();
@@ -36,15 +53,15 @@ const TierMakerView = () => {
 
   // Read mode from query param on initial render, default to 'standard'
   const initialMode = isValidViewMode(urlMode) ? urlMode : 'standard';
-  const [mode, setMode] = useState(initialMode);
+  const [mode, setMode] = useState<ViewMode>(initialMode);
   const [showModeToggle, setShowModeToggle] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [savedRouteState, setSavedRouteState] = useState({
+  const [savedRouteState, setSavedRouteState] = useState<SavedRouteState>({
     status: isDraftMode ? 'ready' : 'loading',
     errorCode: null,
   });
-  const verifiedSavedRouteRef = useRef(null);
-  const resolvedSavedModeRef = useRef('standard');
+  const verifiedSavedRouteRef = useRef<string | null>(null);
+  const resolvedSavedModeRef = useRef<ViewMode>('standard');
 
   // Draft state management (inert when isDraftMode is false)
   const {
@@ -76,8 +93,13 @@ const TierMakerView = () => {
       return;
     }
 
+    if (!tierListId) {
+      setSavedRouteState({ status: 'error', errorCode: 'not-found' });
+      return;
+    }
+
     const routeKey = `${tierListId}:${userId || 'no-session'}`;
-    const applyMode = (nextMode) => {
+    const applyMode = (nextMode: ViewMode) => {
       if (!isValidViewMode(urlMode) || urlMode !== nextMode) {
         setSearchParams({ mode: nextMode }, { replace: true });
       }
@@ -103,7 +125,7 @@ const TierMakerView = () => {
         if (cancelled) return;
 
         verifiedSavedRouteRef.current = routeKey;
-        resolvedSavedModeRef.current = toViewMode(data.mode);
+        resolvedSavedModeRef.current = toViewMode(data?.mode);
         applyMode(
           isValidViewMode(urlMode) ? urlMode : resolvedSavedModeRef.current
         );
@@ -112,7 +134,7 @@ const TierMakerView = () => {
         verifiedSavedRouteRef.current = null;
         setSavedRouteState({
           status: 'error',
-          errorCode: error?.code || 'unknown',
+          errorCode: getErrorCode(error),
         });
       }
     };
@@ -134,17 +156,19 @@ const TierMakerView = () => {
 
   // Handle mode toggle — update query param and run conversion if needed
   const handleModeChange = useCallback(
-    (newMode) => {
+    (newMode: ViewMode) => {
       // Cross-mode conversion (draft mode only)
       if (isDraftMode) {
         if (
           newMode === 'tieramid' &&
+          draftStandard &&
           isTieramidEmpty(draftTieramid) &&
           !isStandardEmpty(draftStandard)
         ) {
           updateTieramid(standardToTieramid(draftStandard));
         } else if (
           newMode === 'standard' &&
+          draftTieramid &&
           isStandardEmpty(draftStandard) &&
           !isTieramidEmpty(draftTieramid)
         ) {
@@ -167,7 +191,7 @@ const TierMakerView = () => {
 
   // Callback for child boards to update URL when a tier list is loaded/created
   const handleTierListChange = useCallback(
-    (newTierListId) => {
+    (newTierListId: string) => {
       if (newTierListId) {
         // Clear draft on successful save (user chose to persist to Firestore)
         if (isDraftMode) {

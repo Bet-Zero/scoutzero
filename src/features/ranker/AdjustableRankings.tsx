@@ -1,26 +1,38 @@
 import React, { useState, useCallback } from 'react';
 import { ChevronUp, ChevronDown, Save, X, Edit3 } from 'lucide-react';
+import type { RankerPlayer } from './utils/rankingEngine';
 
-const getPlayerName = (player) =>
+type AdjustableRankingsProps = {
+  initialRanking?: RankerPlayer[];
+  onSave: (ranking: RankerPlayer[]) => void;
+  onCancel: () => void;
+};
+
+const getPlayerName = (player: RankerPlayer) =>
   player.bio?.displayName || player.display_name || player.name || '—';
 
-const getHeadshotSrc = (player) =>
+const getHeadshotSrc = (player: RankerPlayer) =>
   player.headshot ||
   player.headshotUrl ||
   `/assets/headshots/${player.player_id || player.id}.png`;
 
-const getLogoSrc = (player) => {
+const getLogoSrc = (player: RankerPlayer) => {
   const team = player.team;
   if (!team) return null;
-  return `/assets/logos/${team.toLowerCase()}.png`;
+  return `/assets/logos/${String(team).toLowerCase()}.png`;
 };
 
-const AdjustableRankings = ({ initialRanking = [], onSave, onCancel }) => {
-  const [adjustedRanking, setAdjustedRanking] = useState(initialRanking);
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [dragOverIndex, setDragOverIndex] = useState(null);
+const AdjustableRankings = ({
+  initialRanking = [],
+  onSave,
+  onCancel,
+}: AdjustableRankingsProps) => {
+  const [adjustedRanking, setAdjustedRanking] =
+    useState<RankerPlayer[]>(initialRanking);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const movePlayer = useCallback((fromIndex, toIndex) => {
+  const movePlayer = useCallback((fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
     setAdjustedRanking((prev) => {
       const next = [...prev];
@@ -31,25 +43,25 @@ const AdjustableRankings = ({ initialRanking = [], onSave, onCancel }) => {
   }, []);
 
   const moveUp = useCallback(
-    (index) => {
+    (index: number) => {
       if (index > 0) movePlayer(index, index - 1);
     },
     [movePlayer]
   );
 
   const moveDown = useCallback(
-    (index) => {
+    (index: number) => {
       if (index < adjustedRanking.length - 1) movePlayer(index, index + 1);
     },
     [movePlayer, adjustedRanking.length]
   );
 
-  const handleDragStart = (e, index) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e, index) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverIndex(index);
@@ -57,7 +69,7 @@ const AdjustableRankings = ({ initialRanking = [], onSave, onCancel }) => {
 
   const handleDragLeave = () => setDragOverIndex(null);
 
-  const handleDrop = (e, dropIndex) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
     e.preventDefault();
     if (draggedIndex !== null && draggedIndex !== dropIndex) {
       movePlayer(draggedIndex, dropIndex);
@@ -161,7 +173,7 @@ const AdjustableRankings = ({ initialRanking = [], onSave, onCancel }) => {
                       }}
                     />
                   )}
-                  <span>{player.team?.toUpperCase() || 'FA'}</span>
+                  <span>{String(player.team || 'FA').toUpperCase()}</span>
                 </div>
               </div>
 

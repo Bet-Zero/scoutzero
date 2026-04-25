@@ -2,8 +2,20 @@
 // Compact headshot-only tile for pyramid display mode
 import React from 'react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 
-const TieramidPlayerTile = ({ player }) => {
+type TieramidTilePlayer = RosterManagerPlayer & {
+  headshot?: string | null;
+  original?: RosterManagerPlayer & {
+    headshot?: string | null;
+  };
+};
+
+type TieramidPlayerTileProps = {
+  player?: TieramidTilePlayer | null;
+};
+
+const TieramidPlayerTile = ({ player }: TieramidPlayerTileProps) => {
   if (!player) return null;
 
   const headshot =
@@ -53,4 +65,3 @@ const TieramidPlayerTile = ({ player }) => {
 };
 
 export default TieramidPlayerTile;
-

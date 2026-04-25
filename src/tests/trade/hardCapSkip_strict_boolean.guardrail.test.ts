@@ -148,7 +148,7 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
       expect(result.allowableIncoming).not.toBeNull();
       expect(typeof result.passed).toBe('boolean');
       // But hardCapStatus is still tracked for informational purposes
-      expect(result.details.hardCapStatus.isHardCapped).toBe(true);
+      expect(result.details.hardCapStatus!.isHardCapped).toBe(true);
     });
 
     test('hardCapTriggered=true (boolean) runs matching with hardCapStatus in details', () => {
@@ -177,7 +177,7 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
       expect(result.allowableIncoming).not.toBeNull();
       expect(typeof result.passed).toBe('boolean');
       // But hardCapStatus is still tracked
-      expect(result.details.hardCapStatus.isHardCapped).toBe(true);
+      expect(result.details.hardCapStatus!.isHardCapped).toBe(true);
     });
   });
 
@@ -208,8 +208,8 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
 
       // Hard cap status is tracked even though matching runs
       expect(result.details.hardCapStatus).toBeDefined();
-      expect(result.details.hardCapStatus.isHardCapped).toBe(true);
-      expect(result.details.hardCapStatus.source).toBe('team.hardCapped === true');
+      expect(result.details.hardCapStatus!.isHardCapped).toBe(true);
+      expect(result.details.hardCapStatus!.source).toBe('team.hardCapped === true');
     });
 
     test('hardCapStatus shows status for hardCapTriggered=true', () => {
@@ -234,8 +234,8 @@ describe('HARD_CAP_SKIP Strict Boolean Checks', () => {
 
       // Hard cap status is tracked even though matching runs
       expect(result.details.hardCapStatus).toBeDefined();
-      expect(result.details.hardCapStatus.isHardCapped).toBe(true);
-      expect(result.details.hardCapStatus.source).toBe('team.team.hardCapTriggered === true');
+      expect(result.details.hardCapStatus!.isHardCapped).toBe(true);
+      expect(result.details.hardCapStatus!.source).toBe('team.team.hardCapTriggered === true');
     });
   });
 

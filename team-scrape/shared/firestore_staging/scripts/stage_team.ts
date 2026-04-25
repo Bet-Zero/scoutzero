@@ -254,15 +254,27 @@ function parseArgs(): CliArgs {
     } else if (arg.startsWith('--outDir=')) {
       cli.outDir = path.resolve(PROJECT_ROOT, arg.split('=')[1] ?? cli.outDir);
     } else if (arg === '--ledgerDir') {
-      cli.ledgerDir = path.resolve(PROJECT_ROOT, args[i + 1] || cli.ledgerDir);
+      cli.ledgerDir = path.resolve(
+        PROJECT_ROOT,
+        args[i + 1] || cli.ledgerDir || DEFAULT_LEDGER_DIR
+      );
       i += 1;
     } else if (arg.startsWith('--ledgerDir=')) {
-      cli.ledgerDir = path.resolve(PROJECT_ROOT, arg.split('=')[1] ?? cli.ledgerDir);
+      cli.ledgerDir = path.resolve(
+        PROJECT_ROOT,
+        arg.split('=')[1] ?? cli.ledgerDir ?? DEFAULT_LEDGER_DIR
+      );
     } else if (arg === '--draftAssetsDir') {
-      cli.draftAssetsDir = path.resolve(PROJECT_ROOT, args[i + 1] || cli.draftAssetsDir);
+      cli.draftAssetsDir = path.resolve(
+        PROJECT_ROOT,
+        args[i + 1] || cli.draftAssetsDir || DEFAULT_DRAFT_ASSETS_DIR
+      );
       i += 1;
     } else if (arg.startsWith('--draftAssetsDir=')) {
-      cli.draftAssetsDir = path.resolve(PROJECT_ROOT, arg.split('=')[1] ?? cli.draftAssetsDir);
+      cli.draftAssetsDir = path.resolve(
+        PROJECT_ROOT,
+        arg.split('=')[1] ?? cli.draftAssetsDir ?? DEFAULT_DRAFT_ASSETS_DIR
+      );
     }
   }
 
@@ -713,11 +725,12 @@ function normalizeTotals(
   rawTotals: RawTeamData['totals']
 ): BaseTeamDoc['totals'] | undefined {
   if (!rawTotals) return undefined;
-  const totals: BaseTeamDoc['totals'] = {};
+  type BaseTeamTotals = NonNullable<BaseTeamDoc['totals']>;
+  const totals: Partial<BaseTeamTotals> = {};
   const mapNumber = (value: unknown): number | undefined =>
     typeof value === 'number' ? value : undefined;
 
-  const assignments: Array<[keyof BaseTeamDoc['totals'], number | boolean | undefined]> =
+  const assignments: Array<[keyof BaseTeamTotals, number | boolean | undefined]> =
     [
       ['totalSalary', mapNumber(rawTotals.totalSalary)],
       ['capHit', mapNumber(rawTotals.capHit)],
@@ -776,7 +789,7 @@ function normalizeTotals(
 
   for (const [key, value] of assignments) {
     if (value !== undefined) {
-      totals[key] = value as never;
+      (totals as Record<string, number | boolean>)[key] = value;
     }
   }
 
@@ -793,7 +806,7 @@ function normalizeTotals(
   if (typeof hardCapLevel === 'string') {
     const normalized = hardCapLevel.trim();
     if (['none', 'firstApron', 'secondApron'].includes(normalized)) {
-      totals.hardCapLevel = normalized as BaseTeamDoc['totals']['hardCapLevel'];
+      totals.hardCapLevel = normalized as BaseTeamTotals['hardCapLevel'];
     }
   }
 

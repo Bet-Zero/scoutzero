@@ -14,6 +14,7 @@
 import React from 'react';
 import OverallGradeBlock from '@/shared/components/ui/grades/OverallGradeBlock';
 import { NotebookText } from 'lucide-react';
+import type { OpenProfileModal } from '../profileUiTypes';
 
 const OverallBlurbBox = ({
   overallBlurb,
@@ -21,6 +22,12 @@ const OverallBlurbBox = ({
   overallGrade,
   setOverallGrade,
   setOpenModal,
+}: {
+  overallBlurb: string;
+  setOverallBlurb: (value: string) => void;
+  overallGrade: number | null;
+  setOverallGrade: (value: number | null) => void;
+  setOpenModal?: OpenProfileModal;
 }) => {
   return (
     <div className="w-full max-w-[750px] bg-neutral-800 rounded-xl p-4 flex flex-col gap-3">

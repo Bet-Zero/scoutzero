@@ -11,9 +11,14 @@
  *  - Return Package: return_packages/scouting/PHASE_2N_DENSITY_MODE_RETURN_PACKAGE.md
  */
 import React from 'react';
-import { DENSITY_MODES } from '../hooks/usePlayerTableDensity';
+import { DENSITY_MODES, type DensityMode } from '../hooks/usePlayerTableDensity';
 
-const DensityToggle = ({ mode, setMode }) => {
+type DensityToggleProps = {
+  mode: DensityMode;
+  setMode: (mode: DensityMode) => void;
+};
+
+const DensityToggle = ({ mode, setMode }: DensityToggleProps) => {
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-xs text-neutral-500 mr-1">Density:</span>

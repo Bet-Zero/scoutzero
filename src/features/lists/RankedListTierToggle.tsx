@@ -3,7 +3,14 @@
 
 import React from 'react';
 
-const ToggleViewButton = ({ view, setView }) => {
+type RankedListViewMode = 'list' | 'tier';
+
+type ToggleViewButtonProps = {
+  setView: (view: RankedListViewMode) => void;
+  view: RankedListViewMode;
+};
+
+const ToggleViewButton = ({ view, setView }: ToggleViewButtonProps) => {
   return (
     <div className="flex gap-[6px]">
       <button

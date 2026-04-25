@@ -1,12 +1,19 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { BadgeList } from '@/constants/badgeList';
 import useClickOutside from '@/shared/hooks/useClickOutside';
+import type { ProfileSetter } from '../profileUiTypes';
 
-const BadgeSelector = ({ badges, setBadges }) => {
+const BadgeSelector = ({
+  badges,
+  setBadges,
+}: {
+  badges: string[];
+  setBadges: ProfileSetter<string[]>;
+}) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const toggleBadge = (key) => {
+  const toggleBadge = (key: string) => {
     if (badges.includes(key)) {
       setBadges(badges.filter((b) => b !== key));
     } else {

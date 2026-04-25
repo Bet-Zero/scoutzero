@@ -88,7 +88,7 @@ export type FilterablePlayer = {
 };
 
 export function filterPlayers(
-  players: FilterablePlayer[] = [],
+  players: FilterablePlayer[] | null | undefined = [],
   filters: PlayerFilters
 ): FilterablePlayer[] {
   if (!players) return [];

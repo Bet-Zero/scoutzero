@@ -16,7 +16,7 @@ import BreakdownModal from '@/features/profile/BreakdownModal';
 import PlayerSearchBar from '@/features/profile/PlayerSearchBar';
 
 const PlayerProfileView = () => {
-  const [openModal, setOpenModal] = useState(null);
+  const [openModal, setOpenModal] = useState<string | null>(null);
 
   const nav = usePlayerNavigation(openModal);
   const evalState = usePlayerProfileState(

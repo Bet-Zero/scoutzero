@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
 import { createRosterProject } from '@/firebase/rosterHelpers';
+import type { CreatedRosterProject } from '@/firebase/rosterHelpers';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 
-const CreateRosterModal = ({ isOpen, onClose, onCreated }) => {
+type CreateRosterModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated?: (created: CreatedRosterProject) => void;
+};
+
+const CreateRosterModal = ({
+  isOpen,
+  onClose,
+  onCreated,
+}: CreateRosterModalProps) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const { userId } = useAuth();
@@ -11,6 +22,7 @@ const CreateRosterModal = ({ isOpen, onClose, onCreated }) => {
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    if (!userId) return;
     try {
       const created = await createRosterProject(trimmed, userId);
       setName('');
@@ -18,7 +30,7 @@ const CreateRosterModal = ({ isOpen, onClose, onCreated }) => {
       onCreated?.(created);
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Failed to create roster');
     }
   };
 

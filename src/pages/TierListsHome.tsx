@@ -8,26 +8,28 @@ import {
   renameTierList,
   deleteTierList,
 } from '@/firebase/listHelpers';
+import type { TierList } from '@/firebase/listHelpers';
 import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
-const toTierListRoute = (list) =>
+const toTierListRoute = (list: TierList) =>
   `/tier-maker/${list.id}?mode=${list.mode === 'pyramid' ? 'tieramid' : 'standard'}`;
 
 const TierListsHome = () => {
-  const [lists, setLists] = useState([]);
+  const [lists, setLists] = useState<TierList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [renamingId, setRenamingId] = useState(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [deletingId, setDeletingId] = useState(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { userId, loading: authLoading } = useAuth();
   const { players } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
-    const map = {};
+    const map: Record<string, SimplePlayer> = {};
     players.forEach((p) => {
       map[p.id] = p;
     });
@@ -35,7 +37,7 @@ const TierListsHome = () => {
   }, [players]);
 
   const listsMap = useMemo(() => {
-    const map = {};
+    const map: Record<string, { name: string; playerIds: string[] }> = {};
     lists.forEach((l) => {
       const ids: string[] = [];
       Object.values(l.tiers || {}).forEach((arr) => {
@@ -43,12 +45,12 @@ const TierListsHome = () => {
           ids.push(...arr.filter((id): id is string => typeof id === 'string'));
         }
       });
-      map[l.id] = { name: l.name, playerIds: ids };
+      map[l.id] = { name: String(l.name ?? 'Untitled tier list'), playerIds: ids };
     });
     return map;
   }, [lists]);
 
-  const handleSelectTierList = (id) => {
+  const handleSelectTierList = (id: string) => {
     const selectedList = lists.find((list) => list.id === id);
     if (!selectedList) return;
     navigate(toTierListRoute(selectedList));
@@ -79,6 +81,8 @@ const TierListsHome = () => {
   // E4: Rename via helper with ownership guard
   const handleRename = async () => {
     if (!renameValue.trim()) return;
+    if (!renamingId) return;
+    if (!userId) return;
     try {
       await renameTierList(renamingId, renameValue.trim(), userId);
     } catch (err) {
@@ -92,6 +96,8 @@ const TierListsHome = () => {
   // E4: Delete via helper with ownership guard
   const handleDelete = async () => {
     try {
+      if (!deletingId) return;
+      if (!userId) return;
       await deleteTierList(deletingId, userId);
     } catch (err) {
       console.error('Delete failed:', err);
@@ -140,7 +146,7 @@ const TierListsHome = () => {
               >
                 <Link to={toTierListRoute(list)} className="block group">
                   <h2 className="text-lg font-bold text-white mb-1 group-hover:underline">
-                    {list.name}
+                    {String(list.name ?? 'Untitled tier list')}
                   </h2>
                 </Link>
 
@@ -148,7 +154,7 @@ const TierListsHome = () => {
                   <button
                     onClick={() => {
                       setRenamingId(list.id);
-                      setRenameValue(list.name);
+                      setRenameValue(String(list.name ?? 'Untitled tier list'));
                     }}
                     className="text-white/40 hover:text-white text-xs"
                   >

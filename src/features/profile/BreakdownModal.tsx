@@ -19,7 +19,15 @@ import {
   getModalTitle,
   getBlurbValue,
   getVideoExamplesForKey,
+  type ProfileDetailKey,
 } from '@/features/profile/utils/profileHelpers';
+import type { Blurbs } from '@/shared/utils/blurbs';
+import type { VideoExample } from '@/schemas/players_v2';
+import type { NormalizedVideoExamples } from '@/shared/utils/videoExamples';
+import type {
+  ModalSavePayload,
+} from '@/features/profile/hooks/usePlayerProfileState';
+import type { UseAutoSavePlayerResult } from './hooks/useAutoSavePlayer';
 
 const BreakdownModal = ({
   modalKey,
@@ -31,6 +39,20 @@ const BreakdownModal = ({
   onSaveNow,
   saveState,
   saveError,
+}: {
+  modalKey: ProfileDetailKey;
+  blurbs: Blurbs;
+  videoExamples: NormalizedVideoExamples;
+  onClose: () => void;
+  onBuildSavePayload: (
+    key: ProfileDetailKey,
+    value: string,
+    list: VideoExample[]
+  ) => ModalSavePayload;
+  onCommitSavedDraft: (payload: Partial<ModalSavePayload> | null | undefined) => void;
+  onSaveNow: UseAutoSavePlayerResult['saveNow'];
+  saveState: UseAutoSavePlayerResult['saveState'];
+  saveError: string | null;
 }) => {
   const [draftBlurb, setDraftBlurb] = useState(() =>
     getBlurbValue(blurbs, modalKey)
@@ -65,7 +87,7 @@ const BreakdownModal = ({
 
   // Wrapped change handlers that mark modal dirty
   const handleTextChange = useCallback(
-    (e) => {
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setDraftBlurb(e.target.value);
       setModalDirty(true);
       setLocalSaveState('idle');
@@ -74,7 +96,7 @@ const BreakdownModal = ({
   );
 
   const handleVideoChange = useCallback(
-    (next) => {
+    (next: VideoExample[]) => {
       setDraftVideoExamples(next);
       setModalDirty(true);
       setLocalSaveState('idle');

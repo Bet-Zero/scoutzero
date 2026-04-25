@@ -25,6 +25,7 @@ const CreateTierListModal = ({
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    if (!userId) return;
     try {
       const id = await createTierList(trimmed, mode, userId);
       setName('');

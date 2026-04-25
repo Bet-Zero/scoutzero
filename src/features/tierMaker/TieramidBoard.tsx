@@ -39,6 +39,7 @@ type TieramidBoardPlayer = RosterManagerPlayer & {
 };
 
 type TieramidRows = Record<string, TieramidBoardPlayer[]>;
+type TieramidMoveDirection = 'left' | 'right' | 'up' | 'down';
 
 type NormalizedRows = {
   rows: TieramidRows;
@@ -53,7 +54,7 @@ type TieramidBoardProps = {
   onTierListChange?: (tierListId: string) => void;
   isDraftMode?: boolean;
   draftData?: DraftTieramid | null;
-  onDraftChange?: (data: DraftTieramid) => void;
+  onDraftChange?: ((data: DraftTieramid) => void) | null;
   draftRestored?: boolean;
 };
 
@@ -71,7 +72,10 @@ function getInitialRows(): NormalizedRows {
   return normalizeRows(rows, rowOrder);
 }
 
-const getSpotsInRow = (rowIndex) => rowIndex + 1;
+const getSpotsInRow = (rowIndex: number) => rowIndex + 1;
+
+const getTieramidPlayerId = (player: TieramidBoardPlayer): string =>
+  player.player_id || player.id;
 
 /**
  * Ensures rows state always includes Pool and rowOrder always includes Pool last.
@@ -252,12 +256,12 @@ const TieramidBoard = ({
   const [initialLoaded, setInitialLoaded] = useState(false);
 
   const normalizeRowsForCapacity = useCallback((currentRows: TieramidRows, currentOrder: string[]) => {
-    const normalized = {
+    const normalized: TieramidRows = {
       ...currentRows,
       Pool: [...(currentRows.Pool || [])],
     };
     const poolIds = new Set(
-      (normalized.Pool || []).map((p) => p.player_id || p.id)
+      (normalized.Pool || []).map((p) => getTieramidPlayerId(p))
     );
     let overflowCount = 0;
     currentOrder.forEach((rowKey, rowIdx) => {
@@ -268,7 +272,7 @@ const TieramidBoard = ({
         const overflow = rowPlayers.slice(spots);
         normalized[rowKey] = rowPlayers.slice(0, spots);
         overflow.forEach((player) => {
-          const pid = player.player_id || player.id;
+          const pid = getTieramidPlayerId(player);
           if (!poolIds.has(pid)) {
             poolIds.add(pid);
             normalized.Pool.push(player);
@@ -563,7 +567,7 @@ const TieramidBoard = ({
     setRowOrder((prev) => prev.filter((r) => r !== lastRow));
   };
 
-  const renameRow = (oldName) => {
+  const renameRow = (oldName: string) => {
     const name = prompt('Rename row', oldName);
     if (!name || name === oldName) return;
     setRows((prev) => {
@@ -579,7 +583,7 @@ const TieramidBoard = ({
   };
 
   const moveRowUp = useCallback(
-    (rowKey) => {
+    (rowKey: string) => {
       setRowOrder((prevOrder) => {
         const withoutPool = prevOrder.filter((r) => r !== 'Pool');
         const idx = withoutPool.indexOf(rowKey);
@@ -599,7 +603,7 @@ const TieramidBoard = ({
   );
 
   const moveRowDown = useCallback(
-    (rowKey) => {
+    (rowKey: string) => {
       setRowOrder((prevOrder) => {
         const withoutPool = prevOrder.filter((r) => r !== 'Pool');
         const idx = withoutPool.indexOf(rowKey);
@@ -618,11 +622,16 @@ const TieramidBoard = ({
     [normalizeRowsForCapacity]
   );
 
-  const movePlayer = (rowIdx, spotIdx, dir) => {
+  const movePlayer = (
+    rowIdx: number,
+    spotIdx: number,
+    dir: TieramidMoveDirection
+  ) => {
     setRows((prev) => {
       const newRows = { ...prev };
       const rowKey = rowOrder[rowIdx];
-      const rowPlayers = [...prev[rowKey]];
+      if (!rowKey) return prev;
+      const rowPlayers = [...(prev[rowKey] || [])];
       if (!rowPlayers[spotIdx]) return prev;
       if (dir === 'left' && spotIdx > 0) {
         [rowPlayers[spotIdx - 1], rowPlayers[spotIdx]] = [
@@ -643,10 +652,13 @@ const TieramidBoard = ({
       if (dir === 'up' && rowIdx > 0) {
         const spotsInPrev = getSpotsInRow(rowIdx - 1);
         const prevRowKey = rowOrder[rowIdx - 1];
-        const prevRowPlayers = [...prev[prevRowKey]];
+        if (!prevRowKey) return prev;
+        const prevRowPlayers = [...(prev[prevRowKey] || [])];
+        const movingPlayer = rowPlayers[spotIdx];
+        if (!movingPlayer) return prev;
         if (prevRowPlayers.length < spotsInPrev) {
           rowPlayers.splice(spotIdx, 1);
-          prevRowPlayers.push(prev[rowKey][spotIdx]);
+          prevRowPlayers.push(movingPlayer);
           newRows[rowKey] = rowPlayers;
           newRows[prevRowKey] = prevRowPlayers;
           return newRows;
@@ -662,10 +674,13 @@ const TieramidBoard = ({
       if (dir === 'down' && rowIdx < rowOrder.length - 2) {
         const spotsInNext = getSpotsInRow(rowIdx + 1);
         const nextRowKey = rowOrder[rowIdx + 1];
-        const nextRowPlayers = [...prev[nextRowKey]];
+        if (!nextRowKey) return prev;
+        const nextRowPlayers = [...(prev[nextRowKey] || [])];
+        const movingPlayer = rowPlayers[spotIdx];
+        if (!movingPlayer) return prev;
         if (nextRowPlayers.length < spotsInNext) {
           rowPlayers.splice(spotIdx, 1);
-          nextRowPlayers.push(prev[rowKey][spotIdx]);
+          nextRowPlayers.push(movingPlayer);
           newRows[rowKey] = rowPlayers;
           newRows[nextRowKey] = nextRowPlayers;
           return newRows;
@@ -682,22 +697,22 @@ const TieramidBoard = ({
     });
   };
 
-  const removePlayerToPool = (rowKey, playerId) => {
+  const removePlayerToPool = (rowKey: string, playerId: string) => {
     setRows((prev) => {
       const rowPlayers = prev[rowKey] || [];
-      const player = rowPlayers.find((p) => p.player_id === playerId);
+      const player = rowPlayers.find((p) => getTieramidPlayerId(p) === playerId);
       if (!player) return prev;
       const pool = prev.Pool || [];
-      const poolIds = new Set(pool.map((p) => p.player_id || p.id));
+      const poolIds = new Set(pool.map((p) => getTieramidPlayerId(p)));
       return {
         ...prev,
-        [rowKey]: rowPlayers.filter((p) => p.player_id !== playerId),
+        [rowKey]: rowPlayers.filter((p) => getTieramidPlayerId(p) !== playerId),
         Pool: poolIds.has(playerId) ? pool : [...pool, player],
       };
     });
   };
 
-  const addFromPool = (player) => {
+  const addFromPool = (player: TieramidBoardPlayer) => {
     // Try to place in the lowest available row (bottom-most first, pyramid-style)
     // First, check all rows from bottom to top for an open slot
     const pyramidRows = rowOrder.slice(0, -1); // exclude Pool
@@ -710,14 +725,17 @@ const TieramidBoard = ({
       rowIdx--
     ) {
       const rowKey = pyramidRows[rowIdx];
+      if (!rowKey) continue;
       const spots = getSpotsInRow(rowIdx);
-      if (rows[rowKey].length < spots) {
+      if ((rows[rowKey] || []).length < spots) {
         setRows((prev) => {
           const pool = prev.Pool || [];
           return {
             ...prev,
-            Pool: pool.filter((p) => p.player_id !== player.player_id),
-            [rowKey]: [...prev[rowKey], player].filter(Boolean),
+            Pool: pool.filter(
+              (p) => getTieramidPlayerId(p) !== getTieramidPlayerId(player)
+            ),
+            [rowKey]: [...(prev[rowKey] || []), player].filter(Boolean),
           };
         });
         placed = true;
@@ -729,12 +747,13 @@ const TieramidBoard = ({
       setRows((prev) => {
         const lastRowIdx = pyramidRows.length - 1;
         const rowKey = pyramidRows[lastRowIdx];
+        if (!rowKey) return prev;
         const spots = getSpotsInRow(lastRowIdx);
         const rowPlayers = prev[rowKey] || [];
         // Evict the last player in the bottom row
         const removed = rowPlayers[rowPlayers.length - 1];
         const poolIds = new Set(
-          (prev.Pool || []).map((p) => p.player_id || p.id)
+          (prev.Pool || []).map((p) => getTieramidPlayerId(p))
         );
         // Replace the last slot with the new player
         const newRowPlayers = [
@@ -745,8 +764,14 @@ const TieramidBoard = ({
         return {
           ...prev,
           Pool: pool
-            .filter((p) => p.player_id !== player.player_id)
-            .concat(removed && !poolIds.has(removed.player_id) ? removed : []),
+            .filter(
+              (p) => getTieramidPlayerId(p) !== getTieramidPlayerId(player)
+            )
+            .concat(
+              removed && !poolIds.has(getTieramidPlayerId(removed))
+                ? removed
+                : []
+            ),
           [rowKey]: newRowPlayers.slice(0, spots),
         };
       });
@@ -963,7 +988,7 @@ const TieramidBoard = ({
                                         onClick={() =>
                                           removePlayerToPool(
                                             row,
-                                            player.player_id
+                                            getTieramidPlayerId(player)
                                           )
                                         }
                                         title="Remove to Pool"

@@ -14,7 +14,7 @@
 import React, { useState, useEffect } from 'react';
 import { shootingProfileTiers } from '@/shared/utils/roles';
 
-const SHOOTING_TIER_STYLES = {
+const SHOOTING_TIER_STYLES: Record<string, { border: string; text: string }> = {
   Elite: { border: 'border-green-500', text: 'text-green-500' },
   Plus: { border: 'border-lime-400', text: 'text-lime-400' },
   Capable: { border: 'border-yellow-400', text: 'text-yellow-400' },
@@ -23,7 +23,13 @@ const SHOOTING_TIER_STYLES = {
   Non: { border: 'border-red-600', text: 'text-red-600' },
 };
 
-const ShootingProfileSelector = ({ value, onChange }) => {
+const ShootingProfileSelector = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => {
   const [selected, setSelected] = useState('');
 
   // Sync selection on prop change (e.g. when switching players)
@@ -31,7 +37,7 @@ const ShootingProfileSelector = ({ value, onChange }) => {
     setSelected(value || '');
   }, [value]);
 
-  const handleSelect = (label) => {
+  const handleSelect = (label: string) => {
     setSelected(label);
     if (onChange) onChange(label);
   };

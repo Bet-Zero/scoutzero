@@ -105,15 +105,26 @@ const PLAYERS_V2_COLLECTION = process.env.PLAYERS_V2_COLLECTION ?? 'players_v2';
 const BASE_PLAYERS_COLLECTION =
   process.env.BASE_PLAYERS_COLLECTION ?? 'architect_basePlayers';
 
+type FirestorePayload = Record<string, unknown>;
+
+type StagedPlayersV2Payload = {
+  contracts?: Record<string, FirestorePayload>;
+  doc: FirestorePayload;
+  seasons?: Record<string, FirestorePayload>;
+  views?: {
+    contracts?: FirestorePayload;
+  };
+};
+
 const serviceAccount = await readFile(SERVICE_ACCOUNT_PATH, 'utf8').then(
   JSON.parse
 );
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
-async function loadJson(filepath: string) {
+async function loadJson<T>(filepath: string): Promise<T> {
   const raw = await readFile(filepath, 'utf8');
-  return JSON.parse(raw);
+  return JSON.parse(raw) as T;
 }
 
 /**
@@ -175,8 +186,8 @@ async function validatePlayer(
       `${playerId}.json`
     );
 
-    const playersV2 = await loadJson(playersV2Path);
-    const basePlayer = await loadJson(basePlayerPath);
+    const playersV2 = await loadJson<StagedPlayersV2Payload>(playersV2Path);
+    const basePlayer = await loadJson<FirestorePayload>(basePlayerPath);
 
     // Validate main doc
     const mainDocResult = PlayerMainDocZ.safeParse(playersV2.doc);
@@ -289,8 +300,8 @@ async function pushPlayer(playerId: string, force: boolean = false) {
     `${playerId}.json`
   );
 
-  const playersV2 = await loadJson(playersV2Path);
-  const basePlayer = await loadJson(basePlayerPath);
+  const playersV2 = await loadJson<StagedPlayersV2Payload>(playersV2Path);
+  const basePlayer = await loadJson<FirestorePayload>(basePlayerPath);
 
   // Main document
   await db.doc(`${PLAYERS_V2_COLLECTION}/${playerId}`).set(playersV2.doc);

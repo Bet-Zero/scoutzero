@@ -7,7 +7,7 @@ import {
 import type { NormalizedVideoExamples } from '@/shared/utils/videoExamples';
 import type { VideoExample } from '@/schemas/players_v2';
 
-type ProfilePlayerSummary = {
+export type ProfilePlayerSummary = {
   name?: string | null;
   bio?: {
     displayName?: string | null;
@@ -18,7 +18,7 @@ type ProfilePlayerSummary = {
   } | null;
 };
 
-type PlayersDataMap = Record<string, ProfilePlayerSummary | null | undefined>;
+export type PlayersDataMap = Record<string, ProfilePlayerSummary | null | undefined>;
 export type ProfileDetailKey = string | null | undefined;
 
 export function getPlayersForTeam(

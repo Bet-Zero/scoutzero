@@ -281,13 +281,13 @@ describe('Golden Trade Regression Tests', () => {
 
       // Verify receipt exists and has expected structure
       expect(result.tradeReceipt).toBeDefined();
-      expect(result.tradeReceipt.teams).toHaveLength(2);
-      expect(result.tradeReceipt.isLegal).toBe(result.legal);
-      expect(result.tradeReceipt.validatorVersion).toBeDefined();
-      expect(result.tradeReceipt.salaryMatchingVersion).toBeDefined();
+      expect(result.tradeReceipt!.teams).toHaveLength(2);
+      expect(result.tradeReceipt!.isLegal).toBe(result.legal);
+      expect(result.tradeReceipt!.validatorVersion).toBeDefined();
+      expect(result.tradeReceipt!.salaryMatchingVersion).toBeDefined();
       
       // Verify team receipts have expected fields
-      const teamAReceipt = result.tradeReceipt.teams[0];
+      const teamAReceipt = result.tradeReceipt!.teams[0];
       expect(teamAReceipt.outgoingPlayers).toHaveLength(1);
       expect(teamAReceipt.salaryMatchingEvaluation).toBeDefined();
       expect(teamAReceipt.salaryMatchingEvaluation.ruleApplied).toBeDefined();

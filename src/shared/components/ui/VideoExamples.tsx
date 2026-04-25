@@ -194,7 +194,7 @@ const VideoExamples = ({
                     <div className="w-full aspect-video">
                       <iframe
                         className="w-full h-full rounded-lg"
-                        src={youtubeEmbed}
+                        src={youtubeEmbed ?? undefined}
                         title={`${label} video`}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen

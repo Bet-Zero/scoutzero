@@ -434,7 +434,9 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
 
     render(
       <CapSheetSection
-        teamCapSheet={teamCapSheet}
+        teamCapSheet={
+          teamCapSheet as React.ComponentProps<typeof CapSheetSection>['teamCapSheet']
+        }
         currentYear={CURRENT_YEAR}
         onOpenPlayerContractModal={vi.fn()}
         manualCapSheetMutationAuthority={{
@@ -541,11 +543,15 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
   });
 
   it('renders Team History timeline row and opens detail modal from DEV fixtures', () => {
-    const fixtureTeam = injectTeamHistoryFixtures(buildTeamFixture());
+    const fixtureTeam = injectTeamHistoryFixtures(
+      buildTeamFixture() as Parameters<typeof injectTeamHistoryFixtures>[0]
+    );
 
     render(
       <HistorySection
-        teamCapSheet={fixtureTeam}
+        teamCapSheet={
+          fixtureTeam as React.ComponentProps<typeof HistorySection>['teamCapSheet']
+        }
         worldId="world_smoke_lal"
         onInjectTeamHistoryFixtures={vi.fn()}
         onClearTeamHistoryFixtures={vi.fn()}
@@ -676,7 +682,7 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     const setOffseasonRun = vi.fn();
     const setOffseasonSummary = vi.fn();
     const setShowOffseasonModal = vi.fn();
-    const onReloadWorldData = vi.fn(async () => undefined);
+    const onReloadWorldData = vi.fn(async () => null);
 
     advanceSeasonInWorldMock.mockResolvedValue(
       buildCommittedAdvanceExecutorResult({

@@ -5,7 +5,17 @@ import { createList } from '@/firebase/listHelpers';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 
-const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
+type CreateListModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onListCreated?: () => void;
+};
+
+const CreateListModal = ({
+  isOpen,
+  onClose,
+  onListCreated,
+}: CreateListModalProps) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const { userId } = useAuth();
@@ -13,6 +23,7 @@ const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    if (!userId) return;
 
     try {
       await createList(trimmed, userId);
@@ -21,7 +32,7 @@ const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
       onListCreated?.(); // optional callback to trigger refresh
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Failed to create list');
     }
   };
 

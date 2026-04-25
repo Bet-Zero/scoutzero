@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const ContractFilters = ({ filters, setFilters }) => {
-  const [localMin, setLocalMin] = useState(filters.minSalary ?? '');
-  const [localMax, setLocalMax] = useState(filters.maxSalary ?? '');
+const ContractFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+  const [localMin, setLocalMin] = useState(String(filters.minSalary ?? ''));
+  const [localMax, setLocalMax] = useState(String(filters.maxSalary ?? ''));
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -25,11 +27,11 @@ const ContractFilters = ({ filters, setFilters }) => {
     return () => clearTimeout(timeout);
   }, [localMin, localMax, setFilters]);
 
-  const update = (key, value) => {
+  const update = <K extends keyof PlayerFilters>(key: K, value: PlayerFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const inputStyle = (val) =>
+  const inputStyle = (val: string) =>
     `bg-[#2a2a2a] p-1 rounded w-[90px] text-xs placeholder:text-white/40 ${
       val === '' ? 'text-white/40' : 'text-white'
     }`;
@@ -162,7 +164,7 @@ const ContractFilters = ({ filters, setFilters }) => {
                   onClick={() => {
                     const current = filters.optionTypes || [];
                     const updated = selected
-                      ? current.filter((v) => v !== value)
+                      ? current.filter((v: string) => v !== value)
                       : [...current, value];
                     update('optionTypes', updated);
                   }}

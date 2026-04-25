@@ -1,7 +1,11 @@
 import React from 'react';
 import { BadgeList } from '@/constants/badgeList';
 
-const BadgeMini = ({ badges = [] }) => {
+type BadgeMiniProps = {
+  badges?: string[];
+};
+
+const BadgeMini = ({ badges = [] }: BadgeMiniProps) => {
   if (!badges.length) return null;
 
   const displayBadges = BadgeList.filter((b) => badges.includes(b.key));

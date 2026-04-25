@@ -26,6 +26,7 @@ import React, {
   useEffect,
 } from 'react';
 import type { CSSProperties, HTMLAttributes } from 'react';
+import type { FixedSizeList, ListChildComponentProps } from 'react-window';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
 import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
@@ -43,8 +44,10 @@ import usePlayerTableDensity from './hooks/usePlayerTableDensity';
 import useActiveFilterCount from '@/features/filters/hooks/useActiveFilterCount';
 import { useFilterDiagnostics } from '../hooks/useFilterDiagnostics';
 import FilterDiagnosticsPanel from './FilterDiagnosticsPanel';
+import type { FilterablePlayer } from '@/shared/utils/filtering/playerFilterUtils';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
-type TablePlayer = ReturnType<typeof useFilteredPlayers>[number];
+type TablePlayer = SimplePlayer & FilterablePlayer;
 
 type DrawerContextValue = {
   expandedPlayerId: string | null;
@@ -54,15 +57,23 @@ type DrawerContextValue = {
   setDrawerHeight: React.Dispatch<React.SetStateAction<number>>;
 };
 
+type TableRowData = {
+  expandedPlayerId: string | null;
+  players: TablePlayer[];
+  toggleExpand: (id: string) => void;
+};
+
 type InnerElementProps = HTMLAttributes<HTMLDivElement> & {
   style?: CSSProperties;
 };
 
 // Row Component for react-window
-const Row = ({ index, style, data }) => {
+const Row = ({ index, style, data }: ListChildComponentProps<TableRowData>) => {
   const { players, expandedPlayerId, toggleExpand } = data;
   const player = players[index];
+  if (!player) return null;
   const playerId = getPlayerId(player);
+  if (!playerId) return null;
   const isExpanded = expandedPlayerId === playerId;
 
   // Separate positioning style from content layout to ensure mx-auto works
@@ -167,6 +178,7 @@ const DrawerOverlay = () => {
   if (index === -1) return null;
 
   const player = players[index];
+  if (!player) return null;
   const top = (index + 1) * itemSize; // Position right below the row
 
   return (
@@ -202,10 +214,10 @@ const PlayerTable = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false); // Phase 2O: Renamed for clarity
   const [showActiveFiltersDrawer, setShowActiveFiltersDrawer] = useState(false); // Phase 2O: New drawer state
   const [searchText, setSearchText] = useState('');
-  const [expandedPlayerId, setExpandedPlayerId] = useState(null);
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const [drawerHeight, setDrawerHeight] = useState(0); // Phase 2E: Measured drawer height
-  const listContainerRef = useRef(null);
-  const listRef = useRef(null); // Phase 2N-Density: Ref for react-window List to control scroll
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<FixedSizeList<TableRowData> | null>(null); // Phase 2N-Density: Ref for react-window List to control scroll
 
   // Phase 2N-Density: Density mode hook
   const {
@@ -235,7 +247,7 @@ const PlayerTable = () => {
   const lastFirstVisibleIndex = useRef(0);
 
   // Track first visible index on scroll
-  const handleScroll = useCallback(({ scrollOffset }) => {
+  const handleScroll = useCallback(({ scrollOffset }: { scrollOffset: number }) => {
     // Calculate first visible index based on current itemSize (100) and scroll
     const firstVisible = Math.floor(scrollOffset / 100);
     lastFirstVisibleIndex.current = firstVisible;
@@ -246,7 +258,7 @@ const PlayerTable = () => {
     if (listRef.current && lastFirstVisibleIndex.current > 0) {
       // Small delay to let the scale change apply
       requestAnimationFrame(() => {
-        listRef.current.scrollToItem(lastFirstVisibleIndex.current, 'start');
+        listRef.current?.scrollToItem(lastFirstVisibleIndex.current, 'start');
       });
     }
   }, [scale]);
@@ -259,7 +271,7 @@ const PlayerTable = () => {
 
   const debouncedSearchUpdate = useMemo(
     () =>
-      debounce((searchValue) => {
+      debounce((searchValue: string) => {
         setFilters((prev) => ({ ...prev, nameSearch: searchValue }));
       }, 200),
     []
@@ -272,12 +284,15 @@ const PlayerTable = () => {
     setFilters(getDefaultPlayerFilters());
   };
 
-  const filteredPlayers = useFilteredPlayers(players, filters);
+  const filteredPlayers = useFilteredPlayers(
+    players as FilterablePlayer[],
+    filters
+  ) as TablePlayer[];
 
   // Phase 2S: Dev diagnostics for filter debugging (only active with ?debugFilters=1)
   const diagnostics = useFilterDiagnostics(players, filteredPlayers, filters);
 
-  const handleSearchChange = (e) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchText(value);
     debouncedSearchUpdate(value);
@@ -287,7 +302,7 @@ const PlayerTable = () => {
     setShowAdvancedFilters(false);
   };
 
-  const toggleExpand = useCallback((id) => {
+  const toggleExpand = useCallback((id: string) => {
     setExpandedPlayerId((prev) => (prev === id ? null : id));
   }, []);
 

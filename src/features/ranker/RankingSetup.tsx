@@ -1,19 +1,33 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { InformationCircleIcon, ChevronDownIcon } from '@heroicons/react/20/solid';
+import type { RankerPlayer } from '@/features/ranker/utils/rankingEngine';
+import type { RankerSetupData } from './utils/rankerLocalDraft';
 
-const getPlayerName = (player) =>
+type RankerDisplayPlayer = RankerPlayer & {
+  bio?: { displayName?: string | null } | null;
+  display_name?: string | null;
+  name?: string | null;
+};
+
+const getPlayerName = (player: RankerDisplayPlayer) =>
   player.bio?.displayName || player.display_name || player.name || '—';
 
 // ─── Tooltip ──────────────────────────────────────────────────────────────────
 
-const HelperIcon = ({ text }) => {
+const HelperIcon = ({ text }: { text: string }) => {
   const [visible, setVisible] = useState(false);
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!visible) return;
-    const hide = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setVisible(false);
+    const hide = (e: MouseEvent | TouchEvent) => {
+      if (
+        ref.current &&
+        e.target instanceof Node &&
+        !ref.current.contains(e.target)
+      ) {
+        setVisible(false);
+      }
     };
     document.addEventListener('mousedown', hide);
     document.addEventListener('touchstart', hide);
@@ -43,7 +57,21 @@ const HelperIcon = ({ text }) => {
 
 // ─── Player Tile ──────────────────────────────────────────────────────────────
 
-const PlayerTile = ({ player, topSelected, bottomSelected, onToggleTop, onToggleBottom }) => {
+type PlayerTileProps = {
+  player: RankerDisplayPlayer;
+  topSelected: boolean;
+  bottomSelected: boolean;
+  onToggleTop: () => void;
+  onToggleBottom: () => void;
+};
+
+const PlayerTile = ({
+  player,
+  topSelected,
+  bottomSelected,
+  onToggleTop,
+  onToggleBottom,
+}: PlayerTileProps) => {
   const name = getPlayerName(player);
 
   return (
@@ -95,7 +123,19 @@ const PlayerTile = ({ player, topSelected, bottomSelected, onToggleTop, onToggle
 
 // ─── Styled Select ────────────────────────────────────────────────────────────
 
-const StyledSelect = ({ value, onChange, options, placeholder }) => (
+type StyledSelectProps = {
+  value: string | null;
+  onChange: (value: string | null) => void;
+  options: RankerDisplayPlayer[];
+  placeholder: string;
+};
+
+const StyledSelect = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: StyledSelectProps) => (
   <div className="relative">
     <select
       value={value || ''}
@@ -105,7 +145,7 @@ const StyledSelect = ({ value, onChange, options, placeholder }) => (
       <option value="" className="bg-[#1a1a1a] text-white/50">
         {placeholder}
       </option>
-      {options.map((p) => (
+      {options.map((p: RankerDisplayPlayer) => (
         <option key={p.id} value={p.id} className="bg-[#1a1a1a] text-white">
           {getPlayerName(p)}
         </option>
@@ -117,13 +157,23 @@ const StyledSelect = ({ value, onChange, options, placeholder }) => (
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
 
-const SectionCard = ({ children, className = '', ...rest }) => (
+type SectionCardProps = React.HTMLAttributes<HTMLDivElement> & {
+  children: React.ReactNode;
+};
+
+const SectionCard = ({ children, className = '', ...rest }: SectionCardProps) => (
   <div className={`p-5 rounded-xl bg-white/[0.03] border border-white/[0.07] ${className}`} {...rest}>
     {children}
   </div>
 );
 
-const SectionHeader = ({ label, hint, right = null }) => (
+type SectionHeaderProps = {
+  label: string;
+  hint?: string;
+  right?: React.ReactNode;
+};
+
+const SectionHeader = ({ label, hint, right = null }: SectionHeaderProps) => (
   <div className="flex items-center justify-between mb-4">
     <div className="flex items-center">
       <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-white/40">
@@ -141,16 +191,24 @@ export const RankingSetup = ({
   playerPool = [],
   onComplete,
   existingSetupData = null,
+}: {
+  playerPool?: RankerDisplayPlayer[];
+  onComplete: (data: RankerSetupData) => void;
+  existingSetupData?: RankerSetupData | null;
 }) => {
-  const [topTier, setTopTier] = useState(existingSetupData?.topTier || []);
-  const [bottomTier, setBottomTier] = useState(existingSetupData?.bottomTier || []);
-  const [anchor, setAnchor] = useState(existingSetupData?.anchor || null);
-  const [firstPlace, setFirstPlace] = useState(existingSetupData?.firstPlace || null);
-  const [lastPlace, setLastPlace] = useState(existingSetupData?.lastPlace || null);
+  const [topTier, setTopTier] = useState<string[]>(existingSetupData?.topTier || []);
+  const [bottomTier, setBottomTier] = useState<string[]>(existingSetupData?.bottomTier || []);
+  const [anchor, setAnchor] = useState<string | null>(existingSetupData?.anchor || null);
+  const [firstPlace, setFirstPlace] = useState<string | null>(
+    existingSetupData?.firstPlace || null
+  );
+  const [lastPlace, setLastPlace] = useState<string | null>(
+    existingSetupData?.lastPlace || null
+  );
 
   const tierCountEstimate = Math.max(1, Math.round(playerPool.length * 0.25));
 
-  const handleToggleTop = (id) => {
+  const handleToggleTop = (id: string) => {
     // Moving from bottom → top: remove from bottom first
     if (bottomTier.includes(id)) setBottomTier((prev) => prev.filter((p) => p !== id));
     setTopTier((prev) =>
@@ -158,7 +216,7 @@ export const RankingSetup = ({
     );
   };
 
-  const handleToggleBottom = (id) => {
+  const handleToggleBottom = (id: string) => {
     // Moving from top → bottom: remove from top first
     if (topTier.includes(id)) setTopTier((prev) => prev.filter((p) => p !== id));
     setBottomTier((prev) =>

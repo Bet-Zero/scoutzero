@@ -1,7 +1,13 @@
 // components/LayoutPreview/TwoWayMeter.tsx
 import React from 'react';
 
-const TwoWayMeter = ({ twoWayValue, onChange }) => {
+const TwoWayMeter = ({
+  twoWayValue,
+  onChange,
+}: {
+  twoWayValue: number;
+  onChange: (value: number) => void;
+}) => {
   return (
     <div className="mt-3">
       <div

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search } from 'lucide-react';
-import type { PlayerList } from '@/firebase/listHelpers';
 import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
 type PlayerSearchResult = {
@@ -9,8 +8,13 @@ type PlayerSearchResult = {
   lists: string[];
 };
 
+type SearchableList = {
+  name?: string | null;
+  playerIds?: string[] | null;
+};
+
 type ListSearchBarProps = {
-  listsData: Record<string, PlayerList>;
+  listsData: Record<string, SearchableList>;
   playersData?: Record<string, SimplePlayer>;
   onSelect?: (id: string) => void;
   placeholder?: string;

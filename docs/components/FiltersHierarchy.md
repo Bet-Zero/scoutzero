@@ -22,10 +22,11 @@ FiltersPanel/
       ViewControls.tsx
   FilterPanelCondensed.tsx
   index.tsx
+filterTypes.ts
 hooks/
   useActiveFilterCount.ts
 ```
 
 ---
-*Generated on: 2026-04-19T01:04:49.074Z*
+*Generated on: 2026-04-25T11:04:54.103Z*
 *Auto-updated by: npm run docs*

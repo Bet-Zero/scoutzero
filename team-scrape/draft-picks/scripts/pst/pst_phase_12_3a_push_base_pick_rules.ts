@@ -306,7 +306,7 @@ function transformLedgerPick(pick: LedgerPick): BasePickRuleDoc | null {
       ? pick.evidenceRowRefs
       : undefined,
     updatedAtISO: new Date().toISOString(),
-    source: 'PST_LEDGER_FINAL',
+    source: 'PST_LEDGER_FINAL' as const,
   });
 }
 

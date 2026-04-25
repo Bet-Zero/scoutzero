@@ -3,8 +3,13 @@ import TeamLogo from '@/shared/components/TeamLogo';
 import { BadgeList } from '@/constants/badgeList';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { getFilterStyles } from '@/shared/utils/filtering';
+import type { ActiveFilterItem } from '../../filterTypes';
 
-const FilterContent = ({ filter }) => {
+type FilterContentProps = {
+  filter: ActiveFilterItem;
+};
+
+const FilterContent = ({ filter }: FilterContentProps) => {
   const { key, value, isSubrole } = filter;
 
   if (isSubrole) {

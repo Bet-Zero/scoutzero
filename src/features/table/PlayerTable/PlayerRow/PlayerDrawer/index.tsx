@@ -18,6 +18,8 @@ const getFirstContract = (player: FilterablePlayer) =>
 const PlayerDrawer = ({ player }: PlayerDrawerProps) => {
   const firstContract = getFirstContract(player);
   const contract = player.primaryContract || firstContract;
+  const subRoles = player.subRoles ||
+    player.subroles || { offense: [], defense: [] };
 
   return (
     <div className="w-full bg-[#111] border-t border-white/10 py-3">
@@ -36,9 +38,7 @@ const PlayerDrawer = ({ player }: PlayerDrawerProps) => {
 
         {/* RIGHT SIDE: Drawer content */}
         <div className="flex flex-nowrap -mr-[2px] gap-0 w-full justify-end overflow-x-auto">
-          <PlayerSubRolesMini
-            subRoles={player.subRoles || player.subroles || {}}
-          />
+          <PlayerSubRolesMini subRoles={subRoles} />
           <Divider />
           <PlayerContractMini
             contract={contract}

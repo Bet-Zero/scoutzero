@@ -16,6 +16,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { chromium } from 'playwright';
 import * as cheerio from 'cheerio';
+import type { Element } from 'domhandler';
 
 // ---------- CLI / ENV ----------
 const argv = process.argv.slice(2);
@@ -35,7 +36,7 @@ const serialize = (obj: unknown) =>
 // Default to all configured teams if none specified (all 30 NBA teams)
 const DEFAULT_TEAMS =
   'ATL,BOS,BKN,CHA,CHI,CLE,DAL,DEN,DET,GSW,HOU,IND,LAC,LAL,MEM,MIA,MIL,MIN,NOP,NYK,OKC,ORL,PHI,PHX,POR,SAC,SAS,TOR,UTA,WAS';
-const TEAMS_ARG = getArgVal('--teams', process.env.TEAMS || DEFAULT_TEAMS);
+const TEAMS_ARG = getArgVal('--teams', process.env.TEAMS || DEFAULT_TEAMS) ?? DEFAULT_TEAMS;
 const TEAM_FILTER = TEAMS_ARG.split(',')
   .map((s) => s.trim().toUpperCase())
   .filter(Boolean);
@@ -2002,7 +2003,7 @@ function parseTableRows($: cheerio.CheerioAPI, table: any) {
 
   console.log(`     Found ${tableRows.length} table rows`);
 
-  tableRows.each((index, row) => {
+  tableRows.each((index: number, row: Element) => {
     const $row = $(row);
     const cells = $row.find('td');
 

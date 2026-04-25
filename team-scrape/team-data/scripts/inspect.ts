@@ -28,17 +28,17 @@ function findHeading(
   $: cheerio.CheerioAPI,
   tag: 'h3' | 'h5',
   includes: string
-) {
+) : cheerio.Cheerio<Element> | null {
   const needle = includes.toLowerCase();
-  let found: cheerio.Cheerio<AnyNode> | null = null;
+  let found: cheerio.Cheerio<Element> | null = null;
   $(tag).each((_, el) => {
     const t = norm($(el).text()).toLowerCase();
-    if (!found && t.includes(needle)) found = $(el);
+    if (!found && t.includes(needle)) found = $(el as Element);
   });
   return found;
 }
 
-function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio<AnyNode>) {
+function forwardUntilNextH3($: cheerio.CheerioAPI, start: cheerio.Cheerio<Element>) {
   const out: Element[] = [];
   let cur = start.next();
   while (cur.length) {

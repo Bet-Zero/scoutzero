@@ -5,34 +5,51 @@ import TeamLogo from '@/shared/components/TeamLogo';
 import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
 import { getCurrentSeasonYear } from '@/shared/utils/contracts/contractUtils';
 import { formatContractSummary } from '@/shared/utils/formatting/basicFormatting';
+import type { ProfilePlayer } from '@/features/profile/profileUiTypes';
 
-const formatProfileHeight = (inches) => {
+const formatProfileHeight = (inches: number | null | undefined) => {
   if (!inches || inches === 0) return 'N/A';
   const feet = Math.floor(inches / 12);
   const remainingInches = inches % 12;
   return `${feet}-${remainingInches}`;
 };
 
-const PlayerHeader = ({ player, selectedPlayer }) => {
+const PlayerHeader = ({
+  player,
+  selectedPlayer,
+}: {
+  player: ProfilePlayer;
+  selectedPlayer: string | null;
+}) => {
   const thisYear = getCurrentSeasonYear();
 
   // Get contract data from contracts subcollection (v2 structure only)
   const contractData =
     player.primaryContract ||
     (player.contracts ? Object.values(player.contracts)[0] : null);
+  const contractRecord =
+    contractData && typeof contractData === 'object'
+      ? (contractData as Record<string, unknown>)
+      : null;
   const totalYears =
     contractData?.yearsRemaining ??
     player.currentContractView?.yearsRemaining ??
     contractData?.salariesByYear?.length ??
-    contractData?.contractLength;
+    (typeof contractRecord?.contractLength === 'number'
+      ? contractRecord.contractLength
+      : undefined);
   const currentYearSalaryObj = contractData?.salariesByYear?.find(
-    (s) => s.year === thisYear || s.season?.startsWith(String(thisYear))
+    (s) => s.year === thisYear || String(s.season ?? '').startsWith(String(thisYear))
   );
-  const currentSalary =
+  const rawCurrentSalary =
     player.currentContractView?.currentSalary ??
-    contractData?.currentSalary ??
+    (typeof contractRecord?.currentSalary === 'number'
+      ? contractRecord.currentSalary
+      : undefined) ??
     currentYearSalaryObj?.salary ??
     null;
+  const currentSalary =
+    typeof rawCurrentSalary === 'number' ? rawCurrentSalary : null;
   const contractSummary = formatContractSummary(currentSalary, totalYears);
   const ageDisplay =
     Number.isFinite(player.age) && player.age > 0 ? player.age : 'N/A';
@@ -66,13 +83,15 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
         </div>
       </div>
       <div className="flex items-center">
-        <PlayerHeadshot playerId={selectedPlayer} />
+        <PlayerHeadshot playerId={selectedPlayer || player.id} />
       </div>
       <div className="w-[230px] h-[190px] bg-[#1f1f1f] rounded-2xl shadow-lg text-white text-[13px] font-thin px-4 py-3 flex flex-col relative top-[0.11rem] justify-center">
         <div className="space-y-[2px]">
           <p>
             <span className="font-bold">HT</span>:{' '}
-            {formatProfileHeight(player.bio?.height)}
+            {formatProfileHeight(
+              typeof player.bio?.height === 'number' ? player.bio.height : null
+            )}
           </p>
           <p>
             <span className="font-bold">WT</span>: {player.bio?.weight || 'N/A'}
@@ -83,15 +102,31 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
           </p>
           <p>
             <span className="font-bold">YEARS PRO</span>:{' '}
-            {player.bio?.display?.yearsPro ?? 'N/A'}
+            {player.bio?.display &&
+            typeof player.bio.display === 'object' &&
+            'yearsPro' in player.bio.display
+              ? String(player.bio.display.yearsPro)
+              : 'N/A'}
           </p>
-          {player.bio?.draft?.pick && (
+          {(() => {
+            const draft =
+              player.bio && 'draft' in player.bio
+                ? (player.bio.draft as
+                    | {
+                        year?: string | number | null;
+                        round?: string | number | null;
+                        pick?: string | number | null;
+                      }
+                    | null
+                    | undefined)
+                : null;
+            return draft?.pick ? (
             <p>
               <span className="font-bold">DRAFTED</span>:{' '}
-              {player.bio.draft.year} Rd {player.bio.draft.round} Pick{' '}
-              {player.bio.draft.pick}
+              {draft.year} Rd {draft.round} Pick {draft.pick}
             </p>
-          )}
+            ) : null;
+          })()}
         </div>
         <div className="h-6" />
         <div className="space-y-[2px]">

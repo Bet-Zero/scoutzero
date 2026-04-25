@@ -20,17 +20,47 @@ import validatePlayerRoutingDefault, {
   validatePlayerRouting,
 } from '@/features/architect/utils/tradeMachine/rules/validatePlayerRouting';
 
+type RoutingTestPlayer = {
+  id: string;
+  playerId: string;
+  name: string;
+  displayName: string;
+  tradeTo?: string;
+  contract: {
+    salariesByYear: Array<{ season: string; salary: number }>;
+  };
+};
+
+type RoutingTestEntitlement = {
+  entitlementId: string;
+  toTeamId?: string;
+};
+
+type RoutingTestTeamSlot = {
+  team: { id: string; teamCode?: string; name?: string } | null;
+  sends: RoutingTestPlayer[];
+  entitlementsOut: RoutingTestEntitlement[];
+};
+
 // Helper to create a mock team slot
-const makeTeamSlot = (teamId, sends = [], entitlementsOut = []) => ({
+const makeTeamSlot = (
+  teamId: string,
+  sends: RoutingTestPlayer[] = [],
+  entitlementsOut: RoutingTestEntitlement[] = []
+): RoutingTestTeamSlot => ({
   team: { id: teamId, teamCode: teamId, name: `Team ${teamId}` },
   sends,
   entitlementsOut,
 });
 
 // Helper to create a mock player
-const makePlayer = (name, tradeTo = undefined, id = undefined) => ({
-  id: id || `player-${name.toLowerCase().replace(/\s+/g, '-')}`,
-  playerId: id || `player-${name.toLowerCase().replace(/\s+/g, '-')}`,
+const makePlayer = (
+  name: string,
+  tradeTo?: string,
+  id?: string
+): RoutingTestPlayer => ({
+  id: id ?? `player-${name.toLowerCase().replace(/\s+/g, '-')}`,
+  playerId: id ?? `player-${name.toLowerCase().replace(/\s+/g, '-')}`,
   name,
   displayName: name,
   tradeTo,
@@ -218,7 +248,10 @@ describe('removeTeam cleanup behavior', () => {
    * Simulates the removeTeam cleanup logic.
    * This mirrors the implementation in useTradeMachine.js
    */
-  function simulateRemoveTeamCleanup(teams, indexToRemove) {
+  function simulateRemoveTeamCleanup(
+    teams: RoutingTestTeamSlot[],
+    indexToRemove: number
+  ): RoutingTestTeamSlot[] {
     const removedTeamId = teams[indexToRemove]?.team?.id || null;
     const filteredTeams = teams.filter((_, i) => i !== indexToRemove);
 

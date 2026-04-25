@@ -2,8 +2,14 @@ import React from 'react';
 import FilterContent from './FilterContent';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { getFilterStyles } from '@/shared/utils/filtering';
+import type { ActiveFilterItem } from '../../filterTypes';
 
-const FilterPill = ({ filter, onRemove }) => {
+type FilterPillProps = {
+  filter: ActiveFilterItem;
+  onRemove: () => void;
+};
+
+const FilterPill = ({ filter, onRemove }: FilterPillProps) => {
   const { key, value, isSubrole, isNonRemovable, isContext } = filter;
 
   // Context pills: muted styling, no remove button

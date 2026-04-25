@@ -3,9 +3,11 @@
 import React from 'react';
 import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';
 import { TeamListFull } from '@/constants/teamList';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const MetadataFilters = ({ filters, setFilters }) => {
-  const update = (key, value) => {
+const MetadataFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+  const update = <K extends keyof PlayerFilters>(key: K, value: PlayerFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -17,7 +19,7 @@ const MetadataFilters = ({ filters, setFilters }) => {
           label="Team"
           value={filters.team || ''}
           options={TeamListFull}
-          onChange={(val) => update('team', val)}
+          onChange={(val) => update('team', String(val))}
           allLabel="All"
           selectClass="w-[125px]"
           valueKey="code"
@@ -29,7 +31,7 @@ const MetadataFilters = ({ filters, setFilters }) => {
           label="Position"
           value={filters.position || ''}
           options={['Guard', 'Wing', 'Forward', 'Big', 'Center']}
-          onChange={(val) => update('position', val)}
+          onChange={(val) => update('position', String(val))}
           allLabel="All"
           selectClass="w-[125px]"
         />

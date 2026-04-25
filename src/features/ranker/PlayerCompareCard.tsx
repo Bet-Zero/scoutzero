@@ -1,8 +1,23 @@
 import React from 'react';
 import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import type { RankerPlayer } from './utils/rankingEngine';
 
-const PlayerCompareCard = ({ left, right, onSelect, onSkip, onUndo }) => {
+type PlayerCompareCardProps = {
+  left: RankerPlayer;
+  right: RankerPlayer;
+  onSelect: (winner: RankerPlayer, loser: RankerPlayer) => void;
+  onSkip?: () => void;
+  onUndo?: () => void;
+};
+
+const PlayerCompareCard = ({
+  left,
+  right,
+  onSelect,
+  onSkip,
+  onUndo,
+}: PlayerCompareCardProps) => {
   if (!left || !right) return null;
 
   return (
@@ -13,7 +28,7 @@ const PlayerCompareCard = ({ left, right, onSelect, onSkip, onUndo }) => {
           onClick={() => onSelect(left, right)}
         >
           <PlayerHeadshot playerId={left.id} />
-          <PlayerNameMini name={left.bio?.displayName || left.name} />
+          <PlayerNameMini name={left.bio?.displayName || left.name || 'Unknown Player'} />
         </button>
         <span className="text-xl font-bold text-white">vs</span>
         <button
@@ -21,7 +36,7 @@ const PlayerCompareCard = ({ left, right, onSelect, onSkip, onUndo }) => {
           onClick={() => onSelect(right, left)}
         >
           <PlayerHeadshot playerId={right.id} />
-          <PlayerNameMini name={right.bio?.displayName || right.name} />
+          <PlayerNameMini name={right.bio?.displayName || right.name || 'Unknown Player'} />
         </button>
       </div>
       <div className="flex gap-4 mt-4 text-sm text-white/70">

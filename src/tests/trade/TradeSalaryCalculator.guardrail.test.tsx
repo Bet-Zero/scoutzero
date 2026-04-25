@@ -163,7 +163,8 @@ describe('TradeSalaryCalculator Guardrail Tests (P2)', () => {
       // The disclaimer has the text split across elements (strong tag wraps "Exploratory tool")
       // We verify the container has both required phrases
       const disclaimerContainer = screen.getByText('Exploratory tool').closest('div');
-      expect(disclaimerContainer.textContent).toContain('validator is authoritative');
+      expect(disclaimerContainer).not.toBeNull();
+      expect(disclaimerContainer!.textContent).toContain('validator is authoritative');
     });
 
     it('P2-GR-08: disclaimer present even when no validator result', () => {

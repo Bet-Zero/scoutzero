@@ -8,7 +8,18 @@ import {
   hasActiveAddPlayerFilters,
   normalizePlayer,
 } from '@/features/roster/utils';
+import type { RosterDrawerPlayer } from '@/features/roster/utils';
 import { TeamMap } from '@/constants/teamList';
+
+type BuildProcessedPlayerParams = {
+  contractType?: string;
+  freeAgentYear?: string | null;
+  id: string;
+  name: string;
+  options?: RosterDrawerPlayer['options'];
+  position?: string;
+  team?: string;
+};
 
 const buildProcessedPlayer = ({
   id,
@@ -18,7 +29,7 @@ const buildProcessedPlayer = ({
   freeAgentYear = null,
   options = [],
   contractType = 'Standard',
-}) => ({
+}: BuildProcessedPlayerParams): RosterDrawerPlayer => ({
   id,
   name: name.toLowerCase(),
   team: team.toLowerCase(),
@@ -84,7 +95,7 @@ describe('Roster Builder Helpers', () => {
       ...getDefaultAddPlayerFilters(),
       freeAgentYear: '2026',
       contractFeature: 'to',
-    });
+    } as Parameters<typeof filterRosterDrawerPlayers>[2]);
 
     expect(result.map((player) => player.id)).toEqual(['to-player']);
   });

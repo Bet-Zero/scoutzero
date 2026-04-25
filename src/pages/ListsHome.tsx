@@ -4,24 +4,38 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { fetchAllLists, renameList, deleteList } from '@/firebase/listHelpers';
+import type { PlayerList } from '@/firebase/listHelpers';
 import CreateListModal from '@/features/lists/CreateListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
+
+type TimestampLike = {
+  toDate?: () => Date;
+};
+
+const formatUpdatedAt = (timestamp: PlayerList['updatedAt']): string => {
+  const maybeTimestamp = timestamp as TimestampLike | null | undefined;
+  const date = maybeTimestamp?.toDate?.();
+  return date instanceof Date && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString()
+    : '—';
+};
 
 const ListsHome = () => {
-  const [lists, setLists] = useState([]);
+  const [lists, setLists] = useState<PlayerList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [renamingListId, setRenamingListId] = useState(null);
+  const [renamingListId, setRenamingListId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [deletingListId, setDeletingListId] = useState(null);
+  const [deletingListId, setDeletingListId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { userId, loading: authLoading } = useAuth();
 
   const { players } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
-    const map = {};
+    const map: Record<string, SimplePlayer> = {};
     players.forEach((p) => {
       map[p.id] = p;
     });
@@ -29,7 +43,7 @@ const ListsHome = () => {
   }, [players]);
 
   const listsMap = useMemo(() => {
-    const map = {};
+    const map: Record<string, PlayerList> = {};
     lists.forEach((l) => {
       map[l.id] = l;
     });
@@ -55,6 +69,8 @@ const ListsHome = () => {
   // E4: Rename via helper with ownership guard
   const handleRename = async () => {
     if (!renameValue.trim()) return;
+    if (!renamingListId) return;
+    if (!userId) return;
     try {
       await renameList(renamingListId, renameValue.trim(), userId);
     } catch (err) {
@@ -68,6 +84,8 @@ const ListsHome = () => {
   // E4: Delete via helper with ownership guard
   const handleDelete = async () => {
     try {
+      if (!deletingListId) return;
+      if (!userId) return;
       await deleteList(deletingListId, userId);
     } catch (err) {
       console.error('Delete failed:', err);
@@ -124,7 +142,7 @@ const ListsHome = () => {
                   )}
                   <div className="text-xs text-white/30">
                     {list.playerIds?.length || 0} players • Last updated{' '}
-                    {list.updatedAt?.toDate?.().toLocaleDateString?.() || '—'}
+                    {formatUpdatedAt(list.updatedAt)}
                   </div>
                 </Link>
 

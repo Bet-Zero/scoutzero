@@ -1,8 +1,19 @@
 import React from 'react';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 
-const MiniSubRoleLine = ({ roles = [] }) => {
-  const getRoleData = (roleName) =>
+type MiniSubRoleLineProps = {
+  roles?: string[];
+};
+
+type PlayerSubRolesMiniProps = {
+  subRoles?: {
+    defense?: string[];
+    offense?: string[];
+  };
+};
+
+const MiniSubRoleLine = ({ roles = [] }: MiniSubRoleLineProps) => {
+  const getRoleData = (roleName: string) =>
     SubRoleMasterList.find((r) => r.name === roleName);
 
   return (
@@ -35,7 +46,7 @@ const MiniSubRoleLine = ({ roles = [] }) => {
   );
 };
 
-const PlayerSubRolesMini = ({ subRoles }) => {
+const PlayerSubRolesMini = ({ subRoles }: PlayerSubRolesMiniProps) => {
   // Separate offense and defense roles from the subRoles prop
   const offenseRoles = subRoles?.offense || [];
   const defenseRoles = subRoles?.defense || [];

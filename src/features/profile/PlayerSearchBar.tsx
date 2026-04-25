@@ -1,7 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
+import type { PlayersDataMap } from './utils/profileHelpers';
 
-const PlayerSearchBar = ({ playersData, onSelect }) => {
+const PlayerSearchBar = ({
+  playersData,
+  onSelect,
+}: {
+  playersData: PlayersDataMap;
+  onSelect: (playerId: string, team: string) => void;
+}) => {
   const [search, setSearch] = useState('');
 
   const results = useMemo(() => {
@@ -16,7 +23,7 @@ const PlayerSearchBar = ({ playersData, onSelect }) => {
       .slice(0, 8);
   }, [search, playersData]);
 
-  const handleSelect = (id) => {
+  const handleSelect = (id: string) => {
     if (!id) return;
     setSearch('');
     onSelect(id, playersData[id]?.bio?.display?.team || '');

@@ -5,6 +5,42 @@ import PlayerTraitsGrid from './PlayerTraitsGrid';
 import PlayerRolesSection from './PlayerRolesSection';
 import BadgeSelector from './BadgeSelector';
 import OverallBlurbBox from './OverallBlurbBox';
+import type {
+  ProfileDetailKey,
+} from '@/features/profile/utils/profileHelpers';
+import type { Blurbs } from '@/shared/utils/blurbs';
+import type {
+  ProfileRoles,
+  UsePlayerProfileStateResult,
+} from '@/features/profile/hooks/usePlayerProfileState';
+import type { PlayerSubRoles } from '@/features/roster/utils/enrichPlayerData';
+import type {
+  OpenProfileModal,
+  ProfilePlayer,
+  ProfileSetter,
+} from '../profileUiTypes';
+
+type PlayerDetailsProps = {
+  player: ProfilePlayer;
+  selectedPlayer: string | null;
+  traits: Record<string, number>;
+  onTraitChange: UsePlayerProfileStateResult['handleTraitChange'];
+  roles: ProfileRoles;
+  onRoleChange: (key: keyof ProfileRoles, value: string) => void;
+  twoWay: number;
+  onTwoWayChange: (value: number) => void;
+  subRoles: PlayerSubRoles;
+  setSubRoles: ProfileSetter<PlayerSubRoles>;
+  shootingProfile: string;
+  setShootingProfile: (value: string) => void;
+  badges: string[];
+  setBadges: ProfileSetter<string[]>;
+  editedBlurbs: Blurbs;
+  onBlurbChange: (key: ProfileDetailKey, value: string) => void;
+  overallGrade: number | null;
+  setOverallGrade: (value: number | null) => void;
+  setOpenModal: OpenProfileModal;
+};
 
 const PlayerDetails = ({
   player,
@@ -26,7 +62,7 @@ const PlayerDetails = ({
   overallGrade,
   setOverallGrade,
   setOpenModal,
-}) => (
+}: PlayerDetailsProps) => (
   <>
     <PlayerHeader player={player} selectedPlayer={selectedPlayer} />
     <PlayerStatsTable player={player} />

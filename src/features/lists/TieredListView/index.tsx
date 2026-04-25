@@ -2,8 +2,13 @@
 
 import React from 'react';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';
+import type { ListDisplayPlayer } from '@/features/lists/ListPreviewModal/ListExportWrapper';
 
-const TieredListView = ({ tieredPlayers = {} }) => {
+type TieredListViewProps = {
+  tieredPlayers?: Record<string, ListDisplayPlayer[]>;
+};
+
+const TieredListView = ({ tieredPlayers = {} }: TieredListViewProps) => {
   const tierNames = Object.keys(tieredPlayers).sort((a, b) => {
     const numA = parseInt(a.replace(/\D/g, '')) || 0;
     const numB = parseInt(b.replace(/\D/g, '')) || 0;

@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import ComparisonMatrix from './ComparisonMatrix';
+import type { RankerComparison, RankerPlayer } from './utils/rankingEngine';
 
-const ComparisonMatrixDrawer = ({ players, comparisons }) => {
+type ComparisonMatrixDrawerProps = {
+  players: RankerPlayer[];
+  comparisons: RankerComparison[];
+};
+
+const ComparisonMatrixDrawer = ({
+  players,
+  comparisons,
+}: ComparisonMatrixDrawerProps) => {
   const [open, setOpen] = useState(false);
 
   return (

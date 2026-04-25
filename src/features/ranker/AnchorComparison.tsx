@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
+import type { RankerPlayer } from './utils/rankingEngine';
 
-const PlayerButton = ({ player, selected, onClick }) => (
+type PlayerButtonProps = {
+  player: RankerPlayer;
+  selected: boolean;
+  onClick: () => void;
+};
+
+const PlayerButton = ({ player, selected, onClick }: PlayerButtonProps) => (
   <button
     type="button"
     onClick={onClick}
@@ -12,10 +19,22 @@ const PlayerButton = ({ player, selected, onClick }) => (
   </button>
 );
 
-export const AnchorComparison = ({ anchor, players = [], onComplete }) => {
-  const [better, setBetter] = useState([]);
+type AnchorComparisonProps = {
+  anchor: RankerPlayer | undefined;
+  players?: RankerPlayer[];
+  onComplete: (betterIds: string[]) => void;
+};
 
-  const toggle = (id) => {
+export const AnchorComparison = ({
+  anchor,
+  players = [],
+  onComplete,
+}: AnchorComparisonProps) => {
+  const [better, setBetter] = useState<string[]>([]);
+
+  if (!anchor) return null;
+
+  const toggle = (id: string) => {
     setBetter((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );

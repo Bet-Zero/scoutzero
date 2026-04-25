@@ -21,7 +21,33 @@ import {
   type RankerPair,
   type RankerPlayer,
 } from '@/features/ranker/utils/rankingEngine';
+import type { HydratedRankerDraft } from './hooks/useRankerSession';
+import type { RankerDraftPatch, RankerSetupData } from './utils/rankerLocalDraft';
 import { Save, CheckCircle, AlertCircle } from 'lucide-react';
+
+type RankingSessionPlayer = RankerPlayer & {
+  original?: RankerPlayer;
+};
+
+type SaveStatus = 'saving' | 'saved' | 'error' | null;
+type SavedListMeta = {
+  listId: string;
+  listName: string;
+};
+type RankingSessionProps = {
+  playerPool?: RankingSessionPlayer[];
+  resumedSessionData?: HydratedRankerDraft | null;
+  autosave?: ((patch: RankerDraftPatch) => void) | null;
+  saveNow?: ((patch: RankerDraftPatch) => void) | null;
+  saveAdjustments?: ((ranking: RankerPlayer[]) => void) | null;
+  markFinished?: (() => void) | null;
+  isOwner?: boolean;
+  saveToFirestore?: (() => void) | null;
+  saveStatus?: SaveStatus;
+  saveAsList?: ((ranking: RankerPlayer[]) => void | Promise<unknown>) | null;
+  listSaveStatus?: SaveStatus;
+  savedListMeta?: SavedListMeta | null;
+};
 
 const RankingSession = ({
   playerPool = [],
@@ -37,7 +63,7 @@ const RankingSession = ({
   saveAsList = null,
   listSaveStatus = null,
   savedListMeta = null,
-}) => {
+}: RankingSessionProps) => {
   const players = useMemo<RankerPlayer[]>(
     () => playerPool.map((p) => p.original || p),
     [playerPool]
@@ -51,7 +77,7 @@ const RankingSession = ({
   const [isFinished, setIsFinished] = useState(
     () => resumedSessionData?.isFinished || false
   );
-  const [setupData, setSetupData] = useState(
+  const [setupData, setSetupData] = useState<RankerSetupData | null>(
     () => resumedSessionData?.setupData || null
   );
   const [anchorDone, setAnchorDone] = useState(
@@ -62,11 +88,6 @@ const RankingSession = ({
     if (skipped instanceof Set) {
       return new Set(
         Array.from(skipped).filter((key): key is string => typeof key === 'string')
-      );
-    }
-    if (Array.isArray(skipped)) {
-      return new Set(
-        skipped.filter((key): key is string => typeof key === 'string')
       );
     }
     return new Set();
@@ -82,9 +103,9 @@ const RankingSession = ({
   useEffect(() => {
     if (resumedSessionData?.closureCache) {
       closureCacheRef.current = resumedSessionData.closureCache;
-    } else if (resumedSessionData?.results?.length > 0) {
+    } else if ((resumedSessionData?.results?.length ?? 0) > 0) {
       closureCacheRef.current = createClosureCache();
-      closureCacheRef.current.rebuild(resumedSessionData.results);
+      closureCacheRef.current.rebuild(resumedSessionData?.results ?? []);
     } else {
       closureCacheRef.current = createClosureCache();
     }
@@ -93,7 +114,7 @@ const RankingSession = ({
   const groupedPlayers = useMemo(() => {
     if (!setupData || (setupData.anchor && !anchorDone)) return players;
     const { topTier = [], bottomTier = [], anchor } = setupData;
-    const better = new Set();
+    const better = new Set<string>();
     if (anchor) {
       results.forEach(({ winner, loser }) => {
         if (loser === anchor) better.add(winner);
@@ -151,7 +172,7 @@ const RankingSession = ({
   ]);
 
   const handleSelect = useCallback(
-    (winner, loser) => {
+    (winner: RankerPlayer, loser: RankerPlayer) => {
       // Incrementally update closure cache with the new edge
       const added = closureCacheRef.current.addEdge(winner.id, loser.id);
       if (!added) {
@@ -173,11 +194,12 @@ const RankingSession = ({
   );
 
   const handleSkip = useCallback(() => {
-    if (currentPair.length < 2) return;
+    const [first, second] = currentPair;
+    if (!first || !second) return;
     const key =
-      currentPair[0].id < currentPair[1].id
-        ? `${currentPair[0].id}<>${currentPair[1].id}`
-        : `${currentPair[1].id}<>${currentPair[0].id}`;
+      first.id < second.id
+        ? `${first.id}<>${second.id}`
+        : `${second.id}<>${first.id}`;
     const newSkipped = new Set(skippedPairs);
     newSkipped.add(key);
 
@@ -222,7 +244,7 @@ const RankingSession = ({
 
   // Handler for saving adjustments from RankingResults
   const handleRankingAdjusted = useCallback(
-    (adjustedRanking) => {
+    (adjustedRanking: RankerPlayer[]) => {
       // Extract IDs for storage
       const adjustedIds = adjustedRanking.map((p) => p.id);
       setAdjustments(adjustedIds);
@@ -239,7 +261,11 @@ const RankingSession = ({
     let ranking = generateRankingFromComparisons(
       results,
       groupedPlayers,
-      setupData
+      {
+        topTier: setupData?.topTier ?? [],
+        bottomTier: setupData?.bottomTier ?? [],
+        anchor: setupData?.anchor ?? null,
+      }
     );
 
     // If adjustments exist (persisted), use them as canonical ranking
@@ -251,7 +277,7 @@ const RankingSession = ({
       });
       const adjustedRanking = adjustments
         .map((id) => playerById[id])
-        .filter(Boolean);
+        .filter((player): player is RankerPlayer => Boolean(player));
       if (adjustedRanking.length > 0) {
         ranking = adjustedRanking;
       }
@@ -328,21 +354,23 @@ const RankingSession = ({
   }
 
   if (!setupData) {
-    const handleComplete = (data) => {
+    const handleComplete = (data: RankerSetupData) => {
       setSetupData(data);
       setAnchorDone(!data.anchor);
 
       const initial: RankerComparison[] = [];
-      if (data.firstPlace) {
+      const firstPlaceId = data.firstPlace;
+      if (firstPlaceId) {
         players.forEach((p) => {
-          if (p.id !== data.firstPlace)
-            initial.push({ winner: data.firstPlace, loser: p.id });
+          if (p.id !== firstPlaceId)
+            initial.push({ winner: firstPlaceId, loser: p.id });
         });
       }
-      if (data.lastPlace) {
+      const lastPlaceId = data.lastPlace;
+      if (lastPlaceId) {
         players.forEach((p) => {
-          if (p.id !== data.lastPlace)
-            initial.push({ winner: p.id, loser: data.lastPlace });
+          if (p.id !== lastPlaceId)
+            initial.push({ winner: p.id, loser: lastPlaceId });
         });
       }
       if (initial.length) {
@@ -373,21 +401,22 @@ const RankingSession = ({
   }
 
   if (setupData?.anchor && !anchorDone) {
-    const anchorPlayer = players.find((p) => p.id === setupData.anchor);
+    const anchorId = setupData.anchor;
+    const anchorPlayer = players.find((p) => p.id === anchorId);
     const tagged = new Set<string>(
       [
-        ...setupData.topTier,
-        ...setupData.bottomTier,
+        ...(setupData.topTier || []),
+        ...(setupData.bottomTier || []),
         setupData.firstPlace,
         setupData.lastPlace,
       ].filter((id): id is string => typeof id === 'string' && id.length > 0)
     );
     const untagged = players.filter(
-      (p) => p.id !== setupData.anchor && !tagged.has(p.id)
+      (p) => p.id !== anchorId && !tagged.has(p.id)
     );
-    const handleAnchorComplete = (betterIds) => {
+    const handleAnchorComplete = (betterIds: string[]) => {
       const newResults = buildAnchorComparisons(
-        setupData.anchor,
+        anchorId,
         untagged,
         betterIds
       );
@@ -420,12 +449,17 @@ const RankingSession = ({
     return <div className="text-white">Loading...</div>;
   }
 
+  const [leftPlayer, rightPlayer] = currentPair;
+  if (!leftPlayer || !rightPlayer) {
+    return <div className="text-white">Loading...</div>;
+  }
+
   return (
     <>
       <div className="flex flex-col items-center pt-12">
         <PlayerCompareCard
-          left={currentPair[0]}
-          right={currentPair[1]}
+          left={leftPlayer}
+          right={rightPlayer}
           onSelect={handleSelect}
           onSkip={handleSkip}
           onUndo={handleUndo}

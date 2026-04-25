@@ -1,17 +1,21 @@
 import React from 'react';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const OverallGradeFilter = ({ filters, setFilters }) => {
+type OverallGradeKey = 'min_overall_grade' | 'max_overall_grade';
+
+const OverallGradeFilter = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const min = filters.min_overall_grade ?? '';
   const max = filters.max_overall_grade ?? '';
 
-  const update = (key, value) => {
+  const update = (key: OverallGradeKey, value: string) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value === '' ? undefined : parseInt(value),
     }));
   };
 
-  const inputStyle = (val) =>
+  const inputStyle = (val: PlayerFilters[OverallGradeKey] | '') =>
     `bg-[#2a2a2a] p-1 rounded w-[70px] text-xs placeholder:text-white/40 ${
       val === '' ? 'text-white/40' : 'text-white'
     }`;

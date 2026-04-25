@@ -1,6 +1,19 @@
 import React from 'react';
 import FilterPanelCondensed from './FilterPanelCondensed';
 import FilterPanel from './FilterPanel';
+import type {
+  GetDefaultPlayerFilters,
+  PlayerFilterPanelProps,
+} from '../filterTypes';
+
+type FiltersPanelProps = PlayerFilterPanelProps & {
+  getDefaultFilters: GetDefaultPlayerFilters;
+  isOpen: boolean;
+  showFullFilters: boolean;
+  setShowFullFilters: React.Dispatch<React.SetStateAction<boolean>>;
+  onClose: () => void;
+  onClearFilters: () => void;
+};
 
 const FiltersPanel = ({
   filters,
@@ -11,7 +24,7 @@ const FiltersPanel = ({
   setShowFullFilters,
   onClose,
   onClearFilters,
-}) => {
+}: FiltersPanelProps) => {
   if (!isOpen) return null;
 
   return (

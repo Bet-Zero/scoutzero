@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const TraitFilters = ({ filters, setFilters }) => {
+type TraitFilterOperator = '>=' | '<=';
+type TraitFilterDraft = {
+  trait: string;
+  operator: TraitFilterOperator;
+  value: string;
+};
+type ActiveTraitFilter = {
+  key: keyof PlayerFilters;
+  trait: string;
+  operator: TraitFilterOperator;
+  value: number;
+  fullKey: keyof PlayerFilters;
+};
+
+const TraitFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addedFilters, setAddedFilters] = useState(new Set()); // ✅ TRACK user-added filters only
-  const [newFilter, setNewFilter] = useState({
+  const [addedFilters, setAddedFilters] = useState<Set<keyof PlayerFilters>>(new Set());
+  const [newFilter, setNewFilter] = useState<TraitFilterDraft>({
     trait: 'Shooting',
     operator: '>=',
     value: '',
@@ -22,15 +38,16 @@ const TraitFilters = ({ filters, setFilters }) => {
   ];
 
   const getActiveTraitFilters = () => {
-    const activeFilters = [];
-    Object.keys(filters).forEach((key) => {
+    const activeFilters: ActiveTraitFilter[] = [];
+    (Object.keys(filters) as Array<keyof PlayerFilters>).forEach((key) => {
+      const filterKey = String(key);
       if (
-        (key.startsWith('min_') || key.startsWith('max_')) &&
+        (filterKey.startsWith('min_') || filterKey.startsWith('max_')) &&
         addedFilters.has(key)
       ) {
-        const traitName = key.replace('min_', '').replace('max_', '');
+        const traitName = filterKey.replace('min_', '').replace('max_', '');
         if (traitOptions.includes(traitName)) {
-          const operator = key.startsWith('min_') ? '>=' : '<=';
+          const operator: TraitFilterOperator = filterKey.startsWith('min_') ? '>=' : '<=';
           const value = filters[key];
           if (typeof value === 'number' && !isNaN(value)) {
             activeFilters.push({
@@ -51,7 +68,7 @@ const TraitFilters = ({ filters, setFilters }) => {
     if (newFilter.value === '') return;
 
     const prefix = newFilter.operator === '>=' ? 'min_' : 'max_';
-    const filterKey = `${prefix}${newFilter.trait}`;
+    const filterKey = `${prefix}${newFilter.trait}` as keyof PlayerFilters;
 
     setFilters((prev) => ({
       ...prev,
@@ -65,7 +82,7 @@ const TraitFilters = ({ filters, setFilters }) => {
     setShowAddForm(false);
   };
 
-  const removeFilter = (filterKey) => {
+  const removeFilter = (filterKey: keyof PlayerFilters) => {
     setFilters((prev) => {
       const newFilters = { ...prev };
       delete newFilters[filterKey];
@@ -120,7 +137,7 @@ const TraitFilters = ({ filters, setFilters }) => {
                 onChange={(e) =>
                   setNewFilter((prev) => ({
                     ...prev,
-                    operator: e.target.value,
+                    operator: e.target.value as TraitFilterOperator,
                   }))
                 }
                 className="w-full bg-[#2a2a2a] text-white p-1 rounded"

@@ -13,12 +13,16 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NotebookText } from 'lucide-react';
-import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
+import {
+  SubRoleMasterList,
+  type SubRoleGroup,
+  type SubRoleType,
+} from '@/constants/SubRoleMasterList';
 import { isPositiveSubRole } from '@/shared/utils/roles';
 import useClickOutside from '@/shared/hooks/useClickOutside';
 import type { PlayerSubRoles } from '@/features/roster/utils/enrichPlayerData';
 
-const OFFENSIVE_GROUPS = [
+const OFFENSIVE_GROUPS: SubRoleGroup[] = [
   'Playmaking',
   'Scoring',
   'Shooting',
@@ -28,7 +32,7 @@ const OFFENSIVE_GROUPS = [
   'Intangibles',
 ];
 
-const DEFENSIVE_GROUPS = [
+const DEFENSIVE_GROUPS: SubRoleGroup[] = [
   'Perimeter',
   'Interior',
   'Rebounding',
@@ -36,7 +40,13 @@ const DEFENSIVE_GROUPS = [
   'Intangibles',
 ];
 
-const RoleBadge = ({ role, onEdit, side }) => (
+type RoleBadgeProps = {
+  role: string;
+  side: SubRoleType;
+  onEdit: (role: string) => void;
+};
+
+const RoleBadge = ({ role, onEdit, side }: RoleBadgeProps) => (
   <div
     className={`flex items-center h-6 gap-1 ${
       side === 'offense' ? 'pl-3' : 'pl-[22px]'
@@ -65,7 +75,15 @@ const RoleBadge = ({ role, onEdit, side }) => (
   </div>
 );
 
-const SelectedRoleList = ({ roles, side, onEdit }) => (
+const SelectedRoleList = ({
+  roles,
+  side,
+  onEdit,
+}: {
+  roles: string[];
+  side: SubRoleType;
+  onEdit: (role: string) => void;
+}) => (
   <>
     {roles.length > 0 ? (
       roles.map((role) => (
@@ -79,7 +97,17 @@ const SelectedRoleList = ({ roles, side, onEdit }) => (
   </>
 );
 
-const RoleGroup = ({ group, type, selected, onToggle }) => {
+const RoleGroup = ({
+  group,
+  type,
+  selected,
+  onToggle,
+}: {
+  group: SubRoleGroup;
+  type: SubRoleType;
+  selected: string[];
+  onToggle: (roleName: string) => void;
+}) => {
   const groupRoles = SubRoleMasterList.filter(
     (r) => r.type === type && r.group === group
   );
@@ -108,7 +136,19 @@ const RoleGroup = ({ group, type, selected, onToggle }) => {
   );
 };
 
-const RoleColumn = ({ groups, type, selected, onToggle, className }) => (
+const RoleColumn = ({
+  groups,
+  type,
+  selected,
+  onToggle,
+  className,
+}: {
+  groups: SubRoleGroup[];
+  type: SubRoleType;
+  selected: string[];
+  onToggle: (roleName: string) => void;
+  className: string;
+}) => (
   <div className={className}>
     {groups.map((group) => (
       <RoleGroup
@@ -122,7 +162,17 @@ const RoleColumn = ({ groups, type, selected, onToggle, className }) => (
   </div>
 );
 
-const SubRoleModal = ({ selection, onToggle, onClose, modalRef }) => (
+const SubRoleModal = ({
+  selection,
+  onToggle,
+  onClose,
+  modalRef,
+}: {
+  selection: PlayerSubRoles;
+  onToggle: (roleName: string) => void;
+  onClose: () => void;
+  modalRef: React.RefObject<HTMLDivElement>;
+}) => (
   <div className="fixed inset-0 z-50 flex justify-center items-center">
     <div className="absolute inset-0 bg-black bg-opacity-70" />
     <div
@@ -166,6 +216,10 @@ const SubRoleSelector = ({
   subRoles = {} as Partial<PlayerSubRoles>,
   setSubRoles,
   setOpenModal,
+}: {
+  subRoles?: Partial<PlayerSubRoles>;
+  setSubRoles: React.Dispatch<React.SetStateAction<PlayerSubRoles>>;
+  setOpenModal?: (modalKey: string) => void;
 }) => {
   const safeSubRoles: PlayerSubRoles = {
     offense: Array.isArray(subRoles.offense) ? subRoles.offense : [],
@@ -174,8 +228,8 @@ const SubRoleSelector = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempSelection, setTempSelection] = useState({ ...safeSubRoles });
-  const modalRef = useRef(null);
-  const lastActiveElementRef = useRef(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const lastActiveElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const offense = Array.isArray(subRoles.offense) ? subRoles.offense : [];
@@ -198,7 +252,7 @@ const SubRoleSelector = ({
     if (!isModalOpen) return;
 
     const focusTarget =
-      modalRef.current?.querySelector(
+      modalRef.current?.querySelector<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       ) || modalRef.current;
 
@@ -210,7 +264,7 @@ const SubRoleSelector = ({
   useEffect(() => {
     if (!isModalOpen) return;
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         handleClose();
@@ -223,7 +277,7 @@ const SubRoleSelector = ({
     };
   }, [isModalOpen, handleClose]);
 
-  const handleToggle = (roleName) => {
+  const handleToggle = (roleName: string) => {
     const roleData = SubRoleMasterList.find((r) => r.name === roleName);
     if (!roleData) return;
 
@@ -236,13 +290,16 @@ const SubRoleSelector = ({
     });
   };
 
-  const handleOpen = (e) => {
+  const handleOpen = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    lastActiveElementRef.current = document.activeElement;
+    lastActiveElementRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     setIsModalOpen(true);
   };
 
-  const handleEdit = (role) => setOpenModal?.(`subrole_${role}`);
+  const handleEdit = (role: string) => setOpenModal?.(`subrole_${role}`);
 
   return (
     <div className="w-full cursor-pointer" onClick={handleOpen}>

@@ -158,7 +158,7 @@ describe('Hard-capped teams still follow salary matching', () => {
       const result = validateSalaryMatching(team, {});
 
       expect(result.details.hardCapStatus).toBeDefined();
-      expect(result.details.hardCapStatus.isHardCapped).toBe(true);
+      expect(result.details.hardCapStatus!.isHardCapped).toBe(true);
     });
 
     test('non-hard-capped team has null hardCapStatus', () => {
@@ -240,7 +240,7 @@ describe('Hard-capped teams still follow salary matching', () => {
       expect(result.effectiveAllowableIncoming).toBe(6_250_000);
 
       // Limiter should be salaryMatching
-      expect(result.details.hardCapCeiling.limiter).toBe('salaryMatching');
+      expect(result.details.hardCapCeiling!.limiter).toBe('salaryMatching');
     });
 
     test('when hard cap ceiling is lower, it is the limiter', () => {
@@ -264,7 +264,7 @@ describe('Hard-capped teams still follow salary matching', () => {
       expect(result.effectiveAllowableIncoming).toBe(11_000_000);
 
       // Limiter should be hardCap
-      expect(result.details.hardCapCeiling.limiter).toBe('hardCap');
+      expect(result.details.hardCapCeiling!.limiter).toBe('hardCap');
     });
 
     test('non-hard-capped team has null hardCapIncomingCeiling', () => {
@@ -294,8 +294,8 @@ describe('Hard-capped teams still follow salary matching', () => {
       const result = validateSalaryMatching(team, {});
 
       expect(result.details.hardCapCeiling).toBeDefined();
-      expect(result.details.hardCapCeiling.apronLabel).toContain('1st Apron');
-      expect(result.details.hardCapCeiling.apron).toBe(178_000_000);
+      expect(result.details.hardCapCeiling!.apronLabel).toContain('1st Apron');
+      expect(result.details.hardCapCeiling!.apron).toBe(178_000_000);
     });
   });
 });

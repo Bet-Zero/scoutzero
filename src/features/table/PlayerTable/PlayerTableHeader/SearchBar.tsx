@@ -1,7 +1,12 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 
-const SearchBar = ({ value, onChange }) => (
+type SearchBarProps = {
+  value: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+};
+
+const SearchBar = ({ value, onChange }: SearchBarProps) => (
   <div className="relative">
     <Search
       className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black"

@@ -9,24 +9,43 @@ import {
 } from 'lucide-react';
 import useImageDownload from '@/hooks/useImageDownload';
 import AdjustableRankings from './AdjustableRankings';
+import type { RankerPlayer } from './utils/rankingEngine';
 
-const getPlayerName = (player) =>
+type SaveStatus = 'saving' | 'saved' | 'error' | null;
+type SavedListMeta = {
+  listId: string;
+  listName: string;
+};
+type RankedColumnItem = {
+  player: RankerPlayer;
+  rank: number;
+};
+type RankingResultsProps = {
+  ranking?: RankerPlayer[];
+  onRankingAdjusted?: (ranking: RankerPlayer[]) => void;
+  isOwner?: boolean;
+  onSaveAsList?: ((ranking: RankerPlayer[]) => void | Promise<unknown>) | null;
+  saveAsListStatus?: SaveStatus;
+  savedListMeta?: SavedListMeta | null;
+};
+
+const getPlayerName = (player: RankerPlayer) =>
   player.bio?.displayName || player.display_name || player.name || '—';
 
-const getHeadshotSrc = (player) =>
+const getHeadshotSrc = (player: RankerPlayer) =>
   player.headshot ||
   player.headshotUrl ||
   `/assets/headshots/${player.player_id || player.id}.png`;
 
-const getLogoSrc = (player) => {
+const getLogoSrc = (player: RankerPlayer) => {
   const team = player.team;
   if (!team) return null;
-  return `/assets/logos/${team.toLowerCase()}.png`;
+  return `/assets/logos/${String(team).toLowerCase()}.png`;
 };
 
 // ─── Grid Card ────────────────────────────────────────────────────────────────
 
-const GridCard = ({ player, rank }) => {
+const GridCard = ({ player, rank }: RankedColumnItem) => {
   const headshot = getHeadshotSrc(player);
   const logoSrc = getLogoSrc(player);
 
@@ -68,7 +87,7 @@ const GridCard = ({ player, rank }) => {
             />
           )}
           <span className="text-white/60 text-xs truncate">
-            {player.team?.toUpperCase() || '—'}
+            {String(player.team || '—').toUpperCase()}
           </span>
         </div>
       </div>
@@ -78,7 +97,7 @@ const GridCard = ({ player, rank }) => {
 
 // ─── List Row ─────────────────────────────────────────────────────────────────
 
-const ListRow = ({ player, rank }) => {
+const ListRow = ({ player, rank }: RankedColumnItem) => {
   const headshot = getHeadshotSrc(player);
   const logoSrc = getLogoSrc(player);
 
@@ -112,7 +131,7 @@ const ListRow = ({ player, rank }) => {
               }}
             />
           )}
-          <span>{player.team?.toUpperCase() || '—'}</span>
+          <span>{String(player.team || '—').toUpperCase()}</span>
         </div>
       </div>
     </div>
@@ -128,13 +147,13 @@ const RankingResults = ({
   onSaveAsList = null,
   saveAsListStatus = null,
   savedListMeta = null,
-}) => {
+}: RankingResultsProps) => {
   const [viewType, setViewType] = useState('list');
   const [isAdjustMode, setIsAdjustMode] = useState(false);
-  const [currentRanking, setCurrentRanking] = useState(ranking);
+  const [currentRanking, setCurrentRanking] = useState<RankerPlayer[]>(ranking);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const exportViewRef = useRef(null);
+  const exportViewRef = useRef<HTMLDivElement | null>(null);
   const downloadImage = useImageDownload(exportViewRef);
 
   // Sync if parent ranking changes
@@ -142,7 +161,7 @@ const RankingResults = ({
     setCurrentRanking(ranking);
   }, [ranking]);
 
-  const handleSaveAdjustments = (adjusted) => {
+  const handleSaveAdjustments = (adjusted: RankerPlayer[]) => {
     setCurrentRanking(adjusted);
     setIsAdjustMode(false);
     onRankingAdjusted?.(adjusted);
@@ -198,9 +217,9 @@ const RankingResults = ({
   }
 
   // ── Columns helper for list view ─────────────────────────────────────────────
-  const createColumns = (cols) => {
+  const createColumns = (cols: number) => {
     const itemsPerCol = Math.ceil(currentRanking.length / cols);
-    const columns = Array(cols).fill(null).map(() => []);
+    const columns: RankedColumnItem[][] = Array.from({ length: cols }, () => []);
     currentRanking.forEach((player, idx) => {
       const colIndex = Math.floor(idx / itemsPerCol);
       if (colIndex < cols) columns[colIndex].push({ player, rank: idx + 1 });

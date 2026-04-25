@@ -34,6 +34,7 @@ type TierBoardPlayer = RosterManagerPlayer & {
 };
 
 type TierBoardBuckets = Record<string, TierBoardPlayer[]>;
+type TierMoveDirection = 'up' | 'down';
 
 type NormalizedTierBoard = {
   tiers: TierBoardBuckets;
@@ -49,7 +50,7 @@ type TierMakerBoardProps = {
   onScreenshotChange?: (isScreenshotMode: boolean) => void;
   isDraftMode?: boolean;
   draftData?: DraftStandard | null;
-  onDraftChange?: (data: DraftStandard) => void;
+  onDraftChange?: ((data: DraftStandard) => void) | null;
   draftRestored?: boolean;
 };
 
@@ -95,6 +96,9 @@ const normalizeTiers = (
 
   return { tiers: normalizedTiers, tierOrder: normalizedOrder };
 };
+
+const getTierPlayerId = (player: TierBoardPlayer): string =>
+  player.player_id || player.id;
 
 const TierMakerBoard = ({
   players = [],
@@ -299,7 +303,7 @@ const TierMakerBoard = ({
       // Check ALL tiers for duplicate
       const allIds = new Set<string>();
       Object.values(prev).forEach((arr) =>
-        (arr || []).forEach((p) => allIds.add(p.player_id))
+        (arr || []).forEach((p) => allIds.add(getTierPlayerId(p)))
       );
       if (allIds.has(player.id)) return prev;
       return {
@@ -314,7 +318,7 @@ const TierMakerBoard = ({
       // Collect IDs from ALL tiers
       const allIds = new Set<string>();
       Object.values(prev).forEach((arr) =>
-        (arr || []).forEach((p) => allIds.add(p.player_id))
+        (arr || []).forEach((p) => allIds.add(getTierPlayerId(p)))
       );
       const additions = playersArray
         .filter((p) => !allIds.has(p.id))
@@ -324,33 +328,42 @@ const TierMakerBoard = ({
     });
   };
 
-  const movePlayer = (playerId, fromTier, direction) => {
+  const movePlayer = (
+    playerId: string,
+    fromTier: string,
+    direction: TierMoveDirection
+  ) => {
     const tierKeys = [...tierOrder];
     const currentIndex = tierKeys.indexOf(fromTier);
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex < 0 || newIndex >= tierKeys.length) return;
+    const destinationTier = tierKeys[newIndex];
+    if (!destinationTier) return;
 
-    const sourceItems = [...tiers[fromTier]];
-    const player = sourceItems.find((p) => p.player_id === playerId);
+    const sourceItems = [...(tiers[fromTier] || [])];
+    const player = sourceItems.find((p) => getTierPlayerId(p) === playerId);
     if (!player) return;
 
     setTiers((prev) => ({
       ...prev,
-      [fromTier]: sourceItems.filter((p) => p.player_id !== playerId),
-      [tierKeys[newIndex]]: [...prev[tierKeys[newIndex]], player],
+      [fromTier]: (prev[fromTier] || []).filter(
+        (p) => getTierPlayerId(p) !== playerId
+      ),
+      [destinationTier]: [...(prev[destinationTier] || []), player],
     }));
   };
 
-  const removePlayer = (playerId, fromTier) => {
+  const removePlayer = (playerId: string, fromTier: string) => {
     if (fromTier === 'Pool') return;
     setTiers((prev) => {
-      const player = prev[fromTier].find((p) => p.player_id === playerId);
+      const source = prev[fromTier] || [];
+      const player = source.find((p) => getTierPlayerId(p) === playerId);
       if (!player) return prev;
       const pool = prev.Pool || [];
-      const poolIds = new Set(pool.map((p) => p.player_id));
+      const poolIds = new Set(pool.map((p) => getTierPlayerId(p)));
       return {
         ...prev,
-        [fromTier]: prev[fromTier].filter((p) => p.player_id !== playerId),
+        [fromTier]: source.filter((p) => getTierPlayerId(p) !== playerId),
         Pool: poolIds.has(playerId) ? pool : [...pool, player],
       };
     });
@@ -363,7 +376,7 @@ const TierMakerBoard = ({
     setTierOrder((prev) => [...prev.slice(0, -1), name, 'Pool']);
   };
 
-  const deleteTier = (tier) => {
+  const deleteTier = (tier: string) => {
     if (tier === 'Pool') return;
     setTiers((prev) => {
       const { [tier]: removed, ...rest } = prev;
@@ -373,7 +386,7 @@ const TierMakerBoard = ({
     setTierOrder((prev) => prev.filter((t) => t !== tier));
   };
 
-  const renameTier = (tier) => {
+  const renameTier = (tier: string) => {
     const name = prompt('Rename tier', tier);
     if (!name || name === tier) return;
     setTiers((prev) => {
@@ -388,7 +401,7 @@ const TierMakerBoard = ({
     setTierOrder((prev) => prev.map((t) => (t === tier ? name : t)));
   };
 
-  const moveTierUp = (tier) => {
+  const moveTierUp = (tier: string) => {
     setTierOrder((prev) => {
       const withoutPool = prev.filter((t) => t !== 'Pool');
       const idx = withoutPool.indexOf(tier);
@@ -399,7 +412,7 @@ const TierMakerBoard = ({
     });
   };
 
-  const moveTierDown = (tier) => {
+  const moveTierDown = (tier: string) => {
     setTierOrder((prev) => {
       const withoutPool = prev.filter((t) => t !== 'Pool');
       const idx = withoutPool.indexOf(tier);
@@ -418,11 +431,7 @@ const TierMakerBoard = ({
 
   const handleAddTeamRoster = () => {
     if (!selectedTeam) return;
-    const teamCode = (
-      selectedTeam.code ||
-      selectedTeam.teamId ||
-      ''
-    ).toUpperCase();
+    const teamCode = selectedTeam.code.toUpperCase();
     const teamPlayers = allPlayers
       .filter((p) => String(p.bio?.display?.teamId || '').toUpperCase() === teamCode)
       .map((player) => player as RosterManagerPlayer);
@@ -550,7 +559,7 @@ const TierMakerBoard = ({
       console.log('[TierMakerBoard] Saved as list:', listId);
     } catch (err) {
       console.error('Failed to save as list:', err);
-      toast.error(err.message || 'Failed to save as list');
+      toast.error(err instanceof Error ? err.message : 'Failed to save as list');
     } finally {
       setIsSavingAsList(false);
     }

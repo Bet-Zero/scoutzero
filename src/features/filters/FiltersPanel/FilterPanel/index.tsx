@@ -7,19 +7,29 @@ import StatFilters from './sections/StatFilters';
 import TraitFilters from './sections/TraitFilters';
 import OverallGradeFilter from './sections/OverallGradeFilter';
 import BadgeFilters from './sections/BadgeFilters';
+import type { PlayerFilterPanelProps } from '../../filterTypes';
+
+type FilterPanelProps = PlayerFilterPanelProps & {
+  onClearFilters: () => void;
+  onClose: () => void;
+};
 
 const FilterPanel = ({
   filters,
   setFilters,
   onClearFilters,
   onClose,
-}) => {
-  const panelRef = useRef(null);
+}: FilterPanelProps) => {
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   // Close when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (panelRef.current && !panelRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        panelRef.current &&
+        event.target instanceof Node &&
+        !panelRef.current.contains(event.target)
+      ) {
         onClose();
       }
     };

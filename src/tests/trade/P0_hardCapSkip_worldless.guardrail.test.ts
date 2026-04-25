@@ -19,6 +19,10 @@ import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/
 import { getHardCapStatus, isTeamHardCapped } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 
+const worldlessSalaryMatchingContext = {
+  worldId: null,
+} as Parameters<typeof validateSalaryMatching>[1];
+
 describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   // ==========================================================================
   // Test 1: Worldless team with no triggers does NOT produce HARD_CAP_SKIP
@@ -41,7 +45,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
         },
       };
 
-      const result = validateSalaryMatching(team, { worldId: null }); // Worldless context
+      const result = validateSalaryMatching(team, worldlessSalaryMatchingContext); // Worldless context
 
       expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
       expect(result.applicable).toBe(true);
@@ -64,7 +68,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
         },
       };
 
-      const result = validateSalaryMatching(team, { worldId: null });
+      const result = validateSalaryMatching(team, worldlessSalaryMatchingContext);
 
       expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
       expect(result.applicable).toBe(true);
@@ -88,7 +92,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
         },
       };
 
-      const result = validateSalaryMatching(team, { worldId: null });
+      const result = validateSalaryMatching(team, worldlessSalaryMatchingContext);
 
       // String values should NOT trigger HARD_CAP_SKIP in worldless mode
       expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
@@ -318,7 +322,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
         const salaryMatchingEval = teamAReceipt.salaryMatchingEvaluation;
         // capSettings should reference global settings even on skip
         expect(salaryMatchingEval.capSettings).toBeDefined();
-        expect(salaryMatchingEval.capSettings.salaryCap).toBeGreaterThan(0);
+        expect(salaryMatchingEval.capSettings!.salaryCap).toBeGreaterThan(0);
       }
     });
   });

@@ -1,12 +1,17 @@
 // src/PasswordGate.tsx
+import React from 'react';
 import { useState } from 'react';
 
-const PasswordGate = ({ children }) => {
+type PasswordGateProps = {
+  children: React.ReactNode;
+};
+
+const PasswordGate = ({ children }: PasswordGateProps) => {
   const [accessGranted, setAccessGranted] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const correctPassword = 'Makenzie1!'; // change this to your real password
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (passwordInput === correctPassword) {
       setAccessGranted(true);

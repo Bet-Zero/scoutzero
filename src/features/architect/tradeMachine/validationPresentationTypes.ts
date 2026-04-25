@@ -5,7 +5,7 @@ export interface ValidationIssueLike {
   reason?: string;
   rule?: string;
   severity?: string;
-  meta?: Record<string, unknown>;
+  meta?: Record<string, unknown> | null;
 }
 
 export interface ValidationRuleLike {

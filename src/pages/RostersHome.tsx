@@ -10,9 +10,24 @@ import {
   fetchAllRosterProjects,
   renameRosterProject,
 } from '@/firebase/rosterHelpers';
+import type { RosterProject } from '@/firebase/rosterHelpers';
+import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
-const formatRosterUpdatedAt = (timestamp) => {
-  const date = timestamp?.toDate?.();
+type TimestampLike = {
+  _nanoseconds?: number;
+  _seconds?: number;
+  nanoseconds?: number;
+  seconds?: number;
+  toDate?: () => Date;
+};
+
+const formatRosterUpdatedAt = (timestamp: unknown) => {
+  const date =
+    timestamp instanceof Date
+      ? timestamp
+      : typeof timestamp === 'object' && timestamp !== null
+        ? (timestamp as TimestampLike).toDate?.()
+        : null;
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '—';
 
   return new Intl.DateTimeFormat('en-US', {
@@ -22,18 +37,18 @@ const formatRosterUpdatedAt = (timestamp) => {
 };
 
 const RostersHome = () => {
-  const [rosters, setRosters] = useState([]);
+  const [rosters, setRosters] = useState<RosterProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [renamingId, setRenamingId] = useState(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
-  const [deletingId, setDeletingId] = useState(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { userId, loading: authLoading } = useAuth();
   const { players } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
-    const map = {};
+    const map: Record<string, SimplePlayer> = {};
     players.forEach((p) => {
       map[p.id] = p;
     });
@@ -41,15 +56,22 @@ const RostersHome = () => {
   }, [players]);
 
   const rostersMap = useMemo(() => {
-    const map = {};
+    const map: Record<string, { name: string; playerIds: string[] }> = {};
     rosters.forEach((r) => {
-      const ids = [
+      const rosterPlayerIds: unknown[] = [
         ...(r.starters || []),
         ...(r.rotation || []),
         ...(r.bench || []),
-      ]
-        .filter(Boolean)
-        .map((id) => (typeof id === 'string' ? id : id.id));
+      ];
+      const ids = rosterPlayerIds
+        .map((id) =>
+          typeof id === 'string'
+            ? id
+            : typeof id === 'object' && id !== null && 'id' in id
+              ? (id as { id?: unknown }).id
+              : undefined
+        )
+        .filter((id): id is string => typeof id === 'string');
       map[r.id] = { name: r.name, playerIds: ids };
     });
     return map;
@@ -75,6 +97,8 @@ const RostersHome = () => {
 
   const handleRename = async () => {
     if (!renameValue.trim()) return;
+    if (!renamingId) return;
+    if (!userId) return;
     await renameRosterProject(renamingId, renameValue.trim(), userId);
     setRenamingId(null);
     setRenameValue('');
@@ -82,6 +106,8 @@ const RostersHome = () => {
   };
 
   const handleDelete = async () => {
+    if (!deletingId) return;
+    if (!userId) return;
     await deleteRosterProject(deletingId, userId);
     setDeletingId(null);
     await fetchRosters();

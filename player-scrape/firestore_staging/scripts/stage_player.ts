@@ -581,7 +581,7 @@ function buildPlayersV2Payload(
     indexEntry.teamCode ?? contractData.teamCode,
     contractData.bio.position,
     contractData.bio.experience,
-    contractData.contract.averageAnnualValue
+    contractData.contract.averageAnnualValue ?? undefined
   );
 
   const seasonMap = new Map<
@@ -906,10 +906,12 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
     }
   }
   let statsData: StatsOutput | null = null;
-  try {
-    statsData = await loadJson<StatsOutput>(statsPath);
-  } catch {
-    statsData = null;
+  if (statsPath) {
+    try {
+      statsData = await loadJson<StatsOutput>(statsPath);
+    } catch {
+      statsData = null;
+    }
   }
 
   // Only require contract data for players with a team (non-free agents)
@@ -990,7 +992,7 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
           contractType: 'FREE AGENT',
           isExtension: false,
           isRookieScale: false,
-          signingTeam: undefined, // Optional field - omit for free agents
+          signingTeam: 'FREE',
           signingDate: undefined, // Optional field
           signedByCurrentTeam: false,
           startSeason: '2025-26', // Required field - use current season as placeholder
@@ -1050,7 +1052,7 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
           contractType: 'FREE AGENT',
           isExtension: false,
           isRookieScale: false,
-          signingTeam: undefined, // Optional field - omit for free agents
+          signingTeam: 'FREE',
           signingDate: undefined, // Optional field
           signedByCurrentTeam: false,
           startSeason: '2025-26', // Required field - use current season as placeholder
@@ -1093,6 +1095,10 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
         futureContract: undefined,
       };
     }
+  }
+
+  if (!contractData) {
+    throw new Error(`Unable to build contract data for ${playerId}`);
   }
 
   // Update contractData with the correct displayName from bio data before creating basePlayerDoc

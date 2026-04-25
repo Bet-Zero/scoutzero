@@ -3,6 +3,19 @@
 import React, { useEffect } from 'react';
 import { getPlayersForTeam } from '@/features/profile/utils/profileHelpers';
 import { styles } from '@/constants/styles';
+import type { PlayersDataMap } from './utils/profileHelpers';
+import type { ProfileSetter } from './profileUiTypes';
+
+type TeamPlayerDropdownsProps = {
+  teams: string[];
+  playersData: PlayersDataMap;
+  selectedTeam: string;
+  setSelectedTeam: ProfileSetter<string>;
+  selectedPlayer: string;
+  setSelectedPlayer: ProfileSetter<string>;
+  filteredKeys: string[];
+  setFilteredKeys: ProfileSetter<string[]>;
+};
 
 const TeamPlayerDropdowns = ({
   teams,
@@ -13,7 +26,7 @@ const TeamPlayerDropdowns = ({
   setSelectedPlayer,
   filteredKeys,
   setFilteredKeys,
-}) => {
+}: TeamPlayerDropdownsProps) => {
   useEffect(() => {
     const filtered = getPlayersForTeam(playersData, selectedTeam);
     setFilteredKeys(filtered);
@@ -28,7 +41,7 @@ const TeamPlayerDropdowns = ({
     setSelectedPlayer,
   ]);
 
-  const handlePlayerChange = (id) => {
+  const handlePlayerChange = (id: string) => {
     setSelectedPlayer(id);
     if (id && !selectedTeam) {
       const team = playersData[id]?.bio?.display?.team || '';
@@ -44,7 +57,7 @@ const TeamPlayerDropdowns = ({
         className={styles.select}
       >
         <option value="">All Teams</option>
-        {teams.map((team, index) => (
+        {teams.map((team: string, index: number) => (
           <option key={`team-${index}-${team}`} value={team}>
             {team}
           </option>
@@ -57,7 +70,7 @@ const TeamPlayerDropdowns = ({
         className={styles.select}
       >
         <option value="">Select Player</option>
-        {filteredKeys.map((key, index) => (
+        {filteredKeys.map((key: string, index: number) => (
           <option key={`player-${index}-${key}`} value={key}>
             {playersData[key]?.bio?.displayName || playersData[key]?.name || key}
           </option>

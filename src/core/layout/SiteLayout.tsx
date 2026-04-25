@@ -16,7 +16,13 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ChevronDown } from 'lucide-react';
 
-const NavGroup = ({ label, children, align = 'left' }) => {
+type NavGroupProps = {
+  align?: 'left' | 'center' | 'right';
+  children: React.ReactNode;
+  label: string;
+};
+
+const NavGroup = ({ label, children, align = 'left' }: NavGroupProps) => {
   let alignmentClass = 'left-0';
   if (align === 'center') alignmentClass = 'left-1/2 -translate-x-1/2';
   if (align === 'right') alignmentClass = 'right-0';

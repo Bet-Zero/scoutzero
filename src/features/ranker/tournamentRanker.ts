@@ -118,7 +118,10 @@ class TournamentRanker {
 
   rankNextPlayer(): LegacyRankerPair {
     // Find player with most definitive position
-    const next = this.unranked.reduce(
+    const next = this.unranked.reduce<{
+      player: RankerPlayer | null;
+      certainty: number;
+    }>(
       (best, player) => {
         const certainty =
           (this.winners.get(player.id)?.size ?? 0) +
@@ -159,11 +162,12 @@ export function suggestNextPair(
   if (!ranker) {
     ranker = new TournamentRanker(players);
   }
+  const activeRanker = ranker;
 
   // Apply new comparisons
-  comparisons.slice(ranker.comparisonCount).forEach((c) => {
-    ranker.addResult(c.winner, c.loser);
+  comparisons.slice(activeRanker.comparisonCount).forEach((c) => {
+    activeRanker.addResult(c.winner, c.loser);
   });
 
-  return ranker.suggestPair();
+  return activeRanker.suggestPair();
 }

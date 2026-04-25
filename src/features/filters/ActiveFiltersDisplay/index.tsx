@@ -5,6 +5,19 @@ import { getFilterDisplayValue } from '@/shared/utils/filtering';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
 import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type {
+  ActiveFilterItem,
+  GetDefaultPlayerFilters,
+  PlayerFilterSetter,
+} from '../filterTypes';
+
+type ActiveFiltersDisplayProps = {
+  filters: PlayerFilters;
+  setFilters: PlayerFilterSetter;
+  getDefaultFilters: GetDefaultPlayerFilters;
+  excludeFromDisplay?: string[];
+  onClearFilters: () => void;
+};
 
 const ActiveFiltersDisplay = ({
   filters,
@@ -12,10 +25,10 @@ const ActiveFiltersDisplay = ({
   getDefaultFilters,
   excludeFromDisplay = [],
   onClearFilters,
-}) => {
+}: ActiveFiltersDisplayProps) => {
   const getActiveFilters = () => {
     const defaultFilters = getDefaultFilters();
-    const activeFilters = [];
+    const activeFilters: ActiveFilterItem[] = [];
 
     // Add SalaryYear context indicator when it differs from default
     if (filters.salaryYear && filters.salaryYear !== DEFAULT_SALARY_YEAR) {
@@ -29,7 +42,8 @@ const ActiveFiltersDisplay = ({
     }
 
     Object.entries(filters).forEach(([key, value]) => {
-      const defaultValue = defaultFilters[key];
+      const filterKey = key as keyof PlayerFilters;
+      const defaultValue = defaultFilters[filterKey];
       if (excludeFromDisplay?.includes(key)) return;
 
       const isActive = JSON.stringify(value) !== JSON.stringify(defaultValue);
@@ -42,7 +56,7 @@ const ActiveFiltersDisplay = ({
               activeFilters.push({
                 key,
                 label: 'Subrole',
-                value: item,
+                value: String(item),
                 isArrayItem: true,
                 isSubrole: true,
               });
@@ -55,7 +69,7 @@ const ActiveFiltersDisplay = ({
               label: key
                 .replace(/([A-Z])/g, ' $1')
                 .replace(/^./, (str) => str.toUpperCase()),
-              value: item,
+              value: String(item),
               isArrayItem: true,
             });
           });
@@ -67,7 +81,7 @@ const ActiveFiltersDisplay = ({
               label: key
                 .replace(/([A-Z])/g, ' $1')
                 .replace(/^./, (str) => str.toUpperCase()),
-              value: displayValue,
+              value: String(displayValue),
               isArrayItem: false,
             });
           }
@@ -78,15 +92,15 @@ const ActiveFiltersDisplay = ({
     return activeFilters;
   };
 
-  const removeFilter = (filterKey) => {
+  const removeFilter = (filterKey: keyof PlayerFilters | string) => {
     const defaultFilters = getDefaultFilters();
     setFilters((prev) => ({
       ...prev,
-      [filterKey]: defaultFilters[filterKey],
+      [filterKey]: defaultFilters[filterKey as keyof PlayerFilters],
     }));
   };
 
-  const removeSubrole = (roleToRemove) => {
+  const removeSubrole = (roleToRemove: string) => {
     const roleData = SubRoleMasterList.find((r) => r.name === roleToRemove);
     if (!roleData) return;
 

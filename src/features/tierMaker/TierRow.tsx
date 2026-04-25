@@ -1,6 +1,29 @@
 // src/features/tierMaker/TierRow.tsx
 import React from 'react';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';
+import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
+import type { ListDisplayPlayer } from '@/features/lists/ListPreviewModal/ListExportWrapper';
+
+type TierRowPlayer = RosterManagerPlayer & {
+  player_id?: string;
+};
+
+type TierRowProps = {
+  tier: string;
+  players?: TierRowPlayer[];
+  screenshotMode: boolean;
+  movePlayer: (playerId: string, fromTier: string, direction: 'up' | 'down') => void;
+  removePlayer: (playerId: string, fromTier: string) => void;
+  renameTier: (tier: string) => void;
+  deleteTier: (tier: string) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  onMoveTierUp?: (tier: string) => void;
+  onMoveTierDown?: (tier: string) => void;
+  canPlayerMoveUp?: boolean;
+  canPlayerMoveDown?: boolean;
+  canRemovePlayer?: boolean;
+};
 
 const TierRow = ({
   tier,
@@ -17,7 +40,7 @@ const TierRow = ({
   canPlayerMoveUp = true,
   canPlayerMoveDown = true,
   canRemovePlayer = true,
-}) => (
+}: TierRowProps) => (
   <div
     className={`flex items-center gap-2 border border-white/10 rounded-md min-h-[38px] ${
       tier === 'Pool' ? 'bg-neutral-950 mt-0' : 'bg-neutral-800'
@@ -71,7 +94,7 @@ const TierRow = ({
         const playerId = player.id;
         return (
           <div key={playerId} className="relative">
-            <TierPlayerTile player={player} />
+            <TierPlayerTile player={player as ListDisplayPlayer} />
             {!screenshotMode && (
               <div className="absolute top-1 right-1 flex flex-col gap-1">
                 {canPlayerMoveUp && (

@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { statOptions, getActiveStatFilters } from '@/shared/utils/filtering';
+import type { ActiveStatFilter } from '@/shared/utils/filtering/statFilters';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const AddFilterForm = ({ newFilter, setNewFilter, onAdd }) => {
+type NewStatFilter = {
+  stat: string;
+  operator: '>=' | '<=';
+  value: string;
+};
+
+type AddFilterFormProps = {
+  newFilter: NewStatFilter;
+  setNewFilter: React.Dispatch<React.SetStateAction<NewStatFilter>>;
+  onAdd: () => void;
+};
+
+const AddFilterForm = ({ newFilter, setNewFilter, onAdd }: AddFilterFormProps) => {
   const { stat, operator, value } = newFilter;
 
   return (
@@ -29,7 +44,10 @@ const AddFilterForm = ({ newFilter, setNewFilter, onAdd }) => {
           <select
             value={operator}
             onChange={(e) =>
-              setNewFilter((prev) => ({ ...prev, operator: e.target.value }))
+              setNewFilter((prev) => ({
+                ...prev,
+                operator: e.target.value as NewStatFilter['operator'],
+              }))
             }
             className="w-full bg-[#2a2a2a] text-white p-1 rounded"
           >
@@ -63,7 +81,15 @@ const AddFilterForm = ({ newFilter, setNewFilter, onAdd }) => {
   );
 };
 
-const ActiveFiltersList = ({ activeFilters, removeFilter }) => {
+type ActiveFiltersListProps = {
+  activeFilters: ActiveStatFilter[];
+  removeFilter: (filterKey: keyof PlayerFilters) => void;
+};
+
+const ActiveFiltersList = ({
+  activeFilters,
+  removeFilter,
+}: ActiveFiltersListProps) => {
   if (activeFilters.length === 0) return null;
 
   return (
@@ -77,7 +103,7 @@ const ActiveFiltersList = ({ activeFilters, removeFilter }) => {
             {filter.stat} {filter.operator} {filter.value}
           </span>
           <button
-            onClick={() => removeFilter(filter.fullKey)}
+            onClick={() => removeFilter(filter.fullKey as keyof PlayerFilters)}
             className="text-red-400 hover:text-red-300 transition-colors"
           >
             <X size={14} />
@@ -88,9 +114,9 @@ const ActiveFiltersList = ({ activeFilters, removeFilter }) => {
   );
 };
 
-const StatFilters = ({ filters, setFilters }) => {
+const StatFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newFilter, setNewFilter] = useState({
+  const [newFilter, setNewFilter] = useState<NewStatFilter>({
     stat: 'PPG',
     operator: '>=',
     value: '',
@@ -101,7 +127,8 @@ const StatFilters = ({ filters, setFilters }) => {
 
     const prefix = newFilter.operator === '>=' ? 'min_' : 'max_';
     const statKey = statOptions.find((s) => s.label === newFilter.stat)?.key;
-    const filterKey = `${prefix}${statKey}`;
+    if (!statKey) return;
+    const filterKey = `${prefix}${statKey}` as keyof PlayerFilters;
 
     setFilters((prev) => ({
       ...prev,
@@ -112,7 +139,7 @@ const StatFilters = ({ filters, setFilters }) => {
     setShowAddForm(false);
   };
 
-  const removeFilter = (filterKey) => {
+  const removeFilter = (filterKey: keyof PlayerFilters) => {
     setFilters((prev) => {
       const newFilters = { ...prev };
       delete newFilters[filterKey];

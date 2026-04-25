@@ -8,9 +8,11 @@ import {
   defensiveRoles,
   shootingProfileTiers,
 } from '@/shared/utils/roles';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilterPanelProps } from '../filterTypes';
 
-const FilterPanelCondensed = ({ filters, setFilters }) => {
-  const update = (key, value) => {
+const FilterPanelCondensed = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+  const update = <K extends keyof PlayerFilters>(key: K, value: PlayerFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -23,7 +25,7 @@ const FilterPanelCondensed = ({ filters, setFilters }) => {
         <MultiSelectFilter
           value={filters.team || ''}
           options={TeamListFull}
-          onChange={(val) => update('team', val)}
+          onChange={(val) => update('team', String(val))}
           allLabel="All Teams"
           containerClass="shrink-0"
           selectClass={selectClass}
@@ -32,7 +34,7 @@ const FilterPanelCondensed = ({ filters, setFilters }) => {
         <MultiSelectFilter
           value={filters.position || ''}
           options={['Guard', 'Wing', 'Forward', 'Big', 'Center']}
-          onChange={(val) => update('position', val)}
+          onChange={(val) => update('position', String(val))}
           allLabel="All Positions"
           containerClass="shrink-0"
           selectClass={selectClass}
@@ -41,7 +43,7 @@ const FilterPanelCondensed = ({ filters, setFilters }) => {
         <MultiSelectFilter
           value={filters.offenseRole || ''}
           options={offensiveRoles}
-          onChange={(val) => update('offenseRole', val)}
+          onChange={(val) => update('offenseRole', String(val))}
           allLabel="Offensive Role"
           containerClass="shrink-0"
           selectClass={selectClass}
@@ -50,7 +52,7 @@ const FilterPanelCondensed = ({ filters, setFilters }) => {
         <MultiSelectFilter
           value={filters.defenseRole || ''}
           options={defensiveRoles}
-          onChange={(val) => update('defenseRole', val)}
+          onChange={(val) => update('defenseRole', String(val))}
           allLabel="Defensive Role"
           containerClass="shrink-0"
           selectClass={selectClass}
@@ -59,7 +61,7 @@ const FilterPanelCondensed = ({ filters, setFilters }) => {
         <MultiSelectFilter
           value={filters.shootingProfile || ''}
           options={shootingProfileTiers}
-          onChange={(val) => update('shootingProfile', val)}
+          onChange={(val) => update('shootingProfile', String(val))}
           allLabel="Shooting Profile"
           containerClass="shrink-0"
           selectClass={selectClass}
@@ -68,7 +70,7 @@ const FilterPanelCondensed = ({ filters, setFilters }) => {
         <MultiSelectFilter
           value={filters.freeAgentYear || ''}
           options={[2024, 2025, 2026, 2027, 2028, 2029]}
-          onChange={(val) => update('freeAgentYear', val)}
+          onChange={(val) => update('freeAgentYear', String(val))}
           allLabel="FA Year"
           containerClass="shrink-0"
           selectClass={selectClass}
@@ -77,7 +79,7 @@ const FilterPanelCondensed = ({ filters, setFilters }) => {
         <MultiSelectFilter
           value={filters.freeAgentType || ''}
           options={['UFA', 'RFA', 'TO', 'PO']}
-          onChange={(val) => update('freeAgentType', val)}
+          onChange={(val) => update('freeAgentType', String(val))}
           allLabel="FA Type"
           containerClass="shrink-0"
           selectClass={selectClass}

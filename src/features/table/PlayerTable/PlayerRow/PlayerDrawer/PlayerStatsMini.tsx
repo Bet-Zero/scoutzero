@@ -10,7 +10,10 @@ const statLabels = [
   { label: 'G', key: 'GP' },
 ];
 
-const formatStat = (value, key) => {
+const formatStat = (
+  value: unknown,
+  key: string
+): React.ReactNode => {
   if (value === undefined || value === null || key === 'SPACER') return null;
   if (typeof value === 'number' && value < 1 && value > 0) {
     return (value * 100).toFixed(1); // no % symbol
@@ -21,10 +24,15 @@ const formatStat = (value, key) => {
   if (typeof value === 'number') {
     return value.toFixed(1);
   }
-  return value;
+  if (typeof value === 'string') return value;
+  return String(value);
 };
 
-const PlayerStatsMini = ({ stats = {} }) => {
+type PlayerStatsMiniProps = {
+  stats?: Record<string, unknown>;
+};
+
+const PlayerStatsMini = ({ stats = {} }: PlayerStatsMiniProps) => {
   return (
     <div className="w-[112px] bg-[#1f1f1f] ml-0 rounded-md p-2 shadow-sm">
       <div className="text-[11px] font-semibold mb-1.5">Stats</div>

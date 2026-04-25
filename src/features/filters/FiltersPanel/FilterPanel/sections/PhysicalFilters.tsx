@@ -5,9 +5,11 @@ import {
   generateWeightOptions,
   generateAgeOptions,
 } from '@/shared/utils/filtering';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const PhysicalFilters = ({ filters, setFilters }) => {
-  const update = (key, value) => {
+const PhysicalFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+  const update = <K extends keyof PlayerFilters>(key: K, value: PlayerFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 

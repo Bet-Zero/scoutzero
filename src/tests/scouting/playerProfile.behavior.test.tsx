@@ -20,6 +20,8 @@ import {
   setBlurbForKey,
   setVideoExamplesForKey,
 } from '@/features/profile/utils/profileHelpers';
+import type { ProfileDetailKey } from '@/features/profile/utils/profileHelpers';
+import type { ModalSavePayload } from '@/features/profile/hooks/usePlayerProfileState';
 import { createEmptyVideoExamples } from '@/shared/utils/videoExamples';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
@@ -172,17 +174,21 @@ function BreakdownModalHarness({
     [onSaveNow]
   );
 
-  const handleBuildSavePayload = (key: string, value: string, list: unknown[]) => ({
-    blurbs: setBlurbForKey(blurbs, key, value),
-    videoExamples: setVideoExamplesForKey(videoExamples, key, list),
+  const handleBuildSavePayload = (
+    key: ProfileDetailKey,
+    value: string,
+    list: ModalSavePayload['videoExamples']['overall']
+  ): ModalSavePayload => ({
+    blurbs: setBlurbForKey(blurbs, key ?? 'overall', value),
+    videoExamples: setVideoExamplesForKey(videoExamples, key ?? 'overall', list),
+    hasChanges: true,
   });
 
-  const handleCommitSavedDraft = (payload: {
-    blurbs: typeof blurbs;
-    videoExamples: ReturnType<typeof createEmptyVideoExamples>;
-  }) => {
-    setBlurbs(payload.blurbs);
-    setVideoExamples(payload.videoExamples);
+  const handleCommitSavedDraft = (
+    payload: Partial<ModalSavePayload> | null | undefined
+  ) => {
+    if (payload?.blurbs) setBlurbs(payload.blurbs);
+    if (payload?.videoExamples) setVideoExamples(payload.videoExamples);
   };
 
   return (
@@ -451,6 +457,8 @@ describe('PlayerHeader normalized display values', () => {
       },
     });
 
+    expect(player).not.toBeNull();
+    if (!player) throw new Error('Expected enriched player');
     render(<PlayerHeader player={player} selectedPlayer="test_player_doc" />);
 
     expect(

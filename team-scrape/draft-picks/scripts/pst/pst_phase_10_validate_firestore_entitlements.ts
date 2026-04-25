@@ -155,6 +155,9 @@ async function main() {
     if (worldExists) {
       console.log(`\n--- World ${worldId} already exists ---`);
       const worldData = worldSnap.data();
+      if (!worldData) {
+        throw new Error(`World ${worldId} exists but has no document data`);
+      }
       console.log(`Owner: ${worldData.createdBy}`);
       if (worldData.createdBy !== auth.currentUser?.uid) {
         console.warn(

@@ -2,8 +2,17 @@
 import React from 'react';
 import { NotebookText } from 'lucide-react';
 import { TRAIT_ORDER, getTraitColor } from '@/constants/scoutingConstants';
+import type { OpenProfileModal } from '../profileUiTypes';
 
-const PlayerTraitsGrid = ({ traits, onTraitClick, setOpenModal }) => {
+const PlayerTraitsGrid = ({
+  traits,
+  onTraitClick,
+  setOpenModal,
+}: {
+  traits: Record<string, number>;
+  onTraitClick: (event: React.MouseEvent<HTMLElement>, trait: string) => void;
+  setOpenModal: OpenProfileModal;
+}) => {
   return (
     <div
       className="bg-[#1f1f1f] rounded-2xl shadow-lg px-3 py-4 text-white text-sm font-medium flex flex-col gap-3 justify-center"

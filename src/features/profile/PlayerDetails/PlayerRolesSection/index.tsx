@@ -5,8 +5,25 @@ import ShootingProfileSelector from './ShootingProfileSelector';
 import TwoWayMeter from './TwoWayMeter';
 import { NotebookText } from 'lucide-react';
 import { offensiveRoles, defensiveRoles } from '@/shared/utils/roles';
+import type { PlayerSubRoles } from '@/features/roster/utils/enrichPlayerData';
+import type { ProfileRoles } from '@/features/profile/hooks/usePlayerProfileState';
 
-const RoleSelect = ({ value, onChange, setOpenModal, options, roleKey }) => (
+type RoleKey = keyof ProfileRoles;
+type RoleSelectProps = {
+  value: string;
+  onChange: (value: string) => void;
+  setOpenModal: (modalKey: string) => void;
+  options: string[];
+  roleKey: RoleKey;
+};
+
+const RoleSelect = ({
+  value,
+  onChange,
+  setOpenModal,
+  options,
+  roleKey,
+}: RoleSelectProps) => (
   <div className="relative w-full mb-2">
     <select
       className="bg-neutral-800 text-white px-3 py-2 rounded-full w-full border border-black appearance-none pr-10"
@@ -14,7 +31,7 @@ const RoleSelect = ({ value, onChange, setOpenModal, options, roleKey }) => (
       onChange={(e) => onChange(e.target.value)}
     >
       <option value=""></option>
-      {options.map((role) => (
+      {options.map((role: string) => (
         <option key={role} value={role}>
           {role}
         </option>
@@ -32,7 +49,15 @@ const RoleSelect = ({ value, onChange, setOpenModal, options, roleKey }) => (
   </div>
 );
 
-const CenteredLabelWithIcon = ({ label, onClick, modalKey }) => (
+const CenteredLabelWithIcon = ({
+  label,
+  onClick,
+  modalKey,
+}: {
+  label: string;
+  onClick: (modalKey: string) => void;
+  modalKey: string;
+}) => (
   <div className="flex justify-center mb-2">
     <div className="relative inline-flex items-center">
       <span className="text-base font-bold">{label}</span>
@@ -57,6 +82,16 @@ const PlayerRolesSection = ({
   twoWay,
   onTwoWayChange,
   setOpenModal,
+}: {
+  roles: ProfileRoles;
+  onRoleChange: (key: RoleKey, value: string) => void;
+  subRoles: PlayerSubRoles;
+  setSubRoles: React.Dispatch<React.SetStateAction<PlayerSubRoles>>;
+  shootingProfile: string;
+  setShootingProfile: (value: string) => void;
+  twoWay: number;
+  onTwoWayChange: (value: number) => void;
+  setOpenModal: (modalKey: string) => void;
 }) => {
   return (
     <div

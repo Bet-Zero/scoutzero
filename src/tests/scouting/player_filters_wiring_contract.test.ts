@@ -55,7 +55,9 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
       // Should match "Marcus Freeman" and "Marcus Bell"
       expect(result.length).toBe(2);
       expect(
-        result.every((p) => p.bio.displayName.toLowerCase().includes('marcus'))
+        result.every((p) =>
+          (p.bio?.displayName ?? '').toLowerCase().includes('marcus')
+        )
       ).toBe(true);
     });
 
@@ -64,7 +66,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
       const result = filterPlayers(FIXTURE_PLAYERS, filters);
 
       expect(result.length).toBe(1);
-      expect(result[0].bio.display.teamId).toBe('BOS');
+      expect(result[0]?.bio?.display?.teamId).toBe('BOS');
     });
 
     it('position: filters by position string', () => {
@@ -194,7 +196,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // DeShawn Williams (2025 TO)
       expect(result.length).toBe(1);
-      expect(result[0].bio.displayName).toBe('DeShawn Williams');
+      expect(result[0]?.bio?.displayName).toBe('DeShawn Williams');
     });
 
     it('optionTypes: combined PO+TO for 2025', () => {
@@ -261,7 +263,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // Should find the player because optionByYear[2025] === "ETO"
       expect(result.length).toBe(1);
-      expect(result[0].bio.displayName).toBe('Season String Player');
+      expect(result[0]?.bio?.displayName).toBe('Season String Player');
     });
 
     /**
@@ -280,7 +282,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // James Carter has 2027 PO
       expect(result.length).toBe(1);
-      expect(result[0].bio.displayName).toBe('James Carter');
+      expect(result[0]?.bio?.displayName).toBe('James Carter');
     });
 
     it('optionTypes: falls back to salaryYear when optionYear is null', () => {
@@ -353,7 +355,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // Should find the player because optionByYear[2025] === "TO"
       expect(result.length).toBe(1);
-      expect(result[0].bio.displayName).toBe('OptionsByYear SSOT Player');
+      expect(result[0]?.bio?.displayName).toBe('OptionsByYear SSOT Player');
     });
 
     /**
@@ -400,7 +402,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // Marcus Freeman (78), Tyler Jackson (81), James Carter (92)
       expect(result.length).toBe(3);
-      expect(result.every((p) => p.overallGrade >= 75)).toBe(true);
+      expect(result.every((p) => (p.overallGrade ?? 0) >= 75)).toBe(true);
     });
 
     it('max_overall_grade: filters players at or below threshold', () => {
@@ -409,7 +411,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // DeShawn Williams (65), Kevin Morrison (70), Marcus Bell (58)
       expect(result.length).toBe(3);
-      expect(result.every((p) => p.overallGrade <= 70)).toBe(true);
+      expect(result.every((p) => (p.overallGrade ?? Infinity) <= 70)).toBe(true);
     });
 
     it('grade range: combined min and max', () => {
@@ -423,7 +425,10 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
       // Jordan Chen (72), Andre Thompson (74), Kevin Morrison (70), Marcus Freeman (78)
       expect(result.length).toBe(4);
       expect(
-        result.every((p) => p.overallGrade >= 70 && p.overallGrade <= 80)
+        result.every((p) => {
+          const grade = p.overallGrade ?? 0;
+          return grade >= 70 && grade <= 80;
+        })
       ).toBe(true);
     });
   });
@@ -435,7 +440,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // Marcus Freeman (28), DeShawn Williams (31), Kevin Morrison (29)
       expect(result.length).toBe(3);
-      expect(result.every((p) => p.age >= 28)).toBe(true);
+      expect(result.every((p) => (p.age ?? 0) >= 28)).toBe(true);
     });
 
     it('maxAge: filters players at or below age', () => {
@@ -444,7 +449,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // Jordan Chen (24), Andre Thompson (22), Marcus Bell (23)
       expect(result.length).toBe(3);
-      expect(result.every((p) => p.age <= 24)).toBe(true);
+      expect(result.every((p) => (p.age ?? Infinity) <= 24)).toBe(true);
     });
   });
 
@@ -460,7 +465,7 @@ describe('Phase 2S Filter Wiring Contract Tests', () => {
 
       // Only Marcus Freeman matches all criteria
       expect(result.length).toBe(1);
-      expect(result[0].bio.displayName).toBe('Marcus Freeman');
+      expect(result[0]?.bio?.displayName).toBe('Marcus Freeman');
     });
 
     it('RFA + Player Option 2025 + grade >= 70', () => {

@@ -1,8 +1,10 @@
 import React from 'react';
 import { SALARY_YEAR_OPTIONS } from '@/constants/yearDefaults';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const ViewControls = ({ filters, setFilters }) => {
-  const update = (key, value) => {
+const ViewControls = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+  const update = <K extends keyof PlayerFilters>(key: K, value: PlayerFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 

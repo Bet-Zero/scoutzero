@@ -1,9 +1,16 @@
 import React from 'react';
+import type { ProfilePlayer } from '@/features/profile/profileUiTypes';
 
-const formatStat = (stat, isInteger = false, multiply = false) => {
+const formatStat = (
+  stat: string | number | null | undefined,
+  isInteger = false,
+  multiply = false
+) => {
   if (!stat && stat !== 0) return 'N/A';
   const cleanStat = typeof stat === 'string' ? stat.replace('%', '') : stat;
-  let parsed = isInteger ? parseInt(cleanStat) : parseFloat(cleanStat);
+  let parsed = isInteger
+    ? parseInt(String(cleanStat))
+    : parseFloat(String(cleanStat));
   if (isNaN(parsed)) return 'N/A';
   if (multiply) parsed *= 100;
   return parsed.toFixed(1);
@@ -24,15 +31,19 @@ function getStatsSeasonYear() {
   return isNewSeason ? year : year - 1;
 }
 
-const PlayerStatsTable = ({ player }) => {
-  const stats = player.latestSeasonStats || {};
+const PlayerStatsTable = ({ player }: { player: ProfilePlayer }) => {
+  const stats = (player.latestSeasonStats || {}) as Record<
+    string,
+    string | number | null | undefined
+  >;
   const gamesPlayed = stats.GP ?? 'N/A';
 
   // Get current stats season (Oct 20 rollover so offseason shows prior year)
   const seasonYear = getStatsSeasonYear();
-  const seasonLabel =
+  const seasonLabel = String(
     player.latestSeasonMeta?.statsSeasonTag ||
-    `${seasonYear}-${(seasonYear + 1).toString().slice(-2)}`;
+      `${seasonYear}-${(seasonYear + 1).toString().slice(-2)}`
+  );
 
   return (
     <div className="w-full max-w-[750px] bg-[#1f1f1f] rounded-2xl shadow-lg px-6 pt-[0.5rem] pb-[0.75rem] text-white text-sm font-medium">
@@ -54,7 +65,7 @@ const PlayerStatsTable = ({ player }) => {
       <div className="h-[1px] bg-neutral-700 mb-[0.5rem]" />
       <div className="flex justify-between items-center font-light">
         <div className="w-[60px] text-center text-neutral-400 font-medium">
-          G: {gamesPlayed}
+          G: {String(gamesPlayed)}
         </div>
         <div className="h-4 w-[1px] bg-neutral-700" />
         <div className="w-[50px] text-center">{formatStat(stats.MIN)}</div>

@@ -2,15 +2,21 @@
 import React from 'react';
 import { POSITION_MAP } from '@/shared/utils/roles';
 
-const getAbbreviatedPosition = (position) => {
+const getAbbreviatedPosition = (position: string) => {
   if (!position) return 'N/A';
   return POSITION_MAP[position] || position;
 };
 
-const PlayerPosition = ({ position = 'N/A', className = '' }) => {
+const PlayerPosition = ({
+  position = 'N/A',
+  className = '',
+}: {
+  position?: string | null;
+  className?: string;
+}) => {
   return (
     <span className={`text-black font-semibold ${className}`}>
-      {getAbbreviatedPosition(position)}
+      {getAbbreviatedPosition(position || 'N/A')}
     </span>
   );
 };

@@ -14,16 +14,39 @@ import { useRankerSession } from './hooks/useRankerSession';
 import { hasLocalDraft } from './utils/rankerLocalDraft';
 import { Clock, Play, Trash2, X, RotateCcw } from 'lucide-react';
 import type { PlayerList } from '@/firebase/listHelpers';
+import type { ListDisplayPlayer } from '@/features/lists/ListPreviewModal/ListExportWrapper';
 import type { RosterDrawerPlayer } from '@/features/roster/utils';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
+import type { HydratedRankerDraft } from './hooks/useRankerSession';
 
 type RankerPoolPlayer = RosterManagerPlayer;
+type RankerDraftBannerData = {
+  name?: string | null;
+  results?: unknown[] | null;
+  playerPoolIds?: string[] | null;
+  isFinished?: boolean | null;
+  draftUpdatedAt?: number | null;
+};
 
 // ─── Pool Card ────────────────────────────────────────────────────────────────
 
-const PoolCard = ({ player, onRemove }) => (
+const PoolCard = ({
+  player,
+  onRemove,
+}: {
+  player: RankerPoolPlayer;
+  onRemove: (id: string) => void;
+}) => (
   <div className="relative group">
-    <TierPlayerTile player={{ ...player, player_id: player.id }} />
+    <TierPlayerTile
+      player={
+        {
+          ...player,
+          team: String(player.team ?? player.bio?.display?.team ?? ''),
+          player_id: player.id,
+        } as ListDisplayPlayer
+      }
+    />
     <button
       onClick={() => onRemove(player.id)}
       title="Remove player"
@@ -42,6 +65,12 @@ const LocalDraftBanner = ({
   onStartNew,
   onClear,
   loading,
+}: {
+  draft: RankerDraftBannerData | null;
+  onResume: () => void;
+  onStartNew: () => void;
+  onClear: () => void;
+  loading: boolean;
 }) => {
   if (!draft) return null;
 
@@ -52,7 +81,7 @@ const LocalDraftBanner = ({
     ? new Date(draft.draftUpdatedAt)
     : null;
 
-  const formatDate = (date) => {
+  const formatDate = (date: Date | null) => {
     if (!date) return 'unknown';
     return date.toLocaleDateString(undefined, {
       month: 'short',
@@ -259,7 +288,8 @@ const RankingBuilder = () => {
   const [started, setStarted] = useState(false);
 
   // Session persistence state - now local-first
-  const [resumedSessionData, setResumedSessionData] = useState(null);
+  const [resumedSessionData, setResumedSessionData] =
+    useState<HydratedRankerDraft | null>(null);
   const [showLocalDraftBanner, setShowLocalDraftBanner] = useState(true);
 
   // Handle resuming from local draft
@@ -273,7 +303,7 @@ const RankingBuilder = () => {
     // Reconstruct pool from playerPoolIds using playersMap
     const resumedPool = hydratedDraft.playerPoolIds
       .map((id) => playersMap[id])
-      .filter(Boolean);
+      .filter((player): player is RosterManagerPlayer => Boolean(player));
 
     if (resumedPool.length < 2) {
       console.error('[RankingBuilder] Cannot resume: not enough players found');
@@ -325,7 +355,7 @@ const RankingBuilder = () => {
     if (!selectedTeamId) return;
     const team = TeamListFull.find((t) => t.id === selectedTeamId);
     if (!team) return;
-    const teamCode = (team.code || team.teamId || '').toUpperCase();
+    const teamCode = team.code.toUpperCase();
     const teamPlayers = allPlayers
       .filter((p) => String(p.bio?.display?.teamId || '').toUpperCase() === teamCode)
       .map((player) => player as RosterManagerPlayer);
@@ -345,7 +375,7 @@ const RankingBuilder = () => {
     setSelectedList('');
   };
 
-  const removePlayer = (id) =>
+  const removePlayer = (id: string) =>
     setPool((prev) => prev.filter((p) => p.id !== id));
 
   if (loading) {

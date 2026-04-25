@@ -5,6 +5,15 @@ import {
   getDefaultSeasonEndYear,
   toSeasonKey,
 } from '@/features/architect/utils/seasonUtils';
+import type { DensityMode } from '../hooks/usePlayerTableDensity';
+
+type PlayerTableHeaderProps = {
+  densityMode: DensityMode;
+  filteredCount: number;
+  onDensityChange: (mode: DensityMode) => void;
+  onSearchChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  searchValue: string;
+};
 
 /**
  * PlayerTableHeader - Title, count, search, and density toggle.
@@ -16,7 +25,7 @@ const PlayerTableHeader = ({
   onSearchChange,
   densityMode,
   onDensityChange,
-}) => {
+}: PlayerTableHeaderProps) => {
   const currentSeason = toSeasonKey(getDefaultSeasonEndYear());
 
   return (

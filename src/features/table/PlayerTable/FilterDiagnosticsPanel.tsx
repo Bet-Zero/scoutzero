@@ -14,10 +14,10 @@ import type { FilterDiagnostics } from '@/features/table/hooks/useFilterDiagnost
 
 /**
  * Format a filter value for display
- * @param {any} value
+ * @param {unknown} value
  * @returns {string}
  */
-function formatValue(value) {
+function formatValue(value: unknown): string {
   if (Array.isArray(value)) {
     return value.length > 3
       ? `[${value.slice(0, 3).join(', ')}...+${value.length - 3}]`
@@ -100,7 +100,10 @@ function OptionCoverageSection({
       {/* Always visible summary */}
       <div className="mt-2 text-xs">
         <div
-          className={`font-bold ${rootCauseColors[rootCause] || 'text-gray-400'}`}
+          className={`font-bold ${
+            rootCauseColors[rootCause as keyof typeof rootCauseColors] ||
+            'text-gray-400'
+          }`}
         >
           Root Cause: {rootCause}
         </div>
@@ -338,9 +341,11 @@ export function FilterDiagnosticsPanel({
                         {formatValue(filter.value)}
                       </span>
                     </div>
-                    {filter.catalogEntry?.playerFieldPaths?.length > 0 && (
+                    {(filter.catalogEntry?.playerFieldPaths?.length ?? 0) >
+                      0 && (
                       <div className="text-xs text-gray-500 mt-0.5">
-                        Field: {filter.catalogEntry.playerFieldPaths.join(', ')}
+                        Field:{' '}
+                        {filter.catalogEntry?.playerFieldPaths?.join(', ')}
                       </div>
                     )}
                   </div>

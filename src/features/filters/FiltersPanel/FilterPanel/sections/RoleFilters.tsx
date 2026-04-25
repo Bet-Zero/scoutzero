@@ -6,6 +6,17 @@ import {
   shootingProfileTiers,
 } from '@/shared/utils/roles';
 import { toggleSubroleSelection } from '@/shared/utils/roles';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type { SubRoleType } from '@/constants/SubRoleMasterList';
+import type { PlayerFilterPanelProps } from '../../../filterTypes';
+
+type RoleSelectProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  allLabel?: string;
+};
 
 const RoleSelect = ({
   label,
@@ -13,7 +24,7 @@ const RoleSelect = ({
   onChange,
   options,
   allLabel = 'All Roles',
-}) => (
+}: RoleSelectProps) => (
   <div className="flex flex-col">
     <label className="mb-1 text-white/70 text-xs uppercase tracking-wider">
       {label}
@@ -24,7 +35,7 @@ const RoleSelect = ({
       className="bg-[#2a2a2a] p-2 rounded text-sm border border-white/10"
     >
       <option value="">{allLabel}</option>
-      {options.map((opt) => (
+      {options.map((opt: string) => (
         <option key={opt} value={opt}>
           {opt}
         </option>
@@ -33,7 +44,7 @@ const RoleSelect = ({
   </div>
 );
 
-const SelectedSubroles = ({ subRoles }) => {
+const SelectedSubroles = ({ subRoles }: { subRoles: PlayerFilters['subRoles'] }) => {
   const selected = [...(subRoles.offense || []), ...(subRoles.defense || [])];
   if (selected.length === 0) return null;
 
@@ -62,7 +73,21 @@ const SelectedSubroles = ({ subRoles }) => {
   );
 };
 
-const SubroleMenu = ({ show, toggleShow, filters, onToggleRole, menuRef }) => (
+type SubroleMenuProps = {
+  show: boolean;
+  toggleShow: React.Dispatch<React.SetStateAction<boolean>>;
+  filters: PlayerFilters;
+  onToggleRole: (roleName: string) => void;
+  menuRef: React.RefObject<HTMLDivElement>;
+};
+
+const SubroleMenu = ({
+  show,
+  toggleShow,
+  filters,
+  onToggleRole,
+  menuRef,
+}: SubroleMenuProps) => (
   <div className="mt-4" ref={menuRef}>
     <button
       onClick={() => toggleShow(!show)}
@@ -101,7 +126,7 @@ const SubroleMenu = ({ show, toggleShow, filters, onToggleRole, menuRef }) => (
     </button>
     {show && (
       <div className="mt-3 grid grid-cols-2 gap-6 bg-[#1f1f1f] p-4 rounded-md border border-white/10 max-h-[400px] overflow-y-auto">
-        {['offense', 'defense'].map((type) => (
+        {(['offense', 'defense'] as SubRoleType[]).map((type) => (
           <div key={type} className="space-y-4">
             <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider border-b border-white/10 pb-1">
               {type === 'offense' ? 'Offensive Subroles' : 'Defensive Subroles'}
@@ -156,14 +181,15 @@ const SubroleMenu = ({ show, toggleShow, filters, onToggleRole, menuRef }) => (
   </div>
 );
 
-const RoleFilters = ({ filters, setFilters }) => {
+const RoleFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const [showSubroles, setShowSubroles] = useState(false);
-  const subroleMenuRef = useRef(null);
+  const subroleMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
         subroleMenuRef.current &&
+        event.target instanceof Node &&
         !subroleMenuRef.current.contains(event.target)
       ) {
         setShowSubroles(false);
@@ -176,15 +202,21 @@ const RoleFilters = ({ filters, setFilters }) => {
     };
   }, []);
 
-  const update = (key, value) => {
+  const update = <K extends keyof PlayerFilters>(key: K, value: PlayerFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleToggleSubrole = (roleName) => {
-    setFilters((prev) => ({
-      ...prev,
-      subRoles: toggleSubroleSelection(prev.subRoles, roleName),
-    }));
+  const handleToggleSubrole = (roleName: string) => {
+    setFilters((prev) => {
+      const nextSubRoles = toggleSubroleSelection(prev.subRoles, roleName);
+      return {
+        ...prev,
+        subRoles: {
+          offense: nextSubRoles.offense || [],
+          defense: nextSubRoles.defense || [],
+        },
+      };
+    });
   };
 
   return (

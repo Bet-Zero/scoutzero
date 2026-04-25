@@ -13,7 +13,8 @@
 import { describe, it, expect } from 'vitest';
 
 // Copy the utility function for testing
-const stripUndefinedDeep = (value) => {
+function stripUndefinedDeep<T>(value: T): T;
+function stripUndefinedDeep(value: unknown): unknown {
   if (value === undefined) return undefined; // Signal removal
   if (value === null) return null; // Preserve null
 
@@ -28,7 +29,7 @@ const stripUndefinedDeep = (value) => {
   }
 
   // Plain object: recursively clean
-  const cleaned = {};
+  const cleaned: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value)) {
     const cleanedVal = stripUndefinedDeep(val);
     if (cleanedVal !== undefined) {
@@ -36,7 +37,7 @@ const stripUndefinedDeep = (value) => {
     }
   }
   return cleaned;
-};
+}
 
 describe('stripUndefinedDeep', () => {
   it('should remove undefined fields from flat objects', () => {

@@ -21,6 +21,17 @@ import {
 } from '@/shared/utils/roles';
 import { SALARY_YEAR_OPTIONS } from '@/constants/yearDefaults';
 import { Filter, ListFilter } from 'lucide-react';
+import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+
+type FilterSetter = (value: React.SetStateAction<PlayerFilters>) => void;
+
+type TopControlsBarProps = {
+  activeFilterCount: number;
+  filters: PlayerFilters;
+  onOpenActiveFilters: () => void;
+  onOpenAdvancedFilters: () => void;
+  setFilters: FilterSetter;
+};
 
 /**
  * TopControlsBar - Always-visible row with basic filters and sort controls.
@@ -37,8 +48,11 @@ const TopControlsBar = ({
   activeFilterCount,
   onOpenAdvancedFilters,
   onOpenActiveFilters,
-}) => {
-  const update = (key, value) => {
+}: TopControlsBarProps) => {
+  const update = <TKey extends keyof PlayerFilters>(
+    key: TKey,
+    value: PlayerFilters[TKey]
+  ) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -118,7 +132,7 @@ const TopControlsBar = ({
         {/* Season selector - displays as "2025-26" format for clarity */}
         <select
           value={filters.salaryYear}
-          onChange={(e) => update('salaryYear', parseInt(e.target.value))}
+          onChange={(e) => update('salaryYear', parseInt(e.target.value, 10))}
           className={sortSelectClass}
           title="Season (for salary/stats context)"
         >

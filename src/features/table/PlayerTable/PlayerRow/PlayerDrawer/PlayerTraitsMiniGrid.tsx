@@ -12,7 +12,13 @@ const TRAIT_ORDER = [
   'Energy',
 ];
 
-const getTraitColor = (rating) => {
+type TraitRatings = Partial<Record<string, number | null | undefined>>;
+
+type PlayerTraitsMiniGridProps = {
+  traits?: TraitRatings;
+};
+
+const getTraitColor = (rating: number) => {
   if (rating >= 98) return '#13895b';
   if (rating >= 94) return '#369972';
   if (rating >= 91) return '#55b48f';
@@ -29,7 +35,7 @@ const getTraitColor = (rating) => {
   return '#891313';
 };
 
-const PlayerTraitsMiniGrid = ({ traits }) => {
+const PlayerTraitsMiniGrid = ({ traits = {} }: PlayerTraitsMiniGridProps) => {
   return (
     <div className="w-[186px] rounded-md p-[2px] pr-2 mt-1 mr-[4px] shadow-lg">
       <div className="grid grid-cols-2 gap-2 mt-1">

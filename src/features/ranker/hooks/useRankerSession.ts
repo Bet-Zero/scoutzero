@@ -36,7 +36,7 @@ type RankerListItem = string | { id?: string | null };
 type RankerDraftState = Omit<LoadedRankerDraft, 'skippedPairs'> & {
   skippedPairs: Set<string> | string[];
 };
-type HydratedRankerDraft = RankerDraftState & {
+export type HydratedRankerDraft = RankerDraftState & {
   closureCache: ClosureCache;
 };
 type SavedListMeta = {
@@ -181,7 +181,11 @@ export function useRankerSession(): UseRankerSessionResult {
   const updateLocalDraft = useCallback((patch: RankerDraftPatch): void => {
     setLocalDraft((prev) => {
       if (!prev) return prev;
-      const updated = { ...prev, ...patch };
+      const updated: RankerDraftState = {
+        ...prev,
+        ...patch,
+        skippedPairs: patch.skippedPairs ?? prev.skippedPairs,
+      };
       saveLocalDraftDebounced(updated);
       return updated;
     });
@@ -190,7 +194,11 @@ export function useRankerSession(): UseRankerSessionResult {
   const updateLocalDraftNow = useCallback((patch: RankerDraftPatch): void => {
     setLocalDraft((prev) => {
       if (!prev) return prev;
-      const updated = { ...prev, ...patch };
+      const updated: RankerDraftState = {
+        ...prev,
+        ...patch,
+        skippedPairs: patch.skippedPairs ?? prev.skippedPairs,
+      };
       saveLocalDraftImmediate(updated);
       return updated;
     });

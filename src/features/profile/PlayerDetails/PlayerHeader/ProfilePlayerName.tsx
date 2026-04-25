@@ -1,6 +1,6 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 
-const formatFullName = (name) => {
+const formatFullName = (name: string): [string, string] => {
   if (!name) return ['', ''];
   const suffixes = ['jr', 'sr', 'ii', 'iii', 'iv', 'v'];
 
@@ -26,9 +26,17 @@ const formatFullName = (name) => {
   return [first, last];
 };
 
-const AutoShrinkText = ({ text, maxFontSize, minFontSize }) => {
-  const containerRef = useRef(null);
-  const textRef = useRef(null);
+const AutoShrinkText = ({
+  text,
+  maxFontSize,
+  minFontSize,
+}: {
+  text: string;
+  maxFontSize: number;
+  minFontSize: number;
+}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const textRef = useRef<HTMLDivElement | null>(null);
   const [fontSize, setFontSize] = useState(maxFontSize);
 
   useLayoutEffect(() => {
@@ -67,7 +75,7 @@ const AutoShrinkText = ({ text, maxFontSize, minFontSize }) => {
   );
 };
 
-const PlayerName = ({ name = 'LeBron James' }) => {
+const PlayerName = ({ name = 'LeBron James' }: { name?: string }) => {
   const [firstName, lastName] = formatFullName(name);
   const isGiannis = name.toLowerCase().includes('giannis');
 

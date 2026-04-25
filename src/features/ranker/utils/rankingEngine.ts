@@ -3,6 +3,19 @@
 export type RankerPlayer = {
   id: string;
   group?: string | null;
+  name?: string | null;
+  display_name?: string | null;
+  player_id?: string | null;
+  headshot?: string | null;
+  headshotUrl?: string | null;
+  team?: string | number | null;
+  bio?: {
+    displayName?: string | null;
+    display?: {
+      team?: string | number | null;
+    } | null;
+  } | null;
+  original?: RankerPlayer;
 };
 
 export type RankerComparison = {

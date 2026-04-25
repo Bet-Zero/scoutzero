@@ -19,6 +19,11 @@ import { getFilterDisplayValue } from '@/shared/utils/filtering';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
 import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
+import type {
+  ActiveFilterItem,
+  GetDefaultPlayerFilters,
+  PlayerFilterSetter,
+} from './filterTypes';
 
 /**
  * ActiveFiltersDrawer - Right-side overlay drawer for active filter management.
@@ -31,6 +36,16 @@ import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefault
  * @param {string[]} excludeFromDisplay - Filter keys to hide
  * @param {function} onClearFilters - Clears all filters
  */
+type ActiveFiltersDrawerProps = {
+  open: boolean;
+  onClose: () => void;
+  filters: PlayerFilters;
+  setFilters: PlayerFilterSetter;
+  getDefaultFilters: GetDefaultPlayerFilters;
+  excludeFromDisplay?: string[];
+  onClearFilters: () => void;
+};
+
 const ActiveFiltersDrawer = ({
   open,
   onClose,
@@ -39,14 +54,14 @@ const ActiveFiltersDrawer = ({
   getDefaultFilters,
   excludeFromDisplay = [],
   onClearFilters,
-}) => {
-  const drawerRef = useRef(null);
+}: ActiveFiltersDrawerProps) => {
+  const drawerRef = useRef<HTMLDivElement | null>(null);
 
   // Close on Escape key
   useEffect(() => {
     if (!open) return;
 
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
       }
@@ -60,8 +75,12 @@ const ActiveFiltersDrawer = ({
   useEffect(() => {
     if (!open) return;
 
-    const handleClickOutside = (e) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        drawerRef.current &&
+        e.target instanceof Node &&
+        !drawerRef.current.contains(e.target)
+      ) {
         onClose();
       }
     };
@@ -79,7 +98,7 @@ const ActiveFiltersDrawer = ({
 
   const getActiveFilters = () => {
     const defaultFilters = getDefaultFilters();
-    const activeFilters = [];
+    const activeFilters: ActiveFilterItem[] = [];
 
     // Add SalaryYear context indicator when it differs from default
     if (filters.salaryYear && filters.salaryYear !== DEFAULT_SALARY_YEAR) {
@@ -93,7 +112,8 @@ const ActiveFiltersDrawer = ({
     }
 
     Object.entries(filters).forEach(([key, value]) => {
-      const defaultValue = defaultFilters[key];
+      const filterKey = key as keyof PlayerFilters;
+      const defaultValue = defaultFilters[filterKey];
       if (excludeFromDisplay?.includes(key)) return;
 
       const isActive = JSON.stringify(value) !== JSON.stringify(defaultValue);
@@ -106,7 +126,7 @@ const ActiveFiltersDrawer = ({
               activeFilters.push({
                 key,
                 label: 'Subrole',
-                value: item,
+                value: String(item),
                 isArrayItem: true,
                 isSubrole: true,
               });
@@ -119,7 +139,7 @@ const ActiveFiltersDrawer = ({
               label: key
                 .replace(/([A-Z])/g, ' $1')
                 .replace(/^./, (str) => str.toUpperCase()),
-              value: item,
+              value: String(item),
               isArrayItem: true,
             });
           });
@@ -131,7 +151,7 @@ const ActiveFiltersDrawer = ({
               label: key
                 .replace(/([A-Z])/g, ' $1')
                 .replace(/^./, (str) => str.toUpperCase()),
-              value: displayValue,
+              value: String(displayValue),
               isArrayItem: false,
             });
           }
@@ -142,15 +162,15 @@ const ActiveFiltersDrawer = ({
     return activeFilters;
   };
 
-  const removeFilter = (filterKey) => {
+  const removeFilter = (filterKey: keyof PlayerFilters | string) => {
     const defaultFilters = getDefaultFilters();
     setFilters((prev) => ({
       ...prev,
-      [filterKey]: defaultFilters[filterKey],
+      [filterKey]: defaultFilters[filterKey as keyof PlayerFilters],
     }));
   };
 
-  const removeSubrole = (roleToRemove) => {
+  const removeSubrole = (roleToRemove: string) => {
     const roleData = SubRoleMasterList.find((r) => r.name === roleToRemove);
     if (!roleData) return;
 

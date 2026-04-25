@@ -1,15 +1,27 @@
 import React from 'react';
+import type { RankerComparison, RankerPlayer } from './utils/rankingEngine';
 
-const ComparisonMatrix = ({ players, comparisons, className = '' }) => {
+type ComparisonResult = 'win' | 'loss';
+type ComparisonMatrixProps = {
+  players: RankerPlayer[];
+  comparisons: RankerComparison[];
+  className?: string;
+};
+
+const ComparisonMatrix = ({
+  players,
+  comparisons,
+  className = '',
+}: ComparisonMatrixProps) => {
   const playerIds = players.map((p) => p.id);
-  const comparisonMap = {};
+  const comparisonMap: Record<string, Record<string, ComparisonResult | undefined>> = {};
 
   // Build map: comparisonMap[a][b] = 'win' | 'loss' | undefined
   playerIds.forEach((id) => {
     comparisonMap[id] = {};
   });
 
-  comparisons.forEach(({ winner, loser }) => {
+  comparisons.forEach(({ winner, loser }: RankerComparison) => {
     comparisonMap[winner][loser] = 'win';
     comparisonMap[loser][winner] = 'loss';
   });
