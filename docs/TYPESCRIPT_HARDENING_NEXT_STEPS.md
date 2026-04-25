@@ -11,12 +11,12 @@
 
 ## Current Cursor
 
-- Cursor ID: TS-HARDENING-GATE-003
+- Cursor ID: TS-HARDENING-GATE-004
 - Status: IN_PROGRESS
-- Current objective: Complete Gates 3, 4, 6, and 7 by auditing declarations, runtime boundaries, JS-like files, and schema escape hatches.
-- Current files / areas: `src/**/*.d.ts`, runtime boundary families, schema files, JS/CJS/MJS inventory
-- Next action: Re-run the Gate 3, Gate 4, Gate 6, and Gate 7 completion-contract commands, classify findings, then remove or exception-list the remaining true debt.
-- Stop condition: Gates 3, 4, 6, and 7 may be marked complete only when all required scans have no unclassified findings and validation evidence is recorded.
+- Current objective: Complete Gate 5 by auditing test/mock type escape markers and removing or exception-listing every true test-side escape.
+- Current files / areas: `tests/**/*.ts`, `src/tests/**/*.ts`, `src/tests/**/*.tsx`
+- Next action: Re-run the Gate 5 completion-contract scan, classify false positives such as `expect.any`, then remove or exception-list the remaining true test/mock escapes.
+- Stop condition: Gate 5 may be marked complete only when the scan has no unclassified true test/mock escapes and validation evidence is recorded.
 - Last updated: 2026-04-25 by Codex
 
 ## Mission Completion Status
@@ -25,12 +25,12 @@
 | --- | --- | --- | --- |
 | Gate 1 — Root strict mode | PASS | `tsconfig.json` read 2026-04-25 has `"strict": true`; `./node_modules/.bin/tsc -p tsconfig.json --noEmit --pretty false` exited 0 | Root strict mode is enabled and the exact root strict compiler command passes. |
 | Gate 2 — Runtime type escape audit | PASS | Contract scan 2026-04-25 found 80 hits: 9 true type escapes are listed in `Gate 2 Runtime Escape Exception Table`; 71 are false-positive prose/string-literal matches | Runtime-source true escape markers are either removed or exception-listed with owner/follow-up. Schema-owned exceptions are intentionally carried into Gate 7 for schema-specific classification. |
-| Gate 3 — Declaration/shim honesty | PASS | Contract scan 2026-04-25 found 0 declaration-layer hits | No current `declare module`, `any`, `as any`, or `Record<string, any>` hits in `src/**/*.d.ts`. |
-| Gate 4 — Runtime boundary honesty | FAIL | Boundary scan 2026-04-25 found 307 candidate boundary hits | Candidate Firestore/storage/JSON/search-param/runtime boundary hits still require review, validation proof, or exception listing before completion can be claimed. |
+| Gate 3 — Declaration/shim honesty | PASS | Contract scan 2026-04-25 found 2 justified vendor declaration hits and 0 `any` declarations; see `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md` | The remaining `.d.ts` declarations are typed vendor boundaries for `lodash.debounce` and `react-window`, not ambient `any` shims. |
+| Gate 4 — Runtime boundary honesty | PASS | Boundary scan 2026-04-25 found 307 candidate hits, all classified by boundary family in `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md` | True storage/JSON/search-param boundaries are validated or exception-listed; `params`/JSDoc overmatches are false positives. |
 | Gate 5 — Test/mock type integrity | FAIL | Contract scan 2026-04-25 found 630 unclassified test-side hits | Hits include real test/mock escapes plus expected false positives such as `expect.any`; every true escape still needs removal or exception listing. |
-| Gate 6 — JS/CJS/MJS classification | FAIL | Contract inventory 2026-04-25 found 41 JS-like files | Remaining JS/CJS/MJS files, including timestamped Vitest temp files, need classification or cleanup before completion can be claimed. |
-| Gate 7 — Schema escape audit | FAIL | Contract scan 2026-04-25 found 36 schema escape hits | Remaining `z.any`, `z.unknown`, `passthrough`, or `catchall` uses need documented classification before completion can be claimed. |
-| Gate 8 — Evidence package | FAIL | `return_packages/typescript/TS-HARDENING-GATE-002-RUNTIME-ESCAPES-2026-04-25.md` | Gate 1 and Gate 2 evidence now exists, but this is not a final completion evidence package because Gates 4, 5, 6, and 7 fail. |
+| Gate 6 — JS/CJS/MJS classification | PASS | Contract inventory 2026-04-25 found 38 classified JS-like files after deleting 3 tracked zero-byte Vitest temp files; see `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md` | Remaining files are intentional config or intentional Node scripts outside runtime app code. |
+| Gate 7 — Schema escape audit | PASS | Contract scan 2026-04-25 found 36 schema escape hits, all classified in `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md` | Remaining schema escapes are localized Firestore/source-data passthrough or legacy compatibility surfaces. |
+| Gate 8 — Evidence package | FAIL | `return_packages/typescript/TS-HARDENING-GATE-003-BOUNDARY-SCHEMA-2026-04-25.md` | Gates 1, 2, 3, 4, 6, and 7 evidence now exists, but this is not a final completion evidence package because Gate 5 still fails. |
 
 Current mission verdict: PHASE COMPLETE — HARDENING STILL INCOMPLETE
 
@@ -41,8 +41,8 @@ Current mission verdict: PHASE COMPLETE — HARDENING STILL INCOMPLETE
 | TS-HARDENING-061 | COMPLETE | `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`, completion gates | Re-open/reconcile Step 61 final closeout against the completion contract and append the next numbered hardening steps if any gate fails. | Completion-contract gate checks; Gate 1 exact compiler command and Gates 2-7 scans run on 2026-04-25. | `return_packages/typescript/TS-HARDENING-061-RECONCILIATION-2026-04-25.md` |
 | TS-HARDENING-GATE-001 | COMPLETE | `tsconfig.json`, repo-wide TypeScript project | Satisfy Gate 1 by enabling root strict mode and making root strict `tsc` pass without weakening contracts. | `./node_modules/.bin/tsc -p tsconfig.json --noEmit --pretty false` PASS; `npm run validate:project` PASS; `npm run test:diff -- --reporter=dot` PASS. | `return_packages/typescript/TS-HARDENING-GATE-001-ROOT-STRICT-2026-04-25.md` |
 | TS-HARDENING-GATE-002 | COMPLETE | `src/**/*.ts`, `src/**/*.tsx`, `src/**/*.d.ts` excluding `src/tests/**` | Complete the runtime type escape audit and remove or exception-list every remaining runtime escape. | Gate 2 audit command PASS by classification; `npm run typecheck` PASS; targeted `npm run test:node -- --reporter=dot ...` PASS. | `return_packages/typescript/TS-HARDENING-GATE-002-RUNTIME-ESCAPES-2026-04-25.md` |
-| TS-HARDENING-GATE-003 | IN_PROGRESS | `src/**/*.d.ts`, runtime boundary families, schema files | Complete declaration/shim, runtime boundary, JS-like file, and schema escape audits needed for Gates 3, 4, 6, and 7. | Gate 3, Gate 4, Gate 6, and Gate 7 audit commands from the completion contract; targeted validation dictated by findings. | Pending |
-| TS-HARDENING-GATE-004 | NOT_STARTED | `tests/**/*.ts`, `src/tests/**/*.ts`, `src/tests/**/*.tsx` | Complete the test/mock type integrity audit and remove or exception-list every remaining test-side escape. | Gate 5 audit command from the completion contract; relevant scoped test scripts with `--reporter=dot`. | Pending |
+| TS-HARDENING-GATE-003 | COMPLETE | `src/**/*.d.ts`, runtime boundary families, schema files | Complete declaration/shim, runtime boundary, JS-like file, and schema escape audits needed for Gates 3, 4, 6, and 7. | Gate 3 scan PASS; Gate 4 boundary scan PASS by classification; Gate 6 inventory PASS after cleanup/classification; Gate 7 schema scan PASS by classification; `npm run typecheck` PASS. | `return_packages/typescript/TS-HARDENING-GATE-003-BOUNDARY-SCHEMA-2026-04-25.md` |
+| TS-HARDENING-GATE-004 | IN_PROGRESS | `tests/**/*.ts`, `src/tests/**/*.ts`, `src/tests/**/*.tsx` | Complete the test/mock type integrity audit and remove or exception-list every remaining test-side escape. | Gate 5 audit command from the completion contract; relevant scoped test scripts with `--reporter=dot`. | Pending |
 | TS-HARDENING-GATE-005 | NOT_STARTED | `return_packages/typescript/`, completion docs | Produce the final completion evidence package only after Gates 1-7 pass. | Full completion-contract evidence package; no `TYPESCRIPT HARDENING COMPLETE` verdict unless every gate passes. | Pending |
 
 ## Completed Work Log
@@ -53,6 +53,7 @@ Current mission verdict: PHASE COMPLETE — HARDENING STILL INCOMPLETE
 | 2026-04-25 | TS-HARDENING-061 | Reconciled the stale Step 61 final closeout against the hard completion contract, proved the mission is still incomplete, and appended Steps 62-66 for the failing gates. | `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`; `return_packages/typescript/TS-HARDENING-061-RECONCILIATION-2026-04-25.md` | Completion-contract scans run; `npm run validate:project` PASS; `npm run test:diff -- --reporter=dot` PASS. | `return_packages/typescript/TS-HARDENING-061-RECONCILIATION-2026-04-25.md` |
 | 2026-04-25 | TS-HARDENING-GATE-001 | Enabled root TypeScript strict mode and resolved the repo-wide strict fallout across runtime UI, scraper/staging scripts, and guardrail tests without broadening contracts. | `tsconfig.json`; filters/ranker/profile/table/tier-maker surfaces; scraper/staging scripts; strict test fixtures; `src/types/vendor-ui.d.ts` | `./node_modules/.bin/tsc -p tsconfig.json --noEmit --pretty false` PASS; `npm run validate:project` PASS; `npm run test:diff -- --reporter=dot` PASS. | `return_packages/typescript/TS-HARDENING-GATE-001-ROOT-STRICT-2026-04-25.md` |
 | 2026-04-25 | TS-HARDENING-GATE-002 | Removed narrow runtime escape markers across filters, roster cards, Architect helpers, cap legality validation, trade-machine debug shaping, and utility JSDoc; documented every remaining true Gate 2 marker in the exception table. | runtime source helpers/components; `src/tests/architect/myct_step2_guardrails.test.ts`; `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md` | Gate 2 scan PASS by classification; `npm run typecheck` PASS; targeted `npm run test:node -- --reporter=dot ...` PASS. | `return_packages/typescript/TS-HARDENING-GATE-002-RUNTIME-ESCAPES-2026-04-25.md` |
+| 2026-04-25 | TS-HARDENING-GATE-003 | Classified declaration, runtime-boundary, JS-like file, and schema escape gates; deleted tracked zero-byte Vitest timestamp files from the JS inventory. | `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`; `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`; deleted `vitest*.timestamp-*.mjs` temp files | Gate 3/4/6/7 scans PASS by classification; `npm run typecheck` PASS; `npm run validate:project` PASS; `npm run lint:md` PASS. | `return_packages/typescript/TS-HARDENING-GATE-003-BOUNDARY-SCHEMA-2026-04-25.md` |
 
 ## Validation Ledger
 
@@ -82,16 +83,23 @@ Current mission verdict: PHASE COMPLETE — HARDENING STILL INCOMPLETE
 | 2026-04-25 | `npm run test:node -- --reporter=dot src/tests/architect/myct_step2_guardrails.test.ts src/tests/architect/finalSharedFilterBlockers.behavior.test.tsx src/tests/tradeMachine/validationUtils.contract.test.ts tests/contractSalaryUtils.test.ts src/tests/architect/phase86_league_invariants.test.ts src/tests/architect/useTradeMachine.compatibility.guardrail.test.ts` | PASS | Targeted node validation passed: 5 files and 52 tests passed. |
 | 2026-04-25 | `npm run lint:md` | PASS | Markdown lint passed after the Step 63 plan and return-package updates. |
 | 2026-04-25 | `git diff --check` | PASS | No whitespace errors reported for the Step 63 diff. |
+| 2026-04-25 | Gate 3 declaration scan | PASS | Scan found two justified `declare module` hits in `src/types/vendor-ui.d.ts` and zero declaration-layer `any` hits; details in `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`. |
+| 2026-04-25 | Gate 4 boundary candidate scan | PASS | Scan found 307 candidate hits, all classified by boundary family in `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`. |
+| 2026-04-25 | Gate 6 JS-like inventory | PASS | Inventory found 38 classified JS/CJS/MJS files after deleting 3 tracked zero-byte Vitest timestamp files. |
+| 2026-04-25 | Gate 7 schema escape scan | PASS | Scan found 36 schema escape hits, all classified in `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`. |
+| 2026-04-25 | `npm run typecheck` | PASS | Root TypeScript check passed after Step 64 documentation and JS-temp cleanup. |
+| 2026-04-25 | `npm run validate:project` | PASS | Project schema validator reported all validations passed after adding the Step 64 evidence doc and deleting tracked temp files. |
+| 2026-04-25 | `npm run lint:md` | PASS | Markdown lint passed after the Step 64 evidence, plan, and return-package updates. |
+| 2026-04-25 | `git diff --check` | PASS | No whitespace errors reported for the Step 64 diff. |
+| 2026-04-25 | Targeted tests | SKIPPED | Step 64 changed docs and deleted zero-byte temp files only; no runtime boundary implementation changed. |
 
 ## Known Blockers / Deferred Debt
 
 | ID | Severity | Area | Description | Why deferred/blocking | Resume trigger |
 | --- | --- | --- | --- | --- | --- |
-| TS-DEBT-COMPLETION-AUDITS | HIGH | Completion gates 4-7 | Runtime boundaries, test/mock escapes, JS-like files, and schema escapes need current audit evidence before completion can be reclaimed. | Gates 1 and 2 are now complete, but Gates 4, 5, 6, and 7 still fail pending classification or cleanup. | Continue with Step 64 / `TS-HARDENING-GATE-003`. |
+| TS-DEBT-COMPLETION-AUDITS | HIGH | Completion gate 5 | Test/mock escapes need current audit evidence before completion can be reclaimed. | Gates 1, 2, 3, 4, 6, and 7 are now complete, but Gate 5 still fails pending classification or cleanup. | Continue with Step 65 / `TS-HARDENING-GATE-004`. |
 | TS-DEBT-EVIDENCE-PACKAGE | HIGH | Completion evidence | The setup return package is not a full completion evidence package proving Gates 1-7. | Gate 8 cannot pass until the mission gates pass and a final evidence package records that proof. | Produce the final TypeScript completion return package only after all prior gates pass. |
-| TS-DEBT-RUNTIME-BOUNDARIES | HIGH | Runtime boundaries | Gate 4 boundary scan found 307 candidate hits across Architect/Firebase/shared/page boundary surfaces. | Candidate untrusted ingress/egress sites need validation proof or exception classification before Gate 4 can pass. | Resume at Step 64 / `TS-HARDENING-GATE-003`. |
 | TS-DEBT-TEST-ESCAPES | HIGH | Tests and mocks | Gate 5 found 630 unclassified test-side hits, including real escape-heavy Architect/trade harnesses and false-positive assertion prose. | Every true test/mock escape must be removed, narrowed, or exception-listed before Gate 5 can pass. | Resume at Step 65 / `TS-HARDENING-GATE-004`. |
-| TS-DEBT-JS-SCHEMA-CLASSIFICATION | HIGH | JS-like files and schema escapes | Gate 6 found 41 JS-like files and Gate 7 found 36 schema escape hits requiring classification. | Completion requires explicit classification or cleanup for JS-like files and schema escape hatches. | Resume at Step 64 / `TS-HARDENING-GATE-003`. |
 
 ## Return Package Index
 
@@ -101,6 +109,7 @@ Current mission verdict: PHASE COMPLETE — HARDENING STILL INCOMPLETE
 | 2026-04-25 | TS-HARDENING-061 | `return_packages/typescript/TS-HARDENING-061-RECONCILIATION-2026-04-25.md` | Step 61 completion-contract reconciliation and non-completion evidence. |
 | 2026-04-25 | TS-HARDENING-GATE-001 | `return_packages/typescript/TS-HARDENING-GATE-001-ROOT-STRICT-2026-04-25.md` | Gate 1 root strict-mode enablement evidence. |
 | 2026-04-25 | TS-HARDENING-GATE-002 | `return_packages/typescript/TS-HARDENING-GATE-002-RUNTIME-ESCAPES-2026-04-25.md` | Gate 2 runtime escape audit, removals, exceptions, and validation evidence. |
+| 2026-04-25 | TS-HARDENING-GATE-003 | `return_packages/typescript/TS-HARDENING-GATE-003-BOUNDARY-SCHEMA-2026-04-25.md` | Gate 3, 4, 6, and 7 classification and validation evidence. |
 
 ## Gate 2 Runtime Escape Exception Table
 
@@ -2478,7 +2487,9 @@ in an exception table accepted by the completion contract. Commit message:
 
 ## Step 64 — Complete Gates 3, 4, 6, and 7 declaration, boundary, JS, and schema audits
 
-**Status:** IN PROGRESS — 2026-04-25
+**Status:** DONE — 2026-04-25
+
+Completed 2026-04-25: Added `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`, classified Gates 3, 4, 6, and 7, and deleted three tracked zero-byte Vitest timestamp files from the JS-like inventory.
 
 **Goal:** Prove declaration/shim honesty remains clean and classify or fix every
 runtime boundary, JS-like file, and schema escape required by Gates 4, 6, and 7.
@@ -2517,7 +2528,7 @@ message: `docs: classify TypeScript boundary and schema gates`.
 
 ## Step 65 — Complete Gate 5 test and mock type integrity audit
 
-**Status:** TODO
+**Status:** IN PROGRESS — 2026-04-25
 
 **Goal:** Remove, narrow, or exception-list every true test/mock escape found by
 the Gate 5 contract scan.
