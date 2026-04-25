@@ -7,14 +7,29 @@
  */
 import React from 'react';
 
+type RangeOption = {
+  label: string;
+  value: number | string;
+};
+
+type RangeFilterMap = Partial<Record<string, unknown>>;
+
 type RangeSelectorProps = {
-  label?: any;
-  minKey?: any;
-  maxKey?: any;
-  filters?: Record<string, any>;
-  options?: any[];
-  update?: any;
+  label?: React.ReactNode;
+  minKey: string;
+  maxKey: string;
+  filters?: RangeFilterMap;
+  options?: RangeOption[];
+  update: (key: string, value: number | string | null) => void;
   allowNullMax?: boolean;
+};
+
+const selectValue = (value: unknown): string | number => {
+  if (typeof value === 'number' || typeof value === 'string') {
+    return value;
+  }
+
+  return '';
 };
 
 const RangeSelector = ({
@@ -39,11 +54,8 @@ const RangeSelector = ({
     update(maxKey, value);
   };
 
-  const minValue = filters[minKey] || '';
-  const maxValue =
-    filters[maxKey] !== null && filters[maxKey] !== undefined
-      ? filters[maxKey]
-      : '';
+  const minValue = selectValue(filters[minKey]);
+  const maxValue = selectValue(filters[maxKey]);
 
   return (
     <div className="flex flex-col">

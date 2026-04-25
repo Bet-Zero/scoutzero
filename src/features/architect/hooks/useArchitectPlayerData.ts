@@ -2,7 +2,10 @@
 // Loads player data from architect_basePlayers collection exclusively
 
 import { useState, useEffect } from 'react';
-import { subscribeArchitectPlayerData } from '@/features/architect/utils/subscribeArchitectPlayerData';
+import {
+  subscribeArchitectPlayerData,
+  type ArchitectPlayerData,
+} from '@/features/architect/utils/subscribeArchitectPlayerData';
 
 /**
  * Hook for loading player data from architect_basePlayers collection
@@ -15,7 +18,7 @@ import { subscribeArchitectPlayerData } from '@/features/architect/utils/subscri
  * @returns {Object} { players, loading, error }
  */
 const useArchitectPlayerData = () => {
-  const [players, setPlayers] = useState<any[]>([]);
+  const [players, setPlayers] = useState<ArchitectPlayerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

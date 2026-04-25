@@ -12,8 +12,7 @@ import {
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
 
-// NumericLike: salary fields may be number or string from legacy contracts; typed as any to permit arithmetic comparisons
-type NumericLike = any; // load-bearing: callers use directly in arithmetic; intent is number|string|null|undefined
+type NumericLike = number | string | null | undefined;
 type SalaryYearEntryLike = {
   season?: unknown;
   salary?: NumericLike;
@@ -38,8 +37,7 @@ type PlayerLike = {
   currentSalary?: NumericLike;
   [key: string]: unknown;
 };
-// SeasonLookupValue accepts any; functions use String()/parseInt() internally, so all inputs are safe
-type SeasonLookupValue = any; // load-bearing: callers pass unknown season values
+type SeasonLookupValue = unknown;
 
 function hasSalaryRows(candidate: unknown): candidate is ContractLike {
   return (
@@ -95,7 +93,7 @@ export function getSalaryWithFallback(
   }
 
   const contractSalary = getContractSalaryForYear(player, yearKey);
-  if (contractSalary > 0) {
+  if (Number(contractSalary) > 0) {
     return contractSalary;
   }
 

@@ -1327,7 +1327,7 @@ export function validateExceptions(exceptions: unknown) {
   }
 
   // Check for unknown keys (hard-block policy)
-  const exceptionsObj = exceptions as Record<string, any>; // load-bearing: property access on exception values requires any (enabled, totalAmount, seasonKey, etc.)
+  const exceptionsObj = exceptions as Record<string, unknown>;
   const providedKeys = Object.keys(exceptionsObj);
   const unknownKeys = providedKeys.filter(
     (key) => !VALID_EXCEPTION_KEYS.includes(key)
@@ -1347,7 +1347,8 @@ export function validateExceptions(exceptions: unknown) {
     const entry = exceptionsObj[key];
     const prefix = `Exception '${key}'`;
 
-    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+    const exceptionEntry = asRecordLike(entry);
+    if (!exceptionEntry) {
       violations.push({
         rule: 'exceptions_schema_invalid',
         message: `${prefix}: must be an object`,
@@ -1357,49 +1358,52 @@ export function validateExceptions(exceptions: unknown) {
     }
 
     // Check enabled is boolean
-    if (entry.enabled !== undefined && typeof entry.enabled !== 'boolean') {
+    if (
+      exceptionEntry.enabled !== undefined &&
+      typeof exceptionEntry.enabled !== 'boolean'
+    ) {
       violations.push({
         rule: 'exceptions_schema_invalid',
-        message: `${prefix}: enabled must be boolean, got ${typeof entry.enabled}`,
+        message: `${prefix}: enabled must be boolean, got ${typeof exceptionEntry.enabled}`,
         severity: 'error',
       });
     }
 
     // Check totalAmount is finite number >= 0
-    if (entry.totalAmount !== undefined) {
+    if (exceptionEntry.totalAmount !== undefined) {
       if (
-        typeof entry.totalAmount !== 'number' ||
-        !Number.isFinite(entry.totalAmount)
+        typeof exceptionEntry.totalAmount !== 'number' ||
+        !Number.isFinite(exceptionEntry.totalAmount)
       ) {
         violations.push({
           rule: 'exceptions_schema_invalid',
           message: `${prefix}: totalAmount must be a finite number`,
           severity: 'error',
         });
-      } else if (entry.totalAmount < 0) {
+      } else if (exceptionEntry.totalAmount < 0) {
         violations.push({
           rule: 'exceptions_schema_invalid',
-          message: `${prefix}: totalAmount cannot be negative (got ${entry.totalAmount})`,
+          message: `${prefix}: totalAmount cannot be negative (got ${exceptionEntry.totalAmount})`,
           severity: 'error',
         });
       }
     }
 
     // Check usedAmount is finite number >= 0
-    if (entry.usedAmount !== undefined) {
+    if (exceptionEntry.usedAmount !== undefined) {
       if (
-        typeof entry.usedAmount !== 'number' ||
-        !Number.isFinite(entry.usedAmount)
+        typeof exceptionEntry.usedAmount !== 'number' ||
+        !Number.isFinite(exceptionEntry.usedAmount)
       ) {
         violations.push({
           rule: 'exceptions_schema_invalid',
           message: `${prefix}: usedAmount must be a finite number`,
           severity: 'error',
         });
-      } else if (entry.usedAmount < 0) {
+      } else if (exceptionEntry.usedAmount < 0) {
         violations.push({
           rule: 'exceptions_schema_invalid',
-          message: `${prefix}: usedAmount cannot be negative (got ${entry.usedAmount})`,
+          message: `${prefix}: usedAmount cannot be negative (got ${exceptionEntry.usedAmount})`,
           severity: 'error',
         });
       }
@@ -1407,28 +1411,28 @@ export function validateExceptions(exceptions: unknown) {
 
     // Check usedAmount <= totalAmount
     if (
-      typeof entry.totalAmount === 'number' &&
-      typeof entry.usedAmount === 'number' &&
-      Number.isFinite(entry.totalAmount) &&
-      Number.isFinite(entry.usedAmount) &&
-      entry.usedAmount > entry.totalAmount
+      typeof exceptionEntry.totalAmount === 'number' &&
+      typeof exceptionEntry.usedAmount === 'number' &&
+      Number.isFinite(exceptionEntry.totalAmount) &&
+      Number.isFinite(exceptionEntry.usedAmount) &&
+      exceptionEntry.usedAmount > exceptionEntry.totalAmount
     ) {
       violations.push({
         rule: 'exceptions_schema_invalid',
-        message: `${prefix}: usedAmount (${entry.usedAmount}) cannot exceed totalAmount (${entry.totalAmount})`,
+        message: `${prefix}: usedAmount (${exceptionEntry.usedAmount}) cannot exceed totalAmount (${exceptionEntry.totalAmount})`,
         severity: 'error',
       });
     }
 
     // Check seasonKey is non-empty string
-    if (entry.seasonKey !== undefined) {
-      if (typeof entry.seasonKey !== 'string') {
+    if (exceptionEntry.seasonKey !== undefined) {
+      if (typeof exceptionEntry.seasonKey !== 'string') {
         violations.push({
           rule: 'exceptions_schema_invalid',
-          message: `${prefix}: seasonKey must be a string, got ${typeof entry.seasonKey}`,
+          message: `${prefix}: seasonKey must be a string, got ${typeof exceptionEntry.seasonKey}`,
           severity: 'error',
         });
-      } else if (entry.seasonKey.trim() === '') {
+      } else if (exceptionEntry.seasonKey.trim() === '') {
         violations.push({
           rule: 'exceptions_schema_invalid',
           message: `${prefix}: seasonKey cannot be empty`,
@@ -1438,10 +1442,13 @@ export function validateExceptions(exceptions: unknown) {
     }
 
     // Notes is optional string (warn if not string when present)
-    if (entry.notes !== undefined && typeof entry.notes !== 'string') {
+    if (
+      exceptionEntry.notes !== undefined &&
+      typeof exceptionEntry.notes !== 'string'
+    ) {
       warnings.push({
         rule: 'exceptions_notes_type',
-        message: `${prefix}: notes should be a string, got ${typeof entry.notes}`,
+        message: `${prefix}: notes should be a string, got ${typeof exceptionEntry.notes}`,
         severity: 'warning',
       });
     }

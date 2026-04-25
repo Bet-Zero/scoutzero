@@ -8,7 +8,7 @@ import { validationCache } from '../cache/validationCacheService';
 import { debug } from './engineUtils';
 import tradeDebug from './tradeDebug';
 
-// any[] is intentional: variadic generic must accept heterogeneous argument tuples across all validator types
+// This variadic generic intentionally accepts heterogeneous argument tuples across all validator types.
 type ValidatorFunction<TArgs extends any[] = any[], TResult = unknown> = (
   ...args: TArgs
 ) => TResult;

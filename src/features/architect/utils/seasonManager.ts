@@ -168,8 +168,8 @@ function stripHydrationOnlyFields<T extends object>(
 
 /**
  * Recursively removes undefined values from objects/arrays (Firestore-safe)
- * @param {any} obj - Object or array to sanitize
- * @returns {any} Sanitized copy with no undefined values
+ * @param {unknown} obj - Object or array to sanitize
+ * @returns {unknown} Sanitized copy with no undefined values
  */
 function removeUndefinedDeep<T>(obj: T): T {
   if (obj === null || obj === undefined) {

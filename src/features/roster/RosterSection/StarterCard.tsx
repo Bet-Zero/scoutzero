@@ -4,8 +4,15 @@ import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMin
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
 type StarterCardProps = {
-  player: any;
-  onRemove?: (event: MouseEvent<HTMLButtonElement>) => void;
+  player: {
+    bio?: { displayName?: string | null; playerId?: string | number | null; position?: string | null } | null;
+    formattedPosition?: string | null;
+    headshot?: string | null;
+    headshotUrl?: string | null;
+    id?: string | number | null;
+    name?: string | null;
+  };
+  onRemove?: (event: MouseEvent<HTMLElement>) => void;
   showRemove?: boolean;
   isExport?: boolean;
 };
@@ -21,7 +28,7 @@ const StarterCard = ({
   const playerId = player.bio?.playerId || player.id;
   // Normalize special characters for headshot lookup (e.g., kristaps_porzingis -> kristaps_porziņģis)
   const normalizedId = playerId
-    ? playerId
+    ? String(playerId)
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
@@ -37,7 +44,7 @@ const StarterCard = ({
         <div className="flex-1 relative">
           <img
             src={headshot}
-            alt={player.name}
+            alt={player.name ?? undefined}
             className="w-full h-full object-cover"
             onError={(e) => {
               e.currentTarget.src = '/assets/headshots/default.png';
@@ -61,7 +68,7 @@ const StarterCard = ({
         </div>
         <div className="bg-[#0f0f0f] px-2 pt-1 pb-2 h-[60px] flex flex-col items-center justify-center text-center border-t border-white/10">
           <PlayerNameMini
-            name={player.bio?.displayName || player.name}
+            name={player.bio?.displayName || player.name || undefined}
             firstWeightClass={isExport ? 'font-normal' : 'font-light'}
             lastWeightClass={isExport ? 'font-normal' : 'font-bold'}
           />

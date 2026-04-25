@@ -7,13 +7,14 @@
  */
 import React, { useState } from 'react';
 import { BadgeList } from '@/constants/badgeList';
+import type { BadgeKey } from '@/constants/badgeList';
 
 type BadgeFilterSelectProps = {
-  selected?: any[];
-  onChange?: any;
+  selected?: string[];
+  onChange?: (selected: string[]) => void;
   buttonClass?: string;
   gridClass?: string;
-  label?: any;
+  label?: React.ReactNode;
   labelClass?: string;
   badgeClass?: string;
   selectedBadgeClass?: string;
@@ -36,11 +37,11 @@ const BadgeFilterSelect = ({
 }: BadgeFilterSelectProps) => {
   const [open, setOpen] = useState(false);
 
-  const toggle = (key: any) => {
+  const toggle = (key: BadgeKey) => {
     const updated = selected.includes(key)
       ? selected.filter((b) => b !== key)
       : [...selected, key];
-    onChange(updated);
+    onChange?.(updated);
   };
 
   return (

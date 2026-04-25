@@ -7,10 +7,16 @@
  */
 import React from 'react';
 
+type ChecklistRole = {
+  isPositive?: boolean;
+  name: string;
+  type: string;
+};
+
 type RoleChecklistProps = {
-  roles?: any[];
-  selected?: Record<string, any>;
-  onToggle?: any;
+  roles?: ChecklistRole[];
+  selected?: Record<string, string[] | undefined>;
+  onToggle?: (roleName: string) => void;
   columns?: number;
   className?: string;
 };
@@ -28,7 +34,7 @@ const RoleChecklist = ({
       return (
         <div
           key={role.name}
-          onClick={() => onToggle(role.name)}
+          onClick={() => onToggle?.(role.name)}
           className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer text-xs ${
             isSelected
               ? role.isPositive

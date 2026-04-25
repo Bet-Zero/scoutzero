@@ -7,8 +7,7 @@
  *  - 2026-03-12: Migrated authoritative implementation to TypeScript for E59.
  */
 
-// SeasonValue accepts anything; functions use Number() coercion internally so all inputs are safe
-type SeasonValue = any; // load-bearing: callers pass unknown values; intent is number|string|null|undefined
+type SeasonValue = unknown;
 type CapProjectionsLike = Record<string, unknown> | null | undefined;
 
 export type SeasonAdvanceDraftContext = {

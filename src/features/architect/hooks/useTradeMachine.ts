@@ -43,6 +43,14 @@ type UnknownRecord = Record<string, unknown>;
 const TEAM_BY_SLUG = TeamMap as Record<string, TeamEntry | undefined>;
 const TEAM_BY_CODE = TeamCodeMap as Record<string, TeamEntry | undefined>;
 
+const asUnknownRecord = (value: unknown): UnknownRecord => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as UnknownRecord;
+  }
+
+  return {};
+};
+
 type TradeMachinePlayer = UnknownRecord &
   NonNullable<TradeContextPayload['teams'][number]['sends']>[number];
 type TradeMachineEntitlement = UnknownRecord &
@@ -1205,8 +1213,10 @@ export const useTradeMachine = (
           }))
         );
 
-        const validation = (preparation.validatedContext._rawValidation ||
-          preparation.validatedContext) as unknown as UnknownRecord & {
+        const validation = asUnknownRecord(
+          preparation.validatedContext._rawValidation ||
+            preparation.validatedContext
+        ) as UnknownRecord & {
           teamResults?: UnknownRecord[] | null;
           violations?: unknown[];
           warnings?: unknown[];
@@ -1263,16 +1273,19 @@ export const useTradeMachine = (
           (Array.isArray(validation.teamResults)
             ? validation.teamResults
             : []
-          ).map((teamResult: any) => ({
-            // debug-only logging; intentionally loose
-            team:
-              teamResult.team?.nickname ||
-              teamResult.team?.name ||
-              teamResult.team?.id,
-            pre: teamResult.preTradeStatus?.projectedSalary,
-            post: teamResult.postTradeStatus?.projectedSalary,
-            apron: teamResult.postTradeStatus?.isAtOrAboveSecondApron,
-          }))
+          ).map((teamResult) => {
+            const result = asUnknownRecord(teamResult);
+            const team = asUnknownRecord(result.team);
+            const preTradeStatus = asUnknownRecord(result.preTradeStatus);
+            const postTradeStatus = asUnknownRecord(result.postTradeStatus);
+
+            return {
+              team: team.nickname || team.name || team.id,
+              pre: preTradeStatus.projectedSalary,
+              post: postTradeStatus.projectedSalary,
+              apron: postTradeStatus.isAtOrAboveSecondApron,
+            };
+          })
         );
 
         return { snapshotValidationDetails, previewContext };

@@ -27,6 +27,7 @@ import {
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
+import type { CapHold } from '@/features/architect/utils/capHolds';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import {
   computeDeadMoneyForYear,
@@ -250,7 +251,7 @@ export function computeTeamCapTotals(
   if (!Number.isFinite(yearKey)) {
     throw new Error(`Invalid cap totals year: ${selectedYear}`);
   }
-  const rules = getCapRulesForYear(yearKey, options.capProjections) as any; // load-bearing: getCapRulesForYear return type incompatible with direct destructuring
+  const rules = getCapRulesForYear(yearKey, options.capProjections);
 
   const salaryCap = rules.cap.salaryCap || 0;
   const luxuryTax = rules.cap.luxuryTax || 0;
@@ -259,7 +260,7 @@ export function computeTeamCapTotals(
 
   const playersTotal = computePlayersTotal(teamCapSheet?.players, yearKey);
   const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(
-    teamCapSheet?.capHolds as any, // load-bearing: CapHold[] not assignable to CapHoldLike[]|LooseRecord[] — coordinated load/compute type split required
+    teamCapSheet?.capHolds as CapHold[] | null | undefined,
     yearKey
   );
   const deadMoneyTotal = computeDeadMoneyForYear(teamCapSheet, yearKey);

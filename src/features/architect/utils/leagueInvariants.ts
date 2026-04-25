@@ -160,7 +160,7 @@ function collectPlayersFromTeam(
  * @returns Validation result with duplicates if any found
  */
 export function validateNoDuplicatePlayers(
-  teams: any[] // load-bearing: called with allTeams from getLeague() whose roster field (string[]) conflicts with RawPlayerLike[] at compile time
+  teams: Array<RawTeamLike | null | undefined>
 ): LeagueInvariantResult {
   const playerMap = new Map<string, { teams: string[]; playerName?: string }>();
 

@@ -12,6 +12,17 @@ export interface UseFirebaseQueryResult<T> {
   error: Error | null;
 }
 
+const getConstraintKeyPart = (constraint: QueryConstraint): string => {
+  if (constraint && typeof constraint === 'object' && 'type' in constraint) {
+    const { type } = constraint as { type?: unknown };
+    if (typeof type === 'string') {
+      return type;
+    }
+  }
+
+  return String(constraint);
+};
+
 const useFirebaseQuery = <T = Record<string, unknown>>(
   collectionName: string,
   queryConstraints: QueryConstraint[] = [],
@@ -23,9 +34,7 @@ const useFirebaseQuery = <T = Record<string, unknown>>(
   const { enabled = true } = options;
   // Serialize constraints to detect changes without causing infinite re-renders
   const constraintsKey = useRef<string>('');
-  const newKey = JSON.stringify(
-    queryConstraints.map((c) => (c as unknown as Record<string, unknown>).type ?? String(c))
-  );
+  const newKey = JSON.stringify(queryConstraints.map(getConstraintKeyPart));
 
   useEffect(() => {
     constraintsKey.current = newKey;

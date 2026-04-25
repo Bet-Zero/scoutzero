@@ -19,6 +19,11 @@ const traitSort = [
 
 const CURRENT_YEAR = getCurrentSeasonYear();
 
+const readNumericFilter = (filters: PlayerFilters, key: string): number => {
+  const value = filters[key as keyof PlayerFilters];
+  return typeof value === 'number' ? value : Number(value ?? 0);
+};
+
 export type FilterablePlayer = {
   bio?: {
     displayName?: string | null;
@@ -224,8 +229,8 @@ export function filterPlayers(
     const passesStat = (key: string, min: string, max: string): boolean => {
       const val = parseFloat(String(p[key] ?? 0)) * (key.includes('%') ? 100 : 1);
       return (
-        val >= (filters as unknown as Record<string, number>)[`min_${min}`] &&
-        val <= (filters as unknown as Record<string, number>)[`max_${max}`]
+        val >= readNumericFilter(filters, `min_${min}`) &&
+        val <= readNumericFilter(filters, `max_${max}`)
       );
     };
 
@@ -245,8 +250,10 @@ export function filterPlayers(
 
     const passesTrait = (trait: string): boolean => {
       const val = parseFloat(String(p.traits?.[trait] ?? 0));
-      const filtersMap = filters as unknown as Record<string, number>;
-      return val >= filtersMap[`min_${trait}`] && val <= filtersMap[`max_${trait}`];
+      return (
+        val >= readNumericFilter(filters, `min_${trait}`) &&
+        val <= readNumericFilter(filters, `max_${trait}`)
+      );
     };
 
     if (

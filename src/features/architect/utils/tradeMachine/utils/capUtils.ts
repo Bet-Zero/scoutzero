@@ -185,7 +185,7 @@ export function getTeamApronStatus(
 
 /**
  * Converts a value to a number, handling various input types
- * @param {any} v - The value to convert
+ * @param {unknown} v - The value to convert
  * @returns {number} The numeric value or 0
  */
 export const toNum = (v: unknown): number =>

@@ -79,8 +79,9 @@ describe('MYCT Step 2 Guardrails - Source Scan', () => {
     expect(source).toContain('const normalizedYear = toEndYear(selectedYear);');
     expect(source).toContain('const yearKey = Number.isFinite(normalizedYear)');
     expect(source).toContain(
-      'const rules = getCapRulesForYear(yearKey, options.capProjections) as any;'
+      'const rules = getCapRulesForYear(yearKey, options.capProjections);'
     );
+    expect(source).not.toContain('getCapRulesForYear(yearKey, options.capProjections) as any');
     expect(source).toContain('getActiveUnsignedCapHoldsTotalByEndYear(');
     expect(source).not.toContain('currentYear');
     expect(source).not.toContain('getCapSettingsForYear');

@@ -2731,7 +2731,7 @@ export { buildPostTradeTeamsSnapshot, validatePostTradeSnapshotForContext };
 /**
  * Recursively find all paths in an object where the value is undefined.
  * Returns an array of dot-notation paths (e.g., ["contract.totalValue", "player.name"]).
- * @param {any} obj - Object to inspect
+ * @param {unknown} obj - Object to inspect
  * @param {string} [parentPath] - Current path (used in recursion)
  * @returns {string[]} Array of paths with undefined values
  */
@@ -2764,8 +2764,8 @@ function findUndefinedPaths(obj: unknown, parentPath = ''): string[] {
  * Returns a new object/array with undefined values stripped.
  * - For objects: keys with undefined values are omitted
  * - For arrays: undefined elements are filtered out
- * @param {any} obj - Object or array to sanitize
- * @returns {any} Sanitized copy with no undefined values
+ * @param {unknown} obj - Object or array to sanitize
+ * @returns {unknown} Sanitized copy with no undefined values
  */
 function removeUndefinedDeep(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
@@ -3017,7 +3017,7 @@ function stripComputeOnlyTeamFieldsForPersistence<
  * Dev-only guard that validates an object has no undefined values before Firestore write.
  * In DEV: logs error details and throws.
  * In PROD: silently returns (caller should sanitize).
- * @param {any} obj - Object to validate
+ * @param {unknown} obj - Object to validate
  * @param {string} label - Description of the object (for error messages)
  */
 function guardAgainstUndefined(obj: unknown, label: string) {
