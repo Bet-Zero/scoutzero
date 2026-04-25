@@ -1,5 +1,80 @@
 # TypeScript Hardening — Self-Extending Master Plan
 
+## Control Panel
+
+- Mode: CONTINUOUS EXECUTION
+- Governing completion contract: `docs/typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md`
+- Execution rule: Start at `Current Cursor`, complete the next unchecked item in `Active Work Queue`, update this document, write a return package, then stop.
+- Completion rule: Do not declare `TYPESCRIPT HARDENING COMPLETE` unless every gate in the governing completion contract passes.
+- If any hard-stop gate fails, final verdict must be `PHASE COMPLETE — HARDENING STILL INCOMPLETE` or `TASK INCOMPLETE — HARDENING NOT FINISHED`.
+- Do not skip ahead unless the cursor item is blocked and the blocker is recorded in `Known Blockers / Deferred Debt`.
+
+## Current Cursor
+
+- Cursor ID: TS-HARDENING-061
+- Status: IN_PROGRESS
+- Current objective: Reconcile Step 61 final closeout with the completion contract and extend/reopen this plan if any hard-stop gate still fails.
+- Current files / areas: `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`, `docs/typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md`, `tsconfig.json`, `src/**`, `tests/**`, `src/tests/**`
+- Next action: Run the completion-contract gate checks starting with Gate 1 root strict mode, then append new numbered steps if any gate fails.
+- Stop condition: Step 61 may be marked complete only after every completion-contract gate passes with current evidence; otherwise this plan must remain open with the next numbered work appended.
+- Last updated: 2026-04-25 by Codex
+
+## Mission Completion Status
+
+| Gate | Status | Last Evidence | Notes |
+| --- | --- | --- | --- |
+| Gate 1 — Root strict mode | FAIL | `tsconfig.json` read 2026-04-25 | Root compiler options still set `"strict": false`, so the hard-stop Gate 1 required state is not met. |
+| Gate 2 — Runtime type escape audit | UNKNOWN | Not audited in this setup run | Requires a current runtime escape scan and exception table before completion can be claimed. |
+| Gate 3 — Declaration/shim honesty | UNKNOWN | Not audited in this setup run | Requires a current declaration-layer audit before completion can be claimed. |
+| Gate 4 — Runtime boundary honesty | UNKNOWN | Not audited in this setup run | Requires current boundary evidence for Firestore, storage, route/search params, JSON, Architect loaders, and related surfaces. |
+| Gate 5 — Test/mock type integrity | UNKNOWN | Not audited in this setup run | Requires a current test/mock escape scan and exception table before completion can be claimed. |
+| Gate 6 — JS/CJS/MJS classification | UNKNOWN | Not audited in this setup run | Requires a current JS-like file inventory and classification table before completion can be claimed. |
+| Gate 7 — Schema escape audit | UNKNOWN | Not audited in this setup run | Requires a current schema escape scan and exception table before completion can be claimed. |
+| Gate 8 — Evidence package | FAIL | `return_packages/typescript/TS-HARDENING-CONTINUOUS-SETUP-2026-04-25.md` | This setup return package exists, but it is not a full completion evidence package for Gates 1-7. |
+
+Current mission verdict: PHASE COMPLETE — HARDENING STILL INCOMPLETE
+
+## Active Work Queue
+
+| ID | Status | Scope | Objective | Required validation | Return package |
+| --- | --- | --- | --- | --- | --- |
+| TS-HARDENING-061 | IN_PROGRESS | `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`, completion gates | Re-open/reconcile Step 61 final closeout against the completion contract and append the next numbered hardening steps if any gate fails. | Completion-contract gate checks; at minimum Gate 1 root strict state plus any needed scans to decide the next numbered steps. | Pending |
+| TS-HARDENING-GATE-001 | NOT_STARTED | `tsconfig.json`, repo-wide TypeScript project | Satisfy Gate 1 by enabling root strict mode and making root strict `tsc` pass without weakening contracts. | `./node_modules/.bin/tsc -p tsconfig.json --noEmit --pretty false`; scoped tests/probes dictated by touched areas. | Pending |
+| TS-HARDENING-GATE-002 | NOT_STARTED | `src/**/*.ts`, `src/**/*.tsx`, `src/**/*.d.ts` excluding `src/tests/**` | Complete the runtime type escape audit and remove or exception-list every remaining runtime escape. | Gate 2 audit command from the completion contract; `npm run typecheck`; relevant scoped tests with `--reporter=dot`. | Pending |
+| TS-HARDENING-GATE-003 | NOT_STARTED | `src/**/*.d.ts`, runtime boundary families, schema files | Complete declaration/shim, runtime boundary, JS-like file, and schema escape audits needed for Gates 3, 4, 6, and 7. | Gate 3, Gate 4, Gate 6, and Gate 7 audit commands from the completion contract; targeted validation dictated by findings. | Pending |
+| TS-HARDENING-GATE-004 | NOT_STARTED | `tests/**/*.ts`, `src/tests/**/*.ts`, `src/tests/**/*.tsx` | Complete the test/mock type integrity audit and remove or exception-list every remaining test-side escape. | Gate 5 audit command from the completion contract; relevant scoped test scripts with `--reporter=dot`. | Pending |
+| TS-HARDENING-GATE-005 | NOT_STARTED | `return_packages/typescript/`, completion docs | Produce the final completion evidence package only after Gates 1-7 pass. | Full completion-contract evidence package; no `TYPESCRIPT HARDENING COMPLETE` verdict unless every gate passes. | Pending |
+
+## Completed Work Log
+
+| Date | ID | Summary | Files changed | Validation | Return package |
+| --- | --- | --- | --- | --- | --- |
+| 2026-04-25 | TS-HARDENING-CONTINUOUS-SETUP | Added the continuous execution control sections and seeded the work queue around the contract-failing Step 61 closeout posture. | `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`; `return_packages/typescript/TS-HARDENING-CONTINUOUS-SETUP-2026-04-25.md` | `npm run validate:project` PASS; `npm run test:diff -- --reporter=dot` PASS. | `return_packages/typescript/TS-HARDENING-CONTINUOUS-SETUP-2026-04-25.md` |
+
+## Validation Ledger
+
+| Date | Command | Result | Evidence / notes |
+| --- | --- | --- | --- |
+| 2026-04-25 | `npm run validate:project` | PASS | Project schema validator reported all validations passed. |
+| 2026-04-25 | `npm run test:diff -- --reporter=dot` | PASS | Diff runner selected FAST support-file scope and ran `npm run test:fast -- --reporter=dot`; 12 files and 57 tests passed. |
+| 2026-04-25 | `npm run typecheck` | SKIPPED | Skipped because this setup changed only docs/return-package files and did not touch TS/TSX source. |
+| 2026-04-25 | `npm run build` | SKIPPED | Skipped because this setup made no UI, route, or component changes. |
+| 2026-04-25 | Source-code hardening | SKIPPED | Explicitly skipped because this setup run must not perform source-code hardening. |
+
+## Known Blockers / Deferred Debt
+
+| ID | Severity | Area | Description | Why deferred/blocking | Resume trigger |
+| --- | --- | --- | --- | --- | --- |
+| TS-DEBT-ROOT-STRICT | BLOCKER | Root TypeScript config | `tsconfig.json` still has `"strict": false`. | This fails completion-contract Gate 1 and makes the existing final closeout claim non-final under the contract. | Resume at `TS-HARDENING-061`, append the Gate 1 numbered work, and make root strict mode pass. |
+| TS-DEBT-COMPLETION-AUDITS | HIGH | Completion gates 2-7 | Runtime escapes, declarations, runtime boundaries, test/mock escapes, JS-like files, and schema escapes need current audit evidence before completion can be reclaimed. | This setup run only prepares the plan and return package; it does not run hardening audits or source-code fixes. | Run the queued gate audit items after the Step 61 reconciliation step. |
+| TS-DEBT-EVIDENCE-PACKAGE | HIGH | Completion evidence | The setup return package is not a full completion evidence package proving Gates 1-7. | Gate 8 cannot pass until the mission gates pass and a final evidence package records that proof. | Produce the final TypeScript completion return package only after all prior gates pass. |
+
+## Return Package Index
+
+| Date | Work ID | Return package | Purpose |
+| --- | --- | --- | --- |
+| 2026-04-25 | TS-HARDENING-CONTINUOUS-SETUP | `return_packages/typescript/TS-HARDENING-CONTINUOUS-SETUP-2026-04-25.md` | Continuous execution setup and non-completion evidence for the current TypeScript hardening plan. |
+
 **How this doc works:** When the user says "keep working on `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is truly trivial or the current step explicitly allows a tightly coupled same-session batch. Do not skip ahead. Do not invent unrelated work. If a checkpoint, review, or strictness measurement reveals additional work that is still inside this document's mission, append new numbered steps to this same document immediately after the checkpoint that discovered it and continue. Do not close this plan while substantial mission-area debt remains.
 
 **Mission statement (non-negotiable):** The mission of this document is to drive the repo to **complete TypeScript hardening across the full project**. This plan is not complete when a bounded phase ends. It is complete only when the repo is materially hardened end-to-end and no substantial hardening backlog remains inside the mission area.
