@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import {
   useArchitectActions,
   type UseArchitectActionsParams,
@@ -90,11 +91,53 @@ type FreeAgencySignAndTradePreflight = Awaited<
 type FreeAgencyOfferSheetPreflight = Awaited<
   ReturnType<UseArchitectActionsReturn['getOfferSheetPreflight']>
 >;
+type FreeAgencyPreparedContract = Partial<FreeAgencyContractFixture> &
+  Record<string, unknown>;
+type FreeAgencyWorldMutationArgs = {
+  mutationType?: string;
+  worldId?: string | null;
+  seasonId?: string;
+  payload?: Record<string, unknown> & {
+    contract?: FreeAgencyPreparedContract;
+    signedUsing?: unknown;
+  };
+};
+type FreeAgencyValidationArgs = {
+  contract?: unknown;
+  signedUsing?: unknown;
+};
+type FreeAgencyComputeArgs = {
+  mutationType?: string;
+  seasonId?: string;
+  payload: Record<string, unknown> & {
+    contract?: unknown;
+    signedUsing?: unknown;
+  };
+};
+type FreeAgencyPreflightArgs = {
+  seasonId?: string;
+  payload?: unknown;
+};
+type FreeAgencyOfferSheetActionInput = Parameters<
+  UseArchitectActionsReturn['handleFinalizeOfferSheet']
+>[0];
+type FreeAgencyTradeInput = Parameters<
+  UseArchitectActionsReturn['applyTradeToCapSheet']
+>[0];
 type FreeAgencyTeamCapSheet = NonNullable<
   UseArchitectActionsParams['state']['teamCapSheet']
 >;
 type FreeAgencyStateCapSheet = UseArchitectActionsParams['state']['teamCapSheet'];
 type FreeAgencyCapHold = NonNullable<FreeAgencyTeamCapSheet['capHolds']>[number];
+type StateSetterValue<T> = T extends Dispatch<SetStateAction<infer TValue>>
+  ? TValue
+  : never;
+type FreeAgencySelectedPlayerState = StateSetterValue<
+  UseArchitectActionsParams['state']['setSelectedPlayer']
+>;
+type FreeAgencyFreeAgentsState = StateSetterValue<
+  UseArchitectActionsParams['state']['setFreeAgents']
+>;
 type ReloadActiveWorldTeamData = NonNullable<
   UseArchitectActionsParams['state']['reloadActiveWorldTeamData']
 >;
@@ -355,8 +398,11 @@ function renderActionsHarness({
     const [teamCapSheet, setTeamCapSheet] =
       useState<FreeAgencyStateCapSheet>(initialTeam);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
-    const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-    const [freeAgents, setFreeAgents] = useState<any[]>([playerFixture]);
+    const [selectedPlayer, setSelectedPlayer] =
+      useState<FreeAgencySelectedPlayerState>(null);
+    const [freeAgents, setFreeAgents] = useState<FreeAgencyPlayerFixture[]>([
+      playerFixture,
+    ]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
     const [offseasonSummary, setOffseasonSummary] = useState<unknown>(null);
 
@@ -370,7 +416,8 @@ function renderActionsHarness({
         setTeamCapSheet,
         setSelectedRulesYear,
         setSelectedPlayer,
-        setFreeAgents,
+        setFreeAgents:
+          setFreeAgents as UseArchitectActionsParams['state']['setFreeAgents'],
         startSave,
         finishSave,
         setOffseasonRun,
@@ -1107,7 +1154,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     const worldMutationArgs =
-      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0] as any;
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)
+        ?.[0] as FreeAgencyWorldMutationArgs;
     const dispatchedContract = worldMutationArgs?.payload?.contract;
 
     expect(worldMutationArgs).toEqual(
@@ -1169,8 +1217,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
 
-    const validationArgs = validationMocks.validateSigning.mock.calls.at(-1)?.[0] as any;
-    const computeArgs = mutationMocks.computeWorldMutation.mock.calls.at(-1)?.[0] as any;
+    const validationArgs = validationMocks.validateSigning.mock.calls.at(-1)
+      ?.[0] as FreeAgencyValidationArgs;
+    const computeArgs = mutationMocks.computeWorldMutation.mock.calls.at(-1)
+      ?.[0] as FreeAgencyComputeArgs;
 
     expect(actionResult).toEqual(
       expect.objectContaining({
@@ -1267,7 +1317,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           ...contractFixture,
           totalValue: 5_000_000,
           signedUsing: 'Taxpayer MLE',
-        } as any
+        }
       );
     });
 
@@ -1366,13 +1416,14 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         buildStagedScalarSigningFixture({
           startYear: 2028,
           contractType: 'Conflicting SAT Type',
-        }) as any,
+        }),
         'celtics'
       );
     });
 
     const worldMutationArgs =
-      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0] as any;
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)
+        ?.[0] as FreeAgencyWorldMutationArgs;
     const dispatchedContract = worldMutationArgs?.payload?.contract;
 
     expect(actionResult).toEqual({ success: true });
@@ -1437,7 +1488,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     await act(async () => {
       await result.current.actions.getSignAndTradePreflight(
         playerFixture,
-        stagedContract as any,
+        stagedContract,
         'celtics'
       );
     });
@@ -1445,14 +1496,16 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     await act(async () => {
       await result.current.actions.handleSignAndTrade(
         playerFixture,
-        stagedContract as any,
+        stagedContract,
         'celtics'
       );
     });
 
     const preflightArgs =
-      mutationMocks.preflightSignAndTradeMutation.mock.calls.at(-1)?.[0] as any;
-    const commitArgs = mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0] as any;
+      mutationMocks.preflightSignAndTradeMutation.mock.calls.at(-1)
+        ?.[0] as FreeAgencyPreflightArgs;
+    const commitArgs = mutationMocks.applyWorldMutation.mock.calls.at(-1)
+      ?.[0] as FreeAgencyWorldMutationArgs;
 
     expect(preflightArgs?.seasonId).toBe('2027-28');
     expect(commitArgs?.seasonId).toBe('2027-28');
@@ -1665,7 +1718,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           player_id: 'player_1',
           name: 'Test Player',
           displayName: 'Test Player',
-        } as any
+        }
       );
     });
 
@@ -1710,7 +1763,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           exceptionType: 'Minimum',
           signedUsing: null,
           contractType: 'Conflicting Offer Sheet Type',
-        }) as any
+        })
       );
     });
 
@@ -1723,7 +1776,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     const worldMutationArgs =
-      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0] as any;
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)
+        ?.[0] as FreeAgencyWorldMutationArgs;
     const dispatchedContract = worldMutationArgs?.payload?.contract;
 
     expect(worldMutationArgs).toEqual(
@@ -1799,7 +1853,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           salaries: [12_000_000, 12_960_000],
           exceptionType: 'Minimum',
           signedUsing: null,
-        }) as any
+        })
       );
     });
 
@@ -1857,7 +1911,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           salaries: [12_000_000, 12_960_000],
           exceptionType: 'Minimum',
           signedUsing: null,
-        }) as any
+        })
       );
     });
 
@@ -2140,7 +2194,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     act(() => {
       result.current.actions.handleFinalizeOfferSheet({
         ...initialTeam.incomingOfferSheets[0],
-      } as any);
+      } as FreeAgencyOfferSheetActionInput);
     });
 
     await waitFor(() => {
@@ -2206,7 +2260,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     act(() => {
       result.current.actions.handleFinalizeOfferSheet({
         ...initialTeam.offerSheets[0],
-      } as any);
+      } as FreeAgencyOfferSheetActionInput);
     });
 
     await waitFor(() => {
@@ -2256,7 +2310,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     act(() => {
       result.current.actions.handleFinalizeOfferSheet({
         ...initialTeam.offerSheets[0],
-      } as any);
+      } as FreeAgencyOfferSheetActionInput);
     });
 
     await waitFor(() => {
@@ -2322,7 +2376,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       act(() => {
         result.current.actions.handleFinalizeOfferSheet({
           ...initialTeam.offerSheets[0],
-        } as any);
+        } as FreeAgencyOfferSheetActionInput);
       });
 
       await waitFor(() => {
@@ -2434,7 +2488,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     act(() => {
       result.current.actions.handleFinalizeOfferSheet({
         ...initialTeam.offerSheets[0],
-      } as any);
+      } as FreeAgencyOfferSheetActionInput);
     });
 
     await waitFor(() => {
@@ -2592,7 +2646,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     act(() => {
       result.current.actions.handleFinalizeOfferSheet({
         ...initialTeam.offerSheets[0],
-      } as any);
+      } as FreeAgencyOfferSheetActionInput);
     });
 
     await waitFor(() => {
@@ -2630,7 +2684,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         status: 'MATCHED',
         homeTeamCode: 'LAL',
         offeringTeamCode: 'BOS',
-      } as any);
+      } as FreeAgencyOfferSheetActionInput);
     });
 
     await waitFor(() => {
@@ -2650,7 +2704,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         status: 'MATCHED',
         homeTeamCode: 'BOS',
         offeringTeamCode: 'NYK',
-      } as any);
+      } as FreeAgencyOfferSheetActionInput);
     });
 
     await waitFor(() => {
@@ -2770,11 +2824,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       },
     ];
 
-    let caughtError: Error | null = null;
+    let caughtError: unknown = null;
     await act(async () => {
       try {
-        await result.current.actions.applyTradeToCapSheet(tradeData as any);
-      } catch (error: any) {
+        await result.current.actions.applyTradeToCapSheet(
+          tradeData as FreeAgencyTradeInput
+        );
+      } catch (error: unknown) {
         caughtError = error;
       }
     });
@@ -2795,7 +2851,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       })
     );
     expect(result.current.teamCapSheet).toBe(beforeApplyTeam);
-    expect((result.current.teamCapSheet as any).marker).toBeUndefined();
+    expect(
+      (result.current.teamCapSheet as FreeAgencyTeamCapSheet & {
+        marker?: unknown;
+      }).marker
+    ).toBeUndefined();
   });
 
   it('routes world-mode trade apply through the authoritative mutation lane and syncs the committed active-team snapshot', async () => {
@@ -2891,7 +2951,9 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     ];
 
     await act(async () => {
-      await result.current.actions.applyTradeToCapSheet(tradeData as any);
+      await result.current.actions.applyTradeToCapSheet(
+        tradeData as FreeAgencyTradeInput
+      );
     });
 
     expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
@@ -2965,7 +3027,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         buildStagedScalarSigningFixture({
           startYear: 2028,
           contractType: 'Conflicting SAT Preflight Type',
-        }) as any,
+        }),
         'bos'
       );
     });
@@ -3016,7 +3078,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           exceptionType: 'Minimum',
           signedUsing: null,
           contractType: 'Conflicting Offer Sheet Preflight Type',
-        }) as any
+        })
       );
     });
 

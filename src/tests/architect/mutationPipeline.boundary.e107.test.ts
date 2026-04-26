@@ -1,14 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ArchitectMutationTeamRecord } from '@/features/architect/utils/mutationPipeline';
+
+type FirestoreWriteBatchMock = {
+  set: (...args: unknown[]) => unknown;
+  update: (...args: unknown[]) => unknown;
+  commit: () => Promise<void>;
+};
 
 const harness = vi.hoisted(() => ({
-  writeBatchMock: vi.fn((): any => ({
+  writeBatchMock: vi.fn(
+    (): FirestoreWriteBatchMock => ({
     set: vi.fn(),
     update: vi.fn(),
     commit: vi.fn(async () => undefined),
-  })),
+    })
+  ),
   getTeamMock: vi.fn(),
   getPlayerMock: vi.fn(),
-  updateWorldStatsMock: vi.fn(async (): Promise<any> => undefined),
+  updateWorldStatsMock: vi.fn(async (): Promise<void> => undefined),
   buildTradeApplyPreparationMock: vi.fn(),
   buildPostTradeTeamsSnapshotMock: vi.fn(),
   validatePostTradeSnapshotForContextMock: vi.fn(),
@@ -42,22 +51,22 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
-  validateSigning: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateWaive: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateOptionDecision: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
+  validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateOptionDecision: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateOfferSheetResolution: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateRenounceRights: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
-  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -65,8 +74,8 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-post-state-validator',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
 }));
 
@@ -122,18 +131,18 @@ const REQUIRED_MUTATION_PIPELINE_EXPORTS = [
   'validatePostTradeSnapshotForContext',
 ] as const;
 
-function makeTeam(teamCode: string) {
+function makeTeam(teamCode: string): ArchitectMutationTeamRecord {
   return {
     teamCode,
     teamName: `Team ${teamCode}`,
-    roster: [] as any[],
-    players: [] as any[],
-    capHolds: [] as any[],
-    deadCap: [] as any[],
-    tradeExceptions: [] as any[],
-    exceptionHistory: [] as any[],
-    entitlementIds: [] as any[],
-    exceptions: { tpe: [] as any[] },
+    roster: [],
+    players: [],
+    capHolds: [],
+    deadCap: [],
+    tradeExceptions: [],
+    exceptionHistory: [],
+    entitlementIds: [],
+    exceptions: { tpe: [] },
     totals: { totalSalary: 0, capHit: 0 },
   };
 }
@@ -288,9 +297,10 @@ describe('E107 mutationPipeline boundary proof', () => {
     });
 
     expect(result.success).toBe(true);
-    expect((result.teamUpdates as any)[0].team.exceptions.mle.totalAmount).toBe(
-      12_900_000
-    );
+    const updatedTeam = result.teamUpdates?.[0]?.team as
+      | ArchitectMutationTeamRecord
+      | undefined;
+    expect(updatedTeam?.exceptions?.mle?.totalAmount).toBe(12_900_000);
   });
 
   it('keeps applyWorldMutation fail-closed before writes when worldId is missing', async () => {

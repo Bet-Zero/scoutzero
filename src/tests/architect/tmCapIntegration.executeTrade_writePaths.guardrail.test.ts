@@ -1,19 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  ArchitectMutationPlayerRecord,
+  ArchitectMutationTeamRecord,
+} from '@/features/architect/utils/mutationPipeline';
+
+type FirestoreDocSnapshot = {
+  exists: () => boolean;
+  data: () => Record<string, never>;
+};
 
 const firestoreMocks = vi.hoisted(() => ({
   batchSet: vi.fn(),
   batchUpdate: vi.fn(),
   batchDelete: vi.fn(),
-  batchCommit: vi.fn(async (): Promise<any> => undefined),
-  getDoc: vi.fn(async (): Promise<any> => ({ exists: () => false, data: () => ({}) })),
+  batchCommit: vi.fn(async (): Promise<void> => undefined),
+  getDoc: vi.fn(
+    async (): Promise<FirestoreDocSnapshot> => ({
+      exists: () => false,
+      data: () => ({}),
+    })
+  ),
 }));
 
 const teamLoaderMocks = vi.hoisted(() => ({
   getTeam: vi.fn(),
   getPlayer: vi.fn(),
-  getLeague: vi.fn(async (): Promise<any[]> => []),
-  mergePlayerOverride: vi.fn((base: any, override: any) =>
-    override ? { ...base, ...override } : base
+  getLeague: vi.fn(async (): Promise<unknown[]> => []),
+  mergePlayerOverride: vi.fn(
+    (
+      base: Record<string, unknown>,
+      override: Record<string, unknown> | null | undefined
+    ) =>
+      override ? { ...base, ...override } : base
   ),
 }));
 
@@ -43,34 +61,34 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   updateWorldStats: vi.fn(async () => undefined),
-  getWorldMetadata: vi.fn(async () => ({ parentWorldId: null as any })),
+  getWorldMetadata: vi.fn(async () => ({ parentWorldId: null })),
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
-  validateSigning: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateWaive: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
+  validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateExtension: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateOfferSheetResolution: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateRenounceRights: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
-  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -82,8 +100,8 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-post-state-validator',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
 }));
 
@@ -92,7 +110,11 @@ import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline'
 const WORLD_ID = 'world_tm_cap_e1_paths';
 const SEASON_ID = '2025-26';
 
-function makePlayer(id: string, salary: number, teamCode: string) {
+function makePlayer(
+  id: string,
+  salary: number,
+  teamCode: string
+): ArchitectMutationPlayerRecord {
   return {
     id,
     player_id: id,
@@ -109,7 +131,10 @@ function makePlayer(id: string, salary: number, teamCode: string) {
   };
 }
 
-function makeTeam(teamCode: string, players: Array<Record<string, any>>) {
+function makeTeam(
+  teamCode: string,
+  players: ArchitectMutationPlayerRecord[]
+): ArchitectMutationTeamRecord {
   const totalSalary = players.reduce(
     (sum, player) =>
       sum +
@@ -127,12 +152,12 @@ function makeTeam(teamCode: string, players: Array<Record<string, any>>) {
     teamName: `Team ${teamCode}`,
     roster: players.map((player) => String(player.player_id || player.id)),
     players,
-    capHolds: [] as any[],
-    draftPicks: [] as any[],
-    entitlementIds: [] as any[],
-    tradeExceptions: [] as any[],
-    exceptionHistory: [] as any[],
-    exceptions: { tpe: [] as any[] },
+    capHolds: [],
+    draftPicks: [],
+    entitlementIds: [],
+    tradeExceptions: [],
+    exceptionHistory: [],
+    exceptions: { tpe: [] },
     totals: { totalSalary, capHit: totalSalary },
   };
 }
@@ -141,7 +166,7 @@ describe('TM_CAP_INTEGRATION_E1 AC2: executeTrade write-path guardrails', () => 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const teamByCode: Record<string, any> = {
+    const teamByCode: Record<string, ArchitectMutationTeamRecord> = {
       LAL: makeTeam('LAL', [makePlayer('lal_out_18m', 18_000_000, 'LAL')]),
       BOS: makeTeam('BOS', [makePlayer('bos_out_10m', 10_000_000, 'BOS')]),
       TMA: makeTeam('TMA', [makePlayer('a_out', 10_000_000, 'TMA')]),

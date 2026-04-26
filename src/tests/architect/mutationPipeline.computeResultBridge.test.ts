@@ -1,19 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  ArchitectMutationPlayerRecord,
+  ArchitectMutationTeamRecord,
+} from '@/features/architect/utils/mutationPipeline';
+
+type FirestoreDocSnapshot = {
+  exists: () => boolean;
+  data: () => Record<string, never>;
+};
 
 const firestoreMocks = vi.hoisted(() => ({
   batchSet: vi.fn(),
   batchUpdate: vi.fn(),
   batchDelete: vi.fn(),
-  batchCommit: vi.fn(async (): Promise<any> => undefined),
-  getDoc: vi.fn(async (): Promise<any> => ({ exists: () => false, data: () => ({}) })),
+  batchCommit: vi.fn(async (): Promise<void> => undefined),
+  getDoc: vi.fn(
+    async (): Promise<FirestoreDocSnapshot> => ({
+      exists: () => false,
+      data: () => ({}),
+    })
+  ),
 }));
 
 const teamLoaderMocks = vi.hoisted(() => ({
   getTeam: vi.fn(),
   getPlayer: vi.fn(),
-  getLeague: vi.fn(async (): Promise<any[]> => []),
-  mergePlayerOverride: vi.fn((base: any, override: any) =>
-    override ? { ...base, ...override } : base
+  getLeague: vi.fn(async (): Promise<unknown[]> => []),
+  mergePlayerOverride: vi.fn(
+    (
+      base: Record<string, unknown>,
+      override: Record<string, unknown> | null | undefined
+    ) =>
+      override ? { ...base, ...override } : base
   ),
 }));
 
@@ -56,30 +74,30 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
-  validateSigning: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateWaive: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
+  validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateExtension: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateOfferSheetResolution: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateRenounceRights: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
-  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -87,8 +105,8 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-post-state-validator',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
 }));
 
@@ -101,13 +119,13 @@ vi.mock('@/features/architect/utils/persistenceContracts', () => ({
 vi.mock('@/features/architect/utils/leagueInvariants', () => ({
   validateMutationLeagueInvariants: vi.fn(async () => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateMutationEntitlementInvariants: vi.fn(async () => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateTradeApplyExclusivity: vi.fn(async () => ({
     valid: true,
@@ -150,7 +168,7 @@ function makePlayer(
   salary: number,
   teamCode: string | null,
   overrides: Record<string, unknown> = {}
-) {
+): ArchitectMutationPlayerRecord {
   return {
     id,
     player_id: id,
@@ -170,7 +188,10 @@ function makePlayer(
   };
 }
 
-function makeTeam(teamCode: string, players: Array<Record<string, any>>) {
+function makeTeam(
+  teamCode: string,
+  players: ArchitectMutationPlayerRecord[]
+): ArchitectMutationTeamRecord {
   const totalSalary = players.reduce(
     (sum, player) =>
       sum +
@@ -194,7 +215,7 @@ function makeTeam(teamCode: string, players: Array<Record<string, any>>) {
     entitlementIds: [],
     tradeExceptions: [],
     exceptionHistory: [],
-    exceptions: { mle: null, bae: null, tpe: [] as any[] },
+    exceptions: { mle: null, bae: null, tpe: [] },
     deadCap: [],
     totals: {
       totalSalary,

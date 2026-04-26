@@ -2,12 +2,20 @@ import fs from 'fs';
 import path from 'path';
 import { describe, expect, it, vi } from 'vitest';
 
+type FirestoreWriteBatchMock = {
+  set: (...args: unknown[]) => unknown;
+  update: (...args: unknown[]) => unknown;
+  commit: () => Promise<void>;
+};
+
 const harness = vi.hoisted(() => ({
-  writeBatchMock: vi.fn((): any => ({
-    set: vi.fn(),
-    update: vi.fn(),
-    commit: vi.fn(async (): Promise<any> => undefined),
-  })),
+  writeBatchMock: vi.fn(
+    (): FirestoreWriteBatchMock => ({
+      set: vi.fn(),
+      update: vi.fn(),
+      commit: vi.fn(async (): Promise<void> => undefined),
+    })
+  ),
 }));
 
 vi.mock('@/firebaseConfig', () => ({
@@ -27,7 +35,7 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
 }));
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
-  updateWorldStats: vi.fn(async (): Promise<any> => undefined),
+  updateWorldStats: vi.fn(async (): Promise<void> => undefined),
 }));
 
 vi.mock('@/features/architect/utils/tradeMachine', () => ({
@@ -35,22 +43,22 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
-  validateSigning: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateWaive: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateOptionDecision: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
+  validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateOptionDecision: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateOfferSheetResolution: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateRenounceRights: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
-  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -58,8 +66,8 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-post-state-validator',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
 }));
 

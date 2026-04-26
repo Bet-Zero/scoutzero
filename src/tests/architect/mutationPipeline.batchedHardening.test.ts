@@ -13,15 +13,28 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type FirestoreWriteBatchMock = {
+  set: (...args: unknown[]) => unknown;
+  update: (...args: unknown[]) => unknown;
+  commit: () => Promise<void>;
+};
+
+type MutationMetadataWithChanges = {
+  exceptionChanges?: string[] | null;
+  deadCapChanges?: string[] | null;
+};
+
 const harness = vi.hoisted(() => ({
-  writeBatchMock: vi.fn((): any => ({
+  writeBatchMock: vi.fn(
+    (): FirestoreWriteBatchMock => ({
     set: vi.fn(),
     update: vi.fn(),
     commit: vi.fn(async () => undefined),
-  })),
+    })
+  ),
   getTeamMock: vi.fn(),
   getPlayerMock: vi.fn(),
-  updateWorldStatsMock: vi.fn(async (): Promise<any> => undefined),
+  updateWorldStatsMock: vi.fn(async (): Promise<void> => undefined),
   buildTradeApplyPreparationMock: vi.fn(),
   buildPostTradeTeamsSnapshotMock: vi.fn(),
   validatePostTradeSnapshotForContextMock: vi.fn(),
@@ -57,30 +70,30 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
-  validateSigning: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
-  validateWaive: vi.fn(() => ({ valid: true, violations: [] as any[], warnings: [] as any[] })),
+  validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateExtension: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateOfferSheetResolution: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateRenounceRights: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
-  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -88,8 +101,8 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-post-state-validator',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
 }));
 
@@ -126,13 +139,13 @@ vi.mock('@/features/architect/utils/persistenceContracts', () => ({
 vi.mock('@/features/architect/utils/leagueInvariants', () => ({
   validateMutationLeagueInvariants: vi.fn(async () => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
   validateMutationEntitlementInvariants: vi.fn(async () => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
 }));
 
@@ -177,7 +190,9 @@ describe('mutationPipeline batched hardening — narrowed payload types', () => 
       });
 
       expect(result.success).toBe(true);
-      expect((result.metadata as any).exceptionChanges).toEqual([
+      expect(
+        (result.metadata as MutationMetadataWithChanges).exceptionChanges
+      ).toEqual([
         'MLE updated',
         'BAE updated',
       ]);
@@ -193,7 +208,9 @@ describe('mutationPipeline batched hardening — narrowed payload types', () => 
       });
 
       expect(result.success).toBe(true);
-      expect((result.metadata as any).exceptionChanges).toEqual([
+      expect(
+        (result.metadata as MutationMetadataWithChanges).exceptionChanges
+      ).toEqual([
         'Exceptions updated',
       ]);
     });
@@ -214,7 +231,9 @@ describe('mutationPipeline batched hardening — narrowed payload types', () => 
       });
 
       expect(result.success).toBe(true);
-      expect((result.metadata as any).deadCapChanges).toEqual(['Player waived']);
+      expect(
+        (result.metadata as MutationMetadataWithChanges).deadCapChanges
+      ).toEqual(['Player waived']);
     });
 
     it('falls back to the default label when deadCapChanges is omitted', () => {
@@ -227,7 +246,9 @@ describe('mutationPipeline batched hardening — narrowed payload types', () => 
       });
 
       expect(result.success).toBe(true);
-      expect((result.metadata as any).deadCapChanges).toEqual(['Dead cap updated']);
+      expect(
+        (result.metadata as MutationMetadataWithChanges).deadCapChanges
+      ).toEqual(['Dead cap updated']);
     });
   });
 

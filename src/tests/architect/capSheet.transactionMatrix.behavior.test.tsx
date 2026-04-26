@@ -2,9 +2,57 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useState } from 'react';
-import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import type { Dispatch, SetStateAction } from 'react';
+import {
+  useArchitectActions,
+  type UseArchitectActionsParams,
+  type UseArchitectActionsReturn,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+
+type MatrixTeamCapSheet = NonNullable<
+  UseArchitectActionsParams['state']['teamCapSheet']
+>;
+type StateSetterValue<T> = T extends Dispatch<SetStateAction<infer TValue>>
+  ? TValue
+  : never;
+type MatrixTeamCapSheetState = StateSetterValue<
+  UseArchitectActionsParams['state']['setTeamCapSheet']
+>;
+type MatrixSelectedPlayerState = StateSetterValue<
+  UseArchitectActionsParams['state']['setSelectedPlayer']
+>;
+type MatrixFreeAgentsState = StateSetterValue<
+  UseArchitectActionsParams['state']['setFreeAgents']
+>;
+type MatrixOffseasonSummaryState = StateSetterValue<
+  UseArchitectActionsParams['state']['setOffseasonSummary']
+>;
+type MatrixPlayer = NonNullable<MatrixTeamCapSheet['players']>[number];
+type MatrixActionPlayer = Parameters<
+  UseArchitectActionsReturn['handleExtendContract']
+>[0];
+type MatrixCapHold = NonNullable<MatrixTeamCapSheet['capHolds']>[number];
+type MatrixSigningResult = Awaited<
+  ReturnType<UseArchitectActionsReturn['handleSign']>
+>;
+type MatrixSignAndTradeResult = Awaited<
+  ReturnType<UseArchitectActionsReturn['handleSignAndTrade']>
+>;
+type SignFreeAgentComputeArgs = {
+  mutationType: string;
+  currentState?: {
+    team?: MatrixTeamCapSheet | null;
+  } | null;
+  payload?: {
+    playerId?: string | number | null;
+    contract?: {
+      contractType?: string | null;
+      salariesByYear?: Array<{ salary?: number | string | null }> | null;
+    } | null;
+  } | null;
+};
 
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
@@ -62,20 +110,20 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-validator',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
-  validateContractRows: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateContractRows: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -129,7 +177,7 @@ function buildTeamFixture() {
     teamName: 'Los Angeles Lakers',
     roster: players.map((player) => player.id),
     players,
-    deadCap: [] as any[],
+    deadCap: [],
     capHolds: [
       {
         playerId: 'p_renounce',
@@ -164,19 +212,30 @@ function buildTeamFixture() {
   };
 }
 
-function totalForYear(team: any, endYear = CURRENT_YEAR): number {
+function totalForYear(team: MatrixTeamCapSheet, endYear = CURRENT_YEAR): number {
   return computeTeamCapTotals(team, endYear).totalCapAllocations;
 }
 
-function getPlayer(team: any, playerId: string) {
+function getPlayer(team: MatrixTeamCapSheet, playerId: string) {
   return (team?.players || []).find(
-    (player: any) => player.id === playerId || player.player_id === playerId
+    (player) => player.id === playerId || player.player_id === playerId
   );
 }
 
-function buildPlayersMap(team: any): Record<string, any> {
-  const map: Record<string, any> = {};
-  (team?.players || []).forEach((player: any) => {
+function getRequiredPlayer(
+  team: MatrixTeamCapSheet,
+  playerId: string
+): MatrixActionPlayer {
+  const player = getPlayer(team, playerId);
+  if (!player) {
+    throw new Error(`Missing test player fixture: ${playerId}`);
+  }
+  return player as MatrixActionPlayer;
+}
+
+function buildPlayersMap(team: MatrixTeamCapSheet): Record<string, MatrixPlayer> {
+  const map: Record<string, MatrixPlayer> = {};
+  (team?.players || []).forEach((player) => {
     const id = player.id || player.player_id || player.name;
     if (id) map[id] = player;
     if (player.name) map[player.name] = player;
@@ -187,7 +246,7 @@ function buildPlayersMap(team: any): Record<string, any> {
     player_id: 'p_resign',
     name: 'p_resign',
     displayName: 'p_resign',
-    contract: null as any,
+    contract: null,
   };
   map.p_resign = resignPlayer;
   map['p_resign'] = resignPlayer;
@@ -200,7 +259,7 @@ function renderActionsHarness({
   initialTeam,
 }: {
   worldId: string | null;
-  initialTeam?: any;
+  initialTeam?: MatrixTeamCapSheet;
 }) {
   const team = initialTeam || buildTeamFixture();
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
@@ -208,13 +267,16 @@ function renderActionsHarness({
   const finishSave = vi.fn();
 
   const { result } = renderHook(() => {
-    const [teamCapSheet, setTeamCapSheet] = useState<any>(team);
+    const [teamCapSheet, setTeamCapSheet] =
+      useState<MatrixTeamCapSheetState>(team);
     const [selectedRulesYear, setSelectedRulesYear] =
       useState<number>(CURRENT_YEAR);
-    const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-    const [freeAgents, setFreeAgents] = useState<any[]>([]);
+    const [selectedPlayer, setSelectedPlayer] =
+      useState<MatrixSelectedPlayerState>(null);
+    const [freeAgents, setFreeAgents] = useState<MatrixFreeAgentsState>([]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-    const [offseasonSummary, setOffseasonSummary] = useState<any>(null);
+    const [offseasonSummary, setOffseasonSummary] =
+      useState<MatrixOffseasonSummaryState>(null);
 
     const actions = useArchitectActions({
       teamId: 'LAL',
@@ -233,7 +295,7 @@ function renderActionsHarness({
         setOffseasonSummary,
         refreshWorldRosterIndex,
       },
-      playersMap: buildPlayersMap(teamCapSheet),
+      playersMap: buildPlayersMap(teamCapSheet || buildTeamFixture()),
       modals: {
         openContractModal: vi.fn(),
         closeContractModal: vi.fn(),
@@ -242,7 +304,7 @@ function renderActionsHarness({
       seasonId: CURRENT_SEASON,
     });
 
-    return { actions, teamCapSheet };
+    return { actions, teamCapSheet: teamCapSheet || buildTeamFixture() };
   });
 
   return { result, refreshWorldRosterIndex };
@@ -274,14 +336,14 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       event: { operationId: 'world-op' },
     });
     mutationMocks.computeWorldMutation.mockImplementation(
-      ({ mutationType, currentState, payload }: any) => {
+      ({ mutationType, currentState, payload }: SignFreeAgentComputeArgs) => {
         if (mutationType !== 'signFreeAgent') {
           return {
             success: false,
             error: `Unsupported mutationType ${mutationType}`,
           };
         }
-        const team = currentState?.team || {};
+        const team = currentState?.team || buildTeamFixture();
         const playerId = String(payload?.playerId || 'p_resign');
         const salary =
           Number(payload?.contract?.salariesByYear?.[0]?.salary) || 5_000_000;
@@ -300,7 +362,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
           roster: [...(team.roster || []), playerId],
           players: [...(team.players || []), signedPlayer],
           capHolds: (team.capHolds || []).filter(
-            (hold: any) => hold.playerId !== playerId
+            (hold: MatrixCapHold) => hold.playerId !== playerId
           ),
         };
 
@@ -314,7 +376,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
 
   it('base mode: extend contract mutates future state, changes totals, and skips world persistence', async () => {
     const { result } = renderActionsHarness({ worldId: null });
-    const targetPlayer = getPlayer(result.current.teamCapSheet, 'p_extend');
+    const targetPlayer = getRequiredPlayer(
+      result.current.teamCapSheet,
+      'p_extend'
+    );
     const beforeFutureTotal = totalForYear(
       result.current.teamCapSheet,
       CURRENT_YEAR + 1
@@ -326,7 +391,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       });
     });
 
-    const updatedPlayer = getPlayer(result.current.teamCapSheet, 'p_extend');
+    const updatedPlayer = getRequiredPlayer(
+      result.current.teamCapSheet,
+      'p_extend'
+    );
     const afterFutureTotal = totalForYear(
       result.current.teamCapSheet,
       CURRENT_YEAR + 1
@@ -344,7 +412,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     const waiveBefore = totalForYear(result.current.teamCapSheet);
     await act(async () => {
       await result.current.actions.handleWaiveContract(
-        getPlayer(result.current.teamCapSheet, 'p_waive'),
+        getRequiredPlayer(result.current.teamCapSheet, 'p_waive'),
         { stretch: false, buyout: false }
       );
     });
@@ -355,7 +423,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     const stretchBefore = totalForYear(result.current.teamCapSheet);
     await act(async () => {
       await result.current.actions.handleWaiveContract(
-        getPlayer(result.current.teamCapSheet, 'p_stretch'),
+        getRequiredPlayer(result.current.teamCapSheet, 'p_stretch'),
         { stretch: true, buyout: false }
       );
     });
@@ -366,7 +434,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     const buyoutBefore = totalForYear(result.current.teamCapSheet);
     await act(async () => {
       await result.current.actions.handleWaiveContract(
-        getPlayer(result.current.teamCapSheet, 'p_buyout'),
+        getRequiredPlayer(result.current.teamCapSheet, 'p_buyout'),
         { stretch: false, buyout: true, buyoutAmount: 5_000_000 }
       );
     });
@@ -382,14 +450,14 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     const renounceBefore = totalForYear(result.current.teamCapSheet);
     await act(async () => {
       await result.current.actions.handleRenounceRights(
-        getPlayer(result.current.teamCapSheet, 'p_renounce')
+        getRequiredPlayer(result.current.teamCapSheet, 'p_renounce')
       );
     });
     const renounceAfter = totalForYear(result.current.teamCapSheet);
     expect(renounceAfter).toBeLessThan(renounceBefore);
     expect(
-      result.current.teamCapSheet.capHolds.some(
-        (hold: any) => hold.playerId === 'p_renounce'
+      result.current.teamCapSheet.capHolds?.some(
+        (hold: MatrixCapHold) => hold.playerId === 'p_renounce'
       )
     ).toBe(false);
 
@@ -402,8 +470,8 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     });
     await waitFor(() => {
       expect(
-        result.current.teamCapSheet.capHolds.some(
-          (hold: any) => hold.playerId === 'hold_only'
+        result.current.teamCapSheet.capHolds?.some(
+          (hold: MatrixCapHold) => hold.playerId === 'hold_only'
         )
       ).toBe(false);
     });
@@ -427,7 +495,11 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       });
     });
     const exceptionsAfter = totalForYear(result.current.teamCapSheet);
-    expect(result.current.teamCapSheet.exceptions?.mle?.enabled).toBe(true);
+    const exceptions = result.current.teamCapSheet.exceptions as
+      | { mle?: { enabled?: boolean } }
+      | null
+      | undefined;
+    expect(exceptions?.mle?.enabled).toBe(true);
     expect(exceptionsAfter).toBe(exceptionsBefore);
 
     const deadMoneyBefore = totalForYear(result.current.teamCapSheet);
@@ -445,7 +517,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(result.current.teamCapSheet.deadCap).toHaveLength(1);
 
     const resignBefore = totalForYear(result.current.teamCapSheet);
-    let resignResult: any;
+    let resignResult: MatrixSigningResult | undefined;
     await act(async () => {
       resignResult = await result.current.actions.handleSign(
         {
@@ -462,13 +534,13 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         }
       );
     });
-    expect(resignResult.success).toBe(true);
+    expect(resignResult?.success).toBe(true);
     const resignAfter = totalForYear(result.current.teamCapSheet);
     expect(resignAfter).toBeGreaterThan(resignBefore);
     expect(getPlayer(result.current.teamCapSheet, 'p_resign')).toBeTruthy();
 
     const signAndTradeBefore = totalForYear(result.current.teamCapSheet);
-    let signAndTradeResult: any;
+    let signAndTradeResult: MatrixSignAndTradeResult | undefined;
     await act(async () => {
       signAndTradeResult = await result.current.actions.handleSignAndTrade(
         {
@@ -485,8 +557,8 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         'BOS'
       );
     });
-    expect(signAndTradeResult.success).toBe(false);
-    expect(signAndTradeResult.message).toMatch(/active world/i);
+    expect(signAndTradeResult?.success).toBe(false);
+    expect(signAndTradeResult?.message).toMatch(/active world/i);
     expect(totalForYear(result.current.teamCapSheet)).toBe(signAndTradeBefore);
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
@@ -519,7 +591,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
 
     await act(async () => {
       await result.current.actions.handleExtendContract(
-        getPlayer(result.current.teamCapSheet, 'p_extend'),
+        getRequiredPlayer(result.current.teamCapSheet, 'p_extend'),
         {
           salariesByYear: [salaryRow(CURRENT_YEAR + 1, 11_000_000)],
         }
@@ -532,7 +604,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
 
     await act(async () => {
       await result.current.actions.handleWaiveContract(
-        getPlayer(result.current.teamCapSheet, 'p_waive'),
+        getRequiredPlayer(result.current.teamCapSheet, 'p_waive'),
         { stretch: false, buyout: false }
       );
     });
@@ -543,7 +615,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
 
     await act(async () => {
       await result.current.actions.handleWaiveContract(
-        getPlayer(result.current.teamCapSheet, 'p_stretch'),
+        getRequiredPlayer(result.current.teamCapSheet, 'p_stretch'),
         { stretch: true, buyout: false }
       );
     });
@@ -554,7 +626,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
 
     await act(async () => {
       await result.current.actions.handleWaiveContract(
-        getPlayer(result.current.teamCapSheet, 'p_buyout'),
+        getRequiredPlayer(result.current.teamCapSheet, 'p_buyout'),
         { stretch: false, buyout: true, buyoutAmount: 5_000_000 }
       );
     });
@@ -566,7 +638,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
 
     await act(async () => {
       await result.current.actions.handleRenounceRights(
-        getPlayer(result.current.teamCapSheet, 'p_renounce')
+        getRequiredPlayer(result.current.teamCapSheet, 'p_renounce')
       );
     });
     expectWorldMutationCall('renounceRights', {
@@ -617,7 +689,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
                     },
                   ],
                   capHolds: baseTeam.capHolds.filter(
-                    (hold: any) => hold.playerId !== 'p_resign'
+                    (hold) => hold.playerId !== 'p_resign'
                   ),
                 },
               },
@@ -635,7 +707,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
                 team: {
                   ...baseTeam,
                   capHolds: baseTeam.capHolds.filter(
-                    (hold: any) => hold.playerId !== 'p_resign'
+                    (hold) => hold.playerId !== 'p_resign'
                   ),
                 },
               },
@@ -655,7 +727,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
     const resignBefore = totalForYear(result.current.teamCapSheet);
-    let resignResult: any;
+    let resignResult: MatrixSigningResult | undefined;
     await act(async () => {
       resignResult = await result.current.actions.handleSign(
         {
@@ -672,7 +744,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         }
       );
     });
-    expect(resignResult.success).toBe(true);
+    expect(resignResult?.success).toBe(true);
     expectWorldMutationCall('signFreeAgent', {
       teamCode: 'LAL',
       playerId: 'p_resign',
@@ -681,7 +753,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(resignAfter).toBeGreaterThan(resignBefore);
 
     const signAndTradeBefore = totalForYear(result.current.teamCapSheet);
-    let signAndTradeResult: any;
+    let signAndTradeResult: MatrixSignAndTradeResult | undefined;
     await act(async () => {
       signAndTradeResult = await result.current.actions.handleSignAndTrade(
         {
@@ -698,7 +770,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         'BOS'
       );
     });
-    expect(signAndTradeResult.success).toBe(true);
+    expect(signAndTradeResult?.success).toBe(true);
     expectWorldMutationCall('signAndTrade', {
       teamCode: 'LAL',
       destinationTeamCode: 'BOS',
