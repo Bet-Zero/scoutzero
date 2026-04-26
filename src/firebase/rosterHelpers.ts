@@ -21,8 +21,8 @@ const RosterProjectPlayerIdZ = z.string().min(1).nullable();
 const FirestoreTimestampLikeZ = z.union([
   z.string(),
   z.date(),
-  z.object({ seconds: z.number(), nanoseconds: z.number() }).passthrough(),
-  z.object({ _seconds: z.number(), _nanoseconds: z.number() }).passthrough(),
+  z.object({ seconds: z.number(), nanoseconds: z.number() }),
+  z.object({ _seconds: z.number(), _nanoseconds: z.number() }),
 ]);
 
 const RosterProjectReadDocZ = z
@@ -35,8 +35,7 @@ const RosterProjectReadDocZ = z
     ownerUid: z.string().min(1).nullish(),
     createdAt: FirestoreTimestampLikeZ.optional(),
     updatedAt: FirestoreTimestampLikeZ.optional(),
-  })
-  .passthrough();
+  });
 
 const RosterProjectCreateInputZ = z.object({
   name: z.string().trim().min(1),

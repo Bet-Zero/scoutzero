@@ -141,7 +141,7 @@ describe('mutationPipeline catchall narrowing — ArchitectMutationContract expl
 // Deliberate non-change: Record<string, unknown> | null.
 // Two incompatible shapes used at runtime:
 //   - TeamCapTotals (from computeTeamCapTotals — yearKey, playersTotal, etc.)
-//   - TeamTotals from Firestore (totalSalary, capHit, etc.; uses .passthrough())
+//   - TeamTotals from Firestore (totalSalary, capHit, etc.; allows computed fields)
 // Narrowing requires a coordinated architectural change (separate load/compute types).
 //
 // This test proves the actual runtime shape produced by computeTeamCapTotals is

@@ -29,8 +29,8 @@ const RankerPlayerIdZ = z.string().min(1);
 const FirestoreTimestampLikeZ = z.union([
   z.string(),
   z.date(),
-  z.object({ seconds: z.number(), nanoseconds: z.number() }).passthrough(),
-  z.object({ _seconds: z.number(), _nanoseconds: z.number() }).passthrough(),
+  z.object({ seconds: z.number(), nanoseconds: z.number() }),
+  z.object({ _seconds: z.number(), _nanoseconds: z.number() }),
 ]);
 
 const RankerComparisonResultZ = z.object({
@@ -45,8 +45,7 @@ const RankerSetupDataZ = z
     anchor: RankerPlayerIdZ.nullable().optional(),
     firstPlace: RankerPlayerIdZ.nullable().optional(),
     lastPlace: RankerPlayerIdZ.nullable().optional(),
-  })
-  .passthrough();
+  });
 
 const RankerSessionReadDocZ = z
   .object({
@@ -63,8 +62,7 @@ const RankerSessionReadDocZ = z
     skippedPairs: z.array(z.string().min(1)).default([]),
     adjustments: z.array(RankerPlayerIdZ).nullable().optional(),
     savedListId: z.string().min(1).nullable().optional(),
-  })
-  .passthrough();
+  });
 
 const CreateRankerSessionInputZ = z.object({
   userId: z.string().min(1),

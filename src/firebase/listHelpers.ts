@@ -34,8 +34,8 @@ const TierListModeZ = z.enum(['standard', 'pyramid']);
 const FirestoreTimestampLikeZ = z.union([
   z.string(),
   z.date(),
-  z.object({ seconds: z.number(), nanoseconds: z.number() }).passthrough(),
-  z.object({ _seconds: z.number(), _nanoseconds: z.number() }).passthrough(),
+  z.object({ seconds: z.number(), nanoseconds: z.number() }),
+  z.object({ _seconds: z.number(), _nanoseconds: z.number() }),
 ]);
 const PlayerNotesZ = z
   .record(z.string(), z.string())
@@ -65,8 +65,7 @@ const PlayerListReadDocZ = z
     ownerUid: z.string().min(1).nullish(),
     createdAt: FirestoreTimestampLikeZ.optional(),
     updatedAt: FirestoreTimestampLikeZ.optional(),
-  })
-  .passthrough();
+  });
 
 const SaveListInputZ = z.object({
   playerOrder: z.array(ListOrderItemZ),
@@ -87,8 +86,7 @@ const TierListReadDocZ = z
     ownerUid: z.string().min(1).nullish(),
     createdAt: FirestoreTimestampLikeZ.optional(),
     updatedAt: FirestoreTimestampLikeZ.optional(),
-  })
-  .passthrough();
+  });
 
 const SaveTierListInputZ = z.object({
   tiers: TierBucketsZ,
