@@ -88,8 +88,7 @@ export const ContractMetadataZ = z
     freeAgentYear: YearZ.optional(),
     freeAgentType: FreeAgentTypeZ.optional(),
     maxType: z.string().nullable().optional(),
-  })
-  .passthrough();
+  });
 
 export const ContractDocZ = BasePlayerContractZ.extend({
   metadata: ContractMetadataZ,
@@ -123,8 +122,7 @@ export const ContractsViewDocZ = z
     averageAnnualValue: MoneyZ.optional(),
     maxType: z.string().nullable().optional(),
     contractType: z.string().optional(),
-  })
-  .passthrough();
+  });
 
 export const ContractOptionPayloadZ = z.object({
   year: YearZ.optional().nullable(),
@@ -165,8 +163,8 @@ export const CurrentContractViewZ = z
     yearsRemaining: z.number().int().optional(),
     averageAnnualValue: MoneyZ.optional(),
     maxType: z.string().nullable().optional(),
+    signedUsing: z.string().nullable().optional(),
   })
-  .passthrough()
   .optional();
 
 export const VideoExampleZ = z
@@ -174,8 +172,7 @@ export const VideoExampleZ = z
     url: z.string(),
     label: z.string().optional(),
     createdAt: z.number().optional(),
-  })
-  .passthrough();
+  });
 
 export const VideoExamplesZ = z
   .object({
@@ -188,7 +185,6 @@ export const VideoExamplesZ = z
     overall: z.array(VideoExampleZ).optional(),
   })
   .partial()
-  .passthrough()
   .optional();
 
 export const CurrentEvaluationViewZ = z
@@ -225,13 +221,12 @@ export const CurrentEvaluationViewZ = z
             overall: z.string().optional(),
           })
           .partial()
-          .passthrough(),
+          .and(z.record(z.string(), JsonValueZ)),
         z.record(z.string(), JsonValueZ),
       ])
       .optional(),
     videoExamples: VideoExamplesZ,
   })
-  .passthrough()
   .optional();
 
 export const CurrentSeasonStatsZ = z
@@ -246,7 +241,7 @@ export const CurrentSeasonStatsZ = z
     MIN: z.number().optional(),
     GP: z.number().optional(),
   })
-  .passthrough()
+  .and(z.record(z.string(), JsonValueZ))
   .optional();
 
 // Seasons subcollection
@@ -335,7 +330,7 @@ export const EvaluationDocZ = z.object({
           overall: z.string().optional(),
         })
         .partial()
-        .passthrough(),
+        .and(z.record(z.string(), JsonValueZ)),
       z.record(z.string(), JsonValueZ),
     ])
     .optional(),

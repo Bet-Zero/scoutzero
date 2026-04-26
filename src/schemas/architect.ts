@@ -59,11 +59,19 @@ export const EntitlementAssetZ = z
     linkedEntitlementIds: z.array(z.string()).optional(),
     // residualOfEntitlementId: This entitlement represents the residual of another (e.g., swap for "remaining worst")
     residualOfEntitlementId: z.string().optional(),
-  })
-  .passthrough();
+    identityKey: z.string().optional(),
+    entitlementId: z.string().optional(),
+    year: z.number().int().optional(),
+    secondaryText: z.string().optional(),
+    originalTeamId: TeamCodeZ.optional(),
+    originalTeam: TeamCodeZ.optional(),
+    holder_team: TeamCodeZ.optional(),
+    __vacuumEdited: z.boolean().optional(),
+    __vacuumSessionOnly: z.boolean().optional(),
+  });
 
 export const WorldEntitlementOverrideZ =
-  EntitlementAssetZ.partial().passthrough();
+  EntitlementAssetZ.partial();
 
 // ============================
 // architect canonical schemas
@@ -88,15 +96,16 @@ export const DeadCapItemZ = z.object({
 export const CapHoldItemZ = z
   .object({
     playerId: PlayerIdZ,
-    playerName: z.string(),
+    playerName: z.string().optional(),
     amount: MoneyZ,
-    type: z.string(),
+    type: z.string().optional(),
     season: SeasonCodeZ.optional(),
     isSigned: z.boolean().optional(),
     expiresOn: z.string().optional(),
     notes: z.string().optional(),
-  })
-  .passthrough();
+    active: z.boolean().optional(),
+    reason: z.string().optional(),
+  });
 
 const MleExceptionZ = z.object({
   type: z.string().optional(),
@@ -127,12 +136,15 @@ const DpeExceptionZ = z.object({
 
 const TradeExceptionZ = z.object({
   id: z.string(),
+  amount: MoneyZ.optional(),
   totalAmount: MoneyZ.optional(),
   usedAmount: MoneyZ.optional(),
   remainingAmount: MoneyZ.optional(),
   createdFrom: z.string().optional(),
   createdOn: z.string().optional(),
+  createdSeason: z.number().int().optional(),
   expiresOn: z.string().optional(),
+  isUsed: z.boolean().optional(),
   notes: z.string().optional(),
 });
 
@@ -145,7 +157,6 @@ export const ExceptionsZ = z
     dpe: DpeExceptionZ.optional(),
     tpe: z.array(TradeExceptionZ).optional(),
   })
-  .passthrough()
   .optional();
 
 export const ExceptionsExtraFieldsZ = z.record(z.string(), JsonValueZ);
@@ -170,7 +181,6 @@ const DraftPickConveyanceZ = z
         conveyanceDeadline: z.number().int().optional(),
         rolloverYears: z.array(z.number().int()).optional(),
       })
-      .passthrough()
       .optional(),
     conditions: z
       .object({
@@ -181,7 +191,6 @@ const DraftPickConveyanceZ = z
       .optional(),
     affects: z.array(z.string()).optional(),
   })
-  .passthrough()
   .optional();
 
 /**
@@ -224,7 +233,9 @@ export const DraftPickZ = z.object({
   route: z.array(TeamCodeZ).optional(),
   notes: z.string().optional(),
   conveyance: DraftPickConveyanceZ,
-  metadata: z.object({}).passthrough().optional(),
+  metadata: z.record(z.string(), JsonValueZ).optional(),
+  currentOwner: TeamCodeZ.optional(),
+  tradedTo: TeamCodeZ.optional(),
 });
 
 export const TeamTotalsZ = z
@@ -256,8 +267,47 @@ export const TeamTotalsZ = z
     hardCapLevel: HardCapLevelZ.optional(),
     hardCapDetail: z.string().optional(),
     hardCapRoom: z.number().nullable().optional(),
-  })
-  .passthrough();
+    yearKey: z.number().optional(),
+    teamSalary: z.number().optional(),
+    currentCapHit: z.number().optional(),
+    playersTotal: z.number().optional(),
+    deadMoneyTotal: z.number().optional(),
+    capHoldsTotal: z.number().optional(),
+    incompleteChargesTotal: z.number().optional(),
+    totalCapAllocations: z.number().optional(),
+    salaryCap: z.number().optional(),
+    luxuryTax: z.number().optional(),
+    deltas: z
+      .object({
+        vsCap: z.number().optional(),
+        vsLuxuryTax: z.number().optional(),
+        vsFirstApron: z.number().optional(),
+        vsSecondApron: z.number().optional(),
+      })
+      .optional(),
+    _meta: z
+      .object({
+        source: z.literal('computeTeamCapTotals').optional(),
+        rulesSource: JsonValueZ.optional(),
+        rulesSourcesSummary: JsonValueZ.optional(),
+        rulesSources: JsonValueZ.optional(),
+        capSettingsSource: z.literal('via_facade').optional(),
+        seasonKey: z.string().optional(),
+        incompleteRosterCharge: z
+          .object({
+            standardRosterCount: z.number(),
+            minRoster: z.number(),
+            missingSlots: z.number(),
+            chargePerSlot: z.number(),
+          })
+          .nullable()
+          .optional(),
+      })
+      .optional(),
+    hardCapReason: z.string().nullable().optional(),
+    hardCapTriggered: z.union([z.string(), z.boolean()]).nullable().optional(),
+    hardCapped: z.union([z.boolean(), z.number()]).nullable().optional(),
+  });
 
 export const ArchitectSourceZ = z.object({
   provider: z.string().optional(),

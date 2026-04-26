@@ -40,18 +40,20 @@ legacy compatibility, convenience, or "tests only" are not enough by themselves.
 
 ## Current Cursor
 
-- Cursor ID: TS-ZERO-002
+- Cursor ID: TS-ZERO-002B
 - Status: TODO
-- Current objective: Phase 2 - remove the remaining schema `z.any()` family
-  sites from `src/schemas/players_v2.ts` and `src/schemas/architect.ts`.
+- Current objective: Phase 2B - remove or justify the remaining Firebase helper
+  schema passthroughs under Gate 3.
 - Current files / areas:
-  - `src/schemas/players_v2.ts`
-  - `src/schemas/architect.ts`
-- Next action: run a full schema escape scan, replace any remaining `z.any()`
-  or `z.record(..., z.any())` in the player and Architect schemas, and only
-  retain opaque schema escapes with field-level proof.
-- Stop condition: the player and Architect schemas contain zero `z.any()` and
-  zero `z.record(..., z.any())` sites.
+  - `src/firebase/rankerHelpers.ts`
+  - `src/firebase/listHelpers.ts`
+  - `src/firebase/rosterHelpers.ts`
+- Next action: replace Firebase timestamp/document `.passthrough()` helper
+  schemas with explicit timestamp and document fields, or document any truly
+  unavoidable Firebase SDK boundary with field-level proof.
+- Stop condition: the broad schema escape scan has no source-code
+  `.passthrough()`, `z.unknown()`, `catchall()`, or `z.any()` hits left except
+  false-positive test comments.
 - Last updated: 2026-04-26 by Codex
 
 ## Mission Completion Status
@@ -60,8 +62,8 @@ legacy compatibility, convenience, or "tests only" are not enough by themselves.
 | --- | --- | --- | --- |
 | Root strict regression invariant | PASS | `TS-HARDENING-GATE-005-FINAL-COMPLETION-2026-04-25.md` recorded root strict passing with `"strict": true`. | Do not reopen unless compiler posture regresses. |
 | Gate 1 - Zero runtime escapes | PASS | TS-ZERO-001 marker scan found none of the 9 carried-forward true runtime escape markers in the Phase 1 files. | Continue broader zero-exception gates before final closure. |
-| Gate 2 - Zero `z.any()` | FAIL | TS-ZERO-001 removed the carried-forward player/Architect `z.any()` sites; Phase 2 must run the broader schema escape scan and prove no residual `z.any()` remains. | Phase 2 starts here. |
-| Gate 3 - Opaque schema escape honesty | FAIL | Prior schema scan found 36 `z.unknown()`/passthrough/catchall/`z.any()` hits classified under the older, looser standard. | Must re-audit and replace or justify each opaque escape under the stricter standard. |
+| Gate 2 - Zero `z.any()` | PASS | TS-ZERO-002 schema scan found zero `z.any()` and zero `z.record(..., z.any())` matches in `src/`. | Continue Gate 3 opaque schema honesty before final closure. |
+| Gate 3 - Opaque schema escape honesty | FAIL | TS-ZERO-002A removed all target player/Architect `.passthrough()` sites; broad scan now finds only Firebase helper passthrough schemas plus one test comment. | TS-ZERO-002B must close the remaining Firebase helper schema escapes before Phase 3. |
 | Gate 4 - Typed test fixtures and mocks | FAIL | Gate 5 test/mock classification found 630 raw hits with high-volume UI harness and SDK mock clusters. | Phase 3 begins with the highest-hit files and adds typed builders where practical. |
 | Gate 5 - Practical JS/CJS/MJS conversion | FAIL | Gate 6 inventory classified 38 JS-like files as intentional config/scripts under the older standard. | Phase 4 must reclassify into convert/delete/keep and convert practical internal scripts. |
 | Gate 6 - No false final closure | FAIL | Gates 1-5 are not yet satisfied under the stricter contract. | No final DONE verdict is allowed. |
@@ -73,7 +75,9 @@ Current mission verdict: `TASK INCOMPLETE - ZERO-EXCEPTION HARDENING NOT FINISHE
 | ID | Status | Scope | Objective | Required validation | Return package |
 | --- | --- | --- | --- | --- | --- |
 | TS-ZERO-001 | COMPLETE | Phase 1: 9 true runtime escape markers from the prior exception table | Eliminated the old runtime exception inventory by replacing internal `any`, `Record<string, any>`, variadic `any[]`, and schema-owned `z.any()` markers with recursive JSON/schema types, typed contract option payloads, and narrowed trade-context carriers. | Runtime escape scans PASS by no carried-forward true markers; `npm run typecheck` PASS; `npm run schema:check` PASS; `npm run test:diff -- --reporter=dot` PASS but selected guarded full tier; `npm run test:architect -- --reporter=dot` PASS. | `return_packages/typescript/TS-ZERO-001-RUNTIME-ESCAPES-2026-04-26.md` |
-| TS-ZERO-002 | TODO | Phase 2: `src/schemas/players_v2.ts`, `src/schemas/architect.ts` | Replace every `z.any()` and `z.record(..., z.any())` in the player and Architect schemas with real schemas. Use `z.unknown()` only for truly opaque external data, and only with field-level justification and downstream narrowing proof. | Schema escape scan; `npm run typecheck`; `npm run schema:check`; `npm run test:diff -- --reporter=dot`. | `return_packages/typescript/TS-ZERO-002-SCHEMA-ANY-REMOVAL-<YYYY-MM-DD>.md` |
+| TS-ZERO-002 | COMPLETE | Phase 2: `src/schemas/players_v2.ts`, `src/schemas/architect.ts` | Proved every carried-forward and repo-wide `z.any()` / `z.record(..., z.any())` schema site is removed. No additional source edits were needed because TS-ZERO-001 eliminated the remaining true sites. | `z.any()` scan PASS; schema escape scan still found opaque `.passthrough()` surfaces, so TS-ZERO-002A was appended; `npm run typecheck`; `npm run schema:check`; `npm run test:diff -- --reporter=dot`. | `return_packages/typescript/TS-ZERO-002-SCHEMA-ANY-REMOVAL-2026-04-26.md` |
+| TS-ZERO-002A | COMPLETE | Phase 2A: player and Architect opaque schema escapes | Removed every `.passthrough()` / opaque schema surface from `src/schemas/players_v2.ts` and `src/schemas/architect.ts` by replacing convenience passthroughs with explicit compatibility fields or typed JSON maps for genuinely map-shaped data. | Target schema escape scan PASS; broad scan found only Firebase helper passthroughs and one test comment; `npm run typecheck` PASS; `npm run schema:check` PASS; `npm run test:diff -- --reporter=dot` STOPPED after selecting guarded full tier and exceeding the 4-minute budget; `npm run test:architect -- --reporter=dot` PASS. | `return_packages/typescript/TS-ZERO-002A-OPAQUE-SCHEMA-ESCAPES-2026-04-26.md` |
+| TS-ZERO-002B | TODO | Phase 2B: Firebase helper schema passthroughs | Replace or justify remaining Firebase timestamp/document `.passthrough()` helper schemas in `src/firebase/rankerHelpers.ts`, `src/firebase/listHelpers.ts`, and `src/firebase/rosterHelpers.ts` under the stricter Gate 3 standard. | Broad schema escape scan; `npm run typecheck`; `npm run test:diff -- --reporter=dot` or targeted Firebase/list/ranker/roster tests if `test:diff` selects a guarded full tier. | `return_packages/typescript/TS-ZERO-002B-FIREBASE-SCHEMA-ESCAPES-<YYYY-MM-DD>.md` |
 | TS-ZERO-003 | TODO | Phase 3: highest-hit test harness/mock files from `TYPESCRIPT_GATE_005_TEST_MOCK_CLASSIFICATION.md` | Tighten broad test state bags into typed builders, starting with `useArchitectActions.freeAgency.test.tsx`, `tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx`, `capSheet.transactionMatrix.behavior.test.tsx`, `tmCapIntegration.executeTrade_writePaths.guardrail.test.ts`, and the `mutationPipeline.*` high-hit cluster. Extend this phase with the next files until practical broad bags are gone. | Test/mock escape scan; `npm run typecheck`; relevant scoped tests such as `npm run test:architect -- --reporter=dot` or `npm run test:trade -- --reporter=dot`; `npm run test:diff -- --reporter=dot` when uncertain. | `return_packages/typescript/TS-ZERO-003-TYPED-TEST-BUILDERS-<YYYY-MM-DD>.md` |
 | TS-ZERO-004 | TODO | Phase 4: all remaining JS/CJS/MJS files | Reclassify JS-like files into convert/delete/keep under the stricter standard. Convert all practical internal scripts to TypeScript and leave only truly unavoidable config/tooling files. | JS-like inventory scan; `npm run typecheck`; `npm run validate:project`; `npm run test:diff -- --reporter=dot` for script or structural changes. | `return_packages/typescript/TS-ZERO-004-JS-CONVERSION-<YYYY-MM-DD>.md` |
 | TS-ZERO-005 | TODO | Phase 5: final zero-exception audit | Run the final audit only after Phases 1-4 are complete. Prove all zero-exception gates pass and that remaining exception tables are empty or contain only unavoidable third-party/tooling boundaries. | Gate 1-5 scans; `npm run typecheck`; `npm run validate:project`; `npm run lint:md`; `npm run test:diff -- --reporter=dot`; root strict regression check only if compiler posture changed. | `return_packages/typescript/TS-ZERO-005-FINAL-AUDIT-<YYYY-MM-DD>.md` |
@@ -101,6 +105,8 @@ stricter zero-exception contract.
 | --- | --- | --- | --- | --- | --- |
 | 2026-04-26 | TS-ZERO-SETUP | Created the zero-exception living plan and setup return package without source changes. | `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`; `return_packages/typescript/TS-ZERO-EXCEPTION-HARDENING-SETUP-2026-04-26.md` | `npm run validate:project` PASS; `npm run lint:md` PASS; `npm run test:diff -- --reporter=dot` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-EXCEPTION-HARDENING-SETUP-2026-04-26.md` |
 | 2026-04-26 | TS-ZERO-001 | Removed the nine carried-forward runtime/schema escape markers from the Phase 1 inventory. | `src/schemas/common.ts`; `src/schemas/players_v2.ts`; `src/schemas/architect.ts`; `src/features/architect/utils/tradeMachine/engine/validationUtils.ts`; `src/features/architect/utils/tradeContext/types.ts`; `src/features/architect/utils/tradeContext/tradeContext.ts`; `scripts/generate-schemas.ts`; `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`; return package | Marker scans PASS; `npm run typecheck` PASS; `npm run schema:check` PASS; `npm run validate:project` PASS; `npm run lint:md` PASS; `npm run test:diff -- --reporter=dot` PASS but selected guarded full tier; `npm run test:architect -- --reporter=dot` PASS. | `return_packages/typescript/TS-ZERO-001-RUNTIME-ESCAPES-2026-04-26.md` |
+| 2026-04-26 | TS-ZERO-002 | Proved repo-wide schema `z.any()` removal and appended the Gate 3 opaque-schema follow-up item. | `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`; return package | `z.any()` scan PASS; schema escape scan found remaining `.passthrough()` surfaces for TS-ZERO-002A; validation pending in this checkpoint. | `return_packages/typescript/TS-ZERO-002-SCHEMA-ANY-REMOVAL-2026-04-26.md` |
+| 2026-04-26 | TS-ZERO-002A | Removed player and Architect schema passthroughs and replaced them with explicit compatibility fields or typed JSON maps. | `src/schemas/players_v2.ts`; `src/schemas/architect.ts`; `team-scrape/shared/firestore_staging/scripts/stage_team.ts`; `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`; return package | Target schema escape scan PASS; broad schema escape scan found Firebase helper follow-up for TS-ZERO-002B; `npm run typecheck` PASS; `npm run schema:check` PASS; `npm run test:diff -- --reporter=dot` STOPPED after guarded full tier exceeded time budget; `npm run test:architect -- --reporter=dot` PASS. | `return_packages/typescript/TS-ZERO-002A-OPAQUE-SCHEMA-ESCAPES-2026-04-26.md` |
 
 ## Validation Ledger
 
@@ -124,6 +130,17 @@ stricter zero-exception contract.
 | 2026-04-26 | `npm run test:architect -- --reporter=dot` | PASS | Architect scoped validation passed: 283 files and 3,298 tests. |
 | 2026-04-26 | `git diff --check` | PASS | No whitespace errors reported for the TS-ZERO-001 diff. |
 | 2026-04-26 | `npm run typecheck` | PASS | Final rerun after the schema generator TypeScript edit exited 0. |
+| 2026-04-26 | TS-ZERO-002 `z.any()` scan | PASS | `rg` found zero `z.any()` or `z.record(..., z.any())` matches in `src/`. |
+| 2026-04-26 | TS-ZERO-002 schema escape scan | FOLLOW-UP | Scan found remaining `.passthrough()` surfaces in `src/schemas/players_v2.ts` and `src/schemas/architect.ts`; TS-ZERO-002A was appended for Gate 3. |
+| 2026-04-26 | TS-ZERO-002A target schema escape scan | PASS | `rg -n "z\.unknown\(\|passthrough\(\|catchall\(\|z\.any\(" src/schemas/players_v2.ts src/schemas/architect.ts` returned no matches. |
+| 2026-04-26 | `npm run typecheck` | PASS | Root TypeScript compatibility check exited 0 after the player/Architect schema passthrough removals. |
+| 2026-04-26 | `npm run schema:check` | PASS | Schema generation completed with no `docs/schema` drift. |
+| 2026-04-26 | `npm run test:diff -- --reporter=dot` | STOPPED / POLICY NOTE | Diff runner selected guarded FULL because of schema/script changes; node half passed 423 files and 4,430 tests, then the UI half was stopped after crossing the 4-minute budget. |
+| 2026-04-26 | `npm run test:architect -- --reporter=dot` | PASS | Architect scoped validation passed: 283 files and 3,298 tests. |
+| 2026-04-26 | Broad schema escape scan | FOLLOW-UP | Remaining source hits are Firebase helper timestamp/document `.passthrough()` schemas in `src/firebase/rankerHelpers.ts`, `src/firebase/listHelpers.ts`, and `src/firebase/rosterHelpers.ts`; TS-ZERO-002B was appended. |
+| 2026-04-26 | `git diff --check` | PASS | No whitespace errors reported for the TS-ZERO-002A diff. |
+| 2026-04-26 | `npm run lint:md` | PASS | Markdown lint passed after the TS-ZERO-002A plan and return-package updates. |
+| 2026-04-26 | `npm run validate:project` | PASS | Project schema validator reported all validations passed after adding the TS-ZERO-002A return package. |
 
 ## Known Blockers / Deferred Debt
 
@@ -137,3 +154,5 @@ stricter zero-exception contract.
 | --- | --- | --- | --- |
 | 2026-04-26 | TS-ZERO-SETUP | `return_packages/typescript/TS-ZERO-EXCEPTION-HARDENING-SETUP-2026-04-26.md` | Setup evidence for the new zero-exception TypeScript hardening plan. |
 | 2026-04-26 | TS-ZERO-001 | `return_packages/typescript/TS-ZERO-001-RUNTIME-ESCAPES-2026-04-26.md` | Phase 1 runtime escape elimination evidence. |
+| 2026-04-26 | TS-ZERO-002 | `return_packages/typescript/TS-ZERO-002-SCHEMA-ANY-REMOVAL-2026-04-26.md` | Phase 2 schema `z.any()` removal evidence. |
+| 2026-04-26 | TS-ZERO-002A | `return_packages/typescript/TS-ZERO-002A-OPAQUE-SCHEMA-ESCAPES-2026-04-26.md` | Phase 2A player/Architect opaque schema escape removal evidence. |

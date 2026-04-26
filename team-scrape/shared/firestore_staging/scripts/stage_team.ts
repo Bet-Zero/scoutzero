@@ -19,6 +19,7 @@ import {
   BaseTeamDocZ,
   type BaseTeamDoc,
 } from '../../../../src/schemas/architect.js';
+import type { JsonValue } from '../../../../src/schemas/common.js';
 
 type CliArgs = {
   team: string;
@@ -106,6 +107,7 @@ type RawDraftPick = {
   notes?: string;
   contendingTeams?: string[];
   route?: string[];
+  swapDetails?: JsonValue;
   relation?: 'inventory' | 'obligation' | 'contested'; // Ledger-derived relation tag
 };
 
@@ -700,14 +702,10 @@ function normalizeDraftPick(
     } as NormalizedDraftPick['conveyance'];
   }
 
-  const metadata: Record<string, unknown> = {};
+  const metadata: Record<string, JsonValue> = {};
 
-  if (
-    (pick as unknown as { swapDetails?: unknown }).swapDetails !== undefined
-  ) {
-    metadata.swapDetails = (
-      pick as unknown as { swapDetails?: unknown }
-    ).swapDetails;
+  if (pick.swapDetails !== undefined) {
+    metadata.swapDetails = pick.swapDetails;
   }
 
   if (pick.contendingTeams?.length) {
