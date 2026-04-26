@@ -15,6 +15,7 @@
 import { z } from 'zod';
 import {
   FreeAgentTypeZ,
+  JsonValueZ,
   MoneyZ,
   OptionTypeZ,
   PlayerIdZ,
@@ -125,13 +126,30 @@ export const ContractsViewDocZ = z
   })
   .passthrough();
 
+export const ContractOptionPayloadZ = z.object({
+  year: YearZ.optional().nullable(),
+  season: SeasonCodeZ.optional().nullable(),
+  type: OptionTypeZ.optional(),
+  optionType: OptionTypeZ.optional(),
+  amount: MoneyZ.optional().nullable(),
+  deadline: z.string().optional().nullable(),
+  decisionDate: z.string().optional().nullable(),
+  exercised: z.boolean().optional(),
+});
+
+export const ContractOptionZ = z.preprocess(
+  (value) => (typeof value === 'string' ? { type: value } : value),
+  ContractOptionPayloadZ
+);
+export const ContractOptionsListZ = z.array(ContractOptionZ);
+
 // Denormalized views for main document (fast filtering/table views)
 export const CurrentContractViewZ = z
   .object({
     freeAgentYear: YearZ.optional(),
     freeAgentType: FreeAgentTypeZ.optional(),
     contractType: z.string().optional(),
-    options: z.array(z.any()).optional(),
+    options: ContractOptionsListZ.optional(),
     // Phase 2X SSOT: Year-specific option type mapping
     // Keys are seasonStartYear as strings (e.g., "2025" for 2025-26 season)
     // Values are option types: "PO" | "TO" | "ETO"
@@ -208,7 +226,7 @@ export const CurrentEvaluationViewZ = z
           })
           .partial()
           .passthrough(),
-        z.record(z.string(), z.any()),
+        z.record(z.string(), JsonValueZ),
       ])
       .optional(),
     videoExamples: VideoExamplesZ,
@@ -234,7 +252,7 @@ export const CurrentSeasonStatsZ = z
 // Seasons subcollection
 export const SeasonStatsZ = z.record(
   z.union([z.string(), z.literal('%')]),
-  z.any()
+  JsonValueZ
 );
 
 export const SeasonDocZ = z.object({
@@ -250,7 +268,15 @@ export const SeasonDocZ = z.object({
       yearsLeft: z.number().int().optional(),
       freeAgentYear: YearZ.optional(),
       freeAgentType: FreeAgentTypeZ.optional(),
-      options: z.any().nullable().optional(),
+      options: z
+        .union([
+          ContractOptionsListZ,
+          z.record(z.string(), ContractOptionPayloadZ),
+          ContractOptionPayloadZ,
+          z.string(),
+        ])
+        .nullable()
+        .optional(),
       birdRights: z.string().nullable().optional(),
       contractId: z.string().optional(),
     })
@@ -271,7 +297,7 @@ export const SeasonDocZ = z.object({
       badges: z.array(z.string()).optional(),
     })
     .optional(),
-  meta: z.record(z.string(), z.any()).optional(),
+  meta: z.record(z.string(), JsonValueZ).optional(),
 });
 
 // Evaluations subcollection (simplified aggregate form)
@@ -310,7 +336,7 @@ export const EvaluationDocZ = z.object({
         })
         .partial()
         .passthrough(),
-      z.record(z.string(), z.any()),
+      z.record(z.string(), JsonValueZ),
     ])
     .optional(),
   videoExamples: VideoExamplesZ,

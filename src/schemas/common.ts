@@ -2,6 +2,23 @@ import { z } from 'zod';
 
 // Shared scalars and helpers for schema definitions
 
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue =
+  | JsonPrimitive
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export const JsonValueZ: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(JsonValueZ),
+    z.record(z.string(), JsonValueZ),
+  ])
+);
+
 // Firestore Timestamp surrogate: allow Date or Firestore-like object in parsing layers
 export const TimestampZ = z.union([
   z.date(),

@@ -65,6 +65,7 @@ import type {
   ArchitectTradePayloadPlayer,
 } from '@/features/architect/utils/mutationPipeline';
 import type {
+  NormalizedTeamPick,
   TradeExceptionRecord,
   TradeValidationResult,
   TradeValidatorContext,
@@ -135,6 +136,22 @@ function toNonEmptyString(value: unknown): string | undefined {
   return normalized ? normalized : undefined;
 }
 
+function toScalarId(value: unknown): string | number | null | undefined {
+  return typeof value === 'string' || typeof value === 'number' || value === null
+    ? value
+    : undefined;
+}
+
+function toStringOrNull(value: unknown): string | null | undefined {
+  return typeof value === 'string' || value === null ? value : undefined;
+}
+
+function toObjectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
 function toSignAndTradePlayerLike(
   player:
     | TradeContextValidationPlayer
@@ -143,24 +160,40 @@ function toSignAndTradePlayerLike(
 ): SignAndTradePlayerLike {
   const record = player as AnyRecord;
   const normalized: SignAndTradePlayerLike = {};
+  const id = toScalarId(record.id);
+  const playerId = toScalarId(record.playerId);
+  const player_id = toScalarId(record.player_id);
+  const originTeamId = toScalarId(record.originTeamId);
+  const name = toStringOrNull(record.name);
+  const displayName = toStringOrNull(record.displayName);
+  const teamCode = toStringOrNull(record.teamCode);
+  const teamId = toStringOrNull(record.teamId);
+  const teamAbbr = toStringOrNull(record.teamAbbr);
+  const team = toStringOrNull(record.team);
+  const freeAgentYear = toScalarId(record.freeAgentYear);
 
-  if (record.id != null) normalized.id = record.id;
-  if (record.playerId != null) normalized.playerId = record.playerId;
-  if (record.player_id != null) normalized.player_id = record.player_id;
-  if (record.name != null) normalized.name = record.name;
-  if (record.displayName != null) normalized.displayName = record.displayName;
-  if (record.bio != null) normalized.bio = record.bio;
-  if (record.teamCode != null) normalized.teamCode = record.teamCode;
-  if (record.teamId != null) normalized.teamId = record.teamId;
-  if (record.teamAbbr != null) normalized.teamAbbr = record.teamAbbr;
-  if (record.team != null) normalized.team = record.team;
-  if (record.originTeamId != null) normalized.originTeamId = record.originTeamId;
-  if (record.contract != null) normalized.contract = record.contract;
-  if (record.primaryContract != null) {
-    normalized.primaryContract = record.primaryContract;
+  if (id !== undefined) normalized.id = id;
+  if (playerId !== undefined) normalized.playerId = playerId;
+  if (player_id !== undefined) normalized.player_id = player_id;
+  if (name !== undefined) normalized.name = name;
+  if (displayName !== undefined) normalized.displayName = displayName;
+  if (toObjectRecord(record.bio)) {
+    normalized.bio = record.bio as SignAndTradePlayerLike['bio'];
   }
-  if (record.freeAgentYear != null) {
-    normalized.freeAgentYear = record.freeAgentYear;
+  if (teamCode !== undefined) normalized.teamCode = teamCode;
+  if (teamId !== undefined) normalized.teamId = teamId;
+  if (teamAbbr !== undefined) normalized.teamAbbr = teamAbbr;
+  if (team !== undefined) normalized.team = team;
+  if (originTeamId !== undefined) normalized.originTeamId = originTeamId;
+  if (toObjectRecord(record.contract)) {
+    normalized.contract = record.contract as SignAndTradePlayerLike['contract'];
+  }
+  if (record.primaryContract != null) {
+    normalized.primaryContract =
+      record.primaryContract as SignAndTradePlayerLike['primaryContract'];
+  }
+  if (freeAgentYear !== undefined) {
+    normalized.freeAgentYear = freeAgentYear;
   }
   if (typeof record.rightsRenounced === 'boolean') {
     normalized.rightsRenounced = record.rightsRenounced;
@@ -169,10 +202,12 @@ function toSignAndTradePlayerLike(
     normalized.signAndTrade = true;
   }
   if (record.signAndTradeContract != null) {
-    normalized.signAndTradeContract = record.signAndTradeContract;
+    normalized.signAndTradeContract =
+      record.signAndTradeContract as SignAndTradePlayerLike['signAndTradeContract'];
   }
   if (Array.isArray(record.salariesByYear)) {
-    normalized.salariesByYear = record.salariesByYear;
+    normalized.salariesByYear =
+      record.salariesByYear as SignAndTradePlayerLike['salariesByYear'];
   }
   if (Array.isArray(record.salaries)) {
     normalized.salaries = record.salaries;
@@ -525,9 +560,9 @@ function getTradePayloadPlayerMatchKey(
 ): string | null {
   return (
     getTradePayloadPlayerId(player) ||
-    player?.name ||
-    player?.displayName ||
-    player?.playerName ||
+    toNonEmptyString(player?.name) ||
+    toNonEmptyString(player?.displayName) ||
+    toNonEmptyString(player?.playerName) ||
     null
   );
 }
@@ -1022,11 +1057,12 @@ export function buildPostTradeTeamsSnapshot({
       Array.isArray(updatedTeam.capHolds)
     ) {
       updatedTeam.capHolds = updatedTeam.capHolds.filter((hold: AnyRecord) => {
-        const holdPlayerId = hold.playerId || hold.player_id || hold.id;
+        const holdPlayerId = getTradePayloadPlayerId(hold);
         if (holdPlayerId && outgoingSignAndTradeIds.includes(holdPlayerId)) {
           return false;
         }
-        const holdName = hold.playerName || hold.name;
+        const holdName =
+          toNonEmptyString(hold.playerName) || toNonEmptyString(hold.name);
         if (holdName && outgoingSignAndTradeNames.includes(holdName)) {
           return false;
         }
@@ -1035,7 +1071,7 @@ export function buildPostTradeTeamsSnapshot({
     }
 
     const outgoingPicks = teamTrade.picksOut || [];
-    const incomingPicks: AnyRecord[] = [];
+    const incomingPicks: NormalizedTeamPick[] = [];
     payloadTeams.forEach((otherTeamTrade, otherIndex) => {
       if (otherIndex !== i) {
         incomingPicks.push(...(otherTeamTrade.picksOut || []));
@@ -1044,9 +1080,9 @@ export function buildPostTradeTeamsSnapshot({
 
     updatedTeam.draftPicks = [
       ...(Array.isArray(team.draftPicks) ? team.draftPicks : []).filter(
-        (pick: AnyRecord) =>
+        (pick: NormalizedTeamPick) =>
           !outgoingPicks.some(
-            (outgoing: AnyRecord) =>
+            (outgoing) =>
               outgoing.year === pick.year &&
               outgoing.round === pick.round &&
               outgoing.owner === pick.owner

@@ -8,8 +8,8 @@ import { validationCache } from '../cache/validationCacheService';
 import { debug } from './engineUtils';
 import tradeDebug from './tradeDebug';
 
-// This variadic generic intentionally accepts heterogeneous argument tuples across all validator types.
-type ValidatorFunction<TArgs extends any[] = any[], TResult = unknown> = (
+// `never[]` keeps heterogeneous validators assignable without erasing each concrete tuple.
+type ValidatorFunction<TArgs extends unknown[] = never[], TResult = unknown> = (
   ...args: TArgs
 ) => TResult;
 

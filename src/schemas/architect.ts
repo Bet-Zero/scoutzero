@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
+import { JsonValueZ, MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
 
 const HardCapLevelZ = z.enum(['none', 'firstApron', 'secondApron']);
 const EntitlementKindZ = z.enum([
@@ -148,7 +148,7 @@ export const ExceptionsZ = z
   .passthrough()
   .optional();
 
-export const ExceptionsExtraFieldsZ = z.record(z.string(), z.any());
+export const ExceptionsExtraFieldsZ = z.record(z.string(), JsonValueZ);
 
 const DraftPickConveyanceZ = z
   .object({

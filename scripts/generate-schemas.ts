@@ -24,7 +24,7 @@ async function main() {
     ]) +
       '\n' +
       '- Canonical source: `src/schemas/players_v2.ts`\n' +
-      '\n## Notes\n' +
+      '\n## Notes\n\n' +
       '- Contract fields reconcile scraper outputs (`player-scrape`) with Firestore subcollection shape.\n' +
       '- Use types imported from `src/schemas/players_v2.ts` in code; do not redeclare interfaces elsewhere.\n'
   );
@@ -38,7 +38,7 @@ async function main() {
     ]) +
       '\n' +
       '- Canonical source: `src/schemas/architect.ts`\n' +
-      '\n## Notes\n' +
+      '\n## Notes\n\n' +
       '- Schemas defined by Zod in `src/schemas/architect.ts`.\n' +
       '- Use types imported from `src/schemas/architect.ts` in code; do not redeclare interfaces elsewhere.\n'
   );
