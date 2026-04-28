@@ -4,6 +4,8 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import TradePlayerRow from '@/features/architect/tradeMachine/TradePlayerRow';
 
+type TradePlayerRowPlayer = Parameters<typeof TradePlayerRow>[0]['player'];
+
 const baseHandlers = {
   onSetPlayerTrade: vi.fn(),
   onUndoPlayerTrade: vi.fn(),
@@ -11,7 +13,7 @@ const baseHandlers = {
   setContractPlayer: vi.fn(),
 };
 
-function renderTradePlayerRow(player: any) {
+function renderTradePlayerRow(player: TradePlayerRowPlayer) {
   return render(
     <TradePlayerRow
       player={player}

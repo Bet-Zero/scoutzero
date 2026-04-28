@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type { NormalizedPlayer } from '@/features/architect/utils/tradeMachine/constants/types';
 import {
   ROSTER_LIMITS,
   checkRosterCounts,
@@ -28,20 +29,28 @@ function readRepoFile(relativePath: string) {
 function makeTradePlayer(
   name: string,
   salary: number,
-  extra: Record<string, unknown> = {},
-) {
+  extra: Partial<NormalizedPlayer> = {},
+): NormalizedPlayer {
   return {
     name,
     player_id: name.toLowerCase().replace(/\s/g, '_'),
+    salary,
+    matchIncoming: salary,
+    matchOutgoing: salary,
+    isTwoWay: false,
+    absorptionMode: 'MATCH',
+    signAndTrade: false,
+    contractYears: 1,
+    firstYearGuaranteed: true,
     contract: { salariesByYear: [{ season, salary }] },
     ...extra,
-  } as any;
+  };
 }
 
 function makeTradeTeam(
   name: string,
   totalSalary: number,
-  players: any[],
+  players: NormalizedPlayer[],
   extra: Record<string, unknown> = {},
 ) {
   return {
@@ -50,11 +59,12 @@ function makeTradeTeam(
     totalSalary,
     players,
     ...extra,
-  } as any;
+  };
 }
 
-const issueTexts = (issues: unknown[] = []) =>
-  issues.map((issue) => getValidationIssueText(issue as any));
+const issueTexts = (
+  issues: Array<Parameters<typeof getValidationIssueText>[0]> = []
+) => issues.map((issue) => getValidationIssueText(issue));
 
 // ---------------------------------------------------------------------------
 // 1. ROSTER_LIMITS — canonical constants

@@ -7,6 +7,7 @@
  */
 
 import { act, renderHook } from '@testing-library/react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
 import {
   beforeEach,
@@ -15,7 +16,29 @@ import {
   it,
   vi,
 } from 'vitest';
-import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import {
+  useArchitectActions,
+  type UseArchitectActionsParams,
+  type UseArchitectActionsReturn,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+
+type SetterValue<TSetter> = TSetter extends Dispatch<SetStateAction<infer TValue>>
+  ? TValue
+  : never;
+
+type HarnessTeamCapSheet = NonNullable<
+  UseArchitectActionsParams['state']['teamCapSheet']
+>;
+type HarnessSelectedPlayer = SetterValue<
+  UseArchitectActionsParams['state']['setSelectedPlayer']
+>;
+type HarnessFreeAgents = SetterValue<
+  UseArchitectActionsParams['state']['setFreeAgents']
+>;
+type HarnessOffseasonSummary = SetterValue<
+  UseArchitectActionsParams['state']['setOffseasonSummary']
+>;
+type SigningContract = Parameters<UseArchitectActionsReturn['handleSign']>[1];
 
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
@@ -81,12 +104,15 @@ const PLAYER_FIXTURE = {
   name: 'Future Player',
   displayName: 'Future Player',
   freeAgentYear: 2028,
+  previousSalary: 0,
+  birdRights: 'restricted',
+  freeAgentType: 'RFA' as const,
   contract: {
     salariesByYear: [],
   },
 };
 
-const BASE_TEAM = {
+const BASE_TEAM: HarnessTeamCapSheet = {
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
   roster: [],
@@ -105,12 +131,17 @@ function renderActionsHarness() {
   const closeContractModal = vi.fn();
 
   const { result } = renderHook(() => {
-    const [teamCapSheet, setTeamCapSheet] = useState<any>(BASE_TEAM);
+    const [teamCapSheet, setTeamCapSheet] =
+      useState<UseArchitectActionsParams['state']['teamCapSheet']>(BASE_TEAM);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
-    const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-    const [freeAgents, setFreeAgents] = useState<any[]>([PLAYER_FIXTURE]);
+    const [selectedPlayer, setSelectedPlayer] =
+      useState<HarnessSelectedPlayer>(null);
+    const [freeAgents, setFreeAgents] = useState<HarnessFreeAgents>([
+      PLAYER_FIXTURE,
+    ]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-    const [offseasonSummary, setOffseasonSummary] = useState<any>(null);
+    const [offseasonSummary, setOffseasonSummary] =
+      useState<HarnessOffseasonSummary>(null);
 
     const actions = useArchitectActions({
       teamId: 'LAL',
@@ -145,7 +176,7 @@ function renderActionsHarness() {
 
     return {
       actions,
-      teamCapSheet,
+      teamCapSheet: teamCapSheet ?? BASE_TEAM,
       selectedRulesYear,
       selectedPlayer,
     };
@@ -191,7 +222,7 @@ describe('useArchitectActions future-year action-year coherence', () => {
     const { result } = renderActionsHarness();
 
     await act(async () => {
-      await result.current.actions.handleSign(PLAYER_FIXTURE as any, {
+      const futureSignContract: SigningContract = {
         contractType: 'Signed FA',
         salariesByYear: [
           {
@@ -207,7 +238,9 @@ describe('useArchitectActions future-year action-year coherence', () => {
             guaranteed: true,
           },
         ],
-      } as any);
+      };
+
+      await result.current.actions.handleSign(PLAYER_FIXTURE, futureSignContract);
     });
 
     expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
@@ -231,7 +264,7 @@ describe('useArchitectActions future-year action-year coherence', () => {
     const { result } = renderActionsHarness();
 
     await act(async () => {
-      await result.current.actions.getOfferSheetPreflight(PLAYER_FIXTURE as any, {
+      const futureOfferSheetContract: SigningContract = {
         contractType: 'Offer Sheet',
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
@@ -250,7 +283,12 @@ describe('useArchitectActions future-year action-year coherence', () => {
             guaranteed: true,
           },
         ],
-      } as any);
+      };
+
+      await result.current.actions.getOfferSheetPreflight(
+        PLAYER_FIXTURE,
+        futureOfferSheetContract
+      );
     });
 
     expect(mutationMocks.preflightOfferSheetMutation).toHaveBeenCalledWith(
@@ -292,7 +330,7 @@ describe('useArchitectActions future-year action-year coherence', () => {
     const { result } = renderActionsHarness();
 
     await act(async () => {
-      await result.current.actions.handleStoreOfferSheet(PLAYER_FIXTURE as any, {
+      const futureOfferSheetContract: SigningContract = {
         contractType: 'Offer Sheet',
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
@@ -311,7 +349,12 @@ describe('useArchitectActions future-year action-year coherence', () => {
             guaranteed: true,
           },
         ],
-      } as any);
+      };
+
+      await result.current.actions.handleStoreOfferSheet(
+        PLAYER_FIXTURE,
+        futureOfferSheetContract
+      );
     });
 
     expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(

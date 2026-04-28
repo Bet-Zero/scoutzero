@@ -12,7 +12,7 @@ describe('Grouped 33-file scope node behavior', () => {
     expect(getCapPercentage(35_000_000, 140_000_000)).toBe(25);
     expect(getCapPercentage(null, 140_000_000)).toBeNull();
 
-    const seasonState: Record<string, any> = {};
+    const seasonState: Record<string, unknown> = {};
     expect(
       markHardCapTriggered(seasonState, {
         reason: 'Sign-and-trade',
@@ -30,7 +30,7 @@ describe('Grouped 33-file scope node behavior', () => {
     expect(defaultPicks[0]).toEqual({ year: 2026, round: '1st' });
     expect(defaultPicks[13]).toEqual({ year: 2032, round: '2nd' });
 
-    const capSheet: Record<string, any> = {};
+    const capSheet: Record<string, unknown> = {};
     expect(attachDefaultPicks(capSheet)).toBe(capSheet);
     expect(capSheet.picks).toHaveLength(14);
   });

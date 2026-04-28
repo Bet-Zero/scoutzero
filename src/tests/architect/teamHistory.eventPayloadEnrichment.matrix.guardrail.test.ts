@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildWorldMutationEventPayload } from '@/features/architect/utils/mutationPipeline';
 
+type WorldMutationEventPayload = ReturnType<typeof buildWorldMutationEventPayload>;
+
 describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
   const timestamp = Date.parse('2026-03-03T12:00:00.000Z');
 
@@ -16,9 +18,10 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
           BOS: { out: [], in: ['2028-LAL-R1'] },
         },
       },
-      assertEnrichment: (event: Record<string, any>) => {
-        expect(Array.isArray(event.diffSummary.playersMoved)).toBe(true);
-        expect(event.diffSummary.playersMoved.length).toBeGreaterThan(0);
+      assertEnrichment: (event: WorldMutationEventPayload) => {
+        const playersMoved = event.diffSummary.playersMoved;
+        expect(Array.isArray(playersMoved)).toBe(true);
+        expect(Array.isArray(playersMoved) ? playersMoved.length : 0).toBeGreaterThan(0);
         const hasPicksMoved =
           Array.isArray(event.diffSummary.picksMoved) &&
           event.diffSummary.picksMoved.length > 0;
@@ -46,7 +49,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
           ],
         },
       },
-      assertEnrichment: (event: Record<string, any>) => {
+      assertEnrichment: (event: WorldMutationEventPayload) => {
         expect(event.mutationMetadata?.contractSummary?.years).toBe(3);
         expect(event.mutationMetadata?.contractSummary?.firstYearSalary).toBe(
           12000000
@@ -67,7 +70,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
           salariesByYear: [{ season: '2025-26', salary: 30000000 }],
         },
       },
-      assertEnrichment: (event: Record<string, any>) => {
+      assertEnrichment: (event: WorldMutationEventPayload) => {
         expect(event.mutationMetadata?.contractSummary?.years).toBe(4);
         expect(event.mutationMetadata?.contractSummary?.firstYearSalary).toBe(
           30000000
@@ -88,7 +91,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
           salariesByYear: [{ season: '2025-26', salary: 18000000 }],
         },
       },
-      assertEnrichment: (event: Record<string, any>) => {
+      assertEnrichment: (event: WorldMutationEventPayload) => {
         expect(event.mutationMetadata?.contractSummary?.years).toBe(4);
         expect(event.mutationMetadata?.contractSummary?.firstYearSalary).toBe(
           18000000
@@ -109,7 +112,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
           salariesByYear: [{ season: '2025-26', salary: 16000000 }],
         },
       },
-      assertEnrichment: (event: Record<string, any>) => {
+      assertEnrichment: (event: WorldMutationEventPayload) => {
         expect(event.mutationMetadata?.contractSummary?.years).toBe(4);
         expect(event.mutationMetadata?.contractSummary?.firstYearSalary).toBe(
           16000000
@@ -127,7 +130,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
         buyout: true,
         deadCapAmount: 4500000,
       },
-      assertEnrichment: (event: Record<string, any>) => {
+      assertEnrichment: (event: WorldMutationEventPayload) => {
         expect(event.mutationMetadata?.stretched).toBe(true);
         expect(event.mutationMetadata?.buyout).toBe(true);
         expect(event.mutationMetadata?.deadCapAmount).toBe(4500000);
@@ -145,7 +148,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
           salariesByYear: [{ season: '2026-27', salary: 22000000 }],
         },
       },
-      assertEnrichment: (event: Record<string, any>) => {
+      assertEnrichment: (event: WorldMutationEventPayload) => {
         expect(event.mutationMetadata?.contractSummary?.years).toBe(4);
       },
     },
@@ -159,7 +162,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
         optionType: 'team',
         accepted: true,
       },
-      assertEnrichment: (event: Record<string, any>) => {
+      assertEnrichment: (event: WorldMutationEventPayload) => {
         expect(event.mutationMetadata?.optionType).toBe('team');
         expect(event.mutationMetadata?.accepted).toBe(true);
       },
@@ -173,7 +176,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
         playerName: 'Player Renounce',
         rightsUsed: 'Renounced',
       },
-      assertEnrichment: (event: Record<string, any>) => {
+      assertEnrichment: (event: WorldMutationEventPayload) => {
         expect(event.mutationMetadata?.rightsUsed).toBe('Renounced');
       },
     },
@@ -185,9 +188,12 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
         teamCode: 'LAL',
         exceptionChanges: ['NTMLE remaining reduced'],
       },
-      assertEnrichment: (event: Record<string, any>) => {
-        expect(Array.isArray(event.diffSummary?.exceptionChanges)).toBe(true);
-        expect(event.diffSummary.exceptionChanges.length).toBeGreaterThan(0);
+      assertEnrichment: (event: WorldMutationEventPayload) => {
+        const exceptionChanges = event.diffSummary?.exceptionChanges;
+        expect(Array.isArray(exceptionChanges)).toBe(true);
+        expect(
+          Array.isArray(exceptionChanges) ? exceptionChanges.length : 0
+        ).toBeGreaterThan(0);
       },
     },
     {
@@ -198,9 +204,12 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
         teamCode: 'LAL',
         deadCapChanges: ['Waived player dead cap updated'],
       },
-      assertEnrichment: (event: Record<string, any>) => {
-        expect(Array.isArray(event.diffSummary?.deadCapChanges)).toBe(true);
-        expect(event.diffSummary.deadCapChanges.length).toBeGreaterThan(0);
+      assertEnrichment: (event: WorldMutationEventPayload) => {
+        const deadCapChanges = event.diffSummary?.deadCapChanges;
+        expect(Array.isArray(deadCapChanges)).toBe(true);
+        expect(
+          Array.isArray(deadCapChanges) ? deadCapChanges.length : 0
+        ).toBeGreaterThan(0);
       },
     },
   ] as const;
@@ -239,7 +248,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
       expect(event.occurredAt).toBe('2026-03-03T12:00:00.000Z');
       expect(event.timestamp).toBe('2026-03-03T12:00:00.000Z');
       expect(Array.isArray(event.teamCodes)).toBe(true);
-      expect((event.teamCodes as any[]).length).toBeGreaterThan(0);
+      expect(event.teamCodes.length).toBeGreaterThan(0);
       expect(Array.isArray(event.playerIds)).toBe(true);
       expect(event.metadata).toBeTruthy();
       expect(event.mutationMetadata).toBeTruthy();

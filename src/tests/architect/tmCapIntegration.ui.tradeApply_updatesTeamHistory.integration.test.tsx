@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
+import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 
 const useWorldTeamEventsMock = vi.fn();
 
@@ -10,14 +11,14 @@ vi.mock('@/features/architect/history/hooks/useWorldTeamEvents', () => ({
   useWorldTeamEvents: (...args: unknown[]) => useWorldTeamEventsMock(...args),
 }));
 
-const teamCapSheet = {
+const teamCapSheet: TeamHistoryCapSheetLike = {
   teamCode: 'LAL',
-  waivedContracts: [] as any[],
-  exceptionHistory: [] as any[],
-  mleHistory: [] as any[],
-  pickLog: [] as any[],
+  waivedContracts: [],
+  exceptionHistory: [],
+  mleHistory: [],
+  pickLog: [],
   currentPicks: {},
-  historyTimeline: [] as any[],
+  historyTimeline: [],
 };
 
 describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Team History surface', () => {

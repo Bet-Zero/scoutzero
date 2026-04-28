@@ -41,9 +41,9 @@ vi.mock('@/firebaseConfig', () => ({
 // Mock useArchitectPlayerData
 vi.mock('@/features/architect/hooks/useArchitectPlayerData', () => ({
   default: () => ({
-    players: [] as any[],
+    players: [],
     loading: false,
-    error: null as any,
+    error: null,
   }),
 }));
 
@@ -163,9 +163,9 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectModals', () => ({
   useArchitectModals: () => ({
     showOffseasonModal: false,
     showContractModal: false,
-    initialAction: null as any,
-    targetYear: null as any,
-    actionContext: null as any,
+    initialAction: null,
+    targetYear: null,
+    actionContext: null,
     closeContractModal: vi.fn(),
     closeOffseasonModal: vi.fn(),
     setShowOffseasonModal: vi.fn(),
@@ -176,7 +176,7 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectModals', () => ({
 
 vi.mock('@/features/architect/hooks/usePlayerRulesProfiles', () => ({
   usePlayerRulesProfiles: () => ({
-    leagueContext: null as any,
+    leagueContext: null,
     leagueContextByYear: new Map(),
     getProfile: vi.fn(),
     getProfileForYear: vi.fn(),
@@ -187,11 +187,11 @@ vi.mock('@/features/architect/hooks/usePlayerRulesProfiles', () => ({
 const createMockTeamCapSheet = () => ({
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
-  players: [] as any[],
-  deadCap: [] as any[],
-  capHolds: [] as any[],
+  players: [],
+  deadCap: [],
+  capHolds: [],
   exceptions: {},
-  draftPicks: [] as any[],
+  draftPicks: [],
   totals: {},
 });
 

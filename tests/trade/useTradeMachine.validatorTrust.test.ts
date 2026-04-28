@@ -3,6 +3,11 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  TradeTeamResult,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const worldTeamDataMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
@@ -16,20 +21,28 @@ import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 
 const CURRENT_YEAR = 2026;
 const SEASON = '2025-26';
+type PlayerFixtureExtra = Record<string, unknown> & {
+  name?: string;
+  teamCode?: string | null;
+  position?: string;
+  contract?: unknown;
+  contractType?: string;
+  guaranteed?: boolean;
+};
 
 const makePlayer = (
   id: string,
   salary: number,
-  extra: Record<string, any> = {}
+  extra: PlayerFixtureExtra = {}
 ) => ({
   id,
   player_id: id,
-  name: extra.name || id,
-  teamCode: extra.teamCode || null,
+  name: extra.name ?? id,
+  teamCode: extra.teamCode ?? null,
   bio: {
-    displayName: extra.name || id,
+    displayName: extra.name ?? id,
     playerId: id,
-    position: extra.position || 'G',
+    position: extra.position ?? 'G',
   },
   contract:
     extra.contract || {
@@ -84,7 +97,7 @@ function assertDefined<T>(value: T | null | undefined, message: string): T {
   return value;
 }
 
-const issueTexts = (issues: any[] = []) =>
+const issueTexts = (issues: ValidationIssue[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
 const signAndTradePlayer = makePlayer('sat_player', 0, {
@@ -202,10 +215,12 @@ describe('useTradeMachine validator trust contract', () => {
     );
 
     const outgoingSatPlayer = primaryPlayers.find(
-      (player: Record<string, any>) => (player.player_id || player.id) === 'sat_player'
+      (player: NormalizedPlayer) =>
+        (player.player_id || player.id) === 'sat_player'
     );
     const incomingCounter = secondaryPlayers.find(
-      (player: Record<string, any>) => (player.player_id || player.id) === 'bos_counter'
+      (player: NormalizedPlayer) =>
+        (player.player_id || player.id) === 'bos_counter'
     );
 
     expect(outgoingSatPlayer).toBeDefined();
@@ -257,12 +272,10 @@ describe('useTradeMachine validator trust contract', () => {
       appliedToLegality: false,
     });
     const firstTeamResult = result.current.snapshotValidationDetails
-      ?.teamResults?.[0] as
-      | { rules?: Record<string, { violations?: unknown[] } | undefined> }
-      | undefined;
+      ?.teamResults?.[0] as TradeTeamResult | undefined;
     const signAndTradeRule = firstTeamResult?.rules?.signAndTrade;
     expect(
-      issueTexts(signAndTradeRule?.violations as any[] | undefined)
+      issueTexts(signAndTradeRule?.violations ?? [])
     ).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/only be traded during the offseason/i),

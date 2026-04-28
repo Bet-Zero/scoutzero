@@ -11,8 +11,29 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
-import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import {
+  useArchitectActions,
+  type UseArchitectActionsParams,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+
+type SetterValue<TSetter> = TSetter extends Dispatch<SetStateAction<infer TValue>>
+  ? TValue
+  : never;
+
+type HarnessTeamCapSheet = NonNullable<
+  UseArchitectActionsParams['state']['teamCapSheet']
+>;
+type HarnessSelectedPlayer = SetterValue<
+  UseArchitectActionsParams['state']['setSelectedPlayer']
+>;
+type HarnessFreeAgents = SetterValue<
+  UseArchitectActionsParams['state']['setFreeAgents']
+>;
+type HarnessOffseasonSummary = SetterValue<
+  UseArchitectActionsParams['state']['setOffseasonSummary']
+>;
 
 // Create hoisted mocks for counting calls
 const toastMocks = vi.hoisted(() => ({
@@ -101,10 +122,10 @@ vi.mock('@/features/architect/utils/mutationPipeline', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
-  validateSigning: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateContractRows: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
-  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateSigning: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateContractRows: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -119,8 +140,8 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: '1.0.0',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [] as any[],
-    warnings: [] as any[],
+    violations: [],
+    warnings: [],
   })),
 }));
 
@@ -129,13 +150,13 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
   synchronizeTeamTotalsSnapshot: capTotalsMocks.synchronizeTeamTotalsSnapshot,
 }));
 
-const baseTeamFixture = {
+const baseTeamFixture: HarnessTeamCapSheet = {
   teamCode: 'BOS',
   teamName: 'Boston Celtics',
-  roster: [] as any[],
-  players: [] as any[],
-  capHolds: [] as any[],
-  deadCap: [] as any[],
+  roster: [],
+  players: [],
+  capHolds: [],
+  deadCap: [],
   exceptions: {},
   totals: {
     isHardCapped: false,
@@ -148,6 +169,9 @@ const playerFixture = {
   name: 'Test Player',
   displayName: 'Test Player',
   teamCode: 'BOS',
+  previousSalary: 0,
+  birdRights: 'bird',
+  freeAgentType: 'UFA' as const,
   contract: { salariesByYear: [] },
 };
 
@@ -158,7 +182,7 @@ function renderActionsHarness({
 }: {
   worldId: string | null;
   userId?: string | null;
-  initialTeam?: any;
+  initialTeam?: HarnessTeamCapSheet;
 }) {
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
@@ -170,12 +194,17 @@ function renderActionsHarness({
   };
 
   return renderHook(() => {
-    const [teamCapSheet, setTeamCapSheet] = useState<any>(initialTeam);
+    const [teamCapSheet, setTeamCapSheet] =
+      useState<UseArchitectActionsParams['state']['teamCapSheet']>(initialTeam);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
-    const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-    const [freeAgents, setFreeAgents] = useState<any[]>([playerFixture]);
+    const [selectedPlayer, setSelectedPlayer] =
+      useState<HarnessSelectedPlayer>(null);
+    const [freeAgents, setFreeAgents] = useState<HarnessFreeAgents>([
+      playerFixture,
+    ]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-    const [offseasonSummary, setOffseasonSummary] = useState<any>(null);
+    const [offseasonSummary, setOffseasonSummary] =
+      useState<HarnessOffseasonSummary>(null);
 
     const actions = useArchitectActions({
       teamId: 'BOS',
@@ -204,7 +233,7 @@ function renderActionsHarness({
       seasonId: '2025-26',
     });
 
-    return { actions, teamCapSheet };
+    return { actions, teamCapSheet: teamCapSheet ?? initialTeam };
   });
 }
 

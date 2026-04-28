@@ -2,30 +2,50 @@ import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type {
+  NormalizedPlayer,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const CURRENT_YEAR = 2025;
 const SEASON = '2024-25';
 
-function makePlayer(name: string, salary: number) {
+function makePlayer(name: string, salary: number): NormalizedPlayer {
   return {
+    id: name.toLowerCase().replace(/\s/g, '_'),
     name,
+    player_id: name.toLowerCase().replace(/\s/g, '_'),
+    salary,
+    matchIncoming: salary,
+    matchOutgoing: salary,
+    isTwoWay: false,
+    absorptionMode: 'MATCH',
+    signAndTrade: false,
+    contractYears: 1,
+    firstYearGuaranteed: true,
     contract: {
       salariesByYear: [{ season: SEASON, salary }],
     },
   };
 }
 
-function makeTeam(code: string, totalSalary: number, players: unknown[] = []) {
+type HardCapPlayerFixture = ReturnType<typeof makePlayer>;
+
+function makeTeam(
+  code: string,
+  totalSalary: number,
+  players: HardCapPlayerFixture[] = []
+) {
   return {
     id: code,
     teamCode: code,
     teamName: code,
     totalSalary,
-    players: players as any,
+    players,
   };
 }
 
-const issueTexts = (issues: any[] = []) =>
+const issueTexts = (issues: ValidationIssue[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
 describe('Hard Cap Reason Parity Guardrail', () => {

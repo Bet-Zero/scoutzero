@@ -9,6 +9,61 @@ import { CapTableSection } from '@/features/architect/GMDashboard/sections/CapTa
 type GetRulesProfileForYear = NonNullable<
   Parameters<typeof CapTableSection>[0]['getRulesProfileForYear']
 >;
+type RulesProfileForYearResult = ReturnType<GetRulesProfileForYear>;
+
+const makeRulesProfile = (
+  overrides: Partial<NonNullable<RulesProfileForYearResult>>
+): RulesProfileForYearResult => ({
+  playerId: 'profile_fixture',
+  playerName: 'Profile Fixture',
+  evaluatedAt: '2026-03-01T00:00:00.000Z',
+  evaluatedForSeason: '2025-26',
+  extensionEligibility: {
+    isEligible: false,
+    reason: 'Not eligible',
+    blockers: [],
+    extensionType: 'standard',
+    eligibleDate: null,
+  },
+  extensionTerms: null,
+  birdRights: {
+    type: 'None',
+    yearsWithTeam: 0,
+    summary: 'No Bird rights',
+    signingAbilities: {
+      canSignOverCap: false,
+      maxYears: 4,
+      raisePercentage: 0.05,
+    },
+  },
+  minimumSalary: 0,
+  minimumSalaryReason: 'Fixture',
+  maxSalary: {
+    maxSalary: 0,
+    tier: 'standard',
+    supermaxEligible: false,
+    reason: 'Fixture',
+  },
+  restrictedFreeAgency: {
+    isRFA: false,
+    qualifyingOfferEligible: false,
+    qualifyingOfferAmount: null,
+    canAcceptQO: false,
+    qoDeadline: null,
+    teamHasMatchingRights: false,
+    reason: undefined,
+  },
+  contractSummary: {
+    yearsOfService: 0,
+    yearsRemaining: 0,
+    freeAgencyYear: null,
+    freeAgencyType: 'Unknown',
+    currentSalary: null,
+    hasContract: false,
+  },
+  teamContext: null,
+  ...overrides,
+});
 
 const SUMMARY_TOTALS = {
   yearKey: 2026,
@@ -92,29 +147,72 @@ const getRulesProfileForYear: GetRulesProfileForYear = (player) => {
     return null;
   }
   if (player.name === 'Ext Player') {
-    return {
+    return makeRulesProfile({
       extensionEligibility: {
         isEligible: true,
         reason: 'Extension eligible',
-        eligibleDate: '2025-07-01T00:00:00.000Z',
+        blockers: [],
+        extensionType: 'standard',
+        eligibleDate: new Date('2025-07-01T00:00:00.000Z'),
       },
-      birdRights: { type: 'Full Bird' },
-      contractSummary: { freeAgencyYear: 2027, freeAgencyType: 'Unrestricted' },
-    } as any;
+      birdRights: {
+        type: 'Full Bird',
+        yearsWithTeam: 3,
+        summary: 'Full Bird rights',
+        signingAbilities: {
+          canSignOverCap: true,
+          maxYears: 5,
+          raisePercentage: 0.08,
+        },
+      },
+      contractSummary: {
+        yearsOfService: 0,
+        yearsRemaining: 2,
+        currentSalary: 12_000_000,
+        hasContract: true,
+        freeAgencyYear: 2027,
+        freeAgencyType: 'Unrestricted',
+      },
+    });
   }
 
   if (player.name === 'RFA Player') {
-    return {
-      extensionEligibility: { isEligible: false, reason: 'RFA timing' },
-      birdRights: { type: 'Early Bird' },
+    return makeRulesProfile({
+      extensionEligibility: {
+        isEligible: false,
+        reason: 'RFA timing',
+        blockers: ['Restricted free agency timing'],
+        extensionType: 'standard',
+        eligibleDate: null,
+      },
+      birdRights: {
+        type: 'Early Bird',
+        yearsWithTeam: 2,
+        summary: 'Early Bird rights',
+        signingAbilities: {
+          canSignOverCap: true,
+          maxYears: 4,
+          raisePercentage: 0.08,
+        },
+      },
       restrictedFreeAgency: {
         isRFA: true,
         qualifyingOfferEligible: true,
         qualifyingOfferAmount: 9_000_000,
+        canAcceptQO: true,
+        qoDeadline: null,
+        teamHasMatchingRights: true,
         reason: 'RFA rights active',
       },
-      contractSummary: { freeAgencyYear: 2025, freeAgencyType: 'Restricted' },
-    } as any;
+      contractSummary: {
+        yearsOfService: 0,
+        yearsRemaining: 0,
+        currentSalary: 8_000_000,
+        hasContract: true,
+        freeAgencyYear: 2025,
+        freeAgencyType: 'Restricted',
+      },
+    });
   }
 
   return null;

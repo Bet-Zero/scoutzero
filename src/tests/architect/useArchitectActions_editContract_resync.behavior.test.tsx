@@ -1,8 +1,38 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
-import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import {
+  useArchitectActions,
+  type UseArchitectActionsParams,
+  type UseArchitectActionsReturn,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+
+type SetterValue<TSetter> = TSetter extends Dispatch<SetStateAction<infer TValue>>
+  ? TValue
+  : never;
+
+type HarnessTeamCapSheet = NonNullable<
+  UseArchitectActionsParams['state']['teamCapSheet']
+>;
+type HarnessSelectedPlayer = SetterValue<
+  UseArchitectActionsParams['state']['setSelectedPlayer']
+>;
+type HarnessFreeAgents = SetterValue<
+  UseArchitectActionsParams['state']['setFreeAgents']
+>;
+type HarnessOffseasonSummary = SetterValue<
+  UseArchitectActionsParams['state']['setOffseasonSummary']
+>;
+type WaiveResult = Awaited<
+  ReturnType<UseArchitectActionsReturn['handleWaiveContract']>
+>;
+type ApplyWorldMutationSuccess = {
+  success: true;
+  changedTeams: Array<{ teamCode: string; team: HarnessTeamCapSheet }>;
+  event: { operationId: string };
+};
 
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
@@ -106,7 +136,7 @@ const TEST_PLAYER = {
   },
 };
 
-const BASE_TEAM = {
+const BASE_TEAM: HarnessTeamCapSheet = {
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
   roster: ['p1'],
@@ -117,14 +147,16 @@ const BASE_TEAM = {
   totals: {},
 };
 
-function sumDeadCapForSeason(team: any, season = '2025-26') {
-  return (team?.deadCap || []).reduce((sum: number, item: any) => {
-    const match = (item?.amountByYear || []).find((entry: any) => entry?.season === season);
+function sumDeadCapForSeason(team: HarnessTeamCapSheet, season = '2025-26') {
+  return (team.deadCap || []).reduce((sum, item) => {
+    const match = (item.amountByYear || []).find(
+      (entry) => entry.season === season
+    );
     return sum + (match?.amount || 0);
   }, 0);
 }
 
-function makeTotals(team: any) {
+function makeTotals(team: HarnessTeamCapSheet) {
   const deadMoneyTotal = sumDeadCapForSeason(team);
   return {
     yearKey: 2026,
@@ -152,12 +184,15 @@ function renderActionsHarness(worldId: string | null) {
   const finishSave = vi.fn();
 
   const { result } = renderHook(() => {
-    const [teamCapSheet, setTeamCapSheet] = useState<any>(BASE_TEAM);
+    const [teamCapSheet, setTeamCapSheet] =
+      useState<UseArchitectActionsParams['state']['teamCapSheet']>(BASE_TEAM);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
-    const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-    const [freeAgents, setFreeAgents] = useState<any[]>([]);
+    const [selectedPlayer, setSelectedPlayer] =
+      useState<HarnessSelectedPlayer>(null);
+    const [freeAgents, setFreeAgents] = useState<HarnessFreeAgents>([]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-    const [offseasonSummary, setOffseasonSummary] = useState<any>(null);
+    const [offseasonSummary, setOffseasonSummary] =
+      useState<HarnessOffseasonSummary>(null);
 
     const actions = useArchitectActions({
       teamId: 'LAL',
@@ -188,7 +223,7 @@ function renderActionsHarness(worldId: string | null) {
       seasonId: '2025-26',
     });
 
-    return { actions, teamCapSheet };
+    return { actions, teamCapSheet: teamCapSheet ?? BASE_TEAM };
   });
 
   return { result, refreshWorldRosterIndex };
@@ -201,7 +236,7 @@ describe('useArchitectActions edit-contract world resync behavior', () => {
       String(teamId || '').toUpperCase()
     );
     worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(BASE_TEAM);
-    capTotalsMocks.computeTeamCapTotals.mockImplementation((team: any) =>
+    capTotalsMocks.computeTeamCapTotals.mockImplementation((team: HarnessTeamCapSheet) =>
       makeTotals(team)
     );
   });
@@ -213,7 +248,8 @@ describe('useArchitectActions edit-contract world resync behavior', () => {
   it('forwards buyout amount, applies optimistic totals, then resyncs to authoritative changedTeams', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-    let resolveMutation: ((value: any) => void) | null = null;
+    let resolveMutation: ((value: ApplyWorldMutationSuccess) => void) | null =
+      null;
     mutationMocks.applyWorldMutation.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
@@ -223,10 +259,10 @@ describe('useArchitectActions edit-contract world resync behavior', () => {
 
     const { result, refreshWorldRosterIndex } = renderActionsHarness('world_1');
 
-    let actionResultPromise: Promise<any>;
+    let actionResultPromise: Promise<WaiveResult>;
     act(() => {
       actionResultPromise = result.current.actions.handleWaiveContract(
-        TEST_PLAYER as any,
+        TEST_PLAYER,
         {
           stretch: false,
           buyout: true,

@@ -9,9 +9,34 @@
  */
 
 import { act, renderHook } from '@testing-library/react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import {
+  useArchitectActions,
+  type UseArchitectActionsParams,
+  type UseArchitectActionsReturn,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+
+type SetterValue<TSetter> = TSetter extends Dispatch<SetStateAction<infer TValue>>
+  ? TValue
+  : never;
+
+type HarnessTeamCapSheet = NonNullable<
+  UseArchitectActionsParams['state']['teamCapSheet']
+>;
+type HarnessSelectedPlayer = SetterValue<
+  UseArchitectActionsParams['state']['setSelectedPlayer']
+>;
+type HarnessFreeAgents = SetterValue<
+  UseArchitectActionsParams['state']['setFreeAgents']
+>;
+type HarnessOffseasonSummary = SetterValue<
+  UseArchitectActionsParams['state']['setOffseasonSummary']
+>;
+type OfferSheetContract = Parameters<
+  UseArchitectActionsReturn['handleStoreOfferSheet']
+>[1];
 
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
@@ -167,7 +192,7 @@ type DeadCapPayloadEntry = {
   notes: string;
 };
 
-const BASE_TEAM = {
+const BASE_TEAM: HarnessTeamCapSheet = {
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
   roster: ['p1'],
@@ -178,7 +203,7 @@ const BASE_TEAM = {
   totals: {},
 };
 
-const OFFER_SHEET_CONTRACT = {
+const OFFER_SHEET_CONTRACT: OfferSheetContract = {
   salariesByYear: [
     {
       season: '2026-27',
@@ -204,7 +229,7 @@ const DEAD_CAP_PAYLOAD = [
   },
 ];
 
-function makeTotals(team: typeof BASE_TEAM) {
+function makeTotals(team: HarnessTeamCapSheet) {
   const deadMoneyTotal = (team.deadCap || []).reduce((sum, entry) => {
     const seasonRow = (entry.amountByYear || []).find(
       (row: DeadCapPayloadEntry['amountByYear'][number]) =>
@@ -241,12 +266,15 @@ function renderActionsHarness() {
   const finishSave = vi.fn();
 
   const { result } = renderHook(() => {
-    const [teamCapSheet, setTeamCapSheet] = useState<any>(BASE_TEAM);
+    const [teamCapSheet, setTeamCapSheet] =
+      useState<UseArchitectActionsParams['state']['teamCapSheet']>(BASE_TEAM);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
-    const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-    const [freeAgents, setFreeAgents] = useState<any[]>([]);
+    const [selectedPlayer, setSelectedPlayer] =
+      useState<HarnessSelectedPlayer>(null);
+    const [freeAgents, setFreeAgents] = useState<HarnessFreeAgents>([]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-    const [offseasonSummary, setOffseasonSummary] = useState<any>(null);
+    const [offseasonSummary, setOffseasonSummary] =
+      useState<HarnessOffseasonSummary>(null);
 
     const actions = useArchitectActions({
       teamId: 'LAL',
@@ -280,7 +308,7 @@ function renderActionsHarness() {
 
     return {
       actions,
-      teamCapSheet,
+      teamCapSheet: teamCapSheet ?? BASE_TEAM,
       selectedPlayer,
       selectedRulesYear,
     };

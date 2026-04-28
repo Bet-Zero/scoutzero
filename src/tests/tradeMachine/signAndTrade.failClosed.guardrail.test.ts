@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import type { CapHold } from '@/features/architect/utils/capHolds';
+import type {
+  TradeExceptionPlayer,
+  TradeTeamResult,
+  ValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 
 const CURRENT_YEAR = 2026;
 const SEASON = `${CURRENT_YEAR - 1}-${String(CURRENT_YEAR).slice(-2)}`;
@@ -10,7 +16,19 @@ function makeContractSalary(salary: number) {
   return [{ season: SEASON, salary, capHit: salary, guaranteed: true }];
 }
 
-function makeTeam(teamCode: string, totalSalary = 120_000_000, capHolds: any[] = []) {
+type PlayerFixtureExtra = Record<string, unknown> & {
+  contract?: Record<string, unknown>;
+};
+
+type SignAndTradeRuleEnvelope = TradeTeamResult['rules'][string] & {
+  hardCapped?: boolean;
+};
+
+function makeTeam(
+  teamCode: string,
+  totalSalary = 120_000_000,
+  capHolds: CapHold[] = []
+) {
   return {
     id: teamCode,
     teamCode,
@@ -23,7 +41,11 @@ function makeTeam(teamCode: string, totalSalary = 120_000_000, capHolds: any[] =
   };
 }
 
-function makePlayer(playerId: string, salary: number, extra: Record<string, any> = {}) {
+function makePlayer(
+  playerId: string,
+  salary: number,
+  extra: PlayerFixtureExtra = {}
+): TradeExceptionPlayer {
   return {
     id: playerId,
     player_id: playerId,
@@ -32,6 +54,18 @@ function makePlayer(playerId: string, salary: number, extra: Record<string, any>
       salariesByYear: makeContractSalary(salary),
     },
     ...extra,
+  };
+}
+
+function makeCapHold(playerId: string): CapHold {
+  return {
+    playerId,
+    playerName: playerId,
+    season: SEASON,
+    active: true,
+    isSigned: false,
+    amount: 0,
+    type: 'bird',
   };
 }
 
@@ -58,10 +92,10 @@ function makeSignAndTradeContract(firstYearSalary: number) {
   };
 }
 
-const issueTexts = (issues: any[] = []) =>
+const issueTexts = (issues: ValidationIssue[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
-function expectCanonicalSignAndTradeIssues(issues: any[]) {
+function expectCanonicalSignAndTradeIssues(issues: ValidationIssue[]) {
   expect(issues.length).toBeGreaterThan(0);
   issues.forEach((issue) => {
     expect(issue).toMatchObject({
@@ -120,13 +154,7 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
       teams: [
         {
           team: makeTeam('LAL', 120_000_000, [
-            {
-              playerId: 'sat_missing_contract',
-              playerName: 'sat_missing_contract',
-              season: SEASON,
-              active: true,
-              isSigned: false,
-            },
+            makeCapHold('sat_missing_contract'),
           ]),
           sends: [satPlayer],
           picksOut: [],
@@ -164,13 +192,7 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
       teams: [
         {
           team: makeTeam('LAL', 120_000_000, [
-            {
-              playerId: 'sat_salary_parity',
-              playerName: 'sat_salary_parity',
-              season: SEASON,
-              active: true,
-              isSigned: false,
-            },
+            makeCapHold('sat_salary_parity'),
           ]),
           sends: [satPlayer],
           picksOut: [],
@@ -182,8 +204,12 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
       tradeCtx: { offseason: true, source: 'tradeMachine' },
     });
 
-    const teamA = result.teamResults.find((entry: any) => entry.teamId === 'LAL');
-    const teamB = result.teamResults.find((entry: any) => entry.teamId === 'BOS');
+    const teamA = result.teamResults.find(
+      (entry: TradeTeamResult) => entry.teamId === 'LAL'
+    );
+    const teamB = result.teamResults.find(
+      (entry: TradeTeamResult) => entry.teamId === 'BOS'
+    );
 
     expect(teamA?.salaryOut).toBe(18_000_000);
     expect(teamB?.salaryIn).toBe(18_000_000);
@@ -205,13 +231,7 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
       teams: [
         {
           team: makeTeam('LAL', 120_000_000, [
-            {
-              playerId: 'sat_missing_dest',
-              playerName: 'sat_missing_dest',
-              season: SEASON,
-              active: true,
-              isSigned: false,
-            },
+            makeCapHold('sat_missing_dest'),
           ]),
           sends: [satPlayer],
           picksOut: [],
@@ -251,10 +271,14 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
       tradeCtx: { offseason: true, source: 'tradeMachine' },
     });
 
-    const receiver = result.teamResults.find((entry: any) => entry.teamId === 'BOS');
+    const receiver = result.teamResults.find(
+      (entry: TradeTeamResult) => entry.teamId === 'BOS'
+    );
+    const signAndTradeRule = receiver?.rules
+      .signAndTrade as SignAndTradeRuleEnvelope | undefined;
 
-    expect(receiver?.rules.signAndTrade.passed).toBe(true);
-    expect((receiver?.rules.signAndTrade as any).hardCapped).toBe(true);
+    expect(signAndTradeRule?.passed).toBe(true);
+    expect(signAndTradeRule?.hardCapped).toBe(true);
     expect(receiver?.hardCapped).toBe(true);
     expect(receiver?.rules.signAndTrade.violations).toEqual([]);
   });

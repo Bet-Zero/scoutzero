@@ -25,21 +25,32 @@ import {
   loadFreeAgents,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 
-type DocValue = Record<string, any> | null;
+type FirestoreDocData = Record<string, unknown>;
+type DocValue = FirestoreDocData | null;
+type SnapshotDoc = { id: string; data: FirestoreDocData };
+type BatchSetWrite = { ref: { id: string }; data: FirestoreDocData };
+type HydratedPlayerFixture = FirestoreDocData & { id: string };
+type HydratedTeamFixture = FirestoreDocData & {
+  roster: unknown;
+  players: HydratedPlayerFixture[];
+  baseline: FirestoreDocData;
+  exceptions: FirestoreDocData;
+  activeContracts: FirestoreDocData[];
+};
 
 const firestoreState = vi.hoisted(() => ({
   baseTeamDocs: new Map<string, DocValue>(),
   basePlayerDocs: new Map<string, DocValue>(),
-  baseTeamsSnapshotDocs: [] as Array<{ id: string; data: Record<string, any> }>,
+  baseTeamsSnapshotDocs: [] as SnapshotDoc[],
   baseTeamsEmpty: true,
   baseTeamsShouldThrow: false,
-  freeAgentDocs: [] as Array<{ id: string; data: Record<string, any> }>,
+  freeAgentDocs: [] as SnapshotDoc[],
   freeAgentsShouldThrow: false,
   getDocOrder: [] as string[],
   maxConcurrentGetDoc: 0,
   activeGetDoc: 0,
   throwGetDocForKey: new Map<string, Error>(),
-  writeBatchSets: [] as Array<{ ref: { id: string }; data: Record<string, any> }>,
+  writeBatchSets: [] as BatchSetWrite[],
   batchCommitShouldThrow: false,
   batchCommitCalls: 0,
 }));
@@ -126,7 +137,7 @@ vi.mock('firebase/firestore', () => ({
     };
   }),
   writeBatch: vi.fn(() => ({
-    set: vi.fn((ref: { id: string }, data: Record<string, any>) => {
+    set: vi.fn((ref: { id: string }, data: FirestoreDocData) => {
       firestoreState.writeBatchSets.push({ ref, data });
     }),
     commit: vi.fn(async () => {
@@ -353,10 +364,10 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
       },
     });
 
-    const hydratedTeam = (await hydrateBaseTeam('LAL', baseDoc)) as Record<
-      string,
-      any
-    >;
+    const hydratedTeam = (await hydrateBaseTeam(
+      'LAL',
+      baseDoc
+    )) as HydratedTeamFixture;
 
     expect(Object.keys(hydratedTeam)).toEqual(expectedHydratedTeamKeys);
     expect(hydratedTeam.teamCode).toBe('LAL');

@@ -11,9 +11,14 @@
  */
 
 import { act, renderHook, waitFor } from '@testing-library/react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import {
+  useArchitectActions,
+  type UseArchitectActionsParams,
+  type UseArchitectActionsReturn,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 import type { DashboardOffseasonSummary } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { resolveOffseasonTransition } from '@/features/architect/utils/offseason';
@@ -23,6 +28,21 @@ import type {
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 
 const FIXED_TIMESTAMP = new Date('2026-03-22T12:00:00.000Z').getTime();
+
+type SetterValue<TSetter> = TSetter extends Dispatch<SetStateAction<infer TValue>>
+  ? TValue
+  : never;
+
+type HarnessTeamCapSheet = NonNullable<
+  UseArchitectActionsParams['state']['teamCapSheet']
+>;
+type HarnessSelectedPlayer = SetterValue<
+  UseArchitectActionsParams['state']['setSelectedPlayer']
+>;
+type HarnessFreeAgents = SetterValue<
+  UseArchitectActionsParams['state']['setFreeAgents']
+>;
+type SigningContract = Parameters<UseArchitectActionsReturn['handleSign']>[1];
 
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
@@ -196,12 +216,15 @@ const playerFixture = {
   name: 'Test Player',
   displayName: 'Test Player',
   teamCode: 'LAL',
+  previousSalary: 9_000_000,
+  birdRights: 'bird',
+  freeAgentType: 'UFA' as const,
   contract: {
     salariesByYear: [],
   },
 };
 
-const contractFixture = {
+const contractFixture: SigningContract = {
   salariesByYear: [
     {
       season: '2025-26',
@@ -214,7 +237,7 @@ const contractFixture = {
   signedUsing: 'Full MLE',
 };
 
-const baseTeamFixture = {
+const baseTeamFixture: HarnessTeamCapSheet = {
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
   roster: [],
@@ -239,7 +262,7 @@ function renderActionsHarness({
 }: {
   worldId: string | null;
   userId?: string | null;
-  initialTeam?: unknown;
+  initialTeam?: HarnessTeamCapSheet;
 }) {
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
@@ -251,10 +274,14 @@ function renderActionsHarness({
   };
 
   const { result } = renderHook(() => {
-    const [teamCapSheet, setTeamCapSheet] = useState<any>(initialTeam);
+    const [teamCapSheet, setTeamCapSheet] =
+      useState<UseArchitectActionsParams['state']['teamCapSheet']>(initialTeam);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
-    const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-    const [freeAgents, setFreeAgents] = useState<any[]>([playerFixture]);
+    const [selectedPlayer, setSelectedPlayer] =
+      useState<HarnessSelectedPlayer>(null);
+    const [freeAgents, setFreeAgents] = useState<HarnessFreeAgents>([
+      playerFixture,
+    ]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
     const [offseasonSummary, setOffseasonSummary] =
       useState<DashboardOffseasonSummary | null>(null);
@@ -288,7 +315,7 @@ function renderActionsHarness({
 
     return {
       actions,
-      teamCapSheet,
+      teamCapSheet: teamCapSheet ?? initialTeam,
       freeAgents,
       selectedRulesYear,
       selectedPlayer,
