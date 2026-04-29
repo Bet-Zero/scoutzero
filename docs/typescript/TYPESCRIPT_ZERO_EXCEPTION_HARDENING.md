@@ -49,23 +49,32 @@ legacy compatibility, convenience, or "tests only" are not enough by themselves.
     and negative-boundary clusters from the repo-wide scan
   - remaining Gate 4 repo-wide scan hits with practical broad bags
 - Next action: repeat the TS-ZERO-003C typed-harness pattern on the remaining
-  broad UI and SDK mock clusters after the first partial checkpoint cleared
+  broad UI and SDK mock clusters. Partial checkpoints so far: (1)
   `tradeEditorTeamCard.boundary.e105.test.tsx`,
   `grouped33FileScope.ui.behavior.test.tsx`,
-  `pickRightWizard.vacuumApply.test.tsx`, and
-  `tradePlayerRow.signAndTradeInjector.test.tsx`, then the second partial
-  checkpoint cleared `capSheet.uiFlows.integration.test.tsx` and
-  `seasonAdvance_postStateValidator_failClose.behavior.test.ts`; the third
-  partial checkpoint cleared the narrow result-bag markers in
-  `useTradeMachine.compatibility.guardrail.test.ts`; the fourth partial
-  checkpoint tightened `tradeApply_timingWarnings.behavior.test.ts`,
-  `tradeMachineBarrelBatch.e131.guardrail.test.ts`, and
-  `architectSecurity.backfillTargeting.guardrail.test.ts` (timing context,
-  extensionless-import barrels, JSON read typing).
+  `pickRightWizard.vacuumApply.test.tsx`,
+  `tradePlayerRow.signAndTradeInjector.test.tsx`; (2)
+  `capSheet.uiFlows.integration.test.tsx`,
+  `seasonAdvance_postStateValidator_failClose.behavior.test.ts`; (3)
+  `useTradeMachine.compatibility.guardrail.test.ts`; (4)
+  `tradeApply_timingWarnings.behavior.test.ts`,
+  `tradeMachineBarrelBatch.e131.guardrail.test.ts`,
+  `architectSecurity.backfillTargeting.guardrail.test.ts`; (5)
+  `tradeContext_assertions.contract.test.ts`,
+  `mutationPipeline.catchallNarrowing.test.ts`,
+  `tradeEntitlementExclusivity.unavailable.test.ts`, plus a follow-up on
+  `tradeMachineBarrelBatch.e131.guardrail.test.ts` (remove remaining `as any` on
+  the utils barrel dynamic import after checkpoint 4 tightened other barrel lines);
+  (6) `entitlementWriter.collision.test.ts`,
+  `entitlementResolver.parentFallback.test.ts`,
+  `entitlementResolver.invariantViolation.test.ts` (typed `Firestore` DB
+  sentinels instead of `{} as any`), plus strict-null fixes in
+  `tradeContext_assertions.contract.test.ts` and
+  `tradeEntitlementExclusivity.unavailable.test.ts` surfaced by `tsc`.
 - Stop condition: the repo-wide test/mock escape scan has no practical central
   mock, integration harness, or repeated fixture bag left behind broad
   `any`/cast patterns.
-- Last updated: 2026-04-28 by Cursor Agent
+- Last updated: 2026-04-29 (checkpoint 6 entitlement fake-DB sentinels)
 
 ## Mission Completion Status
 
@@ -75,7 +84,7 @@ legacy compatibility, convenience, or "tests only" are not enough by themselves.
 | Gate 1 - Zero runtime escapes | PASS | TS-ZERO-001 marker scan found none of the 9 carried-forward true runtime escape markers in the Phase 1 files. | Continue broader zero-exception gates before final closure. |
 | Gate 2 - Zero `z.any()` | PASS | TS-ZERO-002 schema scan found zero `z.any()` and zero `z.record(..., z.any())` matches in `src/`. | Continue Gate 3 opaque schema honesty before final closure. |
 | Gate 3 - Opaque schema escape honesty | PASS | TS-ZERO-002B broad schema escape scan found no `z.unknown()`, `.passthrough()`, `.catchall()`, or `z.any()` source hits in `src/`. | Continue Gate 4 typed test fixture/mock hardening before final closure. |
-| Gate 4 - Typed test fixtures and mocks | FAIL | TS-ZERO-003C partial checkpoints cleared seven additional UI/mock/guardrail files; repo-wide scan still finds remaining SDK mock, trade validator, and negative-boundary clusters. | Continue Phase 3C before final closure. |
+| Gate 4 - Typed test fixtures and mocks | FAIL | TS-ZERO-003C partial checkpoints cleared fourteen Architect/guardrail/entitlements test files (including typed `Firestore` sentinels for entitlement writer collision and resolver harnesses); repo-wide scan still finds remaining entitlement identity move fake DB bags, dare mutator mocks, emulator gates, and other fixture bridges. | Continue Phase 3C before final closure. |
 | Gate 5 - Practical JS/CJS/MJS conversion | FAIL | Gate 6 inventory classified 38 JS-like files as intentional config/scripts under the older standard. | Phase 4 must reclassify into convert/delete/keep and convert practical internal scripts. |
 | Gate 6 - No false final closure | FAIL | Gates 1-5 are not yet satisfied under the stricter contract. | No final DONE verdict is allowed. |
 
@@ -91,7 +100,7 @@ Current mission verdict: `TASK INCOMPLETE - ZERO-EXCEPTION HARDENING NOT FINISHE
 | TS-ZERO-002B | COMPLETE | Phase 2B: Firebase helper schema passthroughs | Replaced the remaining Firebase timestamp/document `.passthrough()` helper schemas in `src/firebase/rankerHelpers.ts`, `src/firebase/listHelpers.ts`, and `src/firebase/rosterHelpers.ts` with exact timestamp and document field schemas, and removed the last schema-scan false-positive test comment. | Broad schema escape scan PASS; `npm run typecheck` PASS; `npm run test:diff -- --reporter=dot` STOPPED after selecting guarded full tier; `npm run test:fast -- --reporter=dot` PASS; `npm run test:roster -- --reporter=dot` PASS; targeted Firebase/list/ranker node tests PASS; `npm run lint:md` PASS; `npm run validate:project` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-002B-FIREBASE-SCHEMA-ESCAPES-2026-04-26.md` |
 | TS-ZERO-003 | COMPLETE | Phase 3: highest-hit test harness/mock starting cluster from `TYPESCRIPT_GATE_005_TEST_MOCK_CLASSIFICATION.md` | Tightened broad test state bags and SDK mock bags in `useArchitectActions.freeAgency.test.tsx`, both TM cap integration files, `capSheet.transactionMatrix.behavior.test.tsx`, and the high-hit `mutationPipeline.*` starting cluster. Remaining target-cluster scan hit is only `expect.any(Array)`. | Target starting-cluster scan PASS except assertion false positive; repo-wide test/mock scan FOLLOW-UP for TS-ZERO-003B; `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot` PASS; `npm run lint:md` PASS; `npm run validate:project` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-003-TYPED-TEST-BUILDERS-2026-04-26.md` |
 | TS-ZERO-003B | COMPLETE | Phase 3B: TM cap UI integration mirror | Removed the remaining broad SDK mock markers from `tmCapIntegration.ui.tradeApply_updatesCapSheet.integration.test.tsx`, mirroring the typed Firebase helper/mock pattern from TS-ZERO-003. | Target file scan PASS; `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot` PASS; `npm run lint:md` PASS; `npm run validate:project` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-003B-TM-CAP-UI-MOCKS-2026-04-26.md` |
-| TS-ZERO-003C | IN PROGRESS | Phase 3C: remaining test harness/mock scan clusters | Partial checkpoints cleared broad mock markers from seven additional Architect test files, including the cap-sheet UI flow state bags, season-advance helper mocks, and a small useTradeMachine export result-bag guardrail. Continue typed test-builder/mock hardening for the remaining repo-wide scan hits, especially trade validator result bags and central Firebase/team-plan mock bags. | Repo-wide test/mock escape scan; `npm run typecheck`; relevant scoped suites (`npm run test:architect -- --reporter=dot`, `npm run test:trade -- --reporter=dot`, or `npm run test:diff -- --reporter=dot` when uncertain). | `return_packages/typescript/TS-ZERO-003C-UI-HARNESS-MOCKS-2026-04-29.md`; `return_packages/typescript/TS-ZERO-003C-CAP-SEASON-MOCKS-2026-04-29.md`; `return_packages/typescript/TS-ZERO-003C-USE-TRADE-MACHINE-GUARDRAIL-2026-04-29.md`; final TS-ZERO-003C return package still pending |
+| TS-ZERO-003C | IN PROGRESS | Phase 3C: remaining test harness/mock scan clusters | Partial checkpoints cleared broad mock markers from fourteen Architect/entitlements test files, including typed `Firestore` DB sentinels for entitlement writer collision and resolver parent/invariant tests. Continue typed test-builder/mock hardening for remaining repo-wide scan hits (`entitlementIdentityMove`, dare mutator mocks, emulator gates). | Repo-wide test/mock escape scan; `npm run typecheck`; relevant scoped suites (`npm run test:architect -- --reporter=dot`, `npm run test:trade -- --reporter=dot`, `npm run test:node -- ...`, or `npm run test:diff -- --reporter=dot` when uncertain). | Prior partial packages plus `return_packages/typescript/TS-ZERO-003C-ENTITLEMENT-FAKE-DB-2026-04-29.md`; final TS-ZERO-003C return package still pending |
 | TS-ZERO-004 | TODO | Phase 4: all remaining JS/CJS/MJS files | Reclassify JS-like files into convert/delete/keep under the stricter standard. Convert all practical internal scripts to TypeScript and leave only truly unavoidable config/tooling files. | JS-like inventory scan; `npm run typecheck`; `npm run validate:project`; `npm run test:diff -- --reporter=dot` for script or structural changes. | `return_packages/typescript/TS-ZERO-004-JS-CONVERSION-<YYYY-MM-DD>.md` |
 | TS-ZERO-005 | TODO | Phase 5: final zero-exception audit | Run the final audit only after Phases 1-4 are complete. Prove all zero-exception gates pass and that remaining exception tables are empty or contain only unavoidable third-party/tooling boundaries. | Gate 1-5 scans; `npm run typecheck`; `npm run validate:project`; `npm run lint:md`; `npm run test:diff -- --reporter=dot`; root strict regression check only if compiler posture changed. | `return_packages/typescript/TS-ZERO-005-FINAL-AUDIT-<YYYY-MM-DD>.md` |
 
@@ -127,6 +136,8 @@ stricter zero-exception contract.
 | 2026-04-29 | TS-ZERO-003C-CAP-SEASON | Removed broad state/helper mock markers from cap-sheet UI flow and season-advance post-state validator tests while leaving Phase 3C open for remaining repo-wide clusters. | `src/tests/architect/capSheet.uiFlows.integration.test.tsx`; `src/tests/architect/seasonAdvance_postStateValidator_failClose.behavior.test.ts`; plan doc; return package | Target file scan PASS except `expect.any(Number)` assertion false positive; `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot` PASS; `npm run lint:md` PASS; `npm run validate:project` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-003C-CAP-SEASON-MOCKS-2026-04-29.md` |
 | 2026-04-29 | TS-ZERO-003C-USE-TM | Replaced useTradeMachine guardrail result-bag `Record<string, any>` markers with unknown-valued records while leaving Phase 3C open for remaining repo-wide clusters. | `src/tests/architect/useTradeMachine.compatibility.guardrail.test.ts`; plan doc; return package | Target file scan PASS; `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot src/tests/architect/useTradeMachine.compatibility.guardrail.test.ts` PASS but ran full Architect scope; `npm run lint:md` PASS; `npm run validate:project` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-003C-USE-TRADE-MACHINE-GUARDRAIL-2026-04-29.md` |
 | 2026-04-28 | TS-ZERO-003C-TIMING-BARREL-SEC | Hardened trade timing warnings test (typed issue helper, no `as any` on validated context), removed `as any` from E131 barrel dynamic imports, and replaced `Record<string, any>` in the security backfill guardrail JSON reader. | `src/tests/architect/tradeApply_timingWarnings.behavior.test.ts`; `src/tests/architect/tradeMachineBarrelBatch.e131.guardrail.test.ts`; `src/tests/security/architectSecurity.backfillTargeting.guardrail.test.ts`; plan doc; return package | `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot` PASS; targeted vitest for security guardrail PASS. | `return_packages/typescript/TS-ZERO-003C-TIMING-BARREL-SECURITY-2026-04-28.md` |
+| 2026-04-29 | TS-ZERO-003C-CTX-EXCL | Typed trade-context assertion fixtures, removed `any` from mutation catchall narrowing metadata probes and exclusivity unavailable team-result callbacks, and dropped the remaining `as any` on the E131 utils barrel import. | `src/tests/architect/tradeContext_assertions.contract.test.ts`; `src/tests/architect/mutationPipeline.catchallNarrowing.test.ts`; `src/tests/architect/tradeEntitlementExclusivity.unavailable.test.ts`; `src/tests/architect/tradeMachineBarrelBatch.e131.guardrail.test.ts`; plan doc; return package | `npm run typecheck` SKIPPED (`npm` not available in agent environment); `read_lints` on touched files PASS. | `return_packages/typescript/TS-ZERO-003C-TRADE-CONTEXT-EXCL-BARREL-2026-04-29.md` |
+| 2026-04-29 | TS-ZERO-003C-ENT-DB | Replaced `{} as any` Firestore parameters with `{} as Firestore` in entitlement writer collision and entitlement resolver harness tests; aligned trade-context invalid snapshot and exclusivity assertions with strict `tsc`. | `src/tests/architect/entitlementWriter.collision.test.ts`; `src/tests/entitlements/entitlementResolver.parentFallback.test.ts`; `src/tests/entitlements/entitlementResolver.invariantViolation.test.ts`; `src/tests/architect/tradeContext_assertions.contract.test.ts`; `src/tests/architect/tradeEntitlementExclusivity.unavailable.test.ts`; plan doc; return package | `npm run typecheck` PASS; `npm run test:node -- --reporter=dot` on five touched test files PASS (18 tests). | `return_packages/typescript/TS-ZERO-003C-ENTITLEMENT-FAKE-DB-2026-04-29.md` |
 
 ## Gate 4 repo-wide scan snapshot (principal remaining themes)
 
@@ -134,10 +145,10 @@ Rolling inventory as of checkpoint work in April 2026; re-run scans before Gate 
 
 | Theme | Typical patterns | Representative areas |
 | --- | --- | --- |
-| Negative contract / malformed snapshot tests | deliberate `null as any`, `{} as any` | `tradeContext_assertions.contract.test.ts` |
+| Negative contract / malformed snapshot tests | deliberate `null as any`, `{} as any` | ~~`tradeContext_assertions.contract.test.ts`~~ (cleared 2026-04-29 — uses `null`/`undefined` and `as unknown as` only for deliberate shape violations) |
 | Fixture bridges | `as unknown as ConcreteDomainType` where the test forces invalid tuples | mutation pipeline closures, Dare, swap guards |
-| Entitlements / entitlement writer | `fakeDb = {} as any`; `(failedTeam as any).rules` | `entitlementIdentityMove`, `tradeEntitlementExclusivity.unavailable`, `entitlements/*Resolver*.test.ts` |
-| Mutation metadata probes | `(event.mutationMetadata as any)?.contractSummary` | `mutationPipeline.catchallNarrowing.test.ts` |
+| Entitlements / entitlement writer | `fakeDb = {} as any`; `(failedTeam as any).rules` | ~~`tradeEntitlementExclusivity.unavailable`~~ (typed `TradeTeamResult`; 2026-04-29); ~~`entitlementWriter.collision.test.ts`~~, ~~`entitlements/*Resolver*.test.ts`~~ (typed `Firestore` sentinels, 2026-04-29); remaining: `entitlementIdentityMove`, other entitlement integration mocks |
+| Mutation metadata probes | `(event.mutationMetadata as any)?.contractSummary` | ~~`mutationPipeline.catchallNarrowing.test.ts`~~ (cleared 2026-04-29 — direct `event.mutationMetadata.contractSummary` access) |
 
 ## Validation Ledger
 
@@ -215,6 +226,12 @@ Rolling inventory as of checkpoint work in April 2026; re-run scans before Gate 
 | 2026-04-28 | `npm run typecheck` | PASS | Full `tsc --noEmit` completed after TS-ZERO-003C timing/barrel/security test edits. |
 | 2026-04-28 | `npm run test:architect -- --reporter=dot` | PASS | Architect scoped validation passed: 283 files and 3,298 tests. |
 | 2026-04-28 | `npx vitest run src/tests/security/architectSecurity.backfillTargeting.guardrail.test.ts --reporter=dot` | PASS | Four security targeting guardrail tests passed. |
+| 2026-04-29 | `npm run typecheck` | SKIPPED | Agent container has no `npm` on `PATH` (`command not found`); rerun locally before merge. |
+| 2026-04-29 | `npm run test:architect -- --reporter=dot` | SKIPPED | Same environment limitation as typecheck. |
+| 2026-04-29 | IDE lints on touched test files | PASS | No diagnostics reported for the four edited Architect test files. |
+| 2026-04-29 | `npm run typecheck` | PASS | Root `tsc --noEmit` completed after entitlement fake-DB and strict-null test edits. |
+| 2026-04-29 | `npm run test:node -- --reporter=dot` (five targeted test files) | PASS | 18 tests across entitlement writer collision, both entitlement resolver suites, trade-context assertions, and trade exclusivity unavailable. |
+| 2026-04-29 | `npm run lint:md` | PASS | Markdownlint exited 0 after updating `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md` (script still walks broader doc globs per package.json). |
 
 ## Known Blockers / Deferred Debt
 
@@ -237,3 +254,5 @@ Rolling inventory as of checkpoint work in April 2026; re-run scans before Gate 
 | 2026-04-29 | TS-ZERO-003C-CAP-SEASON | `return_packages/typescript/TS-ZERO-003C-CAP-SEASON-MOCKS-2026-04-29.md` | Phase 3C cap-sheet and season-advance mock hardening evidence. |
 | 2026-04-29 | TS-ZERO-003C-USE-TM | `return_packages/typescript/TS-ZERO-003C-USE-TRADE-MACHINE-GUARDRAIL-2026-04-29.md` | Phase 3C useTradeMachine guardrail result-bag hardening evidence. |
 | 2026-04-28 | TS-ZERO-003C-TIMING-BARREL-SEC | `return_packages/typescript/TS-ZERO-003C-TIMING-BARREL-SECURITY-2026-04-28.md` | Phase 3C timing warnings, TM barrel imports, security JSON helper hardening evidence. |
+| 2026-04-29 | TS-ZERO-003C-CTX-EXCL | `return_packages/typescript/TS-ZERO-003C-TRADE-CONTEXT-EXCL-BARREL-2026-04-29.md` | Phase 3C trade-context assertions, exclusivity unavailable typing, catchall narrowing reads, E131 utils import follow-up evidence. |
+| 2026-04-29 | TS-ZERO-003C-ENT-DB | `return_packages/typescript/TS-ZERO-003C-ENTITLEMENT-FAKE-DB-2026-04-29.md` | Phase 3C entitlement writer collision and resolver `Firestore` sentinel hardening evidence. |

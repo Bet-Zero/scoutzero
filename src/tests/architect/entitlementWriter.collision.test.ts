@@ -1,3 +1,4 @@
+import type { Firestore } from 'firebase/firestore';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -67,7 +68,7 @@ describe('writeWorldEntitlementAndAttachToTeamAtomic collision safety', () => {
         callback(tx)
     );
 
-    const result = await writeWorldEntitlementAndAttachToTeamAtomic({} as any, {
+    const result = await writeWorldEntitlementAndAttachToTeamAtomic({} as Firestore, {
       worldId: 'world-1',
       entitlementId: 'ent:LAL:2028:1:own:abcd1234',
       document: makeDoc(),
@@ -98,7 +99,7 @@ describe('writeWorldEntitlementAndAttachToTeamAtomic collision safety', () => {
         callback(tx)
     );
 
-    const result = await writeWorldEntitlementAndAttachToTeamAtomic({} as any, {
+    const result = await writeWorldEntitlementAndAttachToTeamAtomic({} as Firestore, {
       worldId: 'world-1',
       entitlementId: 'ent:LAL:2028:1:own:abcd1234',
       document: makeDoc(),
