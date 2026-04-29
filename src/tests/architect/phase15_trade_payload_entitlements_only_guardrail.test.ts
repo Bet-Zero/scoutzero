@@ -13,22 +13,33 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
+import type { NormalizedPlayer } from '@/features/architect/utils/tradeMachine/constants/types';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
-const makePlayer = (name: string, salary: number) => ({
+const makePlayer = (name: string, salary: number): NormalizedPlayer => ({
   name,
+  salary,
+  matchIncoming: salary,
+  matchOutgoing: salary,
+  isTwoWay: false,
+  absorptionMode: 'MATCH',
+  signAndTrade: false,
+  contractYears: 1,
+  firstYearGuaranteed: true,
   contract: { salariesByYear: [{ season, salary }] },
 });
+
+type TradePayloadTestPlayer = ReturnType<typeof makePlayer>;
 
 const makeTeam = (name: string, totalSalary: number) => ({
   id: name.toLowerCase(),
   teamName: name,
   totalSalary,
-  players: Array.from({ length: 12 }, (_, i) =>
+  players: Array.from<unknown, TradePayloadTestPlayer>({ length: 12 }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000)
-  ) as any,
+  ),
   entitlements: [],
   entitlementIds: [],
 });

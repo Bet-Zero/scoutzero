@@ -92,21 +92,29 @@ describe('TM-6B hard-cap ownership guardrails', () => {
     expect(sharedCeiling.hardCapCeiling).toBe(180_000_000);
     expect(sharedCeiling.hardCapCeilingLabel).toBe('1st Apron (fallback)');
 
-    const projectionResult = validateHardCap(
-      {
-        team: {
-          totalSalary: 179_000_000,
-          hardCapLevel: 'secondApron',
-        },
-        projectedSalary: 181_000_000,
-      } as any,
-      {
-        capSettings: {
-          firstApron: 180_000_000,
-          secondApron: 0,
-        },
-      }
-    );
+    type ProjectedHardCapTeam = NonNullable<
+      Parameters<typeof validateHardCap>[0]
+    > & {
+      team: {
+        totalSalary: number;
+        hardCapLevel: 'secondApron';
+      };
+    };
+
+    const projectedHardCapTeam: ProjectedHardCapTeam = {
+      team: {
+        totalSalary: 179_000_000,
+        hardCapLevel: 'secondApron',
+      },
+      projectedSalary: 181_000_000,
+    };
+
+    const projectionResult = validateHardCap(projectedHardCapTeam, {
+      capSettings: {
+        firstApron: 180_000_000,
+        secondApron: 0,
+      },
+    });
 
     expect(projectionResult.hardCapStatus?.hardCapCeiling).toBe(
       sharedCeiling.hardCapCeiling

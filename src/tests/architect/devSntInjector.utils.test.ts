@@ -16,7 +16,11 @@ function assertDefined<T>(value: T | null | undefined, message: string): T {
   return value;
 }
 
-function makeTeamsFixture() {
+type SyntheticSntTeamSlots = NonNullable<
+  Parameters<typeof injectSyntheticSntPlayersIntoTeams>[0]
+>;
+
+function makeTeamsFixture(): SyntheticSntTeamSlots {
   return [
     {
       team: {
@@ -175,9 +179,9 @@ describe('DEV S&T injector utilities', () => {
   });
 
   it('returns the original teams reference when there is no injection target', () => {
-    const teams = [{ team: null }, { sends: [] }];
+    const teams: SyntheticSntTeamSlots = [{ team: null }, { sends: [] }];
 
-    const injected = injectSyntheticSntPlayersIntoTeams(teams as any, 2026);
+    const injected = injectSyntheticSntPlayersIntoTeams(teams, 2026);
 
     expect(injected).toBe(teams);
   });
