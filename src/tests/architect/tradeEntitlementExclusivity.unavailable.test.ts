@@ -144,7 +144,8 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
     const failedTeam = result.teamResults.find((r: TradeTeamResult) => {
       return r.rules?.entitlementExclusivity?.passed === false;
     });
-    const exclRule = failedTeam?.rules.entitlementExclusivity;
+    expect(failedTeam).toBeDefined();
+    const exclRule = failedTeam!.rules.entitlementExclusivity;
     expect(exclRule.details).toContain(
       'Error computing post-trade entitlement set'
     );
@@ -195,7 +196,8 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
     const failedTeam = result.teamResults.find((r: TradeTeamResult) => {
       return r.rules?.entitlementExclusivity?.passed === false;
     });
-    const exclRule = failedTeam?.rules.entitlementExclusivity;
+    expect(failedTeam).toBeDefined();
+    const exclRule = failedTeam!.rules.entitlementExclusivity;
     expect(exclRule.details).toContain(
       'Error computing post-trade entitlement set'
     );

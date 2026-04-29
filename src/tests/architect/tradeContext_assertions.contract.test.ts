@@ -28,7 +28,8 @@ describe('tradeContext assertion contracts', () => {
         {
           teamUpdates: {} as unknown as PostTradeSnapshot['teamUpdates'],
           validationTeams: [],
-        },
+          payloadTeams: [] as ArchitectTradePayloadTeam[],
+        } as unknown as PostTradeSnapshot,
         'snapshotContract'
       )
     ).toThrowError(

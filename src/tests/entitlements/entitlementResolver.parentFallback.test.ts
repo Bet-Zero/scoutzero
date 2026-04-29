@@ -1,3 +1,4 @@
+import type { Firestore } from 'firebase/firestore';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 type DocData = Record<string, unknown>;
@@ -69,7 +70,7 @@ vi.mock('firebase/firestore', () => ({
 import { resolveEntitlementsForTeamWithDb } from '@/features/architect/utils/entitlements/entitlementResolver';
 
 describe('entitlementResolver parent-world fallback chain', () => {
-  const db = {} as any;
+  const db = {} as Firestore;
 
   beforeEach(() => {
     mockDocsByPath.clear();
