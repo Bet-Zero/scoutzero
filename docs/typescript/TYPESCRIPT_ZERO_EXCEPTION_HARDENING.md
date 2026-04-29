@@ -57,11 +57,15 @@ legacy compatibility, convenience, or "tests only" are not enough by themselves.
   checkpoint cleared `capSheet.uiFlows.integration.test.tsx` and
   `seasonAdvance_postStateValidator_failClose.behavior.test.ts`; the third
   partial checkpoint cleared the narrow result-bag markers in
-  `useTradeMachine.compatibility.guardrail.test.ts`.
+  `useTradeMachine.compatibility.guardrail.test.ts`; the fourth partial
+  checkpoint tightened `tradeApply_timingWarnings.behavior.test.ts`,
+  `tradeMachineBarrelBatch.e131.guardrail.test.ts`, and
+  `architectSecurity.backfillTargeting.guardrail.test.ts` (timing context,
+  extensionless-import barrels, JSON read typing).
 - Stop condition: the repo-wide test/mock escape scan has no practical central
   mock, integration harness, or repeated fixture bag left behind broad
   `any`/cast patterns.
-- Last updated: 2026-04-29 by Codex
+- Last updated: 2026-04-28 by Cursor Agent
 
 ## Mission Completion Status
 
@@ -122,6 +126,18 @@ stricter zero-exception contract.
 | 2026-04-29 | TS-ZERO-003C-PARTIAL | Removed broad UI/mock harness markers from four additional Architect test files while leaving Phase 3C open for the remaining repo-wide clusters. | `src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx`; `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx`; `src/tests/architect/pickRightWizard.vacuumApply.test.tsx`; `src/tests/architect/tradePlayerRow.signAndTradeInjector.test.tsx`; plan doc; return package | Target file scan PASS; `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot` PASS; `npm run lint:md` PASS; `npm run validate:project` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-003C-UI-HARNESS-MOCKS-2026-04-29.md` |
 | 2026-04-29 | TS-ZERO-003C-CAP-SEASON | Removed broad state/helper mock markers from cap-sheet UI flow and season-advance post-state validator tests while leaving Phase 3C open for remaining repo-wide clusters. | `src/tests/architect/capSheet.uiFlows.integration.test.tsx`; `src/tests/architect/seasonAdvance_postStateValidator_failClose.behavior.test.ts`; plan doc; return package | Target file scan PASS except `expect.any(Number)` assertion false positive; `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot` PASS; `npm run lint:md` PASS; `npm run validate:project` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-003C-CAP-SEASON-MOCKS-2026-04-29.md` |
 | 2026-04-29 | TS-ZERO-003C-USE-TM | Replaced useTradeMachine guardrail result-bag `Record<string, any>` markers with unknown-valued records while leaving Phase 3C open for remaining repo-wide clusters. | `src/tests/architect/useTradeMachine.compatibility.guardrail.test.ts`; plan doc; return package | Target file scan PASS; `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot src/tests/architect/useTradeMachine.compatibility.guardrail.test.ts` PASS but ran full Architect scope; `npm run lint:md` PASS; `npm run validate:project` PASS; `git diff --check` PASS. | `return_packages/typescript/TS-ZERO-003C-USE-TRADE-MACHINE-GUARDRAIL-2026-04-29.md` |
+| 2026-04-28 | TS-ZERO-003C-TIMING-BARREL-SEC | Hardened trade timing warnings test (typed issue helper, no `as any` on validated context), removed `as any` from E131 barrel dynamic imports, and replaced `Record<string, any>` in the security backfill guardrail JSON reader. | `src/tests/architect/tradeApply_timingWarnings.behavior.test.ts`; `src/tests/architect/tradeMachineBarrelBatch.e131.guardrail.test.ts`; `src/tests/security/architectSecurity.backfillTargeting.guardrail.test.ts`; plan doc; return package | `npm run typecheck` PASS; `npm run test:architect -- --reporter=dot` PASS; targeted vitest for security guardrail PASS. | `return_packages/typescript/TS-ZERO-003C-TIMING-BARREL-SECURITY-2026-04-28.md` |
+
+## Gate 4 repo-wide scan snapshot (principal remaining themes)
+
+Rolling inventory as of checkpoint work in April 2026; re-run scans before Gate 4 closure.
+
+| Theme | Typical patterns | Representative areas |
+| --- | --- | --- |
+| Negative contract / malformed snapshot tests | deliberate `null as any`, `{} as any` | `tradeContext_assertions.contract.test.ts` |
+| Fixture bridges | `as unknown as ConcreteDomainType` where the test forces invalid tuples | mutation pipeline closures, Dare, swap guards |
+| Entitlements / entitlement writer | `fakeDb = {} as any`; `(failedTeam as any).rules` | `entitlementIdentityMove`, `tradeEntitlementExclusivity.unavailable`, `entitlements/*Resolver*.test.ts` |
+| Mutation metadata probes | `(event.mutationMetadata as any)?.contractSummary` | `mutationPipeline.catchallNarrowing.test.ts` |
 
 ## Validation Ledger
 
@@ -196,12 +212,15 @@ stricter zero-exception contract.
 | 2026-04-29 | `npm run lint:md` | PASS | Markdown lint passed after the TS-ZERO-003C useTradeMachine plan and return-package updates. |
 | 2026-04-29 | `npm run validate:project` | PASS | Project schema validator reported all validations passed after adding the TS-ZERO-003C useTradeMachine return package. |
 | 2026-04-29 | `git diff --check` | PASS | No whitespace errors reported for the TS-ZERO-003C useTradeMachine diff. |
+| 2026-04-28 | `npm run typecheck` | PASS | Full `tsc --noEmit` completed after TS-ZERO-003C timing/barrel/security test edits. |
+| 2026-04-28 | `npm run test:architect -- --reporter=dot` | PASS | Architect scoped validation passed: 283 files and 3,298 tests. |
+| 2026-04-28 | `npx vitest run src/tests/security/architectSecurity.backfillTargeting.guardrail.test.ts --reporter=dot` | PASS | Four security targeting guardrail tests passed. |
 
 ## Known Blockers / Deferred Debt
 
 | ID | Severity | Area | Description | Why deferred/blocking | Resume trigger |
 | --- | --- | --- | --- | --- | --- |
-| None | - | - | No setup blocker. The known zero-exception debt is active work in `Active Work Queue`, not deferred debt. | N/A | Start TS-ZERO-001. |
+| None | - | - | No external blocker on the mission chain. Outstanding work is enumerated in `Active Work Queue` (TS-ZERO-003C through TS-ZERO-005). | N/A | Continue TS-ZERO-003C Gate 4 scan clusters before Phase 4 JS conversion. |
 
 ## Return Package Index
 
@@ -217,3 +236,4 @@ stricter zero-exception contract.
 | 2026-04-29 | TS-ZERO-003C-PARTIAL | `return_packages/typescript/TS-ZERO-003C-UI-HARNESS-MOCKS-2026-04-29.md` | Phase 3C partial UI/mock harness hardening evidence. |
 | 2026-04-29 | TS-ZERO-003C-CAP-SEASON | `return_packages/typescript/TS-ZERO-003C-CAP-SEASON-MOCKS-2026-04-29.md` | Phase 3C cap-sheet and season-advance mock hardening evidence. |
 | 2026-04-29 | TS-ZERO-003C-USE-TM | `return_packages/typescript/TS-ZERO-003C-USE-TRADE-MACHINE-GUARDRAIL-2026-04-29.md` | Phase 3C useTradeMachine guardrail result-bag hardening evidence. |
+| 2026-04-28 | TS-ZERO-003C-TIMING-BARREL-SEC | `return_packages/typescript/TS-ZERO-003C-TIMING-BARREL-SECURITY-2026-04-28.md` | Phase 3C timing warnings, TM barrel imports, security JSON helper hardening evidence. |

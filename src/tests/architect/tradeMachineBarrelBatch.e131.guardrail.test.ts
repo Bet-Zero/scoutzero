@@ -39,7 +39,7 @@ describe('E131 Trade Machine barrel retirement batch guardrails', () => {
   });
 
   it('keeps the extensionless Trade Machine public barrel narrowed to the canonical validator authority', async () => {
-    const tradeMachine = (await import('@/features/architect/utils/tradeMachine')) as any;
+    const tradeMachine = await import('@/features/architect/utils/tradeMachine');
     const tradeValidatorSpecifier = '../../features/architect/utils/tradeMachine/engine/tradeValidator.ts';
     const tradeValidator = await import(tradeValidatorSpecifier);
 
@@ -48,7 +48,7 @@ describe('E131 Trade Machine barrel retirement batch guardrails', () => {
   });
 
   it('keeps the extensionless rules barrel aligned with direct rule authorities', async () => {
-    const rules = (await import('@/features/architect/utils/tradeMachine/rules')) as any;
+    const rules = await import('@/features/architect/utils/tradeMachine/rules');
     const validateSalaryMatchingSpecifier =
       '../../features/architect/utils/tradeMachine/rules/validateSalaryMatching.ts';
     const validateRosterSpecifier =
@@ -103,8 +103,8 @@ describe('E131 Trade Machine barrel retirement batch guardrails', () => {
   });
 
   it('keeps the extensionless engine and cache barrels aligned with their direct authorities', async () => {
-    const engine = (await import('@/features/architect/utils/tradeMachine/engine')) as any;
-    const cache = (await import('@/features/architect/utils/tradeMachine/cache')) as any;
+    const engine = await import('@/features/architect/utils/tradeMachine/engine');
+    const cache = await import('@/features/architect/utils/tradeMachine/cache');
     const tradeValidatorSpecifier =
       '../../features/architect/utils/tradeMachine/engine/tradeValidator.ts';
     const engineUtilsSpecifier =

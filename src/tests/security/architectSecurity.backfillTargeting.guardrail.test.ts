@@ -12,7 +12,7 @@ const scriptPath = path.resolve(
   '../../../scripts/admin/architectSecurityBackfill.ts'
 );
 
-function readPackageJson(): Record<string, any> {
+function readPackageJson(): Record<string, unknown> {
   expect(fs.existsSync(packageJsonPath)).toBe(true);
   return JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 }
@@ -25,7 +25,7 @@ function readBackfillScript(): string {
 describe('Architect security backfill targeting guardrails', () => {
   it('pins admin security npm scripts to Firestore emulator host 127.0.0.1:8082', () => {
     const packageJson = readPackageJson();
-    const scripts = packageJson.scripts || {};
+    const scripts = (packageJson.scripts ?? {}) as Record<string, string>;
 
     expect(scripts['admin:security:audit']).toContain(
       'FIRESTORE_EMULATOR_HOST=127.0.0.1:8082'

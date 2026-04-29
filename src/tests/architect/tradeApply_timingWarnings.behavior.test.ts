@@ -61,12 +61,14 @@ import {
   computeWorldMutation,
 } from '@/features/architect/utils/mutationPipeline';
 
+type IssueWire = Parameters<typeof getValidationIssueText>[0];
+
 const SEASON_ID = '2024-25';
 const FIXED_TIMESTAMP = Date.UTC(2024, 6, 3, 12, 0, 0);
 const WORLD_ID = 'world_timing_warns';
 
-const issueTexts = (issues: Array<Record<string, unknown>> = []) =>
-  issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues: readonly IssueWire[] | undefined) =>
+  (issues ?? []).map((issue) => getValidationIssueText(issue));
 
 function makePlayer(
   id: string,
@@ -220,7 +222,7 @@ describe('trade apply timing warnings', () => {
       worldId: WORLD_ID,
     });
 
-    const validatedContext = result._validatedTradeContext as any;
+    const validatedContext = result._validatedTradeContext;
     const teamAResult = validatedContext?.teamResults?.find(
       (team: { teamId: string }) => team.teamId === 'A'
     );
@@ -228,7 +230,7 @@ describe('trade apply timing warnings', () => {
     expect(result.success).toBe(true);
     expect(validatedContext?._isValidatedTradeContext).toBe(true);
     expect(validatedContext?.legal).toBe(true);
-    expect(issueTexts(validatedContext?.warnings as any)).toEqual(
+    expect(issueTexts(validatedContext?.warnings)).toEqual(
       expect.arrayContaining([expect.stringMatching(/moratorium/i)])
     );
     expect(issueTexts(teamAResult?.warnings)).toEqual(
@@ -250,11 +252,14 @@ describe('trade apply timing warnings', () => {
 
     expect(result.success).toBe(true);
     expect(
-      (result.warnings as any[])?.some(
-        (warning: { rule?: string }) => warning.rule === 'timingEnforcement'
+      (result.warnings ?? []).some(
+        (warning) =>
+          typeof warning === 'object' &&
+          warning !== null &&
+          (warning as { rule?: string }).rule === 'timingEnforcement'
       )
     ).toBe(true);
-    expect(issueTexts(result.warnings as any)).toEqual(
+    expect(issueTexts(result.warnings)).toEqual(
       expect.arrayContaining([expect.stringMatching(/moratorium/i)])
     );
     expect(firestoreMocks.writeBatch).toHaveBeenCalled();
@@ -296,13 +301,13 @@ describe('trade apply timing warnings', () => {
       worldId: WORLD_ID,
     });
 
-    const validatedContext = computeResult._validatedTradeContext as any;
+    const validatedContext = computeResult._validatedTradeContext;
     const teamAResult = validatedContext?.teamResults?.find(
       (team: { teamId: string }) => team.teamId === 'A'
     );
     const applyTexts = [
-      ...issueTexts(validatedContext?.warnings as any),
-      ...issueTexts(validatedContext?.violations as any),
+      ...issueTexts(validatedContext?.warnings),
+      ...issueTexts(validatedContext?.violations),
       ...issueTexts(teamAResult?.warnings),
       ...issueTexts(teamAResult?.violations),
       ...issueTexts(teamAResult?.rules?.timingEnforcement?.warnings),
@@ -320,7 +325,7 @@ describe('trade apply timing warnings', () => {
       payload,
     });
 
-    const warningTexts = issueTexts(result.warnings as any).join(' | ');
+    const warningTexts = issueTexts(result.warnings).join(' | ');
 
     expect(result.success).toBe(true);
     expect(warningTexts).not.toMatch(/acquired within the last 60 days/i);
