@@ -49,10 +49,9 @@ legacy compatibility, convenience, or "tests only" are not enough by themselves.
     hits from the repo-wide test/mock scan after clearing the DARE mutator,
     trade entitlement routing, world FA committed-team snapshot, wizard draft,
     and E131 barrel clusters
-- Next action: continue TS-ZERO-003C on the remaining practical Gate 4 scan hits
-  such as remaining trade/salary malformed-input fixtures, deliberate null
-  boundary probes, emulator-only DARE helper bags, and other repeated fixture
-  bags. Prior partial checkpoints: (1)
+- Next action: run the Gate 4 acceleration pass below, classify the remaining
+  repo-wide scan hits by pattern, then execute the next small practical batch.
+  Prior partial checkpoints: (1)
   `tradeEditorTeamCard.boundary.e105.test.tsx`,
   `grouped33FileScope.ui.behavior.test.tsx`,
   `pickRightWizard.vacuumApply.test.tsx`,
@@ -78,7 +77,26 @@ legacy compatibility, convenience, or "tests only" are not enough by themselves.
 - Stop condition: the repo-wide test/mock escape scan has no practical central
   mock, integration harness, or repeated fixture bag left behind broad
   `any`/cast patterns.
-- Last updated: 2026-04-29 by Codex (core TPE mock cluster)
+- Last updated: 2026-04-29 by Codex (Gate 4 acceleration strategy)
+
+## Gate 4 Acceleration Strategy
+
+Before the next source-edit checkpoint, classify the remaining test/mock scan
+hits by pattern instead of continuing file-by-file. Record the classification in
+the next TS-ZERO-003C return package and only edit the practical batches.
+
+| Bucket | Action | Validation |
+| --- | --- | --- |
+| Practical repeated fixture/helper bags | Batch by pattern across files; prefer local typed builders or parameter-derived fixture types. | `npm run typecheck`; targeted `npm run test:node -- --reporter=dot <files>` or `npm run test:ui -- --reporter=dot <files>`. |
+| Intentional malformed/null boundary probes | Keep the negative behavior but route through narrow helper functions or local `unknown` guards where practical. | Target the owning test files only. |
+| Assertion/comment/name false positives | Do not edit unless the wording itself is misleading. Track as false positives in the return package. | Marker scan evidence only. |
+| Large emulator/helper cluster | Defer until smaller practical batches are cleared; then handle as one dedicated mini-fixture layer. | Target emulator/integration files directly; do not use broad Architect suite by default. |
+| Unavoidable third-party/tooling boundary | Leave only with owner, risk, and follow-up in the final exception table. | Final TS-ZERO-005 audit gate. |
+
+Default validation for Gate 4 continuation is `npm run typecheck` plus the
+smallest targeted `test:node` / `test:ui` command that covers the touched files.
+Avoid `npm run test:architect -- --reporter=dot` unless a broad Architect
+contract changed or targeted validation cannot cover the risk.
 
 ## Mission Completion Status
 
