@@ -19,6 +19,8 @@ import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tr
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
+type RoutingTeamSlot = Parameters<typeof buildEntitlementRoutingMap>[0][number];
+
 function makeTeamSlot(
   teamId: string,
   entitlementsOut: Array<{
@@ -26,7 +28,7 @@ function makeTeamSlot(
     toTeamId?: string | null;
     [key: string]: unknown;
   }> = []
-) {
+): RoutingTeamSlot {
   return {
     teamId,
     team: { id: teamId, teamCode: teamId },
@@ -273,7 +275,7 @@ describe('buildEntitlementRoutingMap: edge cases', () => {
   it('handles teams without team object (inactive slots)', () => {
     const result = buildEntitlementRoutingMap([
       makeTeamSlot('LAL', [{ id: 'ent-1' }]),
-      { entitlementsOut: [] } as any, // No team selected
+      { entitlementsOut: [] },
       makeTeamSlot('BOS', []),
     ]);
 

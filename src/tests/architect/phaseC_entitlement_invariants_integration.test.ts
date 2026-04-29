@@ -44,17 +44,29 @@ vi.mock('@/firebaseConfig', () => ({
 /**
  * Create a minimal team with entitlementIds (for B5 tests)
  */
+type PickOwnershipFixture = {
+  id: string;
+  kind: string;
+  seasonYear: number;
+  round: number;
+  underlyingPickId: string;
+  holderTeam: string;
+};
+
+type InvariantTeamFixture = {
+  teamCode: string;
+  entitlementIds: string[];
+  entitlements: PickOwnershipFixture[];
+  roster: never[];
+  players: never[];
+  totals: Record<string, never>;
+};
+
 function createTeam(
   teamCode: string,
   entitlementIds: string[] = [],
-  entitlements: Array<{
-    id: string;
-    kind: string;
-    seasonYear: number;
-    round: number;
-    underlyingPickId: string;
-  }> = []
-): any {
+  entitlements: PickOwnershipFixture[] = []
+): InvariantTeamFixture {
   return {
     teamCode,
     entitlementIds,
@@ -73,14 +85,7 @@ function createPickOwnership(
   year: number,
   round: number,
   holderTeam?: string
-): {
-  id: string;
-  kind: string;
-  seasonYear: number;
-  round: number;
-  underlyingPickId: string;
-  holderTeam: string;
-} {
+): PickOwnershipFixture {
   const roundSuffix = round === 1 ? '1st' : '2nd';
   const id = `ent:${teamCode}:${year}:${round}:own:${Math.random().toString(36).slice(2, 10)}`;
   return {

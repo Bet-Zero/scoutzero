@@ -1743,7 +1743,8 @@ type ArchitectWorldMutationContractSummary = {
   endYear?: string;
   signedUsing?: string;
 };
-type ArchitectWorldMutationHistoryMetadata = {
+/** Team history metadata attached to persisted mutation events (contract summary, etc.). Exported for test typing. */
+export type ArchitectWorldMutationHistoryMetadata = {
   mutationType: string;
   category: string;
   worldId: string;

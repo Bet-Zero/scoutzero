@@ -10,8 +10,10 @@ import {
   loadDraft,
   clearDraft,
   hasDraft,
+  type LoadedDraft,
 } from '@/features/architect/admin/pickRightWizardDraft';
 import { createDefaultWizardModel } from '@/features/architect/admin/pickRightWizardModel';
+import type { EntitlementFormState } from '@/features/architect/admin/entitlementEditorFormState';
 
 // Mock wizard model for v2 envelope testing
 const mockWizardModel = createDefaultWizardModel({
@@ -21,7 +23,7 @@ const mockWizardModel = createDefaultWizardModel({
 });
 
 // Mock form state matching EntitlementFormState shape
-const mockFormState = {
+const mockFormState: EntitlementFormState = {
   id: 'ent:BOS:2027:1:own:test123',
   holderTeam: 'BOS',
   seasonYear: '2027',
@@ -41,6 +43,12 @@ const mockFormState = {
   residualOfEntitlementId: '',
   coveredByEntitlementIdsText: '',
 };
+
+function isDraftEnvelope(
+  draft: LoadedDraft | null
+): draft is Extract<LoadedDraft, { wizardModel: unknown }> {
+  return Boolean(draft && 'wizardModel' in draft);
+}
 
 describe('pickRightWizardDraft', () => {
   beforeEach(() => {
@@ -92,8 +100,12 @@ describe('pickRightWizardDraft', () => {
       expect(loaded).not.toBeNull();
       expect(loaded).toHaveProperty('wizardModel');
       expect(loaded).toHaveProperty('formState');
-      expect((loaded as any).wizardModel).toMatchObject(mockWizardModel);
-      expect((loaded as any).formState).toEqual(mockFormState);
+      expect(isDraftEnvelope(loaded)).toBe(true);
+      if (!isDraftEnvelope(loaded)) {
+        throw new Error('Expected v2 draft envelope');
+      }
+      expect(loaded.wizardModel).toMatchObject(mockWizardModel);
+      expect(loaded.formState).toEqual(mockFormState);
     });
 
     it('returns null when no draft exists', () => {

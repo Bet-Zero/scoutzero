@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { Firestore } from 'firebase/firestore';
 import {
   getEntitlementDeterministicId,
   getVacuumDeterministicId,
@@ -156,7 +157,7 @@ describe('World: moveWorldEntitlement', () => {
   it('Test 1: Edit with no identity-change calls normal write only', async () => {
     const doc = makePickOwnershipDoc('LAL', 2026, 'LAL_2026_1st');
     const id = getEntitlementDeterministicId(doc);
-    const fakeDb = {} as any;
+    const fakeDb = {} as Firestore;
 
     const result = await moveWorldEntitlement(fakeDb, {
       worldId: 'world1',
@@ -186,7 +187,7 @@ describe('World: moveWorldEntitlement', () => {
     const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st'); // Changed year + pickId
     const oldId = getEntitlementDeterministicId(oldDoc);
     const newId = getEntitlementDeterministicId(newDoc);
-    const fakeDb = {} as any;
+    const fakeDb = {} as Firestore;
 
     // Verify IDs are actually different
     expect(oldId).not.toBe(newId);
@@ -223,7 +224,7 @@ describe('World: moveWorldEntitlement', () => {
     const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st');
     const oldId = getEntitlementDeterministicId(oldDoc);
     const newId = getEntitlementDeterministicId(newDoc);
-    const fakeDb = {} as any;
+    const fakeDb = {} as Firestore;
 
     mockResolveEntitlement.mockResolvedValue({ holderTeam: 'BOS' });
 
@@ -259,7 +260,7 @@ describe('World: moveWorldEntitlement', () => {
       seasonYear: 2027,
       underlyingPickId: 'BOS_2027_1st',
     });
-    const fakeDb = {} as any;
+    const fakeDb = {} as Firestore;
 
     mockResolveEntitlementsForTeam.mockResolvedValue([
       { id: oldId, ...oldDoc },
@@ -293,7 +294,7 @@ describe('World: moveWorldEntitlement', () => {
     const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st');
     const oldId = getEntitlementDeterministicId(oldDoc);
     const newId = getEntitlementDeterministicId(newDoc);
-    const fakeDb = {} as any;
+    const fakeDb = {} as Firestore;
 
     mockRunTransaction.mockRejectedValueOnce(new Error('permission denied'));
 
@@ -314,7 +315,7 @@ describe('World: moveWorldEntitlement', () => {
     const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st');
     const oldId = getEntitlementDeterministicId(oldDoc);
     const newId = getEntitlementDeterministicId(newDoc);
-    const fakeDb = {} as any;
+    const fakeDb = {} as Firestore;
 
     mockResolveEntitlement.mockResolvedValueOnce(null);
 
@@ -336,7 +337,7 @@ describe('World: moveWorldEntitlement', () => {
     const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st');
     const oldId = getEntitlementDeterministicId(oldDoc);
     const newId = getEntitlementDeterministicId(newDoc);
-    const fakeDb = {} as any;
+    const fakeDb = {} as Firestore;
 
     mockGetDoc.mockResolvedValueOnce({
       exists: () => true,

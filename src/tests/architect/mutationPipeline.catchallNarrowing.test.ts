@@ -15,9 +15,18 @@ import {
   buildWorldMutationEventPayload,
   computeWorldMutation,
 } from '@/features/architect/utils/mutationPipeline';
-import type { ArchitectMutationTeamRecord } from '@/features/architect/utils/mutationPipeline';
+import type {
+  ArchitectMutationTeamRecord,
+  ArchitectWorldMutationHistoryMetadata,
+} from '@/features/architect/utils/mutationPipeline';
 
 const TEST_TIMESTAMP = Date.parse('2026-03-24T12:00:00.000Z');
+
+function getHistoryMetadata(
+  event: ReturnType<typeof buildWorldMutationEventPayload>
+): ArchitectWorldMutationHistoryMetadata {
+  return event.mutationMetadata;
+}
 
 function makeMinimalTeam(teamCode: string): ArchitectMutationTeamRecord {
   return {
@@ -70,7 +79,9 @@ describe('mutationPipeline catchall narrowing — ArchitectMutationContract expl
         },
       });
 
-      expect((event.mutationMetadata as any)?.contractSummary?.firstYearSalary).toBe(12_000_000);
+      expect(getHistoryMetadata(event).contractSummary?.firstYearSalary).toBe(
+        12_000_000
+      );
     });
 
     it('is the first in the fallback chain — wins over year1Salary when both are set', () => {
@@ -99,7 +110,9 @@ describe('mutationPipeline catchall narrowing — ArchitectMutationContract expl
       });
 
       // firstYearSalary is earlier in the || chain, so it wins
-      expect((event.mutationMetadata as any)?.contractSummary?.firstYearSalary).toBe(12_000_000);
+      expect(getHistoryMetadata(event).contractSummary?.firstYearSalary).toBe(
+        12_000_000
+      );
     });
   });
 
@@ -130,7 +143,9 @@ describe('mutationPipeline catchall narrowing — ArchitectMutationContract expl
       });
 
       // year1Salary is the second option in the fallback chain
-      expect((event.mutationMetadata as any)?.contractSummary?.firstYearSalary).toBe(9_500_000);
+      expect(getHistoryMetadata(event).contractSummary?.firstYearSalary).toBe(
+        9_500_000
+      );
     });
   });
 });

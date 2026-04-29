@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { TradeTeamResult } from '@/features/architect/utils/tradeMachine/constants/types';
 
 // ─── Mock computePostTradeEntitlements to simulate failures ─────────────────
 
@@ -134,7 +135,7 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
 
     // Check that at least one team's exclusivity rule failed
     const anyExclusivityFailed = result.teamResults.some(
-      (r: any) => {
+      (r: TradeTeamResult) => {
         const excl = r.rules?.entitlementExclusivity;
         return excl?.passed === false;
       }
@@ -142,11 +143,12 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
     expect(anyExclusivityFailed).toBe(true);
 
     // Verify the failure message references the compute error
-    const failedTeam = result.teamResults.find((r: any) => {
+    const failedTeam = result.teamResults.find((r: TradeTeamResult) => {
       return r.rules?.entitlementExclusivity?.passed === false;
     });
-    const exclRule = (failedTeam as any).rules.entitlementExclusivity;
-    expect(exclRule.details).toContain(
+    expect(failedTeam).toBeDefined();
+    const exclRule = failedTeam!.rules.entitlementExclusivity;
+    expect(String(exclRule.details ?? '')).toContain(
       'Error computing post-trade entitlement set'
     );
     expect(exclRule.violations).toBeDefined();
@@ -187,17 +189,18 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
 
     // Check that at least one team's exclusivity rule failed
     const anyExclusivityFailed = result.teamResults.some(
-      (r: any) => {
+      (r: TradeTeamResult) => {
         return r.rules?.entitlementExclusivity?.passed === false;
       }
     );
     expect(anyExclusivityFailed).toBe(true);
 
-    const failedTeam = result.teamResults.find((r: any) => {
+    const failedTeam = result.teamResults.find((r: TradeTeamResult) => {
       return r.rules?.entitlementExclusivity?.passed === false;
     });
-    const exclRule = (failedTeam as any).rules.entitlementExclusivity;
-    expect(exclRule.details).toContain(
+    expect(failedTeam).toBeDefined();
+    const exclRule = failedTeam!.rules.entitlementExclusivity;
+    expect(String(exclRule.details ?? '')).toContain(
       'Error computing post-trade entitlement set'
     );
   });
@@ -312,7 +315,7 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
     // Check for routing error — either at top level or in team rules
     const hasRoutingError =
       result.error === 'ENTITLEMENT_ROUTING_ERROR' ||
-      result.teamResults?.some((r: any) => {
+      result.teamResults?.some((r: TradeTeamResult) => {
         const excl = r.rules?.entitlementExclusivity;
         return (
           excl?.passed === false &&
@@ -357,18 +360,18 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
 
     // At least one team's exclusivity rule should fail
     const anyExclusivityFailed = result.teamResults.some(
-      (r: any) => {
+      (r: TradeTeamResult) => {
         return r.rules?.entitlementExclusivity?.passed === false;
       }
     );
     expect(anyExclusivityFailed).toBe(true);
 
     // The failure message should reference Pick Exclusivity
-    const failedTeam = result.teamResults.find((r: any) => {
+    const failedTeam = result.teamResults.find((r: TradeTeamResult) => {
       return r.rules?.entitlementExclusivity?.passed === false;
     });
     if (failedTeam) {
-      const exclRule = (failedTeam as any).rules.entitlementExclusivity;
+      const exclRule = failedTeam.rules.entitlementExclusivity;
       expect(
         typeof exclRule.details === 'string' &&
           exclRule.details.includes('Pick Exclusivity')
