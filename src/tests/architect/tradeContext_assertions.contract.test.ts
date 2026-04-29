@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import type { ArchitectMutationTeamRecord } from '@/features/architect/utils/mutationPipeline';
+import type {
+  PostTradeSnapshot,
+  TeamUpdate,
+  ValidatedTradeContext,
+} from '@/features/architect/utils/tradeContext/types';
 import {
   assertPostTradeSnapshot,
   assertTradeComputeInputs,
@@ -8,7 +14,7 @@ import {
 describe('tradeContext assertion contracts', () => {
   it('assertPostTradeSnapshot throws the exact null/undefined message', () => {
     expect(() =>
-      assertPostTradeSnapshot(null as any, 'snapshotContract')
+      assertPostTradeSnapshot(null, 'snapshotContract')
     ).toThrowError(
       '[Phase 58 invariant violated at snapshotContract] PostTradeSnapshot is null/undefined. Use buildPostTradeTeamsSnapshot() to create a snapshot before calling this function.'
     );
@@ -20,7 +26,7 @@ describe('tradeContext assertion contracts', () => {
         {
           teamUpdates: {},
           validationTeams: [],
-        } as any,
+        } as unknown as PostTradeSnapshot,
         'snapshotContract'
       )
     ).toThrowError(
@@ -30,7 +36,7 @@ describe('tradeContext assertion contracts', () => {
 
   it('assertValidatedTradeContext throws the exact null/undefined message', () => {
     expect(() =>
-      assertValidatedTradeContext(undefined as any, 'validatedContract')
+      assertValidatedTradeContext(undefined, 'validatedContract')
     ).toThrowError(
       '[Phase 58 invariant violated at validatedContract] ValidatedTradeContext is null/undefined. Use validatePostTradeSnapshotForContext() to create a context before calling this function.'
     );
@@ -41,9 +47,13 @@ describe('tradeContext assertion contracts', () => {
       assertValidatedTradeContext(
         {
           legal: true,
+          reason: '',
+          error: null,
+          violations: [],
+          warnings: [],
           teamResults: [],
           validationTeams: [],
-        } as any,
+        } as unknown as ValidatedTradeContext,
         'validatedContract'
       )
     ).toThrowError(
@@ -52,29 +62,23 @@ describe('tradeContext assertion contracts', () => {
   });
 
   it('accepts valid snapshot/context shapes through the combined assertion', () => {
-    const snapshot = {
-      teamUpdates: [{ teamCode: 'BOS', team: { roster: [] as any[] } }],
-      validationTeams: [] as any[],
-      payloadTeams: [] as any[],
+    const team: ArchitectMutationTeamRecord = { roster: [] };
+    const teamUpdate: TeamUpdate = { teamCode: 'BOS', team };
+    const snapshot: PostTradeSnapshot = {
+      teamUpdates: [teamUpdate],
+      validationTeams: [],
+      payloadTeams: [],
       _isPostTradeSnapshot: true,
     };
-    const validatedContext = {
+    const validatedContext: ValidatedTradeContext = {
       legal: true,
-      valid: true,
-      reason: null as any,
-      error: null as any,
-      violations: [] as any[],
-      warnings: [] as any[],
-      teamResults: [] as any[],
-      summaryByTeamIndex: [] as any[],
-      capSettings: null as any,
-      capSettingsSource: null as any,
-      capSettingsWarnings: [] as any[],
-      dataWarnings: [] as any[],
-      hasDataIssues: false,
-      tradeReceipt: null as any,
-      validationTeams: [] as any[],
-      _isValidatedTradeContext: true as const,
+      reason: '',
+      error: null,
+      violations: [],
+      warnings: [],
+      teamResults: [],
+      validationTeams: [],
+      _isValidatedTradeContext: true,
     };
 
     expect(() =>
