@@ -103,7 +103,7 @@ function makePlayer(
   id: string,
   teamCode: string,
   salary = 1_000_000
-): Record<string, any> {
+): Record<string, unknown> {
   return {
     id,
     player_id: id,
@@ -379,10 +379,10 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
 
     const exportPayload = result.current.exportCurrentTrade();
     const primaryExport = exportPayload.find(
-      (teamExport: Record<string, any>) => teamExport.teamId === primaryTeamId
+      (teamExport: Record<string, unknown>) => teamExport.teamId === primaryTeamId
     );
     const secondaryExport = exportPayload.find(
-      (teamExport: Record<string, any>) => teamExport.teamId === secondaryTeamId
+      (teamExport: Record<string, unknown>) => teamExport.teamId === secondaryTeamId
     );
     const definedPrimaryExport = assertDefined(
       primaryExport,
