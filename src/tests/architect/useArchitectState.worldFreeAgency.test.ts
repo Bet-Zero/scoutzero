@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useArchitectState } from '@/features/architect/GMDashboard/hooks/useArchitectState';
+import {
+  useArchitectState,
+  type ArchitectDashboardCapSheet,
+} from '@/features/architect/GMDashboard/hooks/useArchitectState';
 
 const stateMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
@@ -89,7 +92,7 @@ const teamFixture = {
   capHolds: [],
   exceptions: {},
   totals: {},
-};
+} satisfies ArchitectDashboardCapSheet;
 
 function createDeferred<T>() {
   let resolvePromise!: (value: T | PromiseLike<T>) => void;
@@ -304,7 +307,7 @@ describe('useArchitectState world-aware free agency pool', () => {
       | null = null;
     await act(async () => {
       reloadResult = await result.current.reloadActiveWorldTeamData({
-        committedTeamSnapshot: committedTeam as any,
+        committedTeamSnapshot: committedTeam,
         committedTeamSource: 'changedTeams',
         committedWorldMetadata: {
           currentSeason: '2026-27',
@@ -398,7 +401,7 @@ describe('useArchitectState world-aware free agency pool', () => {
 
     await act(async () => {
       await result.current.reloadActiveWorldTeamData({
-        committedTeamSnapshot: committedTeam as any,
+        committedTeamSnapshot: committedTeam,
         committedWorldMetadata: {
           currentSeason: '2025-26',
         },
@@ -475,7 +478,7 @@ describe('useArchitectState world-aware free agency pool', () => {
         committedTeamSnapshot: {
           ...teamFixture,
           season: '2026-27',
-        } as any,
+        },
         committedWorldMetadata: {
           currentSeason: '2026-27',
         },
@@ -1073,7 +1076,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     act(() => {
       blockFirstReloadMetadata = true;
       firstReloadPromise = result.current.reloadActiveWorldTeamData({
-        committedTeamSnapshot: firstCommittedTeam as any,
+        committedTeamSnapshot: firstCommittedTeam,
         committedWorldMetadata: {
           currentSeason: '2026-27',
         },
@@ -1097,7 +1100,7 @@ describe('useArchitectState world-aware free agency pool', () => {
       | null = null;
     await act(async () => {
       secondReloadResult = await result.current.reloadActiveWorldTeamData({
-        committedTeamSnapshot: secondCommittedTeam as any,
+        committedTeamSnapshot: secondCommittedTeam,
         committedWorldMetadata: {
           currentSeason: '2027-28',
         },
@@ -1191,7 +1194,7 @@ describe('useArchitectState world-aware free agency pool', () => {
         committedTeamSnapshot: {
           ...teamFixture,
           season: '2026-27',
-        } as any,
+        },
         committedWorldMetadata: {
           currentSeason: '2026-27',
         },

@@ -12,6 +12,13 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import type {
+  DocumentData,
+  DocumentReference,
+  Firestore,
+  SetOptions,
+  WriteBatch,
+} from 'firebase/firestore';
 import { applyGatedDAREResultsToBatch } from '@/features/architect/utils/entitlements/dare/entitlementMutator';
 import type {
   DAREOutput,
@@ -29,26 +36,48 @@ function makePickOwnership(
   return { id, kind: 'pick_ownership', underlyingPickId };
 }
 
+type BatchDocumentReference = DocumentReference<DocumentData, DocumentData>;
+
+type MockBatchOperation = {
+  type: 'set' | 'update' | 'delete';
+  ref: BatchDocumentReference;
+  data?: unknown;
+};
+
+type MockWriteBatch = WriteBatch & {
+  _ops: MockBatchOperation[];
+};
+
 /** Build a minimal mock Firestore `db` with doc() that returns a ref stub */
-function mockDb() {
+function mockDb(): Firestore {
   return {
     type: 'firestore',
-  } as any;
+  } as Firestore;
 }
 
 /** Build a mock WriteBatch that tracks operations */
-function mockBatch() {
-  const ops: Array<{ type: string; ref: any; data?: any }> = [];
-  return {
-    set: vi.fn((ref: any, data: any, _opts?: any) => {
-      ops.push({ type: 'set', ref, data });
+function mockBatch(): MockWriteBatch {
+  const ops: MockBatchOperation[] = [];
+  const batch = {
+    set: vi.fn(
+      (ref: BatchDocumentReference, data: unknown, _opts?: SetOptions) => {
+        ops.push({ type: 'set', ref, data });
+        return batch;
+      }
+    ),
+    update: vi.fn((ref: BatchDocumentReference, data: unknown) => {
+      ops.push({ type: 'update', ref, data });
+      return batch;
     }),
-    delete: vi.fn((ref: any) => {
+    delete: vi.fn((ref: BatchDocumentReference) => {
       ops.push({ type: 'delete', ref });
+      return batch;
     }),
-    commit: vi.fn(),
+    commit: vi.fn(() => Promise.resolve()),
     _ops: ops,
-  } as any;
+  } as MockWriteBatch;
+
+  return batch;
 }
 
 function buildDAREOutput(
@@ -61,18 +90,27 @@ function buildDAREOutput(
     entitlementDocWrites: docWrites,
     resolutionReceipt: {
       draftYear: 2027,
-      method: 'manual',
-      teamResults: [],
-      summary: 'test',
-    } as any,
+      resolvedAt: new Date().toISOString(),
+      totalResolutions: docWrites.length,
+      byOutcome: {
+        conveyed: 0,
+        rolled: 0,
+        converted: 0,
+        swap_resolved: 0,
+        expired: 0,
+        unchanged: 0,
+      },
+      entries: [],
+      warnings: [],
+    },
     meta: {
-      timestamp: new Date().toISOString(),
-      worldId: 'test-world',
+      executedAt: new Date().toISOString(),
       draftYear: 2027,
       method: 'manual',
+      teamsProcessed: teamUpdates.length,
       entitlementsProcessed: docWrites.length,
       writeCount: docWrites.length,
-    } as any,
+    },
   };
 }
 
@@ -206,7 +244,7 @@ describe('DARE Mutator Exclusivity Gate (TM-EXCL-E3)', () => {
           action: 'upsert',
           entitlementId: 'ent-original',
           path: 'architect_worlds/test/entitlements/ent-original',
-          document: { resolved: true, resolvedOutcome: 'rolled' } as any,
+          document: { resolved: true, resolvedOutcome: 'rolled' },
           reason: 'Resolved: rolled',
         },
         {

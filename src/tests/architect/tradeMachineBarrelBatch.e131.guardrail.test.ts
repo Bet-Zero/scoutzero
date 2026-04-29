@@ -74,7 +74,8 @@ describe('E131 Trade Machine barrel retirement batch guardrails', () => {
   });
 
   it('keeps the extensionless utils barrel aligned with direct utility authorities', async () => {
-    const utils = (await import('@/features/architect/utils/tradeMachine/utils')) as any;
+    const utils: typeof import('@/features/architect/utils/tradeMachine/utils') =
+      await import('@/features/architect/utils/tradeMachine/utils');
     const normalizeTradeInputSpecifier =
       '../../features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts';
     const validateInputSpecifier =
