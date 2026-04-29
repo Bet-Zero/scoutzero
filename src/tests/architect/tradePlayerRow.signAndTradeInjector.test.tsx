@@ -6,6 +6,9 @@ import '@testing-library/jest-dom/vitest';
 import TradePlayerRow from '@/features/architect/tradeMachine/TradePlayerRow';
 import { buildSyntheticSntPlayers } from '@/features/architect/tradeMachine/utils/devSntInjector';
 
+type TradePlayerRowPlayer = Parameters<typeof TradePlayerRow>[0]['player'];
+type SyntheticSntPlayer = ReturnType<typeof buildSyntheticSntPlayers>[number];
+
 const otherTeams = [{ id: 'BOS', teamName: 'Boston Celtics' }];
 const baseHandlers = {
   onSetPlayerTrade: vi.fn(),
@@ -15,16 +18,39 @@ const baseHandlers = {
   onRequestSignAndTrade: vi.fn(),
 };
 
-function renderOpenMenuRow(player: any) {
+const normalizeNullableString = (
+  value: string | number | null | undefined
+): string | null | undefined =>
+  value == null ? value : String(value);
+
+function renderOpenMenuRow(player: SyntheticSntPlayer) {
+  const rowPlayer: TradePlayerRowPlayer = {
+    ...player,
+    teamCode: normalizeNullableString(player.teamCode),
+    teamAbbr: normalizeNullableString(player.teamAbbr),
+    teamId: normalizeNullableString(player.teamId),
+    team:
+      'team' in player &&
+      (typeof player.team === 'string' ||
+        typeof player.team === 'number' ||
+        player.team == null)
+        ? normalizeNullableString(player.team)
+        : undefined,
+    bio: {
+      ...player.bio,
+      team: normalizeNullableString(player.bio.team),
+    },
+  };
+
   return render(
     <TradePlayerRow
-      player={player}
+      player={rowPlayer}
       included={false}
       yearKey={2026}
       incoming={false}
       otherTeams={otherTeams}
       playersMap={{}}
-      openMenu={player.name}
+      openMenu={rowPlayer.name}
       onSetPlayerTrade={baseHandlers.onSetPlayerTrade}
       onUndoPlayerTrade={baseHandlers.onUndoPlayerTrade}
       setOpenMenu={baseHandlers.setOpenMenu}

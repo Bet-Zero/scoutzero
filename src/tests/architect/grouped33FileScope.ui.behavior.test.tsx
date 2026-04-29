@@ -31,6 +31,23 @@ import RosterVisual from '@/features/architect/shared/RosterVisual/RosterVisual'
 import LeagueView from '@/features/architect/shared/LeagueView/LeagueView';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 
+type TestRosterPlayer = Record<string, unknown> & {
+  id?: string;
+  name?: string;
+  displayName?: string;
+  contract?: {
+    contractType?: string;
+  };
+};
+
+type TestRosterSectionPlayer = TestRosterPlayer | null;
+
+type TestRosterShape = {
+  starters?: TestRosterSectionPlayer[];
+  rotation?: TestRosterSectionPlayer[];
+  bench?: TestRosterSectionPlayer[];
+};
+
 const contractUtilsMocks = vi.hoisted(() => ({
   generateContract: vi.fn(),
   createMaxContract: vi.fn(),
@@ -39,7 +56,10 @@ const contractUtilsMocks = vi.hoisted(() => ({
 }));
 
 const rosterUtilsMocks = vi.hoisted(() => {
-  const normalizeSection = (section: any[] | undefined, size: number) => {
+  const normalizeSection = (
+    section: TestRosterSectionPlayer[] | undefined,
+    size: number
+  ) => {
     const safeSection = Array.isArray(section) ? section.slice(0, size) : [];
     while (safeSection.length < size) safeSection.push(null);
     return safeSection;
@@ -47,17 +67,17 @@ const rosterUtilsMocks = vi.hoisted(() => {
 
   return {
     buildInitialRoster: vi.fn(),
-    normalizePlayer: vi.fn((player: any) => ({
+    normalizePlayer: vi.fn((player: TestRosterPlayer) => ({
       ...player,
       normalized: true,
     })),
-    normalizeRosterShape: vi.fn((roster: any = {}) => ({
+    normalizeRosterShape: vi.fn((roster: TestRosterShape = {}) => ({
       starters: normalizeSection(roster.starters, 5),
       rotation: normalizeSection(roster.rotation, 4),
       bench: normalizeSection(roster.bench, 6),
     })),
     isTwoWayContract: vi.fn(
-      (player: any) =>
+      (player: TestRosterPlayer) =>
         String(player?.contract?.contractType || '')
           .toLowerCase()
           .trim() === 'two-way'
@@ -111,10 +131,12 @@ vi.mock('@/features/roster/RosterSection', () => ({
     players,
     section,
   }: {
-    players?: any[];
+    players?: TestRosterSectionPlayer[];
     section?: string;
   }) => {
-    const renderedPlayers = (players || []).filter(Boolean);
+    const renderedPlayers = (players || []).filter(
+      (player): player is TestRosterPlayer => Boolean(player)
+    );
 
     return (
       <div data-testid={`roster-section-${section}`}>
@@ -219,11 +241,13 @@ describe('Grouped 33-file scope UI behavior', () => {
     });
     contractUtilsMocks.getMinimumSalary.mockReturnValue(2_500_000);
 
-    rosterUtilsMocks.buildInitialRoster.mockImplementation((players: any[]) => ({
-      starters: players.slice(0, 5),
-      rotation: players.slice(5, 9),
-      bench: players.slice(9, 15),
-    }));
+    rosterUtilsMocks.buildInitialRoster.mockImplementation(
+      (players: TestRosterPlayer[]) => ({
+        starters: players.slice(0, 5),
+        rotation: players.slice(5, 9),
+        bench: players.slice(9, 15),
+      })
+    );
 
     firebaseTeamPlanHelperMocks.loadTeamCapSheet.mockResolvedValue({
       players: [],
@@ -396,7 +420,7 @@ describe('Grouped 33-file scope UI behavior', () => {
     const unsubscribe = vi.fn();
 
     subscribeArchitectPlayerDataMocks.subscribeArchitectPlayerData.mockImplementationOnce(
-      ({ onData }: { onData: (players: any[]) => void }) => {
+      ({ onData }: { onData: (players: TestRosterPlayer[]) => void }) => {
         onData([PLAYER]);
         return unsubscribe;
       }

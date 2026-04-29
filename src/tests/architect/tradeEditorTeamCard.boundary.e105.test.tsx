@@ -18,6 +18,124 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
+type TestSalaryRow = {
+  season: string;
+  salary: number;
+  capHit: number;
+  guaranteed: boolean;
+};
+
+type TestContractPayload = {
+  salariesByYear: TestSalaryRow[];
+  contractYears: number;
+  firstYearGuaranteed: boolean;
+};
+
+type TestPlayer = {
+  id: string;
+  player_id: string;
+  name: string;
+  salary?: number;
+  capHit?: number;
+  absorptionMode?: string;
+  bucketType?: string;
+  contract?: {
+    salariesByYear?: Array<{ salary?: number | string | null }>;
+  };
+  bio?: {
+    displayName?: string;
+  };
+};
+
+type TestEntitlement = {
+  id: string;
+  entitlementId: string;
+  holderTeam?: string;
+  seasonYear?: number;
+  round?: number;
+  kind?: string;
+  fromTeamId?: string;
+  toTeamId?: string;
+  saved?: boolean;
+};
+
+type TestTeam = {
+  id: string;
+  teamCode: string;
+  teamName: string;
+  nickname: string;
+  players: TestPlayer[];
+  entitlements: TestEntitlement[];
+  pickRulesById: Record<string, { id: string }>;
+  capHolds: Array<{ id: string }>;
+};
+
+type TradeTeamCardMockProps = {
+  teamIndex: number;
+  team?: TestTeam | null;
+  onSelectTeam?: (teamId: string) => void;
+  onRemove?: () => void;
+  onUndoPlayerTrade?: (player: TestPlayer) => void;
+  onToggleEntitlement?: (entitlement: Pick<TestEntitlement, 'entitlementId'>) => void;
+  onSetEntitlementDestination?: (
+    entitlementId: string,
+    teamId: string
+  ) => void;
+  onEditEntitlement?: (entitlement: TestEntitlement) => void;
+  onCreateEntitlement?: (teamId: string) => void;
+  onRevertEntitlementEdit?: (entitlement: TestEntitlement) => void;
+  onDeleteSessionEntitlement?: (entitlement: TestEntitlement) => void;
+  onRequestSignAndTrade?: (player: TestPlayer, teamId: string) => void;
+};
+
+type CapImpactTilesMockProps = {
+  team?: { id?: string | null } | null;
+};
+
+type OutgoingPlayersListMockProps = {
+  sourceTeamId?: string | null;
+};
+
+type TeamScopedMockProps = {
+  teamId?: string | number | null;
+};
+
+type TestTpe = {
+  id: string;
+  amount: number;
+  isUsed: boolean;
+  expirationDate: string;
+  name: string;
+};
+
+type PickRightWizardModalMockProps = {
+  entitlementId?: string | number | null;
+  initialDocument?: { holderTeam?: string };
+  onClose?: () => void;
+  onSuccess?: (payload: {
+    entitlementId: string | number;
+    document: Record<string, unknown>;
+  }) => void;
+  onVacuumSessionMutation?: () => void;
+  onDuplicateAsNew?: (document: { holderTeam: string; kind: string }) => void;
+};
+
+type SignAndTradeModalResult = {
+  success: boolean;
+  message?: string;
+};
+
+type EditContractModalMockProps = {
+  isOpen?: boolean;
+  onClose?: () => void;
+  onSignAndTrade?: (
+    player: TestPlayer | undefined,
+    contract: TestContractPayload | { invalid: true },
+    destinationTeamId: string | null
+  ) => Promise<SignAndTradeModalResult | undefined> | SignAndTradeModalResult | undefined;
+  player?: TestPlayer;
+};
+
 const harness = vi.hoisted(() => {
   const toast = Object.assign(vi.fn(), {
     error: vi.fn(),
@@ -66,28 +184,34 @@ const harness = vi.hoisted(() => {
       hardCapType: null,
     })),
     warnOnTotalsDivergenceMock: vi.fn(),
-    getTeamTpeListMock: vi.fn(() => []),
-    editorTradeTeamCardProps: [] as any[],
-    capImpactTilesMock: vi.fn((props: any) => (
+    getTeamTpeListMock: vi.fn((): TestTpe[] => []),
+    editorTradeTeamCardProps: [] as TradeTeamCardMockProps[],
+    capImpactTilesMock: vi.fn((props: CapImpactTilesMockProps) => (
       <div data-testid="mock-cap-impact-tiles">{props.team?.id || 'none'}</div>
     )),
     selectTeamCardMock: vi.fn(
-      ({ onSelectTeam, onRemove }: { onSelectTeam?: (...args: any[]) => void; onRemove?: (() => void) | null }) => (
+      ({
+        onSelectTeam,
+        onRemove,
+      }: {
+        onSelectTeam?: (teamId: string) => void;
+        onRemove?: (() => void) | null;
+      }) => (
         <div data-testid="mock-select-team-card">
           <button onClick={() => onSelectTeam?.('BOS')}>Select Team Fallback</button>
           <button onClick={() => onRemove?.()}>Remove Fallback</button>
         </div>
       )
     ),
-    outgoingPlayersListMock: vi.fn((props: any) => (
+    outgoingPlayersListMock: vi.fn((props: OutgoingPlayersListMockProps) => (
       <div data-testid="mock-outgoing-players-list">
         {props.sourceTeamId || 'unknown'}
       </div>
     )),
-    entitlementPicksListMock: vi.fn((props: any) => (
+    entitlementPicksListMock: vi.fn((props: TeamScopedMockProps) => (
       <div data-testid="mock-entitlement-picks-list">{props.teamId}</div>
     )),
-    tradeExceptionManagerMock: vi.fn((props: any) => (
+    tradeExceptionManagerMock: vi.fn((props: TeamScopedMockProps) => (
       <div data-testid="mock-trade-exception-manager">{props.teamId}</div>
     )),
   };
@@ -139,7 +263,7 @@ vi.mock('@/shared/utils/formatting', () => ({
 }));
 
 vi.mock('@/features/architect/utils/tradeHelpers', () => ({
-  getSalaryForYear: (players: Array<Record<string, any>> = []) =>
+  getSalaryForYear: (players: TestPlayer[] = []) =>
     players.reduce(
       (sum, player) =>
         sum +
@@ -209,7 +333,7 @@ vi.mock('@/config/validationFlags', () => ({
 }));
 
 vi.mock('@/features/architect/utils/tradeMachine/utils/seasonUtils', () => ({
-  getCapHitForSeason: (player: Record<string, any>) =>
+  getCapHitForSeason: (player: TestPlayer) =>
     Number(player.capHit ?? player.salary ?? 0),
   normalizeYearInput: (input: string | number | null | undefined) => {
     if (!input) return null;
@@ -356,7 +480,7 @@ const TRADE_DATA = [
   },
 ];
 
-function makeTradeMachineReturn(overrides: Record<string, any> = {}) {
+function makeTradeMachineReturn(overrides: Record<string, unknown> = {}) {
   return {
     teams: BASE_TEAMS.map((team) => ({
       ...team,
@@ -414,7 +538,7 @@ async function loadTradeEditor() {
 
   vi.doMock('@/features/architect/tradeMachine/TradeTeamCard', () => ({
     __esModule: true,
-    default: (props: any) => {
+    default: (props: TradeTeamCardMockProps) => {
       harness.editorTradeTeamCardProps.push(props);
       return (
         <div data-testid={`mock-trade-team-card-${props.teamIndex}`}>
@@ -514,7 +638,7 @@ async function loadTradeEditor() {
       onSuccess,
       onVacuumSessionMutation,
       onDuplicateAsNew,
-    }: any) => (
+    }: PickRightWizardModalMockProps) => (
       <div data-testid="mock-pick-right-wizard-modal">
         <div data-testid="wizard-entitlement-id">
           {entitlementId == null ? 'create' : String(entitlementId)}
@@ -552,13 +676,10 @@ async function loadTradeEditor() {
       onClose,
       onSignAndTrade,
       player,
-    }: {
-      isOpen?: boolean;
-      onClose?: () => void;
-      onSignAndTrade?: (...args: any[]) => Promise<any> | any;
-      player?: Record<string, any>;
-    }) => {
-      const [result, setResult] = React.useState<any>(null);
+    }: EditContractModalMockProps) => {
+      const [result, setResult] = React.useState<SignAndTradeModalResult | null>(
+        null
+      );
       if (!isOpen) return null;
 
       return (
@@ -582,7 +703,7 @@ async function loadTradeEditor() {
                 },
                 'BOS'
               );
-              setResult(next);
+              setResult(next ?? null);
             }}
           >
             Confirm SAT
@@ -590,7 +711,7 @@ async function loadTradeEditor() {
           <button
             onClick={async () => {
               const next = await onSignAndTrade?.(player, { invalid: true }, null);
-              setResult(next);
+              setResult(next ?? null);
             }}
           >
             Confirm SAT Missing Destination
@@ -1055,7 +1176,7 @@ describe('TradeTeamCard boundary E105', () => {
         expirationDate: '2099-01-01',
         name: 'Test TPE',
       },
-    ] as any);
+    ]);
 
     const { rerender } = render(
       <TradeTeamCard
