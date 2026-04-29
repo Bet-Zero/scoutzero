@@ -135,7 +135,7 @@ export function resolvePickSwap(
 
 export function resolveTeamSwaps(
   draftPicks: unknown,
-  positionsMap: PositionsMap,
+  positionsMap: PositionsMap | null | undefined,
   options: SwapResolutionOptions = {}
 ): TeamSwapsResult {
   if (!Array.isArray(draftPicks)) {

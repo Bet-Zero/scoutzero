@@ -22,21 +22,22 @@ import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/v
 describe('validateStepien - Phase 13 SSOT (Legacy Obligations Removed)', () => {
   type StepienTeamInput = Parameters<typeof validateStepien>[0];
 
-  const makeTeam = (params: Record<string, unknown>): StepienTeamInput => ({
-    teamId: 'TEST',
-    teamCode: 'TEST',
-    team: {
-      picks: [],
-    },
-    context: {
-      yearKey: 2025,
-    },
-    outgoingPicks: [],
-    draftPicksObligations: [],
-    validationEntitlements: [], // Phase 13: baseline comes from here
-    entitlementsOut: [],
-    ...params,
-  } as unknown as StepienTeamInput);
+  const makeTeam = (params: Record<string, unknown>): StepienTeamInput => {
+    const team: StepienTeamInput = {
+      teamId: 'TEST',
+      team: {
+        picks: [],
+      },
+      context: {
+        yearKey: 2025,
+      },
+      outgoingPicks: [],
+      validationEntitlements: [], // Phase 13: baseline comes from here
+      entitlementsOut: [],
+    };
+
+    return Object.assign(team, { draftPicksObligations: [] }, params);
+  };
 
   describe('Phase 13: draftPicksObligations is IGNORED', () => {
     it('does NOT read draftPicksObligations for baseline - single outgoing passes', () => {

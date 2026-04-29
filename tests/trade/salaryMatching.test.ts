@@ -89,12 +89,7 @@ describe('salary matching validation', () => {
 
   it('handles null/undefined team data', () => {
     expect(validateSalaryMatching(null).passed).toBe(false);
-    expect(
-      validateSalaryMatching(
-        undefined as unknown as Parameters<typeof validateSalaryMatching>[0]
-      )
-        .passed
-    ).toBe(false);
+    expect(validateSalaryMatching(undefined).passed).toBe(false);
     expect(validateSalaryMatching({}).passed).toBe(false);
   });
 

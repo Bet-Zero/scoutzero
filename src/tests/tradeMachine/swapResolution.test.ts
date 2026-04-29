@@ -62,11 +62,6 @@ const requireResolutionMeta = (
   return pick.resolutionMeta;
 };
 
-const invalidPositionsMap = (
-  value: null
-): Parameters<typeof resolveTeamSwaps>[1] =>
-  value as unknown as Parameters<typeof resolveTeamSwaps>[1];
-
 /**
  * Swap Resolution Core Logic
  *
@@ -656,10 +651,7 @@ describe('resolveTeamSwaps()', () => {
       },
     ];
 
-    const result = resolveTeamSwaps(
-      picks,
-      invalidPositionsMap(null)
-    ) as TeamSwapsExpectation;
+    const result = resolveTeamSwaps(picks, null) as TeamSwapsExpectation;
 
     expect(result.resolvedCount).toBe(0);
     expect(result.warnings).toContainEqual(

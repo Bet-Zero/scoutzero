@@ -144,7 +144,7 @@ function getIncomingPlayers(team: SalaryMatchingTeam): SalaryMatchingPlayer[] {
 export const SALARY_MATCHING_VERSION = '2.4.0';
 
 export function validateSalaryMatching(
-  team: SalaryMatchingTeam,
+  team: SalaryMatchingTeam | null | undefined,
   context: SalaryMatchingContext = {}
 ): AuthoritativeSalaryMatchingResult {
   if (!team || typeof team !== 'object' || Object.keys(team).length === 0) {

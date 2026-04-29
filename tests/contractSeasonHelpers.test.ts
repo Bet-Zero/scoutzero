@@ -34,7 +34,7 @@ describe('contract and season helpers', () => {
   describe('seasonFormat', () => {
     it('preserves mixed season conversion semantics and fallbacks', () => {
       expect(toSeasonCode(2025)).toBe('2024-25');
-      expect(toSeasonCode('bad' as any)).toBe('bad');
+      expect(toSeasonCode('bad')).toBe('bad');
       expect(toSeasonKey(2026)).toBe('2025-26');
 
       expect(toEndYear('2024-25')).toBe(2025);
@@ -255,7 +255,7 @@ describe('contract and season helpers', () => {
       });
 
       const optionFallbackRow = getContractYearsForDisplay(
-        { futureContract: null } as any,
+        { futureContract: null },
         {
           primaryContract: {
             salariesByYear: [{ season: '2026-27', capHit: 12_000_000, optionType: 'Team Option' }],
