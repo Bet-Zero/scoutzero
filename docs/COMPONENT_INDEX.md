@@ -2,5 +2,9 @@
 
 Quick reference for all components in the ScoutZero project.
 
+## Ranker
+
+- tournamentRanker.js
+
 ---
-*Generated on: 2026-04-19T02:29:58.771Z*
+*Generated on: 2026-04-29T09:26:57.449Z*

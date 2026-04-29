@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { Firestore } from 'firebase/firestore';
 
 type DocData = Record<string, unknown>;
 
@@ -17,6 +18,10 @@ function seedCollectionDoc(
   const existing = mockCollectionDocsByPath.get(collectionPath) || [];
   existing.push({ id, data });
   mockCollectionDocsByPath.set(collectionPath, existing);
+}
+
+function makeMockFirestore(): Firestore {
+  return {} as Firestore;
 }
 
 vi.mock('@/constants/collections', () => ({
@@ -69,7 +74,7 @@ vi.mock('firebase/firestore', () => ({
 import { resolveEntitlementsForTeamWithDb } from '@/features/architect/utils/entitlements/entitlementResolver';
 
 describe('entitlementResolver parent-world fallback chain', () => {
-  const db = {} as any;
+  const db = makeMockFirestore();
 
   beforeEach(() => {
     mockDocsByPath.clear();

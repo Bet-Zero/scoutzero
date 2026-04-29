@@ -71,7 +71,8 @@ describe('TEAM_HISTORY_E3 event emission matrix guardrail', () => {
       expect(event.teamsAffected).toEqual(teamCodes);
       expect(event.eventId).toBe(`evt_${mutationType}`);
       expect(event.operationId).toBe(`op_${mutationType}`);
-      expect((event.playerIds as any[]).length).toBeGreaterThan(0);
+      expect(Array.isArray(event.playerIds)).toBe(true);
+      expect(event.playerIds.length).toBeGreaterThan(0);
       expect(event.beforeTotalsByTeam).toHaveProperty(teamCodes[0]);
       expect(event.afterTotalsByTeam).toHaveProperty(teamCodes[0]);
     }

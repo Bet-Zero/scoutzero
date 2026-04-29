@@ -92,14 +92,16 @@ describe('TM-6B hard-cap ownership guardrails', () => {
     expect(sharedCeiling.hardCapCeiling).toBe(180_000_000);
     expect(sharedCeiling.hardCapCeilingLabel).toBe('1st Apron (fallback)');
 
+    const projectionTeam = {
+      team: {
+        totalSalary: 179_000_000,
+        hardCapLevel: 'secondApron',
+      },
+      projectedSalary: 181_000_000,
+    } as Parameters<typeof validateHardCap>[0];
+
     const projectionResult = validateHardCap(
-      {
-        team: {
-          totalSalary: 179_000_000,
-          hardCapLevel: 'secondApron',
-        },
-        projectedSalary: 181_000_000,
-      } as any,
+      projectionTeam,
       {
         capSettings: {
           firstApron: 180_000_000,

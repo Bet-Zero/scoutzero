@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-01-30: Phase 58 - Created with minimal runtime assertions for shape validation
+ *  - 2026-04-29: TS-ZERO-003C - Accept unknown at assertion boundaries to avoid test-side broad casts.
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
@@ -31,12 +32,15 @@ import type {
 // PHASE 58: RUNTIME SHAPE ASSERTIONS
 // ==============================================================================
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object';
+
 /**
  * Assert that a value is a valid PostTradeSnapshot.
  * Throws a clear error if the shape is invalid.
  */
 export function assertPostTradeSnapshot(
-  snapshot: PostTradeSnapshot | null | undefined,
+  snapshot: unknown,
   callSite = 'unknown'
 ): asserts snapshot is PostTradeSnapshot {
   if (!snapshot) {
@@ -46,10 +50,10 @@ export function assertPostTradeSnapshot(
     );
   }
 
-  if (!Array.isArray(snapshot.teamUpdates)) {
+  if (!isRecord(snapshot) || !Array.isArray(snapshot.teamUpdates)) {
     throw new Error(
       `[Phase 58 invariant violated at ${callSite}] PostTradeSnapshot.teamUpdates must be an array. ` +
-        `Got: ${typeof snapshot.teamUpdates}`
+        `Got: ${isRecord(snapshot) ? typeof snapshot.teamUpdates : typeof snapshot}`
     );
   }
 
@@ -62,7 +66,7 @@ export function assertPostTradeSnapshot(
 
   for (let i = 0; i < snapshot.teamUpdates.length; i++) {
     const update = snapshot.teamUpdates[i];
-    if (!update.teamCode) {
+    if (!isRecord(update) || !update.teamCode) {
       throw new Error(
         `[Phase 58 invariant violated at ${callSite}] PostTradeSnapshot.teamUpdates[${i}].teamCode is missing.`
       );
@@ -80,7 +84,7 @@ export function assertPostTradeSnapshot(
  * Throws a clear error if the shape is invalid.
  */
 export function assertValidatedTradeContext(
-  ctx: ValidatedTradeContext | null | undefined,
+  ctx: unknown,
   callSite = 'unknown'
 ): asserts ctx is ValidatedTradeContext {
   if (!ctx) {
@@ -90,7 +94,7 @@ export function assertValidatedTradeContext(
     );
   }
 
-  if (!ctx._isValidatedTradeContext) {
+  if (!isRecord(ctx) || !ctx._isValidatedTradeContext) {
     throw new Error(
       `[Phase 58 invariant violated at ${callSite}] ValidatedTradeContext._isValidatedTradeContext must be true. ` +
         'This context was not created by validatePostTradeSnapshotForContext(). ' +
@@ -129,9 +133,6 @@ export function assertTradeComputeInputs({
   validatedContext,
   callSite = 'computeTradeResult',
 }: AssertTradeComputeInputsParams): void {
-  assertPostTradeSnapshot(postTradeSnapshot as PostTradeSnapshot, callSite);
-  assertValidatedTradeContext(
-    validatedContext as ValidatedTradeContext,
-    callSite
-  );
+  assertPostTradeSnapshot(postTradeSnapshot, callSite);
+  assertValidatedTradeContext(validatedContext, callSite);
 }
