@@ -13,7 +13,6 @@ RankingSetup.tsx
 hooks/
   useRankerSession.ts
 ranker.css
-tournamentRanker.js
 tournamentRanker.ts
 utils/
   rankerLocalDraft.ts
@@ -22,5 +21,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-29T09:26:57.393Z*
+*Generated on: 2026-04-29T20:17:32.684Z*
 *Auto-updated by: npm run docs*

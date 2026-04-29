@@ -14,6 +14,12 @@ export default defineConfig({
     setupFiles: ['./tests/setupFirebaseMocks.ts', './tests/setupDebug.ts'],
     // Exclude *.emulator.test.* files - they require the real Firestore emulator
     // and have a separate config: vitest.emulator.config.js
-    exclude: ['**/node_modules/**', '**/dist/**', '**/*.emulator.test.{js,ts}'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/*.emulator.test.{js,ts}',
+      // Requires @firebase/rules-unit-testing (not installed) + running emulator
+      'src/tests/security/firestoreRules.integration.test.ts',
+    ],
   },
 });

@@ -51,6 +51,8 @@ export default defineConfig({
       'src/tests/entitlements/vacuumEntitlementOverlayStore.test.ts',
       'src/tests/entitlements/entitlementResolver.vacuumOverlay.test.ts',
       'tests/entitlements/vacuumTradeTransfer.test.ts',
+      // Requires @firebase/rules-unit-testing (not installed) + running emulator
+      'src/tests/security/firestoreRules.integration.test.ts',
     ],
   },
 });

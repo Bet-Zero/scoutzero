@@ -58,9 +58,10 @@ const TeamSelectDropdown = ({
     valueFormat === 'teamCode' ? team.code : team.id;
   const selectedColorInput = selectedTeam?.id || selectedTeamId;
   const { primary: selectedColor } = getTeamColors(selectedColorInput) || {};
+  const listboxValue = selectedTeamId ?? undefined;
 
   return (
-    <Listbox value={selectedTeamId} onChange={onChange}>
+    <Listbox value={listboxValue} onChange={onChange}>
       <div className="relative w-full max-w-[260px]">
         {/* Button */}
         <Listbox.Button className="group w-full flex items-center justify-between px-3 py-2 bg-[#111] rounded border border-transparent hover:border-white/20 transition text-left">
