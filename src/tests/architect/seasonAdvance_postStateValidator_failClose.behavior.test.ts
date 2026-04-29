@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   batchSet: vi.fn(),
   batchUpdate: vi.fn(),
-  batchCommit: vi.fn(async (): Promise<any> => undefined),
+  batchCommit: vi.fn(async (): Promise<void> => undefined),
   getLeague: vi.fn(),
   getWorldMetadata: vi.fn(),
   getDraftPositionsMap: vi.fn(),
@@ -77,8 +77,8 @@ vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () 
 
 vi.mock('@/features/architect/utils/persistenceContracts', () => ({
   normalizeTeamTpeSchema: (team: Record<string, unknown>) => team,
-  getTeamTpeList: (): any[] => [],
-  assertPersistableOrThrow: vi.fn((): any => undefined),
+  getTeamTpeList: (): unknown[] => [],
+  assertPersistableOrThrow: vi.fn((): void => undefined),
   PERSISTENCE_CONTRACTS: {
     TEAM: {},
     EVENT: {},
@@ -108,21 +108,30 @@ vi.mock('@/features/architect/utils/tradeMachine/utils/conveyanceResolution', ()
 }));
 
 vi.mock('@/features/architect/utils/tpeLifecycle', () => ({
-  processTradeExceptions: vi.fn(() => ({ activeTPEs: [] as any[], expiredTPEs: [] as any[], hasChanges: false })),
+  processTradeExceptions: vi.fn(() => ({
+    activeTPEs: [] as unknown[],
+    expiredTPEs: [] as unknown[],
+    hasChanges: false,
+  })),
   getTpeExpiryISO: vi.fn(() => '2027-07-01T00:00:00.000Z'),
 }));
 
 vi.mock('@/features/architect/utils/exceptionHistory/historyHelpers', () => ({
-  appendExceptionHistory: vi.fn((): any[] => []),
-  createTpeExpiryHistoryEntry: vi.fn((): any => ({})),
+  appendExceptionHistory: vi.fn((): unknown[] => []),
+  createTpeExpiryHistoryEntry: vi.fn((): Record<string, never> => ({})),
 }));
 
 vi.mock('@/features/architect/utils/exceptions', () => ({
-  resetTeamNonTpeExceptionsForNewSeason: vi.fn((): any => ({ exceptions: {}, hasChanges: false })),
+  resetTeamNonTpeExceptionsForNewSeason: vi.fn(
+    (): { exceptions: Record<string, unknown>; hasChanges: boolean } => ({
+      exceptions: {},
+      hasChanges: false,
+    })
+  ),
 }));
 
 vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
-  resolveEntitlementsForTeam: vi.fn(async (): Promise<any[]> => []),
+  resolveEntitlementsForTeam: vi.fn(async (): Promise<unknown[]> => []),
 }));
 
 vi.mock('@/features/architect/utils/entitlements/pickRulesResolver', () => ({
@@ -131,16 +140,16 @@ vi.mock('@/features/architect/utils/entitlements/pickRulesResolver', () => ({
 }));
 
 vi.mock('@/features/architect/utils/entitlements/seasonManagerProjection', () => ({
-  projectEntitlementsToSeasonManagerView: vi.fn((): any[] => []),
-  logDerivedPicksCreation: vi.fn((): any => undefined),
+  projectEntitlementsToSeasonManagerView: vi.fn((): unknown[] => []),
+  logDerivedPicksCreation: vi.fn((): void => undefined),
 }));
 
 vi.mock('@/features/architect/utils/entitlements/dare', () => ({
   resolveAllDraftAssets: vi.fn(async () => ({
     success: true,
-    entitlementDocWrites: [] as any[],
-    teamEntitlementIdUpdates: [] as any[],
-    resolutionReceipt: { totalResolutions: 0, entries: [] as any[] },
+    entitlementDocWrites: [] as unknown[],
+    teamEntitlementIdUpdates: [] as unknown[],
+    resolutionReceipt: { totalResolutions: 0, entries: [] as unknown[] },
   })),
   applyGatedDAREResultsToBatch: vi.fn(() => ({ ok: true, writeCount: 0 })),
   formatReceiptAsSummary: vi.fn(() => 'none'),

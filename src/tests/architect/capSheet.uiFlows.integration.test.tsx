@@ -42,6 +42,9 @@ type TeamLike = {
 type ManualCapSheetMutationAuthority = NonNullable<
   Parameters<typeof CapSheet>[0]['manualCapSheetMutationAuthority']
 >;
+type CapSheetTeamCapSheet = NonNullable<
+  Parameters<typeof CapSheet>[0]['teamCapSheet']
+>;
 
 function parseCurrency(value: string | null | undefined): number {
   if (!value) return 0;
@@ -591,13 +594,20 @@ function FixtureInjectorHarness() {
   );
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
-    setTeamCapSheet((prev): any => ({ ...(prev as any), deadCap }));
+    setTeamCapSheet(
+      (prev): TeamLike => ({ ...prev, deadCap: deadCap as TeamLike['deadCap'] })
+    );
     return true;
   }, []);
 
   const handleSetExceptions = React.useCallback(
     async (exceptions: unknown) => {
-      setTeamCapSheet((prev): any => ({ ...(prev as any), exceptions }));
+      setTeamCapSheet(
+        (prev): TeamLike => ({
+          ...prev,
+          exceptions: exceptions as TeamLike['exceptions'],
+        })
+      );
       return true;
     },
     []
@@ -662,18 +672,18 @@ function ModalFlowsHarness({
   onDeadCapMutation,
   onExceptionsMutation,
 }: ModalFlowsHarnessProps) {
-  const [teamCapSheet, setTeamCapSheet] = React.useState<
-    Parameters<typeof CapSheet>[0]['teamCapSheet']
-  >(() => buildTeamFixture() as any);
+  const [teamCapSheet, setTeamCapSheet] = React.useState<CapSheetTeamCapSheet>(
+    () => buildTeamFixture() as CapSheetTeamCapSheet
+  );
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
     onDeadCapMutation?.(deadCap);
     setTeamCapSheet(
       (prev) =>
         ({
-          ...(prev as any),
+          ...prev,
           deadCap,
-        }) as Parameters<typeof CapSheet>[0]['teamCapSheet']
+        }) as CapSheetTeamCapSheet
     );
     return true;
   }, [onDeadCapMutation]);
@@ -684,9 +694,9 @@ function ModalFlowsHarness({
       setTeamCapSheet(
         (prev) =>
           ({
-            ...(prev as any),
+            ...prev,
             exceptions,
-          }) as Parameters<typeof CapSheet>[0]['teamCapSheet']
+          }) as CapSheetTeamCapSheet
       );
       return true;
     },
