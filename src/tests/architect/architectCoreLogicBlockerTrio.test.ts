@@ -127,7 +127,7 @@ vi.mock(
 
 vi.mock('@/features/architect/utils/persistenceContracts', () => ({
   normalizeTeamTpeSchema: (team: Record<string, unknown>) => team,
-  getTeamTpeList: (): any[] => [],
+  getTeamTpeList: (): unknown[] => [],
   assertPersistableOrThrow: vi.fn((): void => undefined),
   PERSISTENCE_CONTRACTS: {
     TEAM: {},

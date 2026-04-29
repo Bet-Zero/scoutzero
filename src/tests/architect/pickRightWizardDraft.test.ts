@@ -92,8 +92,11 @@ describe('pickRightWizardDraft', () => {
       expect(loaded).not.toBeNull();
       expect(loaded).toHaveProperty('wizardModel');
       expect(loaded).toHaveProperty('formState');
-      expect((loaded as any).wizardModel).toMatchObject(mockWizardModel);
-      expect((loaded as any).formState).toEqual(mockFormState);
+      if (!loaded || !('wizardModel' in loaded)) {
+        throw new Error('Expected v2 draft envelope');
+      }
+      expect(loaded.wizardModel).toMatchObject(mockWizardModel);
+      expect(loaded.formState).toEqual(mockFormState);
     });
 
     it('returns null when no draft exists', () => {

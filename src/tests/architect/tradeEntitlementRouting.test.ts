@@ -273,7 +273,7 @@ describe('buildEntitlementRoutingMap: edge cases', () => {
   it('handles teams without team object (inactive slots)', () => {
     const result = buildEntitlementRoutingMap([
       makeTeamSlot('LAL', [{ id: 'ent-1' }]),
-      { entitlementsOut: [] } as any, // No team selected
+      { team: null, entitlementsOut: [] }, // No team selected
       makeTeamSlot('BOS', []),
     ]);
 

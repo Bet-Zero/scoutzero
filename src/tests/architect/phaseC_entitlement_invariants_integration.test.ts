@@ -41,6 +41,23 @@ vi.mock('@/firebaseConfig', () => ({
 // TEST DATA FACTORIES
 // =============================================================================
 
+type PhaseCTestEntitlement = {
+  id: string;
+  kind: string;
+  seasonYear: number;
+  round: number;
+  underlyingPickId: string;
+};
+
+type PhaseCTestTeam = {
+  teamCode: string;
+  entitlementIds: string[];
+  entitlements: PhaseCTestEntitlement[];
+  roster: [];
+  players: [];
+  totals: Record<string, never>;
+};
+
 /**
  * Create a minimal team with entitlementIds (for B5 tests)
  */
@@ -54,7 +71,7 @@ function createTeam(
     round: number;
     underlyingPickId: string;
   }> = []
-): any {
+): PhaseCTestTeam {
   return {
     teamCode,
     entitlementIds,

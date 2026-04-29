@@ -455,7 +455,7 @@ describe('Edge Cases', () => {
       holderTeam: 'LAL',
       seasonYear: 2026,
       round: 1,
-      kind: 'unknown_kind' as any,
+      kind: 'unknown_kind',
     };
 
     // Should not throw
