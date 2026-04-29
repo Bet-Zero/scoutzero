@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Firestore } from 'firebase/firestore';
 
 type DocData = Record<string, unknown>;
 
@@ -78,7 +79,7 @@ import {
 } from '@/features/architect/utils/entitlements/entitlementResolver';
 
 describe('entitlementResolver invariant violations (E3)', () => {
-  const db = {} as any;
+  const db = {} as Firestore;
 
   beforeEach(() => {
     mockDocsByPath.clear();

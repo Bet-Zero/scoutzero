@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Firestore } from 'firebase/firestore';
 
 const mocks = vi.hoisted(() => ({
   mockDoc: vi.fn((...segments: string[]) => ({
@@ -67,7 +68,8 @@ describe('writeWorldEntitlementAndAttachToTeamAtomic collision safety', () => {
         callback(tx)
     );
 
-    const result = await writeWorldEntitlementAndAttachToTeamAtomic({} as any, {
+    const stubDb = {} as Firestore;
+    const result = await writeWorldEntitlementAndAttachToTeamAtomic(stubDb, {
       worldId: 'world-1',
       entitlementId: 'ent:LAL:2028:1:own:abcd1234',
       document: makeDoc(),
@@ -98,7 +100,8 @@ describe('writeWorldEntitlementAndAttachToTeamAtomic collision safety', () => {
         callback(tx)
     );
 
-    const result = await writeWorldEntitlementAndAttachToTeamAtomic({} as any, {
+    const stubDb = {} as Firestore;
+    const result = await writeWorldEntitlementAndAttachToTeamAtomic(stubDb, {
       worldId: 'world-1',
       entitlementId: 'ent:LAL:2028:1:own:abcd1234',
       document: makeDoc(),
