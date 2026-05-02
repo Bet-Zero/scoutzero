@@ -35,7 +35,7 @@ Establish the canonical documentation rules first, then track the bounded execut
 | ----- | ------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | 1     | Documentation standard creation                               | Completed   | Standards, canonical return-package root, and routing/ignore rules created in this phase.                                            |
 | 2     | Return-package consolidation                                  | Completed   | Root `return_packages/` markdown evidence was consolidated into `docs/return_packages/docs/` and `docs/return_packages/typescript/`. |
-| 3     | `docs/_working/` archive and graduation pass                  | Not Started | Completed-looking working-doc clusters still need review and classification.                                                         |
+| 3     | `docs/_working/` archive and graduation pass                  | Completed   | Completed-looking architect working clusters were archived under `archive/docs/_working/architect/`; active/ambiguous clusters remain in place. |
 | 4     | `docs/architect/` and `docs/team-scrape/` evidence separation | Not Started | Evergreen docs and execution evidence are still mixed in active feature roots.                                                       |
 | 5     | Stale-link repair                                             | Not Started | Phase 2 updated return-package routing references only; broader stale-link repair is still pending.                                  |
 | 6     | Guardrail updates                                             | Not Started | Future phases may refine ignore rules, index routing, and cleanup enforcement.                                                       |
@@ -53,12 +53,38 @@ Establish the canonical documentation rules first, then track the bounded execut
 - `docs/return_packages/typescript/*`
 - `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_PHASE2_RETURN_PACKAGE.md`
 
+## Phase 3 Outputs
+
+- `archive/docs/README.md`
+- `archive/docs/_working/README.md`
+- `archive/docs/_working/architect/README.md`
+- `archive/docs/_working/architect/league-view/*`
+- `archive/docs/_working/architect/multi-year-cap-table/*`
+- `archive/docs/_working/architect/offseason/*`
+- `archive/docs/_working/architect/system-integration/*`
+- `archive/docs/_working/architect/team-history/*`
+- `archive/docs/_working/architect/world-time/*`
+- `archive/docs/_working/architect/chat-workflow/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE.md`
+- `archive/docs/_working/architect/chat-workflow/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V2.md`
+- `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_PHASE3_RETURN_PACKAGE.md`
+
+## Archived Clusters In Phase 3
+
+- `docs/_working/architect/league-view/` -> `archive/docs/_working/architect/league-view/`
+- `docs/_working/architect/multi-year-cap-table/` -> `archive/docs/_working/architect/multi-year-cap-table/`
+- `docs/_working/architect/offseason/` -> `archive/docs/_working/architect/offseason/`
+- `docs/_working/architect/system-integration/` -> `archive/docs/_working/architect/system-integration/`
+- `docs/_working/architect/team-history/` -> `archive/docs/_working/architect/team-history/`
+- `docs/_working/architect/world-time/` -> `archive/docs/_working/architect/world-time/`
+- Superseded chat workflow guides archived to `archive/docs/_working/architect/chat-workflow/`
+
 ## Open Risks Carried Forward
 
 - `docs/architect/` and `docs/team-scrape/` still mix evergreen docs with execution evidence; Phase 4 remains pending.
 - `docs/INDEX.md` still contains additional stale links outside the bounded Phase 1 changes.
 - `.claudeignore` and `docs/architecture/PROJECT_SCHEMA.md` still disagree about whether `plans/` is an active surface.
-- One moved historical file, `docs/return_packages/typescript/TS-ZERO-001-RUNTIME-ESCAPES-2026-04-26.md`, now surfaces a pre-existing `markdownlint` table-format issue because it is linted under `docs/**/*.md`; Phase 2 did not rewrite historical evidence content to fix it.
+- `npm run lint:md` execution is currently blocked by environment-level `ENOSPC` (`no space left on device`) during npm logging, so this phase could not produce a fresh content-level markdownlint signal.
+- Active or ambiguous working-doc clusters kept in place for follow-up review: `docs/_working/workspace-cleanup/`, `docs/_working/architect/free-agency/`, `docs/_working/architect/roster/`, and `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`.
 
 ## Exit Condition For Phase 1
 
