@@ -37,8 +37,8 @@ These files remain in the repository as evidence from the completed TypeScript c
 
 Use these archives when you need execution evidence rather than current routing rules.
 
-- [../../return_packages/typescript/](../../return_packages/typescript/) - TypeScript hardening and zero-exception execution evidence archive.
-- [../../return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md](../../return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md) - bounded documentation stabilization evidence for this cleanup pass.
+- [../return_packages/typescript/](../return_packages/typescript/) - TypeScript hardening and zero-exception execution evidence archive.
+- [../return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md](../return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md) - bounded documentation stabilization evidence for this cleanup pass.
 
 ## Reopen Rule
 

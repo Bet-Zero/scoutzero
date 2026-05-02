@@ -9,7 +9,7 @@ This plan is intentionally bounded.
 ## Execution Status
 
 - Status: COMPLETE - 2026-05-02
-- Return package: `return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md`
+- Return package: `docs/return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md`
 - Commit: recorded in git metadata after the documentation-only commit
 
 - In scope: documentation wording, documentation routing, historical/completed labels, one docs return package, the requested validation commands, and one commit.
@@ -29,7 +29,7 @@ This plan is intentionally bounded.
 - The docs tree has one clear TypeScript status/index page that distinguishes current references from historical campaign records.
 - Historical campaign docs are marked `historical` or `completed` and point readers back to the current index.
 - Future agents are told not to reopen TypeScript hardening unless a documented gate regresses.
-- A docs return package exists under `return_packages/docs/`.
+- A docs return package exists under `docs/return_packages/docs/`.
 - `npm run validate:project`, `npm run lint:md`, and `git diff --check` pass.
 - The work lands in one documentation-only commit.
 
@@ -210,7 +210,7 @@ Done when:
 
 Files:
 
-- Create `return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md`
+- Create `docs/return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md`
 
 Work:
 
@@ -275,6 +275,6 @@ This stabilization pass is complete only when:
 - There is one clear TypeScript docs index.
 - Historical campaign docs are visibly marked as completed or historical.
 - Future agents are told not to reopen TypeScript work unless a gate regresses.
-- The docs return package exists under `return_packages/docs/`.
+- The docs return package exists under `docs/return_packages/docs/`.
 - `npm run validate:project`, `npm run lint:md`, and `git diff --check` pass.
 - The changes are committed with the documentation-only commit message above.

@@ -41,8 +41,8 @@ markers from the prior TypeScript hardening exception table.
 
 | Command | Result |
 | --- | --- |
-| `rg -n "z\\.any\\(|Record<string, any>|extends any\\[\\]|as any|as unknown as" src/schemas/players_v2.ts src/schemas/architect.ts src/features/architect/utils/tradeMachine/engine/validationUtils.ts src/features/architect/utils/tradeContext/types.ts` | PASS; no carried-forward Phase 1 markers remain. |
-| `rg -n "\\bany\\b|as any|as unknown as|Record<string, any>|@ts-ignore|@ts-expect-error" src -g '*.ts' -g '*.tsx' -g '*.d.ts' -g '!src/tests/**'` | PASS by review for this item; output contains existing prose/comment/string-literal false positives and no TS-ZERO-001 true marker. |
+| `rg -n "z\\.any\\(\|Record<string, any>\|extends any\\[\\]\|as any\|as unknown as" src/schemas/players_v2.ts src/schemas/architect.ts src/features/architect/utils/tradeMachine/engine/validationUtils.ts src/features/architect/utils/tradeContext/types.ts` | PASS; no carried-forward Phase 1 markers remain. |
+| `rg -n "\\bany\\b\|as any\|as unknown as\|Record<string, any>\|@ts-ignore\|@ts-expect-error" src -g '*.ts' -g '*.tsx' -g '*.d.ts' -g '!src/tests/**'` | PASS by review for this item; output contains existing prose/comment/string-literal false positives and no TS-ZERO-001 true marker. |
 | `npm run typecheck` | PASS. |
 | `npm run schema:check` | Initial FAIL because generated schema docs were unstaged after regeneration; final rerun PASS after staging generated docs. |
 | `npm run validate:project` | PASS. |

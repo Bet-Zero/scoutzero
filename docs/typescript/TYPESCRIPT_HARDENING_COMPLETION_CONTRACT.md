@@ -240,7 +240,7 @@ Any unexplained schema escape hatch means the mission is incomplete.
 Any claim of TypeScript hardening completion must include a repo-written return package under:
 
 ```text
-return_packages/typescript/
+docs/return_packages/typescript/
 ```
 
 The return package must include:

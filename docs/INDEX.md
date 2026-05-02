@@ -22,7 +22,7 @@
 
 - [TypeScript Documentation Status](typescript/README.md) - current required docs, completed historical TypeScript campaign docs, and return-package evidence archives
 - [TypeScript Hardening Completion Contract](typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md) - current maintenance gate for regressions
-- [TypeScript return-package evidence archive](../return_packages/typescript/) - execution evidence for the closed hardening campaign
+- [TypeScript return-package evidence archive](return_packages/typescript/) - execution evidence for the closed hardening campaign
 - Do not reopen TypeScript hardening unless a documented gate regresses.
 
 ## Workspace Cleanup Standards
@@ -30,8 +30,8 @@
 - [Documentation Structure Standard](workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md) - canonical placement rules for permanent docs, working docs, archives, generated docs, and prompts.
 - [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) - canonical rules for new return packages under `docs/return_packages/`.
 - [Workspace Cleanup Master](./_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_MASTER.md) - living tracker for cleanup phases and stale-link follow-up work.
-- [Return Packages README](return_packages/README.md) - canonical future return-package root.
-- Stale-link cleanup is tracked by the workspace cleanup master doc and is only partially addressed in Phase 1.
+- [Return Packages README](return_packages/README.md) - canonical return-package root.
+- Stale-link cleanup is tracked by the workspace cleanup master doc; Phase 2 updated only return-package routing references.
 
 ---
 
@@ -122,13 +122,13 @@ Prompts and instructions for AI-assisted development:
 
 Historical project deliverables and execution documentation.
 
-**Canonical future location**: `/docs/return_packages/` - See [Return Packages README](return_packages/README.md)
+**Canonical location**: `/docs/return_packages/` - See [Return Packages README](return_packages/README.md)
 
-**Phase 1 status:**
+**Phase 2 status:**
 
-- New return packages now belong under `/docs/return_packages/<area>/`.
-- Root `/return_packages/` remains legacy historical evidence until a later consolidation phase.
-- No historical return packages were moved in Phase 1.
+- New return packages belong under `/docs/return_packages/<area>/`.
+- Legacy root `/return_packages/` markdown evidence was consolidated into `/docs/return_packages/docs/` and `/docs/return_packages/typescript/` in Phase 2.
+- Root `/return_packages/` is no longer the active evidence location.
 - Current cleanup initiative return packages live in `/docs/return_packages/workspace-cleanup/`.
 
 **See**:

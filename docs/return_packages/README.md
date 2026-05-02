@@ -1,12 +1,14 @@
 # Return Packages
 
-This directory is the canonical future home for new ScoutZero return packages.
+This directory is the canonical home for ScoutZero return packages.
 
-## Phase 1 Status
+## Phase 2 Status
 
 - New return packages go under `docs/return_packages/<area>/`.
-- Root `return_packages/` remains legacy historical evidence until a later consolidation phase.
-- No historical return-package files were moved in Phase 1.
+- Tracked markdown evidence from legacy root `return_packages/` has been consolidated here.
+- Root `return_packages/` is no longer the active evidence location.
+- Root `return_packages/` remains available only for ignored/local artifacts such as local logs, if they exist.
+- No root local-log artifacts were consolidated into `docs/` during Phase 2.
 - Use underscore naming only; do not create `return-packages` paths.
 
 ## Folder Model
@@ -32,4 +34,7 @@ Only create the area folders that are required for active work.
 
 ## Current Contents
 
+- `docs/` - consolidated docs-only return-package evidence from the legacy root archive
+- `typescript/` - consolidated TypeScript evidence from the legacy root archive
 - `workspace-cleanup/` - return packages for the workspace cleanup initiative
+- `general/` - reserved for future cross-cutting return packages that do not fit a narrower area

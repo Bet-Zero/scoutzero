@@ -1,5 +1,12 @@
 # Return Packages Directory Consolidation
 
+## Phase 2 Status Note
+
+- Phase 2 moved the tracked legacy root `return_packages/` markdown evidence into `docs/return_packages/`.
+- The canonical docs-facing evidence areas now include `docs/return_packages/docs/` and `docs/return_packages/typescript/`.
+- No root local-log artifacts were moved into `docs/`; the legacy root remains ignored/local-only for that purpose.
+- `docs/architect/` and `docs/team-scrape/` evidence separation is still pending for a later phase.
+
 ## Phase 1 Status Note
 
 - Phase 1 decision: the future canonical return-package path is `/docs/return_packages/`.
@@ -12,6 +19,8 @@
 ---
 
 ## Current State
+
+The inventory below is the historical pre-consolidation snapshot from 2026-02-12. Phase 2 changed the active docs-facing archive location but did not rewrite this original baseline table.
 
 ### Directories Found
 

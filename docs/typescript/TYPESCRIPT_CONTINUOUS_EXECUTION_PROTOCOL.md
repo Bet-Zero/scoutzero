@@ -160,9 +160,9 @@ Required format:
 ```md
 ## Completed Work Log
 
-| Date       | ID               | Summary   | Files changed | Validation         | Return package                     |
-| ---------- | ---------------- | --------- | ------------- | ------------------ | ---------------------------------- |
-| YYYY-MM-DD | TS-HARDENING-001 | [summary] | [paths]       | [commands/results] | `return_packages/typescript/...md` |
+| Date       | ID               | Summary   | Files changed | Validation         | Return package                          |
+| ---------- | ---------------- | --------- | ------------- | ------------------ | --------------------------------------- |
+| YYYY-MM-DD | TS-HARDENING-001 | [summary] | [paths]       | [commands/results] | `docs/return_packages/typescript/...md` |
 ```
 
 Rules:
@@ -218,9 +218,9 @@ Required format:
 ```md
 ## Return Package Index
 
-| Date       | Work ID          | Return package                     | Purpose   |
-| ---------- | ---------------- | ---------------------------------- | --------- |
-| YYYY-MM-DD | TS-HARDENING-001 | `return_packages/typescript/...md` | [purpose] |
+| Date       | Work ID          | Return package                          | Purpose   |
+| ---------- | ---------------- | --------------------------------------- | --------- |
+| YYYY-MM-DD | TS-HARDENING-001 | `docs/return_packages/typescript/...md` | [purpose] |
 ```
 
 Rules:
@@ -251,7 +251,7 @@ When an agent receives `keep working in [doc path].md`, it must follow this algo
     - `Validation Ledger`
     - `Known Blockers / Deferred Debt` if needed
     - `Return Package Index`
-13. Write a return package under `return_packages/typescript/`.
+13. Write a return package under `docs/return_packages/typescript/`.
 14. End with one of the allowed verdicts from the completion contract.
 
 ## Return Package Requirements for Continuous Execution
@@ -313,7 +313,7 @@ Follow:
 - `docs/typescript/TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md`
 - `docs/typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md`
 
-Start from `Current Cursor` in the living plan. Execute the next unblocked work-queue item only. Update the living plan sections required by the protocol. Write a return package under `return_packages/typescript/`. Do not declare TypeScript hardening complete unless every hard-stop gate in the completion contract passes.
+Start from `Current Cursor` in the living plan. Execute the next unblocked work-queue item only. Update the living plan sections required by the protocol. Write a return package under `docs/return_packages/typescript/`. Do not declare TypeScript hardening complete unless every hard-stop gate in the completion contract passes.
 ```
 
 ## If the Living Plan Is Missing Required Sections
