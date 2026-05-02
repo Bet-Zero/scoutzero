@@ -11,7 +11,7 @@
 - **👤 Users**: [Simple User Guide](guides/SIMPLE_USER_GUIDE.md)
 - **👨‍💻 Developers**: [Developer Guide](guides/DEVELOPER_GUIDE.md)
 - **🤖 AI Agents**: [Agents Documentation](../AGENTS.md)
-- **🏗️ Contributors**: [Contributing Guide](CONTRIBUTING.md) *(coming soon)*
+- **🏗️ Contributors**: [Contributing Guide](CONTRIBUTING.md) _(coming soon)_
 
 **Want the big picture?**
 

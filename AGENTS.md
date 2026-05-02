@@ -32,18 +32,18 @@ Use only these commands unless the user explicitly requests something else.
 
 **Default: targeted tests only.** Full suite is never the default.
 
-| Command                  | What it does                           | When to use                                    |
-| ------------------------ | -------------------------------------- | ---------------------------------------------- |
-| `npm run test:diff`      | Auto-select the narrowest safe test scope from the current git diff | **Preferred default** when unsure what to run  |
-| `npm run test:fast`      | Fast smoke tests only (`tests/smoke`)  | Very small changes / quick sanity              |
-| `npm run test:cap-sheet-boundary` | Focused Cap Sheet mutation-boundary guardrails | Narrow Cap Sheet action-layer / mutation-boundary changes |
-| `npm run test:trade`     | Trade-only tests (`tests/trade`)       | Trade Machine changes                          |
-| `npm run test:architect` | Architect + tradeMachine scoped tests  | Architect feature changes                      |
-| `npm run test:roster`    | Roster tests (`src/tests/roster`)      | Roster Builder changes                         |
-| `npm run test:scouting`  | Scouting tests (`src/tests/scouting`)  | Scouting/Profile changes                       |
-| `npm run test:node`      | Node-config test run                   | Logic-heavy / non-UI changes                   |
-| `npm run test:ui`        | UI-config test run                     | UI-heavy changes that need broader UI coverage |
-| `npm run test:profile`   | Analyze slow tests                     | Only when diagnosing test slowness             |
+| Command                           | What it does                                                        | When to use                                               |
+| --------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
+| `npm run test:diff`               | Auto-select the narrowest safe test scope from the current git diff | **Preferred default** when unsure what to run             |
+| `npm run test:fast`               | Fast smoke tests only (`tests/smoke`)                               | Very small changes / quick sanity                         |
+| `npm run test:cap-sheet-boundary` | Focused Cap Sheet mutation-boundary guardrails                      | Narrow Cap Sheet action-layer / mutation-boundary changes |
+| `npm run test:trade`              | Trade-only tests (`tests/trade`)                                    | Trade Machine changes                                     |
+| `npm run test:architect`          | Architect + tradeMachine scoped tests                               | Architect feature changes                                 |
+| `npm run test:roster`             | Roster tests (`src/tests/roster`)                                   | Roster Builder changes                                    |
+| `npm run test:scouting`           | Scouting tests (`src/tests/scouting`)                               | Scouting/Profile changes                                  |
+| `npm run test:node`               | Node-config test run                                                | Logic-heavy / non-UI changes                              |
+| `npm run test:ui`                 | UI-config test run                                                  | UI-heavy changes that need broader UI coverage            |
+| `npm run test:profile`            | Analyze slow tests                                                  | Only when diagnosing test slowness                        |
 
 **Reporter flag:** Always append `--reporter=dot` to test commands. This reduces output to one character per test (faster runs, fewer tokens consumed). Failures still print in full.
 

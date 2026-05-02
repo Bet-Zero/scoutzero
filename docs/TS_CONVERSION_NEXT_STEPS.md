@@ -267,7 +267,7 @@ Interpretation:
 
 Observed answer: **No confirmed Firestore document-shape inconsistency requiring a migration was found during Pile A.**
 
-What *was* surfaced:
+What _was_ surfaced:
 
 - `usePlayerDetail.ts`, `listHelpers.ts`, `rankerHelpers.ts`, and `rosterHelpers.ts` now all have Zod-validated read boundaries, so invalid shapes should fail loudly instead of drifting silently.
 - Step 6 did expose an **ownership-policy inconsistency** across user-authored collections:
@@ -666,7 +666,7 @@ This JS-to-TS living plan is complete.
 
 ## Follow-up items (populated as conversion progresses)
 
-*Anything surfaced during conversion that isn't in scope for the step that found it. Examples: duplicated utilities across files, inconsistent Firestore shapes, functions with undocumented side effects, missing tests on critical paths. Do not try to fix these in the same step they're found — add them here and address separately.*
+_Anything surfaced during conversion that isn't in scope for the step that found it. Examples: duplicated utilities across files, inconsistent Firestore shapes, functions with undocumented side effects, missing tests on critical paths. Do not try to fix these in the same step they're found — add them here and address separately._
 
 - **`firestorePaths.js` `splitPath` indirection removed (Step 3):** The original JS used `splitPath()` to spread collection constants into `doc()`/`collection()` rest params. TypeScript TS2556 prevents spreading `string[]` into a typed rest param. Since all collection constants are single-segment names (no internal slashes), we eliminated `splitPath` and pass the constants directly. If env vars are ever set to multi-segment paths, this file will need to be revisited.
 

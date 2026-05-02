@@ -144,12 +144,12 @@ Player source data lives in the hierarchical `players_v2` collection, with canon
 
 This project reads canonical player/team data from source collections and stores user-created artifacts separately:
 
-| Collection | Purpose |
-| ---------- | ------- |
-| `players_v2` | Canonical read-only player source with bio, contracts, seasons, evaluations, roles, badges, and display fields |
-| `architect_baseTeams` and related architect base collections | Read-only Architect source data |
-| `rosterProjects` | User-created roster builder snapshots |
-| `lists`, `tierLists`, `architect_worlds` | Other user-created feature data |
+| Collection                                                   | Purpose                                                                                                        |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `players_v2`                                                 | Canonical read-only player source with bio, contracts, seasons, evaluations, roles, badges, and display fields |
+| `architect_baseTeams` and related architect base collections | Read-only Architect source data                                                                                |
+| `rosterProjects`                                             | User-created roster builder snapshots                                                                          |
+| `lists`, `tierLists`, `architect_worlds`                     | Other user-created feature data                                                                                |
 
 - Use `useSimplePlayerData()` for the shared player pool.
 - Use feature-specific Firebase helpers in `src/firebase/` for user-created content such as roster saves.

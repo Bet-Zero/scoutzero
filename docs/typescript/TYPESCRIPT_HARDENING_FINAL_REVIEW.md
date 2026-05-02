@@ -30,13 +30,13 @@ areas. The final strict probes are green rather than merely improved.
 
 ## Resolved In This Master Plan
 
-| Area | Final posture |
-| --- | --- |
-| Declaration layer | Repo-wide ambient shims were removed, and remaining declaration bridges are localized instead of masking TS/TSX modules globally. |
-| Shared/runtime boundaries | Shared-boundary strict moved from the original `244` errors to `0` and remained green through the final checkpoint. |
+| Area                         | Final posture                                                                                                                                                                                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Declaration layer            | Repo-wide ambient shims were removed, and remaining declaration bridges are localized instead of masking TS/TSX modules globally.                                                                                                                         |
+| Shared/runtime boundaries    | Shared-boundary strict moved from the original `244` errors to `0` and remained green through the final checkpoint.                                                                                                                                       |
 | Architect/runtime boundaries | Architect strict moved from the original `2,567` errors, and from the Step 14 resume baseline of `2,632`, to `0`. Runtime ingress, mutation, cap-sheet, trade, dashboard, and season harness seams were hardened without broadening production contracts. |
-| Typed tests and mocks | The central Firebase/test fixture layer and Architect/trade strict test harnesses now typecheck under the Architect strict probe. Residual one-error and two-error test clusters were cleared rather than waived. |
-| Strictness posture | Root TypeScript, shared-boundary strict, and Architect strict all pass at the final mission checkpoint. |
+| Typed tests and mocks        | The central Firebase/test fixture layer and Architect/trade strict test harnesses now typecheck under the Architect strict probe. Residual one-error and two-error test clusters were cleared rather than waived.                                         |
+| Strictness posture           | Root TypeScript, shared-boundary strict, and Architect strict all pass at the final mission checkpoint.                                                                                                                                                   |
 
 ## Remaining Issues
 

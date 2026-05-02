@@ -49,18 +49,18 @@
 
 Recount: `140` runtime JS/JSX files remain under `src/`, excluding `src/tests/**`. The inventory still matches the 2026-04-18 headline count.
 
-| Tree | Count | Nearby coverage | Recommended step |
-| --- | ---: | --- | --- |
-| `src/config`, `src/firebaseConfig.js`, `src/firebaseHelpers.js`, `src/fonts`, `src/hooks` | 6 | No direct component tests; validate with `typecheck`, `validate:project`, and `test:diff`. | Step 2 |
-| `src/shared/components/**`, `src/components/diagnostic/**` | 11 | `tests/PlayerHeadshot.test.jsx`, `src/tests/videoExamples.undefined.test.ts`; most shell components have no direct smoke coverage. | Step 3 |
-| `src/features/filters/**` | 16 | `src/tests/filters/useActiveFilterCount.test.tsx`, `src/tests/scouting/player_filters_wiring_contract.test.ts`; component coverage is mostly indirect. | Step 4 |
-| `src/features/table/**` | 17 | `src/tests/table/useFilterDiagnostics.test.tsx`, `src/tests/table/useFilteredPlayers.test.tsx`, `src/tests/table/usePlayerTableDensity.test.tsx`; row/header components are mostly indirect. | Step 4 |
-| `src/features/profile/**` | 17 | `src/tests/scouting/playerProfile.behavior.test.tsx`, `src/tests/scouting/useAutoSavePlayer.test.tsx`, `src/tests/scouting/usePlayerProfileState.test.tsx`. | Step 5 |
-| `src/features/roster/**` | 22 | `tests/roster/rosterBuilder.ui.test.jsx`, `src/tests/roster/rosterBuilderHelpers.test.ts`, `src/tests/roster/rosterBuilderUtils.test.ts`, `src/tests/roster/rosterHelpers.smoke.test.ts`. | Step 6 |
-| `src/features/lists/**` | 19 | `tests/listHelpers.smoke.test.ts`, tier/list bridge tests; list component coverage is mostly indirect. | Step 7 |
-| `src/features/tierMaker/**` | 5 | `tests/tierMakerBoards.ui.test.jsx`, `tests/tierMakerRoutes.ui.test.jsx`, tier persistence/order tests. | Step 7 |
-| `src/features/ranker/**` | 10 | `tests/RankingSetup.test.jsx`, `tests/AnchorComparison.test.jsx`, `src/tests/ranker/useRankerSession.test.tsx`, ranker node tests. | Step 8 |
-| `src/pages/**`, `src/App.jsx`, `src/main.jsx`, `src/PasswordGate.jsx`, `src/core/layout/SiteLayout.jsx` | 17 | Route coverage is mixed; `tests/tierMakerRoutes.ui.test.jsx` and architect route smoke tests cover some shells. | Step 9, except feature-coupled pages may move with Steps 5-8 |
+| Tree                                                                                                    | Count | Nearby coverage                                                                                                                                                                              | Recommended step                                             |
+| ------------------------------------------------------------------------------------------------------- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `src/config`, `src/firebaseConfig.js`, `src/firebaseHelpers.js`, `src/fonts`, `src/hooks`               |     6 | No direct component tests; validate with `typecheck`, `validate:project`, and `test:diff`.                                                                                                   | Step 2                                                       |
+| `src/shared/components/**`, `src/components/diagnostic/**`                                              |    11 | `tests/PlayerHeadshot.test.jsx`, `src/tests/videoExamples.undefined.test.ts`; most shell components have no direct smoke coverage.                                                           | Step 3                                                       |
+| `src/features/filters/**`                                                                               |    16 | `src/tests/filters/useActiveFilterCount.test.tsx`, `src/tests/scouting/player_filters_wiring_contract.test.ts`; component coverage is mostly indirect.                                       | Step 4                                                       |
+| `src/features/table/**`                                                                                 |    17 | `src/tests/table/useFilterDiagnostics.test.tsx`, `src/tests/table/useFilteredPlayers.test.tsx`, `src/tests/table/usePlayerTableDensity.test.tsx`; row/header components are mostly indirect. | Step 4                                                       |
+| `src/features/profile/**`                                                                               |    17 | `src/tests/scouting/playerProfile.behavior.test.tsx`, `src/tests/scouting/useAutoSavePlayer.test.tsx`, `src/tests/scouting/usePlayerProfileState.test.tsx`.                                  | Step 5                                                       |
+| `src/features/roster/**`                                                                                |    22 | `tests/roster/rosterBuilder.ui.test.jsx`, `src/tests/roster/rosterBuilderHelpers.test.ts`, `src/tests/roster/rosterBuilderUtils.test.ts`, `src/tests/roster/rosterHelpers.smoke.test.ts`.    | Step 6                                                       |
+| `src/features/lists/**`                                                                                 |    19 | `tests/listHelpers.smoke.test.ts`, tier/list bridge tests; list component coverage is mostly indirect.                                                                                       | Step 7                                                       |
+| `src/features/tierMaker/**`                                                                             |     5 | `tests/tierMakerBoards.ui.test.jsx`, `tests/tierMakerRoutes.ui.test.jsx`, tier persistence/order tests.                                                                                      | Step 7                                                       |
+| `src/features/ranker/**`                                                                                |    10 | `tests/RankingSetup.test.jsx`, `tests/AnchorComparison.test.jsx`, `src/tests/ranker/useRankerSession.test.tsx`, ranker node tests.                                                           | Step 8                                                       |
+| `src/pages/**`, `src/App.jsx`, `src/main.jsx`, `src/PasswordGate.jsx`, `src/core/layout/SiteLayout.jsx` |    17 | Route coverage is mixed; `tests/tierMakerRoutes.ui.test.jsx` and architect route smoke tests cover some shells.                                                                              | Step 9, except feature-coupled pages may move with Steps 5-8 |
 
 ### Ordering Check
 
@@ -72,193 +72,193 @@ No order changes are recommended.
 
 #### Step 2 — Bootstrap and Support JS
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/config/ownerConfig.js` | Owner/admin configuration gate. | Step 2 |
-| `src/config/validationFlags.js` | Runtime validation feature flags. | Step 2 |
-| `src/firebaseConfig.js` | Firebase app/service initialization. | Step 2 |
-| `src/firebaseHelpers.js` | Shared Firebase helper exports. | Step 2 |
-| `src/fonts/antonBase64.js` | Embedded Anton font data for exports/capture. | Step 2 |
-| `src/hooks/useImageDownload.js` | Legacy image download hook wrapper/duplicate check. | Step 2 |
+| File                            | Role                                                | Recommended step |
+| ------------------------------- | --------------------------------------------------- | ---------------- |
+| `src/config/ownerConfig.js`     | Owner/admin configuration gate.                     | Step 2           |
+| `src/config/validationFlags.js` | Runtime validation feature flags.                   | Step 2           |
+| `src/firebaseConfig.js`         | Firebase app/service initialization.                | Step 2           |
+| `src/firebaseHelpers.js`        | Shared Firebase helper exports.                     | Step 2           |
+| `src/fonts/antonBase64.js`      | Embedded Anton font data for exports/capture.       | Step 2           |
+| `src/hooks/useImageDownload.js` | Legacy image download hook wrapper/duplicate check. | Step 2           |
 
 #### Step 3 — Shared UI Leaves and Diagnostics
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/shared/components/PlayerHeadshot.jsx` | Player image display with fallback behavior. | Step 3 |
-| `src/shared/components/ErrorBoundary.jsx` | React error boundary shell. | Step 3 |
-| `src/shared/components/SeasonYearSelector.jsx` | Shared season/year selector control. | Step 3 |
-| `src/shared/components/DropdownGroup.jsx` | Shared grouped dropdown control. | Step 3 |
-| `src/shared/components/ui/drawers/OpenDrawerButton.jsx` | Shared drawer trigger button. | Step 3 |
-| `src/shared/components/ui/drawers/DrawerShell.jsx` | Shared drawer layout shell. | Step 3 |
-| `src/shared/components/ui/Modal.jsx` | Shared modal shell. | Step 3 |
-| `src/shared/components/ui/VideoExamples.jsx` | Shared video examples renderer. | Step 3 |
-| `src/shared/components/ui/ToggleButton.jsx` | Shared toggle button. | Step 3 |
-| `src/shared/components/ui/grades/OverallGradeBlock.jsx` | Shared overall-grade display block. | Step 3 |
-| `src/components/diagnostic/FirestoreDataDiagnostic.jsx` | Firestore diagnostics UI. | Step 3 |
+| File                                                    | Role                                         | Recommended step |
+| ------------------------------------------------------- | -------------------------------------------- | ---------------- |
+| `src/shared/components/PlayerHeadshot.jsx`              | Player image display with fallback behavior. | Step 3           |
+| `src/shared/components/ErrorBoundary.jsx`               | React error boundary shell.                  | Step 3           |
+| `src/shared/components/SeasonYearSelector.jsx`          | Shared season/year selector control.         | Step 3           |
+| `src/shared/components/DropdownGroup.jsx`               | Shared grouped dropdown control.             | Step 3           |
+| `src/shared/components/ui/drawers/OpenDrawerButton.jsx` | Shared drawer trigger button.                | Step 3           |
+| `src/shared/components/ui/drawers/DrawerShell.jsx`      | Shared drawer layout shell.                  | Step 3           |
+| `src/shared/components/ui/Modal.jsx`                    | Shared modal shell.                          | Step 3           |
+| `src/shared/components/ui/VideoExamples.jsx`            | Shared video examples renderer.              | Step 3           |
+| `src/shared/components/ui/ToggleButton.jsx`             | Shared toggle button.                        | Step 3           |
+| `src/shared/components/ui/grades/OverallGradeBlock.jsx` | Shared overall-grade display block.          | Step 3           |
+| `src/components/diagnostic/FirestoreDataDiagnostic.jsx` | Firestore diagnostics UI.                    | Step 3           |
 
 #### Step 4 — Filters UI
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/features/filters/ActiveFiltersDisplay/index.jsx` | Active filter summary container. | Step 4 |
-| `src/features/filters/ActiveFiltersDisplay/FilterPill/FilterPill.jsx` | Individual active filter pill. | Step 4 |
-| `src/features/filters/ActiveFiltersDisplay/FilterPill/FilterContent.jsx` | Filter pill label/value content. | Step 4 |
-| `src/features/filters/ActiveFiltersDrawer.jsx` | Mobile/secondary active-filters drawer. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanelCondensed.jsx` | Condensed filters panel variant. | Step 4 |
-| `src/features/filters/FiltersPanel/index.jsx` | Filters panel container. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/index.jsx` | Full filter panel shell. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/StatFilters.jsx` | Statistical filter section. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/OverallGradeFilter.jsx` | Overall grade filter section. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/RoleFilters.jsx` | Role filter section. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/PhysicalFilters.jsx` | Physical profile filter section. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/MetadataFilters.jsx` | Metadata filter section. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/TraitFilters.jsx` | Trait filter section. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/BadgeFilters.jsx` | Badge filter section. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/ContractFilters.jsx` | Contract filter section. | Step 4 |
-| `src/features/filters/FiltersPanel/FilterPanel/sections/ViewControls.jsx` | Filter/table view controls. | Step 4 |
+| File                                                                            | Role                                    | Recommended step |
+| ------------------------------------------------------------------------------- | --------------------------------------- | ---------------- |
+| `src/features/filters/ActiveFiltersDisplay/index.jsx`                           | Active filter summary container.        | Step 4           |
+| `src/features/filters/ActiveFiltersDisplay/FilterPill/FilterPill.jsx`           | Individual active filter pill.          | Step 4           |
+| `src/features/filters/ActiveFiltersDisplay/FilterPill/FilterContent.jsx`        | Filter pill label/value content.        | Step 4           |
+| `src/features/filters/ActiveFiltersDrawer.jsx`                                  | Mobile/secondary active-filters drawer. | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanelCondensed.jsx`                    | Condensed filters panel variant.        | Step 4           |
+| `src/features/filters/FiltersPanel/index.jsx`                                   | Filters panel container.                | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/index.jsx`                       | Full filter panel shell.                | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/StatFilters.jsx`        | Statistical filter section.             | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/OverallGradeFilter.jsx` | Overall grade filter section.           | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/RoleFilters.jsx`        | Role filter section.                    | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/PhysicalFilters.jsx`    | Physical profile filter section.        | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/MetadataFilters.jsx`    | Metadata filter section.                | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/TraitFilters.jsx`       | Trait filter section.                   | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/BadgeFilters.jsx`       | Badge filter section.                   | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/ContractFilters.jsx`    | Contract filter section.                | Step 4           |
+| `src/features/filters/FiltersPanel/FilterPanel/sections/ViewControls.jsx`       | Filter/table view controls.             | Step 4           |
 
 #### Step 4 — Table UI
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/features/table/PlayerTable/index.jsx` | Player table container. | Step 4 |
-| `src/features/table/PlayerTable/FilterDiagnosticsPanel.jsx` | Table filter diagnostics display. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/index.jsx` | Main player row. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/RolePill.jsx` | Role pill in table rows. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/ShootingProfileMini.jsx` | Shooting profile row mini. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/PlayerNameMini.jsx` | Player name row mini. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/index.jsx` | Player drawer container. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/OverallBlurbMini.jsx` | Drawer blurb mini. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/BadgeMini.jsx` | Drawer badge mini. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerSubRolesMini.jsx` | Drawer sub-role mini. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.jsx` | Drawer contract mini. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerTraitsMiniGrid.jsx` | Drawer traits mini grid. | Step 4 |
-| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerStatsMini.jsx` | Drawer stats mini. | Step 4 |
-| `src/features/table/PlayerTable/PlayerTableHeader/SearchBar.jsx` | Table search control. | Step 4 |
-| `src/features/table/PlayerTable/PlayerTableHeader/index.jsx` | Table header container. | Step 4 |
-| `src/features/table/PlayerTable/PlayerTableHeader/DensityToggle.jsx` | Table density control. | Step 4 |
-| `src/features/table/PlayerTable/PlayerTableHeader/TopControlsBar.jsx` | Table top controls row. | Step 4 |
+| File                                                                             | Role                              | Recommended step |
+| -------------------------------------------------------------------------------- | --------------------------------- | ---------------- |
+| `src/features/table/PlayerTable/index.jsx`                                       | Player table container.           | Step 4           |
+| `src/features/table/PlayerTable/FilterDiagnosticsPanel.jsx`                      | Table filter diagnostics display. | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/index.jsx`                             | Main player row.                  | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/RolePill.jsx`                          | Role pill in table rows.          | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/ShootingProfileMini.jsx`               | Shooting profile row mini.        | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/PlayerNameMini.jsx`                    | Player name row mini.             | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/index.jsx`                | Player drawer container.          | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/OverallBlurbMini.jsx`     | Drawer blurb mini.                | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/BadgeMini.jsx`            | Drawer badge mini.                | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerSubRolesMini.jsx`   | Drawer sub-role mini.             | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini.jsx`   | Drawer contract mini.             | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerTraitsMiniGrid.jsx` | Drawer traits mini grid.          | Step 4           |
+| `src/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerStatsMini.jsx`      | Drawer stats mini.                | Step 4           |
+| `src/features/table/PlayerTable/PlayerTableHeader/SearchBar.jsx`                 | Table search control.             | Step 4           |
+| `src/features/table/PlayerTable/PlayerTableHeader/index.jsx`                     | Table header container.           | Step 4           |
+| `src/features/table/PlayerTable/PlayerTableHeader/DensityToggle.jsx`             | Table density control.            | Step 4           |
+| `src/features/table/PlayerTable/PlayerTableHeader/TopControlsBar.jsx`            | Table top controls row.           | Step 4           |
 
 #### Step 5 — Profile UI
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/features/profile/PlayerNavigation.jsx` | Profile previous/next navigation. | Step 5 |
-| `src/features/profile/PlayerSearchBar.jsx` | Profile player search. | Step 5 |
-| `src/features/profile/PlayerDetails/BadgeSelector.jsx` | Profile badge selector. | Step 5 |
-| `src/features/profile/PlayerDetails/index.jsx` | Player details container. | Step 5 |
-| `src/features/profile/PlayerDetails/OverallBlurbBox.jsx` | Profile overall blurb editor/display. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerTraitsGrid.jsx` | Profile traits grid. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerHeader/index.jsx` | Profile header container. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerHeader/ProfilePlayerPosition.jsx` | Profile position header field. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerHeader/ProfilePlayerName.jsx` | Profile name header field. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerStatsTable.jsx` | Profile stats table. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerRolesSection/index.jsx` | Profile roles section container. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerRolesSection/ShootingProfileSelector.jsx` | Shooting profile selector. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerRolesSection/SubRoleSelector.jsx` | Sub-role selector. | Step 5 |
-| `src/features/profile/PlayerDetails/PlayerRolesSection/TwoWayMeter.jsx` | Two-way meter control. | Step 5 |
-| `src/features/profile/SaveStatusIndicator.jsx` | Profile save status display. | Step 5 |
-| `src/features/profile/TeamPlayerDropdowns.jsx` | Team/player dropdown controls. | Step 5 |
-| `src/features/profile/BreakdownModal.jsx` | Profile breakdown modal. | Step 5 |
-| `src/pages/PlayerProfileView.jsx` | Profile route page; convert with Step 5 if prop typing requires it. | Step 5 or Step 9 |
+| File                                                                                | Role                                                                | Recommended step |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------- |
+| `src/features/profile/PlayerNavigation.jsx`                                         | Profile previous/next navigation.                                   | Step 5           |
+| `src/features/profile/PlayerSearchBar.jsx`                                          | Profile player search.                                              | Step 5           |
+| `src/features/profile/PlayerDetails/BadgeSelector.jsx`                              | Profile badge selector.                                             | Step 5           |
+| `src/features/profile/PlayerDetails/index.jsx`                                      | Player details container.                                           | Step 5           |
+| `src/features/profile/PlayerDetails/OverallBlurbBox.jsx`                            | Profile overall blurb editor/display.                               | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerTraitsGrid.jsx`                           | Profile traits grid.                                                | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerHeader/index.jsx`                         | Profile header container.                                           | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerHeader/ProfilePlayerPosition.jsx`         | Profile position header field.                                      | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerHeader/ProfilePlayerName.jsx`             | Profile name header field.                                          | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerStatsTable.jsx`                           | Profile stats table.                                                | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerRolesSection/index.jsx`                   | Profile roles section container.                                    | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerRolesSection/ShootingProfileSelector.jsx` | Shooting profile selector.                                          | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerRolesSection/SubRoleSelector.jsx`         | Sub-role selector.                                                  | Step 5           |
+| `src/features/profile/PlayerDetails/PlayerRolesSection/TwoWayMeter.jsx`             | Two-way meter control.                                              | Step 5           |
+| `src/features/profile/SaveStatusIndicator.jsx`                                      | Profile save status display.                                        | Step 5           |
+| `src/features/profile/TeamPlayerDropdowns.jsx`                                      | Team/player dropdown controls.                                      | Step 5           |
+| `src/features/profile/BreakdownModal.jsx`                                           | Profile breakdown modal.                                            | Step 5           |
+| `src/pages/PlayerProfileView.jsx`                                                   | Profile route page; convert with Step 5 if prop typing requires it. | Step 5 or Step 9 |
 
 #### Step 6 — Roster UI
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/features/roster/RosterControls.jsx` | Roster toolbar controls. | Step 6 |
-| `src/features/roster/RosterExportModal.jsx` | Roster export modal. | Step 6 |
-| `src/features/roster/RosterSection/BenchCard.jsx` | Bench player card. | Step 6 |
-| `src/features/roster/RosterSection/index.jsx` | Roster section container. | Step 6 |
-| `src/features/roster/RosterSection/StarterCard.jsx` | Starter player card. | Step 6 |
-| `src/features/roster/RosterSection/RotationCard.jsx` | Rotation player card. | Step 6 |
-| `src/features/roster/RosterSection/EmptySlot.jsx` | Empty roster slot placeholder. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/PlayerSearchBar.jsx` | Add-player drawer search. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/BasicFilters.jsx` | Add-player basic filters. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/RolesFilters.jsx` | Add-player role filters. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/StatsFilters.jsx` | Add-player stat filters. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/PhysicalFilters.jsx` | Add-player physical filters. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/DrawerHeader.jsx` | Add-player drawer header. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/ContractFilters.jsx` | Add-player contract filters. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/addPlayer/FilterTabs.jsx` | Add-player filter tabs. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/index.jsx` | Add-player drawer container. | Step 6 |
-| `src/features/roster/AddPlayerDrawer/PlayerRowMini.jsx` | Add-player result row. | Step 6 |
-| `src/features/roster/RosterExportCapture.jsx` | Roster export capture surface. | Step 6 |
-| `src/features/roster/RosterPreviewModal.jsx` | Roster preview modal. | Step 6 |
-| `src/features/roster/RosterViewer.jsx` | Roster viewer container. | Step 6 |
-| `src/features/roster/SaveRosterModal.jsx` | Save roster modal. | Step 6 |
-| `src/features/roster/CreateRosterModal.jsx` | Create roster modal. | Step 6 |
-| `src/pages/TeamRosterView.jsx` | Team roster route page; convert with Step 6 if prop typing requires it. | Step 6 or Step 9 |
-| `src/pages/RostersHome.jsx` | Rosters home route page; convert with Step 6 if prop typing requires it. | Step 6 or Step 9 |
+| File                                                                | Role                                                                     | Recommended step |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------- |
+| `src/features/roster/RosterControls.jsx`                            | Roster toolbar controls.                                                 | Step 6           |
+| `src/features/roster/RosterExportModal.jsx`                         | Roster export modal.                                                     | Step 6           |
+| `src/features/roster/RosterSection/BenchCard.jsx`                   | Bench player card.                                                       | Step 6           |
+| `src/features/roster/RosterSection/index.jsx`                       | Roster section container.                                                | Step 6           |
+| `src/features/roster/RosterSection/StarterCard.jsx`                 | Starter player card.                                                     | Step 6           |
+| `src/features/roster/RosterSection/RotationCard.jsx`                | Rotation player card.                                                    | Step 6           |
+| `src/features/roster/RosterSection/EmptySlot.jsx`                   | Empty roster slot placeholder.                                           | Step 6           |
+| `src/features/roster/AddPlayerDrawer/addPlayer/PlayerSearchBar.jsx` | Add-player drawer search.                                                | Step 6           |
+| `src/features/roster/AddPlayerDrawer/addPlayer/BasicFilters.jsx`    | Add-player basic filters.                                                | Step 6           |
+| `src/features/roster/AddPlayerDrawer/addPlayer/RolesFilters.jsx`    | Add-player role filters.                                                 | Step 6           |
+| `src/features/roster/AddPlayerDrawer/addPlayer/StatsFilters.jsx`    | Add-player stat filters.                                                 | Step 6           |
+| `src/features/roster/AddPlayerDrawer/addPlayer/PhysicalFilters.jsx` | Add-player physical filters.                                             | Step 6           |
+| `src/features/roster/AddPlayerDrawer/addPlayer/DrawerHeader.jsx`    | Add-player drawer header.                                                | Step 6           |
+| `src/features/roster/AddPlayerDrawer/addPlayer/ContractFilters.jsx` | Add-player contract filters.                                             | Step 6           |
+| `src/features/roster/AddPlayerDrawer/addPlayer/FilterTabs.jsx`      | Add-player filter tabs.                                                  | Step 6           |
+| `src/features/roster/AddPlayerDrawer/index.jsx`                     | Add-player drawer container.                                             | Step 6           |
+| `src/features/roster/AddPlayerDrawer/PlayerRowMini.jsx`             | Add-player result row.                                                   | Step 6           |
+| `src/features/roster/RosterExportCapture.jsx`                       | Roster export capture surface.                                           | Step 6           |
+| `src/features/roster/RosterPreviewModal.jsx`                        | Roster preview modal.                                                    | Step 6           |
+| `src/features/roster/RosterViewer.jsx`                              | Roster viewer container.                                                 | Step 6           |
+| `src/features/roster/SaveRosterModal.jsx`                           | Save roster modal.                                                       | Step 6           |
+| `src/features/roster/CreateRosterModal.jsx`                         | Create roster modal.                                                     | Step 6           |
+| `src/pages/TeamRosterView.jsx`                                      | Team roster route page; convert with Step 6 if prop typing requires it.  | Step 6 or Step 9 |
+| `src/pages/RostersHome.jsx`                                         | Rosters home route page; convert with Step 6 if prop typing requires it. | Step 6 or Step 9 |
 
 #### Step 7 — Lists UI
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/features/lists/AddToListButton/index.jsx` | Add-to-list button wrapper. | Step 7 |
-| `src/features/lists/AddToListButton/AddToListModal.jsx` | Add-to-list modal. | Step 7 |
-| `src/features/lists/ListRowStyleToggle.jsx` | List row style toggle. | Step 7 |
-| `src/features/lists/RankedListTierToggle.jsx` | Ranked/tier list toggle. | Step 7 |
-| `src/features/lists/ListRankToggle.jsx` | List ranking toggle. | Step 7 |
-| `src/features/lists/TierPlayerTile.jsx` | Tier player tile. | Step 7 |
-| `src/features/lists/ExportOptionsModal.jsx` | List export options modal. | Step 7 |
-| `src/features/lists/ListPreviewModal/index.jsx` | List preview modal container. | Step 7 |
-| `src/features/lists/ListPreviewModal/ListExportWrapper/index.jsx` | List export wrapper. | Step 7 |
-| `src/features/lists/ListPreviewModal/ListExportWrapper/ListExportRowCompact.jsx` | Compact export row. | Step 7 |
-| `src/features/lists/ListPreviewModal/ListExportWrapper/ListExportPlayerRow.jsx` | Export player row. | Step 7 |
-| `src/features/lists/ListPreviewModal/ListExportWrapper/ListTierExport/index.jsx` | Tier export renderer. | Step 7 |
-| `src/features/lists/ListSearchBar.jsx` | List search control. | Step 7 |
-| `src/features/lists/ListControls.jsx` | List controls bar. | Step 7 |
-| `src/features/lists/ListTierHeader/index.jsx` | Tier header container. | Step 7 |
-| `src/features/lists/ListTierHeader/ListPlayerRow.jsx` | List player row. | Step 7 |
-| `src/features/lists/CreateListModal.jsx` | Create list modal. | Step 7 |
-| `src/features/lists/TieredListView/index.jsx` | Tiered list view container. | Step 7 |
-| `src/features/lists/ListColumnToggle.jsx` | List column visibility toggle. | Step 7 |
-| `src/pages/ListManager.jsx` | List manager route page. | Step 7 or Step 9 |
-| `src/pages/ListsHome.jsx` | Lists home route page. | Step 7 or Step 9 |
+| File                                                                             | Role                           | Recommended step |
+| -------------------------------------------------------------------------------- | ------------------------------ | ---------------- |
+| `src/features/lists/AddToListButton/index.jsx`                                   | Add-to-list button wrapper.    | Step 7           |
+| `src/features/lists/AddToListButton/AddToListModal.jsx`                          | Add-to-list modal.             | Step 7           |
+| `src/features/lists/ListRowStyleToggle.jsx`                                      | List row style toggle.         | Step 7           |
+| `src/features/lists/RankedListTierToggle.jsx`                                    | Ranked/tier list toggle.       | Step 7           |
+| `src/features/lists/ListRankToggle.jsx`                                          | List ranking toggle.           | Step 7           |
+| `src/features/lists/TierPlayerTile.jsx`                                          | Tier player tile.              | Step 7           |
+| `src/features/lists/ExportOptionsModal.jsx`                                      | List export options modal.     | Step 7           |
+| `src/features/lists/ListPreviewModal/index.jsx`                                  | List preview modal container.  | Step 7           |
+| `src/features/lists/ListPreviewModal/ListExportWrapper/index.jsx`                | List export wrapper.           | Step 7           |
+| `src/features/lists/ListPreviewModal/ListExportWrapper/ListExportRowCompact.jsx` | Compact export row.            | Step 7           |
+| `src/features/lists/ListPreviewModal/ListExportWrapper/ListExportPlayerRow.jsx`  | Export player row.             | Step 7           |
+| `src/features/lists/ListPreviewModal/ListExportWrapper/ListTierExport/index.jsx` | Tier export renderer.          | Step 7           |
+| `src/features/lists/ListSearchBar.jsx`                                           | List search control.           | Step 7           |
+| `src/features/lists/ListControls.jsx`                                            | List controls bar.             | Step 7           |
+| `src/features/lists/ListTierHeader/index.jsx`                                    | Tier header container.         | Step 7           |
+| `src/features/lists/ListTierHeader/ListPlayerRow.jsx`                            | List player row.               | Step 7           |
+| `src/features/lists/CreateListModal.jsx`                                         | Create list modal.             | Step 7           |
+| `src/features/lists/TieredListView/index.jsx`                                    | Tiered list view container.    | Step 7           |
+| `src/features/lists/ListColumnToggle.jsx`                                        | List column visibility toggle. | Step 7           |
+| `src/pages/ListManager.jsx`                                                      | List manager route page.       | Step 7 or Step 9 |
+| `src/pages/ListsHome.jsx`                                                        | Lists home route page.         | Step 7 or Step 9 |
 
 #### Step 7 — Tier Maker UI
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/features/tierMaker/TierRow.jsx` | Tier row renderer. | Step 7 |
-| `src/features/tierMaker/TieramidPlayerTile.jsx` | Tieramid player tile. | Step 7 |
-| `src/features/tierMaker/CreateTierListModal.jsx` | Create tier list modal. | Step 7 |
-| `src/features/tierMaker/TieramidBoard.jsx` | Tieramid board. | Step 7 |
-| `src/features/tierMaker/TierMakerBoard.jsx` | Tier maker board. | Step 7 |
-| `src/pages/TierListsHome.jsx` | Tier lists home route page. | Step 7 or Step 9 |
-| `src/pages/TierMakerView.jsx` | Tier maker route page. | Step 7 or Step 9 |
+| File                                             | Role                        | Recommended step |
+| ------------------------------------------------ | --------------------------- | ---------------- |
+| `src/features/tierMaker/TierRow.jsx`             | Tier row renderer.          | Step 7           |
+| `src/features/tierMaker/TieramidPlayerTile.jsx`  | Tieramid player tile.       | Step 7           |
+| `src/features/tierMaker/CreateTierListModal.jsx` | Create tier list modal.     | Step 7           |
+| `src/features/tierMaker/TieramidBoard.jsx`       | Tieramid board.             | Step 7           |
+| `src/features/tierMaker/TierMakerBoard.jsx`      | Tier maker board.           | Step 7           |
+| `src/pages/TierListsHome.jsx`                    | Tier lists home route page. | Step 7 or Step 9 |
+| `src/pages/TierMakerView.jsx`                    | Tier maker route page.      | Step 7 or Step 9 |
 
 #### Step 8 — Ranker UI
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/features/ranker/AdjustableRankings.jsx` | Adjustable ranking list. | Step 8 |
-| `src/features/ranker/tournamentRanker.js` | Ranker tournament logic. | Step 8 |
-| `src/features/ranker/AnchorComparison.jsx` | Anchor comparison UI. | Step 8 |
-| `src/features/ranker/ComparisonMatrixDrawer.jsx` | Comparison matrix drawer. | Step 8 |
-| `src/features/ranker/ComparisonMatrix.jsx` | Comparison matrix display. | Step 8 |
-| `src/features/ranker/RankingResults.jsx` | Ranker results display. | Step 8 |
-| `src/features/ranker/RankingSetup.jsx` | Ranker setup UI. | Step 8 |
-| `src/features/ranker/RankingSession.jsx` | Ranking session container. | Step 8 |
-| `src/features/ranker/RankingBuilder.jsx` | Ranker builder container. | Step 8 |
-| `src/features/ranker/PlayerCompareCard.jsx` | Player comparison card. | Step 8 |
-| `src/pages/PlayerRankerPage.jsx` | Ranker route page. | Step 8 or Step 9 |
+| File                                             | Role                       | Recommended step |
+| ------------------------------------------------ | -------------------------- | ---------------- |
+| `src/features/ranker/AdjustableRankings.jsx`     | Adjustable ranking list.   | Step 8           |
+| `src/features/ranker/tournamentRanker.js`        | Ranker tournament logic.   | Step 8           |
+| `src/features/ranker/AnchorComparison.jsx`       | Anchor comparison UI.      | Step 8           |
+| `src/features/ranker/ComparisonMatrixDrawer.jsx` | Comparison matrix drawer.  | Step 8           |
+| `src/features/ranker/ComparisonMatrix.jsx`       | Comparison matrix display. | Step 8           |
+| `src/features/ranker/RankingResults.jsx`         | Ranker results display.    | Step 8           |
+| `src/features/ranker/RankingSetup.jsx`           | Ranker setup UI.           | Step 8           |
+| `src/features/ranker/RankingSession.jsx`         | Ranking session container. | Step 8           |
+| `src/features/ranker/RankingBuilder.jsx`         | Ranker builder container.  | Step 8           |
+| `src/features/ranker/PlayerCompareCard.jsx`      | Player comparison card.    | Step 8           |
+| `src/pages/PlayerRankerPage.jsx`                 | Ranker route page.         | Step 8 or Step 9 |
 
 #### Step 9 — App Shell and Remaining Pages
 
-| File | Role | Recommended step |
-| --- | --- | --- |
-| `src/App.jsx` | Top-level route/app shell. | Step 9 |
-| `src/main.jsx` | Vite/React bootstrap entry. | Step 9 |
-| `src/PasswordGate.jsx` | Password gate wrapper. | Step 9 |
-| `src/core/layout/SiteLayout.jsx` | Site layout wrapper. | Step 9 |
-| `src/pages/PlayerTableView.jsx` | Player table route page. | Step 9 after Step 4 |
-| `src/pages/GmDashboardView.jsx` | Architect dashboard route page. | Step 9 |
-| `src/pages/GmLeagueView.jsx` | Architect league route page. | Step 9 |
-| `src/pages/DataDiagnosticPage.jsx` | Data diagnostics route page. | Step 9 after Step 3 |
-| `src/pages/NotFound.jsx` | Not-found route page. | Step 9 |
+| File                               | Role                            | Recommended step    |
+| ---------------------------------- | ------------------------------- | ------------------- |
+| `src/App.jsx`                      | Top-level route/app shell.      | Step 9              |
+| `src/main.jsx`                     | Vite/React bootstrap entry.     | Step 9              |
+| `src/PasswordGate.jsx`             | Password gate wrapper.          | Step 9              |
+| `src/core/layout/SiteLayout.jsx`   | Site layout wrapper.            | Step 9              |
+| `src/pages/PlayerTableView.jsx`    | Player table route page.        | Step 9 after Step 4 |
+| `src/pages/GmDashboardView.jsx`    | Architect dashboard route page. | Step 9              |
+| `src/pages/GmLeagueView.jsx`       | Architect league route page.    | Step 9              |
+| `src/pages/DataDiagnosticPage.jsx` | Data diagnostics route page.    | Step 9 after Step 3 |
+| `src/pages/NotFound.jsx`           | Not-found route page.           | Step 9              |
 
 ---
 

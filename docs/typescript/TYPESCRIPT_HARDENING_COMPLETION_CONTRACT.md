@@ -13,14 +13,14 @@ It exists to prevent agents from declaring the TypeScript hardening mission comp
 
 Agents must use these exact meanings:
 
-| Status phrase | Allowed meaning |
-| --- | --- |
-| `STRUCTURAL MIGRATION COMPLETE` | Runtime `src/` has no JS/JSX/CJS/MJS app files, but this says nothing about hardening. |
-| `ROOT TYPECHECK PASSING` | `npm run typecheck` passes under the current root config only. If root `strict` is false, this is a compatibility pass, not hardening proof. |
-| `STRICT PROBE PASSING` | A scoped strict config passes for its included files only. This is not repo-wide strict readiness. |
-| `PHASE COMPLETE` | The assigned narrow phase is complete. This must not be described as full TypeScript hardening complete. |
-| `TASK INCOMPLETE — HARDENING NOT FINISHED` | Required wording when any hard-stop completion gate below fails. |
-| `TYPESCRIPT HARDENING COMPLETE` | Only allowed when every hard-stop completion gate below passes with evidence. |
+| Status phrase                              | Allowed meaning                                                                                                                              |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STRUCTURAL MIGRATION COMPLETE`            | Runtime `src/` has no JS/JSX/CJS/MJS app files, but this says nothing about hardening.                                                       |
+| `ROOT TYPECHECK PASSING`                   | `npm run typecheck` passes under the current root config only. If root `strict` is false, this is a compatibility pass, not hardening proof. |
+| `STRICT PROBE PASSING`                     | A scoped strict config passes for its included files only. This is not repo-wide strict readiness.                                           |
+| `PHASE COMPLETE`                           | The assigned narrow phase is complete. This must not be described as full TypeScript hardening complete.                                     |
+| `TASK INCOMPLETE — HARDENING NOT FINISHED` | Required wording when any hard-stop completion gate below fails.                                                                             |
+| `TYPESCRIPT HARDENING COMPLETE`            | Only allowed when every hard-stop completion gate below passes with evidence.                                                                |
 
 Agents must not use vague substitutes such as `done`, `finished`, `complete`, `good`, `clean`, `hardened`, or `ship-ready` unless the statement identifies the exact scope.
 
@@ -200,13 +200,13 @@ rg --files -g '*.js' -g '*.jsx' -g '*.cjs' -g '*.mjs' -g '!node_modules/**' -g '
 
 Every remaining JS/CJS/MJS file must be classified as one of:
 
-| Classification | Meaning |
-| --- | --- |
-| `INTENTIONAL CONFIG` | Tooling config that should remain JS for compatibility. |
-| `INTENTIONAL NODE SCRIPT` | Node script intentionally left JS with documented reason. |
-| `GENERATED/TEMP` | Generated or temporary file that should not be committed long-term. |
-| `MIGRATE` | Real source/script file that must be migrated before mission completion. |
-| `DELETE` | Stale file that must be removed before mission completion. |
+| Classification            | Meaning                                                                  |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `INTENTIONAL CONFIG`      | Tooling config that should remain JS for compatibility.                  |
+| `INTENTIONAL NODE SCRIPT` | Node script intentionally left JS with documented reason.                |
+| `GENERATED/TEMP`          | Generated or temporary file that should not be committed long-term.      |
+| `MIGRATE`                 | Real source/script file that must be migrated before mission completion. |
+| `DELETE`                  | Stale file that must be removed before mission completion.               |
 
 ### Failure condition
 
@@ -260,26 +260,26 @@ The return package must include:
 
 Every return package for TypeScript hardening must include this table:
 
-| Gate | Status | Evidence | If failed, why mission is incomplete |
-| --- | --- | --- | --- |
-| Gate 1 — Root strict mode | PASS/FAIL | command + output summary | required if FAIL |
-| Gate 2 — Runtime type escape audit | PASS/FAIL | count + exception table path | required if FAIL |
-| Gate 3 — Declaration/shim honesty | PASS/FAIL | scan result + files reviewed | required if FAIL |
-| Gate 4 — Runtime boundary honesty | PASS/FAIL | audited files + schema/exception proof | required if FAIL |
-| Gate 5 — Test/mock type integrity | PASS/FAIL | count + exception table path | required if FAIL |
-| Gate 6 — JS/CJS/MJS classification | PASS/FAIL | file inventory + classification table | required if FAIL |
-| Gate 7 — Schema escape audit | PASS/FAIL | scan result + exception table path | required if FAIL |
-| Gate 8 — Evidence package | PASS/FAIL | return package path | required if FAIL |
+| Gate                               | Status    | Evidence                               | If failed, why mission is incomplete |
+| ---------------------------------- | --------- | -------------------------------------- | ------------------------------------ |
+| Gate 1 — Root strict mode          | PASS/FAIL | command + output summary               | required if FAIL                     |
+| Gate 2 — Runtime type escape audit | PASS/FAIL | count + exception table path           | required if FAIL                     |
+| Gate 3 — Declaration/shim honesty  | PASS/FAIL | scan result + files reviewed           | required if FAIL                     |
+| Gate 4 — Runtime boundary honesty  | PASS/FAIL | audited files + schema/exception proof | required if FAIL                     |
+| Gate 5 — Test/mock type integrity  | PASS/FAIL | count + exception table path           | required if FAIL                     |
+| Gate 6 — JS/CJS/MJS classification | PASS/FAIL | file inventory + classification table  | required if FAIL                     |
+| Gate 7 — Schema escape audit       | PASS/FAIL | scan result + exception table path     | required if FAIL                     |
+| Gate 8 — Evidence package          | PASS/FAIL | return package path                    | required if FAIL                     |
 
 ## Final Verdict Rules
 
 The final verdict must be one of these exact values:
 
-| Verdict | When allowed |
-| --- | --- |
-| `TYPESCRIPT HARDENING COMPLETE` | All gates PASS. |
-| `PHASE COMPLETE — HARDENING STILL INCOMPLETE` | Assigned phase is done, but at least one mission gate fails. |
-| `TASK INCOMPLETE — HARDENING NOT FINISHED` | Assigned phase failed, validation failed, evidence is missing, or any required work remains incomplete. |
+| Verdict                                       | When allowed                                                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `TYPESCRIPT HARDENING COMPLETE`               | All gates PASS.                                                                                         |
+| `PHASE COMPLETE — HARDENING STILL INCOMPLETE` | Assigned phase is done, but at least one mission gate fails.                                            |
+| `TASK INCOMPLETE — HARDENING NOT FINISHED`    | Assigned phase failed, validation failed, evidence is missing, or any required work remains incomplete. |
 
 ## Agent Refusal Rule
 

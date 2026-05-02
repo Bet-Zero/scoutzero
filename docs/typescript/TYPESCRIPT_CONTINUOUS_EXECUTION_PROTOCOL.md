@@ -110,16 +110,16 @@ Required format:
 ```md
 ## Mission Completion Status
 
-| Gate | Status | Last Evidence | Notes |
-| --- | --- | --- | --- |
-| Gate 1 — Root strict mode | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
+| Gate                               | Status            | Last Evidence  | Notes   |
+| ---------------------------------- | ----------------- | -------------- | ------- |
+| Gate 1 — Root strict mode          | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
 | Gate 2 — Runtime type escape audit | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
-| Gate 3 — Declaration/shim honesty | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
-| Gate 4 — Runtime boundary honesty | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
-| Gate 5 — Test/mock type integrity | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
+| Gate 3 — Declaration/shim honesty  | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
+| Gate 4 — Runtime boundary honesty  | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
+| Gate 5 — Test/mock type integrity  | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
 | Gate 6 — JS/CJS/MJS classification | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
-| Gate 7 — Schema escape audit | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
-| Gate 8 — Evidence package | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
+| Gate 7 — Schema escape audit       | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
+| Gate 8 — Evidence package          | PASS/FAIL/UNKNOWN | [command/path] | [notes] |
 
 Current mission verdict: PHASE COMPLETE — HARDENING STILL INCOMPLETE | TASK INCOMPLETE — HARDENING NOT FINISHED | TYPESCRIPT HARDENING COMPLETE
 ```
@@ -139,9 +139,9 @@ Required format:
 ```md
 ## Active Work Queue
 
-| ID | Status | Scope | Objective | Required validation | Return package |
-| --- | --- | --- | --- | --- | --- |
-| TS-HARDENING-001 | NOT_STARTED/IN_PROGRESS/BLOCKED/COMPLETE | [paths] | [objective] | [commands] | [path when complete] |
+| ID               | Status                                   | Scope   | Objective   | Required validation | Return package       |
+| ---------------- | ---------------------------------------- | ------- | ----------- | ------------------- | -------------------- |
+| TS-HARDENING-001 | NOT_STARTED/IN_PROGRESS/BLOCKED/COMPLETE | [paths] | [objective] | [commands]          | [path when complete] |
 ```
 
 Rules:
@@ -160,9 +160,9 @@ Required format:
 ```md
 ## Completed Work Log
 
-| Date | ID | Summary | Files changed | Validation | Return package |
-| --- | --- | --- | --- | --- | --- |
-| YYYY-MM-DD | TS-HARDENING-001 | [summary] | [paths] | [commands/results] | `return_packages/typescript/...md` |
+| Date       | ID               | Summary   | Files changed | Validation         | Return package                     |
+| ---------- | ---------------- | --------- | ------------- | ------------------ | ---------------------------------- |
+| YYYY-MM-DD | TS-HARDENING-001 | [summary] | [paths]       | [commands/results] | `return_packages/typescript/...md` |
 ```
 
 Rules:
@@ -179,8 +179,8 @@ Required format:
 ```md
 ## Validation Ledger
 
-| Date | Command | Result | Evidence / notes |
-| --- | --- | --- | --- |
+| Date       | Command             | Result            | Evidence / notes                         |
+| ---------- | ------------------- | ----------------- | ---------------------------------------- |
 | YYYY-MM-DD | `npm run typecheck` | PASS/FAIL/SKIPPED | [short output summary or reason skipped] |
 ```
 
@@ -199,9 +199,9 @@ Required format:
 ```md
 ## Known Blockers / Deferred Debt
 
-| ID | Severity | Area | Description | Why deferred/blocking | Resume trigger |
-| --- | --- | --- | --- | --- | --- |
-| TS-DEBT-001 | LOW/MEDIUM/HIGH/BLOCKER | [area] | [description] | [reason] | [when to revisit] |
+| ID          | Severity                | Area   | Description   | Why deferred/blocking | Resume trigger    |
+| ----------- | ----------------------- | ------ | ------------- | --------------------- | ----------------- |
+| TS-DEBT-001 | LOW/MEDIUM/HIGH/BLOCKER | [area] | [description] | [reason]              | [when to revisit] |
 ```
 
 Rules:
@@ -218,8 +218,8 @@ Required format:
 ```md
 ## Return Package Index
 
-| Date | Work ID | Return package | Purpose |
-| --- | --- | --- | --- |
+| Date       | Work ID          | Return package                     | Purpose   |
+| ---------- | ---------------- | ---------------------------------- | --------- |
 | YYYY-MM-DD | TS-HARDENING-001 | `return_packages/typescript/...md` | [purpose] |
 ```
 
@@ -309,6 +309,7 @@ Use this prompt shape for continuous execution:
 Keep working in `[PATH_TO_LIVING_PLAN].md`.
 
 Follow:
+
 - `docs/typescript/TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md`
 - `docs/typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md`
 

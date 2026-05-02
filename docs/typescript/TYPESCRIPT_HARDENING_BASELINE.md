@@ -1562,14 +1562,14 @@ Reviewed: 2026-04-24, after the twelfth trade aftermath / snapshot wave.
 | Measurement                                                     | Step 35 wave | Current |   Delta |
 | --------------------------------------------------------------- | -----------: | ------: | ------: |
 | `npm run typecheck -- --project tsconfig.architect-strict.json` |          823 |     709 |    -114 |
-| `tests/trade/twoWayPlayers_snapshot.test.ts`                    |          19  |       0 | Cleared |
-| `tests/architect/tradeManager.test.ts`                          |          19  |       0 | Cleared |
-| `tests/trade/secondApron_tpeBan.test.ts`                        |          18  |       0 | Cleared |
-| `tests/trade/poisonPill_average.test.ts`                        |          17  |       0 | Cleared |
-| `tests/trade/signAndTrade_completeness.test.ts`                 |          16  |       0 | Cleared |
-| `tests/trade/tradeKicker_proration.test.ts`                     |           9  |       0 | Cleared |
-| `tests/trade/tradeKicker_zeroGuarantee.test.ts`                 |           9  |       0 | Cleared |
-| `tests/trade/timingGates_softEnforcement.test.ts`               |           7  |       0 | Cleared |
+| `tests/trade/twoWayPlayers_snapshot.test.ts`                    |           19 |       0 | Cleared |
+| `tests/architect/tradeManager.test.ts`                          |           19 |       0 | Cleared |
+| `tests/trade/secondApron_tpeBan.test.ts`                        |           18 |       0 | Cleared |
+| `tests/trade/poisonPill_average.test.ts`                        |           17 |       0 | Cleared |
+| `tests/trade/signAndTrade_completeness.test.ts`                 |           16 |       0 | Cleared |
+| `tests/trade/tradeKicker_proration.test.ts`                     |            9 |       0 | Cleared |
+| `tests/trade/tradeKicker_zeroGuarantee.test.ts`                 |            9 |       0 | Cleared |
+| `tests/trade/timingGates_softEnforcement.test.ts`               |            7 |       0 | Cleared |
 
 ### What Changed
 
@@ -1633,10 +1633,10 @@ trade aftermath/snapshot waves.
 
 ### Probe Delta
 
-| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 34 checkpoint | Current | Reading                                                                                                                                                                                                      |
-| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                              |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                                                |
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 34 checkpoint | Current | Reading                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                           |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                                             |
 | `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                944 |     709 | Architect/test strict posture improved materially (`-1,858` vs the original baseline, `-1,923` vs Step 14, `-1,519` vs Step 22, `-235` vs Step 34), but it remains the mission blocker by a large margin. |
 
 ### Current Architect Strict Concentration
@@ -1681,11 +1681,11 @@ next move is another bounded execution wave, not closeout.
 Reviewed: 2026-04-24, after Step 38 hardened the bounded `mutationPipeline`
 / persistence / DARE cluster.
 
-| Measurement                                                                 | Step 37 checkpoint | Current | Delta |
-| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
-| `npm run typecheck`                                                         |                  0 |       0 |     0 |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                709 |     624 |   -85 |
-| `npm run test:node -- --reporter=dot src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts` | not yet run | `56 / 56` | bounded pack green |
+| Measurement                                                                                                                                                                                                                                                                                | Step 37 checkpoint |   Current |              Delta |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -----------------: | --------: | -----------------: |
+| `npm run typecheck`                                                                                                                                                                                                                                                                        |                  0 |         0 |                  0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                            |                709 |       624 |                -85 |
+| `npm run test:node -- --reporter=dot src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.ts src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.ts` |        not yet run | `56 / 56` | bounded pack green |
 
 ### Step 38 Surface Result
 
@@ -1721,12 +1721,12 @@ dominates the live strict backlog.
 Reviewed: 2026-04-24, after Step 39 hardened the bounded cap-sheet / timing /
 consent / pick-rule cluster.
 
-| Measurement                                                                 | Step 38 wave | Current | Delta |
-| --------------------------------------------------------------------------- | -----------: | ------: | ----: |
-| `npm run typecheck`                                                         |            0 |       0 |     0 |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`             |          624 |     511 |  -113 |
-| `npm run test:ui -- --reporter=dot src/tests/architect/capSheet_exception_wiring.behavior.test.tsx` | not yet run | `23 / 23` | bounded pack green |
-| `npm run test:node -- --reporter=dot tests/architect/ruleContextTiming.test.ts tests/architect/seasonHelpers.test.ts tests/trade/consent_and_birdVeto.test.ts tests/trade/frozenPick_consequences.test.ts src/tests/tradeMachine/swapResolution.test.ts` | not yet run | `102 / 102` | bounded pack green |
+| Measurement                                                                                                                                                                                                                                              | Step 38 wave |     Current |              Delta |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------: | ----------: | -----------------: |
+| `npm run typecheck`                                                                                                                                                                                                                                      |            0 |           0 |                  0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                          |          624 |         511 |               -113 |
+| `npm run test:ui -- --reporter=dot src/tests/architect/capSheet_exception_wiring.behavior.test.tsx`                                                                                                                                                      |  not yet run |   `23 / 23` | bounded pack green |
+| `npm run test:node -- --reporter=dot tests/architect/ruleContextTiming.test.ts tests/architect/seasonHelpers.test.ts tests/trade/consent_and_birdVeto.test.ts tests/trade/frozenPick_consequences.test.ts src/tests/tradeMachine/swapResolution.test.ts` |  not yet run | `102 / 102` | bounded pack green |
 
 ### Step 39 Surface Result
 
@@ -1772,10 +1772,10 @@ persistence and cap-sheet / timing / consent truth waves.
 
 ### Probe Delta
 
-| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 37 checkpoint | Current | Reading                                                                                                                                                                                |
-| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                        |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                          |
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 37 checkpoint | Current | Reading                                                                                                                                                                                 |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                         |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                           |
 | `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                709 |     511 | Architect/test strict posture improved materially (`-2,056` vs the original baseline, `-2,121` vs Step 14, `-1,717` vs Step 22, `-198` vs Step 37), but it remains the mission blocker. |
 
 ### Current Architect Strict Concentration
@@ -1837,11 +1837,11 @@ completion claim.
 Reviewed: 2026-04-24, after Step 41 hardened the bounded Architect
 sign-and-trade / mutation guardrail cluster.
 
-| Measurement                                                                 | Step 40 checkpoint | Current | Delta |
-| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
-| `npm run typecheck`                                                         |                  0 |       0 |     0 |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                511 |     439 |   -72 |
-| `npm run test:node -- --reporter=dot src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts src/tests/architect/mutationPipeline.tradeSatHandoffContract.test.ts src/tests/architect/mutationPipeline.tradeSatHandoffClosure.test.ts src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.ts` | not yet run | `55 / 55` | bounded pack green |
+| Measurement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Step 40 checkpoint |   Current |              Delta |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------------: | --------: | -----------------: |
+| `npm run typecheck`                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |                  0 |         0 |                  0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                                                                                                                                                                                                                                 |                511 |       439 |                -72 |
+| `npm run test:node -- --reporter=dot src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts src/tests/architect/mutationPipeline.tradeSatHandoffContract.test.ts src/tests/architect/mutationPipeline.tradeSatHandoffClosure.test.ts src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.ts` |        not yet run | `55 / 55` | bounded pack green |
 
 ### Step 41 Surface Result
 
@@ -1883,11 +1883,11 @@ offseason/DARE follow-on tier remain substantial.
 Reviewed: 2026-04-24, after Step 42 hardened the bounded roster / rule
 validation truth cluster.
 
-| Measurement                                                                 | Step 41 checkpoint | Current | Delta |
-| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
-| `npm run typecheck`                                                         |                  0 |       0 |     0 |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                439 |     367 |   -72 |
-| `npm run test:node -- --reporter=dot tests/trade/rosterWindow_softEnforcement.test.ts tests/trade/rosterLegality_validateTrade.test.ts tests/architect/playerRulesProfile.test.ts tests/trade/cashLedger_season_tracking.test.ts tests/trade/jan15_offseason_timing.test.ts tests/trade/input_validation.test.ts tests/trade/roster_twoWay_enforcement.test.ts` | not yet run | `73 / 73` | bounded pack green |
+| Measurement                                                                                                                                                                                                                                                                                                                                                     | Step 41 checkpoint |   Current |              Delta |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------------: | --------: | -----------------: |
+| `npm run typecheck`                                                                                                                                                                                                                                                                                                                                             |                  0 |         0 |                  0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                                                                                                 |                439 |       367 |                -72 |
+| `npm run test:node -- --reporter=dot tests/trade/rosterWindow_softEnforcement.test.ts tests/trade/rosterLegality_validateTrade.test.ts tests/architect/playerRulesProfile.test.ts tests/trade/cashLedger_season_tracking.test.ts tests/trade/jan15_offseason_timing.test.ts tests/trade/input_validation.test.ts tests/trade/roster_twoWay_enforcement.test.ts` |        not yet run | `73 / 73` | bounded pack green |
 
 ### Step 42 Surface Result
 
@@ -1934,10 +1934,10 @@ mutation guardrail and roster / rule validation truth waves.
 
 ### Probe Delta
 
-| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Current | Reading                                                                                                                                                                                |
-| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                        |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                          |
+| Command                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Current | Reading                                                                                                                                                                                 |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | ------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 | compatibility-only pass |                  0 |                  0 |       0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                         |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |       0 | Shared/runtime strict work remains fully green; no shared regression is blocking the mission.                                                                                           |
 | `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                511 |     367 | Architect/test strict posture improved materially (`-2,200` vs the original baseline, `-2,265` vs Step 14, `-1,861` vs Step 22, `-144` vs Step 40), but it remains the mission blocker. |
 
 ### Current Architect Strict Concentration
@@ -1999,11 +1999,11 @@ execution wave, not final review.
 Reviewed: 2026-04-24, after Step 44 hardened the bounded Architect reactivity /
 CBA guardrail truth cluster.
 
-| Measurement                                                                 | Step 43 checkpoint | Current | Delta |
-| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
-| `npm run typecheck`                                                         |                  0 |       0 |     0 |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                367 |     318 |   -49 |
-| `npm run test:node -- --reporter=dot src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts src/tests/architect/batchB_cbaRules.test.ts src/tests/architect/phase59_legacy_import_guardrail.test.ts src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts src/tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts` | not yet run | `65 / 65` | bounded pack green |
+| Measurement                                                                                                                                                                                                                                                                                                                                                                | Step 43 checkpoint |   Current |              Delta |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------------: | --------: | -----------------: |
+| `npm run typecheck`                                                                                                                                                                                                                                                                                                                                                        |                  0 |         0 |                  0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                                                                                                            |                367 |       318 |                -49 |
+| `npm run test:node -- --reporter=dot src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts src/tests/architect/batchB_cbaRules.test.ts src/tests/architect/phase59_legacy_import_guardrail.test.ts src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.ts src/tests/architect/mutationPipeline.currentStateTeamBoundary.test.ts` |        not yet run | `65 / 65` | bounded pack green |
 
 ### Step 44 Surface Result
 
@@ -2046,11 +2046,11 @@ run before the next readiness checkpoint.
 Reviewed: 2026-04-24, after Step 45 hardened the bounded offseason / DARE /
 preflight truth cluster.
 
-| Measurement                                                                 | Step 44 checkpoint | Current | Delta |
-| --------------------------------------------------------------------------- | -----------------: | ------: | ----: |
-| `npm run typecheck`                                                         |                  0 |       0 |     0 |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`             |                318 |     268 |   -50 |
-| `npm run test:node -- --reporter=dot src/tests/architect/phase86_oste_offseason_transition_engine.test.ts src/tests/architect/dare/dareResolver.test.ts src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts src/tests/tradeMachine/conveyancePreflight.test.ts` | not yet run | `86 / 86` | bounded pack green |
+| Measurement                                                                                                                                                                                                                                                                                                                                             | Step 44 checkpoint |   Current |              Delta |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------------: | --------: | -----------------: |
+| `npm run typecheck`                                                                                                                                                                                                                                                                                                                                     |                  0 |         0 |                  0 |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                                                                                         |                318 |       268 |                -50 |
+| `npm run test:node -- --reporter=dot src/tests/architect/phase86_oste_offseason_transition_engine.test.ts src/tests/architect/dare/dareResolver.test.ts src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.ts src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts src/tests/tradeMachine/conveyancePreflight.test.ts` |        not yet run | `86 / 86` | bounded pack green |
 
 ### Step 45 Surface Result
 
@@ -2159,11 +2159,11 @@ execution wave, not final review.
 
 Measured 2026-04-24 after Step 47.
 
-| Probe                                                                 | Result | Notes |
-| --------------------------------------------------------------------- | -----: | ----- |
-| `npm run typecheck`                                                   | pass   | Root compatibility remains green after the runtime-owner boundary changes. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`       |   223 | Expected strict failure while the master plan remains active; Step 47 target files are clear. |
-| `npm run build`                                                       | pass   | Production build passed; Vite reported existing dynamic/static import and chunk-size warnings. |
+| Probe                                                           | Result | Notes                                                                                          |
+| --------------------------------------------------------------- | -----: | ---------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                             |   pass | Root compatibility remains green after the runtime-owner boundary changes.                     |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |    223 | Expected strict failure while the master plan remains active; Step 47 target files are clear.  |
+| `npm run build`                                                 |   pass | Production build passed; Vite reported existing dynamic/static import and chunk-size warnings. |
 
 Step 47 reduced the Architect strict backlog from `268` to `223` errors
 (`-45`). The cleared runtime-owner targets were:
@@ -2199,11 +2199,11 @@ the next executable wave.
 
 Measured 2026-04-24 after Step 48.
 
-| Probe | Result | Notes |
-| ----- | -----: | ----- |
-| `npm run typecheck` | pass | Root compatibility remains green after the test truth wave. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 167 | Expected strict failure while the master plan remains active; Step 48 target files are clear. |
-| `npm run test:node -- --reporter=dot tests/architect/overrideBypass.test.ts tests/trade/orderOfOps_conversionsBeforeMatching.test.ts src/tests/architect/dare/protectionLadderFactory.test.ts src/tests/architect/phase47_tpe_persistence_guardrails.test.ts src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts src/tests/architect/phase86_league_invariants.test.ts tests/architect/EditContractModal.rules.test.tsx tests/trade/byc_outgoing_max.test.ts tests/trade/salaryMatching.test.ts` | pass | Vitest reported `8` files and `118` tests passed; the UI-modal TSX target is accepted by the command but not listed separately by the node runner output. |
+| Probe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Result | Notes                                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----: | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |   pass | Root compatibility remains green after the test truth wave.                                                                                               |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |    167 | Expected strict failure while the master plan remains active; Step 48 target files are clear.                                                             |
+| `npm run test:node -- --reporter=dot tests/architect/overrideBypass.test.ts tests/trade/orderOfOps_conversionsBeforeMatching.test.ts src/tests/architect/dare/protectionLadderFactory.test.ts src/tests/architect/phase47_tpe_persistence_guardrails.test.ts src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts src/tests/architect/phase86_league_invariants.test.ts tests/architect/EditContractModal.rules.test.tsx tests/trade/byc_outgoing_max.test.ts tests/trade/salaryMatching.test.ts` |   pass | Vitest reported `8` files and `118` tests passed; the UI-modal TSX target is accepted by the command but not listed separately by the node runner output. |
 
 Step 48 reduced the Architect strict backlog from `223` to `167` errors
 (`-56`). The cleared test-cluster targets were:
@@ -2242,11 +2242,11 @@ remaining backlog is still substantial.
 
 Measured 2026-04-24 after Steps 47-48.
 
-| Probe                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Notes |
-| --------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                                   |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`       |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 | Architect strict improved materially (`-2,400` vs original, `-2,465` vs Step 14, `-2,061` vs Step 22, `-344` vs Step 40, `-200` vs Step 43, `-101` vs Step 46), but remains the mission blocker. |
+| Probe                                                                   | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Notes                                                                                                                                                                                            |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run typecheck`                                                     |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                  |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green.                                                                                                                                                  |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 | Architect strict improved materially (`-2,400` vs original, `-2,465` vs Step 14, `-2,061` vs Step 22, `-344` vs Step 40, `-200` vs Step 43, `-101` vs Step 46), but remains the mission blocker. |
 
 ### Current Architect Strict Concentration After Step 49
 
@@ -2288,12 +2288,12 @@ The correct next move is another bounded execution wave, not final review.
 
 Measured 2026-04-24 after Step 50.
 
-| Probe | Result | Notes |
-| ----- | -----: | ----- |
-| `npm run typecheck` | pass | Root compatibility remains green after the runtime utility boundary changes. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 138 | Expected strict failure while the master plan remains active; Step 50 target files are clear. |
-| `npm run test:node -- --reporter=dot src/tests/architect/offseason.devGate.guardrail.test.ts` | pass | Focused validation for the preview-persistence guardrail sentinel adjusted by the Step 50 call-site cleanup. |
-| `npm run test:diff -- --reporter=dot` | fail outside Step 50 | The diff runner auto-routed to the full suite after `RUN FULL SUITE` permission. The node half passed; the UI half failed in broader UI/test guardrails outside the Step 50 runtime utility boundary. |
+| Probe                                                                                         |               Result | Notes                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------- | -------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                                           |                 pass | Root compatibility remains green after the runtime utility boundary changes.                                                                                                                          |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                               |                  138 | Expected strict failure while the master plan remains active; Step 50 target files are clear.                                                                                                         |
+| `npm run test:node -- --reporter=dot src/tests/architect/offseason.devGate.guardrail.test.ts` |                 pass | Focused validation for the preview-persistence guardrail sentinel adjusted by the Step 50 call-site cleanup.                                                                                          |
+| `npm run test:diff -- --reporter=dot`                                                         | fail outside Step 50 | The diff runner auto-routed to the full suite after `RUN FULL SUITE` permission. The node half passed; the UI half failed in broader UI/test guardrails outside the Step 50 runtime utility boundary. |
 
 Step 50 reduced the Architect strict backlog from `167` to `138` errors
 (`-29`). The cleared runtime utility targets were:
@@ -2341,11 +2341,11 @@ cluster or a later checkpoint extends the plan.
 
 Measured 2026-04-24 after Step 51.
 
-| Probe | Result | Notes |
-| ----- | -----: | ----- |
-| `npm run typecheck` | pass | Root compatibility remains green after the test fixture hardening wave. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` | 95 | Expected strict failure while the master plan remains active; Step 51 target files are clear. |
-| `npm run test:node -- --reporter=dot src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts src/tests/architect/entitlementInvariants.test.ts tests/trade/faExceptions_as_trade_buckets.test.ts tests/architect/salaryEngine.test.ts tests/architect/ExceptionTracker.tpe.test.tsx src/tests/architect/utils/seasonManager.tpe.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts src/tests/architect/phase42_apron_derivation_consolidation.test.ts` | pass | Vitest reported `8` runnable node files and `100` tests passed. |
+| Probe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Result | Notes                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----: | --------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |   pass | Root compatibility remains green after the test fixture hardening wave.                       |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |     95 | Expected strict failure while the master plan remains active; Step 51 target files are clear. |
+| `npm run test:node -- --reporter=dot src/tests/architect/tradeApply_tradeToRouting.guardrail.test.ts src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts src/tests/architect/entitlementInvariants.test.ts tests/trade/faExceptions_as_trade_buckets.test.ts tests/architect/salaryEngine.test.ts tests/architect/ExceptionTracker.tpe.test.tsx src/tests/architect/utils/seasonManager.tpe.test.ts src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts src/tests/architect/phase42_apron_derivation_consolidation.test.ts` |   pass | Vitest reported `8` runnable node files and `100` tests passed.                               |
 
 Step 51 reduced the Architect strict backlog from `138` to `95` errors
 (`-43`). The cleared test fixture targets were:
@@ -2384,11 +2384,11 @@ surfaces, and the Step 50 full-suite UI guardrail fallout remains unresolved.
 
 Measured 2026-04-24 after Steps 50-51.
 
-| Probe                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Step 52 checkpoint | Notes |
-| --------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                                   |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`       |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 |                 95 | Architect strict improved materially (`-2,472` vs original, `-2,537` vs Step 14, `-2,133` vs Step 22, `-416` vs Step 40, `-272` vs Step 43, `-173` vs Step 46, `-72` vs Step 49), but remains the mission blocker. |
+| Probe                                                                   | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Step 52 checkpoint | Notes                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run typecheck`                                                     |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green, but root `strict: false` still means this is not mission-completion evidence.                                                                                                    |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green.                                                                                                                                                                    |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 |                 95 | Architect strict improved materially (`-2,472` vs original, `-2,537` vs Step 14, `-2,133` vs Step 22, `-416` vs Step 40, `-272` vs Step 43, `-173` vs Step 46, `-72` vs Step 49), but remains the mission blocker. |
 
 ### Current Architect Strict Concentration After Step 52
 
@@ -2435,13 +2435,13 @@ The correct next move is another bounded execution wave, not final review.
 
 Measured 2026-04-24 after Step 53.
 
-| Probe                                                                 | Step 52 checkpoint | Step 53 checkpoint | Notes |
-| --------------------------------------------------------------------- | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                                   |                  0 |                  0 | Root compatibility remains green. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`       |                 95 |                 77 | Architect strict improved by `18` errors; the Step 53 runtime/shared target files are clear. |
-| `npm run build`                                                       |               pass |               pass | Build remains green with the existing Vite warnings about Browserslist, `fs` externalization in `tradeDebug.ts`, dynamic/static imports, and chunk size. |
-| `npm run test:node -- --reporter=dot src/tests/architect/capSheet_closure.gate.test.ts` |               pass |               pass | Source-scan sentinel remained intact after the runtime boundary edits. |
-| `npm run test:diff -- --reporter=dot`                                 |               fail |               fail | Full-routed because of shared/config branch history. Node full half passed; UI half failed only in the planned Step 54 fallout files. |
+| Probe                                                                                   | Step 52 checkpoint | Step 53 checkpoint | Notes                                                                                                                                                    |
+| --------------------------------------------------------------------------------------- | -----------------: | -----------------: | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                                     |                  0 |                  0 | Root compatibility remains green.                                                                                                                        |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                         |                 95 |                 77 | Architect strict improved by `18` errors; the Step 53 runtime/shared target files are clear.                                                             |
+| `npm run build`                                                                         |               pass |               pass | Build remains green with the existing Vite warnings about Browserslist, `fs` externalization in `tradeDebug.ts`, dynamic/static imports, and chunk size. |
+| `npm run test:node -- --reporter=dot src/tests/architect/capSheet_closure.gate.test.ts` |               pass |               pass | Source-scan sentinel remained intact after the runtime boundary edits.                                                                                   |
+| `npm run test:diff -- --reporter=dot`                                                   |               fail |               fail | Full-routed because of shared/config branch history. Node full half passed; UI half failed only in the planned Step 54 fallout files.                    |
 
 The Step 53 target files are no longer represented in the Architect strict
 output. Remaining top hotspots after the `77`-error strict probe are:
@@ -2478,12 +2478,12 @@ mission-complete claim.
 
 Measured 2026-04-24 after Step 54.
 
-| Probe                                                                 | Step 53 checkpoint | Step 54 checkpoint | Notes |
-| --------------------------------------------------------------------- | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                                   |                  0 |                  0 | Root compatibility remains green after the UI guardrail fixes. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`       |                 77 |                 71 | Architect strict improved by `6` errors; the Step 54 target files are clear. |
-| `npm run test:ui -- --reporter=dot src/tests/architect/myct_step6_guardrails.test.tsx src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/smoke/architect.uiSmoke.e1.test.tsx` |               fail |               pass | Scoped fallout suite passed: `5` files, `85` tests. |
-| `npm run test:diff -- --reporter=dot`                                 |               fail |               pass | Full-routed because of shared/config branch history. Node full suite passed (`423` files, `4430` tests, `24` skipped); UI suite passed (`115` files, `863` tests). |
+| Probe                                                                                                                                                                                                                                                                                                                                      | Step 53 checkpoint | Step 54 checkpoint | Notes                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -----------------: | -----------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run typecheck`                                                                                                                                                                                                                                                                                                                        |                  0 |                  0 | Root compatibility remains green after the UI guardrail fixes.                                                                                                     |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                                                                            |                 77 |                 71 | Architect strict improved by `6` errors; the Step 54 target files are clear.                                                                                       |
+| `npm run test:ui -- --reporter=dot src/tests/architect/myct_step6_guardrails.test.tsx src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/smoke/architect.uiSmoke.e1.test.tsx` |               fail |               pass | Scoped fallout suite passed: `5` files, `85` tests.                                                                                                                |
+| `npm run test:diff -- --reporter=dot`                                                                                                                                                                                                                                                                                                      |               fail |               pass | Full-routed because of shared/config branch history. Node full suite passed (`423` files, `4430` tests, `24` skipped); UI suite passed (`115` files, `863` tests). |
 
 Step 54 converted brittle exact-call UI assertions to the live updater/payload
 contracts:
@@ -2524,10 +2524,10 @@ test clusters.
 
 Measured 2026-04-24 after Step 55.
 
-| Probe                                                                 | Step 54 checkpoint | Step 55 checkpoint | Notes |
-| --------------------------------------------------------------------- | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                                   |                  0 |                  0 | Root compatibility remains green after the fixture hardening wave. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`       |                 71 |                 41 | Architect strict improved by `30` errors; the Step 55 target files are clear. |
+| Probe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Step 54 checkpoint | Step 55 checkpoint | Notes                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -----------------: | -----------------: | --------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |                  0 |                  0 | Root compatibility remains green after the fixture hardening wave.                                              |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |                 71 |                 41 | Architect strict improved by `30` errors; the Step 55 target files are clear.                                   |
 | `npm run test:node -- --reporter=dot src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.ts src/tests/architect/capLegalityValidation.batchedHardening.test.ts tests/architect/CapSheetFull.rules.test.tsx src/tests/architect/tmCapIntegration.tradeApply_updatesCapAndHistory.integration.test.tsx src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts src/tests/architect/capSheet_toast_dedupe.behavior.test.ts src/tests/architect/architectCoreTrioPassR2.test.ts src/tests/architect/architectCoreLogicBlockerTrio.test.ts tests/trade/secondApron_handcuffs.test.ts tests/trade/basicRules.test.ts` |                n/a |               pass | Scoped Step 55 node validation passed; Vitest reported `8` files and `39` tests executed under the node config. |
 
 Remaining top hotspots after the `41`-error strict probe are:
@@ -2556,11 +2556,11 @@ clear, but `41` Architect strict errors remain across smaller test surfaces.
 
 Measured 2026-04-24 after Steps 53-55.
 
-| Probe                                                                 | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Step 52 checkpoint | Step 56 checkpoint | Notes |
-| --------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                                   |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`       |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 |                 95 |                 41 | Architect strict improved materially (`-2,526` vs original, `-2,591` vs Step 14, `-2,187` vs Step 22, `-470` vs Step 40, `-326` vs Step 43, `-227` vs Step 46, `-126` vs Step 49, `-54` vs Step 52), but remains the mission blocker. |
+| Probe                                                                   | Original baseline | Step 14 resume baseline | Step 22 checkpoint | Step 40 checkpoint | Step 43 checkpoint | Step 46 checkpoint | Step 49 checkpoint | Step 52 checkpoint | Step 56 checkpoint | Notes                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------- | ----------------: | ----------------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | -----------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                 0 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green.                                                                                                                                                                                                     |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |               244 |                       0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict work remains fully green.                                                                                                                                                                                       |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |             2,567 |                   2,632 |              2,228 |                511 |                367 |                268 |                167 |                 95 |                 41 | Architect strict improved materially (`-2,526` vs original, `-2,591` vs Step 14, `-2,187` vs Step 22, `-470` vs Step 40, `-326` vs Step 43, `-227` vs Step 46, `-126` vs Step 49, `-54` vs Step 52), but remains the mission blocker. |
 
 ### Current Architect Strict Concentration After Step 56
 
@@ -2606,10 +2606,10 @@ explicitly proven non-substantial by a later checkpoint.
 
 Measured 2026-04-24 after Step 57.
 
-| Probe                                                           | Step 56 checkpoint | Step 57 checkpoint | Notes |
-| --------------------------------------------------------------- | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                             |                  0 |                  0 | Root compatibility remains green. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` |                 41 |                 19 | The two-error fixture cluster is clear; remaining work is now the residual one-error cluster. |
+| Probe                                                           | Step 56 checkpoint | Step 57 checkpoint | Notes                                                                                                                                    |
+| --------------------------------------------------------------- | -----------------: | -----------------: | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                             |                  0 |                  0 | Root compatibility remains green.                                                                                                        |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |                 41 |                 19 | The two-error fixture cluster is clear; remaining work is now the residual one-error cluster.                                            |
 | `npm run test:diff -- --reporter=dot`                           |               pass |               pass | Auto-selected full node+UI validation. Node: `423` files / `4,430` tests passed with `24` skipped. UI: `115` files / `863` tests passed. |
 
 ### Current Architect Strict Concentration After Step 57
@@ -2646,10 +2646,10 @@ but `19` Architect strict errors remain across residual one-error files. Step
 
 Measured 2026-04-24 after Step 58.
 
-| Probe                                                           | Step 57 checkpoint | Step 58 checkpoint | Notes |
-| --------------------------------------------------------------- | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                             |                  0 |                  0 | Root compatibility remains green. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json` |                 19 |                  0 | Architect strict is green after clearing the residual one-error fixture cluster. |
+| Probe                                                           | Step 57 checkpoint | Step 58 checkpoint | Notes                                                                                                                                    |
+| --------------------------------------------------------------- | -----------------: | -----------------: | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`                                             |                  0 |                  0 | Root compatibility remains green.                                                                                                        |
+| `npm run typecheck -- --project tsconfig.architect-strict.json` |                 19 |                  0 | Architect strict is green after clearing the residual one-error fixture cluster.                                                         |
 | `npm run test:diff -- --reporter=dot`                           |               pass |               pass | Auto-selected full node+UI validation. Node: `423` files / `4,430` tests passed with `24` skipped. UI: `115` files / `863` tests passed. |
 
 ### Current Architect Strict Concentration After Step 58
@@ -2667,11 +2667,11 @@ readiness can be recorded.
 
 Measured 2026-04-24 after Step 58 was committed.
 
-| Probe                                                                 | Step 56 checkpoint | Step 57 checkpoint | Step 58 checkpoint | Step 59 checkpoint | Notes |
-| --------------------------------------------------------------------- | -----------------: | -----------------: | -----------------: | -----------------: | ----- |
-| `npm run typecheck`                                                   |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green. |
-| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict remains green. |
-| `npm run typecheck -- --project tsconfig.architect-strict.json`       |                 41 |                 19 |                  0 |                  0 | Architect strict remains green after the residual fixture wave. |
+| Probe                                                                   | Step 56 checkpoint | Step 57 checkpoint | Step 58 checkpoint | Step 59 checkpoint | Notes                                                           |
+| ----------------------------------------------------------------------- | -----------------: | -----------------: | -----------------: | -----------------: | --------------------------------------------------------------- |
+| `npm run typecheck`                                                     |                  0 |                  0 |                  0 |                  0 | Root compatibility remains green.                               |
+| `npm run typecheck -- --project tsconfig.shared-boundaries-strict.json` |                  0 |                  0 |                  0 |                  0 | Shared/runtime strict remains green.                            |
+| `npm run typecheck -- --project tsconfig.architect-strict.json`         |                 41 |                 19 |                  0 |                  0 | Architect strict remains green after the residual fixture wave. |
 
 ### Readiness Verdict After Step 59
 
