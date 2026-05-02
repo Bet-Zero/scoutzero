@@ -1,5 +1,10 @@
 # JS → TS Conversion — Living Plan
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](typescript/README.md)
+
 **How this doc works:** When the user says "keep working on docs/TS_CONVERSION_NEXT_STEPS.md," find the first step below with status `TODO` or `IN PROGRESS`, do it, then update the status to `DONE` (or leave it `IN PROGRESS` with a note if blocked or partial). One step per session unless a step is trivial. Do not skip ahead. Do not invent new steps unless the user explicitly asks to revise this plan. Checkpoints, reviews, or temporary branches inside this doc must always reconnect to a later numbered step; they are not standalone end states. When all steps are `DONE`, tell the user the plan is complete and ask what's next.
 
 **Commit & status hygiene (REQUIRED — do not skip):**

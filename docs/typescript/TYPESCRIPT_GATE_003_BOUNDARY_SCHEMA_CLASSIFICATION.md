@@ -1,5 +1,10 @@
 # TypeScript Gate 3/4/6/7 Classification
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](README.md)
+
 Date: 2026-04-25
 
 Verdict: Gates 3, 4, 6, and 7 pass by current scan evidence, cleanup, and

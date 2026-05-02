@@ -1,5 +1,10 @@
 # TypeScript Gate 5 Test and Mock Classification
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](README.md)
+
 Date: 2026-04-25
 
 Verdict: Gate 5 passes by classification. Full TypeScript hardening remains

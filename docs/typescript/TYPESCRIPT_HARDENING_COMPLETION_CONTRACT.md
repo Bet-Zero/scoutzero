@@ -1,5 +1,10 @@
 # TypeScript Hardening Completion Contract
 
+> Current status: this document is the maintenance gate for future TypeScript regressions.
+> TypeScript migration and hardening are complete in this repo.
+> Do not reopen the TypeScript campaign unless one of these gates fails again.
+> Current entry point: [docs/typescript/README.md](README.md)
+
 This document is the non-negotiable completion contract for TypeScript migration and hardening work in ScoutZero.
 
 It exists to prevent agents from declaring the TypeScript hardening mission complete just because a phase, slice, probe, or partial migration passed.

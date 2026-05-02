@@ -18,6 +18,12 @@
 - [README](../README.md) - Project overview
 - [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data model and architecture
 
+## TypeScript Status
+
+- [TypeScript Documentation Status](typescript/README.md) - current TypeScript routing, maintenance rules, and historical document map
+- [TypeScript Hardening Completion Contract](typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md) - current maintenance gate for regressions
+- Historical TypeScript campaign docs remain in the repo as evidence and should not be resumed unless one of the maintenance gates regresses.
+
 ---
 
 ## 📚 Documentation Categories
@@ -234,5 +240,5 @@ Scouting and player evaluation features:
 
 ---
 
-**Last Updated**: February 12, 2026
+**Last Updated**: May 2, 2026
 **Maintainers**: See [CONTRIBUTING.md](CONTRIBUTING.md)

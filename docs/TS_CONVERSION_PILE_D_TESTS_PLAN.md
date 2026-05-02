@@ -1,5 +1,10 @@
 # JS → TS Conversion — Pile D Tests Plan
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](typescript/README.md)
+
 **Purpose:** Convert the remaining JS/JSX test and test-support files to TypeScript without breaking any existing test behavior.
 
 **Status:** COMPLETE — 2026-04-20

@@ -1,5 +1,10 @@
 # Pile B JS → TS Conversion Audit
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](typescript/README.md)
+
 **Generated:** 2026-04-18  
 **Purpose:** Survey of remaining non-Architect feature hooks, utilities, and bridge files for Step 11+ of `docs/TS_CONVERSION_NEXT_STEPS.md`.
 

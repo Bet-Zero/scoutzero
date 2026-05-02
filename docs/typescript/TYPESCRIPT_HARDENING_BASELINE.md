@@ -1,5 +1,10 @@
 # TypeScript Hardening Baseline
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](README.md)
+
 Captured: 2026-04-21
 
 This is the starting evidence package for `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`.

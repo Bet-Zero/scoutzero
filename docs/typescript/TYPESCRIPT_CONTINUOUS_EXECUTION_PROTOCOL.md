@@ -1,5 +1,10 @@
 # TypeScript Continuous Execution Protocol
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](README.md)
+
 This document governs continuous agent execution for TypeScript hardening work.
 
 Use this when the user says:

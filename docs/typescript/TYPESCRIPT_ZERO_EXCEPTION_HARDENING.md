@@ -1,5 +1,10 @@
 # TypeScript Zero-Exception Hardening Plan
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration, hardening, and zero-exception hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate or zero-exception invariant regresses.
+> Current entry point: [docs/typescript/README.md](README.md)
+
 ## Control Panel
 
 - Mode: CONTINUOUS EXECUTION

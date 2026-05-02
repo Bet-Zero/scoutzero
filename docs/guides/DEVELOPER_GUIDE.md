@@ -2,6 +2,10 @@
 
 HoopZero is a React + Firebase application that provides a public-facing view of the internal ScoutZero scouting tool. This guide explains the project structure and how the pieces fit together for future contributors and AI tools.
 
+## TypeScript Status
+
+TypeScript migration, hardening, and zero-exception hardening are complete in this repository. Treat TypeScript as a maintenance gate, not as an active campaign. For current routing, regression rules, and historical campaign records, start with [../typescript/README.md](../typescript/README.md).
+
 ## Folder Structure
 
 ```text

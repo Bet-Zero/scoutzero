@@ -1,5 +1,10 @@
 # TypeScript Hardening Execution Map
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](README.md)
+
 Initial capture: 2026-04-21
 
 This map converts the post-migration audit and live baseline into the ordered

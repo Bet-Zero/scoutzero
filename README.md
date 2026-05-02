@@ -4,6 +4,10 @@
 
 HoopZero is a public-facing NBA scouting platform focused on clear data presentation and role-based player analysis. It mirrors the internal **ScoutZero** grading tool but exposes a read-only interface backed entirely by Firebase. All player evaluations, roles, grades and contract details are fetched from Firestore, allowing fans and analysts to explore a flattened set of scouting data.
 
+## TypeScript Status
+
+TypeScript migration, hardening, and zero-exception hardening are complete in this repository. Treat TypeScript as a maintenance gate, not as an active repo-wide campaign. For current routing, regression rules, and historical campaign records, start with [docs/typescript/README.md](docs/typescript/README.md).
+
 ## Tech Stack
 
 - **React** with **Vite** for fast development

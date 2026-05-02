@@ -1,5 +1,10 @@
 # JS → TS Conversion — Pile C UI Plan
 
+> Historical status: completed TypeScript campaign record.
+> Current status: TypeScript migration and hardening are complete in this repo.
+> Reopen only if a TypeScript maintenance gate regresses.
+> Current entry point: [docs/typescript/README.md](typescript/README.md)
+
 **Purpose:** Convert the remaining runtime JS/JSX app surface to TypeScript without changing product behavior or visual layout.
 
 **Relationship to prior plan:** `docs/TS_CONVERSION_NEXT_STEPS.md` is complete. Pile A and Pile B are done. This document is the successor plan for Pile C only.
