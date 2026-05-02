@@ -8,11 +8,15 @@ docs/team-scrape/
 
 plans/
 
-# Root return_packages contains only local logs
+# Root return_packages remains legacy/local-only noise.
 
 return_packages/
+docs/return_packages/docs/
+docs/return_packages/typescript/
 !docs/return_packages/
-!docs/return_packages/\*\*
+!docs/return_packages/README.md
+!docs/return_packages/workspace-cleanup/
+!docs/return_packages/workspace-cleanup/\*\*
 
 # Stale code archives
 

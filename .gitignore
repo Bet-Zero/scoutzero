@@ -26,6 +26,7 @@ plans/_archive/
 _archive/
 
 # Workflow result docs (return packages, audits)
+# Legacy root return_packages stays ignored for local artifacts; the canonical docs-facing archive stays trackable below.
 return_packages/
 docs/architect/return_packages/
 docs/architect/audits/
