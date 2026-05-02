@@ -1,5 +1,11 @@
 # Return Packages Directory Consolidation
 
+## Phase 1 Status Note
+
+- Phase 1 decision: the future canonical return-package path is `/docs/return_packages/`.
+- Root `/return_packages/` remains legacy historical evidence until consolidation.
+- No files were moved in Phase 1.
+
 **Date**: February 12, 2026
 **Issue**: Multiple return-packages directories with inconsistent naming (hyphen vs underscore)
 
@@ -9,15 +15,15 @@
 
 ### Directories Found
 
-| Directory | Files | Latest Date | Naming |
-|-----------|-------|-------------|--------|
-| `/docs/return-packages/` | 27 | Jan 10, 2026 | Hyphen |
-| `/docs/return_packages/` | 63 | Feb 4, 2026 | **Underscore** |
-| `/return_packages/` (root) | 79 | Feb 12, 2026 | **Underscore** |
-| `/docs/architect/return_packages/` | 107 | Feb 2, 2026 | **Underscore** |
-| `/docs/team-scrape/return-packages/` | 3 | Jan 11, 2026 | Hyphen |
-| `/docs/team-scrape/return_packages/` | 43 | Feb 4, 2026 | **Underscore** |
-| `/docs/tradeMachine/return-packages/` | 15 | Jan 16, 2026 | Hyphen |
+| Directory                             | Files | Latest Date  | Naming         |
+| ------------------------------------- | ----- | ------------ | -------------- |
+| `/docs/return-packages/`              | 27    | Jan 10, 2026 | Hyphen         |
+| `/docs/return_packages/`              | 63    | Feb 4, 2026  | **Underscore** |
+| `/return_packages/` (root)            | 79    | Feb 12, 2026 | **Underscore** |
+| `/docs/architect/return_packages/`    | 107   | Feb 2, 2026  | **Underscore** |
+| `/docs/team-scrape/return-packages/`  | 3     | Jan 11, 2026 | Hyphen         |
+| `/docs/team-scrape/return_packages/`  | 43    | Feb 4, 2026  | **Underscore** |
+| `/docs/tradeMachine/return-packages/` | 15    | Jan 16, 2026 | Hyphen         |
 
 ### Observations
 

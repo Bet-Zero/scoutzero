@@ -1,25 +1,33 @@
 # Completed execution artifacts — agents never need these
+
 docs/architect/return_packages/
 docs/tradeMachine/return_packages/
 docs/team-scrape/
 
 # Old plans — all completed work
+
 plans/
 
 # Root return_packages contains only local logs
+
 return_packages/
+!docs/return_packages/
+!docs/return_packages/\*\*
 
 # Stale code archives
+
 archive/
-_archive/
+\_archive/
 cursor_work/
 
 # Data pipeline scripts — out of scope for most tasks
+
 player-scrape/
 team-scrape/
 scripts/
 
 # Build output & dependencies
+
 node_modules/
 dist/
 coverage/

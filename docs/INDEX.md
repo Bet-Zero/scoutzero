@@ -25,6 +25,14 @@
 - [TypeScript return-package evidence archive](../return_packages/typescript/) - execution evidence for the closed hardening campaign
 - Do not reopen TypeScript hardening unless a documented gate regresses.
 
+## Workspace Cleanup Standards
+
+- [Documentation Structure Standard](workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md) - canonical placement rules for permanent docs, working docs, archives, generated docs, and prompts.
+- [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) - canonical rules for new return packages under `docs/return_packages/`.
+- [Workspace Cleanup Master](./_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_MASTER.md) - living tracker for cleanup phases and stale-link follow-up work.
+- [Return Packages README](return_packages/README.md) - canonical future return-package root.
+- Stale-link cleanup is tracked by the workspace cleanup master doc and is only partially addressed in Phase 1.
+
 ---
 
 ## 📚 Documentation Categories
@@ -114,26 +122,20 @@ Prompts and instructions for AI-assisted development:
 
 Historical project deliverables and execution documentation.
 
-**📂 Main Location**: `/docs/return_packages/` - See [Return Packages README](return_packages/README.md)
+**Canonical future location**: `/docs/return_packages/` - See [Return Packages README](return_packages/README.md)
 
-**Organized by Subsystem:**
+**Phase 1 status:**
 
-- `/docs/return_packages/` - General deliverables (165+ packages)
-- `/docs/return_packages/architect/` - GM dashboard & trade machine (107 packages)
-- `/docs/return_packages/scouting/` - Player scouting features (33 packages)
-- `/docs/return_packages/tradeMachine/` - Trade machine specific (15 packages)
-- `/docs/team-scrape/return_packages/` - Team data pipeline (46 packages)
+- New return packages now belong under `/docs/return_packages/<area>/`.
+- Root `/return_packages/` remains legacy historical evidence until a later consolidation phase.
+- No historical return packages were moved in Phase 1.
+- Current cleanup initiative return packages live in `/docs/return_packages/workspace-cleanup/`.
 
-**Recent Highlights:**
+**See**:
 
-- [Draft Asset Trading Closure](return_packages/DRAFT_ASSET_TRADING_CLOSURE_EXECUTION_RETURN_PACKAGE.md)
-- [Phase D4 True E2E Emulator Gate](return_packages/PHASE_D4_TRUE_E2E_EMULATOR_GATE_RETURN_PACKAGE.md)
-- [Offseason Transition Engine](return_packages/OFFSEASON_TRANSITION_ENGINE_EXECUTION_RETURN_PACKAGE.md)
-- [Draft Picks DAL Swap Controller Fix](return_packages/DRAFT_PICKS_DAL_SWAP_CONTROLLER_FIX__EXECUTION__2026-01-10.md)
-
-**See**: [Return Packages README](return_packages/README.md) for naming conventions, templates, and how to create new packages.
-
-**Note**: Consolidated February 12, 2026 from multiple locations into single underscore-named structure.
+- [Return Packages README](return_packages/README.md) for canonical routing.
+- [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) for naming and content rules.
+- [Workspace Cleanup Master](./_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_MASTER.md) for deferred consolidation and stale-link repair work.
 
 ### 🚀 Launch & Deployment
 

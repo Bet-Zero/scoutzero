@@ -202,6 +202,9 @@ HoopZero is a public-facing NBA scouting platform built with React + Vite + Fire
 - Keep components under 200 lines; split into subcomponents when larger.
 - Leave the git worktree clean after completing work.
 - Update docs for significant changes — see `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`.
+- New return packages go under `docs/return_packages/<area>/`; do not create `return-packages` paths.
+- Active temporary docs go under `docs/_working/<initiative>/`.
+- Completed working docs cannot stay in `_working` indefinitely; after review they must be archived, graduated to permanent docs, or deleted.
 - Run `npm run validate:project` after any structural changes.
 
 ### ⚠️ Ask first
