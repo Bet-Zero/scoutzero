@@ -20,9 +20,10 @@
 
 ## TypeScript Status
 
-- [TypeScript Documentation Status](typescript/README.md) - current TypeScript routing, maintenance rules, and historical document map
+- [TypeScript Documentation Status](typescript/README.md) - current required docs, completed historical TypeScript campaign docs, and return-package evidence archives
 - [TypeScript Hardening Completion Contract](typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md) - current maintenance gate for regressions
-- Historical TypeScript campaign docs remain in the repo as evidence and should not be resumed unless one of the maintenance gates regresses.
+- [TypeScript return-package evidence archive](../return_packages/typescript/) - execution evidence for the closed hardening campaign
+- Do not reopen TypeScript hardening unless a documented gate regresses.
 
 ---
 

@@ -6,7 +6,7 @@ HoopZero is a public-facing NBA scouting platform focused on clear data presenta
 
 ## TypeScript Status
 
-TypeScript migration, hardening, and zero-exception hardening are complete in this repository. Treat TypeScript as a maintenance gate, not as an active repo-wide campaign. For current routing, regression rules, and historical campaign records, start with [docs/typescript/README.md](docs/typescript/README.md).
+TypeScript migration is complete, and root strict mode plus zero-exception hardening are now maintenance standards in this repository. Treat TypeScript as a maintenance gate, not as an active repo-wide campaign. For current required docs, completed historical campaign records, and return-package evidence archives, start with [docs/typescript/README.md](docs/typescript/README.md). Do not reopen TypeScript hardening unless a documented gate regresses.
 
 ## Tech Stack
 

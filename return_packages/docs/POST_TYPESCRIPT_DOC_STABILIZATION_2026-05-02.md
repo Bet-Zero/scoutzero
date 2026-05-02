@@ -11,6 +11,8 @@ The work did four things:
 - marked completed TypeScript campaign records as historical or maintenance-only at the top of the files
 - encoded the rule that future agents must not reopen TypeScript campaign work unless a documented maintenance gate regresses
 
+It also standardized the repo wording that root strict mode and zero-exception hardening are closed maintenance standards, not open project work.
+
 ## Scope Boundaries
 
 - Runtime source code: not changed
@@ -26,7 +28,7 @@ The work did four things:
 - `docs/INDEX.md` now has a dedicated TypeScript status entry point
 - completed TypeScript campaign docs now stop readers at the top with a historical or maintenance banner before old execution instructions begin
 
-## Current References
+## Current Required Docs
 
 - `AGENTS.md`
 - `README.md`
@@ -36,7 +38,7 @@ The work did four things:
 - `docs/typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md`
 - `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`
 
-## Historical Campaign Records Updated
+## Completed Historical TypeScript Campaign Docs Updated
 
 - `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`
 - `docs/TS_CONVERSION_NEXT_STEPS.md`
@@ -50,6 +52,11 @@ The work did four things:
 - `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md`
 - `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`
 - `docs/typescript/TYPESCRIPT_GATE_005_TEST_MOCK_CLASSIFICATION.md`
+
+## Return-Package Evidence Archives
+
+- `return_packages/typescript/`
+- `return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md`
 
 ## Files Changed
 

@@ -4,16 +4,19 @@ TypeScript migration, hardening, and zero-exception hardening are complete in th
 
 Treat TypeScript as a maintenance gate, not as an active repo-wide campaign.
 
-- Do not reopen TypeScript migration or hardening work unless a documented gate regresses.
+- Do not reopen TypeScript hardening unless a documented gate regresses.
 - Use [TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md](TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md) as the maintenance gate for future regressions.
 - Use [TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md](TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md) for the completed zero-exception closure record.
 
-## Current References
+## Current Required Docs
 
 - [TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md](TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md) - current maintenance gate and regression checklist.
 - [TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md](TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md) - completed zero-exception closure record and regression reference.
+- [../INDEX.md](../INDEX.md) - repo-level documentation entry point.
+- [../guides/DEVELOPER_GUIDE.md](../guides/DEVELOPER_GUIDE.md) - developer-facing conventions and routing.
+- [../../AGENTS.md](../../AGENTS.md) - agent operating rules and the repo-wide reopen policy.
 
-## Historical Campaign Records
+## Completed Historical TypeScript Campaign Docs
 
 These files remain in the repository as evidence from the completed TypeScript campaign. Read them for history or audit context, not as active execution instructions.
 
@@ -29,6 +32,13 @@ These files remain in the repository as evidence from the completed TypeScript c
 - [TYPESCRIPT_HARDENING_FINAL_REVIEW.md](TYPESCRIPT_HARDENING_FINAL_REVIEW.md)
 - [TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md](TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md)
 - [TYPESCRIPT_GATE_005_TEST_MOCK_CLASSIFICATION.md](TYPESCRIPT_GATE_005_TEST_MOCK_CLASSIFICATION.md)
+
+## Return-Package Evidence Archives
+
+Use these archives when you need execution evidence rather than current routing rules.
+
+- [../../return_packages/typescript/](../../return_packages/typescript/) - TypeScript hardening and zero-exception execution evidence archive.
+- [../../return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md](../../return_packages/docs/POST_TYPESCRIPT_DOC_STABILIZATION_2026-05-02.md) - bounded documentation stabilization evidence for this cleanup pass.
 
 ## Reopen Rule
 

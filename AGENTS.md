@@ -195,7 +195,7 @@ HoopZero is a public-facing NBA scouting platform built with React + Vite + Fire
 ### ✅ Always
 
 - Use `.ts` / `.tsx` for new files. Existing `.js` / `.jsx` files are retained legacy or tooling surfaces, not evidence of an active TypeScript migration backlog.
-- TypeScript migration and hardening are complete. Use `docs/typescript/README.md` for current routing, and reopen TypeScript campaign work only if a documented maintenance gate regresses.
+- TypeScript migration, root strict mode, and zero-exception hardening are complete maintenance standards. Use `docs/typescript/README.md` for current required docs, and do not reopen TypeScript hardening unless a documented gate regresses.
 - Use the `@/` import alias (maps to `src/`).
 - Use named exports. Default exports only for top-level page views.
 - Preserve visual layout and logic when refactoring.

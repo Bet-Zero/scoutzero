@@ -4,7 +4,7 @@ HoopZero is a React + Firebase application that provides a public-facing view of
 
 ## TypeScript Status
 
-TypeScript migration, hardening, and zero-exception hardening are complete in this repository. Treat TypeScript as a maintenance gate, not as an active campaign. For current routing, regression rules, and historical campaign records, start with [../typescript/README.md](../typescript/README.md).
+TypeScript migration is complete, and root strict mode plus zero-exception hardening are now maintenance standards in this repository. Treat TypeScript as a maintenance gate, not as an active campaign. For current required docs, completed historical campaign records, and return-package evidence archives, start with [../typescript/README.md](../typescript/README.md). Do not reopen TypeScript hardening unless a documented gate regresses.
 
 ## Folder Structure
 
