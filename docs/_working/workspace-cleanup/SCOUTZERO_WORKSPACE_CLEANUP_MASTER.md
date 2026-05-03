@@ -31,14 +31,14 @@ Establish the canonical documentation rules first, then track the bounded execut
 
 ## Phase Tracker
 
-| Phase | Scope                                                         | Status      | Notes                                                                                                                                |
-| ----- | ------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 1     | Documentation standard creation                               | Completed   | Standards, canonical return-package root, and routing/ignore rules created in this phase.                                            |
-| 2     | Return-package consolidation                                  | Completed   | Root `return_packages/` markdown evidence was consolidated into `docs/return_packages/docs/` and `docs/return_packages/typescript/`. |
+| Phase | Scope                                                         | Status      | Notes                                                                                                                                           |
+| ----- | ------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Documentation standard creation                               | Completed   | Standards, canonical return-package root, and routing/ignore rules created in this phase.                                                       |
+| 2     | Return-package consolidation                                  | Completed   | Root `return_packages/` markdown evidence was consolidated into `docs/return_packages/docs/` and `docs/return_packages/typescript/`.            |
 | 3     | `docs/_working/` archive and graduation pass                  | Completed   | Completed-looking architect working clusters were archived under `archive/docs/_working/architect/`; active/ambiguous clusters remain in place. |
-| 4     | `docs/architect/` and `docs/team-scrape/` evidence separation | Not Started | Evergreen docs and execution evidence are still mixed in active feature roots.                                                       |
-| 5     | Stale-link repair                                             | Not Started | Phase 2 updated return-package routing references only; broader stale-link repair is still pending.                                  |
-| 6     | Guardrail updates                                             | Not Started | Future phases may refine ignore rules, index routing, and cleanup enforcement.                                                       |
+| 4     | `docs/architect/` and `docs/team-scrape/` evidence separation | Not Started | Evergreen docs and execution evidence are still mixed in active feature roots.                                                                  |
+| 5     | Stale-link repair                                             | Not Started | Phase 2 updated return-package routing references only; broader stale-link repair is still pending.                                             |
+| 6     | Guardrail updates                                             | Not Started | Future phases may refine ignore rules, index routing, and cleanup enforcement.                                                                  |
 
 ## Phase 1 Outputs
 
