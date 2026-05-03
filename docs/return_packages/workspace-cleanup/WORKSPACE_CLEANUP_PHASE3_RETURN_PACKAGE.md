@@ -83,12 +83,9 @@
 9. `git ls-files archive/docs`
    - Result: archive docs and moved cluster files are now tracked in index.
 10. `git ls-files docs/_working`
-
-- Result (post-staging): only retained active/ambiguous clusters remain under `_working`.
-
+    Result (post-staging): only retained active/ambiguous clusters remain under `_working`.
 11. `npm run lint:md`
-
-- Result (post-move): failed with the same environment-level `ENOSPC` issue.
+    Result (post-move): failed with the same environment-level `ENOSPC` issue.
 
 ## Commands Skipped
 
