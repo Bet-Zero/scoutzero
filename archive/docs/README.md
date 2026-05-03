@@ -7,3 +7,9 @@ Use active documentation under `docs/` and active working material under `docs/_
 Documentation placement and lifecycle rules are defined in:
 
 - `docs/workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md`
+
+## Current Archived Areas
+
+- `_working/` - archived working-doc clusters from prior cleanup phases
+- `architect/` - historical architect audit and closeout evidence moved from `docs/architect/`
+- `team-scrape/` - historical team-scrape audit evidence moved from `docs/team-scrape/`

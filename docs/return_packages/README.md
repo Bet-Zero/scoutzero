@@ -10,6 +10,7 @@ This directory is the canonical home for ScoutZero return packages.
 - Root `return_packages/` remains available only for ignored/local artifacts such as local logs, if they exist.
 - No root local-log artifacts were consolidated into `docs/` during Phase 2.
 - Use underscore naming only; do not create `return-packages` paths.
+- Phase 4 separated mixed feature-root evidence by moving return packages from `docs/architect/` and `docs/team-scrape/` into this canonical root.
 
 ## Folder Model
 
@@ -37,4 +38,6 @@ Only create the area folders that are required for active work.
 - `docs/` - consolidated docs-only return-package evidence from the legacy root archive
 - `typescript/` - consolidated TypeScript evidence from the legacy root archive
 - `workspace-cleanup/` - return packages for the workspace cleanup initiative
+- `architect/` - architect execution evidence moved from previously mixed feature-doc roots
+- `team-scrape/` - team-scrape execution evidence moved from previously mixed feature-doc roots
 - `general/` - reserved for future cross-cutting return packages that do not fit a narrower area

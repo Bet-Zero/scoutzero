@@ -136,6 +136,7 @@ Historical project deliverables and execution documentation.
 - [Return Packages README](return_packages/README.md) for canonical routing.
 - [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) for naming and content rules.
 - [Workspace Cleanup Master](./_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_MASTER.md) for deferred consolidation and stale-link repair work.
+- [Architect Return Packages](return_packages/architect/) and [Team-Scrape Return Packages](return_packages/team-scrape/) for feature-specific execution evidence moved out of active feature roots.
 
 ### 🚀 Launch & Deployment
 
@@ -148,7 +149,7 @@ Production deployment documentation:
 Data scraping and pipeline documentation:
 
 - `/docs/team-scrape/` - Team data scraping documentation
-- `/docs/team-scrape/audits/` - Team scrape audits
+- `/archive/docs/team-scrape/` - Historical team scrape audits moved out of active feature docs
 
 ### 🔧 Templates
 

@@ -36,7 +36,7 @@ Establish the canonical documentation rules first, then track the bounded execut
 | 1     | Documentation standard creation                               | Completed   | Standards, canonical return-package root, and routing/ignore rules created in this phase.                                                       |
 | 2     | Return-package consolidation                                  | Completed   | Root `return_packages/` markdown evidence was consolidated into `docs/return_packages/docs/` and `docs/return_packages/typescript/`.            |
 | 3     | `docs/_working/` archive and graduation pass                  | Completed   | Completed-looking architect working clusters were archived under `archive/docs/_working/architect/`; active/ambiguous clusters remain in place. |
-| 4     | `docs/architect/` and `docs/team-scrape/` evidence separation | Not Started | Evergreen docs and execution evidence are still mixed in active feature roots.                                                                  |
+| 4     | `docs/architect/` and `docs/team-scrape/` evidence separation | Completed   | Clear return-package evidence moved to `docs/return_packages/{architect,team-scrape}/`; clear historical audits moved to `archive/docs/{architect,team-scrape}/`; ambiguous docs kept in place. |
 | 5     | Stale-link repair                                             | Not Started | Phase 2 updated return-package routing references only; broader stale-link repair is still pending.                                             |
 | 6     | Guardrail updates                                             | Not Started | Future phases may refine ignore rules, index routing, and cleanup enforcement.                                                                  |
 
@@ -68,6 +68,14 @@ Establish the canonical documentation rules first, then track the bounded execut
 - `archive/docs/_working/architect/chat-workflow/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V2.md`
 - `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_PHASE3_RETURN_PACKAGE.md`
 
+## Phase 4 Outputs
+
+- `docs/return_packages/architect/README.md`
+- `docs/return_packages/team-scrape/README.md`
+- `archive/docs/architect/README.md`
+- `archive/docs/team-scrape/README.md`
+- `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_PHASE4_RETURN_PACKAGE.md`
+
 ## Archived Clusters In Phase 3
 
 - `docs/_working/architect/league-view/` -> `archive/docs/_working/architect/league-view/`
@@ -80,11 +88,29 @@ Establish the canonical documentation rules first, then track the bounded execut
 
 ## Open Risks Carried Forward
 
-- `docs/architect/` and `docs/team-scrape/` still mix evergreen docs with execution evidence; Phase 4 remains pending.
 - `docs/INDEX.md` still contains additional stale links outside the bounded Phase 1 changes.
 - `.claudeignore` and `docs/architecture/PROJECT_SCHEMA.md` still disagree about whether `plans/` is an active surface.
-- `npm run lint:md` execution is currently blocked by environment-level `ENOSPC` (`no space left on device`) during npm logging, so this phase could not produce a fresh content-level markdownlint signal.
 - Active or ambiguous working-doc clusters kept in place for follow-up review: `docs/_working/workspace-cleanup/`, `docs/_working/architect/free-agency/`, `docs/_working/architect/roster/`, and `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`.
+
+## Phase 4 Moved Evidence Summary
+
+- Return-package evidence moved from active feature roots:
+  - `docs/architect/*RETURN_PACKAGE*.md` -> `docs/return_packages/architect/`
+  - `docs/team-scrape/*RETURN_PACKAGE*.md` -> `docs/return_packages/team-scrape/`
+- Non-return-package historical evidence moved to archive:
+  - `docs/architect/*_AUDIT.md` closeout set -> `archive/docs/architect/`
+  - `docs/team-scrape/audits/DRAFT_PICKS_LEAGUE_WIDE_CORRECTNESS_AUDIT_2026-01-11.md` -> `archive/docs/team-scrape/`
+
+## Phase 4 Ambiguous Docs Carried Forward
+
+- Architect docs with mixed evergreen/history signal were kept in place for human review, including:
+  - `docs/architect/ARCHITECT_AUDIT_V3_MASTER.md`
+  - `docs/architect/TRADE_MACHINE_MASTER_AUDIT.md`
+  - `docs/architect/ARCHITECT_CAP_SHEET_REVIEW_RECORD.md`
+  - `docs/architect/ARCHITECT_TM_REVIEW_RECORD.md`
+- Team-scrape docs with mixed evergreen/history signal were kept in place for human review, including:
+  - `docs/team-scrape/PHX_TEAM_CODE_HYGIENE_PREFLIGHT_2026-01-11.md`
+  - `docs/team-scrape/PST_RAW_EXTRACTION_FIX_REPORT.md`
 
 ## Exit Condition For Phase 1
 
