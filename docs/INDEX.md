@@ -29,6 +29,7 @@
 
 - [Documentation Structure Standard](workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md) - canonical placement rules for permanent docs, working docs, archives, generated docs, and prompts.
 - [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) - canonical rules for new return packages under `docs/return_packages/`.
+- [Workspace Guardrails](workspace-rules/WORKSPACE_GUARDRAILS.md) - concise do/don't checklist and validation commands for routing, return packages, working docs, and plans.
 - [Workspace Cleanup Master](./_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_MASTER.md) - living tracker for cleanup phases and stale-link follow-up work.
 - [Return Packages README](return_packages/README.md) - canonical return-package root.
 - Stale-link cleanup is tracked by the workspace cleanup master doc; Phase 2 updated only return-package routing references.
@@ -127,8 +128,8 @@ Historical project deliverables and execution documentation.
 **Phase 2 status:**
 
 - New return packages belong under `/docs/return_packages/<area>/`.
-- Legacy root `/return_packages/` markdown evidence was consolidated into `/docs/return_packages/docs/` and `/docs/return_packages/typescript/` in Phase 2.
-- Root `/return_packages/` is no longer the active evidence location.
+- Legacy root return-package markdown evidence was consolidated into `/docs/return_packages/docs/` and `/docs/return_packages/typescript/` in Phase 2.
+- The legacy root evidence location is no longer the active evidence location.
 - Current cleanup initiative return packages live in `/docs/return_packages/workspace-cleanup/`.
 
 **See**:

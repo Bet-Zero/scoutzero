@@ -28,6 +28,8 @@ cursor_work/
 player-scrape/
 team-scrape/
 scripts/
+!scripts/docs/
+!scripts/docs/checkWorkspaceGuardrails.mjs
 
 # Build output & dependencies
 

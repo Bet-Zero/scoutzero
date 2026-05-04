@@ -2,6 +2,8 @@
 
 This standard defines the canonical location, naming, and minimum content requirements for new ScoutZero return packages.
 
+Use `WORKSPACE_GUARDRAILS.md` for the short checklist and validation commands that reinforce this standard in day-to-day work.
+
 ## Canonical Rule
 
 - The canonical future return-package root is `docs/return_packages/`.

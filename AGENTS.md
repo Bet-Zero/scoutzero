@@ -205,6 +205,9 @@ HoopZero is a public-facing NBA scouting platform built with React + Vite + Fire
 - New return packages go under `docs/return_packages/<area>/`; do not create `return-packages` paths.
 - Active temporary docs go under `docs/_working/<initiative>/`.
 - Completed working docs cannot stay in `_working` indefinitely; after review they must be archived, graduated to permanent docs, or deleted.
+- Keep new execution evidence out of active feature-doc roots such as `docs/architect/`, `docs/team-scrape/`, `docs/tradeMachine/`, and `docs/scouting/`.
+- Keep active plans under `plans/<initiative>/` and archived plans under `plans/_archive/`; do not hide all of `plans/` in ignore rules.
+- For docs-routing or workspace-rule changes, run `npm run lint:md` and `npm run docs:guardrails` before finishing.
 - Run `npm run validate:project` after any structural changes.
 
 ### ⚠️ Ask first

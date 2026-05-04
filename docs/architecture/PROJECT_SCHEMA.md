@@ -14,6 +14,7 @@ Top-level directory structure and purposes:
 | `scripts/`       | Utility scripts for Firebase, schema tools, and documentation                                                 |
 | `tests/`         | Vitest test suites for utils, contracts, and trade validation                                                 |
 | `docs/`          | Organized documentation (architecture, guides, compliance, migrations)                                        |
+| `archive/`       | Historical docs and retained archive material that are no longer active source of truth                       |
 | `plans/`         | Active plans (`plan.md`, chunks) and execution tracking; completed plans are archived under `plans/_archive/` |
 | `public/`        | Static assets (fonts, team logos, player headshots)                                                           |
 | `cba/`           | NBA CBA reference materials (guides, articles, rule cards)                                                    |
@@ -73,6 +74,8 @@ Top-level directory structure and purposes:
 
 #### docs/
 
+- `_working/` - Temporary planning, review, and draft documentation for active initiatives
+- `return_packages/` - Canonical execution-evidence archive for current return packages
 - `schema/` - Firestore schema documentation
 - `guides/` - User and developer guides
 - `compliance/` - Audit certificates and compliance matrices
@@ -81,6 +84,7 @@ Top-level directory structure and purposes:
 - `migrations/` - Migration documentation and plans
 - `architect-teams-plan/` - Architect feature planning docs (multi-season roster planning)
 - `runbooks/` - Operational runbooks for scrapes, staging, and deployment workflows
+- `workspace-rules/` - Repo documentation placement, return-package, and workspace guardrails
 
 ## Naming Conventions
 

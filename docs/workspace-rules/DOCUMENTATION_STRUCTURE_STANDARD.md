@@ -6,6 +6,8 @@ This standard defines where ScoutZero documentation belongs before any cleanup m
 
 This standard applies to permanent docs, working docs, return packages, archived docs, generated docs, feature docs, runbooks, and agent prompts.
 
+Use `WORKSPACE_GUARDRAILS.md` for the concise do/don't checklist and validation commands that sit on top of this placement model.
+
 ## Core Rules
 
 - Keep one documentation type per surface whenever possible.
