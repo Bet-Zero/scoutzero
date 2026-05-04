@@ -136,8 +136,7 @@ This starts the emulator with auto-export on exit to `./.emulator-data`.
 
 ## Related Documentation
 
-- [DRAFT_ASSET_TERMS_AND_LIFECYCLE_COMPLETION_AUDIT.md](./DRAFT_ASSET_TERMS_AND_LIFECYCLE_COMPLETION_AUDIT.md) — Master audit document
-- [PHASE_D4_TRUE_E2E_EMULATOR_GATE_RETURN_PACKAGE.md](../../return_packages/PHASE_D4_TRUE_E2E_EMULATOR_GATE_RETURN_PACKAGE.md) — D4 implementation details
+- [DRAFT_ASSET_TERMS_AND_LIFECYCLE_COMPLETION_AUDIT.md](../../archive/docs/architect/DRAFT_ASSET_TERMS_AND_LIFECYCLE_COMPLETION_AUDIT.md) — Historical master audit document
 
 ---
 

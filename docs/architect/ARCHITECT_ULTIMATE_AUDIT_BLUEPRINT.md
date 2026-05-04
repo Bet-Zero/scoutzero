@@ -41,14 +41,14 @@ This blueprint defines an **8-phase audit architecture** that:
 
 ### Audit Scope Metrics
 
-| Dimension | Count | Notes |
-|-----------|-------|-------|
-| Source Files | 320+ | `.js`, `.jsx`, `.ts`, `.tsx` in `src/features/architect/` |
-| Test Files | 200+ | Across `src/tests/architect/`, `tests/trade/`, `src/tests/trade/`, `src/tests/tradeMachine/` |
-| Subsystems | 12 | Trade Machine, Cap Sheet, Entitlements, Free Agency, Offseason, History, Contracts, etc. |
-| Master Docs | 20+ | In `docs/architect/` |
-| Return Packages | 50+ | In `return_packages/architect/`, `return_packages/entitlements/`, etc. |
-| Existing Audit Artifacts | 15+ | Audit workbooks, section audits, gap analyses |
+| Dimension                | Count | Notes                                                                                        |
+| ------------------------ | ----- | -------------------------------------------------------------------------------------------- |
+| Source Files             | 320+  | `.js`, `.jsx`, `.ts`, `.tsx` in `src/features/architect/`                                    |
+| Test Files               | 200+  | Across `src/tests/architect/`, `tests/trade/`, `src/tests/trade/`, `src/tests/tradeMachine/` |
+| Subsystems               | 12    | Trade Machine, Cap Sheet, Entitlements, Free Agency, Offseason, History, Contracts, etc.     |
+| Master Docs              | 20+   | In `docs/architect/`                                                                         |
+| Return Packages          | 50+   | In `return_packages/architect/`, `return_packages/entitlements/`, etc.                       |
+| Existing Audit Artifacts | 15+   | Audit workbooks, section audits, gap analyses                                                |
 
 ---
 
@@ -102,14 +102,14 @@ This blueprint defines an **8-phase audit architecture** that:
 
 ### AI Agent Limitations & Mitigations
 
-| Limitation | Mitigation Strategy |
-|------------|---------------------|
-| Context window size (~200KB) | Split subsystems into independent audit units; use discovery phase to map dependencies |
-| No persistent memory across sessions | Output structured artifacts (markdown files) as phase-transition handoffs |
-| Can't execute UI in browser | Rely on test coverage + code review; manual QA test plan for human verification |
-| May hallucinate findings | Require evidence citations for every finding; mark speculative items explicitly |
-| Can't access Firebase production data | Audit schema contracts and mock data coverage; defer live data audit to manual step |
-| Time cost per session | Parallelize independent subsystem audits; prioritize by ship-criticality |
+| Limitation                            | Mitigation Strategy                                                                    |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| Context window size (~200KB)          | Split subsystems into independent audit units; use discovery phase to map dependencies |
+| No persistent memory across sessions  | Output structured artifacts (markdown files) as phase-transition handoffs              |
+| Can't execute UI in browser           | Rely on test coverage + code review; manual QA test plan for human verification        |
+| May hallucinate findings              | Require evidence citations for every finding; mark speculative items explicitly        |
+| Can't access Firebase production data | Audit schema contracts and mock data coverage; defer live data audit to manual step    |
+| Time cost per session                 | Parallelize independent subsystem audits; prioritize by ship-criticality               |
 
 ### Phase Execution Contracts (Entry, Exit, Stop Conditions)
 
@@ -147,9 +147,10 @@ Verification Queue template (append after Findings Summary in each phase artifac
 
 ```markdown
 ### Verification Queue (Confidence < 0.70)
-| Finding ID | Current Confidence | Missing Evidence | Owner | Target Date | Status |
-|------------|--------------------|------------------|-------|-------------|--------|
-| ... | 0.62 | Missing: integration test and runtime repro | ... | YYYY-MM-DD | OPEN |
+
+| Finding ID | Current Confidence | Missing Evidence                            | Owner | Target Date | Status |
+| ---------- | ------------------ | ------------------------------------------- | ----- | ----------- | ------ |
+| ...        | 0.62               | Missing: integration test and runtime repro | ...   | YYYY-MM-DD  | OPEN   |
 ```
 
 ### Audit Unit Sizing Guidelines
@@ -332,12 +333,12 @@ npm run test:diff -- --reporter=dot  # Default baseline validation for changed f
 
 ### Phase 0 Artifacts
 
-| Artifact | Purpose |
-|----------|---------|
-| `DISCOVERY_FILE_INVENTORY.md` | Complete file listing with categorization |
-| `DISCOVERY_DEPENDENCY_MAP.md` | Subsystem dependency graph |
-| `DISCOVERY_PRIOR_AUDIT_INDEX.md` | Catalog of existing audit work |
-| `DISCOVERY_BASELINE_GATES.md` | Baseline test/build/typecheck results |
+| Artifact                         | Purpose                                   |
+| -------------------------------- | ----------------------------------------- |
+| `DISCOVERY_FILE_INVENTORY.md`    | Complete file listing with categorization |
+| `DISCOVERY_DEPENDENCY_MAP.md`    | Subsystem dependency graph                |
+| `DISCOVERY_PRIOR_AUDIT_INDEX.md` | Catalog of existing audit work            |
+| `DISCOVERY_BASELINE_GATES.md`    | Baseline test/build/typecheck results     |
 
 ---
 
@@ -390,51 +391,60 @@ Each subsystem audit follows the same structure:
 ## [SUBSYSTEM NAME] Audit Report
 
 ### Audit Metadata
+
 - Audit Date: YYYY-MM-DD
 - Files in Scope: [list]
 - Test Files in Scope: [list]
 - Related Master Docs: [list]
 
 ### 1. Purpose & Scope Verification
+
 - [ ] Subsystem purpose is clearly defined in code/docs
 - [ ] Boundaries with other subsystems are explicit
 - [ ] All advertised features have implementing code
 
 ### 2. Code Completeness
+
 - [ ] No TODO/FIXME markers blocking ship
 - [ ] No disabled/commented-out feature code
 - [ ] No placeholder implementations returning hardcoded values
 - [ ] All error paths have user-facing feedback
 
 ### 3. Code Correctness
+
 - [ ] Logic matches documented/intended behavior
 - [ ] Edge cases are handled (nulls, empty arrays, bounds)
 - [ ] No obvious race conditions or state drift
 - [ ] Type safety (no unsafe casts, any types, ts-ignore)
 
 ### 4. Test Coverage
+
 - [ ] Happy path covered
 - [ ] Error paths covered
 - [ ] Edge cases covered
 - [ ] Integration with adjacent subsystems covered
 
 ### 5. UI/UX Surface (if applicable)
+
 - [ ] All interactive elements are functional
 - [ ] Loading/error states are rendered
 - [ ] User feedback (toasts, modals) fires correctly
 - [ ] Accessibility basics (aria labels, keyboard nav)
 
 ### 6. Documentation
+
 - [ ] Code comments match implementation
 - [ ] Master doc reflects current behavior
 - [ ] Example usage is accurate
 
 ### 7. Findings Summary
-| Finding ID | Severity | Confidence | Evidence Count | Description | Status |
-|------------|----------|------------|----------------|-------------|--------|
-| [SUBSYS]-001 | HIGH/MED/LOW | 0.95 | 3 | ... | OPEN/FIXED |
+
+| Finding ID   | Severity     | Confidence | Evidence Count | Description | Status     |
+| ------------ | ------------ | ---------- | -------------- | ----------- | ---------- |
+| [SUBSYS]-001 | HIGH/MED/LOW | 0.95       | 3              | ...         | OPEN/FIXED |
 
 ### 8. Ship-Readiness Determination
+
 - [ ] READY: No HIGH findings, all MED findings acknowledged
 - [ ] NOT READY: Blocking findings exist (list)
 ```
@@ -610,7 +620,7 @@ Each subsystem audit follows the same structure:
 **Existing Audit Work to Review:**
 
 - `docs/architect/OFFSEASON_MASTER.md`
-- `docs/architect/OFFSEASON_WORKFLOW_COMPLETION_AUDIT.md`
+- `archive/docs/architect/OFFSEASON_WORKFLOW_COMPLETION_AUDIT.md`
 
 **Output:** `SUBSYSTEM_AUDIT_OFFSEASON.md`
 
@@ -828,16 +838,16 @@ Verify that subsystems correctly integrate with each other — data contracts ar
 
 ### Integration Matrix
 
-| From \ To | Trade | Cap | Entitle | FA | Offseason | History | Contract | Dashboard |
-|-----------|-------|-----|---------|-------|-----------|---------|----------|-----------|
-| **Trade** | — | ✓ | ✓ | ✓ | — | ✓ | — | ✓ |
-| **Cap** | ✓ | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
-| **Entitle** | ✓ | — | — | — | ✓ | ✓ | — | ✓ |
-| **FA** | ✓ | ✓ | — | — | ✓ | ✓ | ✓ | ✓ |
-| **Offseason** | — | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ |
-| **History** | ✓ | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
-| **Contract** | — | ✓ | — | — | ✓ | ✓ | — | ✓ |
-| **Dashboard** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| From \ To     | Trade | Cap | Entitle | FA  | Offseason | History | Contract | Dashboard |
+| ------------- | ----- | --- | ------- | --- | --------- | ------- | -------- | --------- |
+| **Trade**     | —     | ✓   | ✓       | ✓   | —         | ✓       | —        | ✓         |
+| **Cap**       | ✓     | —   | ✓       | ✓   | ✓         | —       | ✓        | ✓         |
+| **Entitle**   | ✓     | —   | —       | —   | ✓         | ✓       | —        | ✓         |
+| **FA**        | ✓     | ✓   | —       | —   | ✓         | ✓       | ✓        | ✓         |
+| **Offseason** | —     | ✓   | ✓       | ✓   | —         | ✓       | ✓        | ✓         |
+| **History**   | ✓     | —   | ✓       | ✓   | ✓         | —       | ✓        | ✓         |
+| **Contract**  | —     | ✓   | —       | —   | ✓         | ✓       | —        | ✓         |
+| **Dashboard** | ✓     | ✓   | ✓       | ✓   | ✓         | ✓       | ✓        | —         |
 
 ### Critical Integration Points
 
@@ -979,24 +989,28 @@ For each major UI component:
 **File:** `path/to/Component.jsx`
 
 #### Interaction Completeness
+
 - [ ] All buttons have click handlers
 - [ ] All inputs have change handlers
 - [ ] All selectors have options populated
 - [ ] All modals have open/close/submit paths
 
 #### State Handling
+
 - [ ] Loading state rendered
 - [ ] Error state rendered
 - [ ] Empty state rendered
 - [ ] Success state rendered
 
 #### User Feedback
+
 - [ ] Validation errors surface to user
 - [ ] Save success provides confirmation
 - [ ] Save failure provides explanation
 - [ ] Blocking conditions explained
 
 #### Accessibility
+
 - [ ] Form inputs have labels
 - [ ] Buttons have accessible names
 - [ ] Modal focus management
@@ -1296,16 +1310,16 @@ Identify gaps in:
 
 ### Test Inventory by Category
 
-| Category | Current Files | Est. Coverage | Gaps |
-|----------|---------------|---------------|------|
-| Trade Machine | ~60 | HIGH | TBD |
-| Cap Sheet | ~20 | MEDIUM | TBD |
-| Entitlements | ~40 | HIGH | TBD |
-| Free Agency | ~15 | MEDIUM | TBD |
-| Offseason | ~10 | LOW | TBD |
-| Team History | ~25 | MEDIUM | TBD |
-| Contract Editor | ~10 | LOW | TBD |
-| Validation | ~40 | HIGH | TBD |
+| Category        | Current Files | Est. Coverage | Gaps |
+| --------------- | ------------- | ------------- | ---- |
+| Trade Machine   | ~60           | HIGH          | TBD  |
+| Cap Sheet       | ~20           | MEDIUM        | TBD  |
+| Entitlements    | ~40           | HIGH          | TBD  |
+| Free Agency     | ~15           | MEDIUM        | TBD  |
+| Offseason       | ~10           | LOW           | TBD  |
+| Team History    | ~25           | MEDIUM        | TBD  |
+| Contract Editor | ~10           | LOW           | TBD  |
+| Validation      | ~40           | HIGH          | TBD  |
 
 ---
 
@@ -1335,13 +1349,13 @@ Verify documentation matches implementation, identify stale docs, and ensure ope
 
 ### Documentation Inventory
 
-| Doc Category | Location | Count |
-|--------------|----------|-------|
-| Master Docs | `docs/architect/` | 20+ |
-| Audit Artifacts | `docs/architect/audits/` | 15+ |
-| Return Packages | `return_packages/architect/` | 30+ |
-| README files | `src/features/architect/*/README.md` | ~5 |
-| Code Comments | Inline | N/A |
+| Doc Category    | Location                             | Count |
+| --------------- | ------------------------------------ | ----- |
+| Master Docs     | `docs/architect/`                    | 20+   |
+| Audit Artifacts | `docs/architect/audits/`             | 15+   |
+| Return Packages | `return_packages/architect/`         | 30+   |
+| README files    | `src/features/architect/*/README.md` | ~5    |
+| Code Comments   | Inline                               | N/A   |
 
 ### Audit Checklist
 
@@ -1406,12 +1420,12 @@ Aggregate all findings from Phases 0-7 and produce a definitive ship-readiness v
 Collect all findings from phase artifacts:
 
 ```markdown
-| Phase | Finding ID | Severity | Confidence | Evidence Count | Subsystem | Description | Status |
-|-------|------------|----------|------------|----------------|-----------|-------------|--------|
-| 1 | TM-001 | HIGH | 0.95 | 3 | Trade Machine | ... | OPEN |
-| 1 | TM-002 | MED | 0.81 | 2 | Trade Machine | ... | OPEN |
-| 2 | INT-001 | HIGH | 0.92 | 4 | Integration | ... | OPEN |
-| ... | ... | ... | ... | ... | ... | ... | ... |
+| Phase | Finding ID | Severity | Confidence | Evidence Count | Subsystem     | Description | Status |
+| ----- | ---------- | -------- | ---------- | -------------- | ------------- | ----------- | ------ |
+| 1     | TM-001     | HIGH     | 0.95       | 3              | Trade Machine | ...         | OPEN   |
+| 1     | TM-002     | MED      | 0.81       | 2              | Trade Machine | ...         | OPEN   |
+| 2     | INT-001    | HIGH     | 0.92       | 4              | Integration   | ...         | OPEN   |
+| ...   | ...        | ...      | ...        | ...            | ...           | ...         | ...    |
 ```
 
 ---
@@ -1442,11 +1456,13 @@ Collect all findings from phase artifacts:
 ### Verdict: [READY / NOT READY]
 
 ### Blocking Issues (must resolve)
-| ID | Description | Subsystem | Owner Module | Fix Class | Est. Effort | Verification Command | Remediation |
-|----|-------------|-----------|--------------|-----------|-------------|----------------------|-------------|
-| ... | ... | ... | ... | code or test or doc | S/M/L | `npm run test:architect -- --reporter=dot` | ... |
+
+| ID  | Description | Subsystem | Owner Module | Fix Class           | Est. Effort | Verification Command                       | Remediation |
+| --- | ----------- | --------- | ------------ | ------------------- | ----------- | ------------------------------------------ | ----------- |
+| ... | ...         | ...       | ...          | code or test or doc | S/M/L       | `npm run test:architect -- --reporter=dot` | ...         |
 
 Fix Class legend:
+
 - `code` — implementation or logic change required
 - `test` — missing or incorrect test coverage required
 - `doc` — documentation or runbook correction required
@@ -1454,11 +1470,13 @@ Fix Class legend:
 If a remediation spans multiple classes, list all applicable classes in one cell using + as the delimiter (for example: code+test or code+test+doc), with one verification command that proves the full fix.
 
 ### Non-Blocking Issues (acknowledged, defer to post-ship)
-| ID | Description | Subsystem | Priority |
-|----|-------------|-----------|----------|
-| ... | ... | ... | ... |
+
+| ID  | Description | Subsystem | Priority |
+| --- | ----------- | --------- | -------- |
+| ... | ...         | ...       | ...      |
 
 ### Acceptance Criteria Satisfied
+
 - [ ] All subsystems pass individual audits
 - [ ] All critical integration points verified
 - [ ] All CBA rules correctly implemented
@@ -1467,6 +1485,7 @@ If a remediation spans multiple classes, list all applicable classes in one cell
 - [ ] No HIGH severity findings remain open
 
 ### Acceptance Criteria Not Satisfied
+
 - [ ] ... (list any unsatisfied criteria)
 ```
 
@@ -1543,17 +1562,17 @@ docs/architect/audits/ultimate/
 
 Each audit phase should be executed as one or more AI agent sessions:
 
-| Phase | Sessions | Parallelizable | Dependencies |
-|-------|----------|----------------|--------------|
-| 0 | 1-2 | No | None |
-| 1 | 12-36 | **YES** (subsystems independent) | Phase 0 |
-| 2 | 3-5 | Partially | Phase 1 |
-| 3 | 3-5 | Partially | Phase 1 |
-| 4 | 2-3 | No | Phase 1 |
-| 5 | 3-5 | No | Phase 1 |
-| 6 | 2-3 | No | Phase 1 |
-| 7 | 1-2 | No | Phase 1 |
-| 8 | 1-2 | No | All previous |
+| Phase | Sessions | Parallelizable                   | Dependencies |
+| ----- | -------- | -------------------------------- | ------------ |
+| 0     | 1-2      | No                               | None         |
+| 1     | 12-36    | **YES** (subsystems independent) | Phase 0      |
+| 2     | 3-5      | Partially                        | Phase 1      |
+| 3     | 3-5      | Partially                        | Phase 1      |
+| 4     | 2-3      | No                               | Phase 1      |
+| 5     | 3-5      | No                               | Phase 1      |
+| 6     | 2-3      | No                               | Phase 1      |
+| 7     | 1-2      | No                               | Phase 1      |
+| 8     | 1-2      | No                               | All previous |
 
 **Total Estimated Sessions:** 30-65 (heavily dependent on parallelization)
 
@@ -1567,19 +1586,24 @@ When starting an audit session, use this prompt template:
 You are conducting Phase [X], Step [Y] of the Architect Ultimate Audit.
 
 ## Context
+
 - Blueprint: docs/architect/ARCHITECT_ULTIMATE_AUDIT_BLUEPRINT.md
 - Prior Phase Output: [link to prior phase artifact if applicable]
 
 ## Scope for This Session
+
 [List specific files/directories to analyze]
 
 ## Audit Questions
+
 [List specific questions from blueprint for this step]
 
 ## Expected Output
+
 [Describe expected artifact format]
 
 ## Constraints
+
 - Cite specific file paths and line numbers for all findings
 - Mark speculative findings explicitly
 - Follow standard finding template:
@@ -1810,7 +1834,7 @@ src/features/architect/
 
 ```
 src/tests/architect/   — 181 test files
-tests/trade/           — 30 test files  
+tests/trade/           — 30 test files
 src/tests/trade/       — 13 test files
 src/tests/tradeMachine/— 12 test files
 tests/validators/      — 6 test files
@@ -1822,38 +1846,38 @@ tests/validators/      — 6 test files
 
 ### Master Documentation
 
-| Document | Last Updated | Relevance |
-|----------|--------------|-----------|
-| `TRADE_MACHINE_MASTER.md` | Active | Core Trade Machine SSOT |
-| `TRADE_MACHINE_MASTER_AUDIT.md` | 2026-02-05 | Prior audit findings |
-| `CAP_SHEET_MASTER.md` | 2026-03-01 | Cap Sheet SSOT |
-| `ENTITLEMENTS_MASTER.md` | 2026-02-25 | Entitlements SSOT |
-| `OFFSEASON_MASTER.md` | Active | Offseason SSOT |
-| `TEAM_HISTORY_MASTER.md` | Active | Team History SSOT |
-| `ARCHITECT_SHIP_READINESS_MASTER.md` | 2026-02-13 | Ship readiness tracking |
+| Document                             | Last Updated | Relevance               |
+| ------------------------------------ | ------------ | ----------------------- |
+| `TRADE_MACHINE_MASTER.md`            | Active       | Core Trade Machine SSOT |
+| `TRADE_MACHINE_MASTER_AUDIT.md`      | 2026-02-05   | Prior audit findings    |
+| `CAP_SHEET_MASTER.md`                | 2026-03-01   | Cap Sheet SSOT          |
+| `ENTITLEMENTS_MASTER.md`             | 2026-02-25   | Entitlements SSOT       |
+| `OFFSEASON_MASTER.md`                | Active       | Offseason SSOT          |
+| `TEAM_HISTORY_MASTER.md`             | Active       | Team History SSOT       |
+| `ARCHITECT_SHIP_READINESS_MASTER.md` | 2026-02-13   | Ship readiness tracking |
 
 ### Prior Audit Artifacts
 
-| Artifact | Scope | Date | Status |
-|----------|-------|------|--------|
-| `TM_AUDIT_WORKBOOK.md` | Trade Machine | 2026-02-14 | PREFLIGHT |
-| `TM_SEC_A1_SALARY_MATCHING.md` | Salary Matching | 2026-02-14 | COMPLETE |
-| `TM_SEC_A2_HARD_CAPS_APRONS.md` | Hard Caps | 2026-02-14 | COMPLETE |
-| `TM_SEC_A3_PICKS_ENTITLEMENTS.md` | Picks/Entitlements | 2026-02-14 | COMPLETE |
-| `TM_SEC_A4_UI_TRUTH_SUMMARY_EXPORT.md` | UI/Export | 2026-02-14 | COMPLETE |
-| `TM_SEC_A5_STATE_COHERENCE_MULTI_TEAM.md` | State Coherence | 2026-02-14 | COMPLETE |
-| `TM_SEC_A6_SAVE_LOAD_IMMUTABILITY.md` | Save/Load | 2026-02-14 | COMPLETE |
-| `TM_SHIP_READINESS_V1.md` | Trade Machine | Active | TRACKING |
-| `trade-machine-audit-plan.md` | Manual QA | Active | TEST PLAN |
+| Artifact                                  | Scope              | Date       | Status    |
+| ----------------------------------------- | ------------------ | ---------- | --------- |
+| `TM_AUDIT_WORKBOOK.md`                    | Trade Machine      | 2026-02-14 | PREFLIGHT |
+| `TM_SEC_A1_SALARY_MATCHING.md`            | Salary Matching    | 2026-02-14 | COMPLETE  |
+| `TM_SEC_A2_HARD_CAPS_APRONS.md`           | Hard Caps          | 2026-02-14 | COMPLETE  |
+| `TM_SEC_A3_PICKS_ENTITLEMENTS.md`         | Picks/Entitlements | 2026-02-14 | COMPLETE  |
+| `TM_SEC_A4_UI_TRUTH_SUMMARY_EXPORT.md`    | UI/Export          | 2026-02-14 | COMPLETE  |
+| `TM_SEC_A5_STATE_COHERENCE_MULTI_TEAM.md` | State Coherence    | 2026-02-14 | COMPLETE  |
+| `TM_SEC_A6_SAVE_LOAD_IMMUTABILITY.md`     | Save/Load          | 2026-02-14 | COMPLETE  |
+| `TM_SHIP_READINESS_V1.md`                 | Trade Machine      | Active     | TRACKING  |
+| `trade-machine-audit-plan.md`             | Manual QA          | Active     | TEST PLAN |
 
 ### Return Packages
 
-| Category | Count | Location |
-|----------|-------|----------|
-| Architect Core | 30+ | `return_packages/architect/` |
-| Entitlements | 6+ | `return_packages/entitlements/` |
-| Trade Machine | 10+ | `return_packages/trade_machine/` |
-| Cap Sheet | 5+ | `return_packages/cap_sheet/` |
+| Category       | Count | Location                         |
+| -------------- | ----- | -------------------------------- |
+| Architect Core | 30+   | `return_packages/architect/`     |
+| Entitlements   | 6+    | `return_packages/entitlements/`  |
+| Trade Machine  | 10+   | `return_packages/trade_machine/` |
+| Cap Sheet      | 5+    | `return_packages/cap_sheet/`     |
 
 ---
 
@@ -1863,32 +1887,32 @@ This section will be updated as the audit progresses.
 
 ### Phase Status
 
-| Phase | Status | Started | Completed | Blocking Issues |
-|-------|--------|---------|-----------|-----------------|
-| 0 - Discovery | NOT STARTED | — | — | — |
-| 1 - Subsystems | NOT STARTED | — | — | — |
-| 2 - Integration | NOT STARTED | — | — | — |
-| 3 - UX/UI | NOT STARTED | — | — | — |
-| 4 - Data | NOT STARTED | — | — | — |
-| 5 - CBA | NOT STARTED | — | — | — |
-| 6 - Tests | NOT STARTED | — | — | — |
-| 7 - Docs | NOT STARTED | — | — | — |
-| 8 - Synthesis | NOT STARTED | — | — | — |
+| Phase           | Status      | Started | Completed | Blocking Issues |
+| --------------- | ----------- | ------- | --------- | --------------- |
+| 0 - Discovery   | NOT STARTED | —       | —         | —               |
+| 1 - Subsystems  | NOT STARTED | —       | —         | —               |
+| 2 - Integration | NOT STARTED | —       | —         | —               |
+| 3 - UX/UI       | NOT STARTED | —       | —         | —               |
+| 4 - Data        | NOT STARTED | —       | —         | —               |
+| 5 - CBA         | NOT STARTED | —       | —         | —               |
+| 6 - Tests       | NOT STARTED | —       | —         | —               |
+| 7 - Docs        | NOT STARTED | —       | —         | —               |
+| 8 - Synthesis   | NOT STARTED | —       | —         | —               |
 
 ### Session Log
 
 | Session | Date | Phase | Scope | Outcome |
-|---------|------|-------|-------|---------|
-| — | — | — | — | — |
+| ------- | ---- | ----- | ----- | ------- |
+| —       | —    | —     | —     | —       |
 
 ---
 
 ## Document History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-03-04 | AI Agent | Initial blueprint creation |
+| Version | Date       | Author   | Changes                    |
+| ------- | ---------- | -------- | -------------------------- |
+| 1.0     | 2026-03-04 | AI Agent | Initial blueprint creation |
 
 ---
 
-*End of Blueprint Document*
+_End of Blueprint Document_

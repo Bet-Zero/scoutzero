@@ -2,10 +2,10 @@
 
 > **Version**: 1.2.4 (January 2026)  
 > **Purpose**: Define non-negotiable product invariants, terminology definitions, and UI policies for Trade Machine salary display consistency  
-> **Companion Documents**:  
+> **Companion Documents**:
 >
-> - [`TRADE_MACHINE_AUDIT.md`](../audits/TRADE_MACHINE_AUDIT.md) — Detailed audit of UI vs validator mismatches
-> - [`TRADE_MACHINE_FIX_PLAN.md`](../audits/TRADE_MACHINE_FIX_PLAN.md) — Prioritized implementation plan
+> - [`TRADE_MACHINE_AUDIT.md`](../TRADE_MACHINE_AUDIT.md) — Detailed audit of UI vs validator mismatches
+> - [`SALARY_DISPLAY_GUIDE.md`](./SALARY_DISPLAY_GUIDE.md) — Canonical salary display and labeling rules
 
 ---
 
@@ -15,10 +15,10 @@ This section establishes canonical terminology. All code, UI labels, and documen
 
 ### 1.1 Base Salary vs Matching Salary
 
-| Term | Definition | Example |
-|------|------------|---------|
-| **Base Salary** (Contract Salary) | The actual dollar amount specified in the player's contract for a given year. This is the "roster reality" value that appears on cap sheets. | Player signed for $20M/year → Base Salary = $20,000,000 |
-| **Matching Salary** (Trade Value) | The adjusted salary used for trade matching calculations. May differ from base salary due to BYC, trade kicker, or poison pill rules. | BYC player with $20M contract but $8M previous salary → Matching Salary = max($8M, $10M) = $10M |
+| Term                              | Definition                                                                                                                                   | Example                                                                                         |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Base Salary** (Contract Salary) | The actual dollar amount specified in the player's contract for a given year. This is the "roster reality" value that appears on cap sheets. | Player signed for $20M/year → Base Salary = $20,000,000                                         |
+| **Matching Salary** (Trade Value) | The adjusted salary used for trade matching calculations. May differ from base salary due to BYC, trade kicker, or poison pill rules.        | BYC player with $20M contract but $8M previous salary → Matching Salary = max($8M, $10M) = $10M |
 
 **Key Distinctions:**
 
@@ -28,11 +28,11 @@ This section establishes canonical terminology. All code, UI labels, and documen
 
 ### 1.2 Allowable Incoming vs Remaining Room
 
-| Term | Definition | Formula |
-|------|------------|---------|
-| **Allowable Incoming** | The maximum total **matching salary** a team can receive in a trade, based on what they are sending out and their cap status. This is a **LIMIT**. | Depends on tier (see Section 3) |
-| **Incoming Selected** | The team-level total of **matching salaries** of players currently selected to be received by a team. This is the **CURRENT** value and represents the sum of adjusted incoming matching salaries for trade validation purposes (not base contract salaries). | Σ(matchingSalary of all incoming players for that team) |
-| **Remaining Room** | How much more matching salary a team can receive before hitting their Allowable Incoming limit. | **LIMIT - CURRENT** = Allowable Incoming - Incoming Selected |
+| Term                   | Definition                                                                                                                                                                                                                                                    | Formula                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Allowable Incoming** | The maximum total **matching salary** a team can receive in a trade, based on what they are sending out and their cap status. This is a **LIMIT**.                                                                                                            | Depends on tier (see Section 3)                              |
+| **Incoming Selected**  | The team-level total of **matching salaries** of players currently selected to be received by a team. This is the **CURRENT** value and represents the sum of adjusted incoming matching salaries for trade validation purposes (not base contract salaries). | Σ(matchingSalary of all incoming players for that team)      |
+| **Remaining Room**     | How much more matching salary a team can receive before hitting their Allowable Incoming limit.                                                                                                                                                               | **LIMIT - CURRENT** = Allowable Incoming - Incoming Selected |
 
 **Important**: Remaining Room is NOT the same as "cap room." Cap room refers to space under the salary cap. Remaining Room refers to space under the salary matching ceiling for a specific trade.
 
@@ -40,12 +40,12 @@ This section establishes canonical terminology. All code, UI labels, and documen
 
 ### 1.3 Apron Status
 
-| Term | Definition | Implications |
-|------|------------|--------------|
-| **Under Cap** | Team total salary < salary cap | Can absorb salary up to cap ceiling using cap room |
-| **Over Cap (Under Apron)** | Salary cap ≤ team total < first apron | Uses tiered matching bands (175-200% + addition for small trades) |
-| **First Apron** | First apron ≤ team total < second apron | 100% matching only — cannot receive more than sent |
-| **Second Apron** | Team total ≥ second apron | 100% matching + no aggregation + additional restrictions |
+| Term                       | Definition                              | Implications                                                      |
+| -------------------------- | --------------------------------------- | ----------------------------------------------------------------- |
+| **Under Cap**              | Team total salary < salary cap          | Can absorb salary up to cap ceiling using cap room                |
+| **Over Cap (Under Apron)** | Salary cap ≤ team total < first apron   | Uses tiered matching bands (175-200% + addition for small trades) |
+| **First Apron**            | First apron ≤ team total < second apron | 100% matching only — cannot receive more than sent                |
+| **Second Apron**           | Team total ≥ second apron               | 100% matching + no aggregation + additional restrictions          |
 
 ---
 
@@ -110,10 +110,10 @@ These four invariants MUST be enforced in all Trade Machine code. Violations are
 
 These values MAY be displayed with an "Estimate" badge before validation runs:
 
-| Value | Estimation Source | Badge Required |
-|-------|-------------------|----------------|
-| Outgoing Salary | `getSalaryForYear()` from tradeHelpers | ✅ "Estimate" |
-| Incoming Salary | `getSalaryForYear()` from tradeHelpers | ✅ "Estimate" |
+| Value                            | Estimation Source                      | Badge Required                         |
+| -------------------------------- | -------------------------------------- | -------------------------------------- |
+| Outgoing Salary                  | `getSalaryForYear()` from tradeHelpers | ✅ "Estimate"                          |
+| Incoming Salary                  | `getSalaryForYear()` from tradeHelpers | ✅ "Estimate"                          |
 | Allowable Incoming (exploratory) | `getSalaryMatchingResult()` local calc | ✅ "Estimate" + "Validator may differ" |
 
 **Purpose**: Allow users to explore "what if" scenarios before committing to a trade configuration that triggers validation.
@@ -122,13 +122,13 @@ These values MAY be displayed with an "Estimate" badge before validation runs:
 
 These values MUST come from the validator snapshot once validation has run:
 
-| Value | Canonical Source | UI Must Show |
-|-------|------------------|--------------|
-| Outgoing Matching Salary | `teamResult.salaryOut` | Exact validator value |
-| Incoming Matching Salary | `teamResult.salaryIn` | Exact validator value |
-| Allowable Incoming | `teamResult.rules.salaryMatching.allowableIncoming` | Exact validator value |
-| Matching Rule Applied | `teamResult.rules.salaryMatching.ruleLabel` | Exact rule label |
-| Passed/Failed | `teamResult.rules.salaryMatching.passed` | Boolean status |
+| Value                     | Canonical Source                                             | UI Must Show             |
+| ------------------------- | ------------------------------------------------------------ | ------------------------ |
+| Outgoing Matching Salary  | `teamResult.salaryOut`                                       | Exact validator value    |
+| Incoming Matching Salary  | `teamResult.salaryIn`                                        | Exact validator value    |
+| Allowable Incoming        | `teamResult.rules.salaryMatching.allowableIncoming`          | Exact validator value    |
+| Matching Rule Applied     | `teamResult.rules.salaryMatching.ruleLabel`                  | Exact rule label         |
+| Passed/Failed             | `teamResult.rules.salaryMatching.passed`                     | Boolean status           |
 | Remaining Room (if shown) | `allowableIncoming - incomingMatchingSalary` (from snapshot) | Calculated from snapshot |
 
 **Canonical Source Clarification**: The canonical source for all salary matching values is `teamResult.rules.salaryMatching.*` as returned by the validator. The table above shows these canonical paths. When code uses snapshot accessor hooks like `useTradeMachineSnapshot.js`, these accessors internally read from the canonical `teamResult.rules.salaryMatching` object. Both approaches are valid — direct access via `teamResult` or via snapshot accessor — as long as the underlying source is the validator's output, not a local recalculation.
@@ -137,11 +137,11 @@ These values MUST come from the validator snapshot once validation has run:
 
 When validation is running (user has made a change, validation triggered, result not yet returned):
 
-| Scenario | Display |
-|----------|---------|
-| First validation ever | "Calculating…" or loading skeleton |
+| Scenario                   | Display                                            |
+| -------------------------- | -------------------------------------------------- |
+| First validation ever      | "Calculating…" or loading skeleton                 |
 | Re-validation after change | Previous value with "Updating…" overlay or spinner |
-| Validation error | Previous value (if any) + error banner |
+| Validation error           | Previous value (if any) + error banner             |
 
 **Never show**: A locally-computed value presented as if it were the official validated result.
 
@@ -186,41 +186,41 @@ The following UI surfaces display salary matching values and MUST use the same s
 
 ### 4.1 Allowable Incoming Surfaces
 
-| Component | File | Status | Notes |
-|-----------|------|--------|-------|
-| **TradeTeamCard** | `src/features/architect/tradeMachine/TradeTeamCard.jsx` | ✅ Uses snapshot | Primary display — shows `allowableIncomingNoTPE` from snapshot |
-| **TradeSummaryPanel** | `src/features/architect/tradeMachine/TradeSummaryPanel.jsx` | ✅ Uses snapshot | Summary view — reads from `teamResult` |
+| Component                 | File                                                            | Status                          | Notes                                                                                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TradeTeamCard**         | `src/features/architect/tradeMachine/TradeTeamCard.jsx`         | ✅ Uses snapshot                | Primary display — shows `allowableIncomingNoTPE` from snapshot                                                                                                                           |
+| **TradeSummaryPanel**     | `src/features/architect/tradeMachine/TradeSummaryPanel.jsx`     | ✅ Uses snapshot                | Summary view — reads from `teamResult`                                                                                                                                                   |
 | **TradeSalaryCalculator** | `src/features/architect/tradeMachine/TradeSalaryCalculator.jsx` | ⚠️ Exploratory (User-reachable) | Collapsible panel in TradeEditor. By design uses local `getSalaryMatchingResult()` for sandbox, but shows official validator values for comparison when available. MUST show disclaimer. |
-| **TradeReceiptPanel** | `src/features/architect/tradeMachine/TradeReceiptPanel.jsx` | ✅ Uses snapshot | Debug panel — shows exact validator values |
-| **TradeValidationPanel** | `src/features/architect/tradeMachine/TradeValidationPanel.jsx` | ✅ Uses snapshot | Rule-by-rule breakdown from validator |
+| **TradeReceiptPanel**     | `src/features/architect/tradeMachine/TradeReceiptPanel.jsx`     | ✅ Uses snapshot                | Debug panel — shows exact validator values                                                                                                                                               |
+| **TradeValidationPanel**  | `src/features/architect/tradeMachine/TradeValidationPanel.jsx`  | ✅ Uses snapshot                | Rule-by-rule breakdown from validator                                                                                                                                                    |
 
 ### 4.2 Outgoing/Incoming Matching Salary Surfaces
 
-| Component | File | Status | Notes |
-|-----------|------|--------|-------|
-| **TradeTeamCard** | `TradeTeamCard.jsx` (lines 135-142) | ✅ Uses snapshot with fallback | Shows "Estimate" badge when using local fallback |
-| **TradeSummaryPanel** | `TradeSummaryPanel.jsx` (line 121) | ✅ Uses snapshot | Reads from `teamResult.salaryOut/In` |
-| **TradeExportCapture** | `TradeExportCapture.jsx` (line 139) | ⚠️ Uses base salary | Intentional — export shows "roster reality" not matching values. Includes note about matching values. |
+| Component              | File                                | Status                         | Notes                                                                                                 |
+| ---------------------- | ----------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| **TradeTeamCard**      | `TradeTeamCard.jsx` (lines 135-142) | ✅ Uses snapshot with fallback | Shows "Estimate" badge when using local fallback                                                      |
+| **TradeSummaryPanel**  | `TradeSummaryPanel.jsx` (line 121)  | ✅ Uses snapshot               | Reads from `teamResult.salaryOut/In`                                                                  |
+| **TradeExportCapture** | `TradeExportCapture.jsx` (line 139) | ⚠️ Uses base salary            | Intentional — export shows "roster reality" not matching values. Includes note about matching values. |
 
 ### 4.3 Matching Rule Label Surfaces
 
-| Component | File | Status | Notes |
-|-----------|------|--------|-------|
-| **TradeTeamCard** | `TradeTeamCard.jsx` (lines 240-245) | ✅ Uses snapshot | Shows rule from `snapshot.matchingRule` |
-| **TradeSalaryCalculator** | `TradeSalaryCalculator.jsx` (line 68) | ⚠️ Exploratory | Shows local rule label, with validator rule shown for comparison when available |
+| Component                 | File                                  | Status           | Notes                                                                           |
+| ------------------------- | ------------------------------------- | ---------------- | ------------------------------------------------------------------------------- |
+| **TradeTeamCard**         | `TradeTeamCard.jsx` (lines 240-245)   | ✅ Uses snapshot | Shows rule from `snapshot.matchingRule`                                         |
+| **TradeSalaryCalculator** | `TradeSalaryCalculator.jsx` (line 68) | ⚠️ Exploratory   | Shows local rule label, with validator rule shown for comparison when available |
 
 ### 4.4 Discovered Surfaces (From Code Scan)
 
 Additional files that reference `allowableIncoming` and may need alignment:
 
-| File | Purpose | Action Required |
-|------|---------|-----------------|
-| `salaryMatchingRules.js` | Single source of truth for matching calculations | N/A — this IS the source |
-| `validateSalaryMatching.js` | Validator rule implementation | N/A — produces the snapshot |
-| `useTradeMachineSnapshot.js` | Snapshot accessor hook | N/A — provides snapshot values |
-| `tradeHelpers.js` | Legacy helpers with `calculateAllowableIncoming()` | ⚠️ May conflict with snapshot — review usage |
-| `salaryMargin.js` | Utility for margin calculations | Verify uses snapshot when available |
-| `capUtils.js` | Cap-related utilities | Verify doesn't duplicate matching logic |
+| File                         | Purpose                                            | Action Required                              |
+| ---------------------------- | -------------------------------------------------- | -------------------------------------------- |
+| `salaryMatchingRules.js`     | Single source of truth for matching calculations   | N/A — this IS the source                     |
+| `validateSalaryMatching.js`  | Validator rule implementation                      | N/A — produces the snapshot                  |
+| `useTradeMachineSnapshot.js` | Snapshot accessor hook                             | N/A — provides snapshot values               |
+| `tradeHelpers.js`            | Legacy helpers with `calculateAllowableIncoming()` | ⚠️ May conflict with snapshot — review usage |
+| `salaryMargin.js`            | Utility for margin calculations                    | Verify uses snapshot when available          |
+| `capUtils.js`                | Cap-related utilities                              | Verify doesn't duplicate matching logic      |
 
 ---
 
@@ -286,15 +286,15 @@ getOfficialSalaryMatchingSnapshot(teamResult) → {
 
 ### 6.2 UI Surface Mapping
 
-| Component | Official Fields Used | Source |
-|-----------|---------------------|--------|
-| **TradeTeamCard** | salaryOut, salaryIn, allowableIncoming, ruleApplied, formulaUsed, skipReason | via `getTeamSnapshot()` → canonical selector |
-| **TradeSummaryPanel** | salaryIn, allowableIncoming, skipReason | Direct canonical selector call |
-| **TradeEditor** | allowableIncoming, ruleApplied, skipReason | Direct canonical selector call (for TradeSalaryCalculator props) |
-| **TradeSalaryCalculator** | allowableIncoming, ruleApplied, skipReason | Props from TradeEditor (official section) |
-| **TradeReceiptPanel** | N/A | Uses receipt data (debug only) - intentionally separate |
-| **TradeValidationPanel** | N/A | Shows rule pass/fail messages, not raw values |
-| **TradeExportCapture** | N/A | Uses base salary (intentional for roster reality) |
+| Component                 | Official Fields Used                                                         | Source                                                           |
+| ------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **TradeTeamCard**         | salaryOut, salaryIn, allowableIncoming, ruleApplied, formulaUsed, skipReason | via `getTeamSnapshot()` → canonical selector                     |
+| **TradeSummaryPanel**     | salaryIn, allowableIncoming, skipReason                                      | Direct canonical selector call                                   |
+| **TradeEditor**           | allowableIncoming, ruleApplied, skipReason                                   | Direct canonical selector call (for TradeSalaryCalculator props) |
+| **TradeSalaryCalculator** | allowableIncoming, ruleApplied, skipReason                                   | Props from TradeEditor (official section)                        |
+| **TradeReceiptPanel**     | N/A                                                                          | Uses receipt data (debug only) - intentionally separate          |
+| **TradeValidationPanel**  | N/A                                                                          | Shows rule pass/fail messages, not raw values                    |
+| **TradeExportCapture**    | N/A                                                                          | Uses base salary (intentional for roster reality)                |
 
 ### 6.3 Remaining Room Computation
 
@@ -337,18 +337,18 @@ The following scenarios verify that all surfaces display identical official valu
 
 ## 7. Amendment Log
 
-| Date | Version | Change | Author |
-|------|---------|--------|--------|
-| Dec 2024 | 1.0.0 | Initial document created | Trade Machine Team |
-| Dec 2024 | 1.1.0 | Section 3.4: Added TradeSalaryCalculator as ONLY exception to Invariant 2 with visual separation requirements; Section 3.2: Removed OR wording, declared canonical source as teamResult.rules.salaryMatching; Section 1.2/2.4: Clarified Incoming Selected is team-level matching total with snapshot field guidance | Trade Machine Team |
-| Jan 2026 | 1.2.0 | Canonical field alignment: Replaced `teamResult.rules.salaryMatching.outgoingMatchingSalary` → `teamResult.salaryOut`; Replaced `teamResult.rules.salaryMatching.incomingMatchingSalary` → `teamResult.salaryIn`; Retained allowableIncoming/passed/ruleApplied under rules.salaryMatching as confirmed in repo | Trade Machine Team |
-| Jan 2026 | 1.2.1 | Remaining Room formula fix: Updated Section 2.4 and 3.2 to use `snapshot.incomingMatchingSalary` (the actual accessor name) instead of `snapshot.salaryIn` (which does not exist); added clarification that `snapshot.incomingMatchingSalary` maps to canonical `teamResult.salaryIn` | Trade Machine Team |
-| Jan 2026 | 1.2.2 | P1/P2 completion: Updated Section 4.1-4.3 to reflect TradeSalaryCalculator is now user-reachable via collapsible panel in TradeEditor; updated TradeExportCapture entry to note inclusion of base/matching disclaimer | Trade Machine Team |
-| Jan 2026 | 1.2.3 | P2 Lock-in: Added "Non-Misleading Guardrails" subsection to Section 3.4 requiring: no green success when cap settings missing/zero, no green success when validator skipReason present, official section renders when hasValidatorResult=true, "Validator wins" display when results contradict | Trade Machine Team |
-| Jan 2026 | 1.2.4 | P2 Non-Misleading Sandbox: Added normalizeCapSettings function to handle various upstream cap setting shapes; changed "Valid Trade (Sandbox)" → "Sandbox Result (salary matching only)"; added "Sandbox Disabled State" subsection to Section 3.4; updated guardrails to clarify sandbox disabled behavior | Trade Machine Team |
-| Jan 2026 | 1.3.0 | Single Source of Truth Implementation: Created canonical selector `getOfficialSalaryMatchingSnapshot.js` as the ONLY place allowed to know raw field paths; wired useTradeMachineSnapshot.js, TradeSummaryPanel, and TradeEditor to use canonical selector; added Section 6 documenting implementation, UI surface mapping, and UI smoke proof scenarios; added 28 new regression tests in tradeMultiSurfaceOfficialValues.test.js | Trade Machine Team |
-| Jan 2026 | 1.4.0 | UX / Mode Legend Implementation: Added ValidationStateHeader for validation state pill and mode legend; added ValidationDetailsPanel with hard-gating and section mode tags; renamed "Show Validation Results" to "Show Validation Details"; added 27 new guardrail tests in TradeValidationGating.guardrail.test.jsx; added Section 7 UX / Mode Legend documentation | Trade Machine Team |
-| Jan 2026 | 1.5.0 | Worldless Baseline Salary: Created canonical `getWorldlessTeamBaselineTotal()` function for baseline salary computation without world state; added Section 8 documenting worldless mode requirements; added 37 new guardrail tests for season mapping, baseline calculation, and worldless mode assertions | Trade Machine Team |
+| Date     | Version | Change                                                                                                                                                                                                                                                                                                                                                                                                                             | Author             |
+| -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Dec 2024 | 1.0.0   | Initial document created                                                                                                                                                                                                                                                                                                                                                                                                           | Trade Machine Team |
+| Dec 2024 | 1.1.0   | Section 3.4: Added TradeSalaryCalculator as ONLY exception to Invariant 2 with visual separation requirements; Section 3.2: Removed OR wording, declared canonical source as teamResult.rules.salaryMatching; Section 1.2/2.4: Clarified Incoming Selected is team-level matching total with snapshot field guidance                                                                                                               | Trade Machine Team |
+| Jan 2026 | 1.2.0   | Canonical field alignment: Replaced `teamResult.rules.salaryMatching.outgoingMatchingSalary` → `teamResult.salaryOut`; Replaced `teamResult.rules.salaryMatching.incomingMatchingSalary` → `teamResult.salaryIn`; Retained allowableIncoming/passed/ruleApplied under rules.salaryMatching as confirmed in repo                                                                                                                    | Trade Machine Team |
+| Jan 2026 | 1.2.1   | Remaining Room formula fix: Updated Section 2.4 and 3.2 to use `snapshot.incomingMatchingSalary` (the actual accessor name) instead of `snapshot.salaryIn` (which does not exist); added clarification that `snapshot.incomingMatchingSalary` maps to canonical `teamResult.salaryIn`                                                                                                                                              | Trade Machine Team |
+| Jan 2026 | 1.2.2   | P1/P2 completion: Updated Section 4.1-4.3 to reflect TradeSalaryCalculator is now user-reachable via collapsible panel in TradeEditor; updated TradeExportCapture entry to note inclusion of base/matching disclaimer                                                                                                                                                                                                              | Trade Machine Team |
+| Jan 2026 | 1.2.3   | P2 Lock-in: Added "Non-Misleading Guardrails" subsection to Section 3.4 requiring: no green success when cap settings missing/zero, no green success when validator skipReason present, official section renders when hasValidatorResult=true, "Validator wins" display when results contradict                                                                                                                                    | Trade Machine Team |
+| Jan 2026 | 1.2.4   | P2 Non-Misleading Sandbox: Added normalizeCapSettings function to handle various upstream cap setting shapes; changed "Valid Trade (Sandbox)" → "Sandbox Result (salary matching only)"; added "Sandbox Disabled State" subsection to Section 3.4; updated guardrails to clarify sandbox disabled behavior                                                                                                                         | Trade Machine Team |
+| Jan 2026 | 1.3.0   | Single Source of Truth Implementation: Created canonical selector `getOfficialSalaryMatchingSnapshot.js` as the ONLY place allowed to know raw field paths; wired useTradeMachineSnapshot.js, TradeSummaryPanel, and TradeEditor to use canonical selector; added Section 6 documenting implementation, UI surface mapping, and UI smoke proof scenarios; added 28 new regression tests in tradeMultiSurfaceOfficialValues.test.js | Trade Machine Team |
+| Jan 2026 | 1.4.0   | UX / Mode Legend Implementation: Added ValidationStateHeader for validation state pill and mode legend; added ValidationDetailsPanel with hard-gating and section mode tags; renamed "Show Validation Results" to "Show Validation Details"; added 27 new guardrail tests in TradeValidationGating.guardrail.test.jsx; added Section 7 UX / Mode Legend documentation                                                              | Trade Machine Team |
+| Jan 2026 | 1.5.0   | Worldless Baseline Salary: Created canonical `getWorldlessTeamBaselineTotal()` function for baseline salary computation without world state; added Section 8 documenting worldless mode requirements; added 37 new guardrail tests for season mapping, baseline calculation, and worldless mode assertions                                                                                                                         | Trade Machine Team |
 
 ---
 
@@ -360,11 +360,11 @@ This section documents the Trade Machine's validation state display and mode cla
 
 The Trade Machine shows a **Validation State Pill** at the top of the page that indicates:
 
-| State | Pill Display | Meaning |
-|-------|--------------|---------|
-| **Not validated** | Gray pill with "Not validated" | No validation has been run; values are setup/configuration only |
-| **Validating…** | Blue animated pill with "Validating…" | Validation is in progress |
-| **Validated** | Green pill with "Validated at [time]" | Validation complete; official results available |
+| State             | Pill Display                          | Meaning                                                         |
+| ----------------- | ------------------------------------- | --------------------------------------------------------------- |
+| **Not validated** | Gray pill with "Not validated"        | No validation has been run; values are setup/configuration only |
+| **Validating…**   | Blue animated pill with "Validating…" | Validation is in progress                                       |
+| **Validated**     | Green pill with "Validated at [time]" | Validation complete; official results available                 |
 
 Users should always check this pill before interpreting any values on the page.
 
@@ -372,12 +372,12 @@ Users should always check this pill before interpreting any values on the page.
 
 All Trade Machine sections are classified into one of four modes:
 
-| Mode | Color | Tag Label | Purpose |
-|------|-------|-----------|---------|
-| **Official (Validator)** | Blue | `Official (Validator)` | Authoritative validator results — these values are the source of truth for trade legality |
-| **Setup** | Neutral/Gray | `Setup` | Configuration and team selection — does not represent validated results |
-| **Exploratory** | Amber | `Exploratory` | Sandbox/what-if calculations — validator is authoritative, these are estimates only |
-| **Debug** | Purple | `Debug` | Developer diagnostic data — not required reading for normal users |
+| Mode                     | Color        | Tag Label              | Purpose                                                                                   |
+| ------------------------ | ------------ | ---------------------- | ----------------------------------------------------------------------------------------- |
+| **Official (Validator)** | Blue         | `Official (Validator)` | Authoritative validator results — these values are the source of truth for trade legality |
+| **Setup**                | Neutral/Gray | `Setup`                | Configuration and team selection — does not represent validated results                   |
+| **Exploratory**          | Amber        | `Exploratory`          | Sandbox/what-if calculations — validator is authoritative, these are estimates only       |
+| **Debug**                | Purple       | `Debug`                | Developer diagnostic data — not required reading for normal users                         |
 
 ### 7.3 Validation Details Sections
 
@@ -401,11 +401,11 @@ This ensures users cannot mistake setup/exploratory values for validated results
 
 ### 7.5 Implementation Components
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| **ValidationStateHeader** | `ValidationStateHeader.jsx` | Top banner with validation pill and mode legend |
-| **ValidationDetailsPanel** | `ValidationDetailsPanel.jsx` | Hard-gated collapsible panel for all validation details |
-| **ModeTag** | Exported from `ValidationStateHeader.jsx` | Reusable tag component for section headers |
+| Component                  | File                                      | Purpose                                                 |
+| -------------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| **ValidationStateHeader**  | `ValidationStateHeader.jsx`               | Top banner with validation pill and mode legend         |
+| **ValidationDetailsPanel** | `ValidationDetailsPanel.jsx`              | Hard-gated collapsible panel for all validation details |
+| **ModeTag**                | Exported from `ValidationStateHeader.jsx` | Reusable tag component for section headers              |
 
 ---
 
@@ -425,12 +425,12 @@ This section documents the requirements and implementation for baseline salary d
 
 The following mappings MUST be used consistently across all worldless code paths:
 
-| UI Element | Value Format | Example | Used For |
-|------------|--------------|---------|----------|
-| Season Dropdown | endYear (integer) | `2026` | yearKey in all calculations |
-| Season Display | season string | `"2025-26"` | UI labels, cap settings lookup |
-| Contract Salary Lookup | getContractYearSlice(player, yearKey) | — | Extracting salary for year |
-| Cap Settings Lookup | getCapSettingsForYear(yearKey) | — | Cap/apron thresholds |
+| UI Element             | Value Format                          | Example     | Used For                       |
+| ---------------------- | ------------------------------------- | ----------- | ------------------------------ |
+| Season Dropdown        | endYear (integer)                     | `2026`      | yearKey in all calculations    |
+| Season Display         | season string                         | `"2025-26"` | UI labels, cap settings lookup |
+| Contract Salary Lookup | getContractYearSlice(player, yearKey) | —           | Extracting salary for year     |
+| Cap Settings Lookup    | getCapSettingsForYear(yearKey)        | —           | Cap/apron thresholds           |
 
 **Conversion Functions:**
 
@@ -474,10 +474,10 @@ getWorldlessTeamBaselineTotal(team, yearKey) → {
 
 In worldless mode, the following are **PROHIBITED**:
 
-| Prohibited | What | Why |
-|------------|------|-----|
-| ❌ No `/teamPlans/` reads | Firebase path for team plans | Worldless = base data only |
-| ❌ No world modifiers | World snapshots, overrides | World is null |
+| Prohibited                              | What                              | Why                               |
+| --------------------------------------- | --------------------------------- | --------------------------------- |
+| ❌ No `/teamPlans/` reads               | Firebase path for team plans      | Worldless = base data only        |
+| ❌ No world modifiers                   | World snapshots, overrides        | World is null                     |
 | ❌ No cached `teamTotalSalary` fallback | Pre-computed field on team object | May be stale or from wrong source |
 
 **Guard Functions:**
@@ -489,11 +489,11 @@ In worldless mode, the following are **PROHIBITED**:
 
 For **consistent baseline display** in worldless mode:
 
-| Surface | Use | Source |
-|---------|-----|--------|
-| TradeTeamCard | ✅ teamTotalSalary | useTradeMachine sets via `payrollForYearFromCapSheet() + deadMoneyForYear()` |
-| CapImpactTiles | ✅ baselineTotals | `computeTeamCapTotals()` |
-| TradeSalaryCalculator | ✅ teamTotal prop | Passed from TradeTeamCard snapshot |
+| Surface               | Use                | Source                                                                       |
+| --------------------- | ------------------ | ---------------------------------------------------------------------------- |
+| TradeTeamCard         | ✅ teamTotalSalary | useTradeMachine sets via `payrollForYearFromCapSheet() + deadMoneyForYear()` |
+| CapImpactTiles        | ✅ baselineTotals  | `computeTeamCapTotals()`                                                     |
+| TradeSalaryCalculator | ✅ teamTotal prop  | Passed from TradeTeamCard snapshot                                           |
 
 **Consistency Invariant:**
 `getWorldlessTeamBaselineTotal(team, yearKey).baselineTotal` MUST equal the value displayed as "Total Cap" or used as `preTradeTeamSalary` in validation.
@@ -502,12 +502,12 @@ For **consistent baseline display** in worldless mode:
 
 The following test files verify worldless mode correctness:
 
-| Test File | What It Asserts |
-|-----------|-----------------|
-| `worldless_season_mapping.guardrail.test.js` | Season dropdown → yearKey → seasonKey mapping is consistent |
-| `worldless_baseline_salary.guardrail.test.js` | Baseline total = sum of `getContractYearSlice()` calls + dead money |
-| `worldless_no_teamplan_leak.guardrail.test.js` | No teamPlans imports, worldless detection works correctly |
+| Test File                                      | What It Asserts                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------- |
+| `worldless_season_mapping.guardrail.test.js`   | Season dropdown → yearKey → seasonKey mapping is consistent         |
+| `worldless_baseline_salary.guardrail.test.js`  | Baseline total = sum of `getContractYearSlice()` calls + dead money |
+| `worldless_no_teamplan_leak.guardrail.test.js` | No teamPlans imports, worldless detection works correctly           |
 
 ---
 
-*This document is the authoritative source for Trade Machine alignment requirements. All Trade Machine fix plans, audits, and implementations must reference and conform to it.*
+_This document is the authoritative source for Trade Machine alignment requirements. All Trade Machine fix plans, audits, and implementations must reference and conform to it._

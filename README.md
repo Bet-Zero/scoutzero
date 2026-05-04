@@ -136,8 +136,8 @@ This project uses multiple Firestore collections to separate global player data 
 - `/players` — master player records, stats, grades, roles, and bio info
 - `/teams` — team rosters and `contract_clean` used for GM/cap tools
 
-📄 See [`docs/architecture/DATA_SOURCE_MAP.md`](./docs/architecture/DATA_SOURCE_MAP.md) for full usage rules  
-📄 See [`docs/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical schema reference
+📄 See [`docs/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical collection and field reference  
+📄 See [`docs/architecture/PROJECT_SCHEMA.md`](./docs/architecture/PROJECT_SCHEMA.md) for repo structure and validation rules
 
 ## Related Projects
 
@@ -173,9 +173,9 @@ The `docs/` folder contains organized reference documentation:
 
 ### Architecture & Technical References
 
-- [Project Context](docs/architecture/PROJECT_CONTEXT.md) – project overview and goals
-- [Firestore Schema](docs/architecture/FIRESTORE_SCHEMA.md) – detailed field breakdowns
-- [Data Source Map](docs/architecture/DATA_SOURCE_MAP.md) – collection usage rules
+- [Project Schema](docs/architecture/PROJECT_SCHEMA.md) – repo layout and structural rules
+- [Current Firestore Schema](docs/schema/CURRENT_FIRESTORE_SCHEMA.md) – canonical collection and field breakdowns
+- [Firestore Diagnostic](docs/FIRESTORE_DIAGNOSTIC.md) – troubleshooting notes and Firestore reference context
 
 ### User & Development Guides
 

@@ -92,10 +92,10 @@ Feature-specific documentation:
 
 Trade machine implementation and audits:
 
-- [Trade Machine Audit](audits/TRADE_MACHINE_AUDIT.md) - Comprehensive system audit (Jan 2026)
-- [Trade Machine Fix Plan](audits/TRADE_MACHINE_FIX_PLAN.md) - Implementation plan
+- [Trade Machine Audit](TRADE_MACHINE_AUDIT.md) - Comprehensive system audit (Jan 2026)
+- [Master Trade Machine Alignment](tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md) - Current terminology, invariants, and UI consistency rules
 - `/docs/tradeMachine/` - Additional trade machine docs
-- `/docs/tradeMachine/return-packages/` - Trade machine deliverables
+- [Return Packages README](return_packages/README.md) - Canonical routing for current return-package deliverables
 
 ### 📜 Compliance & CBA Rules
 
@@ -203,7 +203,7 @@ Scouting and player evaluation features:
 ### For Bug Fixes
 
 1. Check relevant runbooks in `/docs/runbooks/`
-2. Review [Trade Machine Audit](audits/TRADE_MACHINE_AUDIT.md) for known issues
+2. Review [Trade Machine Audit](TRADE_MACHINE_AUDIT.md) for known issues
 3. Check return packages for similar fixes
 
 ### For New Features

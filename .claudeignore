@@ -3,9 +3,9 @@
 docs/architect/return_packages/
 docs/tradeMachine/return_packages/
 
-# Old plans — all completed work
+# Archived plans — keep active plan folders visible
 
-plans/
+plans/\_archive/
 
 # Root return_packages remains legacy/local-only noise.
 
