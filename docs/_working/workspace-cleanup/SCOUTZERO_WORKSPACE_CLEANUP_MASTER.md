@@ -86,6 +86,10 @@ Establish the canonical documentation rules first, then track the bounded execut
 - `scripts/docs/checkWorkspaceGuardrails.mjs`
 - `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_PHASE6_RETURN_PACKAGE.md`
 
+## Follow-Up Outputs
+
+- `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_HISTORICAL_DOCS_FOLLOWUP_PREFLIGHT_RETURN_PACKAGE.md`
+
 ## Archived Clusters In Phase 3
 
 - `docs/_working/architect/league-view/` -> `archive/docs/_working/architect/league-view/`
@@ -98,7 +102,8 @@ Establish the canonical documentation rules first, then track the bounded execut
 
 ## Open Risks Carried Forward
 
-- Older architect and trade-machine docs still reference missing historical return-package artifacts with no clear canonical replacement. Carried-forward examples include `docs/architect/ARCHITECT_CAP_SHEET_REVIEW_TRACKER.md`, `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`, `docs/architect/EDIT_CONTRACT_MASTER.md`, `docs/architect/TRADE_MACHINE_MASTER.md`, and `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md`.
+- Older architect and trade-machine docs still reference missing historical return-package artifacts with no clear canonical replacement. A bounded preflight inventory now exists at `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_HISTORICAL_DOCS_FOLLOWUP_PREFLIGHT_RETURN_PACKAGE.md`.
+- The affected carried-forward examples remain `docs/architect/ARCHITECT_CAP_SHEET_REVIEW_TRACKER.md`, `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`, `docs/architect/EDIT_CONTRACT_MASTER.md`, `docs/architect/TRADE_MACHINE_MASTER.md`, and `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md`; they still require human review because representative targets are absent from the current workspace.
 - Active or ambiguous working-doc clusters kept in place for follow-up review: `docs/_working/workspace-cleanup/`, `docs/_working/architect/free-agency/`, `docs/_working/architect/roster/`, and `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`.
 
 ## Current Cleanup Status
@@ -106,7 +111,7 @@ Establish the canonical documentation rules first, then track the bounded execut
 - Canonical workspace rules now live under `docs/workspace-rules/` with a short guardrail checklist in `WORKSPACE_GUARDRAILS.md`.
 - New execution evidence is routed through `docs/return_packages/<area>/`, while historical docs remain under `archive/docs/` and archived plans remain under `plans/_archive/`.
 - A lightweight guardrail command now exists to scan active routing docs, plans visibility, and forbidden feature-root return-package surfaces before docs changes are closed.
-- Remaining follow-up work is limited to the carried-forward human-review items above rather than another broad workspace cleanup pass.
+- A bounded historical-doc preflight now captures the blocked repair inventory, so remaining follow-up work is limited to the carried-forward human-review items above rather than another broad workspace cleanup pass.
 
 ## Phase 4 Moved Evidence Summary
 
