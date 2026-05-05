@@ -31,13 +31,13 @@ Establish the canonical documentation rules first, then track the bounded execut
 
 ## Phase Tracker
 
-| Phase | Scope                                                         | Status      | Notes                                                                                                                                                                                                                                                            |
-| ----- | ------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Documentation standard creation                               | Completed   | Standards, canonical return-package root, and routing/ignore rules created in this phase.                                                                                                                                                                        |
-| 2     | Return-package consolidation                                  | Completed   | Root `return_packages/` markdown evidence was consolidated into `docs/return_packages/docs/` and `docs/return_packages/typescript/`.                                                                                                                             |
-| 3     | `docs/_working/` archive and graduation pass                  | Completed   | Completed-looking architect working clusters were archived under `archive/docs/_working/architect/`; active/ambiguous clusters remain in place.                                                                                                                  |
-| 4     | `docs/architect/` and `docs/team-scrape/` evidence separation | Completed   | Clear return-package evidence moved to `docs/return_packages/{architect,team-scrape}/`; clear historical audits moved to `archive/docs/{architect,team-scrape}/`; ambiguous docs kept in place.                                                                  |
-| 5     | Stale-link repair                                             | Completed   | Active navigation routes were repaired, the `plans/` visibility split was aligned with repo reality, and `npm run lint:md` passed after documenting the unresolved no-replacement legacy references carried forward from older architect and trade-machine docs. |
+| Phase | Scope                                                         | Status    | Notes                                                                                                                                                                                                                                                            |
+| ----- | ------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Documentation standard creation                               | Completed | Standards, canonical return-package root, and routing/ignore rules created in this phase.                                                                                                                                                                        |
+| 2     | Return-package consolidation                                  | Completed | Root `return_packages/` markdown evidence was consolidated into `docs/return_packages/docs/` and `docs/return_packages/typescript/`.                                                                                                                             |
+| 3     | `docs/_working/` archive and graduation pass                  | Completed | Completed-looking architect working clusters were archived under `archive/docs/_working/architect/`; active/ambiguous clusters remain in place.                                                                                                                  |
+| 4     | `docs/architect/` and `docs/team-scrape/` evidence separation | Completed | Clear return-package evidence moved to `docs/return_packages/{architect,team-scrape}/`; clear historical audits moved to `archive/docs/{architect,team-scrape}/`; ambiguous docs kept in place.                                                                  |
+| 5     | Stale-link repair                                             | Completed | Active navigation routes were repaired, the `plans/` visibility split was aligned with repo reality, and `npm run lint:md` passed after documenting the unresolved no-replacement legacy references carried forward from older architect and trade-machine docs. |
 | 6     | Guardrail updates                                             | Completed | Workspace guardrail policy and lightweight docs validation now reinforce return-package, working-doc, archive, and plans rules; `npm run lint:md`, `npm run docs:guardrails`, and `npm run validate:project` all passed after the Phase 6 changes.               |
 
 ## Phase 1 Outputs
@@ -89,6 +89,7 @@ Establish the canonical documentation rules first, then track the bounded execut
 ## Follow-Up Outputs
 
 - `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_HISTORICAL_DOCS_FOLLOWUP_PREFLIGHT_RETURN_PACKAGE.md`
+- `docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_HISTORICAL_DOCS_ADJUDICATION_CHECKLIST.md`
 
 ## Archived Clusters In Phase 3
 
@@ -103,6 +104,7 @@ Establish the canonical documentation rules first, then track the bounded execut
 ## Open Risks Carried Forward
 
 - Older architect and trade-machine docs still reference missing historical return-package artifacts with no clear canonical replacement. A bounded preflight inventory now exists at `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_HISTORICAL_DOCS_FOLLOWUP_PREFLIGHT_RETURN_PACKAGE.md`.
+- The active manual-review workflow for those carried-forward docs now lives at `docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_HISTORICAL_DOCS_ADJUDICATION_CHECKLIST.md`.
 - The affected carried-forward examples remain `docs/architect/ARCHITECT_CAP_SHEET_REVIEW_TRACKER.md`, `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`, `docs/architect/EDIT_CONTRACT_MASTER.md`, `docs/architect/TRADE_MACHINE_MASTER.md`, and `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md`; they still require human review because representative targets are absent from the current workspace.
 - Active or ambiguous working-doc clusters kept in place for follow-up review: `docs/_working/workspace-cleanup/`, `docs/_working/architect/free-agency/`, `docs/_working/architect/roster/`, and `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`.
 
@@ -112,6 +114,7 @@ Establish the canonical documentation rules first, then track the bounded execut
 - New execution evidence is routed through `docs/return_packages/<area>/`, while historical docs remain under `archive/docs/` and archived plans remain under `plans/_archive/`.
 - A lightweight guardrail command now exists to scan active routing docs, plans visibility, and forbidden feature-root return-package surfaces before docs changes are closed.
 - A bounded historical-doc preflight now captures the blocked repair inventory, so remaining follow-up work is limited to the carried-forward human-review items above rather than another broad workspace cleanup pass.
+- The carried-forward historical-doc follow-up now has a concrete adjudication checklist that can be worked one document at a time without reopening the broader cleanup.
 
 ## Phase 4 Moved Evidence Summary
 
