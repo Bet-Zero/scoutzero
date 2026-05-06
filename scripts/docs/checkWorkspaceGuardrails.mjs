@@ -48,7 +48,9 @@ function walkMarkdownFiles(relativeDir) {
       }
 
       if (entry.isFile() && entry.name.endsWith('.md')) {
-        found.push(path.relative(repoRoot, entryPath).replaceAll(path.sep, '/'));
+        found.push(
+          path.relative(repoRoot, entryPath).replaceAll(path.sep, '/')
+        );
       }
     }
   }
@@ -60,23 +62,29 @@ function walkMarkdownFiles(relativeDir) {
 const routerRules = [
   {
     regex: /(?:^|[\s`(])\/return_packages\//gm,
-    message: 'main routing docs must not point to the legacy root return_packages path',
+    message:
+      'main routing docs must not point to the legacy root return_packages path',
   },
   {
     regex: /(?:^|[\s`(])docs\/audits\//gm,
     message: 'main routing docs must not point to docs/audits/',
   },
   {
-    regex: /(?:^|[\s`(])docs\/(?:architect|team-scrape|tradeMachine|scouting)\/return_packages\//gm,
-    message: 'main routing docs must not point to feature-root return_packages paths',
+    regex:
+      /(?:^|[\s`(])docs\/(?:architect|team-scrape|tradeMachine|scouting)\/return_packages\//gm,
+    message:
+      'main routing docs must not point to feature-root return_packages paths',
   },
   {
-    regex: /(?:^|[\s`(])docs\/(?:architect|team-scrape|tradeMachine|scouting)\/return-packages\//gm,
-    message: 'main routing docs must not point to deprecated feature-root return-packages paths',
+    regex:
+      /(?:^|[\s`(])docs\/(?:architect|team-scrape|tradeMachine|scouting)\/return-packages\//gm,
+    message:
+      'main routing docs must not point to deprecated feature-root return-packages paths',
   },
   {
     regex: /(?:^|[\s`(])docs\/return-packages\//gm,
-    message: 'main routing docs must not point to deprecated docs/return-packages paths',
+    message:
+      'main routing docs must not point to deprecated docs/return-packages paths',
   },
 ];
 
@@ -89,7 +97,9 @@ const claudeIgnoreLines = readFile('.claudeignore')
   .map((line) => line.trim());
 
 if (claudeIgnoreLines.includes('plans/')) {
-  addFailure('.claudeignore: active plans must stay visible; remove the catch-all plans/ ignore');
+  addFailure(
+    '.claudeignore: active plans must stay visible; remove the catch-all plans/ ignore'
+  );
 }
 
 if (!claudeIgnoreLines.some((line) => /^plans\/\\?_archive\/$/.test(line))) {
@@ -114,10 +124,17 @@ for (const relativeDir of forbiddenDirs) {
   }
 }
 
-for (const featureRoot of ['docs/architect', 'docs/team-scrape', 'docs/tradeMachine', 'docs/scouting']) {
+for (const featureRoot of [
+  'docs/architect',
+  'docs/team-scrape',
+  'docs/tradeMachine',
+  'docs/scouting',
+]) {
   for (const markdownFile of walkMarkdownFiles(featureRoot)) {
     if (path.basename(markdownFile).includes('RETURN_PACKAGE')) {
-      addFailure(`${markdownFile}: execution evidence must not live under active feature-doc roots`);
+      addFailure(
+        `${markdownFile}: execution evidence must not live under active feature-doc roots`
+      );
     }
   }
 }

@@ -8,9 +8,9 @@
 Initial capture: 2026-04-21
 
 This map converts the post-migration audit and live baseline into the ordered
-work queue for `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`. It is intentionally
-narrow: it focuses on central trust boundaries, declaration masking, and the
-test/mocking surfaces that most distort TypeScript evidence.
+work queue for `archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md`. It
+is intentionally narrow: it focuses on central trust boundaries, declaration
+masking, and the test/mocking surfaces that most distort TypeScript evidence.
 
 ## Validation Shorthand
 

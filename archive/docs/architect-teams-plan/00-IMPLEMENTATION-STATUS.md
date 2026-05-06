@@ -1,8 +1,14 @@
-# Architect Teams Plan - Implementation Status
+# Historical Architect Teams Plan - Implementation Status
 
 > **Created**: November 1, 2025  
 > **Last Updated**: November 1, 2025  
-> **Status**: Planning Complete, Implementation Not Started
+> **Status**: Historical planning-status snapshot
+> **Important:** This document is preserved as part of the original Architect
+> planning bundle. It does **not** represent the current implementation status
+> of Architect.
+>
+> For the live runtime/reference set, use
+> [docs/architect/README.md](../../../docs/architect/README.md).
 
 ---
 
@@ -10,9 +16,9 @@
 
 This document tracks the implementation status of the Architect Teams Plan feature. The plan enables multi-season NBA roster scenario planning with branching decision trees, full CBA accuracy, and optimal storage efficiency.
 
-**📋 Full Planning Documentation**: See the 7 detailed documents in this folder (`docs/architect-teams-plan/`)  
-**📝 Concise Summaries**: See `architect-plan-summary/` folder for agent-friendly summaries  
-**🎯 Quick Start**: Read `architect-plan-summary/EXECUTION-PROMPT.md` for implementation tasks
+**📋 Full Planning Documentation**: See the 7 detailed documents in this folder as historical planning material.  
+**📝 Concise Summaries**: See `summaries/` for preserved agent-friendly planning summaries.  
+**🎯 Current Runtime Entry Point**: Start with [docs/architect/README.md](../../../docs/architect/README.md)
 
 ---
 
@@ -31,7 +37,7 @@ All planning documentation has been completed:
 
 **Deliverables**:
 
-- 7 comprehensive planning documents in `docs/architect-teams-plan/`
+- 7 comprehensive planning documents in `archive/docs/architect-teams-plan/`
 - Schema defined in `src/schemas/architect.ts` (canonical)
 - Working scraping infrastructure in `team-scrape/` folder
 
@@ -153,7 +159,7 @@ architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}  # Player overrid
 
 ### Planning Documents (Source of Truth)
 
-**Location**: `docs/architect-teams-plan/`
+**Location**: `archive/docs/architect-teams-plan/`
 
 1. `01-GOALS.md` - Project goals and success criteria
 2. `02-CURRENT-STATUS.md` - Current implementation analysis
@@ -165,7 +171,7 @@ architect_worlds/{worldId}/teams/{teamCode}/players/{playerId}  # Player overrid
 
 ### Summary Documents (Agent-Friendly)
 
-**Location**: `architect-plan-summary/`
+**Location**: `archive/docs/architect-teams-plan/summaries/`
 
 1. `COMBINED-SUMMARY.md` - All 7 files synthesized
 2. `01-GOALS-SUMMARY.md` - Goals condensed

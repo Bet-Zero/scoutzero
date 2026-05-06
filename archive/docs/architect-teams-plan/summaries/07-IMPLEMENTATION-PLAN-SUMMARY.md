@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Summary: 07-IMPLEMENTATION-PLAN.md
 
 ## Purpose

@@ -6,13 +6,13 @@ Use this doc as the quick reference. Use the linked standards when a change need
 
 ## Canonical Paths
 
-| Material | Canonical Location | Notes |
-| --- | --- | --- |
-| New return packages | `docs/return_packages/<area>/` | Do not create new return packages under root `return_packages/` or any hyphenated path. |
-| Temporary working docs | `docs/_working/<initiative>/` | `_working` is for in-flight material only. |
-| Historical docs | `archive/docs/<area>/` | Archive docs are retained reference material, not active source of truth. |
-| Active plans | `plans/<active-plan>/` | Keep active plans visible to agents. |
-| Archived plans | `plans/_archive/` | Completed plan material belongs here. |
+| Material               | Canonical Location             | Notes                                                                                   |
+| ---------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
+| New return packages    | `docs/return_packages/<area>/` | Do not create new return packages under root `return_packages/` or any hyphenated path. |
+| Temporary working docs | `docs/_working/<initiative>/`  | `_working` is for in-flight material only.                                              |
+| Historical docs        | `archive/docs/<area>/`         | Archive docs are retained reference material, not active source of truth.               |
+| Active plans           | `plans/<active-plan>/`         | Keep active plans visible to agents.                                                    |
+| Archived plans         | `plans/_archive/`              | Completed plan material belongs here.                                                   |
 
 ## Do
 

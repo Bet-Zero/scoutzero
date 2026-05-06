@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Summary: 01-GOALS.md
 
 ## Purpose

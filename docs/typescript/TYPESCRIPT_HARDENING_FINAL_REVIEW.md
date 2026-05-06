@@ -7,9 +7,9 @@
 
 Captured: 2026-04-24
 
-This review closes the self-extending TypeScript hardening plan in
-`docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`. It supersedes the earlier
-phase-level review that recorded `PASS WITH DEBT`.
+This review closes the archived TypeScript hardening plan in
+`archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md`. It supersedes the
+earlier phase-level review that recorded `PASS WITH DEBT`.
 
 ## Verdict
 

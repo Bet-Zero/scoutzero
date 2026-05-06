@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Summary: 06-COMPREHENSIVE-SUMMARY.md
 
 ## Purpose

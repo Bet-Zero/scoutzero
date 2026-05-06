@@ -13,16 +13,16 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 
 ### Overall Assessment: ~98% Complete (Core Features 100%)
 
-| Category | Status | Notes |
-|----------|--------|-------|
-| **Core Infrastructure** | ✅ 98% | worldManager, teamLoader, seasonManager, mutationPipeline implemented |
-| **Trade Machine** | ✅ 95% | Comprehensive CBA validation, world-aware loading, well-structured rules |
-| **Contract Logic** | ✅ 90% | Extensions/signing now use salaryEngine exclusively |
-| **Firestore Persistence** | ✅ 95% | mutationPipeline provides centralized write layer to architect_worlds, season advance integrated |
-| **Multi-Season/Branching** | ✅ 98% | World-aware reads, season advancement UI, option decisions UI, Stepien recalculation |
-| **UI Integration** | ✅ 95% | GMDashboard has WorldSelector, SeasonAdvanceModal, world data reload |
-| **Data Population** | ✅ 100% | `architect_baseTeams/basePlayers` collections populated |
-| **Test Coverage** | ✅ 100% | 295/295 tests passing, Phase 3B & 4A tests added |
+| Category                   | Status  | Notes                                                                                            |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| **Core Infrastructure**    | ✅ 98%  | worldManager, teamLoader, seasonManager, mutationPipeline implemented                            |
+| **Trade Machine**          | ✅ 95%  | Comprehensive CBA validation, world-aware loading, well-structured rules                         |
+| **Contract Logic**         | ✅ 90%  | Extensions/signing now use salaryEngine exclusively                                              |
+| **Firestore Persistence**  | ✅ 95%  | mutationPipeline provides centralized write layer to architect_worlds, season advance integrated |
+| **Multi-Season/Branching** | ✅ 98%  | World-aware reads, season advancement UI, option decisions UI, Stepien recalculation             |
+| **UI Integration**         | ✅ 95%  | GMDashboard has WorldSelector, SeasonAdvanceModal, world data reload                             |
+| **Data Population**        | ✅ 100% | `architect_baseTeams/basePlayers` collections populated                                          |
+| **Test Coverage**          | ✅ 100% | 295/295 tests passing, Phase 3B & 4A tests added                                                 |
 
 ---
 
@@ -32,11 +32,11 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 
 **Status**: The architect collections are populated and ready for use.
 
-| Collection | Status |
-|------------|--------|
-| `architect_baseTeams` | ✅ Populated with 30 team documents |
-| `architect_basePlayers` | ✅ Populated with player documents |
-| `architect_worlds` | Ready for world snapshots |
+| Collection              | Status                              |
+| ----------------------- | ----------------------------------- |
+| `architect_baseTeams`   | ✅ Populated with 30 team documents |
+| `architect_basePlayers` | ✅ Populated with player documents  |
+| `architect_worlds`      | Ready for world snapshots           |
 
 ---
 
@@ -44,17 +44,17 @@ The Architect feature is a sophisticated NBA roster scenario planning system wit
 
 **File**: `src/features/architect/utils/worldManager.js`
 
-| Function | Status | Issue |
-|----------|--------|-------|
-| `createWorld()` | ✅ Implemented | ✅ Called from WorldSelector UI |
-| `getWorldMetadata()` | ✅ Implemented | Works |
-| `listUserWorlds()` | ✅ Implemented | ✅ Powers WorldSelector dropdown |
-| `updateWorldMetadata()` | ✅ Implemented | ✅ Used for rename operations |
-| `deleteWorld()` | ⚠️ Deprecated | Use `archiveWorld()` or `purgeWorld()` instead |
-| `archiveWorld()` | ✅ Implemented | Sets `isArchived: true` (safe soft-delete) |
-| `purgeWorld()` | ✅ Implemented | Calls Cloud Function for recursive deletion |
-| `branchWorld()` | ✅ Implemented | ✅ Wired to WorldSelector branch modal |
-| `updateWorldStats()` | ✅ Implemented | Works |
+| Function                | Status         | Issue                                          |
+| ----------------------- | -------------- | ---------------------------------------------- |
+| `createWorld()`         | ✅ Implemented | ✅ Called from WorldSelector UI                |
+| `getWorldMetadata()`    | ✅ Implemented | Works                                          |
+| `listUserWorlds()`      | ✅ Implemented | ✅ Powers WorldSelector dropdown               |
+| `updateWorldMetadata()` | ✅ Implemented | ✅ Used for rename operations                  |
+| `deleteWorld()`         | ⚠️ Deprecated  | Use `archiveWorld()` or `purgeWorld()` instead |
+| `archiveWorld()`        | ✅ Implemented | Sets `isArchived: true` (safe soft-delete)     |
+| `purgeWorld()`          | ✅ Implemented | Calls Cloud Function for recursive deletion    |
+| `branchWorld()`         | ✅ Implemented | ✅ Wired to WorldSelector branch modal         |
+| `updateWorldStats()`    | ✅ Implemented | Works                                          |
 
 **Status Update (Dec 21, 2025)**: World deletion system is now **complete** with two options:
 
@@ -76,13 +76,13 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 
 **File**: `src/features/architect/utils/teamLoader.js`
 
-| Function | Status | Notes |
-|----------|--------|-------|
-| `getTeam()` | ✅ Implemented | Fallback chain: world → parent → base |
-| `getLeague()` | ✅ Implemented | Batch read for 30 teams |
-| `getPlayer()` | ✅ Implemented | Override merging works |
-| `mergePlayerOverride()` | ✅ Implemented | Deep merge logic correct |
-| `mergeSalariesByYear()` | ✅ Implemented | Season-based merge |
+| Function                | Status         | Notes                                 |
+| ----------------------- | -------------- | ------------------------------------- |
+| `getTeam()`             | ✅ Implemented | Fallback chain: world → parent → base |
+| `getLeague()`           | ✅ Implemented | Batch read for 30 teams               |
+| `getPlayer()`           | ✅ Implemented | Override merging works                |
+| `mergePlayerOverride()` | ✅ Implemented | Deep merge logic correct              |
+| `mergeSalariesByYear()` | ✅ Implemented | Season-based merge                    |
 
 **Status Update (Dec 20, 2025)**:
 
@@ -109,13 +109,13 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 // but does not persist them. Persistence must be handled server-side.
 ```
 
-| Function | Status | Persistence |
-|----------|--------|-------------|
-| `executeTrade()` | ✅ Computes | ✅ Via mutationPipeline |
-| `signFreeAgent()` | ✅ Computes | ✅ Via mutationPipeline |
-| `waivePlayer()` | ✅ Computes | ✅ Via mutationPipeline |
-| `extendPlayer()` | ✅ Computes | ✅ Via mutationPipeline |
-| `updateTeamCapTotals()` | ✅ Computes | N/A (helper) |
+| Function                | Status      | Persistence             |
+| ----------------------- | ----------- | ----------------------- |
+| `executeTrade()`        | ✅ Computes | ✅ Via mutationPipeline |
+| `signFreeAgent()`       | ✅ Computes | ✅ Via mutationPipeline |
+| `waivePlayer()`         | ✅ Computes | ✅ Via mutationPipeline |
+| `extendPlayer()`        | ✅ Computes | ✅ Via mutationPipeline |
+| `updateTeamCapTotals()` | ✅ Computes | N/A (helper)            |
 
 **Status Update (Dec 24, 2025)**: Fixed critical bug in `executeTrade()` for multi-team trades:
 
@@ -140,18 +140,18 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 
 **File**: `src/features/architect/utils/seasonManager.js`
 
-| Function | Status | Notes |
-|----------|--------|-------|
-| `advanceSeason()` | ✅ Implemented | Original function, writes to Firestore |
-| `advanceSeasonInWorld()` | ✅ NEW | Phase 3B: World-scoped with explicit option decisions |
-| `processSeasonTransition()` | ✅ Implemented | Batch writes all teams |
-| `processContractExpirations()` | ✅ Implemented | Removes expired contracts |
-| `processOptions()` | ✅ Implemented | Legacy function - defaults to exercised |
-| `processOptionsWithDecisions()` | ✅ NEW | Phase 3B: Requires explicit decisions, creates cap holds |
-| `processEmptyRosterCharges()` | ✅ Implemented | Uses year-appropriate minimum |
-| `updateCapHolds()` | ✅ Implemented | Filters expired |
-| `updateDraftPicks()` | ✅ Implemented | Basic functionality |
-| `updateDraftPicksWithStepien()` | ✅ NEW | Phase 3B: Stepien recalculation for 7-year window |
+| Function                        | Status         | Notes                                                    |
+| ------------------------------- | -------------- | -------------------------------------------------------- |
+| `advanceSeason()`               | ✅ Implemented | Original function, writes to Firestore                   |
+| `advanceSeasonInWorld()`        | ✅ NEW         | Phase 3B: World-scoped with explicit option decisions    |
+| `processSeasonTransition()`     | ✅ Implemented | Batch writes all teams                                   |
+| `processContractExpirations()`  | ✅ Implemented | Removes expired contracts                                |
+| `processOptions()`              | ✅ Implemented | Legacy function - defaults to exercised                  |
+| `processOptionsWithDecisions()` | ✅ NEW         | Phase 3B: Requires explicit decisions, creates cap holds |
+| `processEmptyRosterCharges()`   | ✅ Implemented | Uses year-appropriate minimum                            |
+| `updateCapHolds()`              | ✅ Implemented | Filters expired                                          |
+| `updateDraftPicks()`            | ✅ Implemented | Basic functionality                                      |
+| `updateDraftPicksWithStepien()` | ✅ NEW         | Phase 3B: Stepien recalculation for 7-year window        |
 
 **Phase 3B Implementation**:
 
@@ -171,13 +171,13 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 - `contractUtils.js` - Cap hold calculations
 - `extensionRules.js` - Marked as `@deprecated`, points to Salary Engine
 
-| Action | UI Works | Persists Via | Notes |
-|--------|----------|--------------|-------|
-| Sign FA | ✅ | ✅ mutationPipeline | Writes to `architect_worlds` |
-| Extend | ✅ | ✅ mutationPipeline | Writes to `architect_worlds` |
-| Waive | ✅ | ✅ mutationPipeline | Writes to `architect_worlds` |
-| Option Accept/Decline | ✅ | ✅ mutationPipeline | Writes to `architect_worlds` |
-| Renounce Rights | ✅ | ⚠️ TBD | May need mutationPipeline support |
+| Action                | UI Works | Persists Via        | Notes                             |
+| --------------------- | -------- | ------------------- | --------------------------------- |
+| Sign FA               | ✅       | ✅ mutationPipeline | Writes to `architect_worlds`      |
+| Extend                | ✅       | ✅ mutationPipeline | Writes to `architect_worlds`      |
+| Waive                 | ✅       | ✅ mutationPipeline | Writes to `architect_worlds`      |
+| Option Accept/Decline | ✅       | ✅ mutationPipeline | Writes to `architect_worlds`      |
+| Renounce Rights       | ✅       | ⚠️ TBD              | May need mutationPipeline support |
 
 **Status Update (Dec 20, 2025)**: Contract actions now persist through the centralized `mutationPipeline.applyWorldMutation()` which writes atomically to `architect_worlds` subcollections (teams, players, metadata). Legacy `teamPlans` persistence is no longer the primary path for Architect mutations.
 
@@ -194,19 +194,19 @@ The WorldSelector UI now includes both "Archive" (soft-delete) and "Delete Perma
 
 The trade validation engine is the most complete subsystem:
 
-| Rule | File | Status |
-|------|------|--------|
-| Salary Matching | `validateSalaryMatching.js` | ✅ Complete |
-| Hard Cap | `validateHardCap.ts`, `hardCapValidation.js` | ✅ Complete |
-| Stepien Rule | `validateStepien.js/.ts` | ✅ Complete |
-| Trade Exceptions | `validateTradeExceptions.js` | ✅ Complete |
-| Second Apron | `validateSecondApronRules.js` | ✅ Complete |
-| Sign & Trade | `validateSignAndTrade.js` | ✅ Complete |
-| Aggregation | `validateAggregation.js` | ✅ Complete |
-| Roster Size | `validateRoster.js/.ts` | ✅ Complete |
-| Eligibility | `validateEligibility.js` | ✅ Complete |
-| Consent | `validateConsent.js` | ✅ Complete |
-| FA Exception Usage | `validateFaExceptionUsage.js` | ✅ Complete |
+| Rule               | File                                         | Status      |
+| ------------------ | -------------------------------------------- | ----------- |
+| Salary Matching    | `validateSalaryMatching.js`                  | ✅ Complete |
+| Hard Cap           | `validateHardCap.ts`, `hardCapValidation.js` | ✅ Complete |
+| Stepien Rule       | `validateStepien.js/.ts`                     | ✅ Complete |
+| Trade Exceptions   | `validateTradeExceptions.js`                 | ✅ Complete |
+| Second Apron       | `validateSecondApronRules.js`                | ✅ Complete |
+| Sign & Trade       | `validateSignAndTrade.js`                    | ✅ Complete |
+| Aggregation        | `validateAggregation.js`                     | ✅ Complete |
+| Roster Size        | `validateRoster.js/.ts`                      | ✅ Complete |
+| Eligibility        | `validateEligibility.js`                     | ✅ Complete |
+| Consent            | `validateConsent.js`                         | ✅ Complete |
+| FA Exception Usage | `validateFaExceptionUsage.js`                | ✅ Complete |
 
 **Minor Gaps**:
 
@@ -252,20 +252,20 @@ Covers seasons 2024-25 through 2031-32 with:
 
 **File**: `src/features/architect/GMDashboard/GMDashboard.jsx`
 
-| Component | Status | Issue |
-|-----------|--------|-------|
-| Roster Tab | ✅ Works | |
-| Cap Sheet Tab | ✅ Works | |
-| Full Cap Table | ✅ Works | |
-| Trade Machine Tab | ✅ Works | |
-| Free Agency Tab | ✅ Works | |
-| Offseason Tab | ✅ Works | |
-| History Tab | ✅ Works | |
-| Season Selector | ✅ Works | From `capProjections` |
-| View Mode Toggle | ✅ Works | Plan/Baseline modes |
-| Plan Picker | ✅ Works | Uses legacy `teamPlans` (parallel to worlds) |
-| Save Plan | ✅ Works | Uses legacy `teamPlans` |
-| **World Selector** | ✅ Works | Create/Select/Branch/Rename/Archive worlds |
+| Component          | Status   | Issue                                        |
+| ------------------ | -------- | -------------------------------------------- |
+| Roster Tab         | ✅ Works |                                              |
+| Cap Sheet Tab      | ✅ Works |                                              |
+| Full Cap Table     | ✅ Works |                                              |
+| Trade Machine Tab  | ✅ Works |                                              |
+| Free Agency Tab    | ✅ Works |                                              |
+| Offseason Tab      | ✅ Works |                                              |
+| History Tab        | ✅ Works |                                              |
+| Season Selector    | ✅ Works | From `capProjections`                        |
+| View Mode Toggle   | ✅ Works | Plan/Baseline modes                          |
+| Plan Picker        | ✅ Works | Uses legacy `teamPlans` (parallel to worlds) |
+| Save Plan          | ✅ Works | Uses legacy `teamPlans`                      |
+| **World Selector** | ✅ Works | Create/Select/Branch/Rename/Archive worlds   |
 
 **UI Components Status (Updated)**:
 
@@ -331,16 +331,16 @@ At 1,063 lines, this modal handles:
 
 **Files**: `src/features/architect/tradeMachine/*`
 
-| Component | Status |
-|-----------|--------|
-| TradeEditor | ✅ Main orchestrator |
-| TradeTeamCard | ✅ Per-team selection |
-| TradeSummaryPanel | ✅ Trade overview |
-| TradeValidationPanel | ✅ Rule violations |
-| TradeLegalChecker | ✅ Legal status |
-| TradeExceptionDashboard | ✅ TPE management |
-| TradePreviewModal | ✅ Confirmation dialog |
-| TradeDebugPanel | ✅ Developer debugging |
+| Component               | Status                 |
+| ----------------------- | ---------------------- |
+| TradeEditor             | ✅ Main orchestrator   |
+| TradeTeamCard           | ✅ Per-team selection  |
+| TradeSummaryPanel       | ✅ Trade overview      |
+| TradeValidationPanel    | ✅ Rule violations     |
+| TradeLegalChecker       | ✅ Legal status        |
+| TradeExceptionDashboard | ✅ TPE management      |
+| TradePreviewModal       | ✅ Confirmation dialog |
+| TradeDebugPanel         | ✅ Developer debugging |
 
 **Status Update (Dec 20, 2025)**: Trade execution flow:
 
@@ -358,7 +358,7 @@ At 1,063 lines, this modal handles:
 ```text
 Phase 2A: Data Population ✅ COMPLETE
 ├── ✅ Run team scrapers for 30 teams
-├── ✅ Run player scraper for ~530 players  
+├── ✅ Run player scraper for ~530 players
 ├── ✅ Upload to architect_baseTeams
 ├── ✅ Upload to architect_basePlayers
 └── ✅ Verify in Firebase Console
@@ -412,31 +412,31 @@ Phase 4B: Polish & Edge Cases ✅ COMPLETE
 
 ### 1. Logic Duplicated Across Systems
 
-| Logic | Locations | Risk |
-|-------|-----------|------|
-| Salary matching tiers | `cbaConstants.js`, `salaryMatching.js` | Drift possible |
-| Cap hold calculation | `contractUtils.js`, `capHolds.ts` | Uses different formulas |
-| Extension eligibility | `extensionRules.js` (deprecated), `salaryEngine` | Fallback uses old logic |
-| Season format parsing | `seasonFormat.js`, `seasonHelpers.ts`, `seasonUtils.js` | 3 different files |
+| Logic                 | Locations                                               | Risk                    |
+| --------------------- | ------------------------------------------------------- | ----------------------- |
+| Salary matching tiers | `cbaConstants.js`, `salaryMatching.js`                  | Drift possible          |
+| Cap hold calculation  | `contractUtils.js`, `capHolds.ts`                       | Uses different formulas |
+| Extension eligibility | `extensionRules.js` (deprecated), `salaryEngine`        | Fallback uses old logic |
+| Season format parsing | `seasonFormat.js`, `seasonHelpers.ts`, `seasonUtils.js` | 3 different files       |
 
 **Recommendation**: Consolidate to single source of truth, remove deprecated paths.
 
 ### 2. Dangerous Assumptions
 
-| Assumption | Location | Risk |
-|------------|----------|------|
-| Options default to exercised | `seasonManager.js:286` | Incorrect roster projection |
-| Empty roster charge = $1.1M | `seasonManager.js:318` | Wrong for non-2025 seasons |
-| salaryCap required but continues with placeholder | `birdRightsRules.js:81-82` | Incorrect calculations |
-| hasTenure = 7+ YOS (stubbed) | `extensionRules.js:236` | Supermax eligibility wrong |
+| Assumption                                        | Location                   | Risk                        |
+| ------------------------------------------------- | -------------------------- | --------------------------- |
+| Options default to exercised                      | `seasonManager.js:286`     | Incorrect roster projection |
+| Empty roster charge = $1.1M                       | `seasonManager.js:318`     | Wrong for non-2025 seasons  |
+| salaryCap required but continues with placeholder | `birdRightsRules.js:81-82` | Incorrect calculations      |
+| hasTenure = 7+ YOS (stubbed)                      | `extensionRules.js:236`    | Supermax eligibility wrong  |
 
 ### 3. Rules Applied Inconsistently
 
-| Rule | Trade Machine | Architect Core |
-|------|--------------|----------------|
-| Hard cap triggers | ✅ Full validation | ⚠️ Sets flag but doesn't block |
-| Second apron restrictions | ✅ Full validation | ❌ Not checked in signings |
-| Aggregation prohibition | ✅ Validated in trades | ❌ Not checked in multi-signings |
+| Rule                      | Trade Machine          | Architect Core                   |
+| ------------------------- | ---------------------- | -------------------------------- |
+| Hard cap triggers         | ✅ Full validation     | ⚠️ Sets flag but doesn't block   |
+| Second apron restrictions | ✅ Full validation     | ❌ Not checked in signings       |
+| Aggregation prohibition   | ✅ Validated in trades | ❌ Not checked in multi-signings |
 
 ---
 
@@ -750,8 +750,8 @@ The test failures (53 total) were categorized into these buckets:
 
 ### Test Results
 
-| Before | After | Change |
-|--------|-------|--------|
+| Before        | After          | Change    |
+| ------------- | -------------- | --------- |
 | 222/275 (81%) | 275/275 (100%) | +53 tests |
 
 ### Key Learnings
@@ -991,7 +991,7 @@ Phase 4B is complete. The multi-team trade bug has been fixed:
 
 ```javascript
 // LAL sends lebron → GSW, BOS
-// GSW sends curry → LAL, BOS  
+// GSW sends curry → LAL, BOS
 // BOS sends tatum → LAL, GSW
 // Result: Players duplicated across multiple rosters
 ```
@@ -1011,8 +1011,8 @@ The fix maintains backward compatibility for 2-team trades (no `tradeTo` require
 
 ## Related Documentation
 
-- [Implementation Status](./architect-teams-plan/00-IMPLEMENTATION-STATUS.md)
-- [Combined Summary](../architect-plan-summary/COMBINED-SUMMARY.md)
-- [Target Schema](./architect-teams-plan/03-TARGET-SCHEMA.md)
-- [Save/Load Logic](./architect-teams-plan/05-SAVE-LOAD-LOGIC.md)
+- [Archived Implementation Status](../archive/docs/architect-teams-plan/00-IMPLEMENTATION-STATUS.md)
+- [Archived Combined Summary](../archive/docs/architect-teams-plan/summaries/COMBINED-SUMMARY.md)
+- [Archived Target Schema](../archive/docs/architect-teams-plan/03-TARGET-SCHEMA.md)
+- [Archived Save/Load Logic](../archive/docs/architect-teams-plan/05-SAVE-LOAD-LOGIC.md)
 - [Test Status](../tests/architect/TEST_STATUS.md)

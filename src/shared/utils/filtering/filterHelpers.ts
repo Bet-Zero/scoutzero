@@ -1,7 +1,7 @@
 import { formatHeight } from '@/shared/utils/formatting';
 
 // Note: statAbbreviations here duplicates the stat-key → display-label mapping in statFilters.ts.
-// Consolidation opportunity — see follow-up items in TS_CONVERSION_NEXT_STEPS.md.
+// Consolidation opportunity noted in the archived TypeScript campaign bundle.
 const statAbbreviations: Record<string, string> = {
   PPG: 'ppg',
   RPG: 'rpg',
@@ -122,9 +122,18 @@ export function getFilterStyles(key: string, value: unknown): FilterStyles {
     const shootingTiers: Record<string, FilterStyles> = {
       Elite: { borderClass: 'border-green-500', textClass: 'text-green-500' },
       Plus: { borderClass: 'border-lime-400', textClass: 'text-lime-400' },
-      Capable: { borderClass: 'border-yellow-400', textClass: 'text-yellow-400' },
-      Willing: { borderClass: 'border-orange-400', textClass: 'text-orange-400' },
-      Hesitant: { borderClass: 'border-orange-600', textClass: 'text-orange-600' },
+      Capable: {
+        borderClass: 'border-yellow-400',
+        textClass: 'text-yellow-400',
+      },
+      Willing: {
+        borderClass: 'border-orange-400',
+        textClass: 'text-orange-400',
+      },
+      Hesitant: {
+        borderClass: 'border-orange-600',
+        textClass: 'text-orange-600',
+      },
       Non: { borderClass: 'border-red-600', textClass: 'text-red-600' },
     };
     const cleaned = String(value).replace('Shooter', '').trim();
@@ -137,42 +146,144 @@ export function getFilterStyles(key: string, value: unknown): FilterStyles {
   ) {
     const numValue = parseInt(String(value));
     if (!isNaN(numValue)) {
-      if (numValue >= 98) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-green-600', textClass: 'text-green-600' };
-      if (numValue >= 94) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-green-500', textClass: 'text-green-500' };
-      if (numValue >= 91) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-green-400', textClass: 'text-green-400' };
-      if (numValue >= 86) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-emerald-400', textClass: 'text-emerald-400' };
-      if (numValue >= 80) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-emerald-300', textClass: 'text-emerald-300' };
-      if (numValue >= 73) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-teal-200', textClass: 'text-teal-200' };
-      if (numValue >= 66) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-gray-300', textClass: 'text-gray-300' };
-      if (numValue >= 56) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-red-200', textClass: 'text-red-200' };
-      if (numValue >= 46) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-red-300', textClass: 'text-red-300' };
-      if (numValue >= 41) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-red-400', textClass: 'text-red-400' };
-      if (numValue >= 36) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-red-500', textClass: 'text-red-500' };
-      if (numValue >= 26) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-red-600', textClass: 'text-red-600' };
-      if (numValue >= 16) return { bgClass: 'bg-[#2a2a2a]', borderClass: 'border-red-700', textClass: 'text-red-700' };
+      if (numValue >= 98)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-green-600',
+          textClass: 'text-green-600',
+        };
+      if (numValue >= 94)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-green-500',
+          textClass: 'text-green-500',
+        };
+      if (numValue >= 91)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-green-400',
+          textClass: 'text-green-400',
+        };
+      if (numValue >= 86)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-emerald-400',
+          textClass: 'text-emerald-400',
+        };
+      if (numValue >= 80)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-emerald-300',
+          textClass: 'text-emerald-300',
+        };
+      if (numValue >= 73)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-teal-200',
+          textClass: 'text-teal-200',
+        };
+      if (numValue >= 66)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-gray-300',
+          textClass: 'text-gray-300',
+        };
+      if (numValue >= 56)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-red-200',
+          textClass: 'text-red-200',
+        };
+      if (numValue >= 46)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-red-300',
+          textClass: 'text-red-300',
+        };
+      if (numValue >= 41)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-red-400',
+          textClass: 'text-red-400',
+        };
+      if (numValue >= 36)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-red-500',
+          textClass: 'text-red-500',
+        };
+      if (numValue >= 26)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-red-600',
+          textClass: 'text-red-600',
+        };
+      if (numValue >= 16)
+        return {
+          bgClass: 'bg-[#2a2a2a]',
+          borderClass: 'border-red-700',
+          textClass: 'text-red-700',
+        };
     }
   }
 
   if (key.startsWith('min_') || key.startsWith('max_')) {
     const statKey = key.split('_')[1];
     if (
-      ['Defense', 'Energy', 'Feel', 'IQ', 'Passing', 'Playmaking', 'Rebounding', 'Shooting'].includes(statKey)
+      [
+        'Defense',
+        'Energy',
+        'Feel',
+        'IQ',
+        'Passing',
+        'Playmaking',
+        'Rebounding',
+        'Shooting',
+      ].includes(statKey)
     ) {
       const numValue = parseInt(String(value));
       if (!isNaN(numValue)) {
-        if (numValue >= 98) return { borderClass: 'border-green-600', textClass: 'text-green-600' };
-        if (numValue >= 94) return { borderClass: 'border-green-500', textClass: 'text-green-500' };
-        if (numValue >= 91) return { borderClass: 'border-green-400', textClass: 'text-green-400' };
-        if (numValue >= 86) return { borderClass: 'border-emerald-400', textClass: 'text-emerald-400' };
-        if (numValue >= 80) return { borderClass: 'border-emerald-300', textClass: 'text-emerald-300' };
-        if (numValue >= 73) return { borderClass: 'border-teal-200', textClass: 'text-teal-200' };
-        if (numValue >= 66) return { borderClass: 'border-gray-300', textClass: 'text-gray-300' };
-        if (numValue >= 56) return { borderClass: 'border-red-200', textClass: 'text-red-200' };
-        if (numValue >= 46) return { borderClass: 'border-red-300', textClass: 'text-red-300' };
-        if (numValue >= 41) return { borderClass: 'border-red-400', textClass: 'text-red-400' };
-        if (numValue >= 36) return { borderClass: 'border-red-500', textClass: 'text-red-500' };
-        if (numValue >= 26) return { borderClass: 'border-red-600', textClass: 'text-red-600' };
-        if (numValue >= 16) return { borderClass: 'border-red-700', textClass: 'text-red-700' };
+        if (numValue >= 98)
+          return {
+            borderClass: 'border-green-600',
+            textClass: 'text-green-600',
+          };
+        if (numValue >= 94)
+          return {
+            borderClass: 'border-green-500',
+            textClass: 'text-green-500',
+          };
+        if (numValue >= 91)
+          return {
+            borderClass: 'border-green-400',
+            textClass: 'text-green-400',
+          };
+        if (numValue >= 86)
+          return {
+            borderClass: 'border-emerald-400',
+            textClass: 'text-emerald-400',
+          };
+        if (numValue >= 80)
+          return {
+            borderClass: 'border-emerald-300',
+            textClass: 'text-emerald-300',
+          };
+        if (numValue >= 73)
+          return { borderClass: 'border-teal-200', textClass: 'text-teal-200' };
+        if (numValue >= 66)
+          return { borderClass: 'border-gray-300', textClass: 'text-gray-300' };
+        if (numValue >= 56)
+          return { borderClass: 'border-red-200', textClass: 'text-red-200' };
+        if (numValue >= 46)
+          return { borderClass: 'border-red-300', textClass: 'text-red-300' };
+        if (numValue >= 41)
+          return { borderClass: 'border-red-400', textClass: 'text-red-400' };
+        if (numValue >= 36)
+          return { borderClass: 'border-red-500', textClass: 'text-red-500' };
+        if (numValue >= 26)
+          return { borderClass: 'border-red-600', textClass: 'text-red-600' };
+        if (numValue >= 16)
+          return { borderClass: 'border-red-700', textClass: 'text-red-700' };
       }
     }
   }
@@ -180,20 +291,39 @@ export function getFilterStyles(key: string, value: unknown): FilterStyles {
   if (key.toLowerCase().includes('option')) {
     const valueStr = String(value).toLowerCase();
     if (valueStr.includes('player')) {
-      return { bgClass: 'bg-green-900/40', borderClass: 'border-green-500', textClass: 'text-green-500' };
+      return {
+        bgClass: 'bg-green-900/40',
+        borderClass: 'border-green-500',
+        textClass: 'text-green-500',
+      };
     }
     if (valueStr.includes('team')) {
-      return { bgClass: 'bg-orange-900/40', borderClass: 'border-orange-400', textClass: 'text-orange-400' };
+      return {
+        bgClass: 'bg-orange-900/40',
+        borderClass: 'border-orange-400',
+        textClass: 'text-orange-400',
+      };
     }
   }
 
-  if (key.toLowerCase().includes('status') || key.toLowerCase().includes('fa')) {
+  if (
+    key.toLowerCase().includes('status') ||
+    key.toLowerCase().includes('fa')
+  ) {
     const valueStr = String(value).toLowerCase();
     if (valueStr.includes('ufa')) {
-      return { bgClass: 'bg-blue-600/40', borderClass: 'border-blue-600', textClass: 'text-blue-400' };
+      return {
+        bgClass: 'bg-blue-600/40',
+        borderClass: 'border-blue-600',
+        textClass: 'text-blue-400',
+      };
     }
     if (valueStr.includes('rfa')) {
-      return { bgClass: 'bg-purple-600/40', borderClass: 'border-purple-600', textClass: 'text-purple-400' };
+      return {
+        bgClass: 'bg-purple-600/40',
+        borderClass: 'border-purple-600',
+        textClass: 'text-purple-400',
+      };
     }
   }
 

@@ -2,7 +2,7 @@
 
 > **Created**: December 27, 2025
 > **Purpose**: Gap analysis based on existing audit findings to identify discrepancies between target behavior and implementation
-> **Baseline Reference**: [TRADE_MACHINE_AUDIT.md](audits/TRADE_MACHINE_AUDIT.md)
+> **Baseline Reference**: [TRADE_MACHINE_AUDIT.md](../../../docs/TRADE_MACHINE_AUDIT.md)
 
 ---
 
@@ -12,63 +12,63 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 
 ### 1.1 Salary Matching (What the UI/Validators Claim)
 
-| Scenario | UI Evidence | Validator Evidence | Target Behavior |
-|----------|-------------|-------------------|-----------------|
-| Under-cap teams | `TradeSalaryCalculator.jsx:60-61`: "Under Cap: Outgoing + $100k + cap space" | `validateSalaryMatching.js:99-110`: Allows absorption up to salary cap | Teams below the cap can absorb salary up to the cap ceiling |
-| First apron teams | `TradeSalaryCalculator.jsx:58-59`: "First Apron: 100% of outgoing salary" | `validateSalaryMatching.js:121-130`: 100% matching enforced | Teams at/above first apron can only receive exactly what they send out |
-| Second apron teams | `TradeSalaryCalculator.jsx:56-57`: "Second Apron: Dollar-for-dollar matching" | `validateSalaryMatching.js:111-119`: Strict 100% matching | Same as first apron - cannot receive more than sent |
-| Over-cap Band 1 (≤$6.5M) | `TradeSalaryCalculator.jsx:62-63`: "175% + $100k" | `validateSalaryMatching.js:135-136`: "200% + $250k" | **CONFLICT** - UI says 175%+$100k, validator uses 200%+$250k |
-| Over-cap Band 2 ($6.5M-$19.6M) | `TradeSalaryCalculator.jsx:64-65`: "125% + $100k" | `validateSalaryMatching.js:137-138`: "+$5M" | **CONFLICT** - UI says 125%+$100k, validator uses flat $5M addition |
-| Over-cap Band 3 (>$19.6M) | `TradeSalaryCalculator.jsx:66-67`: "125%" | `validateSalaryMatching.js:139-140`: "125%" (no addition) | Roughly aligned - 125% multiplier |
+| Scenario                       | UI Evidence                                                                   | Validator Evidence                                                     | Target Behavior                                                        |
+| ------------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Under-cap teams                | `TradeSalaryCalculator.jsx:60-61`: "Under Cap: Outgoing + $100k + cap space"  | `validateSalaryMatching.js:99-110`: Allows absorption up to salary cap | Teams below the cap can absorb salary up to the cap ceiling            |
+| First apron teams              | `TradeSalaryCalculator.jsx:58-59`: "First Apron: 100% of outgoing salary"     | `validateSalaryMatching.js:121-130`: 100% matching enforced            | Teams at/above first apron can only receive exactly what they send out |
+| Second apron teams             | `TradeSalaryCalculator.jsx:56-57`: "Second Apron: Dollar-for-dollar matching" | `validateSalaryMatching.js:111-119`: Strict 100% matching              | Same as first apron - cannot receive more than sent                    |
+| Over-cap Band 1 (≤$6.5M)       | `TradeSalaryCalculator.jsx:62-63`: "175% + $100k"                             | `validateSalaryMatching.js:135-136`: "200% + $250k"                    | **CONFLICT** - UI says 175%+$100k, validator uses 200%+$250k           |
+| Over-cap Band 2 ($6.5M-$19.6M) | `TradeSalaryCalculator.jsx:64-65`: "125% + $100k"                             | `validateSalaryMatching.js:137-138`: "+$5M"                            | **CONFLICT** - UI says 125%+$100k, validator uses flat $5M addition    |
+| Over-cap Band 3 (>$19.6M)      | `TradeSalaryCalculator.jsx:66-67`: "125%"                                     | `validateSalaryMatching.js:139-140`: "125%" (no addition)              | Roughly aligned - 125% multiplier                                      |
 
 ### 1.2 Aggregation Rules (What the Validators Claim)
 
-| Rule | Code Evidence | Target Behavior |
-|------|---------------|-----------------|
+| Rule                           | Code Evidence                  | Target Behavior                                                                                   |
+| ------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------- |
 | Second apron aggregation block | `validateAggregation.js:52-56` | Second apron teams cannot send multiple players aggregated to acquire a single higher-paid player |
-| Multi-team aggregation | `validateAggregation.js:59-68` | Second apron teams cannot receive players from multiple teams in same trade |
+| Multi-team aggregation         | `validateAggregation.js:59-68` | Second apron teams cannot receive players from multiple teams in same trade                       |
 
 ### 1.3 Trade Exception (TPE) Rules
 
-| Rule | Code Evidence | Target Behavior |
-|------|---------------|-----------------|
-| TPE creation | `tradeUtilities.js:28-39`: Creates TPE when over-cap team sends out more than receives | Over-cap teams create TPE equal to (outgoing - incoming) with 1-year expiry |
-| TPE usage | `validateTradeExceptions.js` | TPE can absorb incoming player up to exception amount |
-| Prior-year TPE restriction | `tradeHelpers.js:119-120` | Second apron teams cannot use TPEs created in prior seasons |
+| Rule                       | Code Evidence                                                                          | Target Behavior                                                             |
+| -------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| TPE creation               | `tradeUtilities.js:28-39`: Creates TPE when over-cap team sends out more than receives | Over-cap teams create TPE equal to (outgoing - incoming) with 1-year expiry |
+| TPE usage                  | `validateTradeExceptions.js`                                                           | TPE can absorb incoming player up to exception amount                       |
+| Prior-year TPE restriction | `tradeHelpers.js:119-120`                                                              | Second apron teams cannot use TPEs created in prior seasons                 |
 
 ### 1.4 Hard Cap Triggers
 
-| Trigger | Code Evidence | Target Behavior |
-|---------|---------------|-----------------|
-| Sign-and-trade | `hardCapValidation.js:81-88` | Receiving team in S&T gets hard-capped at first apron |
-| First apron hard cap | `hardCapValidation.js:90-97` | Teams cannot exceed first apron after becoming hard-capped |
-| Second apron hard cap | `hardCapValidation.js:68-75` | Teams cannot exceed second apron level |
+| Trigger               | Code Evidence                | Target Behavior                                            |
+| --------------------- | ---------------------------- | ---------------------------------------------------------- |
+| Sign-and-trade        | `hardCapValidation.js:81-88` | Receiving team in S&T gets hard-capped at first apron      |
+| First apron hard cap  | `hardCapValidation.js:90-97` | Teams cannot exceed first apron after becoming hard-capped |
+| Second apron hard cap | `hardCapValidation.js:68-75` | Teams cannot exceed second apron level                     |
 
 ### 1.5 BYC (Base Year Compensation)
 
-| Rule | Code Evidence | Target Behavior |
-|------|---------------|-----------------|
+| Rule                    | Code Evidence                                               | Target Behavior                                                       |
+| ----------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
 | Outgoing matching value | `matchingValues.js:10-14`, `computeMatchingValues.js:56-62` | BYC player's outgoing value = max(previous salary, 50% of new salary) |
 
 ### 1.6 Poison Pill
 
-| Rule | Code Evidence | Target Behavior |
-|------|---------------|-----------------|
+| Rule                       | Code Evidence                                                 | Target Behavior                                                                                          |
+| -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | Rookie extension averaging | `matchingValues.js:37-53`, `computeMatchingValues.js:107-117` | For traded rookie scale extension players, incoming value = average of current + extension year salaries |
 
 ### 1.7 Roster Constraints
 
-| Rule | Code Evidence | Target Behavior |
-|------|---------------|-----------------|
-| Standard roster | `validateRoster.js:28-32`, `cbaConstants.js:72-73` | Min 14, Max 15 players |
-| Two-way contracts | `validateRoster.js:34-38`, `cbaConstants.js:74` | Maximum 3 two-way contracts |
+| Rule              | Code Evidence                                      | Target Behavior             |
+| ----------------- | -------------------------------------------------- | --------------------------- |
+| Standard roster   | `validateRoster.js:28-32`, `cbaConstants.js:72-73` | Min 14, Max 15 players      |
+| Two-way contracts | `validateRoster.js:34-38`, `cbaConstants.js:74`    | Maximum 3 two-way contracts |
 
 ### 1.8 Timing/Eligibility
 
-| Rule | Code Evidence | Target Behavior |
-|------|---------------|-----------------|
-| Reacquisition bar | `eligibilityRules.js:12-43` | Cannot reacquire traded player for 1 year (12 months for season end for waived) |
-| Jan 15 timing gate | `timingValidation.js` | Certain trades restricted until Jan 15 |
+| Rule               | Code Evidence               | Target Behavior                                                                 |
+| ------------------ | --------------------------- | ------------------------------------------------------------------------------- |
+| Reacquisition bar  | `eligibilityRules.js:12-43` | Cannot reacquire traded player for 1 year (12 months for season end for waived) |
+| Jan 15 timing gate | `timingValidation.js`       | Certain trades restricted until Jan 15                                          |
 
 ---
 
@@ -84,11 +84,11 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 
   ```javascript
   if (salaryOut <= 6_500_000) {
-    allowableIncoming = salaryOut * 2 + 250_000;  // 200% + $250k
+    allowableIncoming = salaryOut * 2 + 250_000; // 200% + $250k
   } else if (salaryOut <= 19_600_000) {
-    allowableIncoming = salaryOut + 5_000_000;    // + $5M
+    allowableIncoming = salaryOut + 5_000_000; // + $5M
   } else {
-    allowableIncoming = salaryOut * 1.25;         // 125%
+    allowableIncoming = salaryOut * 1.25; // 125%
   }
   ```
 
@@ -114,11 +114,11 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 
   ```javascript
   matchingTiers: [
-    { maxOutgoing: 0, incoming: () => 7_500_000 },           // Cap-room: flat $7.5M
+    { maxOutgoing: 0, incoming: () => 7_500_000 }, // Cap-room: flat $7.5M
     { maxOutgoing: 7_499_999, incoming: (out) => out * 2.0 }, // 200% (no +$250k)
     { maxOutgoing: 14_619_999, incoming: (out) => out * 1.75 + 100_000 }, // 175% + $100k
-    { maxOutgoing: Infinity, incoming: (out) => out + 5_000_000 },        // + $5M
-  ]
+    { maxOutgoing: Infinity, incoming: (out) => out + 5_000_000 }, // + $5M
+  ];
   ```
 
 **Plain-English Explanation**: This is a **third** set of matching formulas that differs from both the validator AND tradeHelpers. The thresholds are different ($7.5M vs $6.5M), and the percentages vary (175% vs 200%).
@@ -204,7 +204,7 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
 
    ```javascript
    if (direction === 'outgoing' && player.isBYC && player.previousSalary) {
-     return player.previousSalary;  // Uses previous salary DIRECTLY
+     return player.previousSalary; // Uses previous salary DIRECTLY
    }
    ```
 
@@ -213,7 +213,7 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
    ```javascript
    if (player.isBYC && player.previousSalary) {
      const fiftyPercentOfNew = (contractSalary || newSalary) * 0.5;
-     outgoingValue = Math.max(player.previousSalary, fiftyPercentOfNew);  // MAX of both
+     outgoingValue = Math.max(player.previousSalary, fiftyPercentOfNew); // MAX of both
    }
    ```
 
@@ -222,7 +222,7 @@ This section documents what the Trade Machine **aims to do** based on UI labels,
    ```javascript
    if (isOutgoing && (player.isBYC || player.baseYearCompensation)) {
      const prevSalary = player.previousSalary || 0;
-     return Math.max(prevSalary, Math.floor(newSalary * BYC_PERCENT));  // Same as #2
+     return Math.max(prevSalary, Math.floor(newSalary * BYC_PERCENT)); // Same as #2
    }
    ```
 
@@ -327,32 +327,32 @@ const newSalary =
 
 ### P0: Must-Fix for Core Math Correct + Consistent
 
-| # | Issue | Files to Change | What to Change |
-|---|-------|-----------------|----------------|
-| P0-1 | **Consolidate salary matching formulas** | `validateSalaryMatching.js`, `tradeHelpers.js`, `TradeSalaryCalculator.jsx` | Create single `getSalaryMatchingRule(teamSalary, outgoingSalary, capSettings)` function that returns `{ band, allowable }`. Import and use in ALL three locations. |
-| P0-2 | **Fix BYC to use max formula** | `tradeValidator.js:139-142` | Change `return player.previousSalary` to `return Math.max(player.previousSalary, baseSalary * 0.5)` to match the correct CBA rule |
-| P0-3 | **Remove hard-coded cap defaults** | `validateSalaryMatching.js:49-54` | Remove default values. Add validation to fail fast if `capSettings` is missing instead of silently using wrong values. |
-| P0-4 | **UI rule text must match actual formulas** | `TradeSalaryCalculator.jsx:55-68` | Update rule strings to match actual validator formulas (200%+$250k, +$5M/+$7.5M, 125%+$250k) |
-| P0-5 | **Resolve formula discrepancy (PREREQUISITE)** | All locations with matching formulas | Determine the correct CBA interpretation (200%+$250k or 175%+$100k, $5M or $7.5M addition) by consulting CBA Article 17 Section 6(f). Then update all locations to use the correct formula. |
-| P0-6 | **Implement Trade Receipt** | New file `engine/tradeReceipt.js` | Create debug receipt showing exact calculations used (see Section 4). Essential for diagnosing discrepancies. |
+| #    | Issue                                          | Files to Change                                                             | What to Change                                                                                                                                                                              |
+| ---- | ---------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-1 | **Consolidate salary matching formulas**       | `validateSalaryMatching.js`, `tradeHelpers.js`, `TradeSalaryCalculator.jsx` | Create single `getSalaryMatchingRule(teamSalary, outgoingSalary, capSettings)` function that returns `{ band, allowable }`. Import and use in ALL three locations.                          |
+| P0-2 | **Fix BYC to use max formula**                 | `tradeValidator.js:139-142`                                                 | Change `return player.previousSalary` to `return Math.max(player.previousSalary, baseSalary * 0.5)` to match the correct CBA rule                                                           |
+| P0-3 | **Remove hard-coded cap defaults**             | `validateSalaryMatching.js:49-54`                                           | Remove default values. Add validation to fail fast if `capSettings` is missing instead of silently using wrong values.                                                                      |
+| P0-4 | **UI rule text must match actual formulas**    | `TradeSalaryCalculator.jsx:55-68`                                           | Update rule strings to match actual validator formulas (200%+$250k, +$5M/+$7.5M, 125%+$250k)                                                                                                |
+| P0-5 | **Resolve formula discrepancy (PREREQUISITE)** | All locations with matching formulas                                        | Determine the correct CBA interpretation (200%+$250k or 175%+$100k, $5M or $7.5M addition) by consulting CBA Article 17 Section 6(f). Then update all locations to use the correct formula. |
+| P0-6 | **Implement Trade Receipt**                    | New file `engine/tradeReceipt.js`                                           | Create debug receipt showing exact calculations used (see Section 4). Essential for diagnosing discrepancies.                                                                               |
 
 ### P1: Important Correctness Rules
 
-| # | Issue | Files to Change | What to Change |
-|---|-------|-----------------|----------------|
-| P1-1 | **Consolidate poison pill implementations** | `matchingValues.js:46-51` | Align formula with `computeMatchingValues.js` - use `(current + extensionTotal) / totalYears` |
-| P1-2 | **Ensure computeMatchingValues results are used consistently** | `validateSalaryMatching.js` | Use `team.matchIncoming` / `team.matchOutgoing` instead of `team.salaryIn` / `team.salaryOut` for players with kickers/BYC |
-| P1-3 | **Remove duplicate matching value calculators** | `utils/salaryUtils.js`, `utils/matchingValues.js` | Consolidate into single authoritative module |
-| P1-4 | **Add cap settings validation** | `tradeValidator.js:116` | Return error if `capSettings` is null instead of proceeding with potentially wrong values |
+| #    | Issue                                                          | Files to Change                                   | What to Change                                                                                                             |
+| ---- | -------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| P1-1 | **Consolidate poison pill implementations**                    | `matchingValues.js:46-51`                         | Align formula with `computeMatchingValues.js` - use `(current + extensionTotal) / totalYears`                              |
+| P1-2 | **Ensure computeMatchingValues results are used consistently** | `validateSalaryMatching.js`                       | Use `team.matchIncoming` / `team.matchOutgoing` instead of `team.salaryIn` / `team.salaryOut` for players with kickers/BYC |
+| P1-3 | **Remove duplicate matching value calculators**                | `utils/salaryUtils.js`, `utils/matchingValues.js` | Consolidate into single authoritative module                                                                               |
+| P1-4 | **Add cap settings validation**                                | `tradeValidator.js:116`                           | Return error if `capSettings` is null instead of proceeding with potentially wrong values                                  |
 
 ### P2: Polish/UX/Tests
 
-| # | Issue | Files to Change | What to Change |
-|---|-------|-----------------|----------------|
-| P2-1 | **Add recently signed FA restriction** | `rules/eligibilityRules.js` | Add `validateRecentlySigned()` checking if player was signed within 3 months |
-| P2-2 | **Add option/non-guarantee handling** | `utils/computeMatchingValues.js` | Add logic to handle `player.hasOption`, `player.guaranteed` fields |
-| P2-3 | **Add golden trade regression tests** | `tests/trade/goldenTrades.test.js` | See Section 5 |
-| P2-4 | **Document which CBA article each rule implements** | All `rules/*.js` files | Add JSDoc comments citing CBA Article/Section |
+| #    | Issue                                               | Files to Change                    | What to Change                                                               |
+| ---- | --------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| P2-1 | **Add recently signed FA restriction**              | `rules/eligibilityRules.js`        | Add `validateRecentlySigned()` checking if player was signed within 3 months |
+| P2-2 | **Add option/non-guarantee handling**               | `utils/computeMatchingValues.js`   | Add logic to handle `player.hasOption`, `player.guaranteed` fields           |
+| P2-3 | **Add golden trade regression tests**               | `tests/trade/goldenTrades.test.js` | See Section 5                                                                |
+| P2-4 | **Document which CBA article each rule implements** | All `rules/*.js` files             | Add JSDoc comments citing CBA Article/Section                                |
 
 ---
 
@@ -369,11 +369,11 @@ Create a debug receipt that makes disputes impossible by showing exactly what va
   tradeId: string,
   timestamp: Date,
   validatorVersion: string,
-  
+
   teams: [{
     teamId: string,
     teamName: string,
-    
+
     // PRE-TRADE STATUS
     preTradeStatus: {
       teamTotalSalary: number,        // Includes dead money + cap holds
@@ -383,7 +383,7 @@ Create a debug receipt that makes disputes impossible by showing exactly what va
       hardCapped: boolean,
       hardCapLevel: number | null,
     },
-    
+
     // OUTGOING (what this team sends)
     outgoing: {
       players: [{
@@ -401,7 +401,7 @@ Create a debug receipt that makes disputes impossible by showing exactly what va
       totalBaseSalary: number,
       totalMatchingValue: number,
     },
-    
+
     // INCOMING (what this team receives)
     incoming: {
       players: [{
@@ -424,7 +424,7 @@ Create a debug receipt that makes disputes impossible by showing exactly what va
       totalBaseSalary: number,
       totalMatchingValue: number,
     },
-    
+
     // MATCHING CALCULATION
     matching: {
       ruleApplied: string,            // "UNDER_CAP" | "FIRST_APRON_100PCT" | "OVER_CAP_BAND_1" | etc
@@ -435,27 +435,27 @@ Create a debug receipt that makes disputes impossible by showing exactly what va
       margin: number,                  // allowable - actual
       passed: boolean,
     },
-    
+
     // TPE HANDLING
     tpeUsage: {
       appliedTPEs: [{ id, name, amount, remaining }],
       totalTPEAmount: number,
       tpeCoversIncoming: boolean,
     },
-    
-    // POST-TRADE STATUS  
+
+    // POST-TRADE STATUS
     postTradeStatus: {
       projectedSalary: number,
       apronStatus: string,
       hardCapTriggered: boolean,
       hardCapReason: string | null,
     },
-    
+
     // VIOLATIONS & WARNINGS
     violations: string[],
     warnings: string[],
   }],
-  
+
   // OVERALL RESULT
   isLegal: boolean,
   primaryViolation: string | null,
@@ -473,7 +473,12 @@ Create a debug receipt that makes disputes impossible by showing exactly what va
  * CRITICAL: Must use the SAME calculation functions as validateTrade()
  * to ensure receipt matches validation results.
  */
-export function generateTradeReceipt({ teams, capProjections, currentYear, tradeCtx }) {
+export function generateTradeReceipt({
+  teams,
+  capProjections,
+  currentYear,
+  tradeCtx,
+}) {
   // Re-use helper functions from tradeValidator.js
   // DO NOT duplicate calculations
 }
@@ -618,7 +623,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
   },
   expectedResult: {
     legal: true,
-    teamA: { 
+    teamA: {
       createdTPE: { amount: 8_000_000 },
     },
   },
@@ -684,7 +689,7 @@ export function generateTradeReceipt({ teams, capProjections, currentYear, trade
   },
   expectedResult: {
     legal: true,
-    teamA: { 
+    teamA: {
       capSpaceUsed: 10_000_000,  // 15M - 5M = 10M net addition
       capRoomRemaining: 1_000_000,
     },
@@ -730,18 +735,32 @@ function buildTradeFromScenario(scenario) {
   return {
     teams: [
       {
-        team: { id: 'team-a', teamName: 'Team A', teamTotalSalary: teamA.totalSalary, ...teamA },
+        team: {
+          id: 'team-a',
+          teamName: 'Team A',
+          teamTotalSalary: teamA.totalSalary,
+          ...teamA,
+        },
         sends: teamA.players || [teamA.player],
         picksOut: [],
       },
       {
-        team: { id: 'team-b', teamName: 'Team B', teamTotalSalary: teamB.totalSalary, ...teamB },
+        team: {
+          id: 'team-b',
+          teamName: 'Team B',
+          teamTotalSalary: teamB.totalSalary,
+          ...teamB,
+        },
         sends: teamB.players || [teamB.player],
         picksOut: [],
       },
     ],
     capProjections: {
-      '2024-25': capSettings || { cap: 141_000_000, firstApron: 178_000_000, secondApron: 189_000_000 },
+      '2024-25': capSettings || {
+        cap: 141_000_000,
+        firstApron: 178_000_000,
+        secondApron: 189_000_000,
+      },
     },
     currentYear: 2025,
   };
@@ -765,14 +784,14 @@ function buildTradeFromScenario(scenario) {
 
 ## Appendix: Files Referenced
 
-| File Path | Purpose |
-|-----------|---------|
-| `src/features/architect/utils/tradeMachine/engine/tradeValidator.js` | Main validation entry point |
-| `src/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js` | Salary matching rule implementation |
-| `src/features/architect/utils/tradeHelpers.js` | UI-level salary helpers, MATCHING_BANDS_2023 |
-| `src/features/architect/tradeMachine/TradeSalaryCalculator.jsx` | UI component showing matching rules |
-| `src/features/architect/utils/tradeMachine/utils/computeMatchingValues.js` | BYC, kicker, poison pill calculations |
-| `src/features/architect/utils/tradeMachine/utils/matchingValues.js` | Duplicate matching value calculator |
-| `src/features/architect/utils/tradeMachine/constants/cbaConstants.js` | Trade machine CBA constants |
-| `src/features/architect/utils/cbaConstants.js` | Feature-level CBA constants (re-exports + CBA_BY_YEAR) |
-| `src/features/architect/hooks/useTradeMachine.js` | Trade machine React hook |
+| File Path                                                                   | Purpose                                                |
+| --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`        | Main validation entry point                            |
+| `src/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js` | Salary matching rule implementation                    |
+| `src/features/architect/utils/tradeHelpers.js`                              | UI-level salary helpers, MATCHING_BANDS_2023           |
+| `src/features/architect/tradeMachine/TradeSalaryCalculator.jsx`             | UI component showing matching rules                    |
+| `src/features/architect/utils/tradeMachine/utils/computeMatchingValues.js`  | BYC, kicker, poison pill calculations                  |
+| `src/features/architect/utils/tradeMachine/utils/matchingValues.js`         | Duplicate matching value calculator                    |
+| `src/features/architect/utils/tradeMachine/constants/cbaConstants.js`       | Trade machine CBA constants                            |
+| `src/features/architect/utils/cbaConstants.js`                              | Feature-level CBA constants (re-exports + CBA_BY_YEAR) |
+| `src/features/architect/hooks/useTradeMachine.js`                           | Trade machine React hook                               |

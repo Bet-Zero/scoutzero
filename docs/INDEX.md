@@ -34,6 +34,12 @@
 - [Return Packages README](return_packages/README.md) - canonical return-package root.
 - Stale-link cleanup is tracked by the workspace cleanup master doc; Phase 2 updated only return-package routing references.
 
+## Historical Archives
+
+- [Docs Archive](../archive/docs/README.md) - historical docs moved out of the active docs root.
+- [TypeScript Archive](../archive/docs/typescript/README.md) - archived TypeScript campaign bundle preserved as evidence.
+- [Reviews Archive](../archive/docs/reviews/README.md) - one-off review docs moved out of active routing.
+
 ---
 
 ## 📚 Documentation Categories
@@ -43,10 +49,11 @@
 Core system architecture and data models:
 
 - [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data structures and relationships
+- [Architect Runtime Reference](architect/README.md) - Active runtime documentation for Architect save/load flow, world behavior, persistence, and Firestore routing
+- [Historical Architect Planning Bundle Router](architect-teams-plan/README.md) - points to the archived Architect planning/design bundle
 - [Architect Gap Analysis](ARCHITECT_GAP_ANALYSIS.md) - System analysis and improvements
 - [Architect Schema Migration Review](architecture/ARCHITECT_SCHEMA_MIGRATION_REVIEW.md)
 - [Contract Normalization Rules](CONTRACT_NORMALIZATION_RULES.md)
-- [New Schema Validator Review](new-schema-validator-review.md)
 
 **Migration Documentation:**
 
@@ -239,6 +246,7 @@ Scouting and player evaluation features:
 
 - **Root-level docs**: High-level guides and entry points
 - **`/docs` subdirectories**: Organized by topic and subsystem
+- **`/archive/docs`**: Historical docs retained for audit and provenance
 - **Return packages**: Historical deliverables with execution details
 - **Runbooks**: Step-by-step operational procedures
 - **MASTER suffix**: Authoritative feature documentation

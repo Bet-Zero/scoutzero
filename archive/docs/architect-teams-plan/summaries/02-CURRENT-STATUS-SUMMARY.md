@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Summary: 02-CURRENT-STATUS.md
 
 ## Purpose

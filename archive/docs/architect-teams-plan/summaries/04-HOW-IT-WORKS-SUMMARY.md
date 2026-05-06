@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Summary: 04-HOW-IT-WORKS.md
 
 ## Purpose

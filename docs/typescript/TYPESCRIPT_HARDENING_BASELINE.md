@@ -7,8 +7,9 @@
 
 Captured: 2026-04-21
 
-This is the starting evidence package for `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`.
-It records the live repo state before the hardening waves begin. Counts below are
+This is the starting evidence package for
+`archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md`. It records the
+live repo state before the hardening waves begin. Counts below are
 regex/file inventory measurements, not semantic type-safety proof.
 
 ## Summary

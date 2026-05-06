@@ -1,12 +1,23 @@
 # Architect Teams Plan - Execution Instructions
 
+> **Status:** Historical planning prompt.
+>
+> This file is preserved from the older Architect planning bundle. It should
+> not be used as the current implementation entry point.
+>
+> For the live runtime/reference set, start with
+> [docs/architect/README.md](../../architect/README.md).
+
 ## Context
 
-You are tasked with implementing the **Architect Teams Plan** feature for the HoopZero/ScoutZero NBA scouting platform. This feature enables users to create and manage multi-season NBA roster scenarios with full CBA accuracy, branching decision trees, and optimal storage efficiency.
+You are reading a preserved planning prompt for the older **Architect Teams
+Plan** bundle. It captures historical implementation intent, not the current
+state of the live codebase.
 
 ## Documentation Location
 
-All implementation details are contained in this folder: `/architect-plan-summary/`
+Historical implementation details are contained in this folder:
+`docs/architect-teams-plan/summaries/`
 
 Start by reading these files in order:
 
@@ -20,7 +31,7 @@ Start by reading these files in order:
 
 ## Implementation Approach
 
-### Current Status
+### Historical Planning Status
 
 - **Phase 1**: Foundation & Planning ✅ **COMPLETE**
 - **Phase 2**: Data Migration - **START HERE**

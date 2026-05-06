@@ -90,6 +90,10 @@ Establish the canonical documentation rules first, then track the bounded execut
 
 - `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_HISTORICAL_DOCS_FOLLOWUP_PREFLIGHT_RETURN_PACKAGE.md`
 - `docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_HISTORICAL_DOCS_ADJUDICATION_CHECKLIST.md`
+- `docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_PREFLIGHT.md`
+- `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_PREFLIGHT_RETURN_PACKAGE.md`
+- `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_EXECUTION_RETURN_PACKAGE.md`
+- `docs/_working/workspace-cleanup/SCOUTZERO_ARCHITECT_DOCS_RUNTIME_AUDIT.md`
 
 ## Archived Clusters In Phase 3
 
@@ -106,6 +110,9 @@ Establish the canonical documentation rules first, then track the bounded execut
 - Older architect and trade-machine docs still reference missing historical return-package artifacts with no clear canonical replacement. A bounded preflight inventory now exists at `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_HISTORICAL_DOCS_FOLLOWUP_PREFLIGHT_RETURN_PACKAGE.md`.
 - The active manual-review workflow for those carried-forward docs now lives at `docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_HISTORICAL_DOCS_ADJUDICATION_CHECKLIST.md`.
 - The affected carried-forward examples remain `docs/architect/ARCHITECT_CAP_SHEET_REVIEW_TRACKER.md`, `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`, `docs/architect/EDIT_CONTRACT_MASTER.md`, `docs/architect/TRADE_MACHINE_MASTER.md`, and `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md`; they still require human review because representative targets are absent from the current workspace.
+- The docs-root relocation pass, TypeScript historical-bundle move, and tracked root-output cleanup are now complete and recorded in `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_EXECUTION_RETURN_PACKAGE.md`.
+- Active-but-better-placed docs still remain at the docs root for a future bounded pass, including `docs/ARCHITECT_GAP_ANALYSIS.md`, `docs/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md`, `docs/SCHEMA_MIGRATION_GUIDE.md`, `docs/TRADE_MACHINE_AUDIT.md`, and `docs/RETURN_PACKAGES_CONSOLIDATION.md`.
+- An Architect-doc runtime audit now distinguishes the official runtime/reference candidates from historical planning bundles and mixed review surfaces; see `docs/_working/workspace-cleanup/SCOUTZERO_ARCHITECT_DOCS_RUNTIME_AUDIT.md`.
 - Active or ambiguous working-doc clusters kept in place for follow-up review: `docs/_working/workspace-cleanup/`, `docs/_working/architect/free-agency/`, `docs/_working/architect/roster/`, and `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`.
 
 ## Current Cleanup Status
@@ -115,6 +122,7 @@ Establish the canonical documentation rules first, then track the bounded execut
 - A lightweight guardrail command now exists to scan active routing docs, plans visibility, and forbidden feature-root return-package surfaces before docs changes are closed.
 - A bounded historical-doc preflight now captures the blocked repair inventory, so remaining follow-up work is limited to the carried-forward human-review items above rather than another broad workspace cleanup pass.
 - The carried-forward historical-doc follow-up now has a concrete adjudication checklist that can be worked one document at a time without reopening the broader cleanup.
+- The docs-root clutter and loose root-artifact pass is now partially executed: archive-candidate root docs were relocated, the root TypeScript campaign bundle moved behind `archive/docs/typescript/`, tracked raw output files were removed after provenance review, and `.architect-cast-baseline.json` was explicitly kept in place.
 
 ## Phase 4 Moved Evidence Summary
 

@@ -1,12 +1,20 @@
 # Architect Plan Summary
 
+> **Status:** Historical summary bundle.
+>
+> These summaries preserve the older Architect planning package. They are not
+> the official current runtime/reference set for Architect behavior.
+>
+> For the live implementation docs, start with
+> [docs/architect/README.md](../../architect/README.md).
+
 This folder contains concise summaries of the seven documentation files from `/docs/architect-teams-plan/`, designed to be easily digestible by coding agents and developers working on the Architect Teams Plan feature.
 
 ## Files
 
 ### Quick Access
 
-- **EXECUTION-PROMPT.md** ⭐ - **START HERE for implementation tasks**
+- **EXECUTION-PROMPT.md** ⭐ - preserved historical planning prompt; not the current implementation entry point
 
 ### Combined Summary
 
@@ -28,10 +36,10 @@ Each summarizes one of the original documentation files from `docs/architect-tea
 
 These summaries are designed to:
 
-- Capture key points from each original document
+- Capture key points from each original planning document
 - Be concise enough to fit within token limits for coding agents
 - Provide actionable information without guessing or speculation
-- Serve as quick references during implementation
+- Serve as quick references for historical planning context
 
 ## Original Documentation
 
@@ -83,12 +91,12 @@ The `/team-scrape` folder contains **working, tested code** for creating `/archi
 
 When working on the Architect Teams Plan feature:
 
-**To Start Implementation**:
+**To Start Current Implementation Work**:
 
-1. Read **EXECUTION-PROMPT.md** for immediate tasks
-2. Check **`docs/architect-teams-plan/00-IMPLEMENTATION-STATUS.md`** for current status
+1. Start with [docs/architect/README.md](../../architect/README.md)
+2. Use [src/features/architect/ARCHITECT_FEATURE_README.md](../../../src/features/architect/ARCHITECT_FEATURE_README.md) and the current docs linked from that router
 
-**To Understand the System**:
+**To Understand The Historical Plan**:
 
 1. Start with **COMBINED-SUMMARY.md** for the big picture
 2. Reference individual summaries for specific areas (schema, implementation, etc.)
@@ -97,4 +105,4 @@ When working on the Architect Teams Plan feature:
 ---
 
 **Created**: October 21, 2025
-**Purpose**: Token-efficient summaries for coding agents working on Architect Teams Plan
+**Purpose**: Token-efficient summaries for the historical Architect planning bundle

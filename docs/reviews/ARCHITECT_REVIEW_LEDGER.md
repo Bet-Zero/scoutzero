@@ -37,8 +37,8 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
   - `src/tests/smoke/architect.uiSmoke.e1.test.tsx`
   - Asserts no captured `console.warn`/`console.error` line contains `Support for defaultProps will be removed from function components`
 - Updated Architect masters:
-  - `docs/architect/ARCHITECT_SMOKE_MASTER.md`
-  - `docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
+  - `archive/docs/architect/ARCHITECT_SMOKE_MASTER.md`
+  - `archive/docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
 
 **Command evidence (required order):**
 
@@ -74,8 +74,8 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
   - `npm run test:smoke:architect`
   - `npm run smoke:architect`
 - Updated master docs/runbook:
-  - `docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
-  - `docs/architect/ARCHITECT_SMOKE_MASTER.md`
+  - `archive/docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
+  - `archive/docs/architect/ARCHITECT_SMOKE_MASTER.md`
 
 **Command evidence:**
 
@@ -760,7 +760,7 @@ VITE_ARCHITECT_REVIEW_MODE=true npm run dev
 
 **Master Doc:**
 
-- `docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
+- `archive/docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
 
 ---
 

@@ -17,10 +17,10 @@ This plan is intentionally bounded.
 
 ## Ground Truth To Preserve
 
-- `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md` already records `TYPESCRIPT HARDENING COMPLETE`.
+- `archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md` already records `TYPESCRIPT HARDENING COMPLETE`.
 - `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md` already records `DONE - ZERO-EXCEPTION HARDENING COMPLETE`.
 - `docs/typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md` should remain available, but as a maintenance and regression gate, not as a signal that the repo is still in an open-ended hardening campaign.
-- Historical TypeScript campaign docs must remain in the repo as evidence. They should be labeled and routed correctly, not deleted.
+- Historical TypeScript campaign docs must remain in the repo as evidence. They are now routed through `archive/docs/typescript/README.md`, not the active docs root.
 
 ## Bounded Success Criteria
 
@@ -35,16 +35,16 @@ This plan is intentionally bounded.
 
 ## Stale Or Misrouting Surfaces To Fix
 
-| Surface                                                               | Current issue                                                                                            | Required correction                                                                                                                                                                 |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTS.md`                                                           | Says existing `.js` / `.jsx` files are legacy from an ongoing migration.                                 | Replace with language that TypeScript migration is complete, new files default to TypeScript, and remaining JS-like files are intentional or separately documented legacy surfaces. |
-| `README.md`                                                           | Does not plainly state the TypeScript campaign is complete and now maintained by gates.                  | Add a short repo-status note that the TypeScript migration/hardening campaign is complete and link to the current TypeScript docs index.                                            |
-| `docs/guides/DEVELOPER_GUIDE.md`                                      | Serves as a main developer entry point but does not give a current TypeScript status or routing rule.    | Add a concise maintenance-status note and link to the TypeScript docs index.                                                                                                        |
-| `docs/INDEX.md`                                                       | Has no current-vs-historical TypeScript routing section.                                                 | Add a `TypeScript Status` section and link to a dedicated TypeScript index.                                                                                                         |
-| `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`                             | Still presents itself as a living master plan with active execution language even though it is complete. | Mark as historical/completed and route agents to the current TypeScript index.                                                                                                      |
-| `docs/typescript/TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md`         | Still reads like an active execution protocol.                                                           | Mark as historical campaign procedure and state that it should only matter if a future regression requires a new plan.                                                              |
-| `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`              | Still has active control-panel language despite completed status.                                        | Add a completed/historical banner and regression-only reopen rule.                                                                                                                  |
-| `docs/TS_CONVERSION_NEXT_STEPS.md` and `docs/TS_CONVERSION_PILE_*.md` | Older living-plan wording still tells agents to keep executing conversion work.                          | Mark as historical/completed campaign records and route readers to the current TypeScript index.                                                                                    |
+| Surface                                                                                                     | Current issue                                                                                            | Required correction                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTS.md`                                                                                                 | Says existing `.js` / `.jsx` files are legacy from an ongoing migration.                                 | Replace with language that TypeScript migration is complete, new files default to TypeScript, and remaining JS-like files are intentional or separately documented legacy surfaces. |
+| `README.md`                                                                                                 | Does not plainly state the TypeScript campaign is complete and now maintained by gates.                  | Add a short repo-status note that the TypeScript migration/hardening campaign is complete and link to the current TypeScript docs index.                                            |
+| `docs/guides/DEVELOPER_GUIDE.md`                                                                            | Serves as a main developer entry point but does not give a current TypeScript status or routing rule.    | Add a concise maintenance-status note and link to the TypeScript docs index.                                                                                                        |
+| `docs/INDEX.md`                                                                                             | Has no current-vs-historical TypeScript routing section.                                                 | Add a `TypeScript Status` section and link to a dedicated TypeScript index.                                                                                                         |
+| `archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md`                                                | Still presents itself as a living master plan with active execution language even though it is complete. | Mark as historical/completed and route agents to the current TypeScript index.                                                                                                      |
+| `docs/typescript/TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md`                                               | Still reads like an active execution protocol.                                                           | Mark as historical campaign procedure and state that it should only matter if a future regression requires a new plan.                                                              |
+| `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`                                                    | Still has active control-panel language despite completed status.                                        | Add a completed/historical banner and regression-only reopen rule.                                                                                                                  |
+| `archive/docs/typescript/TS_CONVERSION_NEXT_STEPS.md` and `archive/docs/typescript/TS_CONVERSION_PILE_*.md` | Older living-plan wording still tells agents to keep executing conversion work.                          | Mark as historical/completed campaign records and route readers to the current TypeScript index.                                                                                    |
 
 ## Current Versus Historical Doc Classification
 
@@ -59,7 +59,7 @@ This plan is intentionally bounded.
 
 ### Historical or completed campaign records after stabilization
 
-- `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`
+- `archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md`
 - `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`
 - `docs/typescript/TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md`
 - `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`
@@ -67,13 +67,13 @@ This plan is intentionally bounded.
 - `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md`
 - `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`
 - `docs/typescript/TYPESCRIPT_GATE_005_TEST_MOCK_CLASSIFICATION.md`
-- `docs/TS_CONVERSION_NEXT_STEPS.md`
-- `docs/TS_CONVERSION_PILE_A_AUDIT.md`
-- `docs/TS_CONVERSION_PILE_B_AUDIT.md`
-- `docs/TS_CONVERSION_PILE_C_PLAN.md`
-- `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`
+- `archive/docs/typescript/TS_CONVERSION_NEXT_STEPS.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_A_AUDIT.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_B_AUDIT.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_C_PLAN.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_D_TESTS_PLAN.md`
 
-Historical docs stay in place as evidence. They get a consistent top-of-file banner instead of being moved or deleted.
+Historical docs stay in the repo as archived evidence. They get a consistent top-of-file banner instead of being deleted.
 
 ## Standard Historical Banner
 
@@ -104,14 +104,14 @@ Files:
 - `README.md`
 - `docs/guides/DEVELOPER_GUIDE.md`
 - `docs/INDEX.md`
-- `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`
+- `archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md`
 - `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`
 - `docs/typescript/TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md`
-- `docs/TS_CONVERSION_NEXT_STEPS.md`
-- `docs/TS_CONVERSION_PILE_A_AUDIT.md`
-- `docs/TS_CONVERSION_PILE_B_AUDIT.md`
-- `docs/TS_CONVERSION_PILE_C_PLAN.md`
-- `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`
+- `archive/docs/typescript/TS_CONVERSION_NEXT_STEPS.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_A_AUDIT.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_B_AUDIT.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_C_PLAN.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_D_TESTS_PLAN.md`
 
 Work:
 
@@ -163,7 +163,7 @@ Done when:
 
 Files:
 
-- `docs/TYPESCRIPT_HARDENING_NEXT_STEPS.md`
+- `archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md`
 - `docs/typescript/TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md`
 - `docs/typescript/TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md`
 - `docs/typescript/TYPESCRIPT_HARDENING_BASELINE.md`
@@ -171,11 +171,11 @@ Files:
 - `docs/typescript/TYPESCRIPT_HARDENING_FINAL_REVIEW.md`
 - `docs/typescript/TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`
 - `docs/typescript/TYPESCRIPT_GATE_005_TEST_MOCK_CLASSIFICATION.md`
-- `docs/TS_CONVERSION_NEXT_STEPS.md`
-- `docs/TS_CONVERSION_PILE_A_AUDIT.md`
-- `docs/TS_CONVERSION_PILE_B_AUDIT.md`
-- `docs/TS_CONVERSION_PILE_C_PLAN.md`
-- `docs/TS_CONVERSION_PILE_D_TESTS_PLAN.md`
+- `archive/docs/typescript/TS_CONVERSION_NEXT_STEPS.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_A_AUDIT.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_B_AUDIT.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_C_PLAN.md`
+- `archive/docs/typescript/TS_CONVERSION_PILE_D_TESTS_PLAN.md`
 
 Work:
 

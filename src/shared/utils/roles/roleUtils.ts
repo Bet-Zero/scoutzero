@@ -2,7 +2,7 @@ import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import type { SubRoleType } from '@/constants/SubRoleMasterList';
 
 // Note: POSITION_MAP and getPlayerPositionLabel both define the same position → abbreviation
-// mapping. Consolidation opportunity flagged — see follow-up items in TS_CONVERSION_NEXT_STEPS.md.
+// mapping. Consolidation opportunity flagged in the archived TypeScript campaign bundle.
 export const POSITION_MAP: Record<string, string> = {
   Guard: 'G',
   'Point Guard': 'PG',
@@ -17,7 +17,9 @@ export const POSITION_MAP: Record<string, string> = {
   'Center-Forward': 'C',
 };
 
-export function getPlayerPositionLabel(fullPosition: string | null | undefined): string {
+export function getPlayerPositionLabel(
+  fullPosition: string | null | undefined
+): string {
   const map: Record<string, string> = {
     Guard: 'G',
     'Point Guard': 'PG',
@@ -34,7 +36,9 @@ export function getPlayerPositionLabel(fullPosition: string | null | undefined):
   return (fullPosition && map[fullPosition]) || fullPosition || '—';
 }
 
-export function expandPositionGroup(position: string | null | undefined): string[] {
+export function expandPositionGroup(
+  position: string | null | undefined
+): string[] {
   switch (position) {
     case 'group_guard':
     case 'Guard':

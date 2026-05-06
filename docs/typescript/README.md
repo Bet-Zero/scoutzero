@@ -20,12 +20,13 @@ Treat TypeScript as a maintenance gate, not as an active repo-wide campaign.
 
 These files remain in the repository as evidence from the completed TypeScript campaign. Read them for history or audit context, not as active execution instructions.
 
-- [../TYPESCRIPT_HARDENING_NEXT_STEPS.md](../TYPESCRIPT_HARDENING_NEXT_STEPS.md)
-- [../TS_CONVERSION_NEXT_STEPS.md](../TS_CONVERSION_NEXT_STEPS.md)
-- [../TS_CONVERSION_PILE_A_AUDIT.md](../TS_CONVERSION_PILE_A_AUDIT.md)
-- [../TS_CONVERSION_PILE_B_AUDIT.md](../TS_CONVERSION_PILE_B_AUDIT.md)
-- [../TS_CONVERSION_PILE_C_PLAN.md](../TS_CONVERSION_PILE_C_PLAN.md)
-- [../TS_CONVERSION_PILE_D_TESTS_PLAN.md](../TS_CONVERSION_PILE_D_TESTS_PLAN.md)
+- [../../archive/docs/typescript/README.md](../../archive/docs/typescript/README.md) - archive router for the relocated root-level TypeScript campaign bundle.
+- [../../archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md](../../archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md)
+- [../../archive/docs/typescript/TS_CONVERSION_NEXT_STEPS.md](../../archive/docs/typescript/TS_CONVERSION_NEXT_STEPS.md)
+- [../../archive/docs/typescript/TS_CONVERSION_PILE_A_AUDIT.md](../../archive/docs/typescript/TS_CONVERSION_PILE_A_AUDIT.md)
+- [../../archive/docs/typescript/TS_CONVERSION_PILE_B_AUDIT.md](../../archive/docs/typescript/TS_CONVERSION_PILE_B_AUDIT.md)
+- [../../archive/docs/typescript/TS_CONVERSION_PILE_C_PLAN.md](../../archive/docs/typescript/TS_CONVERSION_PILE_C_PLAN.md)
+- [../../archive/docs/typescript/TS_CONVERSION_PILE_D_TESTS_PLAN.md](../../archive/docs/typescript/TS_CONVERSION_PILE_D_TESTS_PLAN.md)
 - [TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md](TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md)
 - [TYPESCRIPT_HARDENING_BASELINE.md](TYPESCRIPT_HARDENING_BASELINE.md)
 - [TYPESCRIPT_HARDENING_EXECUTION_MAP.md](TYPESCRIPT_HARDENING_EXECUTION_MAP.md)

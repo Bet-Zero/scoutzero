@@ -25,7 +25,7 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 
 ### For Implementation
 
-📁 **`architect-plan-summary/EXECUTION-PROMPT.md`** ⭐
+📁 **`docs/architect-teams-plan/summaries/EXECUTION-PROMPT.md`** ⭐
 
 - Start here for immediate tasks and checklists
 
@@ -43,7 +43,7 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 
 ### For Concise Overview
 
-📁 **`architect-plan-summary/COMBINED-SUMMARY.md`**
+📁 **`docs/architect-teams-plan/summaries/COMBINED-SUMMARY.md`**
 
 - All 7 planning documents synthesized
 
@@ -69,7 +69,7 @@ Architect is a **multi-season NBA roster scenario planning system** that enables
 
 ### Summary Folder
 
-**Location**: `architect-plan-summary/`
+**Location**: `docs/architect-teams-plan/summaries/`
 
 | File                              | Purpose                | When to Read           |
 | --------------------------------- | ---------------------- | ---------------------- |
@@ -232,13 +232,13 @@ See `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` for full migration status.
 
 ### For Developers Starting Implementation
 
-1. Read `architect-plan-summary/EXECUTION-PROMPT.md`
+1. Read `docs/architect-teams-plan/summaries/EXECUTION-PROMPT.md`
 2. Check `docs/architect-teams-plan/00-IMPLEMENTATION-STATUS.md`
 3. Follow Phase 2 in `docs/architect-teams-plan/07-IMPLEMENTATION-PLAN.md`
 
 ### For Developers Understanding the System
 
-1. Read `architect-plan-summary/COMBINED-SUMMARY.md`
+1. Read `docs/architect-teams-plan/summaries/COMBINED-SUMMARY.md`
 2. Deep dive into `docs/architect-teams-plan/06-COMPREHENSIVE-SUMMARY.md`
 3. Reference `docs/architect-teams-plan/03-TARGET-SCHEMA.md` for details
 
@@ -278,7 +278,7 @@ See `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` for full migration status.
 
 1. This index
 2. `docs/architect-teams-plan/00-IMPLEMENTATION-STATUS.md`
-3. `architect-plan-summary/COMBINED-SUMMARY.md`
+3. `docs/architect-teams-plan/summaries/COMBINED-SUMMARY.md`
 4. Full planning docs in `docs/architect-teams-plan/`
 
 ---

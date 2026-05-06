@@ -7,13 +7,13 @@
 
 ## Guardrails Added
 
-| Guardrail | Location | Purpose |
-| --- | --- | --- |
-| Workspace guardrail checklist | `docs/workspace-rules/WORKSPACE_GUARDRAILS.md` | Provide the short do/don't list and validation workflow for future agents. |
-| Lightweight docs guardrail command | `scripts/docs/checkWorkspaceGuardrails.mjs` | Scan active routing docs, plans visibility rules, forbidden feature-root return-package surfaces, and deprecated return-package directories. |
-| npm entrypoint | `package.json` | Make the guardrail scan runnable as `npm run docs:guardrails`. |
-| Repo workflow reinforcement | `AGENTS.md` | Add concise workspace hygiene bullets for return packages, plans, feature-doc roots, and validation. |
-| Standards cross-links | `docs/workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md`, `docs/workspace-rules/RETURN_PACKAGE_STANDARD.md`, `docs/INDEX.md`, `docs/architecture/PROJECT_SCHEMA.md` | Keep the new checklist and current workspace model discoverable from the active standards and routing docs. |
+| Guardrail                          | Location                                                                                                                                                              | Purpose                                                                                                                                      |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace guardrail checklist      | `docs/workspace-rules/WORKSPACE_GUARDRAILS.md`                                                                                                                        | Provide the short do/don't list and validation workflow for future agents.                                                                   |
+| Lightweight docs guardrail command | `scripts/docs/checkWorkspaceGuardrails.mjs`                                                                                                                           | Scan active routing docs, plans visibility rules, forbidden feature-root return-package surfaces, and deprecated return-package directories. |
+| npm entrypoint                     | `package.json`                                                                                                                                                        | Make the guardrail scan runnable as `npm run docs:guardrails`.                                                                               |
+| Repo workflow reinforcement        | `AGENTS.md`                                                                                                                                                           | Add concise workspace hygiene bullets for return packages, plans, feature-doc roots, and validation.                                         |
+| Standards cross-links              | `docs/workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md`, `docs/workspace-rules/RETURN_PACKAGE_STANDARD.md`, `docs/INDEX.md`, `docs/architecture/PROJECT_SCHEMA.md` | Keep the new checklist and current workspace model discoverable from the active standards and routing docs.                                  |
 
 ## Files Created
 
