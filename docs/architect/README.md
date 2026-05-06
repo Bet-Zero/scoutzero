@@ -29,7 +29,7 @@ Use these as the current Architect runtime/reference set.
 | [architect.md](../schema/architect.md)                                                  | Canonical generated schema reference for Architect documents.                               |
 | [PERSISTENCE_CONTRACTS.md](contracts/PERSISTENCE_CONTRACTS.md)                          | Committed write boundary, allowlists, normalization rules, and persistence invariants.      |
 | [ARCHITECT_CONNECTIVITY_MASTER.md](ARCHITECT_CONNECTIVITY_MASTER.md)                    | Cross-tab runtime connectivity, canonical write paths, and world-mode coherence.            |
-| [ENTITLEMENTS_MASTER.md](entitlements/ENTITLEMENTS_MASTER.md)                          | Entitlement invariants and current world-mode entitlement behavior.                         |
+| [ENTITLEMENTS_MASTER.md](entitlements/ENTITLEMENTS_MASTER.md)                           | Entitlement invariants and current world-mode entitlement behavior.                         |
 | [OFFSEASON_MASTER.md](OFFSEASON_MASTER.md)                                              | Current season-advance and offseason behavior, including authoritative vs preview paths.    |
 | [TEAM_HISTORY_MASTER.md](TEAM_HISTORY_MASTER.md)                                        | Canonical Team History event store and rendering contract.                                  |
 | [CAP_SHEET_MASTER.md](cap-sheet/CAP_SHEET_MASTER.md)                                    | Active Cap Sheet runtime SSOT and correctness gates.                                        |
