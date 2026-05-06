@@ -721,7 +721,7 @@ VITE_ARCHITECT_REVIEW_MODE=true npm run dev
 
 **Master Doc:**
 
-- `docs/architect/FA_CAP_HISTORY_INTEGRATION_MASTER.md`
+- `docs/architect/free-agency/FA_CAP_HISTORY_INTEGRATION_MASTER.md`
 
 ---
 

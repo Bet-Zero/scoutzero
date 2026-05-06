@@ -11,6 +11,8 @@ first.
 This archive currently includes:
 
 - planning-phase and implementation-phase working docs
+- completed type-hardening pass masters, blocker re-evaluation packs, and checklist-style execution docs
+- superseded cap-sheet doctrine / preflight masters and completed contract-application pass docs
 - review trackers and issue logs
 - ship-readiness / smoke / audit packages that are historical checkpoints, not
   current runtime references

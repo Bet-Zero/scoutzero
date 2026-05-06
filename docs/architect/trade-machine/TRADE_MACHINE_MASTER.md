@@ -7,7 +7,7 @@ Last updated: 2026-03-20
 > The opening sections describe current runtime behavior, but later sections
 > also preserve a large historical return-package and execution trail.
 >
-> Use this file with [README.md](README.md) and do not treat it as the sole
+> Use this file with [README.md](README.md) and [../README.md](../README.md) and do not treat it as the sole
 > official runtime source for Architect.
 
 ## Trade Machine Overview

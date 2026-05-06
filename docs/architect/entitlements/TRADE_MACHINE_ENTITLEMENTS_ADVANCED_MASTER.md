@@ -268,7 +268,7 @@ This requires:
 
 #### Evidence from Code
 
-1. **Resolver reads from `entitlementIds[]`** ([entitlementResolver.ts#L113-L140](src/features/architect/utils/entitlements/entitlementResolver.ts#L113-L140)):
+1. **Resolver reads from `entitlementIds[]`** ([entitlementResolver.ts#L113-L140](../../../src/features/architect/utils/entitlements/entitlementResolver.ts#L113-L140)):
 
 ```typescript
 const resolveTeamEntitlementIds = async (db, worldId, teamCode) => {
@@ -278,7 +278,7 @@ const resolveTeamEntitlementIds = async (db, worldId, teamCode) => {
 };
 ```
 
-1. **Trade execution updates `entitlementIds[]`** ([TradeEditor.jsx#L390-L400](src/features/architect/tradeMachine/TradeEditor.jsx#L390-L400)):
+1. **Trade execution updates `entitlementIds[]`** ([TradeEditor.jsx#L390-L400](../../../src/features/architect/tradeMachine/TradeEditor.jsx#L390-L400)):
 
 ```javascript
 // Vacuum mode: applyVacuumTransfer records entitlement moves in localStorage
@@ -287,7 +287,7 @@ for (const ent of outgoing) {
 }
 ```
 
-1. **Vacuum overlay applies transfers** ([entitlementResolver.ts#L225-L260](src/features/architect/utils/entitlements/entitlementResolver.ts#L225-L260)):
+1. **Vacuum overlay applies transfers** ([entitlementResolver.ts#L225-L260](../../../src/features/architect/utils/entitlements/entitlementResolver.ts#L225-L260)):
 
 ```typescript
 // Remove transferred-out entitlements
@@ -757,7 +757,7 @@ The entitlement system uses **deterministic identity** to prevent duplicate crea
 
 ### Identity Key Definition
 
-Each entitlement has an **identity key** that uniquely identifies the logical entitlement based on its core fields. Identity keys are computed by `getEntitlementIdentityKey()` in [`entitlementIdentity.ts`](src/features/architect/utils/entitlements/entitlementIdentity.ts).
+Each entitlement has an **identity key** that uniquely identifies the logical entitlement based on its core fields. Identity keys are computed by `getEntitlementIdentityKey()` in [`entitlementIdentity.ts`](../../../src/features/architect/utils/entitlements/entitlementIdentity.ts).
 
 #### Format by Kind
 

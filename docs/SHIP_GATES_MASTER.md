@@ -94,7 +94,7 @@ Note: `npm run test:full` is explicitly optional. It should never be the default
 Initiative: `TM_CAP_AUDITABILITY_P0_PREFLIGHT`  
 Primary docs:
 
-- `docs/architect/CAP_AUDITABILITY_MASTER.md`
+- `docs/architect/cap-sheet/CAP_AUDITABILITY_MASTER.md`
 - `return_packages/architect/TM_CAP_AUDITABILITY_P0_PREFLIGHT_RETURN_PACKAGE.md`
 
 Ship gates verified in P6 closeout:
@@ -190,13 +190,13 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Status: **PREFLIGHT COMPLETE** (2026-02-28)
 - Return package: `return_packages/architect/TM_CAP_SHEET_P1_PREFLIGHT_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/CAP_SHEET_MASTER.md`
+- Master doc: `docs/architect/cap-sheet/CAP_SHEET_MASTER.md`
 
 ## Cap Sheet Page Wiring Closure (E1 COMPLETE)
 
 - Status: **COMPLETE** (2026-02-28)
 - Return package: `return_packages/architect/TM_CAP_SHEET_E1_EXECUTION_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/CAP_SHEET_MASTER.md`
+- Master doc: `docs/architect/cap-sheet/CAP_SHEET_MASTER.md`
 - Page-level ship gates satisfied:
   - Exception save/read parity on Cap Sheet page (`team.exceptions` canonical, legacy fallback read)
   - Unsupported DPE key removed from Cap Sheet exceptions mutation payload surface
@@ -207,7 +207,7 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Status: **COMPLETE** (2026-02-28)
 - Return package: `return_packages/architect/TM_CAP_SHEET_E2_EXECUTION_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/CAP_SHEET_MASTER.md`
+- Master doc: `docs/architect/cap-sheet/CAP_SHEET_MASTER.md`
 - Page-level ship gates satisfied:
   - Cap % denominator uses `totals.salaryCap` (SSOT), no drift from totals source
   - World mutation failure toasts deduplicated (exactly one toast on Cap Sheet save failure)
@@ -219,7 +219,7 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Status: **COMPLETE** (2026-02-28)
 - Return package: `return_packages/architect/TM_CAP_SHEET_E3_EXECUTION_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/CAP_SHEET_MASTER.md`
+- Master doc: `docs/architect/cap-sheet/CAP_SHEET_MASTER.md`
 - Gate file: `src/tests/architect/capSheet_closure.gate.test.ts`
 - Run command: `npm run test:node -- --run src/tests/architect/capSheet_closure.gate.test.ts --reporter=dot`
 - Gates protect (22 tests):
@@ -234,7 +234,7 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Status: **COMPLETE** (2026-03-01)
 - Return package: `return_packages/architect/TM_EDIT_CONTRACT_E1_EXECUTION_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/EDIT_CONTRACT_MASTER.md`
+- Master doc: `docs/architect/cap-sheet/EDIT_CONTRACT_MASTER.md`
 - Scope: Cap Sheet row-click → EditContractModal → save → cap totals refresh
 - Page-level ship gates satisfied:
   - Buyout path now captures/forwards buyout amount and applies consistent dead-cap semantics across local/world paths.
@@ -250,7 +250,7 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Status: **COMPLETE** (2026-03-01)
 - Return package: `return_packages/architect/TM_EDIT_CONTRACT_E2_EXECUTION_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/EDIT_CONTRACT_MASTER.md`
+- Master doc: `docs/architect/cap-sheet/EDIT_CONTRACT_MASTER.md`
 - Gate file: `src/tests/architect/editContractModal_closure.gate.test.ts`
 - Run command: `npm run test:node -- --run src/tests/architect/editContractModal_closure.gate.test.ts --reporter=dot`
 - Gates protect (22 tests):
@@ -265,7 +265,7 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Status: **COMPLETE** (2026-03-01)
 - Return package: `return_packages/architect/TM_FREE_AGENCY_E1_EXECUTION_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/FREE_AGENCY_MASTER.md`
+- Master doc: `docs/architect/free-agency/free_agency_MASTER.md`
 - Scope: GM Dashboard Free Agency tab (`activeTab === 'fa'`) only
 - Page-level ship gates satisfied:
   - World-mode Free Agency modal now exposes in-tab offer-sheet initiation (`signNew` + `Offer Sheet` toggle).
@@ -283,7 +283,7 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Status: **COMPLETE** (2026-03-01)
 - Return package: `return_packages/architect/TM_FREE_AGENCY_E2_EXECUTION_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/FREE_AGENCY_MASTER.md`
+- Master doc: `docs/architect/free-agency/free_agency_MASTER.md`
 - Gate file: `src/tests/architect/freeAgency_closure.gate.test.ts`
 - Run command: `npm run test:node -- --run src/tests/architect/freeAgency_closure.gate.test.ts --reporter=dot`
 - Gates protect:
@@ -298,7 +298,7 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Status: **COMPLETE** (2026-03-01)
 - Return package: `return_packages/architect/TM_OFFER_SHEETS_E1_EXECUTION_RETURN_PACKAGE.md`
-- Master doc: `docs/architect/FREE_AGENCY_MASTER.md`
+- Master doc: `docs/architect/free-agency/free_agency_MASTER.md`
 - Gate file: `src/tests/architect/offerSheets_closure.gate.test.ts`
 - Run command: `npm run test:node -- --run src/tests/architect/offerSheets_closure.gate.test.ts --reporter=dot`
 - Gates protect:

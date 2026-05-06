@@ -688,7 +688,7 @@ For arrays within array items (e.g., `deadCap[].amountByYear[]`):
 | `src/features/architect/utils/mutationPipeline.js`                                       | Enforcement wiring             |
 | `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.js`          | Phase 61 guardrail tests       |
 | `src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js` | Phase 62 fixtures + deep rules |
-| `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`                            | Master documentation           |
+| `docs/architect/cap-sheet/CAP_SHEET_MASTER.md`                                           | Current Cap Sheet runtime SSOT |
 
 ---
 

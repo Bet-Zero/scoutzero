@@ -2,11 +2,11 @@
 
 **Generated:** 2026-04-17 · **Total entries:** 119 (all audited; all current rows classified)
 
-Companion to [.architect-cast-baseline.json](../../.architect-cast-baseline.json) and the gate at [scripts/architect-cast-gate.mjs](../../scripts/architect-cast-gate.mjs). Cross-reference: [ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md](ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md) defines Items 2–5 referenced in the Seam column.
+Companion to [.architect-cast-baseline.json](../../../.architect-cast-baseline.json) and the gate at [scripts/architect-cast-gate.mjs](../../../scripts/architect-cast-gate.mjs). Cross-reference: [ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md](ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md) defines Items 2–5 referenced in the Seam column.
 
 ## Protocol (four invariants)
 
-**Invariant 1 — Baseline only goes down.** A PR may keep the per-file/per-bucket counts in [.architect-cast-baseline.json](../../.architect-cast-baseline.json) equal or reduce them. A PR may never increase them unless the new exception meets every part of Invariant 2.
+**Invariant 1 — Baseline only goes down.** A PR may keep the per-file/per-bucket counts in [.architect-cast-baseline.json](../../../.architect-cast-baseline.json) equal or reduce them. A PR may never increase them unless the new exception meets every part of Invariant 2.
 
 **Invariant 2 — New exceptions require all four:**
 

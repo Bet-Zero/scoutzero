@@ -64,18 +64,18 @@ official Architect runtime set without cleanup or narrower extraction.
 These docs should be treated as historical design/planning material rather than
 current runtime truth.
 
-| Path                                                    | Classification                 | Why                                                                                                                |
-| ------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `docs/architect-teams-plan/README.md`                   | Historical planning router     | Explicitly frames the bundle as planning documentation.                                                            |
+| Path                                                            | Classification                 | Why                                                                                                                |
+| --------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `docs/architect-teams-plan/README.md`                           | Historical planning router     | Explicitly frames the bundle as planning documentation.                                                            |
 | `archive/docs/architect-teams-plan/00-IMPLEMENTATION-STATUS.md` | Historical planning status     | Stale against current code; still says core runtime pieces were not implemented.                                   |
-| `docs/architect-teams-plan/01-GOALS.md`                 | Historical planning/design     | Product goals and requirements, not runtime truth.                                                                 |
-| `docs/architect-teams-plan/02-CURRENT-STATUS.md`        | Historical planning snapshot   | Captures a point-in-time pre-implementation or mid-implementation posture.                                         |
-| `docs/architect-teams-plan/03-TARGET-SCHEMA.md`         | Historical design reference    | Useful examples, but framed as target/design guidance rather than current schema authority.                        |
-| `docs/architect-teams-plan/04-HOW-IT-WORKS.md`          | Historical design explanation  | Useful conceptually, but describes proposed architecture rather than being the current official runtime explainer. |
-| `docs/architect-teams-plan/05-SAVE-LOAD-LOGIC.md`       | Historical design explanation  | Valuable source material, but still written as implementation setup guidance and contains stale path details.      |
-| `docs/architect-teams-plan/06-COMPREHENSIVE-SUMMARY.md` | Historical planning summary    | Synthesizes planning conversation, not runtime truth.                                                              |
-| `docs/architect-teams-plan/07-IMPLEMENTATION-PLAN.md`   | Historical implementation plan | Explicit planning/workflow doc.                                                                                    |
-| `archive/docs/architect-teams-plan/summaries/*`         | Historical planning summaries  | Agent-friendly summaries of the planning/design bundle, not current reference docs.                                |
+| `docs/architect-teams-plan/01-GOALS.md`                         | Historical planning/design     | Product goals and requirements, not runtime truth.                                                                 |
+| `docs/architect-teams-plan/02-CURRENT-STATUS.md`                | Historical planning snapshot   | Captures a point-in-time pre-implementation or mid-implementation posture.                                         |
+| `docs/architect-teams-plan/03-TARGET-SCHEMA.md`                 | Historical design reference    | Useful examples, but framed as target/design guidance rather than current schema authority.                        |
+| `docs/architect-teams-plan/04-HOW-IT-WORKS.md`                  | Historical design explanation  | Useful conceptually, but describes proposed architecture rather than being the current official runtime explainer. |
+| `docs/architect-teams-plan/05-SAVE-LOAD-LOGIC.md`               | Historical design explanation  | Valuable source material, but still written as implementation setup guidance and contains stale path details.      |
+| `docs/architect-teams-plan/06-COMPREHENSIVE-SUMMARY.md`         | Historical planning summary    | Synthesizes planning conversation, not runtime truth.                                                              |
+| `docs/architect-teams-plan/07-IMPLEMENTATION-PLAN.md`           | Historical implementation plan | Explicit planning/workflow doc.                                                                                    |
+| `archive/docs/architect-teams-plan/summaries/*`                 | Historical planning summaries  | Agent-friendly summaries of the planning/design bundle, not current reference docs.                                |
 
 ## Bucket D - Historical / Review / Tracker Surfaces To Archive Later
 
