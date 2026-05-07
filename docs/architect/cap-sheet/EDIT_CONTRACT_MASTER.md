@@ -8,6 +8,10 @@
 - `return_packages/architect/TM_EDIT_CONTRACT_P1_PREFLIGHT_RETURN_PACKAGE.md`
 - `return_packages/architect/TM_EDIT_CONTRACT_E1_EXECUTION_RETURN_PACKAGE.md`
 
+Historical note: the referenced `TM_EDIT_CONTRACT_*` return-package artifacts are
+not present in the current workspace. Preserve those paths as historical evidence
+labels rather than treating them as live workspace links.
+
 ---
 
 ## 1. Purpose
@@ -32,7 +36,8 @@ Verified flow:
 5. `EditContractModal` receives `player`, `teamCapSheet`, `currentYear`, and save handlers.
 6. Save handlers route through `useArchitectActions` with local optimistic updates and validator gates.
 
-Reference evidence is captured in the return package Section 2.
+Reference evidence was captured in the original return-package Section 2, but the
+package file itself is not present in the current workspace.
 
 ---
 
@@ -52,7 +57,9 @@ Reference evidence is captured in the return package Section 2.
 
 - Extension world compute path does not explicitly recompute persisted `team.totals`.
 
-Full evidence and repro steps: return package Sections 8 and 12.
+Full evidence and repro steps were originally recorded in return-package
+Sections 8 and 12; those package artifacts are not present in the current
+workspace.
 
 ---
 

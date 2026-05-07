@@ -46,7 +46,7 @@ Use it with:
 
 ## Doc Queue
 
-### 1. `docs/architect/ARCHITECT_CAP_SHEET_REVIEW_TRACKER.md`
+### 1. `archive/docs/architect/ARCHITECT_CAP_SHEET_REVIEW_TRACKER.md`
 
 Profile:
 
@@ -69,11 +69,11 @@ Checklist:
 
 Adjudication result:
 
-- Status: pending
-- Outcome code: pending
-- Notes: pending
+- Status: complete
+- Outcome code: ESCALATE
+- Notes: The doc is no longer part of the live docs surface; it now exists only under `archive/docs/architect/`. No active-doc cleanup was performed in this checklist pass.
 
-### 2. `docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`
+### 2. `archive/docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md`
 
 Profile:
 
@@ -100,11 +100,11 @@ Checklist:
 
 Adjudication result:
 
-- Status: pending
-- Outcome code: pending
-- Notes: pending
+- Status: complete
+- Outcome code: ESCALATE
+- Notes: The doc is no longer part of the live docs surface; it now exists only under `archive/docs/architect/`. No active-doc cleanup was performed in this checklist pass.
 
-### 3. `docs/architect/EDIT_CONTRACT_MASTER.md`
+### 3. `docs/architect/cap-sheet/EDIT_CONTRACT_MASTER.md`
 
 Profile:
 
@@ -127,9 +127,9 @@ Checklist:
 
 Adjudication result:
 
-- Status: pending
-- Outcome code: pending
-- Notes: pending
+- Status: complete
+- Outcome code: ANNOTATE_MISSING
+- Notes: No `TM_EDIT_CONTRACT_*` return-package files survive in the current workspace. Added one doc-level historical note instead of guessing replacement links.
 
 ### 4. `docs/architect/TRADE_MACHINE_MASTER.md`
 
