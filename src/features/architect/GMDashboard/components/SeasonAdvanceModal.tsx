@@ -4,7 +4,7 @@
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
- *  - 2025-12-20: Created for Phase 3B implementation per ARCHITECT_GAP_ANALYSIS.md
+ *  - 2025-12-20: Created for Phase 3B implementation per docs/architect/ARCHITECT_GAP_ANALYSIS.md
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';

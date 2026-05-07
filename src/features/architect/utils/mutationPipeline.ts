@@ -13,7 +13,7 @@
  * - Season advancement remains a separate committed authority in seasonManager.ts.
  *
  * HISTORY:
- *  - 2025-12-17: Created per ARCHITECT_GAP_ANALYSIS.md Phase 1 implementation
+ *  - 2025-12-17: Created per docs/architect/ARCHITECT_GAP_ANALYSIS.md Phase 1 implementation
  *  - 2025-12-25: Removed legacy teamPlans reference (worlds-only cleanup)
  *  - 2026-01-18: Phase 7.2 option decline FA-year derivation + cap hold amounts
  *  - 2026-01-18: Phase 7.3 option state invariant validation wiring

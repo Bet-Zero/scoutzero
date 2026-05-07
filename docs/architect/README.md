@@ -59,7 +59,7 @@ These docs contain useful current information but should not be treated as the
 official runtime source without additional cleanup.
 
 - [trade-machine/TRADE_MACHINE_MASTER.md](trade-machine/TRADE_MACHINE_MASTER.md) — current runtime rules at the top, but also a long historical return-package and execution trail deeper in the file.
-- [ARCHITECT_GAP_ANALYSIS.md](../ARCHITECT_GAP_ANALYSIS.md) — useful supporting analysis, but not a stable runtime reference doc.
+- [ARCHITECT_GAP_ANALYSIS.md](ARCHITECT_GAP_ANALYSIS.md) — useful supporting analysis, but not a stable runtime reference doc.
 
 ## Historical Planning And Design
 

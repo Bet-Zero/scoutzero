@@ -4,7 +4,7 @@
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
- *  - 2025-12-20: Created for Phase 2A WorldSelector implementation per ARCHITECT_GAP_ANALYSIS.md
+ *  - 2025-12-20: Created for Phase 2A WorldSelector implementation per docs/architect/ARCHITECT_GAP_ANALYSIS.md
  *  - 2025-12-21: Added permanent deletion via Cloud Function (Phase 4A)
  *  - 2025-12-21: Extracted DeleteWorldModal to separate file
  */

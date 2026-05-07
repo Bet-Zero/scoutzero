@@ -565,7 +565,7 @@ Phase 4B: Polish & Edge Cases ✅ COMPLETE
   - Integrated WorldSelector into dashboard header (before Season/ViewMode controls)
   - Added `worldId` and `setWorldId` to destructured state
 
-- `docs/ARCHITECT_GAP_ANALYSIS.md`:
+- `docs/architect/ARCHITECT_GAP_ANALYSIS.md`:
   - Updated overall completion to 85%
   - Updated Multi-Season/Branching status to 70%
   - Updated UI Integration status to 80%
@@ -624,7 +624,7 @@ The WorldSelector uses Archive instead of Delete because `worldManager.deleteWor
 - `src/features/architect/GMDashboard/GMDashboard.jsx`:
   - Passes `worldId` to `TradeSection` component
 
-- `docs/ARCHITECT_GAP_ANALYSIS.md`:
+- `docs/architect/ARCHITECT_GAP_ANALYSIS.md`:
   - Updated status from "Phase 2A Complete" to "Phase 2B Complete"
   - Updated overall completion from 85% to 90%
   - Updated Team Loading section to reflect world-aware reads complete
@@ -839,7 +839,7 @@ The implementation:
 
 ### Documentation Updated
 
-- **`docs/ARCHITECT_GAP_ANALYSIS.md`**:
+- **`docs/architect/ARCHITECT_GAP_ANALYSIS.md`**:
   - Updated "Updated" date from December 20 to December 21
   - Marked Priority 2 section items as complete:
     - ✅ "Add UI for option decisions before advancing" (SeasonAdvanceModal in Phase 3B)
@@ -919,7 +919,7 @@ The gap analysis document has been updated to accurately reflect that Phase 3B (
     - `purgeWorld` throws error when worldId missing
     - `purgeWorld` throws user-friendly error for permission denied
 
-- **`docs/ARCHITECT_GAP_ANALYSIS.md`**:
+- **`docs/architect/ARCHITECT_GAP_ANALYSIS.md`**:
   - Updated World System section with new functions
   - Added Phase 4A to Dependency Map
   - Updated Conclusion with complete deletion status
@@ -976,7 +976,7 @@ The UI provides clear separation between Archive and Delete:
     6. Save to world snapshot → reload → verify persistence
     7. Multi-team trade correctly routes players to specified destinations
 
-- **`docs/ARCHITECT_GAP_ANALYSIS.md`**:
+- **`docs/architect/ARCHITECT_GAP_ANALYSIS.md`**:
   - Updated Trade Manager section with Dec 24 fix details
   - Updated test count from 295 to 317
   - Marked E2E workflow tests as complete

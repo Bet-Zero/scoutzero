@@ -1069,7 +1069,7 @@ The baseline mismatch documented in Appendix C (Cap Sheet vs Cap Tiles using dif
 
 4. **Added Divergence Detection**: `warnOnTotalsDivergence()` helper warns if components compute independently
 
-5. **Created Documentation**: `docs/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md`
+5. **Created Documentation**: `docs/architect/cap-sheet/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md`
    - Defines canonical TeamCapTotals object
    - Documents consumption rules
    - Includes migration notes

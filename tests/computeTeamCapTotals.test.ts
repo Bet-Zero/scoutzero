@@ -2,7 +2,7 @@
  * Test file for computeTeamCapTotals - Single Source of Truth
  * Verifies that the canonical totals computation is correct and consistent.
  *
- * See docs/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md for details.
+ * See docs/architect/cap-sheet/ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md for details.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

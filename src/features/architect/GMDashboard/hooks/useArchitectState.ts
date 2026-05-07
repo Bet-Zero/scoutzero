@@ -17,7 +17,7 @@
  *
  * LINKS:
  *  - Plan: plans/gmdashboard_state_hook_fea52793.plan.md
- *  - Gap Analysis: docs/ARCHITECT_GAP_ANALYSIS.md
+ *  - Gap Analysis: docs/architect/ARCHITECT_GAP_ANALYSIS.md
  */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
