@@ -1,5 +1,15 @@
 # Return Packages Directory Consolidation
 
+## Status
+
+This file is a historical consolidation record, not the canonical current guide.
+
+- Current routing lives in [return_packages/README.md](return_packages/README.md).
+- Current rules live in
+   [workspace-rules/RETURN_PACKAGE_STANDARD.md](workspace-rules/RETURN_PACKAGE_STANDARD.md).
+- The inventory and option tables below are preserved as historical cleanup
+   context from the earlier consolidation pass.
+
 ## Phase 2 Status Note
 
 - Phase 2 moved the tracked legacy root `return_packages/` markdown evidence into `docs/return_packages/`.
