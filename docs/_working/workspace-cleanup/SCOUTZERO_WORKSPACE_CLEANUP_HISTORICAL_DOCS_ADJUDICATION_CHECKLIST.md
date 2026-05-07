@@ -131,7 +131,7 @@ Adjudication result:
 - Outcome code: ANNOTATE_MISSING
 - Notes: No `TM_EDIT_CONTRACT_*` return-package files survive in the current workspace. Added one doc-level historical note instead of guessing replacement links.
 
-### 4. `docs/architect/TRADE_MACHINE_MASTER.md`
+### 4. `docs/architect/trade-machine/TRADE_MACHINE_MASTER.md`
 
 Profile:
 
@@ -157,9 +157,9 @@ Checklist:
 
 Adjudication result:
 
-- Status: pending
-- Outcome code: pending
-- Notes: pending
+- Status: complete
+- Outcome code: ESCALATE
+- Notes: No canonical `docs/return_packages/tradeMachine/` area exists, and the doc still carries a high-volume mix of `return_packages/trade_machine/*` and `return_packages/ship_gates/*` references. Left the file unchanged rather than touching 160 historical references blindly.
 
 ### 5. `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md`
 
@@ -184,9 +184,9 @@ Checklist:
 
 Adjudication result:
 
-- Status: pending
-- Outcome code: pending
-- Notes: pending
+- Status: complete
+- Outcome code: ANNOTATE_MISSING
+- Notes: No hyphenated `docs/return-packages/*` artifacts survive in the current workspace. Added one doc-level historical note and left the created-file tables as literal historical paths.
 
 ## Exit Condition
 

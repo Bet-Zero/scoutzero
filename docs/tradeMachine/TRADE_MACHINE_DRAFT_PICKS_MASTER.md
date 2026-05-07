@@ -21,6 +21,11 @@ This file is still carried forward because it contains useful audit detail, but
 it also preserves older execution-history and return-package references that do
 not all have clean canonical replacements in the current workspace.
 
+Historical note: the hyphenated `docs/return-packages/*` artifacts referenced
+throughout this file are not present in the current workspace. Keep those paths
+as literal historical evidence labels rather than treating them as live
+workspace links.
+
 ---
 
 ## Boundary Rules
