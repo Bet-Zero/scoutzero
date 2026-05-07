@@ -92,8 +92,6 @@ Step-by-step operational procedures:
 
 Feature-specific documentation:
 
-- [Roster Builder Quick Master](features/roster_builder_quick_MASTER.md)
-- [Lists Master](features/lists_MASTER.md)
 - [Tiermaker Tieramid Master](features/tiermaker_tieramid_MASTER.md)
 
 ### 🏀 Trade Machine

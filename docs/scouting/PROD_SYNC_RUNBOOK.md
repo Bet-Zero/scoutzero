@@ -353,7 +353,7 @@ npx tsx team-scrape/draft-picks/scripts/pst/pst_phase_12_3a_push_base_pick_rules
 
 ## 9. LINKS
 
-- **Master Audit Doc**: [SCOUTING_PLAYER_TABLE_MASTER_AUDIT.md](./SCOUTING_PLAYER_TABLE_MASTER_AUDIT.md)
+- **Master Audit Doc**: `SCOUTING_PLAYER_TABLE_MASTER_AUDIT.md` (archived to `archive/docs/scouting/`)
 - **Sync Plan Script**: [scripts/release/scouting_prod_sync_plan.ts](../../scripts/release/scouting_prod_sync_plan.ts)
 - **Guardrails Module**: [scripts/release/prodGuardrails.ts](../../scripts/release/prodGuardrails.ts)
 - **Emulator Seeding**: [scripts/emu/README.md](../../scripts/emu/README.md)
