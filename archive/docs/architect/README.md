@@ -11,6 +11,7 @@ first.
 This archive currently includes:
 
 - planning-phase and implementation-phase working docs
+- `type-hardening/` — completed type-hardening campaign plan docs (NEXT_STEPS all-DONE, TS_CONVERSION_CONTINUATION_PLAN superseded by cast-gate)
 - completed type-hardening pass masters, blocker re-evaluation packs, and checklist-style execution docs
 - superseded cap-sheet doctrine / preflight masters and completed contract-application pass docs
 - review trackers and issue logs

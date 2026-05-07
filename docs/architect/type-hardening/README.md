@@ -17,8 +17,10 @@ runtime reference set.
 
 ## Historical Campaign Closeout
 
-- [ARCHITECT_NEXT_STEPS.md](ARCHITECT_NEXT_STEPS.md) — completed step-by-step follow-up plan from the final 2026-04-17 closeout.
-- [ARCHITECT_TS_CONVERSION_CONTINUATION_PLAN.md](ARCHITECT_TS_CONVERSION_CONTINUATION_PLAN.md) — dated continuation snapshot from the pre-closeout hardening phase.
+Completed plan docs archived to `archive/docs/architect/type-hardening/`:
+
+- `ARCHITECT_NEXT_STEPS.md` — completed step-by-step follow-up plan from the final 2026-04-17 closeout (all 8 steps DONE).
+- `ARCHITECT_TS_CONVERSION_CONTINUATION_PLAN.md` — dated continuation snapshot from the pre-closeout hardening phase (superseded by the cast-gate ledger).
 
 ## Routing Rule
 
