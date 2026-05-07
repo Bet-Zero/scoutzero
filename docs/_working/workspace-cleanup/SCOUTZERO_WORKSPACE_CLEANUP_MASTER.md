@@ -89,11 +89,11 @@ Establish the canonical documentation rules first, then track the bounded execut
 ## Follow-Up Outputs
 
 - `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_HISTORICAL_DOCS_FOLLOWUP_PREFLIGHT_RETURN_PACKAGE.md`
-- `docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_HISTORICAL_DOCS_ADJUDICATION_CHECKLIST.md`
-- `docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_PREFLIGHT.md`
 - `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_PREFLIGHT_RETURN_PACKAGE.md`
 - `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_EXECUTION_RETURN_PACKAGE.md`
-- `docs/_working/workspace-cleanup/SCOUTZERO_ARCHITECT_DOCS_RUNTIME_AUDIT.md`
+- `archive/docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_HISTORICAL_DOCS_ADJUDICATION_CHECKLIST.md` (archived — all 5 docs adjudicated)
+- `archive/docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_PREFLIGHT.md` (archived — execution complete)
+- `archive/docs/_working/workspace-cleanup/SCOUTZERO_ARCHITECT_DOCS_RUNTIME_AUDIT.md` (archived — audit complete)
 
 ## Archived Clusters In Phase 3
 
@@ -108,12 +108,12 @@ Establish the canonical documentation rules first, then track the bounded execut
 ## Open Risks Carried Forward
 
 - Older architect and trade-machine docs still reference missing historical return-package artifacts with no clear canonical replacement. A bounded preflight inventory now exists at `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_HISTORICAL_DOCS_FOLLOWUP_PREFLIGHT_RETURN_PACKAGE.md`.
-- The active manual-review workflow for those carried-forward docs now lives at `docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_HISTORICAL_DOCS_ADJUDICATION_CHECKLIST.md`.
+- The historical-docs adjudication checklist (all 5 docs complete) has been archived to `archive/docs/_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_HISTORICAL_DOCS_ADJUDICATION_CHECKLIST.md`.
 - The remaining live carried-forward examples are `docs/architect/cap-sheet/EDIT_CONTRACT_MASTER.md`, `docs/architect/trade-machine/TRADE_MACHINE_MASTER.md`, and `docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md`. `EDIT_CONTRACT_MASTER.md` and `TRADE_MACHINE_DRAFT_PICKS_MASTER.md` have now been adjudicated as `ANNOTATE_MISSING` for missing historical evidence artifacts. `TRADE_MACHINE_MASTER.md` remains explicitly `ESCALATE` because no canonical trade-machine return-package area exists and the file still carries a high-volume mixed historical reference load. The older cap-sheet tracker docs now live only under `archive/docs/architect/` and are no longer part of the active-doc adjudication queue.
 - The docs-root relocation pass, TypeScript historical-bundle move, and tracked root-output cleanup are now complete and recorded in `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_EXECUTION_RETURN_PACKAGE.md`.
 - The docs-root relocation pass is further along now: the Architect gap analysis, cap-total SSOT, schema migration guide, Trade Machine audit, and return-packages consolidation note were all moved behind feature or canonical evidence paths.
-- An Architect-doc runtime audit now distinguishes the official runtime/reference candidates from historical planning bundles and mixed review surfaces; see `docs/_working/workspace-cleanup/SCOUTZERO_ARCHITECT_DOCS_RUNTIME_AUDIT.md`.
-- Active or ambiguous working-doc clusters kept in place for follow-up review: `docs/_working/workspace-cleanup/`. The `docs/_working/architect/free-agency/`, `docs/_working/architect/roster/`, `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`, and `ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md` clusters were archived to `archive/docs/_working/architect/` as completed execution evidence.
+- An Architect-doc runtime audit distinguished the official runtime/reference candidates from historical planning bundles; that audit is now complete and archived at `archive/docs/_working/workspace-cleanup/SCOUTZERO_ARCHITECT_DOCS_RUNTIME_AUDIT.md`.
+- The `docs/_working/architect/` execution clusters (free-agency, roster, review roadmap, V3 continuation guide) and the completed `docs/_working/workspace-cleanup/` sub-docs (preflight, runtime audit, docs-root preflight, adjudication checklist) have all been archived. Only the cleanup master itself remains active. The remaining live open item is `docs/architect/trade-machine/TRADE_MACHINE_MASTER.md` (ESCALATE — 160 mixed historical references, no canonical tradeMachine return-package area).
 
 ## Current Cleanup Status
 
