@@ -125,7 +125,6 @@ Multiple orphaned debug scripts in project root:
   - `PROJECT_SCHEMA.md`
   - `AGENTS.md`
   - `SIMPLE_USER_GUIDE.md`
-  - `TRADE_MACHINE_AUDIT.md`
   - `TRADE_MACHINE_FIX_PLAN.md`
   - `ARCHITECT_SCHEMA_MIGRATION_REVIEW.md`
   - Plus more
@@ -700,7 +699,7 @@ These are more involved improvements to consider later:
 - [Developer Guide](guides/DEVELOPER_GUIDE.md)
 - [Project Schema](architecture/PROJECT_SCHEMA.md)
 - [Agents Documentation](../AGENTS.md)
-- [Trade Machine Audit](audits/TRADE_MACHINE_AUDIT.md)
+- [Trade Machine Audit](tradeMachine/TRADE_MACHINE_AUDIT.md)
 
 ---
 

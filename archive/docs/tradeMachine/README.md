@@ -3,7 +3,7 @@
 This archive stores historical trade-machine review docs that were moved out of
 the active `docs/` root.
 
-Use current trade-machine routing under `docs/tradeMachine/` and `docs/TRADE_MACHINE_AUDIT.md` first.
+Use current trade-machine routing under `docs/tradeMachine/` and `docs/tradeMachine/TRADE_MACHINE_AUDIT.md` first.
 
 ## Archived Docs
 

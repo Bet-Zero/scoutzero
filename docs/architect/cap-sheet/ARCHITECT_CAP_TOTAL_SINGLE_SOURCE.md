@@ -286,7 +286,7 @@ TeamCapTotals = {
 
 ## Related Documents
 
-- [Trade Machine Audit](audits/TRADE_MACHINE_AUDIT.md) - Original gap analysis that identified the mismatch
+- [Trade Machine Audit](../../tradeMachine/TRADE_MACHINE_AUDIT.md) - Original gap analysis that identified the mismatch
 - [Cap Settings Provider](../src/features/architect/utils/tradeMachine/utils/capSettingsProvider.js) - Source for cap thresholds
 
 ---

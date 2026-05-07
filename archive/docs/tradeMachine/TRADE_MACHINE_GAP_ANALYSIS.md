@@ -2,7 +2,7 @@
 
 > **Created**: December 27, 2025
 > **Purpose**: Gap analysis based on existing audit findings to identify discrepancies between target behavior and implementation
-> **Baseline Reference**: [TRADE_MACHINE_AUDIT.md](../../../docs/TRADE_MACHINE_AUDIT.md)
+> **Baseline Reference**: [TRADE_MACHINE_AUDIT.md](../../../docs/tradeMachine/TRADE_MACHINE_AUDIT.md)
 
 ---
 

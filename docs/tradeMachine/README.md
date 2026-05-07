@@ -16,4 +16,4 @@ older mixed draft-picks master that still needs extraction.
 ## Related Active Paths
 
 - [Architect Trade Machine Runtime Cluster](../architect/trade-machine/README.md)
-- [Trade Machine Audit](../TRADE_MACHINE_AUDIT.md)
+- [Trade Machine Audit](TRADE_MACHINE_AUDIT.md)

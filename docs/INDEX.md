@@ -102,7 +102,7 @@ Feature-specific documentation:
 
 Trade machine implementation and audits:
 
-- [Trade Machine Audit](TRADE_MACHINE_AUDIT.md) - Comprehensive system audit (Jan 2026)
+- [Trade Machine Audit](tradeMachine/TRADE_MACHINE_AUDIT.md) - Comprehensive system audit (Jan 2026)
 - [Trade Machine Docs Router](tradeMachine/README.md) - Current cross-feature trade-machine docs and mixed historical carry-forwards
 - [Return Packages README](return_packages/README.md) - Canonical routing for current return-package deliverables
 
@@ -219,7 +219,7 @@ Scouting and player evaluation features:
 ### For Bug Fixes
 
 1. Check relevant runbooks in `/docs/runbooks/`
-2. Review [Trade Machine Audit](TRADE_MACHINE_AUDIT.md) for known issues
+2. Review [Trade Machine Audit](tradeMachine/TRADE_MACHINE_AUDIT.md) for known issues
 3. Check return packages for similar fixes
 
 ### For New Features
