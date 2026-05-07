@@ -52,7 +52,6 @@ Core system architecture and data models:
 - [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data structures and relationships
 - [Architect Runtime Reference](architect/README.md) - Active runtime documentation for Architect save/load flow, world behavior, persistence, and Firestore routing
 - [Historical Architect Planning Bundle Router](architect-teams-plan/README.md) - points to the archived Architect planning/design bundle
-- [Architect Gap Analysis](architect/ARCHITECT_GAP_ANALYSIS.md) - System analysis and improvements
 - [Architect Schema Migration Review](architecture/ARCHITECT_SCHEMA_MIGRATION_REVIEW.md)
 - [Schema Migration Guide](architecture/SCHEMA_MIGRATION_GUIDE.md) - Old-to-new Architect schema guidance and compatibility patterns
 - [Contract Normalization Rules](CONTRACT_NORMALIZATION_RULES.md)
