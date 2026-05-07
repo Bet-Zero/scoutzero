@@ -54,6 +54,7 @@ Core system architecture and data models:
 - [Historical Architect Planning Bundle Router](architect-teams-plan/README.md) - points to the archived Architect planning/design bundle
 - [Architect Gap Analysis](ARCHITECT_GAP_ANALYSIS.md) - System analysis and improvements
 - [Architect Schema Migration Review](architecture/ARCHITECT_SCHEMA_MIGRATION_REVIEW.md)
+- [Schema Migration Guide](architecture/SCHEMA_MIGRATION_GUIDE.md) - Old-to-new Architect schema guidance and compatibility patterns
 - [Contract Normalization Rules](CONTRACT_NORMALIZATION_RULES.md)
 
 **Migration Documentation:**
