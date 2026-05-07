@@ -113,7 +113,7 @@ Establish the canonical documentation rules first, then track the bounded execut
 - The docs-root relocation pass, TypeScript historical-bundle move, and tracked root-output cleanup are now complete and recorded in `docs/return_packages/workspace-cleanup/WORKSPACE_CLEANUP_DOCS_ROOT_AND_EXTRA_FILES_EXECUTION_RETURN_PACKAGE.md`.
 - The docs-root relocation pass is further along now: the Architect gap analysis, cap-total SSOT, schema migration guide, Trade Machine audit, and return-packages consolidation note were all moved behind feature or canonical evidence paths.
 - An Architect-doc runtime audit now distinguishes the official runtime/reference candidates from historical planning bundles and mixed review surfaces; see `docs/_working/workspace-cleanup/SCOUTZERO_ARCHITECT_DOCS_RUNTIME_AUDIT.md`.
-- Active or ambiguous working-doc clusters kept in place for follow-up review: `docs/_working/workspace-cleanup/`, `docs/_working/architect/free-agency/`, `docs/_working/architect/roster/`, and `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`.
+- Active or ambiguous working-doc clusters kept in place for follow-up review: `docs/_working/workspace-cleanup/`. The `docs/_working/architect/free-agency/`, `docs/_working/architect/roster/`, `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`, and `ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md` clusters were archived to `archive/docs/_working/architect/` as completed execution evidence.
 
 ## Current Cleanup Status
 
