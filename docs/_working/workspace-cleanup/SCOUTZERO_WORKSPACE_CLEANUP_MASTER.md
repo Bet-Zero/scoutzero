@@ -140,9 +140,9 @@ Establish the canonical documentation rules first, then track the bounded execut
   - `docs/architect/TRADE_MACHINE_MASTER_AUDIT.md`
   - `docs/architect/ARCHITECT_CAP_SHEET_REVIEW_RECORD.md`
   - `docs/architect/ARCHITECT_TM_REVIEW_RECORD.md`
-- Team-scrape docs with mixed evergreen/history signal were kept in place for human review, including:
-  - `docs/team-scrape/PHX_TEAM_CODE_HYGIENE_PREFLIGHT_2026-01-11.md`
-  - `docs/team-scrape/PST_RAW_EXTRACTION_FIX_REPORT.md`
+- Team-scrape execution docs archived to `archive/docs/team-scrape/`:
+  - `PHX_TEAM_CODE_HYGIENE_PREFLIGHT_2026-01-11.md` (Jan 2026 preflight, execution evidence)
+  - `PST_RAW_EXTRACTION_FIX_REPORT.md` (completed fix report)
 
 ## Exit Condition For Phase 1
 
