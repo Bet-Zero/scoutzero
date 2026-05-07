@@ -17,6 +17,7 @@
 
 - [README](../README.md) - Project overview
 - [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data model and architecture
+- [Architect Runtime Reference](architect/README.md) - Current Architect runtime and feature routing
 
 ## TypeScript Status
 
@@ -67,8 +68,8 @@ Information for developers working on the codebase:
 
 - [Developer Guide](guides/DEVELOPER_GUIDE.md) - Setup, architecture, patterns
 - [Codebase Audit (Feb 2026)](CODEBASE_AUDIT_2026-02.md) - Structural improvements
-- [Architect Phase 5 Hardening](ARCHITECT_PHASE5_HARDENING.md)
-- [Stats Scraper Fix](STATS_SCRAPER_FIX.md)
+- [Testing Guide](TESTING.md) - Testing strategy and commands
+- [Scripts Reference](SCRIPTS.md) - npm and workflow scripts
 
 **Directory Structure:**
 
@@ -101,9 +102,15 @@ Feature-specific documentation:
 Trade machine implementation and audits:
 
 - [Trade Machine Audit](TRADE_MACHINE_AUDIT.md) - Comprehensive system audit (Jan 2026)
-- [Master Trade Machine Alignment](tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md) - Current terminology, invariants, and UI consistency rules
-- `/docs/tradeMachine/` - Additional trade machine docs
+- [Trade Machine Docs Router](tradeMachine/README.md) - Current cross-feature trade-machine docs and mixed historical carry-forwards
 - [Return Packages README](return_packages/README.md) - Canonical routing for current return-package deliverables
+
+### 🧭 Legacy Routed Areas
+
+These paths exist mainly as compatibility routers after cleanup passes:
+
+- [Cap Sheet Docs Router](capSheet/README.md) - routes older cap-sheet links to the active Architect cap-sheet docs
+- [Historical Architect Planning Router](architect-teams-plan/README.md) - routes to archived Architect planning material
 
 ### 📜 Compliance & CBA Rules
 
@@ -182,9 +189,9 @@ Scouting and player evaluation features:
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── TESTING.md                  # Testing strategy
 ├── SCRIPTS.md                  # npm scripts reference
-├── architect/                  # Architect subsystem docs
+├── architect/                  # Active Architect runtime + feature routers
 ├── architecture/               # System architecture
-├── capSheet/                   # Cap sheet documentation
+├── capSheet/                   # Legacy Cap Sheet router
 ├── commands/                   # CLI commands
 ├── compliance/                 # CBA rules and compliance
 ├── components/                 # Component docs
@@ -200,7 +207,7 @@ Scouting and player evaluation features:
 ├── scouting/                   # Scouting features
 ├── team-scrape/                # Team scraping pipeline
 ├── templates/                  # Document templates
-├── tradeMachine/               # Trade machine docs
+├── tradeMachine/               # Cross-feature trade-machine docs + router
 └── workspace-rules/            # Workspace configuration
 ```
 
@@ -219,6 +226,12 @@ Scouting and player evaluation features:
 1. Review [Project Schema](architecture/PROJECT_SCHEMA.md) for data model
 2. Check [Developer Guide](guides/DEVELOPER_GUIDE.md) for patterns
 3. Review feature docs in `/docs/features/`
+
+### For Architect Runtime Questions
+
+1. Start with [Architect Runtime Reference](architect/README.md)
+2. Use the feature routers under `/docs/architect/` for cap sheet, trade machine, entitlements, free agency, and type hardening
+3. Use [Project Schema](architecture/PROJECT_SCHEMA.md) and [Current Firestore Schema](schema/CURRENT_FIRESTORE_SCHEMA.md) for data-shape questions
 
 ### For Data Issues
 
@@ -244,7 +257,7 @@ Scouting and player evaluation features:
 
 ## 📝 Documentation Conventions
 
-- **Root-level docs**: High-level guides and entry points
+- **Root-level docs**: High-level guides, audits, and entry-point routers
 - **`/docs` subdirectories**: Organized by topic and subsystem
 - **`/archive/docs`**: Historical docs retained for audit and provenance
 - **Return packages**: Historical deliverables with execution details
@@ -253,5 +266,5 @@ Scouting and player evaluation features:
 
 ---
 
-**Last Updated**: May 2, 2026
+**Last Updated**: May 7, 2026
 **Maintainers**: See [CONTRIBUTING.md](CONTRIBUTING.md)

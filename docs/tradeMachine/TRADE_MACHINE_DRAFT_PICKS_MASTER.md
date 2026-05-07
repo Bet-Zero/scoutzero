@@ -1,10 +1,25 @@
 # Trade Machine Draft Picks Master Document
 
 > **Version**: 2.5.0 (January 2026)  
-> **Status**: PHASE 5 COMPLETE + 2026-01-15 AUDIT REFRESH - Major gaps resolved (G3, G5, G6)  
+> **Status**: Carried-forward mixed audit/master doc; not the primary current router  
 > **Purpose**: Comprehensive audit of draft pick implementation in Trade Machine  
 > **Author**: Automated Code Audit  
 > **Last Audit**: 2026-01-15  
+
+## Routing Note
+
+Use this document as historical audit context, not as the first-stop current
+reference.
+
+- Current trade-machine routing lives in [README.md](README.md).
+- Current Architect Trade Machine runtime routing lives in
+  [../architect/trade-machine/README.md](../architect/trade-machine/README.md).
+- Current pick-entitlement trading behavior is tracked in
+  [../architect/trade-machine/TRADE_MACHINE_PICK_TRADING_MASTER.md](../architect/trade-machine/TRADE_MACHINE_PICK_TRADING_MASTER.md).
+
+This file is still carried forward because it contains useful audit detail, but
+it also preserves older execution-history and return-package references that do
+not all have clean canonical replacements in the current workspace.
 
 ---
 
