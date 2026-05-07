@@ -4,9 +4,9 @@
 
 This file is a historical consolidation record, not the canonical current guide.
 
-- Current routing lives in [return_packages/README.md](return_packages/README.md).
+- Current routing lives in [../README.md](../README.md).
 - Current rules live in
-   [workspace-rules/RETURN_PACKAGE_STANDARD.md](workspace-rules/RETURN_PACKAGE_STANDARD.md).
+   [../../workspace-rules/RETURN_PACKAGE_STANDARD.md](../../workspace-rules/RETURN_PACKAGE_STANDARD.md).
 - The inventory and option tables below are preserved as historical cleanup
    context from the earlier consolidation pass.
 

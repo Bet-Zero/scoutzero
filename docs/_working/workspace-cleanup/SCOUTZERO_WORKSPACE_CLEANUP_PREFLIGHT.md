@@ -103,12 +103,12 @@ Most likely canonical future return-package location: `docs/return_packages/` is
 ## 6. Broken/Stale Reference Risks
 
 - `docs/INDEX.md` routes readers to `docs/return_packages/README.md`, `docs/return_packages/architect/`, `docs/return_packages/scouting/`, `docs/return_packages/tradeMachine/`, and `docs/team-scrape/return_packages/`; none of those paths currently exist.
-- `docs/INDEX.md` links trade-machine audit docs through `docs/audits/TRADE_MACHINE_AUDIT.md` and `docs/audits/TRADE_MACHINE_FIX_PLAN.md`, but `docs/audits/` does not exist. `docs/TRADE_MACHINE_AUDIT.md` exists at the docs root, and `TRADE_MACHINE_FIX_PLAN.md` was not found anywhere in the repo.
+- `docs/INDEX.md` previously linked trade-machine audit docs through missing `docs/audits/` paths. The current audit now lives at `docs/tradeMachine/TRADE_MACHINE_AUDIT.md`, while `TRADE_MACHINE_FIX_PLAN.md` still does not exist in the repo.
 - `README.md` links `docs/architecture/DATA_SOURCE_MAP.md`, but no `DATA_SOURCE_MAP.md` file was found in the workspace.
 - `.gitignore` ignores all named return-package destinations, including `return_packages/`, yet the repo already tracks files under root `return_packages/`. That means the documented archive exists, but future additions silently fall into ignored/untracked behavior unless forced.
 - `.claudeignore` hides `plans/` as if all plans are old/completed, while `docs/architecture/PROJECT_SCHEMA.md` still describes `plans/` as the active plan surface.
 - `.claudeignore` hides all of `docs/team-scrape/`, but that folder currently contains both active docs and historical evidence. That is an AI-routing risk, not just a cleanup issue.
-- `docs/RETURN_PACKAGES_CONSOLIDATION.md` describes a consolidation outcome that is not reflected in the current workspace layout.
+- The historical consolidation note now lives at `docs/return_packages/docs/RETURN_PACKAGES_CONSOLIDATION.md`; older references to the docs-root path are stale.
 - `docs/INDEX.md` reports a fresh update date (`May 2, 2026`) even though several routed paths are missing. The date cannot be used as a freshness signal by itself.
 
 ## 7. Cleanup Categories

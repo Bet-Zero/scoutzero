@@ -56,7 +56,7 @@ official Architect runtime set without cleanup or narrower extraction.
 
 | Path                                     | Why it is mixed                                                                                                                                      | Recommendation                                                                                   |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `docs/ARCHITECT_GAP_ANALYSIS.md`         | Still contains useful current-world read/save notes, but it is a gap-analysis doc, not stable reference language.                                    | Keep active for now, but do not treat as official runtime doc. Mine it for source material only. |
+| `docs/architect/ARCHITECT_GAP_ANALYSIS.md` | Still contains useful current-world read/save notes, but it is a gap-analysis doc, not stable reference language.                                  | Keep active for now, but do not treat as official runtime doc. Mine it for source material only. |
 | `docs/architect/TRADE_MACHINE_MASTER.md` | Top sections are current, but this file is also part of the older master-doc cluster that still contains stale historical return-package references. | Keep out of the official runtime set until it is split or cleaned.                               |
 
 ## Bucket C - Historical Planning / Design Bundle
