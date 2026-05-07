@@ -446,7 +446,7 @@ Update documentation when you:
 - [Documentation Index](INDEX.md) - Full documentation navigation
 - [Developer Guide](guides/DEVELOPER_GUIDE.md) - Deep dive into architecture
 - [Project Schema](architecture/PROJECT_SCHEMA.md) - Data structures and conventions
-- [Codebase Audit](CODEBASE_AUDIT_2026-02.md) - Recent structural analysis
+- [Project Schema](architecture/PROJECT_SCHEMA.md) - Data structures and conventions
 
 ### Common Issues
 

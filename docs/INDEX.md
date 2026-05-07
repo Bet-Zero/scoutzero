@@ -67,7 +67,6 @@ Core system architecture and data models:
 Information for developers working on the codebase:
 
 - [Developer Guide](guides/DEVELOPER_GUIDE.md) - Setup, architecture, patterns
-- [Codebase Audit (Feb 2026)](CODEBASE_AUDIT_2026-02.md) - Structural improvements
 - [Testing Guide](TESTING.md) - Testing strategy and commands
 - [Scripts Reference](SCRIPTS.md) - npm and workflow scripts
 
@@ -153,12 +152,6 @@ Historical project deliverables and execution documentation.
 - [Workspace Cleanup Master](./_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_MASTER.md) for deferred consolidation and stale-link repair work.
 - [Architect Return Packages](return_packages/architect/) and [Team-Scrape Return Packages](return_packages/team-scrape/) for feature-specific execution evidence moved out of active feature roots.
 
-### 🚀 Launch & Deployment
-
-Production deployment documentation:
-
-- [Firestore Rules Flip Checklist](launch/FIRESTORE_RULES_FLIP_CHECKLIST.md)
-
 ### 📊 Data Pipelines
 
 Data scraping and pipeline documentation:
@@ -185,7 +178,6 @@ Scouting and player evaluation features:
 ```
 /docs
 ├── INDEX.md (this file)
-├── CODEBASE_AUDIT_2026-02.md
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── TESTING.md                  # Testing strategy
 ├── SCRIPTS.md                  # npm scripts reference
@@ -241,9 +233,8 @@ Scouting and player evaluation features:
 
 ### For Deployment
 
-1. [Launch Checklist](launch/FIRESTORE_RULES_FLIP_CHECKLIST.md)
-2. [Manual Smoke Test](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md)
-3. [Verify Before Delete](runbooks/VERIFY_BEFORE_DELETE.md)
+1. [Manual Smoke Test](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md)
+2. [Verify Before Delete](runbooks/VERIFY_BEFORE_DELETE.md)
 
 ---
 
@@ -251,7 +242,7 @@ Scouting and player evaluation features:
 
 - **Can't find what you're looking for?** Use your IDE's search (Cmd/Ctrl+Shift+F) to search all markdown files
 - **Unclear documentation?** Check [Developer Guide](guides/DEVELOPER_GUIDE.md) or [Project Schema](architecture/PROJECT_SCHEMA.md)
-- **Need to understand the codebase?** Start with [Codebase Audit](CODEBASE_AUDIT_2026-02.md)
+- **Need to understand the codebase?** Start with [Developer Guide](guides/DEVELOPER_GUIDE.md) or [Project Schema](architecture/PROJECT_SCHEMA.md)
 
 ---
 

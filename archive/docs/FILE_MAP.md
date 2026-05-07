@@ -15,5 +15,5 @@
 ├── src/
 
 ---
-*Generated on: 2026-05-07T13:04:14.046Z*
+*Generated on: 2025-12-26T08:03:41.933Z*
 *Auto-updated by: npm run docs*

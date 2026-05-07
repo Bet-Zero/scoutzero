@@ -1464,8 +1464,8 @@ node scripts/migrations/phase2y_backfill_optionsByYear.js --write --prod --confi
 
 **Documentation**:
 
-- **Return Package**: [PHASE_2AB_PREFLIGHT_PIPELINE_CATCHUP.md](../../return_packages/PHASE_2AB_PREFLIGHT_PIPELINE_CATCHUP.md)
-- **Checklist**: [PIPELINE_CATCHUP_CHECKLIST.md](./PIPELINE_CATCHUP_CHECKLIST.md)
+- **Return Package**: `return_packages/PHASE_2AB_PREFLIGHT_PIPELINE_CATCHUP.md` (historical artifact)
+- **Checklist**: `docs/scouting/PIPELINE_CATCHUP_CHECKLIST.md` (archived to `archive/docs/scouting/`)
 
 **Key Findings**:
 
