@@ -14,8 +14,8 @@
 
 > Canonical schema sources:
 >
-> - players_v2: see `docs/schema/players_v2.md` (generated from `src/schemas/players_v2.ts`)
-> - architect: see `docs/schema/architect.md` (generated from `src/schemas/architect.ts`)
+> - players_v2: see `docs/reference/schema/players_v2.md` (generated from `src/schemas/players_v2.ts`)
+> - architect: see `docs/reference/schema/architect.md` (generated from `src/schemas/architect.ts`)
 
 ### `/players_v2/{playerId}` - Player Data ✅ FINAL
 
@@ -39,7 +39,7 @@
 **Status**: ✅ Migration complete - this is the target schema
 **Usage**: All architect/GM mode team queries should use this collection
 
-**Structure**: See `docs/schema/architect.md` for complete schema
+**Structure**: See `docs/reference/schema/architect.md` for complete schema
 
 **Phase 10 Fields:**
 
@@ -50,7 +50,7 @@
 **Status**: ✅ Active (Phase 10)
 **Usage**: Base entitlement definitions for trade machine asset resolution
 
-**Structure**: See `docs/schema/architect.md` for entitlement schema
+**Structure**: See `docs/reference/schema/architect.md` for entitlement schema
 
 ### `/architect_worlds/{worldId}/entitlements/{entitlementId}` - World Entitlement Overrides ✅ FINAL
 
@@ -62,7 +62,7 @@
 **Status**: ✅ Migration complete - this is the target schema  
 **Usage**: All architect/GM mode player contract queries should use this collection
 
-**Structure**: See `docs/schema/architect.md` for complete schema
+**Structure**: See `docs/reference/schema/architect.md` for complete schema
 
 ### `/teams/{teamId}` - Team Rosters 🔴 DEPRECATED
 
@@ -252,8 +252,8 @@ const roster = await loadRosterProject(rosterId, userId);
 ## Migration Context
 
 - **Completed**: `players` → `players_v2` (see `docs/migrations/players-v1-to-v2/`)
-- **Completed**: `teams` → `/architect_baseTeams` (see `docs/schema/architect.md`)
-- **Completed**: Player contracts → `/architect_basePlayers` (see `docs/schema/architect.md`)
+- **Completed**: `teams` → `/architect_baseTeams` (see `docs/reference/schema/architect.md`)
+- **Completed**: Player contracts → `/architect_basePlayers` (see `docs/reference/schema/architect.md`)
 
 ---
 
@@ -267,7 +267,7 @@ Player contract data is scraped and validated before being uploaded to Firestore
 2. Validate against Zod schema (`player-scrape/shared/schema/player_scrape_schema.ts`)
 3. Transform and upload to `/players_v2/{playerId}/contracts/{contractId}` (manual/script-driven)
 
-See [PROJECT_SCHEMA.md](../architecture/PROJECT_SCHEMA.md) for complete artifact flow documentation and validation rules.
+See [PROJECT_SCHEMA.md](../reference/PROJECT_SCHEMA.md) for complete artifact flow documentation and validation rules.
 
 ---
 

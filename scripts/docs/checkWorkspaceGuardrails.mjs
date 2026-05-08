@@ -108,8 +108,8 @@ if (!claudeIgnoreLines.some((line) => /^plans\/\\?_archive\/$/.test(line))) {
 
 const forbiddenDirs = [
   'docs/return-packages',
-  'docs/architect/return_packages',
-  'docs/architect/return-packages',
+  'docs/reference/architect/return_packages',
+  'docs/reference/architect/return-packages',
   'docs/team-scrape/return_packages',
   'docs/team-scrape/return-packages',
   'docs/tradeMachine/return_packages',
@@ -125,7 +125,7 @@ for (const relativeDir of forbiddenDirs) {
 }
 
 for (const featureRoot of [
-  'docs/architect',
+  'docs/reference/architect',
   'docs/team-scrape',
   'docs/tradeMachine',
   'docs/scouting',

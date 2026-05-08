@@ -201,13 +201,12 @@ HoopZero is a public-facing NBA scouting platform built with React + Vite + Fire
 - Preserve visual layout and logic when refactoring.
 - Keep components under 200 lines; split into subcomponents when larger.
 - Leave the git worktree clean after completing work.
-- Update docs for significant changes — see `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`.
-- New return packages go under `docs/return_packages/<area>/`; do not create `return-packages` paths.
-- Active temporary docs go under `docs/_working/<initiative>/`.
-- Completed working docs cannot stay in `_working` indefinitely; after review they must be archived, graduated to permanent docs, or deleted.
-- Keep new execution evidence out of active feature-doc roots such as `docs/architect/`, `docs/team-scrape/`, `docs/tradeMachine/`, and `docs/scouting/`.
+- Update docs for significant changes — see `docs/standards/DOCUMENTATION_UPDATE_RULES.md`.
+- Active working docs (plans, preflights, return packages) go under `work/<initiative>/`.
+- When an initiative is complete, the entire `work/<initiative>/` folder moves to `archive/work/<initiative>/`.
+- `docs/` is for permanent project documents only — reference, guides, operations, standards. Never put execution artifacts there.
 - Keep active plans under `plans/<initiative>/` and archived plans under `plans/_archive/`; do not hide all of `plans/` in ignore rules.
-- For docs-routing or workspace-rule changes, run `npm run lint:md` and `npm run docs:guardrails` before finishing.
+- For docs-routing or standards changes, run `npm run lint:md` and `npm run docs:guardrails` before finishing.
 - Run `npm run validate:project` after any structural changes.
 
 ### ⚠️ Ask first
@@ -240,7 +239,7 @@ Build plans with enough detail that execution matches expectations exactly. If a
 ## Conventions & Structure
 
 - **Stack**: React 18 + Vite + TypeScript + Tailwind CSS 3 + Zod + Firebase / Firestore
-- **Schemas**: Zod (code-first) in `src/schemas/`; generated docs in `docs/schema/`. No duplicate `Player*` or `Contract*` interfaces anywhere else.
+- **Schemas**: Zod (code-first) in `src/schemas/`; generated docs in `docs/reference/schema/`. No duplicate `Player*` or `Contract*` interfaces anywhere else.
 
 ```text
 src/
@@ -264,7 +263,7 @@ src/
 └── types/          TypeScript type declarations (player.d.ts)
 ```
 
-New features need folder-level READMEs and index-based exports — see `docs/workspace-rules/CREATING_PERMANENT_DOCS.md`.
+New features need folder-level READMEs and index-based exports — see `docs/standards/CREATING_PERMANENT_DOCS.md`.
 
 ---
 
@@ -309,7 +308,7 @@ const contracts = await getDocs(
 
 Do not modify Firestore read logic without validating against `src/shared/hooks/useSimplePlayerData.ts` (the primary list hook). `src/shared/hooks/usePlayerData.ts` is a diagnostics wrapper over it — prefer the base hook unless diagnostics are required.
 
-Full schema: `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`
+Full schema: `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`
 
 ---
 
@@ -348,8 +347,8 @@ Agent-universal workflow commands. Prompt files have been archived to `archive/d
 | ---------------------------------------------------- | ---------------------------------------------------------- |
 | `docs/guides/DEVELOPER_GUIDE.md`                     | Detailed file structure, components, hooks, utilities      |
 | `copilot-instructions.md`                            | Environment setup, testing workflows, validation scenarios |
-| `docs/workspace-rules/COMMUNICATION_RULES.md`        | Ask-vs-decide examples                                     |
-| `docs/workspace-rules/CREATING_PERMANENT_DOCS.md`    | Feature READMEs, index structure, file headers             |
-| `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md` | When and how to update docs                                |
-| `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`            | Authoritative Firestore schema                             |
+| `docs/standards/COMMUNICATION_RULES.md`              | Ask-vs-decide examples                                     |
+| `docs/standards/CREATING_PERMANENT_DOCS.md`          | Feature READMEs, index structure, file headers             |
+| `docs/standards/DOCUMENTATION_UPDATE_RULES.md`       | When and how to update docs                                |
+| `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`  | Authoritative Firestore schema                             |
 | `archive/docs/cursor-prompts/cursor-commands-overview.md` | Full slash command reference with workflows (archived)     |

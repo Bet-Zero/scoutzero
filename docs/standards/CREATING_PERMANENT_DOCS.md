@@ -250,7 +250,7 @@ src/architect/tradeMachine/autoSuggest/
 **If unsure about PURPOSE or OWNERSHIP:**
 
 - **ASK the user** instead of guessing
-- See `docs/workspace-rules/COMMUNICATION_RULES.md` for when to ask vs. decide
+- See `docs/standards/COMMUNICATION_RULES.md` for when to ask vs. decide
 
 **Template location**: `docs/templates/file_header.template.txt`
 
@@ -263,7 +263,7 @@ src/architect/tradeMachine/autoSuggest/
 - **Data module docs**: `data/<area>/README.md`
 - **API docs**: `docs/api/<feature>.md` or in feature README
 - **User guides**: `docs/guides/<feature>.md`
-- **Schema docs**: Auto-generated via `npm run schema:generate` → `docs/schema/`
+- **Schema docs**: Auto-generated via `npm run schema:generate` → `docs/reference/schema/`
 - **Component docs**: Auto-generated via `npm run docs` → `docs/components/`
 
 ### Temporary Documentation (Workspace)

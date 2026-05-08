@@ -1,194 +1,118 @@
-# ScoutZero Documentation Index
-
-**Welcome to the ScoutZero documentation!** This index provides navigation to all project documentation organized by topic and role.
+# ScoutZero Documentation
 
 ---
 
-## 🚀 Start Here
+## Start Here
 
-**New to the project?** Start with these documents based on your role:
-
-- **👤 Users**: [Simple User Guide](guides/SIMPLE_USER_GUIDE.md)
-- **👨‍💻 Developers**: [Developer Guide](guides/DEVELOPER_GUIDE.md)
-- **🤖 AI Agents**: [Agents Documentation](../AGENTS.md)
-- **🏗️ Contributors**: [Contributing Guide](CONTRIBUTING.md) _(coming soon)_
-
-**Want the big picture?**
-
-- [README](../README.md) - Project overview
-- [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data model and architecture
-- [Architect Runtime Reference](architect/README.md) - Current Architect runtime and feature routing
-
-## TypeScript Status
-
-TypeScript migration, hardening, and zero-exception hardening are complete. Do not reopen unless a gate regresses — see [AGENTS.md](../AGENTS.md). Campaign docs archived to `archive/docs/typescript/`.
-
-## Workspace Cleanup Standards
-
-- [Documentation Structure Standard](workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md) - canonical placement rules for permanent docs, working docs, archives, generated docs, and prompts.
-- [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) - naming and placement rules for new return packages.
-- [Workspace Guardrails](workspace-rules/WORKSPACE_GUARDRAILS.md) - concise do/don't checklist and validation commands.
-- Workspace cleanup initiative (all 6 phases) complete; all historical return packages removed from active repo.
-
-## Historical Archives
-
-- [Docs Archive](../archive/docs/README.md) - historical docs moved out of the active docs root.
-- [TypeScript Archive](../archive/docs/typescript/README.md) - archived TypeScript campaign bundle preserved as evidence.
-- [Reviews Archive](../archive/docs/reviews/README.md) - one-off review docs moved out of active routing.
+| Role | Entry point |
+|------|-------------|
+| Users | [Simple User Guide](guides/SIMPLE_USER_GUIDE.md) |
+| Developers | [Developer Guide](guides/DEVELOPER_GUIDE.md) |
+| AI Agents | [AGENTS.md](../AGENTS.md) |
+| Contributors | [Contributing Guide](guides/CONTRIBUTING.md) |
 
 ---
 
-## 📚 Documentation Categories
+## Docs Structure
 
-### 🏗️ Architecture & Schema
-
-Core system architecture and data models:
-
-- [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data structures and relationships
-- [Architect Runtime Reference](architect/README.md) - Active runtime documentation for Architect save/load flow, world behavior, persistence, and Firestore routing
-- [Contract Normalization Rules](CONTRACT_NORMALIZATION_RULES.md)
-
-**Schema:**
-
-- [Current Firestore Schema](schema/CURRENT_FIRESTORE_SCHEMA.md) — canonical active schema
-- All migration docs archived to `archive/docs/migrations/` — migrations complete.
-
-### 🛠️ Development Guides
-
-Information for developers working on the codebase:
-
-- [Developer Guide](guides/DEVELOPER_GUIDE.md) - Setup, architecture, patterns
-- [Testing Guide](TESTING.md) - Testing strategy and commands
-- [Scripts Reference](SCRIPTS.md) - npm and workflow scripts
-
-**Directory Structure:**
-
-- `/docs/guides/` - Additional development guides
-- `/docs/components/` - Component-specific documentation
-- `/docs/architecture/` - System architecture details
-
-### 📋 Runbooks & Operations
-
-Step-by-step operational procedures:
-
-- [Data Scrape Runbook](runbooks/data-scrape.md) — player + team pipeline commands, Firestore push
-- [Draft Picks Commands](runbooks/DRAFT_PICKS_COMMANDS.md) — draft picks pipeline command reference
-- [Scouting Prod Sync Runbook](runbooks/PROD_SYNC_RUNBOOK.md) — scouting data sync to prod
-- [Fix Player Not Found](runbooks/FIX_PLAYER_NOT_FOUND.md) — SalarySwish slug mismatch fixes
-- [Manual Smoke Test Checklist](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md) — post-push verification
-- One-time historical runbooks archived to `archive/docs/runbooks/`.
-
-### 🎮 Features
-
-Feature-specific documentation lives with the feature code in `src/features/`. Feature schema notes archived to `archive/docs/features/`.
-
-### 🏀 Trade Machine
-
-- [Architect Trade Machine Runtime Cluster](architect/trade-machine/README.md) — current validator behavior, runtime reference, test gates
-
-### 🤖 AI & Cursor Prompts
-
-Cursor slash command prompts archived to `archive/docs/cursor-prompts/`. Cursor commands are in `.cursor/commands/`. Claude Code skills are listed in AGENTS.md.
-
-### 📦 Return Packages
-
-If you need to create a return package for completed work:
-
-- [Return Packages README](return_packages/README.md) — where to put them and how to name them
-- [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) — naming and content rules
-
-All historical return packages have been removed from the repo; they're in git history if ever needed.
-
-### 📊 Data Pipelines
-
-Data scraping and pipeline documentation:
-
-- `/docs/team-scrape/` - Team data scraping documentation
-- `/archive/docs/team-scrape/` - Historical team scrape audits moved out of active feature docs
-
-### 🔧 Templates
-
-Reusable templates for documentation and development:
-
-- `/docs/templates/` - Document templates
-
-### 🎯 Scouting Features
-
-Scouting and player evaluation features:
-
-- `/docs/scouting/` - Scouting feature documentation
-
----
-
-## 📁 Directory Structure
+Everything in `docs/` is a permanent project document. Active work-in-progress lives in `work/` at the repo root.
 
 ```
-/docs
-├── INDEX.md (this file)
-├── CONTRIBUTING.md             # Contribution guidelines
-├── TESTING.md                  # Testing strategy
-├── SCRIPTS.md                  # npm scripts reference
-├── architect/                  # Active Architect runtime reference
-├── architecture/               # System architecture (repo layout, conventions)
-├── components/                 # Generated component hierarchy docs
-├── guides/                     # Development guides
-├── return_packages/            # Placement guide for new return packages
-├── runbooks/                   # Operational procedures (scrape, push, fix, verify)
-├── schema/                     # Firestore schema documentation
-└── workspace-rules/            # Workspace configuration
+docs/
+├── reference/          # What the system IS and how it works
+│   ├── architect/      # Architect GM Dashboard feature
+│   │   ├── trade-machine/
+│   │   └── type-hardening/
+│   ├── schema/         # Firestore schema docs
+│   └── PROJECT_SCHEMA.md  # Repo structure and conventions
+│
+├── guides/             # How to work WITH the system
+│   ├── DEVELOPER_GUIDE.md
+│   ├── SIMPLE_USER_GUIDE.md
+│   ├── CONTRIBUTING.md
+│   ├── TESTING.md
+│   ├── SCRIPTS.md
+│   └── FIRESTORE_DIAGNOSTIC.md
+│
+├── operations/         # How to RUN and MAINTAIN the system
+│   ├── data-scrape.md
+│   ├── DRAFT_PICKS_COMMANDS.md
+│   ├── PROD_SYNC_RUNBOOK.md
+│   ├── FIX_PLAYER_NOT_FOUND.md
+│   └── MANUAL_SMOKE_TEST_CHECKLIST.md
+│
+├── standards/          # Rules that govern the project
+│   ├── DOCUMENTATION_STRUCTURE_STANDARD.md
+│   ├── RETURN_PACKAGE_STANDARD.md
+│   ├── WORKSPACE_GUARDRAILS.md
+│   ├── COMMUNICATION_RULES.md
+│   ├── CREATING_PERMANENT_DOCS.md
+│   ├── DOCUMENTATION_UPDATE_RULES.md
+│   └── CONTRACT_NORMALIZATION_RULES.md
+│
+└── INDEX.md            # This file
 ```
 
----
-
-## 🔍 Quick Links by Topic
-
-### For Bug Fixes
-
-1. Check relevant runbooks in `/docs/runbooks/`
-2. Check [Architect Trade Machine Cluster](architect/trade-machine/README.md) for trade logic issues
-
-### For New Features
-
-1. Review [Project Schema](architecture/PROJECT_SCHEMA.md) for data model
-2. Check [Developer Guide](guides/DEVELOPER_GUIDE.md) for patterns
-3. Review feature docs in `/docs/features/`
-
-### For Architect Runtime Questions
-
-1. Start with [Architect Runtime Reference](architect/README.md)
-2. Use the feature routers under `/docs/architect/` for trade machine and type hardening
-3. Use [Project Schema](architecture/PROJECT_SCHEMA.md) and [Current Firestore Schema](schema/CURRENT_FIRESTORE_SCHEMA.md) for data-shape questions
-
-### For Data Issues
-
-1. [Data Scrape Runbook](runbooks/data-scrape.md)
-2. [Scouting Prod Sync Runbook](runbooks/PROD_SYNC_RUNBOOK.md)
-
-### For Deployment
-
-1. [Data Scrape Runbook](runbooks/data-scrape.md) for pipeline + push
-2. [Manual Smoke Test Checklist](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md) — post-push verification
+Generated files (`COMPONENT_INDEX.md`, `FILE_MAP.md`, `components/`) live at `docs/` root — auto-updated by `npm run docs` on each commit.
 
 ---
 
-## 🆘 Need Help?
+## Reference
 
-- **Can't find what you're looking for?** Use your IDE's search (Cmd/Ctrl+Shift+F) to search all markdown files
-- **Unclear documentation?** Check [Developer Guide](guides/DEVELOPER_GUIDE.md) or [Project Schema](architecture/PROJECT_SCHEMA.md)
-- **Need to understand the codebase?** Start with [Developer Guide](guides/DEVELOPER_GUIDE.md) or [Project Schema](architecture/PROJECT_SCHEMA.md)
+### Architect GM Dashboard
 
----
+- [Architect README](reference/architect/README.md) — entry point for all Architect docs
+- [Trade Machine](reference/architect/trade-machine/README.md) — validator behavior, runtime reference, test gates
+- [Type Hardening](reference/architect/type-hardening/README.md) — cast gate protocol and ledger
 
-## 📝 Documentation Conventions
+### Schema & Architecture
 
-- **Root-level docs**: High-level guides, audits, and entry-point routers
-- **`/docs` subdirectories**: Organized by topic and subsystem
-- **`/archive/docs`**: Historical docs retained for audit and provenance
-- **Return packages**: Historical deliverables with execution details
-- **Runbooks**: Step-by-step operational procedures
-- **MASTER suffix**: Authoritative feature documentation
+- [Current Firestore Schema](reference/schema/CURRENT_FIRESTORE_SCHEMA.md) — canonical collection layout
+- [Architect Schema](reference/schema/architect.md) — generated Architect document schema
+- [Players v2 Schema](reference/schema/players_v2.md) — generated player data schema
+- [Project Schema](reference/PROJECT_SCHEMA.md) — repo structure, naming conventions, data contracts
 
 ---
 
-**Last Updated**: May 7, 2026
-**Maintainers**: See [CONTRIBUTING.md](CONTRIBUTING.md)
+## Guides
+
+- [Developer Guide](guides/DEVELOPER_GUIDE.md) — setup, architecture, patterns, file structure
+- [Simple User Guide](guides/SIMPLE_USER_GUIDE.md) — user-facing feature documentation
+- [Contributing](guides/CONTRIBUTING.md) — contribution guidelines
+- [Testing Guide](guides/TESTING.md) — testing strategy and commands
+- [Scripts Reference](guides/SCRIPTS.md) — npm scripts reference
+- [Firestore Diagnostic](guides/FIRESTORE_DIAGNOSTIC.md) — diagnostic component reference
+
+---
+
+## Operations
+
+- [Data Scrape Runbook](operations/data-scrape.md) — player + team pipeline, Firestore push
+- [Draft Picks Commands](operations/DRAFT_PICKS_COMMANDS.md) — draft picks pipeline command reference
+- [Scouting Prod Sync](operations/PROD_SYNC_RUNBOOK.md) — sync scouting data to production
+- [Fix Player Not Found](operations/FIX_PLAYER_NOT_FOUND.md) — SalarySwish slug mismatch fixes
+- [Manual Smoke Test](operations/MANUAL_SMOKE_TEST_CHECKLIST.md) — post-push verification checklist
+
+---
+
+## Standards
+
+- [Documentation Structure Standard](standards/DOCUMENTATION_STRUCTURE_STANDARD.md)
+- [Return Package Standard](standards/RETURN_PACKAGE_STANDARD.md)
+- [Workspace Guardrails](standards/WORKSPACE_GUARDRAILS.md)
+- [Communication Rules](standards/COMMUNICATION_RULES.md)
+- [Creating Permanent Docs](standards/CREATING_PERMANENT_DOCS.md)
+- [Documentation Update Rules](standards/DOCUMENTATION_UPDATE_RULES.md)
+- [Contract Normalization Rules](standards/CONTRACT_NORMALIZATION_RULES.md)
+
+---
+
+## Working Docs & Archive
+
+- **Active work**: `work/<initiative>/` at repo root (plans, preflights, return packages)
+- **Completed work**: `archive/work/<initiative>/` — moves there when done
+- **Docs archive**: `archive/docs/` — historical versions of permanent docs
+
+---
+
+**Last Updated**: May 2026

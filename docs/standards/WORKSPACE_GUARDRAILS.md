@@ -9,7 +9,7 @@ Use this doc as the quick reference. Use the linked standards when a change need
 | Material               | Canonical Location             | Notes                                                                                   |
 | ---------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
 | New return packages    | `docs/return_packages/<area>/` | Do not create new return packages under root `return_packages/` or any hyphenated path. |
-| Temporary working docs | `docs/_working/<initiative>/`  | `_working` is for in-flight material only.                                              |
+| Temporary working docs | `work/<initiative>/`  | `_working` is for in-flight material only.                                              |
 | Historical docs        | `archive/docs/<area>/`         | Archive docs are retained reference material, not active source of truth.               |
 | Active plans           | `plans/<active-plan>/`         | Keep active plans visible to agents.                                                    |
 | Archived plans         | `plans/_archive/`              | Completed plan material belongs here.                                                   |
@@ -17,10 +17,10 @@ Use this doc as the quick reference. Use the linked standards when a change need
 ## Do
 
 - Put new execution evidence under `docs/return_packages/<area>/`.
-- Put temporary planning, review, and draft docs under `docs/_working/<initiative>/`.
+- Put temporary planning, review, and draft docs under `work/<initiative>/`.
 - Move or graduate completed working docs after review; do not let `_working` become a permanent evidence store.
-- Keep evergreen feature docs in feature roots such as `docs/architect/`, `docs/team-scrape/`, `docs/tradeMachine/`, and `docs/scouting/`.
-- Keep main routing docs truthful: `README.md`, `docs/INDEX.md`, `AGENTS.md`, `docs/workspace-rules/*.md`, and `docs/architecture/PROJECT_SCHEMA.md` should not knowingly point at missing files.
+- Keep evergreen feature docs in feature roots such as `docs/reference/architect/`, `archive/docs/team-scrape/`, `archive/docs/tradeMachine/`, and `archive/docs/scouting/`.
+- Keep main routing docs truthful: `README.md`, `docs/INDEX.md`, `AGENTS.md`, `docs/standards/*.md`, and `docs/reference/PROJECT_SCHEMA.md` should not knowingly point at missing files.
 
 ## Don't
 

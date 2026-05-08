@@ -4,7 +4,7 @@ HoopZero is a React + Firebase application that provides a public-facing view of
 
 ## TypeScript Status
 
-TypeScript migration is complete, and root strict mode plus zero-exception hardening are now maintenance standards in this repository. Treat TypeScript as a maintenance gate, not as an active campaign. For current required docs, completed historical campaign records, and return-package evidence archives, start with [../typescript/README.md](../typescript/README.md). Do not reopen TypeScript hardening unless a documented gate regresses.
+TypeScript migration is complete, and root strict mode plus zero-exception hardening are now maintenance standards in this repository. Treat TypeScript as a maintenance gate, not as an active campaign. Do not reopen TypeScript hardening unless a documented gate regresses — see [AGENTS.md](../../AGENTS.md).
 
 ## Folder Structure
 
@@ -138,7 +138,7 @@ src/
 
 ## Data Model Overview
 
-Player source data lives in the hierarchical `players_v2` collection, with canonical Zod schemas in `src/schemas/` and generated references under `docs/schema/`. Roster Builder reads denormalized player views through `useSimplePlayerData`, normalizes them into a fixed `{ starters, rotation, bench }` shape, and persists user-created snapshots to `rosterProjects`.
+Player source data lives in the hierarchical `players_v2` collection, with canonical Zod schemas in `src/schemas/` and generated references under `docs/reference/schema/`. Roster Builder reads denormalized player views through `useSimplePlayerData`, normalizes them into a fixed `{ starters, rotation, bench }` shape, and persists user-created snapshots to `rosterProjects`.
 
 ## Firestore Collections and Data Sources
 
@@ -155,17 +155,17 @@ This project reads canonical player/team data from source collections and stores
 - Use feature-specific Firebase helpers in `src/firebase/` for user-created content such as roster saves.
 - Import Firestore collection names from `src/constants/collections.ts`; do not hardcode collection strings.
 
-📄 Refer to [`docs/architecture/DATA_SOURCE_MAP.md`](./docs/architecture/DATA_SOURCE_MAP.md) for usage rules  
-📄 Refer to [`docs/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical schema reference
+📄 Refer to [`docs/reference/DATA_SOURCE_MAP.md`](./docs/reference/DATA_SOURCE_MAP.md) for usage rules  
+📄 Refer to [`docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical schema reference
 
 ## Documentation Structure
 
 The `docs/` folder is organized into specialized subdirectories:
 
-- **`docs/architecture/`** - Technical architecture documents, schemas, and project context
+- **`docs/reference/`** - Technical architecture documents, schemas, and project context
 - **`docs/guides/`** - User-facing guides for data population, collection naming, and diagnostics
 - **`docs/api/`** - Auto-generated component hierarchies and API documentation
-- **`docs/compliance/`** - CBA compliance matrix; historical audit certificates in `archive/docs/compliance/`
+- **`archive/docs/compliance/`** - CBA compliance matrix; historical audit certificates in `archive/archive/docs/compliance/`
 
 ## Adding Filters or Traits
 
@@ -198,7 +198,7 @@ The validator runs automatically in CI on all PRs and pushes to ensure the repos
 ## Schemas
 
 - Canonical source of truth is code-first Zod schemas in `src/schemas/`.
-- Generated references live under `docs/schema/`.
+- Generated references live under `docs/reference/schema/`.
 - Do not declare duplicate `Player*` or `Contract*` interfaces outside `src/schemas/`.
 
 ### Running Validation Locally

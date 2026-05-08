@@ -82,7 +82,7 @@ Top-level directory structure and purposes:
 - `components/` - Component hierarchy documentation
 - `scouting/` - Scouting operational runbooks
 - `runbooks/` - Operational runbooks for scrapes, staging, and deployment workflows
-- `workspace-rules/` - Repo documentation placement, return-package, and workspace guardrails
+- `standards/` - Repo documentation placement, return-package, and workspace guardrails
 
 ## Naming Conventions
 
@@ -625,7 +625,7 @@ npm run draft-picks:scrape-verify
 
 ## Firestore Collections
 
-**Note:** Full Firestore schema is documented in `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`. This section provides a high-level summary.
+**Note:** Full Firestore schema is documented in `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`. This section provides a high-level summary.
 
 ### `/players_v2/{playerId}`
 
@@ -661,7 +661,7 @@ const contracts = await getDocs(
 
 **Status:** ✅ Active (architect)
 
-**Structure:** See `docs/schema/architect.md` for complete schema
+**Structure:** See `docs/reference/schema/architect.md` for complete schema
 
 **Notes:**
 
@@ -933,7 +933,7 @@ When making structural changes, also update:
 - `README.md` - If changing setup or key features
 - `docs/guides/DEVELOPER_GUIDE.md` - If changing component architecture or key utilities
 - `AGENTS.md` - If changing agent task rules or file structure patterns
-- `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` - If changing Firestore collections
+- `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md` - If changing Firestore collections
 
 ### Pre-Commit Validation
 

@@ -4,7 +4,7 @@
 
 ## Start Here
 
-1. [Code Ownership Map](../../src/features/architect/ARCHITECT_FEATURE_README.md) — runtime ownership, world lifecycle, write authorities, shared SSOTs
+1. [Code Ownership Map](../../../src/features/architect/ARCHITECT_FEATURE_README.md) — runtime ownership, world lifecycle, write authorities, shared SSOTs
 2. [Current Firestore Schema](../schema/CURRENT_FIRESTORE_SCHEMA.md) — collection layout and active Architect collections
 3. [Architect Schema Reference](../schema/architect.md) — canonical generated schema docs
 
@@ -13,7 +13,7 @@
 - [trade-machine/README.md](trade-machine/README.md) — Trade Machine runtime reference and test gates
 - [type-hardening/README.md](type-hardening/README.md) — Type cast ledger and cast gate protocol
 
-Cap sheet, entitlements, and free agency docs have been fully archived. For questions in those areas, start with the [Code Ownership Map](../../src/features/architect/ARCHITECT_FEATURE_README.md) and [Current Firestore Schema](../schema/CURRENT_FIRESTORE_SCHEMA.md).
+Cap sheet, entitlements, and free agency docs have been fully archived. For questions in those areas, start with the [Code Ownership Map](../../../src/features/architect/ARCHITECT_FEATURE_README.md) and [Current Firestore Schema](../schema/CURRENT_FIRESTORE_SCHEMA.md).
 
 ## Mixed Reference
 
@@ -21,4 +21,4 @@ Cap sheet, entitlements, and free agency docs have been fully archived. For ques
 
 ## Archived Docs
 
-All completed execution docs, phase plans, and audit records are in [archive/docs/architect/](../../archive/docs/architect/README.md).
+All completed execution docs, phase plans, and audit records are in [archive/docs/architect/](../../../archive/docs/architect/README.md).
