@@ -113,7 +113,7 @@ These paths exist mainly as compatibility routers after cleanup passes:
 
 NBA Collective Bargaining Agreement implementation:
 
-- `/docs/compliance/` - CBA rule documentation and implementation
+- `/docs/compliance/` - CBA compliance matrix (`COMPLIANCE_MATRIX.csv`); historical audit certificates archived to `archive/docs/compliance/`
 
 ### 🤖 AI & Cursor Prompts
 

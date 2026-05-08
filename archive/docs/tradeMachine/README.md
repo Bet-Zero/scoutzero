@@ -8,3 +8,4 @@ Use current trade-machine routing under `docs/tradeMachine/` and `docs/tradeMach
 ## Archived Docs
 
 - `TRADE_MACHINE_GAP_ANALYSIS.md` - historical gap analysis snapshot from the 2025 review cycle
+- `TRADE_MACHINE_DRAFT_PICK_DISPLAY_CANONICALIZATION.md` - completed implementation record for origin logo + auto-via canonicalization (2026-01-10, ✅ Implemented)

@@ -78,7 +78,7 @@ Top-level directory structure and purposes:
 - `return_packages/` - Canonical execution-evidence archive for current return packages
 - `schema/` - Firestore schema documentation
 - `guides/` - User and developer guides
-- `compliance/` - Audit certificates and compliance matrices
+- `compliance/` - CBA compliance matrix; historical audit certificates in `archive/docs/compliance/`
 - `components/` - Component hierarchy documentation
 - `scouting/` - Scouting feature audits and master docs
 - `migrations/` - Migration documentation and plans

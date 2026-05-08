@@ -165,7 +165,7 @@ The `docs/` folder is organized into specialized subdirectories:
 - **`docs/architecture/`** - Technical architecture documents, schemas, and project context
 - **`docs/guides/`** - User-facing guides for data population, collection naming, and diagnostics
 - **`docs/api/`** - Auto-generated component hierarchies and API documentation
-- **`docs/compliance/`** - Audit certificates and compliance matrices
+- **`docs/compliance/`** - CBA compliance matrix; historical audit certificates in `archive/docs/compliance/`
 
 ## Adding Filters or Traits
 
