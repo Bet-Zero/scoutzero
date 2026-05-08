@@ -80,9 +80,7 @@ Top-level directory structure and purposes:
 - `guides/` - User and developer guides
 - `compliance/` - CBA compliance matrix; historical audit certificates in `archive/docs/compliance/`
 - `components/` - Component hierarchy documentation
-- `scouting/` - Scouting feature audits and master docs
-- `migrations/` - Migration documentation and plans
-- `architect-teams-plan/` - Architect feature planning docs (multi-season roster planning)
+- `scouting/` - Scouting operational runbooks
 - `runbooks/` - Operational runbooks for scrapes, staging, and deployment workflows
 - `workspace-rules/` - Repo documentation placement, return-package, and workspace guardrails
 

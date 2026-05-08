@@ -46,7 +46,6 @@ Core system architecture and data models:
 
 - [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data structures and relationships
 - [Architect Runtime Reference](architect/README.md) - Active runtime documentation for Architect save/load flow, world behavior, persistence, and Firestore routing
-- [Historical Architect Planning Bundle Router](architect-teams-plan/README.md) - points to the archived Architect planning/design bundle
 - [Contract Normalization Rules](CONTRACT_NORMALIZATION_RULES.md)
 
 **Schema:**
@@ -88,13 +87,6 @@ Trade machine implementation and audits:
 
 - [Trade Machine Docs Router](tradeMachine/README.md) - Current cross-feature trade-machine docs
 - [Return Packages README](return_packages/README.md) - Canonical routing for current return-package deliverables
-
-### 🧭 Legacy Routed Areas
-
-These paths exist mainly as compatibility routers after cleanup passes:
-
-- [Cap Sheet Docs Router](capSheet/README.md) - routes older cap-sheet links to the active Architect cap-sheet docs
-- [Historical Architect Planning Router](architect-teams-plan/README.md) - routes to archived Architect planning material
 
 ### 📜 Compliance & CBA Rules
 
@@ -155,24 +147,19 @@ Scouting and player evaluation features:
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── TESTING.md                  # Testing strategy
 ├── SCRIPTS.md                  # npm scripts reference
-├── architect/                  # Active Architect runtime + feature routers
+├── architect/                  # Active Architect runtime reference
 ├── architecture/               # System architecture
-├── capSheet/                   # Legacy Cap Sheet router
-├── commands/                   # CLI commands
-├── compliance/                 # CBA rules and compliance
-├── components/                 # Component docs
+├── commands/                   # CLI commands (draft picks pipeline)
+├── compliance/                 # CBA compliance matrix
+├── components/                 # Generated component hierarchy docs
 ├── cursor-prompts/             # AI assistant prompts
-├── features/                   # Feature documentation
 ├── guides/                     # Development guides
-├── launch/                     # Deployment docs
-├── migrations/                 # Data migration docs
-├── project/                    # Project management
-├── return_packages/            # Deliverables (consolidated)
+├── return_packages/            # Placement guide for new return packages
 ├── runbooks/                   # Operational procedures
 ├── schema/                     # Schema documentation
-├── scouting/                   # Scouting features
-├── team-scrape/                # Team scraping pipeline
-├── templates/                  # Document templates
+├── scouting/                   # Scouting feature docs
+├── tradeMachine/               # Trade machine router (→ architect/trade-machine)
+├── typescript/                 # TypeScript status (campaign complete)
 ├── tradeMachine/               # Cross-feature trade-machine docs + router
 └── workspace-rules/            # Workspace configuration
 ```
