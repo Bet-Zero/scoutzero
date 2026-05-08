@@ -73,8 +73,11 @@ Information for developers working on the codebase:
 
 Step-by-step operational procedures:
 
-- [Scouting Prod Sync Runbook](scouting/PROD_SYNC_RUNBOOK.md)
-- Historical one-time runbooks (data scrape, cutover, smoke tests) archived to `archive/docs/runbooks/`.
+- [Data Scrape Runbook](runbooks/data-scrape.md) — player + team pipeline commands, Firestore push
+- [Fix Player Not Found](runbooks/FIX_PLAYER_NOT_FOUND.md) — SalarySwish slug mismatch fixes
+- [Manual Smoke Test Checklist](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md) — post-push verification
+- [Scouting Prod Sync Runbook](scouting/PROD_SYNC_RUNBOOK.md) — scouting data sync to prod
+- One-time historical runbooks (cutover, collection cleanup, Nov 2025 audits) archived to `archive/docs/runbooks/`.
 
 ### 🎮 Features
 
