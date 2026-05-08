@@ -8,14 +8,20 @@ docs/tradeMachine/return_packages/
 plans/\_archive/
 
 # Root return_packages remains legacy/local-only noise.
-
 return_packages/
+
+# All return-package content is execution evidence — exclude by default.
+# Agents can read specific files explicitly when investigating past work.
+docs/return_packages/architect/
 docs/return_packages/docs/
+docs/return_packages/team-scrape/
 docs/return_packages/typescript/
-!docs/return_packages/
+docs/return_packages/workspace-cleanup/
+
+# Keep navigation entry points visible.
 !docs/return_packages/README.md
-!docs/return_packages/workspace-cleanup/
-!docs/return_packages/workspace-cleanup/\*\*
+!docs/return_packages/architect/README.md
+!docs/return_packages/team-scrape/README.md
 
 # Stale code archives
 

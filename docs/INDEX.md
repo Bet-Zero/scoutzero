@@ -31,9 +31,8 @@
 - [Documentation Structure Standard](workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md) - canonical placement rules for permanent docs, working docs, archives, generated docs, and prompts.
 - [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) - canonical rules for new return packages under `docs/return_packages/`.
 - [Workspace Guardrails](workspace-rules/WORKSPACE_GUARDRAILS.md) - concise do/don't checklist and validation commands for routing, return packages, working docs, and plans.
-- [Workspace Cleanup Master](./_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_MASTER.md) - living tracker for cleanup phases and stale-link follow-up work.
 - [Return Packages README](return_packages/README.md) - canonical return-package root.
-- Stale-link cleanup is tracked by the workspace cleanup master doc; Phase 2 updated only return-package routing references.
+- Workspace cleanup initiative (all 6 phases) is complete; master doc archived to `archive/docs/_working/workspace-cleanup/`.
 
 ## Historical Archives
 
@@ -147,7 +146,7 @@ Historical project deliverables and execution documentation.
 
 - [Return Packages README](return_packages/README.md) for canonical routing.
 - [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) for naming and content rules.
-- [Workspace Cleanup Master](./_working/workspace-cleanup/SCOUTZERO_WORKSPACE_CLEANUP_MASTER.md) for deferred consolidation and stale-link repair work.
+- Workspace cleanup is complete; master doc archived to `archive/docs/_working/workspace-cleanup/`.
 - [Architect Return Packages](return_packages/architect/) and [Team-Scrape Return Packages](return_packages/team-scrape/) for feature-specific execution evidence moved out of active feature roots.
 
 ### 📊 Data Pipelines
