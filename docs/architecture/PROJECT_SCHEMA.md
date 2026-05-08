@@ -690,7 +690,7 @@ const contracts = await getDocs(
 - `capSheet.players[]` - Array of flattened player objects with `contract_clean`
 - `capSheet.lastUpdated` - Timestamp
 
-**Migration Target:** See `docs/migrations/teams-to-architect/TARGET_SCHEMA.md`
+**Migration Status:** Complete — all code now uses `architect_baseTeams` / `players_v2`. Migration docs archived to `archive/docs/`.
 
 **Access Pattern:**
 

@@ -2,37 +2,9 @@
 
 TypeScript migration, hardening, and zero-exception hardening are complete in this repository.
 
-Treat TypeScript as a maintenance gate, not as an active repo-wide campaign.
+Treat TypeScript as a maintenance gate, not as an active campaign. Do not reopen unless a gate regresses — see [AGENTS.md](../../AGENTS.md) for the reopen rule.
 
-- Do not reopen TypeScript hardening unless a documented gate regresses.
-- Use [TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md](TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md) as the maintenance gate for future regressions.
-- Use [TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md](TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md) for the completed zero-exception closure record.
-
-## Current Required Docs
-
-- [TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md](TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md) - current maintenance gate and regression checklist.
-- [TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md](TYPESCRIPT_ZERO_EXCEPTION_HARDENING.md) - completed zero-exception closure record and regression reference.
-- [../INDEX.md](../INDEX.md) - repo-level documentation entry point.
-- [../guides/DEVELOPER_GUIDE.md](../guides/DEVELOPER_GUIDE.md) - developer-facing conventions and routing.
-- [../../AGENTS.md](../../AGENTS.md) - agent operating rules and the repo-wide reopen policy.
-
-## Completed Historical TypeScript Campaign Docs
-
-These files remain in the repository as evidence from the completed TypeScript campaign. Read them for history or audit context, not as active execution instructions.
-
-- [../../archive/docs/typescript/README.md](../../archive/docs/typescript/README.md) - archive router for the relocated root-level TypeScript campaign bundle.
-- [../../archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md](../../archive/docs/typescript/TYPESCRIPT_HARDENING_NEXT_STEPS.md)
-- [../../archive/docs/typescript/TS_CONVERSION_NEXT_STEPS.md](../../archive/docs/typescript/TS_CONVERSION_NEXT_STEPS.md)
-- [../../archive/docs/typescript/TS_CONVERSION_PILE_A_AUDIT.md](../../archive/docs/typescript/TS_CONVERSION_PILE_A_AUDIT.md)
-- [../../archive/docs/typescript/TS_CONVERSION_PILE_B_AUDIT.md](../../archive/docs/typescript/TS_CONVERSION_PILE_B_AUDIT.md)
-- [../../archive/docs/typescript/TS_CONVERSION_PILE_C_PLAN.md](../../archive/docs/typescript/TS_CONVERSION_PILE_C_PLAN.md)
-- [../../archive/docs/typescript/TS_CONVERSION_PILE_D_TESTS_PLAN.md](../../archive/docs/typescript/TS_CONVERSION_PILE_D_TESTS_PLAN.md)
-- [TYPESCRIPT_HARDENING_BASELINE.md](TYPESCRIPT_HARDENING_BASELINE.md) — baseline state reference.
-
-Five additional campaign execution docs were archived to `archive/docs/typescript/`:
-`TYPESCRIPT_CONTINUOUS_EXECUTION_PROTOCOL.md`, `TYPESCRIPT_HARDENING_EXECUTION_MAP.md`,
-`TYPESCRIPT_HARDENING_FINAL_REVIEW.md`, `TYPESCRIPT_GATE_003_BOUNDARY_SCHEMA_CLASSIFICATION.md`,
-`TYPESCRIPT_GATE_005_TEST_MOCK_CLASSIFICATION.md`.
+All campaign docs (baseline, completion contract, zero-exception hardening, post-migration audit) are archived to `archive/docs/typescript/`.
 
 ## Return-Package Evidence Archives
 

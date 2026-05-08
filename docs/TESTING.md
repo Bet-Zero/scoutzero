@@ -379,7 +379,7 @@ npm run ci:phaseD4-dare-emulator-gate
 
 - All PR gates pass
 - Additional emulator tests pass
-- Manual smoke tests complete (see [runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md))
+- Manual smoke tests complete (checklist archived to `archive/docs/runbooks/`)
 
 ---
 

@@ -8,8 +8,7 @@ world-only authoring and simulation boundaries.
 
 ## Current Docs
 
-- [ENTITLEMENT_AUTHORING_SCHEMA_NOTES.md](ENTITLEMENT_AUTHORING_SCHEMA_NOTES.md) — world-only `protectionLadder` field notes.
-- [ENTITLEMENT_TERMS_SIMULATION_NOTES.md](ENTITLEMENT_TERMS_SIMULATION_NOTES.md) — what entitlement terms are simulated now versus deferred.
+Entitlement schema notes and simulation boundary notes archived to `archive/docs/architect/`.
 
 Execution history (ENTITLEMENTS_MASTER, TRADE_MACHINE_ENTITLEMENTS_ADVANCED_MASTER) archived to `archive/docs/architect/`.
 

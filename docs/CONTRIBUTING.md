@@ -493,7 +493,7 @@ npm test -- path/to/test.test.js
 When working on Trade Machine or salary cap features:
 
 - Follow NBA Collective Bargaining Agreement rules (see `/docs/compliance/`)
-- Reference [Trade Machine Audit](tradeMachine/TRADE_MACHINE_AUDIT.md) for validation patterns
+- Reference [Trade Machine Docs Router](tradeMachine/README.md) for current trade machine context
 - Test edge cases (apron restrictions, Stepien Rule, sign-and-trade, etc.)
 
 ### Mutation Pipeline

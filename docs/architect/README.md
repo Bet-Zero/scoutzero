@@ -16,7 +16,7 @@ These are the best entry points for the current runtime implementation:
 1. [Code Ownership Map](../../src/features/architect/ARCHITECT_FEATURE_README.md)
 2. [Current Firestore Schema](../schema/CURRENT_FIRESTORE_SCHEMA.md)
 3. [Architect Schema Reference](../schema/architect.md)
-4. [Persistence Contracts](contracts/PERSISTENCE_CONTRACTS.md)
+4. [Current Firestore Schema](../schema/CURRENT_FIRESTORE_SCHEMA.md)
 
 ## Official Runtime Reference Set
 
@@ -27,7 +27,7 @@ Use these as the current Architect runtime/reference set.
 | [ARCHITECT_FEATURE_README.md](../../src/features/architect/ARCHITECT_FEATURE_README.md) | Runtime ownership map for world lifecycle, read stack, write authorities, and shared SSOTs. |
 | [CURRENT_FIRESTORE_SCHEMA.md](../schema/CURRENT_FIRESTORE_SCHEMA.md)                    | Current collection layout, migration posture, and active Architect collections.             |
 | [architect.md](../schema/architect.md)                                                  | Canonical generated schema reference for Architect documents.                               |
-| [PERSISTENCE_CONTRACTS.md](contracts/PERSISTENCE_CONTRACTS.md)                          | Committed write boundary, allowlists, normalization rules, and persistence invariants.      |
+| [ARCHITECT_FEATURE_README.md](../../src/features/architect/ARCHITECT_FEATURE_README.md) | Runtime ownership map for world lifecycle, read stack, write authorities, and shared SSOTs. |
 | [ARCHITECT_FEATURE_README.md](../../src/features/architect/ARCHITECT_FEATURE_README.md) | Runtime ownership map for world lifecycle, read stack, write authorities, and shared SSOTs. |
 
 ## Supporting Current Integration Docs
@@ -46,7 +46,7 @@ These remain current, but they are maintenance references rather than runtime
 behavior SSOTs.
 
 - [type-hardening/README.md](type-hardening/README.md)
-- [cap-sheet/ARCHITECT_CAP_VALIDATION_INCOMPLETE_FIX.md](cap-sheet/ARCHITECT_CAP_VALIDATION_INCOMPLETE_FIX.md)
+Cap-sheet and persistence contract docs archived to `archive/docs/architect/`.
 
 ## Mixed / Manual Review Required
 
@@ -77,7 +77,7 @@ For common questions, use this path:
 
 - **Who owns a runtime behavior?** Start with [ARCHITECT_FEATURE_README.md](../../src/features/architect/ARCHITECT_FEATURE_README.md).
 - **What is stored in Firestore?** Start with [CURRENT_FIRESTORE_SCHEMA.md](../schema/CURRENT_FIRESTORE_SCHEMA.md) and [architect.md](../schema/architect.md).
-- **How do committed writes work?** Start with [PERSISTENCE_CONTRACTS.md](contracts/PERSISTENCE_CONTRACTS.md).
+- **How do committed writes work?** Start with [ARCHITECT_FEATURE_README.md](../../src/features/architect/ARCHITECT_FEATURE_README.md) and [CURRENT_FIRESTORE_SCHEMA.md](../schema/CURRENT_FIRESTORE_SCHEMA.md).
 - **How do tabs stay connected / how do specific features behave?** Start with the corresponding feature-folder README in this directory.
 
 ## Mixed Reference

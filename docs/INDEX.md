@@ -21,10 +21,7 @@
 
 ## TypeScript Status
 
-- [TypeScript Documentation Status](typescript/README.md) - current required docs, completed historical TypeScript campaign docs, and return-package evidence archives
-- [TypeScript Hardening Completion Contract](typescript/TYPESCRIPT_HARDENING_COMPLETION_CONTRACT.md) - current maintenance gate for regressions
-- [TypeScript return-package evidence archive](return_packages/typescript/) - execution evidence for the closed hardening campaign
-- Do not reopen TypeScript hardening unless a documented gate regresses.
+- [TypeScript Documentation Status](typescript/README.md) - TypeScript is complete; campaign docs archived; do not reopen unless a gate regresses.
 
 ## Workspace Cleanup Standards
 
@@ -51,15 +48,13 @@ Core system architecture and data models:
 - [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data structures and relationships
 - [Architect Runtime Reference](architect/README.md) - Active runtime documentation for Architect save/load flow, world behavior, persistence, and Firestore routing
 - [Historical Architect Planning Bundle Router](architect-teams-plan/README.md) - points to the archived Architect planning/design bundle
-- [Architect Schema Migration Review](architecture/ARCHITECT_SCHEMA_MIGRATION_REVIEW.md)
-- [Schema Migration Guide](architecture/SCHEMA_MIGRATION_GUIDE.md) - Old-to-new Architect schema guidance and compatibility patterns
 - [Contract Normalization Rules](CONTRACT_NORMALIZATION_RULES.md)
 
 **Migration Documentation:**
 
-- [Teams to Architect Migration](migrations/teams-to-architect/TARGET_SCHEMA.md)
 - [Players v1 to v2 Migration](migrations/players-v1-to-v2/README.md)
 - [Firestore Schema V2](migrations/players-v1-to-v2/FIRESTORE_SCHEMA_V2.md)
+- Schema migration guides and Architect migration docs archived to `archive/docs/`.
 
 ### 🛠️ Development Guides
 
@@ -79,27 +74,18 @@ Information for developers working on the codebase:
 
 Step-by-step operational procedures:
 
-- [Data Scrape Runbook](runbooks/data-scrape.md)
-- [Manual Smoke Test Checklist](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md)
-- [Fix Player Not Found](runbooks/FIX_PLAYER_NOT_FOUND.md)
-- [Verify Before Delete](runbooks/VERIFY_BEFORE_DELETE.md)
-- [Cutover Cleanup](runbooks/cutover-cleanup.md)
-- [Application Integration Notes](runbooks/application-integration-notes.md)
-- [Application Integration Verification](runbooks/application-integration-verification.md)
+- [Scouting Prod Sync Runbook](scouting/PROD_SYNC_RUNBOOK.md)
+- Historical one-time runbooks (data scrape, cutover, smoke tests) archived to `archive/docs/runbooks/`.
 
 ### 🎮 Features
 
-Feature-specific documentation:
-
-- [Ranker Session Schema](features/ranker_SESSION_SCHEMA.md)
-- [Tiermaker Draft Schema Notes](features/tiermaker_DRAFT_SCHEMA_NOTES.md)
+Feature-specific documentation lives with the feature code in `src/features/`. Feature schema notes archived to `archive/docs/features/`.
 
 ### 🏀 Trade Machine
 
 Trade machine implementation and audits:
 
-- [Trade Machine Audit](tradeMachine/TRADE_MACHINE_AUDIT.md) - Comprehensive system audit (Jan 2026)
-- [Trade Machine Docs Router](tradeMachine/README.md) - Current cross-feature trade-machine docs and mixed historical carry-forwards
+- [Trade Machine Docs Router](tradeMachine/README.md) - Current cross-feature trade-machine docs
 - [Return Packages README](return_packages/README.md) - Canonical routing for current return-package deliverables
 
 ### 🧭 Legacy Routed Areas
@@ -225,14 +211,13 @@ Scouting and player evaluation features:
 
 ### For Data Issues
 
-1. [Fix Player Not Found](runbooks/FIX_PLAYER_NOT_FOUND.md)
-2. [Data Scrape Runbook](runbooks/data-scrape.md)
-3. Team scrape docs in `/docs/team-scrape/`
+1. [Scouting Prod Sync Runbook](scouting/PROD_SYNC_RUNBOOK.md)
+2. Team scrape docs in `/docs/team-scrape/`
 
 ### For Deployment
 
-1. [Manual Smoke Test](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md)
-2. [Verify Before Delete](runbooks/VERIFY_BEFORE_DELETE.md)
+1. [Scouting Prod Sync Runbook](scouting/PROD_SYNC_RUNBOOK.md) for data pushes
+2. [Manual Smoke Test Checklist](archive/docs/runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md) — archived reference
 
 ---
 
