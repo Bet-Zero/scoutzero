@@ -1,72 +1,141 @@
 # Documentation Structure Standard
 
-This standard defines where ScoutZero documentation belongs before any cleanup move, archive pass, or deletion is executed.
+This standard defines where every type of documentation belongs in the ScoutZero repository.
 
-## Scope
+---
 
-This standard applies to permanent docs, working docs, return packages, archived docs, generated docs, feature docs, runbooks, and agent prompts.
+## The Fundamental Rule
 
-Use `WORKSPACE_GUARDRAILS.md` for the concise do/don't checklist and validation commands that sit on top of this placement model.
+`docs/` contains permanent project documents only — things that describe the project as it exists now and are meant to remain indefinitely.
 
-## Core Rules
+Temporary, in-progress, and execution-record material lives outside `docs/`.
 
-- Keep one documentation type per surface whenever possible.
-- Keep active guidance in visible, stable documentation locations.
-- Keep historical evidence out of active feature roots and out of `_working` once review is complete.
-- Keep generated docs in their generated surfaces and do not use them as policy-doc dumping grounds.
-- Use underscore naming for `return_packages`; do not create `return-packages` paths.
+---
 
-## Canonical Placement
+## docs/ — The Permanent Library
 
-| Material Type           | Canonical Location                                                     | Purpose                                                   | Notes                                                                                     |
-| ----------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Permanent repo docs     | `docs/` topic folders and repo entry docs                              | Evergreen guidance and reference docs                     | Use root-level docs only for repo-wide entry points and durable cross-cutting references. |
-| Working docs            | `work/<initiative>/`                                          | Temporary planning, review, preflight, and draft material | `_working` is a staging area, not a permanent evidence store.                             |
-| Return packages         | `docs/return_packages/<area>/`                                         | Execution evidence and delivery records                   | See `RETURN_PACKAGE_STANDARD.md` for naming and content rules.                            |
-| Archived docs           | `archive/docs/<area>/` or `plans/_archive/` for plan-specific material | Historical docs retained after review                     | Phase 1 defines the destination standard; later phases perform the moves.                 |
-| Generated docs          | `docs/components/` and `docs/reference/schema/`                                  | Tool-generated references                                 | Do not manually edit generated outputs except through their source generators.            |
-| Feature docs            | `docs/<feature>/` or `docs/features/`                                  | Evergreen feature overviews, masters, and references      | Do not mix return packages or closeout evidence into the feature root going forward.      |
-| Runbooks                | `docs/operations/`                                                       | Operator procedures and recurring workflows               | Runbooks are not archives and are not return packages.                                    |
-| Agent prompts and rules | `AGENTS.md`, `docs/standards/`, and `archive/docs/cursor-prompts/`       | Stable operating rules and prompts                        | Keep personal or local-only agent context out of permanent docs.                          |
+Four pillars. Every document in `docs/` belongs in exactly one of them.
 
-## Working-Doc Lifecycle
+### `docs/reference/`
 
-- Create active temporary documentation only under `work/<initiative>/`.
-- Working docs may include preflight inventories, temporary trackers, draft standards, comparison notes, and review checklists.
-- Working docs must not become the final home for completed closeout records, historical return packages, or evergreen policy docs.
-- When an initiative or working-doc cluster closes, review it and choose one outcome:
-  - graduate the durable content to permanent docs;
-  - move retained historical material to the archive surface; or
-  - delete clearly redundant drafts after review.
-- Completed working docs cannot remain in `_working` indefinitely.
+**What it is:** Everything that describes how the system works.
 
-## Permanent-Doc Rules
+- `docs/reference/architect/` — Architect GM Dashboard feature docs, trade machine, type hardening
+- `docs/reference/schema/` — Firestore schema docs (generated from Zod schemas)
+- `docs/reference/PROJECT_SCHEMA.md` — Repo-wide structure, naming conventions, data contracts
 
-- Put evergreen repo guidance in `docs/` topic folders.
-- Keep repo-wide routing in `README.md`, `docs/INDEX.md`, and other durable entry docs only.
-- Do not place temporary audits, phase trackers, or return packages in permanent feature roots when a working or return-package surface exists.
+**When to add here:** A new feature gets its own subfolder under `reference/` when it needs persistent behavioral documentation that agents or developers will return to repeatedly.
 
-## Generated-Doc Rules
+### `docs/guides/`
 
-- Treat `docs/components/` and `docs/reference/schema/` as generated-reference surfaces.
-- Update generated docs through their source commands, not by manual cleanup passes.
-- Do not mix policy standards, return packages, or draft plans into generated-doc folders.
+**What it is:** How to work with and build the system.
 
-## Feature-Doc Rules
+- Developer guide, user guide, contributing guidelines
+- Testing strategy, scripts reference
+- Tool-specific references (e.g., Firestore diagnostic component)
 
-- Keep evergreen feature references in the nearest stable feature-doc surface.
-- Keep execution evidence, closeout records, and transient review material out of feature roots going forward.
-- If a feature needs both evergreen docs and delivery evidence, place the evidence in `docs/return_packages/<area>/` and cross-link from the feature doc only when helpful.
+**When to add here:** A new guide covering setup, patterns, or usage that any developer would need over time.
 
-## Archive Rules
+### `docs/operations/`
 
-- Use archive surfaces for completed documentation that still has reference value but should no longer live beside active docs.
-- Keep archive docs separate from active docs and separate from generated docs.
-- Keep plan-specific archive material under `plans/_archive/`; keep general historical docs under the archive-doc surface defined above.
+**What it is:** How to run and maintain the system.
 
-## Guardrails
+- Data scrape runbook (player + team pipeline)
+- Prod sync runbook, draft picks commands
+- Fix procedures for recurring operational issues
+- Post-push verification checklists
 
-- Do not create `return-packages` paths.
-- Do not create new return-package files under the legacy root `return_packages/` path.
-- Do not treat `docs/_working/` as a permanent evidence store.
-- Do not place new execution evidence directly in `docs/reference/architect/`, `archive/docs/team-scrape/`, or other active feature roots when a canonical return-package path exists.
+**When to add here:** A procedure you will run more than once. If it is a one-time action it goes in `work/` not here.
+
+### `docs/standards/`
+
+**What it is:** Rules governing how the project is built and documented.
+
+- This document
+- Workspace guardrails, return package standard
+- Communication rules, contributing conventions
+- Contract normalization rules
+
+**When to add here:** A new rule or convention that applies project-wide and agents must follow.
+
+---
+
+## Root `docs/` Files
+
+Only three things belong at `docs/` root:
+
+- `docs/INDEX.md` — the navigation entry point
+- `docs/COMPONENT_INDEX.md` and `docs/FILE_MAP.md` — auto-generated on every commit, do not edit manually
+
+---
+
+## work/ — Active In-Progress Material
+
+`work/` lives at the repo root (not inside `docs/`).
+
+```
+work/
+└── <initiative-slug>/
+    ├── plan.md              # Main planning/tracking doc
+    ├── preflight.md         # Pre-execution assessment (optional)
+    ├── return_package.md    # Delivery evidence (created on completion)
+    └── notes/               # Any other working docs (optional)
+```
+
+**Lifecycle:** When an initiative is complete, the entire `work/<initiative>/` folder moves to `archive/work/<initiative>/`. One move, everything archives together.
+
+**Return packages live here**, not in `docs/`. The return package for an initiative is part of that initiative's working folder.
+
+---
+
+## plans/ — Active Plan Files
+
+`plans/` lives at the repo root. It holds `plan.md` and chunk files for active execution plans.
+
+When a plan is complete: `plans/<initiative>/` moves to `plans/_archive/<initiative>/` (gitignored locally).
+
+---
+
+## archive/ — Historical Material
+
+```
+archive/
+├── docs/        # Historical versions of permanent docs
+└── work/        # Completed working-doc clusters
+```
+
+Archive is for material that has reference value but should not live beside active docs. Once something is in archive, it stays there.
+
+---
+
+## Generated Docs
+
+`docs/components/` and `docs/reference/schema/` contain auto-generated files. Do not edit them manually — update them through their source commands (`npm run docs`, `npm run schema:generate`).
+
+---
+
+## Placement Quick Reference
+
+| What | Where |
+|------|-------|
+| Feature behavioral docs | `docs/reference/<feature>/` |
+| Firestore schema docs | `docs/reference/schema/` |
+| Repo structure reference | `docs/reference/PROJECT_SCHEMA.md` |
+| Developer / user guides | `docs/guides/` |
+| Recurring operational procedures | `docs/operations/` |
+| Project rules and conventions | `docs/standards/` |
+| Active plans | `plans/<initiative>/` |
+| Working docs, preflights, return packages | `work/<initiative>/` |
+| Completed initiatives | `archive/work/<initiative>/` |
+| Historical docs | `archive/docs/` |
+
+---
+
+## What Never Goes in `docs/`
+
+- Execution evidence (preflights, return packages, phase reports)
+- Plans, trackers, or in-progress notes
+- One-time audit records or certification snapshots
+- Anything with a completion date that makes it historical rather than current
+
+If you are unsure, ask: "Will someone need this two years from now to understand how the system works?" If no, it belongs in `work/` or `archive/`, not `docs/`.

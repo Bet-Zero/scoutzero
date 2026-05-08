@@ -204,7 +204,11 @@ HoopZero is a public-facing NBA scouting platform built with React + Vite + Fire
 - Update docs for significant changes — see `docs/standards/DOCUMENTATION_UPDATE_RULES.md`.
 - Active working docs (plans, preflights, return packages) go under `work/<initiative>/`.
 - When an initiative is complete, the entire `work/<initiative>/` folder moves to `archive/work/<initiative>/`.
-- `docs/` is for permanent project documents only — reference, guides, operations, standards. Never put execution artifacts there.
+- `docs/` is for permanent project documents only. Never put execution artifacts there. Four pillars:
+  - `docs/reference/` — how the system works (architect, schema, repo structure)
+  - `docs/guides/` — how to work with and build the system
+  - `docs/operations/` — how to run and maintain the system (runbooks)
+  - `docs/standards/` — rules governing the project
 - Keep active plans under `plans/<initiative>/` and archived plans under `plans/_archive/`; do not hide all of `plans/` in ignore rules.
 - For docs-routing or standards changes, run `npm run lint:md` and `npm run docs:guardrails` before finishing.
 - Run `npm run validate:project` after any structural changes.
