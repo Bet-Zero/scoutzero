@@ -140,5 +140,5 @@ When exporting trade screenshots:
 
 ## Related Documentation
 
-- [MASTER_TRADE_MACHINE_ALIGNMENT.md](./MASTER_TRADE_MACHINE_ALIGNMENT.md) — Invariants and single-source rules
-- [TM_GAPS_TRIAGE_V1.md](../architect/audits/TM_GAPS_TRIAGE_V1.md) — Gap tracking and status
+- [TRADE_MACHINE_MASTER.md](../architect/trade-machine/TRADE_MACHINE_MASTER.md) — Trade Machine runtime reference
+- [TRADE_MACHINE_AUDIT.md](./TRADE_MACHINE_AUDIT.md) — Detailed audit of UI vs validator

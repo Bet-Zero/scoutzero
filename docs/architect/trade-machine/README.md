@@ -12,13 +12,9 @@ execution/history files that still contain useful current detail.
 
 ## Supporting Current Docs
 
-- [TM_CAP_INTEGRATION_MASTER.md](TM_CAP_INTEGRATION_MASTER.md) — cap/totals integration reference for Trade Machine behavior.
-- [ARCHITECT_TM_VALIDATOR_TRUTH_REVIEW.md](ARCHITECT_TM_VALIDATOR_TRUTH_REVIEW.md) — current preview/apply authority review against live code.
+- [ARCHITECT_TM_VALIDATOR_TRUTH_REVIEW.md](ARCHITECT_TM_VALIDATOR_TRUTH_REVIEW.md) — preview/apply authority review against live code (2026-03-25).
 
-## Additional Current Context
-
-- [TRADE_MACHINE_PICK_TRADING_MASTER.md](TRADE_MACHINE_PICK_TRADING_MASTER.md) — pick entitlement trading flow and acceptance checklist.
-- [TRADE_MACHINE_VACUUM_MODE_MASTER.md](TRADE_MACHINE_VACUUM_MODE_MASTER.md) — sandbox overlay design and vacuum-mode editing behavior.
+Execution history (TM_CAP_INTEGRATION_MASTER, TRADE_MACHINE_PICK_TRADING_MASTER, TRADE_MACHINE_VACUUM_MODE_MASTER) archived to `archive/docs/architect/`.
 
 ## Routing Rule
 

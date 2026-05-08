@@ -28,12 +28,7 @@ Use these as the current Architect runtime/reference set.
 | [CURRENT_FIRESTORE_SCHEMA.md](../schema/CURRENT_FIRESTORE_SCHEMA.md)                    | Current collection layout, migration posture, and active Architect collections.             |
 | [architect.md](../schema/architect.md)                                                  | Canonical generated schema reference for Architect documents.                               |
 | [PERSISTENCE_CONTRACTS.md](contracts/PERSISTENCE_CONTRACTS.md)                          | Committed write boundary, allowlists, normalization rules, and persistence invariants.      |
-| [ARCHITECT_CONNECTIVITY_MASTER.md](ARCHITECT_CONNECTIVITY_MASTER.md)                    | Cross-tab runtime connectivity, canonical write paths, and world-mode coherence.            |
-| [ENTITLEMENTS_MASTER.md](entitlements/ENTITLEMENTS_MASTER.md)                           | Entitlement invariants and current world-mode entitlement behavior.                         |
-| [OFFSEASON_MASTER.md](OFFSEASON_MASTER.md)                                              | Current season-advance and offseason behavior, including authoritative vs preview paths.    |
-| [TEAM_HISTORY_MASTER.md](TEAM_HISTORY_MASTER.md)                                        | Canonical Team History event store and rendering contract.                                  |
-| [CAP_SHEET_MASTER.md](cap-sheet/CAP_SHEET_MASTER.md)                                    | Active Cap Sheet runtime SSOT and correctness gates.                                        |
-| [free_agency_MASTER.md](free-agency/free_agency_MASTER.md)                              | Free Agency world-mode validation, persistence, and sync behavior.                          |
+| [ARCHITECT_FEATURE_README.md](../../src/features/architect/ARCHITECT_FEATURE_README.md) | Runtime ownership map for world lifecycle, read stack, write authorities, and shared SSOTs. |
 
 ## Supporting Current Integration Docs
 
@@ -83,15 +78,8 @@ For common questions, use this path:
 - **Who owns a runtime behavior?** Start with [ARCHITECT_FEATURE_README.md](../../src/features/architect/ARCHITECT_FEATURE_README.md).
 - **What is stored in Firestore?** Start with [CURRENT_FIRESTORE_SCHEMA.md](../schema/CURRENT_FIRESTORE_SCHEMA.md) and [architect.md](../schema/architect.md).
 - **How do committed writes work?** Start with [PERSISTENCE_CONTRACTS.md](contracts/PERSISTENCE_CONTRACTS.md).
-- **How do tabs stay connected in world mode?** Start with [ARCHITECT_CONNECTIVITY_MASTER.md](ARCHITECT_CONNECTIVITY_MASTER.md).
-- **How do season advance or Team History behave now?** Use the corresponding master doc in this folder.
-- **How do Cap Sheet, entitlement, Free Agency, or Trade Machine flows behave now?** Start with the corresponding feature-folder README in this directory, then open the master doc linked from there.
+- **How do tabs stay connected / how do specific features behave?** Start with the corresponding feature-folder README in this directory.
 
-## Mixed Docs Still Pending Extraction
+## Mixed Reference
 
-These remain in the active folder for now because they need information
-extraction or cleaner replacement before the file itself should be archived.
-
-- [trade-machine/TRADE_MACHINE_MASTER.md](trade-machine/TRADE_MACHINE_MASTER.md)
-- [trade-machine/TRADE_MACHINE_PICK_TRADING_MASTER.md](trade-machine/TRADE_MACHINE_PICK_TRADING_MASTER.md)
-- [trade-machine/TRADE_MACHINE_VACUUM_MODE_MASTER.md](trade-machine/TRADE_MACHINE_VACUUM_MODE_MASTER.md)
+- [trade-machine/TRADE_MACHINE_MASTER.md](trade-machine/TRADE_MACHINE_MASTER.md) — current runtime overview at the top; historical execution trail below.

@@ -13,7 +13,7 @@ runtime reference set.
 ## Current Maintenance Context
 
 - [ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md](ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md) — closed seam record explaining the historical Item 1-6 classifications referenced by the ledger.
-- [ARCHITECT_RUNTIME_BLOCKERS_MASTER.md](ARCHITECT_RUNTIME_BLOCKERS_MASTER.md) — completed blocker-pass record preserved for the last runtime hardening sweep.
+- `ARCHITECT_RUNTIME_BLOCKERS_MASTER.md` — archived to `archive/docs/architect/` (Pass 1+2 complete).
 
 ## Historical Campaign Closeout
 

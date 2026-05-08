@@ -91,7 +91,8 @@ Step-by-step operational procedures:
 
 Feature-specific documentation:
 
-- [Tiermaker Tieramid Master](features/tiermaker_tieramid_MASTER.md)
+- [Ranker Session Schema](features/ranker_SESSION_SCHEMA.md)
+- [Tiermaker Draft Schema Notes](features/tiermaker_DRAFT_SCHEMA_NOTES.md)
 
 ### 🏀 Trade Machine
 

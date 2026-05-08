@@ -5,13 +5,9 @@
 This folder groups the current Free Agency master doc and the integration note
 that ties Free Agency behavior back to Cap Sheet and Team History.
 
-## Start Here
+Execution history (free_agency_MASTER, FA_CAP_HISTORY_INTEGRATION_MASTER) archived to `archive/docs/architect/`.
 
-- [free_agency_MASTER.md](free_agency_MASTER.md) — active Free Agency world-mode validation, persistence, and sync behavior.
-
-## Supporting Current Docs
-
-- [FA_CAP_HISTORY_INTEGRATION_MASTER.md](FA_CAP_HISTORY_INTEGRATION_MASTER.md) — current integration reference for Free Agency, Cap Sheet, and Team History behavior.
+For Free Agency runtime behavior, start with [../README.md](../README.md) and [../../src/features/architect/ARCHITECT_FEATURE_README.md](../../src/features/architect/ARCHITECT_FEATURE_README.md).
 
 ## Routing Rule
 

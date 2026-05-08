@@ -5,15 +5,12 @@
 This folder groups the current Cap Sheet page SSOT, supporting edit-contract
 flow docs, and cap-audit / validation references.
 
-## Start Here
+## Current Docs
 
-- [CAP_SHEET_MASTER.md](CAP_SHEET_MASTER.md) — active Cap Sheet runtime SSOT and correctness gates.
+- [ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md](ARCHITECT_CAP_TOTAL_SINGLE_SOURCE.md) — cap totals SSOT and single-source enforcement.
+- [ARCHITECT_CAP_VALIDATION_INCOMPLETE_FIX.md](ARCHITECT_CAP_VALIDATION_INCOMPLETE_FIX.md) — UI contract for incomplete cap validation results.
 
-## Supporting Current Docs
-
-- [EDIT_CONTRACT_MASTER.md](EDIT_CONTRACT_MASTER.md) — current Edit Contract modal wiring from the Cap Sheet entry path.
-- [CAP_AUDITABILITY_MASTER.md](CAP_AUDITABILITY_MASTER.md) — cap auditability architecture and execution status across world, season-advance, and base-mode flows.
-- [ARCHITECT_CAP_VALIDATION_INCOMPLETE_FIX.md](ARCHITECT_CAP_VALIDATION_INCOMPLETE_FIX.md) — current UI contract for incomplete cap validation results.
+Execution history (CAP_SHEET_MASTER, EDIT_CONTRACT_MASTER, CAP_AUDITABILITY_MASTER) archived to `archive/docs/architect/`.
 
 ## Routing Rule
 
