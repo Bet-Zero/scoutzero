@@ -1,0 +1,5 @@
+# Auto-generate docs before commit
+npm run docs
+
+# Add the updated docs to the commit
+git add docs/
