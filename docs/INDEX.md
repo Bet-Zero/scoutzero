@@ -21,7 +21,7 @@
 
 ## TypeScript Status
 
-- [TypeScript Documentation Status](typescript/README.md) - TypeScript is complete; campaign docs archived; do not reopen unless a gate regresses.
+TypeScript migration, hardening, and zero-exception hardening are complete. Do not reopen unless a gate regresses — see [AGENTS.md](../AGENTS.md). Campaign docs archived to `archive/docs/typescript/`.
 
 ## Workspace Cleanup Standards
 
@@ -72,10 +72,11 @@ Information for developers working on the codebase:
 Step-by-step operational procedures:
 
 - [Data Scrape Runbook](runbooks/data-scrape.md) — player + team pipeline commands, Firestore push
+- [Draft Picks Commands](runbooks/DRAFT_PICKS_COMMANDS.md) — draft picks pipeline command reference
+- [Scouting Prod Sync Runbook](runbooks/PROD_SYNC_RUNBOOK.md) — scouting data sync to prod
 - [Fix Player Not Found](runbooks/FIX_PLAYER_NOT_FOUND.md) — SalarySwish slug mismatch fixes
 - [Manual Smoke Test Checklist](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md) — post-push verification
-- [Scouting Prod Sync Runbook](scouting/PROD_SYNC_RUNBOOK.md) — scouting data sync to prod
-- One-time historical runbooks (cutover, collection cleanup, Nov 2025 audits) archived to `archive/docs/runbooks/`.
+- One-time historical runbooks archived to `archive/docs/runbooks/`.
 
 ### 🎮 Features
 
@@ -83,31 +84,11 @@ Feature-specific documentation lives with the feature code in `src/features/`. F
 
 ### 🏀 Trade Machine
 
-Trade machine implementation and audits:
-
-- [Trade Machine Docs Router](tradeMachine/README.md) - Current cross-feature trade-machine docs
-- [Return Packages README](return_packages/README.md) - Canonical routing for current return-package deliverables
-
-### 📜 Compliance & CBA Rules
-
-NBA Collective Bargaining Agreement implementation:
-
-- `/docs/compliance/` - CBA compliance matrix (`COMPLIANCE_MATRIX.csv`); historical audit certificates archived to `archive/docs/compliance/`
+- [Architect Trade Machine Runtime Cluster](architect/trade-machine/README.md) — current validator behavior, runtime reference, test gates
 
 ### 🤖 AI & Cursor Prompts
 
-Prompts and instructions for AI-assisted development:
-
-- [Cursor Commands Overview](cursor-prompts/cursor-commands-overview.md)
-- [Apex Audit Prompt](cursor-prompts/ApexAuditPrompt.md)
-- [Audit Review Prompt](cursor-prompts/AuditReviewPrompt.md)
-- [Apply Critical Prompt](cursor-prompts/ApplyCriticalPrompt.md)
-- [Cleanup Prompt](cursor-prompts/CleanupPrompt.md)
-- [Doc Sync Prompt](cursor-prompts/DocSyncPrompt.md)
-- [Explain Prompt](cursor-prompts/ExplainPrompt.md)
-- [Fix All Prompt](cursor-prompts/FixAllPrompt.md)
-- [Group By Feature Refactor](cursor-prompts/GroupByFeatureRefactor.md)
-- [Relevance Prompt](cursor-prompts/RelevancePrompt.md)
+Cursor slash command prompts archived to `archive/docs/cursor-prompts/`. Cursor commands are in `.cursor/commands/`. Claude Code skills are listed in AGENTS.md.
 
 ### 📦 Return Packages
 
@@ -148,19 +129,12 @@ Scouting and player evaluation features:
 ├── TESTING.md                  # Testing strategy
 ├── SCRIPTS.md                  # npm scripts reference
 ├── architect/                  # Active Architect runtime reference
-├── architecture/               # System architecture
-├── commands/                   # CLI commands (draft picks pipeline)
-├── compliance/                 # CBA compliance matrix
+├── architecture/               # System architecture (repo layout, conventions)
 ├── components/                 # Generated component hierarchy docs
-├── cursor-prompts/             # AI assistant prompts
 ├── guides/                     # Development guides
 ├── return_packages/            # Placement guide for new return packages
-├── runbooks/                   # Operational procedures
-├── schema/                     # Schema documentation
-├── scouting/                   # Scouting feature docs
-├── tradeMachine/               # Trade machine router (→ architect/trade-machine)
-├── typescript/                 # TypeScript status (campaign complete)
-├── tradeMachine/               # Cross-feature trade-machine docs + router
+├── runbooks/                   # Operational procedures (scrape, push, fix, verify)
+├── schema/                     # Firestore schema documentation
 └── workspace-rules/            # Workspace configuration
 ```
 
@@ -171,8 +145,7 @@ Scouting and player evaluation features:
 ### For Bug Fixes
 
 1. Check relevant runbooks in `/docs/runbooks/`
-2. Review [Trade Machine Audit](tradeMachine/TRADE_MACHINE_AUDIT.md) for known issues
-3. Check return packages for similar fixes
+2. Check [Architect Trade Machine Cluster](architect/trade-machine/README.md) for trade logic issues
 
 ### For New Features
 
@@ -183,18 +156,18 @@ Scouting and player evaluation features:
 ### For Architect Runtime Questions
 
 1. Start with [Architect Runtime Reference](architect/README.md)
-2. Use the feature routers under `/docs/architect/` for cap sheet, trade machine, entitlements, free agency, and type hardening
+2. Use the feature routers under `/docs/architect/` for trade machine and type hardening
 3. Use [Project Schema](architecture/PROJECT_SCHEMA.md) and [Current Firestore Schema](schema/CURRENT_FIRESTORE_SCHEMA.md) for data-shape questions
 
 ### For Data Issues
 
-1. [Scouting Prod Sync Runbook](scouting/PROD_SYNC_RUNBOOK.md)
-2. Team scrape docs in `/docs/team-scrape/`
+1. [Data Scrape Runbook](runbooks/data-scrape.md)
+2. [Scouting Prod Sync Runbook](runbooks/PROD_SYNC_RUNBOOK.md)
 
 ### For Deployment
 
-1. [Scouting Prod Sync Runbook](scouting/PROD_SYNC_RUNBOOK.md) for data pushes
-2. [Manual Smoke Test Checklist](archive/docs/runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md) — archived reference
+1. [Data Scrape Runbook](runbooks/data-scrape.md) for pipeline + push
+2. [Manual Smoke Test Checklist](runbooks/MANUAL_SMOKE_TEST_CHECKLIST.md) — post-push verification
 
 ---
 

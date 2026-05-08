@@ -195,7 +195,7 @@ HoopZero is a public-facing NBA scouting platform built with React + Vite + Fire
 ### ✅ Always
 
 - Use `.ts` / `.tsx` for new files. Existing `.js` / `.jsx` files are retained legacy or tooling surfaces, not evidence of an active TypeScript migration backlog.
-- TypeScript migration, root strict mode, and zero-exception hardening are complete maintenance standards. Use `docs/typescript/README.md` for current required docs, and do not reopen TypeScript hardening unless a documented gate regresses.
+- TypeScript migration, root strict mode, and zero-exception hardening are complete maintenance standards. Do not reopen TypeScript hardening unless a documented gate regresses.
 - Use the `@/` import alias (maps to `src/`).
 - Use named exports. Default exports only for top-level page views.
 - Preserve visual layout and logic when refactoring.
@@ -315,18 +315,18 @@ Full schema: `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`
 
 ## Slash Commands
 
-Agent-universal workflow commands. The prompt files in `docs/cursor-prompts/` contain the full instructions — any agent can follow them regardless of tool.
+Agent-universal workflow commands. Prompt files have been archived to `archive/docs/cursor-prompts/` — use the Claude Code skill system (`/review`, `/audit`, etc.) or Cursor commands in `.cursor/commands/`.
 
-| Command           | What it does                                        | Prompt file                                  |
-| ----------------- | --------------------------------------------------- | -------------------------------------------- |
-| `/explain`        | Explain selected code without changing anything     | `docs/cursor-prompts/ExplainPrompt.md`       |
-| `/audit`          | Deep technical audit → produces audit report        | `docs/cursor-prompts/ApexAuditPrompt.md`     |
-| `/audit-review`   | Review an audit file → produces a Fix Plan          | `docs/cursor-prompts/AuditReviewPrompt.md`   |
-| `/apply-critical` | Apply only Critical SAFE_AUTO fixes from a Fix Plan | `docs/cursor-prompts/ApplyCriticalPrompt.md` |
-| `/fix-all`        | Apply all appropriate fixes from a Fix Plan         | `docs/cursor-prompts/FixAllPrompt.md`        |
-| `/doc-sync`       | Update docs and comments to match current code      | `docs/cursor-prompts/DocSyncPrompt.md`       |
-| `/cleanup`        | Safe, behavior-preserving code cleanup              | `docs/cursor-prompts/CleanupPrompt.md`       |
-| `/review`         | Broad quality audit → produces preflight report     | `docs/cursor-prompts/ReviewPrompt.md`        |
+| Command           | What it does                                        |
+| ----------------- | --------------------------------------------------- |
+| `/explain`        | Explain selected code without changing anything     |
+| `/audit`          | Deep technical audit → produces audit report        |
+| `/audit-review`   | Review an audit file → produces a Fix Plan          |
+| `/apply-critical` | Apply only Critical SAFE_AUTO fixes from a Fix Plan |
+| `/fix-all`        | Apply all appropriate fixes from a Fix Plan         |
+| `/doc-sync`       | Update docs and comments to match current code      |
+| `/cleanup`        | Safe, behavior-preserving code cleanup              |
+| `/review`         | Broad quality audit → produces preflight report     |
 
 **Typical workflow**: `/explain` → `/audit` → `/audit-review` → `/apply-critical` or `/fix-all` → `/doc-sync` → `/cleanup`
 
@@ -352,4 +352,4 @@ Agent-universal workflow commands. The prompt files in `docs/cursor-prompts/` co
 | `docs/workspace-rules/CREATING_PERMANENT_DOCS.md`    | Feature READMEs, index structure, file headers             |
 | `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md` | When and how to update docs                                |
 | `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`            | Authoritative Firestore schema                             |
-| `docs/cursor-prompts/cursor-commands-overview.md`    | Full slash command reference with workflows                |
+| `archive/docs/cursor-prompts/cursor-commands-overview.md` | Full slash command reference with workflows (archived)     |
