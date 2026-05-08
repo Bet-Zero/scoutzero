@@ -1,12 +1,10 @@
 # HoopZero
 
-[![NBA Trade Audit: PASS](https://img.shields.io/badge/NBA%20Trade%20Audit-PASS-brightgreen)](docs/compliance/AUDIT_CERT.md)
-
 HoopZero is a public-facing NBA scouting platform focused on clear data presentation and role-based player analysis. It mirrors the internal **ScoutZero** grading tool but exposes a read-only interface backed entirely by Firebase. All player evaluations, roles, grades and contract details are fetched from Firestore, allowing fans and analysts to explore a flattened set of scouting data.
 
 ## TypeScript Status
 
-TypeScript migration is complete, and root strict mode plus zero-exception hardening are now maintenance standards in this repository. Treat TypeScript as a maintenance gate, not as an active repo-wide campaign. For current required docs, completed historical campaign records, and return-package evidence archives, start with [docs/typescript/README.md](docs/typescript/README.md). Do not reopen TypeScript hardening unless a documented gate regresses.
+TypeScript migration is complete, and root strict mode plus zero-exception hardening are now maintenance standards in this repository. Treat TypeScript as a maintenance gate, not as an active repo-wide campaign. Do not reopen TypeScript hardening unless a documented gate regresses.
 
 ## Tech Stack
 
@@ -55,7 +53,7 @@ External Sources → Data Pipelines → Firestore (SSOT) → Frontend
 
 **Key principle**: Firestore serves as the Single Source of Truth (SSOT). Data pipelines write to Firestore, and the frontend reads from it. Cloud Functions provide backend logic and scheduled data updates.
 
-📄 For contribution guidelines and detailed development setup, see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+📄 For contribution guidelines and detailed development setup, see [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md)
 
 ## Setup
 
@@ -133,56 +131,28 @@ Additional raw datasets live under `data/` for development and import scripts.
 
 This project uses multiple Firestore collections to separate global player data from team/contract logic.
 
-- `/players` — master player records, stats, grades, roles, and bio info
-- `/teams` — team rosters and `contract_clean` used for GM/cap tools
+- `/players_v2` — player records, stats, grades, roles, bio info, and contracts
+- `architect_worlds` / `architect_base*` — GM dashboard and trade machine data
 
-📄 See [`docs/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical collection and field reference  
-📄 See [`docs/architecture/PROJECT_SCHEMA.md`](./docs/architecture/PROJECT_SCHEMA.md) for repo structure and validation rules
+📄 See [`docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical collection and field reference  
+📄 See [`docs/reference/PROJECT_SCHEMA.md`](./docs/reference/PROJECT_SCHEMA.md) for repo structure and validation rules
 
 ## Related Projects
 
 - **ScoutZero** – internal evaluation suite used to create player grades and roles. HoopZero presents this data in a read‑only form.
-- **HoopZero Architect** – forthcoming team‑building and GM toolkit that will integrate with the same player database.
-
-## Compliance
-
-- [Audit Certification](docs/compliance/AUDIT_CERT.md)
-- [Deep Audit](docs/compliance/AUDIT_DEEP.md)
-- [Compliance Matrix](docs/compliance/COMPLIANCE_MATRIX.csv)
+- **HoopZero Architect** – team‑building and GM toolkit integrated with the same player database.
 
 ## Developer Guide
 
 See [DEVELOPER_GUIDE.md](docs/guides/DEVELOPER_GUIDE.md) for deeper notes on data structure, component architecture and coding conventions.
 
-## Project Schema
-
-This repository follows a documented structure defined in [PROJECT_SCHEMA.md](docs/architecture/PROJECT_SCHEMA.md), which provides:
-
-- **Repo Layout** - Authoritative map of directories and their purposes
-- **Naming Conventions** - Player IDs (snake_case), team codes (3-letter), file naming patterns
-- **Script Interfaces** - CLI tools, environment variables, inputs/outputs, exit codes
-- **Data Contracts** - JSON artifact schemas and validation rules
-- **Pipelines** - Data flow from scraping to Firestore
-- **Validation Rules** - Automated checks enforced by CI
-
-The schema is validated automatically via `npm run validate:project` and enforced in CI to prevent structural drift.
-
 ## Documentation
 
-The `docs/` folder contains organized reference documentation:
+The `docs/` folder is organized into four permanent pillars:
 
-### Architecture & Technical References
+- **[`docs/reference/`](docs/reference/)** – how the system works (architect, schema, repo structure)
+- **[`docs/guides/`](docs/guides/)** – how to work with and build the system
+- **[`docs/operations/`](docs/operations/)** – how to run and maintain the system (runbooks)
+- **[`docs/standards/`](docs/standards/)** – rules governing the project
 
-- [Project Schema](docs/architecture/PROJECT_SCHEMA.md) – repo layout and structural rules
-- [Current Firestore Schema](docs/schema/CURRENT_FIRESTORE_SCHEMA.md) – canonical collection and field breakdowns
-- [Firestore Diagnostic](docs/FIRESTORE_DIAGNOSTIC.md) – troubleshooting notes and Firestore reference context
-
-### User & Development Guides
-
-- [Collection Naming Guide](docs/guides/COLLECTION_NAMING_AND_FRONTEND_GUIDE.md)
-- [Data Population Guide](docs/guides/DATA_POPULATION_GUIDE.md)
-- [Diagnostic Prompts](docs/guides/DATA_PIPELINE_DIAGNOSTIC_PROMPT.md)
-
-### Generated API Documentation
-
-- [Component Hierarchies](docs/api/) – auto-generated component structure maps
+Start with [`docs/INDEX.md`](docs/INDEX.md) for a full map.
