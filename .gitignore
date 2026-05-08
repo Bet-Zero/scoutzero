@@ -210,10 +210,8 @@ docs/*Hierarchy.md
 # Backup files
 *.backup
 
-# Cursor workspace temporary directories (keep templates and examples)
+# Cursor workspace temporary directories
 cursor_work/*
-!cursor_work/_templates/
-!cursor_work/add-player-ids/
 
 # Agent folder
 .agent/
