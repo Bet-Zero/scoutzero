@@ -25,17 +25,10 @@ data_pipeline/
 plans/_archive/
 _archive/
 
-# Workflow result docs (return packages, audits)
-# Legacy root return_packages stays ignored for local artifacts; the canonical docs-facing archive stays trackable below.
+# Return packages and audits (local artifacts only)
 return_packages/
-docs/architect/return_packages/
-docs/architect/audits/
-docs/return_packages/
-!docs/return_packages/
-!docs/return_packages/**
 docs/audits/
-docs/team-scrape/return_packages/
-docs/tradeMachine/return_packages/
+docs/architect/audits/
 
 # Player data backups
 players_backup.jsonl

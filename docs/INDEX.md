@@ -26,10 +26,9 @@
 ## Workspace Cleanup Standards
 
 - [Documentation Structure Standard](workspace-rules/DOCUMENTATION_STRUCTURE_STANDARD.md) - canonical placement rules for permanent docs, working docs, archives, generated docs, and prompts.
-- [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) - canonical rules for new return packages under `docs/return_packages/`.
-- [Workspace Guardrails](workspace-rules/WORKSPACE_GUARDRAILS.md) - concise do/don't checklist and validation commands for routing, return packages, working docs, and plans.
-- [Return Packages README](return_packages/README.md) - canonical return-package root.
-- Workspace cleanup initiative (all 6 phases) is complete; master doc archived to `archive/docs/_working/workspace-cleanup/`.
+- [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) - naming and placement rules for new return packages.
+- [Workspace Guardrails](workspace-rules/WORKSPACE_GUARDRAILS.md) - concise do/don't checklist and validation commands.
+- Workspace cleanup initiative (all 6 phases) complete; all historical return packages removed from active repo.
 
 ## Historical Archives
 
@@ -118,25 +117,14 @@ Prompts and instructions for AI-assisted development:
 - [Group By Feature Refactor](cursor-prompts/GroupByFeatureRefactor.md)
 - [Relevance Prompt](cursor-prompts/RelevancePrompt.md)
 
-### 📦 Return Packages (Deliverables)
+### 📦 Return Packages
 
-Historical project deliverables and execution documentation.
+If you need to create a return package for completed work:
 
-**Canonical location**: `/docs/return_packages/` - See [Return Packages README](return_packages/README.md)
+- [Return Packages README](return_packages/README.md) — where to put them and how to name them
+- [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) — naming and content rules
 
-**Phase 2 status:**
-
-- New return packages belong under `/docs/return_packages/<area>/`.
-- Legacy root return-package markdown evidence was consolidated into `/docs/return_packages/docs/` and `/docs/return_packages/typescript/` in Phase 2.
-- The legacy root evidence location is no longer the active evidence location.
-- Current cleanup initiative return packages live in `/docs/return_packages/workspace-cleanup/`.
-
-**See**:
-
-- [Return Packages README](return_packages/README.md) for canonical routing.
-- [Return Package Standard](workspace-rules/RETURN_PACKAGE_STANDARD.md) for naming and content rules.
-- Workspace cleanup is complete; master doc archived to `archive/docs/_working/workspace-cleanup/`.
-- [Architect Return Packages](return_packages/architect/) and [Team-Scrape Return Packages](return_packages/team-scrape/) for feature-specific execution evidence moved out of active feature roots.
+All historical return packages have been removed from the repo; they're in git history if ever needed.
 
 ### 📊 Data Pipelines
 
