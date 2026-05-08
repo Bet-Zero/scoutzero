@@ -50,11 +50,10 @@ Core system architecture and data models:
 - [Historical Architect Planning Bundle Router](architect-teams-plan/README.md) - points to the archived Architect planning/design bundle
 - [Contract Normalization Rules](CONTRACT_NORMALIZATION_RULES.md)
 
-**Migration Documentation:**
+**Schema:**
 
-- [Players v1 to v2 Migration](migrations/players-v1-to-v2/README.md)
-- [Firestore Schema V2](migrations/players-v1-to-v2/FIRESTORE_SCHEMA_V2.md)
-- Schema migration guides and Architect migration docs archived to `archive/docs/`.
+- [Current Firestore Schema](schema/CURRENT_FIRESTORE_SCHEMA.md) — canonical active schema
+- All migration docs archived to `archive/docs/migrations/` — migrations complete.
 
 ### 🛠️ Development Guides
 
