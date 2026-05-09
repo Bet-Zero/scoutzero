@@ -61,7 +61,7 @@ If the feature exports hooks, utilities, or functions:
 - `featureUtility()` - Description
 
 ## Related Documentation
-- Links to relevant plan and chunk files: `plans/<planSlug>/plan.md`
+- Links to relevant working docs: `work/<initiative>/`
 - Links to docs under `docs/`
 - Links to related schemas or guides
 ```
@@ -127,7 +127,7 @@ npm run script-name --flag
 
 ## Related Documentation
 
-- Links to relevant plan and chunk files: `plans/<planSlug>/plan.md`
+- Links to relevant working docs: `work/<initiative>/`
 - Links to docs under `docs/`
 
 ## 3. API Documentation (`docs/api/<feature>.md` or in feature README)
@@ -196,7 +196,7 @@ Subfolders and what they contain:
 Description of data structure and format.
 
 ## Related Documentation
-- Links to relevant plan and chunk files: `plans/<planSlug>/plan.md`
+- Links to relevant working docs: `work/<initiative>/`
 - Links to schemas under `src/schemas/`
 ```
 

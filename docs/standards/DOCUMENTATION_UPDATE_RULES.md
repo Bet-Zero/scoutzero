@@ -116,19 +116,16 @@ When completing a chunk, check what changed and update accordingly:
 - New public APIs or hooks → Document in feature README or `docs/api/`
 - Complex user workflows → Create user guide in `docs/guides/`
 
-### 5. Plan Documentation
+### 5. Working Doc Updates
 
-**Always (part of chunk completion):**
+**Always (part of initiative completion):**
 
-- [ ] **Update chunk file** (`plans/<planSlug>/chunks/chunk_XX.md`)
+- [ ] **Update working docs** under `work/<initiative>/`
   - Mark tasks complete
-  - Update STATE section
-  - Document any decisions in NOTES
+  - Update status
+  - Document any decisions
 
-- [ ] **Update plan file** (`plans/<planSlug>/plan.md`)
-  - Update CHUNK_INDEX status
-  - Update CURRENT_STATE
-  - Add to REVISION_LOG if significant
+- [ ] **Archive when done** — move `work/<initiative>/` to `archive/work/<initiative>/`
 
 ### 6. API/Contract Changes
 
@@ -195,7 +192,7 @@ When completing a chunk, check what changed and update accordingly:
 - `DEVELOPER_GUIDE.md` (features, components, patterns)
 - `AGENTS.md` (project rules - rarely changes)
 - Feature READMEs (feature-specific docs)
-- Plan files (`plans/<planSlug>/plan.md` and chunks)
+- Working docs under `work/<initiative>/`
 
 ## Verification Commands
 

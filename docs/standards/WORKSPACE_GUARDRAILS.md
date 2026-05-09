@@ -11,8 +11,6 @@ Use this doc as the quick reference. Use the linked standards when a change need
 | Return packages        | `work/<initiative>/`        | Alongside plan.md; moves to `archive/work/<initiative>/` when done.       |
 | Temporary working docs | `work/<initiative>/`        | In-flight plans, preflights, notes — never in `docs/`.                    |
 | Historical docs        | `archive/docs/<area>/`      | Archive docs are retained reference material, not active source of truth.  |
-| Active plans           | `plans/<active-plan>/`      | Keep active plans visible to agents.                                       |
-| Archived plans         | `plans/_archive/`           | Completed plan material belongs here.                                      |
 
 ## Do
 
@@ -27,7 +25,7 @@ Use this doc as the quick reference. Use the linked standards when a change need
 - Do not put return packages or execution evidence in `docs/` — it's a permanent library, not an evidence store.
 - Do not create `return_packages/` or `return-packages/` paths anywhere in `docs/`.
 - Do not add `*RETURN_PACKAGE*.md` files directly under feature-doc roots.
-- Do not hide all of `plans/` in ignore rules; only archived plan material should be hidden by default.
+- Do not put active working docs in `docs/` — `docs/` is a permanent reference library, not a workspace.
 
 ## Human Review Required
 

@@ -88,14 +88,6 @@ work/
 
 ---
 
-## plans/ — Active Plan Files
-
-`plans/` lives at the repo root. It holds `plan.md` and chunk files for active execution plans.
-
-When a plan is complete: `plans/<initiative>/` moves to `plans/_archive/<initiative>/` (gitignored locally).
-
----
-
 ## archive/ — Historical Material
 
 ```
@@ -124,7 +116,6 @@ Archive is for material that has reference value but should not live beside acti
 | Developer / user guides | `docs/guides/` |
 | Recurring operational procedures | `docs/operations/` |
 | Project rules and conventions | `docs/standards/` |
-| Active plans | `plans/<initiative>/` |
 | Working docs, preflights, return packages | `work/<initiative>/` |
 | Completed initiatives | `archive/work/<initiative>/` |
 | Historical docs | `archive/docs/` |

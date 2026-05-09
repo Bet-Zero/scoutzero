@@ -96,15 +96,6 @@ const claudeIgnoreLines = readFile('.claudeignore')
   .split(/\r?\n/)
   .map((line) => line.trim());
 
-if (claudeIgnoreLines.includes('plans/')) {
-  addFailure(
-    '.claudeignore: active plans must stay visible; remove the catch-all plans/ ignore'
-  );
-}
-
-if (!claudeIgnoreLines.some((line) => /^plans\/\\?_archive\/$/.test(line))) {
-  addFailure('.claudeignore: expected an ignore rule for plans/_archive/');
-}
 
 const forbiddenDirs = [
   'docs/return-packages',

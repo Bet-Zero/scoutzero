@@ -209,7 +209,7 @@ HoopZero is a public-facing NBA scouting platform built with React + Vite + Fire
   - `docs/guides/` — how to work with and build the system
   - `docs/operations/` — how to run and maintain the system (runbooks)
   - `docs/standards/` — rules governing the project
-- Keep active plans under `plans/<initiative>/` and archived plans under `plans/_archive/`; do not hide all of `plans/` in ignore rules.
+- Active working docs (plans, preflights, return packages) live in `work/<initiative>/`. When complete, move to `archive/work/<initiative>/`.
 - For docs-routing or standards changes, run `npm run lint:md` and `npm run docs:guardrails` before finishing.
 - Run `npm run validate:project` after any structural changes.
 
