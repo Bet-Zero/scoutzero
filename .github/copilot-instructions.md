@@ -148,10 +148,9 @@ For GM/CBA logic work:
 ## Quick Help References
 
 - `AGENTS.md`
-- `docs/workspace-rules/COMMUNICATION_RULES.md`
-- `docs/workspace-rules/CREATING_PERMANENT_DOCS.md`
-- `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`
-- `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`
-- `docs/cursor-prompts/cursor-commands-overview.md`
+- `docs/standards/COMMUNICATION_RULES.md`
+- `docs/standards/CREATING_PERMANENT_DOCS.md`
+- `docs/standards/DOCUMENTATION_UPDATE_RULES.md`
+- `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`
 
 ````
