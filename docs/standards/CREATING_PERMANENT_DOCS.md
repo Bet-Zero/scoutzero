@@ -77,7 +77,7 @@ If the feature exports hooks, utilities, or functions:
 
 **Path rules:**
 
-- For tools: `tools/<toolSlug>/README.md`
+- For standalone tools/fixtures: `scripts/<toolName>/README.md`
 - For scripts: `<scriptDir>/README.md` (e.g., `player-scrape/contracts/README.md`)
 
 **What to include:**
@@ -231,7 +231,7 @@ src/architect/tradeMachine/autoSuggest/
 
 ## 7. File Headers for New/Modified Files
 
-**CRITICAL**: For all new or significantly modified files in `src/`, `data/`, and `tools/`, you MUST:
+**CRITICAL**: For all new or significantly modified files in `src/`, `data/`, and `scripts/`, you MUST:
 
 1. **Insert the standard file header** using `docs/templates/file_header.template.txt`
 2. **Fill in all required fields:**
@@ -243,7 +243,7 @@ src/architect/tradeMachine/autoSuggest/
 
 **When to add headers:**
 
-- ✅ **All new files** in `src/`, `data/`, `tools/`
+- ✅ **All new files** in `src/`, `data/`, `scripts/`
 - ✅ **Significantly modified files** (architecture changes, major refactors)
 - ❌ **Minor changes** (bug fixes, small tweaks) - update HISTORY only if header exists
 
@@ -259,7 +259,7 @@ src/architect/tradeMachine/autoSuggest/
 ### Permanent Documentation Locations
 
 - **Feature docs**: `src/features/<feature>/README.md` or `src/architect/<feature>/README.md`
-- **Script docs**: `<scriptDir>/README.md` (e.g., `tools/<toolSlug>/README.md`)
+- **Script docs**: `<scriptDir>/README.md` (e.g., `scripts/<toolName>/README.md`)
 - **Data module docs**: `data/<area>/README.md`
 - **API docs**: `docs/api/<feature>.md` or in feature README
 - **User guides**: `docs/guides/<feature>.md`
@@ -268,9 +268,9 @@ src/architect/tradeMachine/autoSuggest/
 
 ### Temporary Documentation (Workspace)
 
-- **Interim notes**: `cursor_work/<slug>/temp/docs/`
-- **Process notes**: `cursor_work/<slug>/temp/docs/`
-- **"How I updated X"**: `cursor_work/<slug>/temp/docs/`
+- **Interim notes**: `work/<initiative>/`
+- **Process notes**: `work/<initiative>/`
+- **"How I updated X"**: `work/<initiative>/`
 
 **Key difference**: Permanent docs are for users/developers to reference long-term. Temporary docs are for your own notes during development.
 
@@ -311,7 +311,7 @@ When creating a new feature, ensure you:
 
 When creating a new script or tool:
 
-- [ ] **Create script README** (`tools/<toolSlug>/README.md` or `<scriptDir>/README.md`)
+- [ ] **Create script README** (`scripts/<toolName>/README.md` or `<scriptDir>/README.md`)
   - Document PURPOSE (what folder is responsible for)
   - Document ENTRY POINTS (main scripts)
   - Document STRUCTURE (subfolders and contents)
@@ -341,7 +341,7 @@ When creating a new script or tool:
 
 **Temporary docs** (in workspace):
 
-- ❌ `cursor_work/trade-machine/temp/docs/implementation_notes.md` (deleted when done)
+- ❌ `work/trade-machine/temp/docs/implementation_notes.md` (deleted when done)
 
 ### Example 2: New Script
 
@@ -354,7 +354,7 @@ When creating a new script or tool:
 
 **Temporary docs** (in workspace):
 
-- ❌ `cursor_work/data-processor/temp/docs/test_results.md` (deleted when done)
+- ❌ `work/data-processor/temp/docs/test_results.md` (deleted when done)
 
 ## Checklist for New Data Modules
 
@@ -395,8 +395,8 @@ When creating a new data module:
 **Structure requirements:**
 
 - Index-based structure for composed components
-- Folder-level READMEs for all features, tools, and data modules
-- File headers for all new files in `src/`, `data/`, `tools/`
+- Folder-level READMEs for all features, scripts, and data modules
+- File headers for all new files in `src/`, `data/`, `scripts/`
 
 **Rule**: If someone else (or future you) will need to reference it, it's permanent. If it's just notes for yourself during development, it's temporary.
 
@@ -405,7 +405,7 @@ When creating a new data module:
 ```text
 Is this file meant to be permanent?
 ├─ YES → Is it production-ready?
-│   ├─ YES → Save to permanent location (src/, data/, docs/, tools/, tests/)
+│   ├─ YES → Save to permanent location (src/, data/, docs/, scripts/, tests/)
 │   └─ NO → Save to workspace drafts/ (will be moved or deleted)
 └─ NO → Save to workspace temp/ (will be deleted)
 ```

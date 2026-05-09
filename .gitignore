@@ -5,7 +5,7 @@ venv/
 # PST session artifacts (browser profiles, cookies) - gitignored for security
 data/pst/session/**
 .vite/
-.github/
+# .github/ is tracked — CI workflows, PR template, and chat modes live there
 .vercel/
 .husky/
 .repomix
@@ -22,7 +22,7 @@ functions/node_modules/
 # Archive folder with deprecated/old files
 archive/
 data_pipeline/
-plans/_archive/
+# plans/_archive/ is tracked — AGENTS.md requires archived plans to stay in git
 _archive/
 
 # Return packages and audits (local artifacts only)
@@ -84,7 +84,7 @@ atlas-docs/
 
 # Personal development files that confuse AI
 dev-local/
-copilot-instructions.md
+/copilot-instructions.md
 
 # Migration reference files (keep local but don't track)
 field_pairs.txt
@@ -202,6 +202,7 @@ docs/*Hierarchy.md
 
 # Backup files
 *.backup
+*.local-backup
 
 # Cursor workspace temporary directories
 cursor_work/*

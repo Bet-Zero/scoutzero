@@ -44,16 +44,16 @@ What should exist or be true when this chunk is complete:
 
 - src/... (final code only)
 - data/... (final data only)
-- tools/... (final scripts only)
+- scripts/... (final scripts only)
 - docs/... (final documentation only)
 
 **Temporary files** (will be deleted when chunk completes):
 
-- Test scripts → `cursor_work/<slug>/temp/scripts/`
-- One-time use scripts → `cursor_work/<slug>/temp/scripts/`
-- Interim documentation → `cursor_work/<slug>/temp/docs/`
-- Test outputs/results → `cursor_work/<slug>/temp/output/`
-- Experiments/prototypes → `cursor_work/<slug>/drafts/`
+- Test scripts → `work/<initiative>/temp/scripts/`
+- One-time use scripts → `work/<initiative>/temp/scripts/`
+- Interim documentation → `work/<initiative>/temp/docs/`
+- Test outputs/results → `work/<initiative>/temp/output/`
+- Experiments/prototypes → `work/<initiative>/drafts/`
 
 ## TEST_PLAN
 
@@ -122,9 +122,9 @@ nextAction: Describe the next action for this chunk in one short sentence.
 
 **Design for cleanup**: When creating files, ask:
 
-- Is this file meant to be permanent? → Save to `src/`, `data/`, `docs/`, `tools/`, or `tests/`
-- Is this temporary (test script, one-time use, interim doc)? → Save to `cursor_work/<slug>/temp/`
-- Is this an experiment? → Save to `cursor_work/<slug>/drafts/`
+- Is this file meant to be permanent? → Save to `src/`, `data/`, `docs/`, `scripts/`, or `tests/`
+- Is this temporary (test script, one-time use, interim doc)? → Save to `work/<initiative>/temp/`
+- Is this an experiment? → Save to `work/<initiative>/drafts/`
 
 Only files in permanent locations will survive chunk completion. Everything in workspace `temp/` and `drafts/` will be deleted.
 

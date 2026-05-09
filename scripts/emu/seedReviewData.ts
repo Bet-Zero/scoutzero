@@ -1,7 +1,7 @@
 /**
  * FILE: scripts/emu/seedReviewData.ts
  * PURPOSE: Seed minimal data into emulators for Architect review mode.
- *          Uses fixtures from tools/architect_review_seed/ to populate
+ *          Uses fixtures from scripts/emu/review_seed/ to populate
  *          architect_baseTeams, architect_basePlayers, and architect_baseEntitlements.
  * OWNERSHIP: Tooling: architect review mode workflow
  *
@@ -19,7 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import admin from 'firebase-admin';
 
-const SEED_DIR = path.resolve('tools/architect_review_seed');
+const SEED_DIR = path.resolve('scripts/emu/review_seed');
 const BASE_TEAMS_DIR = path.join(SEED_DIR, 'baseTeams');
 const BASE_PLAYERS_DIR = path.join(SEED_DIR, 'basePlayers');
 const ENTITLEMENTS_FILE = path.join(SEED_DIR, 'baseEntitlements.json');
@@ -254,7 +254,7 @@ const main = async () => {
   if (total === 0) {
     log('');
     log(
-      '  ⚠️  No data seeded — check fixtures in tools/architect_review_seed/'
+      '  ⚠️  No data seeded — check fixtures in scripts/emu/review_seed/'
     );
     process.exit(1);
   }

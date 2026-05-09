@@ -10,7 +10,7 @@
  * WHAT IT DOES:
  *   1. Frees emulator ports if in use
  *   2. Starts Firebase emulators with demo project (no real Firebase credentials needed)
- *   3. Seeds minimal data from tools/architect_review_seed/
+ *   3. Seeds minimal data from scripts/emu/review_seed/
  *   4. Starts Vite dev server with VITE_ARCHITECT_REVIEW_MODE=true
  *
  * REQUIRES:
