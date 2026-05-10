@@ -308,28 +308,6 @@ Date: 2026-02-26
 | 4   | Multi-team routing semantics                | **PASS** | Validator: `validatePlayerRouting()` + `validateEntitlementRouting()` enforce explicit 3+ destinations. Apply: `buildPostTradeTeamsSnapshot()` throws `TRADE_APPLY_ROUTING_ERROR`                                 | `TRADE_TESTS_FIX_E1_EXECUTION_RETURN_PACKAGE.md`, Clarified Rules A–E above                                                |
 | 5   | Roster + structural legality                | **PASS** | Validator: `computeRosterValidation()` → `allRules.rosterCount` (min 14, max 15, two-way max 3). Apply: same rules via `validatePostTradeSnapshotForContext()` block before `batch.commit()`                      | `TRADE_E2E_ROSTER_AND_STRUCTURAL_LEGALITY_FIX_E1_EXECUTION_RETURN_PACKAGE.md`                                              |
 
-### Key Return Packages
-
-- `return_packages/trade_machine/TRADE_E2E_TRADE_APPLY_CONSISTENCY_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_E2E_ROSTER_AND_STRUCTURAL_LEGALITY_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_E2E_ROSTER_AND_STRUCTURAL_LEGALITY_FIX_E1_EXECUTION_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_E2E_SIGN_AND_TRADE_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_E2E_SIGN_AND_TRADE_FIX_E1_EXECUTION_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_E2E_TPE_EXCEPTIONS_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_E2E_TPE_EXCEPTIONS_FIX_E1_EXECUTION_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_CAP_APRON_HARDENING_E1_EXECUTION_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_E2E_CAP_APRON_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TRADE_E2E_TRADE_MACHINE_5PACK_CLOSEOUT_P1_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_TRUST_FIXES_E1_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_CONTRACT_CLEANUP_E2_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_HARDENING_E3_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_RULE_CORRECTNESS_AUDIT_P2_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_RULE_FIXES_E4_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_TS_RULES_E5_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_TS_CONSENT_ELIGIBILITY_E6_RETURN_PACKAGE.md`
-- `return_packages/trade_machine/TM_VALIDATOR_TIMING_REVALIDATION_P3_RETURN_PACKAGE.md`
-
 ### Validator Trust Audit (2026-03-07)
 
 - Verdict: The Trade Machine validator is only partially trustworthy and should not be converted to TypeScript before correctness cleanup.

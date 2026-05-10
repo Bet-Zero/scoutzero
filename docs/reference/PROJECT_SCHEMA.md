@@ -6,20 +6,20 @@ This document provides an authoritative map of the ScoutZero/HoopZero repository
 
 Top-level directory structure and purposes:
 
-| Directory        | Purpose                                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------------------------- |
-| `src/`           | Main React/Vite application source (HoopZero frontend)                                                        |
-| `player-scrape/` | Player contract & stats scraping pipeline                                                                     |
-| `team-scrape/`   | Team roster & draft pick scraping pipeline                                                                    |
-| `scripts/`       | Utility scripts for Firebase, schema tools, and documentation                                                 |
-| `tests/`         | Vitest test suites for utils, contracts, and trade validation                                                 |
-| `docs/`          | Organized documentation (architecture, guides, compliance, migrations)                                        |
-| `archive/`       | Historical docs and retained archive material that are no longer active source of truth                       |
-| `plans/`         | Active plans (`plan.md`, chunks) and execution tracking; completed plans are archived under `plans/_archive/` |
-| `public/`        | Static assets (fonts, team logos, player headshots)                                                           |
-| `cba/`           | NBA CBA reference materials (guides, articles, rule cards)                                                    |
-| `_exports/`      | Export artifacts and build outputs                                                                            |
-| `.github/`       | GitHub Actions workflows and configuration                                                                    |
+| Directory        | Purpose                                                                                 |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| `src/`           | Main React/Vite application source (HoopZero frontend)                                  |
+| `player-scrape/` | Player contract & stats scraping pipeline                                               |
+| `team-scrape/`   | Team roster & draft pick scraping pipeline                                              |
+| `functions/`     | Firebase Cloud Functions (purgeArchitectWorld and other server-side operations)         |
+| `scripts/`       | Utility scripts for Firebase, schema tools, emulator management, and CI gates           |
+| `tests/`         | Vitest unit/integration suites and Playwright E2E tests (`tests/e2e/`)                  |
+| `docs/`          | Permanent reference documentation (guides, standards, operations, reference)            |
+| `work/`          | Active working docs, preflights, and return packages; archives to `archive/work/`       |
+| `archive/`       | Historical docs and completed work no longer active source of truth                     |
+| `public/`        | Static assets (fonts, team logos, player headshots)                                     |
+| `cba/`           | NBA CBA reference materials (guides, articles, rule cards)                              |
+| `.github/`       | GitHub Actions workflows, PR template, and Copilot configuration                        |
 
 ### Key Subdirectories
 
@@ -74,15 +74,11 @@ Top-level directory structure and purposes:
 
 #### docs/
 
-- `_working/` - Temporary planning, review, and draft documentation for active initiatives
-- `return_packages/` - Canonical execution-evidence archive for current return packages
-- `schema/` - Firestore schema documentation
-- `guides/` - User and developer guides
-- `compliance/` - CBA compliance matrix; historical audit certificates in `archive/docs/compliance/`
-- `components/` - Component hierarchy documentation
-- `scouting/` - Scouting operational runbooks
-- `runbooks/` - Operational runbooks for scrapes, staging, and deployment workflows
-- `standards/` - Repo documentation placement, return-package, and workspace guardrails
+- `reference/` - How the system works (architect, schema, repo structure, Firestore)
+- `guides/` - How to work with and build the system (developer guide, contributing)
+- `operations/` - How to run and maintain the system (runbooks, prod sync)
+- `standards/` - Rules governing the project (placement, communication, workspace guardrails)
+- `components/` - Auto-generated component hierarchy documentation (`npm run docs`)
 
 ## Naming Conventions
 

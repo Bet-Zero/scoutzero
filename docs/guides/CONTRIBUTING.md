@@ -347,7 +347,7 @@ See [TESTING.md](TESTING.md) for detailed placement rules and decision tree.
 - **Team codes**: 3-letter uppercase (e.g., `LAL`, `BOS`)
 - **Years**: 4-digit (e.g., `2025`)
 
-See [PROJECT_SCHEMA.md](architecture/PROJECT_SCHEMA.md) for comprehensive naming conventions.
+See [PROJECT_SCHEMA.md](../reference/PROJECT_SCHEMA.md) for comprehensive naming conventions.
 
 ---
 
@@ -424,8 +424,8 @@ Update documentation when you:
 ### Documentation Locations
 
 - **User guides**: `/docs/guides/`
-- **Architecture docs**: `/docs/architecture/` or `docs/architecture/PROJECT_SCHEMA.md`
-- **Runbooks**: `/docs/runbooks/`
+- **Architecture docs**: `docs/reference/PROJECT_SCHEMA.md`
+- **Runbooks**: `docs/operations/`
 - **API documentation**: Auto-generated with `npm run docs`
 - **Component docs**: Inline JSDoc comments
 
@@ -445,8 +445,8 @@ Update documentation when you:
 
 - [Documentation Index](INDEX.md) - Full documentation navigation
 - [Developer Guide](guides/DEVELOPER_GUIDE.md) - Deep dive into architecture
-- [Project Schema](architecture/PROJECT_SCHEMA.md) - Data structures and conventions
-- [Project Schema](architecture/PROJECT_SCHEMA.md) - Data structures and conventions
+- [Project Schema](../reference/PROJECT_SCHEMA.md) - Data structures and conventions
+- [Project Schema](../reference/PROJECT_SCHEMA.md) - Data structures and conventions
 
 ### Common Issues
 
@@ -493,7 +493,7 @@ npm test -- path/to/test.test.js
 When working on Trade Machine or salary cap features:
 
 - Follow NBA Collective Bargaining Agreement rules (see `/docs/compliance/`)
-- Reference [Trade Machine Docs Router](tradeMachine/README.md) for current trade machine context
+- Reference [Trade Machine Docs](../reference/architect/trade-machine/README.md) for current trade machine context
 - Test edge cases (apron restrictions, Stepien Rule, sign-and-trade, etc.)
 
 ### Mutation Pipeline
