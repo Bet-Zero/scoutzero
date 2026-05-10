@@ -8,7 +8,8 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import capSettingsProviderDefault, * as capSettingsProviderModule from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import { getCapSettings as capSettingsProviderDefault } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import * as capSettingsProviderModule from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import * as tradeContextTypesModule from '@/features/architect/utils/tradeContext/types';
 
 describe('Final mixed keeper batch E128 guardrails', () => {

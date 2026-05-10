@@ -732,8 +732,3 @@ export function getHardCapStatusFromContext(
   return getHardCapStatus(team, { isWorldless, capSettings });
 }
 
-export default {
-  getHardCapStatus,
-  isTeamHardCapped,
-  getHardCapStatusFromContext,
-};

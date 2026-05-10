@@ -440,11 +440,3 @@ export function getCapSettingsForReceipt({
   };
 }
 
-export default {
-  getCapSettings,
-  getCapSettingsForYear,
-  validateCapSettings,
-  getCapSettingsForReceipt,
-  CAP_SETTINGS_VERSION,
-  CAP_SETTINGS_SOURCE_KEYS,
-};

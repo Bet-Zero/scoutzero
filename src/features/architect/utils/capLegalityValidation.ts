@@ -4774,6 +4774,7 @@ export function validateOfferSheetResolution({
 // EXPORTS
 // ==============================================================================
 
+
 export default {
   validateSigning,
   validateWaive,
@@ -4788,33 +4789,26 @@ export default {
   getSigningTermsForPlayer,
   validateSigningRaises,
   validateSigningTermsAndRaises,
-  // Phase 3: Extension validation exports
   getContractLastYearSalary,
   getExtensionFirstYearSalary,
   getExtensionYears,
-  getExtensionTermsForPlayer, // Phase 3.25: Salary Engine wiring
+  getExtensionTermsForPlayer,
   validateExtensionTermsAndRaises,
   HARD_BLOCK_RULES,
   SOFT_WARNING_RULES,
   SIGNING_YEARS_LIMITS,
-  // Phase 3 constants
   EXTENSION_YEARS_LIMITS,
   EXTENSION_FIRST_YEAR_MAX_PERCENT,
   EXTENSION_MAX_RAISE_PERCENT,
-  // Phase 5: Contract row validation exports
   validateSalaryRowSchema,
   validateGuaranteesPolicy,
   validateOptionsPolicy,
   validateContractRows,
-  // Phase 12: RFA Offer Sheet exports
   validateOfferSheetTerms,
   OFFER_SHEET_YEARS_MIN,
   OFFER_SHEET_YEARS_MAX,
   OFFER_SHEET_MAX_RAISE_PCT,
-  // Phase 14: Store-Only Invariants exports
   validateStoreOnlyInvariants,
-  // Phase 17: Resolution Validation
   validateOfferSheetResolution,
-  // Phase 19: Cap Hold / Cap Space Enforcement
   isCapSpaceSigning,
 };

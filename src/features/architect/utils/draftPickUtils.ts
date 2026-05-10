@@ -51,4 +51,3 @@ export function isFrozenPick(pick: DraftPick | null | undefined, options: Frozen
   );
 }
 
-export default { isFrozenPick };
