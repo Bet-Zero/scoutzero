@@ -12,8 +12,8 @@ large/risky last. Each wave builds on the previous one.
 | 1 | Delete `useSeasonPlayerData` | XS (15 min) | 1 | Low | ✅ Done 2026-05-10 |
 | 2 | Move `src/firebaseHelpers.ts` into `src/firebase/` | XS (20 min) | 2 | Low | ✅ Done 2026-05-10 |
 | 3 | Barrel exports for all 8 feature folders | S (2–3 hr) | 8 new files | **High** | ✅ Done 2026-05-10 (7 of 8; architect deferred) |
-| 4 | Default export audit + conversion | M (half day) | 173+ files | Medium | |
-| 5 | Split large React components (3 files) | M (half day) | 3 files | Medium | |
+| 4 | Default export audit + conversion | M (half day) | 173+ files | Medium | 🔄 In progress (tierMaker ✅, ranker ✅; filters/lists/profile/roster/table/architect remain) |
+| 5 | Split large React components (3 files) | M (half day) | 3 files | Medium | 🔄 In progress (TieramidBoard ✅, TradeTeamCard ✅; SeasonAdvanceModal deferred) |
 | 6 | Split `seasonManager.ts` | M (1 day) | ~5 new files | Medium | |
 | 7 | Split `capLegalityValidation.ts` | L (1–2 days) | ~6 new files | **High** | |
 | 8 | Split `useArchitectActions.ts` | L (2 days) | ~6 new files | **High** | |
@@ -82,59 +82,58 @@ Wave 4 when those domains are being split anyway.
 
 ## Wave 3 — Moderate Refactors (half day each)
 
-### 4. Default export audit and conversion
+### 4. Default export audit and conversion 🔄 In progress
 
-**Scope:** 173 non-page `export default` usages across all feature folders.  
-**Complexity:** AGENTS.md requires named exports for everything except top-level page
-views. However, some default exports are intentionally pinned by guardrail tests and
-**cannot be converted without also updating those tests**.
+**Scope:** 173 non-page `export default` usages across all feature folders.
 
-**Before touching any file, check the guardrail test list:**
+**Done:** `tierMaker` (5 files) and `ranker` (11 files) — all converted to named exports,
+all import sites updated (internal + pages). Barrels updated.
 
-| File | Guardrail test that checks it |
-|------|-------------------------------|
+**Three files are guardrail-locked and must NOT be converted without updating their tests:**
+
+| File | Guardrail test |
+|------|----------------|
 | `src/features/architect/tradeMachine/TradePreviewModal.tsx` | `tradeMachinePreviewExport.compatibility.guardrail.test.ts:18` |
 | `src/features/architect/tradeMachine/TradeExportCapture.tsx` | `tradeMachinePreviewExport.compatibility.guardrail.test.ts:24` |
 | `src/features/architect/tradeMachine/EntitlementPicksList.tsx` | `tradeTeamCardLeafFamily.compatibility.guardrail.test.tsx:158` |
 
-These three must either stay as `export default`, or the guardrail tests must be updated
-simultaneously as part of the same commit.
+**Remaining features to convert (in order):** `filters` (17), `lists` (19),
+`profile` (20), `roster` (22), `table` (21) — then architect (57, skip the 3 locked
+files until guardrails are updated).
 
-**Safe to convert immediately (no guardrail lock):** everything in `filters/` (17),
-`lists/` (19), `ranker/` (11), `roster/` (22), `table/` (21), `tierMaker/` (5).
+Per-feature process:
 
-**Steps:**
-1. Run the guardrail tests first to establish a clean baseline:
-   `npm run test:architect -- --reporter=dot`
-2. Convert one feature at a time, starting with `filters` (highest count, no locks)
-3. For each file: change `export default X` → `export { X }` and update all import
-   sites (`import X from '...'` → `import { X } from '...'`)
-4. Re-run `npm run typecheck` after each feature
-5. Leave the three locked architect files for last — convert them together with their
-   guardrail tests in a single commit
+1. `grep -rn "^export default"` to list all files in the feature
+2. For each: add `export` to the `const`/`function` declaration, delete the `export default X;` line
+3. Find all import sites inside and outside the feature; change `import X from '...'` → `import { X } from '...'`
+4. Update the barrel `index.ts` (`export { default as X }` → `export { X }`)
+5. `npm run typecheck` — zero errors before moving to the next feature
 
 ---
 
-### 5. Split the three oversized React components
+### 5. Split the three oversized React components 🔄 In progress
 
-Each of these is a single component file that has grown past 1,000 lines and violates
-the 200-line guideline. Each is a self-contained split with no shared logic risk.
+**Done:**
 
-| File | Lines | Split strategy |
-|------|-------|---------------|
-| [TradeTeamCard.tsx](../../src/features/architect/tradeMachine/TradeTeamCard.tsx) | 1,211 | Extract player row, pick row, salary summary, and action controls into sibling files |
-| [TieramidBoard.tsx](../../src/features/tierMaker/TieramidBoard.tsx) | 1,194 | Extract tier row, drag layer, and board controls |
-| [SeasonAdvanceModal.tsx](../../src/features/architect/GMDashboard/components/SeasonAdvanceModal.tsx) | 1,175 | Extract step panels, confirmation dialogs, and summary cards |
+- [TieramidBoard.tsx](../../src/features/tierMaker/TieramidBoard.tsx): extracted utility
+  functions → `tierMaker/utils/tieramidHelpers.ts`; pool section → `TieramidPool.tsx`.
+  1194 → ~1083 lines.
+- [TradeTeamCard.tsx](../../src/features/architect/tradeMachine/TradeTeamCard.tsx): extracted
+  all local types, props interface, and utility functions → `TradeTeamCard.helpers.ts`.
+  1211 → ~1034 lines. Guardrail checks pass.
 
-**Approach for each:**
-1. Read the full file and identify natural section breaks (distinct UI regions)
-2. Extract each section into a co-located subcomponent file (same folder)
-3. Parent file imports and composes them — no logic moves, just JSX structure
-4. Run `npm run typecheck` and `npm run test:architect -- --reporter=dot`
+**Deferred — SeasonAdvanceModal.tsx (1175 lines):**
+`offseason.devGate.guardrail.test.ts` reads this file by exact path AND checks
+`toContain('committedTeamCapSheet: SeasonAdvanceModalTeamCapSheet | null;')`.
+The type bearing that string is in `WorldAdvanceAftermath` which is an exported type
+used externally. Moving types to a helpers file would either break the guardrail check
+OR create a circular dependency. Needs a dedicated plan where the guardrail is updated
+in the same commit.
 
-**Note on `TradeTeamCard.tsx`:** This file is watched by `tradeTeamCardLeafFamily`
-guardrail tests. Read those tests before splitting to ensure the extracted leaf files
-satisfy the guardrail expectations.
+**Remaining size reduction needed for both already-split files:** the component bodies
+(logic + handlers) are still 700–900 lines. JSX subcomponent extraction — extracting
+the pyramid grid, controls bar, wizard step panels — is the next pass. Each requires
+reading the full render section to understand prop boundaries.
 
 ---
 
