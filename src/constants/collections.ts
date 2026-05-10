@@ -57,13 +57,11 @@ export const ARCHITECT_WORLDS_COLLECTION =
   env.VITE_ARCHITECT_WORLDS_COLLECTION || 'architect_worlds';
 
 /**
- * Architect world entitlements subcollection name
+ * Architect world subcollection names
  */
+export const ARCHITECT_WORLD_TEAMS_SUBCOLLECTION = 'teams';
+export const ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION = 'players';
 export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION = 'entitlements';
-
-/**
- * Architect world events subcollection name
- */
 export const ARCHITECT_WORLD_EVENTS_SUBCOLLECTION = 'events';
 
 /**

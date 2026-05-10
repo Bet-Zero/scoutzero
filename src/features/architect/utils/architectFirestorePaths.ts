@@ -32,6 +32,8 @@ import {
 import { db } from '@/firebaseConfig';
 import {
   ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
+  ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
 } from '@/constants/collections';
 
@@ -67,7 +69,7 @@ export const worldMetadataRef = (worldId: string): DocumentReference =>
  * @param worldId - World ID
  */
 export const worldTeamsCol = (worldId: string): CollectionReference =>
-  collection(db, ARCHITECT_WORLDS_COLLECTION, worldId, 'teams');
+  collection(db, ARCHITECT_WORLDS_COLLECTION, worldId, ARCHITECT_WORLD_TEAMS_SUBCOLLECTION);
 
 /**
  * Get reference to a specific team snapshot within a world
@@ -80,7 +82,7 @@ export const worldTeamRef = (
   worldId: string,
   teamCode: string
 ): DocumentReference =>
-  doc(db, ARCHITECT_WORLDS_COLLECTION, worldId, 'teams', teamCode);
+  doc(db, ARCHITECT_WORLDS_COLLECTION, worldId, ARCHITECT_WORLD_TEAMS_SUBCOLLECTION, teamCode);
 
 /**
  * Get reference to a world's team's players subcollection
@@ -97,9 +99,9 @@ export const worldPlayersCol = (
     db,
     ARCHITECT_WORLDS_COLLECTION,
     worldId,
-    'teams',
+    ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
     teamCode,
-    'players'
+    ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION
   );
 
 /**
@@ -152,8 +154,8 @@ export const worldPlayerRef = (
     db,
     ARCHITECT_WORLDS_COLLECTION,
     worldId,
-    'teams',
+    ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
     teamCode,
-    'players',
+    ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION,
     playerId
   );
