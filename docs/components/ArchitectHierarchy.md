@@ -165,6 +165,7 @@ tradeMachine/
   TradeReceiptPanel.tsx
   TradeSalaryCalculator.tsx
   TradeSummaryPanel.tsx
+  TradeTeamCard.helpers.ts
   TradeTeamCard.tsx
   ValidationDetailsPanel.tsx
   ValidationStateHeader.tsx
@@ -373,5 +374,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-21T09:18:02.226Z*
+*Generated on: 2026-05-10T10:40:24.210Z*
 *Auto-updated by: npm run docs*

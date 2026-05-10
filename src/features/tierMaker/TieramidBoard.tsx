@@ -30,21 +30,19 @@ import {
 import type { RosterDrawerPlayer } from '@/features/roster/utils';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { DraftTieramid } from '@/features/tierMaker/hooks/useTierDraft';
-
-const INITIAL_ROWS = 5;
-const MAX_ROWS = 10;
-
-type TieramidBoardPlayer = RosterManagerPlayer & {
-  player_id?: string;
-};
-
-type TieramidRows = Record<string, TieramidBoardPlayer[]>;
-type TieramidMoveDirection = 'left' | 'right' | 'up' | 'down';
-
-type NormalizedRows = {
-  rows: TieramidRows;
-  rowOrder: string[];
-};
+import {
+  INITIAL_ROWS,
+  MAX_ROWS,
+  getInitialRows,
+  getSpotsInRow,
+  getTieramidPlayerId,
+  normalizeRows,
+  type TieramidBoardPlayer,
+  type TieramidRows,
+  type TieramidMoveDirection,
+  type NormalizedRows,
+} from './utils/tieramidHelpers';
+import { TieramidPool } from './TieramidPool';
 
 type TeamOption = (typeof TeamListFull)[number];
 
@@ -56,69 +54,6 @@ type TieramidBoardProps = {
   draftData?: DraftTieramid | null;
   onDraftChange?: ((data: DraftTieramid) => void) | null;
   draftRestored?: boolean;
-};
-
-function getInitialRows(): NormalizedRows {
-  const rows: TieramidRows = {};
-  for (let i = 1; i <= INITIAL_ROWS; i++) {
-    rows[`Row${i}`] = [];
-  }
-  rows['Pool'] = [];
-  const rowOrder = Array.from(
-    { length: INITIAL_ROWS },
-    (_, i) => `Row${i + 1}`
-  ).concat('Pool');
-  // Always normalize initial state to ensure Pool exists and is last
-  return normalizeRows(rows, rowOrder);
-}
-
-const getSpotsInRow = (rowIndex: number) => rowIndex + 1;
-
-const getTieramidPlayerId = (player: TieramidBoardPlayer): string =>
-  player.player_id || player.id;
-
-/**
- * Ensures rows state always includes Pool and rowOrder always includes Pool last.
- * This prevents crashes when Pool is missing from loaded data.
- * @param {Object} rows - The rows object
- * @param {Array} rowOrder - The row order array
- * @returns {Object} - Normalized { rows, rowOrder }
- */
-const normalizeRows = (
-  rows: TieramidRows = {},
-  rowOrder: string[] = []
-): NormalizedRows => {
-  const normalizedRows: TieramidRows = { ...rows };
-  let normalizedOrder = Array.isArray(rowOrder) ? [...rowOrder] : [];
-
-  // If no non-Pool rows exist, inject default rows (Row1..Row5)
-  const nonPoolOrder = normalizedOrder.filter((r) => r !== 'Pool');
-  if (nonPoolOrder.length === 0) {
-    for (let i = 1; i <= INITIAL_ROWS; i++) {
-      const rowKey = `Row${i}`;
-      if (!normalizedOrder.includes(rowKey)) {
-        normalizedOrder.push(rowKey);
-      }
-    }
-  }
-
-  // Ensure every row in the order has an array in rows
-  normalizedOrder.forEach((row) => {
-    if (!normalizedRows[row]) {
-      normalizedRows[row] = [];
-    }
-  });
-
-  // Ensure Pool exists in rows
-  if (!normalizedRows.Pool) {
-    normalizedRows.Pool = [];
-  }
-
-  // Ensure Pool is in rowOrder and is last
-  normalizedOrder = normalizedOrder.filter((r) => r !== 'Pool');
-  normalizedOrder.push('Pool');
-
-  return { rows: normalizedRows, rowOrder: normalizedOrder };
 };
 
 const TieramidBoard = ({
@@ -1035,28 +970,10 @@ const TieramidBoard = ({
 
           {/* Pool row (directly under pyramid) */}
           {!screenshotMode && (
-            <div className="mt-6">
-              <div className="flex flex-wrap gap-2 bg-neutral-900 p-4 rounded-lg border border-white/10 min-h-[100px]">
-                <span className="text-white/60 font-bold mr-4 self-start">
-                  Pool
-                </span>
-                {rows['Pool'] && rows['Pool'].filter(Boolean).length > 0 ? (
-                  rows['Pool'].filter(Boolean).map((p, idx) => (
-                    <div key={p.player_id || p.id || idx} className="relative">
-                      <TieramidPlayerTile player={p} />
-                      <button
-                        onClick={() => addFromPool(p)}
-                        className="absolute top-1 left-1 px-1 py-0.5 bg-blue-700 text-xs rounded text-white"
-                      >
-                        Place
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <span className="text-white/40">No players</span>
-                )}
-              </div>
-            </div>
+            <TieramidPool
+              players={rows['Pool'] ?? []}
+              onPlace={addFromPool}
+            />
           )}
 
           {/* Controls under Pool */}

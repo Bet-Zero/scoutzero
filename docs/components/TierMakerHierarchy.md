@@ -6,14 +6,16 @@ TierMakerBoard.tsx
 TierRow.tsx
 TieramidBoard.tsx
 TieramidPlayerTile.tsx
+TieramidPool.tsx
 hooks/
   useTierDraft.ts
 index.ts
 utils/
   draftConversion.ts
   saveAsListBridge.ts
+  tieramidHelpers.ts
 ```
 
 ---
-*Generated on: 2026-05-10T10:14:03.884Z*
+*Generated on: 2026-05-10T10:40:24.221Z*
 *Auto-updated by: npm run docs*
