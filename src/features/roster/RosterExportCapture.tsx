@@ -1,7 +1,7 @@
 import React from 'react';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
-import RosterSection from './RosterSection';
+import { RosterSection } from './RosterSection';
 import type {
   MissingRosterPlayer,
   NormalizedRosterPlayer,
@@ -14,7 +14,7 @@ type RosterExportCaptureProps = {
   team?: SelectedRosterTeam | null;
 };
 
-const RosterExportCapture = React.forwardRef<
+export const RosterExportCapture = React.forwardRef<
   HTMLDivElement,
   RosterExportCaptureProps
 >(function RosterExportCapture({ roster, team }, ref) {
@@ -82,4 +82,3 @@ const RosterExportCapture = React.forwardRef<
 
 RosterExportCapture.displayName = 'RosterExportCapture';
 
-export default RosterExportCapture;

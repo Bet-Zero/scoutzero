@@ -1,5 +1,5 @@
 import React from 'react';
-import RangeSelector from '@/shared/components/ui/filters/RangeSelector';
+import { RangeSelector } from '@/shared/components/ui/filters/RangeSelector';
 import {
   generateHeightOptions,
   generateWeightOptions,
@@ -7,7 +7,7 @@ import {
 } from '@/shared/utils/filtering';
 import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const PhysicalFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+export const PhysicalFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const update = (key: string, value: number | string | null) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
@@ -50,4 +50,3 @@ const PhysicalFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   );
 };
 
-export default PhysicalFilters;

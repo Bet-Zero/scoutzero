@@ -10,7 +10,7 @@
 import React, { useMemo } from 'react';
 import { Listbox } from '@headlessui/react';
 import { ChevronUpDownIcon } from '@heroicons/react/20/solid';
-import TeamLogo from './TeamLogo';
+import { TeamLogo } from './TeamLogo';
 import { TeamListFull } from '@/constants/teamList';
 import { getTeamColors } from '@/shared/utils/formatting';
 
@@ -45,7 +45,7 @@ const resolveTeamByAnyIdentifier = (
   );
 };
 
-const TeamSelectDropdown = ({
+export const TeamSelectDropdown = ({
   selectedTeamId,
   onChange,
   valueFormat = 'id',
@@ -106,4 +106,3 @@ const TeamSelectDropdown = ({
   );
 };
 
-export default TeamSelectDropdown;

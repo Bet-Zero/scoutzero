@@ -1,6 +1,6 @@
 import React from 'react';
-import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import { PlayerHeadshot } from '@/shared/components/PlayerHeadshot';
+import { PlayerNameMini } from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import type { RankerPlayer } from './utils/rankingEngine';
 
 type PlayerCompareCardProps = {

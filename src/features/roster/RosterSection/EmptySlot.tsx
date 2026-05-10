@@ -9,7 +9,7 @@ type EmptySlotProps = {
   size?: EmptySlotSize;
 };
 
-const EmptySlot = ({ onAdd, size = 'starter' }: EmptySlotProps) => {
+export const EmptySlot = ({ onAdd, size = 'starter' }: EmptySlotProps) => {
   const sizeClasses = {
     starter: 'w-40 h-44 text-3xl',
     rotation: 'w-32 h-36 text-2xl',
@@ -26,4 +26,3 @@ const EmptySlot = ({ onAdd, size = 'starter' }: EmptySlotProps) => {
   );
 };
 
-export default EmptySlot;

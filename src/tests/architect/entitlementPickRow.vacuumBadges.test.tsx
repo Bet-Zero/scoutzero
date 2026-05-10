@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import EntitlementPickRow from '@/features/architect/tradeMachine/EntitlementPickRow';
+import { EntitlementPickRow } from '@/features/architect/tradeMachine/EntitlementPickRow';
 
 vi.mock('@/features/architect/utils/entitlements/formatEntitlement', () => ({
   formatEntitlementLabel: () => 'BOS 2027 1st',

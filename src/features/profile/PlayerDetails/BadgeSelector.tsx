@@ -1,9 +1,9 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { BadgeList } from '@/constants/badgeList';
-import useClickOutside from '@/shared/hooks/useClickOutside';
+import { useClickOutside } from '@/shared/hooks/useClickOutside';
 import type { ProfileSetter } from '../profileUiTypes';
 
-const BadgeSelector = ({
+export const BadgeSelector = ({
   badges,
   setBadges,
 }: {
@@ -78,4 +78,3 @@ const BadgeSelector = ({
   );
 };
 
-export default BadgeSelector;

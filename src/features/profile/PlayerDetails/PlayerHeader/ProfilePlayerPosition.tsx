@@ -7,7 +7,7 @@ const getAbbreviatedPosition = (position: string) => {
   return POSITION_MAP[position] || position;
 };
 
-const PlayerPosition = ({
+export const PlayerPosition = ({
   position = 'N/A',
   className = '',
 }: {
@@ -21,4 +21,3 @@ const PlayerPosition = ({
   );
 };
 
-export default PlayerPosition;

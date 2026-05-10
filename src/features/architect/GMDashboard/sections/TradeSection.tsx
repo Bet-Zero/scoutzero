@@ -10,7 +10,7 @@
  * - Does not reinterpret world/base mode truth locally; the action layer owns
  *   trade payload normalization plus world-vs-base branching.
  */
-import TradeEditor from '@/features/architect/tradeMachine/TradeEditor';
+import { TradeEditor } from '@/features/architect/tradeMachine/TradeEditor';
 
 type ForwardedTradeEditorProps = Pick<
   Parameters<typeof TradeEditor>[0],

@@ -21,7 +21,7 @@ function getTeamLogoId(teamCode: string | null | undefined): string {
   return TeamCodeMap[teamCode as TeamCode].id;
 }
 
-const FreeAgentCard = ({
+export const FreeAgentCard = ({
   entry,
   onOpenContractModal,
   onRemove,
@@ -138,4 +138,3 @@ const FreeAgentCard = ({
   );
 };
 
-export default FreeAgentCard;

@@ -2,7 +2,7 @@
 // Full player row component for ranked or tiered lists. Rank display is now optional via showRank prop.
 
 import React from 'react';
-import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
+import { MemoizedPlayerRow as PlayerRow } from '@/features/table/PlayerTable/PlayerRow';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
@@ -20,7 +20,7 @@ type ListPlayerRowProps = {
   showRank?: boolean;
 };
 
-const ListPlayerRow = ({
+export const ListPlayerRow = ({
   player,
   index, // order index used for reordering
   rank = index,
@@ -119,4 +119,3 @@ const ListPlayerRow = ({
   );
 };
 
-export default ListPlayerRow;

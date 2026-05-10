@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import PlayerRowMini from './PlayerRowMini';
+import { PlayerRowMini } from './PlayerRowMini';
 import {
   getDefaultAddPlayerFilters,
 } from '@/shared/utils/filtering';
-import DrawerHeader from './addPlayer/DrawerHeader';
-import PlayerSearchBar from './addPlayer/PlayerSearchBar';
-import FilterTabs from './addPlayer/FilterTabs';
+import { DrawerHeader } from './addPlayer/DrawerHeader';
+import { PlayerSearchBar } from './addPlayer/PlayerSearchBar';
+import { FilterTabs } from './addPlayer/FilterTabs';
 import {
   filterRosterDrawerPlayers,
   hasActiveAddPlayerFilters,
@@ -22,7 +22,7 @@ type AddPlayerDrawerProps = {
   onSelectAll?: (players: RosterManagerPlayer[]) => void;
 };
 
-const AddPlayerDrawer = ({
+export const AddPlayerDrawer = ({
   onClose,
   allPlayers,
   onSelect,
@@ -103,4 +103,3 @@ const AddPlayerDrawer = ({
   );
 };
 
-export default AddPlayerDrawer;

@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import EditContractModal from '@/shared/components/EditContractModal';
+import { EditContractModal } from '@/shared/components/EditContractModal';
 import * as EditContractModalModule from '@/shared/components/EditContractModal';
 import * as ContractUtilsModule from '@/shared/utils/contracts/contractUtils';
 import * as SeasonNormalizerModule from '@/shared/utils/contracts/seasonNormalizer';

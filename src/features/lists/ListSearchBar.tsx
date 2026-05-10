@@ -20,7 +20,7 @@ type ListSearchBarProps = {
   placeholder?: string;
 };
 
-const ListSearchBar = ({
+export const ListSearchBar = ({
   listsData,
   playersData = {},
   onSelect,
@@ -179,4 +179,3 @@ const ListSearchBar = ({
   );
 };
 
-export default ListSearchBar;

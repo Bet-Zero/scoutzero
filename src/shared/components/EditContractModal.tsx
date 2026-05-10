@@ -37,9 +37,7 @@ import {
   getExtensionProfile,
   buildMinimalRuleContext,
 } from '@/features/architect/utils/salaryEngine';
-import useCapValidation, {
-  buildSigningGuardrails,
-} from '@/features/architect/hooks/useCapValidation';
+import { useCapValidation, buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
 import { validateExceptionEligibility } from '@/features/architect/utils/capLegalityValidation';
 import type {
   ArchitectMutationResult,
@@ -47,8 +45,8 @@ import type {
   OfferSheetPreflightResult,
 } from '@/features/architect/utils/mutationPipeline';
 import type { PlayerRulesProfileLeagueContext } from '@/features/architect/types';
-import ValidationWarnings from '@/features/architect/shared/ValidationWarnings';
-import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
+import { ValidationWarnings } from '@/features/architect/shared/ValidationWarnings';
+import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
 import {
   getCanonicalExceptionAvailability,
   getCanonicalExceptionKeyForSigningMechanism,
@@ -767,7 +765,7 @@ const SIGNING_EXCEPTION_OPTIONS: readonly SigningExceptionOption[] = [
 const isContractActionKey = (value: string): value is ContractActionKey =>
   CONTRACT_ACTION_KEYS.includes(value as ContractActionKey);
 
-const EditContractModal = ({
+export const EditContractModal = ({
   player,
   isOpen,
   onClose,
@@ -2605,4 +2603,3 @@ const EditContractModal = ({
   );
 };
 
-export default EditContractModal;

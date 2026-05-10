@@ -26,7 +26,7 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
   computeTeamCapTotals: vi.fn(),
 }));
 
-import CapSheet from '@/features/architect/capSheet/CapSheet/CapSheet';
+import { CapSheet } from '@/features/architect/capSheet/CapSheet/CapSheet';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 type TeamCapTotals = ReturnType<typeof computeTeamCapTotals>;

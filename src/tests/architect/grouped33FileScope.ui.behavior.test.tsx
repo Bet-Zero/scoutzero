@@ -24,12 +24,12 @@ import {
   waitFor,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import ValidationWarnings from '@/features/architect/shared/ValidationWarnings/ValidationWarnings';
-import ContractEditor from '@/features/architect/contract/ContractEditor/ContractEditor';
-import ContractEditorModal from '@/features/architect/contract/ContractEditorModal/ContractEditorModal';
-import RosterVisual from '@/features/architect/shared/RosterVisual/RosterVisual';
-import LeagueView from '@/features/architect/shared/LeagueView/LeagueView';
-import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
+import { ValidationWarnings } from '@/features/architect/shared/ValidationWarnings/ValidationWarnings';
+import { ContractEditor } from '@/features/architect/contract/ContractEditor/ContractEditor';
+import { ContractEditorModal } from '@/features/architect/contract/ContractEditorModal/ContractEditorModal';
+import { RosterVisual } from '@/features/architect/shared/RosterVisual/RosterVisual';
+import { LeagueView } from '@/features/architect/shared/LeagueView/LeagueView';
+import { useArchitectPlayerData } from '@/features/architect/hooks/useArchitectPlayerData';
 
 type TestRosterPlayer = Record<string, unknown> & {
   id?: string;

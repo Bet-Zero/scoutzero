@@ -5,15 +5,15 @@
  */
 
 import React, { useState } from 'react';
-import usePlayerNavigation from '@/features/profile/hooks/usePlayerNavigation';
-import usePlayerProfileState from '@/features/profile/hooks/usePlayerProfileState';
-import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';
-import SaveStatusIndicator from '@/features/profile/SaveStatusIndicator';
-import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
-import PlayerNavigation from '@/features/profile/PlayerNavigation';
-import PlayerDetails from '@/features/profile/PlayerDetails';
-import BreakdownModal from '@/features/profile/BreakdownModal';
-import PlayerSearchBar from '@/features/profile/PlayerSearchBar';
+import { usePlayerNavigation } from '@/features/profile/hooks/usePlayerNavigation';
+import { usePlayerProfileState } from '@/features/profile/hooks/usePlayerProfileState';
+import { useAutoSavePlayer } from '@/features/profile/hooks/useAutoSavePlayer';
+import { SaveStatusIndicator } from '@/features/profile/SaveStatusIndicator';
+import { TeamPlayerDropdowns } from '@/features/profile/TeamPlayerDropdowns';
+import { PlayerNavigation } from '@/features/profile/PlayerNavigation';
+import { PlayerDetails } from '@/features/profile/PlayerDetails';
+import { BreakdownModal } from '@/features/profile/BreakdownModal';
+import { PlayerSearchBar } from '@/features/profile/PlayerSearchBar';
 
 const PlayerProfileView = () => {
   const [openModal, setOpenModal] = useState<string | null>(null);

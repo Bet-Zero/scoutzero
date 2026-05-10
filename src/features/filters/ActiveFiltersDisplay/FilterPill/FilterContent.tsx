@@ -1,5 +1,5 @@
 import React from 'react';
-import TeamLogo from '@/shared/components/TeamLogo';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 import { BadgeList } from '@/constants/badgeList';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { getFilterStyles } from '@/shared/utils/filtering';
@@ -9,7 +9,7 @@ type FilterContentProps = {
   filter: ActiveFilterItem;
 };
 
-const FilterContent = ({ filter }: FilterContentProps) => {
+export const FilterContent = ({ filter }: FilterContentProps) => {
   const { key, value, isSubrole } = filter;
 
   if (isSubrole) {
@@ -66,4 +66,3 @@ const FilterContent = ({ filter }: FilterContentProps) => {
   return <span className={styles.textClass}>{value}</span>;
 };
 
-export default FilterContent;

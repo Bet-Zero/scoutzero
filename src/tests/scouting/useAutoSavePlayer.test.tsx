@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import type { Dispatch, SetStateAction } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';
+import { useAutoSavePlayer } from '@/features/profile/hooks/useAutoSavePlayer';
 import type { AutoSavePlayerInput } from '@/features/profile/hooks/useAutoSavePlayer';
 import type { EnrichedPlayerData } from '@/features/roster/utils/enrichPlayerData';
 import { getMockData } from '../../../tests/__mocks__/firebase.js';

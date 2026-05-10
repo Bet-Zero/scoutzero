@@ -1,10 +1,10 @@
 import React, { useRef } from 'react';
 import { X } from 'lucide-react';
-import useImageDownload from '@/shared/hooks/useImageDownload';
-import RosterExportCapture from './RosterExportCapture';
+import { useImageDownload } from '@/shared/hooks/useImageDownload';
+import { RosterExportCapture } from './RosterExportCapture';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
-import RosterSection from './RosterSection';
+import { RosterSection } from './RosterSection';
 import type {
   MissingRosterPlayer,
   NormalizedRosterPlayer,
@@ -19,7 +19,7 @@ type RosterPreviewModalProps = {
   team?: SelectedRosterTeam | null;
 };
 
-const RosterPreviewModal = ({
+export const RosterPreviewModal = ({
   open,
   onClose,
   roster,
@@ -146,4 +146,3 @@ const RosterPreviewModal = ({
   );
 };
 
-export default RosterPreviewModal;

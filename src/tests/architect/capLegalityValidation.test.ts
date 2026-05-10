@@ -12,7 +12,7 @@ import {
   isCapSpaceSigning,
   HARD_BLOCK_RULES,
 } from '@/features/architect/utils/capLegalityValidation';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 
 type ContractOptions = {
   contractType?: string;

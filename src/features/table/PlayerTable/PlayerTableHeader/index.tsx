@@ -1,6 +1,6 @@
 import React from 'react';
-import SearchBar from './SearchBar';
-import DensityToggle from './DensityToggle';
+import { SearchBar } from './SearchBar';
+import { DensityToggle } from './DensityToggle';
 import {
   getDefaultSeasonEndYear,
   toSeasonKey,
@@ -19,7 +19,7 @@ type PlayerTableHeaderProps = {
  * PlayerTableHeader - Title, count, search, and density toggle.
  * Phase 2O: Simplified - filter/sort controls moved to TopControlsBar.
  */
-const PlayerTableHeader = ({
+export const PlayerTableHeader = ({
   filteredCount,
   searchValue,
   onSearchChange,
@@ -46,4 +46,3 @@ const PlayerTableHeader = ({
   );
 };
 
-export default PlayerTableHeader;

@@ -18,7 +18,7 @@ type DensityToggleProps = {
   setMode: (mode: DensityMode) => void;
 };
 
-const DensityToggle = ({ mode, setMode }: DensityToggleProps) => {
+export const DensityToggle = ({ mode, setMode }: DensityToggleProps) => {
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-xs text-neutral-500 mr-1">Density:</span>
@@ -52,4 +52,3 @@ const DensityToggle = ({ mode, setMode }: DensityToggleProps) => {
   );
 };
 
-export default DensityToggle;

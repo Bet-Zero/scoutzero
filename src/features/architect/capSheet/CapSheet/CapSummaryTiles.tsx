@@ -36,7 +36,7 @@ type CapSummaryTilesProps = {
 const formatSeasonLabel = (endYear: number) =>
   `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
 
-const CapSummaryTiles = ({
+export const CapSummaryTiles = ({
   currentYear,
   selectedYear,
   canonicalTotals,
@@ -218,4 +218,3 @@ const CapSummaryTiles = ({
   );
 };
 
-export default CapSummaryTiles;

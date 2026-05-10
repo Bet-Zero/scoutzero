@@ -22,7 +22,7 @@
  */
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
-import TradeSalaryCalculator from '@/features/architect/tradeMachine/TradeSalaryCalculator';
+import { TradeSalaryCalculator } from '@/features/architect/tradeMachine/TradeSalaryCalculator';
 
 // Mock cap settings (required for component to render)
 const mockCapSettings = {

@@ -177,7 +177,7 @@ const buildOwnedCurrentSeasonExceptionsSnapshot = (
  * Modal for managing team exceptions manually.
  * Phase 27 Execution.
  */
-const ManageExceptionsModal = ({
+export const ManageExceptionsModal = ({
   isOpen,
   onClose,
   teamCapSheet,
@@ -511,4 +511,3 @@ const ManageExceptionsModal = ({
   );
 };
 
-export default ManageExceptionsModal;

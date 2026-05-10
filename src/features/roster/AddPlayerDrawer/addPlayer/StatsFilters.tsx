@@ -102,7 +102,7 @@ const StatRow = ({ def, filters, setFilters }: FilterProps & { def: StatDef }) =
   );
 };
 
-const StatsFilters = ({ filters, setFilters }: FilterProps) => (
+export const StatsFilters = ({ filters, setFilters }: FilterProps) => (
   <div className="p-2 space-y-2">
     {STAT_DEFS.map((def) => (
       <StatRow key={def.opKey} def={def} filters={filters} setFilters={setFilters} />
@@ -110,4 +110,3 @@ const StatsFilters = ({ filters, setFilters }: FilterProps) => (
   </div>
 );
 
-export default StatsFilters;

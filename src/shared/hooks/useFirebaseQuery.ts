@@ -23,7 +23,7 @@ const getConstraintKeyPart = (constraint: QueryConstraint): string => {
   return String(constraint);
 };
 
-const useFirebaseQuery = <T = Record<string, unknown>>(
+export const useFirebaseQuery = <T = Record<string, unknown>>(
   collectionName: string,
   queryConstraints: QueryConstraint[] = [],
   options: FirebaseQueryOptions = {}
@@ -67,4 +67,3 @@ const useFirebaseQuery = <T = Record<string, unknown>>(
   return { data, loading, error };
 };
 
-export default useFirebaseQuery;

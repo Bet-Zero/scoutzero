@@ -1,6 +1,6 @@
 import React from 'react';
 import type { MouseEvent } from 'react';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import { PlayerNameMini } from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
 type StarterCardProps = {
@@ -17,7 +17,7 @@ type StarterCardProps = {
   isExport?: boolean;
 };
 
-const StarterCard = ({
+export const StarterCard = ({
   player,
   onRemove,
   showRemove = true,
@@ -78,4 +78,3 @@ const StarterCard = ({
   );
 };
 
-export default StarterCard;

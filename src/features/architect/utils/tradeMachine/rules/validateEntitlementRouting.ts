@@ -283,4 +283,3 @@ export function enforceEntitlementRouting(
   };
 }
 
-export default validateEntitlementRouting;

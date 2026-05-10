@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import getCapPercentage, {
+import {
+  getCapPercentage,
   attachDefaultPicks,
   generateDefaultPicks,
   markHardCapTriggered,

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import usePlayerTableDensity, {
+import {
+  usePlayerTableDensity,
   DENSITY_MODES,
   DENSITY_SCALES,
 } from '@/features/table/PlayerTable/hooks/usePlayerTableDensity';

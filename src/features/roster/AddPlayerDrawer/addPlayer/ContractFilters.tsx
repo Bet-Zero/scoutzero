@@ -9,7 +9,7 @@ type FilterProps = {
   setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
 };
 
-const ContractFilters = ({ filters, setFilters }: FilterProps) => (
+export const ContractFilters = ({ filters, setFilters }: FilterProps) => (
   <div className="p-2 space-y-3">
     {/* First Section - Matches other tabs */}
     <div className="space-y-3">
@@ -107,4 +107,3 @@ const ContractFilters = ({ filters, setFilters }: FilterProps) => (
   </div>
 );
 
-export default ContractFilters;

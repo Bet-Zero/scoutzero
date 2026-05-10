@@ -2,15 +2,15 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import CapImpactTiles from '@/features/architect/tradeMachine/CapImpactTiles';
+import { CapImpactTiles } from '@/features/architect/tradeMachine/CapImpactTiles';
 import { SelectTeamCard } from '@/features/architect/tradeMachine/SelectTeamCard';
 import { OutgoingPlayersList } from '@/features/architect/tradeMachine/OutgoingPlayersList';
-import TradePlayerRow from '@/features/architect/tradeMachine/TradePlayerRow';
+import { TradePlayerRow } from '@/features/architect/tradeMachine/TradePlayerRow';
 import EntitlementPicksList, {
   EntitlementPicksList as NamedEntitlementPicksList,
 } from '@/features/architect/tradeMachine/EntitlementPicksList';
-import EntitlementPickRow from '@/features/architect/tradeMachine/EntitlementPickRow';
-import TradeExceptionManager from '@/features/architect/tradeMachine/TradeExceptionManager';
+import { EntitlementPickRow } from '@/features/architect/tradeMachine/EntitlementPickRow';
+import { TradeExceptionManager } from '@/features/architect/tradeMachine/TradeExceptionManager';
 
 describe('E101 Trade Team Card leaf-family compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect/tradeMachine');

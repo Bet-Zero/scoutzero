@@ -509,4 +509,3 @@ export function getFilterEntry(key: string): FilterCatalogEntry | undefined {
   return PLAYER_FILTER_CATALOG.find((entry) => entry.key === key);
 }
 
-export default PLAYER_FILTER_CATALOG;

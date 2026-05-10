@@ -10,5 +10,5 @@
  *  - Plan: N/A (Phase 5 folder organization)
  */
 
-export { default as ContractEditor } from './ContractEditor';
-export { default as ContractEditorModal } from './ContractEditorModal';
+export { ContractEditor } from './ContractEditor';
+export { ContractEditorModal } from './ContractEditorModal';

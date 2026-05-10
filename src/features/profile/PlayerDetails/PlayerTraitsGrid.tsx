@@ -4,7 +4,7 @@ import { NotebookText } from 'lucide-react';
 import { TRAIT_ORDER, getTraitColor } from '@/constants/scoutingConstants';
 import type { OpenProfileModal } from '../profileUiTypes';
 
-const PlayerTraitsGrid = ({
+export const PlayerTraitsGrid = ({
   traits,
   onTraitClick,
   setOpenModal,
@@ -55,4 +55,3 @@ const PlayerTraitsGrid = ({
   );
 };
 
-export default React.memo(PlayerTraitsGrid);

@@ -1,15 +1,13 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
-import ContractEditor, {
-  type ContractEditorProps,
-} from '../ContractEditor/ContractEditor';
+import { ContractEditor, type ContractEditorProps } from '../ContractEditor/ContractEditor';
 
 export type ContractEditorModalProps = ContractEditorProps & {
   isOpen: boolean;
   onClose: () => void;
 };
 
-const ContractEditorModal = ({
+export const ContractEditorModal = ({
   player,
   isOpen,
   onClose,
@@ -31,4 +29,3 @@ const ContractEditorModal = ({
   </Dialog>
 );
 
-export default ContractEditorModal;

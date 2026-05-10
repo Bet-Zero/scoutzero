@@ -1,5 +1,5 @@
 import React from 'react';
-import PlayerTable from '@/features/table/PlayerTable';
+import { PlayerTable } from '@/features/table/PlayerTable';
 
 /**
  * PlayerTableView - Route wrapper for the Player Database (virtualized table)

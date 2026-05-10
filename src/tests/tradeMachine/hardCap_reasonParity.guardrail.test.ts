@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
   NormalizedPlayer,

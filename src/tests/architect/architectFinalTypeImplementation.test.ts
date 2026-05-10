@@ -3,7 +3,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
-import useCapValidation from '@/features/architect/hooks/useCapValidation';
+import { useCapValidation } from '@/features/architect/hooks/useCapValidation';
 import {
   computeExpectedCapHoldAmount,
   getRightsTypeFromPlayer,

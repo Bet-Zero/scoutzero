@@ -46,7 +46,7 @@ const MiniSubRoleLine = ({ roles = [] }: MiniSubRoleLineProps) => {
   );
 };
 
-const PlayerSubRolesMini = ({ subRoles }: PlayerSubRolesMiniProps) => {
+export const PlayerSubRolesMini = ({ subRoles }: PlayerSubRolesMiniProps) => {
   // Separate offense and defense roles from the subRoles prop
   const offenseRoles = subRoles?.offense || [];
   const defenseRoles = subRoles?.defense || [];
@@ -65,4 +65,3 @@ const PlayerSubRolesMini = ({ subRoles }: PlayerSubRolesMiniProps) => {
   );
 };
 
-export default PlayerSubRolesMini;

@@ -636,4 +636,3 @@ export function useCapValidation({
   ]);
 }
 
-export default useCapValidation;

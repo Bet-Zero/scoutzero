@@ -1,6 +1,6 @@
 // src/features/roster/AddPlayerDrawer/PlayerRowMini.tsx
 import React, { useState } from 'react';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import { PlayerNameMini } from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatSalary } from '@/shared/utils/formatting';
@@ -12,7 +12,7 @@ type PlayerRowMiniProps = {
   onClick: () => void;
 };
 
-const PlayerRowMini = ({ player, onClick }: PlayerRowMiniProps) => {
+export const PlayerRowMini = ({ player, onClick }: PlayerRowMiniProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const name = player.bio?.displayName || player.name || 'Unknown Player';
@@ -94,4 +94,3 @@ const PlayerRowMini = ({ player, onClick }: PlayerRowMiniProps) => {
   );
 };
 
-export default PlayerRowMini;

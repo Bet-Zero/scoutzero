@@ -27,23 +27,23 @@ import React, {
 } from 'react';
 import type { CSSProperties, HTMLAttributes } from 'react';
 import type { FixedSizeList, ListChildComponentProps } from 'react-window';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
-import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
-import PlayerRow from '@/features/table/PlayerTable/PlayerRow';
-import FiltersPanel from '@/features/filters/FiltersPanel';
-import ActiveFiltersDrawer from '@/features/filters/ActiveFiltersDrawer';
-import PlayerTableHeader from '@/features/table/PlayerTable/PlayerTableHeader';
-import TopControlsBar from '@/features/table/PlayerTable/PlayerTableHeader/TopControlsBar';
-import PlayerDrawer from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
+import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
+import { useFilteredPlayers } from '@/features/table/hooks/useFilteredPlayers';
+import { MemoizedPlayerRow as PlayerRow } from '@/features/table/PlayerTable/PlayerRow';
+import { FiltersPanel } from '@/features/filters/FiltersPanel';
+import { ActiveFiltersDrawer } from '@/features/filters/ActiveFiltersDrawer';
+import { PlayerTableHeader } from '@/features/table/PlayerTable/PlayerTableHeader';
+import { TopControlsBar } from '@/features/table/PlayerTable/PlayerTableHeader/TopControlsBar';
+import { PlayerDrawer } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering';
 import { FixedSizeList as List } from 'react-window';
-import useContainerDimensions from '@/shared/hooks/useContainerDimensions';
-import getPlayerId from '@/shared/utils/getPlayerId';
-import usePlayerTableDensity from './hooks/usePlayerTableDensity';
-import useActiveFilterCount from '@/features/filters/hooks/useActiveFilterCount';
+import { useContainerDimensions } from '@/shared/hooks/useContainerDimensions';
+import { getPlayerId } from '@/shared/utils/getPlayerId';
+import { usePlayerTableDensity } from './hooks/usePlayerTableDensity';
+import { useActiveFilterCount } from '@/features/filters/hooks/useActiveFilterCount';
 import { useFilterDiagnostics } from '../hooks/useFilterDiagnostics';
-import FilterDiagnosticsPanel from './FilterDiagnosticsPanel';
+import { FilterDiagnosticsPanel } from './FilterDiagnosticsPanel';
 import type { FilterablePlayer } from '@/shared/utils/filtering/playerFilterUtils';
 import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
@@ -208,7 +208,7 @@ const DrawerContext = React.createContext<DrawerContextValue>({
   setDrawerHeight: () => {},
 });
 
-const PlayerTable = () => {
+export const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultPlayerFilters());
   const { players, loading } = useSimplePlayerData();
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false); // Phase 2O: Renamed for clarity
@@ -443,4 +443,3 @@ const PlayerTable = () => {
   );
 };
 
-export default PlayerTable;

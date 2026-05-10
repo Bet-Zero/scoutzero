@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
+import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
 import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
 
 const seededTeam = injectTeamHistoryFixtures({

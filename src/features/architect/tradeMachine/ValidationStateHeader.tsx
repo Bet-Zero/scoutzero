@@ -127,7 +127,7 @@ const ModeLegend = ({ compact = true }: ModeLegendProps) => {
   );
 };
 
-const ValidationStateHeader = ({
+export const ValidationStateHeader = ({
   hasValidatorResult = false,
   isValidating = false,
   validatedAt = null,
@@ -156,4 +156,3 @@ const ValidationStateHeader = ({
   );
 };
 
-export default ValidationStateHeader;

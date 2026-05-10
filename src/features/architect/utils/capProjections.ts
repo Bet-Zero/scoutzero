@@ -18,7 +18,7 @@ type CapProjectionLike = {
   confirmed: boolean;
 };
 
-const capProjections: Record<string, CapProjectionLike> = {
+export const capProjections: Record<string, CapProjectionLike> = {
   '2024-25': {
     cap: 141000000, // $141 million
     floor: 127000000, // 90% of cap
@@ -135,4 +135,3 @@ const capProjections: Record<string, CapProjectionLike> = {
   },
 };
 
-export default capProjections;

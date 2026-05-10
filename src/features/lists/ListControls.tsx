@@ -12,7 +12,7 @@ type ListControlsProps = {
   isRanked?: boolean;
 };
 
-const ListControls = ({
+export const ListControls = ({
   showReorder,
   onToggleReorder,
   onAddDivider,
@@ -51,4 +51,3 @@ const ListControls = ({
   </>
 );
 
-export default ListControls;

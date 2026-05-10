@@ -12,11 +12,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, renderHook, screen } from '@testing-library/react';
-import ContractEditorModal from '@/features/architect/contract/ContractEditorModal/ContractEditorModal';
+import { ContractEditorModal } from '@/features/architect/contract/ContractEditorModal/ContractEditorModal';
 import {
   ensureContractStructure,
 } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
-import useCapValidation from '@/features/architect/hooks/useCapValidation';
+import { useCapValidation } from '@/features/architect/hooks/useCapValidation';
 import type { PlayerRulesProfileInput } from '@/features/architect/types';
 import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 

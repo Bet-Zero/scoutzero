@@ -4,7 +4,7 @@ import {
   HARD_BLOCK_RULES,
   getOverridePolicy,
 } from '@/features/architect/utils/capLegalityValidation';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 
 vi.mock(
   '@/features/architect/utils/capTotals/computeTeamCapTotals',

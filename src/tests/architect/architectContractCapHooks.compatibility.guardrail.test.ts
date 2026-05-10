@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import useCapValidation, {
+import {
+  useCapValidation,
   buildSigningGuardrails,
   useCapValidation as namedUseCapValidation,
 } from '@/features/architect/hooks/useCapValidation';

@@ -25,12 +25,12 @@ import {
 } from '@/features/architect/utils/contractUtils';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { getActiveUnsignedCapHoldsByEndYear, type CapHold } from '@/features/architect/utils/capHolds';
-import CapSummaryTiles from './CapSummaryTiles';
+import { CapSummaryTiles } from './CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
-import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
+import { getCapPercentage } from '@/features/architect/utils/basicArchitectUtils';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
-import ManageDeadMoneyModal from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
-import ManageExceptionsModal from '@/features/architect/capSheet/modals/ManageExceptionsModal';
+import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
+import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
@@ -146,7 +146,7 @@ const CAP_SHEET_SURFACE_LABELS = {
   canonicalTotalsBreakdown: 'Selected-year canonical totals breakdown surface',
 } as const;
 
-const CapSheet = ({
+export const CapSheet = ({
   teamCapSheet,
   currentYear,
   selectedYear: controlledSelectedYear = null,
@@ -830,4 +830,3 @@ const CapSheet = ({
   );
 };
 
-export default CapSheet;

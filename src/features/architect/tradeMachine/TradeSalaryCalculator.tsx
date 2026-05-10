@@ -75,7 +75,7 @@ function normalizeCapSettings(
   return { salaryCap, firstApron, secondApron, hasValidCapSettings };
 }
 
-const TradeSalaryCalculator = ({
+export const TradeSalaryCalculator = ({
   teamSalary,
   outgoingSalary,
   incomingPlayers = [],
@@ -386,4 +386,3 @@ const TradeSalaryCalculator = ({
   );
 };
 
-export default TradeSalaryCalculator;

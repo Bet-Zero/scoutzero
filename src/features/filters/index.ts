@@ -1,3 +1,3 @@
-export { default as FiltersPanel } from './FiltersPanel';
-export { default as ActiveFiltersDrawer } from './ActiveFiltersDrawer';
-export { default as useActiveFilterCount } from './hooks/useActiveFilterCount';
+export { FiltersPanel } from './FiltersPanel';
+export { ActiveFiltersDrawer } from './ActiveFiltersDrawer';
+export { useActiveFilterCount } from './hooks/useActiveFilterCount';

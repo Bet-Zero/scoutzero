@@ -127,7 +127,7 @@ const buildDeadCapReplacementPayload = (
  * Modal for managing dead money entries manually.
  * Phase 24 Execution.
  */
-const ManageDeadMoneyModal = ({
+export const ManageDeadMoneyModal = ({
   isOpen,
   onClose,
   teamCapSheet,
@@ -423,4 +423,3 @@ const ManageDeadMoneyModal = ({
   );
 };
 
-export default ManageDeadMoneyModal;

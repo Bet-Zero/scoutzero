@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
-import ShootingProfileMini from '@/features/table/PlayerTable/PlayerRow/ShootingProfileMini';
-import RolePill from '@/features/table/PlayerTable/PlayerRow/RolePill';
-import OverallGradeBlock from '@/shared/components/ui/grades/OverallGradeBlock';
+import { PlayerNameMini } from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import { ShootingProfileMini } from '@/features/table/PlayerTable/PlayerRow/ShootingProfileMini';
+import { RolePill } from '@/features/table/PlayerTable/PlayerRow/RolePill';
+import { OverallGradeBlock } from '@/shared/components/ui/grades/OverallGradeBlock';
 // PlayerDrawer lifted to parent
-import TeamLogo from '@/shared/components/TeamLogo';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import AddToListButton from '@/features/lists/AddToListButton';
+import { AddToListButton } from '@/features/lists/AddToListButton';
 import {
   getCurrentSeasonYear,
   getYearsRemaining,
@@ -264,7 +264,7 @@ const PlayerRow = ({ player, isExpanded, onToggleExpand }: PlayerRowProps) => {
  * Uses react-window's areEqual comparison pattern for optimal virtualization perf.
  * Row only rerenders when player data, isExpanded, or onToggleExpand changes.
  */
-const MemoizedPlayerRow = React.memo(PlayerRow, (prevProps, nextProps) => {
+export const MemoizedPlayerRow = React.memo(PlayerRow, (prevProps, nextProps) => {
   // react-window areEqual pattern: return true if props are equal (skip rerender)
   return (
     prevProps.isExpanded === nextProps.isExpanded &&
@@ -273,4 +273,3 @@ const MemoizedPlayerRow = React.memo(PlayerRow, (prevProps, nextProps) => {
   );
 });
 
-export default MemoizedPlayerRow;

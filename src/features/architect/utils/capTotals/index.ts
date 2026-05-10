@@ -16,5 +16,4 @@ export {
   warnOnTotalsDivergence,
   resetWarnedKeys,
   canUseRoomException,
-  default,
 } from './computeTeamCapTotals';

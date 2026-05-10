@@ -6,7 +6,7 @@ import {
   PLAYERS_COLLECTION,
 } from '@/constants/collections';
 import { db } from '@/firebaseConfig';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 
 type SubcollectionDiagnostic = {
   count: number;
@@ -63,7 +63,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * Diagnostic component to help users understand their Firestore data structure
  * and troubleshoot missing player data issues
  */
-const FirestoreDataDiagnostic = () => {
+export const FirestoreDataDiagnostic = () => {
   const [diagnostics, setDiagnostics] = useState<DiagnosticsState>({
     collections: {},
     loading: true,
@@ -400,4 +400,3 @@ const FirestoreDataDiagnostic = () => {
   );
 };
 
-export default FirestoreDataDiagnostic;

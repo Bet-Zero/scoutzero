@@ -1,12 +1,12 @@
 import React, { useRef, useEffect } from 'react';
-import MetadataFilters from './sections/MetadataFilters';
-import PhysicalFilters from './sections/PhysicalFilters';
-import ContractFilters from './sections/ContractFilters';
-import RoleFilters from './sections/RoleFilters';
-import StatFilters from './sections/StatFilters';
-import TraitFilters from './sections/TraitFilters';
-import OverallGradeFilter from './sections/OverallGradeFilter';
-import BadgeFilters from './sections/BadgeFilters';
+import { MetadataFilters } from './sections/MetadataFilters';
+import { PhysicalFilters } from './sections/PhysicalFilters';
+import { ContractFilters } from './sections/ContractFilters';
+import { RoleFilters } from './sections/RoleFilters';
+import { StatFilters } from './sections/StatFilters';
+import { TraitFilters } from './sections/TraitFilters';
+import { OverallGradeFilter } from './sections/OverallGradeFilter';
+import { BadgeFilters } from './sections/BadgeFilters';
 import type { PlayerFilterPanelProps } from '../../filterTypes';
 
 type FilterPanelProps = PlayerFilterPanelProps & {
@@ -14,7 +14,7 @@ type FilterPanelProps = PlayerFilterPanelProps & {
   onClose: () => void;
 };
 
-const FilterPanel = ({
+export const FilterPanel = ({
   filters,
   setFilters,
   onClearFilters,
@@ -99,4 +99,3 @@ const FilterPanel = ({
   );
 };
 
-export default FilterPanel;

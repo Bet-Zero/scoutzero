@@ -24,8 +24,8 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
-import SeasonAdvanceModal from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
-import GMDashboard from '@/features/architect/GMDashboard/GMDashboard';
+import { SeasonAdvanceModal } from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
+import { GMDashboard } from '@/features/architect/GMDashboard/GMDashboard';
 
 const {
   mockListUserWorlds,

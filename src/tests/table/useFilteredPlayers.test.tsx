@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import useFilteredPlayers from '@/features/table/hooks/useFilteredPlayers';
+import { useFilteredPlayers } from '@/features/table/hooks/useFilteredPlayers';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
 
 describe('useFilteredPlayers', () => {

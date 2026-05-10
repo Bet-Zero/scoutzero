@@ -9,7 +9,7 @@ type ExportOptionsModalProps = {
   onSelect: (type: ListExportType) => void;
 };
 
-const ExportOptionsModal = ({ open, onClose, onSelect }: ExportOptionsModalProps) => {
+export const ExportOptionsModal = ({ open, onClose, onSelect }: ExportOptionsModalProps) => {
   const handleSelect = (type: ListExportType) => {
     onSelect(type);
     onClose();
@@ -38,4 +38,3 @@ const ExportOptionsModal = ({ open, onClose, onSelect }: ExportOptionsModalProps
   );
 };
 
-export default ExportOptionsModal;

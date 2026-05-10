@@ -17,7 +17,7 @@ import {
  *
  * @returns {Object} { players, loading, error }
  */
-const useArchitectPlayerData = () => {
+export const useArchitectPlayerData = () => {
   const [players, setPlayers] = useState<ArchitectPlayerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,4 +45,3 @@ const useArchitectPlayerData = () => {
   return { players, loading, error };
 };
 
-export default useArchitectPlayerData;

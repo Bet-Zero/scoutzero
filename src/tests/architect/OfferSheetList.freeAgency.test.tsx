@@ -2,7 +2,7 @@ import React from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import OfferSheetList from '@/features/architect/GMDashboard/components/OfferSheetList';
+import { OfferSheetList } from '@/features/architect/GMDashboard/components/OfferSheetList';
 import { FreeAgencySection } from '@/features/architect/GMDashboard/sections/FreeAgencySection';
 
 vi.mock('@/features/architect/freeAgency/FreeAgentPool', () => ({

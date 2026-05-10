@@ -1,7 +1,7 @@
 // src/components/filters/FilterPanelCondensed.tsx
 
 import React from 'react';
-import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';
+import { MultiSelectFilter } from '@/shared/components/ui/filters/MultiSelectFilter';
 import { TeamListFull } from '@/constants/teamList';
 import {
   offensiveRoles,
@@ -11,7 +11,7 @@ import {
 import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
 import type { PlayerFilterPanelProps } from '../filterTypes';
 
-const FilterPanelCondensed = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+export const FilterPanelCondensed = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const update = <K extends keyof PlayerFilters>(key: K, value: PlayerFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
@@ -89,4 +89,3 @@ const FilterPanelCondensed = ({ filters, setFilters }: PlayerFilterPanelProps) =
   );
 };
 
-export default FilterPanelCondensed;

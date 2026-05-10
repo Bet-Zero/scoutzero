@@ -10,4 +10,4 @@
  *  - Plan: N/A (Phase 5 folder organization)
  */
 
-export { default as TeamHistoryTab } from './TeamHistoryTab';
+export { TeamHistoryTab } from './TeamHistoryTab';

@@ -48,6 +48,5 @@ export const isOwnerUid = (userId: string | null | undefined): boolean => {
  */
 export const getOwnerCount = (): number => OWNER_UIDS.size;
 
-const ownerConfig = { isOwnerUid, getOwnerCount };
+export const ownerConfig = { isOwnerUid, getOwnerCount };
 
-export default ownerConfig;

@@ -48,7 +48,7 @@ const NavGroup = ({ label, children, align = 'left' }: NavGroupProps) => {
   );
 };
 
-const SiteLayout = () => {
+export const SiteLayout = () => {
   const location = useLocation();
 
   // Pages that contain react-window/AutoSizer virtualization MUST NOT live inside overflow-y-auto ancestors.
@@ -126,4 +126,3 @@ const SiteLayout = () => {
   );
 };
 
-export default SiteLayout;

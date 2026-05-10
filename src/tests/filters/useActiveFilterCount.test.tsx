@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import useActiveFilterCount from '@/features/filters/hooks/useActiveFilterCount';
+import { useActiveFilterCount } from '@/features/filters/hooks/useActiveFilterCount';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
 
 const getDefaults = () => ({

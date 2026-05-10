@@ -48,7 +48,7 @@ const getContractYearSlice = (
 const getPlayerId = (player: OffseasonPlayer | null | undefined) =>
   player?.player_id || player?.id || player?.playerId || null;
 
-const OptionManager = ({
+export const OptionManager = ({
   teamCapSheet,
   currentYear,
   onDecisionsReady,
@@ -172,4 +172,3 @@ const OptionManager = ({
   );
 };
 
-export default OptionManager;

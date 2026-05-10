@@ -23,7 +23,7 @@ vi.mock(
   })
 );
 
-import TradeLegalChecker from '@/features/architect/tradeMachine/TradeLegalChecker';
+import { TradeLegalChecker } from '@/features/architect/tradeMachine/TradeLegalChecker';
 
 describe('E2A TradeLegalChecker disclosure rendering', () => {
   beforeEach(() => {

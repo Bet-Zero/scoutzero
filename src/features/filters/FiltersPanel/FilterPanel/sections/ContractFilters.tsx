@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
 import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
-const ContractFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+export const ContractFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const [localMin, setLocalMin] = useState(String(filters.minSalary ?? ''));
   const [localMax, setLocalMax] = useState(String(filters.maxSalary ?? ''));
 
@@ -204,4 +204,3 @@ const ContractFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   );
 };
 
-export default ContractFilters;

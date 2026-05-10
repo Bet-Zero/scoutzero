@@ -14,7 +14,7 @@ export type OpenDrawerButtonProps = {
   ariaLabel?: string;
 };
 
-const OpenDrawerButton = ({
+export const OpenDrawerButton = ({
   onClick,
   disabled = false,
   title = 'Open player drawer',
@@ -61,4 +61,3 @@ const OpenDrawerButton = ({
   </button>
 );
 
-export default OpenDrawerButton;

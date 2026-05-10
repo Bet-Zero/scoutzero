@@ -10,7 +10,7 @@ import {
   within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import GMDashboard from '@/features/architect/GMDashboard/GMDashboard';
+import { GMDashboard } from '@/features/architect/GMDashboard/GMDashboard';
 import { TradeSection } from '@/features/architect/GMDashboard/sections/TradeSection';
 import { CapSheetSection } from '@/features/architect/GMDashboard/sections/CapSheetSection';
 import { FreeAgencySection } from '@/features/architect/GMDashboard/sections/FreeAgencySection';

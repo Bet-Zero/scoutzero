@@ -14,7 +14,7 @@ interface FaExceptionTrackerProps {
   teams?: TeamLike[];
 }
 
-const FaExceptionTracker = ({
+export const FaExceptionTracker = ({
   snapshotValidationDetails,
   teams = [],
 }: FaExceptionTrackerProps) => {
@@ -188,4 +188,3 @@ const FaExceptionTracker = ({
   );
 };
 
-export default FaExceptionTracker;

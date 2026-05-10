@@ -14,7 +14,7 @@ type TeamLogoProps = {
   className?: string;
 };
 
-const TeamLogo = ({ teamAbbr, teamId, className = '' }: TeamLogoProps) => {
+export const TeamLogo = ({ teamAbbr, teamId, className = '' }: TeamLogoProps) => {
   const key = teamId ?? teamAbbr;
   const fileName = getTeamLogoFilename(key);
   const logoPath = `/assets/logos/${fileName}.png`;
@@ -35,4 +35,3 @@ const TeamLogo = ({ teamAbbr, teamId, className = '' }: TeamLogoProps) => {
   );
 };
 
-export default TeamLogo;

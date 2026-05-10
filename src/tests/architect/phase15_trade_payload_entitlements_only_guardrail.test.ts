@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 import type { NormalizedPlayer } from '@/features/architect/utils/tradeMachine/constants/types';
 
 const currentYear = 2025;

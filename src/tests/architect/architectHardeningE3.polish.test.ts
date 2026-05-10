@@ -12,12 +12,10 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, renderHook, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import type CapSheet from '@/features/architect/capSheet/CapSheet';
-import type CapSheetFull from '@/features/architect/capSheet/CapSheetFull';
-import EditContractModal from '@/shared/components/EditContractModal';
-import useCapValidation, {
-  buildSigningGuardrails,
-} from '@/features/architect/hooks/useCapValidation';
+import type { CapSheet } from '@/features/architect/capSheet/CapSheet';
+import type { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
+import { EditContractModal } from '@/shared/components/EditContractModal';
+import { useCapValidation, buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
 import { CapSheetSection } from '@/features/architect/GMDashboard/sections/CapSheetSection';
 import { CapTableSection } from '@/features/architect/GMDashboard/sections/CapTableSection';
 

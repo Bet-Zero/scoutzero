@@ -41,7 +41,7 @@ const isOptionObject = (
 ): option is MultiSelectFilterOptionObject =>
   typeof option === 'object' && option !== null;
 
-const MultiSelectFilter = ({
+export const MultiSelectFilter = ({
   label,
   value,
   options = [],
@@ -85,4 +85,3 @@ const MultiSelectFilter = ({
   );
 };
 
-export default MultiSelectFilter;

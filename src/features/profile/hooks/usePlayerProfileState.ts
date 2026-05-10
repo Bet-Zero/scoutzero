@@ -113,7 +113,7 @@ const areVideoListsEqual = (currentList: unknown, nextList: unknown): boolean =>
 /**
  * Manages all player evaluation state with automatic dirty-tracking.
  */
-const usePlayerProfileState = (
+export const usePlayerProfileState = (
   detailedPlayer: EnrichablePlayerData | null | undefined,
   selectedPlayer: string,
   openModal: ProfileDetailKey
@@ -301,4 +301,3 @@ const usePlayerProfileState = (
   };
 };
 
-export default usePlayerProfileState;

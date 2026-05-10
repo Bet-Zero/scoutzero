@@ -228,4 +228,3 @@ export function enforcePlayerRouting(
   };
 }
 
-export default validatePlayerRouting;

@@ -23,7 +23,7 @@ type BadgeFilterSelectProps = {
   cols?: number;
 };
 
-const BadgeFilterSelect = ({
+export const BadgeFilterSelect = ({
   selected = [],
   onChange,
   buttonClass = 'flex items-center justify-between bg-[#2a2a2a] p-2 rounded hover:bg-[#3a3a3a] transition-colors mb-2',
@@ -103,4 +103,3 @@ const BadgeFilterSelect = ({
   );
 };
 
-export default BadgeFilterSelect;

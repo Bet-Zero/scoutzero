@@ -8,7 +8,7 @@ import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefault
 type FilteredPlayersInput = Parameters<typeof filterPlayers>[0] | null;
 type FilteredPlayersResult = ReturnType<typeof filterPlayers>;
 
-const useFilteredPlayers = (
+export const useFilteredPlayers = (
   players: FilteredPlayersInput,
   filters: PlayerFilters
 ): FilteredPlayersResult =>
@@ -18,4 +18,3 @@ const useFilteredPlayers = (
     return sortPlayers(filtered, filters.sortBy, filters.sortAsc, filters);
   }, [players, filters]);
 
-export default useFilteredPlayers;

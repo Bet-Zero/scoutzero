@@ -10,7 +10,7 @@ type ToggleViewButtonProps = {
   view: RankedListViewMode;
 };
 
-const ToggleViewButton = ({ view, setView }: ToggleViewButtonProps) => {
+export const ToggleViewButton = ({ view, setView }: ToggleViewButtonProps) => {
   return (
     <div className="flex gap-[6px]">
       <button
@@ -37,4 +37,3 @@ const ToggleViewButton = ({ view, setView }: ToggleViewButtonProps) => {
   );
 };
 
-export default ToggleViewButton;

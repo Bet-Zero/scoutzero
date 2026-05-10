@@ -11,10 +11,8 @@ import fs from 'fs';
 import path from 'path';
 import * as DeleteWorldModalModule from '@/features/architect/GMDashboard/components/DeleteWorldModal';
 import * as WorldTimeControlsModule from '@/features/architect/GMDashboard/components/WorldTimeControls';
-import DraftPositionsInput, * as DraftPositionsInputModule from '@/features/architect/GMDashboard/components/DraftPositionsInput';
-import {
-  DraftPositionsInput as NamedDraftPositionsInput,
-} from '@/features/architect/GMDashboard/components/DraftPositionsInput';
+import { DraftPositionsInput, DraftPositionsInput as NamedDraftPositionsInput } from '@/features/architect/GMDashboard/components/DraftPositionsInput';
+import * as DraftPositionsInputModule from '@/features/architect/GMDashboard/components/DraftPositionsInput';
 
 describe('E103 GM world-support family compatibility guardrails', () => {
   const srcRoot = path.resolve(

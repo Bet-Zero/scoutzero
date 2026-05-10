@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import TeamLogo from '@/shared/components/TeamLogo';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 import { getYearsRemaining } from '@/shared/utils/contracts';
 import { formatSalary } from '@/shared/utils/formatting';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';

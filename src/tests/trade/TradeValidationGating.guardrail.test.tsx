@@ -9,8 +9,8 @@
 
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
-import ValidationStateHeader, { ModeTag, MODE_TAGS } from '@/features/architect/tradeMachine/ValidationStateHeader';
-import ValidationDetailsPanel from '@/features/architect/tradeMachine/ValidationDetailsPanel';
+import { ValidationStateHeader, ModeTag, MODE_TAGS } from '@/features/architect/tradeMachine/ValidationStateHeader';
+import { ValidationDetailsPanel } from '@/features/architect/tradeMachine/ValidationDetailsPanel';
 
 type ValidationDetailsPanelProps = Parameters<typeof ValidationDetailsPanel>[0];
 

@@ -10,7 +10,8 @@
  *  - Plan: n/a (single-step task)
  *  - Latest Chunk: n/a
  */
-import RosterVisual, {
+import {
+  RosterVisual,
   type RosterVisualCapSheetInput,
   type RosterVisualDetailsMap,
 } from '@/features/architect/shared/RosterVisual';

@@ -1,6 +1,6 @@
 import React from 'react';
-import FilterPanelCondensed from './FilterPanelCondensed';
-import FilterPanel from './FilterPanel';
+import { FilterPanelCondensed } from './FilterPanelCondensed';
+import { FilterPanel } from './FilterPanel';
 import type {
   GetDefaultPlayerFilters,
   PlayerFilterPanelProps,
@@ -15,7 +15,7 @@ type FiltersPanelProps = PlayerFilterPanelProps & {
   onClearFilters: () => void;
 };
 
-const FiltersPanel = ({
+export const FiltersPanel = ({
   filters,
   setFilters,
   getDefaultFilters,
@@ -60,4 +60,3 @@ const FiltersPanel = ({
   );
 };
 
-export default FiltersPanel;

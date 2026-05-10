@@ -1,6 +1,6 @@
 // src/features/tierMaker/TierRow.tsx
 import React from 'react';
-import TierPlayerTile from '@/features/lists/TierPlayerTile';
+import { TierPlayerTile } from '@/features/lists/TierPlayerTile';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { ListDisplayPlayer } from '@/features/lists/ListPreviewModal/ListExportWrapper';
 

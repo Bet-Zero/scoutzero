@@ -4,7 +4,7 @@ import { LeagueViewTruthPanel } from './LeagueViewTruthPanel';
 import { LEAGUE_VIEW_TOTAL_TEAMS } from './leagueViewModel';
 import { useLeagueTeamSummaries } from './useLeagueTeamSummaries';
 
-const LeagueView = () => {
+export const LeagueView = () => {
   const navigate = useNavigate();
   const {
     season,
@@ -53,4 +53,3 @@ const LeagueView = () => {
   );
 };
 
-export default LeagueView;

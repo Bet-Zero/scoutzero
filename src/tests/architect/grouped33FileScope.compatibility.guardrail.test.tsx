@@ -9,18 +9,19 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import getCapPercentage, * as basicArchitectUtilsModule from '@/features/architect/utils/basicArchitectUtils';
+import { getCapPercentage } from '@/features/architect/utils/basicArchitectUtils';
+import * as basicArchitectUtilsModule from '@/features/architect/utils/basicArchitectUtils';
 import playerRulesProfileTypes from '@/features/architect/utils/playerRulesProfile/types';
 import {
   DEV_OFFSEASON_PREVIEW_FLAG,
   OffseasonSection,
 } from '@/features/architect/GMDashboard/sections/OffseasonSection';
-import ContractEditorModal from '@/features/architect/contract/ContractEditorModal/ContractEditorModal';
+import { ContractEditorModal } from '@/features/architect/contract/ContractEditorModal/ContractEditorModal';
 import {
   ValidationCache,
   validationCache,
 } from '@/features/architect/utils/tradeMachine/cache/validationCache';
-import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
+import { debug as tradeDebug } from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
 
 describe('Grouped 33-file scope compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');

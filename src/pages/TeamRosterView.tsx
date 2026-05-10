@@ -1,7 +1,7 @@
 // TeamRosterView.tsx
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import RosterViewer from '@/features/roster/RosterViewer';
+import { RosterViewer } from '@/features/roster/RosterViewer';
 
 const TeamRosterView = () => {
   const { rosterId } = useParams<{ rosterId?: string }>();

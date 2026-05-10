@@ -21,7 +21,7 @@ import type { UseAutoSavePlayerResult } from './hooks/useAutoSavePlayer';
  * @param {'idle'|'saving'|'saved'|'error'} props.saveState - Current save state
  * @param {string|null} props.saveError - Error message if save failed
  */
-const SaveStatusIndicator = ({
+export const SaveStatusIndicator = ({
   saveState,
   saveError,
 }: {
@@ -72,4 +72,3 @@ const SaveStatusIndicator = ({
   );
 };
 
-export default SaveStatusIndicator;

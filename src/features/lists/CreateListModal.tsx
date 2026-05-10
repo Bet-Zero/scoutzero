@@ -11,7 +11,7 @@ type CreateListModalProps = {
   onListCreated?: () => void;
 };
 
-const CreateListModal = ({
+export const CreateListModal = ({
   isOpen,
   onClose,
   onListCreated,
@@ -64,4 +64,3 @@ const CreateListModal = ({
   );
 };
 
-export default CreateListModal;

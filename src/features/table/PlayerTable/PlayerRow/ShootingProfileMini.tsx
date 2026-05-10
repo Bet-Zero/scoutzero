@@ -14,7 +14,7 @@ type ShootingProfileMiniProps = {
   compact?: boolean;
 };
 
-const ShootingProfileMini = ({
+export const ShootingProfileMini = ({
   value = '',
   compact = false,
 }: ShootingProfileMiniProps) => {
@@ -52,4 +52,3 @@ const ShootingProfileMini = ({
   );
 };
 
-export default ShootingProfileMini;

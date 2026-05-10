@@ -233,7 +233,7 @@ const buildRawPayloadSummaryLines = (
   ].filter((line): line is string => Boolean(line));
 };
 
-const HistoryDetailModal = ({
+export const HistoryDetailModal = ({
   selectedEntry,
   onClose,
 }: HistoryDetailModalProps) => {
@@ -550,4 +550,3 @@ const HistoryDetailModal = ({
   );
 };
 
-export default HistoryDetailModal;

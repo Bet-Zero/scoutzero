@@ -10,7 +10,7 @@
  *                Eliminates silent defaults throughout the codebase
  */
 
-import capProjectionsData from '@/features/architect/utils/capProjections';
+import { capProjections as capProjectionsData } from '@/features/architect/utils/capProjections';
 import {
   getCapYearData,
   normalizeSeasonKey,

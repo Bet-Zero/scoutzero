@@ -175,4 +175,3 @@ export function buildEntitlementRoutingMap(
   return { ok: true, map, entries };
 }
 
-export default buildEntitlementRoutingMap;

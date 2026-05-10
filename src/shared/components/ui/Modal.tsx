@@ -20,7 +20,7 @@ export type ModalProps = {
   onClose: () => void;
 };
 
-const Modal = ({ title, children, onClose }: ModalProps) => {
+export const Modal = ({ title, children, onClose }: ModalProps) => {
   const modalRef = useRef<HTMLDivElement | null>(null);
   const openerRef = useRef<Element | null>(null);
   const hasInitializedRef = useRef(false);
@@ -183,4 +183,3 @@ const Modal = ({ title, children, onClose }: ModalProps) => {
   );
 };
 
-export default Modal;

@@ -12,7 +12,7 @@
  *  - Return Package: docs/return_packages/SCOUTING_PLAYER_TABLE_PHASE_2O_RETURN_PACKAGE.md
  */
 import React from 'react';
-import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';
+import { MultiSelectFilter } from '@/shared/components/ui/filters/MultiSelectFilter';
 import { TeamListFull } from '@/constants/teamList';
 import {
   offensiveRoles,
@@ -42,7 +42,7 @@ type TopControlsBarProps = {
  * @param {function} onOpenAdvancedFilters - Opens the full FilterPanel modal
  * @param {function} onOpenActiveFilters - Opens the ActiveFiltersDrawer
  */
-const TopControlsBar = ({
+export const TopControlsBar = ({
   filters,
   setFilters,
   activeFilterCount,
@@ -196,4 +196,3 @@ const TopControlsBar = ({
   );
 };
 
-export default TopControlsBar;

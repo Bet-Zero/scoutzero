@@ -16,10 +16,10 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import EditContractModal from '@/shared/components/EditContractModal';
+import { EditContractModal } from '@/shared/components/EditContractModal';
 import { applyFreeAgencyFilters } from '@/shared/utils/filtering/freeAgencyFilterUtils';
 import { useFreeAgencyFilterPersistence } from '@/features/architect/freeAgency/useFreeAgencyFilterPersistence';
-import FreeAgentRow from './FreeAgentRow';
+import { FreeAgentRow } from './FreeAgentRow';
 import { FreeAgentPoolHeader } from './FreeAgentPoolHeader';
 import { SelectedFreeAgentCards } from './SelectedFreeAgentCards';
 import { FreeAgencyFilterBar } from './FreeAgencyFilterBar';
@@ -131,7 +131,7 @@ const buildFreeAgentModalLaunchTarget = (
   entry: FreeAgentSurfaceEntry
 ): FreeAgentModalLaunchTarget => entry;
 
-const FreeAgentPool = ({
+export const FreeAgentPool = ({
   freeAgents,
   actionOwner,
   playersMap = {},
@@ -342,4 +342,3 @@ const FreeAgentPool = ({
   );
 };
 
-export default FreeAgentPool;

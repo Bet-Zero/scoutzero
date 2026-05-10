@@ -13,7 +13,7 @@ type RosterControlsProps = {
   teamSelectionDisabled?: boolean;
 };
 
-const RosterControls = ({
+export const RosterControls = ({
   selectedTeam,
   onTeamChange,
   loadMethod,
@@ -91,4 +91,3 @@ const RosterControls = ({
   );
 };
 
-export default RosterControls;

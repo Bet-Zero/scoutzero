@@ -35,7 +35,7 @@ interface CapImpactTilesProps {
   isValidating?: boolean;
 }
 
-const CapImpactTiles = ({
+export const CapImpactTiles = ({
   team,
   sends = [],
   incomingPlayers = [],
@@ -216,4 +216,3 @@ const CapImpactTiles = ({
   );
 };
 
-export default CapImpactTiles;

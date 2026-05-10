@@ -31,11 +31,13 @@ import React, {
   useMemo,
   useRef,
 } from 'react';
-import SeasonAdvanceModal, {
+import {
+  SeasonAdvanceModal,
   type SeasonAdvanceResult,
   type WorldAdvanceAftermath,
 } from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
-import DraftPositionsInput, {
+import {
+  DraftPositionsInput,
   type DraftPositionsCommittedState,
   type DraftPositionsPersistenceAuthority,
   type DraftPositionsValidationResult,
@@ -54,7 +56,7 @@ import {
 
 // OFFSEASON_E1: DEV-only flag for single-team offseason preview (non-persisting).
 // Import kept for DEV preview; rendering is gated by showDevPreview below.
-import OffseasonTab from '@/features/architect/offseason/OffseasonTab';
+import { OffseasonTab } from '@/features/architect/offseason/OffseasonTab';
 import {
   NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
   type OffseasonPreviewAuthority,

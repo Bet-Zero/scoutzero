@@ -18,7 +18,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { DeleteWorldModal } from '@/features/architect/GMDashboard/components/DeleteWorldModal';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
-import DraftPositionsInput from '@/features/architect/GMDashboard/components/DraftPositionsInput';
+import { DraftPositionsInput } from '@/features/architect/GMDashboard/components/DraftPositionsInput';
 import { getSeasonAdvanceDraftContext } from '@/features/architect/utils/seasonFormat';
 
 const {

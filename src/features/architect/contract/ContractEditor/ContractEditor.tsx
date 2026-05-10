@@ -39,7 +39,7 @@ export type ContractEditorProps = {
   ) => unknown;
 };
 
-const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps) => {
+export const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps) => {
   const safeCapProjections = Object.entries(capProjections ?? {}).reduce<
     Parameters<typeof createMaxContract>[2]
   >((resolvedProjections, [seasonKey, projection]) => {
@@ -291,4 +291,3 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
   );
 };
 
-export default ContractEditor;

@@ -181,7 +181,7 @@ const SubroleMenu = ({
   </div>
 );
 
-const RoleFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+export const RoleFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const [showSubroles, setShowSubroles] = useState(false);
   const subroleMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -260,4 +260,3 @@ const RoleFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   );
 };
 
-export default RoleFilters;

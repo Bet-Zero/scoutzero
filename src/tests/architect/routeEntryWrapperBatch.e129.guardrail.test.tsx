@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import LeagueView from '@/features/architect/shared/LeagueView';
+import { LeagueView } from '@/features/architect/shared/LeagueView';
 
 const srcRoot = path.resolve(__dirname, '../..');
 const architectRoot = path.join(srcRoot, 'features/architect');

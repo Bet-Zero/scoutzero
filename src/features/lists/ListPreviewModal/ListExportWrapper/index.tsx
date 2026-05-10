@@ -1,8 +1,8 @@
 // src/features/lists/ListExportWrapper.tsx
 import React from 'react';
-import ListExportPlayerRow from './ListExportPlayerRow';
-import ListExportRowCompact from './ListExportRowCompact';
-import ListTierExport from './ListTierExport';
+import { ListExportPlayerRow } from './ListExportPlayerRow';
+import { ListExportRowCompact } from './ListExportRowCompact';
+import { ListTierExport } from './ListTierExport';
 import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
 export type ListExportType = 'list' | 'tier';
@@ -34,7 +34,7 @@ type RankedColumnItem =
   | { type: 'heading'; label: string }
   | { type: 'player'; player: ListDisplayPlayer; rank: number };
 
-const ListExportWrapper = ({
+export const ListExportWrapper = ({
   players = [],
   tiers = [],
   playersMap = {},
@@ -222,4 +222,3 @@ const ListExportWrapper = ({
   );
 };
 
-export default ListExportWrapper;

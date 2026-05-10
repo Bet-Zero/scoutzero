@@ -10,7 +10,7 @@ type CreateRosterModalProps = {
   onCreated?: (created: CreatedRosterProject) => void;
 };
 
-const CreateRosterModal = ({
+export const CreateRosterModal = ({
   isOpen,
   onClose,
   onCreated,
@@ -62,4 +62,3 @@ const CreateRosterModal = ({
   );
 };
 
-export default CreateRosterModal;

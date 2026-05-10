@@ -10,7 +10,7 @@ type DownloadOptions = {
 
 type DownloadFn = (filename: string, options?: DownloadOptions) => Promise<void>;
 
-const useImageDownload = (ref: RefObject<HTMLElement | null>): DownloadFn => {
+export const useImageDownload = (ref: RefObject<HTMLElement | null>): DownloadFn => {
   const download: DownloadFn = async (filename, options = {}) => {
     if (!ref.current) return;
     try {
@@ -60,4 +60,3 @@ const useImageDownload = (ref: RefObject<HTMLElement | null>): DownloadFn => {
   return download;
 };
 
-export default useImageDownload;

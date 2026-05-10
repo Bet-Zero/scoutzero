@@ -9,7 +9,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool/FreeAgentPool';
+import { FreeAgentPool } from '@/features/architect/freeAgency/FreeAgentPool/FreeAgentPool';
 import type {
   FreeAgentOfferSheetInitiation,
   FreeAgentModalVisibleAction,

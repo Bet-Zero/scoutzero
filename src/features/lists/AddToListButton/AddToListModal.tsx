@@ -17,7 +17,7 @@ type AddToListModalProps = {
   onClose: () => void;
 };
 
-const AddToListModal = ({ player, onClose }: AddToListModalProps) => {
+export const AddToListModal = ({ player, onClose }: AddToListModalProps) => {
   const [lists, setLists] = useState<PlayerList[]>([]);
   const [selectedList, setSelectedList] = useState('');
   const [newListName, setNewListName] = useState('');
@@ -159,4 +159,3 @@ const AddToListModal = ({ player, onClose }: AddToListModalProps) => {
   );
 };
 
-export default AddToListModal;

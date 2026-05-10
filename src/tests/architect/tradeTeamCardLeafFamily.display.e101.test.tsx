@@ -5,9 +5,9 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import CapImpactTiles from '@/features/architect/tradeMachine/CapImpactTiles';
+import { CapImpactTiles } from '@/features/architect/tradeMachine/CapImpactTiles';
 import { SelectTeamCard } from '@/features/architect/tradeMachine/SelectTeamCard';
-import TradeExceptionManager from '@/features/architect/tradeMachine/TradeExceptionManager';
+import { TradeExceptionManager } from '@/features/architect/tradeMachine/TradeExceptionManager';
 
 const {
   mockComputeTeamCapTotals,

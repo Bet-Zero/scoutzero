@@ -75,7 +75,7 @@ const AutoShrinkText = ({
   );
 };
 
-const PlayerName = ({ name = 'LeBron James' }: { name?: string }) => {
+export const PlayerName = ({ name = 'LeBron James' }: { name?: string }) => {
   const [firstName, lastName] = formatFullName(name);
   const isGiannis = name.toLowerCase().includes('giannis');
 
@@ -95,4 +95,3 @@ const PlayerName = ({ name = 'LeBron James' }: { name?: string }) => {
   );
 };
 
-export default PlayerName;

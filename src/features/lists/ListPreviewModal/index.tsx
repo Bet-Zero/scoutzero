@@ -1,10 +1,10 @@
 // src/features/lists/ListPreviewModal.tsx
 import React, { useRef, useLayoutEffect, useState } from 'react';
-import useImageDownload from '@/shared/hooks/useImageDownload';
-import ListExportWrapper from './ListExportWrapper';
+import { useImageDownload } from '@/shared/hooks/useImageDownload';
+import { ListExportWrapper } from './ListExportWrapper';
 import type { ListExportWrapperProps } from './ListExportWrapper';
 
-const ListPreviewModal = ({
+export const ListPreviewModal = ({
   open,
   onClose,
   players = [],
@@ -112,4 +112,3 @@ const ListPreviewModal = ({
   );
 };
 
-export default ListPreviewModal;

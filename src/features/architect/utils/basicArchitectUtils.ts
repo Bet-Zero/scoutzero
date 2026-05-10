@@ -4,7 +4,7 @@
 type LooseRecord = Record<string, unknown>;
 
 // Calculate salary as percentage of salary cap
-const getCapPercentage = (
+export const getCapPercentage = (
   salary: number | null | undefined,
   salaryCap: number | null | undefined
 ): number | null => {
@@ -14,7 +14,6 @@ const getCapPercentage = (
   return parseFloat(percent.toFixed(1)); // e.g. 27.8
 };
 
-export default getCapPercentage;
 
 // Hard cap trigger tracking
 export function markHardCapTriggered(

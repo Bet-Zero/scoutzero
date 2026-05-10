@@ -15,7 +15,7 @@ export type ToggleButtonProps = {
   children?: ReactNode;
 };
 
-const ToggleButton = ({ selected, onClick, children }: ToggleButtonProps) => {
+export const ToggleButton = ({ selected, onClick, children }: ToggleButtonProps) => {
   return (
     <button
       className={clsx(
@@ -31,4 +31,3 @@ const ToggleButton = ({ selected, onClick, children }: ToggleButtonProps) => {
   );
 };
 
-export default ToggleButton;

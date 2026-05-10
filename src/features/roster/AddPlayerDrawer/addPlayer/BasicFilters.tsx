@@ -1,6 +1,6 @@
 // src/features/roster/AddPlayerDrawer/addPlayer/BasicFilters.tsx
 import React from 'react';
-import BadgeFilterSelect from '@/shared/components/ui/filters/BadgeFilterSelect';
+import { BadgeFilterSelect } from '@/shared/components/ui/filters/BadgeFilterSelect';
 import { teamOptions } from '@/shared/utils/filtering';
 import type { AddPlayerFilters } from '@/shared/utils/filtering';
 import { shootingProfileTiers } from '@/shared/utils/roles';
@@ -11,7 +11,7 @@ type FilterProps = {
   setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
 };
 
-const BasicFilters = ({ filters, setFilters }: FilterProps) => {
+export const BasicFilters = ({ filters, setFilters }: FilterProps) => {
   return (
     <div className="p-2 space-y-3">
       {/* First Filter Row (matches ContractFilters' FA Year + FA Type structure) */}
@@ -88,4 +88,3 @@ const BasicFilters = ({ filters, setFilters }: FilterProps) => {
   );
 };
 
-export default BasicFilters;

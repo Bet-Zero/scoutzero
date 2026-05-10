@@ -21,7 +21,7 @@ type RoleChecklistProps = {
   className?: string;
 };
 
-const RoleChecklist = ({
+export const RoleChecklist = ({
   roles = [],
   selected = {},
   onToggle,
@@ -55,4 +55,3 @@ const RoleChecklist = ({
   </div>
 );
 
-export default RoleChecklist;

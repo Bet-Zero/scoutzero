@@ -16,7 +16,7 @@ import type { SeasonId } from './seasonHelpers';
 import type { CapContext } from '../types/ruleContext';
 import { isValidSeasonId } from './seasonHelpers';
 import { toEndYear } from './seasonFormat';
-import capProjections from './capProjections';
+import { capProjections } from './capProjections';
 import { DEFAULT_AVERAGE_SALARY } from './cbaConstants';
 import { getScaleForSeason, getLatestScale } from '../data/minimumSalaryScales';
 

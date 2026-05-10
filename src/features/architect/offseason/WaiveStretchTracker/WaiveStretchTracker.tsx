@@ -11,7 +11,7 @@ type WaiveStretchTrackerProps = {
   waivedContracts?: WaivedContractEntry[];
 };
 
-const WaiveStretchTracker = ({
+export const WaiveStretchTracker = ({
   waivedContracts = [],
 }: WaiveStretchTrackerProps) => {
   const deadCapByYear: Record<string, number> = {};
@@ -103,4 +103,3 @@ const WaiveStretchTracker = ({
   );
 };
 
-export default WaiveStretchTracker;

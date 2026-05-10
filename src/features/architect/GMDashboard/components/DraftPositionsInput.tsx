@@ -602,4 +602,3 @@ DraftPositionsInput.propTypes = {
   }),
 };
 
-export default DraftPositionsInput;

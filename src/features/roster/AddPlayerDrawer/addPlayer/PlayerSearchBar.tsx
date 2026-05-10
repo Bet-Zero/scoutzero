@@ -8,7 +8,7 @@ type PlayerSearchBarProps = {
   onToggleFilters: () => void;
 };
 
-const PlayerSearchBar = ({
+export const PlayerSearchBar = ({
   search,
   onSearchChange,
   showFilters,
@@ -33,4 +33,3 @@ const PlayerSearchBar = ({
   </div>
 );
 
-export default PlayerSearchBar;

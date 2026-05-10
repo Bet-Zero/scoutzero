@@ -12,11 +12,11 @@
  */
 
 import React from 'react';
-import OverallGradeBlock from '@/shared/components/ui/grades/OverallGradeBlock';
+import { OverallGradeBlock } from '@/shared/components/ui/grades/OverallGradeBlock';
 import { NotebookText } from 'lucide-react';
 import type { OpenProfileModal } from '../profileUiTypes';
 
-const OverallBlurbBox = ({
+export const OverallBlurbBox = ({
   overallBlurb,
   setOverallBlurb,
   overallGrade,
@@ -67,4 +67,3 @@ const OverallBlurbBox = ({
   );
 };
 
-export default OverallBlurbBox;

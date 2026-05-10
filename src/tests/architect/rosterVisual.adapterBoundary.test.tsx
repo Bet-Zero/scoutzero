@@ -16,7 +16,8 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { MemoryRouter } from 'react-router-dom';
-import RosterVisual, {
+import {
+  RosterVisual,
   type RosterVisualCapSheetInput,
   type RosterVisualDetailsMap,
 } from '@/features/architect/shared/RosterVisual';

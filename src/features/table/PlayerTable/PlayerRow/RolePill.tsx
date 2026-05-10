@@ -1,7 +1,7 @@
 // RolePill.tsx
 import React from 'react';
 
-const RolePill = ({
+export const RolePill = ({
   label = '',
   colorClass = 'border-white text-white',
   bgClass = 'bg-[#333]',
@@ -17,4 +17,3 @@ const RolePill = ({
   );
 };
 
-export default RolePill;

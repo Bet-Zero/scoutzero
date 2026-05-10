@@ -14,5 +14,5 @@ export {
 } from './validationPerformanceMonitor';
 export * from './validationUtils';
 export * from './engineUtils';
-export * from './tradeDebug';
+export { debug as tradeDebug } from './tradeDebug';
 export * from './validationDebugMonitor';

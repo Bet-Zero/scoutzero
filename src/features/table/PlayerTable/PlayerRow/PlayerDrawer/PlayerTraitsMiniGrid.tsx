@@ -35,7 +35,7 @@ const getTraitColor = (rating: number) => {
   return '#891313';
 };
 
-const PlayerTraitsMiniGrid = ({ traits = {} }: PlayerTraitsMiniGridProps) => {
+export const PlayerTraitsMiniGrid = ({ traits = {} }: PlayerTraitsMiniGridProps) => {
   return (
     <div className="w-[186px] rounded-md p-[2px] pr-2 mt-1 mr-[4px] shadow-lg">
       <div className="grid grid-cols-2 gap-2 mt-1">
@@ -64,4 +64,3 @@ const PlayerTraitsMiniGrid = ({ traits = {} }: PlayerTraitsMiniGridProps) => {
   );
 };
 
-export default React.memo(PlayerTraitsMiniGrid);

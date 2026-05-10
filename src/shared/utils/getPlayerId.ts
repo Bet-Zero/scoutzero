@@ -8,4 +8,3 @@ export function getPlayerId(player: PlayerLike | null | undefined): string | nul
   return player.id || player.bio?.playerId || null;
 }
 
-export default getPlayerId;

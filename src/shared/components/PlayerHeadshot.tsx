@@ -13,7 +13,7 @@ export type PlayerHeadshotProps = {
   className?: string;
 };
 
-const PlayerHeadshot = ({
+export const PlayerHeadshot = ({
   src,
   playerId,
   className = '',
@@ -42,4 +42,3 @@ const PlayerHeadshot = ({
   );
 };
 
-export default PlayerHeadshot;

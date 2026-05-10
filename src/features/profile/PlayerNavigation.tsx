@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PlayerNavigation = ({
+export const PlayerNavigation = ({
   onPrev,
   onNext,
 }: {
@@ -25,4 +25,3 @@ const PlayerNavigation = ({
   </div>
 );
 
-export default PlayerNavigation;

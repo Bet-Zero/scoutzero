@@ -5,7 +5,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import EntitlementPickRow from './EntitlementPickRow';
+import { EntitlementPickRow } from './EntitlementPickRow';
 import { getKindSortPriority } from '@/features/architect/utils/entitlements/formatEntitlement';
 import { EntitlementEditorCreateButton } from '@/features/architect/admin/EntitlementEditorCreateButton';
 

@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import TradeEditor from '@/features/architect/tradeMachine/TradeEditor';
-import TradeTeamCard from '@/features/architect/tradeMachine/TradeTeamCard';
+import { TradeEditor } from '@/features/architect/tradeMachine/TradeEditor';
+import { TradeTeamCard } from '@/features/architect/tradeMachine/TradeTeamCard';
 
 describe('E105 TradeEditor + TradeTeamCard compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect/tradeMachine');

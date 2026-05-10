@@ -20,7 +20,7 @@ import {
   ROSTER_REQUIREMENTS,
   CBA_THRESHOLDS,
 } from '../tradeMachine/constants/cbaConstants';
-import capProjections from '../capProjections';
+import { capProjections } from '../capProjections';
 import { getScaleForSeason } from '../../data/minimumSalaryScales';
 
 export type SourceTag = 'real' | 'reported' | 'projected' | 'unknown';

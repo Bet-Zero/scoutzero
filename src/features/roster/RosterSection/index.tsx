@@ -1,8 +1,8 @@
 import React from 'react';
-import StarterCard from './StarterCard';
-import RotationCard from './RotationCard';
-import BenchCard from './BenchCard';
-import EmptySlot from './EmptySlot';
+import { StarterCard } from './StarterCard';
+import { RotationCard } from './RotationCard';
+import { BenchCard } from './BenchCard';
+import { EmptySlot } from './EmptySlot';
 import type { MouseEvent } from 'react';
 import type {
   MissingRosterPlayer,
@@ -65,7 +65,7 @@ const cardMap: Record<RosterSectionName, React.ComponentType<RosterCardProps>> =
   bench: BenchCard,
 };
 
-const RosterSection = ({
+export const RosterSection = ({
   players,
   section,
   onRemove,
@@ -110,4 +110,3 @@ const RosterSection = ({
   );
 };
 
-export default RosterSection;

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import BasicFilters from './BasicFilters';
-import RolesFilters from './RolesFilters';
-import ContractFilters from './ContractFilters';
-import PhysicalFilters from './PhysicalFilters';
-import StatsFilters from './StatsFilters';
+import { BasicFilters } from './BasicFilters';
+import { RolesFilters } from './RolesFilters';
+import { ContractFilters } from './ContractFilters';
+import { PhysicalFilters } from './PhysicalFilters';
+import { StatsFilters } from './StatsFilters';
 import { getDefaultAddPlayerFilters } from '@/shared/utils/filtering';
 import type { AddPlayerFilters } from '@/shared/utils/filtering';
 import { X } from 'lucide-react';
@@ -23,7 +23,7 @@ type FilterTabsProps = {
   onCloseFilters: () => void;
 };
 
-const FilterTabs = ({ filters, setFilters, onCloseFilters }: FilterTabsProps) => {
+export const FilterTabs = ({ filters, setFilters, onCloseFilters }: FilterTabsProps) => {
   const [activeTab, setActiveTab] = useState('basic');
 
   return (
@@ -70,4 +70,3 @@ const FilterTabs = ({ filters, setFilters, onCloseFilters }: FilterTabsProps) =>
   );
 };
 
-export default FilterTabs;

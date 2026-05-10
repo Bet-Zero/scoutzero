@@ -405,4 +405,3 @@ export function useFilterDiagnostics(
   }, [isEnabled, allPlayers, filteredPlayers, activeFilters]);
 }
 
-export default useFilterDiagnostics;

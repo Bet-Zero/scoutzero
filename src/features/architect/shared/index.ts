@@ -11,6 +11,6 @@
  *  - Plan: N/A (Phase 5 folder organization)
  */
 
-export { default as ValidationWarnings } from './ValidationWarnings';
-export { default as RosterVisual } from './RosterVisual';
-export { default as LeagueView } from './LeagueView';
+export { ValidationWarnings } from './ValidationWarnings';
+export { RosterVisual } from './RosterVisual';
+export { LeagueView } from './LeagueView';

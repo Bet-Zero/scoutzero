@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import usePlayerProfileState from '@/features/profile/hooks/usePlayerProfileState';
+import { usePlayerProfileState } from '@/features/profile/hooks/usePlayerProfileState';
 import type { EnrichablePlayerData } from '@/features/roster/utils/enrichPlayerData';
 
 const detailedPlayer: EnrichablePlayerData = {

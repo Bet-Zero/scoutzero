@@ -31,7 +31,7 @@ import {
   getOverridePolicy,
 } from '@/features/architect/utils/capLegalityValidation';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 
 vi.mock(
   '@/features/architect/utils/capTotals/computeTeamCapTotals',

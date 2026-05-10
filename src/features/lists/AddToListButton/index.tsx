@@ -1,14 +1,14 @@
 // AddToListButton.tsx
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import AddToListModal from '@/features/lists/AddToListButton/AddToListModal';
+import { AddToListModal } from '@/features/lists/AddToListButton/AddToListModal';
 import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
 type AddToListButtonProps = {
   player: SimplePlayer;
 };
 
-const AddToListButton = ({ player }: AddToListButtonProps) => {
+export const AddToListButton = ({ player }: AddToListButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -28,4 +28,3 @@ const AddToListButton = ({ player }: AddToListButtonProps) => {
   );
 };
 
-export default AddToListButton;

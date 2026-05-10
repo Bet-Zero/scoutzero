@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
-import AddPlayerDrawer from './AddPlayerDrawer';
-import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
-import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
-import RosterControls from './RosterControls';
-import RosterSection from './RosterSection';
+import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
+import { AddPlayerDrawer } from './AddPlayerDrawer';
+import { DrawerShell } from '@/shared/components/ui/drawers/DrawerShell';
+import { OpenDrawerButton } from '@/shared/components/ui/drawers/OpenDrawerButton';
+import { RosterControls } from './RosterControls';
+import { RosterSection } from './RosterSection';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { useRosterManager } from '@/features/roster/hooks/useRosterManager';
@@ -24,7 +24,7 @@ type SlotTarget = {
   index: number;
 };
 
-const RosterViewer = ({ isExport = false, initialRosterId }: RosterViewerProps) => {
+export const RosterViewer = ({ isExport = false, initialRosterId }: RosterViewerProps) => {
   const { players: allPlayers, loading: isLoading } = useSimplePlayerData();
   const { userId, loading: authLoading } = useAuth();
   const {
@@ -249,4 +249,3 @@ const RosterViewer = ({ isExport = false, initialRosterId }: RosterViewerProps) 
   );
 };
 
-export default RosterViewer;

@@ -5,7 +5,7 @@ type BadgeMiniProps = {
   badges?: string[];
 };
 
-const BadgeMini = ({ badges = [] }: BadgeMiniProps) => {
+export const BadgeMini = ({ badges = [] }: BadgeMiniProps) => {
   if (!badges.length) return null;
 
   const displayBadges = BadgeList.filter((b) => badges.includes(b.key));
@@ -27,4 +27,3 @@ const BadgeMini = ({ badges = [] }: BadgeMiniProps) => {
   );
 };
 
-export default BadgeMini;

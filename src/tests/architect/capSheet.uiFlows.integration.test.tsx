@@ -11,8 +11,8 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
-import CapSheet from '@/features/architect/capSheet/CapSheet/CapSheet';
-import CapSheetFull from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
+import { CapSheet } from '@/features/architect/capSheet/CapSheet/CapSheet';
+import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
 import { CapSheetSection } from '@/features/architect/GMDashboard/sections/CapSheetSection';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {

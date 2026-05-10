@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import TradePlayerRow from './TradePlayerRow';
+import { TradePlayerRow } from './TradePlayerRow';
 import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 
 type TradePlayerRowProps = Parameters<typeof TradePlayerRow>[0];

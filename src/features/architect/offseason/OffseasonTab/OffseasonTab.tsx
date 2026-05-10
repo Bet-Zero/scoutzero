@@ -14,7 +14,7 @@
  */
 
 import React, { useState } from 'react';
-import OptionManager from './OptionManager';
+import { OptionManager } from './OptionManager';
 import { runOffseason } from '@/features/architect/utils/runOffseason';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
@@ -67,7 +67,7 @@ function SummarySection({ title, items }: SummarySectionProps) {
   );
 }
 
-const OffseasonTab = ({
+export const OffseasonTab = ({
   teamCapSheet,
   currentYear,
   previewAuthority,
@@ -258,4 +258,3 @@ const OffseasonTab = ({
   );
 };
 
-export default OffseasonTab;

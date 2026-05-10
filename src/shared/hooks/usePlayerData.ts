@@ -12,7 +12,7 @@
  */
 
 import type { SimplePlayer } from './useSimplePlayerData';
-import useSimplePlayerData from './useSimplePlayerData';
+import { useSimplePlayerData } from './useSimplePlayerData';
 import { PLAYERS_COLLECTION } from '@/constants/collections';
 
 type UsePlayerDataDiagnostics = {
@@ -34,7 +34,7 @@ interface UsePlayerDataResult {
  * Main hook for player data - now fully simplified to single data source
  * All components should use this unified interface
  */
-const usePlayerData = (season?: string | number | null): UsePlayerDataResult => {
+export const usePlayerData = (season?: string | number | null): UsePlayerDataResult => {
   // Use the simple data hook for all cases (real-time updates, reliable)
   const { players, loading, error } = useSimplePlayerData();
 
@@ -72,4 +72,3 @@ const usePlayerData = (season?: string | number | null): UsePlayerDataResult => 
   };
 };
 
-export default usePlayerData;

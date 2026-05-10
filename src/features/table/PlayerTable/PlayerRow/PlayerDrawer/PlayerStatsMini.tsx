@@ -32,7 +32,7 @@ type PlayerStatsMiniProps = {
   stats?: Record<string, unknown>;
 };
 
-const PlayerStatsMini = ({ stats = {} }: PlayerStatsMiniProps) => {
+export const PlayerStatsMini = ({ stats = {} }: PlayerStatsMiniProps) => {
   return (
     <div className="w-[112px] bg-[#1f1f1f] ml-0 rounded-md p-2 shadow-sm">
       <div className="text-[11px] font-semibold mb-1.5">Stats</div>
@@ -54,4 +54,3 @@ const PlayerStatsMini = ({ stats = {} }: PlayerStatsMiniProps) => {
   );
 };
 
-export default PlayerStatsMini;

@@ -5,7 +5,7 @@ import {
 } from '@/features/architect/utils/tradeHelpers';
 import { AlertTriangle } from 'lucide-react';
 import { getTeamColors } from '@/shared/utils/formatting';
-import TeamLogo from '@/shared/components/TeamLogo';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 import {
   getOfficialSalaryMatchingSnapshot,
   getDisplayAllowableIncoming,
@@ -23,7 +23,7 @@ import {
   getValidationIssueText,
   normalizeValidationIssues,
 } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
-import DataWarningsSection from './DataWarningsSection';
+import { DataWarningsSection } from './DataWarningsSection';
 import type {
   PreviewAuthorityLike,
   SnapshotValidationDetailsLike,
@@ -40,7 +40,7 @@ interface TradeSummaryPanelProps {
   pickRulesById?: Record<string, PickRuleDoc>;
 }
 
-function TradeSummaryPanel({
+export function TradeSummaryPanel({
   previewAuthority = null,
   snapshotValidationDetails = null,
   teams = [],
@@ -461,4 +461,3 @@ function TradeSummaryPanel({
   );
 }
 
-export default TradeSummaryPanel;

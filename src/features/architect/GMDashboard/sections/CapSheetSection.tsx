@@ -10,8 +10,8 @@
  * - Keeps adjacent current-season authority surfaces separate from selected-year totals.
  */
 import { useEffect, useState } from 'react';
-import CapSheet from '@/features/architect/capSheet/CapSheet';
-import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker';
+import { CapSheet } from '@/features/architect/capSheet/CapSheet';
+import { ExceptionTracker } from '@/features/architect/capSheet/ExceptionTracker';
 import {
   DEV_CAP_SHEET_FIXTURE_BOUNDARY,
   DEV_CAP_SHEET_FIXTURE_FLAG,

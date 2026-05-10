@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import useImageDownload from '@/shared/hooks/useImageDownload';
+import { useImageDownload } from '@/shared/hooks/useImageDownload';
 import TradeExportCapture from './TradeExportCapture';
 import type { TradePreviewModalProps } from './tradePreviewExportTypes';
 

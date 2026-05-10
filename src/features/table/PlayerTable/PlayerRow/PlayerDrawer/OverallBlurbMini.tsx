@@ -4,7 +4,7 @@ type OverallBlurbMiniProps = {
   text?: string | null;
 };
 
-const OverallBlurbMini = ({ text }: OverallBlurbMiniProps) => {
+export const OverallBlurbMini = ({ text }: OverallBlurbMiniProps) => {
   return (
     <div className="w-[320px] h-[120px] bg-neutral-900 rounded-xl p-2 flex flex-col gap-3 border border-black">
       <label className="text-white/50 text-sm mb-1">Overall</label>
@@ -17,4 +17,3 @@ const OverallBlurbMini = ({ text }: OverallBlurbMiniProps) => {
   );
 };
 
-export default OverallBlurbMini;

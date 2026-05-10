@@ -23,8 +23,8 @@ import {
   within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import OffseasonTab from '@/features/architect/offseason/OffseasonTab/OffseasonTab';
-import OptionManager from '@/features/architect/offseason/OffseasonTab/OptionManager';
+import { OffseasonTab } from '@/features/architect/offseason/OffseasonTab/OffseasonTab';
+import { OptionManager } from '@/features/architect/offseason/OffseasonTab/OptionManager';
 import {
   NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
   type OffseasonTeamCapSheet,

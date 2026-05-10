@@ -1,4 +1,4 @@
-import TeamLogo from '@/shared/components/TeamLogo';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 import type { LeagueViewTeamSummary } from './leagueViewModel';
 
 type LeagueConferenceTableProps = {

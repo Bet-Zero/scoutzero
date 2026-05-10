@@ -61,7 +61,7 @@ const RangeSelects = ({ label, minVal, maxVal, onMinChange, onMaxChange, options
   </div>
 );
 
-const PhysicalFilters = ({ filters, setFilters }: FilterProps) => (
+export const PhysicalFilters = ({ filters, setFilters }: FilterProps) => (
   <div className="p-2 space-y-3">
     <RangeSelects
       label="Height"
@@ -96,4 +96,3 @@ const PhysicalFilters = ({ filters, setFilters }: FilterProps) => (
   </div>
 );
 
-export default PhysicalFilters;

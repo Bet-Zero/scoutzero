@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
+import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 import {
   clearTeamHistoryFixtures,

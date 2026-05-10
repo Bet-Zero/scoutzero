@@ -10,7 +10,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildEntitlementRoutingMap } from '@/features/architect/utils/tradeMachine/utils/buildEntitlementRoutingMap';
-import validateEntitlementRoutingDefault, {
+import {
+  validateEntitlementRouting as validateEntitlementRoutingDefault,
   enforceEntitlementRouting,
   validateEntitlementRouting,
   validateEntitlementLinkageLegality,

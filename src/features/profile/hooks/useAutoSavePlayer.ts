@@ -145,7 +145,7 @@ const isCompleteSnapshot = (
   );
 };
 
-const useAutoSavePlayer = ({
+export const useAutoSavePlayer = ({
   playerId,
   player,
   traits,
@@ -436,4 +436,3 @@ const useAutoSavePlayer = ({
   return { isSaving, saveError, saveState, saveNow };
 };
 
-export default useAutoSavePlayer;

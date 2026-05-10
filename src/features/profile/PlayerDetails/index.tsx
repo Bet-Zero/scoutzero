@@ -1,10 +1,10 @@
 import React from 'react';
-import PlayerHeader from './PlayerHeader';
-import PlayerStatsTable from './PlayerStatsTable';
-import PlayerTraitsGrid from './PlayerTraitsGrid';
-import PlayerRolesSection from './PlayerRolesSection';
-import BadgeSelector from './BadgeSelector';
-import OverallBlurbBox from './OverallBlurbBox';
+import { PlayerHeader } from './PlayerHeader';
+import { PlayerStatsTable } from './PlayerStatsTable';
+import { PlayerTraitsGrid } from './PlayerTraitsGrid';
+import { PlayerRolesSection } from './PlayerRolesSection';
+import { BadgeSelector } from './BadgeSelector';
+import { OverallBlurbBox } from './OverallBlurbBox';
 import type {
   ProfileDetailKey,
 } from '@/features/profile/utils/profileHelpers';
@@ -42,7 +42,7 @@ type PlayerDetailsProps = {
   setOpenModal: OpenProfileModal;
 };
 
-const PlayerDetails = ({
+export const PlayerDetails = ({
   player,
   selectedPlayer,
   traits,
@@ -95,4 +95,3 @@ const PlayerDetails = ({
   </>
 );
 
-export default PlayerDetails;

@@ -1172,4 +1172,3 @@ SeasonAdvanceModal.propTypes = {
   onWorldAdvanceComplete: PropTypes.func,
 };
 
-export default SeasonAdvanceModal;

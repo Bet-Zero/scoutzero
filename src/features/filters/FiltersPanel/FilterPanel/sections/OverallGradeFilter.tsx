@@ -4,7 +4,7 @@ import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
 type OverallGradeKey = 'min_overall_grade' | 'max_overall_grade';
 
-const OverallGradeFilter = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+export const OverallGradeFilter = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const min = filters.min_overall_grade ?? '';
   const max = filters.max_overall_grade ?? '';
 
@@ -58,4 +58,3 @@ const OverallGradeFilter = ({ filters, setFilters }: PlayerFilterPanelProps) => 
   );
 };
 
-export default OverallGradeFilter;

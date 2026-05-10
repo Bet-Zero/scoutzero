@@ -18,7 +18,7 @@ interface RuleDisplayProps {
   label: string;
 }
 
-const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
+export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
   const getRuleStatus = (passed: boolean | null | undefined) => {
     if (passed === undefined || passed === null) return 'text-gray-500';
     return passed ? 'text-green-400' : 'text-red-400';
@@ -192,4 +192,3 @@ const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
   );
 };
 
-export default TradeLegalChecker;

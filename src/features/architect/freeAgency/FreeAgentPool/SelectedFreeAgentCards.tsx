@@ -4,7 +4,7 @@
  * OWNERSHIP: Feature: architect/freeAgency
  */
 import React from 'react';
-import FreeAgentCard from './FreeAgentCard';
+import { FreeAgentCard } from './FreeAgentCard';
 import type { FreeAgentSurfaceEntry } from './types';
 
 interface SelectedFreeAgentCardsProps {

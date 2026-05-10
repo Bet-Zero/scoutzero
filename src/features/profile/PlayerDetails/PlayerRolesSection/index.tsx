@@ -1,8 +1,8 @@
 // components/PlayerRolesSection.tsx
 import React from 'react';
-import SubRoleSelector from './SubRoleSelector';
-import ShootingProfileSelector from './ShootingProfileSelector';
-import TwoWayMeter from './TwoWayMeter';
+import { SubRoleSelector } from './SubRoleSelector';
+import { ShootingProfileSelector } from './ShootingProfileSelector';
+import { TwoWayMeter } from './TwoWayMeter';
 import { NotebookText } from 'lucide-react';
 import { offensiveRoles, defensiveRoles } from '@/shared/utils/roles';
 import type { PlayerSubRoles } from '@/features/roster/utils/enrichPlayerData';
@@ -17,7 +17,7 @@ type RoleSelectProps = {
   roleKey: RoleKey;
 };
 
-const RoleSelect = ({
+export const RoleSelect = ({
   value,
   onChange,
   setOpenModal,
@@ -72,7 +72,7 @@ const CenteredLabelWithIcon = ({
   </div>
 );
 
-const PlayerRolesSection = ({
+export const PlayerRolesSection = ({
   roles,
   onRoleChange,
   subRoles,
@@ -178,4 +178,3 @@ const PlayerRolesSection = ({
   );
 };
 
-export default React.memo(PlayerRolesSection);

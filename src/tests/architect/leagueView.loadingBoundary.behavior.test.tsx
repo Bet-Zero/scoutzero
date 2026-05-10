@@ -18,7 +18,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import LeagueView from '@/features/architect/shared/LeagueView/LeagueView';
+import { LeagueView } from '@/features/architect/shared/LeagueView/LeagueView';
 import { LeagueViewTruthPanel } from '@/features/architect/shared/LeagueView/LeagueViewTruthPanel';
 import {
   groupLeagueTeamSummaries,

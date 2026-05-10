@@ -27,7 +27,7 @@ import {
   updateWorldAsOfDate,
 } from '@/features/architect/utils/worldManager';
 import { getLeague } from '@/features/architect/utils/teamLoader';
-import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
+import { useArchitectPlayerData } from '@/features/architect/hooks/useArchitectPlayerData';
 import type {
   BasePlayerContract,
   CapHoldItem,
@@ -40,7 +40,7 @@ import type {
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 import type { ArchitectMutationTeamTotals } from '@/features/architect/utils/mutationPipeline';
 import type { OfferSheetLike } from '../offerSheetTypes';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { resolvePlayerDisplayName } from '@/features/architect/constants/playerNameCorrections';
 import type { OffseasonAppliedChangesSummary } from '@/features/architect/utils/offseason/resolveOffseasonTransition';

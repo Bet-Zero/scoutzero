@@ -9,11 +9,12 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import GMDashboard from '@/features/architect/GMDashboard/GMDashboard';
+import { GMDashboard } from '@/features/architect/GMDashboard/GMDashboard';
 import * as GMDashboardModule from '@/features/architect/GMDashboard/GMDashboard';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import * as WorldSelectorModule from '@/features/architect/GMDashboard/components/WorldSelector';
-import SeasonAdvanceModal, {
+import {
+  SeasonAdvanceModal,
   SeasonAdvanceModal as NamedSeasonAdvanceModal,
 } from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
 import * as SeasonAdvanceModalModule from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';

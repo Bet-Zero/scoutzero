@@ -44,7 +44,7 @@ interface UseSimplePlayerDataResult {
  * Returns main player documents only (no subcollections)
  * Use usePlayerDetail for full player data with subcollections
  */
-const useSimplePlayerData = (): UseSimplePlayerDataResult => {
+export const useSimplePlayerData = (): UseSimplePlayerDataResult => {
   const [players, setPlayers] = useState<SimplePlayer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,4 +109,3 @@ const useSimplePlayerData = (): UseSimplePlayerDataResult => {
   return { players, loading, error };
 };
 
-export default useSimplePlayerData;

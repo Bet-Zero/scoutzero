@@ -1,5 +1,5 @@
 import React from 'react';
-import FirestoreDataDiagnostic from '@/components/diagnostic/FirestoreDataDiagnostic';
+import { FirestoreDataDiagnostic } from '@/components/diagnostic/FirestoreDataDiagnostic';
 
 /**
  * Diagnostic page for troubleshooting Firestore data issues

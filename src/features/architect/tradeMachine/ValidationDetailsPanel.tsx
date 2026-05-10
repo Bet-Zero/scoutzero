@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { ModeTag } from './ValidationStateHeader';
-import TradeSummaryPanel from './TradeSummaryPanel';
-import TradeLegalChecker from './TradeLegalChecker';
-import TradeExceptionDashboard from './TradeExceptionDashboard';
-import FaExceptionTracker from './FaExceptionTracker';
-import TradeSalaryCalculator from './TradeSalaryCalculator';
+import { TradeSummaryPanel } from './TradeSummaryPanel';
+import { TradeLegalChecker } from './TradeLegalChecker';
+import { TradeExceptionDashboard } from './TradeExceptionDashboard';
+import { FaExceptionTracker } from './FaExceptionTracker';
+import { TradeSalaryCalculator } from './TradeSalaryCalculator';
 import { TradeReceiptPanel } from './TradeReceiptPanel';
 import { getOfficialSalaryMatchingSnapshot } from './utils/getOfficialSalaryMatchingSnapshot';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
@@ -89,7 +89,7 @@ const NotValidatedCallout = () => (
   </div>
 );
 
-const ValidationDetailsPanel = ({
+export const ValidationDetailsPanel = ({
   hasValidatorResult = false,
   isValidating = false,
   previewAuthority = null,
@@ -359,4 +359,3 @@ const ValidationDetailsPanel = ({
   );
 };
 
-export default ValidationDetailsPanel;

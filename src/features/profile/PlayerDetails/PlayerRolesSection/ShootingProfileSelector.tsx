@@ -23,7 +23,7 @@ const SHOOTING_TIER_STYLES: Record<string, { border: string; text: string }> = {
   Non: { border: 'border-red-600', text: 'text-red-600' },
 };
 
-const ShootingProfileSelector = ({
+export const ShootingProfileSelector = ({
   value,
   onChange,
 }: {
@@ -70,4 +70,3 @@ const ShootingProfileSelector = ({
   );
 };
 
-export default ShootingProfileSelector;

@@ -6,7 +6,7 @@ type PasswordGateProps = {
   children: React.ReactNode;
 };
 
-const PasswordGate = ({ children }: PasswordGateProps) => {
+export const PasswordGate = ({ children }: PasswordGateProps) => {
   const [accessGranted, setAccessGranted] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const correctPassword = 'Makenzie1!'; // change this to your real password
@@ -46,4 +46,3 @@ const PasswordGate = ({ children }: PasswordGateProps) => {
   );
 };
 
-export default PasswordGate;

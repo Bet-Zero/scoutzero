@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ErrorBoundary from '@/shared/components/ErrorBoundary';
-import Modal from '@/shared/components/ui/Modal';
-import VideoExamples from '@/shared/components/ui/VideoExamples';
-import OverallGradeBlock from '@/shared/components/ui/grades/OverallGradeBlock';
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
+import { Modal } from '@/shared/components/ui/Modal';
+import { VideoExamples } from '@/shared/components/ui/VideoExamples';
+import { OverallGradeBlock } from '@/shared/components/ui/grades/OverallGradeBlock';
 
 const ThrowingChild = () => {
   throw new Error('shared leaf smoke error');

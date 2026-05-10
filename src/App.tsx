@@ -10,11 +10,11 @@ import RostersHome from '@/pages/RostersHome';
 import GmLeagueView from '@/pages/GmLeagueView';
 import GmDashboardView from '@/pages/GmDashboardView';
 import PlayerRankerPage from '@/pages/PlayerRankerPage';
-import SiteLayout from '@/core/layout/SiteLayout';
+import { SiteLayout } from '@/core/layout/SiteLayout';
 import NotFound from '@/pages/NotFound';
-import ErrorBoundary from '@/shared/components/ErrorBoundary';
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 
-const App = () => {
+export const App = () => {
   return (
     <ErrorBoundary>
     <Routes>
@@ -42,4 +42,3 @@ const App = () => {
   );
 };
 
-export default App;

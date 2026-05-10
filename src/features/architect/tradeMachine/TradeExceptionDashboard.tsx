@@ -17,7 +17,7 @@ interface TradeExceptionDashboardProps {
   teams?: TeamLike[];
 }
 
-const TradeExceptionDashboard = ({
+export const TradeExceptionDashboard = ({
   snapshotValidationDetails,
   teams = [],
 }: TradeExceptionDashboardProps) => {
@@ -185,4 +185,3 @@ const TradeExceptionDashboard = ({
   );
 };
 
-export default TradeExceptionDashboard;

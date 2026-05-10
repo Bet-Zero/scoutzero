@@ -3,7 +3,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import TradePlayerRow from '@/features/architect/tradeMachine/TradePlayerRow';
+import { TradePlayerRow } from '@/features/architect/tradeMachine/TradePlayerRow';
 import { buildSyntheticSntPlayers } from '@/features/architect/tradeMachine/utils/devSntInjector';
 
 type TradePlayerRowPlayer = Parameters<typeof TradePlayerRow>[0]['player'];

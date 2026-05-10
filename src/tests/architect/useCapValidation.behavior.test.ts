@@ -1,9 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, renderHook } from '@testing-library/react';
-import useCapValidation, {
-  buildSigningGuardrails,
-} from '@/features/architect/hooks/useCapValidation';
+import { useCapValidation, buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
 import { getCapSettings } from '@/features/architect/utils/capHelpers';
 import { formatMillions } from '@/shared/utils/formatting/basicFormatting.js';
 

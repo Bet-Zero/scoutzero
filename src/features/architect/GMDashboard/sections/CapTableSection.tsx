@@ -1,4 +1,4 @@
-import CapSheetFull from '@/features/architect/capSheet/CapSheetFull';
+import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
 
 type ForwardedCapTableProps = Pick<
   Parameters<typeof CapSheetFull>[0],

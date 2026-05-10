@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import RoleChecklist from '@/shared/components/ui/filters/RoleChecklist';
+import { RoleChecklist } from '@/shared/components/ui/filters/RoleChecklist';
 import {
   toggleSubroleSelection,
   offensiveRoles,
@@ -15,7 +15,7 @@ type FilterProps = {
   setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
 };
 
-const RolesFilters = ({ filters, setFilters }: FilterProps) => {
+export const RolesFilters = ({ filters, setFilters }: FilterProps) => {
   const [showSubroles, setShowSubroles] = useState(false);
 
   const handleToggleSubrole = (roleName: string) => {
@@ -102,4 +102,3 @@ const RolesFilters = ({ filters, setFilters }: FilterProps) => {
   );
 };
 
-export default RolesFilters;

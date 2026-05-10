@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import ValidationStateHeader, * as ValidationStateHeaderModule from '@/features/architect/tradeMachine/ValidationStateHeader';
-import ValidationDetailsPanel from '@/features/architect/tradeMachine/ValidationDetailsPanel';
-import TradeSummaryPanel from '@/features/architect/tradeMachine/TradeSummaryPanel';
-import DataWarningsSection from '@/features/architect/tradeMachine/DataWarningsSection';
-import TradeLegalChecker from '@/features/architect/tradeMachine/TradeLegalChecker';
-import TradeExceptionDashboard from '@/features/architect/tradeMachine/TradeExceptionDashboard';
-import FaExceptionTracker from '@/features/architect/tradeMachine/FaExceptionTracker';
-import TradeSalaryCalculator from '@/features/architect/tradeMachine/TradeSalaryCalculator';
+import { ValidationStateHeader } from '@/features/architect/tradeMachine/ValidationStateHeader';
+import * as ValidationStateHeaderModule from '@/features/architect/tradeMachine/ValidationStateHeader';
+import { ValidationDetailsPanel } from '@/features/architect/tradeMachine/ValidationDetailsPanel';
+import { TradeSummaryPanel } from '@/features/architect/tradeMachine/TradeSummaryPanel';
+import { DataWarningsSection } from '@/features/architect/tradeMachine/DataWarningsSection';
+import { TradeLegalChecker } from '@/features/architect/tradeMachine/TradeLegalChecker';
+import { TradeExceptionDashboard } from '@/features/architect/tradeMachine/TradeExceptionDashboard';
+import { FaExceptionTracker } from '@/features/architect/tradeMachine/FaExceptionTracker';
+import { TradeSalaryCalculator } from '@/features/architect/tradeMachine/TradeSalaryCalculator';
 import { TradeReceiptPanel } from '@/features/architect/tradeMachine/TradeReceiptPanel';
 
 describe('E97 Trade Machine validation presentation compatibility guardrails', () => {

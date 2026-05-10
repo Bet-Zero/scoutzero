@@ -17,7 +17,7 @@ type ActiveTraitFilter = {
   fullKey: keyof PlayerFilters;
 };
 
-const TraitFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+export const TraitFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addedFilters, setAddedFilters] = useState<Set<keyof PlayerFilters>>(new Set());
   const [newFilter, setNewFilter] = useState<TraitFilterDraft>({
@@ -195,4 +195,3 @@ const TraitFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   );
 };
 
-export default TraitFilters;

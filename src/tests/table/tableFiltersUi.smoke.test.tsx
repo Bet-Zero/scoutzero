@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ActiveFiltersDrawer from '@/features/filters/ActiveFiltersDrawer';
-import TopControlsBar from '@/features/table/PlayerTable/PlayerTableHeader/TopControlsBar';
+import { ActiveFiltersDrawer } from '@/features/filters/ActiveFiltersDrawer';
+import { TopControlsBar } from '@/features/table/PlayerTable/PlayerTableHeader/TopControlsBar';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
 

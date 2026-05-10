@@ -1,7 +1,7 @@
 // components/LayoutPreview/TwoWayMeter.tsx
 import React from 'react';
 
-const TwoWayMeter = ({
+export const TwoWayMeter = ({
   twoWayValue,
   onChange,
 }: {
@@ -35,4 +35,3 @@ const TwoWayMeter = ({
   );
 };
 
-export default React.memo(TwoWayMeter);

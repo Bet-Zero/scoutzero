@@ -5,13 +5,13 @@ import {
   getAdjustmentTooltipLabel,
 } from '@/features/architect/utils/tradeHelpers';
 import { formatSalary } from '@/shared/utils/formatting';
-import CapImpactTiles from './CapImpactTiles';
+import { CapImpactTiles } from './CapImpactTiles';
 import { SelectTeamCard } from './SelectTeamCard';
 import { OutgoingPlayersList } from './OutgoingPlayersList';
 import { EntitlementPicksList } from './EntitlementPicksList';
-import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
+import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import TradeExceptionManager from './TradeExceptionManager';
+import { TradeExceptionManager } from './TradeExceptionManager';
 import {
   getTeamFaExceptionBuckets,
   isFaExceptionEligibleType,
@@ -56,7 +56,7 @@ import {
   formatSkipReasonLabel,
 } from './TradeTeamCard.helpers';
 
-const TradeTeamCard = ({
+export const TradeTeamCard = ({
   team,
   sends,
   // Phase 14.2: Removed picks prop - draft assets are entitlements-only
@@ -1048,4 +1048,3 @@ const TradeTeamCard = ({
   );
 };
 
-export default TradeTeamCard;

@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import TradePlayerRow from '@/features/architect/tradeMachine/TradePlayerRow';
+import { TradePlayerRow } from '@/features/architect/tradeMachine/TradePlayerRow';
 
 type TradePlayerRowPlayer = Parameters<typeof TradePlayerRow>[0]['player'];
 

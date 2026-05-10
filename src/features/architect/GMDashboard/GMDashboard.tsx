@@ -19,7 +19,7 @@
  */
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import EditContractModal from '@/shared/components/EditContractModal';
+import { EditContractModal } from '@/shared/components/EditContractModal';
 import { RosterSection } from './sections/RosterSection';
 import { CapSheetSection } from './sections/CapSheetSection';
 import { CapTableSection } from './sections/CapTableSection';
@@ -39,7 +39,7 @@ import {
   FIREBASE_TARGET_MODE,
   isLikelyEmulatorConnectionError,
 } from '@/firebaseConfig';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 import {
   toSeasonCode,
   toSeasonKey,
@@ -102,7 +102,7 @@ const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined
   return Array.from(new Set(years)).sort((a, b) => a - b);
 };
 
-const GMDashboard = () => {
+export const GMDashboard = () => {
   // League View enters here with team identity only; this dashboard owns selected season state.
   const { teamId } = useParams();
   const { userId, loading: authLoading } = useAuth();
@@ -632,4 +632,3 @@ const GMDashboard = () => {
   );
 };
 
-export default GMDashboard;

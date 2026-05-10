@@ -16,7 +16,7 @@ type PlayerContractMiniProps = {
   currentContractView?: DrawerCurrentContractView;
 };
 
-const PlayerContractMini = ({
+export const PlayerContractMini = ({
   contract,
   bird_rights = 'Unknown',
   option_type = null,
@@ -150,4 +150,3 @@ const PlayerContractMini = ({
   );
 };
 
-export default PlayerContractMini;

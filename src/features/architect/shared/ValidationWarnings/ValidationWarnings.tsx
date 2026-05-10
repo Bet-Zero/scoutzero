@@ -44,7 +44,7 @@ const SEVERITY_STYLES = {
   },
 };
 
-const ValidationWarnings = ({
+export const ValidationWarnings = ({
   warnings = [],
   errors = [],
   showErrors = false,
@@ -87,4 +87,3 @@ const ValidationWarnings = ({
   );
 };
 
-export default ValidationWarnings;

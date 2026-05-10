@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 import * as useTradeMachineModule from '@/features/architect/hooks/useTradeMachine';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 

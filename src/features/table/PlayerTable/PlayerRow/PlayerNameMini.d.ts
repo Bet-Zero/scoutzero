@@ -10,4 +10,3 @@ type PlayerNameMiniProps = {
 
 declare const PlayerNameMini: (props: PlayerNameMiniProps) => JSX.Element;
 
-export default PlayerNameMini;

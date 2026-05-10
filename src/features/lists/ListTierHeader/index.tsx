@@ -2,7 +2,7 @@
 // Displays a tier label (e.g. "Tier 1") and wraps a group of ListPlayerRow entries.
 import React from 'react';
 import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
-import RankedListPlayerRow from './ListPlayerRow';
+import { ListPlayerRow as RankedListPlayerRow } from './ListPlayerRow';
 import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
 
 export type RankedTierPlayer = {
@@ -26,7 +26,7 @@ type RankedListTierProps = {
   orderLength: number;
 };
 
-const RankedListTier = ({
+export const RankedListTier = ({
   label,
   headerIndex,
   players,
@@ -104,4 +104,3 @@ const RankedListTier = ({
   );
 };
 
-export default RankedListTier;

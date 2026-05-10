@@ -10,7 +10,7 @@
  *  - Plan: N/A (Phase 5 folder organization)
  */
 
-export { default } from './RosterVisual';
+export { RosterVisual } from './RosterVisual';
 export type {
   RosterVisualCapSheetInput,
   RosterVisualDetailsMap,

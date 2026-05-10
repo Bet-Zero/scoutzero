@@ -1,20 +1,20 @@
 import React from 'react';
-import PlayerName from './ProfilePlayerName';
-import PlayerPosition from './ProfilePlayerPosition';
-import TeamLogo from '@/shared/components/TeamLogo';
-import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
+import { PlayerName } from './ProfilePlayerName';
+import { PlayerPosition } from './ProfilePlayerPosition';
+import { TeamLogo } from '@/shared/components/TeamLogo';
+import { PlayerHeadshot } from '@/shared/components/PlayerHeadshot';
 import { getCurrentSeasonYear } from '@/shared/utils/contracts/contractUtils';
 import { formatContractSummary } from '@/shared/utils/formatting/basicFormatting';
 import type { ProfilePlayer } from '@/features/profile/profileUiTypes';
 
-const formatProfileHeight = (inches: number | null | undefined) => {
+export const formatProfileHeight = (inches: number | null | undefined) => {
   if (!inches || inches === 0) return 'N/A';
   const feet = Math.floor(inches / 12);
   const remainingInches = inches % 12;
   return `${feet}-${remainingInches}`;
 };
 
-const PlayerHeader = ({
+export const PlayerHeader = ({
   player,
   selectedPlayer,
 }: {
@@ -146,4 +146,3 @@ const PlayerHeader = ({
   );
 };
 
-export default React.memo(PlayerHeader);

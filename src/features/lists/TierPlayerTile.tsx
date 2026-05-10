@@ -9,7 +9,7 @@ type TierPlayerTileProps = {
   player: ListDisplayPlayer | null | undefined;
 };
 
-const TierPlayerTile = ({ player }: TierPlayerTileProps) => {
+export const TierPlayerTile = ({ player }: TierPlayerTileProps) => {
   if (!player) return null;
 
   const headshot =
@@ -61,4 +61,3 @@ const TierPlayerTile = ({ player }: TierPlayerTileProps) => {
   );
 };
 
-export default TierPlayerTile;

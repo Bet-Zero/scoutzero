@@ -10,7 +10,7 @@
  *  - Plan: N/A (Phase 5 folder organization)
  */
 
-export { default as CapSheet } from './CapSheet';
-export { default as CapSheetFull } from './CapSheetFull';
-export { default as ExceptionTracker } from './ExceptionTracker';
-export { default as ExceptionHistoryTracker } from './ExceptionHistoryTracker';
+export { CapSheet } from './CapSheet';
+export { CapSheetFull } from './CapSheetFull';
+export { ExceptionTracker } from './ExceptionTracker';
+export { ExceptionHistoryTracker } from './ExceptionHistoryTracker';

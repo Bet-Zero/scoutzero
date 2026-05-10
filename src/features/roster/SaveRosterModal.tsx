@@ -13,7 +13,7 @@ type SaveRosterModalProps = {
   canSave?: boolean;
 };
 
-const SaveRosterModal = ({
+export const SaveRosterModal = ({
   name,
   onNameChange,
   onCancel,
@@ -89,4 +89,3 @@ const SaveRosterModal = ({
   </div>
 );
 
-export default SaveRosterModal;

@@ -17,7 +17,7 @@ type TeamPlayerDropdownsProps = {
   setFilteredKeys: ProfileSetter<string[]>;
 };
 
-const TeamPlayerDropdowns = ({
+export const TeamPlayerDropdowns = ({
   teams,
   playersData,
   selectedTeam,
@@ -80,4 +80,3 @@ const TeamPlayerDropdowns = ({
   );
 };
 
-export default TeamPlayerDropdowns;

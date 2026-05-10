@@ -3,11 +3,11 @@ import { RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import { useContainerDimensions } from '@/shared/hooks/useContainerDimensions';
-import EditContractModal from '@/shared/components/EditContractModal';
-import TradeTeamCard from './TradeTeamCard';
+import { EditContractModal } from '@/shared/components/EditContractModal';
+import { TradeTeamCard } from './TradeTeamCard';
 import TradePreviewModal from './TradePreviewModal';
-import ValidationStateHeader from './ValidationStateHeader';
-import ValidationDetailsPanel from './ValidationDetailsPanel';
+import { ValidationStateHeader } from './ValidationStateHeader';
+import { ValidationDetailsPanel } from './ValidationDetailsPanel';
 import { PickRightWizardModal } from '@/features/architect/admin/PickRightWizardModal';
 import { isEntitlementAuthoringEnabled } from '@/features/architect/utils/entitlements/entitlementWriter';
 import {
@@ -172,7 +172,7 @@ const toEditContractModalTeamCapSheet = (
   };
 };
 
-const TradeEditor = ({
+export const TradeEditor = ({
   primaryTeam,
   capProjections,
   currentYear,
@@ -927,4 +927,3 @@ const TradeEditor = ({
   );
 };
 
-export default TradeEditor;

@@ -10,4 +10,4 @@
  *  - Plan: N/A (Phase 5 folder organization)
  */
 
-export { default } from './WaiveStretchTracker';
+export { WaiveStretchTracker } from './WaiveStretchTracker';

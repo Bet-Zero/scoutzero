@@ -14,7 +14,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import FilterPill from './ActiveFiltersDisplay/FilterPill/FilterPill';
+import { FilterPill } from './ActiveFiltersDisplay/FilterPill/FilterPill';
 import { getFilterDisplayValue } from '@/shared/utils/filtering';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
@@ -46,7 +46,7 @@ type ActiveFiltersDrawerProps = {
   onClearFilters: () => void;
 };
 
-const ActiveFiltersDrawer = ({
+export const ActiveFiltersDrawer = ({
   open,
   onClose,
   filters,
@@ -261,4 +261,3 @@ const ActiveFiltersDrawer = ({
   return createPortal(drawerContent, document.body);
 };
 
-export default ActiveFiltersDrawer;

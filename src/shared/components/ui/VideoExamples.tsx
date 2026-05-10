@@ -28,7 +28,7 @@ export type VideoExamplesProps = {
   maxVideos?: number;
 };
 
-const VideoExamples = ({
+export const VideoExamples = ({
   contextKey,
   videos = [],
   onChange,
@@ -223,4 +223,3 @@ const VideoExamples = ({
   );
 };
 
-export default VideoExamples;

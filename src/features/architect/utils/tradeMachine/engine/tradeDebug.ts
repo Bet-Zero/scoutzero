@@ -43,7 +43,7 @@ interface DebugTeam {
   willBeOverSecond?: boolean;
 }
 
-const debug = {
+export const debug = {
   enabled: false,
   logs: [] as string[],
   records: [] as DebugRecord[],
@@ -195,4 +195,3 @@ const debug = {
   },
 };
 
-export default debug;

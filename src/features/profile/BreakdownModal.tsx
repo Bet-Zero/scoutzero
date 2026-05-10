@@ -13,8 +13,8 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import Modal from '@/shared/components/ui/Modal';
-import VideoExamples from '@/shared/components/ui/VideoExamples';
+import { Modal } from '@/shared/components/ui/Modal';
+import { VideoExamples } from '@/shared/components/ui/VideoExamples';
 import {
   getModalTitle,
   getBlurbValue,
@@ -29,7 +29,7 @@ import type {
 } from '@/features/profile/hooks/usePlayerProfileState';
 import type { UseAutoSavePlayerResult } from './hooks/useAutoSavePlayer';
 
-const BreakdownModal = ({
+export const BreakdownModal = ({
   modalKey,
   blurbs,
   videoExamples,
@@ -241,4 +241,3 @@ const BreakdownModal = ({
   );
 };
 
-export default BreakdownModal;

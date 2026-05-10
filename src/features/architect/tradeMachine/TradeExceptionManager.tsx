@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
-import TeamLogo from '@/shared/components/TeamLogo';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 
 type TradeExceptionLike = {
   id?: string | number;
@@ -22,7 +22,7 @@ function isTpeExpired(tpe: TradeExceptionLike) {
   return new Date(expiry) <= new Date();
 }
 
-const TradeExceptionManager = ({
+export const TradeExceptionManager = ({
   exceptions = [],
   teamId,
 }: TradeExceptionManagerProps) => {
@@ -111,4 +111,3 @@ const TradeExceptionManager = ({
   );
 };
 
-export default TradeExceptionManager;

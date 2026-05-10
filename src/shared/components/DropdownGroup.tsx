@@ -14,7 +14,7 @@ export type DropdownGroupProps = {
   children?: ReactNode;
 };
 
-const DropdownGroup = ({ label, children }: DropdownGroupProps) => {
+export const DropdownGroup = ({ label, children }: DropdownGroupProps) => {
   return (
     <div className="mb-0">
       <label className="text-white text-xs block mb-1">{label}</label>
@@ -23,4 +23,3 @@ const DropdownGroup = ({ label, children }: DropdownGroupProps) => {
   );
 };
 
-export default DropdownGroup;

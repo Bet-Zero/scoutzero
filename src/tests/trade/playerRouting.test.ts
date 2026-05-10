@@ -15,7 +15,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import validatePlayerRoutingDefault, {
+import {
+  validatePlayerRouting as validatePlayerRoutingDefault,
   enforcePlayerRouting,
   validatePlayerRouting,
 } from '@/features/architect/utils/tradeMachine/rules/validatePlayerRouting';

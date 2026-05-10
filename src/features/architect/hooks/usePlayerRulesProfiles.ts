@@ -24,7 +24,7 @@ import type {
   UsePlayerRulesProfilesParams,
 } from '@/features/architect/types';
 import { computePlayerRulesProfile } from '@/features/architect/utils/salaryEngine';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import { getTeamApronStatus } from '@/features/architect/utils/capUtils';

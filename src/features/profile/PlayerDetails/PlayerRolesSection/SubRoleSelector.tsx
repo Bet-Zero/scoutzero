@@ -19,7 +19,7 @@ import {
   type SubRoleType,
 } from '@/constants/SubRoleMasterList';
 import { isPositiveSubRole } from '@/shared/utils/roles';
-import useClickOutside from '@/shared/hooks/useClickOutside';
+import { useClickOutside } from '@/shared/hooks/useClickOutside';
 import type { PlayerSubRoles } from '@/features/roster/utils/enrichPlayerData';
 
 const OFFENSIVE_GROUPS: SubRoleGroup[] = [
@@ -212,7 +212,7 @@ const SubRoleModal = ({
   </div>
 );
 
-const SubRoleSelector = ({
+export const SubRoleSelector = ({
   subRoles = {} as Partial<PlayerSubRoles>,
   setSubRoles,
   setOpenModal,
@@ -332,4 +332,3 @@ const SubRoleSelector = ({
   );
 };
 
-export default SubRoleSelector;

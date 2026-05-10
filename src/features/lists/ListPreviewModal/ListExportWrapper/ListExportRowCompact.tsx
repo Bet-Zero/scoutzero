@@ -2,7 +2,7 @@
 // Consolidated compact-height export row. Replaces ListExportRowCompactSingle and
 // ListExportRowCompactTwoColumn — both were identical; column layout is handled by the parent.
 import React from 'react';
-import TeamLogo from '@/shared/components/TeamLogo';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import type { ListDisplayPlayer } from '.';
 
@@ -11,7 +11,7 @@ type ListExportRowCompactProps = {
   rank: number | null;
 };
 
-const ListExportRowCompact = ({ player, rank }: ListExportRowCompactProps) => {
+export const ListExportRowCompact = ({ player, rank }: ListExportRowCompactProps) => {
   const name = player.bio?.displayName || player.name || 'Unknown Player';
   const nameParts = name.split(' ');
   const firstName = nameParts[0]?.toUpperCase() || '';
@@ -83,4 +83,3 @@ const ListExportRowCompact = ({ player, rank }: ListExportRowCompactProps) => {
   );
 };
 
-export default ListExportRowCompact;

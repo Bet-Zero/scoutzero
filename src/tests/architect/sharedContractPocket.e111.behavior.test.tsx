@@ -23,7 +23,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import EditContractModal from '@/shared/components/EditContractModal';
+import { EditContractModal } from '@/shared/components/EditContractModal';
 import {
   getCurrentSeasonYear,
   getYearsRemaining,

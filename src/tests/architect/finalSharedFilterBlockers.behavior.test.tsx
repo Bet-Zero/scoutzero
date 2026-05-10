@@ -13,9 +13,9 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import BadgeFilterSelect from '@/shared/components/ui/filters/BadgeFilterSelect';
-import RangeSelector from '@/shared/components/ui/filters/RangeSelector';
-import RoleChecklist from '@/shared/components/ui/filters/RoleChecklist';
+import { BadgeFilterSelect } from '@/shared/components/ui/filters/BadgeFilterSelect';
+import { RangeSelector } from '@/shared/components/ui/filters/RangeSelector';
+import { RoleChecklist } from '@/shared/components/ui/filters/RoleChecklist';
 
 afterEach(() => {
   cleanup();

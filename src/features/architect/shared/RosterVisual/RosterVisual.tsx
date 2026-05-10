@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import RosterSection from '@/features/roster/RosterSection';
+import { RosterSection } from '@/features/roster/RosterSection';
 import {
   buildInitialRoster,
   normalizePlayer,
@@ -217,7 +217,7 @@ const getMinutes = (member: RosterDisplayMember) => {
   return Number.isFinite(minutes) ? minutes : 0;
 };
 
-const RosterVisual = ({
+export const RosterVisual = ({
   teamCapSheet,
   playersMap = {},
   teamId: propTeamId,
@@ -333,4 +333,3 @@ const RosterVisual = ({
   );
 };
 
-export default RosterVisual;

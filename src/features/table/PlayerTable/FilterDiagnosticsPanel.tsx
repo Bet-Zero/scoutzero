@@ -423,4 +423,3 @@ export function FilterDiagnosticsPanel({
   );
 }
 
-export default FilterDiagnosticsPanel;

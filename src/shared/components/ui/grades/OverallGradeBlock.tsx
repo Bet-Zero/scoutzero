@@ -30,7 +30,7 @@ const getTraitColor = (rating: number): string => {
   return '#891313';
 };
 
-const OverallGradeBlock = ({
+export const OverallGradeBlock = ({
   grade,
   onGradeChange,
   readOnly = false,
@@ -99,4 +99,3 @@ const OverallGradeBlock = ({
   );
 };
 
-export default OverallGradeBlock;

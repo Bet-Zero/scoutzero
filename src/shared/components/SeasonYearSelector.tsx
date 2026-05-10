@@ -22,7 +22,7 @@ export type SeasonYearSelectProps = {
   label?: React.ReactNode;
 };
 
-const SeasonYearSelect = ({
+export const SeasonYearSelect = ({
   capProjections,
   value,
   onChange,
@@ -51,4 +51,3 @@ const SeasonYearSelect = ({
   );
 };
 
-export default SeasonYearSelect;

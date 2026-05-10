@@ -56,7 +56,7 @@ const parseFirestoreDoc = <T>(
  *
  * Returns v2 schema structure directly — no legacy flattening.
  */
-const usePlayerDetail = (
+export const usePlayerDetail = (
   playerId: string | null | undefined
 ): UsePlayerDetailResult => {
   const [player, setPlayer] = useState<PlayerV2 | null>(null);
@@ -162,4 +162,3 @@ const usePlayerDetail = (
   return { player, loading, error };
 };
 
-export default usePlayerDetail;

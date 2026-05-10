@@ -111,7 +111,7 @@ function getOfferSheetLifecycleSurfaceState(
   }
 }
 
-const OfferSheetList = ({
+export const OfferSheetList = ({
   offerSheets = [],
   title = 'Offer Sheets',
   surfaceRole,
@@ -219,4 +219,3 @@ const OfferSheetList = ({
   );
 };
 
-export default OfferSheetList;

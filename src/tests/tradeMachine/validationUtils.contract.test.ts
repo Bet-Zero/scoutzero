@@ -8,7 +8,7 @@ import {
 import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor';
 import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService';
 import { debug } from '@/features/architect/utils/tradeMachine/engine/engineUtils';
-import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
+import { debug as tradeDebug } from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
 
 describe('validationUtils contract', () => {
   beforeEach(() => {

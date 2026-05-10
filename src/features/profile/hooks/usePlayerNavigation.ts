@@ -18,9 +18,9 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';
-import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
+import { usePlayerDetail } from '@/shared/hooks/usePlayerDetail';
 import type { PlayerV2 } from '@/schemas/players_v2';
 import { getPlayersForTeam } from '@/features/profile/utils/profileHelpers';
 import {
@@ -71,7 +71,7 @@ const isTextEntryTarget = (target: EventTarget | null): boolean => {
   );
 };
 
-const usePlayerNavigation = (
+export const usePlayerNavigation = (
   openModal: unknown
 ): UsePlayerNavigationResult => {
   const navigate = useNavigate();
@@ -259,4 +259,3 @@ const usePlayerNavigation = (
   };
 };
 
-export default usePlayerNavigation;

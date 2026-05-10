@@ -136,4 +136,3 @@ export function useContainerDimensions(
   return dimensions;
 }
 
-export default useContainerDimensions;

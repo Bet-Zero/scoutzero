@@ -10,10 +10,10 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import usePlayerNavigation from '@/features/profile/hooks/usePlayerNavigation';
-import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
-import BreakdownModal from '@/features/profile/BreakdownModal';
-import PlayerHeader from '@/features/profile/PlayerDetails/PlayerHeader';
+import { usePlayerNavigation } from '@/features/profile/hooks/usePlayerNavigation';
+import { TeamPlayerDropdowns } from '@/features/profile/TeamPlayerDropdowns';
+import { BreakdownModal } from '@/features/profile/BreakdownModal';
+import { PlayerHeader } from '@/features/profile/PlayerDetails/PlayerHeader';
 import PlayerProfileView from '@/pages/PlayerProfileView';
 import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
 import {
@@ -23,8 +23,8 @@ import {
 import type { ProfileDetailKey } from '@/features/profile/utils/profileHelpers';
 import type { ModalSavePayload } from '@/features/profile/hooks/usePlayerProfileState';
 import { createEmptyVideoExamples } from '@/shared/utils/videoExamples';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
-import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
+import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
+import { usePlayerDetail } from '@/shared/hooks/usePlayerDetail';
 
 vi.mock('@/shared/hooks/useSimplePlayerData', () => ({
   default: vi.fn(),

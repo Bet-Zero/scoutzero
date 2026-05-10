@@ -21,7 +21,7 @@ import {
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
-import BirdRightsIcon from '@/shared/components/BirdRightsIcon';
+import { BirdRightsIcon } from '@/shared/components/BirdRightsIcon';
 
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
@@ -162,7 +162,7 @@ const ContractAmountDisplay = ({
   );
 };
 
-const CapSheetFull = ({
+export const CapSheetFull = ({
   teamCapSheet,
   currentYear,
   onOpenPlayerContractModal,
@@ -781,4 +781,3 @@ const CapSheetFull = ({
   );
 };
 
-export default CapSheetFull;

@@ -12,7 +12,7 @@ interface DataWarningsSectionProps {
   hasDataIssues?: boolean;
 }
 
-const DataWarningsSection = ({
+export const DataWarningsSection = ({
   warnings = [],
   summary = null,
   hasDataIssues = false,
@@ -149,4 +149,3 @@ const DataWarningsSection = ({
   );
 };
 
-export default DataWarningsSection;

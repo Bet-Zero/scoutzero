@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import WaiveStretchTracker from '@/features/architect/offseason/WaiveStretchTracker';
-import ExceptionHistoryTracker from '@/features/architect/capSheet/ExceptionHistoryTracker';
-import DraftPickTracker from '@/features/architect/offseason/DraftPickTracker';
+import { WaiveStretchTracker } from '@/features/architect/offseason/WaiveStretchTracker';
+import { ExceptionHistoryTracker } from '@/features/architect/capSheet/ExceptionHistoryTracker';
+import { DraftPickTracker } from '@/features/architect/offseason/DraftPickTracker';
 import {
   DEV_TEAM_HISTORY_FIXTURE_FLAG,
   hasInjectedTeamHistoryFixtures as teamHasInjectedHistoryFixtures,
@@ -11,7 +11,7 @@ import {
   normalizeWorldEventsForTeamHistory,
   type TeamHistoryWorldEventRow,
 } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
-import HistoryDetailModal from './HistoryDetailModal';
+import { HistoryDetailModal } from './HistoryDetailModal';
 import type {
   TeamHistoryCapSheetLike,
   TeamHistoryDisplayEntry,
@@ -708,7 +708,7 @@ const WorldEventsTimeline = ({
   );
 };
 
-const TeamHistoryTab = ({
+export const TeamHistoryTab = ({
   teamCapSheet,
   worldId,
   onInjectTeamHistoryFixtures = null,
@@ -953,4 +953,3 @@ const TeamHistoryTab = ({
   );
 };
 
-export default TeamHistoryTab;

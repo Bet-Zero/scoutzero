@@ -114,7 +114,7 @@ const ActiveFiltersList = ({
   );
 };
 
-const StatFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
+export const StatFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newFilter, setNewFilter] = useState<NewStatFilter>({
     stat: 'PPG',
@@ -178,4 +178,3 @@ const StatFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => {
   );
 };
 
-export default StatFilters;

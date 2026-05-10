@@ -17,7 +17,7 @@ type RosterExportModalProps = {
   team: SelectedRosterTeam | null;
 };
 
-const RosterExportModal = ({ open, onClose, roster, team }: RosterExportModalProps) => {
+export const RosterExportModal = ({ open, onClose, roster, team }: RosterExportModalProps) => {
   const exportData = useMemo(() => {
     if (!roster) return null;
     const formatPlayers = (players: Array<RosterExportPlayer | null> = []) =>
@@ -114,4 +114,3 @@ const RosterExportModal = ({ open, onClose, roster, team }: RosterExportModalPro
   );
 };
 
-export default RosterExportModal;

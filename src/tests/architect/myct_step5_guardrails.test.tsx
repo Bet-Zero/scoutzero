@@ -25,8 +25,8 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import ManageDeadMoneyModal from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
-import ManageExceptionsModal from '@/features/architect/capSheet/modals/ManageExceptionsModal';
+import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
+import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 

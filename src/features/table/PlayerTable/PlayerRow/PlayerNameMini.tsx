@@ -60,7 +60,7 @@ const fontSizeOverrides: Record<string, NameFontSize> = {
   'Trayce Jackson-Davis': { first: 20, last: 17 },
 };
 
-const PlayerNameMini = ({
+export const PlayerNameMini = ({
   name = 'LeBron James',
   scale = 1,
   width = 140,
@@ -93,4 +93,3 @@ const PlayerNameMini = ({
   );
 };
 
-export default PlayerNameMini;

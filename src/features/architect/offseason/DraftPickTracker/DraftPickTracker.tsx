@@ -18,7 +18,7 @@ type DraftPickTrackerProps = {
   currentPicks?: Record<string, DraftPickInventoryRow | undefined>;
 };
 
-const DraftPickTracker = ({
+export const DraftPickTracker = ({
   pickLog = [],
   currentPicks = {},
 }: DraftPickTrackerProps) => {
@@ -97,4 +97,3 @@ const DraftPickTracker = ({
   );
 };
 
-export default DraftPickTracker;

@@ -1,12 +1,12 @@
 import React from 'react';
-import ToggleButton from '@/shared/components/ui/ToggleButton';
+import { ToggleButton } from '@/shared/components/ui/ToggleButton';
 
 type ListRowStyleToggleProps = {
   compact: boolean;
   onChange: (value: boolean) => void;
 };
 
-const ListRowStyleToggle = ({ compact, onChange }: ListRowStyleToggleProps) => {
+export const ListRowStyleToggle = ({ compact, onChange }: ListRowStyleToggleProps) => {
   return (
     <div className="flex gap-2">
       <ToggleButton selected={!compact} onClick={() => onChange(false)}>
@@ -19,4 +19,3 @@ const ListRowStyleToggle = ({ compact, onChange }: ListRowStyleToggleProps) => {
   );
 };
 
-export default ListRowStyleToggle;

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { MouseEvent } from 'react';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import { PlayerNameMini } from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
 type BenchCardProps = {
@@ -17,7 +17,7 @@ type BenchCardProps = {
   isExport?: boolean;
 };
 
-const BenchCard = ({
+export const BenchCard = ({
   player,
   onRemove,
   showRemove = true,
@@ -79,4 +79,3 @@ const BenchCard = ({
   );
 };
 
-export default BenchCard;

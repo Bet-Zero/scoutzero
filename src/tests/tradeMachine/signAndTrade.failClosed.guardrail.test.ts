@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import capProjections from '@/features/architect/utils/capProjections';
+import { capProjections } from '@/features/architect/utils/capProjections';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type { CapHold } from '@/features/architect/utils/capHolds';

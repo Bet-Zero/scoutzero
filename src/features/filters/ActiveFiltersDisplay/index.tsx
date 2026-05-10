@@ -1,6 +1,6 @@
 // ActiveFiltersDisplay.tsx
 import React from 'react';
-import FilterPill from './FilterPill/FilterPill';
+import { FilterPill } from './FilterPill/FilterPill';
 import { getFilterDisplayValue } from '@/shared/utils/filtering';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
@@ -19,7 +19,7 @@ type ActiveFiltersDisplayProps = {
   onClearFilters: () => void;
 };
 
-const ActiveFiltersDisplay = ({
+export const ActiveFiltersDisplay = ({
   filters,
   setFilters,
   getDefaultFilters,
@@ -157,4 +157,3 @@ const ActiveFiltersDisplay = ({
   );
 };
 
-export default ActiveFiltersDisplay;

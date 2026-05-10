@@ -7,7 +7,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from 'lucide-react';
-import useImageDownload from '@/shared/hooks/useImageDownload';
+import { useImageDownload } from '@/shared/hooks/useImageDownload';
 import { AdjustableRankings } from './AdjustableRankings';
 import type { RankerPlayer } from './utils/rankingEngine';
 

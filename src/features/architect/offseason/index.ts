@@ -10,6 +10,6 @@
  *  - Plan: N/A (Phase 5 folder organization)
  */
 
-export { default as OffseasonTab } from './OffseasonTab';
-export { default as DraftPickTracker } from './DraftPickTracker';
-export { default as WaiveStretchTracker } from './WaiveStretchTracker';
+export { OffseasonTab } from './OffseasonTab';
+export { DraftPickTracker } from './DraftPickTracker';
+export { WaiveStretchTracker } from './WaiveStretchTracker';

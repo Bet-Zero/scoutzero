@@ -6,7 +6,7 @@ type SearchBarProps = {
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
-const SearchBar = ({ value, onChange }: SearchBarProps) => (
+export const SearchBar = ({ value, onChange }: SearchBarProps) => (
   <div className="relative">
     <Search
       className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black"
@@ -22,4 +22,3 @@ const SearchBar = ({ value, onChange }: SearchBarProps) => (
   </div>
 );
 
-export default SearchBar;

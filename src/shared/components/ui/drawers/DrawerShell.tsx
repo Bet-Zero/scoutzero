@@ -14,7 +14,7 @@ export type DrawerShellProps = {
   children?: ReactNode;
 };
 
-const DrawerShell = ({ isOpen, onClose, children }: DrawerShellProps) => (
+export const DrawerShell = ({ isOpen, onClose, children }: DrawerShellProps) => (
   <>
     <div
       className={`fixed left-0 top-0 h-full w-[300px] bg-[#1a1a1a] border-r border-white/10 z-20 flex flex-col transition-transform duration-200 ease-out overflow-y-auto ${
@@ -32,4 +32,3 @@ const DrawerShell = ({ isOpen, onClose, children }: DrawerShellProps) => (
   </>
 );
 
-export default DrawerShell;

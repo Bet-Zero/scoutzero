@@ -15,7 +15,7 @@ import {
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
 import { AlertTriangle, Info, Layers, Link2, GitBranch } from 'lucide-react';
-import TeamLogo from '@/shared/components/TeamLogo';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 
 type EntitlementLike = {
   id?: string | number | null;
@@ -72,7 +72,7 @@ interface EntitlementPickRowProps {
   incoming?: boolean;
 }
 
-const EntitlementPickRow = ({
+export const EntitlementPickRow = ({
   entitlement,
   teamId,
   isSelected = false,
@@ -404,4 +404,3 @@ const EntitlementPickRow = ({
   );
 };
 
-export default EntitlementPickRow;

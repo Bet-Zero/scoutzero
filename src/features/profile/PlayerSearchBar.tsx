@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import type { PlayersDataMap } from './utils/profileHelpers';
 
-const PlayerSearchBar = ({
+export const PlayerSearchBar = ({
   playersData,
   onSelect,
 }: {
@@ -59,4 +59,3 @@ const PlayerSearchBar = ({
   );
 };
 
-export default PlayerSearchBar;

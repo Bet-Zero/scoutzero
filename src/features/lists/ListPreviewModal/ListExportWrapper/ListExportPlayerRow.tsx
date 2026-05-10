@@ -2,8 +2,8 @@
 // Consolidated full-height export row. Replaces ListExportPlayerRowSingle and
 // ListExportPlayerRowTwoColumn — both were identical; column layout is handled by the parent.
 import React from 'react';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
-import TeamLogo from '@/shared/components/TeamLogo';
+import { PlayerNameMini } from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import type { ListDisplayPlayer } from '.';
 
@@ -12,7 +12,7 @@ type ListExportPlayerRowProps = {
   rank: number | null;
 };
 
-const ListExportPlayerRow = ({ player, rank }: ListExportPlayerRowProps) => {
+export const ListExportPlayerRow = ({ player, rank }: ListExportPlayerRowProps) => {
   const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
@@ -64,4 +64,3 @@ const ListExportPlayerRow = ({ player, rank }: ListExportPlayerRowProps) => {
   );
 };
 
-export default ListExportPlayerRow;

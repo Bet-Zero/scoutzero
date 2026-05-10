@@ -13,12 +13,12 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import TeamLogo from '@/shared/components/TeamLogo';
-import BirdRightsIcon from '@/shared/components/BirdRightsIcon';
-import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
+import { TeamLogo } from '@/shared/components/TeamLogo';
+import { BirdRightsIcon } from '@/shared/components/BirdRightsIcon';
+import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import * as DialogModule from '@/shared/components/ui/Dialog';
-import MultiSelectFilter from '@/shared/components/ui/filters/MultiSelectFilter';
+import { MultiSelectFilter } from '@/shared/components/ui/filters/MultiSelectFilter';
 
 beforeEach(() => {
   class ResizeObserverMock {

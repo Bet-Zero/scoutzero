@@ -26,7 +26,7 @@ type BirdRightsIconProps = {
   size?: number;
 };
 
-const BirdRightsIcon = ({
+export const BirdRightsIcon = ({
   type,
   className = '',
   size = 16,
@@ -61,4 +61,3 @@ const BirdRightsIcon = ({
   );
 };
 
-export default BirdRightsIcon;

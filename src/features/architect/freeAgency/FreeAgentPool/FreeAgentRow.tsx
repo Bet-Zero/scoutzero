@@ -23,7 +23,7 @@ function getTeamLogoId(teamCode: string | null | undefined): string {
   return TeamCodeMap[teamCode as TeamCode].id;
 }
 
-const FreeAgentRow = ({
+export const FreeAgentRow = ({
   entry,
   onSelect,
   isSelected = false,
@@ -249,4 +249,3 @@ const FreeAgentRow = ({
   );
 };
 
-export default FreeAgentRow;

@@ -173,7 +173,7 @@ const CompactTradeExceptionRow = ({ tpe }: CompactTradeExceptionRowProps) => {
   );
 };
 
-const ExceptionTracker = ({
+export const ExceptionTracker = ({
   teamCapSheet,
   currentYear,
   selectedYear = currentYear,
@@ -381,4 +381,3 @@ const ExceptionTracker = ({
   );
 };
 
-export default ExceptionTracker;

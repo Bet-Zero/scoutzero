@@ -85,4 +85,3 @@ export function usePlayerTableDensity(): UsePlayerTableDensityResult {
   };
 }
 
-export default usePlayerTableDensity;

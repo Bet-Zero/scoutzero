@@ -32,7 +32,7 @@ const selectValue = (value: unknown): string | number => {
   return '';
 };
 
-const RangeSelector = ({
+export const RangeSelector = ({
   label,
   minKey,
   maxKey,
@@ -103,4 +103,3 @@ const RangeSelector = ({
   );
 };
 
-export default RangeSelector;

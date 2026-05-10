@@ -1,9 +1,9 @@
 import React from 'react';
-import BadgeMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/BadgeMini';
-import PlayerTraitsMiniGrid from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerTraitsMiniGrid';
-import PlayerSubRolesMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerSubRolesMini';
-import PlayerStatsMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerStatsMini';
-import PlayerContractMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini';
+import { BadgeMini } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/BadgeMini';
+import { PlayerTraitsMiniGrid } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerTraitsMiniGrid';
+import { PlayerSubRolesMini } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerSubRolesMini';
+import { PlayerStatsMini } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerStatsMini';
+import { PlayerContractMini } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini';
 import type { FilterablePlayer } from '@/shared/utils/filtering/playerFilterUtils';
 
 const Divider = () => <div className="w-px h-auto bg-white/10 mx-3 my-1" />;
@@ -15,7 +15,7 @@ type PlayerDrawerProps = {
 const getFirstContract = (player: FilterablePlayer) =>
   player.contracts ? Object.values(player.contracts)[0] : undefined;
 
-const PlayerDrawer = ({ player }: PlayerDrawerProps) => {
+export const PlayerDrawer = ({ player }: PlayerDrawerProps) => {
   const firstContract = getFirstContract(player);
   const contract = player.primaryContract || firstContract;
   const subRoles = player.subRoles ||
@@ -65,4 +65,3 @@ const PlayerDrawer = ({ player }: PlayerDrawerProps) => {
   );
 };
 
-export default PlayerDrawer;

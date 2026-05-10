@@ -195,4 +195,3 @@ export const EntitlementHealthPanel: React.FC<EntitlementHealthPanelProps> = ({
   );
 };
 
-export default EntitlementHealthPanel;

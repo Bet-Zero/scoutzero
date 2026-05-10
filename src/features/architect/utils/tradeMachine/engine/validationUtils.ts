@@ -6,7 +6,7 @@
 import { performanceMonitor } from './validationPerformanceMonitor';
 import { validationCache } from '../cache/validationCacheService';
 import { debug } from './engineUtils';
-import tradeDebug from './tradeDebug';
+import { debug as tradeDebug } from './tradeDebug';
 
 // `never[]` keeps heterogeneous validators assignable without erasing each concrete tuple.
 type ValidatorFunction<TArgs extends unknown[] = never[], TResult = unknown> = (

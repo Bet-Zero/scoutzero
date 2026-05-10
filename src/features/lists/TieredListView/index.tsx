@@ -1,14 +1,14 @@
 // src/features/lists/TieredListView.tsx
 
 import React from 'react';
-import TierPlayerTile from '@/features/lists/TierPlayerTile';
+import { TierPlayerTile } from '@/features/lists/TierPlayerTile';
 import type { ListDisplayPlayer } from '@/features/lists/ListPreviewModal/ListExportWrapper';
 
 type TieredListViewProps = {
   tieredPlayers?: Record<string, ListDisplayPlayer[]>;
 };
 
-const TieredListView = ({ tieredPlayers = {} }: TieredListViewProps) => {
+export const TieredListView = ({ tieredPlayers = {} }: TieredListViewProps) => {
   const tierNames = Object.keys(tieredPlayers).sort((a, b) => {
     const numA = parseInt(a.replace(/\D/g, '')) || 0;
     const numB = parseInt(b.replace(/\D/g, '')) || 0;
@@ -36,4 +36,3 @@ const TieredListView = ({ tieredPlayers = {} }: TieredListViewProps) => {
   );
 };
 
-export default TieredListView;

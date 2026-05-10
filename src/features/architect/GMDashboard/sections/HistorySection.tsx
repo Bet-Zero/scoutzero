@@ -10,7 +10,7 @@
  *  - Plan: N/A (ad-hoc change)
  *  - Latest Chunk: N/A
  */
-import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
+import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 
 type HistorySectionProps = {

@@ -67,7 +67,7 @@ const mapExceptionRow = (entry: ExceptionHistoryEntry = {}): ExceptionHistoryRow
   };
 };
 
-const ExceptionHistoryTracker = ({
+export const ExceptionHistoryTracker = ({
   exceptionHistory = [],
   mleHistory = [],
 }: ExceptionHistoryTrackerProps) => {
@@ -155,4 +155,3 @@ const ExceptionHistoryTracker = ({
   );
 };
 
-export default ExceptionHistoryTracker;

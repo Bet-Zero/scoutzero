@@ -1,6 +1,6 @@
 import React from 'react';
 import type { MouseEvent } from 'react';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import { PlayerNameMini } from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
 type RotationCardProps = {
@@ -17,7 +17,7 @@ type RotationCardProps = {
   isExport?: boolean;
 };
 
-const RotationCard = ({
+export const RotationCard = ({
   player,
   onRemove,
   showRemove = true,
@@ -79,4 +79,3 @@ const RotationCard = ({
   );
 };
 
-export default RotationCard;

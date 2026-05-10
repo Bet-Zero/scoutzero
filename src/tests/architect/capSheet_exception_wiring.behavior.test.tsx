@@ -9,9 +9,9 @@ import {
   within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker/ExceptionTracker';
-import ManageExceptionsModal from '@/features/architect/capSheet/modals/ManageExceptionsModal';
-import ManageDeadMoneyModal from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
+import { ExceptionTracker } from '@/features/architect/capSheet/ExceptionTracker/ExceptionTracker';
+import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
+import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
 import {
   getCapSettingsForYear,
   getExceptionDefaultAmountFromCapSettings,

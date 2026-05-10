@@ -25,7 +25,7 @@ type SubRoleFilterValue = {
 const isSubRoleFilterValue = (value: unknown): value is SubRoleFilterValue =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
-const useActiveFilterCount = <TFilters extends ActiveFilterState>(
+export const useActiveFilterCount = <TFilters extends ActiveFilterState>(
   filters: TFilters | null | undefined,
   getDefaultFilters: GetDefaultFilters<TFilters> | null | undefined,
   excludeFromCount: readonly string[] = []
@@ -68,4 +68,3 @@ const useActiveFilterCount = <TFilters extends ActiveFilterState>(
   }, [filters, getDefaultFilters, excludeFromCount]);
 };
 
-export default useActiveFilterCount;

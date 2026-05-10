@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
-import TeamLogo from '@/shared/components/TeamLogo';
+import { PlayerNameMini } from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
+import { TeamLogo } from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatSalary } from '@/shared/utils/formatting';
 import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
@@ -112,7 +112,7 @@ interface TradePlayerRowProps {
   compact?: boolean;
 }
 
-const TradePlayerRow = ({
+export const TradePlayerRow = ({
   player,
   included,
   yearKey,
@@ -475,4 +475,3 @@ const TradePlayerRow = ({
   );
 };
 
-export default TradePlayerRow;

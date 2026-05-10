@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { OutgoingPlayersList } from '@/features/architect/tradeMachine/OutgoingPlayersList';
-import TradePlayerRow from '@/features/architect/tradeMachine/TradePlayerRow';
-import EntitlementPicksList from '@/features/architect/tradeMachine/EntitlementPicksList';
-import EntitlementPickRow from '@/features/architect/tradeMachine/EntitlementPickRow';
+import { TradePlayerRow } from '@/features/architect/tradeMachine/TradePlayerRow';
+import { EntitlementPicksList } from '@/features/architect/tradeMachine/EntitlementPicksList';
+import { EntitlementPickRow } from '@/features/architect/tradeMachine/EntitlementPickRow';
 
 const {
   mockGetPlayerPositionLabel,

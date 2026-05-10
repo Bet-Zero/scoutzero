@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ProfilePlayer } from '@/features/profile/profileUiTypes';
 
-const formatStat = (
+export const formatStat = (
   stat: string | number | null | undefined,
   isInteger = false,
   multiply = false
@@ -31,7 +31,7 @@ function getStatsSeasonYear() {
   return isNewSeason ? year : year - 1;
 }
 
-const PlayerStatsTable = ({ player }: { player: ProfilePlayer }) => {
+export const PlayerStatsTable = ({ player }: { player: ProfilePlayer }) => {
   const stats = (player.latestSeasonStats || {}) as Record<
     string,
     string | number | null | undefined
@@ -90,4 +90,3 @@ const PlayerStatsTable = ({ player }: { player: ProfilePlayer }) => {
   );
 };
 
-export default React.memo(PlayerStatsTable);
