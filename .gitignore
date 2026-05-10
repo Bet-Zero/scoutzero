@@ -46,8 +46,8 @@ serviceAccountKey.json
 repomix-output.*
 
 # Playwright test artifacts
-e2e/test-results/
-e2e/screenshots/
+tests/e2e/test-results/
+tests/e2e/screenshots/
 playwright-report/
 test-results/
 

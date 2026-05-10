@@ -8,12 +8,12 @@ const playwrightBaseUrl = 'http://127.0.0.1:5173';
  * Playwright E2E Test Configuration for ScoutZero
  *
  * Run with: npx playwright test
- * Run specific file: npx playwright test e2e/architect-qa.spec.ts
+ * Run specific file: npx playwright test tests/e2e/architect-qa.spec.ts
  * Run with UI: npx playwright test --ui
  * Debug mode: npx playwright test --debug
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
   /* Test timeout - architect workflows can be slow */
   timeout: 60_000,
   /* Expect timeout for assertions */
@@ -31,7 +31,7 @@ export default defineConfig({
   /* Reporter - HTML for detailed results, line for CI */
   reporter: process.env.CI ? 'line' : [['html', { open: 'never' }]],
   /* Output directory for screenshots and traces */
-  outputDir: 'e2e/test-results',
+  outputDir: 'tests/e2e/test-results',
 
   /* Shared settings for all the projects below. */
   use: {
