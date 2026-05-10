@@ -7,7 +7,7 @@ import {
   type DocumentData,
   type WithFieldValue,
 } from 'firebase/firestore';
-import { db } from './firebaseConfig';
+import { db } from '@/firebaseConfig';
 import { PLAYERS_COLLECTION } from '@/constants/collections';
 
 export type PlayerFirestoreData = WithFieldValue<DocumentData>;

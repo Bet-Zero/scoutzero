@@ -2,8 +2,8 @@
 /**
  * Smoke tests for src/shared/hooks JS→TS conversions.
  * Covers useFirebaseQuery (most logic-rich hook).
- * Other hooks (useAuth, useImageDownload, useClickOutside, usePlayerDetail,
- * useSeasonPlayerData) are exercised via component-level mocks in:
+ * Other hooks (useAuth, useImageDownload, useClickOutside, usePlayerDetail)
+ * are exercised via component-level mocks in:
  *   - src/tests/scouting/playerProfile.behavior.test.tsx
  *   - src/tests/architect/GMDashboard.smoke.test.tsx
  */
