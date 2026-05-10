@@ -8,7 +8,7 @@ import { TeamListFull } from '@/constants/teamList';
 import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
-import RankingSession from './RankingSession';
+import { RankingSession } from './RankingSession';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';
 import { useRankerSession } from './hooks/useRankerSession';
 import { hasLocalDraft } from './utils/rankerLocalDraft';
@@ -30,7 +30,7 @@ type RankerDraftBannerData = {
 
 // ─── Pool Card ────────────────────────────────────────────────────────────────
 
-const PoolCard = ({
+export const PoolCard = ({
   player,
   onRemove,
 }: {
@@ -59,7 +59,7 @@ const PoolCard = ({
 
 // ─── Local Draft Resume Banner ────────────────────────────────────────────────
 
-const LocalDraftBanner = ({
+export const LocalDraftBanner = ({
   draft,
   onResume,
   onStartNew,
@@ -153,7 +153,7 @@ const LocalDraftBanner = ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const RankingBuilder = () => {
+export const RankingBuilder = () => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { userId } = useAuth();
   console.log('OWNER UID (from useAuth):', userId);
@@ -575,4 +575,3 @@ const RankingBuilder = () => {
   );
 };
 
-export default RankingBuilder;

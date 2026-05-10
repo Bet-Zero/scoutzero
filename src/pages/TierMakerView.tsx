@@ -5,8 +5,8 @@ import {
   useNavigate,
   Link,
 } from 'react-router-dom';
-import TierMakerBoard from '@/features/tierMaker/TierMakerBoard';
-import TieramidBoard from '@/features/tierMaker/TieramidBoard';
+import { TierMakerBoard } from '@/features/tierMaker/TierMakerBoard';
+import { TieramidBoard } from '@/features/tierMaker/TieramidBoard';
 import { useTierDraft } from '@/features/tierMaker/hooks/useTierDraft';
 import {
   standardToTieramid,

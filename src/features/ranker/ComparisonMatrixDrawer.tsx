@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ComparisonMatrix from './ComparisonMatrix';
+import { ComparisonMatrix } from './ComparisonMatrix';
 import type { RankerComparison, RankerPlayer } from './utils/rankingEngine';
 
 type ComparisonMatrixDrawerProps = {
@@ -7,7 +7,7 @@ type ComparisonMatrixDrawerProps = {
   comparisons: RankerComparison[];
 };
 
-const ComparisonMatrixDrawer = ({
+export const ComparisonMatrixDrawer = ({
   players,
   comparisons,
 }: ComparisonMatrixDrawerProps) => {
@@ -70,4 +70,3 @@ const ComparisonMatrixDrawer = ({
   );
 };
 
-export default ComparisonMatrixDrawer;

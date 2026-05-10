@@ -15,7 +15,7 @@ type TieramidPlayerTileProps = {
   player?: TieramidTilePlayer | null;
 };
 
-const TieramidPlayerTile = ({ player }: TieramidPlayerTileProps) => {
+export const TieramidPlayerTile = ({ player }: TieramidPlayerTileProps) => {
   if (!player) return null;
 
   const headshot =
@@ -64,4 +64,3 @@ const TieramidPlayerTile = ({ player }: TieramidPlayerTileProps) => {
   );
 };
 
-export default TieramidPlayerTile;

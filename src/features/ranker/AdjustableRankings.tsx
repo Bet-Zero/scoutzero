@@ -22,7 +22,7 @@ const getLogoSrc = (player: RankerPlayer) => {
   return `/assets/logos/${String(team).toLowerCase()}.png`;
 };
 
-const AdjustableRankings = ({
+export const AdjustableRankings = ({
   initialRanking = [],
   onSave,
   onCancel,
@@ -218,4 +218,3 @@ const AdjustableRankings = ({
   );
 };
 
-export default AdjustableRankings;

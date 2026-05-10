@@ -532,4 +532,3 @@ export function useRankerSession(): UseRankerSessionResult {
   };
 }
 
-export default useRankerSession;

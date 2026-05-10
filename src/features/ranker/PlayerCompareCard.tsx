@@ -11,7 +11,7 @@ type PlayerCompareCardProps = {
   onUndo?: () => void;
 };
 
-const PlayerCompareCard = ({
+export const PlayerCompareCard = ({
   left,
   right,
   onSelect,
@@ -55,4 +55,3 @@ const PlayerCompareCard = ({
   );
 };
 
-export default PlayerCompareCard;

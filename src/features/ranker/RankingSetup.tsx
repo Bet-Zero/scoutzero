@@ -358,4 +358,3 @@ export const RankingSetup = ({
   );
 };
 
-export default RankingSetup;

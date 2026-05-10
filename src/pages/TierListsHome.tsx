@@ -9,7 +9,7 @@ import {
   deleteTierList,
 } from '@/firebase/listHelpers';
 import type { TierList } from '@/firebase/listHelpers';
-import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
+import { CreateTierListModal } from '@/features/tierMaker/CreateTierListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import type { SimplePlayer } from '@/shared/hooks/useSimplePlayerData';

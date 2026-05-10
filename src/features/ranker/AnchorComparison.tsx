@@ -70,4 +70,3 @@ export const AnchorComparison = ({
   );
 };
 
-export default AnchorComparison;

@@ -1,5 +1,5 @@
 import React from 'react';
-import RankingBuilder from '@/features/ranker/RankingBuilder';
+import { RankingBuilder } from '@/features/ranker/RankingBuilder';
 import '@/features/ranker/ranker.css';
 
 const PlayerRankerPage = () => (

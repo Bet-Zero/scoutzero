@@ -5,9 +5,9 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import PlayerCompareCard from './PlayerCompareCard';
-import RankingResults from './RankingResults';
-import ComparisonMatrixDrawer from './ComparisonMatrixDrawer';
+import { PlayerCompareCard } from './PlayerCompareCard';
+import { RankingResults } from './RankingResults';
+import { ComparisonMatrixDrawer } from './ComparisonMatrixDrawer';
 import { RankingSetup } from './RankingSetup';
 import { AnchorComparison } from './AnchorComparison';
 import {
@@ -49,7 +49,7 @@ type RankingSessionProps = {
   savedListMeta?: SavedListMeta | null;
 };
 
-const RankingSession = ({
+export const RankingSession = ({
   playerPool = [],
   resumedSessionData = null,
   autosave = null,
@@ -481,4 +481,3 @@ const RankingSession = ({
   );
 };
 
-export default RankingSession;

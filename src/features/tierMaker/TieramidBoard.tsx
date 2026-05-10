@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
-import TieramidPlayerTile from '@/features/tierMaker/TieramidPlayerTile';
+import { TieramidPlayerTile } from '@/features/tierMaker/TieramidPlayerTile';
 import {
   fetchTierList,
   saveTierList,
@@ -16,7 +16,7 @@ import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { where } from 'firebase/firestore';
-import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
+import { CreateTierListModal } from '@/features/tierMaker/CreateTierListModal';
 import { TeamListFull } from '@/constants/teamList';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
@@ -56,7 +56,7 @@ type TieramidBoardProps = {
   draftRestored?: boolean;
 };
 
-const TieramidBoard = ({
+export const TieramidBoard = ({
   onScreenshotChange,
   initialTierListId = '',
   onTierListChange,
@@ -1108,4 +1108,3 @@ const TieramidBoard = ({
   );
 };
 
-export default TieramidBoard;

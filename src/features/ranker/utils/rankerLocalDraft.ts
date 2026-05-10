@@ -246,12 +246,3 @@ export const __testing = {
   DEBOUNCE_MS,
 };
 
-export default {
-  loadLocalDraft,
-  saveLocalDraftImmediate,
-  saveLocalDraftDebounced,
-  clearLocalDraft,
-  hasLocalDraft,
-  flushPendingDraftSave,
-  createInitialDraft,
-};

@@ -8,7 +8,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import useImageDownload from '@/shared/hooks/useImageDownload';
-import AdjustableRankings from './AdjustableRankings';
+import { AdjustableRankings } from './AdjustableRankings';
 import type { RankerPlayer } from './utils/rankingEngine';
 
 type SaveStatus = 'saving' | 'saved' | 'error' | null;
@@ -45,7 +45,7 @@ const getLogoSrc = (player: RankerPlayer) => {
 
 // ─── Grid Card ────────────────────────────────────────────────────────────────
 
-const GridCard = ({ player, rank }: RankedColumnItem) => {
+export const GridCard = ({ player, rank }: RankedColumnItem) => {
   const headshot = getHeadshotSrc(player);
   const logoSrc = getLogoSrc(player);
 
@@ -97,7 +97,7 @@ const GridCard = ({ player, rank }: RankedColumnItem) => {
 
 // ─── List Row ─────────────────────────────────────────────────────────────────
 
-const ListRow = ({ player, rank }: RankedColumnItem) => {
+export const ListRow = ({ player, rank }: RankedColumnItem) => {
   const headshot = getHeadshotSrc(player);
   const logoSrc = getLogoSrc(player);
 
@@ -140,7 +140,7 @@ const ListRow = ({ player, rank }: RankedColumnItem) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const RankingResults = ({
+export const RankingResults = ({
   ranking = [],
   onRankingAdjusted,
   isOwner = false,
@@ -422,4 +422,3 @@ const RankingResults = ({
   );
 };
 
-export default RankingResults;

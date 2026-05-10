@@ -25,7 +25,7 @@ type TierRowProps = {
   canRemovePlayer?: boolean;
 };
 
-const TierRow = ({
+export const TierRow = ({
   tier,
   players = [],
   screenshotMode,
@@ -130,4 +130,3 @@ const TierRow = ({
   </div>
 );
 
-export default TierRow;

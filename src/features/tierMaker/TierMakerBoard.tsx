@@ -1,7 +1,7 @@
 // src/features/tierMaker/TierMakerBoard.tsx
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import TierRow from '@/features/tierMaker/TierRow';
+import { TierRow } from '@/features/tierMaker/TierRow';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -11,7 +11,7 @@ import { TeamListFull } from '@/constants/teamList';
 import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
-import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
+import { CreateTierListModal } from '@/features/tierMaker/CreateTierListModal';
 import {
   fetchTierList,
   saveTierList,
@@ -100,7 +100,7 @@ const normalizeTiers = (
 const getTierPlayerId = (player: TierBoardPlayer): string =>
   player.player_id || player.id;
 
-const TierMakerBoard = ({
+export const TierMakerBoard = ({
   players = [],
   initialTierListId = '',
   onTierListChange,
@@ -794,4 +794,3 @@ const TierMakerBoard = ({
   );
 };
 
-export default TierMakerBoard;

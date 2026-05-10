@@ -1,4 +1,4 @@
-import TieramidPlayerTile from '@/features/tierMaker/TieramidPlayerTile';
+import { TieramidPlayerTile } from '@/features/tierMaker/TieramidPlayerTile';
 import type { TieramidBoardPlayer } from './utils/tieramidHelpers';
 
 type TieramidPoolProps = {

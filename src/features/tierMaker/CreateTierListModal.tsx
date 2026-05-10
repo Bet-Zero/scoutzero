@@ -12,7 +12,7 @@ type CreateTierListModalProps = {
   mode?: TierListMode;
 };
 
-const CreateTierListModal = ({
+export const CreateTierListModal = ({
   isOpen,
   onClose,
   onCreated,
@@ -66,4 +66,3 @@ const CreateTierListModal = ({
   );
 };
 
-export default CreateTierListModal;

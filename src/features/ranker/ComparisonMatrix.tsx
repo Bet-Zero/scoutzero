@@ -8,7 +8,7 @@ type ComparisonMatrixProps = {
   className?: string;
 };
 
-const ComparisonMatrix = ({
+export const ComparisonMatrix = ({
   players,
   comparisons,
   className = '',
@@ -84,4 +84,3 @@ const ComparisonMatrix = ({
   );
 };
 
-export default ComparisonMatrix;
