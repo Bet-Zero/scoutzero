@@ -7,17 +7,17 @@ large/risky last. Each wave builds on the previous one.
 
 ## Summary Table
 
-| # | Item | Effort | Files Touched | AI-Agent Impact |
-|---|------|--------|--------------|----------------|
-| 1 | Delete `useSeasonPlayerData` | XS (15 min) | 1 | Low |
-| 2 | Move `src/firebaseHelpers.ts` into `src/firebase/` | XS (20 min) | 2 | Low |
-| 3 | Barrel exports for all 8 feature folders | S (2–3 hr) | 8 new files | **High** |
-| 4 | Default export audit + conversion | M (half day) | 173+ files | Medium |
-| 5 | Split large React components (3 files) | M (half day) | 3 files | Medium |
-| 6 | Split `seasonManager.ts` | M (1 day) | ~5 new files | Medium |
-| 7 | Split `capLegalityValidation.ts` | L (1–2 days) | ~6 new files | **High** |
-| 8 | Split `useArchitectActions.ts` | L (2 days) | ~6 new files | **High** |
-| 9 | Split `mutationPipeline.ts` | XL (3–5 days) | ~10 new files | **Critical** |
+| # | Item | Effort | Files Touched | AI-Agent Impact | Status |
+|---|------|--------|--------------|----------------|--------|
+| 1 | Delete `useSeasonPlayerData` | XS (15 min) | 1 | Low | ✅ Done 2026-05-10 |
+| 2 | Move `src/firebaseHelpers.ts` into `src/firebase/` | XS (20 min) | 2 | Low | ✅ Done 2026-05-10 |
+| 3 | Barrel exports for all 8 feature folders | S (2–3 hr) | 8 new files | **High** | |
+| 4 | Default export audit + conversion | M (half day) | 173+ files | Medium | |
+| 5 | Split large React components (3 files) | M (half day) | 3 files | Medium | |
+| 6 | Split `seasonManager.ts` | M (1 day) | ~5 new files | Medium | |
+| 7 | Split `capLegalityValidation.ts` | L (1–2 days) | ~6 new files | **High** | |
+| 8 | Split `useArchitectActions.ts` | L (2 days) | ~6 new files | **High** | |
+| 9 | Split `mutationPipeline.ts` | XL (3–5 days) | ~10 new files | **Critical** | |
 
 ---
 
@@ -37,40 +37,26 @@ large/risky last. Each wave builds on the previous one.
 
 ---
 
-## Wave 1 — Trivial Cleanup (< 1 hour total)
+## Wave 1 — Trivial Cleanup ✅ Complete (2026-05-10)
 
-### 1. Delete `useSeasonPlayerData`
+### 1. Delete `useSeasonPlayerData` ✅
 
-**File:** [src/shared/hooks/useSeasonPlayerData.ts](../../src/shared/hooks/useSeasonPlayerData.ts)  
-**Effort:** XS — delete 1 file  
-**Status:** Marked `@deprecated` at the top of the file. Zero active callers confirmed
-(grep returns nothing). The only references are a comment in `useSimplePlayerData.ts`
-and a test file comment — both survive deletion.
-
-**Steps:**
-1. Delete `src/shared/hooks/useSeasonPlayerData.ts`
-2. Update the comment in `src/shared/hooks/useSimplePlayerData.ts` (line ~15) that
-   references it
-3. Run `npm run test:fast -- --reporter=dot`
+**File:** ~~src/shared/hooks/useSeasonPlayerData.ts~~ (deleted)  
+Removed the deprecated hook (zero active callers). Cleaned up the stale reference
+in `src/tests/shared/hooks.smoke.test.tsx` comment. 57/57 smoke tests pass.
 
 ---
 
-### 2. Move `src/firebaseHelpers.ts` into `src/firebase/`
+### 2. Move `src/firebaseHelpers.ts` into `src/firebase/` ✅
 
-**File:** [src/firebaseHelpers.ts](../../src/firebaseHelpers.ts)  
-**Effort:** XS — move 1 file, update 1 test path reference  
-**Problem:** File lives at the root of `src/` rather than in `src/firebase/` where all
-other Firebase write helpers live. No active importers in the app — the only reference
-is a guardrail test that reads its source path:
+**File:** `src/firebaseHelpers.ts` → [src/firebase/firebaseHelpers.ts](../../src/firebase/firebaseHelpers.ts)  
+Moved to sit alongside `listHelpers.ts`, `rankerHelpers.ts`, `rosterHelpers.ts`.
+Updated relative `./firebaseConfig` import to `@/firebaseConfig`. No import sites
+needed updating (file had no callers in the app). 57/57 smoke tests pass.
 
-```
-src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts:28
-```
-
-**Steps:**
-1. Move `src/firebaseHelpers.ts` → `src/firebase/firebaseHelpers.ts`
-2. Update the `readArchitectFile` path in the guardrail test (line 28)
-3. Run `npm run test:fast -- --reporter=dot`
+Note: The guardrail test variable named `firebaseHelpersSource` reads
+`src/features/architect/utils/firebaseTeamPlanHelpers.ts` — a different file entirely.
+No test path updates were required.
 
 ---
 
@@ -257,3 +243,5 @@ to undo.
 - Migrated `RankingResults.tsx` from `@/hooks/useImageDownload` to
   `@/shared/hooks/useImageDownload`
 - Deleted `src/hooks/` (last file migrated, directory removed)
+- Deleted `src/shared/hooks/useSeasonPlayerData.ts` (deprecated, zero callers) — Wave 1 #1
+- Moved `src/firebaseHelpers.ts` → `src/firebase/firebaseHelpers.ts` — Wave 1 #2
