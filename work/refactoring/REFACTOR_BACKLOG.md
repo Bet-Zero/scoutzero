@@ -11,7 +11,7 @@ large/risky last. Each wave builds on the previous one.
 |---|------|--------|--------------|----------------|--------|
 | 1 | Delete `useSeasonPlayerData` | XS (15 min) | 1 | Low | ✅ Done 2026-05-10 |
 | 2 | Move `src/firebaseHelpers.ts` into `src/firebase/` | XS (20 min) | 2 | Low | ✅ Done 2026-05-10 |
-| 3 | Barrel exports for all 8 feature folders | S (2–3 hr) | 8 new files | **High** | |
+| 3 | Barrel exports for all 8 feature folders | S (2–3 hr) | 8 new files | **High** | ✅ Done 2026-05-10 (7 of 8; architect deferred) |
 | 4 | Default export audit + conversion | M (half day) | 173+ files | Medium | |
 | 5 | Split large React components (3 files) | M (half day) | 3 files | Medium | |
 | 6 | Split `seasonManager.ts` | M (1 day) | ~5 new files | Medium | |
@@ -60,27 +60,23 @@ No test path updates were required.
 
 ---
 
-## Wave 2 — Structure (2–3 hours)
+## Wave 2 — Structure ✅ Complete (2026-05-10)
 
-### 3. Barrel exports for all 8 feature folders
+### 3. Barrel exports for all 8 feature folders ✅ (7 of 8 done)
 
-**Folders:** `architect`, `filters`, `lists`, `profile`, `ranker`, `roster`, `table`,
-`tierMaker` — none have a top-level `index.ts`
+**Done:** `filters`, `lists`, `profile`, `ranker`, `roster`, `table`, `tierMaker` —
+each has a new `index.ts` exposing only the public surface (what files outside the
+feature actually import). Default-export source files are re-exported via
+`export { default as X }` so existing deep-path imports keep working.
 
-**Why it matters for AI agents:** Without barrel exports, an agent editing the `filters`
-feature needs to know the internal deep path of every export it references. With an
-`index.ts`, agents can import from `@/features/filters` and internal restructuring
-doesn't break anything outside the feature boundary.
+Typecheck clean, 57/57 smoke tests pass.
 
-**Approach per folder:**
-1. Audit the folder's existing exports (what do other features actually import from it?)
-2. Write an `index.ts` that re-exports those public items
-3. Do NOT re-export every internal file — only the public surface
-4. Run `npm run validate:project -- --reporter=dot` and `npm run typecheck`
-
-**Start with `filters`** (most default-export cleanup still ahead) then `lists`,
-`ranker`, `roster`, `table`, `tierMaker`. Leave `architect` and `profile` for last
-since they have the deepest internal structure.
+**Architect deferred.** The architect feature has 145+ unique import paths from
+outside — far too many for a single top-level barrel without creating an unmaintainable
+200-line index and risking circular dependency issues. The right approach is
+sub-barrels per domain (`utils/index.ts`, `GMDashboard/index.ts`,
+`tradeMachine/index.ts`, `hooks/index.ts`, etc.). This is best done as part of
+Wave 4 when those domains are being split anyway.
 
 ---
 
@@ -245,3 +241,5 @@ to undo.
 - Deleted `src/hooks/` (last file migrated, directory removed)
 - Deleted `src/shared/hooks/useSeasonPlayerData.ts` (deprecated, zero callers) — Wave 1 #1
 - Moved `src/firebaseHelpers.ts` → `src/firebase/firebaseHelpers.ts` — Wave 1 #2
+- Added `index.ts` barrels for `filters`, `lists`, `profile`, `ranker`, `roster`,
+  `table`, `tierMaker` — Wave 2 #3 (architect deferred to Wave 4)
