@@ -26,8 +26,9 @@ RankedListTierToggle.tsx
 TierPlayerTile.tsx
 TieredListView/
   index.tsx
+index.ts
 ```
 
 ---
-*Generated on: 2026-04-19T02:20:42.138Z*
+*Generated on: 2026-05-10T10:14:03.867Z*
 *Auto-updated by: npm run docs*

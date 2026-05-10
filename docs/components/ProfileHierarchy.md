@@ -25,11 +25,12 @@ hooks/
   useAutoSavePlayer.ts
   usePlayerNavigation.ts
   usePlayerProfileState.ts
+index.ts
 profileUiTypes.ts
 utils/
   profileHelpers.ts
 ```
 
 ---
-*Generated on: 2026-04-25T11:04:54.127Z*
+*Generated on: 2026-05-10T10:14:03.870Z*
 *Auto-updated by: npm run docs*

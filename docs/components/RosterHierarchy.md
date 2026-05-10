@@ -29,6 +29,7 @@ RosterViewerActions.tsx
 SaveRosterModal.tsx
 hooks/
   useRosterManager.ts
+index.ts
 utils/
   contractUtils.ts
   enrichPlayerData.ts
@@ -38,5 +39,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-19T01:43:28.693Z*
+*Generated on: 2026-05-10T10:14:03.877Z*
 *Auto-updated by: npm run docs*
