@@ -14,10 +14,10 @@ large/risky last. Each wave builds on the previous one.
 | 3 | Barrel exports for all 8 feature folders | S (2–3 hr) | 8 new files | **High** | ✅ Done 2026-05-10 (7 of 8; architect deferred) |
 | 4 | Default export audit + conversion | M (half day) | 173+ files | Medium | ✅ Done 2026-05-10 (see notes below) |
 | 5 | Split large React components (3 files) | M (half day) | 3 files | Medium | 🔄 Partial (TieramidBoard ✅, TradeTeamCard ✅; SeasonAdvanceModal deferred — guardrail locks) |
-| 6 | Split `seasonManager.ts` | M (1 day) | ~5 new files | Medium | |
-| 7 | Split `capLegalityValidation.ts` | L (1–2 days) | ~6 new files | **High** | |
-| 8 | Split `useArchitectActions.ts` | L (2 days) | ~6 new files | **High** | |
-| 9 | Split `mutationPipeline.ts` | XL (3–5 days) | ~10 new files | **Critical** | |
+| 6 | Split `seasonManager.ts` | M (1 day) | ~5 new files | Medium | Planned 2026-05-11 |
+| 7 | Split `capLegalityValidation.ts` | L (1–2 days) | ~6 new files | **High** | Planned 2026-05-11 |
+| 8 | Split `useArchitectActions.ts` | L (2 days) | ~6 new files | **High** | Planned 2026-05-11 |
+| 9 | Split `mutationPipeline.ts` | XL (3–5 days) | ~10 new files | **Critical** | Planned 2026-05-11 |
 
 ---
 
@@ -135,6 +135,10 @@ reading the full render section to understand prop boundaries.
 ---
 
 ## Wave 4 — Large Splits (days each)
+
+**Full execution plan:** [work/architect-split/PLAN.md](../architect-split/PLAN.md)  
+Planned 2026-05-11. Includes two prerequisite steps (guardrail test fixes, SeasonAdvanceModal
+split) before the main file splits.
 
 ### 6. Split `seasonManager.ts` (2,295 lines)
 
