@@ -30,6 +30,16 @@ PLAN.md scope, require user input?
 
 <!-- newest first -->
 
+## 2026-05-13 — Step 3: Skip useArchitectActions.ts split (Path B)
+
+**Context:** Completed Steps 2a-2e. PLAN.md says Step 3 is optional with two valid paths (A: execute, B: skip).
+
+**Decision:** Path B — skip Step 3 and proceed directly to Step 4a.
+
+**Reasoning:** PLAN.md recommends Path B "if Step 2 took longer than expected." Step 2 did take longer than expected: the signing.ts extraction required fixing 4 additional guardrail tests (phase74, phase75, capSheetFull_ssot, offerSheets_closure) due to source-scan tests checking the orchestrator file for content that moved to signing.ts. PLAN.md also notes Step 3 has "low value" (6,139 → ~5,500 lines, cosmetic improvement only). The real architectural problem in useArchitectActions.ts (20 handlers sharing closure state) cannot be solved by types-only extraction.
+
+**Impact:** useArchitectActions.ts remains at 6,139 lines. Step 4a starts immediately.
+
 ## 2026-05-13 — Step 2c: signing.ts is ~3,020 lines, not ~1,800; shared helpers duplicated
 
 **Context:** Step 2c execution. PLAN.md estimated `capLegalityValidation/signing.ts` at ~1,800 lines.
