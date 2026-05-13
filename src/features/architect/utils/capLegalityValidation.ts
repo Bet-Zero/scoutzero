@@ -102,163 +102,30 @@ import type {
 // CONSTANTS
 // ==============================================================================
 
-type CapLegalityViolation = {
-  rule: string;
-  message: string;
-  severity?: string;
-  [key: string]: unknown;
-};
+// Type definitions moved to capLegalityValidation/schema.ts (Wave 4 Step 2b)
+export * from './capLegalityValidation/schema';
+import type {
+  CapLegalityViolation,
+  MutationSalaryRow,
+  MutationContract,
+  MutationPlayer,
+  MutationTeamTotals,
+  MutationTeam,
+  MutationRosterEntry,
+  MutationCapHold,
+  KnownCapHold,
+  MutationValidationResult,
+  SigningTerms,
+  NormalizeSigningTermsOptions,
+  PlayerRulesProfileResult,
+  ProducedExtensionTerms,
+  ValidateOptionDecisionParams,
+  ValidateSigningParams,
+  ValidateWaiveParams,
+  ValidateExtensionParams,
+  ValidateRenounceRightsParams,
+} from './capLegalityValidation/schema';
 
-type MutationSalaryRow = Omit<
-  NonNullable<ArchitectMutationContract['salariesByYear']>[number],
-  | 'season'
-  | 'salary'
-  | 'capHit'
-  | 'guaranteed'
-  | 'guaranteedAmount'
-  | 'optionUsed'
-  | 'isExtensionSeason'
-> & {
-  season?: string | null;
-  salary?: number | string | null;
-  capHit?: number | string | null;
-  guaranteed?: boolean | null;
-  guaranteedAmount?: number | string | null;
-  optionUsed?: boolean | null;
-  isExtensionSeason?: boolean | null;
-};
-type MutationContract = Omit<
-  ArchitectMutationContract,
-  'salariesByYear' | 'freeAgency'
-> & {
-  salariesByYear?: MutationSalaryRow[];
-  freeAgency?:
-    | {
-        year?: number | string | null;
-        type?: string | null;
-        qualifyingOffer?: number | null;
-      }
-    | string
-    | null;
-  startSeason?: string | null;
-  endSeason?: string | null;
-  draftPick?: unknown;
-};
-type MutationPlayer = Omit<
-  ArchitectMutationPlayerRecord,
-  'contract' | 'futureContract'
-> & {
-  contract?: MutationContract | null;
-  futureContract?: MutationContract | null;
-  yearsOfService?: number | string | null;
-  experience?: unknown;
-  teamId?: string | null;
-  team_id?: string | null;
-  draftPick?: unknown;
-};
-type MutationTeamTotals = {
-  totalSalary?: number | string | null;
-  capHit?: number | string | null;
-  totalCapAllocations?: number | string | null;
-  isHardCapped?: boolean | null;
-  hardCapLevel?: string | null;
-};
-type MutationTeam = Omit<
-  ArchitectMutationTeamRecord,
-  'players' | 'twoWayPlayers' | 'capHolds' | 'roster' | 'totals'
-> & {
-  players?: MutationPlayer[];
-  twoWayPlayers?: MutationPlayer[];
-  capHolds?: MutationCapHold[];
-  roster?: MutationRosterEntry[];
-  totals?: MutationTeamTotals | null;
-  code?: string | null;
-};
-type MutationRosterEntry =
-  | string
-  | number
-  | {
-      player_id?: string | null;
-      playerId?: string | null;
-      id?: string | null;
-    };
-type MutationCapHold = Omit<Partial<CapHold>, 'playerId'> & {
-  playerId?: string | number | null;
-  playerName?: string | null;
-  amount?: number | null;
-  active?: boolean | null;
-  isSigned?: boolean | null;
-};
-type KnownCapHold = CapHold & MutationCapHold;
-type MutationValidationResult = {
-  valid: boolean;
-  violations: CapLegalityViolation[];
-  warnings: CapLegalityViolation[];
-};
-
-type SigningTerms = {
-  source?: string;
-  mechanism?: string | null;
-  rightsType?: string | null;
-  maxYears?: number | null;
-  minYears?: number | null;
-  raisePercentage?: number | null;
-  maxFirstYearSalary?: number | null;
-  minFirstYearSalary?: number | null;
-  notes?: string;
-};
-
-type NormalizeSigningTermsOptions = {
-  fallbackMechanism?: string | null;
-};
-
-type PlayerRulesProfileResult = ReturnType<typeof computePlayerRulesProfile>;
-type ProducedExtensionTerms = NonNullable<
-  PlayerRulesProfileResult['extensionTerms']
->;
-
-type ValidateOptionDecisionParams = {
-  originalTeam?: MutationTeam | null;
-  updatedTeam?: MutationTeam | null;
-  originalPlayer?: MutationPlayer | null;
-  updatedPlayer?: MutationPlayer | null;
-  team?: MutationTeam | null;
-  player?: MutationPlayer | null;
-  accepted?: boolean | null;
-  targetYear?: number | string | null;
-  currentYear?: number | string | null;
-};
-
-type ValidateSigningParams = {
-  team: MutationTeam;
-  player: MutationPlayer;
-  contract: MutationContract | null | undefined;
-  signedUsing: string | null | undefined;
-  year: number;
-  asOfDate?: string;
-};
-
-type ValidateWaiveParams = {
-  team: MutationTeam;
-  player: MutationPlayer;
-  stretch: boolean;
-  year: number;
-  isGracePeriod?: boolean;
-  asOfDate?: string;
-};
-
-type ValidateExtensionParams = {
-  team: MutationTeam;
-  player: MutationPlayer;
-  extension: MutationContract | null | undefined;
-  year: number;
-};
-
-type ValidateRenounceRightsParams = {
-  team: MutationTeam;
-  player: MutationPlayer;
-  year?: number | null;
-};
 
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
