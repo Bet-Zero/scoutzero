@@ -32,7 +32,7 @@ git log, the git log wins.
 | 2e | `capLegalityValidation/actionValidators.ts` | ✅ | b9f05a7c | 2026-05-13 | ~849 lines; KnownCapHold type added to imports; orphaned validateOfferSheetResolution JSDoc cleaned |
 | 3 | Split `useArchitectActions.ts` (**optional — decide A or B first**) | ⏭️ | — | 2026-05-13 | Path B chosen: Step 2 took longer than expected; low-value cosmetic split (see DECISIONS.md) |
 | 4a | Map + verify `mutationPipeline.ts` phase boundaries | ✅ | — | 2026-05-13 | STEP4_LINE_MAP.md produced; stop condition triggered — 30+ cross-phase deps block COMPUTE/READ split |
-| 4b | `mutationPipeline.types.ts` | ✅ | — | 2026-05-13 | Re-export barrel only (not code move); see DECISIONS.md for reasoning |
+| 4b | `mutationPipeline.types.ts` | ✅ | cc5d7f90 | 2026-05-13 | Re-export barrel only (not code move); see DECISIONS.md for reasoning |
 | 4c | `mutationPipeline.read.ts` | ❌ | — | — | Blocked: 30+ cross-phase helpers need resolution first (see STEP4_LINE_MAP.md) |
 | 4d | `mutationPipeline.compute.ts` | ❌ | — | — | Blocked by same cross-phase issue as 4c |
 | 4e | Verify imports + circular check + `npm run build` | ⬜ | — | — | Final gate |
@@ -55,12 +55,12 @@ is still green when picking up after a long break.
 
 | Gate | Last run | Result |
 |------|----------|--------|
-| `npm run typecheck` | 2026-05-12 | ✅ Clean |
-| `npm run validate:project` | — | — |
-| `npm run test:fast -- --reporter=dot` | 2026-05-12 | ✅ 57/57 |
-| `npm run test:architect -- --reporter=dot` | 2026-05-12 | ⚠️ 5 pre-existing files fail (phase66-70 migration script tests — see DECISIONS.md); all Wave 3 + Step 0.5-induced failures fixed |
-| `npm run test:cap-sheet-boundary -- --reporter=dot` | — | — |
-| `npm run build` | — | — |
+| `npm run typecheck` | 2026-05-13 | ✅ Clean |
+| `npm run validate:project` | 2026-05-13 | ✅ All validations passed |
+| `npm run test:fast -- --reporter=dot` | 2026-05-13 | ✅ 57/57 |
+| `npm run test:architect -- --reporter=dot` | 2026-05-13 | ⚠️ 5 pre-existing files fail (phase66-70 migration script tests — see DECISIONS.md); all other tests pass |
+| `npm run test:cap-sheet-boundary -- --reporter=dot` | 2026-05-13 | ✅ 75/75 |
+| `npm run build` | 2026-05-13 | ✅ Built (1 existing dynamic import warning, not new) |
 
 ---
 
@@ -68,8 +68,8 @@ is still green when picking up after a long break.
 
 Update this section at the end of every session.
 
-- **Date:** 2026-05-12
-- **Stopped after:** Step 1
-- **Last commit:** ae3e272b
-- **Next action:** Step 2a — Extract `capLegalityValidation/constants.ts`
-- **Open blockers:** 5 pre-existing phase66-70 test failures (documented in DECISIONS.md); these are not Wave 4 scope
+- **Date:** 2026-05-13
+- **Stopped after:** Step 4b
+- **Last commit:** cc5d7f90
+- **Next action:** Steps 4c/4d are BLOCKED — user decision required on cross-phase dependency strategy (see STEP4_LINE_MAP.md and DECISIONS.md)
+- **Open blockers:** (1) 5 pre-existing phase66-70 test failures; (2) Steps 4c/4d require decision between: add shared helpers submodule, relax MUST-NOT-import constraint, or accept types-only extraction as final scope
