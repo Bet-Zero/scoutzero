@@ -197,6 +197,7 @@ utils/
     postStateCapValidator.ts
   capLegalityValidation/
     constants.ts
+    extension.ts
     schema.ts
     signing.ts
   capLegalityValidation.ts
@@ -381,5 +382,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-13T07:03:02.488Z*
+*Generated on: 2026-05-13T07:12:56.248Z*
 *Auto-updated by: npm run docs*
