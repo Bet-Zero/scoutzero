@@ -45,7 +45,8 @@ const moduleParityCases = [
       '@/features/architect/utils/tradeMachine/engine/tradeDebug',
     authoritySpecifier:
       '../../features/architect/utils/tradeMachine/engine/tradeDebug.ts',
-    exportNames: ['default'],
+    // updated: Wave 3 export-shape change — tradeDebug is now a named export (see commits 10f5fed7, 692f4f8a)
+    exportNames: ['debug'],
   },
   {
     label: 'engineUtils',
@@ -114,7 +115,7 @@ describe('E121 tradeMachine engine shim deletion batch guardrails', () => {
       const expectedExportNames = [...moduleCase.exportNames];
 
       expect('default' in authorityModule).toBe(
-        expectedExportNames.includes('default')
+        (expectedExportNames as string[]).includes('default')
       );
       expect(Object.keys(authorityModule)).toEqual(
         expect.arrayContaining(expectedExportNames)

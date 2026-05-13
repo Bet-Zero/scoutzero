@@ -33,6 +33,7 @@ describe('E129 route/public-entry wrapper deletion batch guardrails', () => {
     expect(existingPaths).toEqual([]);
   });
 
+  // updated: Wave 3 export-shape change — pages use named imports now (see commits 10f5fed7, 692f4f8a)
   it('keeps GmDashboardView on the direct GMDashboard authority import', () => {
     const source = fs.readFileSync(
       path.join(srcRoot, 'pages/GmDashboardView.tsx'),
@@ -40,13 +41,14 @@ describe('E129 route/public-entry wrapper deletion batch guardrails', () => {
     );
 
     expect(source).toContain(
-      "import GMDashboard from '@/features/architect/GMDashboard/GMDashboard';"
+      "import { GMDashboard } from '@/features/architect/GMDashboard/GMDashboard';"
     );
     expect(source).not.toContain(
       "import GMDashboard from '@/features/architect/GMDashboard';"
     );
   });
 
+  // updated: Wave 3 export-shape change — pages use named imports now (see commits 10f5fed7, 692f4f8a)
   it('keeps GmLeagueView on the retained shared/LeagueView folder entry', () => {
     const source = fs.readFileSync(
       path.join(srcRoot, 'pages/GmLeagueView.tsx'),
@@ -54,13 +56,14 @@ describe('E129 route/public-entry wrapper deletion batch guardrails', () => {
     );
 
     expect(source).toContain(
-      "import LeagueView from '@/features/architect/shared/LeagueView';"
+      "import { LeagueView } from '@/features/architect/shared/LeagueView';"
     );
     expect(source).not.toContain(
       "import LeagueView from '@/features/architect/LeagueView';"
     );
   });
 
+  // updated: Wave 3 export-shape change — LeagueView is now a named export (see commits 10f5fed7, 692f4f8a)
   it('keeps the shared/LeagueView folder entry aligned with the TS authority', async () => {
     const authorityModule = await import(
       '../../features/architect/shared/LeagueView/LeagueView'
@@ -70,8 +73,8 @@ describe('E129 route/public-entry wrapper deletion batch guardrails', () => {
       'utf-8'
     );
 
-    expect(indexSource).toContain("export { default } from './LeagueView';");
-    expect(Object.keys(authorityModule)).toEqual(['default']);
-    expect(authorityModule.default).toBe(LeagueView);
+    expect(indexSource).toContain("export { LeagueView } from './LeagueView';");
+    expect(Object.keys(authorityModule)).toEqual(['LeagueView']);
+    expect(authorityModule.LeagueView).toBe(LeagueView);
   });
 });

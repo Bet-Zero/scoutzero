@@ -38,8 +38,9 @@ vi.mock('@/features/architect/utils/teamLoader', async () => {
   };
 });
 
+// updated: Wave 3 export-shape change — useArchitectPlayerData is now a named export (see commits 10f5fed7, 692f4f8a)
 vi.mock('@/features/architect/hooks/useArchitectPlayerData', () => ({
-  default: () => stateMocks.useArchitectPlayerData(),
+  useArchitectPlayerData: () => stateMocks.useArchitectPlayerData(),
 }));
 
 const TEST_TIMESTAMP = Date.parse('2026-03-24T12:00:00.000Z');

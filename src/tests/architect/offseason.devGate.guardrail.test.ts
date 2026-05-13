@@ -331,12 +331,14 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(fs.existsSync(optionManagerShimPath)).toBe(false);
     });
 
-    it('keeps OffseasonTab.tsx on a default-export authority surface', () => {
-      expect(offseasonTabSource).toContain('export default OffseasonTab;');
+    // updated: Wave 3 export-shape change — OffseasonTab is now a named export (see commits 10f5fed7, 692f4f8a)
+    it('keeps OffseasonTab.tsx on a named-export authority surface', () => {
+      expect(offseasonTabSource).toContain('export const OffseasonTab');
     });
 
-    it('keeps OptionManager.tsx on a default-export authority surface', () => {
-      expect(optionManagerSource).toContain('export default OptionManager;');
+    // updated: Wave 3 export-shape change — OptionManager is now a named export (see commits 10f5fed7, 692f4f8a)
+    it('keeps OptionManager.tsx on a named-export authority surface', () => {
+      expect(optionManagerSource).toContain('export const OptionManager');
     });
 
     it('keeps the preview type surface explicitly non-authoritative', () => {

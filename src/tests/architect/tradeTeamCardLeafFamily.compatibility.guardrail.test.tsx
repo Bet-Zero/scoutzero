@@ -51,54 +51,52 @@ describe('E101 Trade Team Card leaf-family compatibility guardrails', () => {
     );
   });
 
-  it('default-only deleted shims preserve extensionless and authority parity', async () => {
-    const defaultOnlyCases = [
+  // updated: Wave 3 export-shape change — these are now named-only exports (see commits 10f5fed7, 692f4f8a)
+  it('named-only leaf shims preserve extensionless and authority parity without defaults', async () => {
+    const namedLeafCases = [
       {
         authorityPath: 'CapImpactTiles.tsx',
+        exportName: 'CapImpactTiles' as const,
         loadExtensionless: () =>
           import('../../features/architect/tradeMachine/CapImpactTiles'),
         loadAuthority: () => import(CAP_IMPACT_TILES_AUTHORITY_SPECIFIER),
-        importedDefault: CapImpactTiles,
+        importedValue: CapImpactTiles,
       },
       {
         authorityPath: 'TradePlayerRow.tsx',
+        exportName: 'TradePlayerRow' as const,
         loadExtensionless: () =>
           import('../../features/architect/tradeMachine/TradePlayerRow'),
         loadAuthority: () => import(TRADE_PLAYER_ROW_AUTHORITY_SPECIFIER),
-        importedDefault: TradePlayerRow,
+        importedValue: TradePlayerRow,
       },
       {
         authorityPath: 'EntitlementPickRow.tsx',
+        exportName: 'EntitlementPickRow' as const,
         loadExtensionless: () =>
           import('../../features/architect/tradeMachine/EntitlementPickRow'),
         loadAuthority: () =>
           import(ENTITLEMENT_PICK_ROW_AUTHORITY_SPECIFIER),
-        importedDefault: EntitlementPickRow,
+        importedValue: EntitlementPickRow,
       },
       {
         authorityPath: 'TradeExceptionManager.tsx',
+        exportName: 'TradeExceptionManager' as const,
         loadExtensionless: () =>
           import('../../features/architect/tradeMachine/TradeExceptionManager'),
         loadAuthority: () => import(TRADE_EXCEPTION_MANAGER_AUTHORITY_SPECIFIER),
-        importedDefault: TradeExceptionManager,
+        importedValue: TradeExceptionManager,
       },
-    ] as const;
+    ];
 
-    for (const {
-      authorityPath,
-      loadAuthority,
-      loadExtensionless,
-      importedDefault,
-    } of defaultOnlyCases) {
+    for (const { authorityPath, exportName, loadAuthority, loadExtensionless, importedValue } of namedLeafCases) {
       const authoritySource = readAuthoritySource(authorityPath);
-      const extensionlessModule = await loadExtensionless();
-      const authorityModule = await loadAuthority();
+      const extensionlessModule = await loadExtensionless() as Record<string, unknown>;
+      const authorityModule = await loadAuthority() as Record<string, unknown>;
 
-      expect(authoritySource).toContain('export default');
-      expect(Object.keys(extensionlessModule)).toEqual(['default']);
-      expect(Object.keys(authorityModule)).toEqual(['default']);
-      expect(extensionlessModule.default).toBe(importedDefault);
-      expect(authorityModule.default).toBe(importedDefault);
+      expect(authoritySource).not.toContain('export default');
+      expect(extensionlessModule[exportName]).toBe(importedValue);
+      expect(authorityModule[exportName]).toBe(importedValue);
     }
   });
 

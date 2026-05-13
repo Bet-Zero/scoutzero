@@ -33,10 +33,10 @@ describe('Final mixed keeper batch E128 guardrails', () => {
 
   it('preserves capSettingsProvider export parity across extensionless and authority imports', async () => {
     const authorityModule = await import(capSettingsProviderAuthoritySpecifier);
+    // updated: Wave 3 export-shape change — capSettingsProvider default namespace removed (see commits 10f5fed7, 692f4f8a)
     const expectedKeys = [
       'CAP_SETTINGS_SOURCE_KEYS',
       'CAP_SETTINGS_VERSION',
-      'default',
       'getCapSettings',
       'getCapSettingsForReceipt',
       'getCapSettingsForYear',
@@ -47,8 +47,6 @@ describe('Final mixed keeper batch E128 guardrails', () => {
 
     expect(Object.keys(capSettingsProviderModule).sort()).toEqual(expectedKeys);
     expect(Object.keys(authorityModule).sort()).toEqual(expectedKeys);
-    expect(capSettingsProviderModule.default).toBe(capSettingsProviderDefault);
-    expect(authorityModule.default).toBe(capSettingsProviderDefault);
 
     for (const exportName of expectedKeys.filter((key) => key !== 'default')) {
       const extensionlessRecord = capSettingsProviderModule as Record<

@@ -22,7 +22,7 @@ git log, the git log wins.
 
 | Step | Description | Status | Commit | Date | Notes |
 |------|-------------|--------|--------|------|-------|
-| 0 | Fix architect compatibility guardrail tests | ⬜ | — | — | — |
+| 0 | Fix architect compatibility guardrail tests | ✅ | (see commit) | 2026-05-12 | 11 .ts/.tsx test files + 1 source file (capTotals/index.ts) fixed; 5 pre-existing phase66-70 failures documented in DECISIONS.md |
 | 0.5 | Split `SeasonAdvanceModal.tsx` | ⬜ | — | — | — |
 | 1 | Split `seasonManager.ts` (extract draft resolution) | ⬜ | — | — | — |
 | 2a | `capLegalityValidation/constants.ts` | ⬜ | — | — | — |
@@ -55,10 +55,10 @@ is still green when picking up after a long break.
 
 | Gate | Last run | Result |
 |------|----------|--------|
-| `npm run typecheck` | — | — |
+| `npm run typecheck` | 2026-05-12 | ✅ Clean |
 | `npm run validate:project` | — | — |
-| `npm run test:fast -- --reporter=dot` | — | — |
-| `npm run test:architect -- --reporter=dot` | — | — |
+| `npm run test:fast -- --reporter=dot` | 2026-05-12 | ✅ 57/57 |
+| `npm run test:architect -- --reporter=dot` | 2026-05-12 | ⚠️ 5 pre-existing files fail (phase66-70 migration script tests — see DECISIONS.md); all Wave 3-induced failures fixed |
 | `npm run test:cap-sheet-boundary -- --reporter=dot` | — | — |
 | `npm run build` | — | — |
 
@@ -68,8 +68,8 @@ is still green when picking up after a long break.
 
 Update this section at the end of every session.
 
-- **Date:** —
-- **Stopped after:** (step ID, e.g. "Step 2c")
-- **Last commit:** —
-- **Next action:** —
-- **Open blockers:** —
+- **Date:** 2026-05-12
+- **Stopped after:** Step 0
+- **Last commit:** (see git log)
+- **Next action:** Step 0.5 — Split `SeasonAdvanceModal.tsx`
+- **Open blockers:** 5 pre-existing phase66-70 test failures (documented in DECISIONS.md); these are not Wave 4 scope

@@ -17,3 +17,5 @@ export {
   resetWarnedKeys,
   canUseRoomException,
 } from './computeTeamCapTotals';
+// updated: Wave 3 retained export default on computeTeamCapTotals for smoke-test compat; barrel must re-export it
+export { default } from './computeTeamCapTotals';

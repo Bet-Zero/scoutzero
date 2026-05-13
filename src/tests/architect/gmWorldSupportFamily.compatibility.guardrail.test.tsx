@@ -67,22 +67,15 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     );
   });
 
-  it('DraftPositionsInput preserves default and named exports across extensionless and TSX authority imports', async () => {
+  // updated: Wave 3 export-shape change — DraftPositionsInput is now named-only (see commits 10f5fed7, 692f4f8a)
+  it('DraftPositionsInput preserves named-only exports across extensionless and TSX authority imports', async () => {
     const authorityModule = await import(draftPositionsInputTsxSpecifier);
 
-    expect(Object.keys(DraftPositionsInputModule).sort()).toEqual([
-      'DraftPositionsInput',
-      'default',
-    ]);
-    expect(Object.keys(authorityModule).sort()).toEqual([
-      'DraftPositionsInput',
-      'default',
-    ]);
-    expect(DraftPositionsInputModule.default).toBe(DraftPositionsInput);
+    expect(DraftPositionsInputModule.DraftPositionsInput).toBe(DraftPositionsInput);
+    expect(authorityModule.DraftPositionsInput).toBe(DraftPositionsInput);
     expect(DraftPositionsInputModule.DraftPositionsInput).toBe(
       NamedDraftPositionsInput
     );
-    expect(authorityModule.default).toBe(DraftPositionsInput);
     expect(authorityModule.DraftPositionsInput).toBe(
       NamedDraftPositionsInput
     );

@@ -133,8 +133,8 @@ const moduleParityCases = [
       '@/features/architect/utils/tradeMachine/rules/validateEntitlementRouting',
     authoritySpecifier:
       '../../features/architect/utils/tradeMachine/rules/validateEntitlementRouting.ts',
+    // updated: Wave 3 export-shape change — default removed (see commits 10f5fed7, 692f4f8a)
     exportNames: [
-      'default',
       'enforceEntitlementRouting',
       'validateEntitlementLinkageLegality',
       'validateEntitlementRouting',
@@ -146,7 +146,8 @@ const moduleParityCases = [
       '@/features/architect/utils/tradeMachine/rules/validatePlayerRouting',
     authoritySpecifier:
       '../../features/architect/utils/tradeMachine/rules/validatePlayerRouting.ts',
-    exportNames: ['default', 'enforcePlayerRouting', 'validatePlayerRouting'],
+    // updated: Wave 3 export-shape change — default removed (see commits 10f5fed7, 692f4f8a)
+    exportNames: ['enforcePlayerRouting', 'validatePlayerRouting'],
   },
   {
     label: 'draftRules',
@@ -178,7 +179,7 @@ describe('E120 tradeMachine rules shim deletion batch guardrails', () => {
       const expectedExportNames = [...moduleCase.exportNames];
 
       expect('default' in authorityModule).toBe(
-        expectedExportNames.includes('default')
+        (expectedExportNames as string[]).includes('default')
       );
       expect(Object.keys(authorityModule)).toEqual(
         expect.arrayContaining(expectedExportNames)

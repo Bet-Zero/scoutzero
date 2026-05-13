@@ -77,8 +77,9 @@ describe('Architect TS topology cleanup behavior', () => {
       );
     }
 
+    // updated: Wave 3 export-shape change — MultiSelectFilter is now a named export (see commits 10f5fed7, 692f4f8a)
     expect(extensionlessModule.MultiSelectFilter).toBe(
-      multiSelectAuthority.default
+      multiSelectAuthority.MultiSelectFilter
     );
   });
 

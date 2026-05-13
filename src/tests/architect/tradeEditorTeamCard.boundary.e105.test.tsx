@@ -725,15 +725,17 @@ async function loadTradeEditor() {
     },
   }));
 
+  // updated: Wave 3 export-shape change — TradeEditor is now a named export (see commits 10f5fed7, 692f4f8a)
   const module = await import('@/features/architect/tradeMachine/TradeEditor');
-  return module.default;
+  return module.TradeEditor;
 }
 
 async function loadTradeTeamCard() {
   vi.resetModules();
   vi.doUnmock('@/features/architect/tradeMachine/TradeTeamCard');
+  // updated: Wave 3 export-shape change — TradeTeamCard is now a named export (see commits 10f5fed7, 692f4f8a)
   const module = await import('@/features/architect/tradeMachine/TradeTeamCard');
-  return module.default;
+  return module.TradeTeamCard;
 }
 
 function getTabButtons() {

@@ -47,15 +47,16 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     ).toBe(false);
   });
 
-  it('preserves GMDashboard default-only export parity across extensionless and TSX authority imports', async () => {
+  // updated: Wave 3 export-shape change — GMDashboard is now named-only (see commits 10f5fed7, 692f4f8a)
+  it('preserves GMDashboard named-only export parity across extensionless and TSX authority imports', async () => {
     const GMDashboardTsxModule = await import(GMDASHBOARD_TSX_SPECIFIER);
 
-    expect(Object.keys(GMDashboardModule)).toEqual(['default']);
-    expect(Object.keys(GMDashboardTsxModule)).toEqual(['default']);
-    expect(GMDashboardModule.default).toBe(GMDashboard);
-    expect(GMDashboardTsxModule.default).toBe(GMDashboard);
-    expect('default' in GMDashboardModule).toBe(true);
-    expect('default' in GMDashboardTsxModule).toBe(true);
+    expect(Object.keys(GMDashboardModule)).toEqual(['GMDashboard']);
+    expect(Object.keys(GMDashboardTsxModule)).toEqual(['GMDashboard']);
+    expect(GMDashboardModule.GMDashboard).toBe(GMDashboard);
+    expect(GMDashboardTsxModule.GMDashboard).toBe(GMDashboard);
+    expect('default' in GMDashboardModule).toBe(false);
+    expect('default' in GMDashboardTsxModule).toBe(false);
   });
 
   it('preserves WorldSelector named-only export parity across extensionless and TSX authority imports', async () => {
@@ -69,24 +70,23 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(WorldSelectorTsxModule.WorldSelector).toBe(WorldSelector);
   });
 
-  it('preserves SeasonAdvanceModal named-plus-default export parity across extensionless and TSX authority imports', async () => {
+  // updated: Wave 3 export-shape change — SeasonAdvanceModal is now named-only (see commits 10f5fed7, 692f4f8a)
+  it('preserves SeasonAdvanceModal named-only export parity across extensionless and TSX authority imports', async () => {
     const SeasonAdvanceModalTsxModule = await import(
       SEASON_ADVANCE_MODAL_TSX_SPECIFIER
     );
 
     expect(Object.keys(SeasonAdvanceModalModule).sort()).toEqual([
       'SeasonAdvanceModal',
-      'default',
     ]);
     expect(Object.keys(SeasonAdvanceModalTsxModule).sort()).toEqual([
       'SeasonAdvanceModal',
-      'default',
     ]);
-    expect(SeasonAdvanceModalModule.default).toBe(SeasonAdvanceModal);
+    expect(SeasonAdvanceModalModule.SeasonAdvanceModal).toBe(SeasonAdvanceModal);
     expect(SeasonAdvanceModalModule.SeasonAdvanceModal).toBe(
       NamedSeasonAdvanceModal
     );
-    expect(SeasonAdvanceModalTsxModule.default).toBe(SeasonAdvanceModal);
+    expect(SeasonAdvanceModalTsxModule.SeasonAdvanceModal).toBe(SeasonAdvanceModal);
     expect(SeasonAdvanceModalTsxModule.SeasonAdvanceModal).toBe(
       NamedSeasonAdvanceModal
     );
@@ -100,9 +100,9 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'SeasonAdvanceModal.tsx'
     );
 
-    expect(gmDashboardSource).toContain('const GMDashboard = () => {');
-    expect(gmDashboardSource).toContain('export default GMDashboard;');
-    expect(gmDashboardSource).not.toContain('export const GMDashboard');
+    // updated: Wave 3 export-shape change — GMDashboard is now a named export (see commits 10f5fed7, 692f4f8a)
+    expect(gmDashboardSource).toContain('export const GMDashboard = () => {');
+    expect(gmDashboardSource).not.toContain('export default GMDashboard;');
 
     expect(worldSelectorSource).toContain('export function WorldSelector(');
     expect(worldSelectorSource).not.toContain('export default WorldSelector');
@@ -142,7 +142,8 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({'
     );
     expect(seasonAdvanceModalSource).toContain('SeasonAdvanceModal.propTypes = {');
-    expect(seasonAdvanceModalSource).toContain(
+    // updated: Wave 3 export-shape change — SeasonAdvanceModal no longer has a default export (see commits 10f5fed7, 692f4f8a)
+    expect(seasonAdvanceModalSource).not.toContain(
       'export default SeasonAdvanceModal;'
     );
   });

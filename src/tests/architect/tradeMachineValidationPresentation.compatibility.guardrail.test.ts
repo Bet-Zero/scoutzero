@@ -86,12 +86,13 @@ describe('E97 Trade Machine validation presentation compatibility guardrails', (
   it('ValidationStateHeader extensionless import matches the TSX authority', async () => {
     const authorityModule = await import(validationStateHeaderAuthoritySpecifier);
 
+    // updated: Wave 3 export-shape change — ValidationStateHeader is now a named export (see commits 10f5fed7, 692f4f8a)
     expect(Object.keys(authorityModule).sort()).toEqual([
       'MODE_TAGS',
       'ModeTag',
-      'default',
+      'ValidationStateHeader',
     ]);
-    expect(authorityModule.default).toBe(ValidationStateHeader);
+    expect(authorityModule.ValidationStateHeader).toBe(ValidationStateHeader);
     expect(authorityModule.MODE_TAGS).toBe(ValidationStateHeaderModule.MODE_TAGS);
     expect(authorityModule.ModeTag).toBe(ValidationStateHeaderModule.ModeTag);
   });

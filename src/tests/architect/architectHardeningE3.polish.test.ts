@@ -72,8 +72,9 @@ const wrapperFixtures = vi.hoisted(() => ({
   lastForwardedManualCapSheetMutationAuthority: null as unknown,
 }));
 
+// updated: Wave 3 export-shape change — CapSheet is now a named export (see commits 10f5fed7, 692f4f8a)
 vi.mock('@/features/architect/capSheet/CapSheet', () => ({
-  default: ({
+  CapSheet: ({
     manualCapSheetMutationAuthority,
     onOpenPlayerContractModal,
   }: CapSheetChildProps) => {
@@ -121,8 +122,9 @@ vi.mock('@/features/architect/capSheet/CapSheet', () => ({
   },
 }));
 
+// updated: Wave 3 export-shape change — CapSheetFull is now a named export (see commits 10f5fed7, 692f4f8a)
 vi.mock('@/features/architect/capSheet/CapSheetFull', () => ({
-  default: ({
+  CapSheetFull: ({
     onOpenPlayerContractModal,
     onLaunchContractAction,
     onRenounceCapHold,
@@ -166,8 +168,9 @@ vi.mock('@/features/architect/capSheet/CapSheetFull', () => ({
     ),
 }));
 
+// updated: Wave 3 export-shape change — ExceptionTracker is now a named export (see commits 10f5fed7, 692f4f8a)
 vi.mock('@/features/architect/capSheet/ExceptionTracker', () => ({
-  default: () =>
+  ExceptionTracker: () =>
     React.createElement('div', { 'data-testid': 'mock-exception-tracker' }),
 }));
 

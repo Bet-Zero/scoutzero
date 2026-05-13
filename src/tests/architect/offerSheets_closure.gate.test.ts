@@ -570,9 +570,10 @@ describe('Gate 10: E113 deleted JSX shims remain absent while authorities stay i
     expect(fs.existsSync(FREE_AGENCY_SECTION_SHIM_PATH)).toBe(false);
   });
 
-  it('OfferSheetList.tsx remains the default-export authority', () => {
+  // updated: Wave 3 export-shape change — OfferSheetList is now a named export (see commits 10f5fed7, 692f4f8a)
+  it('OfferSheetList.tsx remains the named-export authority', () => {
     const authorityContent = readFileContent(OFFER_SHEET_LIST_PATH);
-    expect(authorityContent).toContain('export default OfferSheetList;');
+    expect(authorityContent).toContain('export const OfferSheetList');
   });
 
   it('FreeAgencySection.tsx remains the named-export authority', () => {

@@ -48,19 +48,20 @@ describe('E111 shared contract pocket compatibility guardrails', () => {
     );
   });
 
-  it('preserves EditContractModal default-only parity across extensionless and TSX authority imports', async () => {
+  // updated: Wave 3 export-shape change — EditContractModal is now named-only (see commits 10f5fed7, 692f4f8a)
+  it('preserves EditContractModal named-only parity across extensionless and TSX authority imports', async () => {
     const explicitTsxModule = await import(editContractModalTsxSpecifier);
 
     expect(Object.keys(EditContractModalModule).sort()).toEqual([
-      'default',
+      'EditContractModal',
       'normalizeContractActionResult',
     ]);
     expect(Object.keys(explicitTsxModule).sort()).toEqual([
-      'default',
+      'EditContractModal',
       'normalizeContractActionResult',
     ]);
-    expect(EditContractModalModule.default).toBe(EditContractModal);
-    expect(explicitTsxModule.default).toBe(EditContractModal);
+    expect(EditContractModalModule.EditContractModal).toBe(EditContractModal);
+    expect(explicitTsxModule.EditContractModal).toBe(EditContractModal);
   });
 
   it('preserves contractUtils named-only parity across extensionless and TS authority imports', async () => {

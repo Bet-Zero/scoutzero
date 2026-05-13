@@ -83,22 +83,23 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     ).toBe(false);
   });
 
-  it('preserves basicArchitectUtils mixed export parity across extensionless, shim, and authority imports', async () => {
+  // updated: Wave 3 export-shape change — basicArchitectUtils is now named-only (see commits 10f5fed7, 692f4f8a)
+  it('preserves basicArchitectUtils named export parity across extensionless and authority imports', async () => {
     const authorityModule = await import(basicArchitectUtilsAuthoritySpecifier);
     const expectedKeys = [
       'CBA_MECHANICS',
       'attachDefaultPicks',
-      'default',
       'generateDefaultPicks',
+      'getCapPercentage',
       'markHardCapTriggered',
     ];
 
     expect(Object.keys(basicArchitectUtilsModule).sort()).toEqual(expectedKeys);
     expect(Object.keys(authorityModule).sort()).toEqual(expectedKeys);
-    expect(basicArchitectUtilsModule.default).toBe(getCapPercentage);
-    expect(authorityModule.default).toBe(getCapPercentage);
+    expect(basicArchitectUtilsModule.getCapPercentage).toBe(getCapPercentage);
+    expect(authorityModule.getCapPercentage).toBe(getCapPercentage);
 
-    for (const exportName of expectedKeys.filter((key) => key !== 'default')) {
+    for (const exportName of expectedKeys) {
       const tsModuleRecord = basicArchitectUtilsModule as Record<string, unknown>;
       const authorityRecord = authorityModule as Record<string, unknown>;
       expect(authorityRecord[exportName]).toBe(
