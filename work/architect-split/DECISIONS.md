@@ -30,6 +30,16 @@ PLAN.md scope, require user input?
 
 <!-- newest first -->
 
+## 2026-05-13 — Step 4b: mutationPipeline.types.ts implemented as re-export barrel (not code move)
+
+**Context:** Step 4b execution. PLAN.md described extracting ~1,400 lines of types to a dedicated module.
+
+**Decision:** Implemented `mutationPipeline.types.ts` as a pure re-export barrel (`export type { ... } from './mutationPipeline'`) rather than moving the type declarations.
+
+**Reasoning:** The first attempt moved the 2,144-line type block (lines 154-2298) to types.ts. This failed because: (1) the block contained PHASE 58 re-exports (functions, not types) mixed with type declarations; (2) the main file uses 150+ symbols from the extracted block and requires explicit imports for all of them; (3) with `isolatedModules: true`, TypeScript requires each file to be independently compilable; (4) several types reference `ReturnType<typeof validateSigning>` which creates a circular import chain (mutationPipeline.types.ts → capLegalityValidation → mutationPipeline.ts). The barrel approach achieves the STATED GOAL of Step 4b (allow consumers to import types from a dedicated path) while keeping the declarations in place. Moving the declarations is a separate, higher-risk task.
+
+**Impact:** mutationPipeline.ts is unchanged in size. types.ts is a 278-line re-export barrel. External consumers can now `import type { X } from '@/features/architect/utils/mutationPipeline.types'`. Steps 4c/4d remain blocked per the cross-phase dependency finding.
+
 ## 2026-05-13 — Step 3: Skip useArchitectActions.ts split (Path B)
 
 **Context:** Completed Steps 2a-2e. PLAN.md says Step 3 is optional with two valid paths (A: execute, B: skip).

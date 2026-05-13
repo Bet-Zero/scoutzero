@@ -32,7 +32,7 @@ git log, the git log wins.
 | 2e | `capLegalityValidation/actionValidators.ts` | ✅ | b9f05a7c | 2026-05-13 | ~849 lines; KnownCapHold type added to imports; orphaned validateOfferSheetResolution JSDoc cleaned |
 | 3 | Split `useArchitectActions.ts` (**optional — decide A or B first**) | ⏭️ | — | 2026-05-13 | Path B chosen: Step 2 took longer than expected; low-value cosmetic split (see DECISIONS.md) |
 | 4a | Map + verify `mutationPipeline.ts` phase boundaries | ✅ | — | 2026-05-13 | STEP4_LINE_MAP.md produced; stop condition triggered — 30+ cross-phase deps block COMPUTE/READ split |
-| 4b | `mutationPipeline.types.ts` | 🟡 In progress | — | — | Safe to proceed (types have no cross-phase deps) |
+| 4b | `mutationPipeline.types.ts` | ✅ | — | 2026-05-13 | Re-export barrel only (not code move); see DECISIONS.md for reasoning |
 | 4c | `mutationPipeline.read.ts` | ❌ | — | — | Blocked: 30+ cross-phase helpers need resolution first (see STEP4_LINE_MAP.md) |
 | 4d | `mutationPipeline.compute.ts` | ❌ | — | — | Blocked by same cross-phase issue as 4c |
 | 4e | Verify imports + circular check + `npm run build` | ⬜ | — | — | Final gate |
