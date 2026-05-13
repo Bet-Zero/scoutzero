@@ -25,10 +25,10 @@ describe('E95 seasonManager compatibility guardrails', () => {
     'advanceSeasonLegacy',
     'processSeasonTransitionLegacy',
   ] as const;
+  // Wave 4 Step 1: resolveDraftPickSwapsForYear and resolveDraftPickConveyanceForYear moved to
+  // seasonManager.draftResolution.ts and re-exported here; only advanceSeasonInWorld is defined in the source
   const expectedAuthoritativeSourceOrder = [
     'advanceSeasonInWorld',
-    'resolveDraftPickSwapsForYear',
-    'resolveDraftPickConveyanceForYear',
   ] as const;
   const expectedLegacySourceOrder = [
     'advanceSeasonLegacy',
