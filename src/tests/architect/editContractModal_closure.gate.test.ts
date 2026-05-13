@@ -37,6 +37,11 @@ const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.ts'
 );
+// Wave 4 Step 4d: compute*Result functions extracted here
+const MUTATION_PIPELINE_COMPUTE_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.compute.ts'
+);
 
 const FREE_AGENT_POOL_PATH = path.resolve(
   __dirname,
@@ -202,7 +207,8 @@ describe('Gate 4: World Success Authoritative Re-sync (E1)', () => {
 // === GATE 5: World Compute Honors Buyout Fields ===
 
 describe('Gate 5: World Compute Honors Buyout Fields (E1)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH);
+  // Wave 4 Step 4d: computeWaiveResult moved to mutationPipeline.compute.ts
+  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH);
 
   it('computeWaiveResult reads payload.buyoutAmount', () => {
     // Pattern: payload.buyoutAmount in computeWaiveResult

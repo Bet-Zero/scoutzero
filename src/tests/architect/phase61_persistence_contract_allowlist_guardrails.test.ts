@@ -286,7 +286,8 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
     // Wave 4 Step 4c: combine orchestrator + read submodule for full pipeline coverage
     mutationPipelineSource =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.read.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts');
   });
 
   it('TEST 16: mutationPipeline.ts imports assertPersistableOrThrow', () => {

@@ -55,6 +55,11 @@ const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.ts'
 );
+// Wave 4 Step 4d: compute*Result functions extracted here
+const MUTATION_PIPELINE_COMPUTE_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.compute.ts'
+);
 
 const TRADE_CONTEXT_PATH = path.resolve(
   __dirname,
@@ -212,7 +217,8 @@ function stripComments(content: string): string {
 describe('Phase 79: Source Scan Guardrails', () => {
   describe('SSOT Import Verification', () => {
     it('TEST 1: mutationPipeline.ts imports computeTeamCapTotals from capTotals', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8');
 
       const hasImport = /import\s*\{[^}]*\bcomputeTeamCapTotals\b[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/capTotals['"]/.test(
         content
@@ -234,7 +240,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
 
   describe('SSOT Usage in Compute Functions', () => {
     it('TEST 3: computeSigningResult uses the canonical totals bridge', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
       // Find computeSigningResult function and verify it calls computeTeamCapTotals
@@ -254,7 +261,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 4: computeWaiveResult uses the canonical totals bridge', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
       const waiveFunctionMatch = codeOnly.match(
@@ -273,7 +281,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 5: computeOptionResult uses the canonical totals bridge', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
       const optionFunctionMatch = codeOnly.match(
@@ -292,7 +301,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 6: computeRenounceResult uses the canonical totals bridge', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
       const renounceFunctionMatch = codeOnly.match(
@@ -330,7 +340,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
 
   describe('No Legacy Totals Helpers', () => {
     it('TEST 8: mutationPipeline.ts does NOT call calculateTeamTotals (removed Phase 72)', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
       const hasLegacy = /\bcalculateTeamTotals\s*\(/.test(codeOnly);
@@ -338,7 +349,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 9: mutationPipeline.ts does NOT call updateTeamCapTotals (removed Phase 78)', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
       const hasLegacy = /\bupdateTeamCapTotals\s*\(/.test(codeOnly);
@@ -540,7 +552,8 @@ describe('Phase 79: Persist→Reload Parity', () => {
 
 describe('Phase 79: Extension Mutation Exclusion', () => {
   it('TEST 20: computeExtensionResult does NOT call computeTeamCapTotals (by design - futureContract only)', () => {
-    const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+    const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8');
     const codeOnly = stripComments(content);
 
     // Find computeExtensionResult function

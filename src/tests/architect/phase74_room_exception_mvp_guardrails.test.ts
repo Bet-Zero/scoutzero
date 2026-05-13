@@ -209,7 +209,9 @@ describe('Phase 74: Room Exception Source Scan Guardrails', () => {
   });
 
   it('TEST 2: mutationPipeline.ts contains room exception usage tracking', () => {
-    const content = fs.readFileSync(mutationPipelinePath, 'utf8');
+    // Wave 4 Step 4d: room exception tracking moved to mutationPipeline.compute.ts
+    const computePath = mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.compute.ts');
+    const content = fs.readFileSync(mutationPipelinePath, 'utf8') + fs.readFileSync(computePath, 'utf8');
 
     // Must contain room exception type checks
     expect(content).toContain("exceptionType === 'room'");

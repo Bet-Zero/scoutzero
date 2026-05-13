@@ -34,8 +34,8 @@ git log, the git log wins.
 | 4a | Map + verify `mutationPipeline.ts` phase boundaries | ✅ | 6289a5c1 | 2026-05-13 | STEP4_LINE_MAP.md produced; stop condition triggered — 30+ cross-phase deps block COMPUTE/READ split |
 | 4b | `mutationPipeline.types.ts` | ✅ | cc5d7f90 | 2026-05-13 | Re-export barrel only (not code move); see DECISIONS.md for reasoning |
 | 4a.5 | `mutationPipeline.helpers.ts` (NEW — Option A) | ✅ | 602173d3 | 2026-05-13 | ~2,300 lines; 39 types exported from orchestrator; player snapshot normalizer chain + persistence helpers; full test suite green |
-| 4c | `mutationPipeline.read.ts` | ✅ | TBD | 2026-05-13 | ~5,141 lines; 144 functions exported; 34 helpers.ts ranges skipped; 9 guardrail tests updated; only pre-existing phase66-70 failures remain |
-| 4d | `mutationPipeline.compute.ts` | ⬜ | — | — | Unblocked after 4a.5 completes |
+| 4c | `mutationPipeline.read.ts` | ✅ | 5d35f786 | 2026-05-13 | ~5,141 lines; 144 functions exported; 34 helpers.ts ranges skipped; 9 guardrail tests updated; only pre-existing phase66-70 failures remain |
+| 4d | `mutationPipeline.compute.ts` | ✅ | TBD | 2026-05-13 | ~2,458 lines; 23 compute functions exported; 14 types exported from main; 12 guardrail tests updated; only pre-existing phase66-70 failures remain |
 | 4e | Verify imports + circular check + `npm run build` | ⬜ | — | — | Final gate |
 
 ---
@@ -70,7 +70,7 @@ is still green when picking up after a long break.
 Update this section at the end of every session.
 
 - **Date:** 2026-05-13
-- **Stopped after:** Step 4c complete — read.ts extracted, 9 guardrail tests updated, suite green
-- **Last commit:** TBD (step 4c)
-- **Next action:** Step 4d — Extract `mutationPipeline.compute.ts` (~14 compute*Result() functions from lines 10,395–12,013)
+- **Stopped after:** Step 4d complete — compute.ts extracted, 12 guardrail tests updated, suite green
+- **Last commit:** TBD (step 4d)
+- **Next action:** Step 4e — Verify imports + circular check + `npm run build`
 - **Open blockers:** 5 pre-existing phase66-70 test failures only (not Wave 4 scope)
