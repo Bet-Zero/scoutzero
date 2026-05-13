@@ -28,8 +28,8 @@ git log, the git log wins.
 | 2a | `capLegalityValidation/constants.ts` | ✅ | 6e9a64e2 | 2026-05-13 | 9 exported constants moved; orchestrator re-exports + imports from submodule |
 | 2b | `capLegalityValidation/schema.ts` | ✅ | 247b2fcd | 2026-05-13 | 19 internal types moved; orchestrator imports + re-exports |
 | 2c | `capLegalityValidation/signing.ts` | ✅ | ac1faba0 | 2026-05-13 | ~3,020 lines (see DECISIONS.md); 4 guardrail tests updated for submodule move |
-| 2d | `capLegalityValidation/extension.ts` | ✅ | — | 2026-05-13 | ~595 lines; orphaned validateExceptionEligibility JSDoc cleaned up |
-| 2e | `capLegalityValidation/actionValidators.ts` | ⬜ | — | — | — |
+| 2d | `capLegalityValidation/extension.ts` | ✅ | 130c5633 | 2026-05-13 | ~595 lines; orphaned validateExceptionEligibility JSDoc cleaned up |
+| 2e | `capLegalityValidation/actionValidators.ts` | ✅ | — | 2026-05-13 | ~849 lines; KnownCapHold type added to imports; orphaned validateOfferSheetResolution JSDoc cleaned |
 | 3 | Split `useArchitectActions.ts` (**optional — decide A or B first**) | ⬜ | — | — | Path A/B decision required before starting |
 | 4a | Map + verify `mutationPipeline.ts` phase boundaries | ⬜ | — | — | Produces `STEP4_LINE_MAP.md` |
 | 4b | `mutationPipeline.types.ts` | ⬜ | — | — | Blocked until 4a complete |

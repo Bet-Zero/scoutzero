@@ -196,6 +196,7 @@ utils/
     localCapAuditLog.ts
     postStateCapValidator.ts
   capLegalityValidation/
+    actionValidators.ts
     constants.ts
     extension.ts
     schema.ts
@@ -382,5 +383,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-13T07:12:56.248Z*
+*Generated on: 2026-05-13T07:22:19.054Z*
 *Auto-updated by: npm run docs*
