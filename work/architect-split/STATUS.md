@@ -36,7 +36,7 @@ git log, the git log wins.
 | 4a.5 | `mutationPipeline.helpers.ts` (NEW — Option A) | ✅ | 602173d3 | 2026-05-13 | ~2,300 lines; 39 types exported from orchestrator; player snapshot normalizer chain + persistence helpers; full test suite green |
 | 4c | `mutationPipeline.read.ts` | ✅ | 5d35f786 | 2026-05-13 | ~5,141 lines; 144 functions exported; 34 helpers.ts ranges skipped; 9 guardrail tests updated; only pre-existing phase66-70 failures remain |
 | 4d | `mutationPipeline.compute.ts` | ✅ | 2eff62b2 | 2026-05-13 | ~2,458 lines; 23 compute functions exported; 14 types exported from main; 12 guardrail tests updated; only pre-existing phase66-70 failures remain |
-| 4e | Verify imports + circular check + `npm run build` | ✅ | TBD | 2026-05-13 | TypeScript clean; madge cycles 1-2 pre-existing, 3-5 are import type only (runtime-safe); build clean (pre-existing 500kB chunk warning only) |
+| 4e | Verify imports + circular check + `npm run build` | ✅ | 027f48a6 | 2026-05-13 | TypeScript clean; madge cycles 1-2 pre-existing, 3-5 are import type only (runtime-safe); build clean (pre-existing 500kB chunk warning only) |
 
 ---
 
@@ -71,6 +71,6 @@ Update this section at the end of every session.
 
 - **Date:** 2026-05-13
 - **Stopped after:** Step 4e complete — all Wave 4 steps done; mutationPipeline.ts split into 4 modules
-- **Last commit:** TBD (step 4e)
+- **Last commit:** 027f48a6
 - **Next action:** Wave 4 complete ✅
 - **Open blockers:** 5 pre-existing phase66-70 test failures only (not Wave 4 scope)
