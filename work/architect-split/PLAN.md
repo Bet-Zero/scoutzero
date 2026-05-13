@@ -5,6 +5,36 @@ Each step is independently shippable — complete it, confirm tests pass, commit
 
 ---
 
+## Resume protocol (read this first when starting a session)
+
+Do these three things in order before touching any source files:
+
+1. **Read [STATUS.md](./STATUS.md).** Find the first row marked 🟡 In progress or ⬜ Not
+   started. That is where you pick up. The "Last session checkpoint" section at the bottom
+   tells you what the previous session was mid-doing, if anything.
+
+2. **Read the most recent entries in [DECISIONS.md](./DECISIONS.md).** Any deviations from
+   PLAN.md (skipped steps, scope reductions, Path A/B choices) are recorded there. Honor
+   them — they were made deliberately by a previous session.
+
+3. **Verify the baseline is green** before adding to it:
+
+   ```
+   npm run typecheck
+   npm run test:architect -- --reporter=dot
+   ```
+
+   If either fails, the previous session ended in a bad state. Investigate before
+   continuing — do not stack new changes on a red baseline. Record what you found in
+   DECISIONS.md.
+
+At the end of every session, update STATUS.md (the relevant step row + the "Last session
+checkpoint" block + the "Validation snapshot" rows you ran) and commit it alongside the
+source changes. If you made any judgment call beyond following PLAN.md verbatim, add an
+entry to DECISIONS.md in the same commit.
+
+---
+
 ## Quick reference
 
 | Step | Target | Lines | Risk | Validation gate |
@@ -136,11 +166,13 @@ npm run test:architect -- --reporter=dot
 ### Export surface (current)
 
 **Types (9):**
+
 - `SeasonPhase`, `SeasonStatus`, `SeasonCalendarEntry`, `SeasonConfig`
 - `ContractSeasonStatus`, `CapProjectionResult`
 - `DraftPickSwapResult`, `DraftPickConveyanceResult`, `SeasonTransitionState`
 
 **Functions (3):**
+
 - `advanceSeasonInWorld` — main orchestration function
 - `resolveDraftPickSwapsForYear` — pure draft-pick swap resolution
 - `resolveDraftPickConveyanceForYear` — pure draft-pick conveyance resolution
