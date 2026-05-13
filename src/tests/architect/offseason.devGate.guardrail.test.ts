@@ -277,6 +277,15 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
   describe('SeasonAdvanceModal — world authority seam', () => {
     const source = fs.readFileSync(seasonAdvanceModalPath, 'utf-8');
+    // Wave 4 Step 0.5: types and helpers were split into companion files
+    const typesSource = fs.readFileSync(
+      seasonAdvanceModalPath.replace('.tsx', '.types.ts'),
+      'utf-8'
+    );
+    const helpersSource = fs.readFileSync(
+      seasonAdvanceModalPath.replace('.tsx', '.helpers.ts'),
+      'utf-8'
+    );
 
     it('keeps SeasonAdvanceModal on the world-backed advance authority', () => {
       expect(source).toContain('advanceSeasonInWorld');
@@ -284,16 +293,16 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     });
 
     it('publishes the world authority prop names', () => {
-      expect(source).toContain('authoritativeWorldSeason: string;');
-      expect(source).toMatch(
+      expect(typesSource).toContain('authoritativeWorldSeason: string;');
+      expect(typesSource).toMatch(
         /onWorldAdvanceComplete\?:\s*\|\s*\(\(result: SeasonAdvanceResult\) => void \| Promise<void>\)\s*\|\s*null;/
       );
-      expect(source).toContain('export type SeasonAdvanceSuccessResult = {');
-      expect(source).toContain('worldAdvanceAftermath: WorldAdvanceAftermath;');
-      expect(source).toContain('export type SeasonAdvanceFailureResult = {');
-      expect(source).toContain('error: string;');
-      expect(source).toContain('committedTeamCapSheet: SeasonAdvanceModalTeamCapSheet | null;');
-      expect(source).toContain(
+      expect(typesSource).toContain('export type SeasonAdvanceSuccessResult = {');
+      expect(typesSource).toContain('worldAdvanceAftermath: WorldAdvanceAftermath;');
+      expect(typesSource).toContain('export type SeasonAdvanceFailureResult = {');
+      expect(typesSource).toContain('error: string;');
+      expect(typesSource).toContain('committedTeamCapSheet: SeasonAdvanceModalTeamCapSheet | null;');
+      expect(helpersSource).toContain(
         'function buildWorldAdvanceAftermath({'
       );
     });
@@ -308,9 +317,10 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     });
 
     it('keeps result normalization on explicit modal-local helpers', () => {
-      expect(source).toContain('buildDashboardOffseasonSummary');
-      expect(source).toContain('getCommittedTeamCapSheet');
-      expect(source).toContain('buildWorldAdvanceAftermath');
+      // Wave 4 Step 0.5: lower-level helpers moved to SeasonAdvanceModal.helpers.ts
+      expect(helpersSource).toContain('buildDashboardOffseasonSummary');
+      expect(helpersSource).toContain('getCommittedTeamCapSheet');
+      expect(helpersSource).toContain('buildWorldAdvanceAftermath');
       expect(source).toContain('buildSeasonAdvanceSuccessResult');
       expect(source).toContain('getSeasonAdvanceFailureMessage');
       expect(source).toContain(

@@ -416,11 +416,12 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
 // ==============================================================================
 
 describe('Phase 65: UI Components Use Canonical Accessor', () => {
+  // Wave 4 Step 0.5: SeasonAdvanceModal.tsx was split; getTeamTpeList moved to .helpers.ts
   const uiFiles = [
     'tradeMachine/TradeTeamCard.tsx',
     'tradeMachine/TradeExceptionDashboard.tsx',
     'tradeMachine/ValidationDetailsPanel.tsx',
-    'GMDashboard/components/SeasonAdvanceModal.tsx',
+    'GMDashboard/components/SeasonAdvanceModal.helpers.ts',
   ];
 
   uiFiles.forEach((file) => {

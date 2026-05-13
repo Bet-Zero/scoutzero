@@ -9,7 +9,9 @@ GMDashboard/
     DeleteWorldModal.tsx
     DraftPositionsInput.tsx
     OfferSheetList.tsx
+    SeasonAdvanceModal.helpers.ts
     SeasonAdvanceModal.tsx
+    SeasonAdvanceModal.types.ts
     WorldSelector.tsx
     WorldTimeControls.tsx
   hooks/
@@ -374,5 +376,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-10T10:40:24.210Z*
+*Generated on: 2026-05-13T03:01:35.783Z*
 *Auto-updated by: npm run docs*
