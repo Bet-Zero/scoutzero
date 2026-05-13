@@ -84,6 +84,10 @@ const CAP_LEGALITY_VALIDATION_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/capLegalityValidation.ts'
 );
+const CAP_LEGALITY_VALIDATION_SIGNING_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation/signing.ts'
+);
 
 // === HELPER FUNCTIONS ===
 
@@ -625,6 +629,9 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
   const capLegalityValidationContent = readFileContent(
     CAP_LEGALITY_VALIDATION_PATH
   );
+  const capLegalityValidationSigningContent = readFileContent(
+    CAP_LEGALITY_VALIDATION_SIGNING_PATH
+  );
   const actionsContent = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
 
   it('mutationPipeline canonicalizes team updates before compute return and world changedTeams return', () => {
@@ -661,7 +668,8 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
   });
 
   it('validation and local audit totals both read canonicalized totals snapshots', () => {
-    expect(capLegalityValidationContent).toContain(
+    // computeCanonicalMutationTeamCapTotals moved to signing.ts submodule (Wave 4 Step 2c)
+    expect(capLegalityValidationSigningContent).toContain(
       'computeCanonicalMutationTeamCapTotals'
     );
     expect(actionsContent).toContain(

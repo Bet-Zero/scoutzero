@@ -186,13 +186,18 @@ describe('Phase 74: Room Exception Source Scan Guardrails', () => {
     __dirname,
     '../../features/architect/utils/capLegalityValidation.ts'
   );
+  // Room exception blocking logic moved to signing.ts submodule (Wave 4 Step 2c)
+  const capLegalitySigningPath = path.resolve(
+    __dirname,
+    '../../features/architect/utils/capLegalityValidation/signing.ts'
+  );
   const mutationPipelinePath = path.resolve(
     __dirname,
     '../../features/architect/utils/mutationPipeline.ts'
   );
 
   it('TEST 1: capLegalityValidation.ts contains room exception blocking logic', () => {
-    const content = fs.readFileSync(capLegalityAuthorityPath, 'utf8');
+    const content = fs.readFileSync(capLegalitySigningPath, 'utf8');
 
     // Must contain room exception variants in blocked exceptions
     expect(content).toContain("'room'");

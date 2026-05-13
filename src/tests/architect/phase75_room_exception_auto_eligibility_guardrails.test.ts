@@ -39,6 +39,11 @@ describe('Phase 75: Source Scan Guardrails', () => {
     srcRoot,
     'utils/capLegalityValidation.ts'
   );
+  // canUseRoomException and ROOM_REQUIRES_UNDER_CAP moved to signing.ts (Wave 4 Step 2c)
+  const capLegalitySigningPath = path.join(
+    srcRoot,
+    'utils/capLegalityValidation/signing.ts'
+  );
   const capLegalityShimPath = path.join(
     srcRoot,
     'utils/capLegalityValidation.js'
@@ -88,7 +93,8 @@ describe('Phase 75: Source Scan Guardrails', () => {
   });
 
   it('capLegalityValidation.ts imports and uses canUseRoomException', () => {
-    const source = fs.readFileSync(capLegalityAuthorityPath, 'utf-8');
+    // canUseRoomException logic moved to signing.ts submodule (Wave 4 Step 2c)
+    const source = fs.readFileSync(capLegalitySigningPath, 'utf-8');
 
     // Import exists
     expect(source).toContain('canUseRoomException');
@@ -98,7 +104,8 @@ describe('Phase 75: Source Scan Guardrails', () => {
   });
 
   it('capLegalityValidation.ts has ROOM_REQUIRES_UNDER_CAP rule code', () => {
-    const source = fs.readFileSync(capLegalityAuthorityPath, 'utf-8');
+    // ROOM_REQUIRES_UNDER_CAP moved to signing.ts submodule (Wave 4 Step 2c)
+    const source = fs.readFileSync(capLegalitySigningPath, 'utf-8');
 
     expect(source).toContain("rule: 'ROOM_REQUIRES_UNDER_CAP'");
   });

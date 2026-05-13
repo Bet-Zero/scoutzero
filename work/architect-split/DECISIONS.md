@@ -30,6 +30,20 @@ PLAN.md scope, require user input?
 
 <!-- newest first -->
 
+## 2026-05-13 — Step 2c: signing.ts is ~3,020 lines, not ~1,800; shared helpers duplicated
+
+**Context:** Step 2c execution. PLAN.md estimated `capLegalityValidation/signing.ts` at ~1,800 lines.
+
+**Decision:** Proceeded with full extraction (~3,020 lines). Documented size discrepancy and the helper duplication strategy.
+
+**Reasoning:** The PLAN's ~1,800 estimate counted only the SIGNING TERMS HELPERS (~994 lines) + PHASE 13 (~231 lines) + validateExceptionEligibility (~167 lines) + validateSigning (~1,017 lines) sections — already ~2,409 lines before accounting for private helpers. Additional helpers moved exclusively to signing.ts: resolveSigningMechanism, getSigningYearsLimits, getSigningFirstYearMax, getContractYears, getFirstYearAmounts, getDraftPickNumber, getMutationYearsOfService, normalizeFreeAgency, computeCanonicalMutationTeamCapTotals, countTwoWayContracts, and the full PHASE 5 CONTRACT ROW SCHEMA VALIDATION section (~268 lines). These push signing.ts to ~3,020 lines.
+
+For shared private utilities (toFiniteNumber, asRecordLike, getErrorMessage, getNormalizedContractType, normalizeBirdRights, calculateValidationPlayerOnlyTeamCapHit, countStandardRoster, getValidationHardCapLevel, getValidationHardCapStatus, evaluateDataConfidence) that are also needed by future submodules (extension.ts, actionValidators.ts), the chosen strategy was LOCAL DUPLICATION in signing.ts rather than creating an unplanned `shared.ts` helper submodule. These functions are small (5–70 lines each), and the PLAN rule "never import from siblings" makes cross-submodule imports illegal. The orchestrator retains these functions for use by extension.ts and actionValidators.ts in later steps.
+
+One guardrail test (`capSheet_closure.gate.test.ts` Gate 7B) checked for `computeCanonicalMutationTeamCapTotals` in the orchestrator file; updated to check `signing.ts` submodule instead. All other tests unaffected.
+
+**Impact:** Orchestrator reduced from 4,538 to 1,752 lines. signing.ts is larger than estimated but correctly isolated. Steps 2d and 2e will follow the same pattern (extension.ts ~900 lines, actionValidators.ts ~700 lines as estimated).
+
 ## 2026-05-12 — Step 1: seasonManager.draftResolution.ts is ~870 lines, not ~300
 
 **Context:** Step 1 execution. PLAN.md estimated `seasonManager.draftResolution.ts` at ~300 lines.

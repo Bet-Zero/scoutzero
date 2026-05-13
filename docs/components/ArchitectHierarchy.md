@@ -198,6 +198,7 @@ utils/
   capLegalityValidation/
     constants.ts
     schema.ts
+    signing.ts
   capLegalityValidation.ts
   capProjections.ts
   capRulesProfile/
@@ -380,5 +381,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-13T04:18:38.696Z*
+*Generated on: 2026-05-13T07:03:02.488Z*
 *Auto-updated by: npm run docs*

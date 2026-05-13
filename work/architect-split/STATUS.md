@@ -26,8 +26,8 @@ git log, the git log wins.
 | 0.5 | Split `SeasonAdvanceModal.tsx` | ✅ | 1684e611 | 2026-05-12 | 1,174→580 lines; .types.ts + .helpers.ts extracted; offseason.devGate + phase65 tests updated |
 | 1 | Split `seasonManager.ts` (extract draft resolution) | ✅ | ae3e272b | 2026-05-12 | 2,295→1,440 lines; draftResolution.ts extracted (~870 lines); 26 test files unaffected; 1 guardrail test updated |
 | 2a | `capLegalityValidation/constants.ts` | ✅ | 6e9a64e2 | 2026-05-13 | 9 exported constants moved; orchestrator re-exports + imports from submodule |
-| 2b | `capLegalityValidation/schema.ts` | ✅ | (see commit) | 2026-05-13 | 19 internal types moved; orchestrator imports + re-exports |
-| 2c | `capLegalityValidation/signing.ts` | ⬜ | — | — | — |
+| 2b | `capLegalityValidation/schema.ts` | ✅ | 247b2fcd | 2026-05-13 | 19 internal types moved; orchestrator imports + re-exports |
+| 2c | `capLegalityValidation/signing.ts` | ✅ | — | 2026-05-13 | ~3,020 lines (see DECISIONS.md); 4 guardrail tests updated for submodule move |
 | 2d | `capLegalityValidation/extension.ts` | ⬜ | — | — | — |
 | 2e | `capLegalityValidation/actionValidators.ts` | ⬜ | — | — | — |
 | 3 | Split `useArchitectActions.ts` (**optional — decide A or B first**) | ⬜ | — | — | Path A/B decision required before starting |

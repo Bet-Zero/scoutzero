@@ -65,6 +65,10 @@ const CAP_LEGALITY_VALIDATION_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/capLegalityValidation.ts'
 );
+const CAP_LEGALITY_VALIDATION_SIGNING_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation/signing.ts'
+);
 
 const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
   __dirname,
@@ -128,6 +132,11 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
   );
   const capLegalityValidationSource = fs.readFileSync(
     CAP_LEGALITY_VALIDATION_PATH,
+    'utf-8'
+  );
+  // computeCanonicalMutationTeamCapTotals moved to signing.ts submodule (Wave 4 Step 2c)
+  const capLegalityValidationSigningSource = fs.readFileSync(
+    CAP_LEGALITY_VALIDATION_SIGNING_PATH,
     'utf-8'
   );
 
@@ -230,7 +239,8 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     expect(capLegalityValidationSource).toContain(
       'const calculateValidationPlayerOnlyTeamCapHit ='
     );
-    expect(capLegalityValidationSource).toContain(
+    // computeCanonicalMutationTeamCapTotals moved to signing.ts submodule (Wave 4 Step 2c)
+    expect(capLegalityValidationSigningSource).toContain(
       'const computeCanonicalMutationTeamCapTotals ='
     );
   });
