@@ -176,9 +176,9 @@ import {
   resolveOutgoingTradeDestinationTeamCode,
 } from '@/features/architect/utils/tradeContext/tradeContext';
 
-type LooseRecord = Record<string, unknown>;
-type MutationScalarId = string | number | null | undefined;
-type MutationPlayerBioLike = {
+export type LooseRecord = Record<string, unknown>;
+export type MutationScalarId = string | number | null | undefined;
+export type MutationPlayerBioLike = {
   displayName?: string | null;
   playerId?: string | null;
   name?: string | null;
@@ -209,7 +209,7 @@ type MutationPlayerBioLike = {
   draftPick?: number | string | null;
   ['Years Pro']?: unknown;
 };
-type MutationSourceMetadata = Pick<
+export type MutationSourceMetadata = Pick<
   ArchitectSource,
   | 'provider'
   | 'teamPageUrl'
@@ -221,15 +221,15 @@ type MutationSourceMetadata = Pick<
   | 'generatedAt'
   | 'baseTeamVersion'
 >;
-type MutationPlayerSourceLike = MutationSourceMetadata | null;
-type MutationTradeExceptionRecord = TradeExceptionRecord & {
+export type MutationPlayerSourceLike = MutationSourceMetadata | null;
+export type MutationTradeExceptionRecord = TradeExceptionRecord & {
   isUsed?: boolean | null;
   used?: number | null;
 };
-type MutationTeamSourceLike =
+export type MutationTeamSourceLike =
   | (MutationSourceMetadata & { lastModifiedAt?: string | null })
   | null;
-type CapHoldComputationPlayer = NonNullable<
+export type CapHoldComputationPlayer = NonNullable<
   NonNullable<Parameters<typeof computeExpectedCapHoldAmount>[0]['player']>
 >;
 
@@ -253,37 +253,37 @@ export type ArchitectComputedTeamTotalsSnapshot = Pick<
 // mutation snapshots materialize the canonical compute fields on top.
 export type ArchitectMutationTeamTotals = LoadedTeamCapTotals;
 
-type ArchitectMutationContractIncentives = {
+export type ArchitectMutationContractIncentives = {
   likely?: number | string | null;
   unlikely?: number | string | null;
 };
 
-type NormalizedMutationContractIncentives = {
+export type NormalizedMutationContractIncentives = {
   likely?: number | null;
   unlikely?: number | null;
 };
 
-type ArchitectMutationGuaranteeScheduleEntry = {
+export type ArchitectMutationGuaranteeScheduleEntry = {
   effectiveDate?: string | null;
   guaranteedAmount?: number | string | null;
   status?: string | null;
   note?: string | null;
 };
 
-type NormalizedMutationGuaranteeScheduleEntry = {
+export type NormalizedMutationGuaranteeScheduleEntry = {
   effectiveDate?: string | null;
   guaranteedAmount?: number | null;
   status?: string | null;
   note?: string | null;
 };
 
-type ArchitectMutationTradeEligibilityRules = {
+export type ArchitectMutationTradeEligibilityRules = {
   baseYearCompensation?: boolean | null;
   poisonPill?: boolean | null;
   aggregation?: boolean | null;
 };
 
-type ArchitectMutationTradeEligibility = {
+export type ArchitectMutationTradeEligibility = {
   canBeTradedNow?: boolean | null;
   restrictedUntil?: string | null;
   reason?: string | null;
@@ -398,7 +398,7 @@ export type ArchitectMutationContract = {
   supersededByContractRef?: string | null;
 };
 
-type MutationDeadCapYear = {
+export type MutationDeadCapYear = {
   season?: string | null;
   amount?: number | string | null;
   isStretched?: boolean | null;
@@ -433,7 +433,7 @@ export type ArchitectMutationExceptionEntry = {
   lastUsedAt?: string | null;
 };
 
-type CurrentStateExceptionHistoryEntry = {
+export type CurrentStateExceptionHistoryEntry = {
   historyKey?: string | null;
   type?: string | null;
   teamCode?: string | null;
@@ -441,7 +441,7 @@ type CurrentStateExceptionHistoryEntry = {
   timestamp?: string | null;
 } & Record<string, unknown>;
 
-type ArchitectMutationCanonicalExceptionBuckets = Partial<
+export type ArchitectMutationCanonicalExceptionBuckets = Partial<
   Record<CanonicalNonTpeExceptionKey, ArchitectMutationExceptionEntry | null>
 >;
 
@@ -456,7 +456,7 @@ export type ArchitectMutationExceptions =
 
 // Raw current-state snapshots and manual exception payloads may still contain
 // legacy aliases or unowned buckets; normalize them before committed compute reads.
-type ArchitectMutationExceptionIngress = ArchitectMutationExceptions &
+export type ArchitectMutationExceptionIngress = ArchitectMutationExceptions &
   Record<string, unknown>;
 
 export type ArchitectMutationOfferSheet = {
@@ -477,7 +477,7 @@ export type ArchitectMutationOfferSheet = {
   declinedAt?: string | null;
 };
 
-type ArchitectMutationCapHold = {
+export type ArchitectMutationCapHold = {
   playerId?: string | number | null;
   playerName?: string;
   amount?: number;
@@ -490,7 +490,7 @@ type ArchitectMutationCapHold = {
   reason?: string;
 };
 
-type ArchitectMutationPlayerRfaContextIngress = {
+export type ArchitectMutationPlayerRfaContextIngress = {
   pendingHomeTeamCode?: string | null;
   offerSheetId?: string | null;
   retainedUntilFinalize?: boolean | null;
@@ -547,7 +547,7 @@ export type ArchitectMutationPlayerRecord = {
   destTeamId?: MutationScalarId;
 };
 
-type ArchitectMutationCashLedger = {
+export type ArchitectMutationCashLedger = {
   totalOut?: number | string | null;
 };
 
@@ -584,7 +584,7 @@ export type ArchitectMutationTeamRecord = {
   hardCapLevel?: string | null;
 };
 
-type ArchitectTradePayloadPlayerIdentity = Pick<
+export type ArchitectTradePayloadPlayerIdentity = Pick<
   ArchitectMutationPlayerRecord,
   | 'player_id'
   | 'id'
@@ -595,7 +595,7 @@ type ArchitectTradePayloadPlayerIdentity = Pick<
   | 'originTeamId'
 >;
 
-type ArchitectTradePayloadSignAndTradeContract =
+export type ArchitectTradePayloadSignAndTradeContract =
   | SignAndTradeContractLike
   | Pick<
       ArchitectMutationContract,
@@ -642,7 +642,7 @@ export type ArchitectTradePayloadPlayer = {
   tradeTo?: string | null;
 };
 
-type TradePayloadEntitlementLike = {
+export type TradePayloadEntitlementLike = {
   entitlementId?: MutationScalarId;
   id?: MutationScalarId;
   type?: string | null;
@@ -700,41 +700,41 @@ export type ArchitectTradePayloadTeam = {
   cashSent?: number | null;
   cashReceived?: number | null;
 };
-type TradeTpeConsumptionIssue = {
+export type TradeTpeConsumptionIssue = {
   playerId?: string | null;
   tpeId?: string | null;
   reason: string;
 };
-type TradeEntitlementTransferSummary = {
+export type TradeEntitlementTransferSummary = {
   out: string[];
   in: string[];
 };
-type TradeEntitlementsMovedByTeam = Record<
+export type TradeEntitlementsMovedByTeam = Record<
   string,
   TradeEntitlementTransferSummary
 >;
-type EntitlementUpdateLike = {
+export type EntitlementUpdateLike = {
   entitlementId: string;
   holderTeam: string;
 };
-type TradeMutationMetadata = {
+export type TradeMutationMetadata = {
   type: 'trade';
   teamsInvolved: Array<string | null | undefined>;
   playersTraded: Array<string | null | undefined>;
   entitlementsTraded?: TradeEntitlementsMovedByTeam;
   timestamp: number;
 };
-type TradeSnapshotLike = TradeContextPostTradeSnapshot;
-type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;
-type TradeValidationTeamResultLike = TradeContextTeamResult;
-type TradeValidationApplyTimeSlice = {
+export type TradeSnapshotLike = TradeContextPostTradeSnapshot;
+export type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;
+export type TradeValidationTeamResultLike = TradeContextTeamResult;
+export type TradeValidationApplyTimeSlice = {
   legal: boolean;
   teamResults: TradeValidationTeamResultLike[];
 };
-type TradeMutationPayload = TradeContextNormalizedPayload;
+export type TradeMutationPayload = TradeContextNormalizedPayload;
 export type ArchitectMutationValidatedTradeContext =
   TradeContextValidatedTradeContext;
-type TradeHistoryContextLike = {
+export type TradeHistoryContextLike = {
   worldId?: string | null;
   mutationType?: string | null;
   mutationId?: string | null;
@@ -783,24 +783,24 @@ export type ArchitectMutationPayload = {
   worldId?: string | null;
   tradeCtx?: ArchitectMutationTradeContext | null;
 };
-type MutationPayloadClosedShape = {
+export type MutationPayloadClosedShape = {
   [KMutationPayloadKey in keyof ArchitectMutationPayload]?: undefined;
 };
-type PublicMutationPayloadSlice<
+export type PublicMutationPayloadSlice<
   TMutationPayloadKey extends keyof ArchitectMutationPayload,
 > = Omit<MutationPayloadClosedShape, TMutationPayloadKey> &
   Pick<ArchitectMutationPayload, TMutationPayloadKey>;
-type NormalizedMutationPayloadSlice<
+export type NormalizedMutationPayloadSlice<
   TMutationPayloadKey extends keyof ArchitectMutationPayload,
 > = Omit<MutationPayloadClosedShape, TMutationPayloadKey> &
   Pick<ArchitectMutationPayload, TMutationPayloadKey>;
-type PublicTradeMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicTradeMutationPayloadInput = PublicMutationPayloadSlice<
   'teams' | 'capProjections' | 'tradeCtx' | 'asOfDate'
 >;
-type PublicSigningMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicSigningMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'playerId' | 'contract' | 'signedUsing'
 >;
-type PublicWaiveMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicWaiveMutationPayloadInput = PublicMutationPayloadSlice<
   | 'teamCode'
   | 'playerId'
   | 'stretch'
@@ -809,16 +809,16 @@ type PublicWaiveMutationPayloadInput = PublicMutationPayloadSlice<
   | 'buyoutAmount'
   | 'isGracePeriod'
 >;
-type PublicExtensionMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicExtensionMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'playerId' | 'extension'
 >;
-type PublicOptionMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicOptionMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'playerId' | 'accepted' | 'targetYear'
 >;
-type PublicRenounceMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicRenounceMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'playerId'
 >;
-type PublicStoreOfferSheetMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicStoreOfferSheetMutationPayloadInput = PublicMutationPayloadSlice<
   | 'teamCode'
   | 'playerId'
   | 'contract'
@@ -826,10 +826,10 @@ type PublicStoreOfferSheetMutationPayloadInput = PublicMutationPayloadSlice<
   | 'offerSheetId'
   | 'worldId'
 >;
-type PublicOfferSheetMirrorMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicOfferSheetMirrorMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'homeTeamCode' | 'offeringTeamCode' | 'offerSheetId'
 >;
-type PublicOfferSheetResolutionMutationPayloadInput =
+export type PublicOfferSheetResolutionMutationPayloadInput =
   PublicMutationPayloadSlice<
     | 'teamCode'
     | 'homeTeamCode'
@@ -837,45 +837,45 @@ type PublicOfferSheetResolutionMutationPayloadInput =
     | 'offerSheetId'
     | 'dedupKey'
   >;
-type PublicSignAndTradeMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicSignAndTradeMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'destinationTeamCode' | 'playerId' | 'contract' | 'signedUsing'
 >;
-type PublicSetDeadCapMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicSetDeadCapMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'deadCap' | 'deadCapChanges'
 >;
-type PublicSetExceptionsMutationPayloadInput = PublicMutationPayloadSlice<
+export type PublicSetExceptionsMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'exceptions' | 'exceptionChanges'
 >;
-type SigningMutationPayloadInput = NormalizedMutationPayloadSlice<
+export type SigningMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'contract' | 'signedUsing'
 >;
-type WaiveMutationPayloadInput = NormalizedMutationPayloadSlice<
+export type WaiveMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'stretch' | 'stretchYears' | 'buyout' | 'buyoutAmount'
 >;
-type ExtensionMutationPayloadInput = NormalizedMutationPayloadSlice<
+export type ExtensionMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'extension'
 >;
-type OptionMutationPayloadInput = NormalizedMutationPayloadSlice<
+export type OptionMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'accepted' | 'targetYear'
 >;
-type RenounceMutationPayloadInput = NormalizedMutationPayloadSlice<'playerId'>;
-type StoreOfferSheetMutationPayloadInput = NormalizedMutationPayloadSlice<
+export type RenounceMutationPayloadInput = NormalizedMutationPayloadSlice<'playerId'>;
+export type StoreOfferSheetMutationPayloadInput = NormalizedMutationPayloadSlice<
   'contract' | 'offerSheetId' | 'worldId'
 >;
-type OfferSheetMirrorMutationPayloadInput =
+export type OfferSheetMirrorMutationPayloadInput =
   NormalizedMutationPayloadSlice<never>;
-type OfferSheetResolutionMutationPayloadInput =
+export type OfferSheetResolutionMutationPayloadInput =
   NormalizedMutationPayloadSlice<'dedupKey'>;
-type SignAndTradeMutationPayloadInput = NormalizedMutationPayloadSlice<
+export type SignAndTradeMutationPayloadInput = NormalizedMutationPayloadSlice<
   'teamCode' | 'destinationTeamCode' | 'playerId' | 'contract' | 'signedUsing'
 >;
-type SetDeadCapMutationPayloadInput = NormalizedMutationPayloadSlice<
+export type SetDeadCapMutationPayloadInput = NormalizedMutationPayloadSlice<
   'teamCode' | 'deadCap' | 'deadCapChanges'
 >;
-type SetExceptionsMutationPayloadInput = NormalizedMutationPayloadSlice<
+export type SetExceptionsMutationPayloadInput = NormalizedMutationPayloadSlice<
   'teamCode' | 'exceptions' | 'exceptionChanges'
 >;
-type CurrentStateTradeException = {
+export type CurrentStateTradeException = {
   id?: string;
   amount?: number;
   totalAmount?: number;
@@ -886,14 +886,14 @@ type CurrentStateTradeException = {
   createdFrom?: string;
   isUsed?: boolean;
 };
-type LoadedMutationTeam = Awaited<ReturnType<typeof getTeam>>;
-type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
-type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
+export type LoadedMutationTeam = Awaited<ReturnType<typeof getTeam>>;
+export type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
+export type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
   year?: number | string | null;
 };
-type MutationCurrentStateContractNumberish = number | string | null;
-type MutationCurrentStateContractDateLike = string | number | null;
-const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
+export type MutationCurrentStateContractNumberish = number | string | null;
+export type MutationCurrentStateContractDateLike = string | number | null;
+export const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
   'salariesByYear',
   'years',
   'startYear',
@@ -933,7 +933,7 @@ const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
 // option/signing flows spread the existing contract before canonicalization and
 // world persistence. Dropping one here would silently strip that persisted
 // contract state on the next committed player mutation.
-const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
+export const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
   'salariesByYear',
   'contractType',
   'isExtension',
@@ -956,16 +956,16 @@ const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
 // Future-contract carry-through stays separate and smaller because extension
 // flows only need the existing future lane plus the persisted metadata they
 // intentionally preserve when appending normalized extension rows.
-type CurrentStatePlayerContractIncentives =
+export type CurrentStatePlayerContractIncentives =
   NormalizedMutationContractIncentives;
-type CurrentStatePlayerContractGuaranteeScheduleEntry =
+export type CurrentStatePlayerContractGuaranteeScheduleEntry =
   NormalizedMutationGuaranteeScheduleEntry;
-type CurrentStatePlayerContractTradeEligibilityRules =
+export type CurrentStatePlayerContractTradeEligibilityRules =
   ArchitectMutationTradeEligibilityRules;
-type CurrentStatePlayerContractTradeEligibility =
+export type CurrentStatePlayerContractTradeEligibility =
   ArchitectMutationTradeEligibility;
-type CurrentStatePlayerContractFreeAgency = ArchitectMutationFreeAgency;
-type MutationCurrentStatePlayerContractSalaryRowIngress = {
+export type CurrentStatePlayerContractFreeAgency = ArchitectMutationFreeAgency;
+export type MutationCurrentStatePlayerContractSalaryRowIngress = {
   season?: string | null;
   year?: MutationCurrentStateContractNumberish;
   salary?: MutationCurrentStateContractNumberish;
@@ -983,8 +983,8 @@ type MutationCurrentStatePlayerContractSalaryRowIngress = {
   voidedOn?: string | null;
   isExtensionSeason?: boolean | null;
 };
-type CurrentStatePlayerContractSalaryRow = NormalizedMutationSalaryRow;
-type MutationCurrentStatePlayerContractIngress = {
+export type CurrentStatePlayerContractSalaryRow = NormalizedMutationSalaryRow;
+export type MutationCurrentStatePlayerContractIngress = {
   salariesByYear?: MutationCurrentStatePlayerContractSalaryRowIngress[] | null;
   years?: MutationCurrentStateContractNumberish;
   startYear?: MutationCurrentStateContractNumberish;
@@ -1023,7 +1023,7 @@ type MutationCurrentStatePlayerContractIngress = {
   tradeRestrictions?: string[] | null;
   tradeEligibility?: CurrentStatePlayerContractTradeEligibility | null;
 };
-type MutationCurrentStatePlayerFutureContractIngress = {
+export type MutationCurrentStatePlayerFutureContractIngress = {
   salariesByYear?: MutationCurrentStatePlayerContractSalaryRowIngress[] | null;
   contractType?: string | null;
   isExtension?: boolean | null;
@@ -1045,22 +1045,22 @@ type MutationCurrentStatePlayerFutureContractIngress = {
   tradeKicker?: MutationCurrentStateContractNumberish;
   tradeRestrictions?: string[] | null;
 };
-type CurrentStatePlayerContract = Pick<
+export type CurrentStatePlayerContract = Pick<
   ArchitectMutationContract,
   (typeof CURRENT_STATE_PLAYER_CONTRACT_KEYS)[number]
 >;
-type CurrentStatePlayerFutureContract = Pick<
+export type CurrentStatePlayerFutureContract = Pick<
   ArchitectMutationContract,
   (typeof CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS)[number]
 >;
-type CurrentStatePlayerBioDisplay = NonNullable<
+export type CurrentStatePlayerBioDisplay = NonNullable<
   MutationPlayerBioLike['display']
 >;
-type CurrentStatePlayerBioDraft = Pick<
+export type CurrentStatePlayerBioDraft = Pick<
   PlayerDraft,
   'year' | 'round' | 'pick' | 'teamId'
 >;
-type CurrentStatePlayerBio = Omit<
+export type CurrentStatePlayerBio = Omit<
   MutationPlayerBioLike,
   | 'draft'
   | 'display'
@@ -1076,16 +1076,16 @@ type CurrentStatePlayerBio = Omit<
   yearsPro?: number | string | null;
   ['Years Pro']?: number | string | null;
 };
-type NormalizedCurrentStatePlayerDraft = Pick<
+export type NormalizedCurrentStatePlayerDraft = Pick<
   NonNullable<ArchitectMutationPlayerRecord['draft']>,
   'round' | 'pick'
 >;
-type CurrentStatePlayerRfaContext = {
+export type CurrentStatePlayerRfaContext = {
   pendingHomeTeamCode?: string;
   offerSheetId?: string;
   retainedUntilFinalize?: boolean;
 };
-type CurrentStatePlayerComputeCore = Omit<
+export type CurrentStatePlayerComputeCore = Omit<
   Pick<
     ArchitectMutationPlayerRecord,
     | 'player_id'
@@ -1109,7 +1109,7 @@ type CurrentStatePlayerComputeCore = Omit<
 };
 // Carry-through override metadata remains normalized as an explicit sidecar so
 // committed compute paths do not depend on unrelated persistence-only fields.
-type CurrentStatePlayerOverridePersistenceSidecar = Pick<
+export type CurrentStatePlayerOverridePersistenceSidecar = Pick<
   ArchitectMutationPlayerRecord,
   | 'representation'
   | 'source'
@@ -1118,9 +1118,9 @@ type CurrentStatePlayerOverridePersistenceSidecar = Pick<
   | 'isTwoWay'
   | 'signedDate'
 >;
-type CurrentStatePlayerCore = CurrentStatePlayerComputeCore &
+export type CurrentStatePlayerCore = CurrentStatePlayerComputeCore &
   CurrentStatePlayerOverridePersistenceSidecar;
-type CurrentStatePlayerOverridePersistenceIngress = Pick<
+export type CurrentStatePlayerOverridePersistenceIngress = Pick<
   ArchitectMutationPlayerRecord,
   | 'representation'
   | 'source'
@@ -1129,24 +1129,24 @@ type CurrentStatePlayerOverridePersistenceIngress = Pick<
   | 'isTwoWay'
   | 'signedDate'
 >;
-type CurrentStatePlayerRfaSidecar = {
+export type CurrentStatePlayerRfaSidecar = {
   rfaOfferSheet?: boolean;
   rfaOfferSheetOnly?: boolean;
   // Raw ingress stays broad, but the normalized player/persistence seam only
   // carries the small observed offer-sheet sidecar used by this file.
   rfaContext?: CurrentStatePlayerRfaContext;
 };
-type CurrentStatePlayerRfaBoundary = CurrentStatePlayerRfaSidecar & {
+export type CurrentStatePlayerRfaBoundary = CurrentStatePlayerRfaSidecar & {
   isNewlySignedFA?: boolean;
   originTeamId?: string;
 };
-type NormalizedCurrentStatePlayer = CurrentStatePlayerCore &
+export type NormalizedCurrentStatePlayer = CurrentStatePlayerCore &
   CurrentStatePlayerRfaBoundary;
-type LineageOverrideMergeBio = Pick<
+export type LineageOverrideMergeBio = Pick<
   NonNullable<NormalizedCurrentStatePlayer['bio']>,
   'playerId' | 'displayName'
 >;
-type LineageOverrideMergePlayer = LooseRecord &
+export type LineageOverrideMergePlayer = LooseRecord &
   Omit<
     Pick<
       NormalizedCurrentStatePlayer,
@@ -1165,10 +1165,10 @@ type LineageOverrideMergePlayer = LooseRecord &
   > & {
     bio?: LineageOverrideMergeBio | null;
   };
-type LineageOverrideSalaryRow = NonNullable<
+export type LineageOverrideSalaryRow = NonNullable<
   NonNullable<LineageOverrideMergePlayer['contract']>['salariesByYear']
 >[number];
-type PersistablePlayerOverride = Pick<
+export type PersistablePlayerOverride = Pick<
   CurrentStatePlayerComputeCore,
   | 'displayName'
   | 'teamCode'
@@ -1181,7 +1181,7 @@ type PersistablePlayerOverride = Pick<
   CurrentStatePlayerRfaBoundary & {
     playerId?: string | null;
   };
-type PersistablePlayerOverrideSource = Pick<
+export type PersistablePlayerOverrideSource = Pick<
   NormalizedCurrentStatePlayer,
   | 'player_id'
   | 'id'
@@ -1197,20 +1197,20 @@ type PersistablePlayerOverrideSource = Pick<
 > &
   CurrentStatePlayerOverridePersistenceSidecar &
   CurrentStatePlayerRfaBoundary;
-type CurrentStatePlayer = CurrentStatePlayerCore &
+export type CurrentStatePlayer = CurrentStatePlayerCore &
   CurrentStatePlayerRfaBoundary;
-const CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY =
+export const CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY =
   '__currentStateBasePreserved';
-const CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Roster`;
-const CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Exceptions`;
-const CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}OfferSheets`;
-const CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}IncomingOfferSheets`;
-const CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}TradeExceptions`;
-const CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}CashLedger`;
-const CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}ExceptionHistory`;
-const CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}DraftPicks`;
-const CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}EntitlementIds`;
-type CurrentStateTeam = Omit<
+export const CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Roster`;
+export const CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Exceptions`;
+export const CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}OfferSheets`;
+export const CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}IncomingOfferSheets`;
+export const CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}TradeExceptions`;
+export const CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}CashLedger`;
+export const CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}ExceptionHistory`;
+export const CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}DraftPicks`;
+export const CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}EntitlementIds`;
+export type CurrentStateTeam = Omit<
   Pick<
     ArchitectMutationTeamRecord,
     | 'teamCode'
@@ -1248,11 +1248,11 @@ type CurrentStateTeam = Omit<
   exceptionHistory?: CurrentStateExceptionHistoryEntry[];
   teamTotalSalary?: number;
 };
-type CurrentStateTeamIdentityFieldMap = Pick<
+export type CurrentStateTeamIdentityFieldMap = Pick<
   CurrentStateTeam,
   'teamCode' | 'teamName'
 >;
-type CurrentStateTeamMutationCoreFieldMap = Pick<
+export type CurrentStateTeamMutationCoreFieldMap = Pick<
   CurrentStateTeam,
   | 'players'
   | 'capHolds'
@@ -1264,28 +1264,28 @@ type CurrentStateTeamMutationCoreFieldMap = Pick<
   | 'hardCapReason'
   | 'hardCapTriggeredBy'
 >;
-type CurrentStateTeamRosterFieldMap = Pick<CurrentStateTeam, 'roster'>;
-type CurrentStateTeamExceptionsFieldMap = Pick<CurrentStateTeam, 'exceptions'>;
-type CurrentStateOfferSheetTeamLiveFieldMap = Pick<
+export type CurrentStateTeamRosterFieldMap = Pick<CurrentStateTeam, 'roster'>;
+export type CurrentStateTeamExceptionsFieldMap = Pick<CurrentStateTeam, 'exceptions'>;
+export type CurrentStateOfferSheetTeamLiveFieldMap = Pick<
   CurrentStateTeam,
   'offerSheets' | 'incomingOfferSheets'
 >;
-type CurrentStatePlayerOpsTeamCompute = CurrentStateTeamIdentityFieldMap &
+export type CurrentStatePlayerOpsTeamCompute = CurrentStateTeamIdentityFieldMap &
   CurrentStateTeamMutationCoreFieldMap &
   CurrentStateTeamRosterFieldMap;
-type CurrentStateManualCapTeamCompute = CurrentStateTeamIdentityFieldMap &
+export type CurrentStateManualCapTeamCompute = CurrentStateTeamIdentityFieldMap &
   CurrentStateTeamMutationCoreFieldMap &
   CurrentStateTeamExceptionsFieldMap;
-type CurrentStateSigningTeamCompute = CurrentStatePlayerOpsTeamCompute &
+export type CurrentStateSigningTeamCompute = CurrentStatePlayerOpsTeamCompute &
   CurrentStateTeamExceptionsFieldMap &
   Pick<CurrentStateTeam, 'offerSheets'>;
-type CurrentStateOfferSheetMirrorTeamCompute =
+export type CurrentStateOfferSheetMirrorTeamCompute =
   CurrentStateTeamIdentityFieldMap &
     CurrentStateTeamMutationCoreFieldMap &
     CurrentStateOfferSheetTeamLiveFieldMap;
-type CurrentStateOfferSheetResolutionTeamCompute =
+export type CurrentStateOfferSheetResolutionTeamCompute =
   CurrentStatePlayerOpsTeamCompute & CurrentStateOfferSheetTeamLiveFieldMap;
-type CurrentStateBaseTeamPreservedFieldMap = Pick<
+export type CurrentStateBaseTeamPreservedFieldMap = Pick<
   CurrentStateTeam,
   | 'roster'
   | 'exceptions'
@@ -1297,38 +1297,38 @@ type CurrentStateBaseTeamPreservedFieldMap = Pick<
   | 'draftPicks'
   | 'entitlementIds'
 >;
-type CurrentStateBaseTeamRosterCarrier = {
+export type CurrentStateBaseTeamRosterCarrier = {
   [CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['roster'];
 };
-type CurrentStateBaseTeamExceptionsCarrier = {
+export type CurrentStateBaseTeamExceptionsCarrier = {
   [CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['exceptions'];
 };
-type CurrentStateBaseTeamOfferSheetsCarrier = {
+export type CurrentStateBaseTeamOfferSheetsCarrier = {
   [CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['offerSheets'];
 };
-type CurrentStateBaseTeamIncomingOfferSheetsCarrier = {
+export type CurrentStateBaseTeamIncomingOfferSheetsCarrier = {
   [CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['incomingOfferSheets'];
 };
-type CurrentStateTradeTeamLiveFieldMap = Pick<
+export type CurrentStateTradeTeamLiveFieldMap = Pick<
   CurrentStateBaseTeamPreservedFieldMap,
   'tradeExceptions' | 'cashLedger' | 'draftPicks' | 'entitlementIds'
 >;
-type CurrentStateBaseTeamTradeExceptionsCarrier = {
+export type CurrentStateBaseTeamTradeExceptionsCarrier = {
   [CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['tradeExceptions'];
 };
-type CurrentStateBaseTeamCashLedgerCarrier = {
+export type CurrentStateBaseTeamCashLedgerCarrier = {
   [CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['cashLedger'];
 };
-type CurrentStateBaseTeamExceptionHistoryCarrier = {
+export type CurrentStateBaseTeamExceptionHistoryCarrier = {
   [CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['exceptionHistory'];
 };
-type CurrentStateBaseTeamDraftPicksCarrier = {
+export type CurrentStateBaseTeamDraftPicksCarrier = {
   [CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['draftPicks'];
 };
-type CurrentStateBaseTeamEntitlementIdsCarrier = {
+export type CurrentStateBaseTeamEntitlementIdsCarrier = {
   [CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['entitlementIds'];
 };
-type CurrentStateBaseTeamRoundTripCarrier = CurrentStateBaseTeamRosterCarrier &
+export type CurrentStateBaseTeamRoundTripCarrier = CurrentStateBaseTeamRosterCarrier &
   CurrentStateBaseTeamExceptionsCarrier &
   CurrentStateBaseTeamOfferSheetsCarrier &
   CurrentStateBaseTeamIncomingOfferSheetsCarrier &
@@ -1337,58 +1337,58 @@ type CurrentStateBaseTeamRoundTripCarrier = CurrentStateBaseTeamRosterCarrier &
   CurrentStateBaseTeamExceptionHistoryCarrier &
   CurrentStateBaseTeamDraftPicksCarrier &
   CurrentStateBaseTeamEntitlementIdsCarrier;
-type CurrentStateBaseTeamPreservedCarrierLike =
+export type CurrentStateBaseTeamPreservedCarrierLike =
   CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStatePlayerOpsTeam = CurrentStatePlayerOpsTeamCompute &
+export type CurrentStatePlayerOpsTeam = CurrentStatePlayerOpsTeamCompute &
   CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateManualCapTeam = CurrentStateManualCapTeamCompute &
+export type CurrentStateManualCapTeam = CurrentStateManualCapTeamCompute &
   CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateSigningTeam = CurrentStateSigningTeamCompute &
+export type CurrentStateSigningTeam = CurrentStateSigningTeamCompute &
   CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateOfferSheetMirrorTeam =
+export type CurrentStateOfferSheetMirrorTeam =
   CurrentStateOfferSheetMirrorTeamCompute &
     CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateOfferSheetResolutionTeam =
+export type CurrentStateOfferSheetResolutionTeam =
   CurrentStateOfferSheetResolutionTeamCompute &
     CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateTradeTeam = CurrentStateTeamIdentityFieldMap &
+export type CurrentStateTradeTeam = CurrentStateTeamIdentityFieldMap &
   CurrentStateTeamMutationCoreFieldMap &
   CurrentStateTeamRosterFieldMap &
   CurrentStateTeamExceptionsFieldMap &
   CurrentStateTradeTeamLiveFieldMap &
   CurrentStateBaseTeamExceptionHistoryCarrier &
   Pick<CurrentStateTeam, 'twoWayPlayers' | 'teamTotalSalary'>;
-type CurrentStateNonTradeTeamRoundTripMaterializable =
+export type CurrentStateNonTradeTeamRoundTripMaterializable =
   | CurrentStatePlayerOpsTeam
   | CurrentStateManualCapTeam
   | CurrentStateSigningTeam
   | CurrentStateOfferSheetMirrorTeam
   | CurrentStateOfferSheetResolutionTeam;
-type BaseTeamLike = CurrentStatePlayerOpsTeam | CurrentStateManualCapTeam;
-type OfferSheetTeamLike =
+export type BaseTeamLike = CurrentStatePlayerOpsTeam | CurrentStateManualCapTeam;
+export type OfferSheetTeamLike =
   | CurrentStateSigningTeam
   | CurrentStateOfferSheetMirrorTeam
   | CurrentStateOfferSheetResolutionTeam;
-type TradeTeamLike = CurrentStateTradeTeam;
-type CurrentStatePrimaryTeam =
+export type TradeTeamLike = CurrentStateTradeTeam;
+export type CurrentStatePrimaryTeam =
   | BaseTeamLike
   | OfferSheetTeamLike
   | TradeTeamLike;
-type TeamLike = CurrentStatePrimaryTeam;
-type PlayerLike = NormalizedCurrentStatePlayer;
-type CurrentStateBaseTeamMaterializedPreservedFieldMap =
+export type TeamLike = CurrentStatePrimaryTeam;
+export type PlayerLike = NormalizedCurrentStatePlayer;
+export type CurrentStateBaseTeamMaterializedPreservedFieldMap =
   Partial<CurrentStateBaseTeamPreservedFieldMap>;
 // The round-trip/persistence seam only accepts normalized current-state teams
 // plus the hidden base preserved-field carrier; it no longer widens back out to
 // a general ArchitectMutationTeamRecord bag.
-type CurrentStateTeamRoundTripMaterializable =
+export type CurrentStateTeamRoundTripMaterializable =
   | CurrentStateNonTradeTeamRoundTripMaterializable
   | TradeTeamLike;
-type MaterializedCurrentStateTeam<
+export type MaterializedCurrentStateTeam<
   T extends CurrentStateTeamRoundTripMaterializable,
 > = Omit<T, keyof CurrentStateBaseTeamRoundTripCarrier> &
   CurrentStateBaseTeamMaterializedPreservedFieldMap;
-type CurrentStateTeamPersistenceStripShape =
+export type CurrentStateTeamPersistenceStripShape =
   CurrentStateTeamRoundTripMaterializable & {
     teamTotalSalary?: CurrentStateTradeTeam['teamTotalSalary'];
   };
@@ -1403,10 +1403,10 @@ export type ArchitectMutationTeamUpdate = {
   teamCode?: string | null;
   team?: ArchitectMutationComputedTeamSnapshot | null;
 };
-type GeneralMutationCommittedTeamSnapshotFrom<
+export type GeneralMutationCommittedTeamSnapshotFrom<
   T extends CurrentStateTeamRoundTripMaterializable,
 > = Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'>;
-type GeneralMutationCommittedTeamSnapshotCore =
+export type GeneralMutationCommittedTeamSnapshotCore =
   | GeneralMutationCommittedTeamSnapshotFrom<CurrentStatePlayerOpsTeam>
   | GeneralMutationCommittedTeamSnapshotFrom<CurrentStateManualCapTeam>
   | GeneralMutationCommittedTeamSnapshotFrom<CurrentStateSigningTeam>
@@ -1420,14 +1420,14 @@ export type ArchitectGeneralMutationCommittedTeamUpdate = {
   teamCode?: string | null;
   team?: ArchitectGeneralMutationCommittedTeamSnapshot | null;
 };
-type GeneralMutationPersistenceTeamSnapshot =
+export type GeneralMutationPersistenceTeamSnapshot =
   ArchitectGeneralMutationCommittedTeamSnapshot;
-type ArchitectGeneralMutationDashboardReloadDeadCapYear = {
+export type ArchitectGeneralMutationDashboardReloadDeadCapYear = {
   season: string;
   amount: number;
   isStretched?: boolean | null;
 };
-type ArchitectGeneralMutationDashboardReloadDeadCapEntry = {
+export type ArchitectGeneralMutationDashboardReloadDeadCapEntry = {
   id?: string | null;
   playerId?: string | null;
   playerName?: string | null;
@@ -1438,7 +1438,7 @@ type ArchitectGeneralMutationDashboardReloadDeadCapEntry = {
   notes?: string | null;
   stretched?: boolean | null;
 };
-type ArchitectGeneralMutationDashboardReloadExceptionEntry = {
+export type ArchitectGeneralMutationDashboardReloadExceptionEntry = {
   type?: string | null;
   enabled?: boolean;
   available?: boolean;
@@ -1454,7 +1454,7 @@ type ArchitectGeneralMutationDashboardReloadExceptionEntry = {
   seasonKey?: string | null;
   lastUsedAt?: string | null;
 };
-type ArchitectGeneralMutationDashboardReloadTradeException = {
+export type ArchitectGeneralMutationDashboardReloadTradeException = {
   id: string;
   totalAmount?: number | null;
   usedAmount?: number | null;
@@ -1464,7 +1464,7 @@ type ArchitectGeneralMutationDashboardReloadTradeException = {
   expiresOn?: string | null;
   notes?: string | null;
 };
-type ArchitectGeneralMutationDashboardReloadExceptions = Partial<
+export type ArchitectGeneralMutationDashboardReloadExceptions = Partial<
   Record<
     CanonicalNonTpeExceptionKey | 'dpe',
     ArchitectGeneralMutationDashboardReloadExceptionEntry | null
@@ -1472,7 +1472,7 @@ type ArchitectGeneralMutationDashboardReloadExceptions = Partial<
 > & {
   tpe?: ArchitectGeneralMutationDashboardReloadTradeException[] | null;
 };
-type ArchitectGeneralMutationDashboardReloadOfferSheet = {
+export type ArchitectGeneralMutationDashboardReloadOfferSheet = {
   id?: string | number | null;
   playerName?: string;
   offeringTeamCode?: string;
@@ -1485,17 +1485,17 @@ type ArchitectGeneralMutationDashboardReloadOfferSheet = {
   status: string;
   createdAt?: string | number | Date | null;
 };
-type ArchitectGeneralMutationDashboardReloadContractFreeAgency = {
+export type ArchitectGeneralMutationDashboardReloadContractFreeAgency = {
   year?: number | null;
   type?: string | null;
 };
-type ArchitectGeneralMutationDashboardReloadBirdRights = {
+export type ArchitectGeneralMutationDashboardReloadBirdRights = {
   status: string;
   yearsOfService?: number | null;
   yearsWithTeam?: number | null;
   eligibleFor?: string[] | null;
 };
-type ArchitectGeneralMutationDashboardReloadPlayerContract = Omit<
+export type ArchitectGeneralMutationDashboardReloadPlayerContract = Omit<
   CurrentStatePlayerContract,
   'signingDate' | 'freeAgency' | 'birdRights'
 > & {
@@ -1506,7 +1506,7 @@ type ArchitectGeneralMutationDashboardReloadPlayerContract = Omit<
     | string
     | null;
 };
-type ArchitectGeneralMutationDashboardReloadPlayerFutureContract = Omit<
+export type ArchitectGeneralMutationDashboardReloadPlayerFutureContract = Omit<
   CurrentStatePlayerFutureContract,
   'signingDate' | 'freeAgency'
 > & {
@@ -1516,7 +1516,7 @@ type ArchitectGeneralMutationDashboardReloadPlayerFutureContract = Omit<
     | string
     | null;
 };
-type ArchitectGeneralMutationDashboardReloadPlayer = Omit<
+export type ArchitectGeneralMutationDashboardReloadPlayer = Omit<
   CurrentStatePlayer,
   'contract' | 'futureContract'
 > & {
@@ -1554,7 +1554,7 @@ export type ArchitectGeneralMutationDashboardReloadTeamUpdate = {
   team?: ArchitectGeneralMutationDashboardReloadTeamSnapshot | null;
 };
 
-type MutationCurrentStatePlayerIngress = Omit<
+export type MutationCurrentStatePlayerIngress = Omit<
   Pick<
     ArchitectMutationPlayerRecord,
     | 'player_id'
@@ -1583,7 +1583,7 @@ type MutationCurrentStatePlayerIngress = Omit<
     contract?: MutationCurrentStatePlayerContractIngress | null;
     futureContract?: MutationCurrentStatePlayerFutureContractIngress | null;
   };
-type MutationCurrentStateTeamCoreIngress = Omit<
+export type MutationCurrentStateTeamCoreIngress = Omit<
   Pick<
     ArchitectMutationTeamRecord,
     | 'teamCode'
@@ -1609,19 +1609,19 @@ type MutationCurrentStateTeamCoreIngress = Omit<
   exceptions?: ArchitectMutationTeamRecord['exceptions'] | null;
   totals?: ArchitectMutationTeamRecord['totals'] | null;
 };
-type MutationCurrentStateTeamRoundTripIngress = {
+export type MutationCurrentStateTeamRoundTripIngress = {
   tradeExceptions?: unknown[] | null;
   cashLedger?: ArchitectMutationCashLedger | null;
   exceptionHistory?: ArchitectMutationTeamRecord['exceptionHistory'] | null;
   draftPicks?: ArchitectMutationTeamRecord['draftPicks'] | null;
   entitlementIds?: ArchitectMutationTeamRecord['entitlementIds'] | null;
 };
-type MutationCurrentStateBaseTeamIngress = MutationCurrentStateTeamCoreIngress &
+export type MutationCurrentStateBaseTeamIngress = MutationCurrentStateTeamCoreIngress &
   MutationCurrentStateTeamRoundTripIngress;
-type MutationCurrentStateOfferSheetTeamIngress =
+export type MutationCurrentStateOfferSheetTeamIngress =
   MutationCurrentStateBaseTeamIngress &
     Pick<ArchitectMutationTeamRecord, 'offerSheets' | 'incomingOfferSheets'>;
-type MutationCurrentStateTradeTeamIngress =
+export type MutationCurrentStateTradeTeamIngress =
   MutationCurrentStateTeamCoreIngress &
     Pick<
       ArchitectMutationTeamRecord,
@@ -1635,11 +1635,11 @@ type MutationCurrentStateTradeTeamIngress =
       twoWayPlayers?: unknown[] | null;
     };
 export type MutationTeamMap = Record<string, TeamLike>;
-type BuildTotalsTeamMap = Record<
+export type BuildTotalsTeamMap = Record<
   string,
   TeamLike | ArchitectGeneralMutationCommittedTeamSnapshot | null | undefined
 >;
-type MutationCurrentStateTeamEntry = {
+export type MutationCurrentStateTeamEntry = {
   teamCode?: string | null;
   team?: TradeTeamLike | null;
 };
@@ -1667,7 +1667,7 @@ export type ArchitectMutationWritesSummary = {
   worldMetadataPatched: number;
   worldStatsUpdated: boolean;
 };
-type MutationDiffSummary = {
+export type MutationDiffSummary = {
   playersMoved: number;
   deadCapChanged: number;
   exceptionsChanged: number;
@@ -1676,12 +1676,12 @@ type MutationDiffSummary = {
 // Deliberately mixed: this aggregates issue payloads from multiple validators and
 // invariant checks that do not yet share one cross-module issue contract.
 export type MutationResultIssueLike = string | LooseRecord;
-type MutationEventContractSalaryRow = {
+export type MutationEventContractSalaryRow = {
   season?: string | number | null;
   salary?: number | string | null;
   capHit?: number | string | null;
 };
-type MutationEventContractLike = {
+export type MutationEventContractLike = {
   salariesByYear?: readonly MutationEventContractSalaryRow[] | null;
   years?: number | string | null;
   contractYears?: number | string | null;
@@ -1691,21 +1691,21 @@ type MutationEventContractLike = {
   totalValue?: number | string | null;
   signedUsing?: string | null;
 };
-type MutationEventExtensionTermsLike = {
+export type MutationEventExtensionTermsLike = {
   salariesByYear?: readonly MutationEventContractSalaryRow[] | null;
   contractYears?: number | string | null;
   years?: number | string | null;
   firstYearSalary?: number | string | null;
 };
-type MutationEventEntitlementTransferSummary = {
+export type MutationEventEntitlementTransferSummary = {
   out: readonly string[];
   in: readonly string[];
 };
-type MutationEventEntitlementsMovedByTeam = Record<
+export type MutationEventEntitlementsMovedByTeam = Record<
   string,
   MutationEventEntitlementTransferSummary
 >;
-type MutationEventMetadataLike = {
+export type MutationEventMetadataLike = {
   playersTraded?: readonly (string | number | null | undefined)[] | null;
   teamsAffected?: readonly (string | number | null | undefined)[] | null;
   teamsInvolved?: readonly (string | number | null | undefined)[] | null;
@@ -1735,7 +1735,7 @@ type MutationEventMetadataLike = {
   accepted?: boolean | null;
   summary?: string | null;
 } & Record<string, unknown>;
-type ArchitectWorldMutationContractSummary = {
+export type ArchitectWorldMutationContractSummary = {
   years?: number;
   firstYearSalary?: number;
   totalValue?: number;
@@ -1743,7 +1743,7 @@ type ArchitectWorldMutationContractSummary = {
   endYear?: string;
   signedUsing?: string;
 };
-type ArchitectWorldMutationHistoryMetadata = {
+export type ArchitectWorldMutationHistoryMetadata = {
   mutationType: string;
   category: string;
   worldId: string;
@@ -1765,7 +1765,7 @@ type ArchitectWorldMutationHistoryMetadata = {
   summary?: string;
   picksMoved?: string[];
 };
-type ArchitectWorldMutationEventDiffSummary = {
+export type ArchitectWorldMutationEventDiffSummary = {
   playersMoved?: number | string[];
   deadCapChanged?: number;
   exceptionsChanged?: number;
@@ -1774,15 +1774,15 @@ type ArchitectWorldMutationEventDiffSummary = {
   exceptionChanges?: string[];
   deadCapChanges?: string[];
 };
-type ArchitectWorldMutationPatch = {
+export type ArchitectWorldMutationPatch = {
   lastModifiedAt: ReturnType<typeof serverTimestamp>;
   lastModifiedTeams: Array<string | null | undefined>;
   asOfDate?: string;
 };
-type ArchitectWorldMutationEventBridge = Partial<
+export type ArchitectWorldMutationEventBridge = Partial<
   Pick<ArchitectWorldMutationEvent, 'eventId' | 'id' | 'operationId'>
 >;
-type ArchitectWorldMutationEvent = {
+export type ArchitectWorldMutationEvent = {
   eventId: string;
   id: string;
   type: string;
@@ -1810,7 +1810,7 @@ type ArchitectWorldMutationEvent = {
   diffSummary: ArchitectWorldMutationEventDiffSummary;
   mutationMetadata: ArchitectWorldMutationHistoryMetadata;
 };
-type MutationAuditContext = {
+export type MutationAuditContext = {
   operationId?: string | null;
   validatorVersion?: string | null;
   schemaVersion?: string | null;
@@ -1847,7 +1847,7 @@ export type ArchitectMutationResult = {
   persistedToWorld?: boolean;
   eventWritten?: boolean;
   _validatedTradeContext?: ArchitectMutationValidatedTradeContext;
-  _signingValidation?: ReturnType<typeof validateSigning>;
+  _signingValidation?: { valid: boolean; violations: Array<{ rule: string; message: string; severity?: string; [key: string]: unknown }>; warnings: Array<{ rule: string; message: string; severity?: string; [key: string]: unknown }> };
   _tpeConsumptionErrors?: TradeTpeConsumptionIssue[];
 };
 
@@ -1905,12 +1905,12 @@ export type OfferSheetPreflightResult = {
   source: 'authoritative-preflight';
 };
 export type MutationPayloadLike = ArchitectMutationPayload;
-type PlayerUpdateLike = ArchitectMutationPlayerUpdate;
-type PlayerDeleteLike = ArchitectMutationPlayerDelete;
-type WritesSummaryLike = ArchitectMutationWritesSummary;
-type TradeValidatedContextLike = ArchitectMutationValidatedTradeContext;
-type TradeTeamUpdate = ArchitectMutationTeamUpdate;
-type ArchitectMutationBridgeResult = {
+export type PlayerUpdateLike = ArchitectMutationPlayerUpdate;
+export type PlayerDeleteLike = ArchitectMutationPlayerDelete;
+export type WritesSummaryLike = ArchitectMutationWritesSummary;
+export type TradeValidatedContextLike = ArchitectMutationValidatedTradeContext;
+export type TradeTeamUpdate = ArchitectMutationTeamUpdate;
+export type ArchitectMutationBridgeResult = {
   success?: boolean;
   error?: string | Error | null;
   teamUpdates?: ArchitectMutationTeamUpdate[];
@@ -1921,37 +1921,37 @@ type ArchitectMutationBridgeResult = {
   warnings?: MutationResultIssueLike[];
   violations?: MutationResultIssueLike[];
   _validatedTradeContext?: ArchitectMutationValidatedTradeContext;
-  _signingValidation?: ReturnType<typeof validateSigning>;
+  _signingValidation?: { valid: boolean; violations: Array<{ rule: string; message: string; severity?: string; [key: string]: unknown }>; warnings: Array<{ rule: string; message: string; severity?: string; [key: string]: unknown }> };
   _tpeConsumptionErrors?: TradeTpeConsumptionIssue[];
 };
-type PersistWorldMutationResult = {
+export type PersistWorldMutationResult = {
   success: boolean;
   error?: string | Error | null;
   worldPatch?: ArchitectWorldMutationPatch;
   event?: ArchitectWorldMutationEventBridge;
   writesSummary?: WritesSummaryLike;
 };
-type MutationBridgeTeamUpdatesSlice = Pick<
+export type MutationBridgeTeamUpdatesSlice = Pick<
   ArchitectMutationBridgeResult,
   'teamUpdates'
 >;
-type MutationBridgePlayerTouchSlice = Pick<
+export type MutationBridgePlayerTouchSlice = Pick<
   ArchitectMutationBridgeResult,
   'playerUpdates' | 'playerDeletes'
 >;
-type MutationBridgeWritesSlice = Pick<
+export type MutationBridgeWritesSlice = Pick<
   ArchitectMutationBridgeResult,
   'teamUpdates' | 'playerUpdates' | 'playerDeletes' | 'entitlementUpdates'
 >;
-type MutationBridgePlayerIdSlice = Pick<
+export type MutationBridgePlayerIdSlice = Pick<
   ArchitectMutationBridgeResult,
   'playerUpdates' | 'metadata'
 >;
-type MutationEventSourceResult = Pick<
+export type MutationEventSourceResult = Pick<
   ArchitectMutationBridgeResult,
   'metadata' | 'teamUpdates' | 'playerUpdates' | 'playerDeletes'
 >;
-type MutationFailureOverrides = Pick<
+export type MutationFailureOverrides = Pick<
   ArchitectMutationResult,
   | 'appliedToLocalState'
   | 'persistedToWorld'
@@ -1961,11 +1961,11 @@ type MutationFailureOverrides = Pick<
   | 'warnings'
 >;
 export type ComputeResultLike = ArchitectMutationBridgeResult;
-type AuditContextLike = MutationAuditContext;
+export type AuditContextLike = MutationAuditContext;
 export type PostStateTotalsByTeam = NonNullable<
   PostStateCapValidationInput['afterTotalsByTeam']
 >;
-type SupportedComputeMutationType =
+export type SupportedComputeMutationType =
   | 'executeTrade'
   | 'signFreeAgent'
   | 'waivePlayer'
@@ -1980,7 +1980,7 @@ type SupportedComputeMutationType =
   | 'signAndTrade'
   | 'setDeadCap'
   | 'setExceptions';
-type MutationCurrentStateClosedShape = {
+export type MutationCurrentStateClosedShape = {
   teams?: undefined;
   team?: undefined;
   player?: undefined;
@@ -1991,24 +1991,24 @@ type MutationCurrentStateClosedShape = {
   destinationTeamCode?: undefined;
   offerSheetId?: undefined;
 };
-type MutationCurrentStateTradeTeamEntryInput = {
+export type MutationCurrentStateTradeTeamEntryInput = {
   teamCode?: string | null;
   team?: MutationCurrentStateTradeTeamIngress | null;
 };
-type MutationTradeCurrentStateIngress = Omit<
+export type MutationTradeCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
   'teams'
 > & {
   teams?: MutationCurrentStateTradeTeamEntryInput[];
 };
-type MutationTeamOnlyCurrentStateIngress = Omit<
+export type MutationTeamOnlyCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'teamCode'
 > & {
   team?: MutationCurrentStateBaseTeamIngress | null;
   teamCode?: string | null;
 };
-type MutationTeamAndPlayerCurrentStateIngress = Omit<
+export type MutationTeamAndPlayerCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'player' | 'teamCode'
 > & {
@@ -2016,7 +2016,7 @@ type MutationTeamAndPlayerCurrentStateIngress = Omit<
   player?: MutationCurrentStatePlayerIngress | null;
   teamCode?: string | null;
 };
-type MutationSigningCurrentStateIngress = Omit<
+export type MutationSigningCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'player' | 'homeTeam' | 'teamCode'
 > & {
@@ -2025,7 +2025,7 @@ type MutationSigningCurrentStateIngress = Omit<
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   teamCode?: string | null;
 };
-type MutationOfferSheetMirrorCurrentStateIngress = Omit<
+export type MutationOfferSheetMirrorCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
   'homeTeam' | 'offeringTeam' | 'offerSheetId'
 > & {
@@ -2033,7 +2033,7 @@ type MutationOfferSheetMirrorCurrentStateIngress = Omit<
   offeringTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offerSheetId?: string | null;
 };
-type MutationOfferSheetResolutionCurrentStateIngress = Omit<
+export type MutationOfferSheetResolutionCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
   'homeTeam' | 'offeringTeam' | 'offerSheetId'
 > & {
@@ -2041,7 +2041,7 @@ type MutationOfferSheetResolutionCurrentStateIngress = Omit<
   offeringTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offerSheetId?: string | null;
 };
-type MutationSignAndTradeCurrentStateIngress = Omit<
+export type MutationSignAndTradeCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'player' | 'destinationTeam' | 'teamCode' | 'destinationTeamCode'
 > & {
@@ -2069,19 +2069,19 @@ export type MutationCurrentState = {
   teamCode?: string | null;
   offerSheetId?: string | null;
 };
-type MutationTradeCurrentState = Omit<
+export type MutationTradeCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'teams'
 > &
   Pick<MutationCurrentState, 'teams'>;
-type MutationTeamOnlyCurrentState = Omit<
+export type MutationTeamOnlyCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'teamCode'
 > &
   Pick<MutationCurrentState, 'team' | 'teamCode'> & {
     team?: CurrentStateManualCapTeam | null;
   };
-type MutationTeamAndPlayerCurrentState = Omit<
+export type MutationTeamAndPlayerCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'player' | 'teamCode'
 > &
@@ -2089,7 +2089,7 @@ type MutationTeamAndPlayerCurrentState = Omit<
     team?: CurrentStatePlayerOpsTeam | null;
     player?: PlayerLike | null;
   };
-type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
+export type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'player' | 'homeTeam' | 'teamCode'
 > &
@@ -2098,8 +2098,8 @@ type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
     player?: PlayerLike | null;
     homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
   };
-type MutationSigningTeamLike = CurrentStateSigningTeam | TradeTeamLike;
-type MutationSigningCurrentState = Omit<
+export type MutationSigningTeamLike = CurrentStateSigningTeam | TradeTeamLike;
+export type MutationSigningCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'player' | 'homeTeam' | 'teamCode'
 > &
@@ -2108,7 +2108,7 @@ type MutationSigningCurrentState = Omit<
     player?: PlayerLike | null;
     homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
   };
-type MutationOfferSheetMirrorCurrentState = Omit<
+export type MutationOfferSheetMirrorCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'homeTeam' | 'offeringTeam' | 'offerSheetId'
 > &
@@ -2116,7 +2116,7 @@ type MutationOfferSheetMirrorCurrentState = Omit<
     homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
     offeringTeam?: CurrentStateOfferSheetMirrorTeam | null;
   };
-type MutationOfferSheetResolutionCurrentState = Omit<
+export type MutationOfferSheetResolutionCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'homeTeam' | 'offeringTeam' | 'offerSheetId'
 > &
@@ -2124,7 +2124,7 @@ type MutationOfferSheetResolutionCurrentState = Omit<
     homeTeam?: CurrentStateOfferSheetResolutionTeam | null;
     offeringTeam?: CurrentStateOfferSheetResolutionTeam | null;
   };
-type MutationSignAndTradeCurrentState = Omit<
+export type MutationSignAndTradeCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'player' | 'destinationTeam' | 'teamCode'
 > &
@@ -2136,32 +2136,32 @@ type MutationSignAndTradeCurrentState = Omit<
     player?: PlayerLike | null;
     destinationTeam?: TradeTeamLike | null;
   };
-type MutationTradeCurrentStateInput =
+export type MutationTradeCurrentStateInput =
   | MutationTradeCurrentStateIngress
   | MutationTradeCurrentState;
-type MutationTeamOnlyCurrentStateInput =
+export type MutationTeamOnlyCurrentStateInput =
   | MutationTeamOnlyCurrentStateIngress
   | MutationTeamOnlyCurrentState;
-type MutationTeamAndPlayerCurrentStateInput =
+export type MutationTeamAndPlayerCurrentStateInput =
   | MutationTeamAndPlayerCurrentStateIngress
   | MutationTeamAndPlayerCurrentState;
-type MutationOfferSheetTeamAndPlayerCurrentStateInput =
+export type MutationOfferSheetTeamAndPlayerCurrentStateInput =
   | MutationSigningCurrentStateIngress
   | MutationOfferSheetTeamAndPlayerCurrentState;
-type MutationOfferSheetMirrorCurrentStateInput =
+export type MutationOfferSheetMirrorCurrentStateInput =
   | MutationOfferSheetMirrorCurrentStateIngress
   | MutationOfferSheetMirrorCurrentState;
-type MutationOfferSheetResolutionCurrentStateInput =
+export type MutationOfferSheetResolutionCurrentStateInput =
   | MutationOfferSheetResolutionCurrentStateIngress
   | MutationOfferSheetResolutionCurrentState;
-type MutationSignAndTradeCurrentStateInput =
+export type MutationSignAndTradeCurrentStateInput =
   | MutationSignAndTradeCurrentStateIngress
   | MutationSignAndTradeCurrentState;
 
 // Public compute callers may still pass raw loader-shaped snapshots or already
 // normalized lane state. That compatibility is kept here and adapted once by
 // normalizeComputeWorldMutationArgs before the core compute switch runs.
-type PublicMutationCurrentStateInputByType = {
+export type PublicMutationCurrentStateInputByType = {
   executeTrade: MutationTradeCurrentStateInput;
   signFreeAgent: MutationOfferSheetTeamAndPlayerCurrentStateInput;
   waivePlayer: MutationTeamAndPlayerCurrentStateInput;
@@ -2177,7 +2177,7 @@ type PublicMutationCurrentStateInputByType = {
   setDeadCap: MutationTeamOnlyCurrentStateInput;
   setExceptions: MutationTeamOnlyCurrentStateInput;
 };
-type PublicMutationPayloadInputByType = {
+export type PublicMutationPayloadInputByType = {
   executeTrade: PublicTradeMutationPayloadInput;
   signFreeAgent: PublicSigningMutationPayloadInput;
   waivePlayer: PublicWaiveMutationPayloadInput;
@@ -2196,7 +2196,7 @@ type PublicMutationPayloadInputByType = {
 
 // Core mutation compute only receives lane-owned current state. Loader output
 // and public direct-call compatibility must normalize into these shapes first.
-type MutationCurrentStateInputByType = {
+export type MutationCurrentStateInputByType = {
   executeTrade: MutationTradeCurrentState;
   signFreeAgent: MutationOfferSheetTeamAndPlayerCurrentState;
   waivePlayer: MutationTeamAndPlayerCurrentState;
@@ -2212,7 +2212,7 @@ type MutationCurrentStateInputByType = {
   setDeadCap: MutationTeamOnlyCurrentState;
   setExceptions: MutationTeamOnlyCurrentState;
 };
-type MutationPayloadInputByType = {
+export type MutationPayloadInputByType = {
   executeTrade: TradeMutationPayload;
   signFreeAgent: SigningMutationPayloadInput;
   waivePlayer: WaiveMutationPayloadInput;
@@ -2228,9 +2228,9 @@ type MutationPayloadInputByType = {
   setDeadCap: SetDeadCapMutationPayloadInput;
   setExceptions: SetExceptionsMutationPayloadInput;
 };
-type LoadedMutationCurrentStateByType = MutationCurrentStateInputByType;
-type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
-type ApplyWorldMutationArgs = {
+export type LoadedMutationCurrentStateByType = MutationCurrentStateInputByType;
+export type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
+export type ApplyWorldMutationArgs = {
   userId: string;
   worldId: string;
   seasonId: string;
@@ -2239,7 +2239,7 @@ type ApplyWorldMutationArgs = {
   timestamp?: number;
   operationId?: string;
 };
-type PublicComputeWorldMutationArgsByType = {
+export type PublicComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
     mutationType: TMutationType;
     payload: PublicMutationPayloadInputByType[TMutationType];
@@ -2250,7 +2250,7 @@ type PublicComputeWorldMutationArgsByType = {
     worldId?: string;
   };
 };
-type LegacyPublicComputeWorldMutationArgsByType = {
+export type LegacyPublicComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
     mutationType: TMutationType;
     payload: ArchitectMutationPayload;
@@ -2261,10 +2261,10 @@ type LegacyPublicComputeWorldMutationArgsByType = {
     worldId?: string;
   };
 };
-type PublicComputeWorldMutationArgs =
+export type PublicComputeWorldMutationArgs =
   | PublicComputeWorldMutationArgsByType[SupportedComputeMutationType]
   | LegacyPublicComputeWorldMutationArgsByType[SupportedComputeMutationType];
-type ComputeWorldMutationArgsByType = {
+export type ComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
     mutationType: TMutationType;
     payload: MutationPayloadInputByType[TMutationType];
@@ -2275,9 +2275,9 @@ type ComputeWorldMutationArgsByType = {
     worldId?: string;
   };
 };
-type ComputeWorldMutationArgs =
+export type ComputeWorldMutationArgs =
   ComputeWorldMutationArgsByType[SupportedComputeMutationType];
-const SUPPORTED_COMPUTE_MUTATION_TYPES = [
+export const SUPPORTED_COMPUTE_MUTATION_TYPES = [
   'executeTrade',
   'signFreeAgent',
   'waivePlayer',
@@ -2293,8 +2293,9 @@ const SUPPORTED_COMPUTE_MUTATION_TYPES = [
   'setDeadCap',
   'setExceptions',
 ] as const satisfies readonly SupportedComputeMutationType[];
-const SUPPORTED_COMPUTE_MUTATION_TYPE_SET =
+export const SUPPORTED_COMPUTE_MUTATION_TYPE_SET =
   new Set<SupportedComputeMutationType>(SUPPORTED_COMPUTE_MUTATION_TYPES);
+
 
 function isSupportedComputeMutationType(
   mutationType: string
