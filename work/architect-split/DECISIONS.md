@@ -30,6 +30,28 @@ PLAN.md scope, require user input?
 
 <!-- newest first -->
 
+## 2026-05-13 — Steps 4c/4d: Option A chosen — add mutationPipeline.helpers.ts
+
+**Context:** Step 4a surfaced that 30+ functions defined in the READ section are called from compute*Result() functions, making the PLAN's "compute MUST NOT import from read.ts" constraint unsatisfiable as-is. Three options were presented to the user.
+
+**Decision:** Option A — extract a `mutationPipeline.helpers.ts` shared submodule containing the cross-phase utilities, which both `read.ts` and `compute.ts` import from.
+
+**Reasoning (user-stated priority: long-term health):**
+
+- Option B (relax constraint) creates hidden coupling: compute.ts would depend on a specific subset of read.ts without that dependency being explicit. Future changes to the 9,000-line read.ts would risk breaking compute.ts silently.
+- Option C (give up) leaves the 13,412-line file unsplit — the original problem.
+- Option A names the shared layer explicitly and makes the dependency graph unambiguous: `helpers.ts` → `read.ts`, `helpers.ts` → `compute.ts`. No hidden coupling. The pure compute functions stay genuinely pure (no I/O, no read-layer entanglement). Consistent with the capLegalityValidation pattern where constants.ts and schema.ts serve multiple submodules.
+
+**Impact:** Adds one unplanned step (4a.5) before 4c and 4d. Steps 4c and 4d are now unblocked once 4a.5 completes. The final dependency graph for mutationPipeline will be:
+
+```
+mutationPipeline.helpers.ts   (shared utilities — no I/O, pure functions)
+       ↑                ↑
+mutationPipeline.read.ts    mutationPipeline.compute.ts
+              ↑                    ↑
+         mutationPipeline.ts   (orchestrator: applyWorldMutation, preflights, PERSIST)
+```
+
 ## 2026-05-13 — Step 4b: mutationPipeline.types.ts implemented as re-export barrel (not code move)
 
 **Context:** Step 4b execution. PLAN.md described extracting ~1,400 lines of types to a dedicated module.

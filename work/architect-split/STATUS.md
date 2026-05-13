@@ -31,10 +31,11 @@ git log, the git log wins.
 | 2d | `capLegalityValidation/extension.ts` | ✅ | 130c5633 | 2026-05-13 | ~595 lines; orphaned validateExceptionEligibility JSDoc cleaned up |
 | 2e | `capLegalityValidation/actionValidators.ts` | ✅ | b9f05a7c | 2026-05-13 | ~849 lines; KnownCapHold type added to imports; orphaned validateOfferSheetResolution JSDoc cleaned |
 | 3 | Split `useArchitectActions.ts` (**optional — decide A or B first**) | ⏭️ | — | 2026-05-13 | Path B chosen: Step 2 took longer than expected; low-value cosmetic split (see DECISIONS.md) |
-| 4a | Map + verify `mutationPipeline.ts` phase boundaries | ✅ | — | 2026-05-13 | STEP4_LINE_MAP.md produced; stop condition triggered — 30+ cross-phase deps block COMPUTE/READ split |
+| 4a | Map + verify `mutationPipeline.ts` phase boundaries | ✅ | 6289a5c1 | 2026-05-13 | STEP4_LINE_MAP.md produced; stop condition triggered — 30+ cross-phase deps block COMPUTE/READ split |
 | 4b | `mutationPipeline.types.ts` | ✅ | cc5d7f90 | 2026-05-13 | Re-export barrel only (not code move); see DECISIONS.md for reasoning |
-| 4c | `mutationPipeline.read.ts` | ❌ | — | — | Blocked: 30+ cross-phase helpers need resolution first (see STEP4_LINE_MAP.md) |
-| 4d | `mutationPipeline.compute.ts` | ❌ | — | — | Blocked by same cross-phase issue as 4c |
+| 4a.5 | `mutationPipeline.helpers.ts` (NEW — Option A) | ⬜ | — | — | Extract ~30 cross-phase shared utilities; unblocks 4c+4d. See DECISIONS.md. |
+| 4c | `mutationPipeline.read.ts` | ⬜ | — | — | Unblocked after 4a.5 completes |
+| 4d | `mutationPipeline.compute.ts` | ⬜ | — | — | Unblocked after 4a.5 completes |
 | 4e | Verify imports + circular check + `npm run build` | ⬜ | — | — | Final gate |
 
 ---
@@ -43,8 +44,8 @@ git log, the git log wins.
 
 | Artifact | Path | Required by | Status |
 |----------|------|-------------|--------|
-| Line map | `work/architect-split/STEP4_LINE_MAP.md` | Step 4a | ⬜ Not created |
-| Decisions log | `work/architect-split/DECISIONS.md` | Any plan deviation | ✅ Exists (empty) |
+| Line map | `work/architect-split/STEP4_LINE_MAP.md` | Step 4a | ✅ Created |
+| Decisions log | `work/architect-split/DECISIONS.md` | Any plan deviation | ✅ Exists |
 
 ---
 
@@ -69,7 +70,7 @@ is still green when picking up after a long break.
 Update this section at the end of every session.
 
 - **Date:** 2026-05-13
-- **Stopped after:** Step 4b
-- **Last commit:** cc5d7f90
-- **Next action:** Steps 4c/4d are BLOCKED — user decision required on cross-phase dependency strategy (see STEP4_LINE_MAP.md and DECISIONS.md)
-- **Open blockers:** (1) 5 pre-existing phase66-70 test failures; (2) Steps 4c/4d require decision between: add shared helpers submodule, relax MUST-NOT-import constraint, or accept types-only extraction as final scope
+- **Stopped after:** Step 4b + plan update for Option A
+- **Last commit:** b2ccd9df
+- **Next action:** Step 4a.5 — Extract `mutationPipeline.helpers.ts` with ~30 cross-phase shared utilities
+- **Open blockers:** 5 pre-existing phase66-70 test failures only (not Wave 4 scope)
