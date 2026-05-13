@@ -257,6 +257,7 @@ utils/
   hardCapUtils.ts
   leagueInvariants.ts
   loadArchitectBasePlayer.ts
+  mutationPipeline.helpers.ts
   mutationPipeline.ts
   mutationPipeline.types.ts
   nonTradeMutationValidationStage.ts
@@ -384,5 +385,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-13T07:54:32.961Z*
+*Generated on: 2026-05-13T12:11:07.121Z*
 *Auto-updated by: npm run docs*
