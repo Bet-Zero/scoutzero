@@ -195,6 +195,8 @@ utils/
   capLegality/
     localCapAuditLog.ts
     postStateCapValidator.ts
+  capLegalityValidation/
+    constants.ts
   capLegalityValidation.ts
   capProjections.ts
   capRulesProfile/
@@ -377,5 +379,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-13T03:42:33.563Z*
+*Generated on: 2026-05-13T04:08:02.624Z*
 *Auto-updated by: npm run docs*
