@@ -35,8 +35,8 @@ git log, the git log wins.
 | 4b | `mutationPipeline.types.ts` | ✅ | cc5d7f90 | 2026-05-13 | Re-export barrel only (not code move); see DECISIONS.md for reasoning |
 | 4a.5 | `mutationPipeline.helpers.ts` (NEW — Option A) | ✅ | 602173d3 | 2026-05-13 | ~2,300 lines; 39 types exported from orchestrator; player snapshot normalizer chain + persistence helpers; full test suite green |
 | 4c | `mutationPipeline.read.ts` | ✅ | 5d35f786 | 2026-05-13 | ~5,141 lines; 144 functions exported; 34 helpers.ts ranges skipped; 9 guardrail tests updated; only pre-existing phase66-70 failures remain |
-| 4d | `mutationPipeline.compute.ts` | ✅ | TBD | 2026-05-13 | ~2,458 lines; 23 compute functions exported; 14 types exported from main; 12 guardrail tests updated; only pre-existing phase66-70 failures remain |
-| 4e | Verify imports + circular check + `npm run build` | ⬜ | — | — | Final gate |
+| 4d | `mutationPipeline.compute.ts` | ✅ | 2eff62b2 | 2026-05-13 | ~2,458 lines; 23 compute functions exported; 14 types exported from main; 12 guardrail tests updated; only pre-existing phase66-70 failures remain |
+| 4e | Verify imports + circular check + `npm run build` | ✅ | TBD | 2026-05-13 | TypeScript clean; madge cycles 1-2 pre-existing, 3-5 are import type only (runtime-safe); build clean (pre-existing 500kB chunk warning only) |
 
 ---
 
@@ -56,12 +56,12 @@ is still green when picking up after a long break.
 
 | Gate | Last run | Result |
 |------|----------|--------|
-| `npm run typecheck` | 2026-05-13 | ✅ Clean (post step 4a.5) |
+| `npm run typecheck` | 2026-05-13 | ✅ Clean (post step 4d) |
 | `npm run validate:project` | 2026-05-13 | ✅ All validations passed |
 | `npm run test:fast -- --reporter=dot` | 2026-05-13 | ✅ 57/57 |
-| `npm run test:architect -- --reporter=dot` | 2026-05-13 | ⚠️ 5 pre-existing files fail (phase66-70 migration script tests — see DECISIONS.md); all other tests pass (post step 4c) |
+| `npm run test:architect -- --reporter=dot` | 2026-05-13 | ⚠️ 5 pre-existing files fail (phase66-70 migration script tests — see DECISIONS.md); all other tests pass (post step 4d) |
 | `npm run test:cap-sheet-boundary -- --reporter=dot` | 2026-05-13 | ✅ 75/75 |
-| `npm run build` | 2026-05-13 | ✅ Built (1 existing dynamic import warning, not new) |
+| `npm run build` | 2026-05-13 | ✅ Built (pre-existing 500kB chunk warning, not new) — post step 4d |
 
 ---
 
@@ -70,7 +70,7 @@ is still green when picking up after a long break.
 Update this section at the end of every session.
 
 - **Date:** 2026-05-13
-- **Stopped after:** Step 4d complete — compute.ts extracted, 12 guardrail tests updated, suite green
-- **Last commit:** TBD (step 4d)
-- **Next action:** Step 4e — Verify imports + circular check + `npm run build`
+- **Stopped after:** Step 4e complete — all Wave 4 steps done; mutationPipeline.ts split into 4 modules
+- **Last commit:** TBD (step 4e)
+- **Next action:** Wave 4 complete ✅
 - **Open blockers:** 5 pre-existing phase66-70 test failures only (not Wave 4 scope)
