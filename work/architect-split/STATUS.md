@@ -34,7 +34,7 @@ git log, the git log wins.
 | 4a | Map + verify `mutationPipeline.ts` phase boundaries | ✅ | 6289a5c1 | 2026-05-13 | STEP4_LINE_MAP.md produced; stop condition triggered — 30+ cross-phase deps block COMPUTE/READ split |
 | 4b | `mutationPipeline.types.ts` | ✅ | cc5d7f90 | 2026-05-13 | Re-export barrel only (not code move); see DECISIONS.md for reasoning |
 | 4a.5 | `mutationPipeline.helpers.ts` (NEW — Option A) | ✅ | 602173d3 | 2026-05-13 | ~2,300 lines; 39 types exported from orchestrator; player snapshot normalizer chain + persistence helpers; full test suite green |
-| 4c | `mutationPipeline.read.ts` | ⬜ | — | — | Unblocked after 4a.5 completes |
+| 4c | `mutationPipeline.read.ts` | ✅ | TBD | 2026-05-13 | ~5,141 lines; 144 functions exported; 34 helpers.ts ranges skipped; 9 guardrail tests updated; only pre-existing phase66-70 failures remain |
 | 4d | `mutationPipeline.compute.ts` | ⬜ | — | — | Unblocked after 4a.5 completes |
 | 4e | Verify imports + circular check + `npm run build` | ⬜ | — | — | Final gate |
 
@@ -59,7 +59,7 @@ is still green when picking up after a long break.
 | `npm run typecheck` | 2026-05-13 | ✅ Clean (post step 4a.5) |
 | `npm run validate:project` | 2026-05-13 | ✅ All validations passed |
 | `npm run test:fast -- --reporter=dot` | 2026-05-13 | ✅ 57/57 |
-| `npm run test:architect -- --reporter=dot` | 2026-05-13 | ⚠️ 5 pre-existing files fail (phase66-70 migration script tests — see DECISIONS.md); all other tests pass |
+| `npm run test:architect -- --reporter=dot` | 2026-05-13 | ⚠️ 5 pre-existing files fail (phase66-70 migration script tests — see DECISIONS.md); all other tests pass (post step 4c) |
 | `npm run test:cap-sheet-boundary -- --reporter=dot` | 2026-05-13 | ✅ 75/75 |
 | `npm run build` | 2026-05-13 | ✅ Built (1 existing dynamic import warning, not new) |
 
@@ -70,7 +70,7 @@ is still green when picking up after a long break.
 Update this section at the end of every session.
 
 - **Date:** 2026-05-13
-- **Stopped after:** Step 4a.5 complete — helpers.ts extracted and wired
-- **Last commit:** 602173d3
-- **Next action:** Step 4c — Extract `mutationPipeline.read.ts` (~9,000 lines; imports from helpers.ts)
+- **Stopped after:** Step 4c complete — read.ts extracted, 9 guardrail tests updated, suite green
+- **Last commit:** TBD (step 4c)
+- **Next action:** Step 4d — Extract `mutationPipeline.compute.ts` (~14 compute*Result() functions from lines 10,395–12,013)
 - **Open blockers:** 5 pre-existing phase66-70 test failures only (not Wave 4 scope)

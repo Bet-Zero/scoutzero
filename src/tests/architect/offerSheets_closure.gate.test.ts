@@ -34,6 +34,11 @@ const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.ts'
 );
+// Wave 4 Step 4c: read-phase helpers extracted here
+const MUTATION_PIPELINE_READ_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.read.ts'
+);
 
 const CAP_LEGALITY_VALIDATION_AUTHORITY_PATH = path.resolve(
   __dirname,
@@ -86,7 +91,8 @@ const readFileContent = (filePath: string): string => {
 // === GATE 1: Mutation Types Are Present + Routed in Pipeline ===
 
 describe('Gate 1: Mutation types are present + routed in pipeline (E1)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH);
+  // Wave 4 Step 4c: loadStateForMutation moved to mutationPipeline.read.ts
+  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_READ_PATH);
 
   it('defines storeOfferSheet mutation type', () => {
     const hasStoreOfferSheet = /['"]storeOfferSheet['"]/.test(content);
@@ -138,7 +144,8 @@ describe('Gate 1: Mutation types are present + routed in pipeline (E1)', () => {
 // === GATE 2: loadStateForMutation Loads BOTH Teams for Offer Sheet Mutations ===
 
 describe('Gate 2: loadStateForMutation loads BOTH teams for offer sheet mutations (E1)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH);
+  // Wave 4 Step 4c: loadStateForMutation moved to mutationPipeline.read.ts
+  const content = readFileContent(MUTATION_PIPELINE_READ_PATH);
 
   it('case block handles matchOfferSheet/declineOfferSheet/finalize mutations', () => {
     const hasCaseBlock =
@@ -162,8 +169,9 @@ describe('Gate 2: loadStateForMutation loads BOTH teams for offer sheet mutation
   });
 
   it('returns both homeTeam and offeringTeam from state loader', () => {
+    // Wave 4 Step 4c: ternary bodies in return block require wider constraints
     const returnsBothTeams =
-      /return\s*\{[\s\S]{0,200}homeTeam[\s\S]{0,200}offeringTeam[\s\S]{0,120}offerSheetId[\s\S]{0,200}\}/.test(
+      /return\s*\{[\s\S]{0,600}homeTeam[\s\S]{0,600}offeringTeam[\s\S]{0,600}offerSheetId[\s\S]{0,300}\}/.test(
         content
       );
     expect(returnsBothTeams).toBe(true);
@@ -260,11 +268,14 @@ describe('Gate 4: Store mirrors to offering + home team arrays (E1)', () => {
 });
 
 describe('Gate 4B: Store ownership resolves from strict home-team authority (E5)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH);
-  const storeOfferSheetBlock =
-    content.match(
-      /case\s+['"]storeOfferSheet['"]:\s*\{[\s\S]{0,1200}\n\s*\}/
-    )?.[0] || '';
+  // Wave 4 Step 4c: resolveStoreOfferSheetAuthority is in loadStateForMutation (read.ts);
+  // computeWorldMutation storeOfferSheet case (mutationPipeline.ts) is a separate block.
+  // Use matchAll to combine all storeOfferSheet case blocks across both files.
+  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_READ_PATH);
+  const storeOfferSheetBlock = Array.from(
+    content.matchAll(/case\s+['"]storeOfferSheet['"]:\s*\{[\s\S]{0,1200}\n\s*\}/g),
+    (m) => m[0]
+  ).join('\n');
 
   it('routes storeOfferSheet through resolveStoreOfferSheetAuthority', () => {
     expect(storeOfferSheetBlock).toContain('resolveStoreOfferSheetAuthority');

@@ -57,6 +57,8 @@ const ALLOWLISTED_FILES: readonly string[] = [
   'utils/schemaAdapter.ts',
   // Mutation pipeline (TPE persistence, reads legacy during compute)
   'utils/mutationPipeline.ts',
+  // Wave 4 Step 4c: read-phase helpers extracted from mutationPipeline.ts
+  'utils/mutationPipeline.read.ts',
   // Trade context snapshot building (merges both sources during snapshot)
   'utils/tradeContext/tradeContext.ts',
   // TPE lifecycle processing helper (operates on passed array, not team object)

@@ -103,22 +103,28 @@ type WritesSummaryLike = ArchitectMutationWritesSummary;
 
 export const CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY =
   '__currentStateBasePreserved';
-const CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Roster`;
-const CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Exceptions`;
-const CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}OfferSheets`;
-const CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}IncomingOfferSheets`;
-const CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}TradeExceptions`;
-const CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}CashLedger`;
-const CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}ExceptionHistory`;
-const CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}DraftPicks`;
-const CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}EntitlementIds`;
+export const CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Roster`;
+export const CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Exceptions`;
+export const CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}OfferSheets`;
+export const CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}IncomingOfferSheets`;
+export const CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}TradeExceptions`;
+export const CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}CashLedger`;
+export const CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}ExceptionHistory`;
+export const CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}DraftPicks`;
+export const CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY = `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}EntitlementIds`;
 
 // ==============================================================================
 // PLAYER CONTRACT KEY CONSTANTS (duplicated from mutationPipeline.ts — cannot
 // use runtime import due to circular dep; values are const arrays so safe to copy)
 // ==============================================================================
 
-const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
+export const AUTHORITATIVE_WORLD_TEAM_CODES = [
+  'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
+  'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK',
+  'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
+] as const;
+
+export const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
   'salariesByYear',
   'years',
   'startYear',
@@ -158,7 +164,7 @@ const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
 // option/signing flows spread the existing contract before canonicalization and
 // world persistence. Dropping one here would silently strip that persisted
 // contract state on the next committed player mutation.
-const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
+export const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
   'salariesByYear',
   'contractType',
   'isExtension',
@@ -184,7 +190,7 @@ const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
 // WRITES SUMMARY CONSTANT
 // ==============================================================================
 
-const EMPTY_WRITES_SUMMARY = Object.freeze({
+export const EMPTY_WRITES_SUMMARY = Object.freeze({
   teamsPatched: 0,
   teamsWritten: 0,
   teamCodes: [],
@@ -206,7 +212,7 @@ const EMPTY_WRITES_SUMMARY = Object.freeze({
 // LOCAL UTILITY FUNCTIONS
 // ==============================================================================
 
-function asLooseRecord(value: unknown): LooseRecord | null {
+export function asLooseRecord(value: unknown): LooseRecord | null {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as LooseRecord;
   }
@@ -215,7 +221,7 @@ function asLooseRecord(value: unknown): LooseRecord | null {
 }
 
 
-function normalizeCurrentStateTeamSource(
+export function normalizeCurrentStateTeamSource(
   value: unknown
 ): MutationTeamSourceLike | undefined {
   if (typeof value === 'string') {
@@ -275,7 +281,7 @@ function normalizeCurrentStateTeamSource(
 }
 
 
-function removeUndefinedDeep(obj: unknown): unknown {
+export function removeUndefinedDeep(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -301,7 +307,7 @@ function removeUndefinedDeep(obj: unknown): unknown {
 }
 
 
-function toTradeStateSlice(
+export function toTradeStateSlice(
   currentState: TradeStateSlice
 ): TradeContextCurrentState {
   const teams: TradeContextCurrentState['teams'] = [];
@@ -325,7 +331,7 @@ function toTradeStateSlice(
 }
 
 
-function toOptionalTrimmedString(value: unknown): string | undefined {
+export function toOptionalTrimmedString(value: unknown): string | undefined {
   if (typeof value !== 'string') {
     return undefined;
   }
@@ -335,7 +341,7 @@ function toOptionalTrimmedString(value: unknown): string | undefined {
 }
 
 
-function toOptionalIdString(value: unknown): string | undefined {
+export function toOptionalIdString(value: unknown): string | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return String(value);
   }
@@ -344,7 +350,7 @@ function toOptionalIdString(value: unknown): string | undefined {
 }
 
 
-function toOptionalNumber(value: unknown): number | undefined {
+export function toOptionalNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
   }
@@ -360,12 +366,12 @@ function toOptionalNumber(value: unknown): number | undefined {
 }
 
 
-function toOptionalBoolean(value: unknown): boolean | undefined {
+export function toOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === 'boolean' ? value : undefined;
 }
 
 
-function toOptionalBooleanOrNull(value: unknown): boolean | null | undefined {
+export function toOptionalBooleanOrNull(value: unknown): boolean | null | undefined {
   if (value === null) {
     return null;
   }
@@ -374,7 +380,7 @@ function toOptionalBooleanOrNull(value: unknown): boolean | null | undefined {
 }
 
 
-function toOptionalNumberishOrNull(
+export function toOptionalNumberishOrNull(
   value: unknown
 ): number | string | null | undefined {
   if (value === null) {
@@ -385,7 +391,7 @@ function toOptionalNumberishOrNull(
 }
 
 
-function toOptionalContractDateLikeOrNull(
+export function toOptionalContractDateLikeOrNull(
   value: unknown
 ): MutationCurrentStateContractDateLike | undefined {
   if (value === null) {
@@ -400,7 +406,7 @@ function toOptionalContractDateLikeOrNull(
 }
 
 
-function toOptionalNumberish(value: unknown): number | string | undefined {
+export function toOptionalNumberish(value: unknown): number | string | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
   }
@@ -409,7 +415,7 @@ function toOptionalNumberish(value: unknown): number | string | undefined {
 }
 
 
-function normalizeStringArray(value: unknown): string[] | undefined {
+export function normalizeStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
@@ -420,7 +426,7 @@ function normalizeStringArray(value: unknown): string[] | undefined {
 }
 
 
-function toOptionalNumberOrNull(value: unknown): number | null | undefined {
+export function toOptionalNumberOrNull(value: unknown): number | null | undefined {
   if (value === null) {
     return null;
   }
@@ -428,7 +434,7 @@ function toOptionalNumberOrNull(value: unknown): number | null | undefined {
 }
 
 
-function toOptionalTrimmedStringOrNull(
+export function toOptionalTrimmedStringOrNull(
   value: unknown
 ): string | null | undefined {
   if (value === null) {
@@ -442,7 +448,7 @@ function toOptionalTrimmedStringOrNull(
 // PLAYER BIO / CONTRACT NORMALIZERS
 // ==============================================================================
 
-function normalizeCurrentStatePlayerBioDisplay(
+export function normalizeCurrentStatePlayerBioDisplay(
   value: unknown
 ): CurrentStatePlayerBioDisplay | undefined {
   const record = asLooseRecord(value);
@@ -476,7 +482,7 @@ function normalizeCurrentStatePlayerBioDisplay(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerBioDraft(
+export function normalizeCurrentStatePlayerBioDraft(
   value: unknown
 ): CurrentStatePlayerBioDraft | undefined {
   const record = asLooseRecord(value);
@@ -506,7 +512,7 @@ function normalizeCurrentStatePlayerBioDraft(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerBio(
+export function normalizeCurrentStatePlayerBio(
   value: MutationPlayerBioLike | null | undefined
 ): CurrentStatePlayerBio | undefined {
   const record = asLooseRecord(value);
@@ -615,7 +621,7 @@ function normalizeCurrentStatePlayerBio(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerBirdRights(
+export function normalizeCurrentStatePlayerBirdRights(
   value: ArchitectMutationPlayerRecord['birdRights']
 ): ArchitectMutationBirdRights | string | undefined {
   if (typeof value === 'string') {
@@ -657,7 +663,7 @@ function normalizeCurrentStatePlayerBirdRights(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerContractBirdRights(
+export function normalizeCurrentStatePlayerContractBirdRights(
   value: MutationCurrentStatePlayerContractIngress['birdRights']
 ): ArchitectMutationBirdRights | undefined {
   const normalizedBirdRights = normalizeCurrentStatePlayerBirdRights(value);
@@ -673,7 +679,7 @@ function normalizeCurrentStatePlayerContractBirdRights(
   return normalizedBirdRights;
 }
 
-function normalizeCurrentStatePlayerContractIncentives(
+export function normalizeCurrentStatePlayerContractIncentives(
   value: ArchitectMutationContractIncentives | null | undefined
 ): CurrentStatePlayerContractIncentives | undefined {
   const record = asLooseRecord(value);
@@ -695,7 +701,7 @@ function normalizeCurrentStatePlayerContractIncentives(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerContractGuaranteeScheduleEntry(
+export function normalizeCurrentStatePlayerContractGuaranteeScheduleEntry(
   value: ArchitectMutationGuaranteeScheduleEntry | null | undefined
 ): CurrentStatePlayerContractGuaranteeScheduleEntry | undefined {
   const record = asLooseRecord(value);
@@ -725,7 +731,7 @@ function normalizeCurrentStatePlayerContractGuaranteeScheduleEntry(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerContractGuaranteeSchedule(
+export function normalizeCurrentStatePlayerContractGuaranteeSchedule(
   value: ArchitectMutationGuaranteeScheduleEntry[] | null | undefined
 ): CurrentStatePlayerContractGuaranteeScheduleEntry[] | undefined {
   if (!Array.isArray(value)) {
@@ -742,7 +748,7 @@ function normalizeCurrentStatePlayerContractGuaranteeSchedule(
     );
 }
 
-function normalizeCurrentStatePlayerContractTradeEligibilityRules(
+export function normalizeCurrentStatePlayerContractTradeEligibilityRules(
   value: unknown
 ): CurrentStatePlayerContractTradeEligibilityRules | undefined {
   const record = asLooseRecord(value);
@@ -770,7 +776,7 @@ function normalizeCurrentStatePlayerContractTradeEligibilityRules(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerContractTradeEligibility(
+export function normalizeCurrentStatePlayerContractTradeEligibility(
   value: unknown
 ): CurrentStatePlayerContractTradeEligibility | undefined {
   const record = asLooseRecord(value);
@@ -802,7 +808,7 @@ function normalizeCurrentStatePlayerContractTradeEligibility(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerContractFreeAgency(
+export function normalizeCurrentStatePlayerContractFreeAgency(
   value: ArchitectMutationContract['freeAgency'] | undefined
 ): CurrentStatePlayerContractFreeAgency | undefined {
   if (value === undefined) {
@@ -857,7 +863,7 @@ function normalizeCurrentStatePlayerContractFreeAgency(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerContractSalaryRow(
+export function normalizeCurrentStatePlayerContractSalaryRow(
   value: MutationCurrentStatePlayerContractSalaryRowIngress | null | undefined
 ): CurrentStatePlayerContractSalaryRow | undefined {
   const record = asLooseRecord(value);
@@ -964,7 +970,7 @@ function normalizeCurrentStatePlayerContractSalaryRow(
   ) as CurrentStatePlayerContractSalaryRow;
 }
 
-function normalizeCurrentStatePlayerContractSalaryRows(
+export function normalizeCurrentStatePlayerContractSalaryRows(
   value:
     | MutationCurrentStatePlayerContractIngress['salariesByYear']
     | MutationCurrentStatePlayerFutureContractIngress['salariesByYear']
@@ -983,15 +989,15 @@ function normalizeCurrentStatePlayerContractSalaryRows(
 
 type CurrentStatePlayerContractLane = 'current' | 'future';
 
-function projectCurrentStatePlayerContractIngress(
+export function projectCurrentStatePlayerContractIngress(
   value: MutationCurrentStatePlayerContractIngress | null | undefined,
   lane: 'current'
 ): MutationCurrentStatePlayerContractIngress | undefined;
-function projectCurrentStatePlayerContractIngress(
+export function projectCurrentStatePlayerContractIngress(
   value: MutationCurrentStatePlayerFutureContractIngress | null | undefined,
   lane: 'future'
 ): MutationCurrentStatePlayerFutureContractIngress | undefined;
-function projectCurrentStatePlayerContractIngress(
+export function projectCurrentStatePlayerContractIngress(
   value:
     | MutationCurrentStatePlayerContractIngress
     | MutationCurrentStatePlayerFutureContractIngress
@@ -1205,7 +1211,7 @@ function projectCurrentStatePlayerContractIngress(
   return Object.keys(projected).length > 0 ? projected : undefined;
 }
 
-function pickCurrentStatePlayerContractSlice<
+export function pickCurrentStatePlayerContractSlice<
   TKey extends keyof ArchitectMutationContract,
 >(
   contract: Partial<ArchitectMutationContract> | null | undefined,
@@ -1229,7 +1235,7 @@ function pickCurrentStatePlayerContractSlice<
     : undefined;
 }
 
-function normalizeCurrentStatePlayerContract(
+export function normalizeCurrentStatePlayerContract(
   value: MutationCurrentStatePlayerContractIngress | null | undefined
 ): CurrentStatePlayerContract | undefined {
   const contract = projectCurrentStatePlayerContractIngress(value, 'current');
@@ -1247,7 +1253,7 @@ function normalizeCurrentStatePlayerContract(
   );
 }
 
-function normalizeCurrentStatePlayerFutureContract(
+export function normalizeCurrentStatePlayerFutureContract(
   value: MutationCurrentStatePlayerFutureContractIngress | null | undefined
 ): CurrentStatePlayerFutureContract | undefined {
   const contract = projectCurrentStatePlayerContractIngress(value, 'future');
@@ -1265,7 +1271,7 @@ function normalizeCurrentStatePlayerFutureContract(
   );
 }
 
-function normalizeCurrentStatePlayerRepresentation(
+export function normalizeCurrentStatePlayerRepresentation(
   value: ArchitectMutationPlayerRecord['representation']
 ): BasePlayerDoc['representation'] | undefined {
   const record = asLooseRecord(value);
@@ -1293,7 +1299,7 @@ function normalizeCurrentStatePlayerRepresentation(
   return hasRepresentationField ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerSource(
+export function normalizeCurrentStatePlayerSource(
   value: string | MutationPlayerSourceLike | null | undefined
 ): MutationPlayerSourceLike | undefined {
   if (typeof value === 'string') {
@@ -1348,7 +1354,7 @@ function normalizeCurrentStatePlayerSource(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerOverridePersistenceSidecar(
+export function normalizeCurrentStatePlayerOverridePersistenceSidecar(
   player: CurrentStatePlayerOverridePersistenceIngress | null | undefined
 ): CurrentStatePlayerOverridePersistenceSidecar {
   const normalized: CurrentStatePlayerOverridePersistenceSidecar = {};
@@ -1388,7 +1394,7 @@ function normalizeCurrentStatePlayerOverridePersistenceSidecar(
 // PLAYER SNAPSHOT BUILDERS
 // ==============================================================================
 
-function normalizeCurrentStatePlayerDraft(
+export function normalizeCurrentStatePlayerDraft(
   value: ArchitectMutationPlayerRecord['draft']
 ): NormalizedCurrentStatePlayer['draft'] | undefined {
   const draftRecord = asLooseRecord(value);
@@ -1410,7 +1416,7 @@ function normalizeCurrentStatePlayerDraft(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerRfaContext(
+export function normalizeCurrentStatePlayerRfaContext(
   value:
     | ArchitectMutationPlayerRfaContextIngress
     | CurrentStatePlayerRfaContext
@@ -1453,7 +1459,7 @@ export type CurrentStatePlayerRfaBoundaryIngress = Pick<
   | 'originTeamId'
 >;
 
-function normalizeCurrentStatePlayerRfaBoundary(
+export function normalizeCurrentStatePlayerRfaBoundary(
   player: CurrentStatePlayerRfaBoundaryIngress | null | undefined
 ): CurrentStatePlayerRfaBoundary {
   const normalized: CurrentStatePlayerRfaBoundary = {};
@@ -1482,7 +1488,7 @@ function normalizeCurrentStatePlayerRfaBoundary(
   return normalized;
 }
 
-function buildCurrentStatePlayerSnapshot(
+export function buildCurrentStatePlayerSnapshot(
   playerRecord: CurrentStatePlayerBoundaryInput
 ): PlayerLike {
   const normalized: PlayerLike = {};
@@ -1561,7 +1567,7 @@ function buildCurrentStatePlayerSnapshot(
 
 // Raw player overrides and loaded player snapshots normalize here before they
 // reach family-owned current-state compatibility handling.
-function toCurrentStatePlayer(
+export function toCurrentStatePlayer(
   player: MutationCurrentStatePlayerIngress | null | undefined
 ): PlayerLike | null {
   if (!player || typeof player !== 'object' || Array.isArray(player)) {
@@ -1573,7 +1579,7 @@ function toCurrentStatePlayer(
 
 // Mixed raw/direct-compute player compatibility is tolerated only where
 // current-state ingress or persistence round-trips still truthfully need it.
-function normalizeCurrentStatePlayerSnapshot(
+export function normalizeCurrentStatePlayerSnapshot(
   player: unknown
 ): PlayerLike | null {
   if (!player || typeof player !== 'object' || Array.isArray(player)) {
@@ -1639,7 +1645,7 @@ type CurrentStateWithOfferSheetTeams<
 // SHARED HELPERS (called from both READ and COMPUTE sections)
 // ==============================================================================
 
-function materializeCurrentStateBaseTeamPreservedFields<
+export function materializeCurrentStateBaseTeamPreservedFields<
   T extends CurrentStateTeamRoundTripMaterializable,
 >(team: T | null | undefined): MaterializedCurrentStateTeam<T> | null {
   if (!team) {
@@ -1710,13 +1716,13 @@ function materializeCurrentStateBaseTeamPreservedFields<
 }
 
 
-function toMutationExceptionPreserveOnlyBuckets(
+export function toMutationExceptionPreserveOnlyBuckets(
   value: unknown
 ): MutationExceptionPreserveOnlyBuckets | null {
   return asLooseRecord(value) as MutationExceptionPreserveOnlyBuckets | null;
 }
 
-function normalizeMutationExceptionsFromIngress(
+export function normalizeMutationExceptionsFromIngress(
   value: unknown
 ): ArchitectMutationExceptions {
   return normalizeCanonicalTeamExceptions({
@@ -1725,7 +1731,7 @@ function normalizeMutationExceptionsFromIngress(
 }
 
 
-function getMutationRosterEntryId(entry: unknown) {
+export function getMutationRosterEntryId(entry: unknown) {
   if (!entry) {
     return null;
   }
@@ -1751,7 +1757,7 @@ function getMutationRosterEntryId(entry: unknown) {
 }
 
 
-function requireBasicTeamState<TCurrentState extends { team?: unknown | null }>(
+export function requireBasicTeamState<TCurrentState extends { team?: unknown | null }>(
   currentState: TCurrentState,
   mutationType: string
 ): CurrentStateWithBasicTeam<TCurrentState> {
@@ -1762,7 +1768,7 @@ function requireBasicTeamState<TCurrentState extends { team?: unknown | null }>(
   return currentState as CurrentStateWithBasicTeam<TCurrentState>;
 }
 
-function requireBasicTeamAndPlayerState<
+export function requireBasicTeamAndPlayerState<
   TCurrentState extends {
     team?: unknown | null;
     player?: PlayerLike | null;
@@ -1783,7 +1789,7 @@ function requireBasicTeamAndPlayerState<
   } as CurrentStateWithBasicTeamAndPlayer<TCurrentState>;
 }
 
-function requireSigningState<
+export function requireSigningState<
   TCurrentState extends {
     team?: MutationSigningTeamLike | null;
     player?: PlayerLike | null;
@@ -1803,7 +1809,7 @@ function requireSigningState<
 }
 
 
-function requireDestinationState(
+export function requireDestinationState(
   currentState: MutationSignAndTradeCurrentState,
   mutationType: string
 ): CurrentStateWithDestination {
@@ -1819,7 +1825,7 @@ function requireDestinationState(
   } as CurrentStateWithDestination;
 }
 
-function requireOfferSheetTeamState<
+export function requireOfferSheetTeamState<
   TCurrentState extends {
     homeTeam?: OfferSheetTeamLike | null;
     offeringTeam?: OfferSheetTeamLike | null;
@@ -1844,7 +1850,7 @@ function requireOfferSheetTeamState<
 
 
 // Local boundary helper for the live team.source spread sites only.
-function getTeamSourceRecord(
+export function getTeamSourceRecord(
   source: TeamLike['source'] | null | undefined
 ): NonNullable<MutationTeamSourceLike> {
   const normalizedSource = normalizeCurrentStateTeamSource(source);
@@ -1860,7 +1866,7 @@ function getTeamSourceRecord(
 }
 
 
-function getSalaryRowEndYear(
+export function getSalaryRowEndYear(
   row: MutationPipelineSalaryRow | null | undefined
 ): number | null {
   const explicitYear = row?.year == null ? Number.NaN : Number(row.year);
@@ -1872,7 +1878,7 @@ function getSalaryRowEndYear(
 }
 
 
-function synchronizeTeamTotalsSnapshotOrTeam<
+export function synchronizeTeamTotalsSnapshotOrTeam<
   T extends
     | CurrentStateTeamRoundTripMaterializable
     | ArchitectGeneralMutationCommittedTeamSnapshot,
@@ -1885,7 +1891,7 @@ function synchronizeTeamTotalsSnapshotOrTeam<
 }
 
 
-function cloneWritesSummary(
+export function cloneWritesSummary(
   summary: WritesSummaryLike = EMPTY_WRITES_SUMMARY
 ): WritesSummaryLike {
   const teamsPatched = Number(
@@ -1919,7 +1925,7 @@ function cloneWritesSummary(
 }
 
 
-function getMutationPlayerId(
+export function getMutationPlayerId(
   player: MutationPlayerIdCarrier | null | undefined
 ) {
   if (!player) {
@@ -1940,7 +1946,7 @@ function getMutationPlayerId(
 // PLAYER PERSISTENCE HELPERS
 // ==============================================================================
 
-function findPlayerInTeamPlayers(
+export function findPlayerInTeamPlayers(
   team: TeamLike | null | undefined,
   playerId: string
 ): PlayerLike | null {
@@ -1954,7 +1960,7 @@ function findPlayerInTeamPlayers(
   );
 }
 
-function toPersistablePlayerOverrideFromNormalizedPlayer(
+export function toPersistablePlayerOverrideFromNormalizedPlayer(
   normalizedPlayer: PersistablePlayerOverrideSource
 ): PersistablePlayerOverride {
   const playerId = getMutationPlayerId(normalizedPlayer);
@@ -1986,7 +1992,7 @@ function toPersistablePlayerOverrideFromNormalizedPlayer(
   }) as PersistablePlayerOverride;
 }
 
-function toPersistablePlayerOverrideFromSnapshot(
+export function toPersistablePlayerOverrideFromSnapshot(
   player: unknown
 ): PersistablePlayerOverride | null {
   const normalizedPlayer = normalizeCurrentStatePlayerSnapshot(player);
@@ -2012,7 +2018,7 @@ export type CanonicalPlayerPersistenceCandidate = {
   mode: CanonicalPlayerPersistenceMode;
 };
 
-function buildCanonicalPlayerPersistenceManifest({
+export function buildCanonicalPlayerPersistenceManifest({
   teamUpdates,
   candidates,
   manifestLabel,
@@ -2184,7 +2190,7 @@ function buildCanonicalPlayerPersistenceManifest({
 // COMPUTE-ONLY HELPERS (no read-section calls, but needed in helpers for PERSIST too)
 // ==============================================================================
 
-function buildTradePlayerPersistenceManifest({
+export function buildTradePlayerPersistenceManifest({
   payload,
   currentState,
   teamUpdates,

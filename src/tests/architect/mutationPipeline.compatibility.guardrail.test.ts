@@ -94,14 +94,12 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
     'validateMutation',
     'validatePostTradeSnapshotForContext',
   ] as const;
+  // Wave 4 Step 4c: read-phase helpers extracted to mutationPipeline.read.ts.
+  // The orchestrator re-exports them via export * from './mutationPipeline.read'.
+  // Source-order check updated to verify the new barrel structure.
   const expectedSourceOrder = [
-    'export { buildPostTradeTeamsSnapshot, validatePostTradeSnapshotForContext };',
-    'export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };',
-    'export function resolveWorldAsOfDate',
-    'export function extractTeamsByCodeFromComputeResult',
-    'export function buildTotalsByTeam',
-    'export function buildPostStateRulesContext',
-    'export function buildWorldMutationEventPayload',
+    "export * from './mutationPipeline.helpers'",
+    "export * from './mutationPipeline.read'",
     'export async function applyWorldMutation',
     'export async function preflightSignAndTradeMutation',
     'export async function preflightOfferSheetMutation',

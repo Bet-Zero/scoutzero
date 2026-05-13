@@ -28,7 +28,10 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
   const firebaseHelpersSource = readArchitectFile(
     'utils/firebaseTeamPlanHelpers.ts'
   );
-  const mutationPipelineSource = readArchitectFile('utils/mutationPipeline.ts');
+  // Wave 4 Step 4c: read-phase helpers extracted to mutationPipeline.read.ts
+  const mutationPipelineSource =
+    readArchitectFile('utils/mutationPipeline.ts') +
+    readArchitectFile('utils/mutationPipeline.read.ts');
   const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
   const persistenceEnforcementSource = readArchitectFile(
     'utils/persistenceContracts/enforcement.ts'

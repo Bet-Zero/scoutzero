@@ -79,6 +79,10 @@ const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.ts'
 );
+const MUTATION_PIPELINE_READ_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.read.ts'
+);
 
 const CAP_LEGALITY_VALIDATION_PATH = path.resolve(
   __dirname,
@@ -626,6 +630,9 @@ describe('Gate 7: World Failure Toast Dedupe (E2)', () => {
 
 describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
   const mutationPipelineContent = readFileContent(MUTATION_PIPELINE_PATH);
+  // Wave 4 Step 4c: read-phase helpers extracted to mutationPipeline.read.ts
+  const mutationPipelineReadContent = readFileContent(MUTATION_PIPELINE_READ_PATH);
+  const mutationPipelineAllContent = mutationPipelineContent + mutationPipelineReadContent;
   const capLegalityValidationContent = readFileContent(
     CAP_LEGALITY_VALIDATION_PATH
   );
@@ -635,16 +642,16 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
   const actionsContent = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
 
   it('mutationPipeline canonicalizes team updates before compute return and world changedTeams return', () => {
-    expect(mutationPipelineContent).toContain(
+    expect(mutationPipelineAllContent).toContain(
       'canonicalizeTeamUpdatesWithCanonicalTotals'
     );
-    expect(mutationPipelineContent).toContain(
+    expect(mutationPipelineAllContent).toContain(
       'return canonicalizeComputeResultTeamUpdates(result, seasonId);'
     );
-    expect(mutationPipelineContent).toContain(
+    expect(mutationPipelineAllContent).toContain(
       'buildGeneralMutationCommittedTeamUpdates'
     );
-    expect(mutationPipelineContent).toContain(
+    expect(mutationPipelineAllContent).toContain(
       'changedTeams: committedTeamUpdates'
     );
   });
