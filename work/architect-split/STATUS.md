@@ -33,7 +33,7 @@ git log, the git log wins.
 | 3 | Split `useArchitectActions.ts` (**optional — decide A or B first**) | ⏭️ | — | 2026-05-13 | Path B chosen: Step 2 took longer than expected; low-value cosmetic split (see DECISIONS.md) |
 | 4a | Map + verify `mutationPipeline.ts` phase boundaries | ✅ | 6289a5c1 | 2026-05-13 | STEP4_LINE_MAP.md produced; stop condition triggered — 30+ cross-phase deps block COMPUTE/READ split |
 | 4b | `mutationPipeline.types.ts` | ✅ | cc5d7f90 | 2026-05-13 | Re-export barrel only (not code move); see DECISIONS.md for reasoning |
-| 4a.5 | `mutationPipeline.helpers.ts` (NEW — Option A) | ✅ | — | 2026-05-13 | ~2,300 lines; 39 types exported from orchestrator; 3 off-by-one brace fixes needed; full test suite green |
+| 4a.5 | `mutationPipeline.helpers.ts` (NEW — Option A) | ✅ | 602173d3 | 2026-05-13 | ~2,300 lines; 39 types exported from orchestrator; player snapshot normalizer chain + persistence helpers; full test suite green |
 | 4c | `mutationPipeline.read.ts` | ⬜ | — | — | Unblocked after 4a.5 completes |
 | 4d | `mutationPipeline.compute.ts` | ⬜ | — | — | Unblocked after 4a.5 completes |
 | 4e | Verify imports + circular check + `npm run build` | ⬜ | — | — | Final gate |
@@ -71,6 +71,6 @@ Update this section at the end of every session.
 
 - **Date:** 2026-05-13
 - **Stopped after:** Step 4a.5 complete — helpers.ts extracted and wired
-- **Last commit:** (pending — Step 4a.5)
+- **Last commit:** 602173d3
 - **Next action:** Step 4c — Extract `mutationPipeline.read.ts` (~9,000 lines; imports from helpers.ts)
 - **Open blockers:** 5 pre-existing phase66-70 test failures only (not Wave 4 scope)
