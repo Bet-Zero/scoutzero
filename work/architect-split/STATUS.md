@@ -24,7 +24,7 @@ git log, the git log wins.
 |------|-------------|--------|--------|------|-------|
 | 0 | Fix architect compatibility guardrail tests | ✅ | 18e91e5b | 2026-05-12 | 11 .ts/.tsx test files + 1 source file (capTotals/index.ts) fixed; 5 pre-existing phase66-70 failures documented in DECISIONS.md |
 | 0.5 | Split `SeasonAdvanceModal.tsx` | ✅ | 1684e611 | 2026-05-12 | 1,174→580 lines; .types.ts + .helpers.ts extracted; offseason.devGate + phase65 tests updated |
-| 1 | Split `seasonManager.ts` (extract draft resolution) | ✅ | (see commit) | 2026-05-12 | 2,295→1,440 lines; draftResolution.ts extracted (~870 lines); 26 test files unaffected; 1 guardrail test updated |
+| 1 | Split `seasonManager.ts` (extract draft resolution) | ✅ | ae3e272b | 2026-05-12 | 2,295→1,440 lines; draftResolution.ts extracted (~870 lines); 26 test files unaffected; 1 guardrail test updated |
 | 2a | `capLegalityValidation/constants.ts` | ⬜ | — | — | — |
 | 2b | `capLegalityValidation/schema.ts` | ⬜ | — | — | — |
 | 2c | `capLegalityValidation/signing.ts` | ⬜ | — | — | — |
@@ -69,7 +69,7 @@ is still green when picking up after a long break.
 Update this section at the end of every session.
 
 - **Date:** 2026-05-12
-- **Stopped after:** Step 0.5
-- **Last commit:** 1684e611
-- **Next action:** Step 1 — Split `seasonManager.ts` (extract draftResolution module)
+- **Stopped after:** Step 1
+- **Last commit:** ae3e272b
+- **Next action:** Step 2a — Extract `capLegalityValidation/constants.ts`
 - **Open blockers:** 5 pre-existing phase66-70 test failures (documented in DECISIONS.md); these are not Wave 4 scope

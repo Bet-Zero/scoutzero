@@ -30,6 +30,16 @@ PLAN.md scope, require user input?
 
 <!-- newest first -->
 
+## 2026-05-12 — Step 1: seasonManager.draftResolution.ts is ~870 lines, not ~300
+
+**Context:** Step 1 execution. PLAN.md estimated `seasonManager.draftResolution.ts` at ~300 lines.
+
+**Decision:** Proceeded with the full extraction (870 lines). The discrepancy is documented; the split is still correct and complete.
+
+**Reasoning:** The two exported functions (`resolveDraftPickSwapsForYear`, `resolveDraftPickConveyanceForYear`) have a deep transitive dependency chain: `toDraftPickCarrier` → `getSeasonManagerDraftPicks` → `toSeasonManagerDraftPicks` → `toSeasonManagerDraftPick` → ~10 `as*/to*` converter functions + ~15 private type definitions. These converters form a self-contained domain (draft-pick normalization) and must all live in the draftResolution file because the PLAN rule forbids importing from the original file. The PLAN's ~300 line estimate was based on the two functions alone (~200 lines) without accounting for their helper chain. The resulting draftResolution module is larger but correctly isolated.
+
+**Impact:** `seasonManager.ts` went from 2,295 to 1,440 lines (vs PLAN's predicted ~800). Still a significant improvement in navigability. No downstream steps are affected.
+
 ## 2026-05-12 — Pre-existing phase66-70 test failures in test:architect baseline
 
 **Context:** Step 0 resume. Running `npm run test:architect -- --reporter=dot` as the baseline check before touching source files.
