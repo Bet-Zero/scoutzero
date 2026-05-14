@@ -259,6 +259,7 @@ utils/
   loadArchitectBasePlayer.ts
   mutationPipeline.compute.ts
   mutationPipeline.helpers.ts
+  mutationPipeline.read.normalizeData.ts
   mutationPipeline.read.ts
   mutationPipeline.ts
   mutationPipeline.types.ts
@@ -387,5 +388,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-13T22:02:57.739Z*
+*Generated on: 2026-05-14T05:13:28.782Z*
 *Auto-updated by: npm run docs*
