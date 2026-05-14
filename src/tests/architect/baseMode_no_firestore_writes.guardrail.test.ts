@@ -4,11 +4,13 @@ import { resolve } from 'path';
 
 const SOURCE_PATH = 'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
 const TRADE_ACTIONS_PATH = 'src/features/architect/GMDashboard/hooks/useArchitectActions.tradeActions.ts';
+const CONTRACT_ACTIONS_PATH = 'src/features/architect/GMDashboard/hooks/useArchitectActions.contractActions.ts';
 
 function readSource(): string {
   return (
     readFileSync(resolve(process.cwd(), SOURCE_PATH), 'utf-8') +
-    readFileSync(resolve(process.cwd(), TRADE_ACTIONS_PATH), 'utf-8')
+    readFileSync(resolve(process.cwd(), TRADE_ACTIONS_PATH), 'utf-8') +
+    readFileSync(resolve(process.cwd(), CONTRACT_ACTIONS_PATH), 'utf-8')
   );
 }
 

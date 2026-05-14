@@ -32,6 +32,10 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
 );
+const USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.contractActions.ts'
+);
 
 const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
@@ -153,7 +157,7 @@ describe('Gate 2: Success-Gated Modal Close (E1)', () => {
 // === GATE 3: Cancel Confirm Returns { success:false } ===
 
 describe('Gate 3: Cancel Confirm Returns { success:false } (E1)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
 
   it('handleWaiveContract returns Promise<MutationActionResult>', () => {
     // Pattern: function signature includes Promise<MutationActionResult>
@@ -186,7 +190,7 @@ describe('Gate 3: Cancel Confirm Returns { success:false } (E1)', () => {
 // === GATE 4: World Success Authoritative Re-sync ===
 
 describe('Gate 4: World Success Authoritative Re-sync (E1)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
 
   it('has syncTeamFromMutationResult function or equivalent sync call', () => {
     // Pattern: syncTeamFromMutationResult defined or called

@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 
 const ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
+const CONTRACT_ACTIONS_PATH =
+  'src/features/architect/GMDashboard/hooks/useArchitectActions.contractActions.ts';
 const HISTORY_TAB_PATH =
   'src/features/architect/history/TeamHistoryTab/TeamHistoryTab.tsx';
 const HISTORY_DETAIL_MODAL_PATH =
@@ -48,7 +50,7 @@ function readRegion(source: string, start: string, end: string): string {
 
 describe('Team History forbidden writes regression guardrail', () => {
   it('keeps Team History fixture handlers local-only with no Firestore write calls', () => {
-    const source = readSource(ACTIONS_PATH);
+    const source = readSource(ACTIONS_PATH) + readSource(CONTRACT_ACTIONS_PATH);
     const region = readRegion(
       source,
       'const hasInjectedTeamHistoryFixtures = useMemo(',
