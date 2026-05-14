@@ -17,6 +17,7 @@ GMDashboard/
   hooks/
     optimisticMutationLock.ts
     useArchitectActions.helpers.ts
+    useArchitectActions.offerSheetActions.ts
     useArchitectActions.tradeActions.ts
     useArchitectActions.ts
     useArchitectActions.types.ts
@@ -394,5 +395,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-14T13:30:16.649Z*
+*Generated on: 2026-05-14T14:26:19.205Z*
 *Auto-updated by: npm run docs*
