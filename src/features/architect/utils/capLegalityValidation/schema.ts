@@ -15,6 +15,7 @@ export type CapLegalityViolation = {
   rule: string;
   message: string;
   severity?: string;
+  // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-169
   [key: string]: unknown;
 };
 
@@ -121,7 +122,9 @@ export type NormalizeSigningTermsOptions = {
   fallbackMechanism?: string | null;
 };
 
-export type PlayerRulesProfileResult = ReturnType<typeof computePlayerRulesProfile>;
+export type PlayerRulesProfileResult = ReturnType<
+  typeof computePlayerRulesProfile
+>;
 export type ProducedExtensionTerms = NonNullable<
   PlayerRulesProfileResult['extensionTerms']
 >;
