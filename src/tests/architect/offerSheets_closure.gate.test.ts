@@ -44,6 +44,11 @@ const MUTATION_PIPELINE_COMPUTE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.ts'
 );
+// Wave 5 Step 4: state-loading entry point extracted here
+const MUTATION_PIPELINE_STATELOADER_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.read.stateLoader.ts'
+);
 
 const CAP_LEGALITY_VALIDATION_AUTHORITY_PATH = path.resolve(
   __dirname,
@@ -97,7 +102,7 @@ const readFileContent = (filePath: string): string => {
 
 describe('Gate 1: Mutation types are present + routed in pipeline (E1)', () => {
   // Wave 4 Step 4c: loadStateForMutation moved to mutationPipeline.read.ts
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_READ_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH);
+  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_READ_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_STATELOADER_PATH);
 
   it('defines storeOfferSheet mutation type', () => {
     const hasStoreOfferSheet = /['"]storeOfferSheet['"]/.test(content);
@@ -150,7 +155,7 @@ describe('Gate 1: Mutation types are present + routed in pipeline (E1)', () => {
 
 describe('Gate 2: loadStateForMutation loads BOTH teams for offer sheet mutations (E1)', () => {
   // Wave 4 Step 4c: loadStateForMutation moved to mutationPipeline.read.ts
-  const content = readFileContent(MUTATION_PIPELINE_READ_PATH);
+  const content = readFileContent(MUTATION_PIPELINE_READ_PATH) + readFileContent(MUTATION_PIPELINE_STATELOADER_PATH);
 
   it('case block handles matchOfferSheet/declineOfferSheet/finalize mutations', () => {
     const hasCaseBlock =
@@ -276,7 +281,7 @@ describe('Gate 4B: Store ownership resolves from strict home-team authority (E5)
   // Wave 4 Step 4c: resolveStoreOfferSheetAuthority is in loadStateForMutation (read.ts);
   // computeWorldMutation storeOfferSheet case (mutationPipeline.ts) is a separate block.
   // Use matchAll to combine all storeOfferSheet case blocks across both files.
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_READ_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH);
+  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_READ_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_STATELOADER_PATH);
   const storeOfferSheetBlock = Array.from(
     content.matchAll(/case\s+['"]storeOfferSheet['"]:\s*\{[\s\S]{0,1200}\n\s*\}/g),
     (m) => m[0]

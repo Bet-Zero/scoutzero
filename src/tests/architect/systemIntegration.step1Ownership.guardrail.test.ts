@@ -31,7 +31,8 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
   // Wave 4 Step 4c: read-phase helpers extracted to mutationPipeline.read.ts
   const mutationPipelineSource =
     readArchitectFile('utils/mutationPipeline.ts') +
-    readArchitectFile('utils/mutationPipeline.read.ts');
+    readArchitectFile('utils/mutationPipeline.read.ts') +
+    readArchitectFile('utils/mutationPipeline.read.stateLoader.ts');
   const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
   const persistenceEnforcementSource = readArchitectFile(
     'utils/persistenceContracts/enforcement.ts'
