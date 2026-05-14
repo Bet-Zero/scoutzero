@@ -24,9 +24,9 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
   const offseasonSectionSource = readArchitectFile(
     'GMDashboard/sections/OffseasonSection.tsx'
   );
-  const actionsHookSource = readArchitectFile(
-    'GMDashboard/hooks/useArchitectActions.ts'
-  );
+  const actionsHookSource =
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.types.ts');
   const freeAgentPoolTypesSource = readArchitectFile(
     'freeAgency/FreeAgentPool/types.ts'
   );

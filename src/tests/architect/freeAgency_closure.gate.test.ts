@@ -57,6 +57,10 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
 );
+const USE_ARCHITECT_ACTIONS_TYPES_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.types.ts'
+);
 
 const OFFER_SHEET_TYPES_PATH = path.resolve(
   __dirname,
@@ -104,7 +108,9 @@ const readRegion = (content: string, start: string, end: string): string => {
 };
 
 describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-only owner (FA-1C)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const content =
+    readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH);
 
   it('defines explicit dual-path, focused world-only slices, and grouped availability types before the grouped action owner', () => {
     expect(content).toMatch(

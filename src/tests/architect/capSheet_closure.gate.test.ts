@@ -74,6 +74,10 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
 );
+const USE_ARCHITECT_ACTIONS_TYPES_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.types.ts'
+);
 
 const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
@@ -693,7 +697,9 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   const capSheetSectionContent = readFileContent(CAP_SHEET_SECTION_PATH);
   const devCapSheetFixturesContent = readFileContent(DEV_CAP_SHEET_FIXTURES_PATH);
   const gmDashboardContent = readFileContent(GM_DASHBOARD_PATH);
-  const actionsContent = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const actionsContent =
+    readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH);
   const editContractModalContent = readFileContent(EDIT_CONTRACT_MODAL_PATH);
   const gmDashboardCapRegion = readRegion(
     gmDashboardContent,

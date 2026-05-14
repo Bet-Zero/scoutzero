@@ -8,9 +8,9 @@ function readSource(relativePath: string): string {
 
 describe('Base-state trade apply authoritative gate guardrail', () => {
   it('keeps the trade handoff on explicit normalize/commit/base-apply helpers before setTeamCapSheet', () => {
-    const source = readSource(
-      'src/features/architect/GMDashboard/hooks/useArchitectActions.ts'
-    );
+    const source =
+      readSource('src/features/architect/GMDashboard/hooks/useArchitectActions.ts') +
+      readSource('src/features/architect/GMDashboard/hooks/useArchitectActions.types.ts');
 
     expect(source).toContain('type TradeExecutionHandoff = {');
 
