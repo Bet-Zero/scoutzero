@@ -11,7 +11,8 @@ describe('Base-state trade apply authoritative gate guardrail', () => {
     const source =
       readSource('src/features/architect/GMDashboard/hooks/useArchitectActions.ts') +
       readSource('src/features/architect/GMDashboard/hooks/useArchitectActions.types.ts') +
-      readSource('src/features/architect/GMDashboard/hooks/useArchitectActions.helpers.ts');
+      readSource('src/features/architect/GMDashboard/hooks/useArchitectActions.helpers.ts') +
+      readSource('src/features/architect/GMDashboard/hooks/useArchitectActions.tradeActions.ts');
 
     expect(source).toContain('type TradeExecutionHandoff = {');
 

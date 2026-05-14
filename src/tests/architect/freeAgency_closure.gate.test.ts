@@ -65,6 +65,10 @@ const USE_ARCHITECT_ACTIONS_HELPERS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.helpers.ts'
 );
+const USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.tradeActions.ts'
+);
 
 const OFFER_SHEET_TYPES_PATH = path.resolve(
   __dirname,
@@ -115,7 +119,8 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
   const content =
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
-    readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH);
+    readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH);
 
   it('defines explicit dual-path, focused world-only slices, and grouped availability types before the grouped action owner', () => {
     expect(content).toMatch(
@@ -709,7 +714,8 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   const content =
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
-    readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH);
+    readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH);
   const localValidatedTeamPropagationRegion = readRegion(
     content,
     'type LocalValidatedTeamPropagation = {',

@@ -3,9 +3,13 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const SOURCE_PATH = 'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
+const TRADE_ACTIONS_PATH = 'src/features/architect/GMDashboard/hooks/useArchitectActions.tradeActions.ts';
 
 function readSource(): string {
-  return readFileSync(resolve(process.cwd(), SOURCE_PATH), 'utf-8');
+  return (
+    readFileSync(resolve(process.cwd(), SOURCE_PATH), 'utf-8') +
+    readFileSync(resolve(process.cwd(), TRADE_ACTIONS_PATH), 'utf-8')
+  );
 }
 
 function readRegion(source: string, start: string, end: string): string {

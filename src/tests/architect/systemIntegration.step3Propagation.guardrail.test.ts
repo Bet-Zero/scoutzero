@@ -16,7 +16,8 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
   const actionsHookSource =
     readArchitectFile('GMDashboard/hooks/useArchitectActions.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.types.ts') +
-    readArchitectFile('GMDashboard/hooks/useArchitectActions.helpers.ts');
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.helpers.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.tradeActions.ts');
   const stateHookSource = readArchitectFile(
     'GMDashboard/hooks/useArchitectState.ts'
   );
