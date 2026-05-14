@@ -260,6 +260,7 @@ utils/
   mutationPipeline.compute.ts
   mutationPipeline.helpers.ts
   mutationPipeline.read.normalizeData.ts
+  mutationPipeline.read.normalizeTeam.ts
   mutationPipeline.read.ts
   mutationPipeline.ts
   mutationPipeline.types.ts
@@ -388,5 +389,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-14T05:13:28.782Z*
+*Generated on: 2026-05-14T05:27:44.559Z*
 *Auto-updated by: npm run docs*
