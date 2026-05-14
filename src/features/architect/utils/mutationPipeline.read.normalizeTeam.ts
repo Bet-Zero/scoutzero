@@ -50,6 +50,8 @@ import type {
   CurrentStateBaseTeamRosterCarrier,
   CurrentStateBaseTeamTradeExceptionsCarrier,
   CurrentStateTeamRoundTripMaterializable,
+  CurrentStateTeamPersistenceStripShape,
+  MaterializedCurrentStateTeam,
   CurrentStateManualCapTeam,
   CurrentStateManualCapTeamCompute,
   CurrentStateOfferSheetMirrorTeam,
@@ -84,6 +86,7 @@ import type {
   MutationTeamOnlyCurrentStateInput,
   MutationTradeCurrentState,
   MutationTradeCurrentStateInput,
+  TeamLike,
   TradeTeamLike,
 } from './mutationPipeline';
 
@@ -146,6 +149,115 @@ export function normalizeRosterEntries(value: unknown): string[] | undefined {
   return value
     .map((entry) => getMutationRosterEntryId(entry))
     .filter((entry): entry is string => typeof entry === 'string');
+}
+
+export function backfillCurrentStateBaseTeamPreservedFields<
+  T extends CurrentStateTeamRoundTripMaterializable,
+>(
+  team: T | null | undefined,
+  fallbackTeam: CurrentStateTeamRoundTripMaterializable | null | undefined
+): MaterializedCurrentStateTeam<T> | null {
+  const materializedTeam = materializeCurrentStateBaseTeamPreservedFields(team);
+  if (!materializedTeam) {
+    return null;
+  }
+
+  const fallbackMaterialized =
+    materializeCurrentStateBaseTeamPreservedFields(fallbackTeam);
+  if (!fallbackMaterialized) {
+    return materializedTeam;
+  }
+
+  const withBackfilledPreservedFields = {
+    ...materializedTeam,
+  } as MaterializedCurrentStateTeam<T>;
+
+  if (
+    withBackfilledPreservedFields.roster === undefined &&
+    fallbackMaterialized.roster !== undefined
+  ) {
+    withBackfilledPreservedFields.roster = fallbackMaterialized.roster;
+  }
+  if (
+    withBackfilledPreservedFields.exceptions === undefined &&
+    fallbackMaterialized.exceptions !== undefined
+  ) {
+    withBackfilledPreservedFields.exceptions = fallbackMaterialized.exceptions;
+  }
+  if (
+    withBackfilledPreservedFields.offerSheets === undefined &&
+    fallbackMaterialized.offerSheets !== undefined
+  ) {
+    withBackfilledPreservedFields.offerSheets =
+      fallbackMaterialized.offerSheets;
+  }
+  if (
+    withBackfilledPreservedFields.incomingOfferSheets === undefined &&
+    fallbackMaterialized.incomingOfferSheets !== undefined
+  ) {
+    withBackfilledPreservedFields.incomingOfferSheets =
+      fallbackMaterialized.incomingOfferSheets;
+  }
+  if (
+    withBackfilledPreservedFields.tradeExceptions === undefined &&
+    fallbackMaterialized.tradeExceptions !== undefined
+  ) {
+    withBackfilledPreservedFields.tradeExceptions =
+      fallbackMaterialized.tradeExceptions;
+  }
+  if (
+    withBackfilledPreservedFields.cashLedger === undefined &&
+    fallbackMaterialized.cashLedger !== undefined
+  ) {
+    withBackfilledPreservedFields.cashLedger = fallbackMaterialized.cashLedger;
+  }
+  if (
+    withBackfilledPreservedFields.exceptionHistory === undefined &&
+    fallbackMaterialized.exceptionHistory !== undefined
+  ) {
+    withBackfilledPreservedFields.exceptionHistory =
+      fallbackMaterialized.exceptionHistory as CurrentStateBaseTeamPreservedFieldMap['exceptionHistory'];
+  }
+  if (
+    withBackfilledPreservedFields.draftPicks === undefined &&
+    fallbackMaterialized.draftPicks !== undefined
+  ) {
+    withBackfilledPreservedFields.draftPicks = fallbackMaterialized.draftPicks;
+  }
+  if (
+    withBackfilledPreservedFields.entitlementIds === undefined &&
+    fallbackMaterialized.entitlementIds !== undefined
+  ) {
+    withBackfilledPreservedFields.entitlementIds =
+      fallbackMaterialized.entitlementIds;
+  }
+
+  return withBackfilledPreservedFields;
+}
+
+export function materializeCurrentStateTeamForAudit(
+  team: TeamLike | null | undefined
+): CurrentStateTeam | null {
+  const materializedTeam = team
+    ? materializeCurrentStateBaseTeamPreservedFields(
+        team as CurrentStateTeamRoundTripMaterializable
+      ) || team
+    : null;
+
+  return materializedTeam ? (materializedTeam as CurrentStateTeam) : null;
+}
+
+export function stripComputeOnlyTeamFieldsForPersistence<
+  T extends CurrentStateTeamPersistenceStripShape,
+>(team: T): Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'> {
+  const materializedTeam = materializeCurrentStateBaseTeamPreservedFields(team);
+  if (!materializedTeam) {
+    return {} as Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'>;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-destructure to strip compute-only field
+  const { teamTotalSalary: _teamTotalSalary, ...persistableTeam } =
+    materializedTeam;
+  return persistableTeam;
 }
 
 type CurrentStateBaseTeamPreservedField =

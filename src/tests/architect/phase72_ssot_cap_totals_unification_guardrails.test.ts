@@ -69,9 +69,11 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
   describe('Source scan: SSOT usage in call sites', () => {
     it('mutationPipeline.ts should call computeTeamCapTotals (not calculateTeamTotals)', () => {
       // Wave 4 Step 4c: call sites moved to mutationPipeline.read.ts
+      // Wave 5 Step 3: computeTeamCapTotals call sites moved to read.persistence.ts
       const content =
         fs.readFileSync(mutationPipelinePath, 'utf-8') +
-        fs.readFileSync(mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.read.ts'), 'utf-8');
+        fs.readFileSync(mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.read.ts'), 'utf-8') +
+        fs.readFileSync(mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.read.persistence.ts'), 'utf-8');
       // Should have computeTeamCapTotals calls
       const hasSSOTCalls = /computeTeamCapTotals\(/.test(content);
       // Should NOT have calculateTeamTotals calls

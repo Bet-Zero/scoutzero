@@ -287,7 +287,8 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
     mutationPipelineSource =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
   });
 
   it('TEST 16: mutationPipeline.ts imports assertPersistableOrThrow', () => {
