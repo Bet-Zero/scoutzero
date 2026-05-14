@@ -13,9 +13,10 @@ const readArchitectFile = (relativePath: string) =>
 describe('Architect System Integration Step 3 propagation guardrails', () => {
   const mutationPipelineSource = readArchitectFile('utils/mutationPipeline.ts');
   const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
-  const actionsHookSource = readArchitectFile(
-    'GMDashboard/hooks/useArchitectActions.ts'
-  );
+  const actionsHookSource =
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.types.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.helpers.ts');
   const stateHookSource = readArchitectFile(
     'GMDashboard/hooks/useArchitectState.ts'
   );

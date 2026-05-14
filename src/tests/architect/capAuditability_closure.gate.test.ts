@@ -23,6 +23,8 @@ const MUTATION_PIPELINE_PATH =
 const SEASON_MANAGER_PATH = 'src/features/architect/utils/seasonManager.ts';
 const USE_ARCHITECT_ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
+const USE_ARCHITECT_ACTIONS_HELPERS_PATH =
+  'src/features/architect/GMDashboard/hooks/useArchitectActions.helpers.ts';
 const LOCAL_CAP_AUDIT_LOG_PATH =
   'src/features/architect/utils/capLegality/localCapAuditLog.ts';
 const CAP_AUDIT_DEBUG_PANEL_PATH =
@@ -141,7 +143,9 @@ describe('CAP_AUDITABILITY Closure Gate 2: Call-site invocation', () => {
   });
 
   it('invokes validatePostStateCapLegality in useArchitectActions.ts (base-mode + preview)', () => {
-    const source = readSource(USE_ARCHITECT_ACTIONS_PATH);
+    const source =
+      readSource(USE_ARCHITECT_ACTIONS_PATH) +
+      readSource(USE_ARCHITECT_ACTIONS_HELPERS_PATH);
 
     expect(
       source,
@@ -228,7 +232,9 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
   });
 
   it('useArchitectActions.ts buildCapAuditEvent emits all required fields', () => {
-    const source = readSource(USE_ARCHITECT_ACTIONS_PATH);
+    const source =
+      readSource(USE_ARCHITECT_ACTIONS_PATH) +
+      readSource(USE_ARCHITECT_ACTIONS_HELPERS_PATH);
     const missingFields: string[] = [];
 
     for (const field of requiredCapAuditEventV1Fields) {

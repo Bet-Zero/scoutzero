@@ -78,6 +78,10 @@ const USE_ARCHITECT_ACTIONS_TYPES_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.types.ts'
 );
+const USE_ARCHITECT_ACTIONS_HELPERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.helpers.ts'
+);
 
 const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
@@ -643,7 +647,10 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
   const capLegalityValidationSigningContent = readFileContent(
     CAP_LEGALITY_VALIDATION_SIGNING_PATH
   );
-  const actionsContent = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const actionsContent =
+    readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH);
 
   it('mutationPipeline canonicalizes team updates before compute return and world changedTeams return', () => {
     expect(mutationPipelineAllContent).toContain(
@@ -699,7 +706,8 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   const gmDashboardContent = readFileContent(GM_DASHBOARD_PATH);
   const actionsContent =
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
-    readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH);
+    readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH);
   const editContractModalContent = readFileContent(EDIT_CONTRACT_MODAL_PATH);
   const gmDashboardCapRegion = readRegion(
     gmDashboardContent,

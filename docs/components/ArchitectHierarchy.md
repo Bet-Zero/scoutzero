@@ -16,6 +16,7 @@ GMDashboard/
     WorldTimeControls.tsx
   hooks/
     optimisticMutationLock.ts
+    useArchitectActions.helpers.ts
     useArchitectActions.ts
     useArchitectActions.types.ts
     useArchitectModals.ts
@@ -392,5 +393,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-14T12:08:07.529Z*
+*Generated on: 2026-05-14T12:49:15.829Z*
 *Auto-updated by: npm run docs*
