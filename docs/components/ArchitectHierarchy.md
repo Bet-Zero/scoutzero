@@ -343,6 +343,7 @@ utils/
       index.ts
       performanceMonitor.ts
       tradeDebug.ts
+      tradeValidator.receipt.ts
       tradeValidator.ruleEnvelopes.ts
       tradeValidator.ts
       validationDebugMonitor.ts
@@ -405,5 +406,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-15T22:51:08.648Z*
+*Generated on: 2026-05-15T22:58:39.719Z*
 *Auto-updated by: npm run docs*
