@@ -11,7 +11,9 @@ const readArchitectFile = (relativePath: string) =>
   fs.readFileSync(path.join(architectRoot, relativePath), 'utf-8');
 
 describe('Architect System Integration Step 3 propagation guardrails', () => {
-  const mutationPipelineSource = readArchitectFile('utils/mutationPipeline.ts');
+  const mutationPipelineSource =
+    readArchitectFile('utils/mutationPipeline.ts') +
+    readArchitectFile('utils/mutationPipeline.types.ts');
   const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
   const actionsHookSource =
     readArchitectFile('GMDashboard/hooks/useArchitectActions.ts') +

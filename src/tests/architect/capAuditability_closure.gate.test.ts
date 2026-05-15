@@ -20,6 +20,8 @@ const VALIDATOR_PATH =
   'src/features/architect/utils/capLegality/postStateCapValidator.ts';
 const MUTATION_PIPELINE_PATH =
   'src/features/architect/utils/mutationPipeline.ts';
+const MUTATION_PIPELINE_TYPES_PATH =
+  'src/features/architect/utils/mutationPipeline.types.ts';
 const SEASON_MANAGER_PATH = 'src/features/architect/utils/seasonManager.ts';
 const USE_ARCHITECT_ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
@@ -179,7 +181,7 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
   ];
 
   it('persistWorldMutation (mutationPipeline.ts) emits all required CapAuditEventV1 fields', () => {
-    const source = readSource(MUTATION_PIPELINE_PATH);
+    const source = readSource(MUTATION_PIPELINE_PATH) + readSource(MUTATION_PIPELINE_TYPES_PATH);
     const missingFields: string[] = [];
 
     for (const field of requiredCapAuditEventV1Fields) {
