@@ -206,6 +206,7 @@ utils/
     extension.ts
     schema.ts
     signing.contractValidators.ts
+    signing.terms.ts
     signing.ts
   capLegalityValidation.ts
   capProjections.ts
@@ -399,5 +400,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-15T07:43:02.632Z*
+*Generated on: 2026-05-15T08:09:21.249Z*
 *Auto-updated by: npm run docs*
