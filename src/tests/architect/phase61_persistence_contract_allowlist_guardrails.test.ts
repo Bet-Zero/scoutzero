@@ -289,7 +289,7 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
       readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.offerSheets.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
   });
 
