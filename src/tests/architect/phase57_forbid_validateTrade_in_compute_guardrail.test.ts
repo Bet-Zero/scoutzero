@@ -157,7 +157,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     it('should not contain validateTrade( calls in buildPostTradeTeamsSnapshot function (tradeContext module)', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeContext.ts'
-      );
+      ) + readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts');
 
       // Extract the buildPostTradeTeamsSnapshot function region
       const snapshotStart = 'export function buildPostTradeTeamsSnapshot({';
@@ -232,7 +232,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     it('should keep the SAT handoff helper responsible for trade preparation', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeContext.ts'
-      );
+      ) + readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts');
 
       const helperStart = 'export function buildSignAndTradeTradeHandoff({';
       const helperEnd = '\n/**\n * Canonical trade-apply preparation handoff.';
@@ -263,7 +263,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     it('should keep buildTradeApplyPreparation ordered as snapshot then validation', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeContext.ts'
-      );
+      ) + readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts');
 
       const helperStart = 'export function buildTradeApplyPreparation({';
       const helperEnd = '\n// ====';
@@ -355,7 +355,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     it('should have tradeContext.ts with required exports (Phase 59: validateTradeForContext moved to legacy)', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeContext.ts'
-      );
+      ) + readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts');
 
       // Should export buildPostTradeTeamsSnapshot
       expect(source).toContain('export function buildPostTradeTeamsSnapshot');
@@ -450,7 +450,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     it('should only call validateTrade in validatePostTradeSnapshotForContext function', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeContext.ts'
-      );
+      ) + readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts');
 
       // Find all lines that call validateTrade (not imports/comments)
       const lines = source.split('\n');

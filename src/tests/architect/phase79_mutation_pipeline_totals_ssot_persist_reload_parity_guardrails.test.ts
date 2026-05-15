@@ -70,6 +70,11 @@ const TRADE_CONTEXT_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/tradeContext/tradeContext.ts'
 );
+// Wave 9 Step 4: snapshot builder + preparation extracted here
+const TRADE_CONTEXT_SNAPSHOT_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/tradeContext/tradeContext.snapshot.ts'
+);
 
 // ==============================================================================
 // TEST HELPERS
@@ -234,7 +239,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 2: tradeContext.ts imports computeTeamCapTotals from capTotals', () => {
-      const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8');
+      // Wave 9 Step 4: import moved to tradeContext.snapshot.ts
+      const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8') + fs.readFileSync(TRADE_CONTEXT_SNAPSHOT_PATH, 'utf8');
 
       const hasImport = /import\s*\{[^}]*\bcomputeTeamCapTotals\b[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/capTotals['"]/.test(
         content
@@ -331,7 +337,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 7: buildPostTradeTeamsSnapshot calls computeTeamCapTotals (trade context)', () => {
-      const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8');
+      // Wave 9 Step 4: buildPostTradeTeamsSnapshot moved to tradeContext.snapshot.ts
+      const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8') + fs.readFileSync(TRADE_CONTEXT_SNAPSHOT_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
       const tradeFunctionMatch = codeOnly.match(
@@ -370,7 +377,8 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 10: tradeContext.ts does NOT call calculateTeamTotals', () => {
-      const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8');
+      // Wave 9 Step 4: also scan snapshot submodule
+      const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8') + fs.readFileSync(TRADE_CONTEXT_SNAPSHOT_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
       const hasLegacy = /\bcalculateTeamTotals\s*\(/.test(codeOnly);

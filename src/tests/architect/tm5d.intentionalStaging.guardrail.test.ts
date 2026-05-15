@@ -177,9 +177,10 @@ describe('TM-5D intentional staging guardrails', () => {
   });
 
   it('documents the canonical preparation and preview ownership phrases', () => {
+    // Wave 9 Step 4: preparation handoff moved to tradeContext.snapshot.ts
     const tradeContextSource = readRepoFile(
       'src/features/architect/utils/tradeContext/tradeContext.ts'
-    );
+    ) + readRepoFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts');
 
     expect(tradeContextSource).toContain(
       'This function is the canonical preparation handoff.'

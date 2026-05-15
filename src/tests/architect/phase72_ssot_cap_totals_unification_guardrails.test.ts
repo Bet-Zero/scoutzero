@@ -57,7 +57,9 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
     });
 
     it('tradeContext.ts should import computeTeamCapTotals from capTotals', () => {
-      const content = fs.readFileSync(tradeContextPath, 'utf-8');
+      // Wave 9 Step 4: import moved to tradeContext.snapshot.ts
+      const snapshotPath = tradeContextPath.replace('tradeContext.ts', 'tradeContext.snapshot.ts');
+      const content = fs.readFileSync(tradeContextPath, 'utf-8') + fs.readFileSync(snapshotPath, 'utf-8');
       const hasImport =
         /import\s+\{[^}]*computeTeamCapTotals[^}]*\}\s+from\s+['"]@\/features\/architect\/utils\/capTotals['"]/.test(
           content
@@ -84,7 +86,9 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
     });
 
     it('tradeContext.ts should call computeTeamCapTotals (not calculateTeamTotals)', () => {
-      const content = fs.readFileSync(tradeContextPath, 'utf-8');
+      // Wave 9 Step 4: computeTeamCapTotals call moved to tradeContext.snapshot.ts
+      const snapshotPath = tradeContextPath.replace('tradeContext.ts', 'tradeContext.snapshot.ts');
+      const content = fs.readFileSync(tradeContextPath, 'utf-8') + fs.readFileSync(snapshotPath, 'utf-8');
       // Should have computeTeamCapTotals calls
       const hasSSOTCalls = /computeTeamCapTotals\(/.test(content);
       // Should NOT have calculateTeamTotals calls
