@@ -302,6 +302,8 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
   it('committed team snapshots normalize TPEs before persistWorldMutation validation', () => {
     const source =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
 
@@ -344,6 +346,8 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
   it('the normalized helper output is what team validation consumes', () => {
     const source =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
 
@@ -362,6 +366,8 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
   it('normalizeTeamTpeSchema is imported in mutationPipeline', () => {
     const source =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
 

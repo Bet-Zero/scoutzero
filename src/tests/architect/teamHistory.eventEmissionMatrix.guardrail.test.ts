@@ -7,6 +7,10 @@ const MUTATION_PIPELINE_PATH = path.resolve(
   process.cwd(),
   'src/features/architect/utils/mutationPipeline.ts'
 );
+const MUTATION_PIPELINE_PERSIST_PATH = path.resolve(
+  process.cwd(),
+  'src/features/architect/utils/mutationPipeline.persist.ts'
+);
 
 describe('TEAM_HISTORY_E3 event emission matrix guardrail', () => {
   const matrix = [
@@ -100,7 +104,8 @@ describe('TEAM_HISTORY_E3 event emission matrix guardrail', () => {
   });
 
   it('keeps pipeline success fail-closed on event writes', () => {
-    const source = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
+    const source = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+      fs.readFileSync(MUTATION_PIPELINE_PERSIST_PATH, 'utf8');
 
     expect(source).toContain('batch.set(eventRef, sanitizedEvent);');
     expect(source).toContain('eventsWritten: eventId ? 1 : 0');

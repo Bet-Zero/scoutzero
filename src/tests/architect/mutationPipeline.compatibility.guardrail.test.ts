@@ -104,7 +104,7 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
     'export async function preflightSignAndTradeMutation',
     'export async function preflightOfferSheetMutation',
     'export function computeWorldMutation',
-    'export function validateMutation',
+    "export { validateMutation } from './mutationPipeline.validate'",
   ] as const;
 
   it('deletes the mutationPipeline.js compatibility shim', () => {

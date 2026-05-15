@@ -72,6 +72,10 @@ const USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.offerSheetActions.ts'
 );
+const MUTATION_PIPELINE_PERSIST_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.persist.ts'
+);
 
 const OFFER_SHEET_LIST_PATH = path.resolve(
   __dirname,
@@ -481,7 +485,7 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
 // === GATE 8: Persistence Writes teamUpdates ===
 
 describe('Gate 8: Persistence writes teamUpdates (E1)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH);
+  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_PERSIST_PATH);
 
   it('persistWorldMutation function is defined', () => {
     const hasFunctionDef = /(async\s+)?function\s+persistWorldMutation/.test(

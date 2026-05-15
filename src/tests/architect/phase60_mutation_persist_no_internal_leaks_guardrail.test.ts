@@ -363,9 +363,8 @@ describe('Phase 60: executeTrade compute result sanitization', () => {
 
 describe('Phase 60: Source-scan guardrails for persistence boundary', () => {
   it('TEST 12: persistWorldMutation calls sanitizeTransientFieldsForPersistence for team writes', () => {
-    const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
+    const source = (readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts'));
 
     // Extract the persistWorldMutation function region
     const startMarker = 'async function persistWorldMutation(';
@@ -390,9 +389,8 @@ describe('Phase 60: Source-scan guardrails for persistence boundary', () => {
   });
 
   it('TEST 13: persistWorldMutation calls sanitizeTransientFieldsForPersistence for player writes', () => {
-    const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
+    const source = (readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts'));
 
     // Extract the persistWorldMutation function region
     const startMarker = 'async function persistWorldMutation(';
@@ -442,9 +440,8 @@ describe('Phase 60: Source-scan guardrails for persistence boundary', () => {
 
 describe('Phase 60: Event metadata sanitization', () => {
   it('TEST 16: persistWorldMutation sanitizes event metadata', () => {
-    const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
+    const source = (readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts'));
 
     // Look for sanitization of computeResult.metadata (may be multiline due to Phase 61 refactoring)
     // Pattern: sanitizeTransientFieldsForPersistence followed by computeResult.metadata
@@ -460,9 +457,8 @@ describe('Phase 60: Event metadata sanitization', () => {
   });
 
   it('TEST 17: persistWorldMutation sanitizes entire event object', () => {
-    const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
+    const source = (readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts'));
 
     // Look for sanitization of the event object before writing
     const hasEventSanitization = source.includes(

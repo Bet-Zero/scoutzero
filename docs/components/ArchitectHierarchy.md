@@ -264,6 +264,7 @@ utils/
   loadArchitectBasePlayer.ts
   mutationPipeline.compute.ts
   mutationPipeline.helpers.ts
+  mutationPipeline.persist.ts
   mutationPipeline.read.normalizeData.ts
   mutationPipeline.read.normalizeTeam.ts
   mutationPipeline.read.persistence.ts
@@ -271,6 +272,7 @@ utils/
   mutationPipeline.read.ts
   mutationPipeline.ts
   mutationPipeline.types.ts
+  mutationPipeline.validate.ts
   nonTradeMutationValidationStage.ts
   offseason/
     index.ts
@@ -396,5 +398,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-14T14:41:46.339Z*
+*Generated on: 2026-05-15T06:59:12.420Z*
 *Auto-updated by: npm run docs*

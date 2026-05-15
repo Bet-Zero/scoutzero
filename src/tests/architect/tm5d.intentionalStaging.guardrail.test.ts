@@ -13,13 +13,17 @@ const sourceRoots = [
 ] as const;
 const allowedAuthorityImportFiles = new Set([
   'src/features/architect/utils/mutationPipeline.ts',
+  'src/features/architect/utils/mutationPipeline.validate.ts',
   'src/features/architect/utils/tradeContext/tradeContext.ts',
   'src/features/architect/utils/tradeContext/index.ts',
 ]);
 const allowedSupportingHelperImports = new Map<string, Set<string>>([
   [
     'evaluateTradeSnapshotValidationStage',
-    new Set(['src/features/architect/utils/mutationPipeline.ts']),
+    new Set([
+      'src/features/architect/utils/mutationPipeline.ts',
+      'src/features/architect/utils/mutationPipeline.validate.ts',
+    ]),
   ],
   [
     'validateTradePreviewAuthority',
@@ -205,9 +209,9 @@ describe('TM-5D intentional staging guardrails', () => {
     const postStateSource = readRepoFile(
       'src/features/architect/utils/capLegality/postStateCapValidator.ts'
     );
-    const mutationPipelineSource = readRepoFile(
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
+    const mutationPipelineSource = (readRepoFile('src/features/architect/utils/mutationPipeline.ts') +
+      readRepoFile('src/features/architect/utils/mutationPipeline.persist.ts') +
+      readRepoFile('src/features/architect/utils/mutationPipeline.validate.ts'));
 
     expect(postStateSource).toContain(
       'This file owns post-state team legality only.'
@@ -231,9 +235,9 @@ describe('TM-5D intentional staging guardrails', () => {
     const authoritySource = readRepoFile(
       'src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts'
     );
-    const mutationPipelineSource = readRepoFile(
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
+    const mutationPipelineSource = (readRepoFile('src/features/architect/utils/mutationPipeline.ts') +
+      readRepoFile('src/features/architect/utils/mutationPipeline.persist.ts') +
+      readRepoFile('src/features/architect/utils/mutationPipeline.validate.ts'));
     const seasonManagerSource = readRepoFile(
       'src/features/architect/utils/seasonManager.ts'
     );
