@@ -265,6 +265,7 @@ utils/
   leagueInvariants.ts
   loadArchitectBasePlayer.ts
   mutationPipeline.compute.offerSheets.ts
+  mutationPipeline.compute.signings.ts
   mutationPipeline.compute.ts
   mutationPipeline.helpers.ts
   mutationPipeline.persist.ts
@@ -401,5 +402,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-15T21:27:38.513Z*
+*Generated on: 2026-05-15T22:00:32.100Z*
 *Auto-updated by: npm run docs*

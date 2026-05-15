@@ -432,8 +432,10 @@ describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
     const pipelineAuthorityPath = path.join(srcRoot, 'utils/mutationPipeline.ts');
     const pipelineShimPath = path.join(srcRoot, 'utils/mutationPipeline.js');
     // Wave 4 Step 4d: room exception tracking in mutationPipeline.compute.ts
+    // Wave 8 Step 2: further extracted to mutationPipeline.compute.signings.ts
     const computePath = pipelineAuthorityPath.replace('mutationPipeline.ts', 'mutationPipeline.compute.ts');
-    const authoritySource = fs.readFileSync(pipelineAuthorityPath, 'utf-8') + fs.readFileSync(computePath, 'utf-8');
+    const signingsPath = pipelineAuthorityPath.replace('mutationPipeline.ts', 'mutationPipeline.compute.signings.ts');
+    const authoritySource = fs.readFileSync(pipelineAuthorityPath, 'utf-8') + fs.readFileSync(computePath, 'utf-8') + fs.readFileSync(signingsPath, 'utf-8');
 
     // Find the room exception block on the TS-authoritative source.
     expect(authoritySource).toContain('Phase 74: Room Exception usage tracking');
