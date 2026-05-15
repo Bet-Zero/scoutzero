@@ -323,6 +323,7 @@ utils/
     index.ts
     legacy/
       index.ts
+    tradeContext.payloadNormalization.ts
     tradeContext.ts
     tradeExecutionAuthority.ts
     types.ts
@@ -406,5 +407,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-15T22:58:39.719Z*
+*Generated on: 2026-05-15T23:07:00.380Z*
 *Auto-updated by: npm run docs*
