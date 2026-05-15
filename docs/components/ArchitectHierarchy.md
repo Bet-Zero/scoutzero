@@ -266,6 +266,7 @@ utils/
   loadArchitectBasePlayer.ts
   mutationPipeline.compute.offerSheets.ts
   mutationPipeline.compute.signings.ts
+  mutationPipeline.compute.trade.ts
   mutationPipeline.compute.ts
   mutationPipeline.helpers.ts
   mutationPipeline.persist.ts
@@ -402,5 +403,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-15T22:00:32.100Z*
+*Generated on: 2026-05-15T22:13:11.501Z*
 *Auto-updated by: npm run docs*

@@ -61,6 +61,8 @@ const ALLOWLISTED_FILES: readonly string[] = [
   'utils/mutationPipeline.read.ts',
   // Wave 4 Step 4d: compute-phase helpers extracted from mutationPipeline.ts
   'utils/mutationPipeline.compute.ts',
+  // Wave 8 Step 3: trade compute functions extracted from mutationPipeline.compute.ts
+  'utils/mutationPipeline.compute.trade.ts',
   // Wave 5 Step 2: team current-state construction extracted from read.ts
   'utils/mutationPipeline.read.normalizeTeam.ts',
   // Trade context snapshot building (merges both sources during snapshot)

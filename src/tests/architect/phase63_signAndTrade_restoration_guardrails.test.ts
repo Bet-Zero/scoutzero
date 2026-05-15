@@ -123,7 +123,7 @@ describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
   it('signing-stage validation is called before the SAT trade handoff in S&T path', () => {
     // Read the mutation pipeline source to verify ordering
     const source = readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.trade.ts');
 
     // Find the computeSignAndTradeResult function
     const funcHeader = 'function computeSignAndTradeResult({';
@@ -168,7 +168,7 @@ describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
 describe('Phase 63: Short-circuit on signing validation failure', () => {
   it('computeSignAndTradeResult returns early when signing validation fails', () => {
     const source = readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.trade.ts');
 
     // Find the computeSignAndTradeResult function
     const funcHeader = 'function computeSignAndTradeResult({';
@@ -209,7 +209,7 @@ describe('Phase 63: Short-circuit on signing validation failure', () => {
 describe('Phase 63: Phase 56 / TM-3B architecture pattern (prepare → compute/persist)', () => {
   it('executeTrade case in computeWorldMutation follows Phase 56 pattern', () => {
     const source = readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.trade.ts');
 
     // Find the computeWorldMutation function first
     const funcMatch = source.match(/function\s+computeWorldMutation\s*\(/);
@@ -232,7 +232,7 @@ describe('Phase 63: Phase 56 / TM-3B architecture pattern (prepare → compute/p
 
   it('computeTradeResult does NOT call validateTrade directly (Phase 56/57)', () => {
     const source = readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.trade.ts');
 
     // Find computeTradeResult function
     const funcMatch = source.match(/function\s+computeTradeResult\s*\(/);
