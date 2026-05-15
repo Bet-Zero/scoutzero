@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-05-14T09:09:45.050Z",
+    "generated": "2026-05-15T23:23:50.758Z",
     "gate": "scripts/architect-cast-gate.mjs",
     "ledger": "docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md",
     "buckets": [

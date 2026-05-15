@@ -36,6 +36,7 @@ type TradeValidatorPlayer = TradeExceptionPlayer & {
     season?: string | null;
     year?: number | string | null;
     salary?: number | string | null;
+    // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-171
     [key: string]: unknown;
   }>;
   tradeKicker?: {
