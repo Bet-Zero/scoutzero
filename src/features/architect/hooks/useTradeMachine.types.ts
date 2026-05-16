@@ -1,0 +1,48 @@
+import type { TradeContextPayload } from '@/features/architect/utils/tradeContext/types';
+import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
+import type { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+
+export type UnknownRecord = Record<string, unknown>;
+
+export type TradeMachinePlayer = UnknownRecord &
+  NonNullable<TradeContextPayload['teams'][number]['sends']>[number];
+
+export type TradeMachineEntitlement = UnknownRecord &
+  NonNullable<TradeContextPayload['teams'][number]['entitlementsOut']>[number];
+
+export type TradeMachineActionMeta = UnknownRecord & {
+  signAndTradeContract?: Parameters<
+    typeof validateSignAndTradeContractPayload
+  >[0];
+};
+
+export type TradeMachineTeam = UnknownRecord & {
+  id?: string | null;
+  teamCode?: string | null;
+  teamName?: string | null;
+  abbreviation?: string | null;
+  players?: TradeMachinePlayer[] | null;
+  capHolds?: unknown[] | null;
+  deadCap?: unknown[] | null;
+  entitlementIds?: Array<string | null | undefined> | null;
+  entitlements?: TradeMachineEntitlement[] | null;
+  pickRulesById?: Record<string, PickRuleDoc>;
+  tradeExceptions?: unknown[] | null;
+  totals?: UnknownRecord | null;
+  hardCapped?: unknown;
+  hardCapLevel?: string | null;
+  teamTotalSalary?: number;
+  projectedSalary?: number;
+};
+
+export type TradeMachineTeamSlot = {
+  team: TradeMachineTeam | null;
+  sends: TradeMachinePlayer[];
+  entitlementsOut: TradeMachineEntitlement[];
+  entitlements?: TradeMachineEntitlement[];
+};
+
+export type EntitlementOverrideDocument = UnknownRecord & {
+  holderTeam?: string | null;
+  holder_team?: string | null;
+};

@@ -17,7 +17,8 @@ import {
   pickRulesMapToObject,
   type PickRuleDoc,
 } from '@/features/architect/utils/entitlements/pickRulesResolver';
-import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+// Wave 14 Step 1: player ops extracted to useTradeMachinePlayerOps.ts
+import { useTradeMachinePlayerOps } from './useTradeMachinePlayerOps';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 // TM_DATAWARN_UI_E1: Data validation utilities
@@ -39,7 +40,17 @@ import type {
   TradeContextCurrentState,
 } from '@/features/architect/utils/tradeContext/types';
 
-type UnknownRecord = Record<string, unknown>;
+// Wave 14 Step 1: shared types extracted to useTradeMachine.types.ts
+import type {
+  UnknownRecord,
+  TradeMachinePlayer,
+  TradeMachineEntitlement,
+  TradeMachineActionMeta,
+  TradeMachineTeam,
+  TradeMachineTeamSlot,
+  EntitlementOverrideDocument,
+} from './useTradeMachine.types';
+
 const TEAM_BY_SLUG = TeamMap as Record<string, TeamEntry | undefined>;
 const TEAM_BY_CODE = TeamCodeMap as Record<string, TeamEntry | undefined>;
 
@@ -49,42 +60,6 @@ const asUnknownRecord = (value: unknown): UnknownRecord => {
   }
 
   return {};
-};
-
-type TradeMachinePlayer = UnknownRecord &
-  NonNullable<TradeContextPayload['teams'][number]['sends']>[number];
-type TradeMachineEntitlement = UnknownRecord &
-  NonNullable<TradeContextPayload['teams'][number]['entitlementsOut']>[number];
-type TradeMachineActionMeta = UnknownRecord & {
-  signAndTradeContract?: Parameters<
-    typeof validateSignAndTradeContractPayload
-  >[0];
-};
-
-type TradeMachineTeam = UnknownRecord & {
-  id?: string | null;
-  teamCode?: string | null;
-  teamName?: string | null;
-  abbreviation?: string | null;
-  players?: TradeMachinePlayer[] | null;
-  capHolds?: unknown[] | null;
-  deadCap?: unknown[] | null;
-  entitlementIds?: Array<string | null | undefined> | null;
-  entitlements?: TradeMachineEntitlement[] | null;
-  pickRulesById?: Record<string, PickRuleDoc>;
-  tradeExceptions?: unknown[] | null;
-  totals?: UnknownRecord | null;
-  hardCapped?: unknown;
-  hardCapLevel?: string | null;
-  teamTotalSalary?: number;
-  projectedSalary?: number;
-};
-
-type TradeMachineTeamSlot = {
-  team: TradeMachineTeam | null;
-  sends: TradeMachinePlayer[];
-  entitlementsOut: TradeMachineEntitlement[];
-  entitlements?: TradeMachineEntitlement[];
 };
 
 type TradeMachinePreviewAuthority = FullLegalityPreviewResult;
@@ -104,11 +79,6 @@ type PreparedTradePreviewContext = {
 type ValidateCurrentTradeOutcome = {
   snapshotValidationDetails: TradeMachineSnapshotValidationDetails;
   previewContext: PreparedTradePreviewContext;
-};
-
-type EntitlementOverrideDocument = UnknownRecord & {
-  holderTeam?: string | null;
-  holder_team?: string | null;
 };
 
 const isUnknownRecord = (value: unknown): value is UnknownRecord =>
@@ -418,6 +388,12 @@ export const useTradeMachine = (
   // Use the selected season end-year everywhere (no hardcoding)
   const yearKey = currentYear;
 
+  // Wave 14 Step 1: player trade operations sub-hook
+  const { setPlayerTrade, undoPlayerTrade } = useTradeMachinePlayerOps({
+    setTeams,
+    yearKey,
+  });
+
   // Phase 17: Count active teams for multi-team trade detection
   const activeTeamCount = useMemo(() => {
     return teams.filter(hasTeamSlot).length;
@@ -665,182 +641,6 @@ export const useTradeMachine = (
     };
     init();
   }, [primaryTeam, primaryTeamData, capProjections, yearKey, worldId]);
-
-  // Core trade actions
-  const setPlayerTrade = useCallback(
-    (
-      index: number,
-      player: TradeMachinePlayer,
-      action: string,
-      destTeamId: string | null = null,
-      actionMeta: TradeMachineActionMeta | null = null
-    ) => {
-      setTeams((prev) => {
-        const newTeams = [...prev];
-        const team = newTeams[index];
-        const playerId = player.id || player.player_id;
-        const playerIndex = team.sends.findIndex(
-          (p) => (p.id || p.player_id) === playerId
-        );
-
-        switch (action) {
-          case 'trade':
-            if (playerIndex === -1) {
-              newTeams[index].sends = [
-                ...team.sends,
-                {
-                  ...player,
-                  tradeTo: destTeamId,
-                  signAndTrade: false,
-                  signAndTradeContract: undefined,
-                },
-              ];
-            } else {
-              newTeams[index].sends[playerIndex] = {
-                ...newTeams[index].sends[playerIndex],
-                tradeTo: destTeamId,
-                signAndTrade: false,
-                signAndTradeContract: undefined,
-              };
-            }
-            break;
-
-          case 'signAndTrade':
-            {
-              const validation = validateSignAndTradeContractPayload(
-                actionMeta?.signAndTradeContract || null,
-                yearKey,
-                { requireActiveYearRow: true }
-              );
-
-              if (!destTeamId || !validation.valid || !validation.contract) {
-                return prev;
-              }
-
-              const signAndTradePatch = {
-                tradeTo: destTeamId,
-                signAndTrade: true,
-                signAndTradeContract: validation.contract,
-                contractYears: validation.contract.contractYears,
-                firstYearGuaranteed: validation.contract.firstYearGuaranteed,
-              };
-
-              if (playerIndex === -1) {
-                newTeams[index].sends = [
-                  ...team.sends,
-                  { ...player, ...signAndTradePatch },
-                ];
-              } else {
-                newTeams[index].sends[playerIndex] = {
-                  ...newTeams[index].sends[playerIndex],
-                  ...signAndTradePatch,
-                };
-              }
-            }
-            break;
-
-          case 'keep':
-            newTeams[index].sends = team.sends.filter(
-              (p) => (p.id || p.player_id) !== playerId
-            );
-            break;
-
-          case 'setAbsorptionMode':
-            // destTeamId is actually the absorptionMode value ('MATCH', 'TPE', 'FA_EXCEPTION')
-            // For incoming players, find the sending team and update the player there
-            {
-              const absorptionMode = destTeamId;
-              // First check if player is in this team's sends
-              if (playerIndex !== -1) {
-                newTeams[index].sends[playerIndex] = {
-                  ...newTeams[index].sends[playerIndex],
-                  absorptionMode,
-                };
-              } else {
-                // Player is incoming - find which team is sending them and update there
-                for (let i = 0; i < newTeams.length; i++) {
-                  const otherTeam = newTeams[i];
-                  const otherPlayerIdx = otherTeam.sends.findIndex(
-                    (p) => (p.id || p.player_id) === playerId
-                  );
-                  if (otherPlayerIdx !== -1) {
-                    newTeams[i].sends[otherPlayerIdx] = {
-                      ...newTeams[i].sends[otherPlayerIdx],
-                      absorptionMode,
-                    };
-                    break;
-                  }
-                }
-              }
-            }
-            break;
-
-          case 'setFaBucket':
-            // Similar to setAbsorptionMode - destTeamId is the bucket type value
-            {
-              const bucketType = destTeamId;
-              if (playerIndex !== -1) {
-                newTeams[index].sends[playerIndex] = {
-                  ...newTeams[index].sends[playerIndex],
-                  bucketType,
-                };
-              } else {
-                for (let i = 0; i < newTeams.length; i++) {
-                  const otherTeam = newTeams[i];
-                  const otherPlayerIdx = otherTeam.sends.findIndex(
-                    (p) => (p.id || p.player_id) === playerId
-                  );
-                  if (otherPlayerIdx !== -1) {
-                    newTeams[i].sends[otherPlayerIdx] = {
-                      ...newTeams[i].sends[otherPlayerIdx],
-                      bucketType,
-                    };
-                    break;
-                  }
-                }
-              }
-            }
-            break;
-
-          case 'setTpeId':
-            // Set specific TPE ID on player (destTeamId is actually the tpeId)
-            {
-              const tpeId = destTeamId;
-              if (playerIndex !== -1) {
-                const current = newTeams[index].sends[playerIndex];
-                newTeams[index].sends[playerIndex] = {
-                  ...current,
-                  tpeId,
-                  // Only force into TPE mode if a TPE is explicitly selected.
-                  // If clearing TPE (tpeId=''), leave mode as-is (likely already 'TPE')
-                  absorptionMode: tpeId ? 'TPE' : current.absorptionMode,
-                };
-              } else {
-                for (let i = 0; i < newTeams.length; i++) {
-                  const otherTeam = newTeams[i];
-                  const otherPlayerIdx = otherTeam.sends.findIndex(
-                    (p) => (p.id || p.player_id) === playerId
-                  );
-                  if (otherPlayerIdx !== -1) {
-                    const current = newTeams[i].sends[otherPlayerIdx];
-                    newTeams[i].sends[otherPlayerIdx] = {
-                      ...current,
-                      tpeId,
-                      absorptionMode: tpeId ? 'TPE' : current.absorptionMode,
-                    };
-                    break;
-                  }
-                }
-              }
-            }
-            break;
-        }
-
-        return newTeams;
-      });
-    },
-    [yearKey]
-  );
 
   // Phase 14.2: togglePick removed - draft assets are entitlements-only
   // Use toggleEntitlement instead
@@ -1376,17 +1176,6 @@ export const useTradeMachine = (
     setSnapshotValidationDetails(null);
     setForceTrade(false);
     setPreviewAuthority(null); // TM-1A / TM-3D: clear preview authority on reset
-  }, []);
-
-  const undoPlayerTrade = useCallback((player: UnknownRecord) => {
-    setTeams((prev) =>
-      prev.map((t) => ({
-        ...t,
-        sends: t.sends.filter(
-          (p) => (p.id || p.player_id) !== (player.id || player.player_id)
-        ),
-      }))
-    );
   }, []);
 
   const applyEntitlementOverrideUpdate = useCallback(
