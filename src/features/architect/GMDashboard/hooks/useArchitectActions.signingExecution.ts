@@ -94,7 +94,12 @@ export interface UseSigningExecutionParams {
   persistMutation: (
     mutationType: string,
     payload: ArchitectMutationPayload,
-    options?: Record<string, unknown>
+    options?: {
+      operationId?: string;
+      seasonIdOverride?: string;
+      onSuccess?: (result: PersistMutationResult) => void;
+      onFailure?: (message: string, result?: PersistMutationResult) => void;
+    }
   ) => Promise<PersistMutationResult>;
   prepareCapAuditedMutationBoundary: (params: {
     mutationType: string;

@@ -19,6 +19,7 @@ GMDashboard/
     useArchitectActions.contractActions.ts
     useArchitectActions.helpers.ts
     useArchitectActions.offerSheetActions.ts
+    useArchitectActions.offerSheetExecutors.ts
     useArchitectActions.persistenceHelpers.ts
     useArchitectActions.signingExecution.ts
     useArchitectActions.tradeActions.ts
@@ -415,5 +416,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T08:32:35.704Z*
+*Generated on: 2026-05-16T09:11:42.427Z*
 *Auto-updated by: npm run docs*
