@@ -286,6 +286,7 @@ utils/
   mutationPipeline.read.ts
   mutationPipeline.ts
   mutationPipeline.types.currentState.ts
+  mutationPipeline.types.ingress.ts
   mutationPipeline.types.record.ts
   mutationPipeline.types.result.ts
   mutationPipeline.types.ts
@@ -419,5 +420,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T10:02:55.015Z*
+*Generated on: 2026-05-16T10:11:49.644Z*
 *Auto-updated by: npm run docs*

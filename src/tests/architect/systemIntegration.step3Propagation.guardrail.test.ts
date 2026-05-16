@@ -16,7 +16,8 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
     readArchitectFile('utils/mutationPipeline.types.ts') +
     readArchitectFile('utils/mutationPipeline.types.record.ts') +
     readArchitectFile('utils/mutationPipeline.types.currentState.ts') +
-    readArchitectFile('utils/mutationPipeline.types.result.ts');
+    readArchitectFile('utils/mutationPipeline.types.result.ts') +
+    readArchitectFile('utils/mutationPipeline.types.ingress.ts');
   const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
   const actionsHookSource =
     readArchitectFile('GMDashboard/hooks/useArchitectActions.ts') +
