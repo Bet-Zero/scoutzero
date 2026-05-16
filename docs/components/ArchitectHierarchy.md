@@ -24,6 +24,7 @@ GMDashboard/
     useArchitectActions.signingExecution.ts
     useArchitectActions.tradeActions.ts
     useArchitectActions.ts
+    useArchitectActions.types.normalizers.ts
     useArchitectActions.types.ts
     useArchitectModals.ts
     useArchitectState.helpers.ts
@@ -425,5 +426,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T15:33:45.048Z*
+*Generated on: 2026-05-16T22:08:22.369Z*
 *Auto-updated by: npm run docs*
