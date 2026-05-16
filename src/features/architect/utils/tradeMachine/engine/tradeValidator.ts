@@ -68,156 +68,28 @@ import type {
   ValidateTradeParams,
   ValidationIssueLike,
 } from '../constants/types';
-
-type TradeValidatorPlayer = TradeExceptionPlayer & {
-  player_id?: string;
-  playerName?: string;
-  playerId?: string;
-  teamCode?: string | null;
-  currentSalary?: number;
-  previousSalary?: number;
-  extensionYears?: Array<{
-    season?: string | null;
-    year?: number | string | null;
-    salary?: number | string | null;
-    [key: string]: unknown;
-  }>;
-  tradeKicker?: {
-    percentage?: number;
-    waived?: number;
-    maximum?: unknown;
-  };
-  tradeKickerPct?: number;
-  tradeKickerWaivedPct?: number;
-  isBYC?: boolean;
-  baseYearCompensation?: boolean;
-  isPoisonPill?: boolean;
-  signAndTrade?: boolean;
-  isTwoWay?: boolean;
-};
-
-type TradeValidatorTeamData = NonNullable<TradeTeam['team']> & {
-  players?: TradeValidatorPlayer[];
-  twoWayPlayers?: TradeValidatorPlayer[];
-  faExceptionBuckets?: TradeFaExceptionBucket[];
-  hardCapped?: boolean | string;
-  hardCapFirstApron?: {
-    active?: boolean;
-    reason?: string | null;
-    season?: string | null;
-  } | null;
-};
-
-type TradeValidatorEntitlement = {
-  entitlementId?: string;
-  id?: string;
-  seasonYear?: number | string;
-  round?: number | string;
-  kind?: string;
-  description?: string;
-  toTeamId?: string | null;
-  draftKey?: string;
-  terms?: unknown;
-  termsShort?: unknown;
-  linkedEntitlementIds?: string[];
-};
-
-type TradeValidatorTeamSlot = TradeTeam & {
-  teamId?: string;
-  teamCode?: string;
-  sends?: TradeValidatorPlayer[];
-  outgoingPlayers?: TradeValidatorPlayer[];
-  incomingPlayers?: TradeValidatorPlayer[];
-  entitlementsOut?: TradeValidatorEntitlement[];
-  outgoingEntitlements?: TradeValidatorEntitlement[];
-  validationEntitlements?: TradeValidatorEntitlement[];
-  teamTotalSalary?: number;
-  salaryOut?: number;
-  salaryIn?: number;
-  projectedSalary?: number;
-  cashSent?: number;
-  cashReceived?: number;
-  notes?: unknown;
-  context?: TradeValidatorContext;
-  team?: TradeValidatorTeamData | null;
-};
-
-type TradeValidatorActiveTeamSlot = TradeValidatorTeamSlot & {
-  team: TradeValidatorTeamData;
-};
-
-type RuleEnvelopeObjectLike = {
-  passed?: boolean;
-  violations?: Parameters<typeof normalizeValidationIssues>[0];
-  warnings?: Parameters<typeof normalizeValidationIssues>[0];
-  message?: string | null;
-  sourceType?: string | null;
-  details?: unknown;
-  skipReason?: string | null;
-  allowableIncoming?: number | null;
-  salaryIn?: number | null;
-  hardCapped?: boolean;
-  hardCapStatus?: {
-    isHardCapped?: boolean;
-  } | null;
-};
-
-type RuleEnvelopeLike = ValidationIssueLike[] | RuleEnvelopeObjectLike | null | undefined;
-
-type TeamIdentityLike = {
-  teamCode?: unknown;
-  id?: unknown;
-  teamId?: unknown;
-  code?: unknown;
-  abbreviation?: unknown;
-};
-
-type SignAndTradeResultLike = {
-  hardCapped?: boolean;
-};
-
-type HardCapStatusLike = {
-  isHardCapped?: boolean;
-};
-
-type SalaryMatchingReceiptDetailsLike = {
-  totalSalarySource?: string;
-  ruleApplied?: string | null;
-  formulaUsed?: string | null;
-  margin?: number | null;
-  capSettingsSource?: string;
-};
-
-type SalaryMatchingReceiptRuleLike = {
-  skipReason: string | null;
-  allowableIncoming: number | null;
-  salaryIn: number | null;
-  passed: boolean | null;
-  details: SalaryMatchingReceiptDetailsLike;
-};
-
-interface BuildValidationResultParams {
-  legal: boolean;
-  reason?: string | null;
-  error?: string | null;
-  violations?: ValidationIssueLike[];
-  warnings?: ValidationIssueLike[];
-  teamResults?: TradeTeamResult[];
-  summaryByTeamIndex?: TradeSummaryByTeamIndexRow[];
-  validationTime: number;
-  tradeReceipt?: TradeReceipt | null;
-  dataWarnings?: DataWarning[];
-  context?: TradeValidatorContext;
-}
-
-interface GenerateTradeReceiptParams {
-  teamsWithAssets: TradeValidatorTeamSlot[];
-  teamResults: TradeTeamResult[];
-  context: TradeValidatorContext;
-  isOverallLegal: boolean;
-  reason: string;
-  validationTime: number;
-}
+// Wave 18: private types and helpers extracted to satellite files
+import type {
+  TradeValidatorPlayer,
+  TradeValidatorTeamData,
+  TradeValidatorEntitlement,
+  TradeValidatorTeamSlot,
+  TradeValidatorActiveTeamSlot,
+  RuleEnvelopeObjectLike,
+  RuleEnvelopeLike,
+  TeamIdentityLike,
+  SignAndTradeResultLike,
+  HardCapStatusLike,
+  SalaryMatchingReceiptDetailsLike,
+  SalaryMatchingReceiptRuleLike,
+  BuildValidationResultParams,
+  GenerateTradeReceiptParams,
+} from './tradeValidator.types';
+import {
+  shouldRoutePlayerToTeam,
+  extractPlayerId,
+  computeProjectedRosterLegality,
+} from './tradeValidator.helpers';
 
 /**
  * TRADE VALIDATOR
@@ -281,123 +153,6 @@ import {
   toSignAndTradeCapProjectionMap,
 } from './tradeValidator.ruleEnvelopes';
 
-
-function shouldRoutePlayerToTeam({
-  player,
-  receivingTeamId,
-  activeTeamCount,
-}: {
-  player: TradeValidatorPlayer;
-  receivingTeamId: string;
-  activeTeamCount: number;
-}) {
-  const destinationTeamId = resolvePlayerDestinationTeamId(player);
-
-  if (activeTeamCount > 2) {
-    return destinationTeamId !== null && destinationTeamId === receivingTeamId;
-  }
-
-  return destinationTeamId === null || destinationTeamId === receivingTeamId;
-}
-
-// ---------------------------------------------------------------------------
-// Roster structural legality
-// ---------------------------------------------------------------------------
-// Shared roster thresholds live in validateRoster.ts.
-// This file owns projected count construction only.
-
-function extractPlayerId(p: TradeValidatorPlayer | string | null | undefined) {
-  if (!p) return null;
-  if (typeof p === 'string') return p;
-  return p.player_id || p.id || p.playerId || null;
-}
-
-/**
- * Projection-time roster legality owner for validateTrade().
- * Computes projected roster counts from the current roster plus outgoing and
- * incoming assets, then delegates shared threshold interpretation to
- * checkRosterCounts().
- *
- * Handles two team-data shapes:
- *   1. Pre-trade (UI flow) — players/twoWayPlayers not yet adjusted for the trade.
- *      Projected = current - outgoing + incoming (simple arithmetic).
- *   2. Post-trade (apply-time) — players already moved by buildPostTradeTeamsSnapshot.
- *      Player-ID matching detects the overlap so outgoing/incoming don't double-count.
- *
- * When player IDs are unavailable (common in test fixtures), falls back to
- * simple arithmetic which is correct for the pre-trade shape.
- *
- * Final-state roster verification remains separate in
- * postStateCapValidator.ts:runFinalStateRosterRecheck() because that later
- * layer re-reads authoritative after-mutation team.players artifacts.
- */
-function computeProjectedRosterLegality(team: TradeValidatorTeamSlot) {
-  const teamPlayers: TradeValidatorPlayer[] = team.team?.players || [];
-  const teamTwoWay: TradeValidatorPlayer[] = team.team?.twoWayPlayers || [];
-  const outgoing: TradeValidatorPlayer[] = team.outgoingPlayers || [];
-  const incoming: TradeValidatorPlayer[] = team.incomingPlayers || [];
-
-  // Build a set of current player IDs for overlap detection.
-  // If most roster players lack IDs we fall back to simple arithmetic.
-  const allRoster = teamPlayers.concat(teamTwoWay);
-  const currentIds = new Set(
-    allRoster.map(extractPlayerId).filter(Boolean)
-  );
-  const hasReliableIds = currentIds.size > 0 && currentIds.size >= allRoster.length * 0.5;
-
-  // Determine current standard / two-way counts.
-  let currentStandard: number;
-  let currentTwoWay: number;
-  if (teamTwoWay.length > 0) {
-    currentStandard = teamPlayers.length;
-    currentTwoWay = teamTwoWay.length;
-  } else {
-    currentStandard = teamPlayers.filter((p) => !p.isTwoWay).length;
-    currentTwoWay = teamPlayers.filter((p) => p.isTwoWay).length;
-  }
-
-  let projectedStandard: number;
-  let projectedTwoWay: number;
-
-  if (hasReliableIds) {
-    // ID-aware path: only count outgoing still in roster and incoming not yet in roster.
-    const outStd = outgoing.filter((p) => {
-      const pid = extractPlayerId(p);
-      return !p.isTwoWay && pid && currentIds.has(pid);
-    }).length;
-    const outTw = outgoing.filter((p) => {
-      const pid = extractPlayerId(p);
-      return p.isTwoWay && pid && currentIds.has(pid);
-    }).length;
-    const inStd = incoming.filter((p) => {
-      const pid = extractPlayerId(p);
-      return !p.isTwoWay && (!pid || !currentIds.has(pid));
-    }).length;
-    const inTw = incoming.filter((p) => {
-      const pid = extractPlayerId(p);
-      return p.isTwoWay && (!pid || !currentIds.has(pid));
-    }).length;
-
-    projectedStandard = currentStandard - outStd + inStd;
-    projectedTwoWay = currentTwoWay - outTw + inTw;
-  } else {
-    // Simple arithmetic path (pre-trade shape or test fixtures without IDs).
-    const outStd = outgoing.filter((p) => !p.isTwoWay).length;
-    const outTw = outgoing.filter((p) => p.isTwoWay).length;
-    const inStd = incoming.filter((p) => !p.isTwoWay).length;
-    const inTw = incoming.filter((p) => p.isTwoWay).length;
-
-    projectedStandard = currentStandard - outStd + inStd;
-    projectedTwoWay = currentTwoWay - outTw + inTw;
-  }
-
-  // Delegate rule enforcement to the canonical checkRosterCounts function.
-  // This ensures pre-trade and post-state paths share the same rule definitions.
-  const result = checkRosterCounts(projectedStandard, projectedTwoWay);
-  // Override rosterCounts.current with the actual pre-trade count for display purposes.
-  result.rosterCounts.current = currentStandard;
-  return result;
-}
 
 // Create wrapped versions with performance monitoring and caching
 const baseValidators = {
