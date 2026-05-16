@@ -299,7 +299,9 @@ utils/
   nonTradeMutationValidationStage.ts
   offseason/
     index.ts
+    resolveOffseasonTransition.optionDecisions.ts
     resolveOffseasonTransition.ts
+    resolveOffseasonTransition.validation.ts
   persistenceContracts/
     contracts.ts
     enforcement.ts
@@ -426,5 +428,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T22:08:22.369Z*
+*Generated on: 2026-05-16T22:28:34.182Z*
 *Auto-updated by: npm run docs*
