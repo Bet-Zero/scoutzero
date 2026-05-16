@@ -62,6 +62,11 @@ const CAP_LEGALITY_VALIDATION_SIGNING_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/capLegalityValidation/signing.ts'
 );
+// Wave 10 Step 1: validateOfferSheetResolution extracted here
+const CAP_LEGALITY_SIGNING_OFFER_SHEET_RESOLUTION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation/signing.offerSheetResolution.ts'
+);
 
 const NON_TRADE_STAGE_PATH = path.resolve(
   __dirname,
@@ -205,8 +210,8 @@ describe('Gate 2: loadStateForMutation loads BOTH teams for offer sheet mutation
 describe('Gate 3: Validation uses validateOfferSheetResolution (E1)', () => {
   const pipelineContent = readFileContent(MUTATION_PIPELINE_PATH);
   const nonTradeStageContent = readFileContent(NON_TRADE_STAGE_PATH);
-  // validateOfferSheetResolution moved to signing.ts submodule (Wave 4 Step 2c)
-  const signingContent = readFileContent(CAP_LEGALITY_VALIDATION_SIGNING_PATH);
+  // validateOfferSheetResolution moved to signing.offerSheetResolution.ts (Wave 10 Step 1)
+  const signingContent = readFileContent(CAP_LEGALITY_VALIDATION_SIGNING_PATH) + readFileContent(CAP_LEGALITY_SIGNING_OFFER_SHEET_RESOLUTION_PATH);
 
   it('validateOfferSheetResolution function is defined', () => {
     const hasFunctionDef =
