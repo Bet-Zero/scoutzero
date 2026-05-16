@@ -77,6 +77,11 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
 );
+// Wave 12 Step 1: persistence helpers sub-hook extracted here
+const USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.persistenceHelpers.ts'
+);
 const USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.offerSheetActions.ts'
@@ -626,7 +631,7 @@ describe('Gate 10: E113 deleted JSX shims remain absent while authorities stay i
 // === GATE 11: Offer-Sheet Created-State Sync Stays Explicit ===
 
 describe('Gate 11: offer-sheet created-state sync stays explicit (FA-5C/5D)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH);
+  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH);
 
   it('keeps the generic changedTeams sync helper for non-offer-sheet mutations', () => {
     const hasSyncHelper =
@@ -688,7 +693,7 @@ describe('Gate 11: offer-sheet created-state sync stays explicit (FA-5C/5D)', ()
 // === GATE 12: Offer-Sheet Lifecycle Routing Stays Role-Aware ===
 
 describe('Gate 12: offer-sheet lifecycle routing stays role-aware (FA-6A/6B)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH);
+  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH);
 
   it('defines shared lifecycle routing helpers for match/decline and finalize resolution', () => {
     expect(content).toMatch(
@@ -746,7 +751,7 @@ describe('Gate 12: offer-sheet lifecycle routing stays role-aware (FA-6A/6B)', (
 });
 
 describe('Gate 13: offer-sheet lifecycle final-state sync stays explicit (FA-6C/6D)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH);
+  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH);
 
   it('defines dedicated lifecycle committed-state helpers in useArchitectActions', () => {
     expect(content).toMatch(

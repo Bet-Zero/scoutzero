@@ -74,6 +74,11 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
 );
+// Wave 12 Step 1: persistence helpers sub-hook extracted here
+const USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.persistenceHelpers.ts'
+);
 const USE_ARCHITECT_ACTIONS_TYPES_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.types.ts'
@@ -607,7 +612,7 @@ describe('Gate 6: Modal Save Close-After-Confirm (E1)', () => {
 // === GATE 7: World failure toast dedupe logic exists ===
 
 describe('Gate 7: World Failure Toast Dedupe (E2)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH);
 
   it('persistMutation helper exists', () => {
     const hasPersistMutation = /const\s+persistMutation\s*=\s*useCallback/.test(
@@ -657,6 +662,7 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
   );
   const actionsContent =
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH) +
@@ -716,6 +722,7 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   const gmDashboardContent = readFileContent(GM_DASHBOARD_PATH);
   const actionsContent =
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH) +

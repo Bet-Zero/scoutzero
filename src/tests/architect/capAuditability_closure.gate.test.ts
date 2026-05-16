@@ -27,6 +27,9 @@ const USE_ARCHITECT_ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
 const USE_ARCHITECT_ACTIONS_HELPERS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.helpers.ts';
+// Wave 12 Step 1: persistence helpers sub-hook extracted here
+const USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH =
+  'src/features/architect/GMDashboard/hooks/useArchitectActions.persistenceHelpers.ts';
 const LOCAL_CAP_AUDIT_LOG_PATH =
   'src/features/architect/utils/capLegality/localCapAuditLog.ts';
 const CAP_AUDIT_DEBUG_PANEL_PATH =
@@ -147,6 +150,7 @@ describe('CAP_AUDITABILITY Closure Gate 2: Call-site invocation', () => {
   it('invokes validatePostStateCapLegality in useArchitectActions.ts (base-mode + preview)', () => {
     const source =
       readSource(USE_ARCHITECT_ACTIONS_PATH) +
+      readSource(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH) +
       readSource(USE_ARCHITECT_ACTIONS_HELPERS_PATH);
 
     expect(
@@ -236,6 +240,7 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
   it('useArchitectActions.ts buildCapAuditEvent emits all required fields', () => {
     const source =
       readSource(USE_ARCHITECT_ACTIONS_PATH) +
+      readSource(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH) +
       readSource(USE_ARCHITECT_ACTIONS_HELPERS_PATH);
     const missingFields: string[] = [];
 
@@ -329,7 +334,7 @@ describe('CAP_AUDITABILITY Closure Gate 4: Base-mode no Firestore writes', () =>
   });
 
   it('base-mode persistence is skipped (persistMutation returns skipped for null worldId)', () => {
-    const source = readSource(USE_ARCHITECT_ACTIONS_PATH);
+    const source = readSource(USE_ARCHITECT_ACTIONS_PATH) + readSource(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH);
 
     // The persistMutation function should return early when worldId is null
     expect(

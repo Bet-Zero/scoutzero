@@ -57,6 +57,11 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
 );
+// Wave 12 Step 1: persistence helpers sub-hook extracted here
+const USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.persistenceHelpers.ts'
+);
 const USE_ARCHITECT_ACTIONS_TYPES_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.types.ts'
@@ -135,7 +140,8 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
     readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH) +
-    readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
+    readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH);
 
   it('defines explicit dual-path, focused world-only slices, and grouped availability types before the grouped action owner', () => {
     expect(content).toMatch(
@@ -732,7 +738,8 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH) +
-    readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
+    readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH);
   const localValidatedTeamPropagationRegion = readRegion(
     content,
     'type LocalValidatedTeamPropagation = {',
