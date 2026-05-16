@@ -129,8 +129,10 @@ hooks/
   useCapValidation.ts
   usePlayerRulesProfiles.ts
   useTeamEntitlements.ts
+  useTradeMachine.helpers.ts
   useTradeMachine.ts
   useTradeMachine.types.ts
+  useTradeMachineEntitlementOps.ts
   useTradeMachinePlayerOps.ts
   useTradeMachineSnapshot.ts
 offseason/
@@ -422,5 +424,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T11:21:57.603Z*
+*Generated on: 2026-05-16T11:29:25.877Z*
 *Auto-updated by: npm run docs*

@@ -13,12 +13,20 @@ import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/compu
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 import {
-  resolvePickRulesByIds,
-  pickRulesMapToObject,
   type PickRuleDoc,
 } from '@/features/architect/utils/entitlements/pickRulesResolver';
 // Wave 14 Step 1: player ops extracted to useTradeMachinePlayerOps.ts
 import { useTradeMachinePlayerOps } from './useTradeMachinePlayerOps';
+// Wave 14 Step 2: entitlement ops extracted to useTradeMachineEntitlementOps.ts
+import { useTradeMachineEntitlementOps } from './useTradeMachineEntitlementOps';
+import {
+  DEBUG_ENT,
+  ENABLE_PICK_RULES,
+  isUnknownRecord,
+  hasTeamSlot,
+  resolveTeamCodeLike,
+  resolvePickRulesForEntitlements,
+} from './useTradeMachine.helpers';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 // TM_DATAWARN_UI_E1: Data validation utilities
@@ -81,15 +89,6 @@ type ValidateCurrentTradeOutcome = {
   previewContext: PreparedTradePreviewContext;
 };
 
-const isUnknownRecord = (value: unknown): value is UnknownRecord =>
-  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-
-const hasTeamSlot = (
-  slot: TradeMachineTeamSlot
-): slot is TradeMachineTeamSlot & { team: TradeMachineTeam } => {
-  return slot.team !== null;
-};
-
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
@@ -98,73 +97,8 @@ const getErrorMessage = (error: unknown): string => {
 };
 
 /* ============================
-   DEBUG FLAG & TEAM CODE RESOLUTION
+   TEAM CODE RESOLUTION
    ============================ */
-
-/**
- * Enable debug logging for entitlements resolution.
- * Set VITE_DEBUG_ENTITLEMENTS=true in environment to enable.
- */
-const DEBUG_ENT = Boolean(import.meta?.env?.VITE_DEBUG_ENTITLEMENTS);
-
-/**
- * Phase 12.3B: Feature flag for pick rules fetching.
- * Set VITE_ENABLE_PICK_RULES=false to disable. Default: enabled.
- */
-const ENABLE_PICK_RULES = import.meta?.env?.VITE_ENABLE_PICK_RULES !== 'false';
-
-/**
- * Resolve a valid 3-letter team code from various team object shapes.
- * Returns the code (e.g., "LAL") or null if unable to resolve.
- */
-function resolveTeamCodeLike(
-  teamObjOrId: UnknownRecord | string | null | undefined,
-  teamDataMaybe: UnknownRecord | null = null
-): string | null {
-  const teamObj =
-    teamObjOrId && typeof teamObjOrId === 'object' ? teamObjOrId : null;
-
-  // Prefer teamData.teamCode if present
-  if (typeof teamDataMaybe?.teamCode === 'string' && teamDataMaybe.teamCode) {
-    return teamDataMaybe.teamCode;
-  }
-  // Else if teamData.id is exactly length 3, use that
-  if (typeof teamDataMaybe?.id === 'string' && teamDataMaybe.id.length === 3) {
-    return teamDataMaybe.id;
-  }
-  // Else if teamObjOrId is exactly length 3, use that (string id passed directly)
-  if (typeof teamObjOrId === 'string' && teamObjOrId.length === 3) {
-    return teamObjOrId;
-  }
-  // Else attempt teamObjOrId.code if 3 chars (from TeamMap entry)
-  if (typeof teamObj?.code === 'string' && teamObj.code.length === 3) {
-    return teamObj.code;
-  }
-  // Else attempt teamObjOrId.abbreviation if 3 chars
-  if (
-    typeof teamObj?.abbreviation === 'string' &&
-    teamObj.abbreviation.length === 3
-  ) {
-    return teamObj.abbreviation;
-  }
-  // Else attempt teamObjOrId.id if 3 chars
-  if (typeof teamObj?.id === 'string' && teamObj.id.length === 3) {
-    return teamObj.id;
-  }
-  // Else attempt teamData.team?.id if 3 chars
-  const teamDataTeam = teamDataMaybe?.team as UnknownRecord | undefined;
-  if (typeof teamDataTeam?.id === 'string' && teamDataTeam.id.length === 3) {
-    return teamDataTeam.id;
-  }
-  // Could not resolve
-  if (DEBUG_ENT) {
-    console.warn(
-      '[DEBUG_ENT] resolveTeamCodeLike: could not resolve team code',
-      { teamObjOrId, teamDataMaybe }
-    );
-  }
-  return null;
-}
 
 function resolveBaseTeamLike(
   teamObjOrId: UnknownRecord | string | null | undefined,
@@ -188,73 +122,6 @@ function resolveBaseTeamLike(
 
   return null;
 }
-
-const isPlainObjectValue = (value: unknown) =>
-  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-
-const deepMergeEntitlement = (base: UnknownRecord, override: UnknownRecord) => {
-  if (!isPlainObjectValue(base) || !isPlainObjectValue(override)) {
-    return { ...base, ...override };
-  }
-  const merged = { ...base };
-  Object.entries(override).forEach(([key, value]) => {
-    const baseValue = base[key];
-    if (isPlainObjectValue(baseValue) && isPlainObjectValue(value)) {
-      merged[key] = deepMergeEntitlement(
-        baseValue as UnknownRecord,
-        value as UnknownRecord
-      );
-      return;
-    }
-    merged[key] = value;
-  });
-  return merged;
-};
-
-/* ============================
-   PICK RULES RESOLUTION (Phase 12.3B)
-   ============================ */
-
-/**
- * Extract unique pickIds from entitlements for pick rules lookup.
- * Collects underlyingPickId, poolUnderlyingPickIds, and swapControllerPickId.
- */
-const extractPickIdsFromEntitlements = (
-  entitlements: TradeMachineEntitlement[]
-): string[] => {
-  if (!Array.isArray(entitlements) || entitlements.length === 0) return [];
-
-  const pickIds = new Set<string>();
-  for (const ent of entitlements) {
-    if (ent.underlyingPickId) pickIds.add(String(ent.underlyingPickId));
-    if (Array.isArray(ent.poolUnderlyingPickIds)) {
-      (ent.poolUnderlyingPickIds as string[]).forEach(
-        (id) => id && pickIds.add(id)
-      );
-    }
-    if (ent.swapControllerPickId) pickIds.add(String(ent.swapControllerPickId));
-  }
-  return Array.from(pickIds);
-};
-
-/**
- * Resolve pick rules for a team's entitlements.
- * Returns plain object keyed by pickId for passing to projection layer.
- */
-const resolvePickRulesForEntitlements = async (
-  entitlements: TradeMachineEntitlement[]
-): Promise<Record<string, PickRuleDoc>> => {
-  const pickIds = extractPickIdsFromEntitlements(entitlements);
-  if (pickIds.length === 0) return {};
-
-  try {
-    const rulesMap = await resolvePickRulesByIds(pickIds);
-    return pickRulesMapToObject(rulesMap);
-  } catch (err) {
-    console.warn('[resolvePickRulesForEntitlements] Error:', err);
-    return {};
-  }
-};
 
 /* ============================
    SSOT WIRING
@@ -393,6 +260,14 @@ export const useTradeMachine = (
     setTeams,
     yearKey,
   });
+
+  // Wave 14 Step 2: entitlement operations sub-hook
+  const {
+    toggleEntitlement,
+    setEntitlementDestination,
+    applyEntitlementOverrideUpdate,
+    refreshEntitlements,
+  } = useTradeMachineEntitlementOps({ teams, setTeams, worldId });
 
   // Phase 17: Count active teams for multi-team trade detection
   const activeTeamCount = useMemo(() => {
@@ -642,87 +517,7 @@ export const useTradeMachine = (
     init();
   }, [primaryTeam, primaryTeamData, capProjections, yearKey, worldId]);
 
-  // Phase 14.2: togglePick removed - draft assets are entitlements-only
-  // Use toggleEntitlement instead
-
-  // Phase 11.1: Toggle entitlement selection for trading
-  // Phase 17: Updated to auto-set toTeamId for 2-team trades (closure of broadcast bug)
-  const toggleEntitlement = useCallback(
-    (index: number, entitlement: UnknownRecord) => {
-      setTeams((prev) => {
-        const newTeams = [...prev];
-        const entitlementId = entitlement.id || entitlement.entitlementId;
-        const existingIndex = (newTeams[index].entitlementsOut || []).findIndex(
-          (e) => (e.id || e.entitlementId) === entitlementId
-        );
-
-        if (existingIndex >= 0) {
-          // Remove from selection
-          newTeams[index].entitlementsOut = newTeams[
-            index
-          ].entitlementsOut.filter((_, i) => i !== existingIndex);
-        } else {
-          // Phase 17: Count active teams (teams with a selected team object)
-          const activeTeams = newTeams.filter(hasTeamSlot);
-          const activeTeamCount = activeTeams.length;
-
-          // Phase 17: For 2-team trades, auto-set toTeamId to the only other team
-          // For 3+ team trades, leave toTeamId null (UI must prompt user to select)
-          let autoToTeamId = null;
-          if (activeTeamCount === 2) {
-            // Find the other team's id
-            const otherTeam = activeTeams.find(
-              (t) => t.team?.id !== newTeams[index].team?.id
-            );
-            autoToTeamId = otherTeam?.team?.id || null;
-          }
-
-          // Add to selection with required metadata
-          const decoratedEntitlement = decorateEntitlementForTrade({
-            ...entitlement,
-            entitlementId,
-            fromTeamId: newTeams[index].team?.id,
-            toTeamId: autoToTeamId, // Phase 17: Auto-set for 2-team, null for 3+
-          });
-          if (!isUnknownRecord(decoratedEntitlement)) {
-            return newTeams;
-          }
-          newTeams[index].entitlementsOut = [
-            ...(newTeams[index].entitlementsOut || []),
-            decoratedEntitlement,
-          ];
-        }
-
-        return newTeams;
-      });
-    },
-    []
-  );
-
-  // Phase 17: Set destination team for an entitlement in 3+ team trades
-  const setEntitlementDestination = useCallback(
-    (fromTeamIndex: number, entitlementId: string, toTeamId: string | null) => {
-      setTeams((prev) => {
-        const newTeams = [...prev];
-        const entitlementsOut = newTeams[fromTeamIndex].entitlementsOut || [];
-        const entIdx = entitlementsOut.findIndex(
-          (e) => (e.id || e.entitlementId) === entitlementId
-        );
-
-        if (entIdx >= 0) {
-          newTeams[fromTeamIndex].entitlementsOut = entitlementsOut.map(
-            (e, i) => (i === entIdx ? { ...e, toTeamId } : e)
-          );
-        }
-
-        return newTeams;
-      });
-    },
-    []
-  );
-
-  // Phase 14.2: updatePickField removed - draft assets are entitlements-only
-  // Protection edits are no longer supported in Trade Machine
+  // Phase 14.2: togglePick, updatePickField removed - draft assets are entitlements-only
 
   // Team management
   const selectTeam = useCallback(
@@ -1177,130 +972,6 @@ export const useTradeMachine = (
     setForceTrade(false);
     setPreviewAuthority(null); // TM-1A / TM-3D: clear preview authority on reset
   }, []);
-
-  const applyEntitlementOverrideUpdate = useCallback(
-    (entitlementId: string, document: UnknownRecord) => {
-      if (!entitlementId || !document) return;
-
-      const normalizedDoc: UnknownRecord = { ...document, id: entitlementId };
-      const affectedIndexes: number[] = [];
-
-      const updatedTeams = teams.map((slot, index) => {
-        if (!slot.team) return slot;
-        const slotTeam = slot.team as TradeMachineTeam;
-
-        let entitlementsChanged = false;
-        let updatedEntitlements = (slotTeam.entitlements || []).map((ent) => {
-          const entId = ent.id || ent.entitlementId;
-          if (entId !== entitlementId) return ent;
-          entitlementsChanged = true;
-          const merged = deepMergeEntitlement(ent, normalizedDoc);
-          return { ...merged, id: entitlementId };
-        });
-
-        // TM-VACUUM-E1: If no existing entitlement matched (new vacuum create),
-        // append the document to the entitlements list so it appears immediately.
-        if (!entitlementsChanged) {
-          const holderTeam =
-            normalizedDoc.holderTeam || normalizedDoc.holder_team;
-          const teamCode = slotTeam.teamCode || slotTeam.id;
-          if (holderTeam && holderTeam === teamCode) {
-            updatedEntitlements = [...updatedEntitlements, normalizedDoc];
-            entitlementsChanged = true;
-          }
-        }
-
-        if (entitlementsChanged) {
-          affectedIndexes.push(index);
-        }
-
-        const updatedEntitlementsOut = (slot.entitlementsOut || [])
-          .map((ent) => {
-            const entId = ent.id || ent.entitlementId;
-            if (entId !== entitlementId) return ent;
-            const merged = deepMergeEntitlement(ent, normalizedDoc);
-            return decorateEntitlementForTrade({
-              ...merged,
-              id: entitlementId,
-              entitlementId: entitlementId,
-            });
-          })
-          .filter(isUnknownRecord);
-
-        return {
-          ...slot,
-          team: entitlementsChanged
-            ? { ...slotTeam, entitlements: updatedEntitlements }
-            : slotTeam,
-          entitlementsOut: updatedEntitlementsOut,
-        };
-      });
-
-      setTeams(updatedTeams as TradeMachineTeamSlot[]);
-
-      if (!ENABLE_PICK_RULES || affectedIndexes.length === 0) return;
-
-      const refreshPickRules = async () => {
-        const updates = await Promise.all(
-          affectedIndexes.map(async (index) => {
-            const slot = updatedTeams[index];
-            if (!slot?.team?.entitlements) return null;
-            const pickRulesById = await resolvePickRulesForEntitlements(
-              slot.team.entitlements
-            );
-            return { index, pickRulesById };
-          })
-        );
-
-        setTeams((prev) =>
-          prev.map((slot, index) => {
-            const update = updates.find((u) => u && u.index === index);
-            if (!update) return slot;
-            return {
-              ...slot,
-              team: {
-                ...slot.team,
-                pickRulesById: update.pickRulesById,
-              },
-            };
-          })
-        );
-      };
-
-      refreshPickRules();
-    },
-    [teams]
-  );
-
-  // TM-VACUUM-E1: Re-resolve entitlements for all active team slots.
-  // Used after clearing vacuum overlay to revert to base state.
-  const refreshEntitlements = useCallback(async () => {
-    const updatedTeams = await Promise.all(
-      teams.map(async (slot) => {
-        if (!slot.team) return slot;
-        try {
-          const teamCode = resolveTeamCodeLike(slot.team, slot.team);
-          if (!teamCode) return slot;
-          const entitlements = await resolveEntitlementsForTeam(
-            worldId,
-            teamCode
-          );
-          let pickRulesById = slot.team.pickRulesById || {};
-          if (ENABLE_PICK_RULES) {
-            pickRulesById = await resolvePickRulesForEntitlements(entitlements);
-          }
-          return {
-            ...slot,
-            team: { ...slot.team, entitlements, pickRulesById },
-          };
-        } catch (err) {
-          console.warn('[refreshEntitlements] failed for team:', err);
-          return slot;
-        }
-      })
-    );
-    setTeams(updatedTeams);
-  }, [teams, worldId]);
 
   return {
     teams,
