@@ -285,6 +285,7 @@ utils/
   mutationPipeline.read.stateLoader.ts
   mutationPipeline.read.ts
   mutationPipeline.ts
+  mutationPipeline.types.currentState.ts
   mutationPipeline.types.record.ts
   mutationPipeline.types.ts
   mutationPipeline.validate.ts
@@ -417,5 +418,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T09:49:10.729Z*
+*Generated on: 2026-05-16T09:54:43.074Z*
 *Auto-updated by: npm run docs*
