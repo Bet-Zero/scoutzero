@@ -23,6 +23,7 @@ GMDashboard/
     useArchitectActions.ts
     useArchitectActions.types.ts
     useArchitectModals.ts
+    useArchitectState.helpers.ts
     useArchitectState.ts
     useArchitectState.types.ts
   offerSheetTypes.ts
@@ -412,5 +413,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T06:52:29.702Z*
+*Generated on: 2026-05-16T06:57:58.025Z*
 *Auto-updated by: npm run docs*
