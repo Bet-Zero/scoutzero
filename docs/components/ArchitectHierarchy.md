@@ -287,6 +287,7 @@ utils/
   mutationPipeline.ts
   mutationPipeline.types.currentState.ts
   mutationPipeline.types.record.ts
+  mutationPipeline.types.result.ts
   mutationPipeline.types.ts
   mutationPipeline.validate.ts
   nonTradeMutationValidationStage.ts
@@ -418,5 +419,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T09:54:43.074Z*
+*Generated on: 2026-05-16T10:02:55.015Z*
 *Auto-updated by: npm run docs*

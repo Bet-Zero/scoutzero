@@ -28,6 +28,9 @@ const MUTATION_PIPELINE_TYPES_RECORD_PATH =
 // Wave 13 Step 2: normalized current-state shapes extracted here
 const MUTATION_PIPELINE_TYPES_CURRENT_STATE_PATH =
   'src/features/architect/utils/mutationPipeline.types.currentState.ts';
+// Wave 13 Step 3: dashboard reload, result, event, and helper types extracted here
+const MUTATION_PIPELINE_TYPES_RESULT_PATH =
+  'src/features/architect/utils/mutationPipeline.types.result.ts';
 const SEASON_MANAGER_PATH = 'src/features/architect/utils/seasonManager.ts';
 const USE_ARCHITECT_ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
@@ -191,7 +194,7 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
   ];
 
   it('persistWorldMutation (mutationPipeline.ts) emits all required CapAuditEventV1 fields', () => {
-    const source = readSource(MUTATION_PIPELINE_PATH) + readSource(MUTATION_PIPELINE_TYPES_PATH) + readSource(MUTATION_PIPELINE_TYPES_RECORD_PATH) + readSource(MUTATION_PIPELINE_TYPES_CURRENT_STATE_PATH);
+    const source = readSource(MUTATION_PIPELINE_PATH) + readSource(MUTATION_PIPELINE_TYPES_PATH) + readSource(MUTATION_PIPELINE_TYPES_RECORD_PATH) + readSource(MUTATION_PIPELINE_TYPES_CURRENT_STATE_PATH) + readSource(MUTATION_PIPELINE_TYPES_RESULT_PATH);
     const missingFields: string[] = [];
 
     for (const field of requiredCapAuditEventV1Fields) {
