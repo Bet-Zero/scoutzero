@@ -102,6 +102,11 @@ const USE_ARCHITECT_STATE_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectState.ts'
 );
+// Wave 11 Step 2: type definitions extracted here
+const USE_ARCHITECT_STATE_TYPES_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectState.types.ts'
+);
 
 const readFileContent = (filePath: string): string => {
   if (!fs.existsSync(filePath)) {
@@ -1314,7 +1319,8 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
 });
 
 describe('Gate 7: ActiveTab includes fa/cap/capfull runtime keys (E1 cleanup)', () => {
-  const content = readFileContent(USE_ARCHITECT_STATE_PATH);
+  // Wave 11 Step 2: ActiveTab moved to useArchitectState.types.ts
+  const content = readFileContent(USE_ARCHITECT_STATE_PATH) + readFileContent(USE_ARCHITECT_STATE_TYPES_PATH);
 
   it('defines ActiveTab union type', () => {
     expect(content).toMatch(/type\s+ActiveTab\s*=/);
