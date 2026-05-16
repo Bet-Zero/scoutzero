@@ -114,6 +114,14 @@ import type {
 } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 import type { LoadedWorldTeamCapSheet } from '@/features/architect/utils/worldTeamData';
+// Wave 15 Step 1: per-team transition logic extracted to seasonManager.teamTransition.ts
+import {
+  removeUndefinedDeep,
+  toSeasonTransitionTeam,
+  processTeamSeasonTransitionWithOptions,
+  type TeamSeasonTransitionResult,
+  type DraftResolutionContext,
+} from './seasonManager.teamTransition';
 
 const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
 const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance';
@@ -149,68 +157,6 @@ function buildPostStateRulesContext(
   };
 }
 
-/**
- * Strips hydration-only or season-manager transient fields that are derived
- * during load/advance and must not be persisted.
- */
-const HYDRATION_ONLY_KEYS = [
-  'id', // hydrateBaseTeam display identifier
-  'activeContracts', // derived from players for display
-  'draftAssets', // derived from entitlements
-  'mle', // flattened from exceptions.mle (already inside exceptions)
-  'tpMle', // flattened from exceptions.taxpayerMle
-  'bae', // flattened from exceptions.bae
-  'baseline', // reference to original base doc
-  '_derivedDraftPicks', // transient entitlement projection used only inside season advance
-] as const;
-
-type HydrationOnlyKey = (typeof HYDRATION_ONLY_KEYS)[number];
-type HydrationStrippableTeam<T extends object> = T &
-  Partial<Record<HydrationOnlyKey, unknown>>;
-
-function stripHydrationOnlyFields<T extends object>(
-  team: T | null | undefined
-): T | null | undefined {
-  if (!team || typeof team !== 'object') return team;
-  const result: HydrationStrippableTeam<T> = { ...team };
-  for (const key of HYDRATION_ONLY_KEYS) {
-    delete result[key];
-  }
-  return result as T;
-}
-
-/**
- * Recursively removes undefined values from objects/arrays (Firestore-safe)
- * @param {unknown} obj - Object or array to sanitize
- * @returns {unknown} Sanitized copy with no undefined values
- */
-function removeUndefinedDeep<T>(obj: T): T {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-  if (Array.isArray(obj)) {
-    return obj
-      .filter((item) => item !== undefined)
-      .map((item) => removeUndefinedDeep(item)) as T;
-  }
-  if (typeof obj === 'object') {
-    const result: Partial<T> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined) {
-        result[key as keyof T] = removeUndefinedDeep(
-          value
-        ) as T[keyof T];
-      }
-    }
-    return result as T;
-  }
-  return obj;
-}
-
-type StepienUpdate = { pickId: string; year: number; status: string; reason: string };
-type ConveyanceResolutionEntry = { pickId?: string; year?: number; outcome?: string; position?: number };
-type SwapResolutionEntry = { pickId?: string; year?: number; resolvedOwner?: string | null; resolvedPosition?: number | null };
-
 export type SeasonAdvanceRequest = {
   fromSeason?: string;
   toSeason?: string;
@@ -218,58 +164,7 @@ export type SeasonAdvanceRequest = {
   focusTeamCode?: string;
 };
 
-type DraftResolutionContext = {
-  positionsMap?: Record<string, number>;
-  draftYear?: number;
-  worldId?: string | null;
-};
-
-type TeamSeasonTransitionResult = {
-  committedTeam: SeasonAdvanceCommittedTeamSnapshot | null;
-  teamSummary: SeasonAdvanceTeamSummary;
-};
-
 // Draft pick types moved to seasonManager.draftResolution.ts (Wave 4 Step 1)
-
-
-type SeasonManagerProjectionEntitlements = NonNullable<
-  Parameters<typeof projectEntitlementsToSeasonManagerView>[0]['entitlements']
->;
-
-type SeasonTransitionTeam = OffseasonTeamCapSheet &
-  SeasonManagerDraftPickIngressSource & {
-    entitlementIds?: string[];
-    entitlements?: SeasonManagerProjectionEntitlements;
-  };
-
-function toSeasonTransitionTeam(team: LoadedWorldTeamCapSheet): SeasonTransitionTeam {
-  return {
-    ...team,
-    players: Array.isArray(team.players)
-      ? (team.players as SeasonTransitionTeam['players'])
-      : [],
-    roster: Array.isArray(team.roster)
-      ? (team.roster as SeasonTransitionTeam['roster'])
-      : [],
-    capHolds: Array.isArray(team.capHolds)
-      ? (team.capHolds as SeasonTransitionTeam['capHolds'])
-      : [],
-    exceptions: (team.exceptions ??
-      null) as SeasonTransitionTeam['exceptions'],
-    draftPicks: Array.isArray(team.draftPicks)
-      ? (team.draftPicks as SeasonManagerDraftPickIngressList)
-      : [],
-    entitlementIds: Array.isArray(team.entitlementIds)
-      ? team.entitlementIds
-          .map((entitlementId) =>
-            entitlementId == null ? null : String(entitlementId)
-          )
-          .filter((entitlementId): entitlementId is string =>
-            Boolean(entitlementId)
-          )
-      : [],
-  };
-}
 
 // These allowlisted persistence metadata fields are intentionally preserve-only:
 // season advance does not compute them, but legacy/base/world snapshots can carry
@@ -338,7 +233,7 @@ export type SeasonAdvanceFocusTeamSnapshot = Pick<
     'waivedContracts' | 'mleHistory' | 'pickLog' | 'currentPicks' | 'historyTimeline'
   >;
 
-type SeasonAdvanceCommittedTeamSnapshot = SeasonAdvancePersistedTeamSnapshot &
+export type SeasonAdvanceCommittedTeamSnapshot = SeasonAdvancePersistedTeamSnapshot &
   Partial<SeasonAdvanceFocusTeamSnapshot>;
 
 type PostStateTeamSnapshots = NonNullable<
@@ -347,13 +242,18 @@ type PostStateTeamSnapshots = NonNullable<
 
 // Draft pick helpers moved to seasonManager.draftResolution.ts (Wave 4 Step 1)
 
+// These three types are also defined in seasonManager.teamTransition.ts (Wave 15 Step 1).
+// They stay here because SeasonAdvanceTeamSummary (a public type) references them.
+type StepienUpdate = { pickId: string; year: number; status: string; reason: string };
+type ConveyanceResolutionEntry = { pickId?: string; year?: number; outcome?: string; position?: number };
+type SwapResolutionEntry = { pickId?: string; year?: number; resolvedOwner?: string | null; resolvedPosition?: number | null };
 
 type SeasonAdvanceExpiredTpe =
   OffseasonAppliedChangesSummary['expiredTPEs'][number] & {
     teamCode?: string;
   };
 
-type SeasonAdvanceTeamSummary = Pick<
+export type SeasonAdvanceTeamSummary = Pick<
   OffseasonAppliedChangesSummary,
   | 'exercisedOptions'
   | 'declinedOptions'
@@ -478,25 +378,6 @@ function buildSeasonAdvanceFocusTeamSnapshot(
   return removeUndefinedDeep(snapshot) as SeasonAdvanceFocusTeamSnapshot;
 }
 
-function buildSeasonAdvanceCommittedTeamSnapshot(
-  team: SeasonTransitionTeam
-): SeasonAdvanceCommittedTeamSnapshot {
-  // Bridge Gate: match persistWorldMutation hygiene order
-  // strip hydration → sanitize transients → normalize TPE → validate contract → removeUndefined → write
-  const afterHydrationStrip = stripHydrationOnlyFields(team);
-  const afterSanitize =
-    sanitizeTransientFieldsForPersistence(afterHydrationStrip);
-  const normalizedTeam = normalizeTeamTpeSchema(
-    afterSanitize as SeasonAdvanceCommittedTeamSnapshot
-  ) as SeasonAdvanceCommittedTeamSnapshot;
-  assertPersistableOrThrow({
-    obj: normalizedTeam,
-    contract: PERSISTENCE_CONTRACTS.TEAM,
-    label: 'TEAM',
-  });
-  return removeUndefinedDeep(normalizedTeam);
-}
-
 export type SeasonAdvanceSuccessResult = {
   success: true;
   fromSeason: string;
@@ -529,15 +410,6 @@ export type SeasonAdvanceResult =
   | (SeasonAdvanceSuccessResult & SeasonAdvanceResultBase)
   | (SeasonAdvanceFailureResult & SeasonAdvanceResultBase);
 
-const FALLBACK_SEASON_YEAR = new Date().getFullYear();
-
-function resolveSeasonEndYear(
-  season: string | null | undefined,
-  fallback = FALLBACK_SEASON_YEAR
-): number {
-  return toEndYear(season) ?? fallback;
-}
-
 // isNonEmptyString moved to seasonManager.draftResolution.ts (Wave 4 Step 1)
 
 function getErrorMessage(error: unknown): string {
@@ -553,18 +425,6 @@ function getErrorCode(error: unknown): string | null {
   }
   const code = (error as { code?: unknown }).code;
   return typeof code === 'string' ? code : null;
-}
-
-function getUnderlyingPickId(entitlement: unknown): string | null {
-  if (!entitlement || typeof entitlement !== 'object') {
-    return null;
-  }
-
-  const rawPickId = (entitlement as { underlyingPickId?: unknown })
-    .underlyingPickId;
-  return typeof rawPickId === 'string' && rawPickId.trim().length > 0
-    ? rawPickId
-    : null;
 }
 
 // ==============================================================================
@@ -1037,401 +897,6 @@ export async function advanceSeasonInWorld(
       error: getErrorMessage(error) || 'Season advance failed',
     };
   }
-}
-
-/**
- * Process team for season transition with explicit option decisions
- *
- * @param {Object} teamData - Team data
- * @param {string} fromSeason - Current season
- * @param {string} toSeason - Target season
- * @param {Object} optionDecisions - Map of playerId to option decision
- * @param {Object} [resolutionContext={}] - Phase 5: Draft resolution context
- * @param {Object<string, number>} [resolutionContext.positionsMap] - Positions map for resolution
- * @param {number} [resolutionContext.draftYear] - Draft year to resolve
- * @param {string} [resolutionContext.worldId] - World ID for TPE expiry history logging (Phase 53)
- * @returns {Promise<Object>} Updated team data and summary
- */
-async function processTeamSeasonTransitionWithOptions(
-  teamData: SeasonTransitionTeam,
-  fromSeason: string,
-  toSeason: string,
-  optionDecisions: OffseasonOptionDecisionMap,
-  resolutionContext: DraftResolutionContext = {}
-): Promise<TeamSeasonTransitionResult> {
-  let updatedTeam: SeasonTransitionTeam = { ...teamData };
-  let hasChanges = false;
-  const teamCode = teamData.teamCode as string;
-  const teamSummary: SeasonAdvanceTeamSummary = {
-    exercisedOptions: [],
-    declinedOptions: [],
-    expiredContracts: [],
-    expiredTPEs: [],
-    stepienUpdates: [],
-    // Phase 5: Track draft pick resolutions
-    conveyanceResolutions: [],
-    swapResolutions: [],
-    // Phase 76: Track non-TPE exception transitions
-    transitionedExceptions: [],
-  };
-
-  // Update team season
-  updatedTeam.season = toSeason;
-
-  // ===========================================================================
-  // PHASE 16.1: Derive draft picks view from entitlements (SSOT)
-  // ===========================================================================
-  // If team has entitlementIds, resolve and project to draftPicks-like view.
-  // This is READ-ONLY - no writes to entitlements. The projection is normalized
-  // once here before entering the season-manager draft-pick carrier.
-  const { worldId } = resolutionContext;
-  const hasEntitlementIds =
-    Array.isArray(teamData.entitlementIds) &&
-    teamData.entitlementIds.length > 0;
-  const hasInlineEntitlements =
-    Array.isArray(teamData.entitlements) && teamData.entitlements.length > 0;
-
-  if ((hasEntitlementIds || hasInlineEntitlements) && teamCode) {
-    try {
-      // Use inline entitlements if provided, else resolve from Firestore
-      const entitlements: SeasonManagerProjectionEntitlements =
-        hasInlineEntitlements
-          ? teamData.entitlements || []
-          : await resolveEntitlementsForTeam(worldId || null, teamCode);
-
-      if (Array.isArray(entitlements) && entitlements.length > 0) {
-        // Extract underlying pick IDs for pick rules lookup (best-effort)
-        const pickIds = entitlements
-          .map(getUnderlyingPickId)
-          .filter((pickId): pickId is string => Boolean(pickId));
-
-        // Resolve pick rules in batch (graceful if fails or returns empty)
-        let pickRulesById: ReturnType<typeof pickRulesMapToObject> = {};
-        if (pickIds.length > 0) {
-          try {
-            const rulesMap = await resolvePickRulesByIds(pickIds);
-            pickRulesById = pickRulesMapToObject(rulesMap);
-          } catch {
-            // Pick rules optional - continue without them
-          }
-        }
-
-        const derivedDraftPicks = projectEntitlementsToSeasonManagerView({
-          entitlements,
-          pickRulesById,
-          teamCode,
-        });
-        const normalizedDerivedDraftPicks =
-          toSeasonManagerDraftPicks(derivedDraftPicks) || [];
-
-        // Attach as NON-PERSISTED field for downstream dual-read
-        if (normalizedDerivedDraftPicks.length > 0) {
-          updatedTeam._derivedDraftPicks = normalizedDerivedDraftPicks;
-          logDerivedPicksCreation(
-            teamCode,
-            entitlements.length,
-            normalizedDerivedDraftPicks.length,
-            Object.keys(pickRulesById).length
-          );
-        }
-      }
-    } catch {
-      // Entitlement resolution failed - continue with legacy draftPicks
-      // This ensures graceful degradation
-    }
-  }
-
-  // ===========================================================================
-  // PHASE 5: Auto-resolve draft picks BEFORE other processing
-  // ===========================================================================
-  // Resolution order: conveyance first, then swaps
-  // This ensures that rolled picks are properly tracked before swap resolution
-  const positionsMap = resolutionContext.positionsMap;
-  const draftYear = resolutionContext.draftYear;
-  const initialDraftPicks = getSeasonManagerDraftPicks(updatedTeam);
-  if (hasDraftPickIngressArray(updatedTeam)) {
-    updatedTeam.draftPicks = initialDraftPicks;
-  }
-
-  if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
-    const resolutionOpts = {
-      nowIso: new Date().toISOString(),
-      method: 'season_advance',
-    };
-
-    // 1) Resolve conveyance (protections rolling forward / converting)
-    const conveyanceInput = toDraftPickCarrier(updatedTeam, teamCode);
-    const afterConveyance = resolveDraftPickConveyanceForYear(
-      conveyanceInput,
-      draftYear,
-      positionsMap,
-      resolutionOpts
-    );
-
-    // Track conveyance resolutions
-    // Build a Set of original pick IDs that already had conveyanceResult for O(1) lookup
-    const originalConveyedIds = new Set(
-      getSeasonManagerDraftPicks(teamData)
-        .filter((pick) => pick?.conveyanceResult)
-        .map((pick) => pick.id)
-        .filter((pickId): pickId is string => typeof pickId === 'string')
-    );
-
-    const afterConveyanceDraftPicks = afterConveyance.draftPicks || [];
-
-    if (afterConveyanceDraftPicks.length > 0) {
-      const conveyedPicks = afterConveyanceDraftPicks.filter(
-        (pick) =>
-          pick?.conveyanceResult &&
-          !(
-            typeof pick.id === 'string' && originalConveyedIds.has(pick.id)
-          )
-      );
-      for (const pick of conveyedPicks) {
-        const convResult = pick.conveyanceResult || undefined;
-        teamSummary.conveyanceResolutions.push({
-          pickId: pick.id,
-          year: pick.year,
-          outcome: convResult?.outcome,
-          position: convResult?.position,
-        });
-        hasChanges = true;
-      }
-      updatedTeam.draftPicks = afterConveyanceDraftPicks;
-    }
-
-    // 2) Resolve swaps (best_of / worst_of resolution)
-    // IMPORTANT: Pass afterConveyance (not updatedTeam) so swaps see post-conveyance state
-    const swapResolutionInput: DraftPickCarrier = {
-      teamCode,
-      draftPicks: afterConveyanceDraftPicks,
-    };
-    const afterSwaps = resolveDraftPickSwapsForYear(
-      swapResolutionInput,
-      draftYear,
-      positionsMap,
-      resolutionOpts
-    );
-
-    // Track swap resolutions
-    // Build a Set of original pick IDs that were already resolved for O(1) lookup
-    const originalResolvedIds = new Set(
-      getSeasonManagerDraftPicks(teamData)
-        .filter((pick) => pick?.resolved === true)
-        .map((pick) => pick.id)
-        .filter((pickId): pickId is string => typeof pickId === 'string')
-    );
-
-    const afterSwapsDraftPicks = afterSwaps.draftPicks || [];
-
-    if (afterSwapsDraftPicks.length > 0) {
-      const resolvedSwaps = afterSwapsDraftPicks.filter(
-        (pick) =>
-          pick?.resolved === true &&
-          !(
-            typeof pick.id === 'string' && originalResolvedIds.has(pick.id)
-          )
-      );
-      for (const pick of resolvedSwaps) {
-        teamSummary.swapResolutions.push({
-          pickId: pick.id,
-          year: pick.year,
-          resolvedOwner: pick.resolvedOwner,
-          resolvedPosition: pick.resolvedPosition,
-        });
-        hasChanges = true;
-      }
-      updatedTeam.draftPicks = afterSwapsDraftPicks;
-    }
-  }
-
-  // Offseason transition SSOT (OSTE)
-  const toYear = resolveSeasonEndYear(toSeason);
-  const fromYear = resolveSeasonEndYear(fromSeason, toYear - 1);
-  const transitionContext: OffseasonTransitionContext = {
-    worldId: worldId || null,
-    teamCode,
-  };
-  const transitionResult: OffseasonTransitionResult =
-    resolveOffseasonTransition({
-      teamCapSheet: updatedTeam,
-      fromYear,
-      toYear,
-      optionDecisions,
-      context: transitionContext,
-    });
-
-  if (!transitionResult.success) {
-    const message =
-      transitionResult.error ||
-      transitionResult.violations?.[0]?.message ||
-      'Offseason transition blocked';
-    throw new Error(`[OSTE] ${teamCode}: ${message}`);
-  }
-
-  updatedTeam = {
-    ...updatedTeam,
-    ...(transitionResult.nextTeamCapSheet || {}),
-  };
-  hasChanges = true;
-
-  if (transitionResult.appliedChangesSummary) {
-    teamSummary.exercisedOptions =
-      transitionResult.appliedChangesSummary.exercisedOptions || [];
-    teamSummary.declinedOptions =
-      transitionResult.appliedChangesSummary.declinedOptions || [];
-    teamSummary.expiredContracts =
-      transitionResult.appliedChangesSummary.expiredContracts || [];
-    teamSummary.expiredTPEs =
-      transitionResult.appliedChangesSummary.expiredTPEs || [];
-    teamSummary.transitionedExceptions =
-      transitionResult.appliedChangesSummary.transitionedExceptions || [];
-  }
-
-  // Update draft picks with Stepien recalculation
-  const draftPicksResult = updateDraftPicksWithStepien(
-    toDraftPickCarrier(updatedTeam, teamCode),
-    fromSeason,
-    toSeason
-  );
-  if (draftPicksResult.hasChanges) {
-    hasChanges = true;
-    updatedTeam.draftPicks = draftPicksResult.draftPicks;
-    teamSummary.stepienUpdates = draftPicksResult.stepienUpdates || [];
-  }
-
-  // ===========================================================================
-  // PHASE 77: Recalculate cap totals using SSOT
-  // ===========================================================================
-  // Always recompute totals for the new year using SSOT function.
-  // This replaces the legacy updateTeamCapTotals() dynamic import.
-  // Runs AFTER TPE expiry (Phase 53), non-TPE reset (Phase 76), and all roster changes.
-  if (hasChanges) {
-    updatedTeam.totals = computeTeamCapTotals(updatedTeam, toYear);
-  }
-
-  const committedTeam = hasChanges
-    ? buildSeasonAdvanceCommittedTeamSnapshot(updatedTeam)
-    : null;
-
-  return {
-    committedTeam,
-    teamSummary,
-  };
-}
-
-/**
- * Update draft picks for season transition with Stepien recalculation
- *
- * Implements Phase 3B Stepien rule:
- * - A team cannot trade consecutive future first-round picks
- * - Marks picks as "stepienBlocked" if trading them would violate this rule
- *
- * @param {Object} teamData - Team data
- * @param {string} fromSeason - Current season
- * @param {string} toSeason - Target season
- * @returns {Object} Result with updated draft picks and Stepien updates
- */
-function updateDraftPicksWithStepien(
-  teamData: DraftPickCarrier,
-  fromSeason: string,
-  toSeason: string
-) {
-  void fromSeason;
-  const toYear = resolveSeasonEndYear(toSeason);
-  const teamCode = isNonEmptyString(teamData.teamCode)
-    ? teamData.teamCode
-    : null;
-  const draftPicks = getSeasonManagerDraftPicks(teamData);
-  let hasChanges = false;
-  const stepienUpdates: StepienUpdate[] = [];
-
-  // Separate picks into owned and owed
-  const owedFirsts: SeasonManagerDraftPick[] = []; // First-round picks the team has traded away
-
-  for (const pick of draftPicks) {
-    const isFirstRound = pick.round === 1;
-    if (!isFirstRound) continue;
-
-    // Check if this is an owned pick or owed pick
-    // Owned: originalTeam === teamCode AND NOT traded
-    // Owed: originalTeam === teamCode AND traded/conveyed to another team
-    const isOwned =
-      (teamCode !== null && pick.currentOwner === teamCode) ||
-      (teamCode !== null && pick.owner === teamCode && !pick.tradedTo);
-    const isOwed =
-      teamCode !== null &&
-      pick.originalTeam === teamCode &&
-      (pick.tradedTo || pick.currentOwner !== teamCode);
-
-    if (!isOwned && isOwed) {
-      owedFirsts.push(pick);
-    }
-  }
-
-  // Sort owed picks by year
-  owedFirsts.sort((a, b) => a.year - b.year);
-
-  const owedYears = new Set(owedFirsts.map((p) => p.year));
-
-  // Update each pick's status
-  const updatedPicks = draftPicks.map((pick) => {
-    const updatedPick = { ...pick };
-    const isFirstRound = pick.round === 1;
-
-    // Advance pick year status if needed
-    if (pick.year < toYear) {
-      if (pick.status === 'future' || !pick.status) {
-        hasChanges = true;
-        updatedPick.status = 'available';
-      }
-    }
-
-    // Stepien check only for first-round picks the team owns
-    if (isFirstRound && pick.year >= toYear) {
-      const pickYear = pick.year;
-      const isOwnedByTeam =
-        (teamCode !== null && pick.currentOwner === teamCode) ||
-        (teamCode !== null && pick.owner === teamCode && !pick.tradedTo);
-
-      if (isOwnedByTeam) {
-        // Check if trading this pick would create consecutive years without a first
-        const prevYear = pickYear - 1;
-        const nextYear = pickYear + 1;
-
-        // A pick is Stepien-blocked if trading it would leave no first-round pick
-        // in either the previous or next year
-        const prevYearOwed = owedYears.has(prevYear);
-        const nextYearOwed = owedYears.has(nextYear);
-
-        // If both adjacent years are owed out, this pick is locked (Stepien)
-        const isStepienBlocked = prevYearOwed && nextYearOwed;
-
-        if (updatedPick.stepienBlocked !== isStepienBlocked) {
-          hasChanges = true;
-          updatedPick.stepienBlocked = isStepienBlocked;
-
-          if (isStepienBlocked) {
-            updatedPick.stepienReason = `Cannot trade: would create consecutive years (${prevYear}, ${pickYear}, ${nextYear}) without a 1st`;
-            stepienUpdates.push({
-              pickId: pick.id || `${teamCode}_${pickYear}_1`,
-              year: pickYear,
-              status: 'blocked',
-              reason: updatedPick.stepienReason,
-            });
-          }
-        }
-      }
-    }
-
-    return updatedPick;
-  });
-
-  return {
-    hasChanges,
-    draftPicks: updatedPicks,
-    stepienUpdates,
-  };
 }
 
 // resolveDraftPickSwapsForYear and resolveDraftPickConveyanceForYear moved to seasonManager.draftResolution.ts (Wave 4 Step 1)

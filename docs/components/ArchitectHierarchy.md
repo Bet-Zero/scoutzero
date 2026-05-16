@@ -326,6 +326,7 @@ utils/
   seasonFormat.ts
   seasonHelpers.ts
   seasonManager.draftResolution.ts
+  seasonManager.teamTransition.ts
   seasonManager.ts
   seasonManagerLegacy.ts
   seasonUtils.ts
@@ -424,5 +425,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T11:29:25.877Z*
+*Generated on: 2026-05-16T15:33:45.048Z*
 *Auto-updated by: npm run docs*
