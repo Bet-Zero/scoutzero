@@ -209,6 +209,7 @@ utils/
     signing.offerSheetResolution.ts
     signing.terms.ts
     signing.ts
+    signing.validate.ts
   capLegalityValidation.ts
   capProjections.ts
   capRulesProfile/
@@ -409,5 +410,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-16T06:08:35.640Z*
+*Generated on: 2026-05-16T06:18:33.545Z*
 *Auto-updated by: npm run docs*
