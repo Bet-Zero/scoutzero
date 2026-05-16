@@ -22,6 +22,7 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
     readArchitectFile('GMDashboard/hooks/useArchitectActions.tradeActions.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.offerSheetActions.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.persistenceHelpers.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.signingExecution.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.contractActions.ts');
   // Wave 11 Step 2: type definitions extracted to useArchitectState.types.ts
   const stateHookSource =

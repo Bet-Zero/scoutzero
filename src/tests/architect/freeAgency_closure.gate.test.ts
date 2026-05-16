@@ -62,6 +62,11 @@ const USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.persistenceHelpers.ts'
 );
+// Wave 12 Step 2: signing execution sub-hook extracted here
+const USE_ARCHITECT_ACTIONS_SIGNING_EXECUTION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.signingExecution.ts'
+);
 const USE_ARCHITECT_ACTIONS_TYPES_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.types.ts'
@@ -138,6 +143,7 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_SIGNING_EXECUTION_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH) +
@@ -736,6 +742,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_SIGNING_EXECUTION_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH) +

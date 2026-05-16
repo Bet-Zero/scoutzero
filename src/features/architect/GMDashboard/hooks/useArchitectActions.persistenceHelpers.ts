@@ -60,6 +60,23 @@ import type {
 } from './useArchitectActions.types';
 import type { UseArchitectStateReturn } from './useArchitectState';
 
+// Module-level types lifted from usePersistenceHelpers for external use
+export type PreparedCapAuditedMutationBoundary = {
+  operationId: string;
+  storageKey: string;
+  localStateKind: string;
+  auditLifecycleState: LocalCapAuditLifecycleState;
+  beforeTeamSnapshot: CapSheet;
+  afterTeamSnapshot: CapSheet;
+  beforeTeamsByCode: TeamsByCode;
+  afterTeamsByCode: TeamsByCode;
+  auditEvent: CapAuditEventV1Like;
+  auditEvaluation: ReturnType<typeof buildCapAuditEvaluation>;
+  applyNonAuthoritativeState: () => void;
+  linkCommittedPersistSuccess: (result: PersistMutationResult) => void;
+  rollbackOptimisticLocalState: () => void;
+};
+
 export interface UsePersistenceHelpersParams {
   teamCode: string;
   worldId: string | null;
