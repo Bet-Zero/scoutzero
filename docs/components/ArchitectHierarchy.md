@@ -128,6 +128,7 @@ history/
   index.ts
   utils/
     normalizeWorldEventsForTeamHistory.ts
+    normalizeWorldEventsForTeamHistory.utils.ts
 hooks/
   useArchitectPlayerData.ts
   useCapValidation.ts
@@ -442,5 +443,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T03:12:35.131Z*
+*Generated on: 2026-05-17T03:21:55.208Z*
 *Auto-updated by: npm run docs*
