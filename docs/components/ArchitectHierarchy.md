@@ -310,6 +310,7 @@ utils/
   nonTradeMutationValidationStage.ts
   offseason/
     index.ts
+    resolveOffseasonTransition.helpers.ts
     resolveOffseasonTransition.optionDecisions.ts
     resolveOffseasonTransition.ts
     resolveOffseasonTransition.validation.ts
@@ -445,5 +446,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T03:31:27.960Z*
+*Generated on: 2026-05-17T04:38:06.437Z*
 *Auto-updated by: npm run docs*
