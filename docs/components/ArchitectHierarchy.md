@@ -435,10 +435,12 @@ utils/
       validationIssueText.ts
   tradeManager.ts
   validatePhase21.test.ts
+  worldManager.core.ts
+  worldManager.readUtils.ts
   worldManager.ts
   worldTeamData.ts
 ```
 
 ---
-*Generated on: 2026-05-17T01:57:47.938Z*
+*Generated on: 2026-05-17T03:12:35.131Z*
 *Auto-updated by: npm run docs*
