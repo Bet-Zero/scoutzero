@@ -300,6 +300,7 @@ utils/
   mutationPipeline.compute.ts
   mutationPipeline.helpers.persistence.ts
   mutationPipeline.helpers.playerNorm.bio.ts
+  mutationPipeline.helpers.playerNorm.contract.atoms.ts
   mutationPipeline.helpers.playerNorm.contract.ts
   mutationPipeline.helpers.playerNorm.ts
   mutationPipeline.helpers.primitives.ts
@@ -471,5 +472,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T23:26:45.396Z*
+*Generated on: 2026-05-17T23:30:13.136Z*
 *Auto-updated by: npm run docs*
