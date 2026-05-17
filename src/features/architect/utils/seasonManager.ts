@@ -49,21 +49,11 @@ import {
   worldTeamRef,
   worldMetadataRef,
 } from '@/features/architect/utils/architectFirestorePaths';
-import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { resolveOffseasonTransition } from '@/features/architect/utils/offseason';
 import {
   isNonEmptyString,
-  toDraftPickCarrier,
-  getSeasonManagerDraftPicks,
-  hasDraftPickIngressArray,
-  toSeasonManagerDraftPicks,
-  toSeasonManagerDraftPick,
   resolveDraftPickSwapsForYear,
   resolveDraftPickConveyanceForYear,
-  type SeasonManagerDraftPick,
-  type SeasonManagerDraftPickIngressSource,
-  type SeasonManagerDraftPickIngressList,
-  type DraftPickCarrier,
 } from './seasonManager.draftResolution';
 export { resolveDraftPickSwapsForYear, resolveDraftPickConveyanceForYear };
 // Phase 65: Canonical TPE normalization for persistence
@@ -76,10 +66,6 @@ import { sanitizeTransientFieldsForPersistence } from '@/features/architect/util
 import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
-} from '@/features/architect/utils/capLegality/postStateCapValidator';
-import type {
-  PostStateCapValidationInput,
-  PostStateCapValidationIssue,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import {
   ARCHITECT_WORLDS_COLLECTION,
@@ -97,7 +83,6 @@ import {
   projectEntitlementsToSeasonManagerView,
   logDerivedPicksCreation,
 } from '@/features/architect/utils/entitlements/seasonManagerProjection';
-// SeasonManagerProjectedDraftPickView import moved to seasonManager.draftResolution.ts (Wave 4 Step 1)
 // DARE: Draft Asset Resolution Engine for entitlement lifecycle persistence (B2/B3)
 import {
   resolveAllDraftAssets,
@@ -106,14 +91,10 @@ import {
 } from '@/features/architect/utils/entitlements/dare';
 import type { DAREResolutionReceipt } from '@/features/architect/utils/entitlements/dare';
 import type {
-  OffseasonAppliedChangesSummary,
   OffseasonOptionDecisionMap,
-  OffseasonTeamCapSheet,
   OffseasonTransitionContext,
   OffseasonTransitionResult,
 } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
-import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
-import type { LoadedWorldTeamCapSheet } from '@/features/architect/utils/worldTeamData';
 // Wave 15 Step 1: per-team transition logic extracted to seasonManager.teamTransition.ts
 import {
   removeUndefinedDeep,
@@ -122,310 +103,34 @@ import {
   type TeamSeasonTransitionResult,
   type DraftResolutionContext,
 } from './seasonManager.teamTransition';
+// Wave 37 Step 1: types and helper functions extracted to submodule
+export * from './seasonManager.helpers';
+import {
+  generateSeasonAdvanceOperationId,
+  safeCloneForAudit,
+  buildPostStateRulesContext,
+  buildSeasonAdvanceCommittedState,
+  buildSeasonAdvanceFocusTeamSnapshot,
+  getErrorMessage,
+  getErrorCode,
+  type SeasonAdvanceRequest,
+  type SeasonAdvanceResult,
+  type SeasonAdvanceSuccessResult,
+  type SeasonAdvanceFailureResult,
+  type SeasonAdvanceSummary,
+  type SeasonAdvanceFocusTeamSnapshot,
+  type SeasonAdvanceCommittedTeamSnapshot,
+  type PostStateTeamSnapshots,
+  type SeasonAdvanceDraftResolutionInfo,
+  type SeasonAdvanceCommittedMetadata,
+  type SeasonAdvanceCommittedEvent,
+  type SeasonAdvanceCommittedState,
+  type SeasonAdvanceExpiredTpe,
+  type PostStateCapTotalsByTeam,
+} from './seasonManager.helpers';
 
 const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
 const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance';
-
-function generateSeasonAdvanceOperationId(timestamp = Date.now()) {
-  const randomSuffix = Math.random().toString(36).slice(2, 10);
-  return `op_${timestamp}_${randomSuffix}`;
-}
-
-function safeCloneForAudit(value: unknown): unknown {
-  if (value === null || value === undefined || typeof value !== 'object') {
-    return value;
-  }
-  try {
-    return JSON.parse(JSON.stringify(value));
-  } catch {
-    return value;
-  }
-}
-
-function buildPostStateRulesContext(
-  year: number
-): NonNullable<PostStateCapValidationInput['rulesContext']> {
-  const capSettingsResult = getCapSettings({ year });
-  const minimumTeamSalary = Number(capSettingsResult?.settings?.floor);
-
-  return {
-    capSettings: capSettingsResult?.settings || null,
-    minimumTeamSalary: Number.isFinite(minimumTeamSalary)
-      ? minimumTeamSalary
-      : undefined,
-    capSettingsSource: capSettingsResult?.source || null,
-  };
-}
-
-export type SeasonAdvanceRequest = {
-  fromSeason?: string;
-  toSeason?: string;
-  optionDecisions?: OffseasonOptionDecisionMap;
-  focusTeamCode?: string;
-};
-
-// Draft pick types moved to seasonManager.draftResolution.ts (Wave 4 Step 1)
-
-// These allowlisted persistence metadata fields are intentionally preserve-only:
-// season advance does not compute them, but legacy/base/world snapshots can carry
-// mixed shapes that should survive the committed team write if already present.
-type SeasonAdvancePreservedPersistenceFields = {
-  city?: string | null;
-  conference?: string | null;
-  division?: string | null;
-  source?: unknown;
-  lastUpdated?: unknown;
-  version?: unknown;
-  mergedAt?: unknown;
-  _meta?: unknown;
-};
-
-type SeasonAdvancePersistedTeamSnapshot = Pick<
-  LoadedWorldTeamCapSheet,
-  | 'teamCode'
-  | 'teamName'
-  | 'season'
-  | 'abbreviation'
-  | 'players'
-  | 'roster'
-  | 'capHolds'
-  | 'deadCap'
-  | 'draftPicks'
-  | 'draftPicksInventory'
-  | 'draftPicksObligations'
-  | 'draftPicksContested'
-  | 'entitlementIds'
-  | 'offerSheets'
-  | 'incomingOfferSheets'
-  | 'exceptions'
-  | 'totals'
-  | 'hardCapLevel'
-  | 'hardCapReason'
-  | 'hardCapTriggeredBy'
-  | 'hardCapped'
-> &
-  Pick<OffseasonTeamCapSheet, 'exceptionHistory'> &
-  SeasonAdvancePreservedPersistenceFields;
-
-export type SeasonAdvanceFocusTeamSnapshot = Pick<
-  SeasonAdvancePersistedTeamSnapshot,
-  | 'teamCode'
-  | 'teamName'
-  | 'season'
-  | 'abbreviation'
-  | 'players'
-  | 'roster'
-  | 'capHolds'
-  | 'deadCap'
-  | 'draftPicks'
-  | 'offerSheets'
-  | 'incomingOfferSheets'
-  | 'exceptions'
-  | 'exceptionHistory'
-  | 'totals'
-  | 'hardCapLevel'
-  | 'hardCapReason'
-  | 'hardCapTriggeredBy'
-  | 'hardCapped'
-> &
-  Pick<
-    TeamHistoryCapSheetLike,
-    'waivedContracts' | 'mleHistory' | 'pickLog' | 'currentPicks' | 'historyTimeline'
-  >;
-
-export type SeasonAdvanceCommittedTeamSnapshot = SeasonAdvancePersistedTeamSnapshot &
-  Partial<SeasonAdvanceFocusTeamSnapshot>;
-
-type PostStateTeamSnapshots = NonNullable<
-  PostStateCapValidationInput['beforeTeamsByCode']
->;
-
-// Draft pick helpers moved to seasonManager.draftResolution.ts (Wave 4 Step 1)
-
-// These three types are also defined in seasonManager.teamTransition.ts (Wave 15 Step 1).
-// They stay here because SeasonAdvanceTeamSummary (a public type) references them.
-type StepienUpdate = { pickId: string; year: number; status: string; reason: string };
-type ConveyanceResolutionEntry = { pickId?: string; year?: number; outcome?: string; position?: number };
-type SwapResolutionEntry = { pickId?: string; year?: number; resolvedOwner?: string | null; resolvedPosition?: number | null };
-
-type SeasonAdvanceExpiredTpe =
-  OffseasonAppliedChangesSummary['expiredTPEs'][number] & {
-    teamCode?: string;
-  };
-
-export type SeasonAdvanceTeamSummary = Pick<
-  OffseasonAppliedChangesSummary,
-  | 'exercisedOptions'
-  | 'declinedOptions'
-  | 'expiredContracts'
-  | 'transitionedExceptions'
-> & {
-  expiredTPEs: SeasonAdvanceExpiredTpe[];
-  stepienUpdates: StepienUpdate[];
-  conveyanceResolutions: ConveyanceResolutionEntry[];
-  swapResolutions: SwapResolutionEntry[];
-};
-
-export type SeasonAdvanceSummary = SeasonAdvanceTeamSummary & {
-  dareReceipt?: DAREResolutionReceipt;
-  dareWriteCount?: number;
-  dareError?: string;
-};
-
-type SeasonAdvanceIssue = PostStateCapValidationIssue;
-
-type SeasonAdvanceDraftResolutionInfo = {
-  draftYear: number;
-  hadPositions: boolean;
-  resolvedConveyances?: number;
-  resolvedSwaps?: number;
-};
-
-export type SeasonAdvanceCommittedMetadata = {
-  currentSeason: string;
-  currentYear: number;
-  lastModifiedTeams: string[];
-};
-
-export type SeasonAdvanceCommittedEvent = {
-  eventId: string;
-  occurredAt: string;
-};
-
-/**
- * Commit-time season-advance artifact returned to the dashboard layer.
- * This guarantees the metadata/event written by the authoritative batch plus
- * an optional focus-team snapshot captured from that same commit window.
- * It does not replace the broader read-stack reload that may still be needed
- * for league-wide/world-visible reconciliation after season advance.
- */
-export type SeasonAdvanceCommittedState = {
-  metadata: SeasonAdvanceCommittedMetadata;
-  event: SeasonAdvanceCommittedEvent;
-  focusTeamCode?: string;
-  focusTeamSnapshot?: SeasonAdvanceFocusTeamSnapshot | null;
-};
-
-type BuildSeasonAdvanceCommittedStateParams = {
-  metadata: SeasonAdvanceCommittedMetadata;
-  event: SeasonAdvanceCommittedEvent;
-  focusTeamCode: string | null;
-  focusTeamSnapshot: SeasonAdvanceFocusTeamSnapshot | null;
-};
-
-function buildSeasonAdvanceCommittedState({
-  metadata,
-  event,
-  focusTeamCode,
-  focusTeamSnapshot,
-}: BuildSeasonAdvanceCommittedStateParams): SeasonAdvanceCommittedState {
-  return {
-    metadata,
-    event,
-    focusTeamCode: focusTeamCode ?? undefined,
-    focusTeamSnapshot: focusTeamCode ? focusTeamSnapshot : null,
-  };
-}
-
-const FOCUS_TEAM_SNAPSHOT_KEYS = [
-  'teamCode',
-  'teamName',
-  'season',
-  'abbreviation',
-  'players',
-  'roster',
-  'capHolds',
-  'deadCap',
-  'draftPicks',
-  'offerSheets',
-  'incomingOfferSheets',
-  'exceptions',
-  'exceptionHistory',
-  'totals',
-  'hardCapLevel',
-  'hardCapReason',
-  'hardCapTriggeredBy',
-  'hardCapped',
-  'waivedContracts',
-  'mleHistory',
-  'pickLog',
-  'currentPicks',
-  'historyTimeline',
-] as const satisfies readonly (keyof SeasonAdvanceFocusTeamSnapshot)[];
-
-function copyFocusTeamSnapshotField<
-  K extends keyof SeasonAdvanceFocusTeamSnapshot,
->(
-  source: SeasonAdvanceCommittedTeamSnapshot,
-  target: Partial<SeasonAdvanceFocusTeamSnapshot>,
-  key: K
-) {
-  const value = source[key];
-  if (value !== undefined) {
-    target[key] = value as SeasonAdvanceFocusTeamSnapshot[K];
-  }
-}
-
-function buildSeasonAdvanceFocusTeamSnapshot(
-  team: SeasonAdvanceCommittedTeamSnapshot
-): SeasonAdvanceFocusTeamSnapshot {
-  const snapshot: Partial<SeasonAdvanceFocusTeamSnapshot> = {};
-
-  for (const key of FOCUS_TEAM_SNAPSHOT_KEYS) {
-    copyFocusTeamSnapshotField(team, snapshot, key);
-  }
-
-  return removeUndefinedDeep(snapshot) as SeasonAdvanceFocusTeamSnapshot;
-}
-
-export type SeasonAdvanceSuccessResult = {
-  success: true;
-  fromSeason: string;
-  toSeason: string;
-  updatedTeams: string[];
-  summary: SeasonAdvanceSummary;
-  draftResolutionInfo: SeasonAdvanceDraftResolutionInfo;
-  committedState: SeasonAdvanceCommittedState;
-};
-
-export type SeasonAdvanceFailureResult = {
-  success: false;
-  error: string;
-  worldSeason?: string;
-  attemptedFromSeason?: string;
-  attemptedToSeason?: string;
-  violations?: SeasonAdvanceIssue[];
-  warnings?: SeasonAdvanceIssue[];
-};
-
-type SeasonAdvanceResultBase = {
-  toSeason?: string;
-  summary?: SeasonAdvanceSummary;
-  error?: string;
-  violations?: SeasonAdvanceIssue[];
-  warnings?: SeasonAdvanceIssue[];
-};
-
-export type SeasonAdvanceResult =
-  | (SeasonAdvanceSuccessResult & SeasonAdvanceResultBase)
-  | (SeasonAdvanceFailureResult & SeasonAdvanceResultBase);
-
-// isNonEmptyString moved to seasonManager.draftResolution.ts (Wave 4 Step 1)
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error);
-}
-
-function getErrorCode(error: unknown): string | null {
-  if (!error || typeof error !== 'object') {
-    return null;
-  }
-  const code = (error as { code?: unknown }).code;
-  return typeof code === 'string' ? code : null;
-}
 
 // ==============================================================================
 // PHASE 3B: ENHANCED SEASON ADVANCEMENT WITH OPTION DECISIONS
@@ -533,12 +238,8 @@ export async function advanceSeasonInWorld(
     let focusTeamSnapshot: SeasonAdvanceFocusTeamSnapshot | null = null;
     const beforeTeamsByCode: PostStateTeamSnapshots = {};
     const afterTeamsByCode: PostStateTeamSnapshots = {};
-    const beforeTotalsByTeam: NonNullable<
-      PostStateCapValidationInput['beforeTotalsByTeam']
-    > = {};
-    const afterTotalsByTeam: NonNullable<
-      PostStateCapValidationInput['afterTotalsByTeam']
-    > = {};
+    const beforeTotalsByTeam: PostStateCapTotalsByTeam = {};
+    const afterTotalsByTeam: PostStateCapTotalsByTeam = {};
     const summary: SeasonAdvanceSummary = {
       exercisedOptions: [],
       declinedOptions: [],
