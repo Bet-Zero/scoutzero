@@ -138,6 +138,7 @@ hooks/
   useTradeMachine.ts
   useTradeMachine.types.ts
   useTradeMachineEntitlementOps.ts
+  useTradeMachineInit.ts
   useTradeMachinePlayerOps.ts
   useTradeMachineSnapshot.ts
 offseason/
@@ -447,5 +448,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T05:18:20.124Z*
+*Generated on: 2026-05-17T05:57:24.211Z*
 *Auto-updated by: npm run docs*
