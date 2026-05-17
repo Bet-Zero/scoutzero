@@ -268,6 +268,7 @@ utils/
     entitlementResolver.ts
     entitlementTerms.ts
     entitlementWriter.ts
+    entitlementWriter.validation.ts
     formatEntitlement.ts
     leagueClaimUniquenessGate.ts
     moveWorldEntitlement.ts
@@ -468,5 +469,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T23:10:37.615Z*
+*Generated on: 2026-05-17T23:16:37.877Z*
 *Auto-updated by: npm run docs*
