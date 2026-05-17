@@ -27,9 +27,12 @@ GMDashboard/
     useArchitectActions.types.normalizers.ts
     useArchitectActions.types.ts
     useArchitectModals.ts
+    useArchitectState.freeAgents.ts
     useArchitectState.helpers.ts
     useArchitectState.ts
     useArchitectState.types.ts
+    useArchitectState.worldLoader.ts
+    useArchitectState.worldTracker.ts
   offerSheetTypes.ts
   sections/
     CapSheetSection.tsx
@@ -433,5 +436,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T00:09:46.238Z*
+*Generated on: 2026-05-17T00:32:43.417Z*
 *Auto-updated by: npm run docs*
