@@ -232,6 +232,7 @@ utils/
     signing.ts
     signing.validate.ts
     signing.validators.ts
+  capLegalityValidation.deadcap.ts
   capLegalityValidation.ts
   capProjections.ts
   capRulesProfile/
@@ -473,5 +474,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T23:37:59.564Z*
+*Generated on: 2026-05-17T23:43:01.219Z*
 *Auto-updated by: npm run docs*
