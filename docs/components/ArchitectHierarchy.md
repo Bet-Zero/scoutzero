@@ -355,6 +355,8 @@ utils/
     legacy/
       index.ts
     tradeContext.payloadNormalization.ts
+    tradeContext.snapshot.builder.ts
+    tradeContext.snapshot.payloadNorm.ts
     tradeContext.snapshot.ts
     tradeContext.ts
     tradeExecutionAuthority.ts
@@ -443,5 +445,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T03:21:55.208Z*
+*Generated on: 2026-05-17T03:31:27.960Z*
 *Auto-updated by: npm run docs*
