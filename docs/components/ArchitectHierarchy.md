@@ -339,6 +339,7 @@ utils/
   playerRulesProfile/
     birdRightsRules.ts
     computeProfile.ts
+    extensionRules.eligibility.ts
     extensionRules.ts
     index.ts
     maxSalaryRules.ts
@@ -464,5 +465,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T09:49:08.090Z*
+*Generated on: 2026-05-17T09:59:59.098Z*
 *Auto-updated by: npm run docs*

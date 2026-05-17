@@ -23,412 +23,22 @@
 
 import { getYearsOfService } from './minimumSalaryRules';
 import { checkSupermaxEligibility } from './maxSalaryRules';
-import { parseSeasonEndYear } from '../seasonUtils';
 import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants';
+// Wave 39 Step 1: types, constants, and eligibility logic extracted to submodule
+export * from './extensionRules.eligibility';
+import {
+  EXTENSION_TYPES,
+  RAISE_PERCENTAGES,
+  computeExtensionEligibility,
+  type ExtensionContractLike,
+  type ExtensionPlayerLike,
+  type ExtensionLeagueContextLike,
+  type ExtensionRuleContextLike,
+  type ExtensionEligibilityInfo,
+  type ExtensionTermsInfo,
+  type ExtensionProfile,
+} from './extensionRules.eligibility';
 
-type ExtensionSalaryEntryLike = {
-  season?: string | null;
-  salary?: number | null;
-  capHit?: number | null;
-  guaranteed?: boolean | null;
-};
-
-type ExtensionContractLike = {
-  contractType?: string | null;
-  isRookieScale?: boolean | null;
-  originalLength?: number | null;
-  contractLength?: number | null;
-  yearsRemaining?: number | null;
-  startSeason?: string | null;
-  endSeason?: string | null;
-  signingDate?: string | null;
-  salariesByYear?: ExtensionSalaryEntryLike[] | null;
-  birdRights?: {
-    status?: string | null;
-    yearsWithTeam?: number | null;
-  } | null;
-};
-
-type ExtensionPlayerLike = {
-  playerId?: string | null;
-  bio?: {
-    experience?: unknown;
-    draftYear?: number | string | null;
-  } | null;
-  draftYear?: number | string | null;
-  contract?: ExtensionContractLike | null;
-  usedETO?: boolean | null;
-  lastRenegotiatedDate?: string | null;
-  lastTradedDate?: string | null;
-  awards?: Array<Record<string, unknown>> | null;
-  signingDate?: string | null;
-};
-
-type ExtensionLeagueContextLike = {
-  currentSeason?: string | null;
-  currentYear?: number | null;
-  simulationDate?: Date | null;
-  capSettings?: {
-    salaryCap?: number | null;
-    averageSalary?: number | null;
-  } | null;
-};
-
-type ExtensionRuleContextLike = {
-  timing?: {
-    operationDate?: Date | null;
-    operationSeasonId?: string | null;
-    referenceSeasonId?: string | null;
-  } | null;
-  player?: {
-    playerId?: string | null;
-    isRookieScale?: boolean | null;
-    draftInfo?: {
-      year?: number | null;
-    } | null;
-    yearsOfServiceAtOperation?: number | null;
-    contractEndSeasonId?: string | null;
-    originalContractLength?: number | null;
-    contractYearsRemaining?: number | null;
-    priorSeasonSalary?: number | null;
-    currentSeasonSalary?: number | null;
-    birdTypeAtOperation?: string | null;
-    awards?: Array<Record<string, unknown>> | null;
-    lastTradedDate?: string | null;
-    signingDate?: string | null;
-  } | null;
-  cap?: {
-    salaryCap?: number | null;
-    averagePlayerSalary?: number | null;
-  } | null;
-};
-
-type ExtensionEligibilityInfo = {
-  isEligible: boolean;
-  reason: string;
-  blockers: string[];
-  extensionType: string;
-  eligibleDate?: Date | null;
-};
-
-type ExtensionTermsInfo = {
-  maxYears: number;
-  maxFirstYearSalary: number;
-  minFirstYearSalary: number | null;
-  raisePercentage: number;
-  extensionType: string;
-  basedOn: string;
-  notes: string;
-};
-
-type ExtensionProfile = {
-  eligibility: ExtensionEligibilityInfo;
-  terms: ExtensionTermsInfo | null;
-};
-
-/**
- * Extension type constants
- */
-export const EXTENSION_TYPES = {
-  ROOKIE: 'Rookie Scale Extension',
-  VETERAN: 'Veteran Extension',
-  DESIGNATED_VETERAN: 'Designated Veteran Extension',
-  TRADE_RESTRICTED: 'Trade-Restricted Extension',
-  INELIGIBLE: 'Not Eligible',
-};
-
-/**
- * Raise percentages by extension type
- */
-const RAISE_PERCENTAGES = {
-  standard: 0.08, // 8% for Bird rights
-  nonBird: 0.05, // 5% for non-Bird
-  trade: 0.05, // 5% for trade extensions
-};
-
-/**
- * Compute extension eligibility for a player
- *
- * @param {Object} player - Player data object
- * @param {Object} leagueContext - League context
- * @param {string} leagueContext.currentSeason - Current season code
- * @param {number} leagueContext.currentYear - Current season end year
- * @param {Date} [leagueContext.simulationDate] - Simulated date for evaluation
- * @returns {Object} Extension eligibility information
- */
-export function computeExtensionEligibility(
-  player: ExtensionPlayerLike | null | undefined,
-  leagueContext?: ExtensionLeagueContextLike | null
-): ExtensionEligibilityInfo {
-  const currentYear = leagueContext?.currentYear || new Date().getFullYear();
-  const simulationDate = leagueContext?.simulationDate || new Date();
-  const contract = player?.contract;
-
-  // Check for basic blocking conditions
-  const blockers: string[] = [];
-
-  // Must have a contract
-  if (!contract) {
-    return {
-      isEligible: false,
-      reason: 'No active contract',
-      blockers: ['No contract data available'],
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-    };
-  }
-
-  // Two-way contracts not eligible
-  if (
-    contract.contractType === 'TwoWay' ||
-    contract.contractType === 'Two-Way'
-  ) {
-    return {
-      isEligible: false,
-      reason: 'Two-way contracts cannot be extended',
-      blockers: ['Two-way contract'],
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-    };
-  }
-
-  // Check if used Early Termination Option (ETO blocks extensions)
-  if (player?.usedETO) {
-    return {
-      isEligible: false,
-      reason: 'Cannot extend contract after using Early Termination Option',
-      blockers: ['Used Early Termination Option'],
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-    };
-  }
-
-  // Check timing from last renegotiation (must wait 3 years after >10% increase)
-  if (player?.lastRenegotiatedDate) {
-    const renegotiatedDate = new Date(player.lastRenegotiatedDate);
-    const monthsSinceRenegotiation = getMonthsBetween(
-      renegotiatedDate,
-      simulationDate
-    );
-    if (monthsSinceRenegotiation < 36) {
-      const monthsRemaining = 36 - monthsSinceRenegotiation;
-      blockers.push(
-        `Must wait ${Math.ceil(monthsRemaining)} more months after renegotiation`
-      );
-    }
-  }
-
-  // Check timing from recent trade (6-month restriction)
-  if (player?.lastTradedDate) {
-    const tradedDate = new Date(player.lastTradedDate);
-    const monthsSinceTrade = getMonthsBetween(tradedDate, simulationDate);
-    if (monthsSinceTrade < 6) {
-      const monthsRemaining = 6 - monthsSinceTrade;
-      blockers.push(
-        `Cannot extend within ${Math.ceil(monthsRemaining)} months of being traded`
-      );
-    }
-  }
-
-  // Determine extension type and specific eligibility
-  if (
-    contract.isRookieScale ||
-    contract.contractType === 'Rookie Scale'
-  ) {
-    return computeRookieExtensionEligibility(
-      player,
-      contract,
-      currentYear,
-      blockers
-    );
-  }
-
-  return computeVeteranExtensionEligibility(
-    player,
-    contract,
-    currentYear,
-    simulationDate,
-    blockers
-  );
-}
-
-/**
- * Compute rookie scale extension eligibility
- *
- * Rookie Scale Extension Rules:
- * - Eligible to extend in 4th year window
- * - Window opens after Moratorium (July)
- * - Window closes before regular season start (~Oct 15)
- *
- * @param {Object} player - Player data
- * @param {Object} contract - Contract data
- * @param {number} currentYear - Current season end year
- * @param {string[]} blockers - Existing blockers
- * @returns {Object} Extension eligibility
- */
-function computeRookieExtensionEligibility(
-  player: ExtensionPlayerLike | null | undefined,
-  contract: ExtensionContractLike,
-  currentYear: number,
-  blockers: string[]
-): ExtensionEligibilityInfo {
-  const draftYear = player?.bio?.draftYear || player?.draftYear;
-
-  if (!draftYear) {
-    return {
-      isEligible: false,
-      reason: 'Cannot determine draft year for rookie extension timing',
-      blockers: [...blockers, 'Missing draft year'],
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-    };
-  }
-
-  const draftYearNum = parseInt(String(draftYear), 10);
-  const extensionYear = draftYearNum + 4; // Extension window in 4th season (e.g., drafted 2021, extension window 2024-25 season)
-
-  // Check if in extension window
-  if (currentYear < extensionYear) {
-    const yearsUntilEligible = extensionYear - currentYear;
-    return {
-      isEligible: false,
-      reason: `Rookie extensions available starting ${extensionYear - 1}-${String(extensionYear).slice(-2)} season (${yearsUntilEligible} year${yearsUntilEligible > 1 ? 's' : ''} away)`,
-      blockers: [...blockers, 'Not yet in extension window'],
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-      eligibleDate: new Date(extensionYear - 1, 6, 1), // July 1 of extension year
-    };
-  }
-
-  if (currentYear > extensionYear) {
-    return {
-      isEligible: false,
-      reason: 'Rookie extension window has passed',
-      blockers: [...blockers, 'Extension window closed'],
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-    };
-  }
-
-  // In the extension window
-  if (blockers.length > 0) {
-    return {
-      isEligible: false,
-      reason: `Blocked: ${blockers.join('; ')}`,
-      blockers,
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-    };
-  }
-
-  return {
-    isEligible: true,
-    reason: 'Eligible for rookie scale extension',
-    blockers: [],
-    extensionType: EXTENSION_TYPES.ROOKIE,
-  };
-}
-
-/**
- * Compute veteran extension eligibility
- *
- * Veteran Extension Rules:
- * - 3-4 year contracts: extendable after 2 years elapsed
- * - 5-6 year contracts: extendable after 3 years elapsed
- * - Must not have used ETO
- *
- * @param {Object} player - Player data
- * @param {Object} contract - Contract data
- * @param {number} currentYear - Current season end year
- * @param {Date} simulationDate - Current date for evaluation
- * @param {string[]} blockers - Existing blockers
- * @returns {Object} Extension eligibility
- */
-function computeVeteranExtensionEligibility(
-  player: ExtensionPlayerLike | null | undefined,
-  contract: ExtensionContractLike,
-  currentYear: number,
-  simulationDate: Date,
-  blockers: string[]
-): ExtensionEligibilityInfo {
-  const originalLength = contract.originalLength || contract.contractLength || 0;
-  const yearsElapsed = computeYearsElapsed(contract, currentYear);
-
-  // Determine required years before extension
-  let requiredYears;
-  if (originalLength <= 2) {
-    return {
-      isEligible: false,
-      reason: 'Contract must be 3+ years to be eligible for extension',
-      blockers: [...blockers, `Contract length (${originalLength} years) too short`],
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-    };
-  } else if (originalLength <= 4) {
-    requiredYears = 2;
-  } else {
-    requiredYears = 3;
-  }
-
-  // Check if enough time has elapsed
-  if (yearsElapsed < requiredYears) {
-    const yearsRemaining = requiredYears - yearsElapsed;
-    const eligibleDate = computeExtensionEligibleDate(contract, requiredYears);
-    return {
-      isEligible: false,
-      reason: `Must wait ${yearsRemaining} more year${yearsRemaining > 1 ? 's' : ''} - ${originalLength}-year contract requires ${requiredYears} years before extension`,
-      blockers: [
-        ...blockers,
-        `Only ${yearsElapsed} of ${requiredYears} required years elapsed`,
-      ],
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-      eligibleDate,
-    };
-  }
-
-  // Check for other blockers
-  if (blockers.length > 0) {
-    return {
-      isEligible: false,
-      reason: `Blocked: ${blockers.join('; ')}`,
-      blockers,
-      extensionType: EXTENSION_TYPES.INELIGIBLE,
-    };
-  }
-
-  // Check if this is a trade-restricted extension
-  if (player?.lastTradedDate) {
-    const tradedDate = new Date(player.lastTradedDate);
-    const yearsSinceTrade = getMonthsBetween(tradedDate, simulationDate) / 12;
-    if (yearsSinceTrade < 1) {
-      return {
-        isEligible: true,
-        reason: 'Eligible for trade-restricted extension (reduced terms)',
-        blockers: [],
-        extensionType: EXTENSION_TYPES.TRADE_RESTRICTED,
-      };
-    }
-  }
-
-  // Check for Designated Veteran eligibility
-  const supermaxCheck = checkSupermaxEligibility(player, { currentYear });
-  if (supermaxCheck.isEligible && !supermaxCheck.isRookieExtensionBoost) {
-    return {
-      isEligible: true,
-      reason: 'Eligible for Designated Veteran Extension (supermax)',
-      blockers: [],
-      extensionType: EXTENSION_TYPES.DESIGNATED_VETERAN,
-    };
-  }
-
-  return {
-    isEligible: true,
-    reason: 'Eligible for veteran extension',
-    blockers: [],
-    extensionType: EXTENSION_TYPES.VETERAN,
-  };
-}
-
-/**
- * Compute extension terms based on eligibility
- *
- * @param {Object} player - Player data object
- * @param {Object} leagueContext - League context
- * @param {Object} [eligibility] - Pre-computed eligibility (optional)
- * @returns {Object|null} Extension terms or null if not eligible
- */
 export function computeExtensionTerms(
   player: ExtensionPlayerLike | null | undefined,
   leagueContext?: ExtensionLeagueContextLike | null,
@@ -442,8 +52,6 @@ export function computeExtensionTerms(
 
   const capSettings = leagueContext?.capSettings ?? {};
   const currentSeason = leagueContext?.currentSeason || 'unknown';
-  // Require salaryCap from context - warn but continue for backward compatibility
-  // TODO: In future version, require salaryCap and return error result if missing
   const salaryCap = capSettings.salaryCap;
   const isValidCap =
     typeof salaryCap === 'number' &&
@@ -454,9 +62,8 @@ export function computeExtensionTerms(
       `[extensionRules] Missing or invalid capSettings.salaryCap in leagueContext for season ${currentSeason}. Extension terms may be inaccurate.`
     );
   }
-  const effectiveCap = isValidCap ? salaryCap : 0; // Use 0 to make terms clearly invalid
+  const effectiveCap = isValidCap ? salaryCap : 0;
   const contract = player?.contract;
-  // Compute currentYear once here to fully decouple from JS clock
   const currentYear = leagueContext?.currentYear || new Date().getFullYear();
 
   let terms = null;
@@ -485,7 +92,6 @@ export function computeExtensionTerms(
       break;
   }
 
-  // Ensure min <= max invariant for any returned terms (create a new object to avoid mutation)
   if (
     terms &&
     typeof terms.minFirstYearSalary === 'number' &&
@@ -505,26 +111,16 @@ export function computeExtensionTerms(
   return terms;
 }
 
-/**
- * Compute rookie extension terms
- *
- * @param {Object} player - Player data
- * @param {number} salaryCap - Salary cap
- * @param {Object} leagueContext - League context
- * @returns {Object} Extension terms
- */
 function computeRookieExtensionTerms(
   player: ExtensionPlayerLike | null | undefined,
   salaryCap: number,
   leagueContext?: ExtensionLeagueContextLike | null
 ): ExtensionTermsInfo {
-  // Check for Higher Max criteria
   const supermaxCheck = checkSupermaxEligibility(player, leagueContext);
-  let maxPercent = 0.25; // Base rookie max
+  let maxPercent = 0.25;
   let notes = 'Standard rookie extension max';
 
   if (supermaxCheck.isEligible) {
-    // Higher Max for All-NBA/MVP/DPOY
     maxPercent = 0.3;
     notes = 'Higher Max - All-NBA/MVP/DPOY selection';
   }
@@ -532,23 +128,16 @@ function computeRookieExtensionTerms(
   const maxFirstYearSalary = Math.round(salaryCap * maxPercent);
 
   return {
-    maxYears: 5, // Rookie extensions can be up to 5 years
+    maxYears: 4,
     maxFirstYearSalary,
-    minFirstYearSalary: Math.round(salaryCap * 0.25 * 0.8), // 80% of 25% max
+    minFirstYearSalary: null,
     raisePercentage: RAISE_PERCENTAGES.standard,
     extensionType: EXTENSION_TYPES.ROOKIE,
-    basedOn: `${Math.round(maxPercent * 100)}% of cap`,
+    basedOn: `${maxPercent * 100}% of cap`,
     notes,
   };
 }
 
-/**
- * Compute Designated Veteran (supermax) extension terms
- *
- * @param {Object} player - Player data
- * @param {number} salaryCap - Salary cap
- * @returns {Object} Extension terms
- */
 function computeDesignatedVeteranTerms(
   player: ExtensionPlayerLike | null | undefined,
   salaryCap: number
@@ -556,9 +145,9 @@ function computeDesignatedVeteranTerms(
   const maxFirstYearSalary = Math.round(salaryCap * 0.35);
 
   return {
-    maxYears: 5, // Designated Vet extensions are 5 years (total contract becomes 6)
+    maxYears: 5,
     maxFirstYearSalary,
-    minFirstYearSalary: null, // No minimum for designated vet
+    minFirstYearSalary: null,
     raisePercentage: RAISE_PERCENTAGES.standard,
     extensionType: EXTENSION_TYPES.DESIGNATED_VETERAN,
     basedOn: '35% of cap (Designated Veteran)',
@@ -566,23 +155,13 @@ function computeDesignatedVeteranTerms(
   };
 }
 
-/**
- * Compute trade-restricted extension terms
- *
- * Players traded within past year have reduced extension terms
- *
- * @param {Object} player - Player data
- * @param {Object} contract - Contract data
- * @param {number} currentYear - Current season end year
- * @returns {Object} Extension terms
- */
 function computeTradeRestrictedTerms(
   player: ExtensionPlayerLike | null | undefined,
   contract: ExtensionContractLike | null | undefined,
   currentYear: number
 ): ExtensionTermsInfo {
   const currentSalary = getCurrentSalary(contract, currentYear);
-  const maxFirstYearSalary = Math.round(currentSalary * 1.05); // 105% of current
+  const maxFirstYearSalary = Math.round(currentSalary * 1.05);
 
   return {
     maxYears: 2,
@@ -595,16 +174,6 @@ function computeTradeRestrictedTerms(
   };
 }
 
-/**
- * Compute standard veteran extension terms
- *
- * @param {Object} player - Player data
- * @param {Object} contract - Contract data
- * @param {number} salaryCap - Salary cap
- * @param {Object} leagueContext - League context
- * @param {number} currentYear - Current season end year
- * @returns {Object} Extension terms
- */
 function computeVeteranExtensionTerms(
   player: ExtensionPlayerLike | null | undefined,
   contract: ExtensionContractLike | null | undefined,
@@ -616,12 +185,10 @@ function computeVeteranExtensionTerms(
   const averageSalary =
     leagueContext?.capSettings?.averageSalary || DEFAULT_AVERAGE_SALARY;
 
-  // Max first year: 140% of current salary OR 140% of average salary, whichever is greater
   const maxFirstYearSalary = Math.round(
     Math.max(currentSalary * 1.4, averageSalary * 1.4)
   );
 
-  // Also cap at max salary based on years of service
   const yearsOfService = getYearsOfService(player);
   let maxPercent = 0.25;
   if (yearsOfService >= 10) maxPercent = 0.35;
@@ -641,13 +208,6 @@ function computeVeteranExtensionTerms(
   };
 }
 
-/**
- * Get current salary from contract
- *
- * @param {Object} contract - Contract data
- * @param {number} currentYear - Current season end year (e.g., 2025 for 2024-25 season)
- * @returns {number} Current salary
- */
 function getCurrentSalary(
   contract: ExtensionContractLike | null | undefined,
   currentYear: number
@@ -656,7 +216,6 @@ function getCurrentSalary(
 
   const currentSeason = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
-  // Find current season salary
   const currentEntry = contract.salariesByYear.find(
     (entry) => entry.season === currentSeason
   );
@@ -665,98 +224,12 @@ function getCurrentSalary(
     return currentEntry.salary || currentEntry.capHit || 0;
   }
 
-  // Fall back to first available salary
   return contract.salariesByYear[0]?.salary || contract.salariesByYear[0]?.capHit || 0;
 }
 
-/**
- * Compute years elapsed on contract
- *
- * @param {Object} contract - Contract data
- * @param {number} currentYear - Current season end year
- * @returns {number} Years elapsed
- */
-function computeYearsElapsed(
-  contract: ExtensionContractLike | null | undefined,
-  currentYear: number
-): number {
-  if (!contract) return 0;
-
-  // Try to calculate from start season
-  if (contract.startSeason) {
-    const startYear = parseSeasonEndYear(contract.startSeason);
-    if (startYear) {
-      return currentYear - startYear;
-    }
-  }
-
-  // Try to calculate from signing date
-  if (contract.signingDate) {
-    const signedYear = new Date(contract.signingDate).getFullYear();
-    // Contracts signed before July are for the current season
-    const signedMonth = new Date(contract.signingDate).getMonth();
-    const effectiveStartYear = signedMonth >= 6 ? signedYear + 1 : signedYear;
-    return currentYear - effectiveStartYear;
-  }
-
-  // Use contract length and years remaining
-  if (contract.contractLength && contract.yearsRemaining) {
-    return contract.contractLength - contract.yearsRemaining;
-  }
-
-  return 0;
-}
-
-/**
- * Compute the date when extension becomes eligible
- *
- * @param {Object} contract - Contract data
- * @param {number} requiredYears - Years required before extension
- * @returns {Date|null} Eligible date
- */
-function computeExtensionEligibleDate(
-  contract: ExtensionContractLike | null | undefined,
-  requiredYears: number
-): Date | null {
-  if (!contract?.signingDate) return null;
-
-  const signedDate = new Date(contract.signingDate);
-  const eligibleDate = new Date(signedDate);
-  eligibleDate.setFullYear(eligibleDate.getFullYear() + requiredYears);
-
-  return eligibleDate;
-}
-
-/**
- * Get months between two dates
- *
- * @param {Date} startDate - Start date
- * @param {Date} endDate - End date
- * @returns {number} Months between dates
- */
-function getMonthsBetween(startDate: Date, endDate: Date): number {
-  const months =
-    (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-    (endDate.getMonth() - startDate.getMonth());
-  return Math.max(0, months);
-}
-
-/**
- * Compute extension eligibility and terms from RuleContext
- *
- * This variant extracts all necessary fields from RuleContext for
- * consistent timing and cap data across the application.
- *
- * @param {Object} ctx - RuleContext object
- * @param {Object} ctx.timing - Timing context with operationDate, operationSeasonId
- * @param {Object} ctx.player - Player context with playerId, isRookieScale, draftInfo, etc.
- * @param {Object} ctx.cap - Cap context with salaryCap
- * @returns {Object} Extension profile with eligibility and terms
- */
 export function computeExtensionFromRuleContext(
   ctx: ExtensionRuleContextLike | null | undefined
 ): ExtensionProfile {
-  // Validate required context
   if (!ctx || !ctx.timing || !ctx.player || !ctx.cap) {
     return {
       eligibility: {
@@ -771,7 +244,6 @@ export function computeExtensionFromRuleContext(
 
   const { timing, player: playerCtx, cap } = ctx;
 
-  // Validate required operationDate
   if (!timing.operationDate) {
     return {
       eligibility: {
@@ -784,7 +256,6 @@ export function computeExtensionFromRuleContext(
     };
   }
 
-  // Parse the operation season to derive currentYear
   const parseSeasonYear = (seasonId: string | null | undefined) => {
     if (!seasonId) return null;
     const match = String(seasonId).match(/^(\d{4})-(\d{2})$/);
@@ -796,7 +267,6 @@ export function computeExtensionFromRuleContext(
 
   const currentYear = parseSeasonYear(timing.operationSeasonId);
 
-  // If we can't parse the season, return an error rather than using a fallback
   if (!currentYear) {
     return {
       eligibility: {
@@ -809,8 +279,6 @@ export function computeExtensionFromRuleContext(
     };
   }
 
-  // Validate contract metadata - return error if missing critical data
-  // Extension eligibility requires contract length and related metadata
   if (!playerCtx.contractEndSeasonId) {
     return {
       eligibility: {
@@ -824,8 +292,6 @@ export function computeExtensionFromRuleContext(
     };
   }
 
-  // Check for required contract metadata fields
-  // originalContractLength is required for accurate extension eligibility calculations
   if (!playerCtx.originalContractLength) {
     return {
       eligibility: {
@@ -840,8 +306,6 @@ export function computeExtensionFromRuleContext(
     };
   }
 
-  // Build a synthetic player object from RuleContext
-  // Using actual contract metadata from playerCtx when available
   const syntheticPlayer: ExtensionPlayerLike = {
     playerId: playerCtx.playerId,
     bio: {
@@ -853,7 +317,6 @@ export function computeExtensionFromRuleContext(
       contractType: playerCtx.isRookieScale ? 'Rookie Scale' : 'Standard',
       isRookieScale: playerCtx.isRookieScale,
       endSeason: playerCtx.contractEndSeasonId,
-      // Use actual contract metadata from playerCtx
       contractLength: playerCtx.originalContractLength,
       yearsRemaining: playerCtx.contractYearsRemaining ?? 1,
       salariesByYear:
@@ -864,16 +327,14 @@ export function computeExtensionFromRuleContext(
             : [],
       birdRights: {
         status: playerCtx.birdTypeAtOperation,
-        yearsWithTeam: 0, // Not directly available from PlayerContext
+        yearsWithTeam: 0,
       },
     },
-    // Use actual awards/dates from playerCtx when available
-    awards: playerCtx.awards || [],
+    awards: (playerCtx.awards || []) as Array<Record<string, unknown>>,
     lastTradedDate: playerCtx.lastTradedDate || null,
     signingDate: playerCtx.signingDate || null,
   };
 
-  // Build leagueContext from RuleContext
   const leagueContext = {
     currentSeason: timing.operationSeasonId,
     currentYear,
@@ -884,7 +345,6 @@ export function computeExtensionFromRuleContext(
     },
   };
 
-  // Use the existing functions with the synthetic inputs
   const eligibility = computeExtensionEligibility(
     syntheticPlayer,
     leagueContext
