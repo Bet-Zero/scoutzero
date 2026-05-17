@@ -283,9 +283,11 @@ utils/
   mutationPipeline.compute.signings.ts
   mutationPipeline.compute.trade.ts
   mutationPipeline.compute.ts
+  mutationPipeline.helpers.persistence.ts
   mutationPipeline.helpers.playerNorm.bio.ts
   mutationPipeline.helpers.playerNorm.contract.ts
   mutationPipeline.helpers.playerNorm.ts
+  mutationPipeline.helpers.primitives.ts
   mutationPipeline.helpers.ts
   mutationPipeline.persist.ts
   mutationPipeline.read.dashboardNormalizers.ts
@@ -436,5 +438,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T00:32:43.417Z*
+*Generated on: 2026-05-17T00:43:01.992Z*
 *Auto-updated by: npm run docs*
