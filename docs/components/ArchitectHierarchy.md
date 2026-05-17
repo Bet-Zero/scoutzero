@@ -17,6 +17,8 @@ GMDashboard/
   hooks/
     optimisticMutationLock.ts
     useArchitectActions.contractActions.ts
+    useArchitectActions.helpers.offerSheet.ts
+    useArchitectActions.helpers.signing.ts
     useArchitectActions.helpers.ts
     useArchitectActions.offerSheetActions.ts
     useArchitectActions.offerSheetExecutors.ts
@@ -457,5 +459,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T08:35:26.629Z*
+*Generated on: 2026-05-17T08:38:47.008Z*
 *Auto-updated by: npm run docs*
