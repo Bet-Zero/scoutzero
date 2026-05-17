@@ -292,6 +292,7 @@ utils/
   leagueInvariants.playerInvariants.ts
   leagueInvariants.ts
   loadArchitectBasePlayer.ts
+  mutationPipeline.compute.offerSheets.initial.ts
   mutationPipeline.compute.offerSheets.ts
   mutationPipeline.compute.signings.playerOps.ts
   mutationPipeline.compute.signings.signing.ts
@@ -472,5 +473,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T23:30:13.136Z*
+*Generated on: 2026-05-17T23:37:59.564Z*
 *Auto-updated by: npm run docs*
