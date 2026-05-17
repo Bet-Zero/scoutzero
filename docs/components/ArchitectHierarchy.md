@@ -317,6 +317,7 @@ utils/
   mutationPipeline.read.normalizeTeam.ts
   mutationPipeline.read.persistence.snapshots.ts
   mutationPipeline.read.persistence.ts
+  mutationPipeline.read.stateLoader.lineage.ts
   mutationPipeline.read.stateLoader.ts
   mutationPipeline.read.ts
   mutationPipeline.read.utils.ts
@@ -470,5 +471,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T23:21:52.558Z*
+*Generated on: 2026-05-17T23:26:45.396Z*
 *Auto-updated by: npm run docs*
