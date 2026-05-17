@@ -1,6 +1,7 @@
-import type { TradeContextPayload } from '@/features/architect/utils/tradeContext/types';
+import type { TradeContextPayload, TradeContextCurrentState, TradeApplyPreparation } from '@/features/architect/utils/tradeContext/types';
 import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import type { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import type { FullLegalityPreviewResult } from '@/features/architect/utils/tradeContext/tradeContext';
 
 export type UnknownRecord = Record<string, unknown>;
 
@@ -45,4 +46,25 @@ export type TradeMachineTeamSlot = {
 export type EntitlementOverrideDocument = UnknownRecord & {
   holderTeam?: string | null;
   holder_team?: string | null;
+};
+
+// Wave 29 Step 1: private types extracted from useTradeMachine.ts
+
+export type TradeMachinePreviewAuthority = FullLegalityPreviewResult;
+
+export type TradeMachineSnapshotValidationDetails = UnknownRecord & {
+  teamResults?: unknown[] | null;
+};
+
+export type PreparedTradePreviewContext = {
+  activeTeams: Array<TradeMachineTeamSlot & { team: TradeMachineTeam }>;
+  payload: TradeContextPayload;
+  currentState: TradeContextCurrentState;
+  seasonId: string;
+  preparation: TradeApplyPreparation;
+};
+
+export type ValidateCurrentTradeOutcome = {
+  snapshotValidationDetails: TradeMachineSnapshotValidationDetails;
+  previewContext: PreparedTradePreviewContext;
 };

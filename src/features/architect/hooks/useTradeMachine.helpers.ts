@@ -9,6 +9,10 @@ import type {
   TradeMachineTeam,
   TradeMachineEntitlement,
 } from './useTradeMachine.types';
+import { TeamMap, TeamCodeMap, type TeamEntry } from '@/constants/teamList';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 export const DEBUG_ENT = Boolean(import.meta?.env?.VITE_DEBUG_ENTITLEMENTS);
 
@@ -134,3 +138,135 @@ export const resolvePickRulesForEntitlements = async (
     return {};
   }
 };
+
+// ============================================================
+// Wave 29 Step 1: helpers extracted from useTradeMachine.ts
+// ============================================================
+
+const TEAM_BY_SLUG = TeamMap as Record<string, TeamEntry | undefined>;
+const TEAM_BY_CODE = TeamCodeMap as Record<string, TeamEntry | undefined>;
+
+export const asUnknownRecord = (value: unknown): UnknownRecord => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as UnknownRecord;
+  }
+  return {};
+};
+
+export const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
+/* ============================
+   TEAM CODE RESOLUTION
+   ============================ */
+
+export function resolveBaseTeamLike(
+  teamObjOrId: UnknownRecord | string | null | undefined,
+  teamDataMaybe: UnknownRecord | null = null
+) {
+  if (typeof teamObjOrId === 'string') {
+    const directBaseTeam =
+      TEAM_BY_SLUG[teamObjOrId] ||
+      TEAM_BY_CODE[teamObjOrId] ||
+      TEAM_BY_CODE[teamObjOrId.toUpperCase()];
+
+    if (directBaseTeam) {
+      return directBaseTeam;
+    }
+  }
+
+  const resolvedTeamCode = resolveTeamCodeLike(teamObjOrId, teamDataMaybe);
+  if (resolvedTeamCode && TEAM_BY_CODE[resolvedTeamCode]) {
+    return TEAM_BY_CODE[resolvedTeamCode];
+  }
+
+  return null;
+}
+
+/* ============================
+   SSOT WIRING
+   ============================ */
+
+export const getCapTotalsForYear = (
+  teamCapSheet: UnknownRecord | null | undefined,
+  yearKey: number
+) => {
+  if (!teamCapSheet)
+    return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
+  const totals = computeTeamCapTotals(teamCapSheet, yearKey);
+  return {
+    playersTotal: totals.playersTotal,
+    deadMoneyTotal: totals.deadMoneyTotal,
+    totalWithDead: totals.playersTotal + totals.deadMoneyTotal,
+  };
+};
+
+/* ============================
+   Helpers: FA buckets & test TPE seeding
+   ============================ */
+
+function getMLEBAEForYear(
+  endYear: number,
+  capProjections: UnknownRecord | null | undefined
+) {
+  if (!capProjections) return { fullMLE: 0, roomMLE: 0, bae: 0 };
+
+  const key = toSeasonKey(endYear);
+  const fromComposite = capProjections?.[key] || {};
+  const fromNumeric = capProjections?.[endYear] || {};
+  const src = (
+    Object.keys(fromComposite as object).length ? fromComposite : fromNumeric
+  ) as Record<string, unknown>;
+
+  return {
+    fullMLE: Number(src.fullMLE ?? src.mle ?? 0),
+    roomMLE: Number(src.roomMLE ?? src.rmle ?? 0),
+    bae: Number(src.bae ?? 0),
+  };
+}
+
+export function augmentTeamWithExceptions(
+  team: UnknownRecord | null,
+  endYear: number,
+  capProjections: UnknownRecord | null | undefined
+) {
+  if (!team) return team;
+
+  if (!Array.isArray(team.faExceptionBuckets)) {
+    const { fullMLE, roomMLE, bae } = getMLEBAEForYear(endYear, capProjections);
+    const buckets = [];
+    if (fullMLE > 0)
+      buckets.push({ type: 'NTMLE', remaining: fullMLE, expiresAt: null });
+    if (roomMLE > 0)
+      buckets.push({ type: 'RMLE', remaining: roomMLE, expiresAt: null });
+    if (bae > 0) buckets.push({ type: 'BAE', remaining: bae, expiresAt: null });
+    if (buckets.length) team.faExceptionBuckets = buckets;
+  }
+
+  // Phase 65: Use canonical TPE accessor for reading
+  const existingTpes = getTeamTpeList(team);
+  if (existingTpes.length === 0) {
+    team.tradeExceptions = [
+      {
+        id: `${team.id}-tpe-a`,
+        name: 'Test TPE A',
+        amount: 6_500_000,
+        expiresOn: null,
+      },
+      {
+        id: `${team.id}-tpe-b`,
+        name: 'Test TPE B',
+        amount: 2_800_000,
+        expiresOn: new Date(
+          Date.now() + 1000 * 60 * 60 * 24 * 30
+        ).toISOString(),
+      },
+    ];
+  }
+
+  return team;
+}

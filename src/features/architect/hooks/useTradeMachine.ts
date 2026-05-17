@@ -3,13 +3,11 @@ import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 // Phase 14.2: Removed ensurePickId import (legacy picks state removed)
 // Phase 16.3: Removed all rawPicks/picksWithIds processing - draft assets are entitlements-only
-import { TeamMap, TeamCodeMap, type TeamEntry } from '@/constants/teamList';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import {
   computeTradeDraftKey,
   isValidationCurrent,
 } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 import {
@@ -26,6 +24,11 @@ import {
   hasTeamSlot,
   resolveTeamCodeLike,
   resolvePickRulesForEntitlements,
+  asUnknownRecord,
+  getErrorMessage,
+  resolveBaseTeamLike,
+  getCapTotalsForYear,
+  augmentTeamWithExceptions,
 } from './useTradeMachine.helpers';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
@@ -57,168 +60,12 @@ import type {
   TradeMachineTeam,
   TradeMachineTeamSlot,
   EntitlementOverrideDocument,
+  TradeMachinePreviewAuthority,
+  TradeMachineSnapshotValidationDetails,
+  PreparedTradePreviewContext,
+  ValidateCurrentTradeOutcome,
 } from './useTradeMachine.types';
 
-const TEAM_BY_SLUG = TeamMap as Record<string, TeamEntry | undefined>;
-const TEAM_BY_CODE = TeamCodeMap as Record<string, TeamEntry | undefined>;
-
-const asUnknownRecord = (value: unknown): UnknownRecord => {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as UnknownRecord;
-  }
-
-  return {};
-};
-
-type TradeMachinePreviewAuthority = FullLegalityPreviewResult;
-
-type TradeMachineSnapshotValidationDetails = UnknownRecord & {
-  teamResults?: unknown[] | null;
-};
-
-type PreparedTradePreviewContext = {
-  activeTeams: Array<TradeMachineTeamSlot & { team: TradeMachineTeam }>;
-  payload: TradeContextPayload;
-  currentState: TradeContextCurrentState;
-  seasonId: string;
-  preparation: TradeApplyPreparation;
-};
-
-type ValidateCurrentTradeOutcome = {
-  snapshotValidationDetails: TradeMachineSnapshotValidationDetails;
-  previewContext: PreparedTradePreviewContext;
-};
-
-const getErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error);
-};
-
-/* ============================
-   TEAM CODE RESOLUTION
-   ============================ */
-
-function resolveBaseTeamLike(
-  teamObjOrId: UnknownRecord | string | null | undefined,
-  teamDataMaybe: UnknownRecord | null = null
-) {
-  if (typeof teamObjOrId === 'string') {
-    const directBaseTeam =
-      TEAM_BY_SLUG[teamObjOrId] ||
-      TEAM_BY_CODE[teamObjOrId] ||
-      TEAM_BY_CODE[teamObjOrId.toUpperCase()];
-
-    if (directBaseTeam) {
-      return directBaseTeam;
-    }
-  }
-
-  const resolvedTeamCode = resolveTeamCodeLike(teamObjOrId, teamDataMaybe);
-  if (resolvedTeamCode && TEAM_BY_CODE[resolvedTeamCode]) {
-    return TEAM_BY_CODE[resolvedTeamCode];
-  }
-
-  return null;
-}
-
-/* ============================
-   SSOT WIRING
-   ============================ */
-
-/**
- * Convenience wrapper to get baseline payroll + dead money from SSOT.
- * Returns { playersTotal, deadMoneyTotal, totalWithDead } from computeTeamCapTotals.
- */
-const getCapTotalsForYear = (
-  teamCapSheet: UnknownRecord | null | undefined,
-  yearKey: number
-) => {
-  if (!teamCapSheet)
-    return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
-  const totals = computeTeamCapTotals(teamCapSheet, yearKey);
-  return {
-    playersTotal: totals.playersTotal,
-    deadMoneyTotal: totals.deadMoneyTotal,
-    totalWithDead: totals.playersTotal + totals.deadMoneyTotal,
-  };
-};
-
-/* ============================
-   Helpers: FA buckets & test TPE seeding
-   ============================ */
-
-/**
- * Pull MLE/Room MLE/BAE values from capProjections using the **season end-year**.
- */
-function getMLEBAEForYear(
-  endYear: number,
-  capProjections: UnknownRecord | null | undefined
-) {
-  if (!capProjections) return { fullMLE: 0, roomMLE: 0, bae: 0 };
-
-  const key = toSeasonKey(endYear); // e.g., 2025 -> "2024-25"
-  const fromComposite = capProjections?.[key] || {};
-  const fromNumeric = capProjections?.[endYear] || {};
-  const src = (
-    Object.keys(fromComposite as object).length ? fromComposite : fromNumeric
-  ) as Record<string, unknown>;
-
-  return {
-    fullMLE: Number(src.fullMLE ?? src.mle ?? 0),
-    roomMLE: Number(src.roomMLE ?? src.rmle ?? 0),
-    bae: Number(src.bae ?? 0),
-  };
-}
-
-/**
- * Mutates team to add FA exception buckets and (optionally) seed test TPEs if missing.
- */
-function augmentTeamWithExceptions(
-  team: UnknownRecord | null,
-  endYear: number,
-  capProjections: UnknownRecord | null | undefined
-) {
-  if (!team) return team;
-
-  // Seed FA buckets if not present
-  if (!Array.isArray(team.faExceptionBuckets)) {
-    const { fullMLE, roomMLE, bae } = getMLEBAEForYear(endYear, capProjections);
-    const buckets = [];
-    if (fullMLE > 0)
-      buckets.push({ type: 'NTMLE', remaining: fullMLE, expiresAt: null });
-    if (roomMLE > 0)
-      buckets.push({ type: 'RMLE', remaining: roomMLE, expiresAt: null });
-    if (bae > 0) buckets.push({ type: 'BAE', remaining: bae, expiresAt: null });
-    if (buckets.length) team.faExceptionBuckets = buckets;
-  }
-
-  // Seed a couple of test TPEs for sandboxing if none exist
-  // Phase 65: Use canonical TPE accessor for reading, but write to tradeExceptions
-  // for internal sandbox state (not persisted - this is runtime-only)
-  const existingTpes = getTeamTpeList(team);
-  if (existingTpes.length === 0) {
-    team.tradeExceptions = [
-      {
-        id: `${team.id}-tpe-a`,
-        name: 'Test TPE A',
-        amount: 6_500_000,
-        expiresOn: null,
-      },
-      {
-        id: `${team.id}-tpe-b`,
-        name: 'Test TPE B',
-        amount: 2_800_000,
-        expiresOn: new Date(
-          Date.now() + 1000 * 60 * 60 * 24 * 30
-        ).toISOString(),
-      },
-    ];
-  }
-
-  return team;
-}
 
 export const useTradeMachine = (
   primaryTeam: string | null | undefined,
