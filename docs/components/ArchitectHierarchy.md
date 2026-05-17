@@ -212,6 +212,7 @@ utils/
   architectFirestoreBoundary.ts
   architectFirestorePaths.ts
   basicArchitectUtils.ts
+  buildRuleContext.helpers.ts
   buildRuleContext.ts
   capHelpers.ts
   capHoldTransitionHelpers.ts
@@ -467,5 +468,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T22:50:02.610Z*
+*Generated on: 2026-05-17T23:10:37.615Z*
 *Auto-updated by: npm run docs*
