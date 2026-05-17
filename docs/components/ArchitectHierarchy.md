@@ -142,6 +142,7 @@ hooks/
   useTradeMachinePlayerOps.ts
   useTradeMachineSnapshot.ts
   useTradeMachineTeamOps.ts
+  useTradeMachineValidation.ts
 offseason/
   DraftPickTracker/
     DraftPickTracker.tsx
@@ -449,5 +450,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T05:59:10.039Z*
+*Generated on: 2026-05-17T06:01:21.613Z*
 *Auto-updated by: npm run docs*
