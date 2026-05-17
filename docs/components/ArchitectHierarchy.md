@@ -283,6 +283,7 @@ utils/
     exceptionOwnership.ts
     index.ts
   faExceptionUtils.ts
+  firebaseTeamPlanHelpers.readers.ts
   firebaseTeamPlanHelpers.ts
   hardCapUtils.ts
   leagueInvariants.entitlementInvariants.ts
@@ -463,5 +464,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T09:42:14.269Z*
+*Generated on: 2026-05-17T09:49:08.090Z*
 *Auto-updated by: npm run docs*
