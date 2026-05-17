@@ -1,38 +1,11 @@
 // tradeValidator.ts - Fixed to match test expectations
-import {
-  getApronStatus,
-  getSalaryForYear,
-} from '@/features/architect/utils/tradeHelpers';
-import { wrapCommonValidators } from './validationUtils';
+import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 
 // Import base validators from new structure
-import {
-  validateSalaryMatching,
-  SALARY_MATCHING_VERSION,
-} from '../rules/validateSalaryMatching';
-import { validateHardCap } from '../rules/hardCapValidation';
-import { validateStepien } from '../rules/validateStepien';
-import { validateCash } from '../rules/validateCash';
-import { validateTradeExceptions } from '../rules/validateTradeExceptions';
-import { validateSignAndTrade } from '../rules/validateSignAndTrade';
-import { validateConsent } from '../rules/validateConsent';
-import { validateReacquisition } from '../rules/validateReacquisition';
-import { enforceConsent } from '../rules/enforceConsent';
-import { enforceEligibility } from '../rules/validateEligibility';
-import { enforceTiming } from '../rules/timingValidation';
-import { enforceSecondApronHandcuffs } from '../rules/basicRules';
 import { computeMatchingValues } from '../utils/salaryUtils';
 import { checkRosterCounts } from '../rules/validateRoster';
-import { validationFlags } from '@/config/validationFlags';
-import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
-import { validateAggregation } from '../rules/validateAggregation';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
-// TM-EXCL-E1: Entitlement exclusivity validation (blocking)
-import { validateEntitlementExclusivity } from '@/features/architect/utils/entitlements/entitlementExclusivityValidator';
-import { computePostTradeEntitlements } from '../utils/stepienEntitlementUtils';
-// TM-EXCL-E2: Explicit entitlement routing map builder (no silent skips)
-import { buildEntitlementRoutingMap } from '../utils/buildEntitlementRoutingMap';
 // Phase 17: Entitlement routing validation (uniqueness, routing, ownership)
 import {
   validateEntitlementRouting,
@@ -136,49 +109,26 @@ export * from './tradeValidator.ruleEnvelopes';
 import {
   TRADE_VALIDATOR_VERSION,
   buildValidationResult,
-  createRuleEnvelope,
   deriveSeasonStateFromDate,
   getDeterministicValidationDate,
   hasOwn,
   isObjectLike,
-  isRuleEnvelopeObject,
   normalizeArrayInput,
   normalizeTeamCodeLike,
   normalizeTradeValidationDate,
-  readHardCapRuleEnvelope,
-  readSalaryMatchingRuleEnvelope,
-  readSignAndTradeRuleEnvelope,
   resolvePlayerDestinationTeamId,
   resolveTeamIdentity,
-  toSignAndTradeCapProjectionMap,
 } from './tradeValidator.ruleEnvelopes';
 
 
-// Create wrapped versions with performance monitoring and caching
-const baseValidators = {
-  validateSalaryMatching,
-  validateHardCap,
-  validateStepien,
-  validateCash,
-  validateFaExceptionUsage,
-  validateTradeExceptions,
-  validateSignAndTrade,
-  validateConsent,
-  validateReacquisition,
-  validateAggregation,
-  enforceConsent,
-  enforceEligibility,
-  enforceTiming,
-  enforceSecondApronHandcuffs,
-};
-const validators = wrapCommonValidators(baseValidators);
-
-// Export functions for external use
-export { validateFaExceptionUsage };
 
 // Wave 9 Step 2: trade receipt builder extracted to submodule
 export * from './tradeValidator.receipt';
 import { generateTradeReceipt } from './tradeValidator.receipt';
+
+// Wave 30: per-team validation logic extracted to satellite
+export * from './tradeValidator.teamValidation';
+import { validateSingleTeam } from './tradeValidator.teamValidation';
 
 
 /**
@@ -532,394 +482,14 @@ export function validateTrade({
   });
 
   // Run validation rules for each team
-  const teamResults: TradeTeamResult[] = teamsWithAssets.map((team, index) => {
-    const teamId =
-      team.teamId ||
-      team.team?.teamId ||
-      team.team?.id ||
-      resolveTeamIdentity(team, index);
-    const teamName =
-      team.team?.teamName ||
-      team.team?.name ||
-      team.team?.nickname ||
-      `Team ${index}`;
+  const teamResults: TradeTeamResult[] = teamsWithAssets.map((team, index) =>
+    validateSingleTeam(team, index, {
+      teamsWithAssets,
+      teamIdsByIndex,
+      context,
+    })
+  );
 
-    // DEV: Definition Gate salary breakdown verification (Phase 1.6-1.7 prep)
-    // This log helps verify what preTradeTeamSalary and postTradeSalary actually include
-    // ONLY log first team to avoid console spam
-    if (import.meta.env.DEV && index === 0) {
-      console.log('[Definition Gate] Team salary breakdown', {
-        team: teamName,
-        preTradeTeamSalary: team.teamTotalSalary,
-        salaryOut: team.salaryOut,
-        salaryIn: team.salaryIn,
-        postTradeSalary: team.projectedSalary,
-        // Note: capHolds are NOT included in teamTotalSalary by default
-        // CapImpactTiles may show different numbers if it adds cap holds separately
-        formula: `${team.teamTotalSalary} - ${team.salaryOut} + ${team.salaryIn} = ${team.projectedSalary}`,
-      });
-    }
-
-    const teamForValidation: TradeValidatorActiveTeamSlot & {
-      notes: string[];
-      faExceptionValidation?: {
-        passed?: boolean;
-        [key: string]: unknown;
-      };
-    } = {
-      ...team,
-      notes: Array.isArray(team.notes) ? ([...team.notes] as string[]) : [],
-      team:
-        team.team && typeof team.team === 'object'
-          ? {
-              ...team.team,
-              faExceptionBuckets: Array.isArray(team.team.faExceptionBuckets)
-                ? team.team.faExceptionBuckets.map((bucket) => ({ ...bucket }))
-                : team.team.faExceptionBuckets,
-              hardCapFirstApron: team.team.hardCapFirstApron
-                ? { ...team.team.hardCapFirstApron }
-                : team.team.hardCapFirstApron,
-            }
-          : team.team,
-    };
-
-    const faExceptionUsageViolations = validators.validateFaExceptionUsage(
-      teamForValidation,
-      context
-    );
-    const faExceptionUsageResult = Array.isArray(
-      faExceptionUsageViolations
-    )
-      ? {
-          passed: faExceptionUsageViolations.length === 0,
-          violations: faExceptionUsageViolations,
-          message:
-            faExceptionUsageViolations[0] ||
-            'FA exception trade absorption validated',
-        }
-      : faExceptionUsageViolations;
-    teamForValidation.faExceptionValidation = faExceptionUsageResult;
-
-    // Run individual validation rules
-    const salaryMatchingResult = validators.validateSalaryMatching(
-      teamForValidation,
-      context
-    );
-    const hardCapResult = validators.validateHardCap(
-      teamForValidation,
-      context
-    );
-    const stepienResult = validators.validateStepien(
-      teamForValidation,
-      context
-    );
-    const cashResult = validators.validateCash(
-      teamForValidation,
-      context
-    );
-    const tradeExceptionsResult = validators.validateTradeExceptions(
-      teamForValidation
-    );
-    // Sign-and-trade owns all S&T-specific season/timing restrictions.
-    const signAndTradeResult = validators.validateSignAndTrade(
-      teamForValidation,
-      {
-        ...context,
-        capProjections: toSignAndTradeCapProjectionMap(context.capProjections),
-      }
-    );
-    const consentResult = validators.validateConsent(
-      teamForValidation,
-      context
-    );
-    const reacquisitionResult = validators.validateReacquisition(
-      teamForValidation,
-      context
-    );
-    const aggregationResult = validators.validateAggregation(
-      teamForValidation,
-      context
-    );
-
-    // Enforcement rules
-    const consentEnforcement = validators.enforceConsent(
-      teamForValidation,
-      context
-    );
-    const eligibilityEnforcement = validators.enforceEligibility(
-      teamForValidation,
-      context
-    );
-    // Generic trade timing gates remain here; S&T-specific timing no longer lives in timingEnforcement.
-    const timingEnforcement = validators.enforceTiming(teamForValidation, {
-      ...context,
-      // Timing policy is driven by a mutable runtime flag, so include it in the
-      // validator args to prevent cache reuse across warn/error modes.
-      timingEnforcementMode: validationFlags.timingEnforcement,
-    });
-    const secondApronEnforcement = validators.enforceSecondApronHandcuffs(
-      teamForValidation,
-      context
-    );
-
-    // Roster structural legality (min/max standard roster, two-way max)
-  const rosterCountResult = computeProjectedRosterLegality(team);
-
-    // TM-EXCL-E1 + TM-EXCL-E2: Entitlement exclusivity — block trades that create overlapping claims
-    // TM-EXCL-E2: Build explicit routing map FIRST; if routing is incomplete, fail immediately.
-    const entitlementExclusivityResult = (() => {
-      try {
-        // TM-EXCL-E2: Build routing map for all participants
-        const routingResult = buildEntitlementRoutingMap(teamsWithAssets);
-
-        if (!routingResult.ok) {
-          const routingFailure = routingResult as {
-            reason?: string;
-            errors?: ValidationIssueLike[];
-          };
-          // Routing incomplete — block trade with clear reason
-          return {
-            passed: false,
-            details: routingFailure.reason,
-            violations: routingFailure.errors,
-          };
-        }
-
-        // Build allTeamsEntOut with resolved routing from the map
-        const tradeParticipantIds = new Set(
-          teamsWithAssets
-            .map((t, participantIndex) =>
-              resolveTeamIdentity(t, participantIndex)
-            )
-            .filter(Boolean)
-        );
-
-        const allTeamsEntOut = teamsWithAssets.map((t, participantIndex) => {
-          const tId = resolveTeamIdentity(t, participantIndex);
-          return (t.entitlementsOut || []).map((e: TradeValidatorEntitlement) => {
-            const entId = e.entitlementId || e.id;
-            const routingKey = `${tId}::${entId}`;
-            const resolvedToTeamId =
-              routingResult.map.get(routingKey) || e.toTeamId || null;
-
-            // TM-EXCL-E2: For 2-team trades, auto-resolve missing toTeamId
-            const autoResolvedToTeamId =
-              teamsWithAssets.length === 2
-                ? teamsWithAssets
-                    .map((otherTeam, otherIndex) =>
-                      resolveTeamIdentity(otherTeam, otherIndex)
-                    )
-                    .find((otherTeamId) => otherTeamId !== tId)
-                : undefined;
-            const finalToTeamId =
-              resolvedToTeamId || autoResolvedToTeamId;
-
-            return {
-              ...e,
-              fromTeamId: tId,
-              toTeamId: finalToTeamId,
-            };
-          });
-        });
-
-        // TM-EXCL-E2: Use strict computePostTradeEntitlements with tradeParticipantIds
-        const postTradeSet = computePostTradeEntitlements({
-          currentEntitlements: team.validationEntitlements || [],
-          entitlementsOut: team.entitlementsOut || [],
-          allTeamsEntitlementsOut: allTeamsEntOut,
-          teamId,
-          tradeParticipantIds,
-        });
-
-        const exclusivityResult = validateEntitlementExclusivity({
-          entitlements:
-            postTradeSet as Parameters<typeof validateEntitlementExclusivity>[0]['entitlements'],
-        });
-
-        if (exclusivityResult.valid) {
-          return { passed: true, details: 'No exclusivity conflicts' };
-        }
-
-        const messages = exclusivityResult.violations.map((v) => v.message);
-        return {
-          passed: false,
-          details: messages.join('; '),
-          violations: exclusivityResult.violations,
-        };
-      } catch (err) {
-        const error = err as Error;
-        // Integrity-first (TM-EXCL-E1.1 + E2): if routing or post-trade computation fails, BLOCK the trade.
-        // Rationale: cannot verify exclusivity = cannot proceed.
-        if (import.meta.env.DEV) {
-          console.warn(
-            '[entitlement-exclusivity] trade validation error, blocking trade:',
-            err
-          );
-        }
-        return {
-          passed: false,
-          details:
-            error.message && error.message.startsWith('Pick Exclusivity:')
-              ? error.message
-              : 'Pick Exclusivity: Error computing post-trade entitlement set',
-          violations: [
-            error.message && error.message.startsWith('Pick Exclusivity:')
-              ? error.message
-              : 'Exclusivity validation unavailable — cannot verify trade legality',
-          ],
-        };
-      }
-    })();
-
-    const allRules = {
-      salaryMatching: createRuleEnvelope(
-        'salaryMatching',
-        salaryMatchingResult,
-        'Salary Matching'
-      ),
-      hardCap: createRuleEnvelope('hardCap', hardCapResult, 'Hard Cap'),
-      stepienRule: createRuleEnvelope(
-        'stepienRule',
-        stepienResult,
-        'Stepien Rule'
-      ),
-      cash: createRuleEnvelope('cash', cashResult, 'Cash Inclusion'),
-      faExceptionUsage: createRuleEnvelope(
-        'faExceptionUsage',
-        faExceptionUsageResult,
-        'FA Exception Usage'
-      ),
-      tradeExceptions: createRuleEnvelope(
-        'tradeExceptions',
-        tradeExceptionsResult,
-        'Trade Exceptions'
-      ),
-      signAndTrade: createRuleEnvelope(
-        'signAndTrade',
-        signAndTradeResult,
-        'Sign-and-Trade'
-      ),
-      consent: createRuleEnvelope('consent', consentResult, 'Player Consent'),
-      reacquisition: createRuleEnvelope(
-        'reacquisition',
-        reacquisitionResult,
-        'Reacquisition'
-      ),
-      aggregation: createRuleEnvelope(
-        'aggregation',
-        aggregationResult,
-        'Aggregation'
-      ),
-      consentEnforcement: createRuleEnvelope(
-        'consentEnforcement',
-        consentEnforcement,
-        'Consent Enforcement'
-      ),
-      eligibilityEnforcement: createRuleEnvelope(
-        'eligibilityEnforcement',
-        eligibilityEnforcement,
-        'Eligibility Enforcement'
-      ),
-      timingEnforcement: createRuleEnvelope(
-        'timingEnforcement',
-        timingEnforcement,
-        'Timing Restrictions'
-      ),
-      secondApronEnforcement: createRuleEnvelope(
-        'secondApronEnforcement',
-        secondApronEnforcement,
-        'Second Apron Restrictions'
-      ),
-      entitlementExclusivity: createRuleEnvelope(
-        'entitlementExclusivity',
-        entitlementExclusivityResult,
-        'Pick Exclusivity'
-      ),
-      rosterCount: createRuleEnvelope(
-        'rosterCount',
-        rosterCountResult,
-        'Roster Count'
-      ),
-    };
-
-    const violations = Object.values(allRules).flatMap(
-      (rule) => rule?.violations || []
-    );
-    const warnings = Object.values(allRules).flatMap(
-      (rule) => rule?.warnings || []
-    );
-
-    const isTeamLegal = violations.length === 0;
-
-    // Extract salary matching calculations for UI display
-    const salaryMatchingCalcs = readSalaryMatchingRuleEnvelope(
-      salaryMatchingResult
-    );
-    const signAndTradeResultObject = readSignAndTradeRuleEnvelope(
-      signAndTradeResult
-    );
-    const hardCapResultObject = readHardCapRuleEnvelope(hardCapResult);
-    const calculations = {
-      salaryIn: team.salaryIn || 0,
-      salaryOut: team.salaryOut || 0,
-      salaryMatching: {
-        allowedIncoming: salaryMatchingCalcs.allowableIncoming || 0,
-        margin: (salaryMatchingCalcs.allowableIncoming || 0) - (team.salaryOut || 0),
-        difference: (team.salaryIn || 0) - (team.salaryOut || 0),
-      },
-    };
-
-    const totalSalary =
-      team.team?.teamTotalSalary || team.team?.totalSalary || 0;
-    const projectedSalary = team.projectedSalary || 0;
-    const apronStatus = getApronStatus(
-      projectedSalary,
-      {
-        salaryCap: context.capSettings?.salaryCap,
-        firstApron: context.capSettings?.firstApron,
-        secondApron: context.capSettings?.secondApron,
-      }
-    );
-
-    return {
-      teamId,
-      teamCode: teamId,
-      teamName,
-      legal: isTeamLegal,
-      violations,
-      warnings,
-      rules: allRules,
-      salaryOut: team.salaryOut || 0,
-      salaryIn: team.salaryIn || 0,
-      outgoingPlayers: team.outgoingPlayers || [],
-      incomingPlayers: team.incomingPlayers || [],
-      calculations,
-      totalSalary,
-      projectedSalary,
-      capRoom: Math.max(
-        0,
-        (context.capSettings?.salaryCap || 141000000) - projectedSalary
-      ),
-      hardCapped: Boolean(
-        teamForValidation.team?.hardCapped ||
-          teamForValidation.team?.hardCapFirstApron?.active ||
-          signAndTradeResultObject.hardCapped ||
-          hardCapResultObject.hardCapStatus?.isHardCapped
-      ),
-      apronStatus,
-      faExceptionBuckets: teamForValidation.team?.faExceptionBuckets || [],
-      notes: Array.isArray(teamForValidation.notes) ? teamForValidation.notes : [],
-      createdTPE:
-        isRuleEnvelopeObject(tradeExceptionsResult) &&
-        'createdTPE' in tradeExceptionsResult
-          ? tradeExceptionsResult.createdTPE || null
-          : null,
-      details: isTeamLegal
-        ? 'Valid trade for this team'
-        : summarizeValidationIssues(violations, 'Trade validation failed'),
-      warningDetails: summarizeValidationIssues(warnings),
-    };
-  });
 
   // Calculate summary by team index
   const summaryByTeamIndex: TradeSummaryByTeamIndexRow[] = teamsWithAssets.map((team, index) => {

@@ -386,6 +386,7 @@ utils/
       tradeValidator.helpers.ts
       tradeValidator.receipt.ts
       tradeValidator.ruleEnvelopes.ts
+      tradeValidator.teamValidation.ts
       tradeValidator.ts
       tradeValidator.types.ts
       validationDebugMonitor.ts
@@ -450,5 +451,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T06:01:21.613Z*
+*Generated on: 2026-05-17T06:54:43.509Z*
 *Auto-updated by: npm run docs*
