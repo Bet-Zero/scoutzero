@@ -283,6 +283,8 @@ utils/
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.ts
   hardCapUtils.ts
+  leagueInvariants.entitlementInvariants.ts
+  leagueInvariants.playerInvariants.ts
   leagueInvariants.ts
   loadArchitectBasePlayer.ts
   mutationPipeline.compute.offerSheets.ts
@@ -453,5 +455,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T07:11:56.114Z*
+*Generated on: 2026-05-17T08:26:20.086Z*
 *Auto-updated by: npm run docs*
