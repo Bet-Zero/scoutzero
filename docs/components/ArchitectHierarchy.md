@@ -306,6 +306,7 @@ utils/
   mutationPipeline.helpers.ts
   mutationPipeline.normalize.ts
   mutationPipeline.persist.ts
+  mutationPipeline.preflights.ts
   mutationPipeline.read.dashboardNormalizers.ts
   mutationPipeline.read.normalizeData.assets.ts
   mutationPipeline.read.normalizeData.capData.ts
@@ -469,5 +470,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T23:16:37.877Z*
+*Generated on: 2026-05-17T23:21:52.558Z*
 *Auto-updated by: npm run docs*
