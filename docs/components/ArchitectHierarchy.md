@@ -357,6 +357,7 @@ utils/
   schemaAdapter.ts
   seasonFormat.ts
   seasonHelpers.ts
+  seasonManager.draftResolution.helpers.ts
   seasonManager.draftResolution.ts
   seasonManager.helpers.ts
   seasonManager.teamTransition.ts
@@ -465,5 +466,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T09:59:59.098Z*
+*Generated on: 2026-05-17T10:09:55.887Z*
 *Auto-updated by: npm run docs*
