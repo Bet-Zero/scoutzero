@@ -121,7 +121,9 @@ freeAgency/
 history/
   TeamHistoryTab/
     HistoryDetailModal.tsx
+    TeamHistoryTab.helpers.ts
     TeamHistoryTab.tsx
+    WorldEventsTimeline.tsx
     index.ts
     types.ts
   devTeamHistoryFixtures.ts
@@ -475,5 +477,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-17T23:49:17.918Z*
+*Generated on: 2026-05-18T04:16:29.048Z*
 *Auto-updated by: npm run docs*
