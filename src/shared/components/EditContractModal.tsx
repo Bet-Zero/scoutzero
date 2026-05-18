@@ -21,7 +21,6 @@ import React, {
   useEffect,
   useMemo,
   useCallback,
-  useRef,
 } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
@@ -30,97 +29,43 @@ import {
   generateExtensionContract,
   getContractYearsForDisplay,
 } from '@/features/architect/utils/contractUtils';
-import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
-import {
-  getExtensionProfile,
-  buildMinimalRuleContext,
-} from '@/features/architect/utils/salaryEngine';
-import { useCapValidation, buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
-import { validateExceptionEligibility } from '@/features/architect/utils/capLegalityValidation';
-import type {
-  SignAndTradePreflightResult,
-  OfferSheetPreflightResult,
-} from '@/features/architect/utils/mutationPipeline';
+import { useCapValidation } from '@/features/architect/hooks/useCapValidation';
 import { ValidationWarnings } from '@/features/architect/shared/ValidationWarnings';
 import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
-import {
-  getCanonicalExceptionAvailability,
-  getCanonicalExceptionKeyForSigningMechanism,
-} from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import { useEditContractModalForm } from './EditContractModal.form.hook';
+import { useEditContractModalPreflight } from './EditContractModal.preflight.hook';
+import { ContractSummaryPanel } from './EditContractModal.SummaryPanel';
 import type {
-  UseCapValidationParams,
-  HookPlayerLike,
-  HookContractLike,
-  HookContractSalaryRowLike,
-  HookTeamCapSheetLike,
-  HookContractDataLike,
-  UseCapValidationResult,
-  ValidationEntryLike,
-  ValidationSeverity,
-  SignAndTradePreflightLike,
-  OfferSheetPreflightLike,
-  ContractYearLike,
   ContractYearWithNumberYear,
   ContractActionKey,
   SelectedContractAction,
-  PlayerBioLike,
-  ContractSalaryRowLike,
-  ContractLike,
   PlayerLike,
-  SigningGuardrailsLike,
-  CapHoldLike,
-  DeadCapLike,
-  ExtensionStateLike,
   PlayerRulesProfileLike,
-  ExtMaxState,
   RulesLeagueContextLike,
   TeamCapSheetLike,
   OverrideMetadataLike,
   AuditLogEntryLike,
-  MutationWritesSummaryLike,
-  ContractActionResultLike,
   ActionResultLike,
   StagedSigningPayloadLike,
-  ExtensionPayloadLike,
-  WaivePayloadLike,
-  SigningActionCallback,
-  OptionDecisionCallback,
-  SignAndTradeCallback,
-  SignAndTradePreflightCallback,
   SignAndTradeInitiation,
-  GetOfferSheetPreflightCallback,
   OfferSheetInitiation,
-  ExtendCallback,
-  WaiveCallback,
-  SimpleActionCallback,
-  AuditLogCallback,
   ActionSetKey,
   EditContractModalProps,
   ValidationAuthority,
-  AuthoritativePreflightKind,
   ValidationStateLike,
-  NormalizedContractActionResult,
-  SigningExceptionOption,
 } from './EditContractModal.types';
 import {
   DEFAULT_VALIDATION_STATE,
   hasNumberContractYear,
-  ADVISORY_MODAL_INCOMPLETE_MESSAGE,
   buildAdvisoryModalValidationState,
   buildAuthoritativePreflightState,
   buildValidationCopy,
   normalizeContractActionResult,
-  normalizeSignAndTradePreflightResult,
-  normalizeOfferSheetPreflightResult,
-  buildSignAndTradePreflightResult,
-  buildOfferSheetPreflightResult,
   ACTION_SETS,
   ACTION_LABELS,
   ACTION_DESCRIPTIONS,
   ACTION_TEST_IDS,
-  CONTRACT_ACTION_KEYS,
-  SIGNING_EXCEPTION_OPTIONS,
   isContractActionKey,
 } from './EditContractModal.helpers';
 export { normalizeContractActionResult } from './EditContractModal.helpers';
@@ -156,34 +101,19 @@ export const EditContractModal = ({
   const [selectedAction, setSelectedAction] =
     useState<SelectedContractAction>('');
   const [showValidationErrors, setShowValidationErrors] = useState(false);
-  const [extension, setExtension] = useState<ExtensionStateLike>({
-    years: 1,
-    contractType: 'Standard',
-    salaries: [0],
-  });
-  const [salaryInputs, setSalaryInputs] = useState<string[]>(['']);
-  const [selectedException, setSelectedException] = useState('None');
-  const [isOfferSheet, setIsOfferSheet] = useState(false); // Phase 16
+
   const [destinationTeamId, setDestinationTeamId] = useState<string | null>(
     null
   ); // Phase 23
   const [buyoutAmountInput, setBuyoutAmountInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [signAndTradePreflight, setSignAndTradePreflight] =
-    useState<SignAndTradePreflightLike>(null);
-  const latestSignAndTradePreflightRequestId = useRef(0);
-  const [offerSheetPreflight, setOfferSheetPreflight] =
-    useState<OfferSheetPreflightLike>(null);
-  const latestOfferSheetPreflightRequestId = useRef(0);
 
   // Override state management
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [overrideText, setOverrideText] = useState('');
   const isOverrideConfirmed = overrideText === 'OVERRIDE';
 
-  const [extReason, setExtReason] = useState('');
-  const [extMax, setExtMax] = useState<ExtMaxState | null>(null);
   const normalizedTargetYear =
     typeof targetYear === 'number' ? targetYear : null;
   const normalizedActionYear =
@@ -237,73 +167,13 @@ export const EditContractModal = ({
   const isSigningAction =
     selectedAction === 'signNew' || selectedAction === 'resign';
 
-  const signingGuardrails = useMemo(() => {
-    if (!isSigningAction) return null;
-    return buildSigningGuardrails(
-      playerRulesProfile,
-      capSettings ?? undefined,
-      selectedException
-    );
-  }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
-  const availableSigningExceptions = useMemo<SigningExceptionOption[]>(() => {
-    return SIGNING_EXCEPTION_OPTIONS.filter((option) => {
-      if (option.value === 'None' || option.value === 'Minimum') {
-        return true;
-      }
-
-      if (!teamCapSheet) {
-        return false;
-      }
-
-      const exceptionKey = getCanonicalExceptionKeyForSigningMechanism(
-        option.value
-      );
-      if (!exceptionKey) {
-        return false;
-      }
-
-      const availability = getCanonicalExceptionAvailability(
-        teamCapSheet,
-        exceptionKey
-      );
-      if (!availability.present || !availability.enabled || !availability.usable) {
-        return false;
-      }
-
-      return !validateExceptionEligibility({
-        team: teamCapSheet as Parameters<typeof validateExceptionEligibility>[0]['team'],
-        signedUsing: option.value,
-        year: ACTION_YEAR,
-      }).blocked;
-    });
-  }, [ACTION_YEAR, teamCapSheet]);
 
   const contractYears = useMemo<ContractYearWithNumberYear[]>(
     () => getContractYearsForDisplay(player).filter(hasNumberContractYear),
     [player]
   );
 
-  useEffect(() => {
-    if (!isSigningAction) {
-      return;
-    }
 
-    if (
-      availableSigningExceptions.some(
-        (option) => option.value === selectedException
-      )
-    ) {
-      return;
-    }
-
-    setSelectedException('None');
-  }, [availableSigningExceptions, isSigningAction, selectedException]);
-
-  useEffect(() => {
-    if (!resolvedShowOfferSheetToggle && isOfferSheet) {
-      setIsOfferSheet(false);
-    }
-  }, [isOfferSheet, resolvedShowOfferSheetToggle]);
 
   const remainingGuaranteedForBuyout = useMemo(() => {
     const salaries = player?.contract?.salariesByYear || [];
@@ -349,6 +219,43 @@ export const EditContractModal = ({
     const targetEntry = years.find((y) => y.year === targetYearForBase);
     return targetEntry?.salary || 0;
   }, [CURRENT_YEAR, contractYears, isFreeAgent, optionYear, player]);
+
+  const {
+    extension,
+    setExtension,
+    salaryInputs,
+    setSalaryInputs,
+    selectedException,
+    setSelectedException,
+    isOfferSheet,
+    setIsOfferSheet,
+    extReason,
+    extMax,
+    signingGuardrails,
+    availableSigningExceptions,
+    contractDataForValidation,
+    clampFirstYearToGuardrails,
+    buildSalarySeries,
+    toSalaryInputs,
+    buildSigningDispatchPayload,
+    buildCanonicalSigningDispatchPayload,
+    buildOfferSheetDispatchPayload,
+    signAndTradeDispatchPayload,
+    offerSheetDispatchPayload,
+  } = useEditContractModalForm({
+    player,
+    playerRulesProfile,
+    capSettings,
+    teamCapSheet,
+    ACTION_YEAR,
+    CURRENT_YEAR,
+    lastSalaryForPrefill,
+    initialAction,
+    isSigningAction,
+    selectedAction,
+    isOpen: isOpen ?? false,
+    resolvedShowOfferSheetToggle,
+  });
 
   const hasOption = !!optionType;
 
@@ -398,18 +305,6 @@ export const EditContractModal = ({
         : `Cannot act on this option yet. It can be decided during the ${normalizedTargetYear - 2}-${String((normalizedTargetYear - 1) % 100).padStart(2, '0')} offseason.`
       : null;
 
-  const contractDataForValidation = useMemo<HookContractDataLike>(
-    () => ({
-      ...extension,
-      salaries: (extension.salaries || []).slice(
-        0,
-        extension.years || extension.salaries.length || 0
-      ),
-      guardrails: signingGuardrails,
-      exceptionType: selectedException,
-    }),
-    [extension, signingGuardrails, selectedException]
-  );
   const resolvedSignAndTradeInitiation = useMemo<SignAndTradeInitiation | null>(() => {
     if (signAndTradeInitiation) {
       return signAndTradeInitiation;
@@ -428,83 +323,26 @@ export const EditContractModal = ({
     !resolvedSignAndTradeInitiation
       ? 'Sign-and-trade requires an active world to commit.'
       : null;
-  const buildSigningDispatchPayload = useCallback(
-    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
-      const years = extension.years || extension.salaries?.length || 0;
-      const salaries = (extension.salaries || []).slice(0, years);
-      const signedUsing =
-        selectedException && selectedException !== 'None'
-          ? selectedException
-          : null;
+  const resolvedDestinationTeamCode =
+    selectedAction === 'signAndTrade' && destinationTeamId
+      ? resolveTeamCode(String(destinationTeamId)) || String(destinationTeamId)
+      : null;
 
-      return {
-        ...extension,
-        years,
-        salaries,
-        exceptionType: selectedException,
-        signedUsing,
-        startYear: ACTION_YEAR,
-        guardrails: signingGuardrails,
-        raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
-        ...overrides,
-      };
-    },
-    [ACTION_YEAR, extension, selectedException, signingGuardrails]
-  );
-  const buildCanonicalSigningDispatchPayload = useCallback(
-    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
-      const stagedPayload = buildSigningDispatchPayload(overrides);
-      const salaries = (stagedPayload.salaries || []).map((value) =>
-        Math.round(Number(value) || 0)
-      );
-      const totalValue = salaries.reduce((sum, value) => sum + value, 0);
-      const salariesByYear = salaries.map((value, index) => ({
-        season: toSeasonCode(ACTION_YEAR + index),
-        salary: value,
-        capHit: value,
-        guaranteed: true,
-        option: null,
-        optionType: null,
-        optionUsed: null,
-      }));
 
-      return {
-        ...stagedPayload,
-        contractYears: stagedPayload.contractYears ?? stagedPayload.years,
-        salariesByYear,
-        base: salaries[0] || 0,
-        totalValue,
-        averageAnnualValue:
-          stagedPayload.years > 0 ? Math.round(totalValue / stagedPayload.years) : 0,
-        firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
-      };
-    },
-    [ACTION_YEAR, buildSigningDispatchPayload]
-  );
-  const signAndTradeDispatchPayload = useMemo(
-    () =>
-      buildSigningDispatchPayload({
-        signAndTrade: true,
-        contractType: 'Sign & Trade',
-      }),
-    [buildSigningDispatchPayload]
-  );
-  const buildOfferSheetDispatchPayload = useCallback(
-    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike =>
-      buildCanonicalSigningDispatchPayload({
-        rfaOfferSheet: true,
-        rfaOfferSheetOnly: true,
-        rfaOfferSheetStatus: 'PENDING_MATCH',
-        contractType: 'Offer Sheet',
-        ...overrides,
-      }),
-    [buildCanonicalSigningDispatchPayload]
-  );
-  const offerSheetDispatchPayload = useMemo(
-    () =>
-      buildOfferSheetDispatchPayload(),
-    [buildOfferSheetDispatchPayload]
-  );
+  const { signAndTradePreflight, offerSheetPreflight } =
+    useEditContractModalPreflight({
+      isOpen,
+      selectedAction,
+      player,
+      resolvedSignAndTradeInitiation,
+      resolvedDestinationTeamCode,
+      signAndTradeActionDisabledReason,
+      signAndTradeDispatchPayload,
+      resolvedOfferSheetInitiation,
+      offerSheetDispatchPayload,
+      isOfferSheet,
+    });
+
   const validationAuthority: ValidationAuthority =
     selectedAction === 'signAndTrade' ||
     (selectedAction === 'signNew' && isOfferSheet)
@@ -584,158 +422,6 @@ export const EditContractModal = ({
     selectedAction !== 'buyout' ||
     (parsedBuyoutAmount != null &&
       parsedBuyoutAmount <= remainingGuaranteedForBuyout);
-  const resolvedDestinationTeamCode =
-    selectedAction === 'signAndTrade' && destinationTeamId
-      ? resolveTeamCode(String(destinationTeamId)) || String(destinationTeamId)
-      : null;
-
-  useEffect(() => {
-    latestSignAndTradePreflightRequestId.current += 1;
-    const requestId = latestSignAndTradePreflightRequestId.current;
-
-    if (!isOpen || selectedAction !== 'signAndTrade') {
-      setSignAndTradePreflight(null);
-      return;
-    }
-
-    if (!player) {
-      setSignAndTradePreflight(
-        buildSignAndTradePreflightResult('incomplete', [
-          'Authoritative sign-and-trade preflight is missing player context.',
-        ])
-      );
-      return;
-    }
-
-    if (signAndTradeActionDisabledReason) {
-      setSignAndTradePreflight(
-        buildSignAndTradePreflightResult('blocked', [
-          signAndTradeActionDisabledReason,
-        ])
-      );
-      return;
-    }
-
-    if (!resolvedDestinationTeamCode) {
-      setSignAndTradePreflight(
-        buildSignAndTradePreflightResult('blocked', [
-          'Destination team is required for sign-and-trade.',
-        ])
-      );
-      return;
-    }
-
-    setSignAndTradePreflight(
-      buildSignAndTradePreflightResult('incomplete', [
-        'Checking authoritative sign-and-trade legality...',
-      ])
-    );
-
-    void Promise.resolve(
-      resolvedSignAndTradeInitiation?.getSignAndTradePreflight?.(
-        player,
-        signAndTradeDispatchPayload,
-        resolvedDestinationTeamCode
-      )
-    )
-      .then((result) => {
-        if (latestSignAndTradePreflightRequestId.current !== requestId) {
-          return;
-        }
-
-        setSignAndTradePreflight(normalizeSignAndTradePreflightResult(result));
-      })
-      .catch((error) => {
-        if (latestSignAndTradePreflightRequestId.current !== requestId) {
-          return;
-        }
-
-        setSignAndTradePreflight(
-          buildSignAndTradePreflightResult('incomplete', [
-            error instanceof Error
-              ? error.message
-              : 'Authoritative sign-and-trade preflight failed before legality could be determined.',
-          ])
-        );
-      });
-  }, [
-    isOpen,
-    player,
-    resolvedSignAndTradeInitiation,
-    resolvedDestinationTeamCode,
-    selectedAction,
-    signAndTradeActionDisabledReason,
-    signAndTradeDispatchPayload,
-  ]);
-
-  useEffect(() => {
-    latestOfferSheetPreflightRequestId.current += 1;
-    const requestId = latestOfferSheetPreflightRequestId.current;
-
-    if (!isOpen || selectedAction !== 'signNew' || !isOfferSheet) {
-      setOfferSheetPreflight(null);
-      return;
-    }
-
-    if (!player) {
-      setOfferSheetPreflight(
-        buildOfferSheetPreflightResult('incomplete', [
-          'Authoritative offer sheet preflight is missing player context.',
-        ])
-      );
-      return;
-    }
-
-    if (!resolvedOfferSheetInitiation) {
-      setOfferSheetPreflight(
-        buildOfferSheetPreflightResult('blocked', [
-          'Offer sheet preflight unavailable (no world context).',
-        ])
-      );
-      return;
-    }
-
-    setOfferSheetPreflight(
-      buildOfferSheetPreflightResult('incomplete', [
-        'Checking authoritative offer sheet legality...',
-      ])
-    );
-
-    void Promise.resolve(
-      resolvedOfferSheetInitiation.getOfferSheetPreflight(
-        player,
-        offerSheetDispatchPayload
-      )
-    )
-      .then((result) => {
-        if (latestOfferSheetPreflightRequestId.current !== requestId) {
-          return;
-        }
-
-        setOfferSheetPreflight(normalizeOfferSheetPreflightResult(result));
-      })
-      .catch((error) => {
-        if (latestOfferSheetPreflightRequestId.current !== requestId) {
-          return;
-        }
-
-        setOfferSheetPreflight(
-          buildOfferSheetPreflightResult('incomplete', [
-            error instanceof Error
-              ? error.message
-              : 'Authoritative offer sheet preflight failed before legality could be determined.',
-          ])
-        );
-      });
-  }, [
-    isOpen,
-    isOfferSheet,
-    offerSheetDispatchPayload,
-    player,
-    resolvedOfferSheetInitiation,
-    selectedAction,
-  ]);
-
   const disableConfirm =
     !selectedAction ||
     (selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode) ||
@@ -770,10 +456,7 @@ export const EditContractModal = ({
   useEffect(() => {
     setShowAdvanced(false);
     setOverrideText('');
-    setIsOfferSheet(false);
     setDestinationTeamId(null);
-    setSignAndTradePreflight(null);
-    setOfferSheetPreflight(null);
     setSaveError('');
     setIsSubmitting(false);
     if (selectedAction !== 'buyout') {
@@ -834,237 +517,7 @@ export const EditContractModal = ({
     };
   }, [contractYears, CURRENT_YEAR]);
 
-  // Rebuild signing defaults when guardrails context changes; intentionally
-  // exclude extension deps to avoid clobbering user edits mid-entry.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!player) return;
 
-    // Default pre-fill with last salary for all years
-    const defaultYears = 3; // Default to 3 years for new contracts
-    const baseSalary = lastSalaryForPrefill || 0;
-    setExtension({
-      years: defaultYears,
-      contractType: 'Standard',
-      salaries: Array(5).fill(baseSalary), // Pre-fill all 5 possible years with last salary
-      raisePct: 0.05,
-    });
-    setSalaryInputs(
-      Array(5)
-        .fill(baseSalary)
-        .map((s) => (s ? formatCurrencyFull(s) : ''))
-    );
-    // Use initialAction if provided, otherwise reset
-    setSelectedAction(
-      initialAction && isContractActionKey(initialAction) ? initialAction : ''
-    );
-    setSelectedException('None');
-
-    const eligibility = playerRulesProfile?.extensionEligibility;
-    const terms = playerRulesProfile?.extensionTerms;
-    if (eligibility) {
-      setExtReason(
-        eligibility.isEligible
-          ? 'Eligible'
-          : eligibility.reason || 'Not eligible'
-      );
-      setExtMax(
-        terms
-          ? {
-              maxYears: terms.maxYears,
-              maxFirstYearSalary: terms.maxFirstYearSalary,
-              minFirstYearSalary: terms.minFirstYearSalary,
-              baseRaisePct: terms.raisePercentage ?? null,
-              type: terms.extensionType,
-              basedOn: terms.basedOn ?? null,
-              notes: terms.notes ?? null,
-            }
-          : null
-      );
-      return;
-    }
-
-    // Fallback to salaryEngine for extension eligibility when playerRulesProfile is not available
-    try {
-      // Build a RuleContext for the extension evaluation
-      const seasonId = toSeasonCode(CURRENT_YEAR);
-      const ruleCtx = buildMinimalRuleContext(seasonId, 'VETERAN_EXTENSION');
-
-      // Override with actual player data
-      const playerCtx = {
-        ...ruleCtx,
-        player: {
-          ...ruleCtx.player,
-          playerId: String(player.id || player.player_id || 'unknown'),
-          displayName: player.displayName || player.name || 'Unknown',
-          yearsOfServiceAtOperation:
-            Number(player.yearsOfService || player.bio?.experience || 0),
-          priorSeasonSalary: lastSalaryForPrefill || null,
-          currentSeasonSalary: lastSalaryForPrefill || null,
-          isRookieScale:
-            player.contract?.isRookieScale ||
-            player.contract?.contractType === 'Rookie Scale',
-          draftInfo: player.bio?.draftYear
-            ? {
-                year: Number(player.bio.draftYear),
-                round: Number(player.bio.draftRound || 0),
-                pick: Number(player.bio.draftPick || 0),
-              }
-            : null,
-        },
-      };
-
-      const extProfile = getExtensionProfile(playerCtx);
-
-      if (!extProfile?.eligibility?.isEligible) {
-        setExtReason(extProfile?.eligibility?.reason || 'Not eligible');
-        setExtMax(null);
-        return;
-      }
-
-      setExtReason('Eligible');
-      const terms = extProfile.terms;
-      setExtMax(
-        terms
-          ? {
-              maxYears: terms.maxYears || 4,
-              maxFirstYearSalary: terms.maxFirstYearSalary || 0,
-              minFirstYearSalary:
-                terms.minFirstYearSalary || terms.maxFirstYearSalary || 0,
-              baseRaisePct: terms.raisePercentage || 0.08,
-              type: terms.extensionType || 'Standard',
-              basedOn: terms.basedOn || '',
-              notes: terms.notes || '',
-            }
-          : null
-      );
-    } catch (err) {
-      console.warn('Extension eligibility check failed:', err);
-      setExtReason('Unable to determine eligibility');
-      setExtMax(null);
-    }
-  }, [
-    CURRENT_YEAR,
-    initialAction,
-    lastSalaryForPrefill,
-    player,
-    playerRulesProfile,
-  ]);
-
-  useEffect(() => {
-    if (selectedAction !== 'extend') return;
-    if (!extMax) {
-      setExtension((prev) => ({
-        ...prev,
-        years: prev.years || 1,
-        salaries: prev.salaries || [0],
-      }));
-      setSalaryInputs((prev) => (prev.length ? prev : ['']));
-      return;
-    }
-
-    const firstYearSalary = (() => {
-      const min = extMax.minFirstYearSalary ?? 0;
-      const max = extMax.maxFirstYearSalary ?? min;
-      const target = extMax.maxFirstYearSalary ?? min;
-      const clamped = Math.max(min, Math.min(target, max || target));
-      return clamped;
-    })();
-    setExtension((prev) => {
-      const years = extMax.maxYears || prev.years || 1;
-      const salaries = Array(years).fill(firstYearSalary);
-      setSalaryInputs(
-        Array(years)
-          .fill(firstYearSalary)
-          .map((s) => (s ? formatCurrencyFull(s) : ''))
-      );
-      return {
-        years,
-        contractType: 'Standard',
-        salaries,
-      };
-    });
-  }, [extMax, selectedAction]);
-
-  const clampFirstYearToGuardrails = useCallback(
-    (value: number | null | undefined): number => {
-      if (!signingGuardrails) return value || 0;
-      const min = signingGuardrails.minFirstYear || 0;
-      const max = signingGuardrails.maxFirstYear;
-      let next = Math.max(min, value || 0);
-      if (max != null) next = Math.min(next, max);
-      return next;
-    },
-    [signingGuardrails]
-  );
-
-  const buildSalarySeries = useCallback(
-    (
-      firstYear: number,
-      years: number,
-      raisePct: number | null | undefined
-    ): number[] => {
-      const totalYears = Math.min(Math.max(years, 1), 5);
-      const series: number[] = [];
-      for (let i = 0; i < totalYears; i += 1) {
-        if (i === 0) {
-          series.push(Math.round(firstYear));
-        } else {
-          series.push(Math.round(series[i - 1] * (1 + (raisePct || 0))));
-        }
-      }
-      return series;
-    },
-    []
-  );
-
-  const toSalaryInputs = useCallback(
-    (series: number[], years: number): string[] =>
-      Array.from({ length: 5 }, (_, idx) =>
-        idx < years && series[idx] ? formatCurrencyFull(series[idx]) : ''
-      ),
-    []
-  );
-
-  useEffect(() => {
-    if (!signingGuardrails || !isSigningAction) return;
-
-    setExtension((prev) => {
-      const maxYears =
-        signingGuardrails.maxYears && signingGuardrails.maxYears > 0
-          ? Math.min(signingGuardrails.maxYears, 5)
-          : Math.min(prev.years || 3, 5);
-
-      const baseFirstYear = clampFirstYearToGuardrails(
-        (selectedException !== 'None' && signingGuardrails.maxFirstYear != null
-          ? signingGuardrails.maxFirstYear
-          : prev.salaries?.[0]) ??
-          signingGuardrails.maxFirstYear ??
-          lastSalaryForPrefill ??
-          signingGuardrails.minFirstYear ??
-          0
-      );
-
-      const raisePct = signingGuardrails.raisePct ?? prev.raisePct ?? 0.05;
-      const series = buildSalarySeries(baseFirstYear, maxYears, raisePct);
-      setSalaryInputs(toSalaryInputs(series, maxYears));
-
-      return {
-        ...prev,
-        years: maxYears,
-        salaries: series,
-        raisePct,
-      };
-    });
-  }, [
-    isSigningAction,
-    signingGuardrails,
-    lastSalaryForPrefill,
-    selectedException,
-    clampFirstYearToGuardrails,
-    buildSalarySeries,
-    toSalaryInputs,
-  ]);
 
   const dispatchSelectedFreeAgencyAction = useCallback(
     async (
@@ -1289,111 +742,11 @@ export const EditContractModal = ({
         data-testid="edit-contract-modal"
         className="max-w-6xl w-[95vw] bg-[#0f0f0f] border-2 border-white/20 rounded-xl shadow-2xl shadow-black/50 p-0 overflow-hidden flex flex-col lg:flex-row min-h-[500px] max-h-[85vh]"
       >
-        {/* === LEFT PANEL: Contract Summary === */}
-        <div className="w-full lg:w-[35%] bg-[#161616] border-r border-white/10 p-8 flex flex-col">
-          {/* Header Total */}
-          <div className="text-center mb-6">
-            <div className="text-2xl font-bold text-white tracking-tight">
-              {formatCurrency(summary.totalValue)}{' '}
-              <span className="text-white/40 mx-1">-</span> {summary.totalYears}{' '}
-              yrs
-            </div>
-            <div className="text-xs uppercase tracking-wider text-white/40 font-semibold mt-1">
-              Total Contract
-            </div>
-          </div>
-
-          {/* Years List */}
-          <div className="flex-1 overflow-y-auto space-y-1 pr-2">
-            {contractYears
-              .filter((y) => {
-                // When extensions exist, only show from current year onward
-                if (summary.extensionYears > 0) {
-                  return y.year >= CURRENT_YEAR;
-                }
-                return true;
-              })
-              .map((y) => {
-                // CURRENT_YEAR is the end year of the current season (e.g., 2026 for 2025-26 season)
-                // Only years strictly greater than CURRENT_YEAR are future years
-                const isFuture = y.year > CURRENT_YEAR;
-                const isCurrent = y.year === CURRENT_YEAR;
-                const isOption = !!y.option;
-                const isExtension = y.isExtension;
-                return (
-                  <div
-                    key={y.season}
-                    className={`flex items-center justify-between py-3 border-b border-white/5 ${
-                      isFuture || isCurrent ? 'opacity-100' : 'opacity-40'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-white/60">
-                        {y.season}
-                      </span>
-                      {isExtension && (
-                        <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">
-                          EXT
-                        </span>
-                      )}
-                      {isOption && (
-                        <span
-                          className={`text-[10px] font-bold uppercase ${
-                            y.option === 'TO' || y.option === 'Team Option'
-                              ? 'text-orange-400'
-                              : 'text-emerald-400'
-                          }`}
-                        >
-                          {y.option}
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className={`font-mono text-sm ${
-                        isOption
-                          ? y.option === 'TO' || y.option === 'Team Option'
-                            ? 'text-orange-400 font-bold'
-                            : 'text-emerald-400 font-bold'
-                          : isExtension
-                            ? 'text-cyan-300 font-bold'
-                            : isFuture || isCurrent
-                              ? 'text-white font-medium'
-                              : 'text-white/60'
-                      }`}
-                    >
-                      {formatCurrencyFull(y.salary)}
-                    </span>
-                  </div>
-                );
-              })}
-          </div>
-
-          {/* Footer Remaining + Extension */}
-          <div className="text-center mt-6 pt-6 border-t border-white/5">
-            <div className="text-xl font-bold text-white tracking-tight">
-              {formatCurrency(summary.remainingValue)}{' '}
-              <span className="text-white/40 mx-1">-</span>{' '}
-              {summary.remainingYears} yrs
-            </div>
-            <div className="text-xs uppercase tracking-wider text-white/40 font-semibold mt-1">
-              Remaining
-            </div>
-
-            {/* Extension Summary */}
-            {summary.extensionYears > 0 && (
-              <div className="mt-4 pt-4 border-t border-cyan-500/20">
-                <div className="text-lg font-bold text-cyan-100 tracking-tight">
-                  {formatCurrency(summary.extensionValue)}{' '}
-                  <span className="text-cyan-400/40 mx-1">-</span>{' '}
-                  {summary.extensionYears} yrs
-                </div>
-                <div className="text-xs uppercase tracking-wider text-cyan-400/60 font-semibold mt-1">
-                  Extension
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <ContractSummaryPanel
+          summary={summary}
+          contractYears={contractYears}
+          currentYear={CURRENT_YEAR}
+        />
 
         {/* === RIGHT PANEL: Actions === */}
         <div className="w-full lg:w-[65%] p-8 bg-[#0f0f0f] flex flex-col overflow-y-auto">
