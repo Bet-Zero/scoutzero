@@ -65,3 +65,37 @@ export const normalizeRows = (
 
   return { rows: normalizedRows, rowOrder: normalizedOrder };
 };
+
+export const normalizeRowsForCapacity = (
+  currentRows: TieramidRows,
+  currentOrder: string[]
+): { rows: TieramidRows; overflowCount: number } => {
+  const normalized: TieramidRows = {
+    ...currentRows,
+    Pool: [...(currentRows.Pool || [])],
+  };
+  const poolIds = new Set(
+    (normalized.Pool || []).map((p) => getTieramidPlayerId(p))
+  );
+  let overflowCount = 0;
+  currentOrder.forEach((rowKey, rowIdx) => {
+    if (rowKey === 'Pool') return;
+    const spots = getSpotsInRow(rowIdx);
+    const rowPlayers = (normalized[rowKey] || []).filter(Boolean);
+    if (rowPlayers.length > spots) {
+      const overflow = rowPlayers.slice(spots);
+      normalized[rowKey] = rowPlayers.slice(0, spots);
+      overflow.forEach((player) => {
+        const pid = getTieramidPlayerId(player);
+        if (!poolIds.has(pid)) {
+          poolIds.add(pid);
+          normalized.Pool.push(player);
+        }
+      });
+      overflowCount += overflow.length;
+    } else {
+      normalized[rowKey] = rowPlayers;
+    }
+  });
+  return { rows: normalized, overflowCount };
+};
