@@ -30,8 +30,6 @@ import {
   generateExtensionContract,
   getContractYearsForDisplay,
 } from '@/features/architect/utils/contractUtils';
-import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
-import type { CapHoldItem, DeadCapItem } from '@/features/architect/types';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
   getExtensionProfile,
@@ -40,11 +38,9 @@ import {
 import { useCapValidation, buildSigningGuardrails } from '@/features/architect/hooks/useCapValidation';
 import { validateExceptionEligibility } from '@/features/architect/utils/capLegalityValidation';
 import type {
-  ArchitectMutationResult,
   SignAndTradePreflightResult,
   OfferSheetPreflightResult,
 } from '@/features/architect/utils/mutationPipeline';
-import type { PlayerRulesProfileLeagueContext } from '@/features/architect/types';
 import { ValidationWarnings } from '@/features/architect/shared/ValidationWarnings';
 import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
 import {
@@ -52,718 +48,82 @@ import {
   getCanonicalExceptionKeyForSigningMechanism,
 } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
-
-type UseCapValidationParams = Parameters<typeof useCapValidation>[0];
-type HookPlayerLike = NonNullable<UseCapValidationParams['player']>;
-type HookContractLike = NonNullable<HookPlayerLike['contract']>;
-type HookContractSalaryRowLike = NonNullable<
-  HookContractLike['salariesByYear']
->[number];
-type HookTeamCapSheetLike = NonNullable<
-  UseCapValidationParams['teamCapSheet']
->;
-type HookContractDataLike = NonNullable<
-  UseCapValidationParams['contractData']
->;
-type UseCapValidationResult = ReturnType<typeof useCapValidation>;
-type ValidationEntryLike = UseCapValidationResult['warnings'][number];
-type ValidationSeverity = ValidationEntryLike['severity'];
-type SignAndTradePreflightLike = SignAndTradePreflightResult | null;
-type OfferSheetPreflightLike = OfferSheetPreflightResult | null;
-type ContractYearLike = NonNullable<
-  ReturnType<typeof getContractYearsForDisplay>[number]
->;
-type ContractYearWithNumberYear = ContractYearLike & { year: number };
-type ContractActionKey =
-  | 'accept'
-  | 'decline'
-  | 'signNew'
-  | 'resign'
-  | 'signAndTrade'
-  | 'renounce'
-  | 'extend'
-  | 'waive'
-  | 'waiveStretch'
-  | 'buyout';
-type SelectedContractAction = ContractActionKey | '';
-
-type PlayerBioLike = {
-  playerId?: string | null;
-  displayName?: string | null;
-  age?: number | string | null;
-  position?: string | null;
-  height?: number | string | null;
-  weight?: number | string | null;
-  display?: {
-    freeAgentType?: string | null;
-    freeAgentYear?: number | string | null;
-    teamId?: string | null;
-    team?: string | null;
-  } | null;
-  experience?: unknown;
-  draftYear?: unknown;
-  draftRound?: unknown;
-  draftPick?: unknown;
-};
-
-type ContractSalaryRowLike = HookContractSalaryRowLike & {
-  season?: string | null;
-  year?: string | number | null;
-  option?: string | null;
-  isExtension?: boolean | null;
-};
-
-type ContractLike = HookContractLike & {
-  salariesByYear?: ContractSalaryRowLike[] | null;
-  isRookieScale?: boolean | null;
-  contractType?: string | null;
-};
-
-type PlayerLike = HookPlayerLike & {
-  id?: string | number | null;
-  player_id?: string | number | null;
-  playerId?: string | number | null;
-  name?: string | null;
-  displayName?: string | null;
-  yearsOfService?: number | null;
-  yearsPro?: unknown;
-  bio?: PlayerBioLike | null;
-  contract?: ContractLike | null;
-  futureContract?: ContractLike | null;
-  freeAgentYear?: number | string | null;
-};
-
-type SigningGuardrailsLike = HookContractDataLike['guardrails'] | null;
-type CapHoldLike = Partial<CapHoldItem> & {
-  active?: boolean | null;
-  reason?: string | null;
-};
-type DeadCapLike = Partial<DeadCapItem> & {
-  label?: string | null;
-  amountByYear?: DeadCapItem['amountByYear'] | null;
-  stretched?: boolean | null;
-};
-
-type ExtensionStateLike = {
-  years: number;
-  contractType: string;
-  salaries: number[];
-  raisePct?: number;
-};
-
-type PlayerRulesProfileLike = UseCapValidationParams['rulesProfile'];
-
-/** Narrowed state for extension max terms (replaces LooseRecord for extMax state) */
-type ExtMaxState = {
-  maxYears: number | null | undefined;
-  maxFirstYearSalary: number | null | undefined;
-  minFirstYearSalary: number | null | undefined;
-  baseRaisePct: number | null | undefined;
-  type?: string | null;
-  basedOn?: string | null;
-  notes?: string | null;
-};
-
-type RulesLeagueContextLike = Pick<
-  PlayerRulesProfileLeagueContext,
-  'simulationDate' | 'currentYear'
-> | null;
-
-type TeamCapSheetLike = HookTeamCapSheetLike & {
-  teamCode?: string | null;
-  players?: PlayerLike[] | null;
-  deadCap?: DeadCapLike[] | null;
-  capHolds?: CapHoldLike[] | null;
-};
-
-type OverrideMetadataLike = {
-  overrideUsed: boolean;
-  overrideReasons: string[];
-  overrideTimestamp: string;
-};
-
-type AuditLogEntryLike = {
-  actionType: string;
-  timestamp: string;
-  reasons: string[];
-  overrideUsed: boolean;
-  playerId?: string | number | null;
-  playerName?: string | null;
-};
-
-type MutationWritesSummaryLike = Partial<
-  NonNullable<ArchitectMutationResult['writesSummary']>
->;
-
-type ContractActionResultLike = Pick<
-  ArchitectMutationResult,
-  'success' | 'error' | 'appliedToLocalState' | 'persistedToWorld'
-> & {
-  message?: string | null;
-  writesSummary?: MutationWritesSummaryLike | null;
-};
-
-type ActionResultLike =
-  | ContractActionResultLike
-  | boolean
-  | null
-  | undefined;
-
-type StagedSigningPayloadLike = {
-  years: number;
-  contractType: string;
-  salaries: number[];
-  raisePct?: number;
-  startYear?: number;
-  contractYears?: number;
-  salariesByYear?: Array<{
-    season: string;
-    salary: number;
-    capHit: number;
-    guaranteed: boolean;
-    option: string | null;
-    optionType: string | null;
-    optionUsed: boolean | null;
-  }>;
-  base?: number;
-  totalValue?: number;
-  averageAnnualValue?: number;
-  firstYearGuaranteed?: boolean;
-  exceptionType: string;
-  signedUsing: string | null;
-  guardrails: SigningGuardrailsLike;
-  signAndTrade?: boolean;
-  rfaOfferSheet?: boolean;
-  rfaOfferSheetOnly?: boolean;
-  rfaOfferSheetStatus?: string;
-} & Partial<OverrideMetadataLike>;
-
-type ExtensionPayloadLike = ReturnType<typeof generateExtensionContract> &
-  Partial<OverrideMetadataLike>;
-
-type WaivePayloadLike = {
-  stretch: boolean;
-  buyout: boolean;
-  buyoutAmount?: number;
-} & Partial<OverrideMetadataLike>;
-
-type SigningActionCallback = (
-  player: PlayerLike,
-  payload: StagedSigningPayloadLike,
-) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
-
-type OptionDecisionCallback = (
-  player: PlayerLike,
-  accept: boolean,
-  overrideMetadata?: OverrideMetadataLike | null,
-  targetYear?: number | null,
-) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
-
-type SignAndTradeCallback = (
-  player: PlayerLike,
-  payload: StagedSigningPayloadLike,
-  destTeamCode: string,
-) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
-
-type SignAndTradePreflightCallback = (
-  player: PlayerLike,
-  payload: StagedSigningPayloadLike,
-  destTeamCode: string,
-) =>
-  | Promise<SignAndTradePreflightResult | null | undefined>
-  | SignAndTradePreflightResult
-  | null
-  | undefined;
-
-type SignAndTradeInitiation = {
-  onSignAndTrade: SignAndTradeCallback;
-  getSignAndTradePreflight: SignAndTradePreflightCallback;
-};
-
-type GetOfferSheetPreflightCallback = (
-  player: PlayerLike,
-  payload: StagedSigningPayloadLike,
-) =>
-  | Promise<OfferSheetPreflightResult | null | undefined>
-  | OfferSheetPreflightResult
-  | null
-  | undefined;
-
-type OfferSheetInitiation = {
-  getOfferSheetPreflight: GetOfferSheetPreflightCallback;
-  onStoreOfferSheet: SigningActionCallback;
-};
-
-type ExtendCallback = (
-  player: PlayerLike,
-  payload: ExtensionPayloadLike,
-) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
-
-type WaiveCallback = (
-  player: PlayerLike,
-  payload: WaivePayloadLike,
-) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
-
-type SimpleActionCallback = (
-  player: PlayerLike,
-  overrideMetadata?: OverrideMetadataLike | null,
-) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
-
-type AuditLogCallback = (entry: AuditLogEntryLike) => void;
-type ActionSetKey = 'option' | 'freeAgent' | 'underContract';
-
-type EditContractModalProps = {
-  player?: PlayerLike | null;
-  isOpen?: boolean;
-  onClose: () => void;
-  onSignFreeAgent?: SigningActionCallback | null;
-  onResign?: SigningActionCallback | null;
-  onWaive?: WaiveCallback | null;
-  onOptionDecision?: OptionDecisionCallback | null;
-  onExtend?: ExtendCallback | null;
-  signAndTradeInitiation?: SignAndTradeInitiation | null;
-  onSignAndTrade?: SignAndTradeCallback | null;
-  getSignAndTradePreflight?: SignAndTradePreflightCallback | null;
-  getOfferSheetPreflight?: GetOfferSheetPreflightCallback | null;
-  onRenounce?: SimpleActionCallback | null;
-  onStoreOfferSheet?: SigningActionCallback | null;
-  initialAction?: string | null;
-  targetYear?: number | null;
-  actionYear?: number | null;
-  actionContext?: ActionSetKey | null;
-  teamCapSheet?: TeamCapSheetLike | null;
-  currentYear?: number | null;
-  playerRulesProfile?: PlayerRulesProfileLike;
-  rulesLeagueContext?: RulesLeagueContextLike;
-  actionsOverride?: string[] | null;
-  actionLabelsOverride?: Partial<Record<ContractActionKey, string>>;
-  showOfferSheetToggle?: boolean | null;
-  onAuditLog?: AuditLogCallback | null;
-  capProjections?: CapProjectionOverrides | null;
-  playersMap?: Record<string, unknown> | null;
-};
-
-type ValidationAuthority = 'advisory-modal' | 'authoritative-preflight';
-type AuthoritativePreflightKind = 'sign-and-trade' | 'offer-sheet';
-
-type ValidationStateLike = {
-  authority: ValidationAuthority;
-  isLegal: boolean;
-  incomplete: boolean;
-  reasons: string[];
-  severity: ValidationSeverity;
-  warnings: ValidationEntryLike[];
-  errors: ValidationEntryLike[];
-};
-
-type NormalizedContractActionResult = {
-  success: boolean;
-  message: string;
-};
-
-type SigningExceptionOption = {
-  value: string;
-  label: string;
-};
-
-const DEFAULT_VALIDATION_STATE: ValidationStateLike = {
-  authority: 'advisory-modal',
-  isLegal: true,
-  incomplete: false,
-  reasons: [],
-  severity: 'info',
-  warnings: [],
-  errors: [],
-};
-
-const hasNumberContractYear = (
-  year: ContractYearLike
-): year is ContractYearWithNumberYear =>
-  typeof year.year === 'number' && Number.isFinite(year.year);
-
-const ADVISORY_MODAL_INCOMPLETE_MESSAGE =
-  'Modal guardrails incomplete — some UI checks could not be evaluated.';
-
-const buildAdvisoryModalValidationState = ({
-  isValid,
-  errors,
-  warnings,
-  isExtendEligible,
-  selectedAction,
-  incomplete,
-}: {
-  isValid: boolean;
-  errors: ValidationEntryLike[];
-  warnings: ValidationEntryLike[];
-  isExtendEligible: boolean;
-  selectedAction: SelectedContractAction;
-  incomplete?: boolean;
-}): ValidationStateLike => {
-  const reasons: string[] = [];
-  let maxSeverity: ValidationSeverity = 'info';
-  const normalizedWarnings = incomplete
-    ? [
-        ...warnings.filter(
-          (entry) =>
-            entry.message !==
-            'Extension validation skipped: rulesProfile not provided'
-        ),
-        {
-          severity: 'warning' as const,
-          message: ADVISORY_MODAL_INCOMPLETE_MESSAGE,
-        },
-      ]
-    : warnings;
-
-  errors.forEach((e) => {
-    reasons.push(e.message || '');
-    if (e.severity === 'error') maxSeverity = 'error';
-    else if (e.severity === 'warning' && maxSeverity !== 'error')
-      maxSeverity = 'warning';
-  });
-
-  if (selectedAction === 'extend' && !isExtendEligible) {
-    reasons.push('Player is not extension eligible');
-    maxSeverity = 'error';
-  }
-
-  if (incomplete) {
-    reasons.push(ADVISORY_MODAL_INCOMPLETE_MESSAGE);
-    if (maxSeverity !== 'error') maxSeverity = 'warning';
-  }
-
-  normalizedWarnings.forEach((w) => {
-    if (w.severity === 'warning') {
-      reasons.push(w.message || '');
-      if (maxSeverity !== 'error') maxSeverity = 'warning';
-    }
-  });
-
-  const isLegal =
-    isValid && !incomplete && (selectedAction !== 'extend' || isExtendEligible);
-
-  return {
-    authority: 'advisory-modal',
-    isLegal,
-    incomplete: !!incomplete,
-    reasons,
-    severity: maxSeverity,
-    warnings: normalizedWarnings,
-    errors,
-  };
-};
-
-const getAuthoritativePreflightUnavailableMessage = (
-  kind: AuthoritativePreflightKind
-) =>
-  kind === 'sign-and-trade'
-    ? 'Authoritative sign-and-trade preflight is unavailable.'
-    : 'Authoritative offer sheet preflight is unavailable.';
-
-const buildAuthoritativePreflightState = ({
-  kind,
-  preflight,
-}: {
-  kind: AuthoritativePreflightKind;
-  preflight: SignAndTradePreflightLike | OfferSheetPreflightLike;
-}): ValidationStateLike => {
-  const warnings: ValidationEntryLike[] = [];
-  const errors: ValidationEntryLike[] = [];
-  const reasons: string[] = [];
-  const normalizedPreflight = preflight;
-
-  if (!normalizedPreflight) {
-    const message = getAuthoritativePreflightUnavailableMessage(kind);
-    warnings.push({
-      severity: 'warning',
-      message,
-    });
-
-    return {
-      authority: 'authoritative-preflight',
-      isLegal: false,
-      incomplete: true,
-      reasons: [message],
-      severity: 'warning',
-      warnings,
-      errors,
-    };
-  }
-
-  normalizedPreflight.warnings.forEach((message) => {
-    warnings.push({
-      severity: 'warning',
-      message,
-    });
-  });
-
-  if (normalizedPreflight.status === 'blocked') {
-    normalizedPreflight.reasons.forEach((message) => {
-      errors.push({
-        severity: 'error',
-        message,
-      });
-      reasons.push(message);
-    });
-
-    return {
-      authority: 'authoritative-preflight',
-      isLegal: false,
-      incomplete: false,
-      reasons,
-      severity: 'error',
-      warnings,
-      errors,
-    };
-  }
-
-  if (normalizedPreflight.status === 'incomplete') {
-    normalizedPreflight.reasons.forEach((message) => {
-      warnings.push({
-        severity: 'warning',
-        message,
-      });
-      reasons.push(message);
-    });
-
-    return {
-      authority: 'authoritative-preflight',
-      isLegal: false,
-      incomplete: true,
-      reasons,
-      severity: 'warning',
-      warnings,
-      errors,
-    };
-  }
-
-  return {
-    authority: 'authoritative-preflight',
-    isLegal: true,
-    incomplete: false,
-    reasons: [],
-    severity: warnings.length > 0 ? 'warning' : 'info',
-    warnings,
-    errors,
-  };
-};
-
-const buildValidationCopy = (
-  authority: ValidationAuthority
-): {
-  disclosureTitle: string;
-  disclosureMessage: string;
-  overrideTitle: string;
-  overrideFootnote: string;
-  blockedButtonLabel: string;
-  incompleteButtonLabel: string;
-} =>
-  authority === 'authoritative-preflight'
-    ? {
-        disclosureTitle: 'Authoritative preflight',
-        disclosureMessage:
-          'This action is using authoritative preflight from the action and mutation layer before confirm.',
-        overrideTitle: 'Authoritative preflight blocked this action:',
-        overrideFootnote:
-          'The modal is deferring to authoritative preflight truth for this action.',
-        blockedButtonLabel: 'Preflight Blocked',
-        incompleteButtonLabel: 'Authoritative Preflight Pending',
-      }
-    : {
-        disclosureTitle: 'Modal guardrails',
-        disclosureMessage:
-          'These checks are advisory UI guardrails only. Final cap-state truth is still enforced later by the action and mutation layer.',
-        overrideTitle: 'This action failed modal guardrails:',
-        overrideFootnote:
-          'Proceeding bypasses modal guardrails only. The action and mutation layer still owns final cap-state truth, and the override will be logged.',
-        blockedButtonLabel: 'Action Blocked',
-        incompleteButtonLabel: 'Modal Guardrails Incomplete',
-      };
-
-export const normalizeContractActionResult = (
-  result: ActionResultLike
-): NormalizedContractActionResult => {
-  if (result && typeof result === 'object' && 'success' in result) {
-    const writesSummary = result.writesSummary;
-    const hasPersistSummary =
-      writesSummary?.eventsWritten !== undefined ||
-      writesSummary?.worldMetadataPatched !== undefined ||
-      writesSummary?.teamsPatched !== undefined;
-    const hasPersistedWrites =
-      !hasPersistSummary ||
-      (Number(writesSummary?.eventsWritten ?? 1) > 0 &&
-        Number(writesSummary?.worldMetadataPatched ?? 1) > 0 &&
-        Number(writesSummary?.teamsPatched ?? 1) > 0);
-    const success =
-      result.success === true &&
-      result.appliedToLocalState !== false &&
-      result.persistedToWorld !== false &&
-      hasPersistedWrites;
-    return {
-      success,
-      message: String(
-        result.message ||
-          result.error ||
-          (success ? '' : 'Action did not complete required save writes.')
-      ),
-    };
-  }
-  if (result === false) {
-    return {
-      success: false,
-      message: 'Action canceled. No changes were saved.',
-    };
-  }
-  return {
-    success: false,
-    message: 'Action did not complete. Please try again.',
-  };
-};
-
-const buildSignAndTradePreflightResult = (
-  status: SignAndTradePreflightResult['status'],
-  reasons: string[],
-  warnings: string[] = []
-): SignAndTradePreflightResult => ({
-  status,
-  reasons: reasons
-    .map((reason) => String(reason || '').trim())
-    .filter(Boolean),
-  warnings: warnings
-    .map((warning) => String(warning || '').trim())
-    .filter(Boolean),
-  source: 'authoritative-preflight',
-});
-
-const normalizeSignAndTradePreflightResult = (
-  result: SignAndTradePreflightResult | null | undefined
-): SignAndTradePreflightResult => {
-  if (!result) {
-    return buildSignAndTradePreflightResult('incomplete', [
-      'Authoritative sign-and-trade preflight did not return a result.',
-    ]);
-  }
-
-  const status =
-    result.status === 'legal' ||
-    result.status === 'blocked' ||
-    result.status === 'incomplete'
-      ? result.status
-      : 'incomplete';
-  const reasons = Array.isArray(result.reasons) ? result.reasons : [];
-  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
-
-  return buildSignAndTradePreflightResult(
-    status,
-    reasons.length > 0
-      ? reasons
-      : status === 'legal'
-        ? []
-        : ['Authoritative sign-and-trade preflight returned no reasons.'],
-    warnings
-  );
-};
-
-const buildOfferSheetPreflightResult = (
-  status: OfferSheetPreflightResult['status'],
-  reasons: string[],
-  warnings: string[] = []
-): OfferSheetPreflightResult => ({
-  status,
-  reasons: reasons
-    .map((reason) => String(reason || '').trim())
-    .filter(Boolean),
-  warnings: warnings
-    .map((warning) => String(warning || '').trim())
-    .filter(Boolean),
-  source: 'authoritative-preflight',
-});
-
-const normalizeOfferSheetPreflightResult = (
-  result: OfferSheetPreflightResult | null | undefined
-): OfferSheetPreflightResult => {
-  if (!result) {
-    return buildOfferSheetPreflightResult('incomplete', [
-      'Authoritative offer sheet preflight did not return a result.',
-    ]);
-  }
-
-  const status =
-    result.status === 'legal' ||
-    result.status === 'blocked' ||
-    result.status === 'incomplete'
-      ? result.status
-      : 'incomplete';
-  const reasons = Array.isArray(result.reasons) ? result.reasons : [];
-  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
-
-  return buildOfferSheetPreflightResult(
-    status,
-    reasons.length > 0
-      ? reasons
-      : status === 'legal'
-        ? []
-        : ['Authoritative offer sheet preflight returned no reasons.'],
-    warnings
-  );
-};
-
-const ACTION_SETS: Record<ActionSetKey, ContractActionKey[]> = {
-  option: ['accept', 'decline', 'signNew'],
-  freeAgent: ['resign', 'signAndTrade', 'renounce'],
-  underContract: ['extend', 'waive', 'waiveStretch', 'buyout'],
-};
-
-const ACTION_LABELS: Record<ContractActionKey, string> = {
-  accept: 'Accept Option',
-  decline: 'Decline Option',
-  signNew: 'Sign New Contract',
-  resign: 'Re-sign Player',
-  signAndTrade: 'Sign & Trade',
-  renounce: 'Renounce Rights',
-  extend: 'Extend Contract',
-  waive: 'Waive Player',
-  waiveStretch: 'Waive & Stretch',
-  buyout: 'Buyout Contract',
-};
-
-const ACTION_DESCRIPTIONS: Record<ContractActionKey, string> = {
-  accept: 'Player remains under contract for the option year.',
-  decline: 'Player becomes a Free Agent immediately.',
-  signNew: 'Negotiate a new contract, replacing the option.',
-  resign: 'Sign player to a new multi-year deal.',
-  signAndTrade: 'Sign player and immediately trade them.',
-  renounce: 'Release cap hold and rights to this player.',
-  extend: 'Add years to the current contract.',
-  waive: 'Release player. Salary remains on cap unless claimed.',
-  waiveStretch: 'Release player and stretch salary over 2x + 1 years.',
-  buyout: 'Negotiate a reduced amount to release player.',
-};
-
-const ACTION_TEST_IDS: Partial<Record<ContractActionKey, string>> = {
-  resign: 'contract-action-resign',
-  signAndTrade: 'contract-action-sign-and-trade',
-  renounce: 'contract-action-renounce-rights',
-  extend: 'contract-action-extend',
-  waive: 'contract-action-waive',
-  waiveStretch: 'contract-action-waive-stretch',
-  buyout: 'contract-action-buyout',
-};
-
-const CONTRACT_ACTION_KEYS = Object.freeze(
-  Object.keys(ACTION_LABELS)
-) as readonly ContractActionKey[];
-const SIGNING_EXCEPTION_OPTIONS: readonly SigningExceptionOption[] = [
-  { value: 'None', label: 'Cap Space / Rights' },
-  { value: 'Full MLE', label: 'Full MLE' },
-  { value: 'Taxpayer MLE', label: 'Taxpayer MLE' },
-  { value: 'Room MLE', label: 'Room MLE' },
-  { value: 'BAE', label: 'Bi-Annual' },
-  { value: 'Minimum', label: 'Minimum' },
-] as const;
-
-const isContractActionKey = (value: string): value is ContractActionKey =>
-  CONTRACT_ACTION_KEYS.includes(value as ContractActionKey);
+import type {
+  UseCapValidationParams,
+  HookPlayerLike,
+  HookContractLike,
+  HookContractSalaryRowLike,
+  HookTeamCapSheetLike,
+  HookContractDataLike,
+  UseCapValidationResult,
+  ValidationEntryLike,
+  ValidationSeverity,
+  SignAndTradePreflightLike,
+  OfferSheetPreflightLike,
+  ContractYearLike,
+  ContractYearWithNumberYear,
+  ContractActionKey,
+  SelectedContractAction,
+  PlayerBioLike,
+  ContractSalaryRowLike,
+  ContractLike,
+  PlayerLike,
+  SigningGuardrailsLike,
+  CapHoldLike,
+  DeadCapLike,
+  ExtensionStateLike,
+  PlayerRulesProfileLike,
+  ExtMaxState,
+  RulesLeagueContextLike,
+  TeamCapSheetLike,
+  OverrideMetadataLike,
+  AuditLogEntryLike,
+  MutationWritesSummaryLike,
+  ContractActionResultLike,
+  ActionResultLike,
+  StagedSigningPayloadLike,
+  ExtensionPayloadLike,
+  WaivePayloadLike,
+  SigningActionCallback,
+  OptionDecisionCallback,
+  SignAndTradeCallback,
+  SignAndTradePreflightCallback,
+  SignAndTradeInitiation,
+  GetOfferSheetPreflightCallback,
+  OfferSheetInitiation,
+  ExtendCallback,
+  WaiveCallback,
+  SimpleActionCallback,
+  AuditLogCallback,
+  ActionSetKey,
+  EditContractModalProps,
+  ValidationAuthority,
+  AuthoritativePreflightKind,
+  ValidationStateLike,
+  NormalizedContractActionResult,
+  SigningExceptionOption,
+} from './EditContractModal.types';
+import {
+  DEFAULT_VALIDATION_STATE,
+  hasNumberContractYear,
+  ADVISORY_MODAL_INCOMPLETE_MESSAGE,
+  buildAdvisoryModalValidationState,
+  buildAuthoritativePreflightState,
+  buildValidationCopy,
+  normalizeContractActionResult,
+  normalizeSignAndTradePreflightResult,
+  normalizeOfferSheetPreflightResult,
+  buildSignAndTradePreflightResult,
+  buildOfferSheetPreflightResult,
+  ACTION_SETS,
+  ACTION_LABELS,
+  ACTION_DESCRIPTIONS,
+  ACTION_TEST_IDS,
+  CONTRACT_ACTION_KEYS,
+  SIGNING_EXCEPTION_OPTIONS,
+  isContractActionKey,
+} from './EditContractModal.helpers';
+export { normalizeContractActionResult } from './EditContractModal.helpers';
 
 export const EditContractModal = ({
   player,
