@@ -36,6 +36,8 @@ import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import { useEditContractModalForm } from './EditContractModal.form.hook';
 import { useEditContractModalPreflight } from './EditContractModal.preflight.hook';
 import { ContractSummaryPanel } from './EditContractModal.SummaryPanel';
+import { ContractActionSelector } from './EditContractModal.ActionSelector';
+import { ContractDetailsForm } from './EditContractModal.DetailsForm';
 import type {
   ContractYearWithNumberYear,
   ContractActionKey,
@@ -754,445 +756,54 @@ export const EditContractModal = ({
             Available Actions
           </h2>
 
-          {/* Context Text */}
-          <div className="mb-6 text-sm text-white/70 leading-relaxed">
-            {hasOption && (
-              <p>
-                <span className="text-white font-semibold">{player.name}</span>{' '}
-                has a <span className="text-orange-400">{optionType}</span> for
-                the{' '}
-                {optionYear
-                  ? `${optionYear - 1}-${String(optionYear % 100).padStart(2, '0')}`
-                  : 'upcoming'}{' '}
-                season. You may choose to accept it to retain him, decline it to
-                make him a Free Agent, or negotiate a new contract.
-              </p>
-            )}
-            {actionSet === 'freeAgent' && (
-              <p>
-                <span className="text-white font-semibold">{player.name}</span>{' '}
-                is currently a Free Agent (Cap Hold). You can re-sign him using
-                Bird Rights (if applicable), renounce his rights to clear cap
-                space, or execute a sign-and-trade.
-              </p>
-            )}
-            {actionSet === 'underContract' && isExpiring && (
-              <p>
-                <span className="text-white font-semibold">{player.name}</span>{' '}
-                is on an expiring contract. You can extend his deal if eligible,
-                or waive him to clear a roster spot (with potential dead cap
-                implications). He will become a free agent after this season.
-              </p>
-            )}
-            {actionSet === 'underContract' && !isExpiring && (
-              <p>
-                <span className="text-white font-semibold">{player.name}</span>{' '}
-                is under contract. You can extend his deal if eligible, or waive
-                him to clear a roster spot (with potential dead cap
-                implications).
-              </p>
-            )}
-          </div>
+          <ContractActionSelector
+            playerName={player.name || ''}
+            hasOption={hasOption}
+            actionSet={actionSet}
+            isExpiring={isExpiring}
+            optionType={optionType}
+            optionYear={optionYear}
+            optionTimingError={optionTimingError}
+            actions={actions}
+            isExtendEligible={isExtendEligible}
+            signAndTradeActionDisabledReason={signAndTradeActionDisabledReason}
+            isOptionActionable={isOptionActionable}
+            selectedAction={selectedAction}
+            onSelectAction={setSelectedAction}
+            actionLabelsOverride={actionLabelsOverride}
+            extensionEligibilityReason={playerRulesProfile?.extensionEligibility?.reason}
+          />
 
-          {/* Action Selection */}
-          <div className="space-y-3 mb-6">
-            {/* Show timing error for future options immediately */}
-            {optionTimingError && (
-              <div className="flex items-start gap-2 px-3 py-2 rounded border bg-red-500/10 border-red-500/30 mb-3">
-                <span className="shrink-0 text-sm">❌</span>
-                <span className="text-xs text-red-300">
-                  {optionTimingError}
-                </span>
-              </div>
-            )}
-
-            {actions.map((type) => {
-              // Option actions (accept/decline) are disabled when not actionable
-              const isOptionAction = type === 'accept' || type === 'decline';
-              const extendBlocked = type === 'extend' && !isExtendEligible;
-              const signAndTradeBlocked =
-                type === 'signAndTrade' && !!signAndTradeActionDisabledReason;
-              const isDisabled =
-                (isOptionAction && !isOptionActionable) ||
-                extendBlocked ||
-                signAndTradeBlocked;
-
-              return (
-                <label
-                  key={type}
-                  className={`flex items-start gap-3 p-3 rounded border transition-all ${
-                    isDisabled
-                      ? 'cursor-not-allowed opacity-40 bg-white/[0.01] border-white/5'
-                      : selectedAction === type
-                        ? 'bg-orange-500/10 border-orange-500/50 cursor-pointer'
-                        : 'bg-white/[0.02] border-white/5 hover:bg-white/5 cursor-pointer'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    value={type}
-                    data-testid={ACTION_TEST_IDS[type] || undefined}
-                    checked={selectedAction === type}
-                    onChange={() => !isDisabled && setSelectedAction(type)}
-                    disabled={isDisabled}
-                    className="mt-1 accent-orange-500 disabled:opacity-50"
-                  />
-                  <div>
-                    <div
-                      className={`font-medium ${
-                        isDisabled
-                          ? 'text-white/40'
-                          : selectedAction === type
-                            ? 'text-orange-400'
-                            : 'text-white'
-                      }`}
-                    >
-                      {actionLabelsOverride[type] || ACTION_LABELS[type]}
-                    </div>
-                    <div className="text-xs text-white/50 mt-0.5">
-                      {ACTION_DESCRIPTIONS[type]}
-                      {extendBlocked && (
-                        <span className="block text-red-300 mt-1">
-                          {playerRulesProfile?.extensionEligibility?.reason ||
-                            'Not extension eligible'}
-                        </span>
-                      )}
-                      {signAndTradeBlocked && (
-                        <span className="block text-red-300 mt-1">
-                          {signAndTradeActionDisabledReason}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          {/* === Contract Details (Cap Table Row Preview) === */}
-          {['signNew', 'resign', 'extend', 'signAndTrade'].includes(
-            selectedAction
-          ) && (
-            <div className="bg-white/5 rounded-lg border border-white/20 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold text-sm text-white flex items-center gap-2">
-                  <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
-                  New Contract Preview
-                </h4>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={extension.contractType}
-                    onChange={(e) =>
-                      setExtension({
-                        ...extension,
-                        contractType: e.target.value,
-                      })
-                    }
-                    className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
-                  >
-                    <option value="Standard">Standard</option>
-                    <option value="Rookie Scale">Rookie Scale</option>
-                    <option value="Designated veteran">
-                      Designated Veteran
-                    </option>
-                  </select>
-
-                  {['signNew', 'resign'].includes(selectedAction) && (
-                    <select
-                      value={selectedException}
-                      onChange={(e) => setSelectedException(e.target.value)}
-                      className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
-                    >
-                      {availableSigningExceptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
-                  {/* Phase 16: Offer Sheet Toggle */}
-                  {['signNew'].includes(selectedAction) &&
-                    resolvedShowOfferSheetToggle && (
-                      <label className="flex items-center gap-1.5 cursor-pointer ml-2 bg-black px-2 py-1 rounded border border-white/20 select-none">
-                        <input
-                          type="checkbox"
-                          checked={isOfferSheet}
-                          onChange={(e) => setIsOfferSheet(e.target.checked)}
-                          className="accent-cyan-500"
-                        />
-                        <span
-                          className={`text-xs font-bold ${isOfferSheet ? 'text-cyan-400' : 'text-white/50'}`}
-                        >
-                          Offer Sheet
-                        </span>
-                      </label>
-                    )}
-
-                  <select
-                    value={extension.years}
-                    onChange={(e) => {
-                      const guardrailYears =
-                        isSigningAction && signingGuardrails?.maxYears
-                          ? Math.min(signingGuardrails.maxYears, 5)
-                          : null;
-                      const maxYearsOption =
-                        selectedAction === 'extend' && extMax?.maxYears
-                          ? extMax.maxYears
-                          : guardrailYears || 5;
-                      const yrs = Math.min(
-                        Number(e.target.value),
-                        maxYearsOption
-                      );
-                      const raisePct =
-                        signingGuardrails?.raisePct ??
-                        extension.raisePct ??
-                        0.05;
-                      const firstYear = isSigningAction
-                        ? clampFirstYearToGuardrails(
-                            extension.salaries?.[0] ??
-                              signingGuardrails?.minFirstYear ??
-                              0
-                          )
-                        : extension.salaries?.[0] || 0;
-                      const salaries = isSigningAction
-                        ? buildSalarySeries(firstYear, yrs, raisePct)
-                        : Array.from(
-                            { length: yrs },
-                            (_, i) => extension.salaries[i] || 0
-                          );
-                      setExtension({
-                        ...extension,
-                        years: yrs,
-                        salaries,
-                        raisePct,
-                      });
-                      setSalaryInputs(toSalaryInputs(salaries, yrs));
-                    }}
-                    className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
-                  >
-                    {[1, 2, 3, 4, 5].map((yr) => {
-                      const maxYearsOption =
-                        selectedAction === 'extend' && extMax?.maxYears
-                          ? extMax.maxYears
-                          : isSigningAction && signingGuardrails?.maxYears
-                            ? Math.min(signingGuardrails.maxYears, 5)
-                            : 5;
-                      return (
-                        <option
-                          key={yr}
-                          value={yr}
-                          disabled={yr > maxYearsOption}
-                        >
-                          {yr}yr
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              </div>
-
-              {isSigningAction && signingGuardrails && (
-                <div className="mb-3 flex flex-wrap gap-2 text-[11px] text-white/70">
-                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
-                    Rights/Exception: {signingGuardrails.source}
-                    {playerRulesProfile?.birdRights?.type
-                      ? ` (${playerRulesProfile.birdRights.type})`
-                      : ''}
-                  </span>
-                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
-                    First-year range:{' '}
-                    {formatCurrencyFull(signingGuardrails.minFirstYear || 0)} -{' '}
-                    {signingGuardrails.maxFirstYear != null
-                      ? formatCurrencyFull(signingGuardrails.maxFirstYear)
-                      : 'Max'}
-                  </span>
-                  <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
-                    Raises up to{' '}
-                    {Math.round((signingGuardrails.raisePct || 0) * 100)}% • Max{' '}
-                    {signingGuardrails.maxYears || '—'} yrs
-                  </span>
-                  {playerRulesProfile?.restrictedFreeAgency
-                    ?.qualifyingOfferAmount ? (
-                    <span className="px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-100">
-                      QO:{' '}
-                      {formatCurrencyFull(
-                        playerRulesProfile.restrictedFreeAgency
-                          .qualifyingOfferAmount
-                      )}
-                    </span>
-                  ) : null}
-                </div>
-              )}
-
-              {/* Phase 23: Sign & Trade Destination Selector */}
-              {selectedAction === 'signAndTrade' && (
-                <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                  <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2">
-                    Destination Team
-                  </label>
-                  <TeamSelectDropdown
-                    selectedTeamId={destinationTeamId}
-                    onChange={setDestinationTeamId}
-                    valueFormat="teamCode"
-                  />
-                  <p className="mt-2 text-[11px] text-white/60">
-                    The player will be signed to your team, then immediately
-                    traded to this destination.
-                  </p>
-                </div>
-              )}
-
-              {/* Salary Inputs Grid */}
-              <div className="grid grid-cols-5 gap-2 bg-white/5 rounded-lg p-3">
-                {Array.from({ length: 5 }, (_, idx) => {
-                  const isActive = idx < extension.years;
-                  const year =
-                    CURRENT_YEAR + idx + (selectedAction === 'extend' ? 1 : 0);
-
-                  return (
-                    <div
-                      key={idx}
-                      className={`${isActive ? 'opacity-100' : 'opacity-30'}`}
-                    >
-                      <div className="text-[10px] text-white/50 text-center mb-1 font-medium">
-                        {year - 1}-{String(year % 100).padStart(2, '0')}
-                      </div>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-xs">
-                          $
-                        </span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="0"
-                          disabled={!isActive}
-                          value={salaryInputs[idx] || ''}
-                          onChange={(e) => {
-                            const raw = e.target.value.replace(/[^0-9]/g, '');
-                            const parsed = Number(raw);
-                            const nextSalaries = (() => {
-                              const arr = [...extension.salaries];
-                              let nextVal = parsed;
-                              if (isSigningAction && signingGuardrails) {
-                                if (idx === 0) {
-                                  nextVal = clampFirstYearToGuardrails(parsed);
-                                } else if (signingGuardrails.raisePct != null) {
-                                  const prevSalary = arr[idx - 1] || 0;
-                                  const allowed = Math.round(
-                                    prevSalary *
-                                      (1 + signingGuardrails.raisePct)
-                                  );
-                                  nextVal = Math.min(parsed || 0, allowed);
-                                }
-                              }
-                              arr[idx] = nextVal;
-                              return arr;
-                            })();
-                            const activeYears =
-                              extension.years || nextSalaries.length || 0;
-                            setExtension((prev) => ({
-                              ...prev,
-                              salaries: nextSalaries,
-                            }));
-                            setSalaryInputs(
-                              toSalaryInputs(nextSalaries, activeYears)
-                            );
-                          }}
-                          className="w-full pl-5 pr-2 py-2 rounded bg-black/50 border border-white/10 text-xs text-white font-medium text-center focus:border-cyan-500 focus:bg-cyan-500/10 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Extension Eligibility Note */}
-              {selectedAction === 'extend' && (
-                <div className="mt-3 px-3 py-2 bg-orange-500/10 border border-orange-500/20 rounded text-xs text-orange-200 space-y-1">
-                  {isExtendEligible && extMax ? (
-                    <>
-                      <div>
-                        {`Up to ${extMax?.maxYears || 0} years — first-year range ${formatCurrencyFull(
-                          extMax?.minFirstYearSalary ?? 0
-                        )} to ${formatCurrencyFull(
-                          extMax?.maxFirstYearSalary ?? 0
-                        )}`}
-                      </div>
-                      <div className="text-[11px] text-orange-100/80">
-                        Raises: {Math.round((extMax?.baseRaisePct || 0) * 100)}%
-                        {extMax?.basedOn ? ` • ${extMax.basedOn}` : ''}
-                      </div>
-                      {(extMax?.notes || extMax?.type) && (
-                        <div className="text-[11px] text-orange-100/60">
-                          {extMax?.notes || extMax?.type}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <span>
-                      {`Not eligible: ${
-                        playerRulesProfile?.extensionEligibility?.reason ||
-                        extReason
-                      }`}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Buyout Details */}
-          {selectedAction === 'buyout' && (
-            <div className="bg-white/5 rounded-lg border border-white/20 p-4 space-y-3">
-              <h4 className="font-semibold text-sm text-white flex items-center gap-2">
-                <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
-                Buyout Terms
-              </h4>
-              <div className="text-xs text-white/70">
-                Remaining guaranteed salary:{' '}
-                <span className="text-white font-semibold">
-                  {formatCurrencyFull(remainingGuaranteedForBuyout)}
-                </span>
-              </div>
-              <div>
-                <label
-                  htmlFor="buyout-amount-input"
-                  className="block text-xs font-medium text-white/80 mb-1"
-                >
-                  Buyout Amount
-                </label>
-                <input
-                  id="buyout-amount-input"
-                  type="number"
-                  min={0}
-                  max={remainingGuaranteedForBuyout || undefined}
-                  step="1000"
-                  value={buyoutAmountInput}
-                  onChange={(event) => setBuyoutAmountInput(event.target.value)}
-                  placeholder="0"
-                  className="w-full px-3 py-2 rounded bg-black/50 border border-white/20 text-sm text-white outline-none focus:border-orange-500"
-                />
-              </div>
-              <div className="text-[11px] text-white/60">
-                Resulting dead cap:{' '}
-                <span className="text-white">
-                  {formatCurrencyFull(
-                    Math.max(
-                      0,
-                      remainingGuaranteedForBuyout - (parsedBuyoutAmount || 0)
-                    )
-                  )}
-                </span>
-              </div>
-              {!buyoutAmountIsValid && (
-                <p className="text-[11px] text-red-300">
-                  Enter a value between 0 and{' '}
-                  {formatCurrencyFull(remainingGuaranteedForBuyout)}.
-                </p>
-              )}
-            </div>
-          )}
+          <ContractDetailsForm
+            selectedAction={selectedAction}
+            isSigningAction={isSigningAction}
+            extension={extension}
+            setExtension={setExtension}
+            salaryInputs={salaryInputs}
+            setSalaryInputs={setSalaryInputs}
+            selectedException={selectedException}
+            setSelectedException={setSelectedException}
+            isOfferSheet={isOfferSheet}
+            setIsOfferSheet={setIsOfferSheet}
+            destinationTeamId={destinationTeamId}
+            setDestinationTeamId={setDestinationTeamId}
+            buyoutAmountInput={buyoutAmountInput}
+            setBuyoutAmountInput={setBuyoutAmountInput}
+            extMax={extMax}
+            extReason={extReason}
+            isExtendEligible={isExtendEligible}
+            availableSigningExceptions={availableSigningExceptions}
+            signingGuardrails={signingGuardrails}
+            remainingGuaranteedForBuyout={remainingGuaranteedForBuyout}
+            parsedBuyoutAmount={parsedBuyoutAmount}
+            buyoutAmountIsValid={buyoutAmountIsValid}
+            CURRENT_YEAR={CURRENT_YEAR}
+            resolvedShowOfferSheetToggle={resolvedShowOfferSheetToggle}
+            playerRulesProfile={playerRulesProfile}
+            clampFirstYearToGuardrails={clampFirstYearToGuardrails}
+            buildSalarySeries={buildSalarySeries}
+            toSalaryInputs={toSalaryInputs}
+          />
 
           {/* === Validation Warnings === */}
           {selectedAction &&
