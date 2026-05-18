@@ -42,12 +42,15 @@ import {
 } from '../utils/validationIssueText';
 import { validationFlags } from '@/config/validationFlags';
 import type {
+  TradeFaExceptionBucket,
   TradeTeamResult,
   TradeValidatorContext,
-  TradeValidatorActiveTeamSlot,
-  TradeValidatorEntitlement,
   ValidationIssueLike,
 } from '../constants/types';
+import type {
+  TradeValidatorActiveTeamSlot,
+  TradeValidatorEntitlement,
+} from './tradeValidator.types';
 
 // Re-export for external consumers (previously re-exported directly from tradeValidator.ts)
 export { validateFaExceptionUsage };
@@ -132,7 +135,7 @@ export function validateSingleTeam(
         ? {
             ...team.team,
             faExceptionBuckets: Array.isArray(team.team.faExceptionBuckets)
-              ? team.team.faExceptionBuckets.map((bucket) => ({ ...bucket }))
+              ? team.team.faExceptionBuckets.map((bucket: TradeFaExceptionBucket) => ({ ...bucket }))
               : team.team.faExceptionBuckets,
             hardCapFirstApron: team.team.hardCapFirstApron
               ? { ...team.team.hardCapFirstApron }

@@ -16,8 +16,8 @@ import {
   normalizeCurrentStatePlayerSnapshot,
   normalizeMutationExceptionsFromIngress,
 } from './mutationPipeline.helpers';
+import type { DraftPick } from '@/schemas/architect';
 import type {
-  DraftPick,
   ArchitectMutationExceptionIngress,
   ArchitectMutationExceptions,
   CurrentStateTradeException,

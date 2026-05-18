@@ -14,11 +14,13 @@ import type {
   ArchitectGeneralMutationDashboardReloadTeamSnapshot,
 } from '@/features/architect/utils/mutationPipeline';
 import type { ReloadActiveWorldMetadataPatch } from './useArchitectState';
+import type { PlayerRulesProfileInput } from '@/features/architect/types';
 import type {
   LocalContract,
   LocalContractLegacySalaryInput,
   SigningDetails,
   ArchitectPlayer,
+  CapHoldActionItem,
   CapSheet,
   DashboardCommittedTeamSnapshot,
 } from './useArchitectActions.types';

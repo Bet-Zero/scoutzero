@@ -183,6 +183,8 @@ export * from './mutationPipeline.compute';
 // Wave 7 Step 1: type definitions extracted to submodule
 export * from './mutationPipeline.types';
 // Wave 28: extracted constants, helpers, types, computeNormalizedWorldMutation
+// Explicit re-export resolves AUTHORITATIVE_WORLD_TEAM_CODES ambiguity (also in helpers)
+export { AUTHORITATIVE_WORLD_TEAM_CODES } from './mutationPipeline.helpers';
 export * from './mutationPipeline.normalize';
 // Wave 47 Step 1: computeWorldMutation and preflight functions extracted to submodule
 export * from './mutationPipeline.preflights';

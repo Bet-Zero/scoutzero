@@ -13,6 +13,10 @@ import {
 } from '@/features/architect/utils/capLegalityValidation';
 import { normalizeTradeContextPayload } from '@/features/architect/utils/tradeContext/tradeContext';
 import { addTeamSnapshot } from './mutationPipeline.read.persistence';
+import {
+  FORBIDDEN_TRANSIENT_KEYS,
+  sanitizeTransientFieldsForPersistence,
+} from '@/features/architect/utils/persistenceContracts/enforcement';
 import type { ValidatedTradeContext as TradeContextValidatedTradeContext } from '@/features/architect/utils/tradeContext/types';
 import type {
   LooseRecord,

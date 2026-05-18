@@ -109,6 +109,11 @@ export const useTradeMachine = (
     worldId,
   });
 
+  // Stale validation fix: Compute current draft key whenever trade config changes
+  const currentDraftKey = useMemo(() => {
+    return computeTradeDraftKey({ yearKey, teams });
+  }, [yearKey, teams]);
+
   // Wave 29 Step 4: validation sub-hook
   const { handleValidate } = useTradeMachineValidation({
     teams,
@@ -184,11 +189,6 @@ export const useTradeMachine = (
     () => teams.map((t) => getSalaryForYear(t.sends, yearKey)),
     [teams, yearKey]
   );
-
-  // Stale validation fix: Compute current draft key whenever trade config changes
-  const currentDraftKey = useMemo(() => {
-    return computeTradeDraftKey({ yearKey, teams });
-  }, [yearKey, teams]);
 
   // Stale validation fix: Check if validation result is current for this draft
   const hasCurrentValidation = useMemo(() => {

@@ -35,6 +35,8 @@ import type {
   OfferSheetLifecycleCommittedIdentity,
   OfferSheetLifecycleCommittedIdentityInput,
 } from './useArchitectActions.types';
+import type { RenounceActionTarget } from './useArchitectActions.helpers.signing';
+import type { ReloadActiveWorldMetadataPatch } from './useArchitectState.types';
 
 
 // Helper to ensure contract has proper structure
