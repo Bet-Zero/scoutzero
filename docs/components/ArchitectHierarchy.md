@@ -200,6 +200,7 @@ tradeMachine/
   ValidationDetailsPanel.tsx
   ValidationStateHeader.tsx
   tradePreviewExportTypes.ts
+  useTradeTeamCardSalaries.ts
   utils/
     computeTradeDraftKey.ts
     devSntInjector.ts
@@ -479,5 +480,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-18T04:20:49.058Z*
+*Generated on: 2026-05-18T04:31:42.439Z*
 *Auto-updated by: npm run docs*

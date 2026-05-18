@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { getTeamColors, formatMillions } from '@/shared/utils/formatting';
+import React, { useState, useRef, useEffect } from 'react';
+import { formatMillions } from '@/shared/utils/formatting';
 import {
   getSalaryForYear,
   getAdjustmentTooltipLabel,
@@ -12,24 +12,9 @@ import { EntitlementPicksList } from './EntitlementPicksList';
 import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { TradeExceptionManager } from './TradeExceptionManager';
-import {
-  getTeamFaExceptionBuckets,
-  isFaExceptionEligibleType,
-} from '@/features/architect/utils/faExceptionUtils';
+import { isFaExceptionEligibleType } from '@/features/architect/utils/faExceptionUtils';
 import { validationFlags } from '@/config/validationFlags';
-import {
-  getCapHitForSeason,
-  normalizeYearInput,
-} from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
-import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
-import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
-import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
-// Phase 1: Accessor function for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
-import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
-import {
-  computeTeamCapTotals,
-  warnOnTotalsDivergence,
-} from '@/features/architect/utils/capTotals';
+import { useTradeTeamCardSalaries } from './useTradeTeamCardSalaries';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import type { TeamTpeLike } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
@@ -51,8 +36,6 @@ import {
   getPlayerKey,
   getPlayerLabel,
   getEntitlementKey,
-  toPlayerTeamOption,
-  toEntitlementTeamOption,
   formatSkipReasonLabel,
 } from './TradeTeamCard.helpers';
 
@@ -141,230 +124,46 @@ export const TradeTeamCard = ({
     }
   }, [editingTeam]);
 
-  // Filter incoming players (not already on team)
-  const filteredIncomingPlayers = useMemo(
-    () =>
-      incomingPlayers.filter(
-        (p) => !team?.players?.some((tp) => tp.player_id === p.player_id)
-      ),
-    [incomingPlayers, team?.players]
-  );
-
-  // Use SSOT teamTotalSalary from computeTeamCapTotals
-  // This ensures TradeTeamCard uses the SAME value as the Cap Sheet and validator
-  const teamTotalSalary = useMemo(() => {
-    if (!team) return 0;
-    const normalizedYear = normalizeYearInput(yearKey);
-    if (!normalizedYear) return 0;
-
-    const totals = computeTeamCapTotals(
-      team as UnknownRecord,
-      normalizedYear.endYear
-    );
-    return totals.totalCapAllocations || 0;
-  }, [team, yearKey]);
-
-  // Phase 1: Get snapshot from validator result (golden source of truth)
-  // RULE: For legality-affecting numbers, use snapshot values; do NOT recompute locally
-  const snapshot = getTeamSnapshot(selectedTeamId, validationResult);
-  const hasValidatorResult = snapshot !== null;
-
-  // Phase 1: Outgoing/Incoming salaries come from validator snapshot
-  // Fallback to local calculation ONLY when validator hasn't run yet (with visible indicator)
-  const localOutgoingSalary = useMemo(
-    () => getSalaryForYear(sends, yearKey),
-    [sends, yearKey]
-  );
-  const localIncomingSalary = useMemo(
-    () => getSalaryForYear(incomingPlayers, yearKey),
-    [incomingPlayers, yearKey]
-  );
-
-  // Use snapshot values when available, fallback to local with Estimate indicator
-  const outgoingSalary = hasValidatorResult
-    ? snapshot.outgoingMatchingSalary
-    : localOutgoingSalary;
-  const incomingSalary = hasValidatorResult
-    ? snapshot.incomingMatchingSalary
-    : localIncomingSalary;
-  const isEstimate = !hasValidatorResult;
-
-  // Phase 2.1/2.3: Base salaries from snapshot (for UX clarity - showing both matching + base)
-  const outgoingBaseSalary = hasValidatorResult
-    ? snapshot.outgoingBaseSalary
-    : localOutgoingSalary;
-  const incomingBaseSalary = hasValidatorResult
-    ? snapshot.incomingBaseSalary
-    : localIncomingSalary;
-
-  // Phase 2.4: Determine if there's a matching adjustment (base differs from matching)
-  const hasOutgoingAdjustment =
-    hasValidatorResult && Math.abs(outgoingSalary - outgoingBaseSalary) > 1;
-  const hasIncomingAdjustment =
-    hasValidatorResult && Math.abs(incomingSalary - incomingBaseSalary) > 1;
-
-  // DEV-ONLY: Divergence checks using canonical helper (Phase 1.8, Phase 73)
-  // Phase 73: Updated to use warnOnTotalsDivergence for consistent rate-limited warnings
-  if (hasValidatorResult) {
-    warnOnTotalsDivergence(
-      'TradeTeamCard',
-      'outgoingSalary',
-      localOutgoingSalary,
-      snapshot.outgoingMatchingSalary,
-      1
-    );
-    warnOnTotalsDivergence(
-      'TradeTeamCard',
-      'incomingSalary',
-      localIncomingSalary,
-      snapshot.incomingMatchingSalary,
-      1
-    );
-  }
-
-  const { primary } = useMemo(
-    () =>
-      getTeamColors(
-        team?.id === null || team?.id === undefined ? undefined : String(team.id)
-      ),
-    [team?.id]
-  );
-
-  const playersCount = useMemo(
-    () => (team?.players?.length || 0) - sends.length + incomingPlayers.length,
-    [team, sends, incomingPlayers]
-  );
-  const outgoingPlayersTeam = useMemo(
-    () => ({
-      players: team?.players ?? [],
-    }),
-    [team?.players]
-  );
-  const playerOtherTeams = useMemo(
-    () => otherTeams.map(toPlayerTeamOption),
-    [otherTeams]
-  );
-  const entitlementOtherTeams = useMemo(
-    () => otherTeams.map(toEntitlementTeamOption),
-    [otherTeams]
-  );
-
-  // Phase 14.2: Count based on entitlements, not legacy picks
-  const picksCount = useMemo(
-    () =>
-      (team?.entitlements?.length || 0) -
-      entitlementsOut.length +
-      incomingEntitlements.length,
-    [team, entitlementsOut, incomingEntitlements]
-  );
-
-  // Use centralized cap settings provider for consistent cap/apron values
-  const capSettings = useMemo(() => {
-    return getCapSettingsForYear(yearKey);
-  }, [yearKey]);
-
-  const faBuckets = useMemo(
-    () => getTeamFaExceptionBuckets(team || {}),
-    [team]
-  );
-
-  // Phase 1: Allowable incoming from validator snapshot (golden number)
-  // Local calculation retained ONLY for DEV divergence warning, not for display
-  const localSalaryMatchingResult = useMemo(() => {
-    if (!hasTeam || !capSettings) return null;
-
-    return getSalaryMatchingResult({
-      teamTotalSalary,
-      outgoingSalary: localOutgoingSalary,
-      capSettings: {
-        salaryCap: capSettings.salaryCap || Number(capSettings.cap) || 0,
-        firstApron: capSettings.firstApron || 0,
-        secondApron: capSettings.secondApron || 0,
-      },
-    });
-  }, [hasTeam, teamTotalSalary, localOutgoingSalary, capSettings]);
-
-  // Phase 1: Use snapshot.allowableIncoming as source of truth (may be null when not applicable)
-  // Fallback to local ONLY when no validator result (with Estimate indicator)
-  const allowableIncomingNoTPE = hasValidatorResult
-    ? snapshot.displayAllowableIncoming // Hard-cap-aware value when available
-    : (localSalaryMatchingResult?.allowableIncoming ?? 0);
-
-  // Phase: Allowable Incoming N/A Consistency - use explicit applicability from snapshot
-  const salaryMatchingApplicable = hasValidatorResult
-    ? snapshot.salaryMatchingApplicable
-    : true;
-  const salaryMatchingSkipReason = hasValidatorResult
-    ? snapshot.salaryMatchingSkipReason
-    : null;
-
-  // Phase 1: Rule label from snapshot (not local recomputation)
-  const salaryMatchingRuleLabel = hasValidatorResult
-    ? snapshot.salaryMatchingRule
-    : localSalaryMatchingResult?.ruleLabel || '';
-  const salaryMatchingFormula = hasValidatorResult
-    ? snapshot.salaryMatchingFormula
-    : localSalaryMatchingResult?.formulaUsed || '';
-  const hardCapIsLimiter =
-    hasValidatorResult &&
-    snapshot.isHardCapped &&
-    snapshot.effectiveAllowableIncoming != null &&
-    snapshot.allowableIncoming != null &&
-    snapshot.effectiveAllowableIncoming < snapshot.allowableIncoming;
-  const hardCapLimiterLabel = hasValidatorResult
-    ? snapshot.hardCapLimiterLabel ||
-      (snapshot.hardCapType === 'SECOND_APRON'
-        ? '2nd Apron'
-        : snapshot.hardCapType === 'FIRST_APRON'
-          ? '1st Apron'
-          : snapshot.hardCapType === 'UNKNOWN'
-            ? '1st Apron (fail-closed)'
-            : 'Hard Cap')
-    : null;
-
-  // DEV-ONLY: Allowable incoming divergence check (Phase 1.8)
-  // Only check when both values are numbers (skip when not applicable)
-  if (
-    import.meta.env.DEV &&
-    hasValidatorResult &&
-    localSalaryMatchingResult &&
-    snapshot.allowableIncoming != null &&
-    localSalaryMatchingResult.allowableIncoming != null
-  ) {
-    const diff = Math.abs(
-      localSalaryMatchingResult.allowableIncoming - snapshot.allowableIncoming
-    );
-    if (diff > 1) {
-      console.warn('[TradeTeamCard] allowableIncoming DIVERGENCE', {
-        local: localSalaryMatchingResult.allowableIncoming,
-        snapshot: snapshot.allowableIncoming,
-        diff,
-        teamId: team?.id,
-        localRule: localSalaryMatchingResult.ruleLabel,
-        snapshotRule: snapshot.salaryMatchingRule,
-      });
-    }
-  }
-
-  const tpeEligiblePlayers = useMemo(() => {
-    if (!hasTeam) return [];
-    const seasonKey =
-      typeof yearKey === 'string' && yearKey.includes('-')
-        ? yearKey
-        : toSeasonKey(yearKey);
-
-    return incomingPlayers.filter((player) => {
-      const playerSalary =
-        getCapHitForSeason(player as UnknownRecord, seasonKey) || 0;
-      return (teamTradeExceptions || []).some(
-        (tpe) =>
-          !tpe?.isUsed &&
-          playerSalary <= Number(tpe?.amount ?? 0) &&
-          (!tpe?.expirationDate ||
-            new Date(String(tpe.expirationDate)) > new Date())
-      );
-    });
-  }, [hasTeam, incomingPlayers, teamTradeExceptions, yearKey]);
+  const {
+    filteredIncomingPlayers,
+    teamTotalSalary,
+    snapshot,
+    hasValidatorResult,
+    outgoingSalary,
+    incomingSalary,
+    isEstimate,
+    outgoingBaseSalary,
+    incomingBaseSalary,
+    hasOutgoingAdjustment,
+    hasIncomingAdjustment,
+    primary,
+    playersCount,
+    outgoingPlayersTeam,
+    playerOtherTeams,
+    entitlementOtherTeams,
+    picksCount,
+    faBuckets,
+    allowableIncomingNoTPE,
+    salaryMatchingApplicable,
+    salaryMatchingSkipReason,
+    salaryMatchingRuleLabel,
+    salaryMatchingFormula,
+    hardCapIsLimiter,
+    hardCapLimiterLabel,
+    tpeEligiblePlayers,
+  } = useTradeTeamCardSalaries({
+    team,
+    sends,
+    incomingPlayers,
+    incomingEntitlements,
+    entitlementsOut,
+    otherTeams,
+    yearKey,
+    validationResult,
+    selectedTeamId,
+    teamTradeExceptions,
+    hasTeam,
+  });
 
   // Modified player trade handler to support multiple selections
   // Replace the existing handleSetPlayerTrade with:
