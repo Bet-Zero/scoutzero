@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-05-15T23:23:50.758Z",
+    "generated": "2026-05-18T03:57:48.183Z",
     "gate": "scripts/architect-cast-gate.mjs",
     "ledger": "docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md",
     "buckets": [
@@ -9,8 +9,8 @@
       "no-restricted-syntax:as-unknown-as",
       "no-restricted-syntax:index-unknown"
     ],
-    "totalFiles": 33,
-    "totalViolations": 99
+    "totalFiles": 35,
+    "totalViolations": 100
   },
   "files": {
     "src/features/architect/freeAgency/FreeAgentPool/types.ts": {
@@ -58,7 +58,7 @@
     "src/features/architect/utils/entitlements/entitlementIdentity.ts": {
       "no-restricted-syntax:index-unknown": 1
     },
-    "src/features/architect/utils/entitlements/entitlementWriter.ts": {
+    "src/features/architect/utils/entitlements/entitlementWriter.validation.ts": {
       "no-restricted-syntax:index-unknown": 1
     },
     "src/features/architect/utils/exceptionHistory/historyHelpers.ts": {
@@ -76,11 +76,17 @@
     "src/features/architect/utils/subscribeArchitectPlayerData.ts": {
       "no-restricted-syntax:index-unknown": 2
     },
+    "src/features/architect/utils/tradeContext/tradeContext.snapshot.ts": {
+      "no-restricted-syntax:as-unknown-as": 1
+    },
     "src/features/architect/utils/tradeHelpers.ts": {
       "no-restricted-syntax:index-unknown": 5
     },
-    "src/features/architect/utils/tradeMachine/engine/tradeValidator.ts": {
-      "no-restricted-syntax:index-unknown": 2
+    "src/features/architect/utils/tradeMachine/engine/tradeValidator.teamValidation.ts": {
+      "no-restricted-syntax:index-unknown": 1
+    },
+    "src/features/architect/utils/tradeMachine/engine/tradeValidator.types.ts": {
+      "no-restricted-syntax:index-unknown": 1
     },
     "src/features/architect/utils/tradeMachine/rules/tradeExceptions.ts": {
       "no-restricted-syntax:index-unknown": 5
