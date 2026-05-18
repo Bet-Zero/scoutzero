@@ -183,7 +183,9 @@ tradeMachine/
   FaExceptionTracker.tsx
   OutgoingPlayersList.tsx
   SelectTeamCard.tsx
+  TradeEditor.helpers.ts
   TradeEditor.tsx
+  TradeEditor.types.ts
   TradeExceptionDashboard.tsx
   TradeExceptionManager.tsx
   TradeExportCapture.tsx
@@ -477,5 +479,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-18T04:16:29.048Z*
+*Generated on: 2026-05-18T04:20:49.058Z*
 *Auto-updated by: npm run docs*

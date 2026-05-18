@@ -21,156 +21,26 @@ import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRu
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
-
-type UseTradeMachineResult = ReturnType<typeof useTradeMachine>;
-type HookTradeTeamSlot = UseTradeMachineResult['teams'][number];
-type ValidationDetailsPanelProps = Parameters<typeof ValidationDetailsPanel>[0];
-type TradePreviewModalProps = Parameters<typeof TradePreviewModal>[0];
-type TradeTeamCardProps = Parameters<typeof TradeTeamCard>[0];
-type EditContractModalProps = Parameters<typeof EditContractModal>[0];
-type HookTradePlayer = Parameters<UseTradeMachineResult['setPlayerTrade']>[1];
-type HookTradeActionMeta = Parameters<UseTradeMachineResult['setPlayerTrade']>[4];
-type CardPlayerLike = TradeTeamCardProps['sends'][number];
-type CardTeamLike = NonNullable<TradeTeamCardProps['team']>;
-type CardEntitlementLike = NonNullable<
-  TradeTeamCardProps['entitlementsOut']
->[number];
-type PrimaryTeamDataLike = Parameters<typeof useTradeMachine>[3];
-type ModalPlayerLike = NonNullable<EditContractModalProps['player']>;
-type ModalTeamCapSheetLike = NonNullable<
-  EditContractModalProps['teamCapSheet']
->;
-type PlayerLike = CardPlayerLike;
-type TeamLike = CardTeamLike;
-
-type EntitlementLike = CardEntitlementLike & {
-  identityKey?: string | null;
-  underlyingStatus?: string | null;
-  holderTeam?: string | number | null;
-  holder_team?: string | number | null;
-  originalTeamId?: string | number | null;
-  originalTeam?: string | number | null;
-  seasonYear?: number | string | null;
-  year?: number | string | null;
-  round?: number | string | null;
-  kind?: string | null;
-  secondaryText?: string | null;
-  protectionDetails?: string | null;
-  protection?: string | null;
-  fromTeamId?: string | number | null;
-  linkedEntitlementIds?: Array<string | number>;
-  residualOfEntitlementId?: string | number | null;
-  __vacuumSessionOnly?: boolean;
-  __vacuumEdited?: boolean;
-};
-
-type TradeTeamSlotLike = {
-  team?: TeamLike | null;
-  sends: PlayerLike[];
-  entitlementsOut?: EntitlementLike[];
-};
-
-type TradeDataEntryLike = {
-  teamId?: string;
-  outgoingEntitlements?: EntitlementLike[];
-};
-
-type TradeMachineSatModalState = {
-  teamIndex: number;
-  player: PlayerLike;
-  defaultDestinationTeamId: string | null;
-} | null;
-
-type EntitlementEditorState = {
-  entitlementId: string | number | null;
-  initialDocument: Record<string, unknown>;
-} | null;
-
-type SignAndTradeResult = {
-  success: boolean;
-  message?: string;
-};
-
-interface TradeEditorProps {
-  primaryTeam?: string | null;
-  capProjections?: Record<string, unknown> | null;
-  currentYear?: number | null;
-  playersMap?: TradeTeamCardProps['playersMap'];
-  onApplyTrade?:
-    | ((tradeData: TradeDataEntryLike[]) => Promise<unknown> | unknown)
-    | null;
-  primaryTeamData?: PrimaryTeamDataLike;
-  onEditContract?: ((player: PlayerLike) => void) | null;
-  worldId?: string | null;
-  worldAsOfDate?: string | Date | null;
-  userId?: string | null;
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-
-const normalizeTradeActionMeta = (
-  actionMeta: unknown
-): HookTradeActionMeta | null => {
-  return isRecord(actionMeta) ? actionMeta : null;
-};
-
-const toHookTradePlayer = (
-  player: PlayerLike | ModalPlayerLike
-): HookTradePlayer => ({
-  ...player,
-});
-
-const normalizeModalId = (
-  value: string | number | null | undefined
-): string | null | undefined => {
-  if (value == null || value === '') {
-    return value == null ? null : undefined;
-  }
-  return String(value);
-};
-
-const toEditContractModalPlayer = (player: PlayerLike): ModalPlayerLike => ({
-  ...player,
-  id: normalizeModalId(player.id),
-  player_id: normalizeModalId(player.player_id),
-  playerId: normalizeModalId(player.playerId),
-  yearsOfService:
-    typeof player.yearsOfService === 'number'
-      ? player.yearsOfService
-      : typeof player.yearsOfService === 'string'
-        ? Number(player.yearsOfService) || undefined
-        : undefined,
-  bio: player.bio
-    ? {
-        ...player.bio,
-        playerId: normalizeModalId(player.bio.playerId),
-      }
-    : undefined,
-});
-
-const normalizeRecordArray = (items: unknown) => {
-  return Array.isArray(items)
-    ? items.filter(isRecord).map((item) => ({ ...item }))
-    : [];
-};
-
-const toEditContractModalTeamCapSheet = (
-  team: TeamLike | null | undefined
-): ModalTeamCapSheetLike | undefined => {
-  if (!team) {
-    return undefined;
-  }
-
-  return {
-    ...team,
-    players: Array.isArray(team.players)
-      ? team.players.map(toEditContractModalPlayer)
-      : null,
-    capHolds: normalizeRecordArray(team.capHolds),
-    deadCap: normalizeRecordArray(team.deadCap),
-  };
-};
+import type {
+  TradeTeamCardProps,
+  ValidationDetailsPanelProps,
+  TradePreviewModalProps,
+  EditContractModalProps,
+  EntitlementLike,
+  TradeDataEntryLike,
+  TradeMachineSatModalState,
+  EntitlementEditorState,
+  SignAndTradeResult,
+  TradeEditorProps,
+  PlayerLike,
+  TeamLike,
+} from './TradeEditor.types';
+import {
+  normalizeTradeActionMeta,
+  toHookTradePlayer,
+  toEditContractModalPlayer,
+  toEditContractModalTeamCapSheet,
+} from './TradeEditor.helpers';
 
 export const TradeEditor = ({
   primaryTeam,
