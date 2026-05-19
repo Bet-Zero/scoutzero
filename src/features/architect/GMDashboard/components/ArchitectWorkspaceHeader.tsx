@@ -1,12 +1,15 @@
 /**
  * FILE: src/features/architect/GMDashboard/components/ArchitectWorkspaceHeader.tsx
- * PURPOSE: Read-only Stage 1B persistent workspace header/status strip for GMDashboard.
+ * PURPOSE: Read-only Stage 1B/1C persistent workspace header/status strip for GMDashboard.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
- * Surfaces active team, world, date, season, mode, and posture at a glance.
- * Consumes the Stage 1A workspace context seam. No mutation authority.
+ * Surfaces active team, world, date, season, mode, posture, and franchise summary indicators.
+ * Consumes the Stage 1A/1C workspace context seam. No mutation authority.
  */
-import type { ArchitectWorkspaceContext } from '../hooks/useArchitectWorkspaceContext';
+import type {
+  ArchitectWorkspaceContext,
+  ArchitectWorkspaceExceptionsSummary,
+} from '../hooks/useArchitectWorkspaceContext';
 import type { ArchitectModePresentationTone } from '../hooks/useArchitectModePresentation';
 
 interface Props {
@@ -66,8 +69,33 @@ const CapSummary = ({ cap }: { cap: CapAvailable }) => (
   </>
 );
 
+type ExceptionsAvailable = Extract<ArchitectWorkspaceExceptionsSummary, { status: 'available' }>;
+
+const ExceptionLine = ({
+  exc,
+  seasonMismatch,
+}: {
+  exc: ExceptionsAvailable;
+  seasonMismatch: boolean;
+}) => {
+  const flags: string[] = [];
+  if (exc.hasAvailableMle) flags.push('MLE');
+  if (exc.hasAvailableBae) flags.push('BAE');
+  if (exc.hasAvailableRoom) flags.push('Room Exc.');
+  if (exc.tpeCount > 0) flags.push(`TPE ×${exc.tpeCount}`);
+
+  return (
+    <span>
+      Exc: {flags.length > 0 ? flags.join(' · ') : 'none available'}
+      {seasonMismatch && (
+        <span className="ml-1 text-white/20">(world season)</span>
+      )}
+    </span>
+  );
+};
+
 export const ArchitectWorkspaceHeader = ({ context }: Props) => {
-  const { team, world, seasons, worldDate, mode, status, roster, cap } = context;
+  const { team, world, seasons, worldDate, mode, status, roster, cap, exceptions, draftAssets, recentActivity } = context;
 
   return (
     <div
@@ -170,6 +198,24 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
             <span className="italic">Cap loading…</span>
           </>
         )}
+      </div>
+
+      {/* Row 3: Franchise summary indicators — exceptions, draft assets, activity */}
+      <div className="mt-1 flex flex-wrap items-center gap-2 border-t border-white/5 pt-1.5 text-white/30">
+        {exceptions.status === 'available' && exceptions.hasAnyActive ? (
+          <ExceptionLine
+            exc={exceptions}
+            seasonMismatch={seasons.viewingSeasonDiffersFromWorldSeason === true}
+          />
+        ) : exceptions.status === 'loading' ? (
+          <span className="italic">Exceptions loading…</span>
+        ) : (
+          <span>Exceptions: see Cap Sheet</span>
+        )}
+        <Sep />
+        <span>{draftAssets.deferralHint === 'see-trade-history' ? 'Draft picks: see Trade & History' : 'Draft picks: unavailable'}</span>
+        <Sep />
+        <span>{recentActivity.entryPoint === 'history-tab' ? 'Activity: see History' : 'Activity: unavailable'}</span>
       </div>
     </div>
   );

@@ -21,11 +21,6 @@ import {
 
 type AvailabilityStatus = 'available' | 'loading' | 'unavailable';
 
-type WorkspaceSummaryPlaceholder = {
-  status: 'unavailable';
-  reason: string;
-};
-
 export type ArchitectWorkspaceTeamContext =
   | {
       status: 'available';
@@ -104,6 +99,34 @@ export type ArchitectWorkspaceCapSummary =
       reason: string;
     };
 
+export type ArchitectWorkspaceExceptionsSummary =
+  | {
+      status: 'available';
+      tpeCount: number;
+      hasAvailableMle: boolean;
+      hasAvailableBae: boolean;
+      hasAvailableRoom: boolean;
+      hasAnyActive: boolean;
+      worldSeasonBasis: true;
+    }
+  | { status: 'loading' }
+  | {
+      status: 'unavailable';
+      deferralHint: 'see-cap-sheet';
+      reason: string;
+    };
+
+export type ArchitectWorkspaceDraftAssetsSummary = {
+  status: 'unavailable';
+  deferralHint: 'see-trade-history';
+  reason: string;
+};
+
+export type ArchitectWorkspaceActivityIndicator = {
+  status: 'deferred';
+  entryPoint: 'history-tab';
+};
+
 export interface ArchitectWorkspaceStatusContext {
   isLoading: boolean;
   isSaving: boolean;
@@ -121,8 +144,9 @@ export interface ArchitectWorkspaceContext {
   status: ArchitectWorkspaceStatusContext;
   roster: ArchitectWorkspaceRosterSummary;
   cap: ArchitectWorkspaceCapSummary;
-  exceptions: WorkspaceSummaryPlaceholder;
-  draftAssets: WorkspaceSummaryPlaceholder;
+  exceptions: ArchitectWorkspaceExceptionsSummary;
+  draftAssets: ArchitectWorkspaceDraftAssetsSummary;
+  recentActivity: ArchitectWorkspaceActivityIndicator;
 }
 
 export interface ArchitectWorkspaceContextInput {
@@ -382,6 +406,47 @@ function deriveCapSummary({
   }
 }
 
+function deriveExceptionsSummary(
+  teamCapSheet: CapSheet | null | undefined,
+  isLoading: boolean
+): ArchitectWorkspaceExceptionsSummary {
+  if (isLoading && !teamCapSheet) {
+    return { status: 'loading' };
+  }
+
+  if (!teamCapSheet) {
+    return {
+      status: 'unavailable',
+      deferralHint: 'see-cap-sheet',
+      reason: 'Team cap sheet is not available.',
+    };
+  }
+
+  const exc = teamCapSheet.exceptions;
+  if (!exc) {
+    return {
+      status: 'unavailable',
+      deferralHint: 'see-cap-sheet',
+      reason: 'No exception data on cap sheet. Full details in Cap Sheet.',
+    };
+  }
+
+  const tpeCount = Array.isArray(exc.tpe) ? exc.tpe.length : 0;
+  const hasAvailableMle = exc.mle?.available === true;
+  const hasAvailableBae = exc.bae?.available === true;
+  const hasAvailableRoom = exc.room?.available === true;
+
+  return {
+    status: 'available',
+    tpeCount,
+    hasAvailableMle,
+    hasAvailableBae,
+    hasAvailableRoom,
+    hasAnyActive: tpeCount > 0 || hasAvailableMle || hasAvailableBae || hasAvailableRoom,
+    worldSeasonBasis: true,
+  };
+}
+
 export function deriveArchitectWorkspaceContext({
   teamCapSheet = null,
   teamId = null,
@@ -428,15 +493,16 @@ export function deriveArchitectWorkspaceContext({
     },
     roster: deriveRosterSummary(teamCapSheet, isLoading),
     cap: deriveCapSummary({ teamCapSheet, currentYear, isLoading }),
-    exceptions: {
-      status: 'unavailable',
-      reason:
-        'Exception and TPE posture remains with the current cap-sheet authority until a reliable workspace summary seam is added.',
-    },
+    exceptions: deriveExceptionsSummary(teamCapSheet, isLoading),
     draftAssets: {
       status: 'unavailable',
+      deferralHint: 'see-trade-history',
       reason:
         'No canonical active-world draft asset summary is exposed to the workspace context yet.',
+    },
+    recentActivity: {
+      status: 'deferred',
+      entryPoint: 'history-tab',
     },
   };
 }

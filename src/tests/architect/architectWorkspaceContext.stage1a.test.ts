@@ -14,6 +14,7 @@ import type {
   ArchitectWorldModeBoundary,
   CapSheet,
 } from '@/features/architect/GMDashboard/hooks/useArchitectState';
+import type { ArchitectExceptionsLike } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 
 const sandboxBoundary: ArchitectWorldModeBoundary = {
   kind: 'sandbox',
@@ -196,8 +197,15 @@ describe('Stage 1A Architect workspace context derivation', () => {
       expect(context.cap.source).toBe('computeTeamCapTotals');
       expect(Number.isFinite(context.cap.totalCapAllocations)).toBe(true);
     }
+    // teamFixture has no exceptions field → unavailable with see-cap-sheet hint
     expect(context.exceptions.status).toBe('unavailable');
+    if (context.exceptions.status === 'unavailable') {
+      expect(context.exceptions.deferralHint).toBe('see-cap-sheet');
+    }
     expect(context.draftAssets.status).toBe('unavailable');
+    expect(context.draftAssets.deferralHint).toBe('see-trade-history');
+    expect(context.recentActivity.status).toBe('deferred');
+    expect(context.recentActivity.entryPoint).toBe('history-tab');
   });
 
   it('does not assume selected viewing season matches authoritative world season', () => {
@@ -267,5 +275,115 @@ describe('Stage 1A Architect workspace context derivation', () => {
     expect(context.seasons.authoritativeWorldSeasonStatus).toBe('unavailable');
     expect(context.seasons.viewingSeasonDiffersFromWorldSeason).toBeNull();
     expect(context.worldDate.status).toBe('unavailable');
+  });
+});
+
+describe('Stage 1C exception summary derivation', () => {
+  const teamWithExceptions = {
+    ...teamFixture,
+    exceptions: {
+      mle: { available: true, totalAmount: 12_400_000 },
+      bae: null,
+      room: null,
+      tpe: [
+        { id: 'tpe_1', remainingAmount: 8_000_000 },
+        { id: 'tpe_2', remainingAmount: 3_500_000 },
+      ],
+    } satisfies ArchitectExceptionsLike,
+  } as CapSheet;
+
+  it('derives available exception summary from cap sheet exceptions data', () => {
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamWithExceptions,
+      currentYear: 2026,
+      worldId: 'world_deadline',
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+
+    expect(context.exceptions.status).toBe('available');
+    if (context.exceptions.status === 'available') {
+      expect(context.exceptions.hasAvailableMle).toBe(true);
+      expect(context.exceptions.hasAvailableBae).toBe(false);
+      expect(context.exceptions.hasAvailableRoom).toBe(false);
+      expect(context.exceptions.tpeCount).toBe(2);
+      expect(context.exceptions.hasAnyActive).toBe(true);
+      expect(context.exceptions.worldSeasonBasis).toBe(true);
+    }
+  });
+
+  it('returns unavailable with see-cap-sheet hint when cap sheet has no exceptions field', () => {
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamFixture,
+      currentYear: 2026,
+      worldId: 'world_deadline',
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+
+    expect(context.exceptions.status).toBe('unavailable');
+    if (context.exceptions.status === 'unavailable') {
+      expect(context.exceptions.deferralHint).toBe('see-cap-sheet');
+    }
+  });
+
+  it('returns loading when cap sheet is loading', () => {
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: null,
+      currentYear: 2026,
+      worldId: 'world_deadline',
+      isLoading: true,
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+
+    expect(context.exceptions.status).toBe('loading');
+  });
+
+  it('draft assets always carries see-trade-history deferral hint', () => {
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamFixture,
+      currentYear: 2026,
+      worldId: 'world_deadline',
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+
+    expect(context.draftAssets.status).toBe('unavailable');
+    expect(context.draftAssets.deferralHint).toBe('see-trade-history');
+  });
+
+  it('recent activity always points to history tab', () => {
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamFixture,
+      currentYear: 2026,
+      worldId: 'world_deadline',
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+
+    expect(context.recentActivity.status).toBe('deferred');
+    expect(context.recentActivity.entryPoint).toBe('history-tab');
+  });
+
+  it('hasAnyActive is false when exceptions exist but none are available', () => {
+    const teamWithEmptyExceptions = {
+      ...teamFixture,
+      exceptions: {
+        mle: null,
+        bae: null,
+        room: null,
+        tpe: [],
+      } satisfies ArchitectExceptionsLike,
+    } as CapSheet;
+
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamWithEmptyExceptions,
+      currentYear: 2026,
+      worldId: 'world_deadline',
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+
+    expect(context.exceptions.status).toBe('available');
+    if (context.exceptions.status === 'available') {
+      expect(context.exceptions.hasAnyActive).toBe(false);
+      expect(context.exceptions.tpeCount).toBe(0);
+      expect(context.exceptions.hasAvailableMle).toBe(false);
+    }
   });
 });
