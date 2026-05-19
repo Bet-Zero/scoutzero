@@ -86,9 +86,9 @@ const ExceptionLine = ({
 
   return (
     <span>
-      Exc: {flags.length > 0 ? flags.join(' · ') : 'none available'}
+      Exc: {flags.join(' · ')}
       {seasonMismatch && (
-        <span className="ml-1 text-white/20">(world season)</span>
+        <span className="ml-1 text-white/30">(world season)</span>
       )}
     </span>
   );
@@ -201,7 +201,7 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
       </div>
 
       {/* Row 3: Franchise summary indicators — exceptions, draft assets, activity */}
-      <div className="mt-1 flex flex-wrap items-center gap-2 border-t border-white/5 pt-1.5 text-white/30">
+      <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-white/5 pt-1.5 text-white/30">
         {exceptions.status === 'available' && exceptions.hasAnyActive ? (
           <ExceptionLine
             exc={exceptions}
@@ -212,10 +212,8 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
         ) : (
           <span>Exceptions: see Cap Sheet</span>
         )}
-        <Sep />
-        <span>{draftAssets.deferralHint === 'see-trade-history' ? 'Draft picks: see Trade & History' : 'Draft picks: unavailable'}</span>
-        <Sep />
-        <span>{recentActivity.entryPoint === 'history-tab' ? 'Activity: see History' : 'Activity: unavailable'}</span>
+        <span>Draft picks: see Trade & History</span>
+        <span>Activity: see History</span>
       </div>
     </div>
   );

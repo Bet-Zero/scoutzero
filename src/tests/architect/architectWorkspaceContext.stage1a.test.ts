@@ -361,6 +361,29 @@ describe('Stage 1C exception summary derivation', () => {
     expect(context.recentActivity.entryPoint).toBe('history-tab');
   });
 
+  it('worldSeasonBasis is false in sandbox mode because no active world provides season authority', () => {
+    const teamWithExceptions = {
+      ...teamFixture,
+      exceptions: {
+        mle: { available: true, totalAmount: 12_400_000 },
+        tpe: [],
+      } satisfies ArchitectExceptionsLike,
+    } as CapSheet;
+
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamWithExceptions,
+      currentYear: 2026,
+      worldId: null,
+      worldModeBoundary: sandboxBoundary,
+    });
+
+    expect(context.exceptions.status).toBe('available');
+    if (context.exceptions.status === 'available') {
+      expect(context.exceptions.worldSeasonBasis).toBe(false);
+      expect(context.exceptions.hasAvailableMle).toBe(true);
+    }
+  });
+
   it('hasAnyActive is false when exceptions exist but none are available', () => {
     const teamWithEmptyExceptions = {
       ...teamFixture,

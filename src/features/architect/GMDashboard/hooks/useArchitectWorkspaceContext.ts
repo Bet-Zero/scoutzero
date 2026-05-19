@@ -107,7 +107,7 @@ export type ArchitectWorkspaceExceptionsSummary =
       hasAvailableBae: boolean;
       hasAvailableRoom: boolean;
       hasAnyActive: boolean;
-      worldSeasonBasis: true;
+      worldSeasonBasis: boolean;
     }
   | { status: 'loading' }
   | {
@@ -408,7 +408,8 @@ function deriveCapSummary({
 
 function deriveExceptionsSummary(
   teamCapSheet: CapSheet | null | undefined,
-  isLoading: boolean
+  isLoading: boolean,
+  worldId: string | null | undefined
 ): ArchitectWorkspaceExceptionsSummary {
   if (isLoading && !teamCapSheet) {
     return { status: 'loading' };
@@ -443,7 +444,7 @@ function deriveExceptionsSummary(
     hasAvailableBae,
     hasAvailableRoom,
     hasAnyActive: tpeCount > 0 || hasAvailableMle || hasAvailableBae || hasAvailableRoom,
-    worldSeasonBasis: true,
+    worldSeasonBasis: Boolean(worldId),
   };
 }
 
@@ -493,7 +494,7 @@ export function deriveArchitectWorkspaceContext({
     },
     roster: deriveRosterSummary(teamCapSheet, isLoading),
     cap: deriveCapSummary({ teamCapSheet, currentYear, isLoading }),
-    exceptions: deriveExceptionsSummary(teamCapSheet, isLoading),
+    exceptions: deriveExceptionsSummary(teamCapSheet, isLoading, worldId),
     draftAssets: {
       status: 'unavailable',
       deferralHint: 'see-trade-history',
