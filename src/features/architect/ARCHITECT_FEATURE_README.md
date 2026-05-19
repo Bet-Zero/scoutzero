@@ -18,6 +18,9 @@ Architect is intentionally layered. The fastest way to route work is:
 
 - **Composition shell:** `GMDashboard.tsx` composes the dashboard surface only.
 - **Dashboard adapters:** `useArchitectState.ts` and `useArchitectActions.ts` coordinate dashboard state and UI actions, but they are not the final read or write authorities.
+- **World operating presentation seams:** `useArchitectModePresentation.ts` and
+  `useArchitectWorkspaceContext.ts` derive read-only labels and workspace view
+  models from dashboard-owned state for future cockpit/status UI.
 - **World lifecycle authority:** `worldManager.ts` owns world metadata, world lifecycle operations, and world-level metadata writes.
 - **World-aware read authority:** `teamLoader.ts` owns the explicit `world -> parent world -> base` fallback contract for team and player reads.
 - **Base hydration authority:** `firebaseTeamPlanHelpers.ts` owns base-only hydration for teams, players, and free agents.
@@ -33,6 +36,9 @@ Architect is intentionally layered. The fastest way to route work is:
 - **Where do world-aware reads live?** `teamLoader.ts` is the world-aware fallback authority.
 - **Where do committed writes live?** `mutationPipeline.ts` for general mutations, `worldManager.ts` for world metadata/lifecycle writes, and `seasonManager.ts` for season advancement writes.
 - **What happens without an active world?** `useArchitectState.ts` publishes the dashboard `sandbox` boundary, while `useArchitectActions.ts` may apply `local-validated` local state or preview/local-only seams without creating committed world truth.
+- **Where does Stage 1A operating context live?** The dashboard hook helpers
+  compose existing state into presentation-only mode labels and workspace
+  summaries. They do not read Firestore, write Firestore, or authorize actions.
 - **How do `mutationPipeline.ts` and `seasonManager.ts` relate?** They are sibling committed-write authorities: point-in-time world mutations go through `mutationPipeline.ts`, while whole-world season transitions go through `seasonManager.ts`.
 - **What files are orchestration/adapters?** `GMDashboard.tsx`, `useArchitectState.ts`, `useArchitectActions.ts`, and `worldTeamData.ts`.
 - **Where should cap totals and contract-year truth come from?** Use `computeTeamCapTotals.ts` for canonical team totals and `contractUtils.ts` for shared contract shaping/year lookups instead of rebuilding those calculations in downstream surfaces.
