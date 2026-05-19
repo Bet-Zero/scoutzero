@@ -76,6 +76,7 @@ export const ScenarioMoveRail = ({
       {railState.status === 'error' && (
         <p
           className="text-rose-300/70"
+          title={railState.message}
           data-testid="scenario-move-rail-error"
         >
           Unable to load recent activity.
@@ -110,7 +111,7 @@ export const ScenarioMoveRail = ({
                   {entry.summary}
                 </span>
                 {entry.occurredAt && (
-                  <span className="shrink-0 ml-auto pl-2 text-white/20">
+                  <span className="shrink-0 ml-auto pl-2 text-white/25">
                     {formatRailDate(entry.occurredAt)}
                   </span>
                 )}
@@ -118,7 +119,7 @@ export const ScenarioMoveRail = ({
             ))}
           </ul>
           {localPendingDeferred && (
-            <p className="mt-1.5 text-white/20 text-[10px]">
+            <p className="mt-1.5 text-white/30 text-[10px]">
               Local and pending activity not shown.
             </p>
           )}

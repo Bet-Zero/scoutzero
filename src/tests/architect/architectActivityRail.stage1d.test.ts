@@ -116,6 +116,10 @@ describe('Stage 1D activity rail state derivation', () => {
       });
 
       expect(state.status).toBe('available');
+      if (state.status === 'available') {
+        expect(state.entries).toHaveLength(1);
+        expect(state.entries[0].authority).toBe('committed-world');
+      }
     });
   });
 
@@ -239,6 +243,42 @@ describe('Stage 1D activity rail state derivation', () => {
       expect(state.status).toBe('available');
       if (state.status === 'available') {
         expect(state.entries[0].typeLabel).toBe('Waive');
+      }
+    });
+
+    it('uses timestamp as fallback when occurredAt is null', () => {
+      const state = deriveActivityRailState({
+        worldId: 'world_deadline',
+        normalizedEvents: [
+          makeEvent({
+            id: 'evt_1',
+            occurredAt: null,
+            timestamp: '2026-01-20T00:00:00.000Z',
+          }),
+        ],
+        loading: false,
+        error: null,
+        hasMore: false,
+      });
+
+      expect(state.status).toBe('available');
+      if (state.status === 'available') {
+        expect(state.entries[0].occurredAt).toBe('2026-01-20T00:00:00.000Z');
+      }
+    });
+
+    it('falls back to World Event label when both category and type are empty', () => {
+      const state = deriveActivityRailState({
+        worldId: 'world_deadline',
+        normalizedEvents: [makeEvent({ id: 'evt_1', category: '', type: '' })],
+        loading: false,
+        error: null,
+        hasMore: false,
+      });
+
+      expect(state.status).toBe('available');
+      if (state.status === 'available') {
+        expect(state.entries[0].typeLabel).toBe('World Event');
       }
     });
 
