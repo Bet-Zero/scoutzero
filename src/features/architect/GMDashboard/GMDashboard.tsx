@@ -30,7 +30,9 @@ import { HistorySection } from './sections/HistorySection';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
+import { ArchitectWorkspaceHeader } from '@/features/architect/GMDashboard/components/ArchitectWorkspaceHeader';
 import { useArchitectState } from './hooks/useArchitectState';
+import { useArchitectWorkspaceContext } from './hooks/useArchitectWorkspaceContext';
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
@@ -145,6 +147,21 @@ export const GMDashboard = () => {
     setOffseasonSummary,
     reloadActiveWorldTeamData,
   } = state;
+
+  const workspaceContext = useArchitectWorkspaceContext({
+    teamCapSheet,
+    teamId: normalizedTeamId,
+    currentYear,
+    worldId,
+    activeWorldLabel: null,
+    worldAsOfDate,
+    worldCurrentSeason,
+    worldMetadataLoading,
+    isLoading,
+    isSaving,
+    error,
+    worldModeBoundary,
+  });
 
   const isEmulatorMode = FIREBASE_TARGET_MODE === 'EMULATOR';
   const showEmulatorUnavailableBanner =
@@ -400,6 +417,9 @@ export const GMDashboard = () => {
           </label>
         </div>
       </div>
+
+      <ArchitectWorkspaceHeader context={workspaceContext} />
+
       {showEmulatorUnavailableBanner && (
         <div
           className="mb-3 rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-amber-100 text-sm"

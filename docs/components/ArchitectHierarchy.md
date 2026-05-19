@@ -5,6 +5,7 @@ ARCHITECT_FEATURE_README.md
 GMDashboard/
   GMDashboard.tsx
   components/
+    ArchitectWorkspaceHeader.tsx
     CapAuditDebugPanel.tsx
     DeleteWorldModal.tsx
     DraftPositionsInput.tsx
@@ -482,5 +483,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-19T09:37:18.544Z*
+*Generated on: 2026-05-19T09:52:50.573Z*
 *Auto-updated by: npm run docs*
