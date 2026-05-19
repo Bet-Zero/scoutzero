@@ -5,10 +5,12 @@ ARCHITECT_FEATURE_README.md
 GMDashboard/
   GMDashboard.tsx
   components/
+    ArchitectWorkspaceHeader.tsx
     CapAuditDebugPanel.tsx
     DeleteWorldModal.tsx
     DraftPositionsInput.tsx
     OfferSheetList.tsx
+    ScenarioMoveRail.tsx
     SeasonAdvanceModal.helpers.ts
     SeasonAdvanceModal.tsx
     SeasonAdvanceModal.types.ts
@@ -29,12 +31,15 @@ GMDashboard/
     useArchitectActions.types.normalizers.ts
     useArchitectActions.types.ts
     useArchitectModals.ts
+    useArchitectModePresentation.ts
     useArchitectState.freeAgents.ts
     useArchitectState.helpers.ts
     useArchitectState.ts
     useArchitectState.types.ts
     useArchitectState.worldLoader.ts
     useArchitectState.worldTracker.ts
+    useArchitectWorkspaceContext.ts
+    useScenarioActivityRail.ts
   offerSheetTypes.ts
   sections/
     CapSheetSection.tsx
@@ -480,5 +485,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-18T04:31:42.439Z*
+*Generated on: 2026-05-19T11:13:45.167Z*
 *Auto-updated by: npm run docs*
