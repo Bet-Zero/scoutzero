@@ -10,6 +10,7 @@ GMDashboard/
     DeleteWorldModal.tsx
     DraftPositionsInput.tsx
     OfferSheetList.tsx
+    ScenarioMoveRail.tsx
     SeasonAdvanceModal.helpers.ts
     SeasonAdvanceModal.tsx
     SeasonAdvanceModal.types.ts
@@ -38,6 +39,7 @@ GMDashboard/
     useArchitectState.worldLoader.ts
     useArchitectState.worldTracker.ts
     useArchitectWorkspaceContext.ts
+    useScenarioActivityRail.ts
   offerSheetTypes.ts
   sections/
     CapSheetSection.tsx
@@ -483,5 +485,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-19T09:52:50.573Z*
+*Generated on: 2026-05-19T11:13:45.167Z*
 *Auto-updated by: npm run docs*

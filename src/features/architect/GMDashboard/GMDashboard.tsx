@@ -31,6 +31,7 @@ import { WorldSelector } from '@/features/architect/GMDashboard/components/World
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
 import { ArchitectWorkspaceHeader } from '@/features/architect/GMDashboard/components/ArchitectWorkspaceHeader';
+import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/ScenarioMoveRail';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectWorkspaceContext } from './hooks/useArchitectWorkspaceContext';
 import { useArchitectActions } from './hooks/useArchitectActions';
@@ -419,6 +420,12 @@ export const GMDashboard = () => {
       </div>
 
       <ArchitectWorkspaceHeader context={workspaceContext} />
+
+      <ScenarioMoveRail
+        worldId={worldId}
+        teamCode={normalizedTeamId}
+        onOpenHistory={() => setActiveTab('history')}
+      />
 
       {showEmulatorUnavailableBanner && (
         <div
