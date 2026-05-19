@@ -120,7 +120,8 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
 
         {seasons.viewingSeasonDiffersFromWorldSeason === true && (
           <span className="rounded border border-amber-300/30 bg-amber-400/10 px-1.5 py-0.5 text-amber-200">
-            ⚠ Season mismatch
+            ⚠ Viewing {seasons.selectedViewingSeasonLabel ?? '?'} ≠ World{' '}
+            {seasons.authoritativeWorldSeasonLabel ?? '?'}
           </span>
         )}
 
@@ -159,13 +160,13 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
         )}
         {cap.status === 'available' && (
           <>
-            {roster.status === 'available' && <Sep />}
+            {(roster.status === 'available' || roster.status === 'loading') && <Sep />}
             <CapSummary cap={cap} />
           </>
         )}
         {cap.status === 'loading' && (
           <>
-            <Sep />
+            {(roster.status === 'available' || roster.status === 'loading') && <Sep />}
             <span className="italic">Cap loading…</span>
           </>
         )}

@@ -99,6 +99,24 @@ describe('Stage 1A Architect mode presentation', () => {
     expect(unavailable.isCommittedWorldTruth).toBe(false);
   });
 
+  it('reports error state with higher priority than loading state', () => {
+    const errorOnly = deriveArchitectModePresentation({
+      worldId: 'world_deadline',
+      error: 'Connection failed',
+    });
+    const errorDuringLoad = deriveArchitectModePresentation({
+      worldId: 'world_deadline',
+      worldMetadataLoading: true,
+      error: 'Connection failed',
+    });
+
+    expect(errorOnly.kind).toBe('error');
+    expect(errorOnly.tone).toBe('danger');
+    expect(errorOnly.isCommittedWorldTruth).toBe(false);
+    expect(errorDuringLoad.kind).toBe('error');
+    expect(errorDuringLoad.kind).not.toBe('loading');
+  });
+
   it('keeps local, pending, failed, and DEV preview labels non-committed', () => {
     expect(
       deriveArchitectEntryAuthorityPresentation('local-only-preview')
@@ -213,6 +231,23 @@ describe('Stage 1A Architect workspace context derivation', () => {
     expect(context.mode.kind).toBe('loading');
     expect(context.roster.status).toBe('loading');
     expect(context.cap.status).toBe('loading');
+  });
+
+  it('uses world id as conservative fallback label when no world name is available', () => {
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamFixture,
+      currentYear: 2026,
+      worldId: 'world_12345678abcd',
+      activeWorldLabel: null,
+      worldModeBoundary: worldBoundary('world_12345678abcd'),
+    });
+
+    expect(context.world.status).toBe('available');
+    if (context.world.status === 'available') {
+      expect(context.world.labelSource).toBe('world-id-fallback');
+      expect(context.world.label).toMatch(/^World /);
+      expect(context.world.id).toBe('world_12345678abcd');
+    }
   });
 
   it('represents no-world operation without world season authority', () => {
