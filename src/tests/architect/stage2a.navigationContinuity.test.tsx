@@ -44,24 +44,32 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 const baseMode = {
-  kind: 'world' as const,
+  kind: 'committed-world' as const,
   worldId: 'world_1',
+  label: 'Committed World',
   shortLabel: 'World',
   detail: 'Committed world mode',
   tone: 'success' as const,
+  isCommittedWorldTruth: true,
 };
 
 const baseContext: ArchitectWorkspaceContext = {
   team: { status: 'available', id: 'LAL', label: 'LAL' },
-  world: { status: 'active', worldId: 'world_1', label: 'My World' },
+  world: {
+    status: 'available',
+    id: 'world_1',
+    label: 'My World',
+    labelSource: 'provided',
+  },
   seasons: {
-    selectedViewingSeasonLabel: '2025-26',
     selectedViewingSeason: 2026,
+    selectedViewingSeasonLabel: '2025-26',
+    authoritativeWorldSeason: '2025-26',
     authoritativeWorldSeasonStatus: 'available',
     authoritativeWorldSeasonLabel: '2025-26',
     viewingSeasonDiffersFromWorldSeason: false,
   },
-  worldDate: { status: 'unavailable' },
+  worldDate: { status: 'unavailable', value: null, label: '' },
   mode: baseMode,
   status: {
     isLoading: false,
@@ -96,15 +104,16 @@ const contextWithCap: ArchitectWorkspaceContext = {
     isOverTax: false,
     isAtOrAboveFirstApron: false,
     isAboveSecondApron: false,
-    source: 'capSheet',
+    source: 'computeTeamCapTotals',
   },
 };
 
 const contextWithSeasonMismatch: ArchitectWorkspaceContext = {
   ...contextWithCap,
   seasons: {
-    selectedViewingSeasonLabel: '2024-25',
     selectedViewingSeason: 2025,
+    selectedViewingSeasonLabel: '2024-25',
+    authoritativeWorldSeason: '2025-26',
     authoritativeWorldSeasonStatus: 'available',
     authoritativeWorldSeasonLabel: '2025-26',
     viewingSeasonDiffersFromWorldSeason: true,
