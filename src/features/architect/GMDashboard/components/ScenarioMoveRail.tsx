@@ -14,6 +14,17 @@ interface ScenarioMoveRailProps {
   worldId: string | null | undefined;
   teamCode: string | null | undefined;
   onOpenHistory: () => void;
+  /**
+   * Stage 2B refresh seam. Increment to trigger a re-read of committed
+   * world events after a successful committed mutation. Sandbox/no-world
+   * mode is a no-op.
+   */
+  refreshKey?: number;
+  /**
+   * Stage 2B handoff highlight. When this matches the `id` of a rail
+   * entry, that entry renders as "just committed". Skipped when null.
+   */
+  highlightEventId?: string | null;
 }
 
 const formatRailDate = (iso: string): string => {
@@ -31,10 +42,13 @@ export const ScenarioMoveRail = ({
   worldId,
   teamCode,
   onOpenHistory,
+  refreshKey = 0,
+  highlightEventId = null,
 }: ScenarioMoveRailProps) => {
   const { railState, localPendingDeferred } = useScenarioActivityRail({
     worldId,
     teamCode,
+    refreshKey,
   });
 
   return (
@@ -98,25 +112,45 @@ export const ScenarioMoveRail = ({
             className="space-y-1.5"
             data-testid="scenario-move-rail-entries"
           >
-            {railState.entries.map((entry) => (
-              <li
-                key={entry.id}
-                className="flex items-baseline gap-2 text-white/50"
-              >
-                <span className="shrink-0 rounded border border-green-500/20 bg-green-500/10 px-1 text-green-400/60 text-[10px] leading-4">
-                  World
-                </span>
-                <span className="shrink-0">{entry.typeLabel}</span>
-                <span className="text-white/35 min-w-0 truncate">
-                  {entry.summary}
-                </span>
-                {entry.occurredAt && (
-                  <span className="shrink-0 ml-auto pl-2 text-white/25">
-                    {formatRailDate(entry.occurredAt)}
+            {railState.entries.map((entry) => {
+              const isJustCommitted = Boolean(
+                highlightEventId && entry.id === highlightEventId
+              );
+              return (
+                <li
+                  key={entry.id}
+                  className={
+                    isJustCommitted
+                      ? 'flex items-baseline gap-2 text-white/80 rounded bg-green-500/[0.06] -mx-1 px-1'
+                      : 'flex items-baseline gap-2 text-white/50'
+                  }
+                  data-testid={
+                    isJustCommitted
+                      ? 'scenario-move-rail-entry-just-committed'
+                      : undefined
+                  }
+                >
+                  <span className="shrink-0 rounded border border-green-500/20 bg-green-500/10 px-1 text-green-400/60 text-[10px] leading-4">
+                    {isJustCommitted ? 'Just now' : 'World'}
                   </span>
-                )}
-              </li>
-            ))}
+                  <span className="shrink-0">{entry.typeLabel}</span>
+                  <span
+                    className={
+                      isJustCommitted
+                        ? 'text-white/70 min-w-0 truncate'
+                        : 'text-white/35 min-w-0 truncate'
+                    }
+                  >
+                    {entry.summary}
+                  </span>
+                  {entry.occurredAt && (
+                    <span className="shrink-0 ml-auto pl-2 text-white/25">
+                      {formatRailDate(entry.occurredAt)}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {localPendingDeferred && (
             <p className="mt-1.5 text-white/30 text-[10px]">

@@ -17,7 +17,7 @@
  *  - 2025-12-12: Phase 3 refactor - extracted all handlers into useArchitectActions hook
  *  - 2025-12-14: Option B refactor - removed shadow cap sheet state, teamCapSheet is now the only source of truth
  */
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { EditContractModal } from '@/shared/components/EditContractModal';
 import { RosterSection } from './sections/RosterSection';
@@ -32,6 +32,9 @@ import { WorldTimeControls } from '@/features/architect/GMDashboard/components/W
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
 import { ArchitectWorkspaceHeader } from '@/features/architect/GMDashboard/components/ArchitectWorkspaceHeader';
 import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/ScenarioMoveRail';
+import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/components/ArchitectPostActionHandoff';
+import { useArchitectPostActionReceipt } from './hooks/useArchitectPostActionReceipt';
+import { deriveSeasonAdvanceReceipt } from './postActionHandoff/types';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectWorkspaceContext } from './hooks/useArchitectWorkspaceContext';
 import { useArchitectActions } from './hooks/useArchitectActions';
@@ -205,6 +208,8 @@ export const GMDashboard = () => {
     (selectedRulesYear && leagueContextByYear?.get(selectedRulesYear)) ||
     rulesLeagueContext;
 
+  const postActionReceipt = useArchitectPostActionReceipt();
+
   const actions = useArchitectActions({
     teamId: normalizedTeamId,
     userId,
@@ -214,7 +219,21 @@ export const GMDashboard = () => {
     modals,
     worldId,
     seasonId: toSeasonCode(currentYear),
+    publishPostActionReceipt: postActionReceipt.publish,
   });
+
+  const handleOffseasonAdvanceApplied = useCallback(
+    (aftermath: Parameters<NonNullable<OffseasonSectionProps['onAfterOffseasonAdvanceApplied']>>[0]) => {
+      const receipt = deriveSeasonAdvanceReceipt({
+        aftermath,
+        primaryTeamCode: normalizedTeamId,
+      });
+      if (receipt) {
+        postActionReceipt.publish(receipt);
+      }
+    },
+    [normalizedTeamId, postActionReceipt]
+  );
 
   const manualCapSheetMutationAuthority = useMemo(
     () => ({
@@ -362,6 +381,7 @@ export const GMDashboard = () => {
     worldSeason: worldCurrentSeason,
     worldSeasonLoading: worldMetadataLoading,
     onReloadWorldData: worldModeBoundary.onReloadWorldData,
+    onAfterOffseasonAdvanceApplied: handleOffseasonAdvanceApplied,
   };
 
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
@@ -427,10 +447,20 @@ export const GMDashboard = () => {
         onNavigateToOffseason={() => setActiveTab('offseason')}
       />
 
+      <ArchitectPostActionHandoff
+        receipt={postActionReceipt.receipt}
+        onNavigateToCapSheet={() => setActiveTab('cap')}
+        onNavigateToRoster={() => setActiveTab('roster')}
+        onNavigateToHistory={() => setActiveTab('history')}
+        onDismiss={postActionReceipt.dismiss}
+      />
+
       <ScenarioMoveRail
         worldId={worldId}
         teamCode={normalizedTeamId}
         onOpenHistory={() => setActiveTab('history')}
+        refreshKey={postActionReceipt.generation}
+        highlightEventId={postActionReceipt.receipt?.eventId ?? null}
       />
 
       {showEmulatorUnavailableBanner && (

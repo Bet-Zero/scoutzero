@@ -80,6 +80,12 @@ export type UseWorldTeamEventsArgs = {
   teamCode: string | null | undefined;
   limit?: number;
   enabled?: boolean;
+  /**
+   * Optional cache-buster: when this value changes, the initial fetch
+   * re-runs. Used as a Stage 2B refresh seam so a successful committed
+   * mutation can re-read the rail without inventing new event truth.
+   */
+  refreshKey?: number;
 };
 
 export type UseWorldTeamEventsResult = {
@@ -90,6 +96,12 @@ export type UseWorldTeamEventsResult = {
   hasMore: boolean;
   resolution: WorldTeamEventsResolution | null;
   loadMore: (() => Promise<void>) | null;
+  /**
+   * Imperative refetch of the head of the timeline. Truth source is
+   * unchanged — calls `fetchWorldTeamEvents` exactly as the initial
+   * effect does. Sandbox/no-world mode is a no-op.
+   */
+  refetch: () => Promise<void>;
 };
 
 const AUTHORITATIVE_QUERY_CONTRACT: QueryContract = {
@@ -489,6 +501,7 @@ export function useWorldTeamEvents({
   teamCode,
   limit = DEFAULT_LIMIT,
   enabled = true,
+  refreshKey = 0,
 }: UseWorldTeamEventsArgs): UseWorldTeamEventsResult {
   const [events, setEvents] = useState<WorldEventRecord[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(false);
@@ -560,7 +573,7 @@ export function useWorldTeamEvents({
     return () => {
       isActive = false;
     };
-  }, [canQuery, worldId, teamCode, limit]);
+  }, [canQuery, worldId, teamCode, limit, refreshKey]);
 
   const loadMore = useCallback(async () => {
     if (
@@ -613,6 +626,29 @@ export function useWorldTeamEvents({
     return loadMore;
   }, [hasMore, loadMore]);
 
+  const refetch = useCallback(async () => {
+    if (!canQuery || !worldId || !teamCode) {
+      return;
+    }
+    setLoadingInitial(true);
+    setError(null);
+    try {
+      const result = await fetchWorldTeamEvents({
+        worldId,
+        teamCode,
+        limit,
+      });
+      setEvents(mergeWorldEventPages(result.events));
+      setHasMore(result.hasMore);
+      setPaginationState(result.paginationState);
+      setResolution(result.resolution);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setLoadingInitial(false);
+    }
+  }, [canQuery, worldId, teamCode, limit]);
+
   return {
     events,
     loading: loadingInitial || loadingMore,
@@ -621,5 +657,6 @@ export function useWorldTeamEvents({
     hasMore,
     resolution,
     loadMore: loadMoreFn,
+    refetch,
   };
 }

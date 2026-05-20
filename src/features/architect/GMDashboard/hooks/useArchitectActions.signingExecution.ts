@@ -72,6 +72,8 @@ import type {
 } from './useArchitectActions.types';
 import type { UseArchitectStateReturn } from './useArchitectState';
 import type { PreparedCapAuditedMutationBoundary } from './useArchitectActions.persistenceHelpers';
+import type { ArchitectPostActionReceipt } from '../postActionHandoff/types';
+import { deriveReceiptFromMutationResult } from '../postActionHandoff/types';
 
 export interface UseSigningExecutionParams {
   teamCode: string;
@@ -118,6 +120,11 @@ export interface UseSigningExecutionParams {
     mutationType: string,
     result: PersistMutationResult
   ) => Promise<void>;
+  /**
+   * Stage 2B post-action receipt publisher. Receives a receipt derived
+   * from the canonical committed signing result. No-op when omitted.
+   */
+  publishPostActionReceipt?: (receipt: ArchitectPostActionReceipt) => void;
 }
 
 export function useSigningExecution({
@@ -138,6 +145,7 @@ export function useSigningExecution({
   buildCommittedWorldReloadPlan,
   applyCommittedWorldReloadPlan,
   syncTeamFromMutationResult,
+  publishPostActionReceipt,
 }: UseSigningExecutionParams) {
 
   const applyResolvedStandardSigningState = useCallback(
@@ -254,6 +262,17 @@ export function useSigningExecution({
         }
 
         toast.success('Saved changes');
+        // Stage 2B: derive a post-action receipt from the committed result.
+        if (publishPostActionReceipt) {
+          const receipt = deriveReceiptFromMutationResult({
+            mutationType: 'signFreeAgent',
+            result,
+            primaryTeamCode: teamCode || null,
+          });
+          if (receipt) {
+            publishPostActionReceipt(receipt);
+          }
+        }
         finishSave();
         return {
           success: true,
@@ -283,6 +302,8 @@ export function useSigningExecution({
       startSave,
       userId,
       worldId,
+      publishPostActionReceipt,
+      teamCode,
     ]
   );
 

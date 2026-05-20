@@ -30,6 +30,8 @@ import {
 import toast from 'react-hot-toast';
 import type { PlayerRulesProfileInput } from '@/features/architect/types';
 import type { ActionContext, EditModalContext } from './useArchitectModals';
+import type { ArchitectPostActionReceipt } from '../postActionHandoff/types';
+import { deriveReceiptFromMutationResult } from '../postActionHandoff/types';
 import {
   BASE_MODE_VALIDATOR_WORLD_ID,
   CAP_AUDIT_EVENT_SCHEMA_VERSION,
@@ -92,6 +94,13 @@ export interface UsePersistenceHelpersParams {
   finishSave: UseArchitectStateReturn['finishSave'];
   reloadActiveWorldTeamData: UseArchitectStateReturn['reloadActiveWorldTeamData'];
   refreshWorldRosterIndex: UseArchitectStateReturn['refreshWorldRosterIndex'];
+  /**
+   * Stage 2B post-action receipt publisher. Called after a successful
+   * committed mutation result resolves. Receives a receipt derived from
+   * the canonical mutation result; never invents new event truth.
+   * No-op when omitted.
+   */
+  publishPostActionReceipt?: (receipt: ArchitectPostActionReceipt) => void;
 }
 
 export function usePersistenceHelpers({
@@ -109,6 +118,7 @@ export function usePersistenceHelpers({
   finishSave,
   reloadActiveWorldTeamData,
   refreshWorldRosterIndex,
+  publishPostActionReceipt,
 }: UsePersistenceHelpersParams) {
 
   const setTeamCapSheetSafe = useCallback(
@@ -717,6 +727,19 @@ export function usePersistenceHelpers({
 
         await syncTeamFromMutationResult(mutationType, result);
         toast.success('Saved changes');
+        // Stage 2B: publish a derived post-action receipt from this
+        // already-successful committed result. Authority is unchanged —
+        // the receipt mirrors what the pipeline already returned.
+        if (publishPostActionReceipt) {
+          const receipt = deriveReceiptFromMutationResult({
+            mutationType,
+            result,
+            primaryTeamCode: teamCode || null,
+          });
+          if (receipt) {
+            publishPostActionReceipt(receipt);
+          }
+        }
         finishSave();
         return result;
       } catch (error: unknown) {
@@ -738,6 +761,8 @@ export function usePersistenceHelpers({
       worldId,
       evaluateMutationTruth,
       seasonId,
+      publishPostActionReceipt,
+      teamCode,
     ]
   );
 
