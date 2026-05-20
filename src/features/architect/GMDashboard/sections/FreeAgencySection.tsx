@@ -45,14 +45,25 @@ const FreeAgencySection = ({
   playersMap,
   outgoingOfferSheets,
   incomingOfferSheets,
+  onAfterSigningComplete,
 }: FreeAgencySectionProps) => {
   const offerSheetSectionAvailability = actionOwner.offerSheetSectionAvailability;
   const offerSheetLifecycleActionOwner =
     offerSheetSectionAvailability.lifecycleActionOwner;
   const offerSheetLifecycleDisabledReason =
     offerSheetSectionAvailability.actionsDisabledReason || undefined;
+
+  const wrappedSignFreeAgent: typeof actionOwner.dualPathSigning.signFreeAgent =
+    async (playerObj, contract) => {
+      const result = await actionOwner.dualPathSigning.signFreeAgent(playerObj, contract);
+      if (result?.success) {
+        onAfterSigningComplete?.();
+      }
+      return result;
+    };
+
   const freeAgentPoolActionOwner = {
-    dualPathSigning: actionOwner.dualPathSigning,
+    dualPathSigning: { signFreeAgent: wrappedSignFreeAgent },
     freeAgentModalAvailability: actionOwner.freeAgentModalAvailability,
   } satisfies FreeAgentPoolActionOwner;
   const incomingOfferSheetSurface = {

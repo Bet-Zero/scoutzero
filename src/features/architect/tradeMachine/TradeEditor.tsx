@@ -48,6 +48,7 @@ export const TradeEditor = ({
   currentYear,
   playersMap = {},
   onApplyTrade,
+  onAfterTradeApplied,
   primaryTeamData = null,
   onEditContract,
   worldId = null, // World ID for world-aware team loading
@@ -661,6 +662,7 @@ export const TradeEditor = ({
                 await onApplyTrade(tradeData);
                 // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
                 refreshEntitlements();
+                onAfterTradeApplied?.();
               } catch (error: unknown) {
                 console.error('[TradeEditor] Trade application failed:', error);
                 toast.error(

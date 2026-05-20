@@ -327,6 +327,7 @@ export const GMDashboard = () => {
     currentYear,
     playersMap,
     onApplyTrade: actions.applyTradeToCapSheet as TradeSectionProps['onApplyTrade'],
+    onAfterTradeApplied: () => setActiveTab('cap'),
     primaryTeamData: teamCapSheet,
     onEditContract: (player) =>
       actions.handleEditContract(
@@ -343,6 +344,7 @@ export const GMDashboard = () => {
     playersMap,
     outgoingOfferSheets: teamCapSheet?.offerSheets || [],
     incomingOfferSheets: teamCapSheet?.incomingOfferSheets || [],
+    onAfterSigningComplete: () => setActiveTab('cap'),
   };
   const offseasonSectionSurface: OffseasonSectionProps = {
     teamCapSheet,
@@ -419,7 +421,11 @@ export const GMDashboard = () => {
         </div>
       </div>
 
-      <ArchitectWorkspaceHeader context={workspaceContext} />
+      <ArchitectWorkspaceHeader
+        context={workspaceContext}
+        onNavigateToCapSheet={() => setActiveTab('cap')}
+        onNavigateToOffseason={() => setActiveTab('offseason')}
+      />
 
       <ScenarioMoveRail
         worldId={worldId}
@@ -630,7 +636,13 @@ export const GMDashboard = () => {
                 <strong>MLE reset for new season.</strong>
               </p>
             )}
-            <button type="button" onClick={closeOffseasonModal}>
+            <button
+              type="button"
+              onClick={() => {
+                closeOffseasonModal();
+                setActiveTab('cap');
+              }}
+            >
               Close
             </button>
           </div>

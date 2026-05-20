@@ -81,6 +81,7 @@ export interface TradeEditorProps {
   onApplyTrade?:
     | ((tradeData: TradeDataEntryLike[]) => Promise<unknown> | unknown)
     | null;
+  onAfterTradeApplied?: (() => void) | null;
   primaryTeamData?: PrimaryTeamDataLike;
   onEditContract?: ((player: PlayerLike) => void) | null;
   worldId?: string | null;
