@@ -141,8 +141,13 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
     expect(freeAgencySectionSource).toContain(
       'const offerSheetLifecycleDisabledReason ='
     );
+    // Stage 2A: signFreeAgent is wrapped for navigation-only (onAfterSigningComplete)
+    // but still delegates to actionOwner.dualPathSigning.signFreeAgent for the actual mutation.
     expect(freeAgencySectionSource).toContain(
-      'dualPathSigning: actionOwner.dualPathSigning,'
+      'actionOwner.dualPathSigning.signFreeAgent'
+    );
+    expect(freeAgencySectionSource).toContain(
+      'dualPathSigning: { signFreeAgent: wrappedSignFreeAgent }'
     );
     expect(freeAgencySectionSource).toContain(
       'freeAgentModalAvailability: actionOwner.freeAgentModalAvailability,'

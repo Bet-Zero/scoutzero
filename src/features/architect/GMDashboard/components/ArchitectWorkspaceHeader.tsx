@@ -14,6 +14,8 @@ import type { ArchitectModePresentationTone } from '../hooks/useArchitectModePre
 
 interface Props {
   context: ArchitectWorkspaceContext;
+  onNavigateToCapSheet?: (() => void) | null;
+  onNavigateToOffseason?: (() => void) | null;
 }
 
 const TONE_CLASS: Record<ArchitectModePresentationTone, string> = {
@@ -94,7 +96,7 @@ const ExceptionLine = ({
   );
 };
 
-export const ArchitectWorkspaceHeader = ({ context }: Props) => {
+export const ArchitectWorkspaceHeader = ({ context, onNavigateToCapSheet, onNavigateToOffseason }: Props) => {
   const { team, world, seasons, worldDate, mode, status, roster, cap, exceptions, draftAssets, recentActivity } = context;
 
   return (
@@ -147,10 +149,22 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
         )}
 
         {seasons.viewingSeasonDiffersFromWorldSeason === true && (
-          <span className="rounded border border-amber-300/30 bg-amber-400/10 px-1.5 py-0.5 text-amber-200">
-            ⚠ Viewing {seasons.selectedViewingSeasonLabel ?? '?'} ≠ World{' '}
-            {seasons.authoritativeWorldSeasonLabel ?? '?'}
-          </span>
+          onNavigateToOffseason ? (
+            <button
+              type="button"
+              onClick={onNavigateToOffseason}
+              className="rounded border border-amber-300/30 bg-amber-400/10 px-1.5 py-0.5 text-amber-200 hover:bg-amber-400/20 cursor-pointer"
+              data-testid="season-mismatch-nav-offseason"
+            >
+              ⚠ Viewing {seasons.selectedViewingSeasonLabel ?? '?'} ≠ World{' '}
+              {seasons.authoritativeWorldSeasonLabel ?? '?'}
+            </button>
+          ) : (
+            <span className="rounded border border-amber-300/30 bg-amber-400/10 px-1.5 py-0.5 text-amber-200">
+              ⚠ Viewing {seasons.selectedViewingSeasonLabel ?? '?'} ≠ World{' '}
+              {seasons.authoritativeWorldSeasonLabel ?? '?'}
+            </span>
+          )
         )}
 
         <span className="min-w-0 flex-1" />
@@ -178,7 +192,7 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
         </span>
       </div>
 
-      {/* Row 2: Compact roster count · cap posture */}
+      {/* Row 2: Compact roster count · cap posture (cap posture navigates to Cap Sheet) */}
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-white/40">
         {roster.status === 'available' && (
           <span>Roster: {roster.count}</span>
@@ -189,7 +203,18 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
         {cap.status === 'available' && (
           <>
             {(roster.status === 'available' || roster.status === 'loading') && <Sep />}
-            <CapSummary cap={cap} />
+            {onNavigateToCapSheet ? (
+              <button
+                type="button"
+                onClick={onNavigateToCapSheet}
+                className="flex items-center gap-2 hover:text-white/70 cursor-pointer"
+                data-testid="cap-posture-nav-cap-sheet"
+              >
+                <CapSummary cap={cap} />
+              </button>
+            ) : (
+              <CapSummary cap={cap} />
+            )}
           </>
         )}
         {cap.status === 'loading' && (
@@ -203,10 +228,24 @@ export const ArchitectWorkspaceHeader = ({ context }: Props) => {
       {/* Row 3: Franchise summary indicators — exceptions, draft assets, activity */}
       <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-white/5 pt-1.5 text-white/30">
         {exceptions.status === 'available' && exceptions.hasAnyActive ? (
-          <ExceptionLine
-            exc={exceptions}
-            seasonMismatch={seasons.viewingSeasonDiffersFromWorldSeason === true}
-          />
+          onNavigateToCapSheet ? (
+            <button
+              type="button"
+              onClick={onNavigateToCapSheet}
+              className="hover:text-white/60 cursor-pointer"
+              data-testid="exceptions-nav-cap-sheet"
+            >
+              <ExceptionLine
+                exc={exceptions}
+                seasonMismatch={seasons.viewingSeasonDiffersFromWorldSeason === true}
+              />
+            </button>
+          ) : (
+            <ExceptionLine
+              exc={exceptions}
+              seasonMismatch={seasons.viewingSeasonDiffersFromWorldSeason === true}
+            />
+          )
         ) : exceptions.status === 'loading' ? (
           <span className="italic">Exceptions loading…</span>
         ) : (

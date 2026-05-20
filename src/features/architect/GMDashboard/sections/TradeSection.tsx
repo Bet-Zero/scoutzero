@@ -19,6 +19,7 @@ type ForwardedTradeEditorProps = Pick<
   | 'currentYear'
   | 'playersMap'
   | 'onApplyTrade'
+  | 'onAfterTradeApplied'
   | 'primaryTeamData'
   | 'onEditContract'
   | 'worldId'
@@ -34,6 +35,7 @@ const TradeSection = ({
   currentYear,
   playersMap,
   onApplyTrade,
+  onAfterTradeApplied,
   primaryTeamData,
   onEditContract,
   worldId = null, // World ID for world-aware team loading
@@ -46,6 +48,7 @@ const TradeSection = ({
     currentYear,
     playersMap,
     onApplyTrade,
+    onAfterTradeApplied,
     primaryTeamData,
     onEditContract,
     worldId,
