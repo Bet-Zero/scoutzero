@@ -17,6 +17,8 @@ type RosterCardProps = {
   onRemove?: (event: MouseEvent<HTMLElement>) => void;
   showRemove?: boolean;
   isExport?: boolean;
+  onSelect?: (event: MouseEvent<HTMLElement>) => void;
+  isHighlighted?: boolean;
 };
 
 type RosterSectionProps = {
@@ -30,6 +32,19 @@ type RosterSectionProps = {
   onAdd?: (section: RosterSectionName, index: number) => void;
   isExport?: boolean;
   previewSpacing?: boolean;
+  /**
+   * Stage 2C navigation-only seam: clicking a player opens the existing
+   * contract modal through the dashboard-owned callback. Receives the
+   * player object so the upstream owner can route through
+   * `handleEditContract` exactly the way Cap Sheet rows already do.
+   */
+  onSelectPlayer?: (player: RosterSectionPlayer) => void;
+  /**
+   * Stage 2C focus highlight: when `isPlayerHighlighted(player)` returns
+   * true, the matching card renders a non-mutating "just changed"
+   * outline. Visual only.
+   */
+  isPlayerHighlighted?: (player: RosterSectionPlayer) => boolean;
 };
 
 const getSectionClass = (
@@ -72,6 +87,8 @@ export const RosterSection = ({
   onAdd,
   isExport = false,
   previewSpacing = false,
+  onSelectPlayer,
+  isPlayerHighlighted,
 }: RosterSectionProps) => {
   const CardComponent = cardMap[section];
   const sectionClass = getSectionClass(section, previewSpacing);
@@ -81,6 +98,10 @@ export const RosterSection = ({
     <div className={sectionClass} data-roster-section={section}>
       {players.map((player, idx) => {
         if (player) {
+          const handleSelect = onSelectPlayer
+            ? () => onSelectPlayer(player)
+            : undefined;
+          const highlighted = Boolean(isPlayerHighlighted?.(player));
           return (
             <CardComponent
               key={player.id}
@@ -92,6 +113,8 @@ export const RosterSection = ({
               }
               showRemove={showMutationControls}
               isExport={isExport}
+              onSelect={handleSelect}
+              isHighlighted={highlighted}
             />
           );
         }

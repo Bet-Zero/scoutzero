@@ -15,6 +15,8 @@ type RotationCardProps = {
   onRemove?: (event: MouseEvent<HTMLElement>) => void;
   showRemove?: boolean;
   isExport?: boolean;
+  onSelect?: (event: MouseEvent<HTMLElement>) => void;
+  isHighlighted?: boolean;
 };
 
 export const RotationCard = ({
@@ -22,6 +24,8 @@ export const RotationCard = ({
   onRemove,
   showRemove = true,
   isExport = false,
+  onSelect,
+  isHighlighted = false,
 }: RotationCardProps) => {
   if (!player) return null;
 
@@ -30,7 +34,7 @@ export const RotationCard = ({
   const normalizedId = playerId
     ? String(playerId)
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[̀-ͯ]/g, '')
         .toLowerCase()
     : 'default';
   const headshot =
@@ -38,9 +42,33 @@ export const RotationCard = ({
     player.headshotUrl ||
     `/assets/headshots/${normalizedId}.png`;
 
+  const innerCardClass = `relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border ${
+    isHighlighted ? 'border-green-400/70 ring-2 ring-green-400/40' : 'border-white/10'
+  } rounded-md overflow-hidden shadow-md flex flex-col w-[8.7rem] h-[13.05rem] text-sm hover:shadow-xl transition-all duration-200`;
+
+  const handleSelect = onSelect
+    ? (event: MouseEvent<HTMLElement>) => onSelect(event)
+    : undefined;
+  const handleKeyDown = onSelect
+    ? (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect(event as unknown as MouseEvent<HTMLElement>);
+        }
+      }
+    : undefined;
+
   return (
     <div className="relative overflow-visible p-[2px]">
-      <div className="relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border border-white/10 rounded-md overflow-hidden shadow-md flex flex-col w-[8.7rem] h-[13.05rem] text-sm hover:shadow-xl transition-all duration-200">
+      <div
+        className={`${innerCardClass} ${onSelect ? 'cursor-pointer' : ''}`}
+        onClick={handleSelect}
+        onKeyDown={handleKeyDown}
+        role={onSelect ? 'button' : undefined}
+        tabIndex={onSelect ? 0 : undefined}
+        data-roster-card-highlighted={isHighlighted ? 'true' : undefined}
+        data-testid="roster-card-rotation"
+      >
         <div className="flex-1 relative">
           <img
             src={headshot}
@@ -52,7 +80,10 @@ export const RotationCard = ({
           />
           {showRemove && (
             <button
-              onClick={onRemove}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove?.(e);
+              }}
               className="absolute top-1 right-1 text-white/10 hover:text-white text-xs bg-black/10 rounded-sm px-[4px]"
             >
               ✕

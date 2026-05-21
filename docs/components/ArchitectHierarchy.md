@@ -44,6 +44,7 @@ GMDashboard/
     useScenarioActivityRail.ts
   offerSheetTypes.ts
   postActionHandoff/
+    playerFocus.ts
     types.ts
   sections/
     CapSheetSection.tsx
@@ -489,5 +490,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-20T06:42:43.055Z*
+*Generated on: 2026-05-21T03:15:58.671Z*
 *Auto-updated by: npm run docs*

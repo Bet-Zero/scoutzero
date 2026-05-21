@@ -13,6 +13,7 @@ import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { TeamMap } from '@/constants/teamList';
 import { useParams } from 'react-router-dom';
+import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
 
 type RosterBio = Record<string, unknown> & {
   displayName?: string | null;
@@ -66,6 +67,20 @@ type RosterVisualProps = {
   teamCapSheet: RosterVisualCapSheetInput | null | undefined;
   playersMap?: RosterVisualDetailsMap;
   teamId?: string | null;
+  /**
+   * Stage 2C navigation-only seam. When provided, clicking a roster
+   * card invokes this callback with the resolved (merged) roster
+   * member. The legacy `isExport: true` constant still suppresses the
+   * legacy add/remove mutation controls — this seam is additive and
+   * does not re-enable them.
+   */
+  onSelectPlayer?: ((player: RosterDisplayMember) => void) | null;
+  /**
+   * Stage 2C focus highlight. When this id matches one of the member's
+   * canonical identity keys, the matching card renders a non-mutating
+   * "just changed" outline. Visual only.
+   */
+  highlightPlayerId?: string | null;
 };
 
 const LEGACY_ROSTER_DISPLAY_ONLY_PROPS = {
@@ -221,6 +236,8 @@ export const RosterVisual = ({
   teamCapSheet,
   playersMap = {},
   teamId: propTeamId,
+  onSelectPlayer = null,
+  highlightPlayerId = null,
 }: RosterVisualProps) => {
   const { teamId: routeTeamId } = useParams();
   const id = String(
@@ -277,6 +294,21 @@ export const RosterVisual = ({
     return roster;
   }, [teamCapSheet, playersMap]);
 
+  const handleSectionSelect = useMemo(() => {
+    if (!onSelectPlayer) return undefined;
+    return (player: unknown) =>
+      onSelectPlayer((player ?? {}) as RosterDisplayMember);
+  }, [onSelectPlayer]);
+
+  const sectionHighlightMatcher = useMemo(() => {
+    if (!highlightPlayerId) return undefined;
+    return (player: unknown) =>
+      playerMatchesFocus(
+        player as Parameters<typeof playerMatchesFocus>[0],
+        highlightPlayerId
+      );
+  }, [highlightPlayerId]);
+
   if (!roster) return null;
 
   const displayName = String(
@@ -318,16 +350,22 @@ export const RosterVisual = ({
         players={roster.starters}
         section="starters"
         {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+        onSelectPlayer={handleSectionSelect}
+        isPlayerHighlighted={sectionHighlightMatcher}
       />
       <RosterSection
         players={roster.rotation}
         section="rotation"
         {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+        onSelectPlayer={handleSectionSelect}
+        isPlayerHighlighted={sectionHighlightMatcher}
       />
       <RosterSection
         players={roster.bench}
         section="bench"
         {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+        onSelectPlayer={handleSectionSelect}
+        isPlayerHighlighted={sectionHighlightMatcher}
       />
     </div>
   );
