@@ -11,11 +11,16 @@
  *  - Latest Chunk: N/A
  */
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
-import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
+import type {
+  RequestedHistoryEventDetail,
+  TeamHistoryCapSheetLike,
+} from '@/features/architect/history/TeamHistoryTab/types';
 
 type HistorySectionProps = {
   teamCapSheet: TeamHistoryCapSheetLike | null | undefined;
   worldId?: string | null;
+  requestedHistoryEventDetail?: RequestedHistoryEventDetail | null;
+  onRequestedHistoryEventDetailHandled?: ((requestKey: number) => void) | null;
   onInjectTeamHistoryFixtures?: (() => void) | null;
   onClearTeamHistoryFixtures?: (() => void) | null;
   hasInjectedTeamHistoryFixtures?: boolean;
@@ -24,6 +29,8 @@ type HistorySectionProps = {
 const HistorySection = ({
   teamCapSheet,
   worldId,
+  requestedHistoryEventDetail,
+  onRequestedHistoryEventDetailHandled,
   onInjectTeamHistoryFixtures,
   onClearTeamHistoryFixtures,
   hasInjectedTeamHistoryFixtures,
@@ -31,6 +38,10 @@ const HistorySection = ({
   <TeamHistoryTab
     teamCapSheet={teamCapSheet!}
     worldId={worldId}
+    requestedHistoryEventDetail={requestedHistoryEventDetail}
+    onRequestedHistoryEventDetailHandled={
+      onRequestedHistoryEventDetailHandled
+    }
     onInjectTeamHistoryFixtures={onInjectTeamHistoryFixtures}
     onClearTeamHistoryFixtures={onClearTeamHistoryFixtures}
     hasInjectedTeamHistoryFixtures={hasInjectedTeamHistoryFixtures}

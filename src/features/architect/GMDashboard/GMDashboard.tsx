@@ -34,6 +34,7 @@ import { ArchitectWorkspaceHeader } from '@/features/architect/GMDashboard/compo
 import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/ScenarioMoveRail';
 import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/components/ArchitectPostActionHandoff';
 import { useArchitectPostActionReceipt } from './hooks/useArchitectPostActionReceipt';
+import { useHistoryEventDetailRequest } from './hooks/useHistoryEventDetailRequest';
 import { deriveSeasonAdvanceReceipt } from './postActionHandoff/types';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectWorkspaceContext } from './hooks/useArchitectWorkspaceContext';
@@ -212,6 +213,16 @@ export const GMDashboard = () => {
   const postActionReceipt = useArchitectPostActionReceipt(
     postActionReceiptScopeKey
   );
+  const {
+    requestedHistoryEventDetail,
+    openHistoryRoot,
+    requestHistoryEventDetail,
+    handleHistoryEventDetailHandled,
+  } = useHistoryEventDetailRequest({
+    worldId,
+    teamCode: normalizedTeamId,
+    onOpenHistory: () => setActiveTab('history'),
+  });
   // Stage 2C: derive a session-scoped focused player id from the most recent
   // committed post-action receipt. Visual-only — receipt dismiss/clear
   // automatically clears the highlight. Multi-player receipts (trades) use
@@ -462,14 +473,22 @@ export const GMDashboard = () => {
         receipt={postActionReceipt.receipt}
         onNavigateToCapSheet={() => setActiveTab('cap')}
         onNavigateToRoster={() => setActiveTab('roster')}
-        onNavigateToHistory={() => setActiveTab('history')}
+        onNavigateToHistory={() =>
+          requestHistoryEventDetail(
+            postActionReceipt.receipt?.eventId ?? null,
+            'post-action-handoff'
+          )
+        }
         onDismiss={postActionReceipt.dismiss}
       />
 
       <ScenarioMoveRail
         worldId={worldId}
         teamCode={normalizedTeamId}
-        onOpenHistory={() => setActiveTab('history')}
+        onOpenHistory={openHistoryRoot}
+        onOpenHistoryEntry={(eventId) =>
+          requestHistoryEventDetail(eventId, 'activity-rail')
+        }
         refreshKey={postActionReceipt.generation}
         highlightEventId={postActionReceipt.receipt?.eventId ?? null}
       />
@@ -550,7 +569,7 @@ export const GMDashboard = () => {
           Offseason
         </button>
         <button
-          onClick={() => setActiveTab('history')}
+          onClick={openHistoryRoot}
           className={`px-4 py-2 rounded-md text-sm font-semibold ${
             activeTab === 'history'
               ? 'bg-lakers/90 text-black'
@@ -621,6 +640,10 @@ export const GMDashboard = () => {
             onClearTeamHistoryFixtures={actions.teamHistoryDevTools.clearFixtures}
             hasInjectedTeamHistoryFixtures={
               actions.teamHistoryDevTools.hasInjectedFixtures
+            }
+            requestedHistoryEventDetail={requestedHistoryEventDetail}
+            onRequestedHistoryEventDetailHandled={
+              handleHistoryEventDetailHandled
             }
           />
         )}

@@ -14,6 +14,7 @@ interface ScenarioMoveRailProps {
   worldId: string | null | undefined;
   teamCode: string | null | undefined;
   onOpenHistory: () => void;
+  onOpenHistoryEntry?: (eventId: string) => void;
   /**
    * Stage 2B refresh seam. Increment to trigger a re-read of committed
    * world events after a successful committed mutation. Sandbox/no-world
@@ -42,6 +43,7 @@ export const ScenarioMoveRail = ({
   worldId,
   teamCode,
   onOpenHistory,
+  onOpenHistoryEntry,
   refreshKey = 0,
   highlightEventId = null,
 }: ScenarioMoveRailProps) => {
@@ -116,38 +118,43 @@ export const ScenarioMoveRail = ({
               const isJustCommitted = Boolean(
                 highlightEventId && entry.id === highlightEventId
               );
+              const entryClassName = isJustCommitted
+                ? 'flex items-baseline gap-2 text-white/80 rounded bg-green-500/[0.06] -mx-1 px-1'
+                : 'flex items-baseline gap-2 text-white/50';
               return (
                 <li
                   key={entry.id}
-                  className={
-                    isJustCommitted
-                      ? 'flex items-baseline gap-2 text-white/80 rounded bg-green-500/[0.06] -mx-1 px-1'
-                      : 'flex items-baseline gap-2 text-white/50'
-                  }
                   data-testid={
                     isJustCommitted
                       ? 'scenario-move-rail-entry-just-committed'
                       : undefined
                   }
                 >
-                  <span className="shrink-0 rounded border border-green-500/20 bg-green-500/10 px-1 text-green-400/60 text-[10px] leading-4">
-                    {isJustCommitted ? 'Just now' : 'World'}
-                  </span>
-                  <span className="shrink-0">{entry.typeLabel}</span>
-                  <span
-                    className={
-                      isJustCommitted
-                        ? 'text-white/70 min-w-0 truncate'
-                        : 'text-white/35 min-w-0 truncate'
-                    }
+                  <button
+                    type="button"
+                    onClick={() => onOpenHistoryEntry?.(entry.id)}
+                    className={`${entryClassName} w-full text-left hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30`}
+                    data-testid="scenario-move-rail-entry-button"
                   >
-                    {entry.summary}
-                  </span>
-                  {entry.occurredAt && (
-                    <span className="shrink-0 ml-auto pl-2 text-white/25">
-                      {formatRailDate(entry.occurredAt)}
+                    <span className="shrink-0 rounded border border-green-500/20 bg-green-500/10 px-1 text-green-400/60 text-[10px] leading-4">
+                      {isJustCommitted ? 'Just now' : 'World'}
                     </span>
-                  )}
+                    <span className="shrink-0">{entry.typeLabel}</span>
+                    <span
+                      className={
+                        isJustCommitted
+                          ? 'text-white/70 min-w-0 truncate'
+                          : 'text-white/35 min-w-0 truncate'
+                      }
+                    >
+                      {entry.summary}
+                    </span>
+                    {entry.occurredAt && (
+                      <span className="shrink-0 ml-auto pl-2 text-white/25">
+                        {formatRailDate(entry.occurredAt)}
+                      </span>
+                    )}
+                  </button>
                 </li>
               );
             })}

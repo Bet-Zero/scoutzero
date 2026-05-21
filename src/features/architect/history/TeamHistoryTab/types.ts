@@ -52,6 +52,18 @@ export type TeamHistorySelectedEntry = {
   truthKind: TeamHistorySelectedEntryTruthKind;
 };
 
+export type RequestedHistoryEventDetailSource =
+  | 'post-action-handoff'
+  | 'activity-rail';
+
+export type RequestedHistoryEventDetail = {
+  requestKey: number;
+  requestedSelectedEntryId: string;
+  worldId: string;
+  teamCode: string;
+  source: RequestedHistoryEventDetailSource;
+};
+
 export type TeamHistoryWaivedContractEntry = {
   id?: string | null;
   name?: string | null;
@@ -122,6 +134,8 @@ export type TeamHistoryCapSheetLike = {
 export type TeamHistoryTabProps = {
   teamCapSheet: TeamHistoryCapSheetLike;
   worldId?: string | null;
+  requestedHistoryEventDetail?: RequestedHistoryEventDetail | null;
+  onRequestedHistoryEventDetailHandled?: ((requestKey: number) => void) | null;
   onInjectTeamHistoryFixtures?: (() => void) | null;
   onClearTeamHistoryFixtures?: (() => void) | null;
   hasInjectedTeamHistoryFixtures?: boolean;

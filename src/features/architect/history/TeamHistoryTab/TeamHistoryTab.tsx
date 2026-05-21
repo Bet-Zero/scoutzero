@@ -21,6 +21,8 @@ import { WorldEventsTimeline } from './WorldEventsTimeline';
 export const TeamHistoryTab = ({
   teamCapSheet,
   worldId,
+  requestedHistoryEventDetail = null,
+  onRequestedHistoryEventDetailHandled = null,
   onInjectTeamHistoryFixtures = null,
   onClearTeamHistoryFixtures = null,
   hasInjectedTeamHistoryFixtures = false,
@@ -155,6 +157,10 @@ export const TeamHistoryTab = ({
           <WorldEventsTimeline
             worldId={worldId || ''}
             teamCode={teamCapSheet?.teamCode || null}
+            requestedHistoryEventDetail={requestedHistoryEventDetail}
+            onRequestedHistoryEventDetailHandled={
+              onRequestedHistoryEventDetailHandled
+            }
             onSelectEntry={(entry) =>
               setSelectedEntry(
                 buildSelectedHistoryEntry({
