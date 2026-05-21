@@ -82,6 +82,15 @@ export const collectPlayerFocusKeys = (
  * permissive across `id` / `player_id` / `bio.playerId` and a normalized
  * name fallback because committed receipts only carry a single
  * `playerId` token per change.
+ *
+ * Matching is **exact-equality only** on either a direct key or a
+ * normalized-name key — never a substring match. Empty / whitespace
+ * focus ids are treated as no-match (early return).
+ *
+ * Caveat: if the focus token happens to be a player name and two
+ * roster members share the exact same normalized full name, both will
+ * be highlighted. This is acceptable for a visual signal and is by
+ * design — the receipt is the authority, not the highlight.
  */
 export const playerMatchesFocus = (
   player: FocusablePlayerIdentity | null | undefined,

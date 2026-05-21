@@ -80,6 +80,35 @@ describe('Stage 2C — playerMatchesFocus', () => {
     expect(playerMatchesFocus(null, 'player_42')).toBe(false);
   });
 
+  it('treats empty-string and whitespace focus ids as no-match', () => {
+    expect(
+      playerMatchesFocus({ id: 'player_42', name: 'Jane Doe' }, '')
+    ).toBe(false);
+    expect(
+      playerMatchesFocus({ id: 'player_42', name: 'Jane Doe' }, '   ')
+    ).toBe(false);
+  });
+
+  it('does not substring-match short tokens against longer names', () => {
+    // 'doe' should not match 'janedoe' — equality on normalized keys only.
+    expect(
+      playerMatchesFocus({ name: 'Jane Doe' }, 'doe')
+    ).toBe(false);
+    expect(
+      playerMatchesFocus({ name: 'Jane Doe' }, 'jane')
+    ).toBe(false);
+  });
+
+  it('matches numeric ids against string focus tokens', () => {
+    expect(
+      playerMatchesFocus({ id: 42 }, '42')
+    ).toBe(true);
+  });
+
+  it('does not match a player without any identifying fields', () => {
+    expect(playerMatchesFocus({}, 'player_42')).toBe(false);
+  });
+
   it('collectPlayerFocusKeys gathers id + name variants', () => {
     const keys = collectPlayerFocusKeys({
       id: 'player_42',
@@ -102,6 +131,8 @@ describe('Stage 2C — legacy roster RosterSection', () => {
   const STARTER = {
     id: 'player_42',
     name: 'Jane Doe',
+    displayName: 'Jane Doe',
+    headshot: '/assets/headshots/player_42.png',
     bio: { playerId: 'player_42', displayName: 'Jane Doe', position: 'G' },
   } as const;
 
@@ -135,8 +166,20 @@ describe('Stage 2C — legacy roster RosterSection', () => {
   });
 
   it('renders the highlight outline only on matching cards', () => {
-    const MATCH = { id: 'player_42', name: 'Jane Doe', bio: { playerId: 'player_42', displayName: 'Jane Doe' } };
-    const OTHER = { id: 'player_99', name: 'John Q', bio: { playerId: 'player_99', displayName: 'John Q' } };
+    const MATCH = {
+      id: 'player_42',
+      name: 'Jane Doe',
+      displayName: 'Jane Doe',
+      headshot: '/assets/headshots/player_42.png',
+      bio: { playerId: 'player_42', displayName: 'Jane Doe', position: 'G' },
+    };
+    const OTHER = {
+      id: 'player_99',
+      name: 'John Q',
+      displayName: 'John Q',
+      headshot: '/assets/headshots/player_99.png',
+      bio: { playerId: 'player_99', displayName: 'John Q', position: 'F' },
+    };
     render(
       <LegacyRosterSection
         players={[MATCH, OTHER, null, null, null]}
@@ -165,6 +208,67 @@ describe('Stage 2C — legacy roster RosterSection', () => {
     );
     // The remove "✕" button should not be present in export mode.
     expect(screen.queryByText('✕')).toBeNull();
+  });
+
+  it('activates onSelectPlayer via Enter and Space keys', () => {
+    const onSelectPlayer = vi.fn();
+    render(
+      <LegacyRosterSection
+        players={[STARTER, null, null, null, null]}
+        section="starters"
+        isExport
+        onSelectPlayer={onSelectPlayer}
+      />
+    );
+    const card = screen.getByTestId('roster-card-starter');
+    fireEvent.keyDown(card, { key: 'Enter' });
+    expect(onSelectPlayer).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(card, { key: ' ' });
+    expect(onSelectPlayer).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores unrelated keys (no Tab/Shift/Escape activation)', () => {
+    const onSelectPlayer = vi.fn();
+    render(
+      <LegacyRosterSection
+        players={[STARTER, null, null, null, null]}
+        section="starters"
+        isExport
+        onSelectPlayer={onSelectPlayer}
+      />
+    );
+    const card = screen.getByTestId('roster-card-starter');
+    fireEvent.keyDown(card, { key: 'Tab' });
+    fireEvent.keyDown(card, { key: 'Escape' });
+    fireEvent.keyDown(card, { key: 'a' });
+    expect(onSelectPlayer).not.toHaveBeenCalled();
+  });
+
+  it('renders interactive cards with role=button and tabIndex=0', () => {
+    render(
+      <LegacyRosterSection
+        players={[STARTER, null, null, null, null]}
+        section="starters"
+        isExport
+        onSelectPlayer={vi.fn()}
+      />
+    );
+    const card = screen.getByTestId('roster-card-starter');
+    expect(card).toHaveAttribute('role', 'button');
+    expect(card).toHaveAttribute('tabIndex', '0');
+  });
+
+  it('renders non-interactive cards without role=button or tabIndex', () => {
+    render(
+      <LegacyRosterSection
+        players={[STARTER, null, null, null, null]}
+        section="starters"
+        isExport
+      />
+    );
+    const card = screen.getByTestId('roster-card-starter');
+    expect(card).not.toHaveAttribute('role');
+    expect(card).not.toHaveAttribute('tabIndex');
   });
 });
 
