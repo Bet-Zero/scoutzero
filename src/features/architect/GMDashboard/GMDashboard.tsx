@@ -41,6 +41,7 @@ import { useArchitectWorkspaceContext } from './hooks/useArchitectWorkspaceConte
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
+import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
   FIREBASE_TARGET_MODE,
@@ -167,6 +168,14 @@ export const GMDashboard = () => {
     error,
     worldModeBoundary,
   });
+  const resolvedHistoryTeamCode = useMemo(() => {
+    const capSheetTeamCode = String(teamCapSheet?.teamCode ?? '').trim();
+    return (
+      capSheetTeamCode ||
+      resolveTeamCode(normalizedTeamId) ||
+      normalizedTeamId
+    );
+  }, [normalizedTeamId, teamCapSheet?.teamCode]);
 
   const isEmulatorMode = FIREBASE_TARGET_MODE === 'EMULATOR';
   const showEmulatorUnavailableBanner =
@@ -209,7 +218,10 @@ export const GMDashboard = () => {
     (selectedRulesYear && leagueContextByYear?.get(selectedRulesYear)) ||
     rulesLeagueContext;
 
-  const postActionReceiptScopeKey = `${worldId ?? 'sandbox'}:${normalizedTeamId}`;
+  const postActionReceiptScopeKey = [
+    worldId ?? 'sandbox',
+    resolvedHistoryTeamCode,
+  ].join(':');
   const postActionReceipt = useArchitectPostActionReceipt(
     postActionReceiptScopeKey
   );
@@ -220,7 +232,7 @@ export const GMDashboard = () => {
     handleHistoryEventDetailHandled,
   } = useHistoryEventDetailRequest({
     worldId,
-    teamCode: normalizedTeamId,
+    teamCode: resolvedHistoryTeamCode,
     onOpenHistory: () => setActiveTab('history'),
   });
   // Stage 2C: derive a session-scoped focused player id from the most recent
@@ -484,7 +496,7 @@ export const GMDashboard = () => {
 
       <ScenarioMoveRail
         worldId={worldId}
-        teamCode={normalizedTeamId}
+        teamCode={resolvedHistoryTeamCode}
         onOpenHistory={openHistoryRoot}
         onOpenHistoryEntry={(eventId) =>
           requestHistoryEventDetail(eventId, 'activity-rail')

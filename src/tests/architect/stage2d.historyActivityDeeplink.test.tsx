@@ -8,6 +8,8 @@
  */
 
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import React, { useState } from 'react';
 import '@testing-library/jest-dom/vitest';
 import {
@@ -275,6 +277,58 @@ describe('Stage 2D — History / Activity deep-linking', () => {
     });
   });
 
+  it('waits for committed timeline rows before acknowledging a request', async () => {
+    const onSelectEntry = vi.fn();
+    const onHandled = vi.fn();
+    const request: RequestedHistoryEventDetail = {
+      requestKey: 2,
+      requestedSelectedEntryId: 'evt_trade_1',
+      worldId: 'world_lal',
+      teamCode: 'LAL',
+      source: 'activity-rail',
+    };
+
+    useWorldTeamEventsMock.mockReturnValueOnce({
+      events: [],
+      loading: true,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+      refetch: vi.fn(),
+    });
+
+    const { rerender } = render(
+      <WorldEventsTimeline
+        worldId="world_lal"
+        teamCode="LAL"
+        onSelectEntry={onSelectEntry}
+        requestedHistoryEventDetail={request}
+        onRequestedHistoryEventDetailHandled={onHandled}
+      />
+    );
+
+    expect(onSelectEntry).not.toHaveBeenCalled();
+    expect(onHandled).not.toHaveBeenCalled();
+
+    mockWorldEvents([makeTradeEvent()]);
+    rerender(
+      <WorldEventsTimeline
+        worldId="world_lal"
+        teamCode="LAL"
+        onSelectEntry={onSelectEntry}
+        requestedHistoryEventDetail={request}
+        onRequestedHistoryEventDetailHandled={onHandled}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onSelectEntry).toHaveBeenCalledTimes(1);
+      expect(onHandled).toHaveBeenCalledWith(2);
+    });
+  });
+
   it('acknowledges a missing requested id without selecting or synthesizing a row', async () => {
     const onSelectEntry = vi.fn();
     const onHandled = vi.fn();
@@ -351,5 +405,30 @@ describe('Stage 2D — History / Activity deep-linking', () => {
       Number(firstKey) + 1
     );
     expect(onOpenHistory).toHaveBeenCalledTimes(2);
+  });
+
+  it('wires dashboard History requests and rail reads through resolved team codes', () => {
+    const source = readFileSync(
+      resolve(
+        process.cwd(),
+        'src/features/architect/GMDashboard/GMDashboard.tsx'
+      ),
+      'utf8'
+    );
+
+    expect(source).toContain('const resolvedHistoryTeamCode = useMemo');
+    expect(source).toContain('resolveTeamCode(normalizedTeamId)');
+    expect(source).toMatch(
+      /useHistoryEventDetailRequest\(\{\s*worldId,\s*teamCode: resolvedHistoryTeamCode,/
+    );
+    expect(source).not.toMatch(
+      /useHistoryEventDetailRequest\(\{\s*worldId,\s*teamCode: normalizedTeamId,/
+    );
+    expect(source).toMatch(
+      /<ScenarioMoveRail[\s\S]*?teamCode=\{resolvedHistoryTeamCode\}/
+    );
+    expect(source).not.toMatch(
+      /<ScenarioMoveRail[\s\S]*?teamCode=\{normalizedTeamId\}/
+    );
   });
 });
