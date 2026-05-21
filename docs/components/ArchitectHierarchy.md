@@ -41,6 +41,7 @@ GMDashboard/
     useArchitectState.worldLoader.ts
     useArchitectState.worldTracker.ts
     useArchitectWorkspaceContext.ts
+    useHistoryEventDetailRequest.ts
     useScenarioActivityRail.ts
   offerSheetTypes.ts
   postActionHandoff/
@@ -490,5 +491,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-21T03:15:58.671Z*
+*Generated on: 2026-05-21T05:23:30.365Z*
 *Auto-updated by: npm run docs*

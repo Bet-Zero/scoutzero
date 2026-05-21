@@ -1,21 +1,27 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
 import {
   normalizeWorldEventsForTeamHistory,
   type TeamHistoryWorldEventRow,
 } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
+import type { RequestedHistoryEventDetail } from './types';
 
 type WorldEventsTimelineProps = {
   worldId: string;
   teamCode: string | null;
   onSelectEntry: (entry: TeamHistoryWorldEventRow) => void;
+  requestedHistoryEventDetail?: RequestedHistoryEventDetail | null;
+  onRequestedHistoryEventDetailHandled?: ((requestKey: number) => void) | null;
 };
 
 export const WorldEventsTimeline = ({
   worldId,
   teamCode,
   onSelectEntry,
+  requestedHistoryEventDetail = null,
+  onRequestedHistoryEventDetailHandled = null,
 }: WorldEventsTimelineProps) => {
+  const handledRequestKeyRef = useRef<number | null>(null);
   const {
     events,
     loading,
@@ -35,6 +41,47 @@ export const WorldEventsTimeline = ({
     () => normalizeWorldEventsForTeamHistory(events, teamCode),
     [events, teamCode]
   );
+
+  useEffect(() => {
+    if (!requestedHistoryEventDetail) {
+      return;
+    }
+    if (
+      handledRequestKeyRef.current === requestedHistoryEventDetail.requestKey
+    ) {
+      return;
+    }
+    if (
+      requestedHistoryEventDetail.worldId !== worldId ||
+      requestedHistoryEventDetail.teamCode !== teamCode
+    ) {
+      return;
+    }
+    if (loading) {
+      return;
+    }
+
+    const requestedId = requestedHistoryEventDetail.requestedSelectedEntryId;
+    const matchedEntry = timelineRows.find(
+      (entry) => entry.eventId === requestedId || entry.id === requestedId
+    );
+
+    handledRequestKeyRef.current = requestedHistoryEventDetail.requestKey;
+    if (matchedEntry) {
+      onSelectEntry(matchedEntry);
+    }
+    onRequestedHistoryEventDetailHandled?.(
+      requestedHistoryEventDetail.requestKey
+    );
+  }, [
+    requestedHistoryEventDetail,
+    worldId,
+    teamCode,
+    loading,
+    timelineRows,
+    onSelectEntry,
+    onRequestedHistoryEventDetailHandled,
+  ]);
 
   if (loading && timelineRows.length === 0) {
     return (
