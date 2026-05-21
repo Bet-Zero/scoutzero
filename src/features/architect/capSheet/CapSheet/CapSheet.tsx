@@ -31,6 +31,7 @@ import { getCapPercentage } from '@/features/architect/utils/basicArchitectUtils
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
 import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
+import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
 
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
@@ -137,6 +138,12 @@ type CapSheetProps = {
   // Legacy alias kept temporarily so older tests/helpers do not silently break.
   onSelectPlayer?: ((player: CapSheetPlayerLike) => void) | null;
   manualCapSheetMutationAuthority?: ManualCapSheetMutationAuthority | null;
+  /**
+   * Stage 2C: receipt-derived focused player id. The matching player
+   * row renders a non-mutating "just changed" outline. Visual only —
+   * no cap totals impact, no row reordering, no action behavior change.
+   */
+  highlightPlayerId?: string | null;
 };
 
 const CAP_SHEET_SURFACE_LABELS = {
@@ -154,6 +161,7 @@ export const CapSheet = ({
   onOpenPlayerContractModal,
   onSelectPlayer,
   manualCapSheetMutationAuthority,
+  highlightPlayerId = null,
 }: CapSheetProps) => {
   const [internalSelectedYear, setInternalSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
@@ -495,11 +503,18 @@ export const CapSheet = ({
             // Use canonicalTotals.salaryCap (SSOT) for cap % to match totals display
             const capPct = getCapPercentage(capHit, canonicalTotals.salaryCap || 1);
             const capPctDisplay = capPct ? `${capPct}%` : '—';
+            const isHighlighted = playerMatchesFocus(player, highlightPlayerId);
+            const rowHighlightClass = isHighlighted
+              ? 'ring-1 ring-inset ring-green-400/40 bg-green-500/[0.04]'
+              : 'hover:bg-white/[0.02]';
 
             return (
               <div
                 key={`${player.name}-${idx}`}
-                className="grid grid-cols-[2fr,0.8fr,0.6fr,1.2fr,0.8fr,1.2fr,1.5fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02] transition-colors group"
+                className={`grid grid-cols-[2fr,0.8fr,0.6fr,1.2fr,0.8fr,1.2fr,1.5fr] gap-2 px-4 py-2 items-center transition-colors group ${rowHighlightClass}`}
+                data-testid={
+                  isHighlighted ? 'cap-sheet-player-row-highlighted' : undefined
+                }
               >
                 <div className="font-medium text-xs text-white/90 truncate">
                   <button

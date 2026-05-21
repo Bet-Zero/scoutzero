@@ -7,6 +7,7 @@ type ForwardedCapTableProps = Pick<
   | 'onLaunchContractAction'
   | 'onRenounceCapHold'
   | 'getRulesProfileForYear'
+  | 'highlightPlayerId'
 >;
 
 type CapTableSectionProps = ForwardedCapTableProps & {
@@ -22,6 +23,7 @@ const CapTableSection = ({
   onRenounceCapHold,
   playersMap,
   getRulesProfileForYear,
+  highlightPlayerId = null,
 }: CapTableSectionProps) => (
   <CapSheetFull
     teamCapSheet={teamCapSheet}
@@ -30,6 +32,7 @@ const CapTableSection = ({
     onLaunchContractAction={onLaunchContractAction}
     onRenounceCapHold={onRenounceCapHold}
     getRulesProfileForYear={getRulesProfileForYear}
+    highlightPlayerId={highlightPlayerId}
   />
 );
 

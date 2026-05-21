@@ -212,6 +212,13 @@ export const GMDashboard = () => {
   const postActionReceipt = useArchitectPostActionReceipt(
     postActionReceiptScopeKey
   );
+  // Stage 2C: derive a session-scoped focused player id from the most recent
+  // committed post-action receipt. Visual-only — receipt dismiss/clear
+  // automatically clears the highlight. Multi-player receipts (trades) use
+  // the first primary id; matching is name-fallback tolerant in
+  // playerMatchesFocus.
+  const focusedPlayerId =
+    postActionReceipt.receipt?.primaryPlayerIds?.[0] ?? null;
 
   const actions = useArchitectActions({
     teamId: normalizedTeamId,
@@ -342,6 +349,7 @@ export const GMDashboard = () => {
     manualCapSheetMutationAuthority,
     playersMap,
     capSheetDevFixtureControls: actions.capSheetDevTools,
+    highlightPlayerId: focusedPlayerId,
   };
   const tradeSectionSurface: TradeSectionProps = {
     primaryTeam: normalizedTeamId,
@@ -559,6 +567,12 @@ export const GMDashboard = () => {
             teamCapSheet={teamCapSheet}
             playersMap={playersMap}
             teamId={normalizedTeamId}
+            onOpenPlayerContractModal={(player) =>
+              actions.handleEditContract(
+                player as Parameters<typeof actions.handleEditContract>[0]
+              )
+            }
+            highlightPlayerId={focusedPlayerId}
           />
         )}
 
@@ -581,6 +595,7 @@ export const GMDashboard = () => {
             }
             playersMap={playersMap}
             getRulesProfileForYear={getProfileForYear}
+            highlightPlayerId={focusedPlayerId}
           />
         )}
 

@@ -22,6 +22,7 @@ import {
 } from '@/features/architect/utils/contractUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { BirdRightsIcon } from '@/shared/components/BirdRightsIcon';
+import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
 
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
@@ -80,6 +81,12 @@ type CapSheetFullProps = {
   getRulesProfileForYear?:
     | ((player: CapSheetFullPlayerLike, year: number) => RulesProfileLike)
     | null;
+  /**
+   * Stage 2C: receipt-derived focused player id. The matching player
+   * row (sticky name column + year cells) renders a non-mutating
+   * "just changed" outline. Visual only.
+   */
+  highlightPlayerId?: string | null;
 };
 
 const CAP_SHEET_FULL_SURFACE_LABELS = {
@@ -171,6 +178,7 @@ export const CapSheetFull = ({
   onSelectPlayer,
   onActionClick,
   getRulesProfileForYear = null,
+  highlightPlayerId = null,
 }: CapSheetFullProps) => {
   const [showCapHolds, setShowCapHolds] = useState(false);
   const openPlayerContractModal =
@@ -332,10 +340,23 @@ export const CapSheetFull = ({
                     const extensionEligibleYear = getExtensionEligibleYear(
                       profileForCurrentYear
                     );
+                    const isRowHighlighted = playerMatchesFocus(
+                      player,
+                      highlightPlayerId
+                    );
                     return (
                       <div
                         key={idx}
-                        className={`grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] hover:bg-white/[0.02] transition-colors group ${isTwoWay ? 'opacity-70' : ''}`}
+                        className={`grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] transition-colors group ${
+                          isRowHighlighted
+                            ? 'ring-1 ring-inset ring-green-400/40 bg-green-500/[0.04]'
+                            : 'hover:bg-white/[0.02]'
+                        } ${isTwoWay ? 'opacity-70' : ''}`}
+                        data-testid={
+                          isRowHighlighted
+                            ? 'cap-sheet-full-player-row-highlighted'
+                            : undefined
+                        }
                       >
                         {/* Player Name (Sticky) */}
                         <div className="sticky left-0 z-10 bg-[#0f0f0f] group-hover:bg-[#131313] px-4 py-2 flex items-center gap-2 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.4)] transition-colors h-[36px]">
