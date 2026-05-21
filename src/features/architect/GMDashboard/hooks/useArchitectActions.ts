@@ -300,6 +300,7 @@ export function useArchitectActions({
   modals,
   worldId,
   seasonId,
+  publishPostActionReceipt,
 }: UseArchitectActionsParams): UseArchitectActionsReturn {
   // Normalize teamId (route slug like "lakers") to canonical teamCode (like "LAL")
   // This ensures all mutation payloads use the same team code format as Firestore base teams
@@ -357,6 +358,7 @@ export function useArchitectActions({
     finishSave,
     reloadActiveWorldTeamData: reloadActiveWorldTeamData!,
     refreshWorldRosterIndex,
+    publishPostActionReceipt,
   });
 
 
@@ -389,6 +391,7 @@ export function useArchitectActions({
     buildCommittedWorldReloadPlan,
     applyCommittedWorldReloadPlan,
     syncTeamFromMutationResult,
+    publishPostActionReceipt,
   });
 
 

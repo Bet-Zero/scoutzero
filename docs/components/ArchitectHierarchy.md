@@ -5,6 +5,7 @@ ARCHITECT_FEATURE_README.md
 GMDashboard/
   GMDashboard.tsx
   components/
+    ArchitectPostActionHandoff.tsx
     ArchitectWorkspaceHeader.tsx
     CapAuditDebugPanel.tsx
     DeleteWorldModal.tsx
@@ -32,6 +33,7 @@ GMDashboard/
     useArchitectActions.types.ts
     useArchitectModals.ts
     useArchitectModePresentation.ts
+    useArchitectPostActionReceipt.ts
     useArchitectState.freeAgents.ts
     useArchitectState.helpers.ts
     useArchitectState.ts
@@ -41,6 +43,8 @@ GMDashboard/
     useArchitectWorkspaceContext.ts
     useScenarioActivityRail.ts
   offerSheetTypes.ts
+  postActionHandoff/
+    types.ts
   sections/
     CapSheetSection.tsx
     CapTableSection.tsx
@@ -485,5 +489,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-19T11:13:45.167Z*
+*Generated on: 2026-05-20T06:42:43.055Z*
 *Auto-updated by: npm run docs*

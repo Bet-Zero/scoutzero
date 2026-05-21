@@ -637,6 +637,14 @@ export interface UseArchitectActionsParams {
   modals: ArchitectModalsForActions;
   worldId: string | null;
   seasonId: string;
+  /**
+   * Stage 2B post-action receipt publisher. Optional; when provided,
+   * successful committed mutations route through internal publishers
+   * which derive receipts from canonical mutation results.
+   */
+  publishPostActionReceipt?: (
+    receipt: import('../postActionHandoff/types').ArchitectPostActionReceipt
+  ) => void;
 }
 
 /**

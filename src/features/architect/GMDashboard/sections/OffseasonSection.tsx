@@ -94,6 +94,12 @@ type OffseasonSectionProps = {
   worldSeason?: string | null;
   worldSeasonLoading?: boolean;
   onReloadWorldData?: WorldAdvanceReloadHandler | null;
+  /**
+   * Stage 2B: fired after a successful committed season advance, once the
+   * authoritative aftermath has been applied to dashboard state. Receives
+   * the canonical aftermath data; callers may derive a receipt from it.
+   */
+  onAfterOffseasonAdvanceApplied?: (aftermath: WorldAdvanceAftermath) => void;
 };
 
 type WorldBackedOffseasonSurfaceProps = {
@@ -501,6 +507,7 @@ const OffseasonSection = ({
   worldSeason = null,
   worldSeasonLoading = false,
   onReloadWorldData,
+  onAfterOffseasonAdvanceApplied,
 }: OffseasonSectionProps) => {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const [worldAdvanceReloadError, setWorldAdvanceReloadError] = useState<
@@ -541,6 +548,12 @@ const OffseasonSection = ({
         }
       );
 
+      // Stage 2B: hand authoritative aftermath data to the dashboard so a
+      // post-action receipt can be derived. No new event truth is created.
+      onAfterOffseasonAdvanceApplied?.(
+        committedWorldAdvancePlan.immediateAftermath
+      );
+
       if (onReloadWorldData) {
         try {
           await onReloadWorldData(
@@ -570,6 +583,7 @@ const OffseasonSection = ({
       setShowOffseasonModal,
       setWorldAdvanceReloadError,
       onReloadWorldData,
+      onAfterOffseasonAdvanceApplied,
     ]
   );
 

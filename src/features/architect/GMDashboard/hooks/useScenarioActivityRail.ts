@@ -88,24 +88,33 @@ export function deriveActivityRailState({
 export interface UseScenarioActivityRailArgs {
   worldId: string | null | undefined;
   teamCode: string | null | undefined;
+  /**
+   * Stage 2B refresh seam. When this value changes, the underlying
+   * committed-events fetch re-runs. Sandbox/no-world mode is a no-op.
+   * Truth source is unchanged — local/pending entries are never synthesized.
+   */
+  refreshKey?: number;
 }
 
 export interface UseScenarioActivityRailResult {
   railState: ArchitectActivityRailState;
   localPendingDeferred: true;
+  refetch: () => Promise<void>;
 }
 
 export function useScenarioActivityRail({
   worldId,
   teamCode,
+  refreshKey = 0,
 }: UseScenarioActivityRailArgs): UseScenarioActivityRailResult {
   const enabled = Boolean(worldId && teamCode);
 
-  const { events: rawEvents, loading, error, hasMore } = useWorldTeamEvents({
+  const { events: rawEvents, loading, error, hasMore, refetch } = useWorldTeamEvents({
     worldId: worldId ?? null,
     teamCode: teamCode ?? null,
     limit: RAIL_EVENT_LIMIT,
     enabled,
+    refreshKey,
   });
 
   const normalizedEvents = useMemo(
@@ -131,5 +140,6 @@ export function useScenarioActivityRail({
   return {
     railState,
     localPendingDeferred: true,
+    refetch,
   };
 }
