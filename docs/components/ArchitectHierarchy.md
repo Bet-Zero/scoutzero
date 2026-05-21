@@ -31,6 +31,7 @@ GMDashboard/
     useArchitectActions.ts
     useArchitectActions.types.normalizers.ts
     useArchitectActions.types.ts
+    useArchitectComparisonViewModel.ts
     useArchitectModals.ts
     useArchitectModePresentation.ts
     useArchitectPostActionReceipt.ts
@@ -50,6 +51,7 @@ GMDashboard/
   sections/
     CapSheetSection.tsx
     CapTableSection.tsx
+    ComparisonSection.tsx
     FreeAgencySection.tsx
     HistorySection.tsx
     OffseasonSection.tsx
@@ -498,5 +500,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-21T07:27:58.300Z*
+*Generated on: 2026-05-21T07:56:11.819Z*
 *Auto-updated by: npm run docs*
