@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import {
   deriveReceiptFromMutationResult,
@@ -21,11 +21,38 @@ import {
 import { useArchitectPostActionReceipt } from '@/features/architect/GMDashboard/hooks/useArchitectPostActionReceipt';
 import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/components/ArchitectPostActionHandoff';
 import { useScenarioActivityRail } from '@/features/architect/GMDashboard/hooks/useScenarioActivityRail';
+import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
 import type { PersistMutationResult } from '@/features/architect/GMDashboard/hooks/useArchitectActions.types';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
 
+const firestoreGetDocsSpy = vi.hoisted(() => vi.fn());
+
+vi.mock('@/firebaseConfig', () => ({
+  db: {},
+}));
+
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn((...args: unknown[]) => ({ type: 'collection', args })),
+  getDocs: firestoreGetDocsSpy,
+  limit: vi.fn((count: number) => ({ type: 'limit', count })),
+  orderBy: vi.fn((field: string, direction: string) => ({
+    type: 'orderBy',
+    field,
+    direction,
+  })),
+  query: vi.fn((...args: unknown[]) => ({ type: 'query', args })),
+  startAfter: vi.fn((doc: unknown) => ({ type: 'startAfter', doc })),
+  where: vi.fn((field: string, operator: string, value: unknown) => ({
+    type: 'where',
+    field,
+    operator,
+    value,
+  })),
+}));
+
 afterEach(() => {
   cleanup();
+  firestoreGetDocsSpy.mockReset();
 });
 
 // ---------------------------------------------------------------------------
@@ -35,6 +62,8 @@ afterEach(() => {
 describe('Stage 2B — deriveReceiptFromMutationResult', () => {
   const baseSuccessResult: PersistMutationResult = {
     success: true,
+    appliedToLocalState: true,
+    persistedToWorld: true,
     changedTeams: [
       { teamCode: 'LAL', team: {} as never },
       { teamCode: 'BOS', team: {} as never },
@@ -86,6 +115,24 @@ describe('Stage 2B — deriveReceiptFromMutationResult', () => {
     ).toBeNull();
   });
 
+  it('returns null for explicitly skipped or non-persisted results', () => {
+    expect(
+      deriveReceiptFromMutationResult({
+        mutationType: 'executeTrade',
+        result: { ...baseSuccessResult, skipped: true },
+        primaryTeamCode: 'LAL',
+      })
+    ).toBeNull();
+
+    expect(
+      deriveReceiptFromMutationResult({
+        mutationType: 'executeTrade',
+        result: { ...baseSuccessResult, persistedToWorld: false },
+        primaryTeamCode: 'LAL',
+      })
+    ).toBeNull();
+  });
+
   it('returns null when result is missing entirely', () => {
     expect(
       deriveReceiptFromMutationResult({
@@ -99,6 +146,8 @@ describe('Stage 2B — deriveReceiptFromMutationResult', () => {
   it('falls back to writesSummary.teamCodes when changedTeams is empty', () => {
     const result: PersistMutationResult = {
       success: true,
+      appliedToLocalState: true,
+      persistedToWorld: true,
       changedTeams: [],
       writesSummary: {
         teamsPatched: 1,
@@ -233,6 +282,23 @@ describe('Stage 2B — useArchitectPostActionReceipt', () => {
     expect(result.current.generation).toBe(generationAfterPublish);
   });
 
+  it('clears the active receipt when the world/team scope changes', () => {
+    const { result, rerender } = renderHook(
+      ({ scopeKey }: { scopeKey: string }) =>
+        useArchitectPostActionReceipt(scopeKey),
+      { initialProps: { scopeKey: 'world_1:LAL' } }
+    );
+    act(() => {
+      result.current.publish(makeReceipt());
+    });
+    const generationAfterPublish = result.current.generation;
+
+    rerender({ scopeKey: 'world_1:BOS' });
+
+    expect(result.current.receipt).toBeNull();
+    expect(result.current.generation).toBe(generationAfterPublish);
+  });
+
   it('publishing null is a no-op', () => {
     const { result } = renderHook(() => useArchitectPostActionReceipt());
     act(() => {
@@ -288,7 +354,7 @@ describe('Stage 2B — ArchitectPostActionHandoff', () => {
 
     expect(screen.getByTestId('architect-post-action-handoff')).toBeInTheDocument();
     expect(screen.getByTestId('post-action-handoff-status-chip')).toHaveTextContent(
-      'Committed'
+      'Committed world'
     );
     expect(screen.getByTestId('post-action-handoff-headline')).toHaveTextContent(
       'Trade applied'
@@ -382,32 +448,18 @@ describe('Stage 2B — ArchitectPostActionHandoff', () => {
 // useScenarioActivityRail — refresh seam in sandbox/no-world mode
 // ---------------------------------------------------------------------------
 
-// Mock the Firestore-backed events fetch so we can assert the rail does not
-// re-trigger fetches in sandbox/no-world mode, but does when worldId is set.
-const fetchSpy = vi.fn(async () => ({
-  events: [],
-  hasMore: false,
-  paginationState: {
-    contracts: {} as never,
-    seenContracts: [] as never,
-  } as never,
-  resolution: 'empty' as const,
-}));
-
-vi.mock('@/features/architect/history/hooks/useWorldTeamEvents', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/features/architect/history/hooks/useWorldTeamEvents')
-  >('@/features/architect/history/hooks/useWorldTeamEvents');
-  return {
-    ...actual,
-    fetchWorldTeamEvents: (...args: unknown[]) => fetchSpy(...(args as [])),
-  };
+const makeWorldEventDoc = (id: string, data: Record<string, unknown> = {}) => ({
+  id,
+  data: () => data,
 });
+
+const makeWorldEventsSnapshot = (
+  docs: Array<ReturnType<typeof makeWorldEventDoc>>
+) => ({ docs });
 
 describe('Stage 2B — useScenarioActivityRail refresh seam', () => {
   it('does not fetch in sandbox/no-world mode regardless of refreshKey', async () => {
-    fetchSpy.mockClear();
-    const { rerender } = renderHook(
+    const { result, rerender } = renderHook(
       ({ refreshKey }: { refreshKey: number }) =>
         useScenarioActivityRail({
           worldId: null,
@@ -419,7 +471,8 @@ describe('Stage 2B — useScenarioActivityRail refresh seam', () => {
     rerender({ refreshKey: 1 });
     rerender({ refreshKey: 2 });
     // Sandbox status — no fetch should ever be issued.
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(result.current.railState.status).toBe('sandbox');
+    expect(firestoreGetDocsSpy).not.toHaveBeenCalled();
   });
 
   it('returns sandbox rail state when worldId is missing', () => {
@@ -431,5 +484,74 @@ describe('Stage 2B — useScenarioActivityRail refresh seam', () => {
     );
     expect(result.current.railState.status).toBe('sandbox');
     expect(typeof result.current.refetch).toBe('function');
+  });
+
+  it('preserves previous committed entries while refreshKey refetches', async () => {
+    let resolveRefresh:
+      | ((snapshot: ReturnType<typeof makeWorldEventsSnapshot>) => void)
+      | null = null;
+    firestoreGetDocsSpy
+      .mockResolvedValueOnce(
+        makeWorldEventsSnapshot([
+          makeWorldEventDoc('evt_existing', {
+            occurredAt: '2026-05-01T00:00:00.000Z',
+            teamCodes: ['LAL'],
+            summary: 'Existing committed event',
+          }),
+        ])
+      )
+      .mockResolvedValueOnce(makeWorldEventsSnapshot([]))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveRefresh = resolve;
+          })
+      )
+      .mockResolvedValueOnce(makeWorldEventsSnapshot([]));
+
+    const { result, rerender } = renderHook(
+      ({ refreshKey }: { refreshKey: number }) =>
+        useWorldTeamEvents({
+          worldId: 'world_1',
+          teamCode: 'LAL',
+          limit: 1,
+          refreshKey,
+        }),
+      { initialProps: { refreshKey: 0 } }
+    );
+
+    await waitFor(() => {
+      expect(result.current.events.map((event) => event.id)).toEqual([
+        'evt_existing',
+      ]);
+    });
+
+    rerender({ refreshKey: 1 });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(true);
+    });
+    expect(result.current.events.map((event) => event.id)).toEqual([
+      'evt_existing',
+    ]);
+
+    act(() => {
+      resolveRefresh?.(
+        makeWorldEventsSnapshot([
+          makeWorldEventDoc('evt_refreshed', {
+            occurredAt: '2026-05-02T00:00:00.000Z',
+            teamCodes: ['LAL'],
+            summary: 'Refreshed committed event',
+          }),
+        ])
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.events.map((event) => event.id)).toEqual([
+        'evt_refreshed',
+      ]);
+      expect(result.current.loading).toBe(false);
+    });
   });
 });

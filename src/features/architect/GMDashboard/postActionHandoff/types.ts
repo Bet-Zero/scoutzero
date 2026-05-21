@@ -29,7 +29,7 @@ export interface ArchitectPostActionReceipt {
   primaryTeamCode: string | null;
   primaryPlayerIds: string[];
   message?: string;
-  authority?: 'committed-world';
+  authority: 'committed-world';
 }
 
 const HEADLINE_BY_KIND: Record<ArchitectPostActionReceiptKind, string> = {
@@ -138,7 +138,13 @@ export function deriveReceiptFromMutationResult({
   occurredAt = null,
   headlineOverride,
 }: DeriveReceiptFromMutationResultArgs): ArchitectPostActionReceipt | null {
-  if (!result || result.success !== true) {
+  if (
+    !result ||
+    result.success !== true ||
+    result.skipped === true ||
+    result.persistedToWorld === false ||
+    result.appliedToLocalState === false
+  ) {
     return null;
   }
 

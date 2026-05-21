@@ -121,6 +121,21 @@ describe('Stage 1D activity rail state derivation', () => {
         expect(state.entries[0].authority).toBe('committed-world');
       }
     });
+
+    it('keeps stale committed entries visible while a refresh is loading', () => {
+      const state = deriveActivityRailState({
+        worldId: 'world_deadline',
+        normalizedEvents: [makeEvent({ summary: 'Previously loaded event' })],
+        loading: true,
+        error: null,
+        hasMore: false,
+      });
+
+      expect(state.status).toBe('available');
+      if (state.status === 'available') {
+        expect(state.entries[0].summary).toBe('Previously loaded event');
+      }
+    });
   });
 
   describe('world active — empty events', () => {

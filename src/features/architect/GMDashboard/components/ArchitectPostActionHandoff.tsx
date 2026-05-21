@@ -65,7 +65,7 @@ export const ArchitectPostActionHandoff = ({
           className="rounded border border-green-400/40 bg-green-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-200"
           data-testid="post-action-handoff-status-chip"
         >
-          Committed
+          Committed world
         </span>
         <span
           className="font-semibold text-white/90"

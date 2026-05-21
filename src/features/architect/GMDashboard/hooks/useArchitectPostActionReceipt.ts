@@ -11,7 +11,7 @@
  *
  * Session-scoped only. Never persisted to Firestore. No new write authority.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ArchitectPostActionReceipt } from '../postActionHandoff/types';
 
 export interface UseArchitectPostActionReceiptResult {
@@ -21,11 +21,25 @@ export interface UseArchitectPostActionReceiptResult {
   dismiss: () => void;
 }
 
-export function useArchitectPostActionReceipt(): UseArchitectPostActionReceiptResult {
+export function useArchitectPostActionReceipt(
+  scopeKey?: string | null
+): UseArchitectPostActionReceiptResult {
   const [receipt, setReceipt] = useState<ArchitectPostActionReceipt | null>(
     null
   );
   const [generation, setGeneration] = useState(0);
+  const lastScopeKeyRef = useRef<string | null | undefined>(scopeKey);
+
+  useEffect(() => {
+    if (scopeKey === undefined) {
+      return;
+    }
+    if (lastScopeKeyRef.current === scopeKey) {
+      return;
+    }
+    lastScopeKeyRef.current = scopeKey;
+    setReceipt(null);
+  }, [scopeKey]);
 
   const publish = useCallback(
     (next: ArchitectPostActionReceipt | null) => {

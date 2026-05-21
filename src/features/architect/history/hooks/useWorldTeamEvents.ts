@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   collection,
   getDocs,
@@ -514,11 +514,16 @@ export function useWorldTeamEvents({
     useState<WorldTeamEventsResolution | null>(null);
 
   const canQuery = Boolean(enabled && worldId && teamCode);
+  const requestScopeKey = canQuery
+    ? `${worldId}:${teamCode}:${normalizePageSize(limit)}`
+    : null;
+  const lastRequestScopeKeyRef = useRef<string | null>(requestScopeKey);
 
   useEffect(() => {
     let isActive = true;
 
     if (!canQuery || !worldId || !teamCode) {
+      lastRequestScopeKeyRef.current = null;
       setEvents([]);
       setLoadingInitial(false);
       setLoadingMore(false);
@@ -531,10 +536,15 @@ export function useWorldTeamEvents({
       };
     }
 
-    setEvents([]);
-    setHasMore(false);
-    setPaginationState(null);
-    setResolution(null);
+    const isRefreshOnly = lastRequestScopeKeyRef.current === requestScopeKey;
+    lastRequestScopeKeyRef.current = requestScopeKey;
+
+    if (!isRefreshOnly) {
+      setEvents([]);
+      setHasMore(false);
+      setPaginationState(null);
+      setResolution(null);
+    }
     setLoadingInitial(true);
     setLoadingMore(false);
     setError(null);
@@ -557,10 +567,12 @@ export function useWorldTeamEvents({
         if (!isActive) {
           return;
         }
-        setEvents([]);
-        setHasMore(false);
-        setPaginationState(null);
-        setResolution(null);
+        if (!isRefreshOnly) {
+          setEvents([]);
+          setHasMore(false);
+          setPaginationState(null);
+          setResolution(null);
+        }
         setError(caught instanceof Error ? caught.message : String(caught));
       })
       .finally(() => {
@@ -573,7 +585,7 @@ export function useWorldTeamEvents({
     return () => {
       isActive = false;
     };
-  }, [canQuery, worldId, teamCode, limit, refreshKey]);
+  }, [canQuery, worldId, teamCode, limit, refreshKey, requestScopeKey]);
 
   const loadMore = useCallback(async () => {
     if (

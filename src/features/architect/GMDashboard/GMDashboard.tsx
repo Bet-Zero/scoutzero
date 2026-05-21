@@ -208,7 +208,10 @@ export const GMDashboard = () => {
     (selectedRulesYear && leagueContextByYear?.get(selectedRulesYear)) ||
     rulesLeagueContext;
 
-  const postActionReceipt = useArchitectPostActionReceipt();
+  const postActionReceiptScopeKey = `${worldId ?? 'sandbox'}:${normalizedTeamId}`;
+  const postActionReceipt = useArchitectPostActionReceipt(
+    postActionReceiptScopeKey
+  );
 
   const actions = useArchitectActions({
     teamId: normalizedTeamId,
@@ -700,4 +703,3 @@ export const GMDashboard = () => {
     </div>
   );
 };
-
