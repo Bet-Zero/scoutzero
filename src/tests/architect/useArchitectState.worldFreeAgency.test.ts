@@ -129,6 +129,10 @@ describe('useArchitectState world-aware free agency pool', () => {
   });
 
   it('excludes world-rostered players and includes unrostered players after refresh', async () => {
+    // Mock drift fix (Stage 6B): use mockResolvedValueOnce only for the first
+    // call (initial world load) and mockResolvedValue for the post-refresh
+    // stable state. The product code can call getLeague more than twice
+    // across React render lifecycles, so the final value must hold.
     stateMocks.getLeague
       .mockResolvedValueOnce([
         {
@@ -137,7 +141,7 @@ describe('useArchitectState world-aware free agency pool', () => {
           players: [{ id: 'player_a' }],
         },
       ])
-      .mockResolvedValueOnce([
+      .mockResolvedValue([
         {
           teamCode: 'LAL',
           roster: ['player_a', 'player_b'],
@@ -183,9 +187,12 @@ describe('useArchitectState world-aware free agency pool', () => {
   });
 
   it('fails closed on world roster index load failure and recovers on successful refresh', async () => {
+    // Mock drift fix (Stage 6B): use mockResolvedValueOnce only for the
+    // initial failing call, mockResolvedValue for the stable post-recovery
+    // state so additional render-cycle calls don't return undefined.
     stateMocks.getLeague
       .mockRejectedValueOnce(new Error('league unavailable'))
-      .mockResolvedValueOnce([
+      .mockResolvedValue([
         {
           teamCode: 'LAL',
           roster: ['player_a'],

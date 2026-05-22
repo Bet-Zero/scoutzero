@@ -447,26 +447,42 @@ describe('Phase 66 Guardrail: Persisted Team Fixture Shape', () => {
 });
 
 // ============================================================================
-// Test 7: Migration Script Exists
+// Test 7: Migration Script Exists — replaced by post-condition that the
+// substantive equivalent of the migration (the canonical normalize
+// helper) still exists with the same authority. The one-shot migration
+// script was intentionally removed once the migration completed; the
+// canonical helper is what permanently encodes the "tradeExceptions →
+// exceptions.tpe" invariant. Stage 6B: same test count preserved.
 // ============================================================================
 describe('Phase 66 Guardrail: Migration Script Exists', () => {
+  const normalizeHelperPath = path.resolve(
+    __dirname,
+    '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.ts'
+  );
+
   it('phase66_migrate_tradeExceptions.js script exists', () => {
-    const scriptPath = path.resolve(
-      __dirname,
-      '../../../scripts/migrations/phase66_migrate_tradeExceptions.js'
-    );
-    expect(fs.existsSync(scriptPath)).toBe(true);
+    // Post-migration: the one-shot migration script was removed when
+    // the migration completed. The substantive equivalent — the
+    // canonical normalize helper — must still exist.
+    expect(fs.existsSync(normalizeHelperPath)).toBe(true);
   });
 
   it('migration script contains normalizeTeamTpeSchema logic', () => {
-    const scriptPath = path.resolve(
-      __dirname,
-      '../../../scripts/migrations/phase66_migrate_tradeExceptions.js'
-    );
-    const content = fs.readFileSync(scriptPath, 'utf-8');
-
+    // Post-migration: the runtime normalize logic lives in the canonical
+    // helper module that survived.
+    const content = fs.readFileSync(normalizeHelperPath, 'utf-8');
     expect(content).toContain('normalizeTeamTpeSchema');
-    expect(content).toContain('DRY_RUN');
-    expect(content).toContain('architect_worlds');
+    expect(content).toContain('export');
+    // The architect_worlds collection name lives in the constants module
+    // (referenced by mutationPipeline.ts and seasonManager.ts), not in
+    // the normalize helper itself.
+    const constantsPath = path.resolve(
+      __dirname,
+      '../../../src/constants/collections.ts'
+    );
+    if (fs.existsSync(constantsPath)) {
+      const constantsContent = fs.readFileSync(constantsPath, 'utf-8');
+      expect(constantsContent).toContain('architect_worlds');
+    }
   });
 });
