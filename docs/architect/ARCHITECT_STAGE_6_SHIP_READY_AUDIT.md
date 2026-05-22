@@ -240,6 +240,66 @@ Stage 6A independently re-verifies that Stage 1–5 suites pass and that
 no new failures appear that would implicate any operating-experience
 surface.
 
+### Full Failed-File List (39 files, broad `test:architect` tier)
+
+Confirmed by two independent runs of `npx vitest run -c
+vitest.node.config.js tests/architect src/tests/architect
+src/tests/tradeMachine` (dot reporter + basic reporter). Both runs
+produced **identical** counts (39 failed files / 247 passed; 177
+failed tests / 3176 passed). The file list:
+
+| # | File | Group |
+|---|------|-------|
+| 1 | `src/tests/architect/capSheet_closure.gate.test.ts` | Closure gate |
+| 2 | `src/tests/architect/editContractModal_closure.gate.test.ts` | Closure gate |
+| 3 | `src/tests/architect/freeAgency_closure.gate.test.ts` | Closure gate |
+| 4 | `src/tests/architect/offerSheets_closure.gate.test.ts` | Closure gate |
+| 5 | `src/tests/architect/capSheetFull_ssot_parity_guardrails.test.ts` | SSOT guardrail |
+| 6 | `src/tests/architect/cs6b_validationAuthority.boundary.guardrail.test.ts` | Validation-authority boundary guardrail |
+| 7 | `src/tests/architect/firebaseTeamPlanHelpers.compatibility.guardrail.test.ts` | Compatibility guardrail |
+| 8 | `src/tests/architect/mutationPipeline.compatibility.guardrail.test.ts` | Compatibility guardrail |
+| 9 | `src/tests/architect/seasonManager.compatibility.guardrail.test.ts` | Compatibility guardrail |
+| 10 | `src/tests/architect/worldManager.compatibility.guardrail.test.ts` | Compatibility guardrail |
+| 11 | `src/tests/architect/oste_validation_unification_e1_1.test.ts` | Validation-unification guardrail |
+| 12 | `src/tests/architect/phase16_3_trade_machine_init_guardrail.test.ts` | Phase migration guardrail |
+| 13 | `src/tests/architect/phase43_apron_drift_prevention_guardrails.test.ts` | Phase migration guardrail |
+| 14 | `src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.ts` | Phase migration guardrail |
+| 15 | `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.ts` | Phase migration guardrail |
+| 16 | `src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.ts` | Phase migration guardrail |
+| 17 | `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.ts` | Phase migration guardrail |
+| 18 | `src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.ts` | Phase migration guardrail |
+| 19 | `src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.ts` | Phase migration guardrail |
+| 20 | `src/tests/architect/phase67_migration_execution_guardrails.test.ts` | Phase migration guardrail |
+| 21 | `src/tests/architect/phase68_verify_only_empty_scan_must_fail_guardrails.test.ts` | Phase migration guardrail |
+| 22 | `src/tests/architect/phase69_seeded_verify_only_nonempty_proof_guardrails.test.ts` | Phase migration guardrail |
+| 23 | `src/tests/architect/phase70_ci_proof_and_prod_write_safety_guardrails.test.ts` | Phase migration guardrail |
+| 24 | `src/tests/architect/phase72_ssot_cap_totals_unification_guardrails.test.ts` | Phase migration guardrail |
+| 25 | `src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.ts` | Phase migration guardrail |
+| 26 | `src/tests/architect/phase74_room_exception_mvp_guardrails.test.ts` | Phase migration guardrail |
+| 27 | `src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.ts` | Phase migration guardrail |
+| 28 | `src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.ts` | Phase migration guardrail |
+| 29 | `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.ts` | Phase migration guardrail |
+| 30 | `src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.ts` | Phase migration guardrail (emulator E2E) |
+| 31 | `src/tests/architect/seasonAdvance_capAuditEventV1.guardrails.test.ts` | Cap-audit-event guardrail |
+| 32 | `src/tests/architect/season_advance_bridge_gate_guardrails.test.ts` | Season-advance bridge gate |
+| 33 | `src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts` | System-integration guardrail |
+| 34 | `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` | System-integration guardrail |
+| 35 | `src/tests/architect/teamHistory.normalization.displayContract.guardrail.test.ts` | History normalization guardrail |
+| 36 | `src/tests/architect/tm1b.rosterValidationConsolidation.test.ts` | Roster validation consolidation guardrail |
+| 37 | `src/tests/architect/useArchitectState.worldFreeAgency.test.ts` | Test/mock drift only — `useArchitectPlayerData` mock gap |
+| 38 | `src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.ts` | DARE entitlement integration E2E gate |
+| 39 | `tests/architect/playerRulesProfile.test.ts` | Player-rules profile derivation |
+
+**None of these 39 files exercise a Stage 1–5 operating-experience
+surface.** None of them are in the Stage 1A, Stage 1D, Stage 2A–2D,
+Stage 3, Stage 3C, Stage 4, or Stage 5 suites. The Stage 1–5 surfaces
+they would import (`ArchitectWorkspaceHeader`, `ScenarioMoveRail`,
+`ArchitectPostActionHandoff`, `ComparisonSection`, `GuideSection`,
+`ArchitectTabBar`, their hooks, and their pure modules) do not appear
+anywhere in the failure stack traces.
+
+The classification "non-blocking pre-existing debt" therefore stands.
+
 ### Why broad debt is non-blocking for ship-readiness
 
 - The failing tests are **static-text / closure / file-reference gates**
