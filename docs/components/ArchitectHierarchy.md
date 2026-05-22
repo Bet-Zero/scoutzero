@@ -31,6 +31,7 @@ GMDashboard/
     useArchitectActions.ts
     useArchitectActions.types.normalizers.ts
     useArchitectActions.types.ts
+    useArchitectComparisonViewModel.ts
     useArchitectModals.ts
     useArchitectModePresentation.ts
     useArchitectPostActionReceipt.ts
@@ -50,6 +51,7 @@ GMDashboard/
   sections/
     CapSheetSection.tsx
     CapTableSection.tsx
+    ComparisonSection.tsx
     FreeAgencySection.tsx
     HistorySection.tsx
     OffseasonSection.tsx
@@ -103,6 +105,13 @@ capSheet/
   modals/
     ManageDeadMoneyModal.tsx
     ManageExceptionsModal.tsx
+comparison/
+  capDelta.ts
+  deriveComparisonViewModel.ts
+  index.ts
+  rosterDelta.ts
+  seasonMismatch.ts
+  types.ts
 constants/
   playerNameCorrections.ts
 contract/
@@ -491,5 +500,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-21T05:23:30.365Z*
+*Generated on: 2026-05-21T07:56:11.819Z*
 *Auto-updated by: npm run docs*

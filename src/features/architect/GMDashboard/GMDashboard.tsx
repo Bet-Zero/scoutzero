@@ -27,6 +27,8 @@ import { TradeSection } from './sections/TradeSection';
 import { FreeAgencySection } from './sections/FreeAgencySection';
 import { OffseasonSection } from './sections/OffseasonSection';
 import { HistorySection } from './sections/HistorySection';
+import { ComparisonSection } from './sections/ComparisonSection';
+import { useArchitectComparisonViewModel } from './hooks/useArchitectComparisonViewModel';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
@@ -242,6 +244,38 @@ export const GMDashboard = () => {
   // playerMatchesFocus.
   const focusedPlayerId =
     postActionReceipt.receipt?.primaryPlayerIds?.[0] ?? null;
+
+  // Stage 3C: derive current roster player ids from teamCapSheet for comparison.
+  const comparisonRosterPlayerIds = useMemo(() => {
+    const players = teamCapSheet?.players;
+    if (!Array.isArray(players)) return [];
+    const ids: string[] = [];
+    for (const p of players) {
+      if (!p || typeof p !== 'object') continue;
+      const player = p as Record<string, unknown>;
+      const bio = player['bio'] as Record<string, unknown> | null | undefined;
+      const id =
+        (typeof player['id'] === 'string' ? player['id'] : null) ??
+        (typeof player['player_id'] === 'string' ? player['player_id'] : null) ??
+        (typeof bio?.['playerId'] === 'string' ? bio['playerId'] : null);
+      if (id && id.trim()) ids.push(id.trim());
+    }
+    return ids;
+  }, [teamCapSheet?.players]);
+
+  const comparisonWorldName =
+    workspaceContext.world.status !== 'sandbox'
+      ? workspaceContext.world.label
+      : null;
+
+  const comparisonViewModel = useArchitectComparisonViewModel({
+    worldId,
+    teamCode: resolvedHistoryTeamCode,
+    worldName: comparisonWorldName,
+    baselineSeason: null,
+    currentSeason: worldCurrentSeason ?? null,
+    currentRosterPlayerIds: comparisonRosterPlayerIds,
+  });
 
   const actions = useArchitectActions({
     teamId: normalizedTeamId,
@@ -590,6 +624,17 @@ export const GMDashboard = () => {
         >
           Team History
         </button>
+        <button
+          onClick={() => setActiveTab('compare')}
+          data-testid="tab-compare"
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'compare'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Compare
+        </button>
       </div>
 
       <div className="tab-content space-y-6">
@@ -640,6 +685,17 @@ export const GMDashboard = () => {
 
         {activeTab === 'offseason' && (
           <OffseasonSection {...offseasonSectionSurface} />
+        )}
+
+        {activeTab === 'compare' && (
+          <ComparisonSection
+            status={comparisonViewModel.status}
+            viewModel={comparisonViewModel.viewModel}
+            error={comparisonViewModel.error}
+            onNavigateToHistory={openHistoryRoot}
+            onNavigateToCapSheet={() => setActiveTab('cap')}
+            onNavigateToRoster={() => setActiveTab('roster')}
+          />
         )}
 
         {activeTab === 'history' && (
