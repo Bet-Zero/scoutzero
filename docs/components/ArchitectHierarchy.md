@@ -6,6 +6,7 @@ GMDashboard/
   GMDashboard.tsx
   components/
     ArchitectPostActionHandoff.tsx
+    ArchitectTabBar.tsx
     ArchitectWorkspaceHeader.tsx
     CapAuditDebugPanel.tsx
     DeleteWorldModal.tsx
@@ -512,5 +513,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-22T02:32:03.227Z*
+*Generated on: 2026-05-22T04:02:41.735Z*
 *Auto-updated by: npm run docs*

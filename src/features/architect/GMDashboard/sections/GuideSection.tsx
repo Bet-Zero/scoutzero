@@ -145,8 +145,10 @@ const NavigationButton = ({ target, onNavigate }: NavigationButtonProps) => (
   <button
     type="button"
     onClick={() => onNavigate(target.id)}
-    className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors"
+    className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
     data-testid={`guide-nav-${target.id}`}
+    title="Navigation only — opens the existing surface"
+    aria-label={`${target.label} (navigation only)`}
   >
     {target.label}
   </button>
@@ -290,27 +292,37 @@ export const GuideSection: React.FC<GuideSectionProps> = ({
 
   return (
     <div className="space-y-4" data-testid="guide-section">
-      <div
-        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-3 flex flex-wrap items-center gap-2"
+      <header
+        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-3 space-y-1"
         data-testid="guide-scope"
       >
-        <AuthorityChip
-          label={viewModel.scope.sandbox ? 'Sandbox' : 'Committed World'}
-        />
-        <span className="text-sm font-semibold text-white/80">
-          {viewModel.scope.teamCode}
-        </span>
-        {viewModel.scope.season && (
-          <span className="text-xs text-white/40">
-            Season {viewModel.scope.season}
+        <div className="flex flex-wrap items-baseline gap-2">
+          <h2 className="text-sm font-semibold text-white/80">
+            Front Office Guide
+          </h2>
+          <span className="text-[11px] text-white/40">
+            Read-only · Deterministic · Navigation only
           </span>
-        )}
-        {viewModel.scope.sandbox && (
-          <span className="text-xs text-white/40 italic">
-            Scenario answers require an active world.
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <AuthorityChip
+            label={viewModel.scope.sandbox ? 'Sandbox' : 'Committed world'}
+          />
+          <span className="text-sm font-semibold text-white/80">
+            {viewModel.scope.teamCode}
           </span>
-        )}
-      </div>
+          {viewModel.scope.season && (
+            <span className="text-xs text-white/40">
+              Season {viewModel.scope.season}
+            </span>
+          )}
+          {viewModel.scope.sandbox && (
+            <span className="text-xs text-white/40 italic">
+              Scenario answers require an active world.
+            </span>
+          )}
+        </div>
+      </header>
 
       {FAMILY_ORDER.map((family) => (
         <FamilyGroup

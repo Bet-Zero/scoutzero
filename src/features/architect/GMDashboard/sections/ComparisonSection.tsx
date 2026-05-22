@@ -208,10 +208,14 @@ export const ComparisonSection = ({
   if (status === 'loading') {
     return (
       <div
-        className="text-sm text-white/40 py-4"
+        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-6 text-center"
         data-testid="comparison-loading-state"
+        role="status"
+        aria-live="polite"
       >
-        Loading comparison data…
+        <p className="text-sm text-white/50 italic">
+          Loading comparison data…
+        </p>
       </div>
     );
   }
@@ -221,8 +225,9 @@ export const ComparisonSection = ({
       <div
         className="rounded-md border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
         data-testid="comparison-error-state"
+        role="alert"
       >
-        Error loading comparison data{error ? `: ${error}` : '.'}
+        Unable to load comparison data{error ? `: ${error}` : '.'}
       </div>
     );
   }
@@ -230,8 +235,13 @@ export const ComparisonSection = ({
   // Available — viewModel must exist at this point
   if (!viewModel) {
     return (
-      <div className="text-sm text-white/40 py-4" data-testid="comparison-available">
-        No comparison data available.
+      <div
+        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-6 text-center"
+        data-testid="comparison-available"
+      >
+        <p className="text-sm text-white/40 italic">
+          No comparison data available.
+        </p>
       </div>
     );
   }
@@ -243,8 +253,16 @@ export const ComparisonSection = ({
     <div className="space-y-4" data-testid="comparison-available">
       {/* Scope header */}
       <SectionCard testId="comparison-scope">
+        <div className="flex flex-wrap items-baseline gap-2 mb-1">
+          <h2 className="text-sm font-semibold text-white/80">
+            Committed Scenario Comparison
+          </h2>
+          <span className="text-[11px] text-white/40">
+            Read-only · Event-derived
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-2 mb-1">
-          <AuthorityChip label="Committed World" />
+          <AuthorityChip label="Committed world" />
           {scope.worldName && (
             <span className="text-sm font-semibold text-white/80">
               {scope.worldName}
@@ -283,12 +301,16 @@ export const ComparisonSection = ({
           )}
         </div>
 
-        {/* Navigation */}
-        <div className="flex flex-wrap gap-2 mt-2">
+        {/* Navigation — read-only deep links to existing surfaces */}
+        <div
+          className="flex flex-wrap gap-2 mt-2"
+          aria-label="Navigation only — opens existing surfaces"
+        >
           {onNavigateToHistory && (
             <button
+              type="button"
               onClick={onNavigateToHistory}
-              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors"
+              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
               data-testid="comparison-nav-history"
             >
               View History
@@ -296,20 +318,22 @@ export const ComparisonSection = ({
           )}
           {onNavigateToCapSheet && (
             <button
+              type="button"
               onClick={onNavigateToCapSheet}
-              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors"
+              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
               data-testid="comparison-nav-cap-sheet"
             >
-              Cap Sheet
+              View Cap Sheet
             </button>
           )}
           {onNavigateToRoster && (
             <button
+              type="button"
               onClick={onNavigateToRoster}
-              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors"
+              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
               data-testid="comparison-nav-roster"
             >
-              Roster
+              View Roster
             </button>
           )}
         </div>
@@ -400,6 +424,9 @@ export const ComparisonSection = ({
       {viewModel.unavailableSummary.length > 0 && (
         <SectionCard testId="comparison-unavailable-summary">
           <SectionHeading>Deferred / Unavailable</SectionHeading>
+          <p className="text-[11px] text-white/30 mb-1">
+            These deltas are not surfaced in this read-only comparison.
+          </p>
           <UnavailableList entries={viewModel.unavailableSummary} />
         </SectionCard>
       )}

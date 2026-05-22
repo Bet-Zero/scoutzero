@@ -38,6 +38,10 @@ import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/
 import { ArchitectWorkspaceHeader } from '@/features/architect/GMDashboard/components/ArchitectWorkspaceHeader';
 import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/ScenarioMoveRail';
 import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/components/ArchitectPostActionHandoff';
+import {
+  ArchitectTabBar,
+  type ArchitectTabDescriptor,
+} from '@/features/architect/GMDashboard/components/ArchitectTabBar';
 import { useArchitectPostActionReceipt } from './hooks/useArchitectPostActionReceipt';
 import { useHistoryEventDetailRequest } from './hooks/useHistoryEventDetailRequest';
 import { deriveSeasonAdvanceReceipt } from './postActionHandoff/types';
@@ -497,6 +501,55 @@ export const GMDashboard = () => {
     onAfterOffseasonAdvanceApplied: handleOffseasonAdvanceApplied,
   };
 
+  const dashboardTabs: ArchitectTabDescriptor[] = useMemo(
+    () => [
+      { id: 'roster', label: 'Roster', onActivate: () => setActiveTab('roster') },
+      {
+        id: 'cap',
+        label: 'Cap Sheet',
+        onActivate: () => setActiveTab('cap'),
+        testId: 'tab-cap-sheet',
+      },
+      {
+        id: 'capfull',
+        label: 'Full Cap Table',
+        onActivate: () => setActiveTab('capfull'),
+        testId: 'tab-full-cap-table',
+      },
+      {
+        id: 'trade',
+        label: 'Trade Machine',
+        onActivate: () => setActiveTab('trade'),
+      },
+      { id: 'fa', label: 'Free Agency', onActivate: () => setActiveTab('fa') },
+      {
+        id: 'offseason',
+        label: 'Offseason',
+        onActivate: () => setActiveTab('offseason'),
+      },
+      {
+        id: 'history',
+        label: 'Team History',
+        onActivate: openHistoryRoot,
+      },
+      {
+        id: 'compare',
+        label: 'Compare',
+        onActivate: () => setActiveTab('compare'),
+        testId: 'tab-compare',
+        title: 'Committed scenario comparison',
+      },
+      {
+        id: 'guide',
+        label: 'Guide',
+        onActivate: () => setActiveTab('guide'),
+        testId: 'tab-guide',
+        title: 'Front Office Guide',
+      },
+    ],
+    [setActiveTab, openHistoryRoot]
+  );
+
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
   if (!teamCapSheet) return <p>No team data</p>;
 
@@ -536,13 +589,14 @@ export const GMDashboard = () => {
           )}
 
           <label className="flex items-center gap-2 text-sm font-medium">
-            Season
+            <span>Season</span>
             <select
               value={currentYear}
               onChange={(event) =>
                 setCurrentYear(parseInt(event.target.value, 10))
               }
-              className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10"
+              aria-label="Viewing season"
+              className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
               {seasonEndYearsFromCaps(capProjections).map((year) => (
                 <option key={year} value={year}>
@@ -596,102 +650,7 @@ export const GMDashboard = () => {
       {error && <p className="text-red-500 mb-2">{error}</p>}
       {isSaving && <p className="text-sm mb-2">Saving...</p>}
 
-      <div className="tab-bar flex flex-wrap gap-3 mb-6">
-        <button
-          onClick={() => setActiveTab('roster')}
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'roster'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Roster
-        </button>
-        <button
-          onClick={() => setActiveTab('cap')}
-          data-testid="tab-cap-sheet"
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'cap'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Cap Sheet
-        </button>
-        <button
-          onClick={() => setActiveTab('capfull')}
-          data-testid="tab-full-cap-table"
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'capfull'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Full Cap Table
-        </button>
-        <button
-          onClick={() => setActiveTab('trade')}
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'trade'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Trade Machine
-        </button>
-        <button
-          onClick={() => setActiveTab('fa')}
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'fa'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Free Agency
-        </button>
-        <button
-          onClick={() => setActiveTab('offseason')}
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'offseason'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Offseason
-        </button>
-        <button
-          onClick={openHistoryRoot}
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'history'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Team History
-        </button>
-        <button
-          onClick={() => setActiveTab('compare')}
-          data-testid="tab-compare"
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'compare'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Compare
-        </button>
-        <button
-          onClick={() => setActiveTab('guide')}
-          data-testid="tab-guide"
-          className={`px-4 py-2 rounded-md text-sm font-semibold ${
-            activeTab === 'guide'
-              ? 'bg-lakers/90 text-black'
-              : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          Guide
-        </button>
-      </div>
+      <ArchitectTabBar activeTab={activeTab} tabs={dashboardTabs} />
 
       <div className="tab-content space-y-6">
         {activeTab === 'roster' && (
