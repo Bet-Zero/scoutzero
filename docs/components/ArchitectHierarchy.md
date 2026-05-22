@@ -32,6 +32,7 @@ GMDashboard/
     useArchitectActions.types.normalizers.ts
     useArchitectActions.types.ts
     useArchitectComparisonViewModel.ts
+    useArchitectGuidedAnswers.ts
     useArchitectModals.ts
     useArchitectModePresentation.ts
     useArchitectPostActionReceipt.ts
@@ -53,6 +54,7 @@ GMDashboard/
     CapTableSection.tsx
     ComparisonSection.tsx
     FreeAgencySection.tsx
+    GuideSection.tsx
     HistorySection.tsx
     OffseasonSection.tsx
     RosterSection.tsx
@@ -138,6 +140,16 @@ freeAgency/
     types.ts
   index.ts
   useFreeAgencyFilterPersistence.ts
+guidedQuestions/
+  answerConstraints.ts
+  answerNavigation.ts
+  answerPostAction.ts
+  answerScenario.ts
+  answerTeamStatus.ts
+  deriveGuidedAnswers.ts
+  index.ts
+  questionCatalog.ts
+  types.ts
 history/
   TeamHistoryTab/
     HistoryDetailModal.tsx
@@ -500,5 +512,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-21T07:56:11.819Z*
+*Generated on: 2026-05-22T02:32:03.227Z*
 *Auto-updated by: npm run docs*

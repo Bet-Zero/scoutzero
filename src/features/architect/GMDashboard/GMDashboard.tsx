@@ -28,7 +28,10 @@ import { FreeAgencySection } from './sections/FreeAgencySection';
 import { OffseasonSection } from './sections/OffseasonSection';
 import { HistorySection } from './sections/HistorySection';
 import { ComparisonSection } from './sections/ComparisonSection';
+import { GuideSection } from './sections/GuideSection';
 import { useArchitectComparisonViewModel } from './hooks/useArchitectComparisonViewModel';
+import { useArchitectGuidedAnswers } from './hooks/useArchitectGuidedAnswers';
+import type { Stage4NavigationTargetId } from '@/features/architect/guidedQuestions';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
@@ -276,6 +279,48 @@ export const GMDashboard = () => {
     currentSeason: worldCurrentSeason ?? null,
     currentRosterPlayerIds: comparisonRosterPlayerIds,
   });
+
+  // Stage 4B: derive Front Office Guide answers from existing seams.
+  const guidedAnswersViewModel = useArchitectGuidedAnswers({
+    workspaceContext,
+    comparison: comparisonViewModel,
+    postActionReceipt: postActionReceipt.receipt,
+  });
+
+  const handleGuideNavigate = useCallback(
+    (target: Stage4NavigationTargetId) => {
+      switch (target) {
+        case 'roster':
+          setActiveTab('roster');
+          return;
+        case 'cap':
+          setActiveTab('cap');
+          return;
+        case 'capfull':
+          setActiveTab('capfull');
+          return;
+        case 'trade':
+          setActiveTab('trade');
+          return;
+        case 'fa':
+          setActiveTab('fa');
+          return;
+        case 'offseason':
+          setActiveTab('offseason');
+          return;
+        case 'history':
+          openHistoryRoot();
+          return;
+        case 'compare':
+          setActiveTab('compare');
+          return;
+        case 'guide':
+          setActiveTab('guide');
+          return;
+      }
+    },
+    [setActiveTab, openHistoryRoot]
+  );
 
   const actions = useArchitectActions({
     teamId: normalizedTeamId,
@@ -635,6 +680,17 @@ export const GMDashboard = () => {
         >
           Compare
         </button>
+        <button
+          onClick={() => setActiveTab('guide')}
+          data-testid="tab-guide"
+          className={`px-4 py-2 rounded-md text-sm font-semibold ${
+            activeTab === 'guide'
+              ? 'bg-lakers/90 text-black'
+              : 'bg-white/10 hover:bg-white/20'
+          }`}
+        >
+          Guide
+        </button>
       </div>
 
       <div className="tab-content space-y-6">
@@ -695,6 +751,13 @@ export const GMDashboard = () => {
             onNavigateToHistory={openHistoryRoot}
             onNavigateToCapSheet={() => setActiveTab('cap')}
             onNavigateToRoster={() => setActiveTab('roster')}
+          />
+        )}
+
+        {activeTab === 'guide' && (
+          <GuideSection
+            viewModel={guidedAnswersViewModel}
+            onNavigate={handleGuideNavigate}
           />
         )}
 
