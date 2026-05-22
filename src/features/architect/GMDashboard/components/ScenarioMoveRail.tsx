@@ -57,16 +57,17 @@ export const ScenarioMoveRail = ({
     <div
       className="mb-4 rounded-md border border-white/10 bg-white/[0.015] px-3 py-2 text-xs"
       data-testid="scenario-move-rail"
+      aria-label="Recent committed activity"
     >
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-white/40 font-medium">Recent Activity</span>
         <button
           type="button"
           onClick={onOpenHistory}
-          className="text-white/25 hover:text-white/50 text-[11px] transition-colors"
+          className="text-white/25 hover:text-white/50 text-[11px] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded px-1"
           data-testid="scenario-move-rail-open-history"
         >
-          Full History →
+          Open History →
         </button>
       </div>
 

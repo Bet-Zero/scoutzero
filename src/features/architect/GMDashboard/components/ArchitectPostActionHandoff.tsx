@@ -111,7 +111,7 @@ export const ArchitectPostActionHandoff = ({
           <button
             type="button"
             onClick={onNavigateToCapSheet}
-            className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10 hover:text-white/90"
+            className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10 hover:text-white/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
             data-testid="post-action-handoff-nav-cap"
           >
             View Cap Sheet
@@ -119,7 +119,7 @@ export const ArchitectPostActionHandoff = ({
           <button
             type="button"
             onClick={onNavigateToRoster}
-            className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10 hover:text-white/90"
+            className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10 hover:text-white/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
             data-testid="post-action-handoff-nav-roster"
           >
             View Roster
@@ -127,7 +127,7 @@ export const ArchitectPostActionHandoff = ({
           <button
             type="button"
             onClick={onNavigateToHistory}
-            className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10 hover:text-white/90"
+            className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10 hover:text-white/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
             data-testid="post-action-handoff-nav-history"
           >
             View History
@@ -135,7 +135,7 @@ export const ArchitectPostActionHandoff = ({
           <button
             type="button"
             onClick={onDismiss}
-            className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-white/40 hover:bg-white/10 hover:text-white/70"
+            className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-white/40 hover:bg-white/10 hover:text-white/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
             data-testid="post-action-handoff-dismiss"
             aria-label="Dismiss post-action handoff"
           >

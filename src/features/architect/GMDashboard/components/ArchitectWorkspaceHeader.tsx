@@ -226,14 +226,15 @@ export const ArchitectWorkspaceHeader = ({ context, onNavigateToCapSheet, onNavi
       </div>
 
       {/* Row 3: Franchise summary indicators — exceptions, draft assets, activity */}
-      <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-white/5 pt-1.5 text-white/30">
+      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/5 pt-1.5 text-white/30">
         {exceptions.status === 'available' && exceptions.hasAnyActive ? (
           onNavigateToCapSheet ? (
             <button
               type="button"
               onClick={onNavigateToCapSheet}
-              className="hover:text-white/60 cursor-pointer"
+              className="hover:text-white/60 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded"
               data-testid="exceptions-nav-cap-sheet"
+              aria-label="Open Cap Sheet to review active exceptions"
             >
               <ExceptionLine
                 exc={exceptions}
@@ -249,10 +250,10 @@ export const ArchitectWorkspaceHeader = ({ context, onNavigateToCapSheet, onNavi
         ) : exceptions.status === 'loading' ? (
           <span className="italic">Exceptions loading…</span>
         ) : (
-          <span>Exceptions: see Cap Sheet</span>
+          <span>Exceptions · See Cap Sheet</span>
         )}
-        <span>Draft picks: see Trade & History</span>
-        <span>Activity: see History</span>
+        <span>Draft picks · See Trade</span>
+        <span>Activity · See History</span>
       </div>
     </div>
   );
