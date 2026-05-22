@@ -288,7 +288,8 @@ export type ActiveTab =
   | 'fa'
   | 'offseason'
   | 'history'
-  | 'compare';
+  | 'compare'
+  | 'guide';
 
 /** Map of players by various keys for fast lookup */
 export type PlayersMap = Record<string, ArchitectPlayer>;
