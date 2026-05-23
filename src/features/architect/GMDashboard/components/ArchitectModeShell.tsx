@@ -67,7 +67,7 @@ export const ArchitectModeShell = ({
       <div className="mx-auto flex w-full max-w-[1800px] flex-col px-4 py-4 lg:px-6">
         <header className="relative overflow-hidden border border-white/10 bg-[#0c1017]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(34,197,94,0.18),transparent_30%),radial-gradient(circle_at_85%_0%,rgba(59,130,246,0.14),transparent_34%)]" />
-          <div className="relative grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="relative grid gap-5 p-5 2xl:grid-cols-[minmax(420px,1fr)_auto]">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200/80">
                 <Building2 className="h-4 w-4" aria-hidden="true" />
@@ -93,8 +93,8 @@ export const ArchitectModeShell = ({
                 <span className="text-white/45">{context.mode.shortLabel}</span>
               </div>
             </div>
-            <div className="flex min-w-0 flex-col gap-3 xl:items-end">
-              <div className="flex flex-wrap items-center justify-start gap-3 xl:justify-end">
+            <div className="flex min-w-0 flex-col gap-3 2xl:items-end">
+              <div className="flex flex-wrap items-center justify-start gap-3 2xl:justify-end">
                 {controls}
               </div>
             </div>
