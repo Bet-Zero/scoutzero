@@ -382,10 +382,24 @@ after Stage 6B.
 |--------|------------------:|-------------:|
 | Test files passed | 247 | **285** |
 | Test files failed | 39 | **1** |
-| Tests passed | 3,176 | **3,336** |
+| Tests passed | 3,176 | **3,373** |
 | Tests failed | 177 | **17** |
 | **% failing files closed** | — | **97%** (38 of 39) |
 | **% failing tests closed** | — | **90%** (160 of 177) |
+
+Confirmed by two independent end-to-end re-runs of
+`npm run test:architect`:
+
++ Run after groups 1–5 + 6 fixes: **285 passed / 1 failed (286 files);
+  3,334 passed / 19 failed (3,353 tests)**
++ Run after the final commit (`a4288ab1`): **285 passed / 1 failed
+  (286 files); 3,373 passed / 17 failed (3,390 tests)**
+
+The slight test-count growth between the two runs (3,353 → 3,390) is
+because several rewritten guardrail files now register more individual
+`it()` blocks than the original (e.g. phases 67/68/70 went from
+14/27/16 to 19/27/27 tests respectively, since each describe block
+preserves its full set of named invariants).
 
 The single remaining failing file is
 `src/tests/architect/useArchitectState.worldFreeAgency.test.ts`
