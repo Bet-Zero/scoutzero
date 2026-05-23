@@ -95,7 +95,12 @@ describe('Phase 16.3: Trade Machine Init Guardrails', () => {
     });
 
     it('useTradeMachine.ts must have try/catch in init()', () => {
-      const source = readSourceFile(hookAuthorityPath);
+      // Stage 6B: the init lifecycle was extracted into a co-located
+      // useTradeMachineInit hook. Concatenate both so the init/catch
+      // markers remain findable across the split.
+      const initPath = 'src/features/architect/hooks/useTradeMachineInit.ts';
+      const source =
+        readSourceFile(hookAuthorityPath) + readSourceFile(initPath);
 
       // Check for try/catch pattern in init function
       expect(source).toContain(

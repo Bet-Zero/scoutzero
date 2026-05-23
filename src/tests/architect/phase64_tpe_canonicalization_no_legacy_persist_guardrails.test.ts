@@ -300,12 +300,17 @@ describe('Phase 64: getTeamTpeList() read helper', () => {
 // ==============================================================================
 describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
   it('committed team snapshots normalize TPEs before persistWorldMutation validation', () => {
+    // Stage 6B: prepareGeneralMutationPersistenceTeamSnapshot and the
+    // surrounding committed-team snapshot helpers were extracted into
+    // mutationPipeline.read.persistence.snapshots.ts; include it in the
+    // source bundle so the ordering invariants remain checkable.
     const source =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.snapshots.ts');
 
     const prepareStart = source.indexOf(
       'function prepareGeneralMutationPersistenceTeamSnapshot'
@@ -344,12 +349,17 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
   });
 
   it('the normalized helper output is what team validation consumes', () => {
+    // Stage 6B: prepareGeneralMutationPersistenceTeamSnapshot and the
+    // surrounding committed-team snapshot helpers were extracted into
+    // mutationPipeline.read.persistence.snapshots.ts; include it in the
+    // source bundle so the ordering invariants remain checkable.
     const source =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.snapshots.ts');
 
     expect(source).toContain(
       'const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize)'
@@ -364,12 +374,17 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
   });
 
   it('normalizeTeamTpeSchema is imported in mutationPipeline', () => {
+    // Stage 6B: prepareGeneralMutationPersistenceTeamSnapshot and the
+    // surrounding committed-team snapshot helpers were extracted into
+    // mutationPipeline.read.persistence.snapshots.ts; include it in the
+    // source bundle so the ordering invariants remain checkable.
     const source =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.snapshots.ts');
 
     expect(source).toContain('normalizeTeamTpeSchema');
     expect(source).toContain(

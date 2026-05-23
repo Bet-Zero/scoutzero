@@ -283,14 +283,24 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
   let mutationPipelineSource = '';
 
   beforeAll(() => {
-    // Wave 4 Step 4c: combine orchestrator + read submodule for full pipeline coverage
+    // Wave 4 Step 4c: combine orchestrator + read submodule for full pipeline coverage.
+    // Stage 6B: later refactors split a few helpers further —
+    // .read.persistence.snapshots.ts holds the prepare-snapshot helper
+    // chain (Phase 61 invariants 22+), .compute.offerSheets.initial.ts
+    // holds the store/match/decline compute entrypoints used in the
+    // persist-section endpoint anchors, and .preflights.ts holds
+    // computeWorldMutation.
     mutationPipelineSource =
       readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
       readSourceFile('src/features/architect/utils/mutationPipeline.read.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.offerSheets.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.offerSheets.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.offerSheets.initial.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.read.persistence.snapshots.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.preflights.ts');
   });
 
   it('TEST 16: mutationPipeline.ts imports assertPersistableOrThrow', () => {

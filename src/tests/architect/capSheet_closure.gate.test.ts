@@ -656,15 +656,50 @@ describe('Gate 7: World Failure Toast Dedupe (E2)', () => {
 
 describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
   const mutationPipelineContent = readFileContent(MUTATION_PIPELINE_PATH);
-  // Wave 4 Step 4c: read-phase helpers extracted to mutationPipeline.read.ts
+  // Wave 4 Step 4c: read-phase helpers extracted to mutationPipeline.read.ts.
+  // Stage 6B: canonicalize-team-updates helpers were further extracted
+  // into mutationPipeline.read.persistence.snapshots.ts.
   const mutationPipelineReadContent = readFileContent(MUTATION_PIPELINE_READ_PATH);
-  const mutationPipelineAllContent = mutationPipelineContent + mutationPipelineReadContent;
+  const mutationPipelineReadPersistenceSnapshotsPath = path.resolve(
+    __dirname,
+    '../../features/architect/utils/mutationPipeline.read.persistence.snapshots.ts'
+  );
+  const mutationPipelineReadPersistenceSnapshotsContent = fs.existsSync(
+    mutationPipelineReadPersistenceSnapshotsPath
+  )
+    ? readFileContent(mutationPipelineReadPersistenceSnapshotsPath)
+    : '';
+  // Stage 6B: computeNormalizedWorldMutation moved to mutationPipeline.normalize.ts
+  // which is now where the canonicalize-on-return call lives.
+  const mutationPipelineNormalizePath = path.resolve(
+    __dirname,
+    '../../features/architect/utils/mutationPipeline.normalize.ts'
+  );
+  const mutationPipelineNormalizeContent = fs.existsSync(
+    mutationPipelineNormalizePath
+  )
+    ? readFileContent(mutationPipelineNormalizePath)
+    : '';
+  const mutationPipelineAllContent =
+    mutationPipelineContent +
+    mutationPipelineReadContent +
+    mutationPipelineReadPersistenceSnapshotsContent +
+    mutationPipelineNormalizeContent;
   const capLegalityValidationContent = readFileContent(
     CAP_LEGALITY_VALIDATION_PATH
   );
-  const capLegalityValidationSigningContent = readFileContent(
-    CAP_LEGALITY_VALIDATION_SIGNING_PATH
+  // Stage 6B: signing.ts was further split. The canonical
+  // computeCanonicalMutationTeamCapTotals helper now lives in
+  // signing.validators.ts.
+  const capLegalityValidationSigningValidatorsPath = path.resolve(
+    __dirname,
+    '../../features/architect/utils/capLegalityValidation/signing.validators.ts'
   );
+  const capLegalityValidationSigningContent =
+    readFileContent(CAP_LEGALITY_VALIDATION_SIGNING_PATH) +
+    (fs.existsSync(capLegalityValidationSigningValidatorsPath)
+      ? readFileContent(capLegalityValidationSigningValidatorsPath)
+      : '');
   const actionsContent =
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_PERSISTENCE_HELPERS_PATH) +
