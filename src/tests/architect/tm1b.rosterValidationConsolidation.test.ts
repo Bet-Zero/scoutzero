@@ -287,9 +287,13 @@ describe('TM-6C roster ownership guardrails', () => {
     const validateRosterSource = readRepoFile(
       'src/features/architect/utils/tradeMachine/rules/validateRoster.ts'
     );
-    const projectionSource = readRepoFile(
-      'src/features/architect/utils/tradeMachine/engine/tradeValidator.ts'
-    );
+    // Stage 6B: helpers extracted from tradeValidator.ts now live in
+    // tradeValidator.helpers.ts (where computeProjectedRosterLegality
+    // ended up). Concatenate both so the projected-vs-final-state
+    // ownership invariant remains findable across the split.
+    const projectionSource =
+      readRepoFile('src/features/architect/utils/tradeMachine/engine/tradeValidator.ts') +
+      readRepoFile('src/features/architect/utils/tradeMachine/engine/tradeValidator.helpers.ts');
     const postStateSource = readRepoFile(
       'src/features/architect/utils/capLegality/postStateCapValidator.ts'
     );

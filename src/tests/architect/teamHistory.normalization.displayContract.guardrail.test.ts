@@ -7,6 +7,19 @@ const NORMALIZE_TEAM_HISTORY_PATH = path.resolve(
   process.cwd(),
   'src/features/architect/history/utils/normalizeWorldEventsForTeamHistory.ts'
 );
+// Stage 6B: MUTATION_DISPLAY_CONFIG and the per-mutation display map
+// were extracted into a co-located .utils.ts sub-module.
+const NORMALIZE_TEAM_HISTORY_UTILS_PATH = path.resolve(
+  process.cwd(),
+  'src/features/architect/history/utils/normalizeWorldEventsForTeamHistory.utils.ts'
+);
+const readNormalizeTeamHistoryBundle = (): string => {
+  let bundle = fs.readFileSync(NORMALIZE_TEAM_HISTORY_PATH, 'utf8');
+  if (fs.existsSync(NORMALIZE_TEAM_HISTORY_UTILS_PATH)) {
+    bundle += fs.readFileSync(NORMALIZE_TEAM_HISTORY_UTILS_PATH, 'utf8');
+  }
+  return bundle;
+};
 
 function getSectionTitles(row: ReturnType<typeof toTeamHistoryEventDisplay>) {
   return row.detailSections.map((section) => section.title);
@@ -21,7 +34,7 @@ function getSectionLines(
 
 describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
   it('keeps explicit mutation-display map ownership for key mutation families', () => {
-    const source = fs.readFileSync(NORMALIZE_TEAM_HISTORY_PATH, 'utf8');
+    const source = readNormalizeTeamHistoryBundle();
 
     expect(source).toContain('const MUTATION_DISPLAY_CONFIG');
     expect(source).toContain('executeTrade:');

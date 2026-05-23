@@ -112,6 +112,28 @@ const EDIT_CONTRACT_MODAL_PATH = path.resolve(
   __dirname,
   '../../shared/components/EditContractModal.tsx'
 );
+// Stage 6B: EditContractModal was split into co-located helper/hook
+// modules. The signing/offer-sheet dispatch payload builders moved
+// into EditContractModal.form.hook.ts. Concatenate the trio of source
+// files so the FA-dispatch invariants remain findable.
+const EDIT_CONTRACT_MODAL_FORM_HOOK_PATH = path.resolve(
+  __dirname,
+  '../../shared/components/EditContractModal.form.hook.ts'
+);
+const EDIT_CONTRACT_MODAL_PREFLIGHT_HOOK_PATH = path.resolve(
+  __dirname,
+  '../../shared/components/EditContractModal.preflight.hook.ts'
+);
+const readEditContractModalBundle = (): string => {
+  let bundle = fs.readFileSync(EDIT_CONTRACT_MODAL_PATH, 'utf-8');
+  if (fs.existsSync(EDIT_CONTRACT_MODAL_FORM_HOOK_PATH)) {
+    bundle += fs.readFileSync(EDIT_CONTRACT_MODAL_FORM_HOOK_PATH, 'utf-8');
+  }
+  if (fs.existsSync(EDIT_CONTRACT_MODAL_PREFLIGHT_HOOK_PATH)) {
+    bundle += fs.readFileSync(EDIT_CONTRACT_MODAL_PREFLIGHT_HOOK_PATH, 'utf-8');
+  }
+  return bundle;
+};
 
 const USE_ARCHITECT_STATE_PATH = path.resolve(
   __dirname,
@@ -653,7 +675,7 @@ describe('Gate 4B: Step 2 UI truth keeps shared launch, owner-projected availabi
 });
 
 describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agency actions (FA-1A)', () => {
-  const content = readFileContent(EDIT_CONTRACT_MODAL_PATH);
+  const content = readEditContractModalBundle();
   const dispatchRegion = readRegion(
     content,
     'const dispatchSelectedFreeAgencyAction = useCallback(',

@@ -69,6 +69,23 @@ const CAP_LEGALITY_VALIDATION_SIGNING_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/capLegalityValidation/signing.ts'
 );
+// Stage 6B: signing.ts was further split — the canonical
+// computeCanonicalMutationTeamCapTotals owner moved into
+// signing.validators.ts.
+const CAP_LEGALITY_VALIDATION_SIGNING_VALIDATORS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation/signing.validators.ts'
+);
+const readCapLegalitySigningBundle = (): string => {
+  let bundle = fs.readFileSync(CAP_LEGALITY_VALIDATION_SIGNING_PATH, 'utf-8');
+  if (fs.existsSync(CAP_LEGALITY_VALIDATION_SIGNING_VALIDATORS_PATH)) {
+    bundle += fs.readFileSync(
+      CAP_LEGALITY_VALIDATION_SIGNING_VALIDATORS_PATH,
+      'utf-8'
+    );
+  }
+  return bundle;
+};
 
 const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
   __dirname,
@@ -134,11 +151,11 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     CAP_LEGALITY_VALIDATION_PATH,
     'utf-8'
   );
-  // computeCanonicalMutationTeamCapTotals moved to signing.ts submodule (Wave 4 Step 2c)
-  const capLegalityValidationSigningSource = fs.readFileSync(
-    CAP_LEGALITY_VALIDATION_SIGNING_PATH,
-    'utf-8'
-  );
+  // computeCanonicalMutationTeamCapTotals moved to signing.ts submodule (Wave 4 Step 2c).
+  // Stage 6B: signing.ts was further split — the canonical helper now
+  // lives in signing.validators.ts; readCapLegalitySigningBundle handles
+  // the concatenation.
+  const capLegalityValidationSigningSource = readCapLegalitySigningBundle();
 
   it('TEST 1: CapSheetFull imports computeTeamCapTotals', () => {
     expect(capSheetFullSource).toMatch(/import.*computeTeamCapTotals.*from/);

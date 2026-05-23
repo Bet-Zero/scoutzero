@@ -33,6 +33,20 @@ const SEASON_MANAGER_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/seasonManager.ts'
 );
+// Stage 6B: per-team transition (and HYDRATION_ONLY_KEYS /
+// stripHydrationOnlyFields, sanitize/assertPersistable/removeUndefined
+// ordering) was extracted into seasonManager.teamTransition.ts.
+const SEASON_MANAGER_TEAM_TRANSITION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/seasonManager.teamTransition.ts'
+);
+const readSeasonManagerBundle = (): string => {
+  let bundle = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
+  if (fs.existsSync(SEASON_MANAGER_TEAM_TRANSITION_PATH)) {
+    bundle += fs.readFileSync(SEASON_MANAGER_TEAM_TRANSITION_PATH, 'utf-8');
+  }
+  return bundle;
+};
 
 const COMPUTE_TOTALS_PATH = path.resolve(
   __dirname,
@@ -45,7 +59,7 @@ const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
 );
 
 describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
-  const seasonManagerSource = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
+  const seasonManagerSource = readSeasonManagerBundle();
 
   it('TEST 1: seasonManager.ts calls sanitizeTransientFieldsForPersistence', () => {
     // Must contain at least one call (not just import)

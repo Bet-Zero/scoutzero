@@ -22,6 +22,28 @@ const OSTE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/offseason/resolveOffseasonTransition.ts'
 );
+// Stage 6B: validateOffseasonState and the validateContractRows wiring
+// were extracted into the co-located .validation sub-module. Include
+// every co-located file so source-scan markers remain findable.
+const OSTE_SOURCE_FILES = [
+  OSTE_PATH,
+  path.resolve(
+    __dirname,
+    '../../features/architect/utils/offseason/resolveOffseasonTransition.helpers.ts'
+  ),
+  path.resolve(
+    __dirname,
+    '../../features/architect/utils/offseason/resolveOffseasonTransition.validation.ts'
+  ),
+  path.resolve(
+    __dirname,
+    '../../features/architect/utils/offseason/resolveOffseasonTransition.optionDecisions.ts'
+  ),
+];
+const readOsteBundle = (): string =>
+  OSTE_SOURCE_FILES.filter((p) => fs.existsSync(p))
+    .map((p) => fs.readFileSync(p, 'utf-8'))
+    .join('\n');
 
 const FROM_YEAR = 2025;
 const TO_YEAR = 2026;
@@ -79,7 +101,7 @@ function createBasicTeam(playerCount = 14, salary = 5_000_000): {
 // ============================================================================
 
 describe('OSTE Validation Unification — Source-Scan Guardrails (E1.1)', () => {
-  const source = fs.readFileSync(OSTE_PATH, 'utf-8');
+  const source = readOsteBundle();
 
   it('TEST 1: OSTE imports validateContractRows from capLegalityValidation', () => {
     expect(source).toMatch(
