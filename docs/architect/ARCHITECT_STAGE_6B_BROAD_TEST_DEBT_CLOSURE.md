@@ -371,21 +371,54 @@ investigation pass that:
 3. Confirms the `useArchitectPlayerData` mock priming covers every
    render cycle the hook now performs.
 
-This is the only remaining file in the broad `test:architect` tier
-after Stage 6B.
+This was the only remaining file in the broad `test:architect` tier
+after Stage 6B and was closed in the final Stage 6C pass below.
+
+---
+
+## Final Remaining Failure Closure — useArchitectState.worldFreeAgency
+
+**Root cause:** Product hook lifecycle bug exposed by the test after the
+Stage 6B mock-chain crash was fixed. `useArchitectState` intended to
+restore a persisted active world once per signed-in user, but the
+tracker was implemented as a fresh object literal on every render:
+`{ current: null }`. Selecting `world_1` changed `setActiveWorld`'s
+closure identity, retriggered the restore effect, reset the tracker,
+and cleared active-world derived state. That is why the remaining
+assertions saw `worldId`, `worldAsOfDate`, and `worldCurrentSeason`
+fall back to `null` instead of propagating committed metadata.
+
+**Fix classification:** Real product bug. The fix was narrow: convert
+the restore tracker to `useRef<string | null>(null)` so it survives
+renders and the restore flow remains one-per-user.
+
+**Files changed:**
+
++ `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
++ `docs/architect/ARCHITECT_STAGE_6B_BROAD_TEST_DEBT_CLOSURE.md`
+
+**Tests changed:** None in this final closure pass. No tests were
+deleted, skipped, marked todo, or weakened.
+
+**Final isolated result:** `npx vitest run -c vitest.node.config.js
+src/tests/architect/useArchitectState.worldFreeAgency.test.ts
+--reporter=dot` → **PASS** (20 / 20 tests).
+
+**Final broad result:** `npm run test:architect -- --reporter=dot` →
+**PASS** (286 / 286 files, 3,390 / 3,390 tests).
 
 ---
 
 ## Final Result
 
-| Metric | Stage 6A baseline | Stage 6B end |
-|--------|------------------:|-------------:|
-| Test files passed | 247 | **285** |
-| Test files failed | 39 | **1** |
-| Tests passed | 3,176 | **3,373** |
-| Tests failed | 177 | **17** |
-| **% failing files closed** | — | **97%** (38 of 39) |
-| **% failing tests closed** | — | **90%** (160 of 177) |
+| Metric | Stage 6A baseline | Stage 6B end | Stage 6C final |
+|--------|------------------:|-------------:|---------------:|
+| Test files passed | 247 | **285** | **286** |
+| Test files failed | 39 | **1** | **0** |
+| Tests passed | 3,176 | **3,373** | **3,390** |
+| Tests failed | 177 | **17** | **0** |
+| **% failing files closed** | — | **97%** (38 of 39) | **100%** (39 of 39) |
+| **% failing tests closed** | — | **90%** (160 of 177) | **100%** (177 of 177) |
 
 Confirmed by two independent end-to-end re-runs of
 `npm run test:architect`:
@@ -394,6 +427,8 @@ Confirmed by two independent end-to-end re-runs of
   3,334 passed / 19 failed (3,353 tests)**
 + Run after the final commit (`a4288ab1`): **285 passed / 1 failed
   (286 files); 3,373 passed / 17 failed (3,390 tests)**
++ Run after the Stage 6C final closure fix: **286 passed / 0 failed
+  (286 files); 3,390 passed / 0 failed (3,390 tests)**
 
 The slight test-count growth between the two runs (3,353 → 3,390) is
 because several rewritten guardrail files now register more individual
@@ -401,9 +436,7 @@ because several rewritten guardrail files now register more individual
 14/27/16 to 19/27/27 tests respectively, since each describe block
 preserves its full set of named invariants).
 
-The single remaining failing file is
-`src/tests/architect/useArchitectState.worldFreeAgency.test.ts`
-(documented above).
+No broad Architect test files remain failing.
 
 ---
 
@@ -426,14 +459,30 @@ The single remaining failing file is
 | Stage 5 UI (`stage5.polish.test.tsx`) | ✅ 19 / 19 |
 | **Combined Stage 1–5 targeted scope** | **✅ 258 / 258 PASS** |
 
+### Final Stage 6C validation
+
+| Command | Result |
+|---------|--------|
+| `npx vitest run -c vitest.node.config.js src/tests/architect/useArchitectState.worldFreeAgency.test.ts --reporter=dot` | ✅ PASS (20 / 20) |
+| `npm run test:architect -- --reporter=dot` | ✅ PASS (286 / 286 files; 3,390 / 3,390 tests) |
+| `npm run typecheck` | ✅ PASS |
+| `npm run validate:project` | ✅ PASS |
+| `npm run build` | ✅ PASS (pre-existing Vite/browserlist/chunk warnings only) |
+| Stage 1–5 targeted node slice | ✅ PASS (92 / 92) |
+| Stage 1–5 targeted UI slice | ✅ PASS (166 / 166) |
+| **Combined Stage 1–5 targeted scope** | **✅ 258 / 258 PASS** |
+
 ---
 
 ## Product code change summary
 
-**Zero product code changes.** Stage 6B only edited test files and the
-Stage 6B closure document.
+Stage 6B broad-debt closure was test/docs-only until the final deferred
+file. The Stage 6C final closure made one narrow product-code fix in
+`useArchitectState.ts`: the active-world restore tracker now uses
+`useRef` instead of a per-render object literal.
 
-Files changed (all under `src/tests/architect/` or `tests/architect/`):
+Stage 6B files changed (all under `src/tests/architect/` or
+`tests/architect/`):
 
 + phase66 / phase67 / phase68 / phase69 / phase70 migration-script guardrails (rewritten as post-migration invariant guardrails)
 + phase16_3 / phase43 / phase57 / phase61 / phase63 / phase64 / phase65 / phase72 / phase73 / phase74 / phase75 / phase77 / phase79 / phase83 (sub-module path-bundle updates)
@@ -443,6 +492,8 @@ Files changed (all under `src/tests/architect/` or `tests/architect/`):
 + firebaseTeamPlanHelpers / mutationPipeline / seasonManager / worldManager .compatibility.guardrail (strict-equality → superset checks)
 + useArchitectState.worldFreeAgency (partial mock-drift fix, deferred)
 + tests/architect/playerRulesProfile (rookie extension years aligned to product convention)
++ Stage 6C final closure: `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
+  (real product lifecycle fix) and this closure document
 
 ---
 
@@ -459,4 +510,4 @@ Files changed (all under `src/tests/architect/` or `tests/architect/`):
 | No new mutation authority added | ✅ |
 | No new Firestore writes added | ✅ |
 | No new event sources added | ✅ |
-| Unrelated tracked files left untouched | ✅ — only files under `src/tests/architect/`, `tests/architect/`, and `docs/architect/` were modified |
+| Unrelated tracked files left untouched | ✅ — final Stage 6C closure touched only `src/features/architect/GMDashboard/hooks/useArchitectState.ts` and this closure document |

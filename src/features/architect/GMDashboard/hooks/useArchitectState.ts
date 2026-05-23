@@ -19,7 +19,7 @@
  *  - Plan: plans/gmdashboard_state_hook_fea52793.plan.md
  *  - Gap Analysis: docs/architect/ARCHITECT_GAP_ANALYSIS.md
  */
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useArchitectPlayerData } from '@/features/architect/hooks/useArchitectPlayerData';
 import { capProjections } from '@/features/architect/utils/capProjections';
 import { useWorldLoadTracker } from './useArchitectState.worldTracker';
@@ -226,7 +226,7 @@ export function useArchitectState({
   }, [currentYear]);
 
   // === Effect 3: Restore persisted active world once per signed-in user ===
-  const restoredActiveWorldUserIdRef = { current: null as string | null };
+  const restoredActiveWorldUserIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!userId) {
       restoredActiveWorldUserIdRef.current = null;
