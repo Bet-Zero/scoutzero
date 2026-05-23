@@ -73,20 +73,25 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
   });
 
   it('TEST 3: Correct ordering — stripHydration before sanitize before normalize before assertPersistable before removeUndefined', () => {
+    // Stage 6B: the bridge-gate ordering lives entirely inside
+    // seasonManager.teamTransition.ts. Read just that file so the
+    // ordering check is scoped to one sub-module and doesn't confuse
+    // the team-transition ordering with the event-payload
+    // assertPersistableOrThrow call inside seasonManager.ts.
+    const scopedSource = fs.existsSync(SEASON_MANAGER_TEAM_TRANSITION_PATH)
+      ? fs.readFileSync(SEASON_MANAGER_TEAM_TRANSITION_PATH, 'utf-8')
+      : seasonManagerSource;
+
     // Find the bridge gate block within advanceSeasonInWorld
-    const stripIdx = seasonManagerSource.indexOf(
-      'stripHydrationOnlyFields(team)'
-    );
-    const sanitizeIdx = seasonManagerSource.indexOf(
+    const stripIdx = scopedSource.indexOf('stripHydrationOnlyFields(team)');
+    const sanitizeIdx = scopedSource.indexOf(
       'sanitizeTransientFieldsForPersistence(afterHydrationStrip)'
     );
-    const normalizeIdx = seasonManagerSource.search(
+    const normalizeIdx = scopedSource.search(
       /normalizeTeamTpeSchema\s*\(\s*afterSanitize/
     );
-    const assertIdx = seasonManagerSource.indexOf(
-      'assertPersistableOrThrow({'
-    );
-    const removeIdx = seasonManagerSource.indexOf(
+    const assertIdx = scopedSource.indexOf('assertPersistableOrThrow({');
+    const removeIdx = scopedSource.indexOf(
       'removeUndefinedDeep(normalizedTeam)',
       stripIdx > 0 ? stripIdx : 0
     );
