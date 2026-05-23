@@ -44,9 +44,20 @@ const MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.offerSheets.ts'
 );
+// Later wave: offer-sheet INITIAL compute helpers (store/match/decline)
+// were extracted into mutationPipeline.compute.offerSheets.initial.ts.
+const MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.compute.offerSheets.initial.ts'
+);
 const MUTATION_PIPELINE_COMPUTE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.ts'
+);
+// computeWorldMutation lives in the preflights module.
+const MUTATION_PIPELINE_PREFLIGHTS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.preflights.ts'
 );
 // Wave 5 Step 4: state-loading entry point extracted here
 const MUTATION_PIPELINE_STATELOADER_PATH = path.resolve(
@@ -128,8 +139,18 @@ const readFileContent = (filePath: string): string => {
 // === GATE 1: Mutation Types Are Present + Routed in Pipeline ===
 
 describe('Gate 1: Mutation types are present + routed in pipeline (E1)', () => {
-  // Wave 4 Step 4c: loadStateForMutation moved to mutationPipeline.read.ts
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_READ_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) + readFileContent(MUTATION_PIPELINE_STATELOADER_PATH);
+  // Wave 4 Step 4c: loadStateForMutation moved to mutationPipeline.read.ts.
+  // Later waves split compute helpers across .compute.ts,
+  // .compute.offerSheets.ts, .compute.offerSheets.initial.ts, and the
+  // computeWorldMutation entrypoint into .preflights.ts.
+  const content =
+    readFileContent(MUTATION_PIPELINE_PATH) +
+    readFileContent(MUTATION_PIPELINE_READ_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH) +
+    readFileContent(MUTATION_PIPELINE_PREFLIGHTS_PATH) +
+    readFileContent(MUTATION_PIPELINE_STATELOADER_PATH);
 
   it('defines storeOfferSheet mutation type', () => {
     const hasStoreOfferSheet = /['"]storeOfferSheet['"]/.test(content);
@@ -271,7 +292,11 @@ describe('Gate 3: Validation uses validateOfferSheetResolution (E1)', () => {
 // === GATE 4: Store Mirrors to Offering + Home Team Arrays ===
 
 describe('Gate 4: Store mirrors to offering + home team arrays (E1)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH);
+  const content =
+    readFileContent(MUTATION_PIPELINE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH);
 
   it('defines computeStoreOfferSheetResult function', () => {
     const hasFunctionDef = /function\s+computeStoreOfferSheetResult/.test(
@@ -307,8 +332,17 @@ describe('Gate 4: Store mirrors to offering + home team arrays (E1)', () => {
 describe('Gate 4B: Store ownership resolves from strict home-team authority (E5)', () => {
   // Wave 4 Step 4c: resolveStoreOfferSheetAuthority is in loadStateForMutation (read.ts);
   // computeWorldMutation storeOfferSheet case (mutationPipeline.ts) is a separate block.
-  // Use matchAll to combine all storeOfferSheet case blocks across both files.
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_READ_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) + readFileContent(MUTATION_PIPELINE_STATELOADER_PATH);
+  // Later wave: store/match/decline compute helpers moved to
+  // mutationPipeline.compute.offerSheets.initial.ts and computeWorldMutation
+  // moved to mutationPipeline.preflights.ts.
+  const content =
+    readFileContent(MUTATION_PIPELINE_PATH) +
+    readFileContent(MUTATION_PIPELINE_READ_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH) +
+    readFileContent(MUTATION_PIPELINE_PREFLIGHTS_PATH) +
+    readFileContent(MUTATION_PIPELINE_STATELOADER_PATH);
   const storeOfferSheetBlock = Array.from(
     content.matchAll(/case\s+['"]storeOfferSheet['"]:\s*\{[\s\S]{0,1200}\n\s*\}/g),
     (m) => m[0]
@@ -345,7 +379,11 @@ describe('Gate 4B: Store ownership resolves from strict home-team authority (E5)
 // === GATE 5: Match/Decline Enforce Status + Mirror Update ===
 
 describe('Gate 5: Match/Decline enforce status + mirror update (E1)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH);
+  const content =
+    readFileContent(MUTATION_PIPELINE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH);
 
   it('computeMatchOfferSheetResult checks for PENDING_MATCH status', () => {
     const checksStatus =
@@ -392,7 +430,11 @@ describe('Gate 5: Match/Decline enforce status + mirror update (E1)', () => {
 // === GATE 6: Finalize Matched Recomputes Home Totals ===
 
 describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH);
+  const content =
+    readFileContent(MUTATION_PIPELINE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH);
 
   it('computeFinalizeMatchedOfferSheetResult is defined', () => {
     const hasFunctionDef =
@@ -444,7 +486,11 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 // === GATE 7: Finalize Declined Recomputes BOTH Totals ===
 
 describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH);
+  const content =
+    readFileContent(MUTATION_PIPELINE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH);
 
   it('computeFinalizeDeclinedOfferSheetResult is defined', () => {
     const hasFunctionDef =

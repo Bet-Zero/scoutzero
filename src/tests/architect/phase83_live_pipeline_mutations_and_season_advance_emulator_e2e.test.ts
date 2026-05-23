@@ -199,37 +199,52 @@ describe('Phase 83: Entrypoint Signature Verification', () => {
 // Mutation Type Coverage Documentation
 // ============================================================================
 
+/**
+ * Stage 6B: mutation-type string literals migrated into the dispatch
+ * sub-modules (mutationPipeline.preflights.ts, mutationPipeline.compute.*).
+ * Helper that bundles the dispatch surface so the per-mutation-type
+ * coverage gate finds the literal regardless of which compute/preflight
+ * file owns it.
+ */
+const readMutationPipelineDispatchSurface = async () => {
+  const fs = await import('fs');
+  const path = await import('path');
+  const root = process.cwd();
+  const paths = [
+    'src/features/architect/utils/mutationPipeline.ts',
+    'src/features/architect/utils/mutationPipeline.preflights.ts',
+    'src/features/architect/utils/mutationPipeline.normalize.ts',
+    'src/features/architect/utils/mutationPipeline.read.ts',
+    'src/features/architect/utils/mutationPipeline.read.stateLoader.ts',
+    'src/features/architect/utils/mutationPipeline.compute.ts',
+    'src/features/architect/utils/mutationPipeline.compute.signings.ts',
+    'src/features/architect/utils/mutationPipeline.compute.signings.signing.ts',
+    'src/features/architect/utils/mutationPipeline.compute.signings.playerOps.ts',
+    'src/features/architect/utils/mutationPipeline.compute.trade.ts',
+    'src/features/architect/utils/mutationPipeline.compute.offerSheets.ts',
+    'src/features/architect/utils/mutationPipeline.compute.offerSheets.initial.ts',
+    'src/features/architect/utils/mutationPipeline.validate.ts',
+  ];
+  return paths
+    .map((p) => path.resolve(root, p))
+    .filter((p) => fs.existsSync(p))
+    .map((p) => fs.readFileSync(p, 'utf-8'))
+    .join('\n');
+};
+
 describe('Phase 83: Mutation Type Coverage', () => {
   test('TEST 11: mutationPipeline.ts handles signFreeAgent', async () => {
-    const fs = await import('fs');
-    const path = await import('path');
-    const pipelinePath = path.resolve(
-      process.cwd(),
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
-    const content = fs.readFileSync(pipelinePath, 'utf-8');
+    const content = await readMutationPipelineDispatchSurface();
     expect(content).toContain("'signFreeAgent'");
   });
 
   test('TEST 12: mutationPipeline.ts handles waivePlayer', async () => {
-    const fs = await import('fs');
-    const path = await import('path');
-    const pipelinePath = path.resolve(
-      process.cwd(),
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
-    const content = fs.readFileSync(pipelinePath, 'utf-8');
+    const content = await readMutationPipelineDispatchSurface();
     expect(content).toContain("'waivePlayer'");
   });
 
   test('TEST 13: mutationPipeline.ts handles renounceRights', async () => {
-    const fs = await import('fs');
-    const path = await import('path');
-    const pipelinePath = path.resolve(
-      process.cwd(),
-      'src/features/architect/utils/mutationPipeline.ts'
-    );
-    const content = fs.readFileSync(pipelinePath, 'utf-8');
+    const content = await readMutationPipelineDispatchSurface();
     expect(content).toContain("'renounceRights'");
   });
 

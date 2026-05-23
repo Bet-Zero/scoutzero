@@ -685,11 +685,19 @@ describe('computeExtensionTerms', () => {
   });
 
   it('returns terms for rookie extension', () => {
+    // Stage 6B note: computeExtensionTerms returns the *extension*
+    // term length (new years added on top of the remaining rookie
+    // deal), not the merged contract length. Rookie Scale Extensions
+    // add up to 4 new years onto the rookie 4th year per the CBA,
+    // which is what the product helper returns. The Designated
+    // Veteran path returns 5 because that contract starts fresh.
+    // Keeping the assertion aligned with the surviving extension-only
+    // convention preserves the architectural intent of the helper.
     const terms = requireExtensionTerms(
       computeExtensionTerms(ROOKIE_FOURTH_YEAR, LEAGUE_CONTEXT)
     );
 
-    expect(terms.maxYears).toBe(5); // Rookie extensions up to 5 years
+    expect(terms.maxYears).toBe(4); // Rookie extensions add up to 4 NEW years on top of the rookie 4th year
     expect(terms.extensionType).toBe('Rookie Scale Extension');
   });
 

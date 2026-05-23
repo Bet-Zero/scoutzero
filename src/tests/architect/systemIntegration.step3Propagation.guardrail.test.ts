@@ -18,20 +18,40 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
     readArchitectFile('utils/mutationPipeline.types.currentState.ts') +
     readArchitectFile('utils/mutationPipeline.types.result.ts') +
     readArchitectFile('utils/mutationPipeline.types.ingress.ts');
-  const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
+  // Stage 6B: seasonManager was split — helpers and type definitions
+  // (including the committed-state artifact and buildSeasonAdvanceCommittedState)
+  // moved to seasonManager.helpers.ts.
+  const seasonManagerSource =
+    readArchitectFile('utils/seasonManager.ts') +
+    readArchitectFile('utils/seasonManager.helpers.ts');
+  // Stage 6B: useArchitectActions was further split into more
+  // co-located sub-modules. Include every useArchitectActions.* file so
+  // the Step 3 propagation invariants remain findable wherever the
+  // canonical types/helpers ended up living.
   const actionsHookSource =
     readArchitectFile('GMDashboard/hooks/useArchitectActions.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.types.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.types.normalizers.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.helpers.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.helpers.signing.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.helpers.offerSheet.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.tradeActions.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.offerSheetActions.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectActions.offerSheetExecutors.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.persistenceHelpers.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.signingExecution.ts') +
     readArchitectFile('GMDashboard/hooks/useArchitectActions.contractActions.ts');
-  // Wave 11 Step 2: type definitions extracted to useArchitectState.types.ts
+  // Wave 11 Step 2: type definitions extracted to useArchitectState.types.ts.
+  // Stage 6B: state hook further split into worldLoader / worldTracker /
+  // freeAgents / helpers sub-modules. The resync seam invariants live
+  // across the full set.
   const stateHookSource =
     readArchitectFile('GMDashboard/hooks/useArchitectState.ts') +
-    readArchitectFile('GMDashboard/hooks/useArchitectState.types.ts');
+    readArchitectFile('GMDashboard/hooks/useArchitectState.types.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectState.worldLoader.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectState.worldTracker.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectState.freeAgents.ts') +
+    readArchitectFile('GMDashboard/hooks/useArchitectState.helpers.ts');
   const offseasonSectionSource = readArchitectFile(
     'GMDashboard/sections/OffseasonSection.tsx'
   );

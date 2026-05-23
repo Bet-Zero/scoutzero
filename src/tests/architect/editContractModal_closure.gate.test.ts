@@ -51,6 +51,11 @@ const MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.signings.ts'
 );
+// Later wave: waive/option/renounce/extension moved to .signings.playerOps.ts
+const MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.compute.signings.playerOps.ts'
+);
 
 const FREE_AGENT_POOL_PATH = path.resolve(
   __dirname,
@@ -216,9 +221,14 @@ describe('Gate 4: World Success Authoritative Re-sync (E1)', () => {
 // === GATE 5: World Compute Honors Buyout Fields ===
 
 describe('Gate 5: World Compute Honors Buyout Fields (E1)', () => {
-  // Wave 4 Step 4d: computeWaiveResult moved to mutationPipeline.compute.ts
-  // Wave 8 Step 2: computeWaiveResult further extracted to compute.signings.ts
-  const content = readFileContent(MUTATION_PIPELINE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) + readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH);
+  // Wave 4 Step 4d: computeWaiveResult moved to mutationPipeline.compute.ts.
+  // Wave 8 Step 2: computeWaiveResult further extracted to compute.signings.ts.
+  // Later wave: waive/option/renounce/extension moved to .playerOps.ts.
+  const content =
+    readFileContent(MUTATION_PIPELINE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH);
 
   it('computeWaiveResult reads payload.buyoutAmount', () => {
     // Pattern: payload.buyoutAmount in computeWaiveResult

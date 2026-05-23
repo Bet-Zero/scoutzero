@@ -194,11 +194,27 @@ describe('Phase D3: TRUE E2E Gate - Real Entrypoint Verification', () => {
     });
 
     it('TEST 3: applyWorldMutation handles executeTrade mutation type', () => {
-      const mutationPipelinePath = path.resolve(
+      // Stage 6B: compute case dispatch moved across
+      // mutationPipeline.preflights.ts and mutationPipeline.normalize.ts
+      // (where computeNormalizedWorldMutation owns the executeTrade
+      // case). Concatenate the dispatch surface so the case-literal
+      // invariant remains findable.
+      const utilsRoot = path.resolve(
         __dirname,
-        '../../../features/architect/utils/mutationPipeline.ts'
+        '../../../features/architect/utils'
       );
-      const content = fs.readFileSync(mutationPipelinePath, 'utf8');
+      const dispatchFiles = [
+        'mutationPipeline.ts',
+        'mutationPipeline.preflights.ts',
+        'mutationPipeline.normalize.ts',
+        'mutationPipeline.compute.ts',
+        'mutationPipeline.compute.trade.ts',
+      ];
+      const content = dispatchFiles
+        .map((relative) => path.join(utilsRoot, relative))
+        .filter((p) => fs.existsSync(p))
+        .map((p) => fs.readFileSync(p, 'utf8'))
+        .join('\n');
 
       // Must have case for executeTrade
       expect(content).toMatch(/case\s+['"]executeTrade['"]/);

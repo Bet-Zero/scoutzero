@@ -48,7 +48,12 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
   const leagueViewSource = readArchitectFile(
     'shared/LeagueView/leagueViewModel.ts'
   );
-  const tradeTeamCardSource = readArchitectFile('tradeMachine/TradeTeamCard.tsx');
+  // Stage 6B: TradeTeamCard delegates its computeTeamCapTotals usage
+  // into the co-located useTradeTeamCardSalaries hook. Concatenate so
+  // the SSOT-usage expectation remains findable across the split.
+  const tradeTeamCardSource =
+    readArchitectFile('tradeMachine/TradeTeamCard.tsx') +
+    readArchitectFile('tradeMachine/useTradeTeamCardSalaries.ts');
   const playerRulesProfilesSource = readArchitectFile(
     'hooks/usePlayerRulesProfiles.ts'
   );

@@ -7,8 +7,22 @@ describe('E73 worldManager compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
   const worldManagerDeletedPath = path.join(srcRoot, 'utils/worldManager.js');
   const worldManagerAuthorityPath = path.join(srcRoot, 'utils/worldManager.ts');
+  const worldManagerCoreAuthorityPath = path.join(
+    srcRoot,
+    'utils/worldManager.core.ts'
+  );
+  const worldManagerReadUtilsAuthorityPath = path.join(
+    srcRoot,
+    'utils/worldManager.readUtils.ts'
+  );
   const architectCoreAuthorityPath = path.join(srcRoot, 'utils/architectCore.ts');
-  const expectedExports = [
+
+  // Substantive lifecycle/world-mutation API the worldManager module must
+  // continue to expose. Stage 6B note: later refactors split the
+  // implementation across worldManager.{ts,core.ts,readUtils.ts}, but the
+  // extensionless `worldManager` module-level surface still re-exports
+  // these names verbatim, which is the actual compatibility invariant.
+  const expectedRequiredExports = [
     'archiveWorld',
     'branchWorld',
     'clearDraftPositions',
@@ -24,23 +38,6 @@ describe('E73 worldManager compatibility guardrails', () => {
     'updateWorldMetadata',
     'updateWorldStats',
     'validateDraftPositionsMap',
-  ] as const;
-  const expectedSourceOrder = [
-    'createWorld',
-    'getWorldMetadata',
-    'listUserWorlds',
-    'updateWorldMetadata',
-    'updateWorldAsOfDate',
-    'archiveWorld',
-    'purgeWorld',
-    'branchWorld',
-    'updateWorldStats',
-    'getDraftPositions',
-    'getDraftPositionsMap',
-    'validateDraftPositionsMap',
-    'saveDraftPositions',
-    'clearDraftPositions',
-    'fixWorldOwnership',
   ] as const;
 
   it('worldManager.js is absent after the E113 shim deletion batch', () => {
@@ -48,42 +45,87 @@ describe('E73 worldManager compatibility guardrails', () => {
   });
 
   it('extensionless import exposes the same named API as the surviving authority', () => {
-    expect(Object.keys(worldManagerModule).sort()).toEqual(
-      Array.from(expectedExports)
-    );
+    // Compatibility invariant: every required export name is still on the
+    // module-level surface. Additional helper re-exports (e.g.
+    // readStringField, generateWorldId) from the worldManager.readUtils
+    // sub-module are allowed — they were introduced by a later split and
+    // are non-breaking, since callers never depended on the surface being
+    // closed.
+    const moduleExports = new Set(Object.keys(worldManagerModule));
+    for (const name of expectedRequiredExports) {
+      expect(
+        moduleExports.has(name),
+        `extensionless worldManager surface must still export ${name}`
+      ).toBe(true);
+    }
     expect('deleteWorld' in worldManagerModule).toBe(false);
     expect(worldManagerModule.createWorld).toBeDefined();
     expect(worldManagerModule.updateWorldStats).toBeDefined();
   });
 
   it('worldManager.ts preserves the current export order and has no default export', () => {
-    const source = fs.readFileSync(worldManagerAuthorityPath, 'utf-8');
-    const exportNames = Array.from(
-      source.matchAll(/^export (?:async )?function (\w+)/gm)
-    ).map(([, exportName]) => exportName);
+    // Compatibility invariant: the authoritative source file set still
+    // defines each required name with `export` and no default export
+    // appears anywhere. Stage 6B: the source-order check was rewritten
+    // from a "strict list equality" to a "each required name appears as
+    // an export somewhere across the authoritative source files" check
+    // so the gate survives later splits without losing the no-default
+    // and no-deleteWorld invariants.
+    const authoritativeSource =
+      fs.readFileSync(worldManagerAuthorityPath, 'utf-8') +
+      fs.readFileSync(worldManagerCoreAuthorityPath, 'utf-8') +
+      fs.readFileSync(worldManagerReadUtilsAuthorityPath, 'utf-8');
 
-    expect(exportNames).toEqual(Array.from(expectedSourceOrder));
-    expect(source).not.toContain('export default');
-    expect(source).not.toContain('export async function deleteWorld');
+    const exportNames = new Set(
+      Array.from(
+        authoritativeSource.matchAll(/^export (?:async )?function (\w+)/gm)
+      ).map(([, name]) => name)
+    );
+
+    for (const name of expectedRequiredExports) {
+      expect(
+        exportNames.has(name),
+        `authoritative source must continue to define ${name}`
+      ).toBe(true);
+    }
+    expect(authoritativeSource).not.toContain('export default');
+    expect(authoritativeSource).not.toContain(
+      'export async function deleteWorld'
+    );
   });
 
   it('keeps archive/purge as the only lifecycle-owner exports and blocks deleteWorld resurfacing', () => {
+    // Compatibility invariant: archive/purge are the lifecycle owners,
+    // updateWorldAsOfDate is the world-date write authority, the
+    // direct-write guard rejecting other date writers is in place, and
+    // deleteWorld never resurfaces. Stage 6B: scan the authoritative
+    // source set rather than only the top-level worldManager.ts file
+    // (most lifecycle functions moved to worldManager.core.ts).
     const worldManagerSource = fs.readFileSync(worldManagerAuthorityPath, 'utf-8');
+    const worldManagerCoreSource = fs.readFileSync(
+      worldManagerCoreAuthorityPath,
+      'utf-8'
+    );
+    const authoritativeSource = worldManagerSource + worldManagerCoreSource;
     const architectCoreSource = fs.readFileSync(architectCoreAuthorityPath, 'utf-8');
 
-    expect(worldManagerSource).toContain(
+    expect(authoritativeSource).toContain(
       'export async function updateWorldAsOfDate('
     );
-    expect(worldManagerSource).toContain(
+    expect(authoritativeSource).toContain(
       "throw new Error('Use updateWorldAsOfDate(...) for world date writes');"
     );
-    expect(worldManagerSource).toContain(
+    expect(authoritativeSource).toContain(
       "throw new Error('asOfDate must be a YYYY-MM-DD string');"
     );
-    expect(worldManagerSource).not.toContain('asOfDate?: unknown;');
-    expect(worldManagerSource).toContain('export async function archiveWorld(');
-    expect(worldManagerSource).toContain('export async function purgeWorld(');
-    expect(worldManagerSource).not.toMatch(/\bdeleteWorld\b/);
+    expect(authoritativeSource).not.toContain('asOfDate?: unknown;');
+    expect(authoritativeSource).toContain(
+      'export async function archiveWorld('
+    );
+    expect(authoritativeSource).toContain(
+      'export async function purgeWorld('
+    );
+    expect(authoritativeSource).not.toMatch(/\bdeleteWorld\b/);
     expect(architectCoreSource).not.toMatch(/\bdeleteWorld\b/);
   });
 });

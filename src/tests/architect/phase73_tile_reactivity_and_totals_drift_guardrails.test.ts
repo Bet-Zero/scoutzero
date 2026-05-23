@@ -118,25 +118,47 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
       __dirname,
       '../../features/architect/tradeMachine/TradeTeamCard.jsx'
     );
+    // Stage 6B: warnOnTotalsDivergence drift-detection moved into the
+    // co-located useTradeTeamCardSalaries hook that the TradeTeamCard
+    // consumes. Include it in the source set so the invariants survive
+    // the hook extraction without losing call-site granularity.
+    const tradeTeamCardHelpersPath = path.resolve(
+      __dirname,
+      '../../features/architect/tradeMachine/TradeTeamCard.helpers.ts'
+    );
+    const tradeTeamCardSalariesHookPath = path.resolve(
+      __dirname,
+      '../../features/architect/tradeMachine/useTradeTeamCardSalaries.ts'
+    );
+    const readTradeTeamCardBundle = (): string => {
+      let bundle = fs.readFileSync(tradeTeamCardPath, 'utf-8');
+      if (fs.existsSync(tradeTeamCardHelpersPath)) {
+        bundle += fs.readFileSync(tradeTeamCardHelpersPath, 'utf-8');
+      }
+      if (fs.existsSync(tradeTeamCardSalariesHookPath)) {
+        bundle += fs.readFileSync(tradeTeamCardSalariesHookPath, 'utf-8');
+      }
+      return bundle;
+    };
 
     it('TradeTeamCard.jsx is absent after the E113 shim deletion batch', () => {
       expect(fs.existsSync(tradeTeamCardShimPath)).toBe(false);
     });
 
     it('TradeTeamCard.tsx imports warnOnTotalsDivergence', () => {
-      const content = fs.readFileSync(tradeTeamCardPath, 'utf-8');
+      const content = readTradeTeamCardBundle();
       expect(content).toContain('warnOnTotalsDivergence');
     });
 
     it('TradeTeamCard.tsx calls warnOnTotalsDivergence for outgoingSalary', () => {
-      const content = fs.readFileSync(tradeTeamCardPath, 'utf-8');
+      const content = readTradeTeamCardBundle();
       expect(content).toMatch(
         /warnOnTotalsDivergence\(\s*['"]TradeTeamCard['"]\s*,\s*['"]outgoingSalary['"]/
       );
     });
 
     it('TradeTeamCard.tsx calls warnOnTotalsDivergence for incomingSalary', () => {
-      const content = fs.readFileSync(tradeTeamCardPath, 'utf-8');
+      const content = readTradeTeamCardBundle();
       expect(content).toMatch(
         /warnOnTotalsDivergence\(\s*['"]TradeTeamCard['"]\s*,\s*['"]incomingSalary['"]/
       );

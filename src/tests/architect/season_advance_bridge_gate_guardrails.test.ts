@@ -33,6 +33,20 @@ const SEASON_MANAGER_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/seasonManager.ts'
 );
+// Stage 6B: per-team transition (and HYDRATION_ONLY_KEYS /
+// stripHydrationOnlyFields, sanitize/assertPersistable/removeUndefined
+// ordering) was extracted into seasonManager.teamTransition.ts.
+const SEASON_MANAGER_TEAM_TRANSITION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/seasonManager.teamTransition.ts'
+);
+const readSeasonManagerBundle = (): string => {
+  let bundle = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
+  if (fs.existsSync(SEASON_MANAGER_TEAM_TRANSITION_PATH)) {
+    bundle += fs.readFileSync(SEASON_MANAGER_TEAM_TRANSITION_PATH, 'utf-8');
+  }
+  return bundle;
+};
 
 const COMPUTE_TOTALS_PATH = path.resolve(
   __dirname,
@@ -45,7 +59,7 @@ const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
 );
 
 describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
-  const seasonManagerSource = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
+  const seasonManagerSource = readSeasonManagerBundle();
 
   it('TEST 1: seasonManager.ts calls sanitizeTransientFieldsForPersistence', () => {
     // Must contain at least one call (not just import)
@@ -59,20 +73,25 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
   });
 
   it('TEST 3: Correct ordering — stripHydration before sanitize before normalize before assertPersistable before removeUndefined', () => {
+    // Stage 6B: the bridge-gate ordering lives entirely inside
+    // seasonManager.teamTransition.ts. Read just that file so the
+    // ordering check is scoped to one sub-module and doesn't confuse
+    // the team-transition ordering with the event-payload
+    // assertPersistableOrThrow call inside seasonManager.ts.
+    const scopedSource = fs.existsSync(SEASON_MANAGER_TEAM_TRANSITION_PATH)
+      ? fs.readFileSync(SEASON_MANAGER_TEAM_TRANSITION_PATH, 'utf-8')
+      : seasonManagerSource;
+
     // Find the bridge gate block within advanceSeasonInWorld
-    const stripIdx = seasonManagerSource.indexOf(
-      'stripHydrationOnlyFields(team)'
-    );
-    const sanitizeIdx = seasonManagerSource.indexOf(
+    const stripIdx = scopedSource.indexOf('stripHydrationOnlyFields(team)');
+    const sanitizeIdx = scopedSource.indexOf(
       'sanitizeTransientFieldsForPersistence(afterHydrationStrip)'
     );
-    const normalizeIdx = seasonManagerSource.search(
+    const normalizeIdx = scopedSource.search(
       /normalizeTeamTpeSchema\s*\(\s*afterSanitize/
     );
-    const assertIdx = seasonManagerSource.indexOf(
-      'assertPersistableOrThrow({'
-    );
-    const removeIdx = seasonManagerSource.indexOf(
+    const assertIdx = scopedSource.indexOf('assertPersistableOrThrow({');
+    const removeIdx = scopedSource.indexOf(
       'removeUndefinedDeep(normalizedTeam)',
       stripIdx > 0 ? stripIdx : 0
     );

@@ -80,6 +80,21 @@ const USE_ARCHITECT_ACTIONS_HELPERS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.helpers.ts'
 );
+// Stage 6B: helpers were further split. The signing propagation types
+// (LocalValidatedTeamPropagation, ResolvedCommittedWorldTeam, etc.)
+// moved to useArchitectActions.helpers.signing.ts.
+const USE_ARCHITECT_ACTIONS_HELPERS_SIGNING_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.helpers.signing.ts'
+);
+const USE_ARCHITECT_ACTIONS_HELPERS_OFFER_SHEET_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.helpers.offerSheet.ts'
+);
+const USE_ARCHITECT_ACTIONS_TYPES_NORMALIZERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/hooks/useArchitectActions.types.normalizers.ts'
+);
 const USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.tradeActions.ts'
@@ -112,6 +127,28 @@ const EDIT_CONTRACT_MODAL_PATH = path.resolve(
   __dirname,
   '../../shared/components/EditContractModal.tsx'
 );
+// Stage 6B: EditContractModal was split into co-located helper/hook
+// modules. The signing/offer-sheet dispatch payload builders moved
+// into EditContractModal.form.hook.ts. Concatenate the trio of source
+// files so the FA-dispatch invariants remain findable.
+const EDIT_CONTRACT_MODAL_FORM_HOOK_PATH = path.resolve(
+  __dirname,
+  '../../shared/components/EditContractModal.form.hook.ts'
+);
+const EDIT_CONTRACT_MODAL_PREFLIGHT_HOOK_PATH = path.resolve(
+  __dirname,
+  '../../shared/components/EditContractModal.preflight.hook.ts'
+);
+const readEditContractModalBundle = (): string => {
+  let bundle = fs.readFileSync(EDIT_CONTRACT_MODAL_PATH, 'utf-8');
+  if (fs.existsSync(EDIT_CONTRACT_MODAL_FORM_HOOK_PATH)) {
+    bundle += fs.readFileSync(EDIT_CONTRACT_MODAL_FORM_HOOK_PATH, 'utf-8');
+  }
+  if (fs.existsSync(EDIT_CONTRACT_MODAL_PREFLIGHT_HOOK_PATH)) {
+    bundle += fs.readFileSync(EDIT_CONTRACT_MODAL_PREFLIGHT_HOOK_PATH, 'utf-8');
+  }
+  return bundle;
+};
 
 const USE_ARCHITECT_STATE_PATH = path.resolve(
   __dirname,
@@ -418,9 +455,35 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
     expect(freeAgencySectionContent).toMatch(
       /offerSheetSectionAvailability\.actionsDisabled[\s\S]*offerSheetLifecycleDisabledReason/
     );
-    expect(freeAgencySectionContent).toMatch(
-      /const\s+freeAgentPoolActionOwner\s*=\s*\{[\s\S]*dualPathSigning:\s*actionOwner\.dualPathSigning,[\s\S]*freeAgentModalAvailability:\s*actionOwner\.freeAgentModalAvailability,[\s\S]*\}\s+satisfies\s+FreeAgentPoolActionOwner/
+    // Stage 6B: Stage 2A (operating-experience continuity) wraps
+    // signFreeAgent to call onAfterSigningComplete?.() on success. The
+    // substantive invariant — "FreeAgencySection forwards the
+    // dualPathSigning + freeAgentModalAvailability ownership into
+    // FreeAgentPool without doing mutation logic" — still holds. Accept
+    // either the original pass-through shape OR the Stage 2A wrapped
+    // shape that still routes signFreeAgent through the action owner.
+    const passesThroughActionOwner =
+      /const\s+freeAgentPoolActionOwner\s*=\s*\{[\s\S]*dualPathSigning:\s*actionOwner\.dualPathSigning,[\s\S]*freeAgentModalAvailability:\s*actionOwner\.freeAgentModalAvailability,[\s\S]*\}\s+satisfies\s+FreeAgentPoolActionOwner/;
+    const stage2aWrappedActionOwner =
+      /const\s+freeAgentPoolActionOwner\s*=\s*\{[\s\S]*dualPathSigning:\s*\{\s*signFreeAgent:\s*wrappedSignFreeAgent[\s\S]*\}[\s\S]*freeAgentModalAvailability:\s*actionOwner\.freeAgentModalAvailability[\s\S]*\}\s+satisfies\s+FreeAgentPoolActionOwner/;
+    const matchesOriginal = passesThroughActionOwner.test(
+      freeAgencySectionContent
     );
+    const matchesStage2aWrapped = stage2aWrappedActionOwner.test(
+      freeAgencySectionContent
+    );
+    expect(
+      matchesOriginal || matchesStage2aWrapped,
+      'FreeAgencySection must forward dualPathSigning + freeAgentModalAvailability into FreeAgentPool either directly or via the Stage 2A on-success wrapper'
+    ).toBe(true);
+    if (matchesStage2aWrapped) {
+      // Confirm the Stage 2A wrapper still routes signFreeAgent
+      // through the action owner — it must not implement its own
+      // mutation logic.
+      expect(freeAgencySectionContent).toMatch(
+        /await\s+actionOwner\.dualPathSigning\.signFreeAgent\s*\(/
+      );
+    }
     expect(freeAgencySectionContent).toMatch(
       /<FreeAgentPool[\s\S]*actionOwner=\{freeAgentPoolActionOwner\}/
     );
@@ -653,7 +716,7 @@ describe('Gate 4B: Step 2 UI truth keeps shared launch, owner-projected availabi
 });
 
 describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agency actions (FA-1A)', () => {
-  const content = readFileContent(EDIT_CONTRACT_MODAL_PATH);
+  const content = readEditContractModalBundle();
   const dispatchRegion = readRegion(
     content,
     'const dispatchSelectedFreeAgencyAction = useCallback(',
@@ -744,10 +807,16 @@ describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agenc
 });
 
 describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fail-closed and canonical (FA-1D)', () => {
+  // Stage 6B: include the Stage 6B-era sub-modules so the canonical
+  // propagation types stay findable wherever the latest split placed
+  // them.
   const content =
     readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TYPES_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_TYPES_NORMALIZERS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_SIGNING_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_HELPERS_OFFER_SHEET_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_EXECUTORS_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_SIGNING_EXECUTION_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_TRADE_ACTIONS_PATH) +

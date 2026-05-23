@@ -69,6 +69,36 @@ const CAP_LEGALITY_VALIDATION_SIGNING_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/capLegalityValidation/signing.ts'
 );
+// Stage 6B: signing.ts was further split — the canonical
+// computeCanonicalMutationTeamCapTotals owner moved into
+// signing.helpers.ts; signing.validators.ts holds the validator entry
+// points. Concatenate the whole signing sub-folder so the SSOT helper
+// invariants stay findable.
+const CAP_LEGALITY_VALIDATION_SIGNING_VALIDATORS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation/signing.validators.ts'
+);
+const CAP_LEGALITY_VALIDATION_SIGNING_HELPERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation/signing.helpers.ts'
+);
+const CAP_LEGALITY_VALIDATION_SIGNING_VALIDATE_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation/signing.validate.ts'
+);
+const readCapLegalitySigningBundle = (): string => {
+  let bundle = fs.readFileSync(CAP_LEGALITY_VALIDATION_SIGNING_PATH, 'utf-8');
+  for (const extraPath of [
+    CAP_LEGALITY_VALIDATION_SIGNING_VALIDATORS_PATH,
+    CAP_LEGALITY_VALIDATION_SIGNING_HELPERS_PATH,
+    CAP_LEGALITY_VALIDATION_SIGNING_VALIDATE_PATH,
+  ]) {
+    if (fs.existsSync(extraPath)) {
+      bundle += fs.readFileSync(extraPath, 'utf-8');
+    }
+  }
+  return bundle;
+};
 
 const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
   __dirname,
@@ -134,11 +164,11 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     CAP_LEGALITY_VALIDATION_PATH,
     'utf-8'
   );
-  // computeCanonicalMutationTeamCapTotals moved to signing.ts submodule (Wave 4 Step 2c)
-  const capLegalityValidationSigningSource = fs.readFileSync(
-    CAP_LEGALITY_VALIDATION_SIGNING_PATH,
-    'utf-8'
-  );
+  // computeCanonicalMutationTeamCapTotals moved to signing.ts submodule (Wave 4 Step 2c).
+  // Stage 6B: signing.ts was further split — the canonical helper now
+  // lives in signing.validators.ts; readCapLegalitySigningBundle handles
+  // the concatenation.
+  const capLegalityValidationSigningSource = readCapLegalitySigningBundle();
 
   it('TEST 1: CapSheetFull imports computeTeamCapTotals', () => {
     expect(capSheetFullSource).toMatch(/import.*computeTeamCapTotals.*from/);

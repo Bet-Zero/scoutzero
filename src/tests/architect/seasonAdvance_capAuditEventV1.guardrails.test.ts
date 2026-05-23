@@ -10,9 +10,27 @@ const SEASON_MANAGER_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/seasonManager.ts'
 );
+// Stage 6B: types and shared helpers were extracted into
+// seasonManager.helpers.ts. The audit-event invariants live across
+// both files so concatenate them.
+const SEASON_MANAGER_HELPERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/seasonManager.helpers.ts'
+);
+const SEASON_MANAGER_TEAM_TRANSITION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/seasonManager.teamTransition.ts'
+);
 
 describe('Season Advance CapAuditEventV1 Guardrails', () => {
-  const source = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
+  const source =
+    fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8') +
+    (fs.existsSync(SEASON_MANAGER_HELPERS_PATH)
+      ? fs.readFileSync(SEASON_MANAGER_HELPERS_PATH, 'utf-8')
+      : '') +
+    (fs.existsSync(SEASON_MANAGER_TEAM_TRANSITION_PATH)
+      ? fs.readFileSync(SEASON_MANAGER_TEAM_TRANSITION_PATH, 'utf-8')
+      : '');
 
   it('constructs an operation-level CapAuditEventV1 envelope with required fields', () => {
     expect(source).toContain("const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1'");

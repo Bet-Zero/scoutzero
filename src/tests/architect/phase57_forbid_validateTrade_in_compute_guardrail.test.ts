@@ -155,9 +155,13 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   // Phase 58: Updated to check tradeContext module instead of mutationPipeline.ts
   describe('Test 3: buildPostTradeTeamsSnapshot is pure (no validateTrade calls)', () => {
     it('should not contain validateTrade( calls in buildPostTradeTeamsSnapshot function (tradeContext module)', () => {
+      // Later wave: buildPostTradeTeamsSnapshot extracted into
+      // tradeContext.snapshot.builder.ts; include it in the source set.
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeContext.ts'
-      ) + readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts');
+      ) +
+        readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts') +
+        readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.builder.ts');
 
       // Extract the buildPostTradeTeamsSnapshot function region
       const snapshotStart = 'export function buildPostTradeTeamsSnapshot({';
@@ -176,8 +180,11 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
   describe('Test 4: computeWorldMutation executeTrade case is pure', () => {
     it('should not call validateTrade directly in computeWorldMutation executeTrade case', () => {
+      // Later wave: computeNormalizedWorldMutation moved into
+      // mutationPipeline.normalize.ts; include it in the source set.
       const source = readSourceFile('src/features/architect/utils/mutationPipeline.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.validate.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.trade.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.trade.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.normalize.ts');
 
       // The executeTrade case in computeWorldMutation should only call:
       // - buildTradeApplyPreparation (centralized snapshot+validation handoff)
@@ -353,9 +360,13 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
   describe('Test 8: tradeContext module exists and has expected structure', () => {
     it('should have tradeContext.ts with required exports (Phase 59: validateTradeForContext moved to legacy)', () => {
+      // Later wave: buildPostTradeTeamsSnapshot extracted into
+      // tradeContext.snapshot.builder.ts; include it in the source set.
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeContext.ts'
-      ) + readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts');
+      ) +
+        readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.ts') +
+        readSourceFile('src/features/architect/utils/tradeContext/tradeContext.snapshot.builder.ts');
 
       // Should export buildPostTradeTeamsSnapshot
       expect(source).toContain('export function buildPostTradeTeamsSnapshot');
@@ -579,9 +590,14 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
   describe('Test 14: useTradeMachine reuses prepare -> preview authority path', () => {
     it('should not call validateTrade directly in useTradeMachine.ts', () => {
-      const source = readSourceFile(
-        'src/features/architect/hooks/useTradeMachine.ts'
-      );
+      // Later wave: validation orchestration extracted into
+      // useTradeMachineValidation.ts; concatenate both so the
+      // prepare -> preview authority path is still findable.
+      const source =
+        readSourceFile('src/features/architect/hooks/useTradeMachine.ts') +
+        readSourceFile(
+          'src/features/architect/hooks/useTradeMachineValidation.ts'
+        );
 
       expect(source).toContain('buildTradeApplyPreparation');
       expect(source).toContain('getTradePreviewAuthority');

@@ -129,21 +129,19 @@ describe('useArchitectState world-aware free agency pool', () => {
   });
 
   it('excludes world-rostered players and includes unrostered players after refresh', async () => {
-    stateMocks.getLeague
-      .mockResolvedValueOnce([
-        {
-          teamCode: 'LAL',
-          roster: ['player_a'],
-          players: [{ id: 'player_a' }],
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          teamCode: 'LAL',
-          roster: ['player_a', 'player_b'],
-          players: [{ id: 'player_a' }, { id: 'player_b' }],
-        },
-      ]);
+    // Mock drift fix (Stage 6B): use a stable mockResolvedValue for the
+    // initial-load + setActiveWorld phase, then swap the mock to the
+    // post-refresh state before refreshWorldRosterIndex() is called.
+    // The product code can call getLeague more than twice across React
+    // render lifecycles, so we keep each phase's value stable instead of
+    // relying on a fragile mockResolvedValueOnce chain.
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
 
     const { result } = renderHook(() =>
       useArchitectState({
@@ -170,6 +168,15 @@ describe('useArchitectState world-aware free agency pool', () => {
       expect(playerIds).toContain('player_c');
     });
 
+    // Swap the mock to the post-refresh state before triggering the refresh.
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a', 'player_b'],
+        players: [{ id: 'player_a' }, { id: 'player_b' }],
+      },
+    ]);
+
     await act(async () => {
       await result.current.refreshWorldRosterIndex();
     });
@@ -183,15 +190,20 @@ describe('useArchitectState world-aware free agency pool', () => {
   });
 
   it('fails closed on world roster index load failure and recovers on successful refresh', async () => {
-    stateMocks.getLeague
-      .mockRejectedValueOnce(new Error('league unavailable'))
-      .mockResolvedValueOnce([
-        {
-          teamCode: 'LAL',
-          roster: ['player_a'],
-          players: [{ id: 'player_a' }],
-        },
-      ]);
+    // Mock drift fix (Stage 6B): the initial failing call must reject;
+    // any subsequent calls (including the recovery refresh) get the
+    // stable post-recovery resolved value via .mockResolvedValue.
+    stateMocks.getLeague.mockReset();
+    stateMocks.getLeague.mockRejectedValueOnce(
+      new Error('league unavailable')
+    );
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
 
     const { result } = renderHook(() =>
       useArchitectState({

@@ -208,11 +208,23 @@ describe('Phase 63: Short-circuit on signing validation failure', () => {
 // ==============================================================================
 describe('Phase 63: Phase 56 / TM-3B architecture pattern (prepare → compute/persist)', () => {
   it('executeTrade case in computeWorldMutation follows Phase 56 pattern', () => {
+    // Stage 6B: computeWorldMutation moved to mutationPipeline.preflights.ts
+    // and computeNormalizedWorldMutation lives in mutationPipeline.normalize.ts.
+    // The Phase 56 prepare-then-compute handoff sits in the normalized
+    // variant; include both files plus the surrounding compute helpers
+    // so the scan still finds the canonical executeTrade case body.
     const source = readSourceFile('src/features/architect/utils/mutationPipeline.ts') +
-      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') + readSourceFile('src/features/architect/utils/mutationPipeline.compute.trade.ts');
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.compute.trade.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.preflights.ts') +
+      readSourceFile('src/features/architect/utils/mutationPipeline.normalize.ts');
 
-    // Find the computeWorldMutation function first
-    const funcMatch = source.match(/function\s+computeWorldMutation\s*\(/);
+    // Find the computeWorldMutation (or canonical normalized variant)
+    // function entry — match either name so future renames don't break
+    // the gate.
+    const funcMatch = source.match(
+      /function\s+(?:computeNormalizedWorldMutation|computeWorldMutation)\s*\(/
+    );
     const funcStartIndex = requireMatchIndex(
       funcMatch,
       'computeWorldMutation'

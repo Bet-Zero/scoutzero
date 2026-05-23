@@ -65,12 +65,21 @@ const ALLOWLISTED_FILES: readonly string[] = [
   'utils/mutationPipeline.compute.trade.ts',
   // Wave 5 Step 2: team current-state construction extracted from read.ts
   'utils/mutationPipeline.read.normalizeTeam.ts',
+  // Stage 6B: later wave split the normalizeTeam helpers further.
+  // builders.ts owns the legacy/canonical fallback resolution and
+  // foundation.ts holds the preserved-field foundation layer; both need
+  // to read .tradeExceptions defensively from legacy team payloads.
+  'utils/mutationPipeline.read.normalizeTeam.builders.ts',
+  'utils/mutationPipeline.read.normalizeTeam.foundation.ts',
   // Trade context snapshot building (merges both sources during snapshot)
   'utils/tradeContext/tradeContext.ts',
   // TPE lifecycle processing helper (operates on passed array, not team object)
   'utils/tpeLifecycle.ts',
   // buildRuleContext builds internal context objects (uses exceptions.tradeExceptions as internal key)
   'utils/buildRuleContext.ts',
+  // Stage 6B: helpers extracted from buildRuleContext.ts continue to
+  // build the internal exceptions.tradeExceptions context object.
+  'utils/buildRuleContext.helpers.ts',
 ];
 
 /**
@@ -266,8 +275,14 @@ describe('Phase 65: Forbid Direct .tradeExceptions Reads in Production Code', ()
     });
 
     it('should have a reasonably small allowlist (prevent drift)', () => {
-      // Phase E50 allowlist should remain tightly bounded
-      expect(ALLOWLISTED_FILES.length).toBeLessThanOrEqual(11);
+      // Phase E50 allowlist should remain tightly bounded. Stage 6B
+      // refactors split a few of the previously-allowlisted modules
+      // (mutationPipeline.read.normalizeTeam.ts split into builders.ts +
+      // foundation.ts; buildRuleContext.ts split out helpers.ts), so
+      // the cap moved from 11 to 14 to track the surviving file count
+      // 1-to-1 without weakening intent. Any new files added beyond
+      // this number should be reviewed for legitimacy.
+      expect(ALLOWLISTED_FILES.length).toBeLessThanOrEqual(14);
     });
   });
 });
@@ -385,8 +400,19 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
   });
 
   it('should build a normalized committed snapshot before batch.set in seasonManager', () => {
+    // Stage 6B: per-team transition (and the helper that builds the
+    // committed snapshot before batch.set) was extracted into
+    // seasonManager.teamTransition.ts. Read both files so the ordering
+    // invariants remain checkable.
     const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.ts');
-    const content = fs.readFileSync(seasonManagerPath, 'utf-8');
+    const seasonManagerTeamTransitionPath = path.join(
+      SRC_ROOT,
+      'utils/seasonManager.teamTransition.ts'
+    );
+    let content = fs.readFileSync(seasonManagerPath, 'utf-8');
+    if (fs.existsSync(seasonManagerTeamTransitionPath)) {
+      content += fs.readFileSync(seasonManagerTeamTransitionPath, 'utf-8');
+    }
 
     const helperStart = content.indexOf(
       'function buildSeasonAdvanceCommittedTeamSnapshot'
@@ -407,10 +433,17 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
       helperSection.indexOf('return removeUndefinedDeep(normalizedTeam);')
     );
 
-    const writeSection = content.slice(
-      content.indexOf('const snapshotRef = worldTeamRef(worldId, teamCode);'),
-      content.indexOf('updatedTeams.push(teamCode);')
+    const writeSliceStart = content.indexOf(
+      'const snapshotRef = worldTeamRef(worldId, teamCode);'
     );
+    const writeSliceEnd = content.indexOf(
+      'updatedTeams.push(teamCode);',
+      writeSliceStart
+    );
+    const writeSection =
+      writeSliceStart >= 0 && writeSliceEnd > writeSliceStart
+        ? content.slice(writeSliceStart, writeSliceEnd)
+        : '';
 
     expect(content).toContain(
       'buildSeasonAdvanceCommittedTeamSnapshot(updatedTeam)'

@@ -187,13 +187,23 @@ describe('Phase 43 Apron Drift Prevention Guardrails', () => {
   });
 
   test('buildRuleContext.ts uses canonical import path', () => {
+    // Stage 6B: the canonical capUtils import was moved into the
+    // co-located buildRuleContext.helpers.ts module that the main
+    // buildRuleContext re-exports through. Concatenate both files so
+    // the canonical-vs-relative import invariant remains checkable.
     const projectRoot = process.cwd();
     const buildRuleContextPath = path.join(
       projectRoot,
       'src/features/architect/utils/buildRuleContext.ts'
     );
-
-    const content = fs.readFileSync(buildRuleContextPath, 'utf-8');
+    const buildRuleContextHelpersPath = path.join(
+      projectRoot,
+      'src/features/architect/utils/buildRuleContext.helpers.ts'
+    );
+    let content = fs.readFileSync(buildRuleContextPath, 'utf-8');
+    if (fs.existsSync(buildRuleContextHelpersPath)) {
+      content += fs.readFileSync(buildRuleContextHelpersPath, 'utf-8');
+    }
 
     // Should NOT import directly from tradeMachine
     expect(content).not.toContain("from './tradeMachine/utils/capUtils");
