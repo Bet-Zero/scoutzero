@@ -93,8 +93,16 @@ describe('Phase 75: Source Scan Guardrails', () => {
   });
 
   it('capLegalityValidation.ts imports and uses canUseRoomException', () => {
-    // canUseRoomException logic moved to signing.ts submodule (Wave 4 Step 2c)
-    const source = fs.readFileSync(capLegalitySigningPath, 'utf-8');
+    // canUseRoomException logic moved to signing.ts submodule (Wave 4 Step 2c).
+    // Stage 6B: signing.ts was further split; the canonical
+    // canUseRoomException usage now lives in signing.validators.ts.
+    const validatorsPath = path.join(
+      srcRoot,
+      'utils/capLegalityValidation/signing.validators.ts'
+    );
+    const source =
+      fs.readFileSync(capLegalitySigningPath, 'utf-8') +
+      fs.readFileSync(validatorsPath, 'utf-8');
 
     // Import exists
     expect(source).toContain('canUseRoomException');
@@ -104,8 +112,15 @@ describe('Phase 75: Source Scan Guardrails', () => {
   });
 
   it('capLegalityValidation.ts has ROOM_REQUIRES_UNDER_CAP rule code', () => {
-    // ROOM_REQUIRES_UNDER_CAP moved to signing.ts submodule (Wave 4 Step 2c)
-    const source = fs.readFileSync(capLegalitySigningPath, 'utf-8');
+    // ROOM_REQUIRES_UNDER_CAP moved to signing.ts submodule (Wave 4 Step 2c).
+    // Stage 6B: further moved to signing.validators.ts.
+    const validatorsPath = path.join(
+      srcRoot,
+      'utils/capLegalityValidation/signing.validators.ts'
+    );
+    const source =
+      fs.readFileSync(capLegalitySigningPath, 'utf-8') +
+      fs.readFileSync(validatorsPath, 'utf-8');
 
     expect(source).toContain("rule: 'ROOM_REQUIRES_UNDER_CAP'");
   });
@@ -427,21 +442,36 @@ describe('Phase 75: Validation - Room Exception Under-Cap Gating', () => {
 
 describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
   it('room exception signing does NOT trigger hard cap (Phase 74 invariant)', () => {
-    // Verify source code still does NOT trigger hard cap for room
+    // Stage 6B: the inline Phase 74 comment markers in mutationPipeline.ts
+    // were removed when usage tracking generalized into the canonical
+    // consumeSigningExceptionUsage helper. The substantive invariant —
+    // "room signings do not trigger a hard-cap activation" — is now
+    // data-driven through FIRST_APRON_SIGNING_TRIGGER_METADATA in
+    // hardCapStatus.ts, which only contains FULL_MLE and BAE entries.
     const srcRoot = path.resolve(__dirname, '../../features/architect');
-    const pipelineAuthorityPath = path.join(srcRoot, 'utils/mutationPipeline.ts');
     const pipelineShimPath = path.join(srcRoot, 'utils/mutationPipeline.js');
-    // Wave 4 Step 4d: room exception tracking in mutationPipeline.compute.ts
-    // Wave 8 Step 2: further extracted to mutationPipeline.compute.signings.ts
-    const computePath = pipelineAuthorityPath.replace('mutationPipeline.ts', 'mutationPipeline.compute.ts');
-    const signingsPath = pipelineAuthorityPath.replace('mutationPipeline.ts', 'mutationPipeline.compute.signings.ts');
-    const authoritySource = fs.readFileSync(pipelineAuthorityPath, 'utf-8') + fs.readFileSync(computePath, 'utf-8') + fs.readFileSync(signingsPath, 'utf-8');
+    const hardCapStatusPath = path.join(
+      srcRoot,
+      'utils/tradeMachine/utils/hardCapStatus.ts'
+    );
+    const hardCapStatusSource = fs.readFileSync(hardCapStatusPath, 'utf-8');
 
-    // Find the room exception block on the TS-authoritative source.
-    expect(authoritySource).toContain('Phase 74: Room Exception usage tracking');
+    // Confirm the data-driven invariant: only the apron-triggering
+    // mechanisms (FULL_MLE, BAE) appear in the metadata table.
+    expect(hardCapStatusSource).toContain(
+      'FIRST_APRON_SIGNING_TRIGGER_METADATA'
+    );
+    expect(hardCapStatusSource).toContain('FULL_MLE');
+    expect(hardCapStatusSource).toContain('BAE');
 
-    // Should contain the no-hard-cap comment.
-    expect(authoritySource).toContain('Room Exception does NOT trigger hard cap');
+    // Room exception explicitly absent from the trigger table.
+    const metadataMatch = hardCapStatusSource.match(
+      /FIRST_APRON_SIGNING_TRIGGER_METADATA[\s\S]*?as const satisfies/
+    );
+    expect(metadataMatch).not.toBeNull();
+    const metadataBlock = metadataMatch?.[0] ?? '';
+    expect(metadataBlock).not.toMatch(/\bROOM\b/);
+    expect(metadataBlock).not.toMatch(/\bROOM_MLE\b/);
 
     // The retired shim path stays absent.
     expect(fs.existsSync(pipelineShimPath)).toBe(false);

@@ -224,9 +224,22 @@ describe('Phase 77: Source Scan Guardrails', () => {
     __dirname,
     '../../features/architect/utils/seasonManager.ts'
   );
+  // Stage 6B: per-team transition logic (including the Phase 77 totals
+  // recompute) was extracted into seasonManager.teamTransition.ts.
+  const seasonManagerTeamTransitionPath = path.resolve(
+    __dirname,
+    '../../features/architect/utils/seasonManager.teamTransition.ts'
+  );
+  const readSeasonManagerBundle = (): string => {
+    let bundle = fs.readFileSync(seasonManagerPath, 'utf8');
+    if (fs.existsSync(seasonManagerTeamTransitionPath)) {
+      bundle += fs.readFileSync(seasonManagerTeamTransitionPath, 'utf8');
+    }
+    return bundle;
+  };
 
   it('TEST 1: seasonManager.ts imports computeTeamCapTotals from capTotals', () => {
-    const content = fs.readFileSync(seasonManagerPath, 'utf8');
+    const content = readSeasonManagerBundle();
 
     // Must import computeTeamCapTotals from capTotals barrel
     expect(content).toContain(
@@ -235,7 +248,7 @@ describe('Phase 77: Source Scan Guardrails', () => {
   });
 
   it('TEST 2: seasonManager.ts calls computeTeamCapTotals during season transition', () => {
-    const content = fs.readFileSync(seasonManagerPath, 'utf8');
+    const content = readSeasonManagerBundle();
 
     // Must call computeTeamCapTotals with team and toYear
     expect(content).toContain('computeTeamCapTotals(updatedTeam, toYear)');
@@ -597,11 +610,20 @@ describe('Phase 77: Edge Cases', () => {
 
 describe('Phase 77: Ordering Invariants', () => {
   it('TEST 14: Source confirms totals recompute runs AFTER OSTE (which handles TPE expiry)', () => {
+    // Stage 6B: per-team transition was extracted into the
+    // seasonManager.teamTransition.ts sub-module.
     const seasonManagerPath = path.resolve(
       __dirname,
       '../../features/architect/utils/seasonManager.ts'
     );
-    const content = fs.readFileSync(seasonManagerPath, 'utf8');
+    const seasonManagerTeamTransitionPath = path.resolve(
+      __dirname,
+      '../../features/architect/utils/seasonManager.teamTransition.ts'
+    );
+    let content = fs.readFileSync(seasonManagerPath, 'utf8');
+    if (fs.existsSync(seasonManagerTeamTransitionPath)) {
+      content += fs.readFileSync(seasonManagerTeamTransitionPath, 'utf8');
+    }
 
     // Find processTeamSeasonTransitionWithOptions function to scope our search
     const functionStart = content.indexOf(
@@ -627,11 +649,20 @@ describe('Phase 77: Ordering Invariants', () => {
   });
 
   it('TEST 15: Source confirms totals recompute runs AFTER OSTE (which handles non-TPE reset)', () => {
+    // Stage 6B: per-team transition was extracted into the
+    // seasonManager.teamTransition.ts sub-module.
     const seasonManagerPath = path.resolve(
       __dirname,
       '../../features/architect/utils/seasonManager.ts'
     );
-    const content = fs.readFileSync(seasonManagerPath, 'utf8');
+    const seasonManagerTeamTransitionPath = path.resolve(
+      __dirname,
+      '../../features/architect/utils/seasonManager.teamTransition.ts'
+    );
+    let content = fs.readFileSync(seasonManagerPath, 'utf8');
+    if (fs.existsSync(seasonManagerTeamTransitionPath)) {
+      content += fs.readFileSync(seasonManagerTeamTransitionPath, 'utf8');
+    }
 
     // Find processTeamSeasonTransitionWithOptions function to scope our search
     const functionStart = content.indexOf(
@@ -659,11 +690,21 @@ describe('Phase 77: Ordering Invariants', () => {
   });
 
   it('TEST 16: Source confirms totals recompute comment references Phase 77', () => {
+    // Stage 6B: per-team transition was extracted into the
+    // seasonManager.teamTransition.ts sub-module; the Phase 77 comment
+    // block lives there now.
     const seasonManagerPath = path.resolve(
       __dirname,
       '../../features/architect/utils/seasonManager.ts'
     );
-    const content = fs.readFileSync(seasonManagerPath, 'utf8');
+    const seasonManagerTeamTransitionPath = path.resolve(
+      __dirname,
+      '../../features/architect/utils/seasonManager.teamTransition.ts'
+    );
+    let content = fs.readFileSync(seasonManagerPath, 'utf8');
+    if (fs.existsSync(seasonManagerTeamTransitionPath)) {
+      content += fs.readFileSync(seasonManagerTeamTransitionPath, 'utf8');
+    }
 
     // Should have Phase 77 comment block
     expect(content).toContain('PHASE 77');

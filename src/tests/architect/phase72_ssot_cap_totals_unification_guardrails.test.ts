@@ -70,12 +70,16 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
 
   describe('Source scan: SSOT usage in call sites', () => {
     it('mutationPipeline.ts should call computeTeamCapTotals (not calculateTeamTotals)', () => {
-      // Wave 4 Step 4c: call sites moved to mutationPipeline.read.ts
-      // Wave 5 Step 3: computeTeamCapTotals call sites moved to read.persistence.ts
+      // Wave 4 Step 4c: call sites moved to mutationPipeline.read.ts.
+      // Wave 5 Step 3: computeTeamCapTotals call sites moved to
+      // read.persistence.ts. Stage 6B: a later wave further split into
+      // read.persistence.snapshots.ts; include it so the SSOT call site
+      // remains findable across the pipeline source set.
       const content =
         fs.readFileSync(mutationPipelinePath, 'utf-8') +
         fs.readFileSync(mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.read.ts'), 'utf-8') +
-        fs.readFileSync(mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.read.persistence.ts'), 'utf-8');
+        fs.readFileSync(mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.read.persistence.ts'), 'utf-8') +
+        fs.readFileSync(mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.read.persistence.snapshots.ts'), 'utf-8');
       // Should have computeTeamCapTotals calls
       const hasSSOTCalls = /computeTeamCapTotals\(/.test(content);
       // Should NOT have calculateTeamTotals calls
@@ -86,9 +90,16 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
     });
 
     it('tradeContext.ts should call computeTeamCapTotals (not calculateTeamTotals)', () => {
-      // Wave 9 Step 4: computeTeamCapTotals call moved to tradeContext.snapshot.ts
+      // Wave 9 Step 4: computeTeamCapTotals call moved to
+      // tradeContext.snapshot.ts. Stage 6B: later wave further split to
+      // tradeContext.snapshot.builder.ts; include it so the SSOT call
+      // site remains findable across the trade-context source set.
       const snapshotPath = tradeContextPath.replace('tradeContext.ts', 'tradeContext.snapshot.ts');
-      const content = fs.readFileSync(tradeContextPath, 'utf-8') + fs.readFileSync(snapshotPath, 'utf-8');
+      const snapshotBuilderPath = tradeContextPath.replace('tradeContext.ts', 'tradeContext.snapshot.builder.ts');
+      const content =
+        fs.readFileSync(tradeContextPath, 'utf-8') +
+        fs.readFileSync(snapshotPath, 'utf-8') +
+        fs.readFileSync(snapshotBuilderPath, 'utf-8');
       // Should have computeTeamCapTotals calls
       const hasSSOTCalls = /computeTeamCapTotals\(/.test(content);
       // Should NOT have calculateTeamTotals calls

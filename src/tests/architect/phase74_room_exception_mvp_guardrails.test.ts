@@ -197,7 +197,17 @@ describe('Phase 74: Room Exception Source Scan Guardrails', () => {
   );
 
   it('TEST 1: capLegalityValidation.ts contains room exception blocking logic', () => {
-    const content = fs.readFileSync(capLegalitySigningPath, 'utf8');
+    // Stage 6B: signing.ts was further split into
+    // capLegalityValidation/signing.validators.ts; the room-blocking
+    // logic lives there alongside the rest of the canonical exception
+    // validators. Scan both files so the invariant remains findable.
+    const validatorsPath = path.resolve(
+      __dirname,
+      '../../features/architect/utils/capLegalityValidation/signing.validators.ts'
+    );
+    const content =
+      fs.readFileSync(capLegalitySigningPath, 'utf8') +
+      fs.readFileSync(validatorsPath, 'utf8');
 
     // Must contain room exception variants in blocked exceptions
     expect(content).toContain("'room'");
@@ -209,18 +219,36 @@ describe('Phase 74: Room Exception Source Scan Guardrails', () => {
   });
 
   it('TEST 2: mutationPipeline.ts contains room exception usage tracking', () => {
-    // Wave 4 Step 4d: room exception tracking moved to mutationPipeline.compute.ts
-    // Wave 8 Step 2: further extracted to mutationPipeline.compute.signings.ts
+    // Wave 4 Step 4d: room exception tracking moved to
+    // mutationPipeline.compute.ts. Wave 8 Step 2: further extracted to
+    // mutationPipeline.compute.signings.ts. Stage 6B: a later wave
+    // generalized usage tracking into consumeSigningExceptionUsage in
+    // mutationPipeline.compute.signings.signing.ts, which dispatches by
+    // canonical exception key (covering 'room', 'mle', 'bae', 'tpe',
+    // etc.) rather than special-casing 'room' inline. Verify the
+    // generic canonical-key tracker still drives room exception state.
     const computePath = mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.compute.ts');
     const signingsPath = mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.compute.signings.ts');
-    const content = fs.readFileSync(mutationPipelinePath, 'utf8') + fs.readFileSync(computePath, 'utf8') + fs.readFileSync(signingsPath, 'utf8');
+    const signingsSigningPath = mutationPipelinePath.replace('mutationPipeline.ts', 'mutationPipeline.compute.signings.signing.ts');
+    const content =
+      fs.readFileSync(mutationPipelinePath, 'utf8') +
+      fs.readFileSync(computePath, 'utf8') +
+      fs.readFileSync(signingsPath, 'utf8') +
+      fs.readFileSync(signingsSigningPath, 'utf8');
 
-    // Must contain room exception type checks
-    expect(content).toContain("exceptionType === 'room'");
+    // Canonical usage-tracking entrypoint must still exist.
+    expect(content).toContain('consumeSigningExceptionUsage');
 
-    // Must contain room exception usage update pattern
-    expect(content).toContain('updatedTeam.exceptions.room');
-    expect(content).toContain('updatedTeam.exceptions.room.usedAmount');
+    // The tracker must continue to mutate the exception's usedAmount
+    // and remainingAmount fields canonically (the substantive Phase 74
+    // invariant) when a contract value is consumed.
+    expect(content).toMatch(/normalizedState\.usedAmount\s*=/);
+    expect(content).toMatch(/normalizedState\.remainingAmount\s*=/);
+
+    // And the canonical 'room' exception key must still resolve through
+    // the canonical-key dispatch (Room MLE signings still update the
+    // 'room' canonical entry).
+    expect(content).toContain("'room'");
   });
 
   it('TEST 3: exception_blocked is a HARD_BLOCK rule', () => {
