@@ -17,7 +17,7 @@
  *  - 2025-12-12: Phase 3 refactor - extracted all handlers into useArchitectActions hook
  *  - 2025-12-14: Option B refactor - removed shadow cap sheet state, teamCapSheet is now the only source of truth
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { EditContractModal } from '@/shared/components/EditContractModal';
 import { RosterSection } from './sections/RosterSection';
@@ -35,17 +35,22 @@ import type { Stage4NavigationTargetId } from '@/features/architect/guidedQuesti
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
-import { ArchitectWorkspaceHeader } from '@/features/architect/GMDashboard/components/ArchitectWorkspaceHeader';
-import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/ScenarioMoveRail';
-import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/components/ArchitectPostActionHandoff';
+import { ArchitectModeShell } from '@/features/architect/GMDashboard/components/ArchitectModeShell';
+import { ArchitectContextTray } from '@/features/architect/GMDashboard/components/ArchitectContextTray';
+import { ArchitectDecisionTrail } from '@/features/architect/GMDashboard/components/ArchitectDecisionTrail';
+import { ArchitectHQ } from '@/features/architect/GMDashboard/components/ArchitectHQ';
+import { ArchitectRoomFrame } from '@/features/architect/GMDashboard/components/ArchitectRoomFrame';
 import {
-  ArchitectTabBar,
-  type ArchitectTabDescriptor,
-} from '@/features/architect/GMDashboard/components/ArchitectTabBar';
+  ARCHITECT_ROOMS,
+  ROOM_BY_ID,
+  ROOM_BY_LEGACY_TAB,
+  type ArchitectRoomId,
+} from '@/features/architect/GMDashboard/components/architectRooms';
+import { deriveArchitectWarnings } from '@/features/architect/GMDashboard/components/deriveArchitectWarnings';
 import { useArchitectPostActionReceipt } from './hooks/useArchitectPostActionReceipt';
 import { useHistoryEventDetailRequest } from './hooks/useHistoryEventDetailRequest';
 import { deriveSeasonAdvanceReceipt } from './postActionHandoff/types';
-import { useArchitectState } from './hooks/useArchitectState';
+import { useArchitectState, type ActiveTab } from './hooks/useArchitectState';
 import { useArchitectWorkspaceContext } from './hooks/useArchitectWorkspaceContext';
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
@@ -119,6 +124,67 @@ const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined
   return Array.from(new Set(years)).sort((a, b) => a - b);
 };
 
+const firstUsableString = (...values: unknown[]): string | null => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return null;
+};
+
+const playerIdFromUnknown = (value: unknown): string | null => {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  const bio = record.bio as Record<string, unknown> | null | undefined;
+  return firstUsableString(
+    record.id,
+    record.playerId,
+    record.player_id,
+    bio?.playerId,
+    bio?.id
+  );
+};
+
+const playerNameFromUnknown = (value: unknown): string | null => {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  const bio = record.bio as Record<string, unknown> | null | undefined;
+  return firstUsableString(
+    record.displayName,
+    record.fullName,
+    record.name,
+    bio?.displayName,
+    bio?.fullName,
+    bio?.name
+  );
+};
+
+const resolveFocusedPlayerLabel = ({
+  playerId,
+  selectedPlayer,
+  playersMap,
+  teamPlayers,
+}: {
+  playerId: string | null;
+  selectedPlayer: unknown;
+  playersMap: Record<string, unknown>;
+  teamPlayers: unknown[] | null | undefined;
+}): string | null => {
+  const selectedPlayerId = playerIdFromUnknown(selectedPlayer);
+  const focusId = playerId ?? selectedPlayerId;
+  if (!focusId) return null;
+
+  const candidates = [
+    playersMap[focusId],
+    selectedPlayerId === focusId ? selectedPlayer : null,
+    ...(Array.isArray(teamPlayers) ? teamPlayers : []),
+    ...Object.values(playersMap),
+  ];
+  const match = candidates.find((candidate) => playerIdFromUnknown(candidate) === focusId);
+  const name = playerNameFromUnknown(match);
+  return name ? `${name} (${focusId})` : focusId;
+};
+
 export const GMDashboard = () => {
   // League View enters here with team identity only; this dashboard owns selected season state.
   const { teamId } = useParams();
@@ -137,7 +203,6 @@ export const GMDashboard = () => {
     teamCapSheet,
     currentYear,
     selectedRulesYear,
-    activeTab,
     selectedPlayer,
     freeAgents,
     isLoading,
@@ -162,6 +227,27 @@ export const GMDashboard = () => {
     setOffseasonSummary,
     reloadActiveWorldTeamData,
   } = state;
+  const [activeRoom, setActiveRoom] = useState<ArchitectRoomId>('hq');
+  const openRoom = useCallback(
+    (roomId: ArchitectRoomId) => {
+      setActiveRoom(roomId);
+      const legacyTab = ROOM_BY_ID[roomId].legacyTab;
+      if (legacyTab) {
+        setActiveTab(legacyTab);
+      }
+    },
+    [setActiveTab]
+  );
+  const openLegacyTab = useCallback(
+    (tab: ActiveTab) => {
+      setActiveTab(tab);
+      const roomId = ROOM_BY_LEGACY_TAB[tab];
+      if (roomId) {
+        setActiveRoom(roomId);
+      }
+    },
+    [setActiveTab]
+  );
 
   const workspaceContext = useArchitectWorkspaceContext({
     teamCapSheet,
@@ -242,7 +328,7 @@ export const GMDashboard = () => {
   } = useHistoryEventDetailRequest({
     worldId,
     teamCode: resolvedHistoryTeamCode,
-    onOpenHistory: () => setActiveTab('history'),
+    onOpenHistory: () => openLegacyTab('history'),
   });
   // Stage 2C: derive a session-scoped focused player id from the most recent
   // committed post-action receipt. Visual-only — receipt dismiss/clear
@@ -295,35 +381,35 @@ export const GMDashboard = () => {
     (target: Stage4NavigationTargetId) => {
       switch (target) {
         case 'roster':
-          setActiveTab('roster');
+          openLegacyTab('roster');
           return;
         case 'cap':
-          setActiveTab('cap');
+          openLegacyTab('cap');
           return;
         case 'capfull':
-          setActiveTab('capfull');
+          openLegacyTab('capfull');
           return;
         case 'trade':
-          setActiveTab('trade');
+          openLegacyTab('trade');
           return;
         case 'fa':
-          setActiveTab('fa');
+          openLegacyTab('fa');
           return;
         case 'offseason':
-          setActiveTab('offseason');
+          openLegacyTab('offseason');
           return;
         case 'history':
           openHistoryRoot();
           return;
         case 'compare':
-          setActiveTab('compare');
+          openLegacyTab('compare');
           return;
         case 'guide':
-          setActiveTab('guide');
+          openLegacyTab('guide');
           return;
       }
     },
-    [setActiveTab, openHistoryRoot]
+    [openLegacyTab, openHistoryRoot]
   );
 
   const actions = useArchitectActions({
@@ -463,7 +549,7 @@ export const GMDashboard = () => {
     currentYear,
     playersMap,
     onApplyTrade: actions.applyTradeToCapSheet as TradeSectionProps['onApplyTrade'],
-    onAfterTradeApplied: () => setActiveTab('cap'),
+    onAfterTradeApplied: () => openLegacyTab('cap'),
     primaryTeamData: teamCapSheet,
     onEditContract: (player) =>
       actions.handleEditContract(
@@ -480,7 +566,7 @@ export const GMDashboard = () => {
     playersMap,
     outgoingOfferSheets: teamCapSheet?.offerSheets || [],
     incomingOfferSheets: teamCapSheet?.incomingOfferSheets || [],
-    onAfterSigningComplete: () => setActiveTab('cap'),
+    onAfterSigningComplete: () => openLegacyTab('cap'),
   };
   const offseasonSectionSurface: OffseasonSectionProps = {
     teamCapSheet,
@@ -501,245 +587,258 @@ export const GMDashboard = () => {
     onAfterOffseasonAdvanceApplied: handleOffseasonAdvanceApplied,
   };
 
-  const dashboardTabs: ArchitectTabDescriptor[] = useMemo(
-    () => [
-      { id: 'roster', label: 'Roster', onActivate: () => setActiveTab('roster') },
-      {
-        id: 'cap',
-        label: 'Cap Sheet',
-        onActivate: () => setActiveTab('cap'),
-        testId: 'tab-cap-sheet',
-      },
-      {
-        id: 'capfull',
-        label: 'Full Cap Table',
-        onActivate: () => setActiveTab('capfull'),
-        testId: 'tab-full-cap-table',
-      },
-      {
-        id: 'trade',
-        label: 'Trade Machine',
-        onActivate: () => setActiveTab('trade'),
-      },
-      { id: 'fa', label: 'Free Agency', onActivate: () => setActiveTab('fa') },
-      {
-        id: 'offseason',
-        label: 'Offseason',
-        onActivate: () => setActiveTab('offseason'),
-      },
-      {
-        id: 'history',
-        label: 'Team History',
-        onActivate: openHistoryRoot,
-      },
-      {
-        id: 'compare',
-        label: 'Compare',
-        onActivate: () => setActiveTab('compare'),
-        testId: 'tab-compare',
-        title: 'Committed scenario comparison',
-      },
-      {
-        id: 'guide',
-        label: 'Guide',
-        onActivate: () => setActiveTab('guide'),
-        testId: 'tab-guide',
-        title: 'Front Office Guide',
-      },
-    ],
-    [setActiveTab, openHistoryRoot]
+  const architectWarnings = useMemo(
+    () => deriveArchitectWarnings(workspaceContext),
+    [workspaceContext]
+  );
+  const focusedPlayerLabel = useMemo(
+    () =>
+      resolveFocusedPlayerLabel({
+        playerId: focusedPlayerId,
+        selectedPlayer,
+        playersMap,
+        teamPlayers: teamCapSheet?.players,
+      }),
+    [focusedPlayerId, playersMap, selectedPlayer, teamCapSheet?.players]
   );
 
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
   if (!teamCapSheet) return <p>No team data</p>;
 
-  return (
-    <div className="gm-dashboard px-6 py-4 text-white min-h-screen bg-[#0d0d0d]">
-      <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-2">
-        <h1 className="text-3xl font-bold">
-          HoopZero Architect – GM Dashboard
-        </h1>
-        <div className="flex items-center gap-4">
-          <span
-            className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-              isEmulatorMode
-                ? 'bg-amber-400/15 text-amber-200 border-amber-300/30'
-                : 'bg-rose-500/15 text-rose-200 border-rose-300/30'
-            }`}
-            data-testid="firebase-target-mode-badge"
-          >
-            {isEmulatorMode ? 'EMULATOR MODE' : 'PROD MODE'}
-          </span>
+  const activeRoomDescriptor = ROOM_BY_ID[activeRoom];
+  const controls = (
+    <>
+      <span
+        className={`border px-2.5 py-1 text-xs font-semibold ${
+          isEmulatorMode
+            ? 'border-amber-300/30 bg-amber-400/15 text-amber-200'
+            : 'border-rose-300/30 bg-rose-500/15 text-rose-200'
+        }`}
+        data-testid="firebase-target-mode-badge"
+      >
+        {isEmulatorMode ? 'EMULATOR MODE' : 'PROD MODE'}
+      </span>
 
-          {userId && (
-            <WorldSelector
-              userId={userId}
-              activeWorldOwner={activeWorldOwner}
-              worldModeBoundary={worldModeBoundary}
-            />
-          )}
-
-          {userId && <div className="h-6 w-px bg-white/10" />}
-
-          {userId && (
-            <WorldTimeControls
-              worldTimeOwner={worldTimeOwner}
-              disabled={worldModeBoundary.kind !== 'world'}
-            />
-          )}
-
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <span>Season</span>
-            <select
-              value={currentYear}
-              onChange={(event) =>
-                setCurrentYear(parseInt(event.target.value, 10))
-              }
-              aria-label="Viewing season"
-              className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-            >
-              {seasonEndYearsFromCaps(capProjections).map((year) => (
-                <option key={year} value={year}>
-                  {toSeasonKey(year)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <ArchitectWorkspaceHeader
-        context={workspaceContext}
-        onNavigateToCapSheet={() => setActiveTab('cap')}
-        onNavigateToOffseason={() => setActiveTab('offseason')}
-      />
-
-      <ArchitectPostActionHandoff
-        receipt={postActionReceipt.receipt}
-        onNavigateToCapSheet={() => setActiveTab('cap')}
-        onNavigateToRoster={() => setActiveTab('roster')}
-        onNavigateToHistory={() =>
-          requestHistoryEventDetail(
-            postActionReceipt.receipt?.eventId ?? null,
-            'post-action-handoff'
-          )
-        }
-        onDismiss={postActionReceipt.dismiss}
-      />
-
-      <ScenarioMoveRail
-        worldId={worldId}
-        teamCode={resolvedHistoryTeamCode}
-        onOpenHistory={openHistoryRoot}
-        onOpenHistoryEntry={(eventId) =>
-          requestHistoryEventDetail(eventId, 'activity-rail')
-        }
-        refreshKey={postActionReceipt.generation}
-        highlightEventId={postActionReceipt.receipt?.eventId ?? null}
-      />
-
-      {showEmulatorUnavailableBanner && (
-        <div
-          className="mb-3 rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-amber-100 text-sm"
-          data-testid="firebase-emulator-warning-banner"
-        >
-          Emulator mode: Firebase emulators not detected. Start them with: npm
-          run emu
-        </div>
+      {userId && (
+        <WorldSelector
+          userId={userId}
+          activeWorldOwner={activeWorldOwner}
+          worldModeBoundary={worldModeBoundary}
+        />
       )}
-      {error && <p className="text-red-500 mb-2">{error}</p>}
-      {isSaving && <p className="text-sm mb-2">Saving...</p>}
 
-      <ArchitectTabBar activeTab={activeTab} tabs={dashboardTabs} />
+      {userId && (
+        <WorldTimeControls
+          worldTimeOwner={worldTimeOwner}
+          disabled={worldModeBoundary.kind !== 'world'}
+        />
+      )}
 
-      <div className="tab-content space-y-6">
-        {activeTab === 'roster' && (
-          <RosterSection
-            teamCapSheet={teamCapSheet}
-            playersMap={playersMap}
-            teamId={normalizedTeamId}
-            onOpenPlayerContractModal={(player) =>
-              actions.handleEditContract(
-                player as Parameters<typeof actions.handleEditContract>[0]
-              )
-            }
-            highlightPlayerId={focusedPlayerId}
-          />
+      <label className="flex items-center gap-2 text-sm font-medium text-white/80">
+        <span>Season</span>
+        <select
+          value={currentYear}
+          onChange={(event) => setCurrentYear(parseInt(event.target.value, 10))}
+          aria-label="Viewing season"
+          className="border border-white/10 bg-[#10151d] px-2 py-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        >
+          {seasonEndYearsFromCaps(capProjections).map((year) => (
+            <option key={year} value={year}>
+              {toSeasonKey(year)}
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
+  );
+  const statusBanner =
+    showEmulatorUnavailableBanner || error || isSaving ? (
+      <div className="mt-3 space-y-2">
+        {showEmulatorUnavailableBanner && (
+          <div
+            className="border border-amber-300/35 bg-amber-300/10 px-3 py-2 text-sm text-amber-100"
+            data-testid="firebase-emulator-warning-banner"
+          >
+            Emulator mode: Firebase emulators not detected. Start them with: npm
+            run emu
+          </div>
         )}
-
-        {activeTab === 'cap' && (
-          <CapSheetSection {...capSheetSectionSurface} />
+        {error && (
+          <div className="border border-rose-300/35 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+            {error}
+          </div>
         )}
-
-        {activeTab === 'capfull' && (
-          <CapTableSection
-            teamCapSheet={teamCapSheet}
-            currentYear={currentYear}
-            onOpenPlayerContractModal={
-              contractActionRouting.fullCapTable.openPlayerContractModal
-            }
-            onLaunchContractAction={
-              contractActionRouting.fullCapTable.launchContractAction
-            }
-            onRenounceCapHold={
-              contractActionRouting.fullCapTable.renounceCapHold
-            }
-            playersMap={playersMap}
-            getRulesProfileForYear={getProfileForYear}
-            highlightPlayerId={focusedPlayerId}
-          />
-        )}
-
-        {activeTab === 'trade' && (
-          <TradeSection {...tradeSectionSurface} />
-        )}
-
-        {activeTab === 'fa' && (
-          <FreeAgencySection {...freeAgencySectionSurface} />
-        )}
-
-        {activeTab === 'offseason' && (
-          <OffseasonSection {...offseasonSectionSurface} />
-        )}
-
-        {activeTab === 'compare' && (
-          <ComparisonSection
-            status={comparisonViewModel.status}
-            viewModel={comparisonViewModel.viewModel}
-            error={comparisonViewModel.error}
-            onNavigateToHistory={openHistoryRoot}
-            onNavigateToCapSheet={() => setActiveTab('cap')}
-            onNavigateToRoster={() => setActiveTab('roster')}
-          />
-        )}
-
-        {activeTab === 'guide' && (
-          <GuideSection
-            viewModel={guidedAnswersViewModel}
-            onNavigate={handleGuideNavigate}
-          />
-        )}
-
-        {activeTab === 'history' && (
-          <HistorySection
-            teamCapSheet={teamCapSheet}
-            worldId={worldId}
-            onInjectTeamHistoryFixtures={
-              actions.teamHistoryDevTools.injectFixtures
-            }
-            onClearTeamHistoryFixtures={actions.teamHistoryDevTools.clearFixtures}
-            hasInjectedTeamHistoryFixtures={
-              actions.teamHistoryDevTools.hasInjectedFixtures
-            }
-            requestedHistoryEventDetail={requestedHistoryEventDetail}
-            onRequestedHistoryEventDetailHandled={
-              handleHistoryEventDetailHandled
-            }
-          />
+        {isSaving && (
+          <div className="border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/60">
+            Saving...
+          </div>
         )}
       </div>
+    ) : null;
+  const decisionTrail = (
+    <ArchitectDecisionTrail
+      worldId={worldId}
+      teamCode={resolvedHistoryTeamCode}
+      receipt={postActionReceipt.receipt}
+      refreshKey={postActionReceipt.generation}
+      onOpenCapOffice={() => openRoom('cap')}
+      onOpenRosterRoom={() => openRoom('roster')}
+      onOpenLeagueLog={openHistoryRoot}
+      onOpenHistoryEntry={(eventId) =>
+        requestHistoryEventDetail(eventId, 'activity-rail')
+      }
+      onDismissReceipt={postActionReceipt.dismiss}
+    />
+  );
+  const roomContent = (() => {
+    switch (activeRoom) {
+      case 'hq':
+        return (
+          <ArchitectHQ
+            context={workspaceContext}
+            rooms={ARCHITECT_ROOMS}
+            warnings={architectWarnings}
+            comparison={comparisonViewModel}
+            decisionTrail={decisionTrail}
+            onOpenRoom={openRoom}
+          />
+        );
+      case 'roster':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <RosterSection
+              teamCapSheet={teamCapSheet}
+              playersMap={playersMap}
+              teamId={normalizedTeamId}
+              onOpenPlayerContractModal={(player) =>
+                actions.handleEditContract(
+                  player as Parameters<typeof actions.handleEditContract>[0]
+                )
+              }
+              highlightPlayerId={focusedPlayerId}
+            />
+          </ArchitectRoomFrame>
+        );
+      case 'cap':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <CapSheetSection {...capSheetSectionSurface} />
+          </ArchitectRoomFrame>
+        );
+      case 'contracts':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <CapTableSection
+              teamCapSheet={teamCapSheet}
+              currentYear={currentYear}
+              onOpenPlayerContractModal={
+                contractActionRouting.fullCapTable.openPlayerContractModal
+              }
+              onLaunchContractAction={
+                contractActionRouting.fullCapTable.launchContractAction
+              }
+              onRenounceCapHold={
+                contractActionRouting.fullCapTable.renounceCapHold
+              }
+              playersMap={playersMap}
+              getRulesProfileForYear={getProfileForYear}
+              highlightPlayerId={focusedPlayerId}
+            />
+          </ArchitectRoomFrame>
+        );
+      case 'trade':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <TradeSection {...tradeSectionSurface} />
+          </ArchitectRoomFrame>
+        );
+      case 'fa':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <FreeAgencySection {...freeAgencySectionSurface} />
+          </ArchitectRoomFrame>
+        );
+      case 'offseason':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <OffseasonSection {...offseasonSectionSurface} />
+          </ArchitectRoomFrame>
+        );
+      case 'history':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <HistorySection
+              teamCapSheet={teamCapSheet}
+              worldId={worldId}
+              onInjectTeamHistoryFixtures={
+                actions.teamHistoryDevTools.injectFixtures
+              }
+              onClearTeamHistoryFixtures={
+                actions.teamHistoryDevTools.clearFixtures
+              }
+              hasInjectedTeamHistoryFixtures={
+                actions.teamHistoryDevTools.hasInjectedFixtures
+              }
+              requestedHistoryEventDetail={requestedHistoryEventDetail}
+              onRequestedHistoryEventDetailHandled={
+                handleHistoryEventDetailHandled
+              }
+            />
+          </ArchitectRoomFrame>
+        );
+      case 'scenario':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <ComparisonSection
+              status={comparisonViewModel.status}
+              viewModel={comparisonViewModel.viewModel}
+              error={comparisonViewModel.error}
+              onNavigateToHistory={openHistoryRoot}
+              onNavigateToCapSheet={() => openRoom('cap')}
+              onNavigateToRoster={() => openRoom('roster')}
+            />
+          </ArchitectRoomFrame>
+        );
+      case 'advisor':
+        return (
+          <ArchitectRoomFrame room={activeRoomDescriptor}>
+            <GuideSection
+              viewModel={guidedAnswersViewModel}
+              onNavigate={handleGuideNavigate}
+            />
+            <div className="mt-4">
+              <CapAuditDebugPanel worldId={worldId} />
+            </div>
+          </ArchitectRoomFrame>
+        );
+    }
+  })();
 
-      <CapAuditDebugPanel worldId={worldId} />
+  return (
+    <>
+      <ArchitectModeShell
+        context={workspaceContext}
+        activeRoom={activeRoom}
+        rooms={ARCHITECT_ROOMS}
+        controls={controls}
+        contextTray={
+          <ArchitectContextTray
+            context={workspaceContext}
+            activeRoomLabel={activeRoomDescriptor.label}
+            focusedPlayerLabel={focusedPlayerLabel}
+            receipt={postActionReceipt.receipt}
+            requestedHistoryEventDetail={requestedHistoryEventDetail}
+            warnings={architectWarnings}
+            onOpenCapOffice={() => openRoom('cap')}
+            onOpenRosterRoom={() => openRoom('roster')}
+            onOpenLeagueLog={openHistoryRoot}
+          />
+        }
+        statusBanner={statusBanner}
+        onOpenRoom={openRoom}
+      >
+        {roomContent}
+      </ArchitectModeShell>
 
       {showOffseasonModal && offseasonSummary && (
         <div className="modal-overlay">
@@ -801,7 +900,7 @@ export const GMDashboard = () => {
               type="button"
               onClick={() => {
                 closeOffseasonModal();
-                setActiveTab('cap');
+                openLegacyTab('cap');
               }}
             >
               Close
@@ -828,6 +927,6 @@ export const GMDashboard = () => {
           rulesLeagueContext={selectedRulesLeagueContext}
         />
       )}
-    </div>
+    </>
   );
 };

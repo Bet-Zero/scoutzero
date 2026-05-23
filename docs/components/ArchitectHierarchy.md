@@ -5,7 +5,13 @@ ARCHITECT_FEATURE_README.md
 GMDashboard/
   GMDashboard.tsx
   components/
+    ArchitectContextTray.tsx
+    ArchitectDecisionTrail.tsx
+    ArchitectHQ.tsx
+    ArchitectHQPanels.tsx
+    ArchitectModeShell.tsx
     ArchitectPostActionHandoff.tsx
+    ArchitectRoomFrame.tsx
     ArchitectTabBar.tsx
     ArchitectWorkspaceHeader.tsx
     CapAuditDebugPanel.tsx
@@ -18,6 +24,8 @@ GMDashboard/
     SeasonAdvanceModal.types.ts
     WorldSelector.tsx
     WorldTimeControls.tsx
+    architectRooms.ts
+    deriveArchitectWarnings.ts
   hooks/
     optimisticMutationLock.ts
     useArchitectActions.contractActions.ts
@@ -513,5 +521,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-22T04:02:41.735Z*
+*Generated on: 2026-05-23T10:26:19.764Z*
 *Auto-updated by: npm run docs*
