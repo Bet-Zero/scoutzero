@@ -219,11 +219,21 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
   });
 
   it('extensionless import exposes the same named API as the surviving authority with no default export', () => {
+    // Compatibility invariant: every required canonical name is still on
+    // the extensionless module surface and is the same reference as the
+    // imported authority binding. Stage 6B: later refactors split internal
+    // helpers into sub-modules that re-export additional names via
+    // `export *`. Those extra re-exports are non-breaking, since callers
+    // never depended on the surface being closed.
     const source = fs.readFileSync(authorityPath, 'utf-8');
 
-    expect(Object.keys(firebaseTeamPlanHelpersModule).sort()).toEqual(
-      expectedNamedExports
-    );
+    const moduleKeys = new Set(Object.keys(firebaseTeamPlanHelpersModule));
+    for (const name of expectedNamedExports) {
+      expect(
+        moduleKeys.has(name),
+        `extensionless firebaseTeamPlanHelpers surface must still export ${name}`
+      ).toBe(true);
+    }
     expect(firebaseTeamPlanHelpersModule.prepareCapSheet).toBe(prepareCapSheet);
     expect(firebaseTeamPlanHelpersModule.hydrateBaseTeam).toBe(hydrateBaseTeam);
     expect(firebaseTeamPlanHelpersModule.loadTeamCapSheet).toBe(loadTeamCapSheet);

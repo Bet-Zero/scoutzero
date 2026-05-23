@@ -97,13 +97,21 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
   // Wave 4 Step 4c: read-phase helpers extracted to mutationPipeline.read.ts.
   // The orchestrator re-exports them via export * from './mutationPipeline.read'.
   // Source-order check updated to verify the new barrel structure.
+  // Stage 6B: later refactors moved most pipeline functions into
+  // sub-modules (mutationPipeline.preflights.ts, mutationPipeline.read.ts,
+  // mutationPipeline.compute*.ts, mutationPipeline.normalize.ts,
+  // mutationPipeline.helpers.ts) which are re-exported here via
+  // `export *`. The substantive ordering invariant is:
+  //   1. authority re-exports surface before the in-file functions
+  //   2. applyWorldMutation is defined here
+  //   3. validate/persist are re-exported from their split modules
+  // Each snippet must appear in source and must appear in the listed
+  // order relative to its peers.
   const expectedSourceOrder = [
     "export * from './mutationPipeline.helpers'",
     "export * from './mutationPipeline.read'",
+    "export * from './mutationPipeline.preflights'",
     'export async function applyWorldMutation',
-    'export async function preflightSignAndTradeMutation',
-    'export async function preflightOfferSheetMutation',
-    'export function computeWorldMutation',
     "export { validateMutation } from './mutationPipeline.validate'",
   ] as const;
 

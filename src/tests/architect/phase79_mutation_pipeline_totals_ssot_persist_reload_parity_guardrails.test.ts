@@ -65,6 +65,16 @@ const MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.signings.ts'
 );
+// Later wave: computeSigningResult moved to .signings.signing.ts
+const MUTATION_PIPELINE_COMPUTE_SIGNINGS_SIGNING_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.compute.signings.signing.ts'
+);
+// Later wave: waive/option/renounce/extension moved to .signings.playerOps.ts
+const MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.compute.signings.playerOps.ts'
+);
 
 const TRADE_CONTEXT_PATH = path.resolve(
   __dirname,
@@ -75,6 +85,34 @@ const TRADE_CONTEXT_SNAPSHOT_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/tradeContext/tradeContext.snapshot.ts'
 );
+// Later wave: buildPostTradeTeamsSnapshot moved to .snapshot.builder.ts
+const TRADE_CONTEXT_SNAPSHOT_BUILDER_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/tradeContext/tradeContext.snapshot.builder.ts'
+);
+
+/**
+ * Stage 6B: helper that bundles all the mutation-pipeline compute
+ * sub-modules into one source blob so per-function regex matchers
+ * find the function wherever it was extracted during later refactors.
+ */
+function readMutationPipelineComputeBundle(): string {
+  return (
+    fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
+    fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
+    fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8') +
+    fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_SIGNING_PATH, 'utf8') +
+    fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH, 'utf8')
+  );
+}
+
+function readTradeContextBundle(): string {
+  return (
+    fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8') +
+    fs.readFileSync(TRADE_CONTEXT_SNAPSHOT_PATH, 'utf8') +
+    fs.readFileSync(TRADE_CONTEXT_SNAPSHOT_BUILDER_PATH, 'utf8')
+  );
+}
 
 // ==============================================================================
 // TEST HELPERS
@@ -227,9 +265,7 @@ function stripComments(content: string): string {
 describe('Phase 79: Source Scan Guardrails', () => {
   describe('SSOT Import Verification', () => {
     it('TEST 1: mutationPipeline.ts imports computeTeamCapTotals from capTotals', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8');
+      const content = readMutationPipelineComputeBundle();
 
       const hasImport = /import\s*\{[^}]*\bcomputeTeamCapTotals\b[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/capTotals['"]/.test(
         content
@@ -252,9 +288,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
 
   describe('SSOT Usage in Compute Functions', () => {
     it('TEST 3: computeSigningResult uses the canonical totals bridge', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8');
+      const content = readMutationPipelineComputeBundle();
       const codeOnly = stripComments(content);
 
       // Find computeSigningResult function and verify it calls computeTeamCapTotals
@@ -274,9 +308,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 4: computeWaiveResult uses the canonical totals bridge', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8');
+      const content = readMutationPipelineComputeBundle();
       const codeOnly = stripComments(content);
 
       const waiveFunctionMatch = codeOnly.match(
@@ -295,9 +327,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 5: computeOptionResult uses the canonical totals bridge', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8');
+      const content = readMutationPipelineComputeBundle();
       const codeOnly = stripComments(content);
 
       const optionFunctionMatch = codeOnly.match(
@@ -316,9 +346,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 6: computeRenounceResult uses the canonical totals bridge', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8');
+      const content = readMutationPipelineComputeBundle();
       const codeOnly = stripComments(content);
 
       const renounceFunctionMatch = codeOnly.match(
@@ -337,8 +365,9 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 7: buildPostTradeTeamsSnapshot calls computeTeamCapTotals (trade context)', () => {
-      // Wave 9 Step 4: buildPostTradeTeamsSnapshot moved to tradeContext.snapshot.ts
-      const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8') + fs.readFileSync(TRADE_CONTEXT_SNAPSHOT_PATH, 'utf8');
+      // Wave 9 Step 4: buildPostTradeTeamsSnapshot moved to tradeContext.snapshot.ts.
+      // Later wave: moved again to tradeContext.snapshot.builder.ts.
+      const content = readTradeContextBundle();
       const codeOnly = stripComments(content);
 
       const tradeFunctionMatch = codeOnly.match(
@@ -357,9 +386,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
 
   describe('No Legacy Totals Helpers', () => {
     it('TEST 8: mutationPipeline.ts does NOT call calculateTeamTotals (removed Phase 72)', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8');
+      const content = readMutationPipelineComputeBundle();
       const codeOnly = stripComments(content);
 
       const hasLegacy = /\bcalculateTeamTotals\s*\(/.test(codeOnly);
@@ -367,9 +394,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
     });
 
     it('TEST 9: mutationPipeline.ts does NOT call updateTeamCapTotals (removed Phase 78)', () => {
-      const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8');
+      const content = readMutationPipelineComputeBundle();
       const codeOnly = stripComments(content);
 
       const hasLegacy = /\bupdateTeamCapTotals\s*\(/.test(codeOnly);
@@ -572,9 +597,7 @@ describe('Phase 79: Persist→Reload Parity', () => {
 
 describe('Phase 79: Extension Mutation Exclusion', () => {
   it('TEST 20: computeExtensionResult does NOT call computeTeamCapTotals (by design - futureContract only)', () => {
-    const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_PATH, 'utf8') +
-        fs.readFileSync(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH, 'utf8');
+    const content = readMutationPipelineComputeBundle();
     const codeOnly = stripComments(content);
 
     // Find computeExtensionResult function
