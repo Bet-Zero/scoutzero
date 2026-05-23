@@ -2,6 +2,26 @@
 
 **Status:** Active runtime reference for the current Architect implementation.
 
+## Definition
+
+**The Architect** is HoopZero's GM simulation workspace. In product terms, it is
+the GM Tools area that lets a user inspect a league entry view, open a team
+dashboard, and run world-aware roster, cap, trade, free agency, offseason,
+history, comparison, and guided front-office workflows.
+
+Route map:
+
+- `/gm` renders the Architect league entry view (`GmLeagueView` ->
+  `LeagueView`).
+- `/gm/:teamId` renders the primary Architect team dashboard
+  (`GmDashboardView` -> `GMDashboard`).
+
+The primary dashboard is the page headed "HoopZero Architect - GM Dashboard".
+Its dashboard sections are Roster, Cap Sheet, Full Cap Table, Trade Machine,
+Free Agency, Offseason, Team History, Compare, and Guide. Unless a request
+specifically says "Architect League View", "The Architect" usually means this
+team dashboard and the shared feature code under `src/features/architect/`.
+
 ## Start Here
 
 1. [Code Ownership Map](../../../src/features/architect/ARCHITECT_FEATURE_README.md) — runtime ownership, world lifecycle, write authorities, shared SSOTs

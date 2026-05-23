@@ -6,6 +6,21 @@ For full design and agent guidance, see the reference docs in `/docs/`:
 - [ARCHITECT_REVIEW.md](../../docs/ARCHITECT_REVIEW.md) – Full design & review document  
 - [ARCHITECT_AGENTS.md](../../docs/ARCHITECT_AGENTS.md) – Rules and instructions for AI agents  
 
+## What "Architect" Means
+
+**The Architect** is HoopZero's GM simulation workspace. It has two product
+entry points:
+
+- `/gm` -> `GmLeagueView` -> `LeagueView`: the Architect league entry view.
+- `/gm/:teamId` -> `GmDashboardView` -> `GMDashboard`: the primary Architect
+  team dashboard.
+
+The primary dashboard is headed "HoopZero Architect - GM Dashboard" and contains
+the Roster, Cap Sheet, Full Cap Table, Trade Machine, Free Agency, Offseason,
+Team History, Compare, and Guide sections. Unless a request specifically says
+"Architect League View", "The Architect" usually refers to this team dashboard
+and the shared feature code in `src/features/architect/`.
+
 > ⚠️ Note: Architect supports both **active-world committed flows** and
 > **sandbox/base/vacuum local-validated flows**.  
 > Active-world GM moves save to user-owned worlds (`architect_worlds`
