@@ -17,11 +17,25 @@ import net from 'node:net';
 import path from 'node:path';
 
 const HUB_PORT = 4400;
-const UI_PORT = 4000;
+const DEFAULT_UI_PORT = 4001;
 const UI_WEBSOCKET_PORT = 9150;
 const AUTH_PORT = 9099;
 const FUNCTIONS_PORT = 5001;
 const FIRESTORE_PORT = 8082;
+const parsePortEnv = (value: string | undefined, fallback: number): number => {
+  if (!value) {
+    return fallback;
+  }
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(
+      `Invalid SCOUTZERO_EMU_UI_PORT="${value}". Expected a port from 1 to 65535.`
+    );
+  }
+  return port;
+};
+
+const UI_PORT = parsePortEnv(process.env.SCOUTZERO_EMU_UI_PORT, DEFAULT_UI_PORT);
 /**
  * Canonical projectId for emulator.
  * Priority: GCLOUD_PROJECT > FIREBASE_PROJECT_ID > fallback
@@ -34,6 +48,11 @@ const PROJECT_ID =
   FALLBACK_PROJECT_ID;
 const DATA_DIR = path.resolve('.emulator-data');
 const DATA_README = path.join(DATA_DIR, 'README.md');
+const FIREBASE_CONFIG_PATH = path.resolve('firebase.json');
+const GENERATED_CONFIG_PATH = path.resolve(
+  '.firebase',
+  `scoutzero-emulator-ui-${UI_PORT}.json`
+);
 
 /**
  * Environment variables passed to all spawned processes.
@@ -80,6 +99,30 @@ const ensureDataDir = () => {
       'utf8'
     );
   }
+};
+
+const getFirebaseConfigPath = (): string => {
+  if (UI_PORT === DEFAULT_UI_PORT) {
+    return FIREBASE_CONFIG_PATH;
+  }
+
+  const rawConfig = fs.readFileSync(FIREBASE_CONFIG_PATH, 'utf8');
+  const config = JSON.parse(rawConfig) as {
+    emulators?: { ui?: { port?: number } };
+  };
+
+  config.emulators ??= {};
+  config.emulators.ui ??= {};
+  config.emulators.ui.port = UI_PORT;
+
+  fs.mkdirSync(path.dirname(GENERATED_CONFIG_PATH), { recursive: true });
+  fs.writeFileSync(
+    GENERATED_CONFIG_PATH,
+    `${JSON.stringify(config, null, 2)}\n`,
+    'utf8'
+  );
+
+  return GENERATED_CONFIG_PATH;
 };
 
 const hasPriorExport = (): boolean => {
@@ -235,6 +278,8 @@ const main = async () => {
 
   const emulatorArgs = [
     'emulators:start',
+    '--config',
+    getFirebaseConfigPath(),
     `--project=${PROJECT_ID}`,
     `--import=${DATA_DIR}`,
     `--export-on-exit=${DATA_DIR}`,

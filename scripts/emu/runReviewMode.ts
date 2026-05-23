@@ -28,16 +28,35 @@ const VITE_PORT = 5173;
 const FIRESTORE_PORT = 8082;
 const AUTH_PORT = 9099;
 const FUNCTIONS_PORT = 5001;
-const UI_PORT = 4000;
+const DEFAULT_UI_PORT = 4001;
 const HUB_PORT = 4400;
 const HUB_LOCATOR_PORT = 4500;
 const FIRESTORE_WS_PORT = 9150;
+const parsePortEnv = (value: string | undefined, fallback: number): number => {
+  if (!value) {
+    return fallback;
+  }
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(
+      `Invalid SCOUTZERO_EMU_UI_PORT="${value}". Expected a port from 1 to 65535.`
+    );
+  }
+  return port;
+};
+
+const UI_PORT = parsePortEnv(process.env.SCOUTZERO_EMU_UI_PORT, DEFAULT_UI_PORT);
 
 /**
  * Demo project ID for review mode.
  * Must match src/firebaseConfig.js REVIEW_MODE_CONFIG.
  */
 const REVIEW_PROJECT_ID = 'demo-architect-review';
+const FIREBASE_CONFIG_PATH = path.resolve('firebase.json');
+const GENERATED_CONFIG_PATH = path.resolve(
+  '.firebase',
+  `scoutzero-review-emulator-ui-${UI_PORT}.json`
+);
 
 /**
  * In GitHub Codespaces, bind Vite to 0.0.0.0 so the dev server is reachable
@@ -143,6 +162,30 @@ const cleanupHubLocator = () => {
       `Unable to remove stale hub locator ${locatorPath}: ${String(error)}`
     );
   }
+};
+
+const getFirebaseConfigPath = (): string => {
+  if (UI_PORT === DEFAULT_UI_PORT) {
+    return FIREBASE_CONFIG_PATH;
+  }
+
+  const rawConfig = fs.readFileSync(FIREBASE_CONFIG_PATH, 'utf8');
+  const config = JSON.parse(rawConfig) as {
+    emulators?: { ui?: { port?: number } };
+  };
+
+  config.emulators ??= {};
+  config.emulators.ui ??= {};
+  config.emulators.ui.port = UI_PORT;
+
+  fs.mkdirSync(path.dirname(GENERATED_CONFIG_PATH), { recursive: true });
+  fs.writeFileSync(
+    GENERATED_CONFIG_PATH,
+    `${JSON.stringify(config, null, 2)}\n`,
+    'utf8'
+  );
+
+  return GENERATED_CONFIG_PATH;
 };
 
 const waitForPortToClear = async (
@@ -484,6 +527,8 @@ const main = async () => {
   const emulatorArgs = [
     ...firebaseLauncher.argsPrefix,
     'emulators:start',
+    '--config',
+    getFirebaseConfigPath(),
     '--only',
     'auth,firestore,functions',
     `--project=${REVIEW_PROJECT_ID}`,

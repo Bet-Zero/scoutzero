@@ -18,6 +18,7 @@ That's it! The emulator will:
 - **If ports are stuck**: Just run `npm run emu` again (it auto-kills)
 - **If emulator data corrupted**: `npm run emu:clear` then `npm run emu`
 - **If rosters are empty / teams look broken**: Run `npm run emu:repair:teams` to restore baseTeams from staged JSON and re-patch entitlements
+- **To use a different Emulator UI port**: `SCOUTZERO_EMU_UI_PORT=4002 npm run emu`
 - **To manually save**: `npm run emu:save` (rarely needed, auto-saves on Ctrl+C)
 
 ## Entry Points
@@ -54,7 +55,7 @@ This command:
 
 ### runEmu.ts
 
-1. Kills any processes listening on ports 8082, 9099, 5001, 4000
+1. Kills any processes listening on ports 8082, 9099, 5001, 4001 (or `SCOUTZERO_EMU_UI_PORT`)
 2. Starts Firebase emulators with `--import` and `--export-on-exit`
 3. Waits for Firestore emulator to be ready
 4. Runs `seedIfMissing.ts` to populate base data if needed
