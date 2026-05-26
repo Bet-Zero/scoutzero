@@ -770,10 +770,13 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
   const editContractModalContent = readFileContent(EDIT_CONTRACT_MODAL_PATH);
+  // The dashboard now composes sections via a `rooms` map consumed by the
+  // cockpit Workbench. The "cap" tab area lives in the `cap:` entry and
+  // ends where the next entry (`capfull:`) begins.
   const gmDashboardCapRegion = readRegion(
     gmDashboardContent,
-    "{activeTab === 'cap' && (",
-    "{activeTab === 'capfull' && ("
+    '    cap: {',
+    '    capfull: {'
   );
   const modalActionCallbacksRegion = readRegion(
     gmDashboardContent,

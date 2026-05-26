@@ -1,0 +1,155 @@
+/**
+ * FILE: src/features/architect/cockpit/TopBar.tsx
+ * PURPOSE: Persistent cockpit top bar — identity (team/world/season), live
+ *          posture (cap meter, roster count), mode + last receipt. Replaces
+ *          the legacy ArchitectWorkspaceHeader visually while reusing the
+ *          same existing controls (WorldSelector, WorldTimeControls, season
+ *          select) so behavior contracts are preserved.
+ * OWNERSHIP: Feature: architect/cockpit
+ *
+ * Phase 1 notes:
+ *  - No mutation authority. Pure presentation.
+ *  - Preserves the dashboard title heading ("HoopZero Architect – GM
+ *    Dashboard") that existing smoke tests assert on.
+ *  - "Last receipt" click expands the ActivityRail — single current
+ *    receipt only, no history model.
+ */
+import type { ReactNode } from 'react';
+import { CapPostureMeter } from './CapPostureMeter';
+import { ModePill } from './ModePill';
+import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
+
+interface TopBarProps {
+  workspace: ArchitectWorkspaceContext;
+  isEmulator: boolean;
+  receipt: ArchitectPostActionReceipt | null;
+  onExpandActivity: () => void;
+  worldSelectorSlot?: ReactNode;
+  worldTimeControlsSlot?: ReactNode;
+  seasonSelectorSlot?: ReactNode;
+}
+
+const formatRelative = (iso: string | null): string => {
+  if (!iso) return '';
+  const parsed = Date.parse(iso);
+  if (!Number.isFinite(parsed)) return '';
+  const deltaMs = Date.now() - parsed;
+  const seconds = Math.max(0, Math.round(deltaMs / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+};
+
+export const TopBar = ({
+  workspace,
+  isEmulator,
+  receipt,
+  onExpandActivity,
+  worldSelectorSlot,
+  worldTimeControlsSlot,
+  seasonSelectorSlot,
+}: TopBarProps) => {
+  const teamLabel = workspace.team.label;
+  const worldLabel = workspace.world.label;
+  const seasonLabel = workspace.seasons.selectedViewingSeasonLabel ?? '—';
+  const worldDateLabel =
+    workspace.worldDate.status === 'available'
+      ? workspace.worldDate.value
+      : null;
+
+  const rosterCount =
+    workspace.roster.status === 'available' ? workspace.roster.count : null;
+
+  return (
+    <header
+      className="flex shrink-0 items-center gap-3 border-b border-cockpit-edge bg-cockpit-bar px-4"
+      style={{ height: 56 }}
+      data-testid="cockpit-top-bar"
+    >
+      {/* Visually-hidden heading preserved for existing smoke tests */}
+      <h1 className="sr-only" data-testid="cockpit-dashboard-title">
+        HoopZero Architect – GM Dashboard
+      </h1>
+
+      {/* Left: Identity */}
+      <div className="flex min-w-0 shrink-0 items-center gap-2">
+        <span className="text-base font-semibold tracking-tight text-cockpit-text-primary">
+          🏀 Architect
+        </span>
+        <span className="hidden h-5 w-px bg-cockpit-edge md:block" />
+        <span
+          className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-cockpit-text-primary"
+          data-testid="cockpit-team-chip"
+        >
+          {teamLabel}
+        </span>
+        <span
+          className="hidden truncate text-xs text-cockpit-text-secondary md:inline"
+          data-testid="cockpit-world-chip"
+          title={worldLabel}
+        >
+          {worldLabel}
+        </span>
+        <span className="hidden text-xs text-cockpit-text-muted md:inline">·</span>
+        <span
+          className="hidden text-xs text-cockpit-text-secondary md:inline"
+          data-testid="cockpit-season-chip"
+          title={worldDateLabel ?? undefined}
+        >
+          {seasonLabel}
+          {worldDateLabel ? ` · ${worldDateLabel}` : ''}
+        </span>
+      </div>
+
+      {/* Center: Cap posture + roster */}
+      <div className="ml-2 flex min-w-0 flex-1 items-center gap-3">
+        <CapPostureMeter context={workspace} />
+        {rosterCount !== null ? (
+          <span
+            className="hidden items-center gap-1 rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[11px] text-cockpit-text-secondary lg:inline-flex"
+            data-testid="cockpit-roster-count"
+            title="Roster size"
+          >
+            <span className="text-cockpit-text-muted">Roster</span>
+            <span className="font-semibold text-cockpit-text-primary">
+              {rosterCount}
+            </span>
+            <span className="text-cockpit-text-muted">/ 15</span>
+          </span>
+        ) : null}
+      </div>
+
+      {/* Right: Existing controls, mode pill, last receipt */}
+      <div className="flex shrink-0 items-center gap-2">
+        {worldSelectorSlot}
+        {worldTimeControlsSlot}
+        {seasonSelectorSlot}
+        <ModePill context={workspace} isEmulator={isEmulator} />
+        {receipt ? (
+          <button
+            type="button"
+            onClick={onExpandActivity}
+            data-testid="cockpit-last-receipt"
+            className="hidden max-w-[220px] truncate rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-left text-[11px] text-cockpit-text-secondary hover:border-cockpit-safe/40 hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 xl:inline-block"
+            title={receipt.headline}
+          >
+            <span className="text-cockpit-text-muted">Last:</span>{' '}
+            <span className="font-medium text-cockpit-text-primary">
+              {receipt.headline}
+            </span>
+            {receipt.occurredAt ? (
+              <span className="ml-1 text-cockpit-text-muted">
+                · {formatRelative(receipt.occurredAt)}
+              </span>
+            ) : null}
+          </button>
+        ) : null}
+      </div>
+    </header>
+  );
+};

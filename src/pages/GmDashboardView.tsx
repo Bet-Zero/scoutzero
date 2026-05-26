@@ -7,19 +7,18 @@ const GmDashboardView = () => {
 
   if (authLoading) {
     return (
-      <div className="px-4 pt-4 pb-10">
-        <div className="max-w-[1100px] mx-auto text-white/80 text-sm">
-          Signing in...
-        </div>
+      <div className="flex h-full min-h-0 w-full items-center justify-center text-sm text-white/80">
+        Signing in...
       </div>
     );
   }
 
+  // Cockpit owns the viewport: full width, full height, no centering wrapper.
+  // SiteLayout suppresses the global site header on /gm/:teamId routes so the
+  // cockpit TopBar is the only top chrome.
   return (
-    <div className="px-4 pt-4 pb-10">
-      <div className="max-w-[1100px] mx-auto">
-        <GMDashboard />
-      </div>
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <GMDashboard />
     </div>
   );
 };

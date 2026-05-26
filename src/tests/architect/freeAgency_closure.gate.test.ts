@@ -373,10 +373,13 @@ describe('Gate 2: Free Agency UI prop contracts stay grouped behind actionOwner 
 describe('Gate 3: dashboard and section hand off grouped Free Agency authority (FA-1A)', () => {
   const gmDashboardContent = readFileContent(GMDASHBOARD_PATH);
   const freeAgencySectionContent = readFileContent(FREE_AGENCY_SECTION_PATH);
+  // The dashboard now composes sections via a `rooms` map consumed by the
+  // cockpit Workbench. The "fa" tab area lives in the `fa:` entry and ends
+  // where the next entry (`offseason:`) begins.
   const gmDashboardFreeAgencyRegion = readRegion(
     gmDashboardContent,
-    "{activeTab === 'fa' && (",
-    "{activeTab === 'offseason' && ("
+    '    fa: {',
+    '    offseason: {'
   );
 
   it('GMDashboard reads one grouped owner from useArchitectActions and passes it into FreeAgencySection', () => {

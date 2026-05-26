@@ -108,6 +108,19 @@ capSheet/
   modals/
     ManageDeadMoneyModal.tsx
     ManageExceptionsModal.tsx
+cockpit/
+  ActivityRail.tsx
+  CapPostureMeter.tsx
+  CockpitShell.tsx
+  ModePill.tsx
+  NavRail.tsx
+  README.md
+  RoomFrame.tsx
+  TopBar.tsx
+  Workbench.tsx
+  cockpitTokens.ts
+  index.ts
+  useTeamPalette.ts
 comparison/
   capDelta.ts
   deriveComparisonViewModel.ts
@@ -513,5 +526,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-22T04:02:41.735Z*
+*Generated on: 2026-05-26T12:21:46.614Z*
 *Auto-updated by: npm run docs*
