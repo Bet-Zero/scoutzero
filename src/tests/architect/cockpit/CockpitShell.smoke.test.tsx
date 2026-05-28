@@ -6,8 +6,20 @@
  * OWNERSHIP: Test suite
  */
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import {
+  cleanup,
+  render as baseRender,
+  screen,
+  fireEvent,
+} from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom/vitest';
+
+// CockpitShell uses <Link>; wrap every render in a MemoryRouter so the
+// router context is available without forcing the smoke test to mock
+// react-router-dom.
+const render = (ui: React.ReactElement) =>
+  baseRender(<MemoryRouter initialEntries={['/gm/LAL']}>{ui}</MemoryRouter>);
 import {
   deriveArchitectWorkspaceContext,
   type ArchitectWorkspaceContext,

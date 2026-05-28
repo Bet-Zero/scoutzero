@@ -3,20 +3,26 @@
  * PURPOSE: Persistent cockpit top bar — identity (team/world/season), live
  *          posture (cap meter, roster count), mode + last receipt. Replaces
  *          the legacy ArchitectWorkspaceHeader visually while reusing the
- *          same existing controls (WorldSelector, WorldTimeControls, season
- *          select) so behavior contracts are preserved.
+ *          existing world / season controls via the WorldMenu popover and a
+ *          dedicated season slot.
  * OWNERSHIP: Feature: architect/cockpit
  *
  * Phase 1 notes:
  *  - No mutation authority. Pure presentation.
  *  - Preserves the dashboard title heading ("HoopZero Architect – GM
  *    Dashboard") that existing smoke tests assert on.
+ *  - World selection is a deliberate, popover-anchored decision, not a
+ *    fluid TopBar control. The WorldMenu shows a read-only world chip by
+ *    default and only reveals the WorldSelector / WorldTimeControls when
+ *    opened. Exit-to-League returns to /gm to switch teams entirely.
  *  - "Last receipt" click expands the ActivityRail — single current
  *    receipt only, no history model.
  */
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { CapPostureMeter } from './CapPostureMeter';
 import { ModePill } from './ModePill';
+import { WorldMenu } from './WorldMenu';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
 
@@ -55,12 +61,6 @@ export const TopBar = ({
   seasonSelectorSlot,
 }: TopBarProps) => {
   const teamLabel = workspace.team.label;
-  const worldLabel = workspace.world.label;
-  const seasonLabel = workspace.seasons.selectedViewingSeasonLabel ?? '—';
-  const worldDateLabel =
-    workspace.worldDate.status === 'available'
-      ? workspace.worldDate.value
-      : null;
 
   const rosterCount =
     workspace.roster.status === 'available' ? workspace.roster.count : null;
@@ -78,31 +78,22 @@ export const TopBar = ({
 
       {/* Left: Identity */}
       <div className="flex min-w-0 shrink-0 items-center gap-2">
-        <span className="text-base font-semibold tracking-tight text-cockpit-text-primary">
-          🏀 Architect
-        </span>
+        <Link
+          to="/gm"
+          aria-label="Exit cockpit to league view"
+          title="Exit to League"
+          data-testid="cockpit-exit-link"
+          className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-base font-semibold tracking-tight text-cockpit-text-primary hover:bg-cockpit-raised focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+        >
+          <span aria-hidden>🏀</span>
+          <span className="hidden sm:inline">Architect</span>
+        </Link>
         <span className="hidden h-5 w-px bg-cockpit-edge md:block" />
         <span
           className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-cockpit-text-primary"
           data-testid="cockpit-team-chip"
         >
           {teamLabel}
-        </span>
-        <span
-          className="hidden truncate text-xs text-cockpit-text-secondary md:inline"
-          data-testid="cockpit-world-chip"
-          title={worldLabel}
-        >
-          {worldLabel}
-        </span>
-        <span className="hidden text-xs text-cockpit-text-muted md:inline">·</span>
-        <span
-          className="hidden text-xs text-cockpit-text-secondary md:inline"
-          data-testid="cockpit-season-chip"
-          title={worldDateLabel ?? undefined}
-        >
-          {seasonLabel}
-          {worldDateLabel ? ` · ${worldDateLabel}` : ''}
         </span>
       </div>
 
@@ -124,10 +115,13 @@ export const TopBar = ({
         ) : null}
       </div>
 
-      {/* Right: Existing controls, mode pill, last receipt */}
+      {/* Right: World menu, season, mode pill, last receipt */}
       <div className="flex shrink-0 items-center gap-2">
-        {worldSelectorSlot}
-        {worldTimeControlsSlot}
+        <WorldMenu
+          workspace={workspace}
+          worldSelector={worldSelectorSlot}
+          worldTimeControls={worldTimeControlsSlot}
+        />
         {seasonSelectorSlot}
         <ModePill context={workspace} isEmulator={isEmulator} />
         {receipt ? (

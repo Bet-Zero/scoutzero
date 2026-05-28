@@ -94,6 +94,11 @@ const dashboardRouteFixtures = vi.hoisted(() => ({
 
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ teamId: 'LAL' }),
+  // Passthrough stub so cockpit TopBar's <Link to="/gm"> renders inside
+  // unit tests that mock the entire react-router-dom module.
+  Link: ({ to, children, ...props }: { to: string; children?: React.ReactNode } & Record<string, unknown>) => (
+    <a href={typeof to === 'string' ? to : '#'} {...props}>{children}</a>
+  ),
 }));
 
 vi.mock('@/firebaseConfig', () => ({
@@ -1729,6 +1734,12 @@ describe('E109 dashboard/world boundary behavior', () => {
       );
 
       render(<GMDashboard />);
+
+      // Cockpit TopBar shows world controls inside a popover that the user
+      // explicitly opens — "decide once, then work" rather than a fluid
+      // header. Open the menu before asserting the WorldSelector and
+      // WorldTimeControls content is reachable.
+      fireEvent.click(await screen.findByTestId('cockpit-world-menu-trigger'));
 
       await screen.findByLabelText('Architect (optional)');
       expect(

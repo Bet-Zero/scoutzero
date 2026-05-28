@@ -118,6 +118,7 @@ cockpit/
   RoomFrame.tsx
   TopBar.tsx
   Workbench.tsx
+  WorldMenu.tsx
   cockpitTokens.ts
   index.ts
   useTeamPalette.ts
@@ -526,5 +527,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-26T12:21:46.614Z*
+*Generated on: 2026-05-28T07:04:25.484Z*
 *Auto-updated by: npm run docs*

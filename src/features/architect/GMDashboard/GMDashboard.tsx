@@ -99,6 +99,21 @@ const toOverrideMetadata = (value: unknown): ArchitectOverrideMetadata => {
   return null;
 };
 
+// Phase 1 cockpit gate: the cap audit dev panel is opt-in inside the
+// cockpit so it does not steal chrome space by default. Toggle via the
+// browser console with:
+//   localStorage.setItem('architect.devTools.capAudit', '1')
+const COCKPIT_CAP_AUDIT_FLAG_KEY = 'architect.devTools.capAudit';
+
+function isCockpitCapAuditEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage?.getItem(COCKPIT_CAP_AUDIT_FLAG_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined) => {
   const keys = Object.keys(caps || {});
   const years = keys
@@ -729,7 +744,9 @@ export const GMDashboard = () => {
 
   const modalsSlot = (
     <>
-      <CapAuditDebugPanel worldId={worldId} />
+      {isCockpitCapAuditEnabled() ? (
+        <CapAuditDebugPanel worldId={worldId} />
+      ) : null}
 
       {showOffseasonModal && offseasonSummary && (
         <div className="modal-overlay">

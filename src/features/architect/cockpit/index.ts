@@ -11,5 +11,6 @@ export { Workbench, type RoomDescriptor } from './Workbench';
 export { ActivityRail, type ActivityRailHandle } from './ActivityRail';
 export { CapPostureMeter } from './CapPostureMeter';
 export { ModePill } from './ModePill';
+export { WorldMenu } from './WorldMenu';
 export { useTeamPalette } from './useTeamPalette';
 export { cockpitTokens } from './cockpitTokens';

@@ -15,6 +15,11 @@ import { GMDashboard } from '@/features/architect/GMDashboard/GMDashboard';
 // Mock react-router-dom
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ teamId: 'LAL' }),
+  // Passthrough stub so cockpit TopBar's <Link to="/gm"> renders inside
+  // unit tests that mock the entire react-router-dom module.
+  Link: ({ to, children, ...props }: { to: string; children?: React.ReactNode } & Record<string, unknown>) => (
+    <a href={typeof to === 'string' ? to : '#'} {...props}>{children}</a>
+  ),
 }));
 
 // Mock useAuth hook
