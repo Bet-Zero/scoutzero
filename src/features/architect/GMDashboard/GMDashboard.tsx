@@ -37,6 +37,7 @@ import { WorldTimeControls } from '@/features/architect/GMDashboard/components/W
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
 import { CockpitShell } from '@/features/architect/cockpit';
 import type { NavRailItem, RoomDescriptor } from '@/features/architect/cockpit';
+import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import type { ActiveTab } from '@/features/architect/GMDashboard/hooks/useArchitectState.types';
 import { useArchitectPostActionReceipt } from './hooks/useArchitectPostActionReceipt';
 import { useHistoryEventDetailRequest } from './hooks/useHistoryEventDetailRequest';
@@ -361,6 +362,21 @@ export const GMDashboard = () => {
     },
     [normalizedTeamId, postActionReceipt]
   );
+
+  const cockpitHardCapStatus = useMemo(() => {
+    if (!teamCapSheet || workspaceContext.cap.status !== 'available') {
+      return null;
+    }
+    return getHardCapStatus(teamCapSheet, {
+      capSettings: {
+        firstApron: workspaceContext.cap.firstApron,
+        secondApron: workspaceContext.cap.secondApron,
+      },
+    });
+  }, [
+    teamCapSheet,
+    workspaceContext.cap,
+  ]);
 
   const manualCapSheetMutationAuthority = useMemo(
     () => ({
@@ -854,6 +870,7 @@ export const GMDashboard = () => {
       paletteIdentifier={
         teamCapSheet?.teamCode || teamCapSheet?.teamName || normalizedTeamId
       }
+      hardCapStatus={cockpitHardCapStatus}
       worldSelectorSlot={worldSelectorSlot}
       worldTimeControlsSlot={worldTimeControlsSlot}
       seasonSelectorSlot={seasonSelectorSlot}

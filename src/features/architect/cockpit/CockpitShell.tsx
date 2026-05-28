@@ -23,7 +23,7 @@ import { TopBar } from './TopBar';
 import { NavRail, type NavRailItem } from './NavRail';
 import { Workbench, type RoomDescriptor } from './Workbench';
 import { ActivityRail, type ActivityRailHandle } from './ActivityRail';
-import { TeamStatusStrip } from './TeamStatusStrip';
+import { TeamStatusStrip, type HardCapCockpitStatus } from './TeamStatusStrip';
 import { useTeamPalette } from './useTeamPalette';
 
 interface CockpitShellProps {
@@ -37,6 +37,7 @@ interface CockpitShellProps {
   worldId: string | null;
   historyTeamCode: string;
   paletteIdentifier: string | null;
+  hardCapStatus?: HardCapCockpitStatus;
   worldSelectorSlot?: ReactNode;
   worldTimeControlsSlot?: ReactNode;
   seasonSelectorSlot?: ReactNode;
@@ -62,6 +63,7 @@ export const CockpitShell = ({
   worldId,
   historyTeamCode,
   paletteIdentifier,
+  hardCapStatus,
   worldSelectorSlot,
   worldTimeControlsSlot,
   seasonSelectorSlot,
@@ -103,7 +105,7 @@ export const CockpitShell = ({
         seasonSelectorSlot={seasonSelectorSlot}
       />
 
-      <TeamStatusStrip workspace={workspace} />
+      <TeamStatusStrip workspace={workspace} hardCapStatus={hardCapStatus} />
 
       {banner ? <div className="shrink-0">{banner}</div> : null}
 

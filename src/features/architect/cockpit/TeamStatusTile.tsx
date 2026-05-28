@@ -1,80 +1,50 @@
 /**
  * FILE: src/features/architect/cockpit/TeamStatusTile.tsx
- * PURPOSE: Single tile primitive used by the persistent TeamStatusStrip.
- *          Label + value + colored posture pip + optional sub-line.
+ * PURPOSE: Single tile primitive for the persistent TeamStatusStrip. Visual
+ *          treatment matches the legacy CapSummaryTiles so the chrome
+ *          recognizably inherits the existing Cap Sheet style at a smaller
+ *          scale.
  * OWNERSHIP: Feature: architect/cockpit
- *
- * Phase 2A notes:
- *  - Pure presentation. No mutation authority.
- *  - Status pip colors come from cockpit status tokens
- *    (`bg-cockpit-safe`, `-watch`, `-danger`).
  */
 import type { ReactNode } from 'react';
-
-export type TeamStatusTone = 'safe' | 'watch' | 'danger' | 'neutral';
 
 interface TeamStatusTileProps {
   label: string;
   value: string;
-  sub?: string | null;
-  tone?: TeamStatusTone;
+  valueClassName?: string;
   testId?: string;
-  trailing?: ReactNode;
+  /** Optional bottom-left badge (e.g. a hard-cap lock). */
+  badge?: ReactNode;
+  /** Optional bottom-center sub-line (kept very small; chrome-scale). */
+  sub?: ReactNode;
 }
-
-const PIP_CLASS: Record<TeamStatusTone, string> = {
-  safe: 'bg-cockpit-safe',
-  watch: 'bg-cockpit-watch',
-  danger: 'bg-cockpit-danger',
-  neutral: 'bg-white/30',
-};
-
-const VALUE_CLASS: Record<TeamStatusTone, string> = {
-  safe: 'text-cockpit-text-primary',
-  watch: 'text-cockpit-watch',
-  danger: 'text-cockpit-danger',
-  neutral: 'text-cockpit-text-primary',
-};
 
 export const TeamStatusTile = ({
   label,
   value,
-  sub,
-  tone = 'neutral',
+  valueClassName = 'text-white',
   testId,
-  trailing,
+  badge,
+  sub,
 }: TeamStatusTileProps) => (
   <div
-    className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 border-r border-cockpit-edge px-3 py-2 last:border-r-0"
+    className="relative flex min-w-0 flex-1 flex-col items-center justify-center rounded-md border border-white/10 bg-[#1c1c1c] px-2 py-1 text-center"
     data-testid={testId}
-    data-tone={tone}
   >
-    <div className="flex items-center gap-1.5">
-      <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
-        {label}
-      </span>
-      <span
-        className={`h-1.5 w-1.5 shrink-0 rounded-full ${PIP_CLASS[tone]}`}
-        aria-hidden
-      />
+    <div className="truncate text-[10px] uppercase tracking-wider text-white/70">
+      {label}
     </div>
-    <div className="flex items-baseline gap-2">
-      <span
-        className={`truncate text-base font-semibold tabular-nums ${VALUE_CLASS[tone]}`}
-        data-testid={testId ? `${testId}-value` : undefined}
-      >
-        {value}
-      </span>
-      {trailing ? (
-        <span className="shrink-0 text-[10px] text-cockpit-text-muted">
-          {trailing}
-        </span>
-      ) : null}
+    <div
+      className={`truncate text-sm font-bold leading-tight tabular-nums ${valueClassName}`}
+      data-testid={testId ? `${testId}-value` : undefined}
+    >
+      {value}
     </div>
     {sub ? (
-      <span className="truncate text-[10px] text-cockpit-text-secondary">
+      <div className="truncate text-[9px] leading-tight text-white/50">
         {sub}
-      </span>
+      </div>
     ) : null}
+    {badge ? <div className="absolute bottom-1 left-1">{badge}</div> : null}
   </div>
 );

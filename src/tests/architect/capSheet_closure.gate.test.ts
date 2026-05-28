@@ -258,13 +258,16 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     );
   });
 
-  it('TeamStatusStrip derives apron tone from already-computed workspace flags (no per-render hard-cap recomputation)', () => {
+  it('TeamStatusStrip derives apron tone from workspace cap-space fields (no per-render hard-cap recomputation)', () => {
     const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
-    // Apron tones must come from the boolean flags the workspace context
-    // already exposes, not from a new getHardCapStatus call.
-    expect(stripContent).toContain('cap.isAtOrAboveFirstApron');
-    expect(stripContent).toContain('cap.isAboveSecondApron');
-    expect(stripContent).not.toContain('getHardCapStatus');
+    // Apron tone semantics match the legacy CapSummaryTiles: tile color is
+    // driven by whether the team's space against the threshold is negative
+    // (over) or non-negative (under). The strip must not call
+    // getHardCapStatus itself — hard-cap presentation is handed in via the
+    // optional hardCapStatus prop computed by the dashboard composer.
+    expect(stripContent).toContain('cap.firstApronSpace');
+    expect(stripContent).toContain('cap.secondApronSpace');
+    expect(/getHardCapStatus\s*\(/.test(stripContent)).toBe(false);
   });
 });
 
