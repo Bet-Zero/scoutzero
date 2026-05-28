@@ -35,6 +35,14 @@ const CAP_SUMMARY_TILES_PATH = path.resolve(
   '../../features/architect/capSheet/CapSheet/CapSummaryTiles.tsx'
 );
 
+// Phase 2A cockpit migration: the canonical-totals summary surface moved
+// from CapSummaryTiles (rendered inside the Cap Sheet room) to
+// TeamStatusStrip (rendered persistently in the cockpit shell, every room).
+const TEAM_STATUS_STRIP_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/cockpit/TeamStatusStrip.tsx'
+);
+
 const EXCEPTION_TRACKER_PATH = path.resolve(
   __dirname,
   '../../features/architect/capSheet/ExceptionTracker/ExceptionTracker.tsx'
@@ -205,18 +213,20 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     );
   });
 
-  it('CapSheet passes parent-computed canonicalTotals into CapSummaryTiles', () => {
-    const passesCanonicalTotals =
-      /<CapSummaryTiles[\s\S]*canonicalTotals=\{canonicalTotals\}/.test(
-        capSheetContent
-      );
-    expect(passesCanonicalTotals).toBe(true);
+  it('Cap Sheet no longer renders the canonical-totals summary surface (moved to TeamStatusStrip in cockpit)', () => {
+    expect(capSheetContent).not.toMatch(/<CapSummaryTiles\b/);
+    expect(capSheetContent).not.toContain("from './CapSummaryTiles'");
   });
 
-  it('CapSheet passes currentYear into CapSummaryTiles so hard-cap truth can be year-gated', () => {
-    expect(capSheetContent).toMatch(
-      /<CapSummaryTiles[\s\S]*currentYear=\{currentYear\}/
-    );
+  it('TeamStatusStrip consumes workspace-context cap fields directly without re-running computeTeamCapTotals', () => {
+    const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
+    expect(stripContent).toContain('useArchitectWorkspaceContext');
+    expect(stripContent).toContain('cap.totalCapAllocations');
+    expect(stripContent).toContain('cap.capSpace');
+    expect(stripContent).toContain('cap.taxSpace');
+    expect(stripContent).toContain('cap.firstApronSpace');
+    expect(stripContent).toContain('cap.secondApronSpace');
+    expect(/computeTeamCapTotals\s*\(/.test(stripContent)).toBe(false);
   });
 
   it('CapSheet keeps current-year breakdown and footer as direct canonicalTotals reads', () => {
@@ -248,21 +258,13 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     );
   });
 
-  it('CapSheet resolves adjacent hard-cap presentation before handing it to CapSummaryTiles', () => {
-    expect(capSheetContent).toContain('getHardCapStatus');
-    expect(capSheetContent).toContain('const summaryHardCapStatus = React.useMemo');
-    expect(capSheetContent).toMatch(
-      /<CapSummaryTiles[\s\S]*hardCapStatus=\{summaryHardCapStatus\}/
-    );
-    expect(capSummaryTilesContent).not.toContain('getHardCapStatus');
-    expect(capSummaryTilesContent).toContain('hardCapStatus?: SummaryHardCapStatus | null;');
-    expect(capSummaryTilesContent).toContain('hardCapCeilingType');
-    expect(capSummaryTilesContent).toContain('hardCapCeilingLabel');
-    expect(capSummaryTilesContent).toContain(
-      'selectedYear === currentYear && Boolean(hardCapStatus)'
-    );
-    expect(capSummaryTilesContent).not.toContain('isHardCappedAtFirstApron');
-    expect(capSummaryTilesContent).not.toContain('getFirstApronHardCapReason');
+  it('TeamStatusStrip derives apron tone from already-computed workspace flags (no per-render hard-cap recomputation)', () => {
+    const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
+    // Apron tones must come from the boolean flags the workspace context
+    // already exposes, not from a new getHardCapStatus call.
+    expect(stripContent).toContain('cap.isAtOrAboveFirstApron');
+    expect(stripContent).toContain('cap.isAboveSecondApron');
+    expect(stripContent).not.toContain('getHardCapStatus');
   });
 });
 
@@ -303,17 +305,15 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
     expect(capSheetSectionContent).toContain('Adjacent authority:');
   });
 
-  it('keeps explicit surface-label handoff from section to ExceptionTracker and from CapSheet to CapSummaryTiles', () => {
+  it('keeps explicit surface-label handoff from section to ExceptionTracker; canonical totals summary surface is owned by the cockpit TeamStatusStrip', () => {
     expect(capSheetSectionContent).toMatch(
       /<ExceptionTracker[\s\S]*surfaceLabel=\{CAP_SHEET_SECTION_SURFACE_LABELS\.adjacentDetail\}/
     );
-    expect(capSheetContent).toMatch(
-      /<CapSummaryTiles[\s\S]*surfaceLabel=\{CAP_SHEET_SURFACE_LABELS\.canonicalTotalsSummary\}/
-    );
-    expect(capSummaryTilesContent).toContain('surfaceLabel?: string;');
-    expect(capSummaryTilesContent).toContain(
-      "surfaceLabel = 'Selected-year canonical totals summary surface'"
-    );
+    // After Phase 2A the canonical totals summary is rendered by the
+    // cockpit's TeamStatusStrip, not by CapSheet → CapSummaryTiles.
+    expect(capSheetContent).not.toMatch(/<CapSummaryTiles\b/);
+    const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
+    expect(stripContent).toContain('Team financial posture');
   });
 
   it('CapSummaryTiles explicitly fences hard-cap truth to the current season', () => {

@@ -23,6 +23,7 @@ import { TopBar } from './TopBar';
 import { NavRail, type NavRailItem } from './NavRail';
 import { Workbench, type RoomDescriptor } from './Workbench';
 import { ActivityRail, type ActivityRailHandle } from './ActivityRail';
+import { TeamStatusStrip } from './TeamStatusStrip';
 import { useTeamPalette } from './useTeamPalette';
 
 interface CockpitShellProps {
@@ -101,6 +102,8 @@ export const CockpitShell = ({
         worldTimeControlsSlot={worldTimeControlsSlot}
         seasonSelectorSlot={seasonSelectorSlot}
       />
+
+      <TeamStatusStrip workspace={workspace} />
 
       {banner ? <div className="shrink-0">{banner}</div> : null}
 

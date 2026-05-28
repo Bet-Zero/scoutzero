@@ -23,9 +23,7 @@ import {
   getPlayerCapHitForYear,
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
-import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { getActiveUnsignedCapHoldsByEndYear, type CapHold } from '@/features/architect/utils/capHolds';
-import { CapSummaryTiles } from './CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import { getCapPercentage } from '@/features/architect/utils/basicArchitectUtils';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
@@ -382,23 +380,6 @@ export const CapSheet = ({
     [manualCapSheetMutationAuthority]
   );
 
-  const summaryHardCapStatus = React.useMemo(() => {
-    if (!teamCapSheet) {
-      return null;
-    }
-
-    return getHardCapStatus(teamCapSheet, {
-      capSettings: {
-        firstApron: canonicalTotals.firstApron,
-        secondApron: canonicalTotals.secondApron,
-      },
-    });
-  }, [
-    teamCapSheet,
-    canonicalTotals.firstApron,
-    canonicalTotals.secondApron,
-  ]);
-
   return (
     <div className="text-white font-sans">
       <div className="flex items-center justify-between mb-4">
@@ -434,16 +415,15 @@ export const CapSheet = ({
         </div>
       </div>
 
-      {/* CANONICAL TOTALS CONSUMER SURFACE: Summary tiles read canonicalTotals directly. */}
-      <div data-surface-role="canonical-totals-summary">
-        <CapSummaryTiles
-          currentYear={currentYear}
-          selectedYear={selectedYear}
-          canonicalTotals={canonicalTotals}
-          hardCapStatus={summaryHardCapStatus}
-          surfaceLabel={CAP_SHEET_SURFACE_LABELS.canonicalTotalsSummary}
-        />
-      </div>
+      {/*
+        Phase 2A cockpit migration: the 5-tile canonical totals summary
+        (Total Cap, Cap Space, Luxury Tax Space, 1st/2nd Apron Space) moved
+        to the persistent TeamStatusStrip below the cockpit TopBar so the
+        team's financial posture is visible from every room — not only when
+        the user is on the Cap Sheet. The legacy CapSummaryTiles component
+        is intentionally left in the codebase (it is still referenced by
+        tests and may be reused). Phase 2C will retire it.
+      */}
 
       <section
         aria-label={CAP_SHEET_SURFACE_LABELS.rosterDetail}

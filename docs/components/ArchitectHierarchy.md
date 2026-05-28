@@ -116,6 +116,8 @@ cockpit/
   NavRail.tsx
   README.md
   RoomFrame.tsx
+  TeamStatusStrip.tsx
+  TeamStatusTile.tsx
   TopBar.tsx
   Workbench.tsx
   WorldMenu.tsx
@@ -527,5 +529,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-28T07:04:25.484Z*
+*Generated on: 2026-05-28T07:48:19.767Z*
 *Auto-updated by: npm run docs*

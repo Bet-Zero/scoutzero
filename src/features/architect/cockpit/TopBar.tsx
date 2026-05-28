@@ -20,7 +20,6 @@
  */
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { CapPostureMeter } from './CapPostureMeter';
 import { ModePill } from './ModePill';
 import { WorldMenu } from './WorldMenu';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
@@ -62,9 +61,6 @@ export const TopBar = ({
 }: TopBarProps) => {
   const teamLabel = workspace.team.label;
 
-  const rosterCount =
-    workspace.roster.status === 'available' ? workspace.roster.count : null;
-
   return (
     <header
       className="flex shrink-0 items-center gap-3 border-b border-cockpit-edge bg-cockpit-bar px-4"
@@ -97,23 +93,9 @@ export const TopBar = ({
         </span>
       </div>
 
-      {/* Center: Cap posture + roster */}
-      <div className="ml-2 flex min-w-0 flex-1 items-center gap-3">
-        <CapPostureMeter context={workspace} />
-        {rosterCount !== null ? (
-          <span
-            className="hidden items-center gap-1 rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[11px] text-cockpit-text-secondary lg:inline-flex"
-            data-testid="cockpit-roster-count"
-            title="Roster size"
-          >
-            <span className="text-cockpit-text-muted">Roster</span>
-            <span className="font-semibold text-cockpit-text-primary">
-              {rosterCount}
-            </span>
-            <span className="text-cockpit-text-muted">/ 15</span>
-          </span>
-        ) : null}
-      </div>
+      {/* Center: breathing room — cap posture + roster moved to the
+          persistent TeamStatusStrip below the TopBar. */}
+      <div className="ml-2 flex min-w-0 flex-1 items-center" aria-hidden />
 
       {/* Right: World menu, season, mode pill, last receipt */}
       <div className="flex shrink-0 items-center gap-2">
