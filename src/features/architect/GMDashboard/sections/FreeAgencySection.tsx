@@ -46,6 +46,11 @@ const FreeAgencySection = ({
   outgoingOfferSheets,
   incomingOfferSheets,
   onAfterSigningComplete,
+  selectedPlayerKeys,
+  onSelectedPlayerKeysChange,
+  requestedOpenSelectionKey,
+  onRequestedOpenSelectionHandled,
+  onSelectedEntriesChange,
 }: FreeAgencySectionProps) => {
   const offerSheetSectionAvailability = actionOwner.offerSheetSectionAvailability;
   const offerSheetLifecycleActionOwner =
@@ -144,6 +149,11 @@ const FreeAgencySection = ({
         currentYear={currentYear}
         actionOwner={freeAgentPoolActionOwner}
         playersMap={playersMap as FreeAgentPoolProps['playersMap']}
+        selectedPlayerKeys={selectedPlayerKeys}
+        onSelectedPlayerKeysChange={onSelectedPlayerKeysChange}
+        requestedOpenSelectionKey={requestedOpenSelectionKey}
+        onRequestedOpenSelectionHandled={onRequestedOpenSelectionHandled}
+        onSelectedEntriesChange={onSelectedEntriesChange}
       />
     </div>
   );

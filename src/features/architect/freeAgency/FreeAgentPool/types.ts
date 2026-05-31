@@ -76,6 +76,11 @@ export interface FreeAgentPoolProps {
   currentYear: number;
   actionOwner: FreeAgentPoolActionOwner;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
+  selectedPlayerKeys?: string[];
+  onSelectedPlayerKeysChange?: (selectionKeys: string[]) => void;
+  requestedOpenSelectionKey?: string | null;
+  onRequestedOpenSelectionHandled?: () => void;
+  onSelectedEntriesChange?: (entries: FreeAgentSurfaceEntry[]) => void;
 }
 
 export interface FreeAgentRowProps {

@@ -27,6 +27,7 @@ import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionH
 import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
 import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 import type { ManualCapSheetMutationAuthority } from '@/features/architect/capSheet/CapSheet/CapSheet';
+import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
 
 type DeadCapSavePayload = Parameters<
   ManualCapSheetMutationAuthority['handleSetDeadCap']
@@ -135,6 +136,9 @@ type CapSheetFullProps = {
    * only — the FA signing flow itself is unchanged.
    */
   onLaunchFreeAgentSearch?: (() => void) | null;
+  freeAgentOptions?: FreeAgentSurfaceEntry[];
+  onOpenFreeAgentOption?: ((selectionKey: string) => void) | null;
+  onRemoveFreeAgentOption?: ((selectionKey: string) => void) | null;
 };
 
 const CAP_SHEET_FULL_SURFACE_LABELS = {
@@ -328,6 +332,9 @@ export const CapSheetFull = ({
   manualCapSheetMutationAuthority = null,
   exceptionsReadout = null,
   onLaunchFreeAgentSearch = null,
+  freeAgentOptions = [],
+  onOpenFreeAgentOption = null,
+  onRemoveFreeAgentOption = null,
 }: CapSheetFullProps) => {
   const [showCapHolds, setShowCapHolds] = useState(false);
   const [showDeadMoneyDetails, setShowDeadMoneyDetails] = useState(false);
@@ -485,6 +492,56 @@ export const CapSheetFull = ({
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-cockpit-slab">
+          {freeAgentOptions.length > 0 ? (
+            <section
+              data-testid="cap-sheet-full-fa-options"
+              aria-label="Free-agent options"
+              className="shrink-0 border-b border-cockpit-edge bg-cockpit-slab px-3 py-1.5"
+            >
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+                  FA Options
+                </span>
+                {freeAgentOptions.map((entry) => {
+                  const playerName =
+                    entry.surfacePlayer.displayName ||
+                    entry.surfacePlayer.name ||
+                    entry.freeAgent.name ||
+                    entry.selectionKey;
+                  return (
+                    <div
+                      key={entry.selectionKey}
+                      className="flex items-center gap-1 rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-1"
+                    >
+                      <span className="max-w-[180px] truncate text-[11px] text-cockpit-text-primary">
+                        {playerName}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onOpenFreeAgentOption?.(entry.selectionKey)
+                        }
+                        className="rounded px-1 text-[10px] font-medium text-cockpit-safe hover:bg-cockpit-safe/10"
+                      >
+                        Open offer
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${playerName}`}
+                        onClick={() =>
+                          onRemoveFreeAgentOption?.(entry.selectionKey)
+                        }
+                        className="flex h-4 w-4 items-center justify-center rounded text-xs text-cockpit-text-muted hover:bg-cockpit-raised hover:text-cockpit-text-primary"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+
           {/* COMPACT TOOLBAR: a single dense row — the room header already names
               the surface, so we don't repeat a title. Reclaims vertical space so
               the table itself owns the screen. */}

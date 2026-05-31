@@ -12,6 +12,9 @@ type ForwardedCapTableProps = Pick<
   | 'exceptionsReadout'
   | 'onLaunchPlayerAction'
   | 'onLaunchFreeAgentSearch'
+  | 'freeAgentOptions'
+  | 'onOpenFreeAgentOption'
+  | 'onRemoveFreeAgentOption'
 >;
 
 type CapTableSectionProps = ForwardedCapTableProps & {
@@ -32,6 +35,9 @@ const CapTableSection = ({
   manualCapSheetMutationAuthority = null,
   exceptionsReadout = null,
   onLaunchFreeAgentSearch = null,
+  freeAgentOptions = [],
+  onOpenFreeAgentOption = null,
+  onRemoveFreeAgentOption = null,
 }: CapTableSectionProps) => (
   <CapSheetFull
     teamCapSheet={teamCapSheet}
@@ -45,6 +51,9 @@ const CapTableSection = ({
     manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
     exceptionsReadout={exceptionsReadout}
     onLaunchFreeAgentSearch={onLaunchFreeAgentSearch}
+    freeAgentOptions={freeAgentOptions}
+    onOpenFreeAgentOption={onOpenFreeAgentOption}
+    onRemoveFreeAgentOption={onRemoveFreeAgentOption}
   />
 );
 

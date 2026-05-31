@@ -11,6 +11,7 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import type { FreeAgencyActionOwner } from './hooks/useArchitectActions';
+import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
 
 type LooseRecord = Record<string, unknown>;
 
@@ -59,4 +60,9 @@ export interface FreeAgencySectionProps {
   outgoingOfferSheets?: OfferSheetLike[] | null;
   incomingOfferSheets?: OfferSheetLike[] | null;
   onAfterSigningComplete?: (() => void) | null;
+  selectedPlayerKeys?: string[];
+  onSelectedPlayerKeysChange?: (selectionKeys: string[]) => void;
+  requestedOpenSelectionKey?: string | null;
+  onRequestedOpenSelectionHandled?: () => void;
+  onSelectedEntriesChange?: (entries: FreeAgentSurfaceEntry[]) => void;
 }

@@ -135,8 +135,14 @@ export const FreeAgentPool = ({
   freeAgents,
   actionOwner,
   playersMap = {},
+  selectedPlayerKeys: controlledSelectedPlayerKeys,
+  onSelectedPlayerKeysChange,
+  requestedOpenSelectionKey = null,
+  onRequestedOpenSelectionHandled,
+  onSelectedEntriesChange,
 }: FreeAgentPoolProps) => {
-  const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([]);
+  const [uncontrolledSelectedPlayerKeys, setUncontrolledSelectedPlayerKeys] =
+    useState<string[]>([]);
   const [, setSignResults] = useState<
     Record<string, FreeAgentActionResult | null>
   >({});
@@ -147,6 +153,20 @@ export const FreeAgentPool = ({
     useState<FreeAgentModalLaunchTarget | null>(null);
   const { filterState, updateFilterState, clearFilters } =
     useFreeAgencyFilterPersistence();
+  const selectedPlayerKeys =
+    controlledSelectedPlayerKeys ?? uncontrolledSelectedPlayerKeys;
+  const updateSelectedPlayerKeys = useCallback(
+    (updater: (selectionKeys: string[]) => string[]) => {
+      const nextSelectionKeys = updater(selectedPlayerKeys);
+      if (nextSelectionKeys === selectedPlayerKeys) return;
+      if (onSelectedPlayerKeysChange) {
+        onSelectedPlayerKeysChange(nextSelectionKeys);
+      } else {
+        setUncontrolledSelectedPlayerKeys(nextSelectionKeys);
+      }
+    },
+    [onSelectedPlayerKeysChange, selectedPlayerKeys]
+  );
 
   const allAgents = freeAgents || [];
 
@@ -177,16 +197,19 @@ export const FreeAgentPool = ({
   useEffect(() => {
     const availableSelectionKeys = new Set(allEntries.map((entry) => entry.selectionKey));
 
-    setSelectedPlayerKeys((prev) =>
-      prev.filter((selectionKey) => availableSelectionKeys.has(selectionKey))
-    );
+    updateSelectedPlayerKeys((prev) => {
+      const next = prev.filter((selectionKey) =>
+        availableSelectionKeys.has(selectionKey)
+      );
+      return next.length === prev.length ? prev : next;
+    });
     setOpenMenuSelectionKey((prev) =>
       prev && availableSelectionKeys.has(prev) ? prev : null
     );
-  }, [allEntries]);
+  }, [allEntries, updateSelectedPlayerKeys]);
 
   const handleSelect = useCallback((entry: FreeAgentSurfaceEntry) => {
-    setSelectedPlayerKeys((prev) => {
+    updateSelectedPlayerKeys((prev) => {
       const exists = prev.includes(entry.selectionKey);
       if (exists) {
         return prev.filter((selectionKey) => selectionKey !== entry.selectionKey);
@@ -194,13 +217,13 @@ export const FreeAgentPool = ({
       return [...prev, entry.selectionKey];
     });
     setSignResults((prev) => ({ ...prev, [entry.selectionKey]: null }));
-  }, []);
+  }, [updateSelectedPlayerKeys]);
 
   const handleRemove = useCallback((selectionKey: string) => {
-    setSelectedPlayerKeys((prev) =>
+    updateSelectedPlayerKeys((prev) =>
       prev.filter((currentSelectionKey) => currentSelectionKey !== selectionKey)
     );
-  }, []);
+  }, [updateSelectedPlayerKeys]);
 
   const closeContractModal = useCallback(() => {
     setContractModalTarget(null);
@@ -256,6 +279,23 @@ export const FreeAgentPool = ({
         : null,
     [contractModalTarget, entriesBySelectionKey]
   );
+  useEffect(() => {
+    onSelectedEntriesChange?.(selectedEntries);
+  }, [onSelectedEntriesChange, selectedEntries]);
+
+  useEffect(() => {
+    if (!requestedOpenSelectionKey) return;
+    const entry = entriesBySelectionKey.get(requestedOpenSelectionKey);
+    if (!entry) return;
+    openContractModal(entry);
+    onRequestedOpenSelectionHandled?.();
+  }, [
+    entriesBySelectionKey,
+    onRequestedOpenSelectionHandled,
+    openContractModal,
+    requestedOpenSelectionKey,
+  ]);
+
   const freeAgentModalAvailability = actionOwner.freeAgentModalAvailability;
   const dualPathSigningOwner = actionOwner.dualPathSigning;
   const signAndTradeInitiation = freeAgentModalAvailability.signAndTradeInitiation;
@@ -266,14 +306,26 @@ export const FreeAgentPool = ({
   // this surface on purpose.
   const editContractModalProps = useMemo(() => {
     if (!activeContractModalTarget) return null;
+    const signFreeAgent: EditContractModalProps['onSignFreeAgent'] = async (
+      ...args
+    ) => {
+      const result = await (
+        dualPathSigningOwner
+          .signFreeAgent as NonNullable<
+          EditContractModalProps['onSignFreeAgent']
+        >
+      )(...args);
+      if (typeof result === 'object' && result?.success) {
+        handleRemove(activeContractModalTarget.selectionKey);
+      }
+      return result;
+    };
 
     return {
       player: activeContractModalTarget.surfacePlayer,
       isOpen: true,
       onClose: closeContractModal,
-      onSignFreeAgent:
-        dualPathSigningOwner
-          .signFreeAgent as EditContractModalProps['onSignFreeAgent'],
+      onSignFreeAgent: signFreeAgent,
       signAndTradeInitiation:
         signAndTradeInitiation as EditContractModalProps['signAndTradeInitiation'],
       getOfferSheetPreflight: (offerSheetInitiation
@@ -291,6 +343,7 @@ export const FreeAgentPool = ({
     closeContractModal,
     dualPathSigningOwner,
     freeAgentModalAvailability,
+    handleRemove,
     offerSheetInitiation,
     signAndTradeInitiation,
   ]);
@@ -341,4 +394,3 @@ export const FreeAgentPool = ({
     </div>
   );
 };
-

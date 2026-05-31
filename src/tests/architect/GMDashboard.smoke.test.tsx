@@ -19,9 +19,16 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { GMDashboard } from '@/features/architect/GMDashboard/GMDashboard';
 
-const { mockUseArchitectState, mockSetActiveTab } = vi.hoisted(() => ({
+const {
+  mockUseArchitectState,
+  mockSetActiveTab,
+  mockCapTableSectionProps,
+  mockFreeAgencySectionProps,
+} = vi.hoisted(() => ({
   mockUseArchitectState: vi.fn(),
   mockSetActiveTab: vi.fn(),
+  mockCapTableSectionProps: vi.fn(),
+  mockFreeAgencySectionProps: vi.fn(),
 }));
 
 const buildLoadedDashboardState = () => {
@@ -164,7 +171,25 @@ vi.mock('@/features/architect/GMDashboard/sections/CapSheetSection', () => ({
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/CapTableSection', () => ({
-  CapTableSection: () => <div>CapTableSection</div>,
+  CapTableSection: (props: Record<string, any>) => {
+    mockCapTableSectionProps(props);
+    return (
+      <div>
+        CapTableSection
+        {(props.freeAgentOptions || []).map(
+          (entry: { selectionKey: string; surfacePlayer: { name: string } }) => (
+            <button
+              key={entry.selectionKey}
+              type="button"
+              onClick={() => props.onOpenFreeAgentOption?.(entry.selectionKey)}
+            >
+              Open {entry.surfacePlayer.name}
+            </button>
+          )
+        )}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/TradeSection', () => ({
@@ -172,7 +197,34 @@ vi.mock('@/features/architect/GMDashboard/sections/TradeSection', () => ({
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/FreeAgencySection', () => ({
-  FreeAgencySection: () => <div>FreeAgencySection</div>,
+  FreeAgencySection: (props: Record<string, any>) => {
+    mockFreeAgencySectionProps(props);
+    return (
+      <div>
+        FreeAgencySection
+        <button
+          type="button"
+          onClick={() => {
+            props.onSelectedPlayerKeysChange?.(['fa_1']);
+            props.onSelectedEntriesChange?.([
+              {
+                selectionKey: 'fa_1',
+                playerId: 'fa_1',
+                freeAgent: { id: 'fa_1', name: 'Desk Option' },
+                surfacePlayer: {
+                  id: 'fa_1',
+                  name: 'Desk Option',
+                  displayName: 'Desk Option',
+                },
+              },
+            ]);
+          }}
+        >
+          Add Desk Option
+        </button>
+      </div>
+    );
+  },
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/OffseasonSection', () => ({
@@ -417,6 +469,34 @@ describe('GMDashboard Smoke Test', () => {
 
       const titles = screen.getAllByText(/HoopZero Architect.*GM Dashboard/i);
       expect(titles.length).toBeGreaterThan(0);
+    });
+
+    it('keeps selected free-agent options available from the Full Cap Table', () => {
+      let activeTab = 'fa';
+      mockUseArchitectState.mockImplementation(() => ({
+        ...buildLoadedDashboardState(),
+        activeTab,
+      }));
+      mockSetActiveTab.mockImplementation((nextTab: string) => {
+        activeTab = nextTab;
+      });
+
+      const view = render(<GMDashboard />);
+      fireEvent.click(screen.getByRole('button', { name: 'Add Desk Option' }));
+
+      activeTab = 'capfull';
+      view.rerender(<GMDashboard />);
+      fireEvent.click(screen.getByRole('button', { name: 'Open Desk Option' }));
+
+      expect(mockSetActiveTab).toHaveBeenCalledWith('fa');
+
+      view.rerender(<GMDashboard />);
+      expect(mockFreeAgencySectionProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          selectedPlayerKeys: ['fa_1'],
+          requestedOpenSelectionKey: 'fa_1',
+        })
+      );
     });
   });
 });

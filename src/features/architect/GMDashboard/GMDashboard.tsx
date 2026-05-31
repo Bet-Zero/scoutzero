@@ -65,6 +65,7 @@ import {
   toSeasonCode,
   toSeasonKey,
 } from '@/features/architect/utils/seasonFormat';
+import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
 
 type EditContractModalProps = Parameters<typeof EditContractModal>[0];
 type EditContractArchitectActionCallbacks = Pick<
@@ -146,6 +147,12 @@ export const GMDashboard = () => {
 
   const [deskPlayerId, setDeskPlayerId] = useState<string | null>(null);
   const [tradeDraftActive, setTradeDraftActive] = useState(false);
+  const [freeAgentOptionKeys, setFreeAgentOptionKeys] = useState<string[]>([]);
+  const [freeAgentOptionEntries, setFreeAgentOptionEntries] = useState<
+    FreeAgentSurfaceEntry[]
+  >([]);
+  const [requestedFreeAgentOpenKey, setRequestedFreeAgentOpenKey] =
+    useState<string | null>(null);
 
   useEffect(() => {
     if (normalizedTeamId) {
@@ -546,7 +553,7 @@ export const GMDashboard = () => {
     currentYear,
     playersMap,
     onApplyTrade: actions.applyTradeToCapSheet as TradeSectionProps['onApplyTrade'],
-    onAfterTradeApplied: () => setActiveTab('cap'),
+    onAfterTradeApplied: () => setActiveTab('capfull'),
     primaryTeamData: teamCapSheet,
     onEditContract: (player) =>
       actions.handleEditContract(
@@ -564,7 +571,12 @@ export const GMDashboard = () => {
     playersMap,
     outgoingOfferSheets: teamCapSheet?.offerSheets || [],
     incomingOfferSheets: teamCapSheet?.incomingOfferSheets || [],
-    onAfterSigningComplete: () => setActiveTab('cap'),
+    selectedPlayerKeys: freeAgentOptionKeys,
+    onSelectedPlayerKeysChange: setFreeAgentOptionKeys,
+    requestedOpenSelectionKey: requestedFreeAgentOpenKey,
+    onRequestedOpenSelectionHandled: () => setRequestedFreeAgentOpenKey(null),
+    onSelectedEntriesChange: setFreeAgentOptionEntries,
+    onAfterSigningComplete: () => setActiveTab('capfull'),
   };
   const offseasonSectionSurface: OffseasonSectionProps = {
     teamCapSheet,
@@ -788,6 +800,16 @@ export const GMDashboard = () => {
           highlightPlayerId={focusedPlayerId}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
           onLaunchFreeAgentSearch={() => setActiveTab('fa')}
+          freeAgentOptions={freeAgentOptionEntries}
+          onOpenFreeAgentOption={(selectionKey) => {
+            setRequestedFreeAgentOpenKey(selectionKey);
+            setActiveTab('fa');
+          }}
+          onRemoveFreeAgentOption={(selectionKey) => {
+            setFreeAgentOptionKeys((selectionKeys) =>
+              selectionKeys.filter((key) => key !== selectionKey)
+            );
+          }}
           exceptionsReadout={
             <ExceptionTracker
               teamCapSheet={

@@ -277,4 +277,49 @@ describe('CapSheetFull — home-base enrichments', () => {
       screen.getByTestId('cap-sheet-full-incomplete-roster-charges')
     ).toHaveTextContent('Incomplete roster charges');
   });
+
+  it('renders free-agent options separately from roster rows', () => {
+    const onOpenFreeAgentOption = vi.fn();
+    const onRemoveFreeAgentOption = vi.fn();
+
+    render(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet}
+        currentYear={CURRENT_YEAR}
+        freeAgentOptions={[
+          {
+            selectionKey: 'fa_1',
+            playerId: 'fa_1',
+            freeAgent: {
+              id: 'fa_1',
+              name: 'Desk Option',
+              askingSalary: 8_000_000,
+            },
+            surfacePlayer: {
+              id: 'fa_1',
+              name: 'Desk Option',
+              displayName: 'Desk Option',
+            },
+          },
+        ]}
+        onOpenFreeAgentOption={onOpenFreeAgentOption}
+        onRemoveFreeAgentOption={onRemoveFreeAgentOption}
+      />
+    );
+
+    const optionsSurface = screen.getByTestId('cap-sheet-full-fa-options');
+    expect(optionsSurface).toHaveTextContent('Desk Option');
+    fireEvent.click(
+      within(optionsSurface).getByRole('button', { name: /open offer/i })
+    );
+    fireEvent.click(
+      within(optionsSurface).getByRole('button', { name: /remove desk option/i })
+    );
+
+    expect(onOpenFreeAgentOption).toHaveBeenCalledWith('fa_1');
+    expect(onRemoveFreeAgentOption).toHaveBeenCalledWith('fa_1');
+    expect(
+      screen.getAllByTestId('cap-sheet-full-player-row-button')
+    ).toHaveLength(2);
+  });
 });
