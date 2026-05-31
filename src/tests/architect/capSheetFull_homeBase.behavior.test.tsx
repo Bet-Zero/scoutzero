@@ -11,9 +11,16 @@
  */
 import React from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+  fireEvent,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 // The real modals are heavy and tested elsewhere. Mock them to thin shells that
 // surface the year they received and a save trigger so we can assert the cap
@@ -214,5 +221,60 @@ describe('CapSheetFull — home-base enrichments', () => {
 
     expect(screen.getByText('2033-34')).toBeInTheDocument();
     expect(screen.getByText('$18,000,000')).toBeInTheDocument();
+  });
+
+  it('shows canonical footer totals and expandable non-player money details', () => {
+    const capSheetWithNonPlayerMoney = {
+      ...(teamCapSheet as unknown as Record<string, unknown>),
+      capHolds: [
+        {
+          playerId: 'hold_1',
+          playerName: 'Cap Hold Player',
+          season: '2025-26',
+          amount: 5_000_000,
+          type: 'FA Cap Hold',
+          active: true,
+          isSigned: false,
+        },
+      ],
+      deadCap: [
+        {
+          playerId: 'waived_1',
+          playerName: 'Waived Player',
+          amountByYear: [{ season: '2025-26', amount: 2_000_000 }],
+        },
+      ],
+    } as never;
+
+    render(
+      <CapSheetFull
+        teamCapSheet={capSheetWithNonPlayerMoney}
+        currentYear={CURRENT_YEAR}
+      />
+    );
+
+    const totalsSurface = screen.getByLabelText(
+      'Multi-year canonical yearly totals surface'
+    );
+    const expectedCurrentYearTotal = computeTeamCapTotals(
+      capSheetWithNonPlayerMoney,
+      CURRENT_YEAR
+    ).totalCapAllocations;
+    expect(
+      within(totalsSurface).getByText(
+        `$${expectedCurrentYearTotal.toLocaleString()}`
+      )
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('cap-sheet-full-dead-money-toggle'));
+    expect(screen.getByText('Waived Player')).toBeInTheDocument();
+    expect(screen.getByText('$2,000,000')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('cap-sheet-full-cap-holds-toggle'));
+    expect(screen.getByText('Cap Hold Player')).toBeInTheDocument();
+
+    expect(
+      screen.getByTestId('cap-sheet-full-incomplete-roster-charges')
+    ).toHaveTextContent('Incomplete roster charges');
   });
 });

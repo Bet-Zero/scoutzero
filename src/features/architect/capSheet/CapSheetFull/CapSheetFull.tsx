@@ -21,6 +21,7 @@ import {
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { computeDeadMoneyForYear } from '@/features/architect/utils/capTotals/deadMoneyForYear';
 import { BirdRightsIcon } from '@/shared/components/BirdRightsIcon';
 import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
 import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
@@ -44,6 +45,13 @@ type CapHoldLike = {
   amount?: NumericLike;
   type?: string | null;
   isSigned?: boolean | null;
+};
+type DeadCapEntryLike = {
+  playerId?: string | number | null;
+  playerName?: string | null;
+  label?: string | null;
+  notes?: string | null;
+  amountByYear?: unknown;
 };
 type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   players?: CapSheetFullPlayerLike[] | null;
@@ -185,6 +193,35 @@ const toEndYear = (value: unknown): number | null => {
     : null;
 };
 
+const collectDeadCapEndYears = (deadCapEntry: DeadCapEntryLike) => {
+  const endYears: number[] = [];
+
+  if (Array.isArray(deadCapEntry.amountByYear)) {
+    for (const value of deadCapEntry.amountByYear) {
+      if (!value || typeof value !== 'object') continue;
+      const endYear = toEndYear((value as { season?: unknown }).season);
+      if (endYear) endYears.push(endYear);
+    }
+  } else if (
+    deadCapEntry.amountByYear &&
+    typeof deadCapEntry.amountByYear === 'object'
+  ) {
+    for (const season of Object.keys(deadCapEntry.amountByYear)) {
+      const endYear = toEndYear(season);
+      if (endYear) endYears.push(endYear);
+    }
+  }
+
+  return endYears;
+};
+
+const getDeadCapLabel = (deadCapEntry: DeadCapEntryLike) =>
+  deadCapEntry.playerName ||
+  deadCapEntry.label ||
+  deadCapEntry.notes ||
+  deadCapEntry.playerId ||
+  'Dead money adjustment';
+
 const getLatestVisibleEndYear = (
   teamCapSheet: TeamCapSheetLike,
   currentYear: number
@@ -220,7 +257,7 @@ const getLatestVisibleEndYear = (
   if (Array.isArray(teamCapSheet.deadCap)) {
     for (const deadCapEntry of teamCapSheet.deadCap) {
       if (!deadCapEntry || typeof deadCapEntry !== 'object') continue;
-      const entry = deadCapEntry as {
+      const entry = deadCapEntry as DeadCapEntryLike & {
         year?: unknown;
         yearKey?: unknown;
         season?: unknown;
@@ -230,6 +267,7 @@ const getLatestVisibleEndYear = (
         toEndYear(entry.yearKey) ??
         toEndYear(entry.season);
       if (deadCapEndYear) candidateYears.push(deadCapEndYear);
+      candidateYears.push(...collectDeadCapEndYears(entry));
     }
   }
 
@@ -292,6 +330,7 @@ export const CapSheetFull = ({
   onLaunchFreeAgentSearch = null,
 }: CapSheetFullProps) => {
   const [showCapHolds, setShowCapHolds] = useState(false);
+  const [showDeadMoneyDetails, setShowDeadMoneyDetails] = useState(false);
   const [showExceptionsReadout, setShowExceptionsReadout] = useState(false);
   const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
   const [showExceptionsModal, setShowExceptionsModal] = useState(false);
@@ -416,23 +455,28 @@ export const CapSheetFull = ({
   const displayedCapHolds = ((teamCapSheet.capHolds || []) as CapHoldLike[]).filter(
     (h: CapHoldLike) => !h.isSigned
   );
+  const displayedDeadMoney = (
+    Array.isArray(teamCapSheet.deadCap) ? teamCapSheet.deadCap : []
+  ) as DeadCapEntryLike[];
 
   // SSOT: Use computeTeamCapTotals for each year to include
   // players + dead money + cap holds + incomplete roster charges.
   // Replaces local reduce that missed dead money and incomplete charges.
-  const yearTotals = useMemo(() => {
-    const totals: Record<number, number> = {};
+  const yearTotalBreakdowns = useMemo(() => {
+    const totals: Record<number, ReturnType<typeof computeTeamCapTotals>> = {};
     for (const year of allYears) {
-      const result = computeTeamCapTotals(
+      totals[year] = computeTeamCapTotals(
         teamCapSheet
           ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) }
           : null,
         year
       );
-      totals[year] = result.totalCapAllocations;
     }
     return totals;
-  }, [teamCapSheet, currentYear]);
+  }, [teamCapSheet, allYears]);
+  const hasIncompleteCharges = allYears.some(
+    (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
+  );
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col font-sans text-cockpit-text-primary">
@@ -865,13 +909,121 @@ export const CapSheetFull = ({
                       key={year}
                       className="px-2 py-2 text-center text-xs text-cockpit-text-primary tabular-nums tracking-tight border-l border-cockpit-edge"
                     >
-                      ${yearTotals[year].toLocaleString()}
+                      ${yearTotalBreakdowns[year].totalCapAllocations.toLocaleString()}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
           </section>
+
+        {displayedDeadMoney.length > 0 ? (
+          <section
+            aria-label="Multi-year dead money detail surface"
+            className="shrink-0 border-t border-cockpit-edge px-4 py-1.5"
+          >
+            <button
+              type="button"
+              data-testid="cap-sheet-full-dead-money-toggle"
+              onClick={() => setShowDeadMoneyDetails((value) => !value)}
+              aria-expanded={showDeadMoneyDetails}
+              className="flex w-full items-center gap-2 text-left group"
+            >
+              <span
+                className={`text-sm text-cockpit-text-secondary transition-transform duration-200 ${showDeadMoneyDetails ? 'rotate-90' : ''}`}
+              >
+                ▶
+              </span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-cockpit-text-secondary group-hover:text-cockpit-text-primary">
+                Dead Money Details
+              </span>
+              <span className="rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-secondary">
+                {displayedDeadMoney.length}
+              </span>
+              <span className="sr-only">
+                Separate from player rows. Matching-season dead money feeds the
+                canonical Total Cap row.
+              </span>
+            </button>
+            {showDeadMoneyDetails ? (
+              <div className="max-h-[32vh] overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-lg">
+                <div
+                  className="grid border-b border-cockpit-edge bg-cockpit-bar"
+                  style={{ gridTemplateColumns: playerGridTemplate }}
+                >
+                  <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge truncate">
+                    Entry
+                  </div>
+                  {allYears.map((year) => (
+                    <div
+                      key={year}
+                      className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
+                    >
+                      {formatSeasonLabel(year)}
+                    </div>
+                  ))}
+                </div>
+                <div className="divide-y divide-white/5">
+                  {displayedDeadMoney.map((deadCapEntry, index) => (
+                    <div
+                      key={`${String(deadCapEntry.playerId || getDeadCapLabel(deadCapEntry))}-${index}`}
+                      className="grid items-center hover:bg-white/[0.02] transition-colors"
+                      style={{ gridTemplateColumns: playerGridTemplate }}
+                    >
+                      <div className="h-[26px] truncate border-r border-cockpit-edge px-4 py-2 text-xs font-medium text-cockpit-text-primary">
+                        {getDeadCapLabel(deadCapEntry)}
+                      </div>
+                      {allYears.map((year) => {
+                        const amount = computeDeadMoneyForYear(
+                          { deadCap: [deadCapEntry] },
+                          year
+                        );
+                        return (
+                          <div
+                            key={year}
+                            className="flex h-[26px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-xs tabular-nums text-red-200/80"
+                          >
+                            {amount > 0 ? formatCapSheetMoney(amount) : ''}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {hasIncompleteCharges ? (
+          <section
+            data-testid="cap-sheet-full-incomplete-roster-charges"
+            aria-label="Multi-year incomplete roster charges surface"
+            className="shrink-0 border-t border-cockpit-edge px-4 py-1.5"
+          >
+            <div
+              className="grid items-center rounded border border-amber-400/10 bg-amber-400/[0.03]"
+              style={{ gridTemplateColumns: playerGridTemplate }}
+            >
+              <div className="h-[26px] truncate border-r border-cockpit-edge px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
+                Incomplete roster charges
+              </div>
+              {allYears.map((year) => {
+                const { incompleteChargesTotal } = yearTotalBreakdowns[year];
+                return (
+                  <div
+                    key={year}
+                    className="flex h-[26px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-[10px] tabular-nums text-amber-200/70"
+                  >
+                    {incompleteChargesTotal > 0
+                      ? formatCapSheetMoney(incompleteChargesTotal)
+                      : ''}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
 
         {/* SUPPORTING DETAIL SURFACE: Cap holds remain separate from player rows
             and explain part of the same canonical Total Cap story. */}
