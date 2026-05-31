@@ -33,6 +33,7 @@ GMDashboard/
     useArchitectActions.types.normalizers.ts
     useArchitectActions.types.ts
     useArchitectComparisonViewModel.ts
+    useArchitectDeskNavigation.ts
     useArchitectGuidedAnswers.ts
     useArchitectModals.ts
     useArchitectModePresentation.ts
@@ -112,10 +113,12 @@ cockpit/
   ActivityRail.tsx
   CapPostureMeter.tsx
   CockpitShell.tsx
+  CockpitStatePanel.tsx
   ModePill.tsx
   NavRail.tsx
   README.md
   RoomFrame.tsx
+  SelectionDock.tsx
   TeamStatusStrip.tsx
   TeamStatusTile.tsx
   TopBar.tsx
@@ -212,6 +215,7 @@ offseason/
 shared/
   LeagueView/
     LeagueConferenceTable.tsx
+    LeagueDeskHandoffBar.tsx
     LeagueView.tsx
     LeagueViewTruthPanel.tsx
     index.ts
@@ -529,5 +533,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-28T07:48:19.767Z*
+*Generated on: 2026-05-31T10:58:00.782Z*
 *Auto-updated by: npm run docs*
