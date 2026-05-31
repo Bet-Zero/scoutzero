@@ -8,6 +8,22 @@
 
 **Tech Stack:** React 18, TypeScript, Vite, Tailwind CSS, Vitest, existing Architect mutation/action hooks.
 
+## Execution Status
+
+Completed on branch `feature/architect-cockpit-intelligence`.
+
+| Task | Status | Commit |
+|------|--------|--------|
+| Data-driven Full Cap Table horizon | Complete | `4e762242` |
+| Transparent non-player money detail groups | Complete | `bc4c9c3b` |
+| Desk-level FA Options handoff | Complete | `2833c69b` |
+| Multi-player receipt row and total highlighting | Complete | `6c551d0a` |
+
+Implementation variance: the planned `freeAgentSurface.ts` extraction was not
+needed. `FreeAgentPool.tsx` remains the single resolver owner and publishes its
+already-resolved selected entries to `GMDashboard.tsx`. This keeps identity
+resolution in one existing module without adding a redundant helper surface.
+
 ---
 
 ## Scope Already Covered By Current Branch

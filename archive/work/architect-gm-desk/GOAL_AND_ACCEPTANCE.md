@@ -4,7 +4,7 @@
 
 ## Goal
 
-One **GM desk** at `/gm/:teamId`: franchise context always visible; Cap, FA, Roster, History, etc. feel like one product; actions flow across rooms (trade → receipt → Cap with player highlighted). Trade keeps its current editor UI until Phase E is approved.
+One **GM desk** at `/gm/:teamId`: franchise context always visible; Cap, FA, Roster, History, etc. feel like one product; actions flow across rooms (trade → receipt → Full Cap Table with players and totals highlighted). Trade keeps its current editor UI until Phase E is approved.
 
 ## Definition of done
 
@@ -26,7 +26,7 @@ One **GM desk** at `/gm/:teamId`: franchise context always visible; Cap, FA, Ros
 
 ## Golden path
 
-Apply trade → receipt in activity rail → **View Cap Sheet** → player highlighted → committed event in rail. Optional: **Compare move** / **Guide next steps** from receipt block.
+Apply trade → return to **Full Cap Table** → receipt in activity rail → affected players and totals highlighted → committed event in rail. Optional: **Compare move** / **Guide next steps** from receipt block.
 
 ## Approval gates
 

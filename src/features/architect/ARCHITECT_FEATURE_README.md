@@ -21,6 +21,29 @@ Team History, Compare, and Guide sections. Unless a request specifically says
 "Architect League View", "The Architect" usually refers to this team dashboard
 and the shared feature code in `src/features/architect/`.
 
+## GM Desk Home Base
+
+`Full Cap Table` is the default team-desk room and the primary operating
+surface. It keeps the roster and its financial outlook visible together:
+
+- season columns extend through the longest visible team contract, with a
+  seven-season minimum;
+- the aligned footer reads canonical `computeTeamCapTotals(...)` outputs for
+  every visible season;
+- cap holds, dead money, incomplete-roster charges, and exceptions remain
+  explainable through compact supporting groups;
+- detailed contract actions still launch the existing contract modal and flow
+  through the existing Architect action layer;
+- Free Agency shortlist entries are desk-level `FA Options`, not roster rows;
+- applied trades and completed signings return to `Full Cap Table`, while trade
+  checks remain inside Trade Machine;
+- committed receipts can highlight every affected roster row and contract year
+  total cell.
+
+`GMDashboard.tsx` owns the cross-room handoff state. `CapSheetFull.tsx` renders
+the dense table and visual feedback only. Neither component is a mutation
+authority.
+
 > ⚠️ Note: Architect supports both **active-world committed flows** and
 > **sandbox/base/vacuum local-validated flows**.  
 > Active-world GM moves save to user-owned worlds (`architect_worlds`
@@ -66,6 +89,9 @@ Architect is intentionally layered. The fastest way to route work is:
 - **How do `mutationPipeline.ts` and `seasonManager.ts` relate?** They are sibling committed-write authorities: point-in-time world mutations go through `mutationPipeline.ts`, while whole-world season transitions go through `seasonManager.ts`.
 - **What files are orchestration/adapters?** `GMDashboard.tsx`, `useArchitectState.ts`, `useArchitectActions.ts`, and `worldTeamData.ts`.
 - **Where should cap totals and contract-year truth come from?** Use `computeTeamCapTotals.ts` for canonical team totals and `contractUtils.ts` for shared contract shaping/year lookups instead of rebuilding those calculations in downstream surfaces.
+- **Where does the GM Desk home-base state live?** `GMDashboard.tsx` owns
+  cross-room state such as FA Options and receipt focus; `CapSheetFull.tsx`
+  renders it without owning committed writes.
 
 ## Architect Read Stack Contract
 
