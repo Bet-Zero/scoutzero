@@ -178,4 +178,41 @@ describe('CapSheetFull — home-base enrichments', () => {
     fireEvent.click(screen.getByTestId('cap-sheet-full-sign-free-agent-button'));
     expect(onLaunchFreeAgentSearch).toHaveBeenCalledTimes(1);
   });
+
+  it('extends season columns through the longest contract horizon', () => {
+    const longContractCapSheet = {
+      ...(teamCapSheet as unknown as Record<string, unknown>),
+      players: [
+        {
+          id: 'long_contract',
+          name: 'Long Contract',
+          displayName: 'Long Contract',
+          bio: { playerId: 'long_contract', displayName: 'Long Contract' },
+          contract: {
+            salariesByYear: [
+              { year: 2026, season: '2025-26', salary: 10_000_000, capHit: 10_000_000 },
+              { year: 2027, season: '2026-27', salary: 11_000_000, capHit: 11_000_000 },
+              { year: 2028, season: '2027-28', salary: 12_000_000, capHit: 12_000_000 },
+              { year: 2029, season: '2028-29', salary: 13_000_000, capHit: 13_000_000 },
+              { year: 2030, season: '2029-30', salary: 14_000_000, capHit: 14_000_000 },
+              { year: 2031, season: '2030-31', salary: 15_000_000, capHit: 15_000_000 },
+              { year: 2032, season: '2031-32', salary: 16_000_000, capHit: 16_000_000 },
+              { year: 2033, season: '2032-33', salary: 17_000_000, capHit: 17_000_000 },
+              { year: 2034, season: '2033-34', salary: 18_000_000, capHit: 18_000_000 },
+            ],
+          },
+        },
+      ],
+    } as never;
+
+    render(
+      <CapSheetFull
+        teamCapSheet={longContractCapSheet}
+        currentYear={CURRENT_YEAR}
+      />
+    );
+
+    expect(screen.getByText('2033-34')).toBeInTheDocument();
+    expect(screen.getByText('$18,000,000')).toBeInTheDocument();
+  });
 });

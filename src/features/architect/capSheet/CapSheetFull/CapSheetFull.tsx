@@ -169,6 +169,73 @@ const formatSeasonLabel = (year: number) =>
 const formatExtLabel = (year: number) =>
   `EXT '${String(year % 100).padStart(2, '0')}`;
 
+const MIN_VISIBLE_YEARS = 7;
+
+const toEndYear = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  const seasonMatch = trimmed.match(/^(\d{4})-(\d{2})$/);
+  if (seasonMatch) return 2000 + Number(seasonMatch[2]);
+
+  const numericYear = Number.parseInt(trimmed, 10);
+  return /^\d{4}$/.test(trimmed) && Number.isFinite(numericYear)
+    ? numericYear
+    : null;
+};
+
+const getLatestVisibleEndYear = (
+  teamCapSheet: TeamCapSheetLike,
+  currentYear: number
+) => {
+  const candidateYears = [currentYear + MIN_VISIBLE_YEARS - 1];
+
+  for (const player of teamCapSheet.players || []) {
+    const contract = player.contract as
+      | {
+          endSeason?: unknown;
+          salariesByYear?: unknown;
+        }
+      | null
+      | undefined;
+    const contractEndYear = toEndYear(contract?.endSeason);
+    if (contractEndYear) candidateYears.push(contractEndYear);
+
+    if (Array.isArray(contract?.salariesByYear)) {
+      for (const salaryRow of contract.salariesByYear) {
+        if (!salaryRow || typeof salaryRow !== 'object') continue;
+        const row = salaryRow as { year?: unknown; season?: unknown };
+        const salaryEndYear = toEndYear(row.year) ?? toEndYear(row.season);
+        if (salaryEndYear) candidateYears.push(salaryEndYear);
+      }
+    }
+  }
+
+  for (const hold of (teamCapSheet.capHolds || []) as CapHoldLike[]) {
+    const holdEndYear = toEndYear(hold.season);
+    if (holdEndYear) candidateYears.push(holdEndYear);
+  }
+
+  if (Array.isArray(teamCapSheet.deadCap)) {
+    for (const deadCapEntry of teamCapSheet.deadCap) {
+      if (!deadCapEntry || typeof deadCapEntry !== 'object') continue;
+      const entry = deadCapEntry as {
+        year?: unknown;
+        yearKey?: unknown;
+        season?: unknown;
+      };
+      const deadCapEndYear =
+        toEndYear(entry.year) ??
+        toEndYear(entry.yearKey) ??
+        toEndYear(entry.season);
+      if (deadCapEndYear) candidateYears.push(deadCapEndYear);
+    }
+  }
+
+  return Math.max(...candidateYears);
+};
+
 const getExtensionEligibleYear = (rulesProfile: RulesProfileLike) => {
   const eligibleDate = rulesProfile?.extensionEligibility?.eligibleDate;
   if (!eligibleDate) return null;
@@ -256,10 +323,23 @@ export const CapSheetFull = ({
 
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
-  // Generate 7 years starting from currentYear
-  const allYears = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => currentYear + i),
-    [currentYear]
+  const allYears = useMemo(() => {
+    const latestVisibleEndYear = getLatestVisibleEndYear(
+      teamCapSheet,
+      currentYear
+    );
+    return Array.from(
+      { length: latestVisibleEndYear - currentYear + 1 },
+      (_, index) => currentYear + index
+    );
+  }, [currentYear, teamCapSheet]);
+  const playerGridTemplate = useMemo(
+    () => `200px repeat(${allYears.length}, minmax(100px, 1fr))`,
+    [allYears.length]
+  );
+  const capHoldGridTemplate = useMemo(
+    () => `140px 60px repeat(${allYears.length}, minmax(100px, 1fr))`,
+    [allYears.length]
   );
 
   const sortedPlayers = useMemo(() => {
@@ -431,7 +511,10 @@ export const CapSheetFull = ({
             <div className="min-h-0 flex-1 overflow-auto">
               <div className="min-w-full">
                 {/* Header (sticky top) */}
-                <div className="sticky top-0 z-20 grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] bg-cockpit-bar border-b border-cockpit-edge">
+                <div
+                  className="sticky top-0 z-20 grid border-b border-cockpit-edge bg-cockpit-bar"
+                  style={{ gridTemplateColumns: playerGridTemplate }}
+                >
                   <div className="sticky left-0 z-30 bg-cockpit-slab px-4 py-2 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
                     Player
                   </div>
@@ -461,11 +544,12 @@ export const CapSheetFull = ({
                     return (
                       <div
                         key={idx}
-                        className={`grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] transition-colors group ${
+                        className={`grid transition-colors group ${
                           isRowHighlighted
                             ? 'ring-1 ring-inset ring-green-400/40 bg-green-500/[0.04]'
                             : 'hover:bg-white/[0.02]'
                         } ${isTwoWay ? 'opacity-70' : ''}`}
+                        style={{ gridTemplateColumns: playerGridTemplate }}
                         data-testid={
                           isRowHighlighted
                             ? 'cap-sheet-full-player-row-highlighted'
@@ -764,7 +848,8 @@ export const CapSheetFull = ({
                     to the bottom of the scroll area so it is always visible. */}
                 <div
                   aria-label={CAP_SHEET_FULL_SURFACE_LABELS.canonicalYearlyTotals}
-                  className="sticky bottom-0 z-20 grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] border-t border-cockpit-edge bg-cockpit-bar font-semibold"
+                  className="sticky bottom-0 z-20 grid border-t border-cockpit-edge bg-cockpit-bar font-semibold"
+                  style={{ gridTemplateColumns: playerGridTemplate }}
                 >
                   <div className="sticky left-0 z-30 bg-cockpit-slab px-4 py-2 border-r border-cockpit-edge shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
                     <span className="block text-[10px] uppercase tracking-wider text-cockpit-text-secondary">
@@ -830,7 +915,8 @@ export const CapSheetFull = ({
           const renderHoldRow = (h: CapHoldLike, idx: number, isLegacy = false) => (
             <div
               key={`${h.playerId}-${idx}`}
-              className={`grid grid-cols-[140px_60px_repeat(7,minmax(100px,1fr))] items-center hover:bg-white/[0.02] transition-colors group ${isLegacy ? 'bg-white/[0.01]' : ''}`}
+              className={`grid items-center hover:bg-white/[0.02] transition-colors group ${isLegacy ? 'bg-white/[0.01]' : ''}`}
+              style={{ gridTemplateColumns: capHoldGridTemplate }}
             >
               {/* Name Column */}
               <div className="px-4 py-2 flex items-center border-r border-cockpit-edge h-[26px] relative overflow-hidden">
@@ -924,7 +1010,10 @@ export const CapSheetFull = ({
               {showCapHolds && (
                 <div className="max-h-[38vh] overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
                   {/* Header */}
-                  <div className="grid grid-cols-[140px_60px_repeat(7,minmax(100px,1fr))] bg-cockpit-bar border-b border-cockpit-edge">
+                  <div
+                    className="grid border-b border-cockpit-edge bg-cockpit-bar"
+                    style={{ gridTemplateColumns: capHoldGridTemplate }}
+                  >
                     <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge truncate">
                       Player
                     </div>
@@ -1026,4 +1115,3 @@ export const CapSheetFull = ({
     </div>
   );
 };
-
