@@ -9,7 +9,7 @@
  *  - 2026-03-14: Migrated authoritative implementation to TypeScript for E88.
  *  - 2026-03-29: Clarified multi-year surface hierarchy between player rows, cap holds, and canonical yearly totals.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -117,6 +117,7 @@ type CapSheetFullProps = {
    * "just changed" outline. Visual only.
    */
   highlightPlayerId?: string | null;
+  highlightPlayerIds?: string[];
   /**
    * Home-base enrichment: when provided, the Full Cap Table surfaces the
    * existing current-season dead-money and exceptions controls. CapSheetFull
@@ -329,6 +330,7 @@ export const CapSheetFull = ({
   onActionClick,
   getRulesProfileForYear = null,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
   manualCapSheetMutationAuthority = null,
   exceptionsReadout = null,
   onLaunchFreeAgentSearch = null,
@@ -382,6 +384,24 @@ export const CapSheetFull = ({
   const playerGridTemplate = useMemo(
     () => `200px repeat(${allYears.length}, minmax(100px, 1fr))`,
     [allYears.length]
+  );
+  const focusedPlayerIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [...highlightPlayerIds, highlightPlayerId].filter(
+            (playerId): playerId is string => Boolean(playerId)
+          )
+        )
+      ),
+    [highlightPlayerId, highlightPlayerIds]
+  );
+  const playerMatchesAnyFocus = useCallback(
+    (player: CapSheetFullPlayerLike) =>
+      focusedPlayerIds.some((playerId) =>
+        playerMatchesFocus(player, playerId)
+      ),
+    [focusedPlayerIds]
   );
   const capHoldGridTemplate = useMemo(
     () => `140px 60px repeat(${allYears.length}, minmax(100px, 1fr))`,
@@ -484,6 +504,23 @@ export const CapSheetFull = ({
   const hasIncompleteCharges = allYears.some(
     (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
   );
+  const affectedTotalYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const player of sortedPlayers) {
+      if (!playerMatchesAnyFocus(player)) continue;
+      for (const year of allYears) {
+        const rowAmounts = getPlayerCapSheetAmountsForYear(player, year);
+        if (
+          rowAmounts.contractSlice ||
+          rowAmounts.capHit > 0 ||
+          rowAmounts.baseSalary > 0
+        ) {
+          years.add(year);
+        }
+      }
+    }
+    return years;
+  }, [allYears, playerMatchesAnyFocus, sortedPlayers]);
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col font-sans text-cockpit-text-primary">
@@ -638,10 +675,7 @@ export const CapSheetFull = ({
                     const extensionEligibleYear = getExtensionEligibleYear(
                       profileForCurrentYear
                     );
-                    const isRowHighlighted = playerMatchesFocus(
-                      player,
-                      highlightPlayerId
-                    );
+                    const isRowHighlighted = playerMatchesAnyFocus(player);
                     return (
                       <div
                         key={idx}
@@ -961,14 +995,26 @@ export const CapSheetFull = ({
                       {'Player rows above and cap hold details below support the same future-year cap story.'}
                     </span>
                   </div>
-                  {allYears.map((year) => (
-                    <div
-                      key={year}
-                      className="px-2 py-2 text-center text-xs text-cockpit-text-primary tabular-nums tracking-tight border-l border-cockpit-edge"
-                    >
-                      ${yearTotalBreakdowns[year].totalCapAllocations.toLocaleString()}
-                    </div>
-                  ))}
+                  {allYears.map((year) => {
+                    const isTotalHighlighted = affectedTotalYears.has(year);
+                    return (
+                      <div
+                        key={year}
+                        data-testid={
+                          isTotalHighlighted
+                            ? 'cap-sheet-full-total-cell-highlighted'
+                            : 'cap-sheet-full-total-cell'
+                        }
+                        className={`px-2 py-2 text-center text-xs tabular-nums tracking-tight border-l border-cockpit-edge ${
+                          isTotalHighlighted
+                            ? 'bg-green-500/10 text-green-100 ring-1 ring-inset ring-green-400/30'
+                            : 'text-cockpit-text-primary'
+                        }`}
+                      >
+                        ${yearTotalBreakdowns[year].totalCapAllocations.toLocaleString()}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

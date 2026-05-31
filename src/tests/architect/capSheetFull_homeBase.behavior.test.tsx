@@ -322,4 +322,21 @@ describe('CapSheetFull — home-base enrichments', () => {
       screen.getAllByTestId('cap-sheet-full-player-row-button')
     ).toHaveLength(2);
   });
+
+  it('highlights every focused player and affected footer total year', () => {
+    render(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet}
+        currentYear={CURRENT_YEAR}
+        highlightPlayerIds={['player_42', 'player_99']}
+      />
+    );
+
+    expect(
+      screen.getAllByTestId('cap-sheet-full-player-row-highlighted')
+    ).toHaveLength(2);
+    expect(
+      screen.getAllByTestId('cap-sheet-full-total-cell-highlighted')
+    ).toHaveLength(1);
+  });
 });

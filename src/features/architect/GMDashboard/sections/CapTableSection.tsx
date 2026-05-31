@@ -8,6 +8,7 @@ type ForwardedCapTableProps = Pick<
   | 'onRenounceCapHold'
   | 'getRulesProfileForYear'
   | 'highlightPlayerId'
+  | 'highlightPlayerIds'
   | 'manualCapSheetMutationAuthority'
   | 'exceptionsReadout'
   | 'onLaunchPlayerAction'
@@ -32,6 +33,7 @@ const CapTableSection = ({
   playersMap,
   getRulesProfileForYear,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
   manualCapSheetMutationAuthority = null,
   exceptionsReadout = null,
   onLaunchFreeAgentSearch = null,
@@ -48,6 +50,7 @@ const CapTableSection = ({
     onLaunchPlayerAction={onLaunchPlayerAction}
     getRulesProfileForYear={getRulesProfileForYear}
     highlightPlayerId={highlightPlayerId}
+    highlightPlayerIds={highlightPlayerIds}
     manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
     exceptionsReadout={exceptionsReadout}
     onLaunchFreeAgentSearch={onLaunchFreeAgentSearch}

@@ -24,11 +24,15 @@ const {
   mockSetActiveTab,
   mockCapTableSectionProps,
   mockFreeAgencySectionProps,
+  mockTradeSectionProps,
+  mockUseArchitectPostActionReceipt,
 } = vi.hoisted(() => ({
   mockUseArchitectState: vi.fn(),
   mockSetActiveTab: vi.fn(),
   mockCapTableSectionProps: vi.fn(),
   mockFreeAgencySectionProps: vi.fn(),
+  mockTradeSectionProps: vi.fn(),
+  mockUseArchitectPostActionReceipt: vi.fn(),
 }));
 
 const buildLoadedDashboardState = () => {
@@ -117,6 +121,11 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectGuidedAnswers', () =
   }),
 }));
 
+vi.mock('@/features/architect/GMDashboard/hooks/useArchitectPostActionReceipt', () => ({
+  useArchitectPostActionReceipt: (...args: unknown[]) =>
+    mockUseArchitectPostActionReceipt(...args),
+}));
+
 vi.mock('@/features/architect/GMDashboard/components/ScenarioMoveRail', () => ({
   ScenarioMoveRail: () => <div data-testid="scenario-move-rail-stub" />,
 }));
@@ -193,7 +202,10 @@ vi.mock('@/features/architect/GMDashboard/sections/CapTableSection', () => ({
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/TradeSection', () => ({
-  TradeSection: () => <div>TradeSection</div>,
+  TradeSection: (props: Record<string, any>) => {
+    mockTradeSectionProps(props);
+    return <div>TradeSection</div>;
+  },
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/FreeAgencySection', () => ({
@@ -381,6 +393,12 @@ describe('GMDashboard Smoke Test', () => {
     mockLoadTeamCapSheet.mockResolvedValue(mockCapSheet);
     mockLoadFreeAgents.mockResolvedValue(undefined);
     mockUseArchitectState.mockImplementation(() => buildLoadedDashboardState());
+    mockUseArchitectPostActionReceipt.mockReturnValue({
+      receipt: null,
+      generation: 0,
+      publish: vi.fn(),
+      dismiss: vi.fn(),
+    });
   });
 
   describe('Loading State', () => {
@@ -497,6 +515,48 @@ describe('GMDashboard Smoke Test', () => {
           requestedOpenSelectionKey: 'fa_1',
         })
       );
+    });
+
+    it('forwards every receipt player to the Full Cap Table highlight surface', () => {
+      mockUseArchitectState.mockImplementation(() => ({
+        ...buildLoadedDashboardState(),
+        activeTab: 'capfull',
+      }));
+      mockUseArchitectPostActionReceipt.mockReturnValue({
+        receipt: {
+          kind: 'trade',
+          eventId: 'event_1',
+          occurredAt: null,
+          headline: 'Trade applied',
+          changedTeamCodes: ['LAL', 'BOS'],
+          primaryTeamCode: 'LAL',
+          primaryPlayerIds: ['player_42', 'player_99'],
+          authority: 'committed-world',
+        },
+        generation: 1,
+        publish: vi.fn(),
+        dismiss: vi.fn(),
+      });
+
+      render(<GMDashboard />);
+
+      expect(mockCapTableSectionProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          highlightPlayerIds: ['player_42', 'player_99'],
+        })
+      );
+    });
+
+    it('returns to the Full Cap Table only after the Trade Machine apply callback fires', () => {
+      mockUseArchitectState.mockImplementation(() => ({
+        ...buildLoadedDashboardState(),
+        activeTab: 'trade',
+      }));
+
+      render(<GMDashboard />);
+      mockTradeSectionProps.mock.calls.at(-1)?.[0].onAfterTradeApplied();
+
+      expect(mockSetActiveTab).toHaveBeenCalledWith('capfull');
     });
   });
 });

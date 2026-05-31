@@ -286,13 +286,15 @@ export const GMDashboard = () => {
     teamCode: resolvedHistoryTeamCode,
     onOpenHistory: () => setActiveTab('history'),
   });
-  // Stage 2C: derive a session-scoped focused player id from the most recent
+  // Stage 2C: derive session-scoped focused player ids from the most recent
   // committed post-action receipt. Visual-only — receipt dismiss/clear
-  // automatically clears the highlight. Multi-player receipts (trades) use
-  // the first primary id; matching is name-fallback tolerant in
-  // playerMatchesFocus.
-  const focusedPlayerId =
-    deskPlayerId ?? postActionReceipt.receipt?.primaryPlayerIds?.[0] ?? null;
+  // automatically clears the highlight. Single-label surfaces still use the
+  // first primary id; the Full Cap Table receives every changed player.
+  const focusedPlayerIds = useMemo(() => {
+    if (deskPlayerId) return [deskPlayerId];
+    return postActionReceipt.receipt?.primaryPlayerIds ?? [];
+  }, [deskPlayerId, postActionReceipt.receipt?.primaryPlayerIds]);
+  const focusedPlayerId = focusedPlayerIds[0] ?? null;
 
   const resolveFocusedPlayerLabel = useCallback(
     (playerId: string | null) => {
@@ -798,6 +800,7 @@ export const GMDashboard = () => {
           playersMap={playersMap}
           getRulesProfileForYear={getProfileForYear}
           highlightPlayerId={focusedPlayerId}
+          highlightPlayerIds={focusedPlayerIds}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
           onLaunchFreeAgentSearch={() => setActiveTab('fa')}
           freeAgentOptions={freeAgentOptionEntries}
