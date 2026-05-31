@@ -317,7 +317,11 @@ describe('Cap Sheet display-core E88 compatibility', () => {
       />
     );
 
-    expect(screen.getByText(/Future Cap Sheet/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', {
+        name: /Primary multi-year cap sheet surface/i,
+      })
+    ).toBeInTheDocument();
     expect(screen.getByTestId('extension-eligibility-badge')).toHaveTextContent(
       /EXT '25/i
     );

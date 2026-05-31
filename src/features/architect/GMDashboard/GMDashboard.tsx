@@ -17,12 +17,13 @@
  *  - 2025-12-12: Phase 3 refactor - extracted all handlers into useArchitectActions hook
  *  - 2025-12-14: Option B refactor - removed shadow cap sheet state, teamCapSheet is now the only source of truth
  */
-import { useCallback, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { EditContractModal } from '@/shared/components/EditContractModal';
 import { RosterSection } from './sections/RosterSection';
 import { CapSheetSection } from './sections/CapSheetSection';
 import { CapTableSection } from './sections/CapTableSection';
+import { ExceptionTracker } from '@/features/architect/capSheet/ExceptionTracker';
 import { TradeSection } from './sections/TradeSection';
 import { FreeAgencySection } from './sections/FreeAgencySection';
 import { OffseasonSection } from './sections/OffseasonSection';
@@ -35,8 +36,14 @@ import type { Stage4NavigationTargetId } from '@/features/architect/guidedQuesti
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
-import { CockpitShell } from '@/features/architect/cockpit';
+import {
+  CockpitShell,
+  CockpitStatePanel,
+  SelectionDock,
+} from '@/features/architect/cockpit';
 import type { NavRailItem, RoomDescriptor } from '@/features/architect/cockpit';
+import { useArchitectDeskNavigation, writeLastTeamSlug } from './hooks/useArchitectDeskNavigation';
+import { resolvePrimaryPlayerFocusId } from './postActionHandoff/playerFocus';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import type { ActiveTab } from '@/features/architect/GMDashboard/hooks/useArchitectState.types';
 import { useArchitectPostActionReceipt } from './hooks/useArchitectPostActionReceipt';
@@ -137,6 +144,15 @@ export const GMDashboard = () => {
   const { userId, loading: authLoading } = useAuth();
   const normalizedTeamId = teamId ?? '';
 
+  const [deskPlayerId, setDeskPlayerId] = useState<string | null>(null);
+  const [tradeDraftActive, setTradeDraftActive] = useState(false);
+
+  useEffect(() => {
+    if (normalizedTeamId) {
+      writeLastTeamSlug(normalizedTeamId);
+    }
+  }, [normalizedTeamId]);
+
   const state = useArchitectState({
     teamId: normalizedTeamId,
     userId,
@@ -174,6 +190,13 @@ export const GMDashboard = () => {
     setOffseasonSummary,
     reloadActiveWorldTeamData,
   } = state;
+
+  useArchitectDeskNavigation({
+    activeTab,
+    setActiveTab,
+    deskPlayerId,
+    setDeskPlayerId,
+  });
 
   const workspaceContext = useArchitectWorkspaceContext({
     teamCapSheet,
@@ -262,7 +285,37 @@ export const GMDashboard = () => {
   // the first primary id; matching is name-fallback tolerant in
   // playerMatchesFocus.
   const focusedPlayerId =
-    postActionReceipt.receipt?.primaryPlayerIds?.[0] ?? null;
+    deskPlayerId ?? postActionReceipt.receipt?.primaryPlayerIds?.[0] ?? null;
+
+  const resolveFocusedPlayerLabel = useCallback(
+    (playerId: string | null) => {
+      if (!playerId) return null;
+      const player = playersMap[playerId];
+      if (player) {
+        const bio = player.bio as { displayName?: string } | undefined;
+        return (
+          bio?.displayName ||
+          player.displayName ||
+          player.name ||
+          playerId
+        );
+      }
+      return playerId;
+    },
+    [playersMap]
+  );
+
+  const selectionDockLabel = useMemo(
+    () => resolveFocusedPlayerLabel(focusedPlayerId),
+    [focusedPlayerId, resolveFocusedPlayerLabel]
+  );
+
+  const pinDeskPlayer = useCallback((player: Record<string, unknown>) => {
+    const id = resolvePrimaryPlayerFocusId(
+      player as Parameters<typeof resolvePrimaryPlayerFocusId>[0]
+    );
+    if (id) setDeskPlayerId(id);
+  }, []);
 
   // Stage 3C: derive current roster player ids from teamCapSheet for comparison.
   const comparisonRosterPlayerIds = useMemo(() => {
@@ -399,12 +452,15 @@ export const GMDashboard = () => {
           actions.handleCapTableModalAction as CapTableSectionProps['onLaunchContractAction'],
         renounceCapHold:
           actions.handleCapHoldRenounce as CapTableSectionProps['onRenounceCapHold'],
+        launchPlayerAction:
+          actions.handleLaunchPlayerContractAction as CapTableSectionProps['onLaunchPlayerAction'],
       },
     }),
     [
       actions.handleCapHoldRenounce,
       actions.handleCapTableModalAction,
       actions.handleEditContract,
+      actions.handleLaunchPlayerContractAction,
     ]
   );
 
@@ -499,6 +555,7 @@ export const GMDashboard = () => {
     worldId,
     worldAsOfDate,
     userId,
+    onDraftActivityChange: setTradeDraftActive,
   };
   const freeAgencySectionSurface: FreeAgencySectionProps = {
     freeAgents,
@@ -531,6 +588,15 @@ export const GMDashboard = () => {
   const navItems: NavRailItem[] = useMemo(
     () => [
       {
+        id: 'capfull',
+        label: 'Full Cap Table',
+        glyph: '≡',
+        onActivate: () => setActiveTab('capfull'),
+        testId: 'tab-full-cap-table',
+        title: 'Home base — your primary workspace',
+        isHome: true,
+      },
+      {
         id: 'roster',
         label: 'Roster',
         glyph: 'R',
@@ -542,13 +608,7 @@ export const GMDashboard = () => {
         glyph: '$',
         onActivate: () => setActiveTab('cap'),
         testId: 'tab-cap-sheet',
-      },
-      {
-        id: 'capfull',
-        label: 'Full Cap Table',
-        glyph: '≡',
-        onActivate: () => setActiveTab('capfull'),
-        testId: 'tab-full-cap-table',
+        title: 'Single-season cap detail',
       },
       {
         id: 'trade',
@@ -594,8 +654,35 @@ export const GMDashboard = () => {
     [setActiveTab, openHistoryRoot]
   );
 
-  if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
-  if (!teamCapSheet) return <p>No team data</p>;
+  if (authLoading || isLoading) {
+    return (
+      <CockpitStatePanel
+        variant="loading"
+        title="Loading GM Dashboard"
+        message="Loading franchise cap sheet and world context…"
+        testId="gm-dashboard-loading"
+      />
+    );
+  }
+
+  if (!teamCapSheet) {
+    return (
+      <CockpitStatePanel
+        variant="empty"
+        title="No team data"
+        message="Could not load this team's cap sheet. Return to the league view and pick another team."
+        action={
+          <Link
+            to="/gm"
+            className="rounded border border-cockpit-edge bg-cockpit-inlay px-3 py-1.5 text-xs text-cockpit-text-primary hover:bg-cockpit-raised"
+          >
+            Back to League
+          </Link>
+        }
+        testId="gm-dashboard-empty"
+      />
+    );
+  }
 
   const worldSelectorSlot = userId ? (
     <WorldSelector
@@ -661,11 +748,12 @@ export const GMDashboard = () => {
           teamCapSheet={teamCapSheet}
           playersMap={playersMap}
           teamId={normalizedTeamId}
-          onOpenPlayerContractModal={(player) =>
+          onOpenPlayerContractModal={(player) => {
+            pinDeskPlayer(player as Record<string, unknown>);
             actions.handleEditContract(
               player as Parameters<typeof actions.handleEditContract>[0]
-            )
-          }
+            );
+          }}
           highlightPlayerId={focusedPlayerId}
         />
       ),
@@ -679,6 +767,8 @@ export const GMDashboard = () => {
     capfull: {
       id: 'capfull',
       title: 'Full Cap Table',
+      bleed: true,
+      hideHeader: true,
       content: (
         <CapTableSection
           teamCapSheet={teamCapSheet}
@@ -690,9 +780,25 @@ export const GMDashboard = () => {
             contractActionRouting.fullCapTable.launchContractAction
           }
           onRenounceCapHold={contractActionRouting.fullCapTable.renounceCapHold}
+          onLaunchPlayerAction={
+            contractActionRouting.fullCapTable.launchPlayerAction
+          }
           playersMap={playersMap}
           getRulesProfileForYear={getProfileForYear}
           highlightPlayerId={focusedPlayerId}
+          manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
+          onLaunchFreeAgentSearch={() => setActiveTab('fa')}
+          exceptionsReadout={
+            <ExceptionTracker
+              teamCapSheet={
+                teamCapSheet as Parameters<
+                  typeof ExceptionTracker
+                >[0]['teamCapSheet']
+              }
+              currentYear={currentYear}
+              selectedYear={currentYear}
+            />
+          }
         />
       ),
     },
@@ -765,8 +871,8 @@ export const GMDashboard = () => {
       ) : null}
 
       {showOffseasonModal && offseasonSummary && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
+          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-cockpit-edge bg-cockpit-slab p-5 text-sm text-cockpit-text-primary shadow-xl">
             <h3>Offseason Summary</h3>
             {offseasonSummary.declinedOptions?.length ? (
               <>
@@ -828,6 +934,7 @@ export const GMDashboard = () => {
                 closeOffseasonModal();
                 setActiveTab('cap');
               }}
+              className="mt-4 rounded border border-cockpit-edge bg-cockpit-inlay px-3 py-1.5 text-xs font-medium text-cockpit-text-primary hover:bg-cockpit-raised"
             >
               Close
             </button>
@@ -888,6 +995,20 @@ export const GMDashboard = () => {
         )
       }
       onDismissReceipt={postActionReceipt.dismiss}
+      tradeDraftActive={tradeDraftActive}
+      onNavigateToCompare={() => setActiveTab('compare')}
+      onNavigateToGuide={() => setActiveTab('guide')}
+      selectionDock={
+        selectionDockLabel ? (
+          <SelectionDock
+            playerLabel={selectionDockLabel}
+            onViewCap={() => setActiveTab('cap')}
+            onViewRoster={() => setActiveTab('roster')}
+            onOpenTrade={() => setActiveTab('trade')}
+            onClear={() => setDeskPlayerId(null)}
+          />
+        ) : null
+      }
       banner={banner}
       modals={modalsSlot}
     />

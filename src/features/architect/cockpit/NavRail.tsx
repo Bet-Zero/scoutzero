@@ -23,6 +23,11 @@ export interface NavRailItem {
   onActivate: () => void;
   testId?: string;
   title?: string;
+  /**
+   * Marks the home base (Full Cap Table). Home items are visually pinned at the
+   * top and followed by a divider that separates them from supporting desks.
+   */
+  isHome?: boolean;
 }
 
 interface NavRailProps {
@@ -96,8 +101,12 @@ export const NavRail = ({ activeTab, items }: NavRailProps) => {
         aria-label="Architect dashboard sections"
         className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-3"
       >
-        {items.map((item) => {
+        {items.map((item, index) => {
           const isActive = activeTab === item.id;
+          // A divider trails the last home item, separating the home base from
+          // the supporting desks below it.
+          const showHomeDivider =
+            item.isHome && !items[index + 1]?.isHome;
           return (
             <li key={item.id} className="contents">
               <button
@@ -131,7 +140,23 @@ export const NavRail = ({ activeTab, items }: NavRailProps) => {
                 >
                   {item.label}
                 </span>
+                {item.isHome ? (
+                  <span
+                    aria-hidden
+                    className={`ml-auto text-[11px] text-cockpit-text-muted transition-opacity ${expanded ? 'opacity-100' : 'opacity-0'}`}
+                    title="Home base"
+                  >
+                    ⌂
+                  </span>
+                ) : null}
               </button>
+              {showHomeDivider ? (
+                <span
+                  aria-hidden
+                  className="my-1 h-px w-full shrink-0 bg-cockpit-edge"
+                  data-testid="cockpit-nav-rail-home-divider"
+                />
+              ) : null}
             </li>
           );
         })}

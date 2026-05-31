@@ -216,11 +216,19 @@ export const CapSheet = ({
   );
 
   if (!teamCapSheet) {
-    return <div className="text-white/60 p-4">Loading cap sheet...</div>;
+    return (
+      <div className="p-4 text-sm text-cockpit-text-secondary">
+        Loading cap sheet…
+      </div>
+    );
   }
 
   if (!teamCapSheet.players) {
-    return <div className="text-white/60 p-4">Loading players...</div>;
+    return (
+      <div className="p-4 text-sm text-cockpit-text-secondary">
+        Loading players…
+      </div>
+    );
   }
 
   const generateYears = (startYear: number, count: number) =>
@@ -381,32 +389,31 @@ export const CapSheet = ({
   );
 
   return (
-    <div className="text-white font-sans">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold tracking-tight text-white/90 flex items-center gap-2">
-          <span>
-            Cap Sheet <span className="text-white/40 font-light">|</span>{' '}
+    <div className="font-sans text-cockpit-text-primary">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-sm font-semibold text-cockpit-text-primary">
             {formatYearLabel(selectedYear)}
           </span>
-          {confidenceLabel && (
+          {confidenceLabel ? (
             <span
-              className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${confidenceLabel.className}`}
+              className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${confidenceLabel.className}`}
             >
               {confidenceLabel.text}
             </span>
-          )}
-        </h3>
+          ) : null}
+        </div>
 
-        {/* Year Selector */}
-        <div className="flex bg-[#0f0f0f] p-0.5 rounded-md border border-white/5">
+        <div className="flex rounded-md border border-cockpit-edge bg-cockpit-inlay p-0.5">
           {allYears.map((year) => (
             <button
               key={year}
+              type="button"
               onClick={() => handleSelectYear(year)}
-              className={`px-3 py-1 rounded text-[10px] font-medium transition-all duration-200 ${
+              className={`rounded px-3 py-1 text-[10px] font-medium transition-colors ${
                 year === selectedYear
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-white/40 hover:text-white hover:bg-white/5'
+                  ? 'bg-cockpit-raised text-cockpit-text-primary shadow-sm'
+                  : 'text-cockpit-text-muted hover:bg-cockpit-slab hover:text-cockpit-text-primary'
               }`}
             >
               {formatYearLabel(year)}
@@ -427,7 +434,7 @@ export const CapSheet = ({
 
       <section
         aria-label={CAP_SHEET_SURFACE_LABELS.rosterDetail}
-        className="mt-4 bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden shadow-2xl shadow-black/50"
+        className="mt-4 overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-lg shadow-black/40"
       >
         {/* SUPPORTING DETAIL SURFACE: Player rows explain year-by-year contract detail.
             They may borrow canonical thresholds for display, but they do not own totals truth. */}

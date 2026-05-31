@@ -42,16 +42,21 @@ unchanged — the Workbench wraps them externally.
 | `useTeamPalette.ts` | Resolves team identifier (slug / code / name) to accent colors and injects CSS variables on the cockpit root. |
 | `cockpitTokens.ts` | Color tokens. Extended into `tailwind.config.js` as `theme.extend.colors.cockpit`. |
 
-## What is NOT in Phase 1
+## Phase 2 (GM desk — in progress on `feature/architect-cockpit-intelligence`)
 
-Deferred to Phase 2 (separate branch / plan):
+- URL routing: `?room=` and `?player=` (season already in URL).
+- `SelectionDock` below TeamStatusStrip for cross-room player focus.
+- Activity rail trade-draft label (non-committed); Compare/Guide links on receipt.
+- Cap / FA / Full Cap visual refit to `cockpit-*` tokens (**TradeEditor interior frozen**).
+- League handoff bar on `/gm` (viewing season + last team).
 
-- Nested URL routing per section.
+Still deferred:
+
 - Command palette (⌘K).
-- Cross-room sticky player selection / SelectionDock.
-- Trade draft persistence and draft badge.
-- Cross-room actions (Send to Trade, View Cap, etc.).
-- Per-room internal layout refits.
+- Per-room `primaryAction` lift for Trade apply.
+- Trade Machine interior reskin (Phase E — user approval required).
+
+## What was NOT in Phase 1
 - Optional motion library (framer-motion).
 - Deletion of `ArchitectTabBar`, `ArchitectWorkspaceHeader` (kept alive in
   Phase 1; the cockpit only supersedes them visually inside the dashboard).

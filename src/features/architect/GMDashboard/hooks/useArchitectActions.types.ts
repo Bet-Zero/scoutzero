@@ -805,6 +805,10 @@ export interface UseArchitectActionsReturn {
   handleEditContract: (
     player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer
   ) => void;
+  handleLaunchPlayerContractAction: (
+    player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer,
+    action: 'waive' | 'extend' | 'stretch'
+  ) => void;
   handleCapTableModalAction: (
     player: PlayerRulesProfileInput,
     actionType: CapSheetModalActionType,

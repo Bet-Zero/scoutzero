@@ -111,8 +111,8 @@ export const FreeAgentRow = ({
       role="button"
       tabIndex={0}
       onClick={() => onSelect?.(entry)}
-      className={`w-full h-[45px] rounded-sm flex items-center border border-black mb-[3px] pr-2 overflow-visible hover:bg-neutral-700 cursor-pointer focus:outline-none ${
-        isSelected ? 'bg-neutral-700 ring-1 ring-lakers' : 'bg-neutral-800'
+      className={`mb-[3px] flex h-[45px] w-full cursor-pointer items-center overflow-visible rounded-sm border border-cockpit-edge pr-2 hover:bg-cockpit-raised focus:outline-none ${
+        isSelected ? 'bg-cockpit-raised ring-1 ring-cockpit-info' : 'bg-cockpit-slab'
       }`}
     >
       {/* Position */}
@@ -137,7 +137,7 @@ export const FreeAgentRow = ({
       </div>
 
       {/* Headshot */}
-      <div className="h-[43px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
+      <div className="flex h-[43px] w-[50px] items-center justify-center overflow-hidden bg-cockpit-inlay">
         <img
           src={
             player.headshotUrl ||

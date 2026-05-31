@@ -25,9 +25,11 @@ import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/com
 import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/ScenarioMoveRail';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import { TeamStatusStrip, type HardCapCockpitStatus } from './TeamStatusStrip';
 
 interface ActivityRailProps {
   workspace: ArchitectWorkspaceContext;
+  hardCapStatus?: HardCapCockpitStatus;
   receipt: ArchitectPostActionReceipt | null;
   receiptGeneration: number;
   worldId: string | null;
@@ -39,6 +41,9 @@ interface ActivityRailProps {
   onOpenHistoryEntry: (eventId: string) => void;
   onNavigateReceiptHistory: () => void;
   onDismissReceipt: () => void;
+  tradeDraftActive?: boolean;
+  onNavigateToCompare?: () => void;
+  onNavigateToGuide?: () => void;
 }
 
 export interface ActivityRailHandle {
@@ -154,6 +159,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
   function ActivityRail(
     {
       workspace,
+      hardCapStatus = null,
       receipt,
       receiptGeneration,
       worldId,
@@ -164,6 +170,9 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       onOpenHistoryEntry,
       onNavigateReceiptHistory,
       onDismissReceipt,
+      tradeDraftActive = false,
+      onNavigateToCompare,
+      onNavigateToGuide,
     },
     ref
   ) {
@@ -233,21 +242,75 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
+          <RailSection label="Cap Posture" testId="cockpit-activity-rail-cap-posture">
+            <TeamStatusStrip
+              workspace={workspace}
+              hardCapStatus={hardCapStatus}
+              orientation="vertical"
+            />
+          </RailSection>
           <RailSection label="Current Receipt" testId="cockpit-activity-rail-receipts">
             {receipt ? (
-              <ArchitectPostActionHandoff
-                receipt={receipt}
-                onNavigateToCapSheet={onNavigateToCapSheet}
-                onNavigateToRoster={onNavigateToRoster}
-                onNavigateToHistory={onNavigateReceiptHistory}
-                onDismiss={onDismissReceipt}
-              />
+              <>
+                <ArchitectPostActionHandoff
+                  receipt={receipt}
+                  onNavigateToCapSheet={onNavigateToCapSheet}
+                  onNavigateToRoster={onNavigateToRoster}
+                  onNavigateToHistory={onNavigateReceiptHistory}
+                  onDismiss={onDismissReceipt}
+                />
+                {onNavigateToCompare || onNavigateToGuide ? (
+                  <div
+                    className="flex flex-wrap gap-1.5"
+                    data-testid="cockpit-activity-rail-post-action-links"
+                  >
+                    {onNavigateToCompare ? (
+                      <button
+                        type="button"
+                        onClick={onNavigateToCompare}
+                        className="rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[10px] text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                        data-testid="cockpit-activity-rail-compare"
+                      >
+                        Compare move
+                      </button>
+                    ) : null}
+                    {onNavigateToGuide ? (
+                      <button
+                        type="button"
+                        onClick={onNavigateToGuide}
+                        className="rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[10px] text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                        data-testid="cockpit-activity-rail-guide"
+                      >
+                        Guide next steps
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
             ) : (
               <p className="text-xs text-cockpit-text-muted">
                 No recent committed actions.
               </p>
             )}
           </RailSection>
+
+          {tradeDraftActive ? (
+            <RailSection
+              label="In Progress"
+              testId="cockpit-activity-rail-in-progress"
+            >
+              <div
+                className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-[11px] text-cockpit-watch"
+                data-testid="cockpit-activity-rail-trade-draft"
+              >
+                <span className="font-medium">Trade draft</span>
+                <span className="text-cockpit-text-muted"> · </span>
+                <span className="text-cockpit-text-secondary">
+                  Local until applied — not committed world truth.
+                </span>
+              </div>
+            </RailSection>
+          ) : null}
 
           <RailSection label="Watchlist" testId="cockpit-activity-rail-watchlist">
             {watch.length === 0 ? (

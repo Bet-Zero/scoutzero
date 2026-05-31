@@ -25,6 +25,12 @@ export type HardCapCockpitStatus = {
 interface TeamStatusStripProps {
   workspace: ArchitectWorkspaceContext;
   hardCapStatus?: HardCapCockpitStatus;
+  /**
+   * Layout orientation. 'horizontal' is the legacy full-width band; 'vertical'
+   * stacks the tiles for the right Activity rail so the cap posture lives there
+   * instead of stealing a full-width band of vertical space from the workspace.
+   */
+  orientation?: 'horizontal' | 'vertical';
 }
 
 const formatMoney = (amount: number): string => {
@@ -64,13 +70,22 @@ const HardCapLock = ({ heading, reason }: { heading: string; reason: string }) =
 export const TeamStatusStrip = ({
   workspace,
   hardCapStatus = null,
+  orientation = 'horizontal',
 }: TeamStatusStripProps) => {
   const cap = workspace.cap;
+  const isVertical = orientation === 'vertical';
+  const containerClassName = isVertical
+    ? 'grid shrink-0 grid-cols-2 gap-1.5 p-2'
+    : 'grid shrink-0 grid-cols-6 gap-1.5 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5';
 
   if (cap.status !== 'available') {
     return (
       <div
-        className="flex shrink-0 items-center border-b border-cockpit-edge bg-cockpit-bar px-4 py-2 text-[11px] text-white/40"
+        className={
+          isVertical
+            ? 'shrink-0 px-2 py-3 text-[11px] text-white/40'
+            : 'flex shrink-0 items-center border-b border-cockpit-edge bg-cockpit-bar px-4 py-2 text-[11px] text-white/40'
+        }
         data-testid="cockpit-team-status-strip"
         data-state="unavailable"
       >
@@ -103,9 +118,10 @@ export const TeamStatusStrip = ({
 
   return (
     <section
-      className="grid shrink-0 grid-cols-6 gap-1.5 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5"
+      className={containerClassName}
       data-testid="cockpit-team-status-strip"
       data-state="ready"
+      data-orientation={orientation}
       aria-label="Team financial posture"
     >
       <TeamStatusTile

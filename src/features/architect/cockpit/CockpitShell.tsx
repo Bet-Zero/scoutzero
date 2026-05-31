@@ -23,7 +23,8 @@ import { TopBar } from './TopBar';
 import { NavRail, type NavRailItem } from './NavRail';
 import { Workbench, type RoomDescriptor } from './Workbench';
 import { ActivityRail, type ActivityRailHandle } from './ActivityRail';
-import { TeamStatusStrip, type HardCapCockpitStatus } from './TeamStatusStrip';
+import type { HardCapCockpitStatus } from './TeamStatusStrip';
+import { SelectionDock } from './SelectionDock';
 import { useTeamPalette } from './useTeamPalette';
 
 interface CockpitShellProps {
@@ -48,6 +49,10 @@ interface CockpitShellProps {
   onOpenHistoryEntry: (eventId: string) => void;
   onNavigateReceiptHistory: () => void;
   onDismissReceipt: () => void;
+  selectionDock?: ReactNode;
+  tradeDraftActive?: boolean;
+  onNavigateToCompare?: () => void;
+  onNavigateToGuide?: () => void;
   banner?: ReactNode;
   modals?: ReactNode;
 }
@@ -74,6 +79,10 @@ export const CockpitShell = ({
   onOpenHistoryEntry,
   onNavigateReceiptHistory,
   onDismissReceipt,
+  selectionDock,
+  tradeDraftActive = false,
+  onNavigateToCompare,
+  onNavigateToGuide,
   banner,
   modals,
 }: CockpitShellProps) => {
@@ -105,7 +114,7 @@ export const CockpitShell = ({
         seasonSelectorSlot={seasonSelectorSlot}
       />
 
-      <TeamStatusStrip workspace={workspace} hardCapStatus={hardCapStatus} />
+      {selectionDock ? <div className="shrink-0">{selectionDock}</div> : null}
 
       {banner ? <div className="shrink-0">{banner}</div> : null}
 
@@ -115,6 +124,7 @@ export const CockpitShell = ({
         <ActivityRail
           ref={activityRailRef}
           workspace={workspace}
+          hardCapStatus={hardCapStatus}
           receipt={receipt}
           receiptGeneration={receiptGeneration}
           worldId={worldId}
@@ -126,6 +136,9 @@ export const CockpitShell = ({
           onOpenHistoryEntry={onOpenHistoryEntry}
           onNavigateReceiptHistory={onNavigateReceiptHistory}
           onDismissReceipt={onDismissReceipt}
+          tradeDraftActive={tradeDraftActive}
+          onNavigateToCompare={onNavigateToCompare}
+          onNavigateToGuide={onNavigateToGuide}
         />
       </div>
 

@@ -23,6 +23,16 @@ import {
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { BirdRightsIcon } from '@/shared/components/BirdRightsIcon';
 import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
+import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
+import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
+import type { ManualCapSheetMutationAuthority } from '@/features/architect/capSheet/CapSheet/CapSheet';
+
+type DeadCapSavePayload = Parameters<
+  ManualCapSheetMutationAuthority['handleSetDeadCap']
+>[0];
+type ExceptionsSavePayload = Parameters<
+  ManualCapSheetMutationAuthority['handleSetExceptions']
+>[0];
 
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
@@ -69,6 +79,17 @@ type CapSheetFullProps = {
       ) => void)
     | null;
   onRenounceCapHold?: ((capHold: CapHoldLike) => void) | null;
+  /**
+   * Home-base enrichment: row-level launcher for waive/extend/stretch. Opens the
+   * existing contract modal pre-seeded to the chosen action. Optional — when
+   * omitted, no kebab renders (other call sites are unaffected).
+   */
+  onLaunchPlayerAction?:
+    | ((
+        player: CapSheetFullPlayerLike,
+        action: 'waive' | 'extend' | 'stretch'
+      ) => void)
+    | null;
   // Legacy aliases kept temporarily while the live dashboard route migrates.
   onSelectPlayer?: ((player: CapSheetFullPlayerLike) => void) | null;
   onActionClick?:
@@ -87,6 +108,25 @@ type CapSheetFullProps = {
    * "just changed" outline. Visual only.
    */
   highlightPlayerId?: string | null;
+  /**
+   * Home-base enrichment: when provided, the Full Cap Table surfaces the
+   * existing current-season dead-money and exceptions controls. CapSheetFull
+   * stays dumb — it only LAUNCHES the existing modals; all committed writes
+   * still flow through this authority (useArchitectActions → mutationPipeline).
+   */
+  manualCapSheetMutationAuthority?: ManualCapSheetMutationAuthority | null;
+  /**
+   * Pre-rendered exceptions readout (e.g. ExceptionTracker). Passed as a node so
+   * CapSheetFull never imports rules/cap-settings logic and the SSOT parity
+   * guardrails stay intact.
+   */
+  exceptionsReadout?: React.ReactNode;
+  /**
+   * Home-base enrichment: launches the existing Free Agency desk so a user can
+   * pull from the FA pool without leaving their cap workspace first. Navigation
+   * only — the FA signing flow itself is unchanged.
+   */
+  onLaunchFreeAgentSearch?: (() => void) | null;
 };
 
 const CAP_SHEET_FULL_SURFACE_LABELS = {
@@ -175,12 +215,35 @@ export const CapSheetFull = ({
   onOpenPlayerContractModal,
   onLaunchContractAction,
   onRenounceCapHold,
+  onLaunchPlayerAction = null,
   onSelectPlayer,
   onActionClick,
   getRulesProfileForYear = null,
   highlightPlayerId = null,
+  manualCapSheetMutationAuthority = null,
+  exceptionsReadout = null,
+  onLaunchFreeAgentSearch = null,
 }: CapSheetFullProps) => {
   const [showCapHolds, setShowCapHolds] = useState(false);
+  const [showExceptionsReadout, setShowExceptionsReadout] = useState(false);
+  const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
+  const [showExceptionsModal, setShowExceptionsModal] = useState(false);
+  const [actionMenuIndex, setActionMenuIndex] = useState<number | null>(null);
+  const hasManualCapSheetMutationAuthority = !!manualCapSheetMutationAuthority;
+  const handleSaveDeadCapEdit = React.useCallback(
+    (deadCap: DeadCapSavePayload) =>
+      manualCapSheetMutationAuthority
+        ? manualCapSheetMutationAuthority.handleSetDeadCap(deadCap)
+        : Promise.resolve(false),
+    [manualCapSheetMutationAuthority]
+  );
+  const handleSaveExceptionsEdit = React.useCallback(
+    (exceptions: ExceptionsSavePayload) =>
+      manualCapSheetMutationAuthority
+        ? manualCapSheetMutationAuthority.handleSetExceptions(exceptions)
+        : Promise.resolve(false),
+    [manualCapSheetMutationAuthority]
+  );
   const openPlayerContractModal =
     onOpenPlayerContractModal ?? onSelectPlayer ?? null;
   const launchContractAction =
@@ -292,39 +355,90 @@ export const CapSheetFull = ({
   }, [teamCapSheet, currentYear]);
 
   return (
-    <div className="text-white font-sans w-full">
-      <h3 className="text-lg font-bold tracking-tight text-white/90 mb-4">
-        Future Cap Sheet <span className="text-white/40 font-light">|</span>{' '}
-        Multi-Year View
-      </h3>
-
+    <div className="flex h-full min-h-0 w-full flex-col font-sans text-cockpit-text-primary">
       <section
         aria-label={CAP_SHEET_FULL_SURFACE_LABELS.primary}
-        className="w-full"
+        className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden shadow-2xl shadow-black/50 relative w-full">
-          {/* SUPPORTING DETAIL SURFACE: Player rows explain season-by-season contract detail.
-              They do not own canonical yearly totals truth. */}
-          <section aria-label={CAP_SHEET_FULL_SURFACE_LABELS.playerDetail}>
-            <div className="px-4 py-3 border-b border-white/5 bg-white/[0.03]">
-              <p className="text-[10px] text-white/40 leading-relaxed">
-                Player rows show season-by-season contract detail only. Total
-                Cap is the canonical yearly cap total and can also include cap
-                holds, dead money, and incomplete roster charges.
-              </p>
-            </div>
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-cockpit-slab">
+          {/* COMPACT TOOLBAR: a single dense row — the room header already names
+              the surface, so we don't repeat a title. Reclaims vertical space so
+              the table itself owns the screen. */}
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-cockpit-text-muted">
+              Multi-Year · current season {formatSeasonLabel(currentYear)}
+            </span>
+            {(hasManualCapSheetMutationAuthority || onLaunchFreeAgentSearch) && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  data-testid="cap-sheet-full-manage-dead-money-button"
+                  type="button"
+                  disabled={!hasManualCapSheetMutationAuthority}
+                  onClick={() => {
+                    if (!hasManualCapSheetMutationAuthority) return;
+                    setShowDeadMoneyModal(true);
+                  }}
+                  className={`rounded border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    hasManualCapSheetMutationAuthority
+                      ? 'border-cockpit-edge bg-cockpit-slab text-cockpit-text-secondary hover:bg-cockpit-raised hover:text-cockpit-text-primary'
+                      : 'cursor-not-allowed border-cockpit-edge text-cockpit-text-ghost'
+                  }`}
+                >
+                  Manage Dead Money
+                </button>
+                <button
+                  data-testid="cap-sheet-full-manage-exceptions-button"
+                  type="button"
+                  disabled={!hasManualCapSheetMutationAuthority}
+                  onClick={() => {
+                    if (!hasManualCapSheetMutationAuthority) return;
+                    setShowExceptionsModal(true);
+                  }}
+                  className={`rounded border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    hasManualCapSheetMutationAuthority
+                      ? 'border-cockpit-edge bg-cockpit-slab text-cockpit-text-secondary hover:bg-cockpit-raised hover:text-cockpit-text-primary'
+                      : 'cursor-not-allowed border-cockpit-edge text-cockpit-text-ghost'
+                  }`}
+                >
+                  Manage Exceptions
+                </button>
+                {onLaunchFreeAgentSearch ? (
+                  <button
+                    data-testid="cap-sheet-full-sign-free-agent-button"
+                    type="button"
+                    onClick={() => onLaunchFreeAgentSearch()}
+                    className="rounded border border-cockpit-safe/30 bg-cockpit-safe/10 px-2.5 py-1 text-[11px] font-medium text-cockpit-safe transition-colors hover:bg-cockpit-safe/20"
+                  >
+                    Sign Free Agent
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </div>
 
-            <div className="overflow-x-auto w-full">
+          {/* PLAYER DETAIL: fills the remaining height and scrolls internally
+              with a sticky column header (top) and a sticky canonical Total Cap
+              footer (bottom), so the totals are always visible. */}
+          <section
+            aria-label={CAP_SHEET_FULL_SURFACE_LABELS.playerDetail}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <p className="sr-only">
+              Player rows show season-by-season contract detail only. Total Cap
+              is the canonical yearly cap total and can also include cap holds,
+              dead money, and incomplete roster charges.
+            </p>
+            <div className="min-h-0 flex-1 overflow-auto">
               <div className="min-w-full">
-                {/* Header */}
-                <div className="grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] bg-white/5 border-b border-white/5">
-                  <div className="sticky left-0 z-10 bg-[#161616] px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
+                {/* Header (sticky top) */}
+                <div className="sticky top-0 z-20 grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] bg-cockpit-bar border-b border-cockpit-edge">
+                  <div className="sticky left-0 z-30 bg-cockpit-slab px-4 py-2 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
                     Player
                   </div>
                   {allYears.map((year) => (
                     <div
                       key={year}
-                      className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-white/40"
+                      className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
                     >
                       {year - 1}-{String(year % 100).padStart(2, '0')}
                     </div>
@@ -359,11 +473,11 @@ export const CapSheetFull = ({
                         }
                       >
                         {/* Player Name (Sticky) */}
-                        <div className="sticky left-0 z-10 bg-[#0f0f0f] group-hover:bg-[#131313] px-4 py-2 flex items-center gap-2 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.4)] transition-colors h-[36px]">
+                        <div className="sticky left-0 z-10 flex h-[26px] items-center gap-2 border-r border-cockpit-edge bg-cockpit-inlay px-4 py-2 shadow-[4px_0_24px_rgba(0,0,0,0.4)] transition-colors group-hover:bg-cockpit-slab">
                           <button
                             data-testid="cap-sheet-full-player-row-button"
                             onClick={() => openPlayerContractModal?.(player)}
-                            className="text-xs font-medium text-white/90 hover:text-blue-400 transition-colors text-left truncate flex-1"
+                            className="text-xs font-medium text-cockpit-text-primary hover:text-blue-400 transition-colors text-left truncate flex-1"
                           >
                             {player.displayName ||
                               player.bio?.displayName ||
@@ -376,6 +490,73 @@ export const CapSheetFull = ({
                               2W
                             </span>
                           )}
+                          {onLaunchPlayerAction ? (
+                            <div
+                              className="relative shrink-0"
+                              onBlur={(e) => {
+                                if (
+                                  !e.currentTarget.contains(
+                                    e.relatedTarget as Node | null
+                                  )
+                                ) {
+                                  setActionMenuIndex((current) =>
+                                    current === idx ? null : current
+                                  );
+                                }
+                              }}
+                            >
+                              <button
+                                type="button"
+                                data-testid="cap-sheet-full-player-row-kebab"
+                                aria-label={`Contract actions for ${
+                                  player.displayName ||
+                                  player.bio?.displayName ||
+                                  player.name
+                                }`}
+                                aria-haspopup="menu"
+                                aria-expanded={actionMenuIndex === idx}
+                                onClick={() =>
+                                  setActionMenuIndex((current) =>
+                                    current === idx ? null : idx
+                                  )
+                                }
+                                className="flex h-5 w-5 items-center justify-center rounded text-white/30 opacity-0 transition-opacity hover:bg-white/10 hover:text-white/80 group-hover:opacity-100 focus-visible:opacity-100"
+                              >
+                                <span aria-hidden className="text-sm leading-none">
+                                  ⋯
+                                </span>
+                              </button>
+                              {actionMenuIndex === idx ? (
+                                <div
+                                  role="menu"
+                                  data-testid="cap-sheet-full-player-row-action-menu"
+                                  className="absolute left-0 top-6 z-20 min-w-[120px] overflow-hidden rounded-md border border-cockpit-edge bg-cockpit-slab py-1 shadow-xl"
+                                >
+                                  {(
+                                    [
+                                      ['extend', 'Extend'],
+                                      ['waive', 'Waive'],
+                                      ['stretch', 'Stretch'],
+                                    ] as const
+                                  ).map(([action, label]) => (
+                                    <button
+                                      key={action}
+                                      type="button"
+                                      role="menuitem"
+                                      data-testid={`cap-sheet-full-player-row-action-${action}`}
+                                      onClick={() => {
+                                        setActionMenuIndex(null);
+                                        onLaunchPlayerAction?.(player, action);
+                                      }}
+                                      className="block w-full px-3 py-1.5 text-left text-[11px] text-white/70 hover:bg-white/10 hover:text-white"
+                                    >
+                                      {label}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
 
                         {/* Years */}
@@ -441,7 +622,7 @@ export const CapSheetFull = ({
                                       year
                                     )
                                   }
-                                  className="relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all"
+                                  className="relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[26px] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all"
                                   title={
                                     rfaInfo?.reason ||
                                     rulesProfileForYear?.contractSummary
@@ -482,7 +663,7 @@ export const CapSheetFull = ({
                             return (
                               <div
                                 key={year}
-                                className="border-l border-white/[0.02] h-[36px]"
+                                className="border-l border-white/[0.02] h-[26px]"
                               />
                             );
                           }
@@ -510,7 +691,7 @@ export const CapSheetFull = ({
                                     year
                                   )
                                 }
-                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
+                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[26px] transition-colors cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
                                 title={`Click to manage ${isPO ? 'Player' : 'Team'} Option`}
                               >
                                 <ContractAmountDisplay
@@ -538,7 +719,7 @@ export const CapSheetFull = ({
                           return (
                             <div
                               key={year}
-                              className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] ${
+                              className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[26px] ${
                                 isExtension
                                   ? 'bg-cyan-500/5 border-cyan-500/20'
                                   : ''
@@ -567,7 +748,7 @@ export const CapSheetFull = ({
                                 secondaryClassName={`text-[8px] uppercase tracking-wider tabular-nums ${
                                   isExtension
                                     ? 'text-cyan-100/60'
-                                    : 'text-white/40'
+                                    : 'text-cockpit-text-muted'
                                 }`}
                               />
                             </div>
@@ -577,42 +758,27 @@ export const CapSheetFull = ({
                     );
                   })}
                 </div>
-              </div>
-            </div>
-          </section>
 
-          {/* CANONICAL TOTALS CONSUMER SURFACE: The Total Cap row reads
-              computeTeamCapTotals(...) outputs directly and remains the
-              canonical yearly totals destination for this view. */}
-          <section
-            aria-label={CAP_SHEET_FULL_SURFACE_LABELS.canonicalYearlyTotals}
-            className="border-t border-white/5 bg-white/[0.02]"
-          >
-            <div className="px-4 py-3 border-b border-white/5 bg-white/[0.03] space-y-1">
-              <p className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                Canonical Yearly Totals
-              </p>
-              <p className="text-[10px] text-white/40 leading-relaxed">
-                Player rows above and cap hold details below support the same
-                future-year cap story.
-              </p>
-            </div>
-
-            <div className="overflow-x-auto w-full">
-              <div className="min-w-full">
-                <div className="grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] bg-white/5 font-semibold">
-                  <div className="sticky left-0 z-10 bg-[#161616] px-4 py-3 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
-                    <span className="block text-[10px] uppercase tracking-wider text-white/60">
+                {/* CANONICAL TOTALS (sticky footer): the Total Cap row reads
+                    computeTeamCapTotals(...) outputs directly and stays pinned
+                    to the bottom of the scroll area so it is always visible. */}
+                <div
+                  aria-label={CAP_SHEET_FULL_SURFACE_LABELS.canonicalYearlyTotals}
+                  className="sticky bottom-0 z-20 grid grid-cols-[200px_repeat(7,minmax(100px,1fr))] border-t border-cockpit-edge bg-cockpit-bar font-semibold"
+                >
+                  <div className="sticky left-0 z-30 bg-cockpit-slab px-4 py-2 border-r border-cockpit-edge shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
+                    <span className="block text-[10px] uppercase tracking-wider text-cockpit-text-secondary">
                       Total Cap
                     </span>
-                    <span className="mt-1 block text-[8px] uppercase tracking-[0.18em] text-white/35">
-                      Canonical yearly total
+                    <span className="sr-only">
+                      {'Canonical Yearly Totals. Canonical yearly total. '}
+                      {'Player rows above and cap hold details below support the same future-year cap story.'}
                     </span>
                   </div>
                   {allYears.map((year) => (
                     <div
                       key={year}
-                      className="px-2 py-3 text-center text-xs text-white/90 tabular-nums tracking-tight border-l border-white/[0.02]"
+                      className="px-2 py-2 text-center text-xs text-cockpit-text-primary tabular-nums tracking-tight border-l border-cockpit-edge"
                     >
                       ${yearTotals[year].toLocaleString()}
                     </div>
@@ -621,7 +787,6 @@ export const CapSheetFull = ({
               </div>
             </div>
           </section>
-        </div>
 
         {/* SUPPORTING DETAIL SURFACE: Cap holds remain separate from player rows
             and explain part of the same canonical Total Cap story. */}
@@ -668,16 +833,16 @@ export const CapSheetFull = ({
               className={`grid grid-cols-[140px_60px_repeat(7,minmax(100px,1fr))] items-center hover:bg-white/[0.02] transition-colors group ${isLegacy ? 'bg-white/[0.01]' : ''}`}
             >
               {/* Name Column */}
-              <div className="px-4 py-2 flex items-center border-r border-white/5 h-[36px] relative overflow-hidden">
+              <div className="px-4 py-2 flex items-center border-r border-cockpit-edge h-[26px] relative overflow-hidden">
                 <span
-                  className="text-xs font-medium text-white/90 truncate w-full"
+                  className="text-xs font-medium text-cockpit-text-primary truncate w-full"
                   title={h.playerName || String(h.playerId || '')}
                 >
                   {h.playerName || h.playerId}
                 </span>
 
                 {/* Renounce Button - Absolute Positioned on Hover */}
-                <div className="absolute inset-0 bg-[#1a1a1a] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div className="absolute inset-0 bg-cockpit-slab flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   <button
                     data-testid="cap-sheet-full-absolve-button"
                     onClick={(e) => {
@@ -692,7 +857,7 @@ export const CapSheetFull = ({
               </div>
 
               {/* Tag Column */}
-              <div className="px-1 py-1 flex items-center justify-center border-r border-white/5 h-[36px]">
+              <div className="px-1 py-1 flex items-center justify-center border-r border-cockpit-edge h-[26px]">
                 <span
                   className={`${getTagColor(h.type || null)} px-1 py-px rounded-[2px] text-[8px] font-bold uppercase tracking-wider truncate max-w-full`}
                 >
@@ -709,7 +874,7 @@ export const CapSheetFull = ({
                   return (
                     <div
                       key={year}
-                      className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] bg-cyan-900/10"
+                      className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[26px] bg-cyan-900/10"
                     >
                       <span className="text-xs font-mono text-cyan-200 tabular-nums">
                         ${Number(h.amount || 0).toLocaleString()}
@@ -721,7 +886,7 @@ export const CapSheetFull = ({
                 return (
                   <div
                     key={year}
-                    className="border-l border-white/[0.02] h-[36px] opacity-30"
+                    className="border-l border-white/[0.02] h-[26px] opacity-30"
                   />
                 );
               })}
@@ -731,50 +896,45 @@ export const CapSheetFull = ({
             return (
               <section
                 aria-label={CAP_SHEET_FULL_SURFACE_LABELS.capHoldsDetail}
-                className="mt-8"
+                className="shrink-0 border-t border-cockpit-edge px-4 py-1.5"
               >
               <button
                 data-testid="cap-sheet-full-cap-holds-toggle"
                 onClick={() => setShowCapHolds(!showCapHolds)}
-                className="w-full text-left group mb-3"
+                aria-expanded={showCapHolds}
+                className="flex w-full items-center gap-2 text-left group"
               >
-                <div className="flex items-start gap-2">
-                  <span
-                    className={`mt-1 transform text-sm text-white/60 transition-transform duration-200 ${showCapHolds ? 'rotate-90' : ''}`}
-                  >
-                    ▶
-                  </span>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-md font-bold tracking-tight text-white/90 group-hover:text-white transition-colors">
-                        Cap Hold Details
-                      </h3>
-                      <span className="bg-white/10 text-white/60 px-2 py-0.5 rounded text-xs">
-                        {displayedCapHolds.length}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-white/35 leading-relaxed">
-                      Separate from player rows. Matching-season holds feed the
-                      canonical Total Cap row.
-                    </p>
-                  </div>
-                </div>
+                <span
+                  className={`text-sm text-cockpit-text-secondary transition-transform duration-200 ${showCapHolds ? 'rotate-90' : ''}`}
+                >
+                  ▶
+                </span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-cockpit-text-secondary group-hover:text-cockpit-text-primary">
+                  Cap Hold Details
+                </span>
+                <span className="rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-secondary">
+                  {displayedCapHolds.length}
+                </span>
+                <span className="sr-only">
+                  Separate from player rows. Matching-season holds feed the
+                  canonical Total Cap row.
+                </span>
               </button>
 
               {showCapHolds && (
-                <div className="bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="max-h-[38vh] overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
                   {/* Header */}
-                  <div className="grid grid-cols-[140px_60px_repeat(7,minmax(100px,1fr))] bg-white/5 border-b border-white/5">
-                    <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-white/40 border-r border-white/5 truncate">
+                  <div className="grid grid-cols-[140px_60px_repeat(7,minmax(100px,1fr))] bg-cockpit-bar border-b border-cockpit-edge">
+                    <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge truncate">
                       Player
                     </div>
-                    <div className="px-1 py-3 text-center text-[9px] uppercase tracking-wider font-semibold text-white/40 border-r border-white/5">
+                    <div className="px-1 py-3 text-center text-[9px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge">
                       Type
                     </div>
                     {allYears.map((year) => (
                       <div
                         key={year}
-                        className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-white/40"
+                        className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
                       >
                         {year - 1}-{String(year % 100).padStart(2, '0')}
                       </div>
@@ -797,7 +957,72 @@ export const CapSheetFull = ({
               </section>
             );
           })()}
+
+        {/* HOME-BASE READOUT: the current-season exceptions / hard-cap readout,
+            collapsed by default so the table owns the screen. The headline cap
+            posture already lives in the cockpit TeamStatusStrip above. */}
+        {exceptionsReadout ? (
+          <section
+            data-testid="cap-sheet-full-cap-tools"
+            aria-label="Multi-year cap tools surface"
+            className="shrink-0 border-t border-cockpit-edge px-4 py-1.5"
+          >
+            <button
+              type="button"
+              data-testid="cap-sheet-full-exceptions-toggle"
+              onClick={() => setShowExceptionsReadout((value) => !value)}
+              aria-expanded={showExceptionsReadout}
+              className="flex w-full items-center gap-2 text-left group"
+            >
+              <span
+                className={`text-sm text-cockpit-text-secondary transition-transform duration-200 ${showExceptionsReadout ? 'rotate-90' : ''}`}
+              >
+                ▶
+              </span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-cockpit-text-secondary group-hover:text-cockpit-text-primary">
+                Exceptions &amp; Hard Cap
+              </span>
+            </button>
+            {showExceptionsReadout ? (
+              <div
+                data-testid="cap-sheet-full-exceptions-readout"
+                className="mt-2 max-h-[40vh] space-y-2 overflow-auto"
+              >
+                {exceptionsReadout}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+        </div>
       </section>
+
+      {/* Modals — reuse the existing current-season authorities. */}
+      {showDeadMoneyModal && (
+        <ManageDeadMoneyModal
+          isOpen={showDeadMoneyModal}
+          onClose={() => setShowDeadMoneyModal(false)}
+          teamCapSheet={
+            teamCapSheet as Parameters<
+              typeof ManageDeadMoneyModal
+            >[0]['teamCapSheet']
+          }
+          currentYear={currentYear}
+          onSave={handleSaveDeadCapEdit}
+        />
+      )}
+      {showExceptionsModal && (
+        <ManageExceptionsModal
+          isOpen={showExceptionsModal}
+          onClose={() => setShowExceptionsModal(false)}
+          teamCapSheet={
+            teamCapSheet as Parameters<
+              typeof ManageExceptionsModal
+            >[0]['teamCapSheet']
+          }
+          currentYear={currentYear}
+          onSave={handleSaveExceptionsEdit}
+        />
+      )}
     </div>
   );
 };

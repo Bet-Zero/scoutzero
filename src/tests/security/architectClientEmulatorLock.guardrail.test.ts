@@ -15,6 +15,10 @@ const gmDashboardPath = path.resolve(
   __dirname,
   '../../../src/features/architect/GMDashboard/GMDashboard.tsx'
 );
+const modePillPath = path.resolve(
+  __dirname,
+  '../../../src/features/architect/cockpit/ModePill.tsx'
+);
 const firebaseJsonPath = path.resolve(__dirname, '../../../firebase.json');
 
 function readText(filePath: string): string {
@@ -55,12 +59,14 @@ describe('Architect client emulator lock guardrails', () => {
     const packageJson = JSON.parse(readText(packageJsonPath));
     const scripts = packageJson.scripts || {};
     const gmDashboard = readText(gmDashboardPath);
+    const modePill = readText(modePillPath);
 
     expect(scripts.dev).toContain('VITE_USE_FIREBASE_EMULATORS=true');
     expect(scripts.dev).toContain('cross-env');
 
-    expect(gmDashboard).toContain('EMULATOR MODE');
-    expect(gmDashboard).toContain('PROD MODE');
+    // Mode labels live in cockpit ModePill after GM desk shell migration.
+    expect(modePill).toContain('EMULATOR MODE');
+    expect(modePill).toContain('PROD MODE');
     expect(gmDashboard).toContain(
       'Emulator mode: Firebase emulators not detected. Start them with: npm'
     );

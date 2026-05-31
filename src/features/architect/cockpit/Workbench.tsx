@@ -20,7 +20,13 @@ export interface RoomDescriptor {
   id: ActiveTab;
   title: string;
   subtitle?: string;
+  meta?: ReactNode;
+  primaryAction?: ReactNode;
   content: ReactNode;
+  /** Full-bleed body (no padding) — used by the Full Cap Table to fill the viewport. */
+  bleed?: boolean;
+  /** Suppress the redundant 48px room header — the room provides its own title/toolbar. */
+  hideHeader?: boolean;
 }
 
 interface WorkbenchProps {
@@ -37,7 +43,14 @@ export const Workbench = ({ activeTab, rooms }: WorkbenchProps) => {
       data-testid="cockpit-workbench"
       data-active-tab={activeTab}
     >
-      <RoomFrame title={room.title} subtitle={room.subtitle}>
+      <RoomFrame
+        title={room.title}
+        subtitle={room.subtitle}
+        meta={room.meta}
+        primaryAction={room.primaryAction}
+        bleed={room.bleed}
+        hideHeader={room.hideHeader}
+      >
         {room.content}
       </RoomFrame>
     </main>

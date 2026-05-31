@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { LeagueConferenceTable } from './LeagueConferenceTable';
+import { LeagueDeskHandoffBar } from './LeagueDeskHandoffBar';
 import { LeagueViewTruthPanel } from './LeagueViewTruthPanel';
+import { readPersistedViewingSeasonEndYear } from '@/features/architect/GMDashboard/hooks/useArchitectDeskNavigation';
 import { LEAGUE_VIEW_TOTAL_TEAMS } from './leagueViewModel';
 import { useLeagueTeamSummaries } from './useLeagueTeamSummaries';
 
@@ -16,8 +18,9 @@ export const LeagueView = () => {
   } = useLeagueTeamSummaries();
 
   const goToTeam = (teamSlug: string) => {
-    // Team handoff is route identity only; GMDashboard re-owns active season state.
-    navigate(`/gm/${teamSlug}`);
+    const viewingYear =
+      readPersistedViewingSeasonEndYear() ?? season.endYear;
+    navigate(`/gm/${teamSlug}?season=${viewingYear}&room=roster`);
   };
 
   return (
@@ -25,6 +28,7 @@ export const LeagueView = () => {
       <h1 className="text-2xl font-bold -mb-6">
         HoopZero Architect – League View
       </h1>
+      <LeagueDeskHandoffBar seasonEndYear={season.endYear} />
       <LeagueViewTruthPanel
         season={season}
         loadState={loadState}

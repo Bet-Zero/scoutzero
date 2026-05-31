@@ -87,4 +87,6 @@ export interface TradeEditorProps {
   worldId?: string | null;
   worldAsOfDate?: string | Date | null;
   userId?: string | null;
+  /** Notifies parent when local trade draft has outgoing assets (non-committed). */
+  onDraftActivityChange?: ((active: boolean) => void) | null;
 }

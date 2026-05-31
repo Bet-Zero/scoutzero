@@ -58,6 +58,7 @@ import {
   seasonEndYearsFromCaps,
   writePersistedActiveWorldId,
 } from './useArchitectState.helpers';
+import { readRoomFromUrl } from './useArchitectDeskNavigation';
 
 function deepClone<T>(obj: T): T {
   if (typeof structuredClone === 'function') {
@@ -108,7 +109,11 @@ export function useArchitectState({
 
   const [selectedRulesYear, setSelectedRulesYear] = useState<number>(currentYear);
   const [selectedPlayer, setSelectedPlayer] = useState<ArchitectPlayer | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('roster');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    // Full Cap Table is the home base / default landing surface. A URL ?room=
+    // slug still wins (deep links, League handoff to ?room=roster are unaffected).
+    () => readRoomFromUrl() ?? 'capfull'
+  );
 
   // === Offseason state ===
   const [lastCapSheet, setLastCapSheet] = useState<CapSheet | null>(null);

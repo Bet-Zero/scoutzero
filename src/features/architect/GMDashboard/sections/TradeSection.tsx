@@ -25,6 +25,7 @@ type ForwardedTradeEditorProps = Pick<
   | 'worldId'
   | 'worldAsOfDate'
   | 'userId'
+  | 'onDraftActivityChange'
 >;
 
 type TradeSectionProps = ForwardedTradeEditorProps;
@@ -41,6 +42,7 @@ const TradeSection = ({
   worldId = null, // World ID for world-aware team loading
   worldAsOfDate = null,
   userId = null,
+  onDraftActivityChange = null,
 }: TradeSectionProps) => {
   const tradeEditorSurfaceProps = {
     primaryTeam,
@@ -54,6 +56,7 @@ const TradeSection = ({
     worldId,
     worldAsOfDate,
     userId,
+    onDraftActivityChange,
   } satisfies ForwardedTradeEditorProps;
 
   /* SECTION HANDOFF / FORWARDED TRADE SURFACE: TradeEditor owns local

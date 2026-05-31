@@ -784,7 +784,7 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   const modalActionCallbacksRegion = readRegion(
     gmDashboardContent,
     'const modalActionCallbacks: EditContractArchitectActionCallbacks = {',
-    '  if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;'
+    '  if (authLoading || isLoading) {'
   );
   const manualLedgerHelperRegion = readRegion(
     actionsContent,

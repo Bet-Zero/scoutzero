@@ -54,6 +54,7 @@ export const TradeEditor = ({
   worldId = null, // World ID for world-aware team loading
   worldAsOfDate = null,
   userId = null,
+  onDraftActivityChange = null,
 }: TradeEditorProps) => {
   const {
     teams,
@@ -122,6 +123,19 @@ export const TradeEditor = ({
     }
     prevWorldIdRef.current = worldId;
   }, [worldId]);
+
+  const hasDraftActivity = useMemo(
+    () =>
+      teams.some(
+        (slot) =>
+          slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+      ),
+    [teams]
+  );
+
+  useEffect(() => {
+    onDraftActivityChange?.(hasDraftActivity);
+  }, [hasDraftActivity, onDraftActivityChange]);
 
   // Stale validation fix: hasCurrentValidation now comes from hook
   // It properly checks if validation result matches current draft configuration

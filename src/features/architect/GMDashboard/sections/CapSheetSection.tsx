@@ -80,7 +80,11 @@ const CapSheetSection = ({
   }, [currentYear]);
 
   if (!teamCapSheet?.players) {
-    return <div className="text-white/80 mt-4">Loading cap sheet...</div>;
+    return (
+      <div className="mt-4 text-sm text-cockpit-text-secondary">
+        Loading cap sheet…
+      </div>
+    );
   }
 
   const showDevFixturePanel =
