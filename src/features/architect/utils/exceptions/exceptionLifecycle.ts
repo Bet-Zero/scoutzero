@@ -236,6 +236,12 @@ export function resetTeamNonTpeExceptionsForNewSeason(
       seasonKey,
       // Preserve any notes from previous season
       ...(existing.notes ? { notes: existing.notes } : {}),
+      // Preserve the last-used-season marker (BAE biennial enforcement) across
+      // the rollover — usedAmount resets each season, but the biennial lockout
+      // must outlive that reset.
+      ...(existing.lastUsedSeasonEndYear != null
+        ? { lastUsedSeasonEndYear: existing.lastUsedSeasonEndYear }
+        : {}),
     };
   }
 

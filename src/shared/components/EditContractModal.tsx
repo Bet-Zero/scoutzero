@@ -8,12 +8,20 @@
  *  - 2025-12-10: Added fallback extension gating and FA/QO validation via rules profile (chunk_02).
  *  - 2025-12-17: Replaced deprecated extensionRules.js with salaryEngine for fallback.
  *  - 2025-12-24: Refactored to use shared capHelpers.js per Step 6 consolidation
+ *  - 2026-05-31: Added full-width player card header (ContractCardHeader) for player-info card layout.
  *
  * LINKS:
  *  - Plan: plans/_archive/player-rules-architect/plan.md
  *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
  *
  * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
+ *
+ * REVISIT (2026-05-31): This modal's layout/visual design is NOT up to standard
+ *   and needs a proper redesign pass. Known rough edges: the header + summary +
+ *   action columns are fitted to height by hand (tight spacing, no scroll) and
+ *   can still feel cramped on short viewports for long contracts; the overall
+ *   look is functional but not polished. Treat the current header as interim,
+ *   not the final design. Revisit holistically rather than with spot tweaks.
  */
 
 import React, {
@@ -36,8 +44,13 @@ import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import { useEditContractModalForm } from './EditContractModal.form.hook';
 import { useEditContractModalPreflight } from './EditContractModal.preflight.hook';
 import { ContractSummaryPanel } from './EditContractModal.SummaryPanel';
+import { ContractCardHeader } from './EditContractModal.PlayerCardHeader';
 import { ContractActionSelector } from './EditContractModal.ActionSelector';
 import { ContractDetailsForm } from './EditContractModal.DetailsForm';
+import {
+  calculateCapHold,
+  type CapHoldPlayerInput,
+} from '@/features/architect/utils/capHolds';
 import type {
   ContractYearWithNumberYear,
   ContractActionKey,
@@ -291,6 +304,43 @@ export const EditContractModal = ({
   const extensionEligibility = playerRulesProfile?.extensionEligibility;
   const isExtendEligible =
     extensionEligibility?.isEligible ?? extReason === 'Eligible';
+
+  // Free-agency rows for the year-by-year summary: the season the player hits
+  // free agency, carrying the qualifying offer (RFA) and/or the cap hold — shown
+  // inline in that season's row, the way a salary would be, just tagged.
+  const freeAgencyYears = useMemo(() => {
+    if (!player) return [];
+    const rfa = playerRulesProfile?.restrictedFreeAgency;
+    // freeAgencyYear lives on the full rules profile's contractSummary (present
+    // at runtime; the modal's prop type is narrowed), with player.freeAgentYear
+    // as a fallback.
+    const faStartRaw =
+      (
+        playerRulesProfile as unknown as {
+          contractSummary?: { freeAgencyYear?: number | null };
+        } | null
+      )?.contractSummary?.freeAgencyYear ?? player.freeAgentYear;
+    const faStartYear = faStartRaw == null ? null : Number(faStartRaw);
+    if (faStartYear == null || !Number.isFinite(faStartYear)) return [];
+    const capHold = calculateCapHold(player as unknown as CapHoldPlayerInput);
+    const qualifyingOffer =
+      rfa?.qualifyingOfferAmount != null && rfa.qualifyingOfferAmount > 0
+        ? rfa.qualifyingOfferAmount
+        : null;
+    const capHoldAmount =
+      capHold?.active && capHold.amount > 0 ? capHold.amount : null;
+    if (qualifyingOffer == null && capHoldAmount == null) return [];
+    const endYear = faStartYear + 1;
+    return [
+      {
+        year: endYear,
+        season: `${faStartYear}-${String(endYear % 100).padStart(2, '0')}`,
+        qualifyingOffer,
+        capHold: capHoldAmount,
+        isRFA: rfa?.isRFA ?? qualifyingOffer != null,
+      },
+    ];
+  }, [player, playerRulesProfile]);
 
   // Determine if option actions are currently actionable (timing check)
   // ONLY applies when this is an option scenario, not for free agents or under contract
@@ -742,16 +792,24 @@ export const EditContractModal = ({
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent
         data-testid="edit-contract-modal"
-        className="max-w-6xl w-[95vw] bg-[#0f0f0f] border-2 border-white/20 rounded-xl shadow-2xl shadow-black/50 p-0 overflow-hidden flex flex-col lg:flex-row min-h-[500px] max-h-[85vh]"
+        className="max-w-6xl w-[95vw] bg-[#0f0f0f] border-2 border-white/20 rounded-xl shadow-2xl shadow-black/50 p-0 overflow-hidden flex flex-col min-h-[500px] max-h-[85vh]"
       >
-        <ContractSummaryPanel
-          summary={summary}
-          contractYears={contractYears}
-          currentYear={CURRENT_YEAR}
+        {/* === TOP: Player identity banner (spans both columns) === */}
+        <ContractCardHeader
+          player={player}
+          teamCode={teamCapSheet?.teamCode ?? null}
         />
 
-        {/* === RIGHT PANEL: Actions === */}
-        <div className="w-full lg:w-[65%] p-8 bg-[#0f0f0f] flex flex-col overflow-y-auto">
+        <div className="flex flex-1 min-h-0 flex-col lg:flex-row">
+          <ContractSummaryPanel
+            summary={summary}
+            contractYears={contractYears}
+            currentYear={CURRENT_YEAR}
+            freeAgencyYears={freeAgencyYears}
+          />
+
+          {/* === RIGHT PANEL: Actions === */}
+          <div className="w-full lg:w-[65%] p-8 bg-[#0f0f0f] flex flex-col overflow-y-auto">
           <h2 className="text-xl font-bold text-white mb-6">
             Available Actions
           </h2>
@@ -920,6 +978,7 @@ export const EditContractModal = ({
             >
               {confirmButtonLabel}
             </button>
+          </div>
           </div>
         </div>
       </DialogContent>

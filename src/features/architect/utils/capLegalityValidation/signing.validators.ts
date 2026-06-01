@@ -8,6 +8,11 @@ import {
   canUseRoomException,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
+  getCanonicalExceptionEntry,
+  getCanonicalExceptionKeyForSigningMechanism,
+  type CanonicalNonTpeExceptionKey,
+} from '@/features/architect/utils/exceptions/exceptionOwnership';
+import {
   getNormalizedContractType,
   toFiniteNumber,
   getContractYears,
@@ -385,6 +390,65 @@ export function validateExceptionEligibility({
           message:
             roomEligibility.reason ||
             'Room Exception requires team to be under the salary cap',
+          severity: 'error',
+        },
+      };
+    }
+  }
+
+  const canonicalExceptionKey =
+    getCanonicalExceptionKeyForSigningMechanism(signedUsing);
+
+  // RULE 5: BAE biennial restriction — the Bi-Annual Exception cannot be used
+  // in consecutive seasons. It is blocked in any season immediately following
+  // one in which it was consumed.
+  if (canonicalExceptionKey === 'bae') {
+    const baeEntry = getCanonicalExceptionEntry(team, 'bae');
+    const lastUsedSeasonEndYear = baeEntry?.lastUsedSeasonEndYear;
+    if (
+      typeof lastUsedSeasonEndYear === 'number' &&
+      lastUsedSeasonEndYear === year - 1
+    ) {
+      return {
+        blocked: true,
+        reason: 'BAE was used last season (biennial restriction)',
+        violation: {
+          rule: 'exception_blocked',
+          message: `Cannot use the Bi-Annual Exception - it was used in the prior season (${lastUsedSeasonEndYear - 1}-${String(lastUsedSeasonEndYear % 100).padStart(2, '0')}). The BAE may only be used every other season.`,
+          severity: 'error',
+        },
+      };
+    }
+  }
+
+  // RULE 6: One MLE per season — a team may use only one of the Non-Taxpayer
+  // MLE, Taxpayer MLE, or Room MLE in a given season. If a different MLE flavor
+  // has already been consumed this season, block the new one. (The BAE is a
+  // separate exception and is intentionally excluded from this mutual
+  // exclusivity check.)
+  const MLE_FLAVORS: CanonicalNonTpeExceptionKey[] = ['mle', 'tpmle', 'room'];
+  if (
+    canonicalExceptionKey &&
+    MLE_FLAVORS.includes(canonicalExceptionKey)
+  ) {
+    const conflictingFlavor = MLE_FLAVORS.find((flavor) => {
+      if (flavor === canonicalExceptionKey) return false;
+      const entry = getCanonicalExceptionEntry(team, flavor);
+      return (entry?.usedAmount ?? 0) > 0;
+    });
+    if (conflictingFlavor) {
+      const flavorLabels: Record<CanonicalNonTpeExceptionKey, string> = {
+        mle: 'Non-Taxpayer MLE',
+        tpmle: 'Taxpayer MLE',
+        room: 'Room Exception',
+        bae: 'Bi-Annual Exception',
+      };
+      return {
+        blocked: true,
+        reason: 'Only one MLE may be used per season',
+        violation: {
+          rule: 'exception_blocked',
+          message: `Cannot use ${flavorLabels[canonicalExceptionKey]} - the team has already used its ${flavorLabels[conflictingFlavor]} this season. Only one Mid-Level/Room Exception may be used per season.`,
           severity: 'error',
         },
       };

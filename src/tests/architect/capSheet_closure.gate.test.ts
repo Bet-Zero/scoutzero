@@ -492,9 +492,13 @@ describe('Gate 4B: ManageExceptionsModal Shared Exception Default Contract (CS-4
   it('imports and calls the shared normalized exception default helper', () => {
     expect(content).toContain('getExceptionDefaultAmountFromCapSettings');
 
+    // The status-board redesign sources every exception's CBA default from a
+    // single call site (the init seed loop) instead of the old per-branch and
+    // reference-section calls — the point is that the shared helper is used at
+    // all, never a modal-local resolver (asserted below).
     const helperCallCount =
       content.match(/getExceptionDefaultAmountFromCapSettings\s*\(/g)?.length || 0;
-    expect(helperCallCount).toBeGreaterThanOrEqual(3);
+    expect(helperCallCount).toBeGreaterThanOrEqual(1);
   });
 
   it('does NOT keep a modal-local default amount resolver', () => {

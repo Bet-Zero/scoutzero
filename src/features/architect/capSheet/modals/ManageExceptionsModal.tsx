@@ -210,56 +210,37 @@ export const ManageExceptionsModal = ({
     }
   }, [currentYear]);
 
-  // Initialize from cap sheet exceptions
+  // Initialize from cap sheet exceptions.
+  //
+  // Exceptions are NOT user-authored numbers: the amount is fixed by the CBA
+  // (cap settings) and usage is consumed automatically when players are signed.
+  // So `totalAmount` is sourced from cap settings and `usedAmount` is read back
+  // from the team's actual exception state — both read-only here. The only
+  // human input is the availability toggle (`enabled`).
   useEffect(() => {
     if (isOpen && teamCapSheet) {
       setSaveError('');
       setIsSaving(false);
-      // Build initial state for each exception type
       const initialState: ExceptionsState = {};
       EXCEPTION_TYPES.forEach((type) => {
         const existing = getCanonicalExceptionEntry(teamCapSheet, type);
-        if (existing) {
-          initialState[type] = {
-            enabled: existing.enabled,
-            totalAmount:
-              existing.totalAmount ??
-              getExceptionDefaultAmountFromCapSettings(type, capSettings) ??
-              0,
-            usedAmount: existing.usedAmount,
-            seasonKey,
-            notes: existing.notes ?? '',
-          };
-        } else {
-          // Initialize with defaults
-          initialState[type] = {
-            ...DEFAULT_EXCEPTION,
-            totalAmount: getExceptionDefaultAmountFromCapSettings(
-              type,
-              capSettings
-            ),
-            seasonKey,
-          };
-        }
+        initialState[type] = {
+          enabled: existing?.enabled ?? false,
+          // CBA-fixed amount for the season (read-only).
+          totalAmount: getExceptionDefaultAmountFromCapSettings(
+            type,
+            capSettings
+          ),
+          // Consumed by signings (read-only).
+          usedAmount: existing?.usedAmount ?? 0,
+          seasonKey,
+          notes: existing?.notes ?? '',
+        };
       });
 
       setExceptions(initialState);
     }
   }, [isOpen, teamCapSheet, capSettings, seasonKey]);
-
-  const handleChange = (
-    type: ExceptionType,
-    field: keyof EditableException,
-    value: EditableException[keyof EditableException]
-  ) => {
-    setExceptions((prev) => ({
-      ...prev,
-      [type]: {
-        ...(prev[type] || {}),
-        [field]: value,
-      },
-    }));
-  };
 
   const handleToggle = (type: ExceptionType) => {
     setExceptions((prev) => ({
@@ -306,185 +287,195 @@ export const ManageExceptionsModal = ({
     return `$${((value || 0) as number | string).toLocaleString()}`;
   };
 
+  // B2: surface the one-MLE-per-season rule. Non-Taxpayer MLE, Taxpayer MLE,
+  // and Room are mutually exclusive — flag when more than one is enabled.
+  const enabledMleFlavors = (['mle', 'tpmle', 'room'] as const).filter(
+    (type) => exceptions[type]?.enabled
+  );
+  const multipleMleFlavorsEnabled = enabledMleFlavors.length > 1;
+
+  // B1: surface the BAE biennial restriction. The canonical entry carries the
+  // season it was last consumed; if that was last season, it is locked out now.
+  const baeLastUsedSeasonEndYear =
+    getCanonicalExceptionEntry(teamCapSheet, 'bae')?.lastUsedSeasonEndYear ??
+    null;
+  const baeBiennialBlocked =
+    typeof baeLastUsedSeasonEndYear === 'number' &&
+    baeLastUsedSeasonEndYear === currentYear - 1;
+
   if (!isOpen) return null;
 
   return (
     <div
       data-testid="manage-exceptions-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
     >
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-          <h2 className="text-xl font-bold text-white">Manage Exceptions</h2>
-          <button
-            onClick={onClose}
-            className="text-white/50 hover:text-white text-2xl"
-            disabled={isSaving}
-          >
-            &times;
-          </button>
+      <div className="w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0f0f0f] shadow-2xl shadow-black/60">
+        {/* Header */}
+        <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-r from-amber-500/10 via-white/[0.03] to-transparent px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/20">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2 2 7l10 5 10-5-10-5Z" />
+                  <path d="m2 17 10 5 10-5" />
+                  <path d="m2 12 10 5 10-5" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold leading-tight text-white">
+                  Manage Exceptions
+                </h2>
+                <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/40">
+                  Current season · {seasonKey}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-xl text-white/40 transition-colors hover:bg-white/5 hover:text-white"
+              disabled={isSaving}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="mb-4 text-sm text-white/60 bg-blue-500/10 border border-blue-500/20 p-3 rounded">
-            <p>
-              <strong>Exception Management:</strong> Configure which exceptions
-              are available for the team and track their usage. Changes here
-              will update the team's live current-season exception state (
-              {seasonKey}). Future-year Cap Sheet views are read-only for
-              exception editing.
-            </p>
-          </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <p className="mb-4 text-xs leading-relaxed text-white/50">
+            Exceptions are how you sign players over the cap. Amounts are fixed
+            by the CBA and usage is tracked automatically as you sign players —
+            so there&rsquo;s nothing to type here. Just mark which exceptions
+            your team is carrying this season ({seasonKey}); the Cap Sheet and
+            signing flow handle the rest.
+          </p>
 
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-xs uppercase text-white/40 border-b border-white/10">
-                <th className="p-2 w-16 text-center">Enabled</th>
-                <th className="p-2">Exception Type</th>
-                <th className="p-2 w-36">Total Amount</th>
-                <th className="p-2 w-36">Used Amount</th>
-                <th className="p-2 w-28">Remaining</th>
-                <th className="p-2">Notes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {EXCEPTION_TYPES.map((type) => {
-                const exc = exceptions[type] || DEFAULT_EXCEPTION;
-                const remaining =
-                  (Number(exc.totalAmount) || 0) - (Number(exc.usedAmount) || 0);
-                const isOverused = remaining < 0;
+          {/* B2: one-MLE-per-season warning */}
+          {multipleMleFlavorsEnabled && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
+              <span aria-hidden>⚠</span>
+              <span>
+                Only one of the Non-Taxpayer MLE, Taxpayer MLE, or Room
+                Exception may be <strong>used</strong> per season. More than one
+                is marked available — a signing will be blocked once a second
+                flavor is consumed.
+              </span>
+            </div>
+          )}
 
-                // Phase 75: Room Exception is disabled when team is not under cap
-                const isRoomException = type === 'room';
-                const roomDisabledByEligibility =
-                  isRoomException && !roomExceptionEligibility.eligible;
-                const isDisabled = roomDisabledByEligibility;
+          <div className="space-y-2.5">
+            {EXCEPTION_TYPES.map((type) => {
+              const exc = exceptions[type] || DEFAULT_EXCEPTION;
+              const total = Number(exc.totalAmount) || 0;
+              const used = Number(exc.usedAmount) || 0;
+              const remaining = total - used;
+              const isOverused = remaining < 0;
 
-                return (
-                  <tr
-                    key={type}
-                    className={`group hover:bg-white/5 ${!exc.enabled || isDisabled ? 'opacity-50' : ''}`}
-                  >
-                    <td className="p-2 text-center">
+              const isRoomException = type === 'room';
+              const roomDisabledByEligibility =
+                isRoomException && !roomExceptionEligibility.eligible;
+              const baeDisabledByBiennial = type === 'bae' && baeBiennialBlocked;
+              const isDisabled =
+                roomDisabledByEligibility || baeDisabledByBiennial;
+              const isOn = exc.enabled && !isDisabled;
+
+              const statusBadge = isDisabled
+                ? {
+                    label: roomDisabledByEligibility
+                      ? 'Unavailable · over cap'
+                      : 'Locked · used last season',
+                    cls: 'bg-white/5 text-white/40',
+                  }
+                : isOn
+                  ? used > 0
+                    ? { label: 'In use', cls: 'bg-amber-500/15 text-amber-300' }
+                    : { label: 'Available', cls: 'bg-emerald-500/15 text-emerald-300' }
+                  : { label: 'Not carried', cls: 'bg-white/5 text-white/40' };
+
+              const stat = (label: string, value: string, valueCls = 'text-white/90') => (
+                <div>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/35">
+                    {label}
+                  </div>
+                  <div className={`mt-0.5 font-mono text-sm font-semibold tabular-nums ${valueCls}`}>
+                    {value}
+                  </div>
+                </div>
+              );
+
+              return (
+                <div
+                  key={type}
+                  className={`rounded-xl border px-4 py-3 transition-colors ${
+                    isOn
+                      ? 'border-amber-500/25 bg-amber-500/[0.04]'
+                      : 'border-white/10 bg-white/[0.02]'
+                  } ${isDisabled ? 'opacity-70' : ''}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex min-w-0 items-center gap-3">
                       <input
                         type="checkbox"
-                        checked={exc.enabled && !isDisabled}
+                        checked={isOn}
                         onChange={() => !isDisabled && handleToggle(type)}
-                        className={`accent-blue-500 w-4 h-4 ${isDisabled ? 'cursor-not-allowed' : ''}`}
+                        className={`h-4 w-4 shrink-0 accent-amber-500 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                         disabled={isDisabled}
+                        aria-label={`Carry ${EXCEPTION_LABELS[type]}`}
                         title={
-                          isDisabled
+                          roomDisabledByEligibility
                             ? 'Room Exception is only available to teams operating under the salary cap'
-                            : ''
+                            : baeDisabledByBiennial
+                              ? 'BAE was used last season; it can only be used every other season'
+                              : `Mark whether the team is carrying the ${EXCEPTION_LABELS[type]}`
                         }
                       />
-                    </td>
-                    <td className="p-2">
-                      <span className="text-sm font-medium text-white/90">
-                        {EXCEPTION_LABELS[type]}
-                      </span>
-                      <span className="block text-[10px] text-white/40 uppercase">
-                        {type.toUpperCase()}
-                      </span>
-                      {/* Phase 75: Room Exception eligibility warning */}
-                      {isRoomException && roomDisabledByEligibility && (
-                        <span className="block text-[10px] text-amber-400 mt-0.5">
-                          ⚠ Only available to teams under the salary cap
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-white/90">
+                          {EXCEPTION_LABELS[type]}
                         </span>
-                      )}
-                    </td>
-                    <td className="p-2">
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-sm">
-                          $
+                        <span className="block text-[10px] uppercase tracking-wider text-white/40">
+                          {type.toUpperCase()}
                         </span>
-                        <input
-                          type="number"
-                          value={exc.totalAmount ?? ''}
-                          onChange={(e) =>
-                            handleChange(
-                              type,
-                              'totalAmount',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="bg-transparent border border-transparent hover:border-white/20 focus:border-blue-500 focus:bg-black/20 rounded px-2 py-1 pl-5 w-full text-white text-sm tabular-nums text-right"
-                          min="0"
-                          disabled={!exc.enabled}
-                        />
-                      </div>
-                    </td>
-                    <td className="p-2">
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-sm">
-                          $
-                        </span>
-                        <input
-                          type="number"
-                          value={exc.usedAmount ?? ''}
-                          onChange={(e) =>
-                            handleChange(
-                              type,
-                              'usedAmount',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="bg-transparent border border-transparent hover:border-white/20 focus:border-blue-500 focus:bg-black/20 rounded px-2 py-1 pl-5 w-full text-white text-sm tabular-nums text-right"
-                          min="0"
-                          disabled={!exc.enabled}
-                        />
-                      </div>
-                    </td>
-                    <td className="p-2">
-                      <span
-                        className={`text-sm font-medium tabular-nums ${isOverused ? 'text-red-400' : 'text-green-400'}`}
-                      >
-                        {formatCurrency(remaining)}
                       </span>
-                    </td>
-                    <td className="p-2">
-                      <input
-                        type="text"
-                        value={exc.notes || ''}
-                        onChange={(e) =>
-                          handleChange(type, 'notes', e.target.value)
-                        }
-                        className="bg-transparent border border-transparent hover:border-white/20 focus:border-blue-500 focus:bg-black/20 rounded px-2 py-1 w-full text-white text-sm"
-                        placeholder="Optional notes..."
-                        disabled={!exc.enabled}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </label>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusBadge.cls}`}>
+                      {statusBadge.label}
+                    </span>
+                  </div>
 
-          {/* Usage Summary */}
-          <div className="mt-6 p-4 bg-white/[0.02] border border-white/5 rounded">
-            <h3 className="text-sm font-bold text-white/70 mb-2">
-              Reference: Default Exception Amounts ({seasonKey})
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {EXCEPTION_TYPES.map((type) => (
-                <div key={type} className="text-xs">
-                  <span className="text-white/40 uppercase">{type}:</span>
-                  <span className="ml-1 text-white/60 tabular-nums">
-                    {formatCurrency(
-                      getExceptionDefaultAmountFromCapSettings(type, capSettings)
+                  <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-3">
+                    {stat('Amount', formatCurrency(total))}
+                    {stat('Used', formatCurrency(used), used > 0 ? 'text-amber-300' : 'text-white/50')}
+                    {stat(
+                      'Remaining',
+                      formatCurrency(remaining),
+                      isOverused ? 'text-red-400' : 'text-emerald-400'
                     )}
-                  </span>
+                  </div>
+
+                  {roomDisabledByEligibility && (
+                    <p className="mt-2 text-[11px] text-amber-400/90">
+                      ⚠ Only available to teams under the salary cap.
+                    </p>
+                  )}
+                  {baeDisabledByBiennial && (
+                    <p className="mt-2 text-[11px] text-amber-400/90">
+                      ⚠ The Bi-Annual Exception was used last season — it can
+                      only be used every other season.
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/10 bg-black/20">
+        <div className="border-t border-white/10 bg-black/30 px-6 py-4">
           {saveError && (
             <div
               role="alert"
-              className="mb-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+              className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
             >
               {saveError}
             </div>
@@ -493,16 +484,16 @@ export const ManageExceptionsModal = ({
             <button
               onClick={onClose}
               disabled={isSaving}
-              className="px-4 py-2 rounded text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-white/60 transition-colors hover:bg-white/5 hover:text-white"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 rounded text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20 transition-all hover:scale-105"
+              className="rounded-lg bg-amber-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-amber-900/20 transition-all hover:bg-amber-500 disabled:opacity-50"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </div>

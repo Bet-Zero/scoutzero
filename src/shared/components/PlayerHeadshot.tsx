@@ -11,12 +11,15 @@ export type PlayerHeadshotProps = {
   src?: string | null;
   playerId?: string | number | null;
   className?: string;
+  /** Square edge length in pixels. Defaults to the profile-sized 200px. */
+  size?: number;
 };
 
 export const PlayerHeadshot = ({
   src,
   playerId,
   className = '',
+  size = 200,
 }: PlayerHeadshotProps) => {
   const initialSrc = src || `/assets/headshots/${playerId}.png`;
 
@@ -30,7 +33,8 @@ export const PlayerHeadshot = ({
 
   return (
     <div
-      className={`w-[200px] h-[200px] rounded-xl overflow-hidden border-2 border-black ${className}`}
+      style={{ width: size, height: size }}
+      className={`rounded-xl overflow-hidden border-2 border-black ${className}`}
     >
       <img
         src={initialSrc}

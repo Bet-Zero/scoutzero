@@ -289,6 +289,8 @@ export type ArchitectMutationExceptionEntry = {
   notes?: string | null;
   seasonKey?: string | null;
   lastUsedAt?: string | null;
+  /** Season end-year the exception was last consumed (BAE biennial tracking). */
+  lastUsedSeasonEndYear?: number | null;
 };
 
 export type CurrentStateExceptionHistoryEntry = {
