@@ -39,20 +39,12 @@ const formatMoney = (amount: number): string => {
   return `${sign}$${Math.abs(Math.round(amount)).toLocaleString()}`;
 };
 
-const exceptionFlagsLabel = (
-  exc: ArchitectWorkspaceContext['exceptions']
-): string | null => {
-  if (exc.status !== 'available') return null;
-  const flags: string[] = [];
-  if (exc.hasAvailableMle) flags.push('MLE');
-  if (exc.hasAvailableBae) flags.push('BAE');
-  if (exc.hasAvailableRoom) flags.push('Room');
-  if (exc.tpeCount > 0) flags.push(`TPE×${exc.tpeCount}`);
-  return flags.length ? flags.join(' · ') : null;
-};
 
 const HardCapLock = ({ heading, reason }: { heading: string; reason: string }) => (
-  <div className="group relative" data-testid="cockpit-status-hard-cap-lock">
+  <div
+    className="group relative flex shrink-0 items-center"
+    data-testid="cockpit-status-hard-cap-lock"
+  >
     <div className="rounded border border-white/20 bg-white/10 p-0.5">
       <Lock size={10} className="text-white/90" />
     </div>
@@ -96,7 +88,6 @@ export const TeamStatusStrip = ({
 
   const rosterCount =
     workspace.roster.status === 'available' ? workspace.roster.count : null;
-  const excFlags = exceptionFlagsLabel(workspace.exceptions);
 
   const spaceColor = (space: number) =>
     space < 0 ? 'text-red-400' : 'text-green-400';
@@ -136,12 +127,6 @@ export const TeamStatusStrip = ({
         valueClassName={spaceColor(cap.capSpace)}
       />
       <TeamStatusTile
-        testId="cockpit-status-tax-space"
-        label="Luxury Tax Space"
-        value={formatMoney(cap.taxSpace)}
-        valueClassName={spaceColor(cap.taxSpace)}
-      />
-      <TeamStatusTile
         testId="cockpit-status-apron1"
         label="1st Apron Space"
         value={formatMoney(cap.firstApronSpace)}
@@ -164,10 +149,15 @@ export const TeamStatusStrip = ({
         }
       />
       <TeamStatusTile
+        testId="cockpit-status-tax-space"
+        label="Luxury Tax Space"
+        value={formatMoney(cap.taxSpace)}
+        valueClassName={spaceColor(cap.taxSpace)}
+      />
+      <TeamStatusTile
         testId="cockpit-status-roster"
         label="Roster"
         value={rosterCount !== null ? `${rosterCount} / 15` : '—'}
-        sub={excFlags ? `Exc · ${excFlags}` : null}
       />
     </section>
   );

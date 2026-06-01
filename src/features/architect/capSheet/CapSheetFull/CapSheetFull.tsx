@@ -158,20 +158,43 @@ const normalizeFAType = (type: string | null | undefined): string | null => {
   return type.toUpperCase();
 };
 
-// Color scheme for tags - matching chart style
+// Glossy 2K-style contract chips: gradient fill, hairline border, soft glow.
 const getTagColor = (type: string | null) => {
-  if (type === 'UFA') return 'bg-blue-500/30 text-white/70';
-  if (type === 'RFA') return 'bg-red-600/30 text-white/70';
-  if (type === 'PO') return 'bg-green-600/30 text-white/70';
-  if (type === 'TO') return 'bg-orange-500/30 text-white/70';
-  if (type === 'TWO-WAY') return 'bg-white/10 text-white/60';
-  return 'bg-gray-600 text-white/70';
+  const base =
+    'border shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] bg-gradient-to-b';
+  if (type === 'UFA')
+    return `${base} from-blue-400/40 to-blue-600/40 border-blue-300/40 text-blue-50`;
+  if (type === 'RFA')
+    return `${base} from-rose-400/40 to-rose-600/40 border-rose-300/40 text-rose-50`;
+  if (type === 'PO')
+    return `${base} from-emerald-400/40 to-emerald-600/40 border-emerald-300/40 text-emerald-50`;
+  if (type === 'TO')
+    return `${base} from-amber-400/40 to-amber-600/40 border-amber-300/40 text-amber-50`;
+  if (type === 'TWO-WAY')
+    return `${base} from-white/15 to-white/5 border-white/20 text-white/70`;
+  return `${base} from-slate-500/40 to-slate-700/40 border-slate-400/30 text-slate-50`;
 };
 
-const formatQOText = (amount: NumericLike) => {
-  if (amount == null) return null;
-  return `QO $${(Number(amount) / 1_000_000).toFixed(1)}M`;
+// Soft full-cell tints that echo each tag's hue so a year cell reads as a
+// free-agency / option / extension season at a glance. A top-down gradient
+// plus a colored inset accent bar on the left keeps all three special cell
+// types visually consistent with the glossy chip palette, without competing
+// with the salary number sitting on top.
+const FA_CELL_TINT: Record<string, string> = {
+  UFA: 'bg-gradient-to-b from-blue-500/[0.16] to-blue-500/[0.04]',
+  RFA: 'bg-gradient-to-b from-rose-500/[0.16] to-rose-500/[0.04]',
 };
+const getFaCellTint = (type: string | null): string =>
+  (type ? FA_CELL_TINT[type] : undefined) ??
+  'bg-gradient-to-b from-slate-400/[0.08] to-transparent';
+
+const OPTION_CELL_STYLE = {
+  PO: 'bg-gradient-to-b from-emerald-500/[0.16] to-emerald-500/[0.04] hover:from-emerald-500/30 hover:to-emerald-500/10 shadow-[inset_2px_0_0_rgba(16,185,129,0.6)]',
+  TO: 'bg-gradient-to-b from-amber-500/[0.16] to-amber-500/[0.04] hover:from-amber-500/30 hover:to-amber-500/10 shadow-[inset_2px_0_0_rgba(245,158,11,0.6)]',
+} as const;
+
+const EXTENSION_CELL_STYLE =
+  'bg-gradient-to-b from-cyan-500/[0.14] to-cyan-500/[0.03] shadow-[inset_2px_0_0_rgba(34,211,238,0.5)]';
 
 const formatCapSheetMoney = (amount: NumericLike) =>
   `$${Number(amount ?? 0).toLocaleString()}`;
@@ -287,6 +310,90 @@ const getExtensionEligibleYear = (rulesProfile: RulesProfileLike) => {
   return d.getFullYear();
 };
 
+// 2K-style team-gradient identity disc. Real headshots are not available as
+// assets, so initials on a team-colored chip stand in — reads as a roster
+// entry rather than a spreadsheet row.
+const getPlayerInitials = (name: string): string =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+
+// Resolve the local headshot slug from the player's id (roster ids are slugs
+// like "lebron_james" that match /assets/headshots/<slug>.png).
+const resolveHeadshotSlug = (player: CapSheetFullPlayerLike): string => {
+  const anyP = player as {
+    id?: unknown;
+    player_id?: unknown;
+    name?: unknown;
+    bio?: { playerId?: unknown };
+  };
+  const raw =
+    (anyP.bio?.playerId as string) ||
+    (anyP.id as string) ||
+    (anyP.player_id as string) ||
+    (anyP.name as string) ||
+    '';
+  return String(raw)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+};
+
+// Circular player headshot with a team-color ring. There is no default.png
+// asset, so a 404 gracefully degrades to a team-gradient initials disc.
+const PlayerAvatar = ({
+  player,
+  name,
+}: {
+  player: CapSheetFullPlayerLike;
+  name: string;
+}) => {
+  const [failed, setFailed] = useState(false);
+  const slug = resolveHeadshotSlug(player);
+
+  if (failed || !slug) {
+    return (
+      <span
+        aria-hidden
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-extrabold tracking-wide text-[color:var(--team-on-primary,#fff)]"
+        style={{
+          background:
+            'linear-gradient(135deg, var(--team-primary,#4F46E5), #0b0e14)',
+          boxShadow:
+            'inset 0 0 0 1.5px color-mix(in srgb, var(--team-secondary,#FDB927) 60%, transparent), 0 1px 4px rgba(0,0,0,0.5)',
+        }}
+      >
+        {getPlayerInitials(name) || '—'}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="flex h-5 w-5 shrink-0 overflow-hidden rounded-full"
+      style={{
+        boxShadow:
+          'inset 0 0 0 1.5px color-mix(in srgb, var(--team-secondary,#FDB927) 70%, transparent), 0 1px 4px rgba(0,0,0,0.5)',
+      }}
+    >
+      <img
+        src={`/assets/headshots/${slug}.png`}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        className="h-full w-full object-cover object-top"
+        style={{ background: '#0b0e14' }}
+        onError={() => setFailed(true)}
+      />
+    </span>
+  );
+};
+
 type ContractAmountDisplayProps = {
   capHit: number;
   baseSalary: number;
@@ -306,15 +413,15 @@ const ContractAmountDisplay = ({
     return <span className={primaryClassName}>{formatCapSheetMoney(capHit)}</span>;
   }
 
+  // Cap hit differs from base salary (e.g. adjusted/stretched). Show only the
+  // cap hit — the number that counts against the cap — with the base available
+  // in the tooltip, instead of a cramped second line.
   return (
     <span
-      className="flex flex-col items-center leading-tight"
-      title={`Cap hit counts as ${formatCapSheetMoney(capHit)}; base salary is ${formatCapSheetMoney(baseSalary)}.`}
+      className={primaryClassName}
+      title={`Cap hit ${formatCapSheetMoney(capHit)} · Base salary ${formatCapSheetMoney(baseSalary)}`}
     >
-      <span className={primaryClassName}>{formatCapSheetMoney(capHit)}</span>
-      <span className={secondaryClassName}>
-        Base {formatCapSheetMoney(baseSalary)}
-      </span>
+      {formatCapSheetMoney(capHit)}
     </span>
   );
 };
@@ -528,7 +635,15 @@ export const CapSheetFull = ({
         aria-label={CAP_SHEET_FULL_SURFACE_LABELS.primary}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-cockpit-slab">
+        <div
+          className="relative flex min-h-0 max-h-full flex-col overflow-hidden rounded-lg border border-white/10 shadow-cockpit-slab"
+          style={{
+            background:
+              'radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--team-primary,#4F46E5) 22%, #0B0E14), #07090D 70%)',
+            boxShadow:
+              'inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px color-mix(in srgb, var(--team-primary,#4F46E5) 40%, transparent), 0 18px 50px -20px rgba(0,0,0,0.8)',
+          }}
+        >
           {freeAgentOptions.length > 0 ? (
             <section
               data-testid="cap-sheet-full-fa-options"
@@ -582,10 +697,26 @@ export const CapSheetFull = ({
           {/* COMPACT TOOLBAR: a single dense row — the room header already names
               the surface, so we don't repeat a title. Reclaims vertical space so
               the table itself owns the screen. */}
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-cockpit-text-muted">
-              Multi-Year · current season {formatSeasonLabel(currentYear)}
-            </span>
+          <div
+            className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-1.5"
+            style={{
+              background:
+                'linear-gradient(90deg, color-mix(in srgb, var(--team-primary,#4F46E5) 30%, #0B0E14), #0B0E14 60%)',
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <span
+                aria-hidden
+                className="h-5 w-1 rounded-full"
+                style={{ background: 'var(--team-secondary,#FDB927)' }}
+              />
+              <span className="text-[13px] font-extrabold uppercase italic tracking-wide text-white">
+                Cap Table
+              </span>
+              <span className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60">
+                {formatSeasonLabel(currentYear)}
+              </span>
+            </div>
             {(hasManualCapSheetMutationAuthority || onLaunchFreeAgentSearch) && (
               <div className="flex flex-wrap items-center gap-1.5">
                 <button
@@ -596,13 +727,13 @@ export const CapSheetFull = ({
                     if (!hasManualCapSheetMutationAuthority) return;
                     setShowDeadMoneyModal(true);
                   }}
-                  className={`rounded border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all ${
                     hasManualCapSheetMutationAuthority
-                      ? 'border-cockpit-edge bg-cockpit-slab text-cockpit-text-secondary hover:bg-cockpit-raised hover:text-cockpit-text-primary'
-                      : 'cursor-not-allowed border-cockpit-edge text-cockpit-text-ghost'
+                      ? 'border-white/15 bg-white/5 text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-white/10 hover:text-white'
+                      : 'cursor-not-allowed border-white/5 text-white/20'
                   }`}
                 >
-                  Manage Dead Money
+                  Dead Money
                 </button>
                 <button
                   data-testid="cap-sheet-full-manage-exceptions-button"
@@ -612,34 +743,37 @@ export const CapSheetFull = ({
                     if (!hasManualCapSheetMutationAuthority) return;
                     setShowExceptionsModal(true);
                   }}
-                  className={`rounded border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all ${
                     hasManualCapSheetMutationAuthority
-                      ? 'border-cockpit-edge bg-cockpit-slab text-cockpit-text-secondary hover:bg-cockpit-raised hover:text-cockpit-text-primary'
-                      : 'cursor-not-allowed border-cockpit-edge text-cockpit-text-ghost'
+                      ? 'border-white/15 bg-white/5 text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-white/10 hover:text-white'
+                      : 'cursor-not-allowed border-white/5 text-white/20'
                   }`}
                 >
-                  Manage Exceptions
+                  Exceptions
                 </button>
                 {onLaunchFreeAgentSearch ? (
                   <button
                     data-testid="cap-sheet-full-sign-free-agent-button"
                     type="button"
                     onClick={() => onLaunchFreeAgentSearch()}
-                    className="rounded border border-cockpit-safe/30 bg-cockpit-safe/10 px-2.5 py-1 text-[11px] font-medium text-cockpit-safe transition-colors hover:bg-cockpit-safe/20"
+                    className="rounded-md border border-black/40 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-transform hover:scale-[1.03]"
+                    style={{ background: 'var(--team-secondary,#FDB927)' }}
                   >
-                    Sign Free Agent
+                    + Sign Free Agent
                   </button>
                 ) : null}
               </div>
             )}
           </div>
 
-          {/* PLAYER DETAIL: fills the remaining height and scrolls internally
-              with a sticky column header (top) and a sticky canonical Total Cap
-              footer (bottom), so the totals are always visible. */}
+          {/* PLAYER DETAIL: hugs its content so the Total Cap footer sits
+              directly above the cap-hold / exception bars (no underflow gap),
+              but keeps min-h-0 so it shrinks and scrolls internally — with the
+              sticky header/footer — when a full roster is taller than the
+              window. */}
           <section
             aria-label={CAP_SHEET_FULL_SURFACE_LABELS.playerDetail}
-            className="flex min-h-0 flex-1 flex-col"
+            className="flex min-h-0 flex-col"
           >
             <p className="sr-only">
               Player rows show season-by-season contract detail only. Total Cap
@@ -653,13 +787,13 @@ export const CapSheetFull = ({
                   className="sticky top-0 z-20 grid border-b border-cockpit-edge bg-cockpit-bar"
                   style={{ gridTemplateColumns: playerGridTemplate }}
                 >
-                  <div className="sticky left-0 z-30 bg-cockpit-slab px-4 py-2 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
+                  <div className="sticky left-0 z-30 bg-cockpit-slab px-3 py-1 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
                     Player
                   </div>
                   {allYears.map((year) => (
                     <div
                       key={year}
-                      className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
+                      className="px-2 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
                     >
                       {year - 1}-{String(year % 100).padStart(2, '0')}
                     </div>
@@ -676,13 +810,29 @@ export const CapSheetFull = ({
                       profileForCurrentYear
                     );
                     const isRowHighlighted = playerMatchesAnyFocus(player);
+                    // Two-way marker lives in the player's first salary cell
+                    // (not the name column) so it never squeezes the name into
+                    // truncation. The small two-way amount has room to spare.
+                    const firstSalaryYear = isTwoWay
+                      ? allYears.find((year) => {
+                          const amounts = getPlayerCapSheetAmountsForYear(
+                            player,
+                            year
+                          );
+                          return (
+                            Boolean(amounts.contractSlice) ||
+                            amounts.capHit > 0 ||
+                            amounts.baseSalary > 0
+                          );
+                        }) ?? null
+                      : null;
                     return (
                       <div
                         key={idx}
                         className={`grid transition-colors group ${
                           isRowHighlighted
-                            ? 'ring-1 ring-inset ring-green-400/40 bg-green-500/[0.04]'
-                            : 'hover:bg-white/[0.02]'
+                            ? 'ring-1 ring-inset ring-[color:var(--team-secondary,#FDB927)]/50 bg-[color:var(--team-primary,#4F46E5)]/[0.08]'
+                            : 'hover:bg-[color:var(--team-primary,#4F46E5)]/[0.06]'
                         } ${isTwoWay ? 'opacity-70' : ''}`}
                         style={{ gridTemplateColumns: playerGridTemplate }}
                         data-testid={
@@ -692,23 +842,25 @@ export const CapSheetFull = ({
                         }
                       >
                         {/* Player Name (Sticky) */}
-                        <div className="sticky left-0 z-10 flex h-[26px] items-center gap-2 border-r border-cockpit-edge bg-cockpit-inlay px-4 py-2 shadow-[4px_0_24px_rgba(0,0,0,0.4)] transition-colors group-hover:bg-cockpit-slab">
+                        <div className="sticky left-0 z-10 flex h-[24px] items-center gap-2 border-r border-white/10 bg-[#0b0e14] px-3 shadow-[4px_0_24px_rgba(0,0,0,0.5)] transition-colors group-hover:bg-[#11151d]">
+                          <PlayerAvatar
+                            player={player}
+                            name={
+                              player.displayName ||
+                              player.bio?.displayName ||
+                              player.name ||
+                              '?'
+                            }
+                          />
                           <button
                             data-testid="cap-sheet-full-player-row-button"
                             onClick={() => openPlayerContractModal?.(player)}
-                            className="text-xs font-medium text-cockpit-text-primary hover:text-blue-400 transition-colors text-left truncate flex-1"
+                            className="flex-1 truncate text-left text-[13px] font-bold tracking-tight text-white transition-colors hover:text-[color:var(--team-secondary,#FDB927)]"
                           >
                             {player.displayName ||
                               player.bio?.displayName ||
                               player.name}
                           </button>
-                          {isTwoWay && (
-                            <span
-                              className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 ${getTagColor('TWO-WAY')}`}
-                            >
-                              2W
-                            </span>
-                          )}
                           {onLaunchPlayerAction ? (
                             <div
                               className="relative shrink-0"
@@ -784,6 +936,15 @@ export const CapSheetFull = ({
                             player,
                             year
                           );
+                          const twoWayMarker =
+                            isTwoWay && year === firstSalaryYear ? (
+                              <span
+                                className={`absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded px-1 py-px text-[8px] font-bold uppercase tracking-wider ${getTagColor('TWO-WAY')}`}
+                                title="Two-way contract"
+                              >
+                                2W
+                              </span>
+                            ) : null;
                           const entry = rowAmounts.contractSlice;
                           const freeAgency =
                             player.futureContract?.freeAgency ||
@@ -841,7 +1002,7 @@ export const CapSheetFull = ({
                                       year
                                     )
                                   }
-                                  className="relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[26px] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all"
+                                  className={`relative flex items-center justify-center px-2 border-l border-white/[0.02] h-[24px] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all ${getFaCellTint(faLabel)}`}
                                   title={
                                     rfaInfo?.reason ||
                                     rulesProfileForYear?.contractSummary
@@ -849,31 +1010,19 @@ export const CapSheetFull = ({
                                   }
                                 >
                                   <span
-                                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getTagColor(faLabel)} hover:scale-105 transition-transform`}
+                                    className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTagColor(faLabel)} transition-transform hover:scale-105`}
                                   >
                                     {faLabel}
                                   </span>
-                                  {(birdRightsTypeForYear ||
-                                    rfaInfo?.qualifyingOfferAmount != null) && (
-                                    <span className="absolute bottom-1 right-1 text-[10px] text-white/60 leading-tight text-right">
-                                      {birdRightsTypeForYear && (
-                                        <div
-                                          className="flex items-center justify-center"
-                                          data-testid="fa-bird-rights"
-                                        >
-                                          <BirdRightsIcon
-                                            type={birdRightsTypeForYear}
-                                            size={20}
-                                          />
-                                        </div>
-                                      )}
-                                      {rfaInfo?.qualifyingOfferAmount != null && (
-                                        <span className="block">
-                                          {formatQOText(
-                                            rfaInfo.qualifyingOfferAmount
-                                          )}
-                                        </span>
-                                      )}
+                                  {birdRightsTypeForYear && (
+                                    <span
+                                      className="absolute bottom-0 right-0.5 flex items-center justify-center"
+                                      data-testid="fa-bird-rights"
+                                    >
+                                      <BirdRightsIcon
+                                        type={birdRightsTypeForYear}
+                                        size={16}
+                                      />
                                     </span>
                                   )}
                                 </div>
@@ -882,7 +1031,7 @@ export const CapSheetFull = ({
                             return (
                               <div
                                 key={year}
-                                className="border-l border-white/[0.02] h-[26px]"
+                                className="border-l border-white/[0.02] h-[24px]"
                               />
                             );
                           }
@@ -897,8 +1046,8 @@ export const CapSheetFull = ({
 
                           if (isPO || isTO) {
                             const optionStyle = isPO
-                              ? 'bg-green-600/10 hover:bg-green-600/20 border-b border-green-600/30'
-                              : 'bg-orange-500/10 hover:bg-orange-500/20 border-b border-orange-500/30';
+                              ? OPTION_CELL_STYLE.PO
+                              : OPTION_CELL_STYLE.TO;
 
                             return (
                               <div
@@ -910,19 +1059,20 @@ export const CapSheetFull = ({
                                     year
                                   )
                                 }
-                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[26px] transition-colors cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
+                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[24px] transition-all cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
                                 title={`Click to manage ${isPO ? 'Player' : 'Team'} Option`}
                               >
+                                {twoWayMarker}
                                 <ContractAmountDisplay
                                   capHit={rowAmounts.capHit}
                                   baseSalary={rowAmounts.baseSalary}
                                   hasCapHitAdjustment={
                                     rowAmounts.hasCapHitAdjustment
                                   }
-                                  primaryClassName={`text-xs font-medium tabular-nums tracking-tight ${
+                                  primaryClassName={`text-xs font-semibold tabular-nums tracking-tight ${
                                     isExtension
-                                      ? 'text-cyan-200/90'
-                                      : 'text-white/70'
+                                      ? 'text-cyan-200'
+                                      : 'text-white/90'
                                   }`}
                                   secondaryClassName={`text-[8px] uppercase tracking-wider tabular-nums ${
                                     isExtension
@@ -938,31 +1088,42 @@ export const CapSheetFull = ({
                           return (
                             <div
                               key={year}
-                              className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[26px] ${
-                                isExtension
-                                  ? 'bg-cyan-500/5 border-cyan-500/20'
-                                  : ''
+                              className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[24px] ${
+                                isExtension ? EXTENSION_CELL_STYLE : ''
                               }`}
                             >
                               {isExtensionEligibleYear && (
                                 <span
-                                  className="absolute top-0.5 left-1 text-[9px] font-bold uppercase px-1 rounded bg-cyan-500/20 text-cyan-50 border border-cyan-500/30"
+                                  className="absolute left-0 top-0 z-10 leading-none"
                                   data-testid="extension-eligibility-badge"
-                                  title={`Extension eligible starting ${formatSeasonLabel(year)} offseason`}
+                                  title={`Extension eligible starting ${formatSeasonLabel(year)} offseason — ${formatExtLabel(year)}`}
                                 >
-                                  {formatExtLabel(year)}
+                                  <span
+                                    aria-hidden
+                                    className="block h-0 w-0 border-r-[13px] border-t-[13px] border-r-transparent border-t-cyan-400/90"
+                                  />
+                                  <span
+                                    aria-hidden
+                                    className="absolute left-[1px] top-[0px] text-[7px] font-bold uppercase leading-none text-[#06222b]"
+                                  >
+                                    E
+                                  </span>
+                                  <span className="sr-only">
+                                    {formatExtLabel(year)}
+                                  </span>
                                 </span>
                               )}
+                              {twoWayMarker}
                               <ContractAmountDisplay
                                 capHit={rowAmounts.capHit}
                                 baseSalary={rowAmounts.baseSalary}
                                 hasCapHitAdjustment={
                                   rowAmounts.hasCapHitAdjustment
                                 }
-                                primaryClassName={`text-xs font-medium tabular-nums tracking-tight ${
+                                primaryClassName={`text-xs font-semibold tabular-nums tracking-tight ${
                                   isExtension
-                                    ? 'text-cyan-200/90'
-                                    : 'text-white/60'
+                                    ? 'text-cyan-200'
+                                    : 'text-white/85'
                                 }`}
                                 secondaryClassName={`text-[8px] uppercase tracking-wider tabular-nums ${
                                   isExtension
@@ -983,11 +1144,27 @@ export const CapSheetFull = ({
                     to the bottom of the scroll area so it is always visible. */}
                 <div
                   aria-label={CAP_SHEET_FULL_SURFACE_LABELS.canonicalYearlyTotals}
-                  className="sticky bottom-0 z-20 grid border-t border-cockpit-edge bg-cockpit-bar font-semibold"
-                  style={{ gridTemplateColumns: playerGridTemplate }}
+                  className="sticky bottom-0 z-20 grid border-t-2 font-bold"
+                  style={{
+                    gridTemplateColumns: playerGridTemplate,
+                    borderTopColor: 'var(--team-secondary,#FDB927)',
+                    background:
+                      'color-mix(in srgb, var(--team-primary,#4F46E5) 22%, #0B0E14)',
+                  }}
                 >
-                  <div className="sticky left-0 z-30 bg-cockpit-slab px-4 py-2 border-r border-cockpit-edge shadow-[4px_0_24px_rgba(0,0,0,0.4)]">
-                    <span className="block text-[10px] uppercase tracking-wider text-cockpit-text-secondary">
+                  <div
+                    className="sticky left-0 z-30 flex items-center gap-2 px-3 border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]"
+                    style={{
+                      background:
+                        'color-mix(in srgb, var(--team-primary,#4F46E5) 34%, #0B0E14)',
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      className="h-4 w-1 rounded-full"
+                      style={{ background: 'var(--team-secondary,#FDB927)' }}
+                    />
+                    <span className="block text-[11px] font-extrabold uppercase italic tracking-wide text-white">
                       Total Cap
                     </span>
                     <span className="sr-only">
@@ -1005,10 +1182,10 @@ export const CapSheetFull = ({
                             ? 'cap-sheet-full-total-cell-highlighted'
                             : 'cap-sheet-full-total-cell'
                         }
-                        className={`px-2 py-2 text-center text-xs tabular-nums tracking-tight border-l border-cockpit-edge ${
+                        className={`flex items-center justify-center px-2 py-1 text-center text-[13px] font-bold tabular-nums tracking-tight border-l border-white/10 ${
                           isTotalHighlighted
-                            ? 'bg-green-500/10 text-green-100 ring-1 ring-inset ring-green-400/30'
-                            : 'text-cockpit-text-primary'
+                            ? 'text-[color:var(--team-secondary,#FDB927)] ring-1 ring-inset ring-[color:var(--team-secondary,#FDB927)]/40'
+                            : 'text-white'
                         }`}
                       >
                         ${yearTotalBreakdowns[year].totalCapAllocations.toLocaleString()}
@@ -1073,7 +1250,7 @@ export const CapSheetFull = ({
                       className="grid items-center hover:bg-white/[0.02] transition-colors"
                       style={{ gridTemplateColumns: playerGridTemplate }}
                     >
-                      <div className="h-[26px] truncate border-r border-cockpit-edge px-4 py-2 text-xs font-medium text-cockpit-text-primary">
+                      <div className="h-[24px] truncate border-r border-cockpit-edge px-4 py-2 text-xs font-medium text-cockpit-text-primary">
                         {getDeadCapLabel(deadCapEntry)}
                       </div>
                       {allYears.map((year) => {
@@ -1084,7 +1261,7 @@ export const CapSheetFull = ({
                         return (
                           <div
                             key={year}
-                            className="flex h-[26px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-xs tabular-nums text-red-200/80"
+                            className="flex h-[24px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-xs tabular-nums text-red-200/80"
                           >
                             {amount > 0 ? formatCapSheetMoney(amount) : ''}
                           </div>
@@ -1108,7 +1285,7 @@ export const CapSheetFull = ({
               className="grid items-center rounded border border-amber-400/10 bg-amber-400/[0.03]"
               style={{ gridTemplateColumns: playerGridTemplate }}
             >
-              <div className="h-[26px] truncate border-r border-cockpit-edge px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
+              <div className="h-[24px] truncate border-r border-cockpit-edge px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
                 Incomplete roster charges
               </div>
               {allYears.map((year) => {
@@ -1116,7 +1293,7 @@ export const CapSheetFull = ({
                 return (
                   <div
                     key={year}
-                    className="flex h-[26px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-[10px] tabular-nums text-amber-200/70"
+                    className="flex h-[24px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-[10px] tabular-nums text-amber-200/70"
                   >
                     {incompleteChargesTotal > 0
                       ? formatCapSheetMoney(incompleteChargesTotal)
@@ -1174,7 +1351,7 @@ export const CapSheetFull = ({
               style={{ gridTemplateColumns: capHoldGridTemplate }}
             >
               {/* Name Column */}
-              <div className="px-4 py-2 flex items-center border-r border-cockpit-edge h-[26px] relative overflow-hidden">
+              <div className="px-4 py-2 flex items-center border-r border-cockpit-edge h-[24px] relative overflow-hidden">
                 <span
                   className="text-xs font-medium text-cockpit-text-primary truncate w-full"
                   title={h.playerName || String(h.playerId || '')}
@@ -1198,7 +1375,7 @@ export const CapSheetFull = ({
               </div>
 
               {/* Tag Column */}
-              <div className="px-1 py-1 flex items-center justify-center border-r border-cockpit-edge h-[26px]">
+              <div className="px-1 py-1 flex items-center justify-center border-r border-cockpit-edge h-[24px]">
                 <span
                   className={`${getTagColor(h.type || null)} px-1 py-px rounded-[2px] text-[8px] font-bold uppercase tracking-wider truncate max-w-full`}
                 >
@@ -1215,7 +1392,7 @@ export const CapSheetFull = ({
                   return (
                     <div
                       key={year}
-                      className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[26px] bg-cyan-900/10"
+                      className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[24px] bg-cyan-900/10"
                     >
                       <span className="text-xs font-mono text-cyan-200 tabular-nums">
                         ${Number(h.amount || 0).toLocaleString()}
@@ -1227,7 +1404,7 @@ export const CapSheetFull = ({
                 return (
                   <div
                     key={year}
-                    className="border-l border-white/[0.02] h-[26px] opacity-30"
+                    className="border-l border-white/[0.02] h-[24px] opacity-30"
                   />
                 );
               })}
