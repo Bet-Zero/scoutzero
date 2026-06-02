@@ -81,6 +81,14 @@ interface UseArchitectDeskNavigationParams {
   setActiveTab: React.Dispatch<React.SetStateAction<ActiveTab>>;
   deskPlayerId: string | null;
   setDeskPlayerId: React.Dispatch<React.SetStateAction<string | null>>;
+  /**
+   * The Trade Machine lives in a full-viewport overlay, not a workbench room, so
+   * its URL state is tracked separately from `activeTab`. When open, the `room`
+   * query param reads `trade`; a `?room=trade` deep link opens the overlay
+   * instead of routing `activeTab` to a (nonexistent) trade room.
+   */
+  isTradeOpen?: boolean;
+  onOpenTradeFromUrl?: () => void;
 }
 
 export function useArchitectDeskNavigation({
@@ -88,6 +96,8 @@ export function useArchitectDeskNavigation({
   setActiveTab,
   deskPlayerId,
   setDeskPlayerId,
+  isTradeOpen = false,
+  onOpenTradeFromUrl,
 }: UseArchitectDeskNavigationParams) {
   const hydratedRef = useRef(false);
 
@@ -96,7 +106,9 @@ export function useArchitectDeskNavigation({
     hydratedRef.current = true;
 
     const room = readRoomFromUrl();
-    if (room) {
+    if (room === 'trade') {
+      onOpenTradeFromUrl?.();
+    } else if (room) {
       setActiveTab(room);
     }
 
@@ -104,19 +116,22 @@ export function useArchitectDeskNavigation({
     if (player) {
       setDeskPlayerId(player);
     }
-  }, [setActiveTab, setDeskPlayerId]);
+  }, [setActiveTab, setDeskPlayerId, onOpenTradeFromUrl]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
-    url.searchParams.set(ROOM_PARAM, DESK_ROOM_SLUGS[activeTab]);
+    url.searchParams.set(
+      ROOM_PARAM,
+      isTradeOpen ? DESK_ROOM_SLUGS.trade : DESK_ROOM_SLUGS[activeTab]
+    );
     if (deskPlayerId) {
       url.searchParams.set(PLAYER_PARAM, deskPlayerId);
     } else {
       url.searchParams.delete(PLAYER_PARAM);
     }
     window.history.replaceState({}, '', url);
-  }, [activeTab, deskPlayerId]);
+  }, [activeTab, deskPlayerId, isTradeOpen]);
 
   const setActiveTabFromDesk = useCallback(
     (tab: ActiveTab) => {

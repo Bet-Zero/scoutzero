@@ -122,6 +122,7 @@ cockpit/
   TeamStatusStrip.tsx
   TeamStatusTile.tsx
   TopBar.tsx
+  TradeOverlay.tsx
   Workbench.tsx
   WorldMenu.tsx
   cockpitTokens.ts
@@ -533,5 +534,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-31T10:58:00.782Z*
+*Generated on: 2026-06-02T10:30:36.369Z*
 *Auto-updated by: npm run docs*

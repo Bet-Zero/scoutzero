@@ -28,6 +28,17 @@ export interface NavRailItem {
    * top and followed by a divider that separates them from supporting desks.
    */
   isHome?: boolean;
+  /**
+   * Forces the active/selected styling regardless of `activeTab`. Used by items
+   * whose surface lives outside the room-swapper (e.g. the Trade Machine, which
+   * opens as a full-viewport overlay), so the rail still reflects "this is open".
+   */
+  forceActive?: boolean;
+  /**
+   * Shows a small status dot on the item — e.g. a Trade Machine draft is in
+   * progress — so the way back in stays visible while the user is elsewhere.
+   */
+  indicator?: boolean;
 }
 
 interface NavRailProps {
@@ -102,7 +113,7 @@ export const NavRail = ({ activeTab, items }: NavRailProps) => {
         className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-3"
       >
         {items.map((item, index) => {
-          const isActive = activeTab === item.id;
+          const isActive = item.forceActive ?? activeTab === item.id;
           // A divider trails the last home item, separating the home base from
           // the supporting desks below it.
           const showHomeDivider =
@@ -131,9 +142,16 @@ export const NavRail = ({ activeTab, items }: NavRailProps) => {
                 />
                 <span
                   aria-hidden
-                  className="flex h-6 w-6 shrink-0 items-center justify-center text-[13px] font-semibold uppercase tracking-wider text-cockpit-text-muted group-hover:text-cockpit-text-primary"
+                  className="relative flex h-6 w-6 shrink-0 items-center justify-center text-[13px] font-semibold uppercase tracking-wider text-cockpit-text-muted group-hover:text-cockpit-text-primary"
                 >
                   {item.glyph}
+                  {item.indicator ? (
+                    <span
+                      className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[color:var(--team-primary,#4F46E5)] ring-2 ring-cockpit-bar"
+                      data-testid={`${item.id}-draft-indicator`}
+                      title="Draft in progress"
+                    />
+                  ) : null}
                 </span>
                 <span
                   className={`truncate transition-opacity ${expanded ? 'opacity-100' : 'opacity-0'}`}

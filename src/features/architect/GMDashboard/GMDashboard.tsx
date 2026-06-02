@@ -40,6 +40,7 @@ import {
   CockpitShell,
   CockpitStatePanel,
   SelectionDock,
+  TradeOverlay,
 } from '@/features/architect/cockpit';
 import type { NavRailItem, RoomDescriptor } from '@/features/architect/cockpit';
 import { useArchitectDeskNavigation, writeLastTeamSlug } from './hooks/useArchitectDeskNavigation';
@@ -147,6 +148,17 @@ export const GMDashboard = () => {
 
   const [deskPlayerId, setDeskPlayerId] = useState<string | null>(null);
   const [tradeDraftActive, setTradeDraftActive] = useState(false);
+  // Trade Machine renders as a full-viewport overlay rather than a room in the
+  // workbench swapper. `isTradeOpen` toggles its visibility; `hasOpenedTrade`
+  // gates the lazy first mount and then stays true so the overlay subtree —
+  // and the in-progress draft inside it — survives close/reopen untouched.
+  const [isTradeOpen, setIsTradeOpen] = useState(false);
+  const [hasOpenedTrade, setHasOpenedTrade] = useState(false);
+  const openTrade = useCallback(() => {
+    setHasOpenedTrade(true);
+    setIsTradeOpen(true);
+  }, []);
+  const closeTrade = useCallback(() => setIsTradeOpen(false), []);
   const [freeAgentOptionKeys, setFreeAgentOptionKeys] = useState<string[]>([]);
   const [freeAgentOptionEntries, setFreeAgentOptionEntries] = useState<
     FreeAgentSurfaceEntry[]
@@ -203,6 +215,8 @@ export const GMDashboard = () => {
     setActiveTab,
     deskPlayerId,
     setDeskPlayerId,
+    isTradeOpen,
+    onOpenTradeFromUrl: openTrade,
   });
 
   const workspaceContext = useArchitectWorkspaceContext({
@@ -378,7 +392,7 @@ export const GMDashboard = () => {
           setActiveTab('capfull');
           return;
         case 'trade':
-          setActiveTab('trade');
+          openTrade();
           return;
         case 'fa':
           setActiveTab('fa');
@@ -397,7 +411,7 @@ export const GMDashboard = () => {
           return;
       }
     },
-    [setActiveTab, openHistoryRoot]
+    [setActiveTab, openHistoryRoot, openTrade]
   );
 
   const actions = useArchitectActions({
@@ -555,7 +569,10 @@ export const GMDashboard = () => {
     currentYear,
     playersMap,
     onApplyTrade: actions.applyTradeToCapSheet as TradeSectionProps['onApplyTrade'],
-    onAfterTradeApplied: () => setActiveTab('capfull'),
+    onAfterTradeApplied: () => {
+      closeTrade();
+      setActiveTab('capfull');
+    },
     primaryTeamData: teamCapSheet,
     onEditContract: (player) =>
       actions.handleEditContract(
@@ -628,7 +645,9 @@ export const GMDashboard = () => {
         id: 'trade',
         label: 'Trade Machine',
         glyph: '⇄',
-        onActivate: () => setActiveTab('trade'),
+        onActivate: openTrade,
+        forceActive: isTradeOpen,
+        indicator: tradeDraftActive,
       },
       {
         id: 'fa',
@@ -665,7 +684,7 @@ export const GMDashboard = () => {
         title: 'Front Office Guide',
       },
     ],
-    [setActiveTab, openHistoryRoot]
+    [setActiveTab, openHistoryRoot, openTrade, isTradeOpen, tradeDraftActive]
   );
 
   if (authLoading || isLoading) {
@@ -827,10 +846,14 @@ export const GMDashboard = () => {
         />
       ),
     },
+    // The Trade Machine no longer renders as a workbench room — it opens as a
+    // full-viewport overlay (see modalsSlot). This descriptor only satisfies the
+    // `Record<ActiveTab, RoomDescriptor>` contract; `activeTab` is never set to
+    // 'trade', so this content is never mounted.
     trade: {
       id: 'trade',
       title: 'Trade Machine',
-      content: <TradeSection {...tradeSectionSurface} />,
+      content: null,
     },
     fa: {
       id: 'fa',
@@ -893,6 +916,15 @@ export const GMDashboard = () => {
     <>
       {isCockpitCapAuditEnabled() ? (
         <CapAuditDebugPanel worldId={worldId} />
+      ) : null}
+
+      {/* Trade Machine — full-viewport overlay. Lazily mounted on first open,
+          then kept mounted (visibility toggled) so the in-progress draft and
+          scroll/sub-panel state survive close/reopen exactly as left. */}
+      {hasOpenedTrade ? (
+        <TradeOverlay open={isTradeOpen} onClose={closeTrade}>
+          <TradeSection {...tradeSectionSurface} />
+        </TradeOverlay>
       ) : null}
 
       {showOffseasonModal && offseasonSummary && (
@@ -1021,6 +1053,7 @@ export const GMDashboard = () => {
       }
       onDismissReceipt={postActionReceipt.dismiss}
       tradeDraftActive={tradeDraftActive}
+      onResumeTradeDraft={openTrade}
       onNavigateToCompare={() => setActiveTab('compare')}
       onNavigateToGuide={() => setActiveTab('guide')}
       selectionDock={
@@ -1029,7 +1062,7 @@ export const GMDashboard = () => {
             playerLabel={selectionDockLabel}
             onViewCap={() => setActiveTab('cap')}
             onViewRoster={() => setActiveTab('roster')}
-            onOpenTrade={() => setActiveTab('trade')}
+            onOpenTrade={openTrade}
             onClear={() => setDeskPlayerId(null)}
           />
         ) : null

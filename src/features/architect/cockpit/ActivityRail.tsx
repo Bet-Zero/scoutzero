@@ -42,6 +42,8 @@ interface ActivityRailProps {
   onNavigateReceiptHistory: () => void;
   onDismissReceipt: () => void;
   tradeDraftActive?: boolean;
+  /** Reopen the Trade Machine overlay from the in-progress draft card. */
+  onResumeTradeDraft?: () => void;
   onNavigateToCompare?: () => void;
   onNavigateToGuide?: () => void;
 }
@@ -171,6 +173,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       onNavigateReceiptHistory,
       onDismissReceipt,
       tradeDraftActive = false,
+      onResumeTradeDraft,
       onNavigateToCompare,
       onNavigateToGuide,
     },
@@ -299,16 +302,32 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
               label="In Progress"
               testId="cockpit-activity-rail-in-progress"
             >
-              <div
-                className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-[11px] text-cockpit-watch"
-                data-testid="cockpit-activity-rail-trade-draft"
-              >
-                <span className="font-medium">Trade draft</span>
-                <span className="text-cockpit-text-muted"> · </span>
-                <span className="text-cockpit-text-secondary">
-                  Local until applied — not committed world truth.
-                </span>
-              </div>
+              {onResumeTradeDraft ? (
+                <button
+                  type="button"
+                  onClick={onResumeTradeDraft}
+                  className="w-full rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-left text-[11px] text-cockpit-watch transition-colors hover:bg-cockpit-watch/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-cockpit-watch/50"
+                  data-testid="cockpit-activity-rail-trade-draft"
+                  title="Resume trade draft"
+                >
+                  <span className="font-medium">Trade draft</span>
+                  <span className="text-cockpit-text-muted"> · </span>
+                  <span className="text-cockpit-text-secondary">
+                    Local until applied. Click to resume.
+                  </span>
+                </button>
+              ) : (
+                <div
+                  className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-[11px] text-cockpit-watch"
+                  data-testid="cockpit-activity-rail-trade-draft"
+                >
+                  <span className="font-medium">Trade draft</span>
+                  <span className="text-cockpit-text-muted"> · </span>
+                  <span className="text-cockpit-text-secondary">
+                    Local until applied — not committed world truth.
+                  </span>
+                </div>
+              )}
             </RailSection>
           ) : null}
 

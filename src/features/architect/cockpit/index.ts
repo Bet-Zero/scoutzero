@@ -8,6 +8,7 @@ export { RoomFrame } from './RoomFrame';
 export { NavRail, type NavRailItem } from './NavRail';
 export { TopBar } from './TopBar';
 export { Workbench, type RoomDescriptor } from './Workbench';
+export { TradeOverlay } from './TradeOverlay';
 export { ActivityRail, type ActivityRailHandle } from './ActivityRail';
 export { CapPostureMeter } from './CapPostureMeter';
 export { ModePill } from './ModePill';

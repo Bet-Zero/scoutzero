@@ -51,6 +51,7 @@ interface CockpitShellProps {
   onDismissReceipt: () => void;
   selectionDock?: ReactNode;
   tradeDraftActive?: boolean;
+  onResumeTradeDraft?: () => void;
   onNavigateToCompare?: () => void;
   onNavigateToGuide?: () => void;
   banner?: ReactNode;
@@ -81,6 +82,7 @@ export const CockpitShell = ({
   onDismissReceipt,
   selectionDock,
   tradeDraftActive = false,
+  onResumeTradeDraft,
   onNavigateToCompare,
   onNavigateToGuide,
   banner,
@@ -137,6 +139,7 @@ export const CockpitShell = ({
           onNavigateReceiptHistory={onNavigateReceiptHistory}
           onDismissReceipt={onDismissReceipt}
           tradeDraftActive={tradeDraftActive}
+          onResumeTradeDraft={onResumeTradeDraft}
           onNavigateToCompare={onNavigateToCompare}
           onNavigateToGuide={onNavigateToGuide}
         />
