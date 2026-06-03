@@ -1212,6 +1212,9 @@ export const GMDashboard = () => {
       onTradePinnedPlayer={(playerId) => openTradeWithPlayers([playerId])}
       onTradeAllPinned={() => openTradeWithPlayers(pinnedPlayerIds)}
       onPlayerAction={handlePlayerAction}
+      resolvePlayerLabel={(playerId) =>
+        resolveFocusedPlayerLabel(playerId) ?? playerId
+      }
       banner={banner}
       modals={modalsSlot}
     />

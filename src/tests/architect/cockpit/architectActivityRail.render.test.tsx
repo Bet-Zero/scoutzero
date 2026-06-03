@@ -232,17 +232,56 @@ describe('ActivityRail — Slice 1 audit', () => {
     ).toBeNull();
 
     // Trade + Unpin route through the unified sink with rail context.
-    fireEvent.click(screen.getByTestId('cockpit-activity-rail-pinned-p1-trade'));
+    fireEvent.click(
+      screen.getByTestId('cockpit-activity-rail-pinned-p1-actions-trade')
+    );
     expect(onPlayerAction).toHaveBeenCalledWith(
       'trade',
       expect.objectContaining({ playerId: 'p1', sourceRoom: 'rail' })
     );
     fireEvent.click(
-      screen.getByTestId('cockpit-activity-rail-pinned-fa1-unpin')
+      screen.getByTestId('cockpit-activity-rail-pinned-fa1-actions-unpin')
     );
     expect(onPlayerAction).toHaveBeenCalledWith(
       'unpin',
       expect.objectContaining({ playerId: 'fa1', isFreeAgentTarget: true })
+    );
+  });
+
+  it('lists receipt changed-players with inspection actions, carries eventId, and never offers pin', () => {
+    const onPlayerAction = vi.fn();
+    renderRail({
+      receipt: RECEIPT,
+      onPlayerAction,
+      resolvePlayerLabel: (id) => (id === 'p1' ? 'Anthony Davis' : id),
+    });
+
+    const row = screen.getByTestId('cockpit-activity-rail-receipt-player-p1');
+    expect(row).toHaveTextContent('Anthony Davis');
+
+    fireEvent.click(
+      screen.getByTestId(
+        'cockpit-activity-rail-receipt-player-p1-actions-overflow'
+      )
+    );
+    // No pin affordance on receipt rows (no auto-pin contract).
+    expect(
+      screen.queryByTestId(
+        'cockpit-activity-rail-receipt-player-p1-actions-overflow-pin'
+      )
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByTestId(
+        'cockpit-activity-rail-receipt-player-p1-actions-overflow-view-on-roster'
+      )
+    );
+    expect(onPlayerAction).toHaveBeenCalledWith(
+      'view-on-roster',
+      expect.objectContaining({
+        playerId: 'p1',
+        sourceRoom: 'receipt',
+        eventId: 'evt_1',
+      })
     );
   });
 });

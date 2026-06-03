@@ -59,6 +59,7 @@ interface CockpitShellProps {
   onTradePinnedPlayer?: (playerId: string) => void;
   onTradeAllPinned?: () => void;
   onPlayerAction?: (action: PlayerAction, context: PlayerActionContext) => void;
+  resolvePlayerLabel?: (playerId: string) => string;
   tradeDraftActive?: boolean;
   onResumeTradeDraft?: () => void;
   onNavigateToCompare?: () => void;
@@ -95,6 +96,7 @@ export const CockpitShell = ({
   onTradePinnedPlayer,
   onTradeAllPinned,
   onPlayerAction,
+  resolvePlayerLabel,
   tradeDraftActive = false,
   onResumeTradeDraft,
   onNavigateToCompare,
@@ -156,6 +158,7 @@ export const CockpitShell = ({
           onTradePinnedPlayer={onTradePinnedPlayer}
           onTradeAllPinned={onTradeAllPinned}
           onPlayerAction={onPlayerAction}
+          resolvePlayerLabel={resolvePlayerLabel}
           tradeDraftActive={tradeDraftActive}
           onResumeTradeDraft={onResumeTradeDraft}
           onNavigateToCompare={onNavigateToCompare}

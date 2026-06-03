@@ -67,6 +67,8 @@ interface ActivityRailProps {
    * per-pin callbacks above when absent.
    */
   onPlayerAction?: (action: PlayerAction, context: PlayerActionContext) => void;
+  /** Resolve a committed-receipt player id to a display label (visual only). */
+  resolvePlayerLabel?: (playerId: string) => string;
   tradeDraftActive?: boolean;
   /** Reopen the Trade Machine overlay from the in-progress draft card. */
   onResumeTradeDraft?: () => void;
@@ -254,6 +256,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       onTradePinnedPlayer,
       onTradeAllPinned,
       onPlayerAction,
+      resolvePlayerLabel,
       tradeDraftActive = false,
       onResumeTradeDraft,
       onNavigateToCompare,
@@ -424,6 +427,52 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                     ) : null}
                   </div>
                 ) : null}
+                {onPlayerAction && receipt.primaryPlayerIds.length > 0 ? (
+                  <ul
+                    className="flex flex-col gap-1"
+                    data-testid="cockpit-activity-rail-receipt-players"
+                  >
+                    {receipt.primaryPlayerIds.map((playerId) => {
+                      const label = resolvePlayerLabel?.(playerId) ?? playerId;
+                      // Receipt rows route to inspection surfaces only — never
+                      // auto-pin (contract). eventId carries the committed event
+                      // for Slice 4's Find-in-History deepening.
+                      const receiptContext: PlayerActionContext = {
+                        playerId,
+                        playerLabel: label,
+                        sourceRoom: 'receipt',
+                        eventId: receipt.eventId,
+                      };
+                      return (
+                        <li
+                          key={playerId}
+                          className="flex items-center gap-1.5 rounded border border-cockpit-edge bg-cockpit-slab px-2 py-1"
+                          data-testid={`cockpit-activity-rail-receipt-player-${playerId}`}
+                        >
+                          <span
+                            className="min-w-0 flex-1 truncate text-[11px] font-medium text-cockpit-text-primary"
+                            title={label}
+                          >
+                            {label}
+                          </span>
+                          <PlayerActionMenu
+                            context={receiptContext}
+                            visibleActions={[]}
+                            overflowActions={[
+                              'view-on-roster',
+                              'view-on-cap',
+                              'find-in-history',
+                              'compare-impact',
+                              'guide-next-move',
+                            ]}
+                            testIdPrefix={`cockpit-activity-rail-receipt-player-${playerId}-actions`}
+                            onAction={onPlayerAction}
+                          />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
               </>
             ) : (
               <p className="text-xs text-cockpit-text-muted">
@@ -485,7 +534,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                         context={pinnedContext}
                         visibleActions={['trade', 'unpin']}
                         overflowActions={['view-on-roster', 'view-on-cap']}
-                        testIdPrefix={`cockpit-activity-rail-pinned-${player.id}`}
+                        testIdPrefix={`cockpit-activity-rail-pinned-${player.id}-actions`}
                         onAction={(action, ctx) => {
                           if (action === 'trade') {
                             onPlayerAction
