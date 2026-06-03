@@ -80,7 +80,25 @@ Notes / results:
 
 ---
 
-## Slice 2 — Unified `PlayerActionMenu`  → **IN PROGRESS (2a✓ 2b✓ 2c✓ 2d-cap✓ → 2d-roster next)**
+## Slice 2 — Unified `PlayerActionMenu`  → **IN PROGRESS (2a✓ 2b✓ 2c✓ 2d✓ → 2e next)**
+
+**2d-roster result (Roster card adoption):** the shared legacy cards
+(`StarterCard`/`RotationCard`/`BenchCard`) gained an additive optional `menuSlot` rendered in the
+outer `overflow-visible` wrapper (so the dropdown isn't clipped by the inner card's `overflow-hidden`)
+with click/keydown stop-propagation so the card click still = Open. `RosterSection/index.tsx` passes
+a `renderPlayerMenu(player)` render-prop through (default off → roster builder unchanged).
+`RosterVisual` builds the shared overflow-only `PlayerActionMenu` per card (sourceRoom `roster`),
+threaded via the architect `RosterSection` wrapper and `GMDashboard` roster room with
+`handlePlayerAction` + `pinnedPlayerIds`. Verified: typecheck, build, and the dashboard render tests
+that exercise roster cards (`stage2c.playerRosterContinuity` 29, `GMDashboard.smoke` 8,
+`rosterVisual.adapterBoundary`, cockpit suites) all green.
+
+**⚠️ Pre-existing failure (NOT caused by this work; confirmed on clean HEAD via stash):**
+`src/tests/architect/dashboardWorldBoundary.e109.test.tsx` (5 tests) fails with
+`No "EditContractModal" export is defined on the mock` — the test's `vi.mock` returns only a
+`default` export, but `GMDashboard` imports `{ EditContractModal }` **named**, so the mock crashes
+when the contract modal renders. Different mission area (world-boundary modal threading); left for a
+separate fix (the mock needs a named `EditContractModal` export alongside `default`).
 
 **2d-cap result (current-season Cap Sheet adoption):** `CapSheet` rows now render the shared
 overflow-only `PlayerActionMenu` in the name cell (hover-reveal; name-click stays Open). All actions

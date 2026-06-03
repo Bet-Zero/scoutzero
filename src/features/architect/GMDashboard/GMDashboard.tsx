@@ -926,6 +926,8 @@ export const GMDashboard = () => {
           }
           highlightPlayerId={focusedPlayerId}
           highlightPlayerIds={focusedPlayerIds}
+          onPlayerAction={handlePlayerAction}
+          pinnedPlayerIds={pinnedPlayerIds}
         />
       ),
     },

@@ -3,7 +3,7 @@ import { StarterCard } from './StarterCard';
 import { RotationCard } from './RotationCard';
 import { BenchCard } from './BenchCard';
 import { EmptySlot } from './EmptySlot';
-import type { MouseEvent } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import type {
   MissingRosterPlayer,
   NormalizedRosterPlayer,
@@ -19,6 +19,7 @@ type RosterCardProps = {
   isExport?: boolean;
   onSelect?: (event: MouseEvent<HTMLElement>) => void;
   isHighlighted?: boolean;
+  menuSlot?: ReactNode;
 };
 
 type RosterSectionProps = {
@@ -45,6 +46,12 @@ type RosterSectionProps = {
    * outline. Visual only.
    */
   isPlayerHighlighted?: (player: RosterSectionPlayer) => boolean;
+  /**
+   * Optional per-card corner overlay (interconnectivity Slice 2): returns the
+   * shared PlayerActionMenu for a card. Additive — when omitted (e.g. the
+   * roster builder) cards render exactly as before.
+   */
+  renderPlayerMenu?: (player: RosterSectionPlayer) => ReactNode;
 };
 
 const getSectionClass = (
@@ -89,6 +96,7 @@ export const RosterSection = ({
   previewSpacing = false,
   onSelectPlayer,
   isPlayerHighlighted,
+  renderPlayerMenu,
 }: RosterSectionProps) => {
   const CardComponent = cardMap[section];
   const sectionClass = getSectionClass(section, previewSpacing);
@@ -115,6 +123,7 @@ export const RosterSection = ({
               isExport={isExport}
               onSelect={handleSelect}
               isHighlighted={highlighted}
+              menuSlot={renderPlayerMenu?.(player)}
             />
           );
         }
