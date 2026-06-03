@@ -3,7 +3,7 @@
 **Status:** Product / UX planning slices  
 **Branch:** `feature/architect-cockpit-intelligence`  
 **Date:** 2026-06-02  
-**Source map:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
+**Source map:** `ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
 **Scope:** Front-end behavior, UX contracts, cross-surface handoffs, and acceptance criteria.  
 **Non-scope:** Code implementation details, TypeScript shapes, file edit instructions, Firestore schema changes, mutation-pipeline changes, or test-command planning.
 
@@ -618,7 +618,7 @@ These rules apply to every slice.
 
 After this slices doc is accepted, the next planning artifact should be:
 
-`docs/architect/ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`
+`ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`
 
 That doc should fully specify Slice 1 before any implementation begins.
 

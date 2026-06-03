@@ -28,8 +28,11 @@ If you hit a genuine blocker, record it in the progress ledger and stop — do n
 2. `ARCHITECT_IMPLEMENTATION_MASTER_SPEC.md` — the review, gap map, cross-cutting rules, authority-
    label vocabulary, build order, and global verification strategy.
 3. The slice spec for the slice you are currently on (`…_SLICE_0N_*.md`).
-4. The source UX contract that slice links to, under
-   `active_working_docs/architect_ux_interconnectivity/`, only if you need the product rationale.
+4. The source UX contract that slice links to — a sibling `ARCHITECT_*_CONTRACT.md` file in **this
+   same folder** — only if you need the product rationale.
+
+All docs referenced in this spec set live as siblings in this one folder
+(`active_working_docs/architect_ux_interconnectivity/`); references use bare filenames.
 
 You do **not** need to re-read finished slices.
 

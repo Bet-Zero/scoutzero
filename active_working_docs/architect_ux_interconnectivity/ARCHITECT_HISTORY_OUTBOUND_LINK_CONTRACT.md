@@ -3,12 +3,12 @@
 **Status:** Product / UX contract  
 **Branch:** `feature/architect-cockpit-intelligence`  
 **Date:** 2026-06-03  
-**Parent map:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
-**Parent slices:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
+**Parent map:** `ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
+**Parent slices:** `ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
 **Related contracts:**  
-- `docs/architect/ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`  
-- `docs/architect/ARCHITECT_PLAYER_ACTION_MENU_CONTRACT.md`  
-- `docs/architect/ARCHITECT_TRADE_OVERLAY_ENTRY_CONTRACT.md`  
+- `ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`  
+- `ARCHITECT_PLAYER_ACTION_MENU_CONTRACT.md`  
+- `ARCHITECT_TRADE_OVERLAY_ENTRY_CONTRACT.md`  
 **Slice:** History Outbound Link Contract  
 **Scope:** How committed History events route users back to affected players, teams, rooms, receipts, comparison, and guide context.  
 **Non-scope:** Code implementation details, component edits, TypeScript shapes, Firestore schema changes, mutation-pipeline changes, event-schema rewrites, or test-command planning.
@@ -449,10 +449,10 @@ Recommendation: player action menu is safest long-term because player availabili
 
 The final UX contract before implementation planning is:
 
-`docs/architect/ARCHITECT_COMPARE_GUIDE_FOLLOW_THROUGH_CONTRACT.md`
+`ARCHITECT_COMPARE_GUIDE_FOLLOW_THROUGH_CONTRACT.md`
 
 After that document is created, stop writing UX contracts and create:
 
-`docs/architect/ARCHITECT_IMPLEMENTATION_SLICE_01_ACTIVITY_RAIL_PLAYER_ACTIONS.md`
+`ARCHITECT_IMPLEMENTATION_SLICE_01_ACTIVITY_RAIL_PLAYER_ACTIONS.md`
 
 That implementation slice should use the completed contracts as guardrails and should focus only on the first buildable cut of Activity Rail + Player Actions + Trade Entry behavior.

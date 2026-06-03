@@ -3,8 +3,8 @@
 **Status:** Product / UX contract  
 **Branch:** `feature/architect-cockpit-intelligence`  
 **Date:** 2026-06-02  
-**Parent map:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
-**Parent slices:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
+**Parent map:** `ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
+**Parent slices:** `ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
 **Slice:** Activity Rail Contract  
 **Scope:** Right-side Activity Rail behavior, ordering, labels, cross-room links, state boundaries, empty states, and acceptance criteria.  
 **Non-scope:** Code implementation details, component file edits, TypeScript shapes, Firestore schema changes, mutation-pipeline changes, or test-command planning.
@@ -843,7 +843,7 @@ This does not mean every future warning, every FA target flow, or every History 
 
 After this contract is accepted, the next planning step should be:
 
-`docs/architect/ARCHITECT_PLAYER_ACTION_MENU_CONTRACT.md`
+`ARCHITECT_PLAYER_ACTION_MENU_CONTRACT.md`
 
 However, if the Activity Rail contract feels sufficiently clear, it is also reasonable to pause contract writing and create the first implementation prompt for the Activity Rail slice.
 

@@ -3,9 +3,9 @@
 **Status:** Product / UX contract  
 **Branch:** `feature/architect-cockpit-intelligence`  
 **Date:** 2026-06-02  
-**Parent map:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
-**Parent slices:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
-**Related contract:** `docs/architect/ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`  
+**Parent map:** `ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
+**Parent slices:** `ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
+**Related contract:** `ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`  
 **Slice:** Player Action Menu Contract  
 **Scope:** Cross-room player behavior, player action vocabulary, source/destination surfaces, carried player context, highlight rules, pinning rules, and acceptance criteria.  
 **Non-scope:** Code implementation details, component file edits, TypeScript shapes, Firestore schema changes, mutation-pipeline changes, or test-command planning.
@@ -614,7 +614,7 @@ After this contract is accepted, there are two reasonable paths:
 
 Create:
 
-`docs/architect/ARCHITECT_TRADE_OVERLAY_ENTRY_CONTRACT.md`
+`ARCHITECT_TRADE_OVERLAY_ENTRY_CONTRACT.md`
 
 This is useful if the goal is to finish the key UX contracts before implementation.
 

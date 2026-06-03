@@ -3,13 +3,13 @@
 **Status:** Product / UX contract  
 **Branch:** `feature/architect-cockpit-intelligence`  
 **Date:** 2026-06-03  
-**Parent map:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
-**Parent slices:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
+**Parent map:** `ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
+**Parent slices:** `ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
 **Related contracts:**  
-- `docs/architect/ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`  
-- `docs/architect/ARCHITECT_PLAYER_ACTION_MENU_CONTRACT.md`  
-- `docs/architect/ARCHITECT_TRADE_OVERLAY_ENTRY_CONTRACT.md`  
-- `docs/architect/ARCHITECT_HISTORY_OUTBOUND_LINK_CONTRACT.md`  
+- `ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`  
+- `ARCHITECT_PLAYER_ACTION_MENU_CONTRACT.md`  
+- `ARCHITECT_TRADE_OVERLAY_ENTRY_CONTRACT.md`  
+- `ARCHITECT_HISTORY_OUTBOUND_LINK_CONTRACT.md`  
 **Slice:** Compare / Guide Follow-Through Contract  
 **Scope:** How Compare and Guide are launched from receipts, warnings, pinned players, History events, cap posture, trade context, and other cockpit surfaces.  
 **Non-scope:** Code implementation details, component edits, TypeScript shapes, Firestore schema changes, mutation-pipeline changes, AI recommendation engines, or test-command planning.
@@ -522,7 +522,7 @@ Do not add more broad UX contracts before implementation.
 
 Next artifact:
 
-`docs/architect/ARCHITECT_IMPLEMENTATION_SLICE_01_ACTIVITY_RAIL_PLAYER_ACTIONS.md`
+`ARCHITECT_IMPLEMENTATION_SLICE_01_ACTIVITY_RAIL_PLAYER_ACTIONS.md`
 
 That implementation slice should convert the contracts into the first buildable agent prompt/spec, focused on:
 

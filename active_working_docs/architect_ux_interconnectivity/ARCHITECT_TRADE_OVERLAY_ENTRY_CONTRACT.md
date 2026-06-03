@@ -3,11 +3,11 @@
 **Status:** Product / UX contract  
 **Branch:** `feature/architect-cockpit-intelligence`  
 **Date:** 2026-06-03  
-**Parent map:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
-**Parent slices:** `docs/architect/ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
+**Parent map:** `ARCHITECT_UX_INTERCONNECTIVITY_MAP.md`  
+**Parent slices:** `ARCHITECT_UX_INTERCONNECTIVITY_SLICES.md`  
 **Related contracts:**  
-- `docs/architect/ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`  
-- `docs/architect/ARCHITECT_PLAYER_ACTION_MENU_CONTRACT.md`  
+- `ARCHITECT_ACTIVITY_RAIL_CONTRACT.md`  
+- `ARCHITECT_PLAYER_ACTION_MENU_CONTRACT.md`  
 **Slice:** Trade Overlay Entry Contract  
 **Scope:** All user-facing ways the Trade Machine opens, resumes, receives context, preserves local draft state, and hands off after apply.  
 **Non-scope:** Code implementation details, component edits, TypeScript shapes, mutation-pipeline changes, Firestore schema changes, or test-command planning.

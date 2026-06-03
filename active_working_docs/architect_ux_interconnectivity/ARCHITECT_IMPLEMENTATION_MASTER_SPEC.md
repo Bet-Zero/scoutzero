@@ -3,7 +3,8 @@
 **Status:** Implementation spec (master)
 **Branch:** `feature/architect-cockpit-intelligence`
 **Date:** 2026-06-03
-**Source contracts:** `active_working_docs/architect_ux_interconnectivity/`
+**Source contracts:** the `ARCHITECT_*_CONTRACT.md` files (+ `ARCHITECT_UX_INTERCONNECTIVITY_MAP.md` / `…_SLICES.md`) in this folder
+**Location:** all docs in this spec set are siblings in `active_working_docs/architect_ux_interconnectivity/`; cross-references use bare filenames
 **Scope:** Convert the 7 Architect UX contracts into an executable, gap-closing implementation plan against existing code.
 **Non-scope:** Re-deriving the product/UX rationale (already settled in the contracts). This spec assumes the contracts are accepted as the product truth.
 
