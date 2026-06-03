@@ -140,6 +140,8 @@ export const FreeAgentPool = ({
   requestedOpenSelectionKey = null,
   onRequestedOpenSelectionHandled,
   onSelectedEntriesChange,
+  onPlayerAction,
+  pinnedPlayerIds,
 }: FreeAgentPoolProps) => {
   const [uncontrolledSelectedPlayerKeys, setUncontrolledSelectedPlayerKeys] =
     useState<string[]>([]);
@@ -381,6 +383,8 @@ export const FreeAgentPool = ({
                   openMenuSelectionKey={openMenuSelectionKey}
                   setOpenMenuSelectionKey={setOpenMenuSelectionKey}
                   onOpenContractModal={openContractModal}
+                  onPlayerAction={onPlayerAction}
+                  pinnedPlayerIds={pinnedPlayerIds}
                 />
               </li>
             );

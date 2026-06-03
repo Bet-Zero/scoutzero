@@ -51,6 +51,8 @@ const FreeAgencySection = ({
   requestedOpenSelectionKey,
   onRequestedOpenSelectionHandled,
   onSelectedEntriesChange,
+  onPlayerAction,
+  pinnedPlayerIds,
 }: FreeAgencySectionProps) => {
   const offerSheetSectionAvailability = actionOwner.offerSheetSectionAvailability;
   const offerSheetLifecycleActionOwner =
@@ -154,6 +156,8 @@ const FreeAgencySection = ({
         requestedOpenSelectionKey={requestedOpenSelectionKey}
         onRequestedOpenSelectionHandled={onRequestedOpenSelectionHandled}
         onSelectedEntriesChange={onSelectedEntriesChange}
+        onPlayerAction={onPlayerAction}
+        pinnedPlayerIds={pinnedPlayerIds}
       />
     </div>
   );

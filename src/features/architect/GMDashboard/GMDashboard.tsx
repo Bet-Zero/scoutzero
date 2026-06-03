@@ -734,6 +734,8 @@ export const GMDashboard = () => {
     onRequestedOpenSelectionHandled: () => setRequestedFreeAgentOpenKey(null),
     onSelectedEntriesChange: setFreeAgentOptionEntries,
     onAfterSigningComplete: () => setActiveTab('capfull'),
+    onPlayerAction: handlePlayerAction,
+    pinnedPlayerIds,
   };
   const offseasonSectionSurface: OffseasonSectionProps = {
     teamCapSheet,

@@ -80,7 +80,30 @@ Notes / results:
 
 ---
 
-## Slice 2 — Unified `PlayerActionMenu`  → **IN PROGRESS (2a✓ 2b✓ 2c✓ 2d✓ → 2e next)**
+## Slice 2 — Unified `PlayerActionMenu`  → **DONE (2a✓ 2b✓ 2c✓ 2d✓ 2e✓)**
+
+**2e-fa result (Free Agency Pin-as-Target):** `FreeAgentRow`'s existing "•••" menu gained unified
+items — **Pin as target / Remove target** (routes `pin`/`unpin` with `isFreeAgentTarget: true` →
+`freeAgentTargetIds` → the rail "Target" badge from 2e-rail), plus **Compare fit** / **Guide path**
+— all via a new optional `onPlayerAction`. Sign Free Agent / View Profile stay FA-only (signing
+remains in `EditContractModal`). Threaded GMDashboard → FreeAgencySection → FreeAgentPool →
+FreeAgentRow (+ `pinnedPlayerIds` for the Pin/Remove label). Per the slice's acceptance list, FA is
+intentionally NOT on the "uses the shared PlayerActionMenu component" surface list — its requirement
+is just Pin-as-Target + signing-in-modal. Focused `freeAgentRow.targetPin.test.tsx` (3) covers it.
+Verified: typecheck, build.
+
+**2e overall:** rail pinned rows (608fe4c3) + receipt rows (46082132) + FA Pin-as-Target. The
+FA-target subtype (open-question #1) is now end-to-end: pin a FA as Target → appears in the rail
+Pinned board with a "Target" badge.
+
+**⚠️ Systemic pre-existing test-infra failure (confirmed on clean HEAD; a large share of the broad
+`test:ui` suite's ~165 failures):** many architect `.tsx` tests `vi.mock('@/shared/components/
+EditContractModal', …)` returning only a `default` export, but the app imports it **named**
+(`import { EditContractModal }`). Every such test crashes when the contract modal renders —
+`dashboardWorldBoundary.e109` (5), `freeAgentPool.surface.e86` + `freeAgentPool.offerSheetInitiation`
+(11), and likely more. NOT caused by this work. Fix (separate, out-of-mission): add a named
+`EditContractModal` export to each mock (or a shared mock helper). Slice 2 surfaces were instead
+verified with focused tests that don't render the modal.
 
 **2d-roster result (Roster card adoption):** the shared legacy cards
 (`StarterCard`/`RotationCard`/`BenchCard`) gained an additive optional `menuSlot` rendered in the
@@ -143,19 +166,24 @@ pre-existing failures) and never actually ran. Fixed to a named import.
 Spec: `ARCHITECT_IMPLEMENTATION_SLICE_02_PLAYER_ACTION_MENU.md`
 Depends on: Slice 1 (`authorityLabel.ts`)
 
-- [ ] New `cockpit/PlayerActionMenu.tsx` + `cockpit/playerActionContext.ts`; exported
-- [ ] Navigation-intent handlers wired in `GMDashboard.tsx` (no new mutation authority)
-- [ ] Adopted on Roster, Cap Sheet, pinned-rail rows, receipt rows
-- [ ] Full Cap inline kebab refactored to shared menu (test ids updated)
-- [ ] No auto-pin on click; Open = inspect (`EditContractModal`)
-- [ ] FA Pin adds a "Target"-badged pin (one board)
-- [ ] Multi-player highlight correct; no fake rows for absent players
-- [ ] `npm run typecheck` ✅/❌
-- [ ] `npm run test:architect --reporter=dot` ✅/❌
-- [ ] `npm run validate:project` ✅/❌
-- [ ] `npm run build` ✅/❌
-- [ ] `npm run dev` acceptance walkthrough done
-- [ ] Committed (hash: ______)
+- [x] New `cockpit/PlayerActionMenu.tsx` + `cockpit/playerActionContext.ts`; exported (2a) +
+      `playerActionRouter.ts` dispatcher (2b)
+- [x] Navigation-intent handlers wired in `GMDashboard.tsx` (`handlePlayerAction` via
+      `routePlayerAction`, no new mutation authority) (2c)
+- [x] Adopted on Roster (2d), Cap Sheet (2d), Full Cap (2c), pinned-rail rows (2e), receipt rows (2e)
+- [x] Full Cap inline kebab refactored to shared menu (test ids → shared `-overflow` scheme) (2c)
+- [x] No auto-pin on click; Open = inspect (`EditContractModal`) — name/card click stays Open;
+      receipt rows never offer pin
+- [x] FA Pin adds a "Target"-badged pin (one board) — `freeAgentTargetIds` + rail Target badge (2e)
+- [x] Multi-player highlight correct (manualFocus ∪ pins ∪ receipt); no fake rows for absent players
+- [x] `npm run typecheck` ✅ (each chunk)
+- [~] `npm run test:architect --reporter=dot` — node gate green; `.tsx` surfaces verified via scoped
+      `test:ui` (node config skips `.tsx`). Pre-existing EditContractModal-mock failures documented above.
+- [x] `npm run validate:project` ✅ (2a)
+- [x] `npm run build` ✅ (each UI chunk)
+- [ ] `npm run dev` acceptance walkthrough (manual — recommend before final sign-off)
+- [x] Committed: 2a 9b87a1ee · 2b db93831f · 2c b8cda526 · 2d c796369b + 541ef544 ·
+      2e 608fe4c3 + 46082132 + (2e-fa pending this commit)
 
 Notes / results:
 

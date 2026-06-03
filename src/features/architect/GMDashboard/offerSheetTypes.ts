@@ -11,7 +11,10 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import type { FreeAgencyActionOwner } from './hooks/useArchitectActions';
-import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
+import type {
+  FreeAgentSurfaceEntry,
+  FreeAgentPoolProps,
+} from '@/features/architect/freeAgency/FreeAgentPool/types';
 
 type LooseRecord = Record<string, unknown>;
 
@@ -65,4 +68,8 @@ export interface FreeAgencySectionProps {
   requestedOpenSelectionKey?: string | null;
   onRequestedOpenSelectionHandled?: () => void;
   onSelectedEntriesChange?: (entries: FreeAgentSurfaceEntry[]) => void;
+  /** Unified player-action sink (Slice 2e): FA Pin-as-Target / Compare / Guide. */
+  onPlayerAction?: FreeAgentPoolProps['onPlayerAction'];
+  /** Pinned ids so FA rows can present Pin vs Remove-target. */
+  pinnedPlayerIds?: string[];
 }

@@ -14,6 +14,7 @@ import React, { useEffect, useRef } from 'react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
 import { TeamCodeMap, type TeamCode } from '@/constants/teamList';
+import type { PlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
 import type { FreeAgentRowProps } from './types';
 
 function getTeamLogoId(teamCode: string | null | undefined): string {
@@ -30,8 +31,18 @@ export const FreeAgentRow = ({
   openMenuSelectionKey,
   setOpenMenuSelectionKey,
   onOpenContractModal,
+  onPlayerAction,
+  pinnedPlayerIds = [],
 }: FreeAgentRowProps) => {
   const { surfacePlayer: player, freeAgent } = entry;
+  const faPlayerId =
+    entry.playerId ||
+    (typeof player.id === 'string' ? player.id : null) ||
+    (typeof player.player_id === 'string' ? player.player_id : null) ||
+    null;
+  const isTargetPinned = faPlayerId
+    ? pinnedPlayerIds.includes(faPlayerId)
+    : false;
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -242,6 +253,51 @@ export const FreeAgentRow = ({
             >
               View Profile
             </button>
+            {onPlayerAction && faPlayerId
+              ? (() => {
+                  const faContext: PlayerActionContext = {
+                    playerId: faPlayerId,
+                    playerLabel: formattedName || faPlayerId,
+                    sourceRoom: 'fa',
+                    isFreeAgentTarget: true,
+                  };
+                  return (
+                    <>
+                      <button
+                        onClick={() => {
+                          setOpenMenuSelectionKey(null);
+                          onPlayerAction(
+                            isTargetPinned ? 'unpin' : 'pin',
+                            faContext
+                          );
+                        }}
+                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                        data-testid={`free-agent-row-target-${entry.selectionKey}`}
+                      >
+                        {isTargetPinned ? 'Remove target' : 'Pin as target'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpenMenuSelectionKey(null);
+                          onPlayerAction('compare-impact', faContext);
+                        }}
+                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                      >
+                        Compare fit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpenMenuSelectionKey(null);
+                          onPlayerAction('guide-next-move', faContext);
+                        }}
+                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                      >
+                        Guide path
+                      </button>
+                    </>
+                  );
+                })()
+              : null}
           </div>
         )}
       </div>
