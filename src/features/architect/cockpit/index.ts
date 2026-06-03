@@ -25,3 +25,16 @@ export {
   type AuthorityLabelResult,
   type AuthorityLabelInput,
 } from './authorityLabel';
+export {
+  PlayerActionMenu,
+  type PlayerActionMenuProps,
+  type PlayerActionMenuExtraItem,
+} from './PlayerActionMenu';
+export {
+  buildPlayerActionContext,
+  type PlayerAction,
+  type PlayerActionContext,
+  type PlayerActionSourceRoom,
+  type PlayerActionContextPlayerLike,
+  type BuildPlayerActionContextInput,
+} from './playerActionContext';

@@ -116,6 +116,7 @@ cockpit/
   CockpitStatePanel.tsx
   ModePill.tsx
   NavRail.tsx
+  PlayerActionMenu.tsx
   README.md
   RoomFrame.tsx
   TeamStatusStrip.tsx
@@ -127,6 +128,7 @@ cockpit/
   authorityLabel.ts
   cockpitTokens.ts
   index.ts
+  playerActionContext.ts
   useTeamPalette.ts
 comparison/
   capDelta.ts
@@ -534,5 +536,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-03T05:46:40.579Z*
+*Generated on: 2026-06-03T07:30:24.758Z*
 *Auto-updated by: npm run docs*

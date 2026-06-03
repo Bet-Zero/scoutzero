@@ -25,21 +25,6 @@ vi.mock(
   })
 );
 
-const CAP_SHEET_BASE = {
-  teamCode: 'LAL',
-  teamName: 'Lakers',
-  abbreviation: 'LAL',
-  salaryCapByYear: { '2025-26': 140_000_000 },
-  luxuryTaxByYear: { '2025-26': 170_000_000 },
-  firstApronByYear: { '2025-26': 178_000_000 },
-  secondApronByYear: { '2025-26': 188_000_000 },
-  exceptions: { mle: { available: true } },
-};
-
-type CapSheetInput = Parameters<
-  typeof deriveArchitectWorkspaceContext
->[0]['teamCapSheet'];
-
 /** Sandbox workspace with no cap sheet → cap posture is `unavailable`. */
 function makeSandboxWorkspace(): ArchitectWorkspaceContext {
   return deriveArchitectWorkspaceContext({
@@ -53,23 +38,37 @@ function makeSandboxWorkspace(): ArchitectWorkspaceContext {
   });
 }
 
-/** Workspace with a derived, available cap posture above the 2nd apron. */
-function makeAboveSecondApronWorkspace(): ArchitectWorkspaceContext {
-  const teamCapSheet = {
-    ...CAP_SHEET_BASE,
-    players: [{ id: 'p0', contracts: { '2025-26': { salary: 200_000_000 } } }],
-  } as unknown as CapSheetInput;
-
-  return deriveArchitectWorkspaceContext({
-    teamCapSheet,
-    teamId: 'LAL',
-    currentYear: 2025,
-    worldId: null,
-    isLoading: false,
-    isSaving: false,
-    error: null,
-    worldModeBoundary: null,
-  });
+/**
+ * Override the cap summary directly to an available posture above the 2nd
+ * apron. Overriding the derived field (rather than feeding a synthetic cap
+ * sheet through the cap engine) keeps the danger watch entry deterministic and
+ * decoupled from `computeTeamCapTotals` internals.
+ */
+function withAboveSecondApron(
+  workspace: ArchitectWorkspaceContext
+): ArchitectWorkspaceContext {
+  return {
+    ...workspace,
+    cap: {
+      status: 'available',
+      season: 2025,
+      seasonLabel: '2025-26',
+      totalCapAllocations: 250_000_000,
+      salaryCap: 140_000_000,
+      capSpace: -110_000_000,
+      luxuryTax: 170_000_000,
+      taxSpace: -80_000_000,
+      firstApron: 178_000_000,
+      firstApronSpace: -72_000_000,
+      secondApron: 188_000_000,
+      secondApronSpace: -62_000_000,
+      isOverCap: true,
+      isOverTax: true,
+      isAtOrAboveFirstApron: true,
+      isAboveSecondApron: true,
+      source: 'computeTeamCapTotals',
+    } as ArchitectWorkspaceContext['cap'],
+  };
 }
 
 /** Override the season context to force a viewing/world season mismatch. */
@@ -170,7 +169,7 @@ describe('ActivityRail — Slice 1 audit', () => {
 
   it('surfaces an above-2nd-apron danger warning that routes to the Cap Sheet', () => {
     const handlers = renderRail({
-      workspace: makeAboveSecondApronWorkspace(),
+      workspace: withAboveSecondApron(makeSandboxWorkspace()),
     });
     expect(
       screen.getByTestId('cockpit-activity-rail-watch-apron2')
@@ -197,7 +196,7 @@ describe('ActivityRail — Slice 1 audit', () => {
 
   it('keeps the danger dot visible alongside receipt/in-progress dots when collapsed', () => {
     renderRail({
-      workspace: makeAboveSecondApronWorkspace(),
+      workspace: withAboveSecondApron(makeSandboxWorkspace()),
       receipt: RECEIPT,
       tradeDraftActive: true,
       onResumeTradeDraft: vi.fn(),

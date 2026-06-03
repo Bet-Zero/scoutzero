@@ -80,7 +80,7 @@ Notes / results:
 
 ---
 
-## Slice 2 — Unified `PlayerActionMenu`  → **NOT STARTED**
+## Slice 2 — Unified `PlayerActionMenu`  → **IN PROGRESS (2a)**
 
 Spec: `ARCHITECT_IMPLEMENTATION_SLICE_02_PLAYER_ACTION_MENU.md`
 Depends on: Slice 1 (`authorityLabel.ts`)
@@ -129,8 +129,43 @@ Notes / results:
   only); render a "Target" badge in the pinned rail. Keep `pinnedPlayerIds: string[]` and hold the
   target flag in a parallel set/map in `GMDashboard`.
 
-**Status:** Not started in code. This is a large coordinated change across the two biggest central
-files; recommended to execute as one focused session and commit as a single slice.
+**Execution plan — broken into safe, independently-verifiable sub-chunks** (each typechecks /
+test:architect / build green and gets its own commit; the slice is DONE when 2a–2e all land):
+
+- **2a — Foundation (additive, non-breaking):** new `cockpit/PlayerActionMenu.tsx` +
+  `cockpit/playerActionContext.ts` (PlayerActionContext type, `PlayerAction` vocabulary,
+  `buildPlayerActionContext`, overflow menu, `extraItems` slot for Full-Cap-only contract actions);
+  export from `cockpit/index.ts`. Unit tests. Nothing consumes it yet → cannot break the app.
+- **2b — Central wiring:** navigation-intent handlers in `GMDashboard.tsx` (reuse pin/trade
+  plumbing, no new mutation authority); thread through `CockpitShell.tsx` → room descriptors; add
+  session-only FA-target flag (parallel `Set` keyed by id).
+- **2c — Adopt on Full Cap:** replace bespoke inline kebab with the shared menu; keep
+  waive/extend/stretch as Full-Cap-only `extraItems` → `onLaunchPlayerAction`; update
+  `CapSheetFull.rules.test.tsx` to the shared test-id scheme.
+- **2d — Adopt on Roster + current-season Cap Sheet** (card/row click stays Open).
+- **2e — Pinned rail rows + receipt changed-player rows + FA card** (FA pin → "Target" badge).
+
+**Status:** 2a DONE (committed — `feat(architect): unified player action menu foundation`). 2b next.
+
+**2a result:** new `cockpit/PlayerActionMenu.tsx` (intent-only menu: primary buttons + overflow +
+`extraItems` slot + pin↔unpin toggle) and `cockpit/playerActionContext.ts` (`PlayerAction` vocab,
+`PlayerActionContext`, `buildPlayerActionContext` reusing `playerFocus.ts` for id resolution);
+exported from `cockpit/index.ts`. Tests: `playerActionContext.test.ts` (node) +
+`playerActionMenu.test.tsx` (jsdom). Verified: typecheck, validate:project, build, scoped
+node+ui cockpit suites.
+
+**⚠️ Testing-infra note for all remaining `.tsx`-touching chunks (Slices 2–5):**
+
+- `test:architect` runs `vitest.node.config.js`, whose `include` is **`.ts`/`.js` only** (node env);
+  it **silently skips every `.tsx` test**. Component/render tests MUST be verified with the jsdom
+  config: `npm run test:ui -- <path> --reporter=dot` (scoped to a path to avoid the broad UI suite,
+  which has ~165 **pre-existing** failures, e.g. TierMaker `vi.mock` errors — unrelated to this work).
+- Put pure logic in `.ts` tests (runs in the fast node gate); keep render tests in `.tsx` (jsdom).
+- Do NOT pipe the authoritative gate through `| tail` — it masks the real exit code (tsc/vitest
+  failures slip through). Read the task-notification exit code or run unpiped.
+- This also fixed 2 latent failures in the Slice-1 `architectActivityRail.render.test.tsx` apron
+  fixture (it relied on the cap engine reading a synthetic salary; now overrides `cap` directly).
+  Those tests never ran under the node-only `test:architect` gate at Slice 1 time.
 
 ---
 
