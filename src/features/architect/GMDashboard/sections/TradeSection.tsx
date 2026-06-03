@@ -28,6 +28,7 @@ type ForwardedTradeEditorProps = Pick<
   | 'onDraftActivityChange'
   | 'requestedStagePlayerIds'
   | 'onStagePlayerHandled'
+  | 'tradeContext'
 >;
 
 type TradeSectionProps = ForwardedTradeEditorProps;
@@ -47,6 +48,7 @@ const TradeSection = ({
   onDraftActivityChange = null,
   requestedStagePlayerIds = [],
   onStagePlayerHandled = null,
+  tradeContext = null,
 }: TradeSectionProps) => {
   const tradeEditorSurfaceProps = {
     primaryTeam,
@@ -63,6 +65,7 @@ const TradeSection = ({
     onDraftActivityChange,
     requestedStagePlayerIds,
     onStagePlayerHandled,
+    tradeContext,
   } satisfies ForwardedTradeEditorProps;
 
   /* SECTION HANDOFF / FORWARDED TRADE SURFACE: TradeEditor owns local

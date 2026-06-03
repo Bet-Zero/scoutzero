@@ -14,7 +14,7 @@
  * stubs keep the test focused on the integration wiring.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 const useTradeMachineMock = vi.fn();
@@ -207,5 +207,61 @@ describe('TradeEditor — stage focused player into the trade', () => {
 
     expect(setPlayerTrade).not.toHaveBeenCalled();
     expect(onStagePlayerHandled).not.toHaveBeenCalled();
+  });
+});
+
+describe('TradeEditor — in-overlay objective/context banner (Slice 3)', () => {
+  it('renders the objective + authority banner and dismisses it', () => {
+    useTradeMachineMock.mockReturnValue(buildHookReturn({}));
+    render(
+      <TradeEditor
+        {...baseProps}
+        tradeContext={{ objective: 'reduce-tax', authority: 'planning-context' }}
+      />
+    );
+
+    expect(screen.getByTestId('trade-context-banner')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('trade-context-banner-objective')
+    ).toHaveTextContent('Reduce luxury tax');
+    expect(
+      screen.getByTestId('trade-context-banner-authority')
+    ).toHaveTextContent('Planning context');
+
+    fireEvent.click(screen.getByTestId('trade-context-banner-dismiss'));
+    expect(screen.queryByTestId('trade-context-banner')).toBeNull();
+  });
+
+  it('shows no banner for a bare local-draft open (no objective/event)', () => {
+    useTradeMachineMock.mockReturnValue(buildHookReturn({}));
+    render(
+      <TradeEditor
+        {...baseProps}
+        tradeContext={{ authority: 'local-draft' }}
+      />
+    );
+    expect(screen.queryByTestId('trade-context-banner')).toBeNull();
+  });
+
+  it('counts an objective context as a meaningful draft (no staged assets)', () => {
+    const onDraftActivityChange = vi.fn();
+    useTradeMachineMock.mockReturnValue(buildHookReturn({}));
+    render(
+      <TradeEditor
+        {...baseProps}
+        tradeContext={{ objective: 'clear-second-apron', authority: 'planning-context' }}
+        onDraftActivityChange={onDraftActivityChange}
+      />
+    );
+    expect(onDraftActivityChange).toHaveBeenCalledWith(true);
+  });
+
+  it('does not mark a meaningful draft for a bare open with no edits', () => {
+    const onDraftActivityChange = vi.fn();
+    useTradeMachineMock.mockReturnValue(buildHookReturn({}));
+    render(
+      <TradeEditor {...baseProps} onDraftActivityChange={onDraftActivityChange} />
+    );
+    expect(onDraftActivityChange).toHaveBeenCalledWith(false);
   });
 });

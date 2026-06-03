@@ -41,12 +41,14 @@ import {
   CockpitStatePanel,
   TradeOverlay,
   routePlayerAction,
+  buildTradeOpenRequest,
 } from '@/features/architect/cockpit';
 import type {
   NavRailItem,
   RoomDescriptor,
   PlayerAction,
   PlayerActionContext,
+  TradeOpenRequest,
 } from '@/features/architect/cockpit';
 import { useArchitectDeskNavigation, writeLastTeamSlug } from './hooks/useArchitectDeskNavigation';
 import { resolvePrimaryPlayerFocusId } from './postActionHandoff/playerFocus';
@@ -224,12 +226,21 @@ export const GMDashboard = () => {
   // consumed (mirrors the Free Agency requested-open idiom).
   const [requestedTradeStagePlayerIds, setRequestedTradeStagePlayerIds] =
     useState<string[]>([]);
+  // Context-carrying open request (Slice 3): drives the in-overlay objective/
+  // authority banner. Persists across overlay close/reopen so the banner and
+  // draft survive together; replaced on the next context-carrying open.
+  const [tradeOpenRequest, setTradeOpenRequest] =
+    useState<TradeOpenRequest | null>(null);
   const openTrade = useCallback(() => {
     setHasOpenedTrade(true);
     setIsTradeOpen(true);
   }, []);
-  const openTradeWithPlayers = useCallback((playerIds: string[]) => {
-    setRequestedTradeStagePlayerIds(playerIds.filter(Boolean));
+  // Context-carrying open. Plain `openTrade` (NavRail / deep-link / resume)
+  // preserves any prior request + draft; this one stages players and/or sets
+  // the objective banner.
+  const openTradeWithRequest = useCallback((request: TradeOpenRequest) => {
+    setRequestedTradeStagePlayerIds(request.playerIds ?? []);
+    setTradeOpenRequest(request);
     setHasOpenedTrade(true);
     setIsTradeOpen(true);
   }, []);
@@ -543,7 +554,20 @@ export const GMDashboard = () => {
         },
         pinPlayer: pinPlayerFromAction,
         unpinPlayer: unpinPlayerFromAction,
-        openTradeWithPlayer: (ctx) => openTradeWithPlayers([ctx.playerId]),
+        openTradeWithPlayer: (ctx) =>
+          openTradeWithRequest(
+            buildTradeOpenRequest({
+              source:
+                ctx.sourceRoom === 'cap' || ctx.sourceRoom === 'capfull'
+                  ? 'cap'
+                  : ctx.sourceRoom === 'rail'
+                    ? 'pinned'
+                    : ctx.sourceRoom === 'receipt'
+                      ? 'receipt'
+                      : 'roster',
+              playerIds: [ctx.playerId],
+            })
+          ),
         viewOnRoster: (ctx) => {
           setManualFocusPlayerId(ctx.playerId);
           setActiveTab('roster');
@@ -566,7 +590,7 @@ export const GMDashboard = () => {
       actions,
       pinPlayerFromAction,
       unpinPlayerFromAction,
-      openTradeWithPlayers,
+      openTradeWithRequest,
       setActiveTab,
       openHistoryRoot,
     ]
@@ -720,6 +744,14 @@ export const GMDashboard = () => {
     onDraftActivityChange: setTradeDraftActive,
     requestedStagePlayerIds: requestedTradeStagePlayerIds,
     onStagePlayerHandled: () => setRequestedTradeStagePlayerIds([]),
+    tradeContext: tradeOpenRequest
+      ? {
+          objective: tradeOpenRequest.objective,
+          exceptionRef: tradeOpenRequest.exceptionRef,
+          relatedEventId: tradeOpenRequest.relatedEventId ?? null,
+          authority: tradeOpenRequest.authority,
+        }
+      : null,
   };
   const freeAgencySectionSurface: FreeAgencySectionProps = {
     freeAgents,
@@ -1211,8 +1243,29 @@ export const GMDashboard = () => {
           );
         }
       }}
-      onTradePinnedPlayer={(playerId) => openTradeWithPlayers([playerId])}
-      onTradeAllPinned={() => openTradeWithPlayers(pinnedPlayerIds)}
+      onTradePinnedPlayer={(playerId) =>
+        openTradeWithRequest(
+          buildTradeOpenRequest({ source: 'pinned', playerIds: [playerId] })
+        )
+      }
+      onTradeAllPinned={() => {
+        // Confirm when more than two players are pinned (open-question #6).
+        if (
+          pinnedPlayerIds.length > 2 &&
+          typeof window !== 'undefined' &&
+          !window.confirm(
+            `Open a trade with all ${pinnedPlayerIds.length} pinned players?`
+          )
+        ) {
+          return;
+        }
+        openTradeWithRequest(
+          buildTradeOpenRequest({
+            source: 'pinned-all',
+            playerIds: pinnedPlayerIds,
+          })
+        );
+      }}
       onPlayerAction={handlePlayerAction}
       resolvePlayerLabel={(playerId) =>
         resolveFocusedPlayerLabel(playerId) ?? playerId

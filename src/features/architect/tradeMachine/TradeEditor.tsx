@@ -41,6 +41,11 @@ import {
   toEditContractModalPlayer,
   toEditContractModalTeamCapSheet,
 } from './TradeEditor.helpers';
+import {
+  describeTradeObjective,
+  describeTradeException,
+  describeTradeOpenAuthority,
+} from '@/features/architect/cockpit/tradeOpenRequest';
 
 export const TradeEditor = ({
   primaryTeam,
@@ -57,6 +62,7 @@ export const TradeEditor = ({
   onDraftActivityChange = null,
   requestedStagePlayerIds = [],
   onStagePlayerHandled = null,
+  tradeContext = null,
 }: TradeEditorProps) => {
   const {
     teams,
@@ -113,6 +119,7 @@ export const TradeEditor = ({
   const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
   const [entitlementEditorState, setEntitlementEditorState] =
     useState<EntitlementEditorState>(null);
+  const [contextBannerDismissed, setContextBannerDismissed] = useState(false);
 
   const canEditEntitlements = isEntitlementAuthoringEnabled();
   const isVacuumMode = !worldId;
@@ -126,14 +133,19 @@ export const TradeEditor = ({
     prevWorldIdRef.current = worldId;
   }, [worldId]);
 
-  const hasDraftActivity = useMemo(
-    () =>
-      teams.some(
-        (slot) =>
-          slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
-      ),
-    [teams]
-  );
+  // Meaningful-draft threshold (Slice 3, open-question #18): staged assets OR an
+  // explicit objective/exception context count as in-progress; a bare overlay
+  // open with no edits and no objective does not.
+  const hasDraftActivity = useMemo(() => {
+    const hasStagedAssets = teams.some(
+      (slot) =>
+        slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+    );
+    const hasObjectiveContext = Boolean(
+      tradeContext?.objective || tradeContext?.exceptionRef
+    );
+    return hasStagedAssets || hasObjectiveContext;
+  }, [teams, tradeContext]);
 
   useEffect(() => {
     onDraftActivityChange?.(hasDraftActivity);
@@ -500,8 +512,63 @@ export const TradeEditor = ({
     return { success: true };
   };
 
+  const bannerAuthority = tradeContext
+    ? describeTradeOpenAuthority(tradeContext.authority)
+    : null;
+  const showContextBanner = Boolean(
+    tradeContext &&
+      (tradeContext.objective ||
+        tradeContext.exceptionRef ||
+        tradeContext.relatedEventId) &&
+      !contextBannerDismissed
+  );
+
   return (
     <div className="text-white space-y-6">
+      {showContextBanner && tradeContext && bannerAuthority ? (
+        <div
+          className="flex items-start justify-between gap-2 rounded-md border border-white/15 bg-white/[0.04] px-3 py-2"
+          data-testid="trade-context-banner"
+        >
+          <div className="flex flex-wrap items-center gap-2 text-xs text-white/80">
+            <span
+              data-testid="trade-context-banner-authority"
+              className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                bannerAuthority.tone === 'committed'
+                  ? 'border-green-400/40 bg-green-500/10 text-green-200'
+                  : bannerAuthority.tone === 'planning'
+                    ? 'border-sky-400/40 bg-sky-500/10 text-sky-200'
+                    : 'border-amber-400/40 bg-amber-500/10 text-amber-200'
+              }`}
+            >
+              {bannerAuthority.label}
+            </span>
+            {tradeContext.objective ? (
+              <span data-testid="trade-context-banner-objective">
+                Objective: {describeTradeObjective(tradeContext.objective)}
+              </span>
+            ) : null}
+            {tradeContext.exceptionRef ? (
+              <span>
+                Using {describeTradeException(tradeContext.exceptionRef.kind)} —
+                pending validation
+              </span>
+            ) : null}
+            {tradeContext.relatedEventId ? (
+              <span>Referencing a committed trade event (not cloned)</span>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => setContextBannerDismissed(true)}
+            className="shrink-0 rounded px-1 text-white/40 hover:text-white/80"
+            aria-label="Dismiss trade context"
+            data-testid="trade-context-banner-dismiss"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
         <div className="flex items-center gap-2">

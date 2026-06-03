@@ -1,5 +1,10 @@
 import type { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import type { EditContractModal } from '@/shared/components/EditContractModal';
+import type {
+  TradeObjective,
+  TradeExceptionRef,
+  TradeOpenAuthority,
+} from '@/features/architect/cockpit/tradeOpenRequest';
 import type { TradeTeamCard } from './TradeTeamCard';
 import type TradePreviewModal from './TradePreviewModal';
 import type { ValidationDetailsPanel } from './ValidationDetailsPanel';
@@ -98,4 +103,17 @@ export interface TradeEditorProps {
    */
   requestedStagePlayerIds?: string[];
   onStagePlayerHandled?: (() => void) | null;
+  /**
+   * Context-carrying open (interconnectivity Slice 3): objective / exception /
+   * committed-event reference + authority. Drives the dismissible in-overlay
+   * banner. Never implies validation or apply.
+   */
+  tradeContext?: TradeOpenBannerContext | null;
+}
+
+export interface TradeOpenBannerContext {
+  objective?: TradeObjective;
+  exceptionRef?: TradeExceptionRef;
+  relatedEventId?: string | null;
+  authority: TradeOpenAuthority;
 }
