@@ -66,6 +66,7 @@ interface CockpitShellProps {
   onNavigateToCompare?: () => void;
   onNavigateToGuide?: () => void;
   onOpenTradeForObjective?: (objective: TradeObjective) => void;
+  onOpenGuideForObjective?: (objective: TradeObjective) => void;
   onOpenTradeFromReceipt?: () => void;
   banner?: ReactNode;
   modals?: ReactNode;
@@ -105,6 +106,7 @@ export const CockpitShell = ({
   onNavigateToCompare,
   onNavigateToGuide,
   onOpenTradeForObjective,
+  onOpenGuideForObjective,
   onOpenTradeFromReceipt,
   banner,
   modals,
@@ -169,6 +171,7 @@ export const CockpitShell = ({
           onNavigateToCompare={onNavigateToCompare}
           onNavigateToGuide={onNavigateToGuide}
           onOpenTradeForObjective={onOpenTradeForObjective}
+          onOpenGuideForObjective={onOpenGuideForObjective}
           onOpenTradeFromReceipt={onOpenTradeFromReceipt}
         />
       </div>

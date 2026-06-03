@@ -16,6 +16,10 @@ import type {
   Stage3UnavailableSummaryEntry,
 } from '@/features/architect/comparison/types';
 import type { ComparisonViewModelStatus } from '../hooks/useArchitectComparisonViewModel';
+import {
+  describeCompareFocus,
+  type FollowThroughContext,
+} from '@/features/architect/cockpit';
 
 interface ComparisonSectionProps {
   status: ComparisonViewModelStatus;
@@ -24,7 +28,43 @@ interface ComparisonSectionProps {
   onNavigateToHistory?: (() => void) | null;
   onNavigateToCapSheet?: (() => void) | null;
   onNavigateToRoster?: (() => void) | null;
+  /** Follow-through launch context (Slice 5): drives the focused-view banner. */
+  followThroughContext?: FollowThroughContext | null;
 }
+
+/** Context-focused banner shown when Compare is launched with follow-through. */
+const CompareFocusBanner = ({
+  context,
+}: {
+  context: FollowThroughContext;
+}) => {
+  const focus = describeCompareFocus(context);
+  if (!focus) return null;
+  return (
+    <div
+      className="rounded-md border border-white/10 bg-white/[0.03] px-4 py-2"
+      data-testid="comparison-focus-banner"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-white/80">
+          {focus.heading}
+        </span>
+        <span
+          className="inline-flex items-center rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55"
+          data-testid="comparison-focus-authority"
+        >
+          {focus.authorityLabel}
+        </span>
+      </div>
+      {focus.authority === 'unavailable' ? (
+        <p className="mt-1 text-[11px] text-white/40">
+          Player-level comparison is not available yet. Showing the committed
+          team/event view below.
+        </p>
+      ) : null}
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -187,6 +227,7 @@ export const ComparisonSection = ({
   onNavigateToHistory,
   onNavigateToCapSheet,
   onNavigateToRoster,
+  followThroughContext = null,
 }: ComparisonSectionProps) => {
   if (status === 'sandbox') {
     return (
@@ -251,6 +292,9 @@ export const ComparisonSection = ({
 
   return (
     <div className="space-y-4" data-testid="comparison-available">
+      {followThroughContext ? (
+        <CompareFocusBanner context={followThroughContext} />
+      ) : null}
       {/* Scope header */}
       <SectionCard testId="comparison-scope">
         <div className="flex flex-wrap items-baseline gap-2 mb-1">

@@ -77,6 +77,8 @@ interface ActivityRailProps {
   onNavigateToGuide?: () => void;
   /** Open the Trade Machine with a cap/apron objective from a watchlist warning. */
   onOpenTradeForObjective?: (objective: TradeObjective) => void;
+  /** Open the Guide with a cap/apron objective from a watchlist warning. */
+  onOpenGuideForObjective?: (objective: TradeObjective) => void;
   /** Open the Trade Machine from a trade-related committed receipt. */
   onOpenTradeFromReceipt?: () => void;
 }
@@ -273,6 +275,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       onNavigateToCompare,
       onNavigateToGuide,
       onOpenTradeForObjective,
+      onOpenGuideForObjective,
       onOpenTradeFromReceipt,
     },
     ref
@@ -668,6 +671,18 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                           data-testid={`cockpit-activity-rail-watch-${entry.id}-trade`}
                         >
                           Open Trade
+                        </button>
+                      ) : null}
+                      {entry.tradeObjective && onOpenGuideForObjective ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenGuideForObjective(entry.tradeObjective!)
+                          }
+                          className="text-[10px] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                          data-testid={`cockpit-activity-rail-watch-${entry.id}-guide`}
+                        >
+                          Guide
                         </button>
                       ) : null}
                     </div>

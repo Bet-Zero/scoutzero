@@ -42,6 +42,7 @@ import {
   TradeOverlay,
   routePlayerAction,
   buildTradeOpenRequest,
+  buildFollowThroughContext,
 } from '@/features/architect/cockpit';
 import type {
   NavRailItem,
@@ -49,6 +50,8 @@ import type {
   PlayerAction,
   PlayerActionContext,
   TradeOpenRequest,
+  TradeObjective,
+  FollowThroughContext,
 } from '@/features/architect/cockpit';
 import { useArchitectDeskNavigation, writeLastTeamSlug } from './hooks/useArchitectDeskNavigation';
 import { resolvePrimaryPlayerFocusId } from './postActionHandoff/playerFocus';
@@ -231,6 +234,10 @@ export const GMDashboard = () => {
   // draft survive together; replaced on the next context-carrying open.
   const [tradeOpenRequest, setTradeOpenRequest] =
     useState<TradeOpenRequest | null>(null);
+  // Follow-through context (Slice 5): the launch context carried into the
+  // Compare/Guide rooms. Session-only (open-question #11) — never persisted.
+  const [followThroughContext, setFollowThroughContext] =
+    useState<FollowThroughContext | null>(null);
   const openTrade = useCallback(() => {
     setHasOpenedTrade(true);
     setIsTradeOpen(true);
@@ -581,8 +588,28 @@ export const GMDashboard = () => {
           setActiveTab('capfull');
         },
         findInHistory: () => openHistoryRoot(),
-        compareImpact: () => setActiveTab('compare'),
-        guideNextMove: () => setActiveTab('guide'),
+        compareImpact: (ctx) => {
+          setFollowThroughContext(
+            buildFollowThroughContext({
+              origin: ctx.eventId ? 'history-event' : 'pinned-player',
+              playerIds: [ctx.playerId],
+              eventId: ctx.eventId ?? undefined,
+              teamCode: ctx.teamCode,
+            })
+          );
+          setActiveTab('compare');
+        },
+        guideNextMove: (ctx) => {
+          setFollowThroughContext(
+            buildFollowThroughContext({
+              origin: ctx.eventId ? 'history-event' : 'pinned-player',
+              playerIds: [ctx.playerId],
+              eventId: ctx.eventId ?? undefined,
+              teamCode: ctx.teamCode,
+            })
+          );
+          setActiveTab('guide');
+        },
       });
     },
     [
@@ -1079,6 +1106,7 @@ export const GMDashboard = () => {
           onNavigateToHistory={openHistoryRoot}
           onNavigateToCapSheet={() => setActiveTab('cap')}
           onNavigateToRoster={() => setActiveTab('roster')}
+          followThroughContext={followThroughContext}
         />
       ),
     },
@@ -1090,6 +1118,8 @@ export const GMDashboard = () => {
         <GuideSection
           viewModel={guidedAnswersViewModel}
           onNavigate={handleGuideNavigate}
+          followThroughContext={followThroughContext}
+          onOpenTradeWithRequest={openTradeWithRequest}
         />
       ),
     },
@@ -1237,8 +1267,40 @@ export const GMDashboard = () => {
       onDismissReceipt={postActionReceipt.dismiss}
       tradeDraftActive={tradeDraftActive}
       onResumeTradeDraft={openTrade}
-      onNavigateToCompare={() => setActiveTab('compare')}
-      onNavigateToGuide={() => setActiveTab('guide')}
+      onNavigateToCompare={() => {
+        setFollowThroughContext(
+          buildFollowThroughContext({
+            origin: 'receipt',
+            receiptKind: postActionReceipt.receipt?.kind,
+            eventId: postActionReceipt.receipt?.eventId ?? undefined,
+            playerIds: postActionReceipt.receipt?.primaryPlayerIds,
+            teamCode: resolvedHistoryTeamCode,
+          })
+        );
+        setActiveTab('compare');
+      }}
+      onNavigateToGuide={() => {
+        setFollowThroughContext(
+          buildFollowThroughContext({
+            origin: 'receipt',
+            receiptKind: postActionReceipt.receipt?.kind,
+            eventId: postActionReceipt.receipt?.eventId ?? undefined,
+            playerIds: postActionReceipt.receipt?.primaryPlayerIds,
+            teamCode: resolvedHistoryTeamCode,
+          })
+        );
+        setActiveTab('guide');
+      }}
+      onOpenGuideForObjective={(objective) => {
+        setFollowThroughContext(
+          buildFollowThroughContext({
+            origin: 'warning',
+            warningType: objective,
+            teamCode: resolvedHistoryTeamCode,
+          })
+        );
+        setActiveTab('guide');
+      }}
       onOpenTradeForObjective={(objective) =>
         openTradeWithRequest(
           buildTradeOpenRequest({ source: 'warning', objective })

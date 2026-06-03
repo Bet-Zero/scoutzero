@@ -11,7 +11,7 @@ Status legend: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED`
 
 ---
 
-## Overall status: IN PROGRESS
+## Overall status: ALL FIVE SLICES DONE — pending final whole-effort sign-off + manual dev walkthrough
 
 Slice 1 DONE. Next: Slice 2 (Unified `PlayerActionMenu`).
 
@@ -335,24 +335,43 @@ Notes / results:
 
 ---
 
-## Slice 5 — Compare / Guide follow-through  → **NOT STARTED**
+## Slice 5 — Compare / Guide follow-through  → **DONE (5a✓ 5b✓)**
 
 Spec: `ARCHITECT_IMPLEMENTATION_SLICE_05_COMPARE_GUIDE_FOLLOW_THROUGH.md`
 Depends on: Slices 1–4 (context payloads)
 
-- [ ] New `cockpit/followThroughContext.ts` (`FollowThroughContext`); exported
-- [ ] Context held in `GMDashboard` and passed into Compare/Guide rooms
-- [ ] Compare focused views (receipt/event/player/warning/season) + authority labels
-- [ ] Guide objective-focused launches; routes only (no mutation), incl. `openTradeWithRequest`
-- [ ] Empty/unavailable states match contract copy
-- [ ] Multi-season labeled
-- [ ] `npm run typecheck` ✅/❌
-- [ ] `npm run test:architect --reporter=dot` ✅/❌
-- [ ] `npm run build` ✅/❌
-- [ ] `npm run dev` acceptance walkthrough done
-- [ ] Committed (hash: ______)
+- [x] New `cockpit/followThroughContext.ts` (`FollowThroughContext` + builders/objective/focus
+      helpers); exported (5a)
+- [x] Context held in `GMDashboard` (`followThroughContext` session state) and passed into
+      Compare/Guide rooms; seeded at: rail receipt Compare/Guide (receipt origin), player menu
+      compare/guide incl. History player names (pinned-player / history-event origin), rail watch
+      cap/apron warning → Guide (warning origin) (5b)
+- [x] Compare focused view: `CompareFocusBanner` (heading + authority label committed-world /
+      event-derived / current-snapshot / local-preview / multi-season / unavailable). The room
+      already carried per-section authority chips + multi-season warning + unavailable summary.
+- [x] Guide objective-focused launch: `guide-objective-banner` (concrete objective string) + an
+      Open-Trade button routing via `openTradeWithRequest` (source 'guide'). Guide still routes only.
+- [x] Empty/unavailable states: Compare sandbox/empty/unavailable already present; Guide objective
+      banner hidden for manual/no context; player-focused Compare shows Unavailable note.
+- [x] Multi-season labeled (`describeCompareFocus` → 'Multi-season' for season-advance).
+- [x] `npm run typecheck` ✅
+- [~] `npm run test:architect` node gate ✅ (followThroughContext 8); Compare/Guide banner render
+      verified via scoped `test:ui` (5) — node config skips `.tsx`
+- [x] `npm run build` ✅
+- [ ] `npm run dev` acceptance walkthrough (manual)
+- [x] Committed: 5a 2dd5ac04 · 5b (this commit)
 
 Notes / results:
+
+- Chunks: 5a `followThroughContext.ts` payload + helpers + node test; 5b Compare focus banner +
+  Guide objective banner/Open-Trade, context seeded at the launch points, threaded into both rooms.
+  Added rail watch → Guide action (`onOpenGuideForObjective`, mirrors 3c's Open Trade).
+- **Partial / deferred (payload supports; full wiring noted):** event-focused Compare from a History
+  event's *non-player* "Compare" outbound link goes via plain room nav (no eventId focus) — the
+  History *player-name* path does carry history-event context. Season-advance Compare focus is
+  reachable when a season-advance context is set (origin/multiSeason supported). Player-level Compare
+  deltas remain deferred (open-question #13) and render as `Unavailable`. Per-world Guide persistence
+  deferred (open-question #11; session-only).
 
 ---
 

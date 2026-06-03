@@ -21,10 +21,30 @@ import type {
   Stage4QuestionFamily,
   Stage4Severity,
 } from '@/features/architect/guidedQuestions';
+import {
+  describeGuideObjective,
+  buildTradeOpenRequest,
+  type FollowThroughContext,
+  type TradeObjective,
+  type TradeOpenRequest,
+} from '@/features/architect/cockpit';
+
+const TRADE_OBJECTIVES: ReadonlySet<TradeObjective> = new Set([
+  'solve-cap',
+  'reduce-tax',
+  'clear-first-apron',
+  'clear-second-apron',
+  'avoid-hard-cap',
+  'use-exception',
+]);
 
 interface GuideSectionProps {
   viewModel: Stage4GuidedAnswersViewModel;
   onNavigate: (target: Stage4NavigationTargetId) => void;
+  /** Follow-through launch context (Slice 5): drives the objective banner. */
+  followThroughContext?: FollowThroughContext | null;
+  /** Route to the Trade overlay with a context (Guide routes, never mutates). */
+  onOpenTradeWithRequest?: (request: TradeOpenRequest) => void;
 }
 
 const FAMILY_LABELS: Record<Stage4QuestionFamily, string> = {
@@ -261,7 +281,15 @@ const FamilyGroup = ({
 export const GuideSection: React.FC<GuideSectionProps> = ({
   viewModel,
   onNavigate,
+  followThroughContext = null,
+  onOpenTradeWithRequest,
 }) => {
+  const objective = describeGuideObjective(followThroughContext);
+  const tradeObjective =
+    followThroughContext?.warningType &&
+    TRADE_OBJECTIVES.has(followThroughContext.warningType as TradeObjective)
+      ? (followThroughContext.warningType as TradeObjective)
+      : null;
   if (!viewModel.scope.teamCode) {
     return (
       <div
@@ -323,6 +351,44 @@ export const GuideSection: React.FC<GuideSectionProps> = ({
           )}
         </div>
       </header>
+
+      {objective ? (
+        <div
+          className="rounded-md border border-sky-400/25 bg-sky-500/5 px-4 py-2"
+          data-testid="guide-objective-banner"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-sky-300/80">
+                Objective
+              </span>
+              <span
+                className="text-sm font-semibold text-white/85"
+                data-testid="guide-objective-text"
+              >
+                {objective}
+              </span>
+            </div>
+            {tradeObjective && onOpenTradeWithRequest ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenTradeWithRequest(
+                    buildTradeOpenRequest({
+                      source: 'guide',
+                      objective: tradeObjective,
+                    })
+                  )
+                }
+                className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white/90 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                data-testid="guide-objective-open-trade"
+              >
+                Open Trade
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {FAMILY_ORDER.map((family) => (
         <FamilyGroup
