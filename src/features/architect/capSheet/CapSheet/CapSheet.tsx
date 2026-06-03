@@ -30,6 +30,12 @@ import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRule
 import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
 import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
+import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
+import {
+  buildPlayerActionContext,
+  type PlayerAction,
+  type PlayerActionContext,
+} from '@/features/architect/cockpit/playerActionContext';
 
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
@@ -144,6 +150,16 @@ type CapSheetProps = {
   highlightPlayerId?: string | null;
   /** Multi-focus highlight (pinned players). Unioned with highlightPlayerId. */
   highlightPlayerIds?: string[];
+  /**
+   * Unified player-action intents (Pin/Unpin, Trade, cross-room navigation)
+   * routed by GMDashboard via routePlayerAction. Open stays the name click.
+   * When omitted, no row menu renders (other call sites unaffected).
+   */
+  onPlayerAction?:
+    | ((action: PlayerAction, context: PlayerActionContext) => void)
+    | null;
+  /** Pinned ids so the row menu can show Pin vs Unpin. */
+  pinnedPlayerIds?: string[];
 };
 
 const CAP_SHEET_SURFACE_LABELS = {
@@ -163,6 +179,8 @@ export const CapSheet = ({
   manualCapSheetMutationAuthority,
   highlightPlayerId = null,
   highlightPlayerIds = [],
+  onPlayerAction = null,
+  pinnedPlayerIds = [],
 }: CapSheetProps) => {
   const [internalSelectedYear, setInternalSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
@@ -509,16 +527,48 @@ export const CapSheet = ({
                   isHighlighted ? 'cap-sheet-player-row-highlighted' : undefined
                 }
               >
-                <div className="font-medium text-xs text-white/90 truncate">
+                <div className="font-medium text-xs text-white/90 flex items-center gap-1 min-w-0">
                   <button
                     data-testid="cap-sheet-player-row-button"
                     onClick={() => openPlayerContractModal?.(player)}
-                    className="hover:text-blue-400 transition-colors text-left truncate w-full"
+                    className="hover:text-blue-400 transition-colors text-left truncate min-w-0 flex-1"
                   >
                     {player.displayName ||
                       player.bio?.displayName ||
                       player.name}
                   </button>
+                  {(() => {
+                    if (!onPlayerAction) return null;
+                    const menuContext = buildPlayerActionContext({
+                      player,
+                      sourceRoom: 'cap',
+                      targetYear: selectedYear,
+                    });
+                    if (!menuContext) return null;
+                    const isPinned = pinnedPlayerIds.some((focusId) =>
+                      playerMatchesFocus(player, focusId)
+                    );
+                    return (
+                      <PlayerActionMenu
+                        context={menuContext}
+                        visibleActions={[]}
+                        overflowActions={[
+                          'pin',
+                          'trade',
+                          'view-on-roster',
+                          'view-in-full-cap',
+                          'find-in-history',
+                          'compare-impact',
+                          'guide-next-move',
+                        ]}
+                        isPinned={isPinned}
+                        menuAlign="left"
+                        testIdPrefix="cap-sheet-player-row"
+                        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                        onAction={onPlayerAction}
+                      />
+                    );
+                  })()}
                 </div>
                 <div className="text-[10px] text-white/50">
                   {POSITION_MAP[position as keyof typeof POSITION_MAP] ||

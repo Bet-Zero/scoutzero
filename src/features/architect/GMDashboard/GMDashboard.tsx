@@ -696,6 +696,8 @@ export const GMDashboard = () => {
     capSheetDevFixtureControls: actions.capSheetDevTools,
     highlightPlayerId: focusedPlayerId,
     highlightPlayerIds: focusedPlayerIds,
+    onPlayerAction: handlePlayerAction,
+    pinnedPlayerIds,
   };
   const tradeSectionSurface: TradeSectionProps = {
     primaryTeam: normalizedTeamId,

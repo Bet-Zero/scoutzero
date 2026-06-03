@@ -80,7 +80,19 @@ Notes / results:
 
 ---
 
-## Slice 2 — Unified `PlayerActionMenu`  → **IN PROGRESS (2a✓ 2b✓ 2c✓ → 2d next)**
+## Slice 2 — Unified `PlayerActionMenu`  → **IN PROGRESS (2a✓ 2b✓ 2c✓ 2d-cap✓ → 2d-roster next)**
+
+**2d-cap result (current-season Cap Sheet adoption):** `CapSheet` rows now render the shared
+overflow-only `PlayerActionMenu` in the name cell (hover-reveal; name-click stays Open). All actions
+(incl. Pin/Unpin — Cap Sheet has no prior pin plumbing) route via the new `onPlayerAction` →
+`handlePlayerAction`; `pinnedPlayerIds` drives Pin↔Unpin. Threaded through `CapSheetSection` and
+`GMDashboard.capSheetSectionSurface`. Menu only renders when `onPlayerAction` is provided, so other
+CapSheet call sites/tests are unaffected. Verified: typecheck, jsdom suites (stage2c continuity 29,
+GMDashboard smoke 8, cockpit 22 = 59 total), build.
+
+**2d split:** Cap Sheet (done) and Roster are committed separately — Roster requires threading a menu
+render-prop through the **shared legacy** cards (`StarterCard`/`RotationCard`/`BenchCard`, also used
+by the roster builder), so it's isolated to its own commit to keep blast radius contained.
 
 **2c result (central wiring + Full Cap adoption):** `GMDashboard` now owns `handlePlayerAction`
 (routes via `routePlayerAction` to existing owners — no new mutation authority), `manualFocusPlayerId`
