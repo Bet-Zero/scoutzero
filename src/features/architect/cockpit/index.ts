@@ -56,3 +56,13 @@ export {
   type TradeOpenAuthority,
   type TradeOpenAuthorityPresentation,
 } from './tradeOpenRequest';
+export {
+  buildFollowThroughContext,
+  describeGuideObjective,
+  describeCompareFocus,
+  type FollowThroughContext,
+  type FollowThroughOrigin,
+  type FollowThroughWarning,
+  type CompareFocusAuthority,
+  type CompareFocusPresentation,
+} from './followThroughContext';

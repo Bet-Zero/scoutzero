@@ -127,6 +127,7 @@ cockpit/
   WorldMenu.tsx
   authorityLabel.ts
   cockpitTokens.ts
+  followThroughContext.ts
   index.ts
   playerActionContext.ts
   playerActionRouter.ts
@@ -539,5 +540,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-03T18:46:13.760Z*
+*Generated on: 2026-06-03T19:01:37.290Z*
 *Auto-updated by: npm run docs*
