@@ -1233,6 +1233,14 @@ export const GMDashboard = () => {
       onResumeTradeDraft={openTrade}
       onNavigateToCompare={() => setActiveTab('compare')}
       onNavigateToGuide={() => setActiveTab('guide')}
+      onOpenTradeForObjective={(objective) =>
+        openTradeWithRequest(
+          buildTradeOpenRequest({ source: 'warning', objective })
+        )
+      }
+      onOpenTradeFromReceipt={() =>
+        openTradeWithRequest(buildTradeOpenRequest({ source: 'receipt' }))
+      }
       pinnedPlayers={pinnedPlayers}
       onUnpinPlayer={removePin}
       onOpenPinnedPlayer={(playerId) => {

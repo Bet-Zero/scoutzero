@@ -28,6 +28,7 @@ import {
   type PinnedPlayer,
 } from './ActivityRail';
 import type { PlayerAction, PlayerActionContext } from './playerActionContext';
+import type { TradeObjective } from './tradeOpenRequest';
 import type { HardCapCockpitStatus } from './TeamStatusStrip';
 import { useTeamPalette } from './useTeamPalette';
 
@@ -64,6 +65,8 @@ interface CockpitShellProps {
   onResumeTradeDraft?: () => void;
   onNavigateToCompare?: () => void;
   onNavigateToGuide?: () => void;
+  onOpenTradeForObjective?: (objective: TradeObjective) => void;
+  onOpenTradeFromReceipt?: () => void;
   banner?: ReactNode;
   modals?: ReactNode;
 }
@@ -101,6 +104,8 @@ export const CockpitShell = ({
   onResumeTradeDraft,
   onNavigateToCompare,
   onNavigateToGuide,
+  onOpenTradeForObjective,
+  onOpenTradeFromReceipt,
   banner,
   modals,
 }: CockpitShellProps) => {
@@ -163,6 +168,8 @@ export const CockpitShell = ({
           onResumeTradeDraft={onResumeTradeDraft}
           onNavigateToCompare={onNavigateToCompare}
           onNavigateToGuide={onNavigateToGuide}
+          onOpenTradeForObjective={onOpenTradeForObjective}
+          onOpenTradeFromReceipt={onOpenTradeFromReceipt}
         />
       </div>
 

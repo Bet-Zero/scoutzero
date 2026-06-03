@@ -284,4 +284,25 @@ describe('ActivityRail — Slice 1 audit', () => {
       })
     );
   });
+
+  it('opens Trade with a cap/apron objective from a watchlist warning', () => {
+    const onOpenTradeForObjective = vi.fn();
+    renderRail({
+      workspace: withAboveSecondApron(makeSandboxWorkspace()),
+      onOpenTradeForObjective,
+    });
+    fireEvent.click(
+      screen.getByTestId('cockpit-activity-rail-watch-apron2-trade')
+    );
+    expect(onOpenTradeForObjective).toHaveBeenCalledWith('clear-second-apron');
+  });
+
+  it('offers Open Trade Machine on a trade-kind receipt', () => {
+    const onOpenTradeFromReceipt = vi.fn();
+    renderRail({ receipt: RECEIPT, onOpenTradeFromReceipt });
+    fireEvent.click(
+      screen.getByTestId('cockpit-activity-rail-receipt-open-trade')
+    );
+    expect(onOpenTradeFromReceipt).toHaveBeenCalledTimes(1);
+  });
 });

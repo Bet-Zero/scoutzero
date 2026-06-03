@@ -33,6 +33,7 @@ import {
 } from './authorityLabel';
 import { PlayerActionMenu } from './PlayerActionMenu';
 import type { PlayerAction, PlayerActionContext } from './playerActionContext';
+import type { TradeObjective } from './tradeOpenRequest';
 
 export interface PinnedPlayer {
   id: string;
@@ -74,6 +75,10 @@ interface ActivityRailProps {
   onResumeTradeDraft?: () => void;
   onNavigateToCompare?: () => void;
   onNavigateToGuide?: () => void;
+  /** Open the Trade Machine with a cap/apron objective from a watchlist warning. */
+  onOpenTradeForObjective?: (objective: TradeObjective) => void;
+  /** Open the Trade Machine from a trade-related committed receipt. */
+  onOpenTradeFromReceipt?: () => void;
 }
 
 export interface ActivityRailHandle {
@@ -112,6 +117,8 @@ interface WatchEntry {
   destination: WatchDestination;
   /** Optional authority chip (e.g. season mismatch) routed through `authorityLabel`. */
   authority?: AuthorityLabelInput;
+  /** Optional Trade Machine objective so a cap/apron warning can open Trade. */
+  tradeObjective?: TradeObjective;
 }
 
 function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] {
@@ -125,6 +132,7 @@ function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] 
         tone: 'danger',
         text: 'Above 2nd Apron — hard-cap restrictions active.',
         destination: 'cap-sheet',
+        tradeObjective: 'clear-second-apron',
       });
     } else if (cap.isAtOrAboveFirstApron) {
       entries.push({
@@ -132,6 +140,7 @@ function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] 
         tone: 'danger',
         text: 'At or above 1st Apron — exception use restricted.',
         destination: 'cap-sheet',
+        tradeObjective: 'clear-first-apron',
       });
     } else if (cap.isOverTax) {
       entries.push({
@@ -139,6 +148,7 @@ function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] 
         tone: 'watch',
         text: 'Over the luxury tax line.',
         destination: 'cap-sheet',
+        tradeObjective: 'reduce-tax',
       });
     } else if (cap.isOverCap) {
       entries.push({
@@ -146,6 +156,7 @@ function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] 
         tone: 'watch',
         text: 'Over the salary cap.',
         destination: 'cap-sheet',
+        tradeObjective: 'solve-cap',
       });
     }
   }
@@ -261,6 +272,8 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       onResumeTradeDraft,
       onNavigateToCompare,
       onNavigateToGuide,
+      onOpenTradeForObjective,
+      onOpenTradeFromReceipt,
     },
     ref
   ) {
@@ -400,7 +413,9 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                   onNavigateToHistory={onNavigateReceiptHistory}
                   onDismiss={onDismissReceipt}
                 />
-                {onNavigateToCompare || onNavigateToGuide ? (
+                {onNavigateToCompare ||
+                onNavigateToGuide ||
+                (onOpenTradeFromReceipt && receipt.kind === 'trade') ? (
                   <div
                     className="flex flex-wrap gap-1.5"
                     data-testid="cockpit-activity-rail-post-action-links"
@@ -423,6 +438,16 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                         data-testid="cockpit-activity-rail-guide"
                       >
                         Guide next steps
+                      </button>
+                    ) : null}
+                    {onOpenTradeFromReceipt && receipt.kind === 'trade' ? (
+                      <button
+                        type="button"
+                        onClick={onOpenTradeFromReceipt}
+                        className="rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[10px] text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                        data-testid="cockpit-activity-rail-receipt-open-trade"
+                      >
+                        Open Trade Machine
                       </button>
                     ) : null}
                   </div>
@@ -624,14 +649,28 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                       ) : null}
                       <span className="min-w-0 flex-1">{entry.text}</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={onNavigate}
-                      className="mt-1 text-[10px] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-                      data-testid={`cockpit-activity-rail-watch-${entry.id}-action`}
-                    >
-                      {WATCH_DESTINATION_LABELS[entry.destination]}
-                    </button>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={onNavigate}
+                        className="text-[10px] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                        data-testid={`cockpit-activity-rail-watch-${entry.id}-action`}
+                      >
+                        {WATCH_DESTINATION_LABELS[entry.destination]}
+                      </button>
+                      {entry.tradeObjective && onOpenTradeForObjective ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenTradeForObjective(entry.tradeObjective!)
+                          }
+                          className="text-[10px] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                          data-testid={`cockpit-activity-rail-watch-${entry.id}-trade`}
+                        >
+                          Open Trade
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 );
               })

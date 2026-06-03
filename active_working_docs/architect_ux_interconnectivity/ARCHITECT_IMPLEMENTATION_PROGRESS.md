@@ -259,26 +259,39 @@ node+ui cockpit suites.
 
 ---
 
-## Slice 3 — Trade overlay entry points + context  → **NOT STARTED**
+## Slice 3 — Trade overlay entry points + context  → **DONE (3a✓ 3b✓ 3c✓)**
 
 Spec: `ARCHITECT_IMPLEMENTATION_SLICE_03_TRADE_OVERLAY_ENTRY.md`
 Depends on: Slice 2
 
-- [ ] New `cockpit/tradeOpenRequest.ts` (`TradeOpenRequest`); exported
-- [ ] Entry points: Roster, Cap Sheet, warning, TPE/exception, History event, receipt, Guide
-- [ ] In-overlay objective/context banner with authority label (`TradeEditor`)
-- [ ] Meaningful-draft threshold gates the In Progress card
-- [ ] "Trade all pinned" confirmation when > 2 pinned
-- [ ] Apply success → receipt + highlights; failure → stays in overlay, no receipt
-- [ ] No auto-clone / no alternate mutation path
-- [ ] `npm run typecheck` ✅/❌
-- [ ] `npm run test:trade --reporter=dot` ✅/❌
-- [ ] `npm run test:architect --reporter=dot` ✅/❌
-- [ ] `npm run build` ✅/❌
-- [ ] `npm run dev` acceptance walkthrough done
-- [ ] Committed (hash: ______)
+- [x] New `cockpit/tradeOpenRequest.ts` (`TradeOpenRequest` + builders/labels); exported (3a)
+- [x] Entry points: Roster/Cap/pinned (Slice 2 `onPlayerAction` trade → source-aware request),
+      warning (watch → objective), TPE/exception (payload + banner ready), receipt (Open Trade
+      Machine on trade-kind). **History event + Guide entries: payload ready (source `history`/
+      `guide`, `relatedEventId`); the actual wiring lands in Slice 4 (History) / Slice 5 (Guide).**
+- [x] In-overlay objective/context banner with authority label (`TradeEditor`, dismissible) (3b)
+- [x] Meaningful-draft threshold gates In Progress (staged assets OR objective/exception) (3b)
+- [x] "Trade all pinned" confirmation when > 2 pinned (3b; `window.confirm` v1)
+- [x] Apply success → receipt + highlights; failure → stays in overlay, no receipt (unchanged path)
+- [x] No auto-clone / no alternate mutation path (apply still only via useArchitectActions →
+      mutationPipeline; History reference is context-only)
+- [x] `npm run typecheck` ✅
+- [x] `npm run test:trade --reporter=dot` ✅ (632) + tradeStaging banner/threshold (8, jsdom)
+- [~] `npm run test:architect` node gate ✅ (tradeOpenRequest 7); `.tsx` rail/banner verified via
+      scoped `test:ui` (node config skips `.tsx`)
+- [x] `npm run build` ✅
+- [ ] `npm run dev` acceptance walkthrough (manual)
+- [x] Committed: 3a da05876a · 3b a9970ff9 · 3c (this commit)
 
 Notes / results:
+
+- Chunks: 3a `tradeOpenRequest.ts` foundation; 3b GMDashboard `openTradeWithRequest` + TradeEditor
+  banner + draft threshold + trade-all confirm; 3c rail warning→Trade (objective) + receipt→Open
+  Trade Machine, threaded GMDashboard → CockpitShell → ActivityRail.
+- **Deferred to 4/5 (payload ready):** History trade-event → Trade (relatedEventId, no auto-clone)
+  in Slice 4; Guide recommendation → Trade in Slice 5. `buildTradeOpenRequest` already supports both.
+- Trade-all confirmation uses `window.confirm` for v1 (spec: "prompts a confirmation"); a styled
+  modal can replace it later if desired.
 
 ---
 
