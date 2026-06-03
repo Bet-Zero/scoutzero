@@ -40,6 +40,7 @@ Spec: `ARCHITECT_IMPLEMENTATION_SLICE_01_ACTIVITY_RAIL_PLAYER_ACTIONS.md`
 Notes / results:
 
 **What changed**
+
 - New `src/features/architect/cockpit/authorityLabel.ts`: single source of truth for the
   authority/mode → user-facing label vocabulary (master spec §4.1) + `AUTHORITY_TONE_BADGE_CLASSES`.
   Exported from `cockpit/index.ts`. This is the shared artifact Slices 2/4/5 import.
@@ -57,6 +58,7 @@ Notes / results:
     and the "Next Steps folded" decision (open-question #5) inline.
 
 **Decisions confirmed against current code**
+
 - Receipt dismiss scope (open-question #17) already correct in `useArchitectPostActionReceipt`
   (session-only, scope-key reset clears, not persisted across reload) — no change needed.
 - Scenario Activity (`ScenarioMoveRail`) already committed-world-only with unable-to-load (not fake
@@ -64,6 +66,7 @@ Notes / results:
 - No mutation authority added to the rail (navigation handlers only).
 
 **Tests added**
+
 - `src/tests/architect/cockpit/authorityLabel.test.ts` — every §4.1 row + tone-class coverage +
   "no internal mode words" guard.
 - `src/tests/architect/cockpit/architectActivityRail.render.test.tsx` — cap-unavailable + link,
@@ -71,6 +74,7 @@ Notes / results:
   → Cap Sheet route, season-mismatch chip → Offseason route, collapsed danger dot not buried.
 
 **Deferred**
+
 - Manual `npm run dev` walkthrough not performed (no interactive session). Acceptance criteria are
   exercised by the render tests above; flag for a human pass if desired.
 
@@ -96,6 +100,37 @@ Depends on: Slice 1 (`authorityLabel.ts`)
 - [ ] Committed (hash: ______)
 
 Notes / results:
+
+**Code map gathered during Slice 1 wrap-up (so the next pass does not re-derive it):**
+
+- Existing inline kebab to replace lives in `capSheet/CapSheetFull/CapSheetFull.tsx`
+  (~lines 878–967). Props: `onLaunchPlayerAction(player, 'waive'|'extend'|'stretch')` (Full-Cap-only
+  contract launchers — KEEP), `onTogglePin(player)`, `pinnedPlayerIds`, `highlightPlayerId(s)`.
+  Test ids to preserve/adjust: `cap-sheet-full-player-row-kebab`,
+  `cap-sheet-full-player-row-action-menu`, `cap-sheet-full-player-row-action-{extend|waive|stretch}`,
+  `cap-sheet-full-player-row-action-pin`, `cap-sheet-full-player-row-button` (name click = Open).
+  `actionMenuIndex` state drives the open menu; row name button calls `openPlayerContractModal`.
+- Current-season Cap Sheet component: `capSheet/CapSheet/CapSheet.tsx` (opens `EditContractModal`
+  on row click; add menu, keep click = Open).
+- Roster cards: `shared/RosterVisual/RosterVisual.tsx` (385 lines; card click → `onSelectPlayer`
+  → `EditContractModal`; add menu, keep card click = Open).
+- Pinned + receipt rows: `cockpit/ActivityRail.tsx` (pinned rows already have open/trade/unpin
+  inline — swap to shared menu; receipt changed-player rows currently have NO per-player
+  affordance — add menu with View-on-Roster/Cap + History/Compare/Guide, no auto-pin).
+- Central wiring: `GMDashboard/GMDashboard.tsx` (1,114 lines) owns `pinnedPlayerIds` +
+  `addPin`/`removePin`/`togglePin`, trade-open plumbing, and the `rooms` registry; define the
+  navigation-intent handlers here and thread through `cockpit/CockpitShell.tsx` → room descriptors.
+- Reuse `GMDashboard/postActionHandoff/playerFocus.ts` (`resolvePrimaryPlayerFocusId`,
+  `playerMatchesFocus`) for identity — do NOT duplicate.
+- New files to add: `cockpit/PlayerActionMenu.tsx`, `cockpit/playerActionContext.ts`
+  (`PlayerActionContext` + `buildPlayerActionContext`); export both from `cockpit/index.ts`.
+  Import `getAuthorityLabel` from the Slice-1 `cockpit/authorityLabel.ts` where labels are needed.
+- FA-target (open-question #1): pin a free agent adds a pin with an `isTarget` flag (session/visual
+  only); render a "Target" badge in the pinned rail. Keep `pinnedPlayerIds: string[]` and hold the
+  target flag in a parallel set/map in `GMDashboard`.
+
+**Status:** Not started in code. This is a large coordinated change across the two biggest central
+files; recommended to execute as one focused session and commit as a single slice.
 
 ---
 
