@@ -212,4 +212,37 @@ describe('ActivityRail — Slice 1 audit', () => {
       screen.getByTestId('cockpit-activity-rail-dot-in-progress')
     ).toBeInTheDocument();
   });
+
+  it('badges FA-target pins and routes pinned-row actions through onPlayerAction', () => {
+    const onPlayerAction = vi.fn();
+    renderRail({
+      pinnedPlayers: [
+        { id: 'p1', label: 'Reg Player' },
+        { id: 'fa1', label: 'FA Target', isTarget: true },
+      ],
+      onPlayerAction,
+    });
+
+    // Target badge only on the FA-target pin.
+    expect(
+      screen.getByTestId('cockpit-activity-rail-pinned-target-fa1')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('cockpit-activity-rail-pinned-target-p1')
+    ).toBeNull();
+
+    // Trade + Unpin route through the unified sink with rail context.
+    fireEvent.click(screen.getByTestId('cockpit-activity-rail-pinned-p1-trade'));
+    expect(onPlayerAction).toHaveBeenCalledWith(
+      'trade',
+      expect.objectContaining({ playerId: 'p1', sourceRoom: 'rail' })
+    );
+    fireEvent.click(
+      screen.getByTestId('cockpit-activity-rail-pinned-fa1-unpin')
+    );
+    expect(onPlayerAction).toHaveBeenCalledWith(
+      'unpin',
+      expect.objectContaining({ playerId: 'fa1', isFreeAgentTarget: true })
+    );
+  });
 });

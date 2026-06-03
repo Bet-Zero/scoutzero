@@ -31,6 +31,8 @@ import {
   AUTHORITY_TONE_BADGE_CLASSES,
   type AuthorityLabelInput,
 } from './authorityLabel';
+import { PlayerActionMenu } from './PlayerActionMenu';
+import type { PlayerAction, PlayerActionContext } from './playerActionContext';
 
 export interface PinnedPlayer {
   id: string;
@@ -59,6 +61,12 @@ interface ActivityRailProps {
   onOpenPinnedPlayer?: (playerId: string) => void;
   onTradePinnedPlayer?: (playerId: string) => void;
   onTradeAllPinned?: () => void;
+  /**
+   * Unified player-action sink (Slice 2e). When provided, pinned rows route
+   * Trade/Unpin and cross-room navigation through it; falls back to the
+   * per-pin callbacks above when absent.
+   */
+  onPlayerAction?: (action: PlayerAction, context: PlayerActionContext) => void;
   tradeDraftActive?: boolean;
   /** Reopen the Trade Machine overlay from the in-progress draft card. */
   onResumeTradeDraft?: () => void;
@@ -245,6 +253,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       onOpenPinnedPlayer,
       onTradePinnedPlayer,
       onTradeAllPinned,
+      onPlayerAction,
       tradeDraftActive = false,
       onResumeTradeDraft,
       onNavigateToCompare,
@@ -441,40 +450,61 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
               }
             >
               <ul className="flex flex-col gap-1">
-                {pinnedPlayers.map((player) => (
-                  <li
-                    key={player.id}
-                    className="flex items-center gap-1.5 rounded border border-cockpit-edge bg-cockpit-slab px-2 py-1"
-                    data-testid={`cockpit-activity-rail-pinned-${player.id}`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => onOpenPinnedPlayer?.(player.id)}
-                      className="min-w-0 flex-1 truncate text-left text-[11px] font-medium text-cockpit-text-primary hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-                      title={`Open ${player.label}`}
-                      data-testid={`cockpit-activity-rail-pinned-open-${player.id}`}
+                {pinnedPlayers.map((player) => {
+                  const pinnedContext: PlayerActionContext = {
+                    playerId: player.id,
+                    playerLabel: player.label,
+                    sourceRoom: 'rail',
+                    ...(player.isTarget ? { isFreeAgentTarget: true } : {}),
+                  };
+                  return (
+                    <li
+                      key={player.id}
+                      className="flex items-center gap-1.5 rounded border border-cockpit-edge bg-cockpit-slab px-2 py-1"
+                      data-testid={`cockpit-activity-rail-pinned-${player.id}`}
                     >
-                      {player.label}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onTradePinnedPlayer?.(player.id)}
-                      className="shrink-0 rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5 text-[10px] font-medium text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-                      data-testid={`cockpit-activity-rail-pinned-trade-${player.id}`}
-                    >
-                      Trade
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onUnpinPlayer?.(player.id)}
-                      aria-label={`Unpin ${player.label}`}
-                      className="shrink-0 rounded px-1 py-0.5 text-[11px] leading-none text-cockpit-text-muted hover:text-cockpit-text-secondary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-                      data-testid={`cockpit-activity-rail-pinned-unpin-${player.id}`}
-                    >
-                      ✕
-                    </button>
-                  </li>
-                ))}
+                      {player.isTarget ? (
+                        <span
+                          className="shrink-0 rounded border border-cockpit-info/40 bg-cockpit-info/10 px-1 text-[9px] font-semibold uppercase tracking-wide leading-4 text-cockpit-info"
+                          title="Free-agent target"
+                          data-testid={`cockpit-activity-rail-pinned-target-${player.id}`}
+                        >
+                          Target
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => onOpenPinnedPlayer?.(player.id)}
+                        className="min-w-0 flex-1 truncate text-left text-[11px] font-medium text-cockpit-text-primary hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                        title={`Open ${player.label}`}
+                        data-testid={`cockpit-activity-rail-pinned-open-${player.id}`}
+                      >
+                        {player.label}
+                      </button>
+                      <PlayerActionMenu
+                        context={pinnedContext}
+                        visibleActions={['trade', 'unpin']}
+                        overflowActions={['view-on-roster', 'view-on-cap']}
+                        testIdPrefix={`cockpit-activity-rail-pinned-${player.id}`}
+                        onAction={(action, ctx) => {
+                          if (action === 'trade') {
+                            onPlayerAction
+                              ? onPlayerAction('trade', ctx)
+                              : onTradePinnedPlayer?.(player.id);
+                            return;
+                          }
+                          if (action === 'unpin') {
+                            onPlayerAction
+                              ? onPlayerAction('unpin', ctx)
+                              : onUnpinPlayer?.(player.id);
+                            return;
+                          }
+                          onPlayerAction?.(action, ctx);
+                        }}
+                      />
+                    </li>
+                  );
+                })}
               </ul>
             </RailSection>
           ) : null}

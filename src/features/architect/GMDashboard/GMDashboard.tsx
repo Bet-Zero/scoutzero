@@ -1211,6 +1211,7 @@ export const GMDashboard = () => {
       }}
       onTradePinnedPlayer={(playerId) => openTradeWithPlayers([playerId])}
       onTradeAllPinned={() => openTradeWithPlayers(pinnedPlayerIds)}
+      onPlayerAction={handlePlayerAction}
       banner={banner}
       modals={modalsSlot}
     />

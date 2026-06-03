@@ -27,6 +27,7 @@ import {
   type ActivityRailHandle,
   type PinnedPlayer,
 } from './ActivityRail';
+import type { PlayerAction, PlayerActionContext } from './playerActionContext';
 import type { HardCapCockpitStatus } from './TeamStatusStrip';
 import { useTeamPalette } from './useTeamPalette';
 
@@ -57,6 +58,7 @@ interface CockpitShellProps {
   onOpenPinnedPlayer?: (playerId: string) => void;
   onTradePinnedPlayer?: (playerId: string) => void;
   onTradeAllPinned?: () => void;
+  onPlayerAction?: (action: PlayerAction, context: PlayerActionContext) => void;
   tradeDraftActive?: boolean;
   onResumeTradeDraft?: () => void;
   onNavigateToCompare?: () => void;
@@ -92,6 +94,7 @@ export const CockpitShell = ({
   onOpenPinnedPlayer,
   onTradePinnedPlayer,
   onTradeAllPinned,
+  onPlayerAction,
   tradeDraftActive = false,
   onResumeTradeDraft,
   onNavigateToCompare,
@@ -152,6 +155,7 @@ export const CockpitShell = ({
           onOpenPinnedPlayer={onOpenPinnedPlayer}
           onTradePinnedPlayer={onTradePinnedPlayer}
           onTradeAllPinned={onTradeAllPinned}
+          onPlayerAction={onPlayerAction}
           tradeDraftActive={tradeDraftActive}
           onResumeTradeDraft={onResumeTradeDraft}
           onNavigateToCompare={onNavigateToCompare}
