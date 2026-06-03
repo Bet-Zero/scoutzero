@@ -375,17 +375,49 @@ Notes / results:
 
 ---
 
-## Final whole-effort sign-off  → **NOT STARTED**
+## Final whole-effort sign-off  → **DONE (automated); manual dev walkthrough pending**
 
-- [ ] `npm run typecheck` green
-- [ ] `npm run test:architect --reporter=dot` green
-- [ ] `npm run build` green
-- [ ] Master spec §9 Definition of Done confirmed (no new mutation authority; consistent authority
-      labels; local≠committed everywhere)
-- [ ] Map Action Lifecycle Flows A–E walk end-to-end in `npm run dev`
-- [ ] Completion note written below
+- [x] `npm run typecheck` green (final run after Slice 5)
+- [x] `npm run test:architect --reporter=dot` green — **294 files / 3457 tests passed** (includes
+      all six new node-gate suites: authorityLabel, playerActionContext, playerActionRouter,
+      tradeOpenRequest, followThroughContext, historyOutboundLinks)
+- [x] `npm run build` green
+- [x] Master spec §9 Definition of Done confirmed:
+      - No new mutation authority — every new module is pure types/routing; the menus, rail, History,
+        Compare, and Guide only *route* (navigation/UI state). All world writes still flow through
+        `useArchitectActions` → `mutationPipeline`; trade apply path unchanged.
+      - Authority labels: shared `authorityLabel.ts` for rail mode/authority; Slice-specific focused
+        authority helpers for trade-open / History / Compare where the vocabularies differ (noted in
+        each slice). Local/draft/pending/failed/DEV/sandbox never render as committed truth.
+      - Local ≠ committed preserved (trade draft `Local draft`, History DEV-fixture suppression,
+        Compare `Local preview`/`Unavailable`, receipt rows committed-only).
+- [ ] Map Action Lifecycle Flows A–E end-to-end in `npm run dev` — **MANUAL, pending** (agent cannot
+      run the interactive dev walkthrough; each slice also has its own `npm run dev` acceptance steps
+      left for a human pass).
 
 Completion note:
+
+All five interconnectivity slices are implemented, verified (typecheck + scoped node/jsdom tests +
+build), and committed on `feature/architect-cockpit-intelligence`, in 16 commits
+(b9d7e06d → bd8e29de). The cockpit is now cross-connected: one unified `PlayerActionMenu` everywhere
+(Full Cap, Cap Sheet, Roster, pinned rail rows, receipt rows, FA), a single mutation-free player-
+action dispatcher, context-carrying Trade entry with an in-overlay objective banner + meaningful-draft
+threshold, a navigable History detail (event-type outbound links + player menus, no auto-clone), and
+Compare/Guide as follow-through context receivers.
+
+Remaining (non-blocking, for the product owner):
+1. Manual `npm run dev` acceptance walkthroughs (per-slice steps + Map Flows A–E).
+2. Pre-existing test-infra debt surfaced (NOT caused by this work; confirmed on clean HEAD): many
+   architect `.tsx` tests mock `@/shared/components/EditContractModal` with a `default`-only export
+   while the app imports it **named** — crashing every such test that renders the contract modal
+   (`dashboardWorldBoundary.e109`, `freeAgentPool.*`, etc.). Fix: add a named export to those mocks
+   (or a shared mock helper). Also a stale source-snapshot in `stage2d.historyActivityDeeplink`
+   (asserts `<ScenarioMoveRail>` in GMDashboard; it moved to ActivityRail).
+3. Deferred product decisions captured inline: pin scope-clear on team/world change (open-q #3),
+   Full Cap QO-display gap, event-focused Compare from a History event's non-player link,
+   per-world Guide persistence (open-q #11), Compare player-level deltas (open-q #13).
+4. `.tsx` UI tests run under `vitest.ui.config.js` (jsdom), NOT the node `test:architect` gate —
+   verify cockpit/UI changes with `npm run test:ui -- <path>`.
 
 ---
 
