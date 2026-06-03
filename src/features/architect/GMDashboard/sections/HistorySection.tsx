@@ -14,6 +14,7 @@ import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
 import type {
   RequestedHistoryEventDetail,
   TeamHistoryCapSheetLike,
+  HistoryOutboundCallbacks,
 } from '@/features/architect/history/TeamHistoryTab/types';
 
 type HistorySectionProps = {
@@ -24,7 +25,7 @@ type HistorySectionProps = {
   onInjectTeamHistoryFixtures?: (() => void) | null;
   onClearTeamHistoryFixtures?: (() => void) | null;
   hasInjectedTeamHistoryFixtures?: boolean;
-};
+} & HistoryOutboundCallbacks;
 
 const HistorySection = ({
   teamCapSheet,
@@ -34,6 +35,10 @@ const HistorySection = ({
   onInjectTeamHistoryFixtures,
   onClearTeamHistoryFixtures,
   hasInjectedTeamHistoryFixtures,
+  onNavigateRoom,
+  onOpenTradeWithRequest,
+  onPlayerAction,
+  resolvePlayerLabel,
 }: HistorySectionProps) => (
   <TeamHistoryTab
     teamCapSheet={teamCapSheet!}
@@ -45,6 +50,10 @@ const HistorySection = ({
     onInjectTeamHistoryFixtures={onInjectTeamHistoryFixtures}
     onClearTeamHistoryFixtures={onClearTeamHistoryFixtures}
     hasInjectedTeamHistoryFixtures={hasInjectedTeamHistoryFixtures}
+    onNavigateRoom={onNavigateRoom}
+    onOpenTradeWithRequest={onOpenTradeWithRequest}
+    onPlayerAction={onPlayerAction}
+    resolvePlayerLabel={resolvePlayerLabel}
   />
 );
 

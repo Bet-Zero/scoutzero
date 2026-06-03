@@ -26,6 +26,10 @@ export const TeamHistoryTab = ({
   onInjectTeamHistoryFixtures = null,
   onClearTeamHistoryFixtures = null,
   hasInjectedTeamHistoryFixtures = false,
+  onNavigateRoom,
+  onOpenTradeWithRequest,
+  onPlayerAction,
+  resolvePlayerLabel,
 }: TeamHistoryTabProps) => {
   const [selectedEntry, setSelectedEntry] =
     useState<TeamHistorySelectedEntry | null>(null);
@@ -264,6 +268,10 @@ export const TeamHistoryTab = ({
       <HistoryDetailModal
         selectedEntry={selectedEntry}
         onClose={() => setSelectedEntry(null)}
+        onNavigateRoom={onNavigateRoom}
+        onOpenTradeWithRequest={onOpenTradeWithRequest}
+        onPlayerAction={onPlayerAction}
+        resolvePlayerLabel={resolvePlayerLabel}
       />
     </div>
   );

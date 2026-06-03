@@ -295,25 +295,43 @@ Notes / results:
 
 ---
 
-## Slice 4 — History outbound links  → **NOT STARTED**
+## Slice 4 — History outbound links  → **DONE (4a✓ 4b✓)**
 
 Spec: `ARCHITECT_IMPLEMENTATION_SLICE_04_HISTORY_OUTBOUND_LINKS.md`
 Depends on: Slice 2, Slice 3
 
-- [ ] New `history/TeamHistoryTab/historyOutboundLinks.ts` resolver (unit-tested per event type)
-- [ ] Event-type-aware outbound links in `HistoryDetailModal`
-- [ ] Player names open `PlayerActionMenu` with `eventId` context
-- [ ] Committed-event vs current-result labels via `authorityLabel.ts`
-- [ ] Unavailable/deferred messaging (no fake links/rows/asset summaries)
-- [ ] No auto-clone of trade events
-- [ ] DEV/local entries never render as committed links
-- [ ] `npm run typecheck` ✅/❌
-- [ ] `npm run test:architect --reporter=dot` ✅/❌
-- [ ] `npm run build` ✅/❌
-- [ ] `npm run dev` acceptance walkthrough done
-- [ ] Committed (hash: ______)
+- [x] New `history/TeamHistoryTab/historyOutboundLinks.ts` resolver (unit-tested per event type) (4a)
+- [x] Event-type-aware outbound links in `HistoryDetailModal` (primary buttons; 4b)
+- [x] Player names open `PlayerActionMenu` with `eventId` context (sourceRoom 'history'; 4b)
+- [x] Committed-event vs current-result labeling (section header note + link `authority`; History trade
+      context uses `committed-event-reference`). Note: used a lightweight inline label rather than the
+      `authorityLabel.ts` chip — the History authorities (committed-event/current-result/deferred)
+      don't map onto the rail mode-enum vocabulary; can unify later if desired.
+- [x] Unavailable/deferred messaging (draft/asset → "Draft asset summary is not available yet.";
+      no fake links/rows/asset summaries) (4a/4b)
+- [x] No auto-clone of trade events (trade-context request carries `relatedEventId` only, no playerIds)
+- [x] DEV/local entries never render the committed-event trade context (suppressed via `isCommitted`)
+- [x] `npm run typecheck` ✅
+- [~] `npm run test:architect` node gate ✅ (resolver 8); modal render verified via scoped `test:ui`
+      (4 tests) — node config skips `.tsx`
+- [x] `npm run build` ✅
+- [ ] `npm run dev` acceptance walkthrough (manual)
+- [x] Committed: 4a d7def22f · 4b (this commit)
 
 Notes / results:
+
+- Chunks: 4a pure `historyOutboundLinks.ts` resolver + node tests; 4b modal renders outbound links
+  + player `PlayerActionMenu` (eventId context) + suppression for DEV/local, threaded
+  GMDashboard → HistorySection → TeamHistoryTab → HistoryDetailModal (onNavigateRoom /
+  openTradeWithRequest / handlePlayerAction / resolvePlayerLabel). History adds no mutation authority.
+- **Pre-existing failure (confirmed clean HEAD, NOT this work):**
+  `stage2d.historyActivityDeeplink.test.tsx` (1/11) is a stale **source-string** guardrail asserting
+  GMDashboard renders `<ScenarioMoveRail>` — but ScenarioMoveRail moved into `ActivityRail` during
+  the cockpit migration (0 occurrences in GMDashboard). Update those two regex assertions to target
+  ActivityRail when convenient; unrelated to Slice 4.
+- **Roster-presence labels deferred:** "Event participant no longer on active roster" needs current
+  roster data not available in the modal; the player menu instead routes to destinations that
+  highlight when present (no fake rows). Acceptable for v1; revisit if richer labeling is wanted.
 
 ---
 

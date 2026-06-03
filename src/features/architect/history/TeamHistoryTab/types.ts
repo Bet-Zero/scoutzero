@@ -1,6 +1,23 @@
 import type { TeamHistoryWorldEventRow } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
+import type { ActiveTab } from '@/features/architect/GMDashboard/hooks/useArchitectState.types';
+import type {
+  PlayerAction,
+  PlayerActionContext,
+} from '@/features/architect/cockpit/playerActionContext';
+import type { TradeOpenRequest } from '@/features/architect/cockpit/tradeOpenRequest';
 
 type UnknownRecord = Record<string, unknown>;
+
+/**
+ * Outbound navigation/context callbacks shared by the History detail surface
+ * (interconnectivity Slice 4). All navigation-only — History never mutates.
+ */
+export type HistoryOutboundCallbacks = {
+  onNavigateRoom?: (room: ActiveTab) => void;
+  onOpenTradeWithRequest?: (request: TradeOpenRequest) => void;
+  onPlayerAction?: (action: PlayerAction, context: PlayerActionContext) => void;
+  resolvePlayerLabel?: (playerId: string) => string;
+};
 
 export type TeamHistoryDetailSectionLike = {
   title?: string | null;
@@ -139,9 +156,9 @@ export type TeamHistoryTabProps = {
   onInjectTeamHistoryFixtures?: (() => void) | null;
   onClearTeamHistoryFixtures?: (() => void) | null;
   hasInjectedTeamHistoryFixtures?: boolean;
-};
+} & HistoryOutboundCallbacks;
 
 export type HistoryDetailModalProps = {
   selectedEntry: TeamHistorySelectedEntry | null;
   onClose: () => void;
-};
+} & HistoryOutboundCallbacks;

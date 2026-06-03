@@ -1058,6 +1058,12 @@ export const GMDashboard = () => {
           }
           requestedHistoryEventDetail={requestedHistoryEventDetail}
           onRequestedHistoryEventDetailHandled={handleHistoryEventDetailHandled}
+          onNavigateRoom={(room) => setActiveTab(room)}
+          onOpenTradeWithRequest={openTradeWithRequest}
+          onPlayerAction={handlePlayerAction}
+          resolvePlayerLabel={(playerId) =>
+            resolveFocusedPlayerLabel(playerId) ?? playerId
+          }
         />
       ),
     },
