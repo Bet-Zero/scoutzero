@@ -80,7 +80,7 @@ Notes / results:
 
 ---
 
-## Slice 2 — Unified `PlayerActionMenu`  → **IN PROGRESS (2a)**
+## Slice 2 — Unified `PlayerActionMenu`  → **IN PROGRESS (2a✓ 2b✓ → 2c next)**
 
 Spec: `ARCHITECT_IMPLEMENTATION_SLICE_02_PLAYER_ACTION_MENU.md`
 Depends on: Slice 1 (`authorityLabel.ts`)
@@ -136,12 +136,16 @@ test:architect / build green and gets its own commit; the slice is DONE when 2a�
   `cockpit/playerActionContext.ts` (PlayerActionContext type, `PlayerAction` vocabulary,
   `buildPlayerActionContext`, overflow menu, `extraItems` slot for Full-Cap-only contract actions);
   export from `cockpit/index.ts`. Unit tests. Nothing consumes it yet → cannot break the app.
-- **2b — Central wiring:** navigation-intent handlers in `GMDashboard.tsx` (reuse pin/trade
-  plumbing, no new mutation authority); thread through `CockpitShell.tsx` → room descriptors; add
-  session-only FA-target flag (parallel `Set` keyed by id).
-- **2c — Adopt on Full Cap:** replace bespoke inline kebab with the shared menu; keep
-  waive/extend/stretch as Full-Cap-only `extraItems` → `onLaunchPlayerAction`; update
-  `CapSheetFull.rules.test.tsx` to the shared test-id scheme.
+- **2b — Pure dispatcher (additive):** `cockpit/playerActionRouter.ts` — `routePlayerAction(action,
+  context, deps)` exhaustive switch mapping each `PlayerAction` to an existing GMDashboard owner
+  (no mutation authority). Node unit test. (Kept pure/additive to avoid `noUnusedLocals` dead-code;
+  the GMDashboard wiring that *consumes* it moved into 2c, where Full Cap is the first consumer.)
+- **2c — Central wiring + Full Cap adoption:** in `GMDashboard.tsx` add `manualFocusPlayerId`
+  (merged into `focusedPlayerIds` so view-intents highlight without pinning), a session-only
+  `freeAgentTargetIds` Set, the `routePlayerAction` deps + `handlePlayerAction`, and pin scope-clear
+  on team/world change (open-question #3). Replace Full Cap's bespoke inline kebab with the shared
+  menu (waive/extend/stretch stay Full-Cap-only via `extraItems` → existing
+  `onLaunchPlayerAction`/`onLaunchContractAction`); update `CapSheetFull.rules.test.tsx` test ids.
 - **2d — Adopt on Roster + current-season Cap Sheet** (card/row click stays Open).
 - **2e — Pinned rail rows + receipt changed-player rows + FA card** (FA pin → "Target" badge).
 

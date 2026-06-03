@@ -38,3 +38,7 @@ export {
   type PlayerActionContextPlayerLike,
   type BuildPlayerActionContextInput,
 } from './playerActionContext';
+export {
+  routePlayerAction,
+  type PlayerActionRouterDeps,
+} from './playerActionRouter';
