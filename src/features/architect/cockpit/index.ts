@@ -42,3 +42,17 @@ export {
   routePlayerAction,
   type PlayerActionRouterDeps,
 } from './playerActionRouter';
+export {
+  buildTradeOpenRequest,
+  describeTradeObjective,
+  describeTradeException,
+  describeTradeOpenAuthority,
+  tradeRequestHasBannerContext,
+  type TradeOpenRequest,
+  type TradeOpenSource,
+  type TradeObjective,
+  type TradeExceptionKind,
+  type TradeExceptionRef,
+  type TradeOpenAuthority,
+  type TradeOpenAuthorityPresentation,
+} from './tradeOpenRequest';

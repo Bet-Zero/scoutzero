@@ -130,6 +130,7 @@ cockpit/
   index.ts
   playerActionContext.ts
   playerActionRouter.ts
+  tradeOpenRequest.ts
   useTeamPalette.ts
 comparison/
   capDelta.ts
@@ -537,5 +538,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-03T08:05:06.948Z*
+*Generated on: 2026-06-03T18:23:33.332Z*
 *Auto-updated by: npm run docs*
