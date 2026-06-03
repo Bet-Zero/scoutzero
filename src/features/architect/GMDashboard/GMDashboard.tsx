@@ -40,8 +40,14 @@ import {
   CockpitShell,
   CockpitStatePanel,
   TradeOverlay,
+  routePlayerAction,
 } from '@/features/architect/cockpit';
-import type { NavRailItem, RoomDescriptor } from '@/features/architect/cockpit';
+import type {
+  NavRailItem,
+  RoomDescriptor,
+  PlayerAction,
+  PlayerActionContext,
+} from '@/features/architect/cockpit';
 import { useArchitectDeskNavigation, writeLastTeamSlug } from './hooks/useArchitectDeskNavigation';
 import { resolvePrimaryPlayerFocusId } from './postActionHandoff/playerFocus';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
@@ -166,6 +172,45 @@ export const GMDashboard = () => {
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
   }, []);
+  // Manual (non-pinned) cross-room focus: a view-on-X intent highlights a
+  // player in the destination room without pinning them. Merged into
+  // focusedPlayerIds below; replaced on each view intent. Visual-only.
+  const [manualFocusPlayerId, setManualFocusPlayerId] = useState<string | null>(
+    null
+  );
+  // FA-target subtype (open-question #1): ids pinned *as targets* from Free
+  // Agency. A parallel session/visual-only set keyed by id — pins stay a plain
+  // string[]; this only drives the rail's "Target" badge. Never world data.
+  const [freeAgentTargetIds, setFreeAgentTargetIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const pinPlayerFromAction = useCallback((context: PlayerActionContext) => {
+    const id = context.playerId;
+    if (!id) return;
+    setPinnedPlayerIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    if (context.isFreeAgentTarget) {
+      setFreeAgentTargetIds((prev) => {
+        if (prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    }
+  }, []);
+  const unpinPlayerFromAction = useCallback(
+    (context: PlayerActionContext) => {
+      const id = context.playerId;
+      if (!id) return;
+      removePin(id);
+      setFreeAgentTargetIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    },
+    [removePin]
+  );
   const [tradeDraftActive, setTradeDraftActive] = useState(false);
   // Trade Machine renders as a full-viewport overlay rather than a room in the
   // workbench swapper. `isTradeOpen` toggles its visibility; `hasOpenedTrade`
@@ -343,8 +388,16 @@ export const GMDashboard = () => {
     for (const id of receiptIds) {
       if (!merged.includes(id)) merged.push(id);
     }
+    // Manual view-intent focus (not pinned) also lights up the destination row.
+    if (manualFocusPlayerId && !merged.includes(manualFocusPlayerId)) {
+      merged.push(manualFocusPlayerId);
+    }
     return merged;
-  }, [pinnedPlayerIds, postActionReceipt.receipt?.primaryPlayerIds]);
+  }, [
+    pinnedPlayerIds,
+    postActionReceipt.receipt?.primaryPlayerIds,
+    manualFocusPlayerId,
+  ]);
   const focusedPlayerId = focusedPlayerIds[0] ?? null;
 
   const resolveFocusedPlayerLabel = useCallback(
@@ -370,8 +423,9 @@ export const GMDashboard = () => {
       pinnedPlayerIds.map((id) => ({
         id,
         label: resolveFocusedPlayerLabel(id) ?? id,
+        isTarget: freeAgentTargetIds.has(id),
       })),
-    [pinnedPlayerIds, resolveFocusedPlayerLabel]
+    [pinnedPlayerIds, resolveFocusedPlayerLabel, freeAgentTargetIds]
   );
 
   // Stage 3C: derive current roster player ids from teamCapSheet for comparison.
@@ -471,6 +525,51 @@ export const GMDashboard = () => {
       }
     },
     [normalizedTeamId, postActionReceipt]
+  );
+
+  // Single sink for unified player-menu intents. Routes each PlayerAction to an
+  // existing owner via routePlayerAction — navigation/pin/trade/inspect only, no
+  // new mutation authority (Open still goes through actions.handleEditContract).
+  const handlePlayerAction = useCallback(
+    (action: PlayerAction, context: PlayerActionContext) => {
+      routePlayerAction(action, context, {
+        openInspect: (ctx) => {
+          const player = playersMap[ctx.playerId];
+          if (player) {
+            actions.handleEditContract(
+              player as Parameters<typeof actions.handleEditContract>[0]
+            );
+          }
+        },
+        pinPlayer: pinPlayerFromAction,
+        unpinPlayer: unpinPlayerFromAction,
+        openTradeWithPlayer: (ctx) => openTradeWithPlayers([ctx.playerId]),
+        viewOnRoster: (ctx) => {
+          setManualFocusPlayerId(ctx.playerId);
+          setActiveTab('roster');
+        },
+        viewOnCap: (ctx) => {
+          setManualFocusPlayerId(ctx.playerId);
+          setActiveTab('cap');
+        },
+        viewInFullCap: (ctx) => {
+          setManualFocusPlayerId(ctx.playerId);
+          setActiveTab('capfull');
+        },
+        findInHistory: () => openHistoryRoot(),
+        compareImpact: () => setActiveTab('compare'),
+        guideNextMove: () => setActiveTab('guide'),
+      });
+    },
+    [
+      playersMap,
+      actions,
+      pinPlayerFromAction,
+      unpinPlayerFromAction,
+      openTradeWithPlayers,
+      setActiveTab,
+      openHistoryRoot,
+    ]
   );
 
   const cockpitHardCapStatus = useMemo(() => {
@@ -853,6 +952,7 @@ export const GMDashboard = () => {
           onLaunchPlayerAction={
             contractActionRouting.fullCapTable.launchPlayerAction
           }
+          onPlayerAction={handlePlayerAction}
           playersMap={playersMap}
           getRulesProfileForYear={getProfileForYear}
           highlightPlayerId={focusedPlayerId}

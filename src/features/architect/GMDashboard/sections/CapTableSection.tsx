@@ -14,6 +14,7 @@ type ForwardedCapTableProps = Pick<
   | 'manualCapSheetMutationAuthority'
   | 'exceptionsReadout'
   | 'onLaunchPlayerAction'
+  | 'onPlayerAction'
   | 'onLaunchFreeAgentSearch'
   | 'freeAgentOptions'
   | 'onOpenFreeAgentOption'
@@ -32,6 +33,7 @@ const CapTableSection = ({
   onLaunchContractAction,
   onRenounceCapHold,
   onLaunchPlayerAction = null,
+  onPlayerAction = null,
   playersMap,
   getRulesProfileForYear,
   highlightPlayerId = null,
@@ -52,6 +54,7 @@ const CapTableSection = ({
     onLaunchContractAction={onLaunchContractAction}
     onRenounceCapHold={onRenounceCapHold}
     onLaunchPlayerAction={onLaunchPlayerAction}
+    onPlayerAction={onPlayerAction}
     getRulesProfileForYear={getRulesProfileForYear}
     highlightPlayerId={highlightPlayerId}
     highlightPlayerIds={highlightPlayerIds}

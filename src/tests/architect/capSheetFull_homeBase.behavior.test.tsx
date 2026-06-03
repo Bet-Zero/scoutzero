@@ -87,7 +87,7 @@ describe('CapSheetFull — home-base enrichments', () => {
     render(<CapSheetFull teamCapSheet={teamCapSheet} currentYear={CURRENT_YEAR} />);
     expect(screen.queryByTestId('cap-sheet-full-cap-tools')).not.toBeInTheDocument();
     expect(
-      screen.queryByTestId('cap-sheet-full-player-row-kebab')
+      screen.queryByTestId('cap-sheet-full-player-row-overflow')
     ).not.toBeInTheDocument();
   });
 
@@ -154,7 +154,7 @@ describe('CapSheetFull — home-base enrichments', () => {
     ).toBeInTheDocument();
   });
 
-  it('fires onLaunchPlayerAction from the row kebab with the chosen action', () => {
+  it('fires onLaunchPlayerAction from the row overflow menu with the chosen action', () => {
     const onLaunchPlayerAction = vi.fn();
     render(
       <CapSheetFull
@@ -164,12 +164,47 @@ describe('CapSheetFull — home-base enrichments', () => {
       />
     );
 
-    const kebabs = screen.getAllByTestId('cap-sheet-full-player-row-kebab');
-    fireEvent.click(kebabs[0]);
+    const overflows = screen.getAllByTestId('cap-sheet-full-player-row-overflow');
+    fireEvent.click(overflows[0]);
     fireEvent.click(screen.getByTestId('cap-sheet-full-player-row-action-waive'));
 
     expect(onLaunchPlayerAction).toHaveBeenCalledTimes(1);
     expect(onLaunchPlayerAction.mock.calls[0][1]).toBe('waive');
+  });
+
+  it('routes Pin via onTogglePin and Trade/navigation via onPlayerAction from the overflow menu', () => {
+    const onTogglePin = vi.fn();
+    const onPlayerAction = vi.fn();
+    render(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet}
+        currentYear={CURRENT_YEAR}
+        onTogglePin={onTogglePin}
+        onPlayerAction={onPlayerAction}
+      />
+    );
+
+    // Pin reuses the existing pin plumbing, not the unified intent sink.
+    fireEvent.click(
+      screen.getAllByTestId('cap-sheet-full-player-row-overflow')[0]
+    );
+    fireEvent.click(
+      screen.getByTestId('cap-sheet-full-player-row-overflow-pin')
+    );
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+    expect(onPlayerAction).not.toHaveBeenCalled();
+
+    // Trade (and navigation) route outward through onPlayerAction with context.
+    fireEvent.click(
+      screen.getAllByTestId('cap-sheet-full-player-row-overflow')[0]
+    );
+    fireEvent.click(
+      screen.getByTestId('cap-sheet-full-player-row-overflow-trade')
+    );
+    expect(onPlayerAction).toHaveBeenCalledTimes(1);
+    expect(onPlayerAction.mock.calls[0][0]).toBe('trade');
+    expect(onPlayerAction.mock.calls[0][1].sourceRoom).toBe('capfull');
+    expect(onPlayerAction.mock.calls[0][1].targetYear).toBe(CURRENT_YEAR);
   });
 
   it('fires onLaunchFreeAgentSearch from the Sign Free Agent button', () => {

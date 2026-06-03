@@ -24,6 +24,12 @@ import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/compu
 import { computeDeadMoneyForYear } from '@/features/architect/utils/capTotals/deadMoneyForYear';
 import { BirdRightsIcon } from '@/shared/components/BirdRightsIcon';
 import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
+import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
+import {
+  buildPlayerActionContext,
+  type PlayerAction,
+  type PlayerActionContext,
+} from '@/features/architect/cockpit/playerActionContext';
 import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
 import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 import type { ManualCapSheetMutationAuthority } from '@/features/architect/capSheet/CapSheet/CapSheet';
@@ -98,6 +104,16 @@ type CapSheetFullProps = {
         player: CapSheetFullPlayerLike,
         action: 'waive' | 'extend' | 'stretch'
       ) => void)
+    | null;
+  /**
+   * Unified player-action intents (Trade + cross-room navigation) routed by
+   * GMDashboard via `routePlayerAction`. Open and Pin/Unpin intentionally stay
+   * on the existing `onOpenPlayerContractModal` (name click) and `onTogglePin`
+   * plumbing so this refactor changes no committed behavior — the shared menu
+   * only adds the navigation/trade vocabulary on top.
+   */
+  onPlayerAction?:
+    | ((action: PlayerAction, context: PlayerActionContext) => void)
     | null;
   // Legacy aliases kept temporarily while the live dashboard route migrates.
   onSelectPlayer?: ((player: CapSheetFullPlayerLike) => void) | null;
@@ -440,6 +456,7 @@ export const CapSheetFull = ({
   onLaunchContractAction,
   onRenounceCapHold,
   onLaunchPlayerAction = null,
+  onPlayerAction = null,
   onSelectPlayer,
   onActionClick,
   getRulesProfileForYear = null,
@@ -459,7 +476,6 @@ export const CapSheetFull = ({
   const [showExceptionsReadout, setShowExceptionsReadout] = useState(false);
   const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
   const [showExceptionsModal, setShowExceptionsModal] = useState(false);
-  const [actionMenuIndex, setActionMenuIndex] = useState<number | null>(null);
   const hasManualCapSheetMutationAuthority = !!manualCapSheetMutationAuthority;
   const handleSaveDeadCapEdit = React.useCallback(
     (deadCap: DeadCapSavePayload) =>
@@ -875,96 +891,71 @@ export const CapSheetFull = ({
                               player.bio?.displayName ||
                               player.name}
                           </button>
-                          {onLaunchPlayerAction || onTogglePin ? (
-                            <div
-                              className="relative shrink-0"
-                              onBlur={(e) => {
-                                if (
-                                  !e.currentTarget.contains(
-                                    e.relatedTarget as Node | null
-                                  )
-                                ) {
-                                  setActionMenuIndex((current) =>
-                                    current === idx ? null : current
-                                  );
-                                }
-                              }}
-                            >
-                              <button
-                                type="button"
-                                data-testid="cap-sheet-full-player-row-kebab"
-                                aria-label={`Contract actions for ${
-                                  player.displayName ||
-                                  player.bio?.displayName ||
-                                  player.name
-                                }`}
-                                aria-haspopup="menu"
-                                aria-expanded={actionMenuIndex === idx}
-                                onClick={() =>
-                                  setActionMenuIndex((current) =>
-                                    current === idx ? null : idx
-                                  )
-                                }
-                                className="flex h-5 w-5 items-center justify-center rounded text-white/30 opacity-0 transition-opacity hover:bg-white/10 hover:text-white/80 group-hover:opacity-100 focus-visible:opacity-100"
-                              >
-                                <span aria-hidden className="text-sm leading-none">
-                                  ⋯
-                                </span>
-                              </button>
-                              {actionMenuIndex === idx ? (
-                                <div
-                                  role="menu"
-                                  data-testid="cap-sheet-full-player-row-action-menu"
-                                  className="absolute left-0 top-6 z-20 min-w-[120px] overflow-hidden rounded-md border border-cockpit-edge bg-cockpit-slab py-1 shadow-xl"
-                                >
-                                  {onLaunchPlayerAction
-                                    ? (
-                                        [
-                                          ['extend', 'Extend'],
-                                          ['waive', 'Waive'],
-                                          ['stretch', 'Stretch'],
-                                        ] as const
-                                      ).map(([action, label]) => (
-                                        <button
-                                          key={action}
-                                          type="button"
-                                          role="menuitem"
-                                          data-testid={`cap-sheet-full-player-row-action-${action}`}
-                                          onClick={() => {
-                                            setActionMenuIndex(null);
-                                            onLaunchPlayerAction?.(player, action);
-                                          }}
-                                          className="block w-full px-3 py-1.5 text-left text-[11px] text-white/70 hover:bg-white/10 hover:text-white"
-                                        >
-                                          {label}
-                                        </button>
-                                      ))
-                                    : null}
-                                  {onTogglePin ? (
-                                    <>
-                                      {onLaunchPlayerAction ? (
-                                        <div className="my-1 h-px bg-cockpit-edge" />
-                                      ) : null}
-                                      <button
-                                        type="button"
-                                        role="menuitem"
-                                        data-testid="cap-sheet-full-player-row-action-pin"
-                                        onClick={() => {
-                                          setActionMenuIndex(null);
-                                          onTogglePin?.(player);
-                                        }}
-                                        className="block w-full px-3 py-1.5 text-left text-[11px] text-white/70 hover:bg-white/10 hover:text-white"
-                                      >
-                                        {playerIsPinned(player)
-                                          ? 'Unpin'
-                                          : 'Pin to board'}
-                                      </button>
-                                    </>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                            </div>
-                          ) : null}
+                          {(() => {
+                            if (
+                              !onLaunchPlayerAction &&
+                              !onTogglePin &&
+                              !onPlayerAction
+                            ) {
+                              return null;
+                            }
+                            const menuContext = buildPlayerActionContext({
+                              player,
+                              sourceRoom: 'capfull',
+                              targetYear: currentYear,
+                            });
+                            if (!menuContext) return null;
+                            // Open stays the name-click; the menu is overflow-only
+                            // so the dense 24px row keeps its compact hover-kebab.
+                            const overflowActions: PlayerAction[] = [];
+                            if (onTogglePin) overflowActions.push('pin');
+                            if (onPlayerAction) {
+                              overflowActions.push(
+                                'trade',
+                                'view-on-roster',
+                                'view-on-cap',
+                                'find-in-history',
+                                'compare-impact',
+                                'guide-next-move'
+                              );
+                            }
+                            const extraItems = onLaunchPlayerAction
+                              ? (
+                                  [
+                                    ['extend', 'Extend'],
+                                    ['waive', 'Waive'],
+                                    ['stretch', 'Stretch'],
+                                  ] as const
+                                ).map(([action, label]) => ({
+                                  id: action,
+                                  label,
+                                  onSelect: () =>
+                                    onLaunchPlayerAction?.(player, action),
+                                  testId: `cap-sheet-full-player-row-action-${action}`,
+                                }))
+                              : [];
+                            return (
+                              <PlayerActionMenu
+                                context={menuContext}
+                                visibleActions={[]}
+                                overflowActions={overflowActions}
+                                extraItems={extraItems}
+                                isPinned={playerIsPinned(player)}
+                                menuAlign="left"
+                                testIdPrefix="cap-sheet-full-player-row"
+                                className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                                onAction={(action, ctx) => {
+                                  // Open/Pin reuse the surface's existing
+                                  // plumbing; everything else routes outward.
+                                  if (action === 'pin' || action === 'unpin') {
+                                    onTogglePin?.(player);
+                                    return;
+                                  }
+                                  onPlayerAction?.(action, ctx);
+                                }}
+                              />
+                            );
+                          })()}
                         </div>
 
                         {/* Years */}

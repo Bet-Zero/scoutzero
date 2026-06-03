@@ -41,6 +41,8 @@ export interface PlayerActionMenuProps {
   /** Test-id / a11y namespace. Defaults to `player-action-menu`. */
   testIdPrefix?: string;
   size?: 'sm' | 'md';
+  /** Which edge the overflow dropdown aligns to. Defaults to `right`. */
+  menuAlign?: 'left' | 'right';
   className?: string;
 }
 
@@ -82,6 +84,7 @@ export function PlayerActionMenu({
   extraItems = [],
   testIdPrefix = 'player-action-menu',
   size = 'sm',
+  menuAlign = 'right',
   className,
 }: PlayerActionMenuProps) {
   const [open, setOpen] = useState(false);
@@ -143,7 +146,9 @@ export function PlayerActionMenu({
           id={menuId}
           role="menu"
           data-testid={`${testIdPrefix}-overflow-menu`}
-          className="absolute right-0 top-6 z-30 min-w-[150px] overflow-hidden rounded-md border border-cockpit-edge bg-cockpit-slab py-1 shadow-xl"
+          className={`absolute top-6 z-30 min-w-[150px] overflow-hidden rounded-md border border-cockpit-edge bg-cockpit-slab py-1 shadow-xl ${
+            menuAlign === 'left' ? 'left-0' : 'right-0'
+          }`}
         >
           {overflowActions.map((action) => {
             const { label, emit: emitted } = resolveAction(action, isPinned);

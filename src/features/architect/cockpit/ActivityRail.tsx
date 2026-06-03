@@ -35,6 +35,8 @@ import {
 export interface PinnedPlayer {
   id: string;
   label: string;
+  /** FA-target subtype (open-question #1): pinned from Free Agency as a target. */
+  isTarget?: boolean;
 }
 
 interface ActivityRailProps {
