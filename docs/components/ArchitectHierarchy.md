@@ -181,6 +181,7 @@ history/
     TeamHistoryTab.helpers.ts
     TeamHistoryTab.tsx
     WorldEventsTimeline.tsx
+    historyOutboundLinks.ts
     index.ts
     types.ts
   devTeamHistoryFixtures.ts
@@ -538,5 +539,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-03T18:23:33.332Z*
+*Generated on: 2026-06-03T18:46:13.760Z*
 *Auto-updated by: npm run docs*
