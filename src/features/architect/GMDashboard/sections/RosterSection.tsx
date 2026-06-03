@@ -39,6 +39,8 @@ type RosterSectionProps = {
    * this id render a non-mutating "just changed" outline.
    */
   highlightPlayerId?: string | null;
+  /** Multi-focus highlight (pinned players). Unioned with highlightPlayerId. */
+  highlightPlayerIds?: string[];
 };
 
 const RosterSection = ({
@@ -47,6 +49,7 @@ const RosterSection = ({
   teamId,
   onOpenPlayerContractModal,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
 }: RosterSectionProps) => (
   <RosterVisual
     teamCapSheet={teamCapSheet}
@@ -58,6 +61,7 @@ const RosterSection = ({
         : null
     }
     highlightPlayerId={highlightPlayerId}
+    highlightPlayerIds={highlightPlayerIds}
   />
 );
 

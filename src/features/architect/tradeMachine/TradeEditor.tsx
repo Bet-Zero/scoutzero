@@ -55,6 +55,8 @@ export const TradeEditor = ({
   worldAsOfDate = null,
   userId = null,
   onDraftActivityChange = null,
+  requestedStagePlayerIds = [],
+  onStagePlayerHandled = null,
 }: TradeEditorProps) => {
   const {
     teams,
@@ -136,6 +138,39 @@ export const TradeEditor = ({
   useEffect(() => {
     onDraftActivityChange?.(hasDraftActivity);
   }, [hasDraftActivity, onDraftActivityChange]);
+
+  // Pre-stage one or more players as outgoing when the Trade Machine opens from
+  // a player-context entry (the pin board's "Trade" / "Trade all pinned").
+  // One-shot: we wait for slot 0's async init to populate the roster, stage each
+  // match, then clear the request so removing a player doesn't snap them back.
+  // Ids not on the primary roster are a no-op (v1 scope) but are still cleared.
+  const stagedRequestKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (requestedStagePlayerIds.length === 0) {
+      stagedRequestKeyRef.current = null;
+      return;
+    }
+    const requestKey = requestedStagePlayerIds.join('|');
+    if (stagedRequestKeyRef.current === requestKey) return;
+
+    const roster = teams[0]?.team?.players;
+    if (!teams[0]?.team || !Array.isArray(roster)) return; // init not ready yet
+
+    for (const playerId of requestedStagePlayerIds) {
+      const match = roster.find(
+        (p) => (p?.id || p?.player_id) === playerId
+      );
+      if (match) {
+        setPlayerTrade(
+          0,
+          match as Parameters<typeof setPlayerTrade>[1],
+          'trade'
+        );
+      }
+    }
+    stagedRequestKeyRef.current = requestKey;
+    onStagePlayerHandled?.();
+  }, [requestedStagePlayerIds, teams, setPlayerTrade, onStagePlayerHandled]);
 
   // Stale validation fix: hasCurrentValidation now comes from hook
   // It properly checks if validation result matches current draft configuration

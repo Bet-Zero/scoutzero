@@ -79,8 +79,13 @@ export function readPersistedViewingSeasonEndYear(): number | null {
 interface UseArchitectDeskNavigationParams {
   activeTab: ActiveTab;
   setActiveTab: React.Dispatch<React.SetStateAction<ActiveTab>>;
-  deskPlayerId: string | null;
-  setDeskPlayerId: React.Dispatch<React.SetStateAction<string | null>>;
+  /**
+   * First pinned player, mirrored to the `?player=` deep-link param. The pin
+   * board is multi-player, but the URL carries a single representative player
+   * for shareable deep links; a `?player=` link rehydrates as a pin.
+   */
+  focusedPlayerId?: string | null;
+  onPlayerIdFromUrl?: (playerId: string) => void;
   /**
    * The Trade Machine lives in a full-viewport overlay, not a workbench room, so
    * its URL state is tracked separately from `activeTab`. When open, the `room`
@@ -94,8 +99,8 @@ interface UseArchitectDeskNavigationParams {
 export function useArchitectDeskNavigation({
   activeTab,
   setActiveTab,
-  deskPlayerId,
-  setDeskPlayerId,
+  focusedPlayerId = null,
+  onPlayerIdFromUrl,
   isTradeOpen = false,
   onOpenTradeFromUrl,
 }: UseArchitectDeskNavigationParams) {
@@ -114,9 +119,9 @@ export function useArchitectDeskNavigation({
 
     const player = readPlayerFromUrl();
     if (player) {
-      setDeskPlayerId(player);
+      onPlayerIdFromUrl?.(player);
     }
-  }, [setActiveTab, setDeskPlayerId, onOpenTradeFromUrl]);
+  }, [setActiveTab, onPlayerIdFromUrl, onOpenTradeFromUrl]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -125,13 +130,13 @@ export function useArchitectDeskNavigation({
       ROOM_PARAM,
       isTradeOpen ? DESK_ROOM_SLUGS.trade : DESK_ROOM_SLUGS[activeTab]
     );
-    if (deskPlayerId) {
-      url.searchParams.set(PLAYER_PARAM, deskPlayerId);
+    if (focusedPlayerId) {
+      url.searchParams.set(PLAYER_PARAM, focusedPlayerId);
     } else {
       url.searchParams.delete(PLAYER_PARAM);
     }
     window.history.replaceState({}, '', url);
-  }, [activeTab, deskPlayerId, isTradeOpen]);
+  }, [activeTab, focusedPlayerId, isTradeOpen]);
 
   const setActiveTabFromDesk = useCallback(
     (tab: ActiveTab) => {
@@ -140,15 +145,7 @@ export function useArchitectDeskNavigation({
     [setActiveTab]
   );
 
-  const setDeskPlayerIdFromDesk = useCallback(
-    (playerId: string | null) => {
-      setDeskPlayerId(playerId);
-    },
-    [setDeskPlayerId]
-  );
-
   return {
     setActiveTabFromDesk,
-    setDeskPlayerIdFromDesk,
   };
 }

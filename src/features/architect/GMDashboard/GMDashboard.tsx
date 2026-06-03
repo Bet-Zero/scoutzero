@@ -39,7 +39,6 @@ import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/
 import {
   CockpitShell,
   CockpitStatePanel,
-  SelectionDock,
   TradeOverlay,
 } from '@/features/architect/cockpit';
 import type { NavRailItem, RoomDescriptor } from '@/features/architect/cockpit';
@@ -146,7 +145,27 @@ export const GMDashboard = () => {
   const { userId, loading: authLoading } = useAuth();
   const normalizedTeamId = teamId ?? '';
 
-  const [deskPlayerId, setDeskPlayerId] = useState<string | null>(null);
+  // Pin board: an intentional, multi-player collection surfaced in the activity
+  // rail. Pinning is an explicit action (the player action menu) — never a
+  // side effect of clicking a player. Replaces the old single auto-pinned
+  // `deskPlayerId` + top SelectionDock model.
+  const [pinnedPlayerIds, setPinnedPlayerIds] = useState<string[]>([]);
+  const addPin = useCallback((id: string | null) => {
+    if (!id) return;
+    setPinnedPlayerIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }, []);
+  const removePin = useCallback((id: string) => {
+    setPinnedPlayerIds((prev) => prev.filter((p) => p !== id));
+  }, []);
+  const togglePin = useCallback((player: Record<string, unknown>) => {
+    const id = resolvePrimaryPlayerFocusId(
+      player as Parameters<typeof resolvePrimaryPlayerFocusId>[0]
+    );
+    if (!id) return;
+    setPinnedPlayerIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  }, []);
   const [tradeDraftActive, setTradeDraftActive] = useState(false);
   // Trade Machine renders as a full-viewport overlay rather than a room in the
   // workbench swapper. `isTradeOpen` toggles its visibility; `hasOpenedTrade`
@@ -154,7 +173,18 @@ export const GMDashboard = () => {
   // and the in-progress draft inside it — survives close/reopen untouched.
   const [isTradeOpen, setIsTradeOpen] = useState(false);
   const [hasOpenedTrade, setHasOpenedTrade] = useState(false);
+  // One-shot request to pre-stage one or more players into the Trade Machine,
+  // set when the overlay is opened from a player-context entry (the pin board's
+  // per-row "Trade" or "Trade all pinned"). Cleared by TradeEditor once
+  // consumed (mirrors the Free Agency requested-open idiom).
+  const [requestedTradeStagePlayerIds, setRequestedTradeStagePlayerIds] =
+    useState<string[]>([]);
   const openTrade = useCallback(() => {
+    setHasOpenedTrade(true);
+    setIsTradeOpen(true);
+  }, []);
+  const openTradeWithPlayers = useCallback((playerIds: string[]) => {
+    setRequestedTradeStagePlayerIds(playerIds.filter(Boolean));
     setHasOpenedTrade(true);
     setIsTradeOpen(true);
   }, []);
@@ -213,8 +243,8 @@ export const GMDashboard = () => {
   useArchitectDeskNavigation({
     activeTab,
     setActiveTab,
-    deskPlayerId,
-    setDeskPlayerId,
+    focusedPlayerId: pinnedPlayerIds[0] ?? null,
+    onPlayerIdFromUrl: addPin,
     isTradeOpen,
     onOpenTradeFromUrl: openTrade,
   });
@@ -304,10 +334,17 @@ export const GMDashboard = () => {
   // committed post-action receipt. Visual-only — receipt dismiss/clear
   // automatically clears the highlight. Single-label surfaces still use the
   // first primary id; the Full Cap Table receives every changed player.
+  // Highlight set = pinned players ∪ the most recent receipt's changed players.
+  // Both light up across the room surfaces; receipt highlights auto-clear on
+  // dismiss while pins persist until explicitly unpinned.
   const focusedPlayerIds = useMemo(() => {
-    if (deskPlayerId) return [deskPlayerId];
-    return postActionReceipt.receipt?.primaryPlayerIds ?? [];
-  }, [deskPlayerId, postActionReceipt.receipt?.primaryPlayerIds]);
+    const receiptIds = postActionReceipt.receipt?.primaryPlayerIds ?? [];
+    const merged = [...pinnedPlayerIds];
+    for (const id of receiptIds) {
+      if (!merged.includes(id)) merged.push(id);
+    }
+    return merged;
+  }, [pinnedPlayerIds, postActionReceipt.receipt?.primaryPlayerIds]);
   const focusedPlayerId = focusedPlayerIds[0] ?? null;
 
   const resolveFocusedPlayerLabel = useCallback(
@@ -328,17 +365,14 @@ export const GMDashboard = () => {
     [playersMap]
   );
 
-  const selectionDockLabel = useMemo(
-    () => resolveFocusedPlayerLabel(focusedPlayerId),
-    [focusedPlayerId, resolveFocusedPlayerLabel]
+  const pinnedPlayers = useMemo(
+    () =>
+      pinnedPlayerIds.map((id) => ({
+        id,
+        label: resolveFocusedPlayerLabel(id) ?? id,
+      })),
+    [pinnedPlayerIds, resolveFocusedPlayerLabel]
   );
-
-  const pinDeskPlayer = useCallback((player: Record<string, unknown>) => {
-    const id = resolvePrimaryPlayerFocusId(
-      player as Parameters<typeof resolvePrimaryPlayerFocusId>[0]
-    );
-    if (id) setDeskPlayerId(id);
-  }, []);
 
   // Stage 3C: derive current roster player ids from teamCapSheet for comparison.
   const comparisonRosterPlayerIds = useMemo(() => {
@@ -562,6 +596,7 @@ export const GMDashboard = () => {
     playersMap,
     capSheetDevFixtureControls: actions.capSheetDevTools,
     highlightPlayerId: focusedPlayerId,
+    highlightPlayerIds: focusedPlayerIds,
   };
   const tradeSectionSurface: TradeSectionProps = {
     primaryTeam: normalizedTeamId,
@@ -582,6 +617,8 @@ export const GMDashboard = () => {
     worldAsOfDate,
     userId,
     onDraftActivityChange: setTradeDraftActive,
+    requestedStagePlayerIds: requestedTradeStagePlayerIds,
+    onStagePlayerHandled: () => setRequestedTradeStagePlayerIds([]),
   };
   const freeAgencySectionSurface: FreeAgencySectionProps = {
     freeAgents,
@@ -781,13 +818,13 @@ export const GMDashboard = () => {
           teamCapSheet={teamCapSheet}
           playersMap={playersMap}
           teamId={normalizedTeamId}
-          onOpenPlayerContractModal={(player) => {
-            pinDeskPlayer(player as Record<string, unknown>);
+          onOpenPlayerContractModal={(player) =>
             actions.handleEditContract(
               player as Parameters<typeof actions.handleEditContract>[0]
-            );
-          }}
+            )
+          }
           highlightPlayerId={focusedPlayerId}
+          highlightPlayerIds={focusedPlayerIds}
         />
       ),
     },
@@ -820,6 +857,8 @@ export const GMDashboard = () => {
           getRulesProfileForYear={getProfileForYear}
           highlightPlayerId={focusedPlayerId}
           highlightPlayerIds={focusedPlayerIds}
+          pinnedPlayerIds={pinnedPlayerIds}
+          onTogglePin={togglePin}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
           onLaunchFreeAgentSearch={() => setActiveTab('fa')}
           freeAgentOptions={freeAgentOptionEntries}
@@ -1056,17 +1095,18 @@ export const GMDashboard = () => {
       onResumeTradeDraft={openTrade}
       onNavigateToCompare={() => setActiveTab('compare')}
       onNavigateToGuide={() => setActiveTab('guide')}
-      selectionDock={
-        selectionDockLabel ? (
-          <SelectionDock
-            playerLabel={selectionDockLabel}
-            onViewCap={() => setActiveTab('cap')}
-            onViewRoster={() => setActiveTab('roster')}
-            onOpenTrade={openTrade}
-            onClear={() => setDeskPlayerId(null)}
-          />
-        ) : null
-      }
+      pinnedPlayers={pinnedPlayers}
+      onUnpinPlayer={removePin}
+      onOpenPinnedPlayer={(playerId) => {
+        const player = playersMap[playerId];
+        if (player) {
+          actions.handleEditContract(
+            player as Parameters<typeof actions.handleEditContract>[0]
+          );
+        }
+      }}
+      onTradePinnedPlayer={(playerId) => openTradeWithPlayers([playerId])}
+      onTradeAllPinned={() => openTradeWithPlayers(pinnedPlayerIds)}
       banner={banner}
       modals={modalsSlot}
     />

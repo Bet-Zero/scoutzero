@@ -89,4 +89,13 @@ export interface TradeEditorProps {
   userId?: string | null;
   /** Notifies parent when local trade draft has outgoing assets (non-committed). */
   onDraftActivityChange?: ((active: boolean) => void) | null;
+  /**
+   * One-shot request to pre-stage one or more players as outgoing assets when
+   * the Trade Machine opens from a player-context entry (the pin board's "Trade"
+   * / "Trade all pinned"). Each id found on the primary team's roster is staged;
+   * `onStagePlayerHandled` then clears the request. Ids not on the primary roster
+   * are a no-op (still cleared) — see v1 scope.
+   */
+  requestedStagePlayerIds?: string[];
+  onStagePlayerHandled?: (() => void) | null;
 }

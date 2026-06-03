@@ -142,6 +142,8 @@ type CapSheetProps = {
    * no cap totals impact, no row reordering, no action behavior change.
    */
   highlightPlayerId?: string | null;
+  /** Multi-focus highlight (pinned players). Unioned with highlightPlayerId. */
+  highlightPlayerIds?: string[];
 };
 
 const CAP_SHEET_SURFACE_LABELS = {
@@ -160,6 +162,7 @@ export const CapSheet = ({
   onSelectPlayer,
   manualCapSheetMutationAuthority,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
 }: CapSheetProps) => {
   const [internalSelectedYear, setInternalSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
@@ -490,7 +493,10 @@ export const CapSheet = ({
             // Use canonicalTotals.salaryCap (SSOT) for cap % to match totals display
             const capPct = getCapPercentage(capHit, canonicalTotals.salaryCap || 1);
             const capPctDisplay = capPct ? `${capPct}%` : '—';
-            const isHighlighted = playerMatchesFocus(player, highlightPlayerId);
+            const isHighlighted = [
+              ...(highlightPlayerId ? [highlightPlayerId] : []),
+              ...highlightPlayerIds,
+            ].some((focusId) => playerMatchesFocus(player, focusId));
             const rowHighlightClass = isHighlighted
               ? 'ring-1 ring-inset ring-green-400/40 bg-green-500/[0.04]'
               : 'hover:bg-white/[0.02]';

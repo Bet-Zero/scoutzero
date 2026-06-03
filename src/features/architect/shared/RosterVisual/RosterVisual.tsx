@@ -81,6 +81,11 @@ type RosterVisualProps = {
    * "just changed" outline. Visual only.
    */
   highlightPlayerId?: string | null;
+  /**
+   * Multi-focus highlight (e.g. pinned players). Any card matching one of these
+   * ids renders the "just changed" outline. Unioned with `highlightPlayerId`.
+   */
+  highlightPlayerIds?: string[];
 };
 
 const LEGACY_ROSTER_DISPLAY_ONLY_PROPS = {
@@ -238,6 +243,7 @@ export const RosterVisual = ({
   teamId: propTeamId,
   onSelectPlayer = null,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
 }: RosterVisualProps) => {
   const { teamId: routeTeamId } = useParams();
   const id = String(
@@ -301,13 +307,19 @@ export const RosterVisual = ({
   }, [onSelectPlayer]);
 
   const sectionHighlightMatcher = useMemo(() => {
-    if (!highlightPlayerId) return undefined;
+    const ids = [
+      ...(highlightPlayerId ? [highlightPlayerId] : []),
+      ...highlightPlayerIds,
+    ];
+    if (ids.length === 0) return undefined;
     return (player: unknown) =>
-      playerMatchesFocus(
-        player as Parameters<typeof playerMatchesFocus>[0],
-        highlightPlayerId
+      ids.some((focusId) =>
+        playerMatchesFocus(
+          player as Parameters<typeof playerMatchesFocus>[0],
+          focusId
+        )
       );
-  }, [highlightPlayerId]);
+  }, [highlightPlayerId, highlightPlayerIds]);
 
   if (!roster) return null;
 

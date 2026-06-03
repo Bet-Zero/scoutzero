@@ -25,6 +25,7 @@ type ForwardedCapSheetProps = Pick<
   | 'onOpenPlayerContractModal'
   | 'manualCapSheetMutationAuthority'
   | 'highlightPlayerId'
+  | 'highlightPlayerIds'
 >;
 
 type DevFixtureAction = (() => unknown) | null;
@@ -72,6 +73,7 @@ const CapSheetSection = ({
   hasInjectedCapSheetFixtures = false,
   capSheetDevFixtureControls = null,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
 }: CapSheetSectionProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
@@ -179,6 +181,7 @@ const CapSheetSection = ({
           onOpenPlayerContractModal={onOpenPlayerContractModal}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
           highlightPlayerId={highlightPlayerId}
+          highlightPlayerIds={highlightPlayerIds}
         />
       </section>
 

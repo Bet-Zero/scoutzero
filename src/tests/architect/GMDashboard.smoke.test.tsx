@@ -550,10 +550,21 @@ describe('GMDashboard Smoke Test', () => {
     it('returns to the Full Cap Table only after the Trade Machine apply callback fires', () => {
       mockUseArchitectState.mockImplementation(() => ({
         ...buildLoadedDashboardState(),
-        activeTab: 'trade',
+        activeTab: 'capfull',
       }));
 
       render(<GMDashboard />);
+
+      // The Trade Machine is now a full-viewport overlay, lazily mounted on
+      // first open. Open it via the nav rail so TradeSection mounts and exposes
+      // its surface props.
+      const tablist = screen.getByRole('tablist', {
+        name: /architect dashboard sections/i,
+      });
+      fireEvent.click(
+        within(tablist).getByRole('tab', { name: /^trade machine$/i })
+      );
+
       mockTradeSectionProps.mock.calls.at(-1)?.[0].onAfterTradeApplied();
 
       expect(mockSetActiveTab).toHaveBeenCalledWith('capfull');

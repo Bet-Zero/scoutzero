@@ -27,6 +27,11 @@ import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboar
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import { TeamStatusStrip, type HardCapCockpitStatus } from './TeamStatusStrip';
 
+export interface PinnedPlayer {
+  id: string;
+  label: string;
+}
+
 interface ActivityRailProps {
   workspace: ArchitectWorkspaceContext;
   hardCapStatus?: HardCapCockpitStatus;
@@ -41,6 +46,12 @@ interface ActivityRailProps {
   onOpenHistoryEntry: (eventId: string) => void;
   onNavigateReceiptHistory: () => void;
   onDismissReceipt: () => void;
+  /** Intentionally pinned players surfaced as a board section. */
+  pinnedPlayers?: PinnedPlayer[];
+  onUnpinPlayer?: (playerId: string) => void;
+  onOpenPinnedPlayer?: (playerId: string) => void;
+  onTradePinnedPlayer?: (playerId: string) => void;
+  onTradeAllPinned?: () => void;
   tradeDraftActive?: boolean;
   /** Reopen the Trade Machine overlay from the in-progress draft card. */
   onResumeTradeDraft?: () => void;
@@ -141,18 +152,23 @@ const RailSection = ({
   label,
   children,
   testId,
+  action,
 }: {
   label: string;
   children: ReactNode;
   testId?: string;
+  action?: ReactNode;
 }) => (
   <section
     className="flex flex-col border-b border-cockpit-edge px-3 py-3 last:border-b-0"
     data-testid={testId}
   >
-    <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
-      {label}
-    </h3>
+    <div className="mb-2 flex items-center justify-between gap-2">
+      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+        {label}
+      </h3>
+      {action}
+    </div>
     <div className="flex flex-col gap-2">{children}</div>
   </section>
 );
@@ -172,6 +188,11 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       onOpenHistoryEntry,
       onNavigateReceiptHistory,
       onDismissReceipt,
+      pinnedPlayers = [],
+      onUnpinPlayer,
+      onOpenPinnedPlayer,
+      onTradePinnedPlayer,
+      onTradeAllPinned,
       tradeDraftActive = false,
       onResumeTradeDraft,
       onNavigateToCompare,
@@ -296,6 +317,62 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
               </p>
             )}
           </RailSection>
+
+          {pinnedPlayers.length > 0 ? (
+            <RailSection
+              label="Pinned Players"
+              testId="cockpit-activity-rail-pinned"
+              action={
+                pinnedPlayers.length > 1 && onTradeAllPinned ? (
+                  <button
+                    type="button"
+                    onClick={onTradeAllPinned}
+                    className="rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5 text-[10px] font-medium text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                    data-testid="cockpit-activity-rail-pinned-trade-all"
+                  >
+                    Trade all
+                  </button>
+                ) : null
+              }
+            >
+              <ul className="flex flex-col gap-1">
+                {pinnedPlayers.map((player) => (
+                  <li
+                    key={player.id}
+                    className="flex items-center gap-1.5 rounded border border-cockpit-edge bg-cockpit-slab px-2 py-1"
+                    data-testid={`cockpit-activity-rail-pinned-${player.id}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onOpenPinnedPlayer?.(player.id)}
+                      className="min-w-0 flex-1 truncate text-left text-[11px] font-medium text-cockpit-text-primary hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                      title={`Open ${player.label}`}
+                      data-testid={`cockpit-activity-rail-pinned-open-${player.id}`}
+                    >
+                      {player.label}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onTradePinnedPlayer?.(player.id)}
+                      className="shrink-0 rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5 text-[10px] font-medium text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                      data-testid={`cockpit-activity-rail-pinned-trade-${player.id}`}
+                    >
+                      Trade
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUnpinPlayer?.(player.id)}
+                      aria-label={`Unpin ${player.label}`}
+                      className="shrink-0 rounded px-1 py-0.5 text-[11px] leading-none text-cockpit-text-muted hover:text-cockpit-text-secondary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                      data-testid={`cockpit-activity-rail-pinned-unpin-${player.id}`}
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </RailSection>
+          ) : null}
 
           {tradeDraftActive ? (
             <RailSection

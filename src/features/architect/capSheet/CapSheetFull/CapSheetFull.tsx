@@ -119,6 +119,13 @@ type CapSheetFullProps = {
   highlightPlayerId?: string | null;
   highlightPlayerIds?: string[];
   /**
+   * Pin board: ids currently pinned (so the action menu can show Pin vs Unpin)
+   * and the toggle handler. Pinning is an intentional menu action — never a
+   * side effect of selecting/opening a player.
+   */
+  pinnedPlayerIds?: string[];
+  onTogglePin?: ((player: CapSheetFullPlayerLike) => void) | null;
+  /**
    * Home-base enrichment: when provided, the Full Cap Table surfaces the
    * existing current-season dead-money and exceptions controls. CapSheetFull
    * stays dumb — it only LAUNCHES the existing modals; all committed writes
@@ -438,6 +445,8 @@ export const CapSheetFull = ({
   getRulesProfileForYear = null,
   highlightPlayerId = null,
   highlightPlayerIds = [],
+  pinnedPlayerIds = [],
+  onTogglePin = null,
   manualCapSheetMutationAuthority = null,
   exceptionsReadout = null,
   onLaunchFreeAgentSearch = null,
@@ -509,6 +518,11 @@ export const CapSheetFull = ({
         playerMatchesFocus(player, playerId)
       ),
     [focusedPlayerIds]
+  );
+  const playerIsPinned = useCallback(
+    (player: CapSheetFullPlayerLike) =>
+      pinnedPlayerIds.some((playerId) => playerMatchesFocus(player, playerId)),
+    [pinnedPlayerIds]
   );
   const capHoldGridTemplate = useMemo(
     () => `140px 60px repeat(${allYears.length}, minmax(100px, 1fr))`,
@@ -861,7 +875,7 @@ export const CapSheetFull = ({
                               player.bio?.displayName ||
                               player.name}
                           </button>
-                          {onLaunchPlayerAction ? (
+                          {onLaunchPlayerAction || onTogglePin ? (
                             <div
                               className="relative shrink-0"
                               onBlur={(e) => {
@@ -903,27 +917,50 @@ export const CapSheetFull = ({
                                   data-testid="cap-sheet-full-player-row-action-menu"
                                   className="absolute left-0 top-6 z-20 min-w-[120px] overflow-hidden rounded-md border border-cockpit-edge bg-cockpit-slab py-1 shadow-xl"
                                 >
-                                  {(
-                                    [
-                                      ['extend', 'Extend'],
-                                      ['waive', 'Waive'],
-                                      ['stretch', 'Stretch'],
-                                    ] as const
-                                  ).map(([action, label]) => (
-                                    <button
-                                      key={action}
-                                      type="button"
-                                      role="menuitem"
-                                      data-testid={`cap-sheet-full-player-row-action-${action}`}
-                                      onClick={() => {
-                                        setActionMenuIndex(null);
-                                        onLaunchPlayerAction?.(player, action);
-                                      }}
-                                      className="block w-full px-3 py-1.5 text-left text-[11px] text-white/70 hover:bg-white/10 hover:text-white"
-                                    >
-                                      {label}
-                                    </button>
-                                  ))}
+                                  {onLaunchPlayerAction
+                                    ? (
+                                        [
+                                          ['extend', 'Extend'],
+                                          ['waive', 'Waive'],
+                                          ['stretch', 'Stretch'],
+                                        ] as const
+                                      ).map(([action, label]) => (
+                                        <button
+                                          key={action}
+                                          type="button"
+                                          role="menuitem"
+                                          data-testid={`cap-sheet-full-player-row-action-${action}`}
+                                          onClick={() => {
+                                            setActionMenuIndex(null);
+                                            onLaunchPlayerAction?.(player, action);
+                                          }}
+                                          className="block w-full px-3 py-1.5 text-left text-[11px] text-white/70 hover:bg-white/10 hover:text-white"
+                                        >
+                                          {label}
+                                        </button>
+                                      ))
+                                    : null}
+                                  {onTogglePin ? (
+                                    <>
+                                      {onLaunchPlayerAction ? (
+                                        <div className="my-1 h-px bg-cockpit-edge" />
+                                      ) : null}
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        data-testid="cap-sheet-full-player-row-action-pin"
+                                        onClick={() => {
+                                          setActionMenuIndex(null);
+                                          onTogglePin?.(player);
+                                        }}
+                                        className="block w-full px-3 py-1.5 text-left text-[11px] text-white/70 hover:bg-white/10 hover:text-white"
+                                      >
+                                        {playerIsPinned(player)
+                                          ? 'Unpin'
+                                          : 'Pin to board'}
+                                      </button>
+                                    </>
+                                  ) : null}
                                 </div>
                               ) : null}
                             </div>

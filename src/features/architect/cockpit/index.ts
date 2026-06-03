@@ -18,4 +18,3 @@ export { TeamStatusTile } from './TeamStatusTile';
 export { useTeamPalette } from './useTeamPalette';
 export { cockpitTokens } from './cockpitTokens';
 export { CockpitStatePanel, type CockpitStateVariant } from './CockpitStatePanel';
-export { SelectionDock } from './SelectionDock';

@@ -22,9 +22,12 @@ import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboar
 import { TopBar } from './TopBar';
 import { NavRail, type NavRailItem } from './NavRail';
 import { Workbench, type RoomDescriptor } from './Workbench';
-import { ActivityRail, type ActivityRailHandle } from './ActivityRail';
+import {
+  ActivityRail,
+  type ActivityRailHandle,
+  type PinnedPlayer,
+} from './ActivityRail';
 import type { HardCapCockpitStatus } from './TeamStatusStrip';
-import { SelectionDock } from './SelectionDock';
 import { useTeamPalette } from './useTeamPalette';
 
 interface CockpitShellProps {
@@ -49,7 +52,11 @@ interface CockpitShellProps {
   onOpenHistoryEntry: (eventId: string) => void;
   onNavigateReceiptHistory: () => void;
   onDismissReceipt: () => void;
-  selectionDock?: ReactNode;
+  pinnedPlayers?: PinnedPlayer[];
+  onUnpinPlayer?: (playerId: string) => void;
+  onOpenPinnedPlayer?: (playerId: string) => void;
+  onTradePinnedPlayer?: (playerId: string) => void;
+  onTradeAllPinned?: () => void;
   tradeDraftActive?: boolean;
   onResumeTradeDraft?: () => void;
   onNavigateToCompare?: () => void;
@@ -80,7 +87,11 @@ export const CockpitShell = ({
   onOpenHistoryEntry,
   onNavigateReceiptHistory,
   onDismissReceipt,
-  selectionDock,
+  pinnedPlayers,
+  onUnpinPlayer,
+  onOpenPinnedPlayer,
+  onTradePinnedPlayer,
+  onTradeAllPinned,
   tradeDraftActive = false,
   onResumeTradeDraft,
   onNavigateToCompare,
@@ -116,8 +127,6 @@ export const CockpitShell = ({
         seasonSelectorSlot={seasonSelectorSlot}
       />
 
-      {selectionDock ? <div className="shrink-0">{selectionDock}</div> : null}
-
       {banner ? <div className="shrink-0">{banner}</div> : null}
 
       <div className="flex min-h-0 flex-1">
@@ -138,6 +147,11 @@ export const CockpitShell = ({
           onOpenHistoryEntry={onOpenHistoryEntry}
           onNavigateReceiptHistory={onNavigateReceiptHistory}
           onDismissReceipt={onDismissReceipt}
+          pinnedPlayers={pinnedPlayers}
+          onUnpinPlayer={onUnpinPlayer}
+          onOpenPinnedPlayer={onOpenPinnedPlayer}
+          onTradePinnedPlayer={onTradePinnedPlayer}
+          onTradeAllPinned={onTradeAllPinned}
           tradeDraftActive={tradeDraftActive}
           onResumeTradeDraft={onResumeTradeDraft}
           onNavigateToCompare={onNavigateToCompare}
