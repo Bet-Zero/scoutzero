@@ -18,3 +18,10 @@ export { TeamStatusTile } from './TeamStatusTile';
 export { useTeamPalette } from './useTeamPalette';
 export { cockpitTokens } from './cockpitTokens';
 export { CockpitStatePanel, type CockpitStateVariant } from './CockpitStatePanel';
+export {
+  getAuthorityLabel,
+  AUTHORITY_TONE_BADGE_CLASSES,
+  type AuthorityTone,
+  type AuthorityLabelResult,
+  type AuthorityLabelInput,
+} from './authorityLabel';

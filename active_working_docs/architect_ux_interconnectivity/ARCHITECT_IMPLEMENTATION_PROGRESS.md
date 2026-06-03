@@ -11,32 +11,68 @@ Status legend: `NOT STARTED` · `IN PROGRESS` · `DONE` · `BLOCKED`
 
 ---
 
-## Overall status: NOT STARTED
+## Overall status: IN PROGRESS
 
-No slices implemented yet. Begin with Slice 1.
+Slice 1 DONE. Next: Slice 2 (Unified `PlayerActionMenu`).
 
 ---
 
-## Slice 1 — Activity Rail audit + `authorityLabel.ts`  → **NOT STARTED**
+## Slice 1 — Activity Rail audit + `authorityLabel.ts`  → **DONE**
 
 Spec: `ARCHITECT_IMPLEMENTATION_SLICE_01_ACTIVITY_RAIL_PLAYER_ACTIONS.md`
 
-- [ ] Extract shared `cockpit/authorityLabel.ts`; export from `cockpit/index.ts`
-- [ ] Rail section order + Section Priority Rules (overflow) verified
-- [ ] All rail authority/mode strings routed through `authorityLabel.ts`
-- [ ] Empty states match contract copy (all sections)
-- [ ] Failure states (cap-posture unavailable, scenario reload failure) correct
-- [ ] Local (In Progress) visually distinct from committed (Receipt / Scenario Activity)
-- [ ] Collapsed indicators unambiguous; no auto-expand on commit
-- [ ] Receipt dismiss scope rule correct
-- [ ] `npm run typecheck` ✅/❌
-- [ ] `npm run test:architect --reporter=dot` ✅/❌
-- [ ] `npm run validate:project` ✅/❌
-- [ ] `npm run build` ✅/❌
-- [ ] `npm run dev` acceptance walkthrough done
-- [ ] Committed (hash: ______)
+- [x] Extract shared `cockpit/authorityLabel.ts`; export from `cockpit/index.ts`
+- [x] Rail section order + Section Priority Rules (overflow) verified
+- [x] All rail authority/mode strings routed through `authorityLabel.ts`
+- [x] Empty states match contract copy (all sections)
+- [x] Failure states (cap-posture unavailable, scenario reload failure) correct
+- [x] Local (In Progress) visually distinct from committed (Receipt / Scenario Activity)
+- [x] Collapsed indicators unambiguous; no auto-expand on commit
+- [x] Receipt dismiss scope rule correct
+- [x] `npm run typecheck` ✅
+- [x] `npm run test:architect --reporter=dot` ✅ (289 files / 3418 tests passed)
+- [x] `npm run validate:project` ✅
+- [x] `npm run build` ✅ (built in ~48s; only pre-existing chunk-size / import warnings)
+- [~] `npm run dev` acceptance walkthrough — not run in this non-interactive session;
+      acceptance criteria covered by new render tests (see notes)
+- [x] Committed (hash: see git log — `feat(architect): activity rail audit + shared authority label (interconnectivity slice 1)`)
 
 Notes / results:
+
+**What changed**
+- New `src/features/architect/cockpit/authorityLabel.ts`: single source of truth for the
+  authority/mode → user-facing label vocabulary (master spec §4.1) + `AUTHORITY_TONE_BADGE_CLASSES`.
+  Exported from `cockpit/index.ts`. This is the shared artifact Slices 2/4/5 import.
+- `ActivityRail.tsx` audit/polish:
+  - Cap Posture: `cap.status === 'unavailable'` now renders the honest contract copy
+    ("Cap posture unavailable. View Cap Sheet for details.") with a Cap Sheet link instead of a
+    fake/zeroed posture. (`loading` still defers to `TeamStatusStrip`.)
+  - In Progress: trade-draft card now carries a `Local draft` authority chip via `authorityLabel`.
+  - Watchlist: each entry now has a real destination action (cap warnings → Cap Sheet,
+    season mismatch → Offseason); season mismatch carries a `Season mismatch` authority chip;
+    empty copy aligned to "No active watch items."
+  - Collapsed indicators: separate dots for watchlist-danger / receipt / in-progress so a danger
+    is never buried behind a lower-priority dot. No auto-expand on commit (unchanged).
+  - Documented Section Priority Rules (rail scrolls, never drops; collapsed dots carry severity)
+    and the "Next Steps folded" decision (open-question #5) inline.
+
+**Decisions confirmed against current code**
+- Receipt dismiss scope (open-question #17) already correct in `useArchitectPostActionReceipt`
+  (session-only, scope-key reset clears, not persisted across reload) — no change needed.
+- Scenario Activity (`ScenarioMoveRail`) already committed-world-only with unable-to-load (not fake
+  empty) failure state — reused unchanged.
+- No mutation authority added to the rail (navigation handlers only).
+
+**Tests added**
+- `src/tests/architect/cockpit/authorityLabel.test.ts` — every §4.1 row + tone-class coverage +
+  "no internal mode words" guard.
+- `src/tests/architect/cockpit/architectActivityRail.render.test.tsx` — cap-unavailable + link,
+  empty receipt/watchlist copy, hidden Pinned/In-Progress, Local-draft chip, above-2nd-apron danger
+  → Cap Sheet route, season-mismatch chip → Offseason route, collapsed danger dot not buried.
+
+**Deferred**
+- Manual `npm run dev` walkthrough not performed (no interactive session). Acceptance criteria are
+  exercised by the render tests above; flag for a human pass if desired.
 
 ---
 

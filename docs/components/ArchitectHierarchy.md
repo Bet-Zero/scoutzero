@@ -124,6 +124,7 @@ cockpit/
   TradeOverlay.tsx
   Workbench.tsx
   WorldMenu.tsx
+  authorityLabel.ts
   cockpitTokens.ts
   index.ts
   useTeamPalette.ts
@@ -533,5 +534,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-03T02:30:45.198Z*
+*Generated on: 2026-06-03T05:46:40.579Z*
 *Auto-updated by: npm run docs*

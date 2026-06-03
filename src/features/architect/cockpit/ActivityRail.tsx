@@ -26,6 +26,11 @@ import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/Sc
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import { TeamStatusStrip, type HardCapCockpitStatus } from './TeamStatusStrip';
+import {
+  getAuthorityLabel,
+  AUTHORITY_TONE_BADGE_CLASSES,
+  type AuthorityLabelInput,
+} from './authorityLabel';
 
 export interface PinnedPlayer {
   id: string;
@@ -83,10 +88,18 @@ function writeCollapsed(value: boolean) {
   }
 }
 
+/** Where a watch entry routes. The rail never mutates — these are navigation
+ *  destinations resolved to existing room handlers at render time. */
+type WatchDestination = 'cap-sheet' | 'offseason';
+
 interface WatchEntry {
   id: string;
   tone: 'info' | 'watch' | 'danger';
   text: string;
+  /** Destination action (contract: "Do not warn without a useful destination."). */
+  destination: WatchDestination;
+  /** Optional authority chip (e.g. season mismatch) routed through `authorityLabel`. */
+  authority?: AuthorityLabelInput;
 }
 
 function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] {
@@ -99,24 +112,28 @@ function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] 
         id: 'apron2',
         tone: 'danger',
         text: 'Above 2nd Apron — hard-cap restrictions active.',
+        destination: 'cap-sheet',
       });
     } else if (cap.isAtOrAboveFirstApron) {
       entries.push({
         id: 'apron1',
         tone: 'danger',
         text: 'At or above 1st Apron — exception use restricted.',
+        destination: 'cap-sheet',
       });
     } else if (cap.isOverTax) {
       entries.push({
         id: 'tax',
         tone: 'watch',
         text: 'Over the luxury tax line.',
+        destination: 'cap-sheet',
       });
     } else if (cap.isOverCap) {
       entries.push({
         id: 'cap',
         tone: 'watch',
         text: 'Over the salary cap.',
+        destination: 'cap-sheet',
       });
     }
   }
@@ -127,6 +144,7 @@ function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] 
       id: 'exceptions',
       tone: 'info',
       text: 'No active exceptions (MLE / BAE / TPE / Room).',
+      destination: 'cap-sheet',
     });
   }
 
@@ -136,6 +154,8 @@ function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] 
       id: 'season-mismatch',
       tone: 'info',
       text: `Viewing ${seasons.selectedViewingSeasonLabel ?? '—'} — world is at ${seasons.authoritativeWorldSeasonLabel ?? '—'}.`,
+      destination: 'offseason',
+      authority: { seasonMismatch: true },
     });
   }
 
@@ -146,6 +166,35 @@ const TONE_CLASSES: Record<WatchEntry['tone'], string> = {
   info: 'border-cockpit-info/30 bg-cockpit-info/5 text-cockpit-info',
   watch: 'border-cockpit-watch/30 bg-cockpit-watch/5 text-cockpit-watch',
   danger: 'border-cockpit-danger/30 bg-cockpit-danger/5 text-cockpit-danger',
+};
+
+const WATCH_DESTINATION_LABELS: Record<WatchDestination, string> = {
+  'cap-sheet': 'View Cap Sheet',
+  offseason: 'Go to Offseason',
+};
+
+/**
+ * Small authority/mode badge. The single rail-level renderer for the
+ * shared `authorityLabel` vocabulary so labels/tones never get re-spelled
+ * inline (master spec §4.1).
+ */
+const AuthorityChip = ({
+  authority,
+  testId,
+}: {
+  authority: AuthorityLabelInput;
+  testId?: string;
+}) => {
+  const { label, tone } = getAuthorityLabel(authority);
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center rounded border px-1 text-[9px] font-semibold uppercase tracking-wide leading-4 ${AUTHORITY_TONE_BADGE_CLASSES[tone]}`}
+      data-testid={testId}
+      data-authority-tone={tone}
+    >
+      {label}
+    </span>
+  );
 };
 
 const RailSection = ({
@@ -184,6 +233,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
       historyTeamCode,
       onNavigateToCapSheet,
       onNavigateToRoster,
+      onNavigateToOffseason,
       onOpenHistory,
       onOpenHistoryEntry,
       onNavigateReceiptHistory,
@@ -209,6 +259,22 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
     useImperativeHandle(ref, () => ({ expand: () => setCollapsed(false) }), []);
 
     const watch = deriveWatchEntries(workspace);
+    const hasWatchDanger = watch.some((entry) => entry.tone === 'danger');
+    const capUnavailable = workspace.cap.status === 'unavailable';
+
+    // Section order is the contract's canonical order (Cap Posture → Current
+    // Receipt → Pinned → In Progress → Watchlist → Scenario Activity). The
+    // expanded rail scrolls (overflow-y-auto) rather than dropping sections, so
+    // no section is ever permanently hidden under height pressure. The contract's
+    // Section Priority Rules (critical/pending → Receipt → In Progress →
+    // Watchlist danger → Pinned → Cap Posture → Scenario Activity → Next Steps)
+    // are honored in collapsed state: the indicator dots below surface receipt,
+    // watchlist-danger, and in-progress so a danger/critical state is never
+    // buried behind a lower-priority dot.
+    //
+    // "Next Steps" is intentionally folded (open-question #5): the Current
+    // Receipt carries Compare/Guide buttons and Watchlist entries carry their
+    // own destination actions. No standalone Next Steps section in v1.
 
     if (collapsed) {
       return (
@@ -228,11 +294,32 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
           >
             <span aria-hidden>«</span>
           </button>
+          {/* Collapsed indicators: each severe state gets its own dot so a
+              danger is never hidden behind a lower-priority dot (contract:
+              "Do not make collapsed indicators ambiguous if multiple severe
+              states exist"). */}
+          {hasWatchDanger ? (
+            <span
+              className="mt-3 h-2 w-2 rounded-full bg-cockpit-danger"
+              aria-label="Attention needed"
+              title="Attention needed"
+              data-testid="cockpit-activity-rail-dot-danger"
+            />
+          ) : null}
           {receipt ? (
             <span
               className="mt-3 h-2 w-2 rounded-full bg-cockpit-safe"
               aria-label="New receipt available"
               title="New receipt available"
+              data-testid="cockpit-activity-rail-dot-receipt"
+            />
+          ) : null}
+          {tradeDraftActive ? (
+            <span
+              className="mt-3 h-2 w-2 rounded-full bg-cockpit-watch"
+              aria-label="Trade draft in progress"
+              title="Trade draft in progress"
+              data-testid="cockpit-activity-rail-dot-in-progress"
             />
           ) : null}
         </aside>
@@ -267,11 +354,27 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           <RailSection label="Cap Posture" testId="cockpit-activity-rail-cap-posture">
-            <TeamStatusStrip
-              workspace={workspace}
-              hardCapStatus={hardCapStatus}
-              orientation="vertical"
-            />
+            {capUnavailable ? (
+              <div data-testid="cockpit-activity-rail-cap-posture-unavailable">
+                <p className="text-xs text-cockpit-text-muted">
+                  Cap posture unavailable.{' '}
+                  <button
+                    type="button"
+                    onClick={onNavigateToCapSheet}
+                    className="underline decoration-dotted underline-offset-2 hover:text-cockpit-text-secondary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                    data-testid="cockpit-activity-rail-cap-posture-cap-sheet"
+                  >
+                    View Cap Sheet for details.
+                  </button>
+                </p>
+              </div>
+            ) : (
+              <TeamStatusStrip
+                workspace={workspace}
+                hardCapStatus={hardCapStatus}
+                orientation="vertical"
+              />
+            )}
           </RailSection>
           <RailSection label="Current Receipt" testId="cockpit-activity-rail-receipts">
             {receipt ? (
@@ -378,6 +481,12 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
             <RailSection
               label="In Progress"
               testId="cockpit-activity-rail-in-progress"
+              action={
+                <AuthorityChip
+                  authority={{ kind: 'local-only-preview' }}
+                  testId="cockpit-activity-rail-in-progress-authority"
+                />
+              }
             >
               {onResumeTradeDraft ? (
                 <button
@@ -411,18 +520,40 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
           <RailSection label="Watchlist" testId="cockpit-activity-rail-watchlist">
             {watch.length === 0 ? (
               <p className="text-xs text-cockpit-text-muted">
-                No active warnings.
+                No active watch items.
               </p>
             ) : (
-              watch.map((entry) => (
-                <div
-                  key={entry.id}
-                  className={`rounded border px-2 py-1.5 text-[11px] ${TONE_CLASSES[entry.tone]}`}
-                  data-testid={`cockpit-activity-rail-watch-${entry.id}`}
-                >
-                  {entry.text}
-                </div>
-              ))
+              watch.map((entry) => {
+                const onNavigate =
+                  entry.destination === 'offseason'
+                    ? onNavigateToOffseason
+                    : onNavigateToCapSheet;
+                return (
+                  <div
+                    key={entry.id}
+                    className={`rounded border px-2 py-1.5 text-[11px] ${TONE_CLASSES[entry.tone]}`}
+                    data-testid={`cockpit-activity-rail-watch-${entry.id}`}
+                  >
+                    <div className="flex items-start gap-1.5">
+                      {entry.authority ? (
+                        <AuthorityChip
+                          authority={entry.authority}
+                          testId={`cockpit-activity-rail-watch-${entry.id}-authority`}
+                        />
+                      ) : null}
+                      <span className="min-w-0 flex-1">{entry.text}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onNavigate}
+                      className="mt-1 text-[10px] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                      data-testid={`cockpit-activity-rail-watch-${entry.id}-action`}
+                    >
+                      {WATCH_DESTINATION_LABELS[entry.destination]}
+                    </button>
+                  </div>
+                );
+              })
             )}
           </RailSection>
 
