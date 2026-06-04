@@ -397,3 +397,65 @@ describe('TM-6C roster ownership guardrails', () => {
     expect(twoWayViolation?.actual).toBe(4);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Regression: two-way players must NOT count toward the 15-man standard limit,
+// even when they live in `players` and are flagged only by `contractType`
+// (no precomputed `isTwoWay` flag). Previously this counted 15+2 = 17 standard
+// and rejected every trade on a phantom roster overflow.
+// ---------------------------------------------------------------------------
+
+describe('roster count — two-way players excluded from the 15-man standard limit', () => {
+  const twoWayByContract = (name: string) =>
+    makeTradePlayer(name, 500_000, {
+      // No isTwoWay flag — only the contract type marks it two-way.
+      contract: {
+        contractType: 'Two-Way',
+        salariesByYear: [{ season, salary: 500_000 }],
+      },
+    } as Partial<NormalizedPlayer>);
+
+  it('treats a 15 standard + 2 two-way roster (two-ways in players[]) as legal in a balanced trade', () => {
+    const teamAStandard = Array.from({ length: 15 }, (_, i) =>
+      makeTradePlayer(`A_Std_${i}`, 2_000_000)
+    );
+    const teamATwoWay = [twoWayByContract('A_TW_0'), twoWayByContract('A_TW_1')];
+    const teamBStandard = Array.from({ length: 15 }, (_, i) =>
+      makeTradePlayer(`B_Std_${i}`, 2_000_000)
+    );
+
+    const tradeResult = validateTrade({
+      teams: [
+        {
+          // Two-ways mixed into players[], no separate twoWayPlayers array.
+          team: makeTradeTeam('TeamA', 30_000_000, [
+            ...teamAStandard,
+            ...teamATwoWay,
+          ]),
+          sends: [teamAStandard[0]],
+          picksOut: [],
+        },
+        {
+          team: makeTradeTeam('TeamB', 30_000_000, teamBStandard),
+          sends: [teamBStandard[0]],
+          picksOut: [],
+        },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    const rosterCount = tradeResult.teamResults[0]?.rules?.rosterCount;
+    const counts = (
+      rosterCount as
+        | { rosterCounts?: { standard?: number; twoWay?: number } }
+        | undefined
+    )?.rosterCounts;
+    // Standard count excludes the two-ways (15, not 17); two-ways tallied apart.
+    expect(counts?.standard).toBe(15);
+    expect(counts?.twoWay).toBe(2);
+    // No phantom "exceeds maximum" / "must be 14–15" standard violation.
+    const texts = issueTexts(rosterCount?.violations || []);
+    expect(texts.some((t) => /exceeds maximum|must be 14/i.test(t))).toBe(false);
+  });
+});
