@@ -177,7 +177,7 @@ describe('postStateCapValidator behavior', () => {
 
   // --- v1.0.0 new rule tests ---
 
-  it('PSV_ROSTER_001: returns violation when standard roster exceeds 15', () => {
+  it('PSV_ROSTER_001: warns (advisory, non-blocking) when standard roster exceeds 15', () => {
     const players = Array.from({ length: 16 }, (_, i) =>
       makePlayer(`p${i}`)
     );
@@ -189,15 +189,17 @@ describe('postStateCapValidator behavior', () => {
       })
     );
 
-    expect(result.valid).toBe(false);
+    // Roster size is advisory (validationFlags.rosterEnforcement === 'warn'):
+    // the over-15 breach is a warning and does NOT fail validation.
+    expect(result.valid).toBe(true);
     expect(
       result.violations.some((v) => v.code === 'ROSTER_MAX_EXCEEDED')
-    ).toBe(true);
-    const violation = result.violations.find(
+    ).toBe(false);
+    const warning = result.warnings.find(
       (v) => v.code === 'ROSTER_MAX_EXCEEDED'
     );
-    expect(violation?.actual).toBe(16);
-    expect(violation?.expected).toBe(15);
+    expect(warning?.actual).toBe(16);
+    expect(warning?.expected).toBe(15);
   });
 
   it('PSV_ROSTER_001: passes with exactly 15 standard players', () => {

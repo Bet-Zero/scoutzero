@@ -31,6 +31,7 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { evaluateRosterCountsAgainstLimits } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
+import { validationFlags } from '@/config/validationFlags';
 
 export const POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0';
 
@@ -288,10 +289,12 @@ function runFinalStateRosterRecheck({
   teamCode,
   players,
   violations,
+  warnings,
 }: {
   teamCode: string;
   players: AnyRecord[];
   violations: PostStateCapValidationIssue[];
+  warnings: PostStateCapValidationIssue[];
 }) {
   const { standardCount, twoWayCount } =
     countFinalStateRosterFromPlayers(players);
@@ -300,8 +303,21 @@ function runFinalStateRosterRecheck({
     twoWayCount,
   );
 
-  if (evaluation.isAboveMaximumStandard) {
-    violations.push({
+  // Route by enforcement level so the post-state gate matches the Trade
+  // Machine: 'error' blocks (violations), 'warn' is advisory (warnings), 'off'
+  // is skipped. Standard roster size (14–15) is currently advisory; two-way
+  // limit stays blocking. Keeps both gates consistent — a warned trade that
+  // passes projection also persists instead of failing at commit.
+  const targetFor = (
+    level: (typeof validationFlags)['rosterEnforcement']
+  ): PostStateCapValidationIssue[] | null =>
+    level === 'error' ? violations : level === 'warn' ? warnings : null;
+
+  const standardTarget = targetFor(validationFlags.rosterEnforcement);
+  const twoWayTarget = targetFor(validationFlags.twoWayRoster);
+
+  if (standardTarget && evaluation.isAboveMaximumStandard) {
+    standardTarget.push({
       code: 'ROSTER_MAX_EXCEEDED',
       teamCode,
       path: `teams.${teamCode}.players`,
@@ -311,8 +327,8 @@ function runFinalStateRosterRecheck({
     });
   }
 
-  if (evaluation.isBelowMinimumStandard) {
-    violations.push({
+  if (standardTarget && evaluation.isBelowMinimumStandard) {
+    standardTarget.push({
       code: 'ROSTER_MIN_VIOLATED',
       teamCode,
       path: `teams.${teamCode}.players`,
@@ -322,8 +338,8 @@ function runFinalStateRosterRecheck({
     });
   }
 
-  if (evaluation.exceedsTwoWayLimit) {
-    violations.push({
+  if (twoWayTarget && evaluation.exceedsTwoWayLimit) {
+    twoWayTarget.push({
       code: 'TWO_WAY_LIMIT_EXCEEDED',
       teamCode,
       path: `teams.${teamCode}.players`,
@@ -417,6 +433,7 @@ function runMirroredFinalStateLegalityRechecks({
   hasPlayersData,
   players,
   violations,
+  warnings,
 }: {
   teamCode: string;
   team: AnyRecord;
@@ -426,6 +443,7 @@ function runMirroredFinalStateLegalityRechecks({
   hasPlayersData: boolean;
   players: AnyRecord[];
   violations: PostStateCapValidationIssue[];
+  warnings: PostStateCapValidationIssue[];
 }) {
   // Later-layer hard-cap re-verification against final artifacts.
   // Earlier projected legality remains in tradeMachine/rules/hardCapValidation.ts.
@@ -449,6 +467,7 @@ function runMirroredFinalStateLegalityRechecks({
     teamCode,
     players,
     violations,
+    warnings,
   });
 }
 
@@ -732,6 +751,7 @@ export function validatePostStateCapLegality(
       hasPlayersData,
       players,
       violations,
+      warnings,
     });
 
     // Category 3: Warning-only observational checks
