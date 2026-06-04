@@ -10,6 +10,7 @@ import { toNum, normalizeCaps } from './capUtils';
 import { getMatchingValue } from './matchingValues';
 import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe';
 import type { TeamCapTotalsSnapshot } from '../../capTotals/computeTeamCapTotals';
+import { canonicalizeOptionType } from '@/shared/utils/contracts/optionType';
 
 type NumericLike = number | string | null | undefined;
 
@@ -155,6 +156,30 @@ interface NormalizeTradeInputParams {
   tradeCtx?: RawTradeContext;
 }
 
+type ContractLike =
+  | { salariesByYear?: Array<Record<string, unknown>> | null; [key: string]: unknown }
+  | null
+  | undefined;
+
+/**
+ * Canonicalize the `option` field on each salary row to the short code
+ * ('PO' | 'TO' | 'ETO' | null) so one format flows through trade validation.
+ * Returns a shallow-cloned contract; leaves the input untouched.
+ */
+function canonicalizeContractOptions(contract: ContractLike): ContractLike {
+  if (!contract || !Array.isArray(contract.salariesByYear)) {
+    return contract;
+  }
+  return {
+    ...contract,
+    salariesByYear: contract.salariesByYear.map((row) =>
+      row && typeof row === 'object' && 'option' in row
+        ? { ...row, option: canonicalizeOptionType((row as Record<string, unknown>).option) }
+        : row
+    ),
+  };
+}
+
 /**
  * Normalizes a player object with consistent properties
  */
@@ -185,6 +210,9 @@ function normalizePlayer(
     tpeId: player.tpeId,
     fromTeamId: player.fromTeamId || player.originTeamId,
     toTeamId: player.toTeamId || player.tradeTo,
+    // TMDATA-05: canonicalize contract option codes (PO/TO/ETO) before validation
+    contract: canonicalizeContractOptions(player.contract),
+    primaryContract: canonicalizeContractOptions(player.primaryContract),
   };
 }
 

@@ -8,6 +8,7 @@ import {
   isSeasonFuture,
   isSeasonExpired,
 } from './seasonNormalizer';
+import { canonicalizeOptionType } from './optionType';
 
 // ---------------------------------------------------------------------------
 // Local types — output-shape interfaces for normalized contract data
@@ -24,7 +25,7 @@ interface NormalizedSalaryRow {
   season: string | null;
   salary: number;
   guaranteed: boolean;
-  option: 'PO' | 'TO' | null;
+  option: 'PO' | 'TO' | 'ETO' | null;
 }
 
 /** Free agency block from normalizeFreeAgency */
@@ -205,14 +206,12 @@ function normalizeSalariesByYear(salaries: unknown[]): NormalizedSalaryRow[] {
 }
 
 /**
- * Normalize option values
+ * Normalize option values to the canonical short code ('PO' | 'TO' | 'ETO' | null).
+ * Delegates to the shared canonicalizer so the parser and the cap-legality
+ * validators agree on one format. Preserves ETO (was previously dropped to null).
  */
-function normalizeOption(option: unknown): 'PO' | 'TO' | null {
-  if (!option) return null;
-  const opt = String(option).toUpperCase();
-  if (opt.includes('PLAYER') || opt === 'PO') return 'PO';
-  if (opt.includes('TEAM') || opt === 'TO') return 'TO';
-  return null;
+function normalizeOption(option: unknown): 'PO' | 'TO' | 'ETO' | null {
+  return canonicalizeOptionType(option);
 }
 
 /**

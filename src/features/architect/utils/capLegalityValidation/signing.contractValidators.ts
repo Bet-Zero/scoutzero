@@ -11,6 +11,7 @@ import type {
   MutationContract,
   MutationSalaryRow,
 } from './schema';
+import { canonicalizeOptionType } from '@/shared/utils/contracts/optionType';
 
 const toFiniteNumber = (value: unknown, fallback = 0): number => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -28,9 +29,12 @@ const toFiniteNumber = (value: unknown, fallback = 0): number => {
 // ==============================================================================
 
 /**
- * Valid option enum values for contract salary rows.
+ * Valid option values for contract salary rows are owned by the shared
+ * canonicalizer (`canonicalizeOptionType`). The canonical stored format is the
+ * short codes 'PO' | 'TO' | 'ETO' | null; legacy long-form strings
+ * ('Player Option' / 'Team Option') are also accepted. See
+ * `src/shared/utils/contracts/optionType.ts`.
  */
-const VALID_OPTION_VALUES = ['Team Option', 'Player Option', null];
 
 /**
  * Validate a single salary row for schema correctness.
@@ -112,8 +116,9 @@ export function validateSalaryRowSchema(
  * Validate guarantee fields for policy compliance.
  *
  * Policy:
- * - If guaranteedAmount is present, it must be <= salary
- * - If guaranteed === false, guaranteedAmount must be 0 or undefined
+ * - If guaranteedAmount is present, it must be >= 0 and <= salary
+ * - `guaranteed` is the "fully guaranteed" flag; `guaranteed=false` with a
+ *   positive guaranteedAmount is a valid PARTIAL guarantee (not a contradiction)
  *
  * @param {Object} row - Salary row entry
  * @param {number} index - Index in salariesByYear array
@@ -130,7 +135,6 @@ export function validateGuaranteesPolicy(
   const salary = row.salary ?? 0;
   const numericSalary = toFiniteNumber(salary, 0);
   const guaranteedAmount = row.guaranteedAmount;
-  const guaranteed = row.guaranteed;
 
   // Check guaranteedAmount <= salary (if present)
   if (guaranteedAmount !== undefined && guaranteedAmount !== null) {
@@ -164,24 +168,12 @@ export function validateGuaranteesPolicy(
     }
   }
 
-  // Check guaranteed=false does not have positive guaranteedAmount
-  if (
-    guaranteed === false &&
-    typeof guaranteedAmount === 'number' &&
-    guaranteedAmount > 0
-  ) {
-    return {
-      valid: false,
-      violation: {
-        rule: 'contract_guarantee_invalid',
-        message: `Salary row at index ${index} (${row.season || 'unknown'}) has guaranteed=false but guaranteedAmount=$${(guaranteedAmount / 1_000_000).toFixed(2)}M. This is contradictory.`,
-        severity: 'error',
-        field: 'guaranteedAmount',
-        season: row.season || 'unknown',
-        value: guaranteedAmount,
-      },
-    };
-  }
+  // NOTE: `guaranteed=false` together with a positive `guaranteedAmount` is NOT
+  // a contradiction — it represents a legitimate PARTIAL guarantee (a
+  // non-fully-guaranteed contract year carrying a smaller guaranteed amount).
+  // `guaranteed` is treated as the "fully guaranteed" flag, so the only invalid
+  // guarantee states are a negative amount or an amount exceeding salary (both
+  // handled above).
 
   return { valid: true, violation: null };
 }
@@ -209,14 +201,16 @@ export function validateOptionsPolicy(
   const option = row.option;
   const optionUsed = row.optionUsed;
 
-  // Check option is a valid enum value
-  if (option !== undefined && option !== null) {
-    if (!VALID_OPTION_VALUES.includes(option)) {
+  // Check option is a recognized value. Canonical stored format is the short
+  // codes ('PO'/'TO'/'ETO'); legacy long-form strings are also accepted. Only a
+  // non-empty value that maps to no known option is invalid.
+  if (option !== undefined && option !== null && option !== '') {
+    if (canonicalizeOptionType(option) === null) {
       return {
         valid: false,
         violation: {
           rule: 'contract_option_invalid',
-          message: `Salary row at index ${index} (${row.season || 'unknown'}) has invalid option value: "${option}". Must be "Team Option", "Player Option", or null.`,
+          message: `Salary row at index ${index} (${row.season || 'unknown'}) has invalid option value: "${option}". Must be "PO", "TO", "ETO" (or "Player Option" / "Team Option"), or null.`,
           severity: 'error',
           field: 'option',
           season: row.season || 'unknown',

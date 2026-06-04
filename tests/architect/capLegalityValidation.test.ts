@@ -2682,7 +2682,10 @@ describe('Cap Legality Validation', () => {
       expect(result.violations[0].message).toMatch(/exceeding salary/i);
     });
 
-    it('blocks guaranteed=false with positive guaranteedAmount', () => {
+    it('allows guaranteed=false with a positive guaranteedAmount (partial guarantee)', () => {
+      // TMDATA-03: `guaranteed` is the "fully guaranteed" flag, so a non-fully-
+      // guaranteed year carrying a smaller guaranteed amount is a legitimate
+      // partial guarantee — NOT a contradiction.
       const contract = {
         contractType: 'Standard',
         salariesByYear: [
@@ -2690,16 +2693,18 @@ describe('Cap Legality Validation', () => {
             season: '2025-26',
             salary: 5_000_000,
             guaranteed: false,
-            guaranteedAmount: 1_000_000, // Non-zero when not guaranteed - contradictory
+            guaranteedAmount: 1_000_000, // partial guarantee, valid
           },
         ],
       };
 
       const result = validateContractRows(contract);
 
-      expect(result.violations.length).toBeGreaterThan(0);
-      expect(result.violations[0].rule).toBe('contract_guarantee_invalid');
-      expect(result.violations[0].message).toMatch(/contradictory/i);
+      expect(
+        result.violations.filter(
+          (v) => v.rule === 'contract_guarantee_invalid'
+        )
+      ).toHaveLength(0);
     });
 
     it('blocks invalid option enum value', () => {
@@ -2740,6 +2745,25 @@ describe('Cap Legality Validation', () => {
       expect(result.violations.length).toBe(0);
       // Should flag as needing normalization
       expect(result.hasNormalizableOptions).toBe(true);
+    });
+
+    it('allows canonical short option codes PO / TO / ETO', () => {
+      // TMDATA-01/02: the canonical stored format is the short codes; the
+      // validator must accept them (and ETO), not just the long-form strings.
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 5_000_000, option: 'PO' },
+          { season: '2026-27', salary: 5_250_000, option: 'TO' },
+          { season: '2027-28', salary: 5_500_000, option: 'ETO' },
+        ],
+      };
+
+      const result = validateContractRows(contract);
+
+      expect(
+        result.violations.filter((v) => v.rule === 'contract_option_invalid')
+      ).toHaveLength(0);
     });
 
     it('allows valid Team Option and Player Option values', () => {
