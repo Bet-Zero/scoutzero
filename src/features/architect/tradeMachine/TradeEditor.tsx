@@ -5,6 +5,12 @@ import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import { useContainerDimensions } from '@/shared/hooks/useContainerDimensions';
 import { EditContractModal } from '@/shared/components/EditContractModal';
 import { TradeTeamCard } from './TradeTeamCard';
+import {
+  PrimaryButton,
+  SecondaryButton,
+  SubtleButton,
+  IconButton,
+} from './tradeMachineChrome.buttons';
 import TradePreviewModal from './TradePreviewModal';
 import { ValidationStateHeader } from './ValidationStateHeader';
 import { ValidationDetailsPanel } from './ValidationDetailsPanel';
@@ -581,15 +587,15 @@ export const TradeEditor = ({
         <div className="flex items-center gap-2">
           {/* TM-VACUUM-E1: Clear session edits button (vacuum mode only) */}
           {isVacuumMode && hasVacuumOverlay() && (
-            <button
+            <SubtleButton
+              tone="warning"
               onClick={handleClearVacuumOverlay}
-              className="bg-amber-700/60 hover:bg-amber-600/60 text-amber-200 text-xs font-medium px-3 py-1.5 rounded"
               title="Clear all session pick changes"
             >
               Clear session pick changes
-            </button>
+            </SubtleButton>
           )}
-          <button
+          <PrimaryButton
             onClick={() => {
               const status = handleValidate();
               if (status === 'insufficient') {
@@ -599,24 +605,14 @@ export const TradeEditor = ({
               }
               setWantPreview(true);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
           >
             Validate Trade
-          </button>
-          <button
-            onClick={resetTrade}
-            title="Reset Trade"
-            className="text-white/70 hover:text-white"
-          >
+          </PrimaryButton>
+          <IconButton onClick={resetTrade} title="Reset Trade">
             <RotateCcw size={18} />
-          </button>
+          </IconButton>
           {teams.length < 5 && (
-            <button
-              onClick={addTeam}
-              className="bg-neutral-700 hover:bg-neutral-600 text-sm px-3 py-1.5 rounded"
-            >
-              Add Team
-            </button>
+            <SecondaryButton onClick={addTeam}>Add Team</SecondaryButton>
           )}
         </div>
       </div>
@@ -752,7 +748,8 @@ export const TradeEditor = ({
 
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-center">
-        <button
+        <PrimaryButton
+          tone="positive"
           onClick={async () => {
             // TMAPPLY-02: in-flight guard against double-submit
             if (isApplying) return;
@@ -817,14 +814,9 @@ export const TradeEditor = ({
             }
           }}
           disabled={!canApplyTrade || isApplying}
-          className={`text-sm font-medium px-3 py-1.5 rounded transition-colors ${
-            !canApplyTrade || isApplying
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700 text-white'
-          }`}
         >
           {isApplying ? 'Applying…' : 'Apply Trade'}
-        </button>
+        </PrimaryButton>
 
         {canApplyTrade && previewHasApplyTimeWorldChecks && (
           <span className="text-xs text-yellow-400/50">

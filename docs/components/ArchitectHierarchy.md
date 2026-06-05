@@ -259,6 +259,7 @@ tradeMachine/
   TradeTeamCard.tsx
   ValidationDetailsPanel.tsx
   ValidationStateHeader.tsx
+  tradeMachineChrome.buttons.tsx
   tradePreviewExportTypes.ts
   useTradeTeamCardSalaries.ts
   utils/
@@ -540,5 +541,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-03T19:01:37.290Z*
+*Generated on: 2026-06-05T02:29:22.917Z*
 *Auto-updated by: npm run docs*
