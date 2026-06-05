@@ -16,15 +16,10 @@ interface ValidationStatePillProps {
   validatedAt?: string | number | Date | null;
 }
 
-interface ModeLegendProps {
-  compact?: boolean;
-}
-
 interface ValidationStateHeaderProps {
   hasValidatorResult?: boolean;
   isValidating?: boolean;
   validatedAt?: string | number | Date | null;
-  showLegend?: boolean;
 }
 
 export const MODE_TAGS: Record<string, ModeTagDefinition> = {
@@ -102,56 +97,22 @@ const ValidationStatePill = ({
   );
 };
 
-const ModeLegend = ({ compact = true }: ModeLegendProps) => {
-  const modes = compact
-    ? [
-        MODE_TAGS.OFFICIAL,
-        MODE_TAGS.SETUP,
-        MODE_TAGS.EXPLORATORY,
-        MODE_TAGS.DEBUG,
-      ]
-    : Object.values(MODE_TAGS);
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-[10px]">
-      {modes.map((tag) => (
-        <span
-          key={tag.label}
-          className={`px-1.5 py-0.5 rounded border ${tag.color}`}
-          title={tag.description}
-        >
-          {tag.label}
-        </span>
-      ))}
-    </div>
-  );
-};
-
 export const ValidationStateHeader = ({
   hasValidatorResult = false,
   isValidating = false,
   validatedAt = null,
-  showLegend = true,
 }: ValidationStateHeaderProps) => {
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 mb-4 bg-[#0a0a0a] border border-white/10 rounded-lg"
+      className="flex flex-wrap items-center gap-3 px-4 py-2 mb-4 bg-[#0a0a0a] border border-white/10 rounded-lg"
       data-testid="validation-state-header"
     >
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-white/50 font-medium">Validation:</span>
-        <ValidationStatePill
-          hasValidatorResult={hasValidatorResult}
-          isValidating={isValidating}
-          validatedAt={validatedAt}
-        />
-      </div>
-      {showLegend && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-white/40">Mode legend:</span>
-          <ModeLegend />
-        </div>
-      )}
+      <span className="text-xs text-white/50 font-medium">Validation:</span>
+      <ValidationStatePill
+        hasValidatorResult={hasValidatorResult}
+        isValidating={isValidating}
+        validatedAt={validatedAt}
+      />
     </div>
   );
 };

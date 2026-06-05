@@ -153,32 +153,18 @@ describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
     });
   });
 
-  describe('Mode Legend', () => {
-    it('A-GR-05: renders all 4 mode tags in legend', () => {
+  // Mode legend removed from the production view (Trade Machine UI polish):
+  // the OFFICIAL/SETUP/EXPLORATORY/DEBUG taxonomy is developer-facing and no
+  // longer rendered in the user-facing header. ModeTag/MODE_TAGS remain for the
+  // dev-gated Development Tools panel and are covered below.
+  describe('Validation State Header — no mode legend', () => {
+    it('A-GR-05: does not render the mode legend in the production header', () => {
       render(
-        <ValidationStateHeader
-          hasValidatorResult={false}
-          isValidating={false}
-          showLegend={true}
-        />
-      );
-
-      expect(screen.getByText('Official (Validator)')).toBeTruthy();
-      expect(screen.getByText('Setup')).toBeTruthy();
-      expect(screen.getByText('Exploratory')).toBeTruthy();
-      expect(screen.getByText('Debug')).toBeTruthy();
-    });
-
-    it('A-GR-06: hides legend when showLegend=false', () => {
-      render(
-        <ValidationStateHeader
-          hasValidatorResult={false}
-          isValidating={false}
-          showLegend={false}
-        />
+        <ValidationStateHeader hasValidatorResult={false} isValidating={false} />
       );
 
       expect(screen.queryByText('Mode legend:')).toBeNull();
+      expect(screen.queryByText('Official (Validator)')).toBeNull();
     });
   });
 
@@ -306,7 +292,10 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
   });
 
   describe('Section Headers with Mode Tags (Tasks C, D)', () => {
-    it('CD-GR-01: Validation Summary section has OFFICIAL tag when validated', () => {
+    // Trade Machine UI polish: production (Validation Results) sections no longer
+    // carry the developer-facing OFFICIAL mode tag. Mode tags now only appear on
+    // the dev-gated Development Tools sections (covered by CD-GR-04/05).
+    it('CD-GR-01: Validation Summary section renders without a mode tag', () => {
       render(
         <ValidationDetailsPanel
           hasValidatorResult={true}
@@ -324,12 +313,12 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
 
       fireEvent.click(screen.getByText('Validation Results'));
 
-      // Find Validation Summary section and check for Official tag
       const summarySection = screen.getByTestId('section-validation-summary');
-      expect(summarySection.textContent).toContain('Official (Validator)');
+      expect(summarySection).toBeTruthy();
+      expect(summarySection.textContent).not.toContain('Official (Validator)');
     });
 
-    it('CD-GR-02: Rule Compliance Overview section has OFFICIAL tag when validated', () => {
+    it('CD-GR-02: Rule Compliance Overview section renders without a mode tag', () => {
       render(
         <ValidationDetailsPanel
           hasValidatorResult={true}
@@ -348,10 +337,11 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
       fireEvent.click(screen.getByText('Validation Results'));
 
       const ruleSection = screen.getByTestId('section-rule-compliance');
-      expect(ruleSection.textContent).toContain('Official (Validator)');
+      expect(ruleSection).toBeTruthy();
+      expect(ruleSection.textContent).not.toContain('Official (Validator)');
     });
 
-    it('CD-GR-03: Trade Exception Analysis section has OFFICIAL tag when validated', () => {
+    it('CD-GR-03: Trade Exception Analysis section renders without a mode tag', () => {
       render(
         <ValidationDetailsPanel
           hasValidatorResult={true}
@@ -370,7 +360,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
       fireEvent.click(screen.getByText('Validation Results'));
 
       const exceptionSection = screen.getByTestId('section-exception-analysis');
-      expect(exceptionSection.textContent).toContain('Official (Validator)');
+      expect(exceptionSection).toBeTruthy();
+      expect(exceptionSection.textContent).not.toContain('Official (Validator)');
     });
 
     it('CD-GR-04: Salary Calculator section has EXPLORATORY tag when validated', () => {
@@ -481,7 +472,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      expect(screen.getByText('✓ Results available')).toBeTruthy();
+      expect(screen.getByText('Results available')).toBeTruthy();
     });
 
     it('Panel does not show "Results available" when not validated', () => {
@@ -494,7 +485,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      expect(screen.queryByText('✓ Results available')).toBeNull();
+      expect(screen.queryByText('Results available')).toBeNull();
     });
   });
 });
