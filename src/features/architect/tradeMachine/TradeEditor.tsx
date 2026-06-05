@@ -636,7 +636,7 @@ export const TradeEditor = ({
           <button
             type="button"
             onClick={() => setContextBannerDismissed(true)}
-            className="shrink-0 rounded px-1 text-white/40 hover:text-white/80"
+            className="shrink-0 rounded px-1 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors"
             aria-label="Dismiss trade context"
             data-testid="trade-context-banner-dismiss"
           >
