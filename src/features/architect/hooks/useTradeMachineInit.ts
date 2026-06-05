@@ -154,9 +154,10 @@ export function useTradeMachineInit({
           teamObj.teamTotalSalary = totalWithDead;
           teamObj.projectedSalary = totalWithDead;
 
-          console.log(
-            '[init payroll SSOT]',
-            teamObj.nickname || teamObj.teamName || teamObj.id,
+          if (import.meta.env.DEV)
+            console.log(
+              '[init payroll SSOT]',
+              teamObj.nickname || teamObj.teamName || teamObj.id,
             {
               year: yearKey,
               baseline,

@@ -62,7 +62,7 @@ export const TradeExceptionManager = ({
                   {tpe.name || 'Trade Exception'}
                 </div>
                 <div className="text-xs text-white/60">
-                  Expires: {formatDate(tpe.expirationDate)}
+                  Expires: {formatDate(tpe.expirationDate ?? tpe.expiresOn)}
                 </div>
               </div>
               <div className="font-mono text-green-400">
@@ -90,7 +90,7 @@ export const TradeExceptionManager = ({
                   {tpe.name || 'Trade Exception'}
                 </div>
                 <div className="text-xs text-red-400/60">
-                  Expired: {formatDate(tpe.expirationDate)}
+                  Expired: {formatDate(tpe.expirationDate ?? tpe.expiresOn)}
                 </div>
               </div>
               <div className="font-mono text-white/40">

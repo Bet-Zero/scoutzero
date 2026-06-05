@@ -44,13 +44,14 @@ export type UseTradeMachineValidationParams = {
   ) => void;
   setPreviewAuthority: (v: TradeMachinePreviewAuthority | null) => void;
   setIsValidating: (v: boolean) => void;
-  setPreviewOpen: (v: boolean) => void;
   lastValidatedDraftKeyRef: React.MutableRefObject<string | null>;
   validatedAtRef: React.MutableRefObject<number | null>;
 };
 
 export type UseTradeMachineValidationResult = {
-  handleValidate: () => void;
+  // Returns synchronously whether validation could start. 'insufficient' means
+  // there are not enough active teams to validate (caller surfaces feedback).
+  handleValidate: () => 'insufficient' | 'started';
 };
 
 export function useTradeMachineValidation({
@@ -64,7 +65,6 @@ export function useTradeMachineValidation({
   setSnapshotValidationDetails,
   setPreviewAuthority,
   setIsValidating,
-  setPreviewOpen,
   lastValidatedDraftKeyRef,
   validatedAtRef,
 }: UseTradeMachineValidationParams): UseTradeMachineValidationResult {
@@ -135,34 +135,31 @@ export function useTradeMachineValidation({
       };
     }, [teams, capProjections, yearKey, worldId, worldAsOfDate]);
 
-  // Core validation function - extracted for reuse
-  // P0-3: Wraps validation with isValidating state for UI loading indicators
-  const validateCurrentTrade =
-    useCallback((): ValidateCurrentTradeOutcome | null => {
-      const previewContext = buildCurrentTradePreviewContext();
-      if (!previewContext) {
-        setSnapshotValidationDetails(null);
-        setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
-        // P0-3: Clear isValidating since no validation will run (not enough teams)
-        setIsValidating(false);
-        return null;
-      }
-
-      // P0-3: Set validating state before validation runs
-      setIsValidating(true);
-
+  // Core validation compute. Runs the (synchronous) validation for a prepared
+  // preview context and writes the snapshot details. Intentionally does NOT
+  // toggle isValidating or build the context — the caller owns those — so the
+  // compute can be deferred a tick for UI feedback (TMUI-01).
+  const runValidation = useCallback(
+    (
+      previewContext: PreparedTradePreviewContext
+    ): ValidateCurrentTradeOutcome | null => {
       try {
         const { activeTeams, preparation } = previewContext;
 
-        console.log(
-          '[validate -> teams payroll]',
-          activeTeams.map((teamSlot) => ({
-            team:
-              teamSlot.team.nickname || teamSlot.team.name || teamSlot.team.id,
-            teamTotalSalary: teamSlot.team.teamTotalSalary,
-            projectedSalary: teamSlot.team.projectedSalary,
-          }))
-        );
+        if (import.meta.env.DEV) {
+          // TMUI-06: debug logging gated to dev builds
+          console.log(
+            '[validate -> teams payroll]',
+            activeTeams.map((teamSlot) => ({
+              team:
+                teamSlot.team.nickname ||
+                teamSlot.team.name ||
+                teamSlot.team.id,
+              teamTotalSalary: teamSlot.team.teamTotalSalary,
+              projectedSalary: teamSlot.team.projectedSalary,
+            }))
+          );
+        }
 
         const validation = asUnknownRecord(
           preparation.validatedContext._rawValidation ||
@@ -219,73 +216,102 @@ export function useTradeMachineValidation({
 
         setSnapshotValidationDetails(snapshotValidationDetails);
 
-        console.log(
-          '[after validate]',
-          (Array.isArray(validation.teamResults)
-            ? validation.teamResults
-            : []
-          ).map((teamResult) => {
-            const result = asUnknownRecord(teamResult);
-            const team = asUnknownRecord(result.team);
-            const preTradeStatus = asUnknownRecord(result.preTradeStatus);
-            const postTradeStatus = asUnknownRecord(result.postTradeStatus);
+        if (import.meta.env.DEV) {
+          // TMUI-06: debug logging gated to dev builds
+          console.log(
+            '[after validate]',
+            (Array.isArray(validation.teamResults)
+              ? validation.teamResults
+              : []
+            ).map((teamResult) => {
+              const result = asUnknownRecord(teamResult);
+              const team = asUnknownRecord(result.team);
+              const preTradeStatus = asUnknownRecord(result.preTradeStatus);
+              const postTradeStatus = asUnknownRecord(result.postTradeStatus);
 
-            return {
-              team: team.nickname || team.name || team.id,
-              pre: preTradeStatus.projectedSalary,
-              post: postTradeStatus.projectedSalary,
-              apron: postTradeStatus.isAtOrAboveSecondApron,
-            };
-          })
-        );
+              return {
+                team: team.nickname || team.name || team.id,
+                pre: preTradeStatus.projectedSalary,
+                post: postTradeStatus.projectedSalary,
+                apron: postTradeStatus.isAtOrAboveSecondApron,
+              };
+            })
+          );
+        }
 
         return { snapshotValidationDetails, previewContext };
       } catch (error) {
         console.error(
-          '[useTradeMachine] validateCurrentTrade unexpected error:',
+          '[useTradeMachine] runValidation unexpected error:',
           error
         );
         setSnapshotValidationDetails(null);
         setPreviewAuthority(null);
         return null;
-      } finally {
-        // P0-3: Clear validating state after validation completes
-        setIsValidating(false);
       }
-    }, [buildCurrentTradePreviewContext, yearKey, forceTrade, worldAsOfDate]);
+    },
+    [yearKey, forceTrade, setSnapshotValidationDetails, setPreviewAuthority]
+  );
 
   // REMOVED: Auto-validation effect was causing stale "Validated" state
   // Validation now ONLY happens when user clicks "Validate Trade" (explicit action)
 
-  // Manual validation trigger - the ONLY way validation should happen
-  const handleValidate = useCallback(() => {
-    const validationOutcome = validateCurrentTrade();
-    if (validationOutcome) {
-      const { previewContext } = validationOutcome;
-
-      // Stale validation fix: Record the draft key that was validated
-      lastValidatedDraftKeyRef.current = currentDraftKey;
-      validatedAtRef.current = Date.now();
-
-      try {
-        const previewAuthority = getTradePreviewAuthority({
-          payload: previewContext.payload,
-          currentState: previewContext.currentState,
-          seasonId: previewContext.seasonId,
-          preparation: previewContext.preparation,
-        });
-        setPreviewAuthority(previewAuthority);
-      } catch (err) {
-        console.error(
-          '[useTradeMachine] getTradePreviewAuthority unexpected error:',
-          err
-        );
-        setPreviewAuthority(null);
-      }
-
-      setPreviewOpen(true);
+  // Manual validation trigger - the ONLY way validation should happen.
+  // Returns synchronously whether validation could start; the compute itself is
+  // deferred one tick (TMUI-01) so the "Validating…" state can paint, and the
+  // caller can surface feedback when there aren't enough teams (TMUI-03).
+  const handleValidate = useCallback((): 'insufficient' | 'started' => {
+    const previewContext = buildCurrentTradePreviewContext();
+    if (!previewContext) {
+      setSnapshotValidationDetails(null);
+      setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
+      setIsValidating(false);
+      return 'insufficient';
     }
-  }, [validateCurrentTrade, currentDraftKey]);
+
+    setIsValidating(true);
+    // Defer the synchronous compute one tick so React can paint the
+    // "Validating…" state before the results land.
+    setTimeout(() => {
+      try {
+        const outcome = runValidation(previewContext);
+        if (outcome) {
+          // Stale validation fix: Record the draft key that was validated
+          lastValidatedDraftKeyRef.current = currentDraftKey;
+          validatedAtRef.current = Date.now();
+
+          try {
+            const previewAuthority = getTradePreviewAuthority({
+              payload: previewContext.payload,
+              currentState: previewContext.currentState,
+              seasonId: previewContext.seasonId,
+              preparation: previewContext.preparation,
+            });
+            setPreviewAuthority(previewAuthority);
+          } catch (err) {
+            console.error(
+              '[useTradeMachine] getTradePreviewAuthority unexpected error:',
+              err
+            );
+            setPreviewAuthority(null);
+          }
+        }
+      } finally {
+        setIsValidating(false);
+      }
+    }, 0);
+
+    return 'started';
+  }, [
+    buildCurrentTradePreviewContext,
+    runValidation,
+    currentDraftKey,
+    setSnapshotValidationDetails,
+    setPreviewAuthority,
+    setIsValidating,
+    lastValidatedDraftKeyRef,
+    validatedAtRef,
+  ]);
 
   return { handleValidate };
 }

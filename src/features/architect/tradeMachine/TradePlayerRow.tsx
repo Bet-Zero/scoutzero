@@ -134,7 +134,9 @@ export const TradePlayerRow = ({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
-  const menuId = player.name || null;
+  // TMUI-08: stable menu identity (avoid name collisions / nameless rows)
+  const menuId =
+    String(player.id ?? player.player_id ?? player.name ?? '') || null;
   const details = (playersMap[String(player.name || '')] || {}) as PlayerLike;
   const team =
     player.tradeTo ||
@@ -154,7 +156,7 @@ export const TradePlayerRow = ({
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (
-        openMenu === player.name &&
+        openMenu === menuId &&
         !menuRef.current?.contains(e.target as Node) &&
         !buttonRef.current?.contains(e.target as Node)
       ) {
@@ -163,7 +165,7 @@ export const TradePlayerRow = ({
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [openMenu, player.name, setOpenMenu]);
+  }, [openMenu, menuId, setOpenMenu]);
 
   const primaryContract =
     player.primaryContract ||
@@ -254,7 +256,7 @@ export const TradePlayerRow = ({
             •••
           </button>
 
-          {openMenu === player.name && (
+          {openMenu === menuId && (
             <div
               ref={menuRef}
               className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem]"
@@ -308,7 +310,9 @@ export const TradePlayerRow = ({
                 Modify Contract
               </button>
               <button
-                onClick={() => (window.location.href = getPlayerProfileUrl(player))}
+                onClick={() =>
+                  window.open(getPlayerProfileUrl(player), '_blank', 'noopener')
+                }
                 className="block w-full text-left px-3 py-1 hover:bg-[#333]"
               >
                 View Profile
@@ -405,7 +409,7 @@ export const TradePlayerRow = ({
           •••
         </button>
 
-        {openMenu === player.name && (
+        {openMenu === menuId && (
           <div
             ref={menuRef}
             className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem]"

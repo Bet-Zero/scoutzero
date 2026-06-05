@@ -44,36 +44,28 @@ export const CapImpactTiles = ({
   compact = false,
   isValidating = false,
 }: CapImpactTilesProps) => {
-  if (!team) return null;
-
   const baselineTotals = useMemo(
-    () => computeTeamCapTotals(team, yearKey),
+    () => (team ? computeTeamCapTotals(team, yearKey) : null),
     [team, yearKey]
   );
-
-  const {
-    salaryCap,
-    firstApron,
-    secondApron,
-    capHoldsTotal: baselineCapHolds,
-    totalCapAllocations: baselineTotalAllocations,
-  } = baselineTotals;
 
   const hardCapStatus = useMemo(
-    () => ({
-      isFirstApronHardCapped: isHardCappedAtFirstApron(team, yearKey),
-      isSecondApronHardCapped: isHardCappedAtSecondApron(team),
-      firstApronReason: isHardCappedAtFirstApron(team, yearKey)
-        ? getFirstApronHardCapReason(team)
-        : '',
-    }),
+    () =>
+      team
+        ? {
+            isFirstApronHardCapped: isHardCappedAtFirstApron(team, yearKey),
+            isSecondApronHardCapped: isHardCappedAtSecondApron(team),
+            firstApronReason: isHardCappedAtFirstApron(team, yearKey)
+              ? getFirstApronHardCapReason(team)
+              : '',
+          }
+        : {
+            isFirstApronHardCapped: false,
+            isSecondApronHardCapped: false,
+            firstApronReason: '',
+          },
     [team, yearKey]
   );
-  const { isFirstApronHardCapped, isSecondApronHardCapped, firstApronReason } =
-    hardCapStatus;
-
-  const hasValidatorResult = snapshot !== null;
-  const validatorProjectedSalary = snapshot?.projectedSalary ?? null;
 
   const { salaryOut, salaryIn } = useMemo(
     () => ({
@@ -82,6 +74,22 @@ export const CapImpactTiles = ({
     }),
     [sends, incomingPlayers, yearKey]
   );
+
+  // TMUI-02: all hooks run above this guard (no early return before hooks)
+  if (!team || !baselineTotals) return null;
+
+  const {
+    salaryCap,
+    firstApron,
+    secondApron,
+    capHoldsTotal: baselineCapHolds,
+    totalCapAllocations: baselineTotalAllocations,
+  } = baselineTotals;
+  const { isFirstApronHardCapped, isSecondApronHardCapped, firstApronReason } =
+    hardCapStatus;
+
+  const hasValidatorResult = snapshot !== null;
+  const validatorProjectedSalary = snapshot?.projectedSalary ?? null;
 
   const projectedSalary = hasValidatorResult
     ? validatorProjectedSalary

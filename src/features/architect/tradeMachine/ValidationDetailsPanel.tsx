@@ -329,15 +329,19 @@ export const ValidationDetailsPanel = ({
                     </section>
                   )}
 
-                  <section data-testid="section-trade-receipt">
-                    <SectionHeader title="Trade Receipt" mode="DEBUG">
-                      Developer diagnostic data — not required reading
-                    </SectionHeader>
-                    <TradeReceiptPanel
-                      receipt={snapshotValidationDetails?.tradeReceipt}
-                      pickRulesById={pickRulesById}
-                    />
-                  </section>
+                  {/* TMUI-16: gate the whole section on the receipt flag so the
+                      header doesn't render alone when the panel is disabled */}
+                  {import.meta.env.VITE_SHOW_TRADE_RECEIPT === 'true' && (
+                    <section data-testid="section-trade-receipt">
+                      <SectionHeader title="Trade Receipt" mode="DEBUG">
+                        Developer diagnostic data — not required reading
+                      </SectionHeader>
+                      <TradeReceiptPanel
+                        receipt={snapshotValidationDetails?.tradeReceipt}
+                        pickRulesById={pickRulesById}
+                      />
+                    </section>
+                  )}
 
                   {Object.keys(entitlementsByTeam).length > 0 && (
                     <section data-testid="section-entitlement-health">

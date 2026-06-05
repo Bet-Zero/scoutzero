@@ -312,7 +312,7 @@ export const TradeSalaryCalculator = ({
           </label>
           <input
             type="number"
-            value={incomingSalary}
+            value={incomingSalary || ''}
             onChange={(event) => setIncomingSalary(Number(event.target.value) || 0)}
             className="w-full bg-[#222] border border-white/10 rounded px-3 py-2 font-mono"
             placeholder="Enter amount to test"

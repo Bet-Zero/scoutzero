@@ -373,7 +373,7 @@ export const TradeTeamCard = ({
                     className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
                   >
                     {e.seasonYear ?? '—'} R{e.round ?? '—'}{' '}
-                    {e.kind === 'swap_right' ? 'Swap' : ''}
+                    {e.kind === 'swap_right' ? 'Swap' : 'Pick'}
                   </span>
                 ))}
             </div>
@@ -567,7 +567,8 @@ export const TradeTeamCard = ({
                 </span>
               )}
             </div>
-            {teamTradeExceptions.length > 0 && (
+            {/* TMUI-17: gate on ACTIVE TPEs so the "Available" label matches reality */}
+            {activeTradeExceptions.length > 0 && (
               <div className="flex gap-2 items-center">
                 <span className="text-white/60">Available TPEs:</span>
                 {activeTradeExceptions.map((tpe, tpeIdx) => (
@@ -578,9 +579,6 @@ export const TradeTeamCard = ({
                     {formatMillions(Number(tpe.amount ?? 0), 1)}
                   </span>
                 ))}
-                {activeTradeExceptions.length === 0 && (
-                  <span className="text-white/40">None</span>
-                )}
               </div>
             )}
           </div>

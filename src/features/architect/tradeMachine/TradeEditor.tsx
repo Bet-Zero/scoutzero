@@ -113,6 +113,8 @@ export const TradeEditor = ({
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  // TMUI-01: remember a pending "open preview after validation" request
+  const [wantPreview, setWantPreview] = useState(false);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
     useState<TradeMachineSatModalState>(null);
   // P2: Track which team's calculator to show (0 = primary team by default)
@@ -150,6 +152,15 @@ export const TradeEditor = ({
   useEffect(() => {
     onDraftActivityChange?.(hasDraftActivity);
   }, [hasDraftActivity, onDraftActivityChange]);
+
+  // TMUI-01: validation is deferred a tick so the "Validating…" state can paint.
+  // Open the preview only once that requested validation has finished.
+  useEffect(() => {
+    if (wantPreview && hasCurrentValidation && !isValidating) {
+      setPreviewOpen(true);
+      setWantPreview(false);
+    }
+  }, [wantPreview, hasCurrentValidation, isValidating]);
 
   // Pre-stage one or more players as outgoing when the Trade Machine opens from
   // a player-context entry (the pin board's "Trade" / "Trade all pinned").
@@ -220,12 +231,6 @@ export const TradeEditor = ({
     });
     return { players, entitlements };
   });
-
-  const addLabels: Record<number, string> = {
-    2: 'Add Team',
-    3: 'Add Team',
-    4: 'Add Team',
-  };
 
   // Phase 12.3B: Merge pickRulesById from all team slots for projection layer
   const mergedPickRulesById = useMemo(() => {
@@ -584,8 +589,13 @@ export const TradeEditor = ({
           )}
           <button
             onClick={() => {
-              handleValidate();
-              setPreviewOpen(true);
+              const status = handleValidate();
+              if (status === 'insufficient') {
+                // TMUI-03: give the click a visible result instead of nothing
+                toast.error('Add at least two teams to validate this trade.');
+                return;
+              }
+              setWantPreview(true);
             }}
             className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
           >
@@ -603,7 +613,7 @@ export const TradeEditor = ({
               onClick={addTeam}
               className="bg-neutral-700 hover:bg-neutral-600 text-sm px-3 py-1.5 rounded"
             >
-              {addLabels[teams.length] || 'Add Team'}
+              Add Team
             </button>
           )}
         </div>
@@ -747,7 +757,7 @@ export const TradeEditor = ({
               return;
             }
             if (currentPreviewAuthority?.legal !== true) {
-              alert('Cannot apply trade: ' + previewAuthorityReason);
+              toast.error('Cannot apply trade: ' + previewAuthorityReason);
               return;
             }
             const tradeData = exportCurrentTrade() as

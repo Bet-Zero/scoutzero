@@ -96,7 +96,7 @@ export const OutgoingPlayersList = ({
       <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1 pb-28">
         {sortedAvailable.map((p) => (
           <TradePlayerRow
-            key={p.id || p.name}
+            key={p.id || p.player_id || p.name}
             player={p}
             included={sends.some(
               (s) => (s.id || s.player_id) === (p.id || p.player_id)
