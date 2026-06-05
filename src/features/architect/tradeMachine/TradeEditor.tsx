@@ -115,6 +115,8 @@ export const TradeEditor = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   // TMUI-01: remember a pending "open preview after validation" request
   const [wantPreview, setWantPreview] = useState(false);
+  // TMAPPLY-02: in-flight lock so Apply can't double-submit
+  const [isApplying, setIsApplying] = useState(false);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
     useState<TradeMachineSatModalState>(null);
   // P2: Track which team's calculator to show (0 = primary team by default)
@@ -752,6 +754,8 @@ export const TradeEditor = ({
       <div className="flex flex-wrap gap-3 items-center">
         <button
           onClick={async () => {
+            // TMAPPLY-02: in-flight guard against double-submit
+            if (isApplying) return;
             if (!hasCurrentValidation) {
               toast.error('Re-validate trade before applying.');
               return;
@@ -763,9 +767,18 @@ export const TradeEditor = ({
             const tradeData = exportCurrentTrade() as
               | TradeDataEntryLike[]
               | null;
-            if (onApplyTrade && tradeData) {
-              // TM-PICKS-E1: In vacuum/sandbox mode, persist entitlement transfers to localStorage
-              // so they survive page refresh. World mode persists via mutation pipeline.
+            if (!onApplyTrade || !tradeData) {
+              return;
+            }
+
+            setIsApplying(true);
+            try {
+              await onApplyTrade(tradeData);
+
+              // TMAPPLY-01: In vacuum/sandbox mode, persist entitlement transfers
+              // to localStorage ONLY after the trade actually applied — so a
+              // blocked/failed apply doesn't leave picks moved while players don't.
+              // World mode persists via the mutation pipeline.
               if (isVacuumMode) {
                 for (const teamEntry of tradeData) {
                   const outgoing = teamEntry.outgoingEntitlements || [];
@@ -784,27 +797,26 @@ export const TradeEditor = ({
                 }
               }
 
-              try {
-                await onApplyTrade(tradeData);
-                // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
-                refreshEntitlements();
-                onAfterTradeApplied?.();
-              } catch (error: unknown) {
-                console.error('[TradeEditor] Trade application failed:', error);
-                toast.error(
-                  `Failed to apply trade: ${error instanceof Error ? error.message : 'Unknown error'}`
-                );
-              }
+              // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
+              refreshEntitlements();
+              onAfterTradeApplied?.();
+            } catch (error: unknown) {
+              console.error('[TradeEditor] Trade application failed:', error);
+              toast.error(
+                `Failed to apply trade: ${error instanceof Error ? error.message : 'Unknown error'}`
+              );
+            } finally {
+              setIsApplying(false);
             }
           }}
-          disabled={!canApplyTrade}
+          disabled={!canApplyTrade || isApplying}
           className={`text-sm font-medium px-3 py-1.5 rounded transition-colors ${
-            !canApplyTrade
+            !canApplyTrade || isApplying
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'bg-green-600 hover:bg-green-700 text-white'
           }`}
         >
-          Apply Trade
+          {isApplying ? 'Applying…' : 'Apply Trade'}
         </button>
 
         {canApplyTrade && previewHasApplyTimeWorldChecks && (
