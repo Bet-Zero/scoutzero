@@ -8,6 +8,7 @@ import { FaExceptionTracker } from './FaExceptionTracker';
 import { TradeSalaryCalculator } from './TradeSalaryCalculator';
 import { TradeReceiptPanel } from './TradeReceiptPanel';
 import { getOfficialSalaryMatchingSnapshot } from './utils/getOfficialSalaryMatchingSnapshot';
+import { isTradeMachineDebugEnabled } from './utils/tradeMachineDebugFlag';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { EntitlementHealthPanel } from '@/features/architect/admin/EntitlementHealthPanel';
 import type {
@@ -110,6 +111,8 @@ export const ValidationDetailsPanel = ({
 }: ValidationDetailsPanelProps) => {
   const [productionExpanded, setProductionExpanded] = useState(false);
   const [devToolsExpanded, setDevToolsExpanded] = useState(false);
+  // Dev-flag gate: finished-product users never see the Development Tools panel.
+  const debugEnabled = isTradeMachineDebugEnabled();
 
   const teamOptions = useMemo(
     () =>
@@ -220,6 +223,7 @@ export const ValidationDetailsPanel = ({
         )}
       </div>
 
+      {debugEnabled && (
       <div className="border border-amber-500/30 rounded-lg overflow-hidden bg-[#111]">
         <button
           type="button"
@@ -359,6 +363,7 @@ export const ValidationDetailsPanel = ({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

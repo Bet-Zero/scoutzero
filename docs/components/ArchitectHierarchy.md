@@ -267,6 +267,7 @@ tradeMachine/
     devSntInjector.ts
     entitlementWarnings.ts
     getOfficialSalaryMatchingSnapshot.ts
+    tradeMachineDebugFlag.ts
   validationPresentationTypes.ts
 types/
   index.ts
@@ -541,5 +542,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-05T02:29:22.917Z*
+*Generated on: 2026-06-05T02:52:07.403Z*
 *Auto-updated by: npm run docs*
