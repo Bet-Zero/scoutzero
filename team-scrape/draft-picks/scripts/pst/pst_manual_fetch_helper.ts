@@ -257,7 +257,7 @@ Manual Fetch Instructions:
 }
 
 // Run if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   main().catch((err) => {
     console.error('Fatal error:', err);
     process.exit(1);

@@ -736,7 +736,7 @@ export async function runLedgerBuilder(options?: {
 }
 
 // CLI entry point
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   // Parse --input=mentions|structured flag (default: mentions)
   const inputArg = parseArg('input', 'mentions');
   const inputType: InputType =

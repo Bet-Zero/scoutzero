@@ -1207,7 +1207,7 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir, draftAsset
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   stageTeam(parseArgs()).catch((err) => {
     console.error('❌ Failed to stage team:', err);
     process.exit(1);

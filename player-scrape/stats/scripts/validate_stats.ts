@@ -175,6 +175,6 @@ async function validateStats() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   validateStats();
 }
