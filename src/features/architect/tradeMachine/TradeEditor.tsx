@@ -525,6 +525,68 @@ export const TradeEditor = ({
     return { success: true };
   };
 
+  const handleApplyTrade = async () => {
+    // TMAPPLY-02: in-flight guard against double-submit
+    if (isApplying) return;
+    if (!hasCurrentValidation) {
+      toast.error('Re-validate trade before applying.');
+      return;
+    }
+    if (currentPreviewAuthority?.legal !== true) {
+      toast.error('Cannot apply trade: ' + previewAuthorityReason);
+      return;
+    }
+    const tradeData = exportCurrentTrade() as TradeDataEntryLike[] | null;
+    if (!onApplyTrade || !tradeData) {
+      return;
+    }
+
+    setIsApplying(true);
+    try {
+      await onApplyTrade(tradeData);
+
+      // TMAPPLY-01: In vacuum/sandbox mode, persist entitlement transfers
+      // to localStorage ONLY after the trade actually applied — so a
+      // blocked/failed apply doesn't leave picks moved while players don't.
+      // World mode persists via the mutation pipeline.
+      //
+      // TMAPPLY-04 (decision): sandbox is an ephemeral preview for ROSTERS
+      // (players reload from base on refresh), but pick ownership uses this
+      // session overlay — the only sandbox mechanism for pick moves — which
+      // survives refresh. The "Clear session pick changes" button (shown in
+      // the header) is the reset. Unifying durability across players + picks
+      // would require new persistence and isn't worth it for a sandbox edge.
+      if (isVacuumMode) {
+        for (const teamEntry of tradeData) {
+          const outgoing = teamEntry.outgoingEntitlements || [];
+          for (const ent of outgoing) {
+            const entId = ent.entitlementId || ent.id;
+            const fromTeam = ent.fromTeamId || teamEntry.teamId;
+            const toTeam = ent.toTeamId;
+            if (entId && fromTeam && toTeam) {
+              applyVacuumTransfer(
+                String(entId),
+                String(fromTeam),
+                String(toTeam)
+              );
+            }
+          }
+        }
+      }
+
+      // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
+      refreshEntitlements();
+      onAfterTradeApplied?.();
+    } catch (error: unknown) {
+      console.error('[TradeEditor] Trade application failed:', error);
+      toast.error(
+        `Failed to apply trade: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   const bannerAuthority = tradeContext
     ? describeTradeOpenAuthority(tradeContext.authority)
     : null;
@@ -607,6 +669,13 @@ export const TradeEditor = ({
             }}
           >
             Validate Trade
+          </PrimaryButton>
+          <PrimaryButton
+            tone="positive"
+            onClick={handleApplyTrade}
+            disabled={!canApplyTrade || isApplying}
+          >
+            {isApplying ? 'Applying…' : 'Apply Trade'}
           </PrimaryButton>
           <IconButton onClick={resetTrade} title="Reset Trade">
             <RotateCcw size={18} />
@@ -746,100 +815,34 @@ export const TradeEditor = ({
         </div>
       )}
 
-      {/* Controls */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <PrimaryButton
-          tone="positive"
-          onClick={async () => {
-            // TMAPPLY-02: in-flight guard against double-submit
-            if (isApplying) return;
-            if (!hasCurrentValidation) {
-              toast.error('Re-validate trade before applying.');
-              return;
-            }
-            if (currentPreviewAuthority?.legal !== true) {
-              toast.error('Cannot apply trade: ' + previewAuthorityReason);
-              return;
-            }
-            const tradeData = exportCurrentTrade() as
-              | TradeDataEntryLike[]
-              | null;
-            if (!onApplyTrade || !tradeData) {
-              return;
-            }
+      {/* Apply-action context — the Apply button itself now lives in the header
+          toolbar; this row carries only the contextual warning / blocked text. */}
+      {((canApplyTrade && previewHasApplyTimeWorldChecks) ||
+        currentPreviewAuthority?.legal === false) && (
+        <div className="flex flex-wrap gap-3 items-center">
+          {canApplyTrade && previewHasApplyTimeWorldChecks && (
+            <span className="text-xs text-yellow-400/50">
+              All local preview checks passed. World-state checks (duplicate
+              players, entitlement conflicts, exclusivity) run at apply time and
+              may still reject this trade.
+            </span>
+          )}
 
-            setIsApplying(true);
-            try {
-              await onApplyTrade(tradeData);
-
-              // TMAPPLY-01: In vacuum/sandbox mode, persist entitlement transfers
-              // to localStorage ONLY after the trade actually applied — so a
-              // blocked/failed apply doesn't leave picks moved while players don't.
-              // World mode persists via the mutation pipeline.
-              //
-              // TMAPPLY-04 (decision): sandbox is an ephemeral preview for ROSTERS
-              // (players reload from base on refresh), but pick ownership uses this
-              // session overlay — the only sandbox mechanism for pick moves — which
-              // survives refresh. The "Clear session pick changes" button (shown in
-              // the header) is the reset. Unifying durability across players + picks
-              // would require new persistence and isn't worth it for a sandbox edge.
-              if (isVacuumMode) {
-                for (const teamEntry of tradeData) {
-                  const outgoing = teamEntry.outgoingEntitlements || [];
-                  for (const ent of outgoing) {
-                    const entId = ent.entitlementId || ent.id;
-                    const fromTeam = ent.fromTeamId || teamEntry.teamId;
-                    const toTeam = ent.toTeamId;
-                    if (entId && fromTeam && toTeam) {
-                      applyVacuumTransfer(
-                        String(entId),
-                        String(fromTeam),
-                        String(toTeam)
-                      );
-                    }
-                  }
-                }
-              }
-
-              // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
-              refreshEntitlements();
-              onAfterTradeApplied?.();
-            } catch (error: unknown) {
-              console.error('[TradeEditor] Trade application failed:', error);
-              toast.error(
-                `Failed to apply trade: ${error instanceof Error ? error.message : 'Unknown error'}`
-              );
-            } finally {
-              setIsApplying(false);
-            }
-          }}
-          disabled={!canApplyTrade || isApplying}
-        >
-          {isApplying ? 'Applying…' : 'Apply Trade'}
-        </PrimaryButton>
-
-        {canApplyTrade && previewHasApplyTimeWorldChecks && (
-          <span className="text-xs text-yellow-400/50">
-            All local preview checks passed. World-state checks (duplicate
-            players, entitlement conflicts, exclusivity) run at apply time and
-            may still reject this trade.
-          </span>
-        )}
-
-        {currentPreviewAuthority?.legal === false && (
-          <span
-            className={`text-xs ${
-              previewOverrideRequested ? 'text-amber-300' : 'text-red-400'
-            }`}
-          >
-            {previewOverrideRequested
-              ? `Override requested, but preview authority still blocks this trade: ${
-                  previewAuthorityReason
-                }`
-              : `Trade blocked: ${previewAuthorityReason}`}
-          </span>
-        )}
-      </div>
+          {currentPreviewAuthority?.legal === false && (
+            <span
+              className={`text-xs ${
+                previewOverrideRequested ? 'text-amber-300' : 'text-red-400'
+              }`}
+            >
+              {previewOverrideRequested
+                ? `Override requested, but preview authority still blocks this trade: ${
+                    previewAuthorityReason
+                  }`
+                : `Trade blocked: ${previewAuthorityReason}`}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Tasks B, C, D, E: Validation Details Panel with hard-gating and mode tags */}
       {/* Stale validation fix: Uses hasCurrentValidation for proper authority/detail gating */}
