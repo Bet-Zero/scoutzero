@@ -779,6 +779,13 @@ export const TradeEditor = ({
               // to localStorage ONLY after the trade actually applied — so a
               // blocked/failed apply doesn't leave picks moved while players don't.
               // World mode persists via the mutation pipeline.
+              //
+              // TMAPPLY-04 (decision): sandbox is an ephemeral preview for ROSTERS
+              // (players reload from base on refresh), but pick ownership uses this
+              // session overlay — the only sandbox mechanism for pick moves — which
+              // survives refresh. The "Clear session pick changes" button (shown in
+              // the header) is the reset. Unifying durability across players + picks
+              // would require new persistence and isn't worth it for a sandbox edge.
               if (isVacuumMode) {
                 for (const teamEntry of tradeData) {
                   const outgoing = teamEntry.outgoingEntitlements || [];

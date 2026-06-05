@@ -364,6 +364,11 @@ export function useTradeActions({
           );
         }
 
+        // TMAPPLY-03 (decision): sandbox/base mode is single-team scoped. The GM
+        // Dashboard displays only the primary team (`teamCode`), so only its
+        // computed snapshot is applied here. Other teams' updates are computed
+        // (and captured in the cap audit above) but intentionally not surfaced —
+        // base mode has no multi-team roster view and never writes their base data.
         const updatedTeam = findUpdatedTeamSnapshot(
           computeResult.teamUpdates,
           teamCode
