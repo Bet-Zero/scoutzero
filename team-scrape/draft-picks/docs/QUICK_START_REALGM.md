@@ -1,5 +1,10 @@
 # Quick Start: RealGM Draft Pick Scraper
 
+> **⚠️ Legacy path.** RealGM is the original draft-pick source, kept as a
+> functional backup — it is **not** the active source. The current/primary
+> pipeline is **ProSportsTransactions (PST)** (`pst:*` scripts). See
+> [`../README.md`](../README.md) for the source matrix and the PST pipeline.
+
 ## TL;DR - Just Get It Working
 
 ### Get Draft Picks from RealGM (Multiple Teams)

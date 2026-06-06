@@ -1,6 +1,12 @@
 # Output File Structure (Draft Picks)
 
-## Current Structure
+> **Note on sources.** This documents the **RealGM (legacy)** scraper's output
+> layout. The active source is **ProSportsTransactions (PST)**, whose
+> authoritative artifacts live under `data/pst/` (e.g.
+> `pst_pick_ledger_final_*.json`, `pst_entitlement_assets_*.json`). See
+> [`../README.md`](../README.md).
+
+## Current Structure (RealGM / legacy)
 
 The RealGM scraper produces **two output directories** per team:
 
@@ -35,6 +41,7 @@ The scraper uses a **stable base ID** that does not change when protection detai
 ```
 
 Examples:
+
 - `LAL_2029_1st` — Lakers' 2029 first round pick
 - `PHI_2026_2nd` — Philadelphia's 2026 second round pick
 
@@ -49,6 +56,7 @@ Examples:
 ### What Is NOT in Base ID
 
 The base ID intentionally excludes:
+
 - Protection details (`top-4 protected`, `lottery protected`)
 - Direction suffixes (`to_DAL`, `from_PHI`)
 - Status suffixes (`conditional`, `contested`, `swap`)

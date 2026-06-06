@@ -4,6 +4,8 @@
 
 This runbook captures the operational steps and parameters for the 2025-11-10 data pipeline run that produces staged payloads for players (`players_v2`, `/architect/basePlayers`) and teams (`/architect/baseTeams` / merged team documents).
 
+> **Draft-pick source note.** Where this runbook references the "RealGM draft scraper," note that RealGM is now the **legacy backup**. The current/primary draft-pick source is **ProSportsTransactions (PST)** (`pst:*` pipeline). See [`team-scrape/draft-picks/README.md`](../../team-scrape/draft-picks/README.md).
+
 ## Environment & Secrets
 
 - Service account: `serviceAccountKey.json` at project root (shared with `src/serviceAccountKey.json` for local emulation).
