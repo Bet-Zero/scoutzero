@@ -91,6 +91,7 @@ admin/
   useEntitlementEditorState.ts
   wizardToEntitlement.ts
 capSheet/
+  CapConfidenceBadge.tsx
   CapSheet/
     CapSheet.tsx
     CapSummaryTiles.tsx
@@ -542,5 +543,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-05T02:52:07.403Z*
+*Generated on: 2026-06-06T02:37:48.203Z*
 *Auto-updated by: npm run docs*

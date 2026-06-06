@@ -12,6 +12,7 @@
  *  - Latest Chunk: plans/player-rules-architect/chunks/chunk_01.md
  */
 import React, { useEffect, useState } from 'react';
+import { capConfidenceLabel } from '../CapConfidenceBadge';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -355,39 +356,13 @@ export const CapSheet = ({
     selectedYear
   ).sort((a, b) => (Number(b.amount || 0) || 0) - (Number(a.amount || 0) || 0));
 
-  const confidenceLabel = React.useMemo(() => {
-    const summary = canonicalTotals?._meta?.rulesSourcesSummary;
-    if (!summary) return null; // Fallback or loading state
-
-    // Detailed mapping for display
-    switch (summary) {
-      case 'real':
-        return {
-          text: 'Official',
-          className: 'text-green-400 bg-green-400/10 border-green-400/20',
-        };
-      case 'reported':
-        return {
-          text: 'Reported',
-          className: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-        };
-      case 'projected':
-        return {
-          text: 'Projected',
-          className: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
-        };
-      case 'unknown':
-        return {
-          text: 'Unknown',
-          className: 'text-red-400 bg-red-400/10 border-red-400/20',
-        };
-      default:
-        return {
-          text: String(summary),
-          className: 'text-white/40 bg-white/5 border-white/10',
-        };
-    }
-  }, [canonicalTotals]);
+  const confidenceLabel = React.useMemo(
+    () =>
+      capConfidenceLabel(
+        canonicalTotals?._meta?.rulesSourcesSummary as string | undefined
+      ),
+    [canonicalTotals]
+  );
 
   const handleSaveDeadCapEdit = React.useCallback(
     (deadCap: ManualDeadCapSavePayload) => {

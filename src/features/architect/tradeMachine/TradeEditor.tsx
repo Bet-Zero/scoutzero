@@ -11,6 +11,8 @@ import {
   SubtleButton,
   IconButton,
 } from './tradeMachineChrome.buttons';
+import { CapConfidenceBadge } from '@/features/architect/capSheet/CapConfidenceBadge';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import TradePreviewModal from './TradePreviewModal';
 import { ValidationStateHeader } from './ValidationStateHeader';
 import { ValidationDetailsPanel } from './ValidationDetailsPanel';
@@ -598,6 +600,22 @@ export const TradeEditor = ({
       !contextBannerDismissed
   );
 
+  // Cap-figure confidence for the active season. The league cap/apron/tax
+  // numbers are hand-maintained constants; future seasons the NBA hasn't set
+  // yet are projections — surface that so they don't read as official.
+  const capRulesForYear = useMemo(() => {
+    const numericYear = Number(yearKey);
+    if (!Number.isFinite(numericYear)) return null;
+    try {
+      return getCapRulesForYear(numericYear);
+    } catch {
+      return null;
+    }
+  }, [yearKey]);
+  const capSourceSummary =
+    (capRulesForYear?._meta?.sourcesSummary as string | undefined) ?? null;
+  const capSeasonLabel = capRulesForYear?.seasonKey ?? null;
+
   return (
     <div className="text-white space-y-6">
       {showContextBanner && tradeContext && bannerAuthority ? (
@@ -645,7 +663,16 @@ export const TradeEditor = ({
         </div>
       ) : null}
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
-        <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
+          {capSourceSummary ? (
+            <CapConfidenceBadge
+              summary={capSourceSummary}
+              prefix={capSeasonLabel ? `${capSeasonLabel} cap ·` : 'Cap ·'}
+              title="Confidence of the league salary cap / apron / tax figures for this season. Projected = the NBA has not set official numbers yet."
+            />
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           {/* TM-VACUUM-E1: Clear session edits button (vacuum mode only) */}
           {isVacuumMode && hasVacuumOverlay() && (
