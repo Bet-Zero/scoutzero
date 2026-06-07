@@ -100,6 +100,11 @@ type OffseasonSectionProps = {
    * the canonical aftermath data; callers may derive a receipt from it.
    */
   onAfterOffseasonAdvanceApplied?: (aftermath: WorldAdvanceAftermath) => void;
+  /**
+   * World create/select control (the shared WorldSelector) surfaced inline when
+   * no world is active, so Sandbox users aren't dead-ended (SBX-001).
+   */
+  worldPickerSlot?: React.ReactNode;
 };
 
 type WorldBackedOffseasonSurfaceProps = {
@@ -116,6 +121,7 @@ type WorldBackedOffseasonSurfaceProps = {
     positionsMap: Record<string, unknown>
   ) => DraftPositionsValidationResult;
   onOpenAdvanceModal: () => void;
+  worldPickerSlot?: React.ReactNode;
 };
 
 type DevPreviewOffseasonSurfaceProps = {
@@ -358,6 +364,7 @@ function WorldBackedOffseasonSurface({
   draftPositionsPersistenceAuthority,
   validateDraftPositionsMap,
   onOpenAdvanceModal,
+  worldPickerSlot = null,
 }: WorldBackedOffseasonSurfaceProps) {
   const authoritativeWorldSeason =
     seasonAdvanceDraftContext?.authoritativeSeason ?? null;
@@ -384,6 +391,14 @@ function WorldBackedOffseasonSurface({
             {availability.unavailableReason && (
               <div className="mt-2 text-xs text-white/45">
                 {availability.unavailableReason}
+              </div>
+            )}
+            {!availability.hasActiveWorld && worldPickerSlot && (
+              <div
+                className="mt-3"
+                data-testid="offseason-sandbox-world-picker"
+              >
+                {worldPickerSlot}
               </div>
             )}
             {availability.hasActiveWorld && authoritativeWorldSeason && (
@@ -508,6 +523,7 @@ const OffseasonSection = ({
   worldSeasonLoading = false,
   onReloadWorldData,
   onAfterOffseasonAdvanceApplied,
+  worldPickerSlot = null,
 }: OffseasonSectionProps) => {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const [worldAdvanceReloadError, setWorldAdvanceReloadError] = useState<
@@ -693,6 +709,7 @@ const OffseasonSection = ({
         canAdvanceSeason={canAdvanceWorldSeason}
         draftPositionsPersistenceAuthority={draftPositionsPersistenceAuthority}
         validateDraftPositionsMap={draftPositionsValidationAuthority}
+        worldPickerSlot={worldPickerSlot}
         onOpenAdvanceModal={() => {
           if (!canAdvanceWorldSeason) {
             return;

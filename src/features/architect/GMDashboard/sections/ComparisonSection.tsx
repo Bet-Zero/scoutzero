@@ -30,6 +30,11 @@ interface ComparisonSectionProps {
   onNavigateToRoster?: (() => void) | null;
   /** Follow-through launch context (Slice 5): drives the focused-view banner. */
   followThroughContext?: FollowThroughContext | null;
+  /**
+   * World create/select control (the shared WorldSelector) surfaced inline on
+   * the sandbox empty-state so users aren't dead-ended (SBX-001).
+   */
+  worldPickerSlot?: React.ReactNode;
 }
 
 /** Context-focused banner shown when Compare is launched with follow-through. */
@@ -228,20 +233,29 @@ export const ComparisonSection = ({
   onNavigateToCapSheet,
   onNavigateToRoster,
   followThroughContext = null,
+  worldPickerSlot = null,
 }: ComparisonSectionProps) => {
   if (status === 'sandbox') {
     return (
       <div
-        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-6 text-center space-y-2"
+        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-6 text-center space-y-3"
         data-testid="comparison-sandbox-state"
       >
         <p className="text-sm font-semibold text-white/60">
           Comparison requires a committed world
         </p>
         <p className="text-xs text-white/40">
-          Select a world from the world selector to compare committed scenario
-          changes for this team.
+          Create or select a world below to compare committed scenario changes
+          for this team.
         </p>
+        {worldPickerSlot && (
+          <div
+            className="flex justify-center pt-1"
+            data-testid="comparison-sandbox-world-picker"
+          >
+            {worldPickerSlot}
+          </div>
+        )}
       </div>
     );
   }

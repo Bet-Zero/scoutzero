@@ -1948,6 +1948,49 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
   });
 });
 
+// SBX-001: the Sandbox (no world) Offseason and Compare screens used to
+// dead-end at "select a world" with no in-screen path. They now surface the
+// shared world create/select control inline so users can act without hunting
+// for the top-bar World menu.
+test.describe('SBX-001: Sandbox world-gated screens offer inline world create/select', () => {
+  test.beforeEach(async ({ page }) => {
+    await enableDevAuditFlags(page);
+    await gotoDashboard(page);
+  });
+
+  test('Offseason sandbox state surfaces an inline world create/select control', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+    await openDashboardTab(page, 'Offseason');
+
+    const picker = page.getByTestId('offseason-sandbox-world-picker');
+    await expect(picker).toBeVisible({ timeout: 25000 });
+    // The inline control is the shared WorldSelector: it exposes "+ New" to
+    // create a world and the #world-selector dropdown to pick an existing one.
+    await expect(
+      picker.getByRole('button', { name: /^\+ New$/i })
+    ).toBeVisible({ timeout: 25000 });
+    await expect(picker.locator('#world-selector')).toBeVisible();
+    await captureEvidence(page, testInfo, 'SBX-001-offseason-inline-world-picker');
+  });
+
+  test('Compare sandbox state surfaces an inline world create/select control', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+    await openDashboardTab(page, 'Compare');
+
+    const picker = page.getByTestId('comparison-sandbox-world-picker');
+    await expect(picker).toBeVisible({ timeout: 25000 });
+    await expect(
+      picker.getByRole('button', { name: /^\+ New$/i })
+    ).toBeVisible({ timeout: 25000 });
+    await expect(picker.locator('#world-selector')).toBeVisible();
+    await captureEvidence(page, testInfo, 'SBX-001-compare-inline-world-picker');
+  });
+});
+
 test.describe('Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
     await enableDevAuditFlags(page);

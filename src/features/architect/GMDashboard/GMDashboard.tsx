@@ -1067,7 +1067,12 @@ export const GMDashboard = () => {
     offseason: {
       id: 'offseason',
       title: 'Offseason',
-      content: <OffseasonSection {...offseasonSectionSurface} />,
+      content: (
+        <OffseasonSection
+          {...offseasonSectionSurface}
+          worldPickerSlot={worldSelectorSlot}
+        />
+      ),
     },
     history: {
       id: 'history',
@@ -1107,6 +1112,7 @@ export const GMDashboard = () => {
           onNavigateToCapSheet={() => setActiveTab('cap')}
           onNavigateToRoster={() => setActiveTab('roster')}
           followThroughContext={followThroughContext}
+          worldPickerSlot={worldSelectorSlot}
         />
       ),
     },
