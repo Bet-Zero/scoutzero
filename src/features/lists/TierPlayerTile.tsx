@@ -40,7 +40,7 @@ export const TierPlayerTile = ({ player }: TierPlayerTileProps) => {
             alt={player.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = '/assets/headshots/default.png';
+              e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
             }}
           />
           <div className="absolute top-1 left-1 px-[4px] py-[1px] bg-black/00 text-white/40 text-[12px] font-semibold uppercase rounded-sm tracking-wider shadow-md">

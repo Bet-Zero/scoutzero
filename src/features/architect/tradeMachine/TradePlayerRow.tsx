@@ -349,7 +349,7 @@ export const TradePlayerRow = ({
             player.bio?.playerId || details.bio?.playerId || player.player_id
           }.png`}
           onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-            e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
           }}
           alt={player.bio?.displayName || player.name || 'Player headshot'}
           className="h-full w-full object-cover"

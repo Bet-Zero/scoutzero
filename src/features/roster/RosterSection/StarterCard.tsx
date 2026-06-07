@@ -79,7 +79,7 @@ export const StarterCard = ({
             alt={player.name ?? undefined}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = '/assets/headshots/default.png';
+              e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
             }}
           />
           {showRemove && (

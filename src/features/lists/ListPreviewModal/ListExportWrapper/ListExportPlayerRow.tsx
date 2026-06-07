@@ -34,7 +34,7 @@ export const ListExportPlayerRow = ({ player, rank }: ListExportPlayerRowProps) 
             `/assets/headshots/${player.bio?.playerId || player.player_id}.png`
           }
           onError={(e) => {
-            e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
           }}
           alt={player.name}
           className="h-full w-full object-cover"

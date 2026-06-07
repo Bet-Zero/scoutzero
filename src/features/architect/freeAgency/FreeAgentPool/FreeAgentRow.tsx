@@ -163,7 +163,7 @@ export const FreeAgentRow = ({
             }.png`
           }
           onError={(e) => {
-            e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
           }}
           alt={formattedName}
           className="h-full w-full object-cover"

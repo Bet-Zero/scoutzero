@@ -25,10 +25,10 @@ export const PlayerHeadshot = ({
 
   const handleError = (e: SyntheticEvent<HTMLImageElement>) => {
     if (!playerId) {
-      e.currentTarget.src = '/assets/headshots/default.png';
+      e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
       return;
     }
-    e.currentTarget.src = '/assets/headshots/default.png';
+    e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
   };
 
   return (

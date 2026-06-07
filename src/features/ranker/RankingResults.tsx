@@ -60,7 +60,7 @@ export const GridCard = ({ player, rank }: RankedColumnItem) => {
           loading="eager"
           decoding="async"
           onError={(e) => {
-            e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
           }}
         />
         <div className="absolute top-2 left-2 bg-neutral-900/80 backdrop-blur-sm text-white font-bold text-lg px-1.5 py-0.5 rounded shadow-xl border border-white/20">
@@ -113,7 +113,7 @@ export const ListRow = ({ player, rank }: RankedColumnItem) => {
         loading="eager"
         decoding="async"
         onError={(e) => {
-          e.currentTarget.src = '/assets/headshots/default.png';
+          e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
         }}
       />
       <div className="flex-1 min-w-0">

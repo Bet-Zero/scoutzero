@@ -48,7 +48,7 @@ export const PlayerRowMini = ({ player, onClick }: PlayerRowMiniProps) => {
           <img
             src={headshot}
             onError={(e) => {
-              e.currentTarget.src = '/assets/headshots/default.png';
+              e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
             }}
             alt={name}
             className="h-full w-full object-cover"

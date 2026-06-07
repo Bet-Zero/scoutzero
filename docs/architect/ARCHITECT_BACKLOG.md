@@ -59,7 +59,7 @@ fallback), Front Office Guide (Q&A cards).
 
 | ID | Area | Type | Sev | Item | Status |
 |----|------|------|-----|------|--------|
-| UI-001 | Roster/FA/Lists/Ranker | Bug | MED | Fallback headshot `/assets/headshots/default.png` is **missing** (404). The `onError` handlers (~10 components) reset `src` to it, which 404s and re-fires `onError` → infinite loop: ~1000 requests in seconds on the Free Agency screen. Fix: add `default.png` **and** guard `onError` from re-triggering. | OPEN |
+| UI-001 | Roster/FA/Lists/Ranker | Bug | MED | Fallback headshot `/assets/headshots/default.png` was **missing** (404). The `onError` handlers reset `src` to it, which 404'd and re-fired `onError` → infinite loop: ~1000 requests in seconds on the Free Agency screen. ✅ Fixed: added a silhouette `default.png` + `onerror = null` guard at all 16 handler sites. Verified: 404s on FA dropped ~1140 → 1. | DONE |
 | TM-001 | Trade Machine | UX/Polish | LOW | "Development Tools · testing & debug" panel still renders in the Trade Machine. Recent commits stripped dev-mode labels; confirm this panel should be hidden in the user-facing build. | OPEN |
 | SBX-001 | Offseason / Compare | UX | MED | In Sandbox (no world), Offseason (Advance Season, draft positions) and Compare are fully gated to "select a world" with no in-screen way to create/pick one — feels like a dead end. Add a path to create/select a world from these screens. | OPEN |
 | UX-001 | Dashboard | UX/Polish | LOW | Large empty canvas below the cap table with a small roster. Verify with a full 15-man roster; if still sparse, consider filling the space. | OPEN |

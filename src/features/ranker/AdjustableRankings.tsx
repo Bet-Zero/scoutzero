@@ -153,7 +153,7 @@ export const AdjustableRankings = ({
                 alt={getPlayerName(player)}
                 className="w-12 h-12 rounded-lg object-cover bg-neutral-800 flex-shrink-0"
                 onError={(e) => {
-                  e.currentTarget.src = '/assets/headshots/default.png';
+                  e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
                 }}
               />
 

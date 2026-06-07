@@ -95,7 +95,7 @@ export const FreeAgentCard = ({
             }.png`
           }
           onError={(e) => {
-            e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
           }}
           alt={formattedName}
           className="h-full object-contain relative z-1"

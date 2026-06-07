@@ -220,8 +220,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                                     src={headshot}
                                     alt={p.name}
                                     onError={(e) => {
-                                      e.currentTarget.src =
-                                        '/assets/headshots/default.png';
+                                      e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
                                     }}
                                     className="w-14 h-14 object-cover rounded-lg bg-neutral-700 shadow-md"
                                   />
