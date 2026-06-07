@@ -884,16 +884,49 @@ const readWorldIdFromBodyText = async (page: Page) =>
 // against the cockpit UI.
 const openWorldMenu = async (page: Page) => {
   const popover = page.getByTestId('cockpit-world-menu-popover');
-  if (await isVisible(popover, 500)) {
-    return popover;
-  }
   const trigger = page.getByTestId('cockpit-world-menu-trigger');
-  if (!(await isVisible(trigger, 3000))) {
+  if (!(await isVisible(trigger, 5000))) {
     return null;
   }
-  await trigger.click();
-  await expect(popover).toBeVisible({ timeout: 5000 });
+  // The cockpit re-mounts the TopBar after world creation/selection, which
+  // resets the popover's open state — so a single click does not reliably
+  // stick. Keep nudging the trigger until the popover is actually open.
+  await expect
+    .poll(
+      async () => {
+        if (await isVisible(popover, 400)) {
+          return true;
+        }
+        await trigger.click({ timeout: 2000 }).catch(() => undefined);
+        return await isVisible(popover, 800);
+      },
+      {
+        timeout: 15000,
+        message: 'world menu popover should open and stay open',
+      }
+    )
+    .toBe(true);
   return popover;
+};
+
+// Open the world menu and wait for a specific control inside it, re-opening if a
+// re-mount transiently closes the popover before the control is asserted.
+const openWorldMenuFor = async (page: Page, inner: Locator) => {
+  await expect
+    .poll(
+      async () => {
+        if (await isVisible(inner, 500)) {
+          return true;
+        }
+        await openWorldMenu(page);
+        return await isVisible(inner, 1000);
+      },
+      {
+        timeout: 20000,
+        message: 'world menu control should become visible',
+      }
+    )
+    .toBe(true);
 };
 
 const closeWorldMenu = async (page: Page) => {
@@ -1128,8 +1161,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await ensureWorldSelected(page, testInfo);
 
     // World-time controls live inside the world-menu popover (cockpit refactor).
-    await openWorldMenu(page);
     const dateInput = page.getByTestId('world-date-input');
+    await openWorldMenuFor(page, dateInput);
     await expect(dateInput).toBeVisible();
 
     const dateBefore = await dateInput.inputValue();
