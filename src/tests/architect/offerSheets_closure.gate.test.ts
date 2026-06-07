@@ -54,6 +54,11 @@ const MUTATION_PIPELINE_COMPUTE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.ts'
 );
+// computeNormalizedWorldMutation (mutation-type dispatch) lives here.
+const MUTATION_PIPELINE_NORMALIZE_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.normalize.ts'
+);
 // computeWorldMutation lives in the preflights module.
 const MUTATION_PIPELINE_PREFLIGHTS_PATH = path.resolve(
   __dirname,
@@ -373,6 +378,20 @@ describe('Gate 4B: Store ownership resolves from strict home-team authority (E5)
 
   it('derives storeOfferSheet homeTeamCode from resolved homeTeam authority', () => {
     expect(content).toContain('const homeTeamCode = homeTeam.teamCode;');
+  });
+
+  it('threads the authoritative worldId into the storeOfferSheet compute payload (ENG-004)', () => {
+    // computeStoreOfferSheetResult requires payload.worldId for its dedup
+    // identity. The dispatch must thread the top-level worldId in (callers —
+    // including the offer-sheet preflight and the real UI commit — don't set
+    // payload.worldId), or both preflight and commit fail closed with
+    // "worldId is required for offer sheet identity".
+    const normalizeContent = readFileContent(MUTATION_PIPELINE_NORMALIZE_PATH);
+    const threadsWorldId =
+      /case\s+['"]storeOfferSheet['"]:\s*\{[\s\S]{0,800}?computeStoreOfferSheetResult\(\{[\s\S]{0,400}?worldId/.test(
+        normalizeContent
+      );
+    expect(threadsWorldId).toBe(true);
   });
 });
 
