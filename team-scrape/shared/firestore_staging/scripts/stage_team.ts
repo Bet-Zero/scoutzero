@@ -43,6 +43,16 @@ type RawCapHoldEntry = RawTeamRosterEntry & {
   season?: string;
 };
 
+type RawDeadCapEntry = RawTeamRosterEntry & {
+  reason?: string;
+  notes?: string;
+  amountByYear?: Array<{
+    season?: string;
+    amount?: number;
+    isStretched?: boolean;
+  }>;
+};
+
 type RawException = {
   type?: string;
   total?: number;
@@ -68,6 +78,7 @@ type RawTeamData = {
   season: string;
   roster?: RawTeamRosterEntry[];
   capHolds?: RawCapHoldEntry[];
+  deadCap?: RawDeadCapEntry[];
   exceptions?: {
     mle?: RawException;
     taxpayerMle?: RawException;
@@ -978,6 +989,37 @@ function buildBaseTeamDoc({
     };
   });
 
+  const deadCap = (rawTeam.deadCap ?? [])
+    .map((entry) => {
+      const resolved = resolver.resolve(entry, 'deadCap');
+      const amountByYear = (entry.amountByYear ?? [])
+        .filter(
+          (y): y is { season: string; amount: number; isStretched?: boolean } =>
+            typeof y?.season === 'string' &&
+            /^\d{4}-\d{2}$/.test(y.season) &&
+            typeof y.amount === 'number' &&
+            Number.isFinite(y.amount) &&
+            y.amount > 0
+        )
+        .map((y) => ({
+          season: y.season,
+          amount: y.amount,
+          ...(y.isStretched ? { isStretched: true } : {}),
+        }));
+      // originalSalary isn't shown on the dead-cap table; the remaining dead
+      // money owed (sum of per-year hits) is the best available proxy and keeps
+      // the canonical DeadCapItem schema satisfied.
+      const originalSalary = amountByYear.reduce((sum, y) => sum + y.amount, 0);
+      return {
+        playerId: resolved.playerId,
+        playerName: resolved.playerName,
+        originalSalary,
+        amountByYear,
+        notes: entry.reason ? `Dead cap reason: ${entry.reason}` : undefined,
+      };
+    })
+    .filter((entry) => entry.amountByYear.length > 0);
+
   const totals = normalizeTotals(rawTeam.totals);
 
   // Build ledger-derived views if available
@@ -1009,7 +1051,7 @@ function buildBaseTeamDoc({
     season: seasonOverride ?? rawTeam.season,
     abbreviation: rawTeam.teamCode,
     roster: rosterIds,
-    deadCap: [] as BaseTeamDoc['deadCap'],
+    deadCap,
     capHolds,
     exceptions: buildExceptions(rawTeam.exceptions),
     draftPicks: finalDraftPicks,
