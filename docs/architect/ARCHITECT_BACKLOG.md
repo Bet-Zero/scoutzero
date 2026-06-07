@@ -84,3 +84,47 @@ UI overhaul. Flows still needing verification:
 - Activity Rail populated with real committed world events; History deep-links
 - Scenario Compare with actual committed scenarios
 - Dead cap / cap holds rendering with the real scraped data we just shipped
+
+---
+
+## Next-session kickoff — TEST-003 (seed a world in review mode)
+
+**Goal:** make the `architect-qa` e2e world tests pass by seeding a ready-to-use
+world in review mode, so the tests **select** an existing world instead of
+**creating** one each run.
+
+**Why (current state):** The cockpit selector rot is already fixed (commits up
+to `3170cd76`). Green now: D-MQ-001, **D-MQ-004** (trade validation fail-closed),
+**D-MQ-006** (offseason preview), both smoke tests. World create/select works,
+and the world-menu popover + world-time controls are verified healthy *by hand*
+(not a product bug). The remaining failures — **D-MQ-002 / 003 / 007 / 008** —
+are purely because `scripts/emu/seedReviewData.ts` seeds teams/players/
+entitlements but **no world**. So each world test runs the slow, flaky
+create-world flow ("Loading worlds… → + New → Create → wait for persistence")
+which dominates / blows the test budget.
+
+**First thing to resolve (the real unknown):** how review-mode auth scopes
+worlds. Worlds live in the top-level `architect_worlds/{worldId}` collection
+(see how the e2e reads them: `getReviewAdminDb().collection('architect_worlds')`,
+and how `ensureWorldSelected` creates them in `tests/e2e/architect-qa.spec.ts`).
+Review mode signs in **anonymously**, so the userId is dynamic per session — find
+out whether the world list (`#world-selector`, the WorldSelector component) is
+filtered by owner/userId. If it is, a statically seeded world must be made
+visible to that anon user (or the filter relaxed in review mode). **Resolve this
+before writing seed code** — it determines whether seeding is even viable as-is.
+
+**Files:**
+- `scripts/emu/seedReviewData.ts` (+ `scripts/emu/review_seed/`) — add the world
+- `scripts/emu/runReviewMode.ts` — launcher (`npm run architect:review:up`)
+- `tests/e2e/architect-qa.spec.ts` — `ensureWorldSelected` (mimic its create
+  payload to shape the seed), `readActiveWorldId`; if a world is pre-seeded the
+  helper can select-first instead of create
+- world doc schema: search `architect_worlds` writes in `src/features/architect`
+
+**Validate:** `PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test
+tests/e2e/architect-qa.spec.ts --reporter=line` → target all 13 green.
+
+**Watch-outs:**
+- D-MQ block is `mode: 'serial'` — one early failure cascades into "did not run".
+- Review-mode boot is ~3–4 min per run; iterate with `--grep` on one test.
+- zsh does **not** word-split unquoted `$vars` (see [[team-publish-workflow]]).
