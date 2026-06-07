@@ -38,6 +38,7 @@ So the backlog stays honest about what's *done*, not just what's left:
 | DATA-003 | Cap data | Data | MED | League cap/apron/tax are hand-typed constants (`capProjections.ts`); 2026-27 still projected — NBA sets official ~July 1. Update when released. | OPEN |
 | ENG-003 | Schema | Tech-debt | LOW | `BaseTeamDocZ` doesn't yet include ledger-derived fields (`draftPicksInventory/Obligations/Contested`, `draftAssets`); stripped before validation (`stage_team.ts:1174`). | OPEN |
 | TEST-001 | Testing | Tech-debt | MED | Broad-Architect test debt predating Next Era (closure gates, migration-phase guardrails, one mock-gap test) — flagged in Stage 6 ship audit as "track separately." Audit + close. | OPEN |
+| TEST-002 | Testing | Tech-debt | HIGH | The `architect-qa` e2e suite (the functional safety net for trade-execute / offer-sheet / season-advance / history / entitlements) is **rotted against the cockpit refactor**: it waits for the old `#world-selector` (`GMDashboard/components/WorldSelector.tsx`), but the cockpit moved world controls to `cockpit/WorldMenu.tsx`. Serial mode cascades that one stale selector into **8 core-flow tests skipped**; 2 smoke tests also fail on stale tab selectors. Result: the core mutation workflows currently have **no passing automated coverage**. Update selectors to the cockpit UI. | OPEN |
 
 ---
 
@@ -64,7 +65,16 @@ fallback), Front Office Guide (Q&A cards).
 | SBX-001 | Offseason / Compare | UX | MED | In Sandbox (no world), Offseason (Advance Season, draft positions) and Compare are fully gated to "select a world" with no in-screen way to create/pick one — feels like a dead end. Add a path to create/select a world from these screens. | OPEN |
 | UX-001 | Dashboard | UX/Polish | LOW | Large empty canvas below the cap table with a small roster. Verify with a full 15-man roster; if still sparse, consider filling the space. | OPEN |
 
-### Not yet audited (needs Pass 2 — committed world + full data)
+### Pass 2 attempt (June 2026) — blocked by harness rot
+
+Ran the `architect-qa` e2e suite (the existing functional sweep for these
+flows). Result: **2 passed, 3 failed, 8 did not run.** The failures are
+harness rot, not product bugs — the suite targets the pre-cockpit UI (see
+TEST-002). The app itself drives healthy (dashboard + cap sheet render, no
+console errors). **Net: the core mutation flows are still unverified** — the
+suite meant to verify them skipped them. Restoring that suite (TEST-002) is
+the prerequisite to a real Pass 2, and doubles as the regression net for the
+UI overhaul. Flows still needing verification:
 
 - Sign Free Agent flow end-to-end (offer sheets are world-gated)
 - Trade Machine validate/apply with a second team + multi-team coherence
