@@ -43,22 +43,33 @@ So the backlog stays honest about what's *done*, not just what's left:
 
 ## Open items (live-app walkthrough)
 
-> Populated by driving the running Architect. Organized by the area you'd be in.
+> Pass 1 (June 2026): drove review mode (`architect:review:up`) through every nav
+> area for team LAL. **Caveat:** review mode seeds minimal synthetic data (3
+> players, no committed world), so most empty states are seed-thinness, not
+> product gaps — and the real *mutation* workflows (sign, execute trade,
+> advance season, draft) are world-gated and were **not** exercised. Those need
+> a Pass 2 against a committed world with full data.
 
-### Cap Sheet & Totals
-_TBD — walkthrough pending_
+**What's solid (rendered clean, no errors, feels complete):** Dashboard cap
+table (multi-year + cap-posture rail), Cap Sheet (current-season alignment
+banner, OFFICIAL badge), Dead Money modal (manual ledger override), Trade
+Machine (cap posture, TPEs, allowable-incoming, players/picks/exceptions tabs,
+validate/apply), Roster cards, Team History (structured sections w/ graceful
+fallback), Front Office Guide (Q&A cards).
 
-### Trade Machine
-_TBD — walkthrough pending_
+| ID | Area | Type | Sev | Item | Status |
+|----|------|------|-----|------|--------|
+| UI-001 | Roster/FA/Lists/Ranker | Bug | MED | Fallback headshot `/assets/headshots/default.png` is **missing** (404). The `onError` handlers (~10 components) reset `src` to it, which 404s and re-fires `onError` → infinite loop: ~1000 requests in seconds on the Free Agency screen. Fix: add `default.png` **and** guard `onError` from re-triggering. | OPEN |
+| TM-001 | Trade Machine | UX/Polish | LOW | "Development Tools · testing & debug" panel still renders in the Trade Machine. Recent commits stripped dev-mode labels; confirm this panel should be hidden in the user-facing build. | OPEN |
+| SBX-001 | Offseason / Compare | UX | MED | In Sandbox (no world), Offseason (Advance Season, draft positions) and Compare are fully gated to "select a world" with no in-screen way to create/pick one — feels like a dead end. Add a path to create/select a world from these screens. | OPEN |
+| UX-001 | Dashboard | UX/Polish | LOW | Large empty canvas below the cap table with a small roster. Verify with a full 15-man roster; if still sparse, consider filling the space. | OPEN |
 
-### Signings & Free Agency
-_TBD — walkthrough pending_
+### Not yet audited (needs Pass 2 — committed world + full data)
 
-### Offseason & Draft
-_TBD — walkthrough pending_
-
-### Season & World Management
-_TBD — walkthrough pending_
-
-### Activity Rail / History / Continuity
-_TBD — walkthrough pending_
+- Sign Free Agent flow end-to-end (offer sheets are world-gated)
+- Trade Machine validate/apply with a second team + multi-team coherence
+- Season advancement (process all 30 teams, expiring contracts, options)
+- Draft positions / draft flow
+- Activity Rail populated with real committed world events; History deep-links
+- Scenario Compare with actual committed scenarios
+- Dead cap / cap holds rendering with the real scraped data we just shipped
