@@ -32,7 +32,7 @@ So the backlog stays honest about what's *done*, not just what's left:
 | ID | Area | Type | Sev | Item | Status |
 |----|------|------|-----|------|--------|
 | ENG-001 | Cap rules | Tech-debt | LOW | `maxSalaryRules.ts:314` — max-salary tier can't check award eligibility (2nd/3rd Apron supermax) until awards are added to `RuleContext`. | OPEN |
-| ENG-002 | Cap rules | Tech-debt | LOW | `birdRightsRules.ts:175` — should require `salaryCap` and error if missing (currently lenient). | OPEN |
+| ENG-002 | Cap rules | Tech-debt | LOW | `birdRightsRules.ts:175` — should require `salaryCap` and error if missing (currently lenient). ✅ **DONE** — `computeBirdRights` now **fails closed** when `salaryCap` is missing/invalid: returns a NONE result with explanatory `notes` (mirroring the existing missing-`currentYear` handling) instead of silently continuing with a `0` cap that produced misleading 0-value signing amounts. Covered by a new `playerRulesProfile.test.ts` case. | DONE |
 | DATA-001 | Cap data | Data | LOW | Departed/historical players in cap holds & dead cap resolve to `tmp_` IDs (no DB link). Expected for gone players; revisit only if their names need to link. | OPEN |
 | DATA-002 | Cap data | Tech-debt | LOW | `deadCapTotal` summary scalar isn't persisted to staged totals (Architect recomputes `deadMoneyTotal` from line items, so cosmetic only). | OPEN |
 | DATA-003 | Cap data | Data | MED | League cap/apron/tax are hand-typed constants (`capProjections.ts`); 2026-27 still projected — NBA sets official ~July 1. Update when released. | OPEN |
