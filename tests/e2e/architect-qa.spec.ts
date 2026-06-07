@@ -846,11 +846,15 @@ const ensureTeamDataLoaded = async (page: Page, testInfo: TestInfo) => {
 };
 
 const openDashboardTab = async (page: Page, label: string) => {
-  const tabButton = page.getByRole('button', {
+  // Cockpit nav rail renders sections as role="tab" with aria-label=section
+  // name (NavRail.tsx). The label text is opacity-0 when the rail is collapsed,
+  // but the accessible name (aria-label) is always present, so a role/name query
+  // resolves regardless of rail expansion state.
+  const tab = page.getByRole('tab', {
     name: new RegExp(`^${label}$`, 'i'),
   });
-  await expect(tabButton).toBeVisible();
-  await tabButton.click();
+  await expect(tab).toBeVisible();
+  await tab.click();
 };
 
 const openWizardEditorTab = async (modal: Locator, label: string) => {
@@ -872,13 +876,36 @@ const readWorldIdFromBodyText = async (page: Page) =>
     })
     .catch(() => '');
 
-const readActiveWorldId = async (page: Page) => {
-  const worldSelector = page.locator('#world-selector');
-  const selectedWorldId = await worldSelector.inputValue().catch(() => '');
-  if (selectedWorldId) {
-    return selectedWorldId;
+// Cockpit refactor: world selection + world-time controls moved behind the
+// WorldMenu popover (cockpit/WorldMenu.tsx). The legacy #world-selector,
+// "+ New" world creation, and world-date controls still exist, but only render
+// inside the popover, which must be opened via its trigger first. These helpers
+// open/close that popover idempotently so the world-backed checklist rows work
+// against the cockpit UI.
+const openWorldMenu = async (page: Page) => {
+  const popover = page.getByTestId('cockpit-world-menu-popover');
+  if (await isVisible(popover, 500)) {
+    return popover;
   }
+  const trigger = page.getByTestId('cockpit-world-menu-trigger');
+  if (!(await isVisible(trigger, 3000))) {
+    return null;
+  }
+  await trigger.click();
+  await expect(popover).toBeVisible({ timeout: 5000 });
+  return popover;
+};
 
+const closeWorldMenu = async (page: Page) => {
+  const popover = page.getByTestId('cockpit-world-menu-popover');
+  if (await isVisible(popover, 300)) {
+    await page.keyboard.press('Escape');
+    await expect(popover).toBeHidden({ timeout: 3000 }).catch(() => undefined);
+  }
+};
+
+const readActiveWorldId = async (page: Page) => {
+  // Prefer UI-free sources first so we don't churn the popover on every poll.
   const storedWorldId = await page
     .evaluate(() => {
       const storageKey = Object.keys(window.localStorage).find((key) =>
@@ -892,20 +919,21 @@ const readActiveWorldId = async (page: Page) => {
     return storedWorldId;
   }
 
-  const debugSummary = await page
-    .locator('text=/World:\s+/')
-    .first()
-    .textContent()
-    .catch(() => '');
-  const debugWorldId = debugSummary?.match(/World:\s+([^\s|]+)/)?.[1] || '';
-  if (debugWorldId && debugWorldId !== 'base-mode') {
-    return debugWorldId;
-  }
-
   const bodyWorldId = await readWorldIdFromBodyText(page);
-
   if (bodyWorldId) {
     return bodyWorldId;
+  }
+
+  // Fall back to the selector itself (inside the world-menu popover).
+  const popover = await openWorldMenu(page);
+  if (popover) {
+    const selectedWorldId = await page
+      .locator('#world-selector')
+      .inputValue()
+      .catch(() => '');
+    if (selectedWorldId) {
+      return selectedWorldId;
+    }
   }
 
   return '';
@@ -915,12 +943,17 @@ const ensureWorldSelected = async (page: Page, testInfo: TestInfo) => {
   const worldSelector = page.locator('#world-selector');
   const signInHint = page.getByText(/Sign in to manage worlds/i);
 
+  await openWorldMenu(page);
+
   await expect
     .poll(
-      async () => ({
-        hasWorldSelector: await isVisible(worldSelector, 1000),
-        showingSignInHint: await isVisible(signInHint, 1000),
-      }),
+      async () => {
+        await openWorldMenu(page);
+        return {
+          hasWorldSelector: await isVisible(worldSelector, 1000),
+          showingSignInHint: await isVisible(signInHint, 1000),
+        };
+      },
       {
         timeout: 25000,
         message:
@@ -939,6 +972,7 @@ const ensureWorldSelected = async (page: Page, testInfo: TestInfo) => {
 
   const selectedValue = await worldSelector.inputValue();
   if (selectedValue) {
+    await closeWorldMenu(page);
     return selectedValue;
   }
 
@@ -983,6 +1017,7 @@ const ensureWorldSelected = async (page: Page, testInfo: TestInfo) => {
 
   const newWorldId = (await readActiveWorldId(page)) || createdWorldId;
   expect(newWorldId).not.toBe('');
+  await closeWorldMenu(page);
   addAuditNote(
     testInfo,
     `World-backed review automation activated a newly created world (${newWorldId}) for this checklist row.`
@@ -1008,6 +1043,7 @@ const ensureSpecificWorldSelected = async (
     return worldId;
   }
 
+  await openWorldMenu(page);
   const worldSelector = page.locator('#world-selector');
   await expect(worldSelector).toBeVisible();
 
@@ -1028,6 +1064,7 @@ const ensureSpecificWorldSelected = async (
     .toBe(true);
 
   await worldSelector.selectOption(worldId);
+  await closeWorldMenu(page);
 
   await expect
     .poll(async () => await readActiveWorldId(page), {
@@ -1090,6 +1127,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await ensureTeamDataLoaded(page, testInfo);
     await ensureWorldSelected(page, testInfo);
 
+    // World-time controls live inside the world-menu popover (cockpit refactor).
+    await openWorldMenu(page);
     const dateInput = page.getByTestId('world-date-input');
     await expect(dateInput).toBeVisible();
 
