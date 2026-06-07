@@ -156,6 +156,9 @@ interface NormalizeTradeInputParams {
   tradeCtx?: RawTradeContext;
 }
 
+// Raw contract input: only salariesByYear is read here; the open index keeps
+// the many source-specific contract fields (which vary by origin) without
+// over-claiming their shapes before normalization.
 type ContractLike =
   | { salariesByYear?: Array<Record<string, unknown>> | null; [key: string]: unknown }
   | null

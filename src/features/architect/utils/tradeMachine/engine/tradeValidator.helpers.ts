@@ -23,6 +23,10 @@ export function isTwoWayPlayer(
 ): boolean {
   if (!player) return false;
   if (player.isTwoWay === true) return true;
+  // TradeValidatorPlayer carries contractType at runtime but its type doesn't
+  // structurally overlap ContractUtilsPlayer, and isTwoWayContract only reads
+  // the contract-type marker (null-safe). Widening that shared signature ripples
+  // through 10+ callers (weak-type incompatibilities), so bridge here instead.
   return isTwoWayContract(
     player as unknown as Parameters<typeof isTwoWayContract>[0]
   );
