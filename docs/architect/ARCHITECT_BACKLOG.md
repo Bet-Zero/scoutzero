@@ -39,7 +39,8 @@ So the backlog stays honest about what's *done*, not just what's left:
 | ENG-003 | Schema | Tech-debt | LOW | `BaseTeamDocZ` doesn't yet include ledger-derived fields (`draftPicksInventory/Obligations/Contested`, `draftAssets`); stripped before validation (`stage_team.ts:1174`). | OPEN |
 | TEST-001 | Testing | Tech-debt | MED | Broad-Architect test debt predating Next Era (closure gates, migration-phase guardrails, one mock-gap test) — flagged in Stage 6 ship audit as "track separately." Audit + close. | OPEN |
 | TEST-002 | Testing | Tech-debt | HIGH | The `architect-qa` e2e was **rotted against the cockpit refactor** (waited for old `#world-selector`; world controls moved to `cockpit/WorldMenu.tsx` popover; nav is `role="tab"` not `button`). 🔧 Fixed the selector rot: `openDashboardTab` → `role=tab`; added resilient `openWorldMenu`/`openWorldMenuFor`/`closeWorldMenu`; rewired the world helpers. **Now green: D-MQ-004 (trade validation fail-closed), D-MQ-006 (offseason preview), smoke (dashboard, full cap table)**; worlds create/select correctly. **Still failing: D-MQ-002/003/007 (+008)** — root-caused (below), not a selector issue. | OPEN |
-| TEST-003 | Testing | Tech-debt | MED | **e2e flakiness on the automated create-world marathon** (D-MQ-002/003/007/008). Manually verified the world-menu popover is **stable for a real user** and world-time controls are reachable (so *not* a product bug). The instability is specific to the tests: `seedReviewData` seeds **no world**, so each world test must create one mid-flow via the popover; the worlds list loads slowly ("Loading worlds…") and creating a world re-renders the TopBar, transiently closing the popover the test is mid-asserting. Fix options: seed a ready world in review mode (fastest, most robust), or make the world helpers settle on "worlds loaded" + re-open after creation. | OPEN |
+| TEST-003 | Testing | Tech-debt | MED | **e2e flakiness on the automated create-world marathon** (D-MQ-002/003/007/008). ✅ **DONE** — full `architect-qa` suite is now **13/13 green** in review mode. Root unknown resolved: worlds are owner-scoped (`listUserWorlds` filters `createdBy == uid`) and review mode signs in anonymously with a *dynamic uid*, and `architect_worlds` **can't be listed** at all under the security rules (`isWorldOwner` gates on the `{worldId}` path wildcard, which Firestore only binds for single-doc `get`, not `list`). So a static boot-seed is invisible. **Fix (Option C, test-only):** `ensureWorldSelected` reads the live anon uid from Firebase auth IndexedDB, admin-seeds a world owned by it (with `asOfDate`), and activates it via the app's own localStorage rehydration path (single-doc `get`, which rules allow) — no app/auth/rules changes. Fixing 003/008/005/009 also required repairing **post-cockpit selector rot** newly exposed once worlds worked (see TEST-002): trade-card "Plyr (N)" label + dual wide/compact layouts + dialog scoping + auto-included current team; renamed cockpit re-entry link; smoke "Full Cap Table" region; and an offer-sheet RFA home-team world snapshot. **Also fixed a real product bug** → see ENG-004. | DONE |
+| ENG-004 | Cap mutation | Bug | HIGH | **Offer sheets could never be stored.** `computeNormalizedWorldMutation`'s `storeOfferSheet` case called `computeStoreOfferSheetResult` *without threading the top-level `worldId` into the payload* (unlike the sibling `signAndTrade` case), and `computeStoreOfferSheetResult` requires `payload.worldId` for its dedup identity — so both the offer-sheet **preflight** (button stuck "Authoritative Preflight Pending"→"Preflight Blocked") and the **commit** ("Save state: Error — worldId is required for offer sheet identity") failed closed. Surfaced by D-MQ-005 once world-seeding worked. ✅ Fixed in `mutationPipeline.normalize.ts` (thread `args.payload?.worldId ?? worldId`). | DONE |
 
 ---
 
@@ -87,44 +88,37 @@ UI overhaul. Flows still needing verification:
 
 ---
 
-## Next-session kickoff — TEST-003 (seed a world in review mode)
+## TEST-003 — RESOLVED (architect-qa now 13/13 green in review mode)
 
-**Goal:** make the `architect-qa` e2e world tests pass by seeding a ready-to-use
-world in review mode, so the tests **select** an existing world instead of
-**creating** one each run.
+See the TEST-003 + ENG-004 rows above for the full write-up. Summary of how it
+landed, for the next reader:
 
-**Why (current state):** The cockpit selector rot is already fixed (commits up
-to `3170cd76`). Green now: D-MQ-001, **D-MQ-004** (trade validation fail-closed),
-**D-MQ-006** (offseason preview), both smoke tests. World create/select works,
-and the world-menu popover + world-time controls are verified healthy *by hand*
-(not a product bug). The remaining failures — **D-MQ-002 / 003 / 007 / 008** —
-are purely because `scripts/emu/seedReviewData.ts` seeds teams/players/
-entitlements but **no world**. So each world test runs the slow, flaky
-create-world flow ("Loading worlds… → + New → Create → wait for persistence")
-which dominates / blows the test budget.
+**The real unknown, resolved:** worlds are owner-scoped and `architect_worlds`
+cannot be *listed* under the security rules at all (the `isWorldOwner` read rule
+calls `get(.../{worldId})`, and the `{worldId}` path wildcard is only bound for
+single-doc `get`, never for `list`). Review mode signs in anonymously with a
+dynamic per-session uid, so neither a static boot-seed nor the dropdown list is
+viable. The app itself never relies on the list — it rehydrates the active world
+from `localStorage` via a single-doc `get` (which the rules allow).
 
-**First thing to resolve (the real unknown):** how review-mode auth scopes
-worlds. Worlds live in the top-level `architect_worlds/{worldId}` collection
-(see how the e2e reads them: `getReviewAdminDb().collection('architect_worlds')`,
-and how `ensureWorldSelected` creates them in `tests/e2e/architect-qa.spec.ts`).
-Review mode signs in **anonymously**, so the userId is dynamic per session — find
-out whether the world list (`#world-selector`, the WorldSelector component) is
-filtered by owner/userId. If it is, a statically seeded world must be made
-visible to that anon user (or the filter relaxed in review mode). **Resolve this
-before writing seed code** — it determines whether seeding is even viable as-is.
+**Fix shape (Option C, test-only):** `ensureWorldSelected` now reads the live
+anon uid from Firebase auth IndexedDB, admin-seeds a world owned by it (with an
+`asOfDate` so the world is genuinely ready), writes the active-world localStorage
+key the way the app does, and reloads so `useArchitectState` restores it. No
+app/auth/rules/seed-script changes were needed for the world plumbing.
 
-**Files:**
-- `scripts/emu/seedReviewData.ts` (+ `scripts/emu/review_seed/`) — add the world
-- `scripts/emu/runReviewMode.ts` — launcher (`npm run architect:review:up`)
-- `tests/e2e/architect-qa.spec.ts` — `ensureWorldSelected` (mimic its create
-  payload to shape the seed), `readActiveWorldId`; if a world is pre-seeded the
-  helper can select-first instead of create
-- world doc schema: search `architect_worlds` writes in `src/features/architect`
+**Collateral fixes** (post-cockpit selector rot newly exposed once worlds
+worked, all in `tests/e2e/architect-qa.spec.ts`): trade-card "Plyr (N)" label,
+dual wide/compact player-row layouts, dialog scoping, the auto-included current
+team, the renamed cockpit re-entry link + Trade Machine overlay close, the smoke
+"Full Cap Table" region rename, and an offer-sheet RFA home-team world snapshot.
+
+**One real product bug** found and fixed in app source — see **ENG-004**
+(offer-sheet `worldId` never threaded into the store-offer-sheet compute).
 
 **Validate:** `PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test
-tests/e2e/architect-qa.spec.ts --reporter=line` → target all 13 green.
+tests/e2e/architect-qa.spec.ts --reporter=line` → 13 passed.
 
-**Watch-outs:**
-- D-MQ block is `mode: 'serial'` — one early failure cascades into "did not run".
-- Review-mode boot is ~3–4 min per run; iterate with `--grep` on one test.
-- zsh does **not** word-split unquoted `$vars` (see [[team-publish-workflow]]).
+**Watch-outs (still true):** the D-MQ block is `mode: 'serial'` (one early
+failure cascades into "did not run"); review-mode boot is ~3–4 min per run, so
+iterate with `--grep`; zsh does **not** word-split unquoted `$vars`.

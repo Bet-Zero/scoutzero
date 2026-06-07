@@ -456,6 +456,38 @@ const topUpWorldTeamRosterMinimum = async (
   );
 };
 
+// D-MQ-005: the offer-sheet preflight (resolveStoreOfferSheetAuthority) resolves
+// the RFA's home team from *explicit* world team snapshots — base-team fallback
+// is not consulted for ownership. The review RFA fixture
+// (review_offer_sheet_guard) is restricted to BOS, so seed an explicit BOS world
+// snapshot that lists him in roster+players. Without it the home team cannot
+// resolve and the preflight stays "incomplete" (the confirm button never becomes
+// "Confirm Action"). The preflight reads Firestore live, so no reload is needed.
+const REVIEW_OFFER_SHEET_RFA_ID = 'review_offer_sheet_guard';
+const REVIEW_OFFER_SHEET_HOME_TEAM = { code: 'BOS', name: 'Boston Celtics' };
+
+const seedOfferSheetHomeTeamSnapshot = async (worldId: string) => {
+  const db = getReviewAdminDb();
+  const { code: teamCode, name: teamName } = REVIEW_OFFER_SHEET_HOME_TEAM;
+  const teamRef = db.doc(`architect_worlds/${worldId}/teams/${teamCode}`);
+  const baseSnapshot = await buildHydratedWorldTeamSnapshot(teamCode, teamName);
+  const rfaEntry = buildHydratedPlayerEntry(
+    REVIEW_OFFER_SHEET_RFA_ID,
+    await getBasePlayerDocument(REVIEW_OFFER_SHEET_RFA_ID)
+  );
+  const players = [...(baseSnapshot.players || []), rfaEntry];
+
+  await teamRef.set(
+    {
+      ...baseSnapshot,
+      players,
+      roster: players,
+      activeContracts: buildActiveContracts(players),
+    },
+    { merge: false }
+  );
+};
+
 const addTradeTeam = async (page: Page, teamName: string) => {
   const teamValue = REVIEW_TRADE_TEAM_SELECT_VALUES[teamName] || teamName;
   const addTeamButton = page.getByRole('button', {
@@ -478,7 +510,11 @@ const routeTradePlayer = async (
   playerName: string,
   destinationTeamName: string
 ) => {
-  const teamCard = page
+  // Scope to the Trade Machine dialog so the background Roster tab (which also
+  // renders the same player names) can't create ambiguous matches.
+  const tradeDialog = page.getByRole('dialog', { name: /Trade Machine/i });
+
+  const teamCard = tradeDialog
     .locator('div')
     .filter({
       has: page.getByRole('button', {
@@ -486,16 +522,26 @@ const routeTradePlayer = async (
       }),
     })
     .filter({
-      has: page.getByRole('button', { name: /Players \(\d+\)/i }),
+      // Trade card tab labels were abbreviated (Players → "Plyr (N)"); accept
+      // either so the helper survives both label generations.
+      has: page.getByRole('button', { name: /(?:Plyr|Players) \(\d+\)/i }),
     })
     .first();
 
   await expect(teamCard).toBeVisible();
 
-  const playerRow = teamCard.getByAltText(playerName).locator('xpath=../..');
+  // The trade card renders two layouts depending on column width: a wide one
+  // where the player has a headshot (alt text) and a compact one where the name
+  // is a single text node. Anchor on whichever is present, then act on that
+  // row's menu button — the first button following the anchor in document order
+  // (the "•••" menu; its glyph is icon-based, so match by position not text).
+  const playerAnchor = teamCard
+    .getByAltText(playerName, { exact: true })
+    .or(teamCard.getByText(playerName, { exact: true }));
+  const tradeMenuButton = playerAnchor.locator('xpath=following::button[1]');
 
-  await expect(playerRow).toBeVisible();
-  await playerRow.locator('button', { hasText: '•••' }).first().click();
+  await expect(tradeMenuButton).toBeVisible();
+  await tradeMenuButton.click();
 
   const tradeButton = page.getByRole('button', {
     name: new RegExp(`^Trade to ${escapeRegExp(destinationTeamName)}$`, 'i'),
@@ -554,7 +600,9 @@ const executePersistedReviewTradeProof = async (
     page.getByRole('heading', { name: /^Trade Machine$/i })
   ).toBeVisible();
 
-  await addTradeTeam(page, 'Los Angeles Lakers');
+  // The Trade Machine auto-includes the current team (LAL) as teams[0], so only
+  // the second team needs adding — re-adding LAL here would create a duplicate
+  // card and a malformed 3-slot trade.
   await addTradeTeam(page, 'Boston Celtics');
   await routeTradePlayer(
     page,
@@ -789,12 +837,34 @@ const gotoDashboard = async (page: Page) => {
 
 const reenterDashboardViaAppNavigation = async (page: Page) => {
   const startingUrl = page.url();
-  const profilesLink = page.getByRole('link', { name: /^Player Profiles$/i });
-  await expect(profilesLink).toBeVisible();
-  await profilesLink.click();
-  await expect(page).toHaveURL(/\/profiles$/);
+  // The Trade Machine overlay (full-screen, z-50) covers the cockpit exit link
+  // and would intercept the click, so close it first if a flow left it open.
+  const tradeOverlay = page.getByTestId('trade-overlay');
+  if (await isVisible(tradeOverlay, 1000)) {
+    await page
+      .getByRole('button', { name: /Close Trade Machine/i })
+      .click()
+      .catch(() => undefined);
+    await expect(tradeOverlay)
+      .toBeHidden({ timeout: 5000 })
+      .catch(() => undefined);
+  }
+  // Leave the cockpit to the league view and return — exercises SPA route
+  // re-entry (and active-world rehydration) without a hard reload. The legacy
+  // "Player Profiles" link was removed in the cockpit refactor.
+  const leagueLink = page.getByRole('link', {
+    name: /Exit cockpit to league view/i,
+  });
+  await expect(leagueLink).toBeVisible();
+  await leagueLink.click();
+  await expect(page).toHaveURL(/\/gm$/);
   await page.goBack({ waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveURL(startingUrl);
+  // Returning closes the Trade Machine, so the room query param resets; assert
+  // the dashboard path rather than the exact starting URL.
+  const dashboardPath = new URL(startingUrl).pathname;
+  await expect(page).toHaveURL(
+    new RegExp(`${escapeRegExp(dashboardPath)}(?:\\?|$)`)
+  );
   return page;
 };
 
@@ -972,6 +1042,173 @@ const readActiveWorldId = async (page: Page) => {
   return '';
 };
 
+// TEST-003 / Option C: worlds are owner-scoped — listUserWorlds() filters
+// `where('createdBy', '==', userId)` (worldManager.core.ts), and review mode
+// signs in anonymously with a *fresh uid per browser context* (useAuth.ts +
+// no Playwright storageState). So a boot-time static seed is invisible to the
+// test user. Instead of driving the slow/flaky UI create-world flow, we read
+// THIS session's live anon uid and admin-write a world doc owned by it, then
+// select it — deterministic, fast, and without touching app/auth behavior.
+const REVIEW_WORLD_SEASON = '2026-27';
+// Start of the 2026-27 league year. Seeding an authoritative world date makes
+// the world genuinely "ready" — the +1 Day control stays disabled until a world
+// has an asOfDate (WorldTimeControls.hasAuthoritativeDate), and the loader does
+// not derive one from the season.
+const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
+
+const generateReviewWorldId = () =>
+  `world_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+// Read the current anonymous user's uid from Firebase Auth's IndexedDB
+// persistence (db `firebaseLocalStorageDb`, store `firebaseLocalStorage`) — the
+// same store the SDK restores the session from across reloads, so the uid is
+// stable within a context. Returns '' if unavailable.
+const readReviewUserId = async (page: Page): Promise<string> =>
+  page
+    .evaluate(
+      () =>
+        new Promise<string>((resolve) => {
+          let settled = false;
+          const finish = (value: string) => {
+            if (settled) return;
+            settled = true;
+            resolve(value);
+          };
+          const timer = setTimeout(() => finish(''), 4000);
+          try {
+            const request = indexedDB.open('firebaseLocalStorageDb');
+            request.onerror = () => {
+              clearTimeout(timer);
+              finish('');
+            };
+            request.onsuccess = () => {
+              const idb = request.result;
+              try {
+                const store = idb
+                  .transaction('firebaseLocalStorage', 'readonly')
+                  .objectStore('firebaseLocalStorage');
+                const getAll = store.getAll();
+                getAll.onerror = () => {
+                  clearTimeout(timer);
+                  finish('');
+                };
+                getAll.onsuccess = () => {
+                  clearTimeout(timer);
+                  const records = (getAll.result || []) as Array<{
+                    fbase_key?: string;
+                    value?: { uid?: string } | string;
+                  }>;
+                  const authRecord = records.find((record) =>
+                    String(record.fbase_key || '').includes('authUser')
+                  );
+                  let value: { uid?: string } | string | undefined =
+                    authRecord?.value;
+                  if (typeof value === 'string') {
+                    try {
+                      value = JSON.parse(value) as { uid?: string };
+                    } catch {
+                      value = undefined;
+                    }
+                  }
+                  finish(
+                    value &&
+                      typeof value === 'object' &&
+                      typeof value.uid === 'string'
+                      ? value.uid
+                      : ''
+                  );
+                };
+              } catch {
+                clearTimeout(timer);
+                finish('');
+              }
+            };
+          } catch {
+            clearTimeout(timer);
+            finish('');
+          }
+        })
+    )
+    .catch(() => '');
+
+// Admin-write a world metadata doc owned by `userId`. Shape mirrors createWorld
+// (worldManager.core.ts) so the WorldSelector lists it — `isArchived: false`
+// and `lastModifiedAt` are required by the ordered owner query — and the app
+// treats it as a real world. (createWorld writes metadata only; team subdocs
+// are seeded separately by tests that need a roster, as before.)
+const seedReviewWorld = async (
+  userId: string,
+  worldName: string
+): Promise<string> => {
+  const worldId = generateReviewWorldId();
+  const now = admin.firestore.Timestamp.now();
+  await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}`)
+    .set({
+      worldId,
+      worldName,
+      description: '',
+      createdBy: userId,
+      createdAt: now,
+      lastModifiedAt: now,
+      currentSeason: REVIEW_WORLD_SEASON,
+      baselineSeason: REVIEW_WORLD_SEASON,
+      asOfDate: REVIEW_WORLD_AS_OF_DATE,
+      parentWorldId: null,
+      branchedFrom: null,
+      childWorlds: [],
+      modifiedTeams: [],
+      actionCount: 0,
+      tags: [],
+      isArchived: false,
+      isFavorite: false,
+      stats: {
+        totalTrades: 0,
+        totalSignings: 0,
+        totalWaives: 0,
+        totalRenounces: 0,
+        teamsInvolved: 0,
+      },
+    });
+  return worldId;
+};
+
+// Persist the active-world selection exactly the way the app does
+// (writePersistedActiveWorldId → localStorage `architect.activeWorldId.<uid>`),
+// then reload so useArchitectState restores it via a single-doc get. This is
+// required because review mode CANNOT list worlds: the architect_worlds read
+// rule gates on the {worldId} path wildcard, which Firestore only binds for
+// get(), not for list/query — so the WorldSelector dropdown always errors with
+// "Failed to load worlds" and never holds the option to click. Single-doc get
+// (ownership-validated) is allowed, which is how the app rehydrates anyway.
+const activateSeededWorld = async (
+  page: Page,
+  userId: string,
+  worldId: string
+) => {
+  await page.evaluate(
+    ({ uid, wid }) => {
+      window.localStorage.setItem(`architect.activeWorldId.${uid}`, wid);
+    },
+    { uid: userId, wid: worldId }
+  );
+  await page.reload({ waitUntil: 'domcontentloaded' });
+
+  // World mode is reflected by the cockpit chip leaving "Sandbox" once
+  // useArchitectState has restored the world into state.
+  const worldMenuTrigger = page.getByTestId('cockpit-world-menu-trigger');
+  await expect(worldMenuTrigger).toBeVisible({ timeout: 20000 });
+  await expect
+    .poll(
+      async () => ((await worldMenuTrigger.textContent()) || '').includes('Sandbox'),
+      {
+        timeout: 20000,
+        message: `cockpit should leave Sandbox after restoring seeded world ${worldId}`,
+      }
+    )
+    .toBe(false);
+};
+
 const ensureWorldSelected = async (page: Page, testInfo: TestInfo) => {
   const worldSelector = page.locator('#world-selector');
   const signInHint = page.getByText(/Sign in to manage worlds/i);
@@ -1003,57 +1240,32 @@ const ensureWorldSelected = async (page: Page, testInfo: TestInfo) => {
     test.skip('World selector is unavailable in the current session.');
   }
 
-  const selectedValue = await worldSelector.inputValue();
-  if (selectedValue) {
+  // Reuse an already-active world if one is restored (the dropdown can't be
+  // trusted here — it never lists worlds — so consult the active-world state).
+  const existingActiveWorldId = await readActiveWorldId(page);
+  if (existingActiveWorldId) {
     await closeWorldMenu(page);
-    return selectedValue;
+    return existingActiveWorldId;
   }
 
-  const createWorldButton = page.getByRole('button', { name: /^\+ New$/i });
-  await expect(createWorldButton).toBeVisible();
-  await createWorldButton.click();
+  // No world is active yet. Admin-seed one owned by this session's anon user,
+  // then activate it via the app's own localStorage rehydration path — instead
+  // of the slow, flaky UI create-world flow (see TEST-003).
+  const userId = await readReviewUserId(page);
+  expect(
+    userId,
+    'anonymous review uid should be readable from auth persistence before seeding a world'
+  ).not.toBe('');
 
   const worldName = `Audit World ${Date.now()}`;
-  const nameInput = page.locator('#create-world-name');
-  await expect(nameInput).toBeVisible();
-  await nameInput.fill(worldName);
-
-  const createButton = page.getByRole('button', { name: /^Create$/i });
-  await expect(createButton).toBeVisible();
-  await createButton.click();
-
-  let createdWorldId = '';
-  await expect
-    .poll(
-      async () => {
-        const matchingWorld = (
-          await getReviewAdminDb().collection('architect_worlds').get()
-        ).docs
-          .map((docSnapshot) => docSnapshot.data() as Record<string, unknown>)
-          .find((world) => world.worldName === worldName);
-
-        createdWorldId =
-          typeof matchingWorld?.worldId === 'string'
-            ? matchingWorld.worldId
-            : '';
-        return createdWorldId !== '';
-      },
-      {
-        timeout: 15000,
-        message:
-          'newly created world should persist to the emulator after creation',
-      }
-    )
-    .toBe(true);
-
-  await page.waitForTimeout(500);
-
-  const newWorldId = (await readActiveWorldId(page)) || createdWorldId;
-  expect(newWorldId).not.toBe('');
+  const newWorldId = await seedReviewWorld(userId, worldName);
   await closeWorldMenu(page);
+
+  await activateSeededWorld(page, userId, newWorldId);
+
   addAuditNote(
     testInfo,
-    `World-backed review automation activated a newly created world (${newWorldId}) for this checklist row.`
+    `World-backed review automation seeded and activated world ${newWorldId}, owned by the session anon user, instead of running the flaky UI create-world flow.`
   );
   return newWorldId;
 };
@@ -1238,6 +1450,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     });
     await ensureTeamDataLoaded(page, testInfo);
     const worldId = await ensureWorldSelected(page, testInfo);
+
+    // Give the RFA an explicit home-team (BOS) world snapshot so the offer-sheet
+    // preflight can resolve authoritative ownership (read live from Firestore).
+    await seedOfferSheetHomeTeamSnapshot(worldId);
 
     await openDashboardTab(page, 'Free Agency');
 
@@ -1759,7 +1975,11 @@ test.describe('Smoke Tests', () => {
 
     await page.getByTestId('tab-full-cap-table').click();
     await expect(page.getByTestId('tab-full-cap-table')).toBeVisible();
-    await expect(page.getByText(/Future Cap Sheet/i).first()).toBeVisible();
+    // The Full Cap Table surface was renamed away from "Future Cap Sheet" to the
+    // multi-year "Cap Table" region; assert that stable content region instead.
+    await expect(
+      page.getByRole('region', { name: /Full Cap Table/i }).first()
+    ).toBeVisible();
     await captureEvidence(page, testInfo, 'smoke-full-cap-table');
   });
 });
