@@ -384,6 +384,18 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
     'bruce brown jr': 'bruce_brown',
     'daron holmes': 'daron_holmes_ii',
     'trey jemison': 'trey_jemison_iii',
+    // SalarySwish display/slug differs from the player index canonical name
+    // (nicknames, suffixes, reversed order, alternate spellings).
+    'alexandre sarr': 'alex_sarr',
+    'cameron christie': 'cam_christie',
+    'carlton carrington': 'bub_carrington',
+    'david jones': 'david_jones_garcia',
+    'gg jackson ii': 'gg_jackson',
+    'hansen yang': 'yang_hansen',
+    'jimmy butler': 'jimmy_butler_iii',
+    'k j simpson': 'kj_simpson',
+    'sviatoslav mykhailiuk': 'svi_mykhailiuk',
+    'yanic niederhauser': 'yanic_konan_niederhauser',
   };
 
   const unresolved = new Set<string>();
@@ -394,9 +406,16 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
         normalizeDisplayName(entry.displayName) ?? entry.displayName ?? '';
       const normalizedName = name.trim().toLowerCase();
 
-      // Check manual overrides first
-      if (MANUAL_OVERRIDES[normalizedName]) {
-        const overrideId = MANUAL_OVERRIDES[normalizedName];
+      // Check manual overrides first. Match against punctuation- and
+      // spacing-normalized variants so periods in "Jr."/"Sr.", apostrophes,
+      // and spaced initials ("K. J.") still hit their override entry.
+      const overrideKey = [
+        normalizedName,
+        normalizedName.replace(/[.,']/g, ''),
+        normalizedName.replace(/[- ]/g, ' ').replace(/[.,']/g, ''),
+      ].find((key) => MANUAL_OVERRIDES[key]);
+      if (overrideKey) {
+        const overrideId = MANUAL_OVERRIDES[overrideKey];
         return {
           playerId: overrideId,
           playerName: index[overrideId]?.fullName ?? name,
