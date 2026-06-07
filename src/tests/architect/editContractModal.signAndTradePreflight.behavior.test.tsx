@@ -41,9 +41,8 @@ vi.mock('@/shared/components/ui/Dialog', () => ({
   }) => <div {...props}>{children}</div>,
 }));
 
-vi.mock('@/shared/components/TeamSelectDropdown', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/shared/components/TeamSelectDropdown', () => {
+  const MockTeamSelectDropdown = ({
     selectedTeamId,
     onChange,
   }: {
@@ -59,12 +58,17 @@ vi.mock('@/shared/components/TeamSelectDropdown', () => ({
         Select NYK
       </button>
     </div>
-  ),
-}));
+  );
 
-vi.mock('@/features/architect/shared/ValidationWarnings', () => ({
-  __esModule: true,
-  default: ({
+  return {
+    __esModule: true,
+    default: MockTeamSelectDropdown,
+    TeamSelectDropdown: MockTeamSelectDropdown,
+  };
+});
+
+vi.mock('@/features/architect/shared/ValidationWarnings', () => {
+  const MockValidationWarnings = ({
     warnings,
     errors,
   }: {
@@ -79,8 +83,14 @@ vi.mock('@/features/architect/shared/ValidationWarnings', () => ({
         <div key={`warning-${index}`}>{entry.message}</div>
       ))}
     </div>
-  ),
-}));
+  );
+
+  return {
+    __esModule: true,
+    default: MockValidationWarnings,
+    ValidationWarnings: MockValidationWarnings,
+  };
+});
 
 vi.mock('@/features/architect/utils/capHelpers', () => ({
   getCapSettings: () => ({

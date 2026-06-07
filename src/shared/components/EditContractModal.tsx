@@ -272,6 +272,18 @@ export const EditContractModal = ({
     resolvedShowOfferSheetToggle,
   });
 
+  // Seed the selected action from initialAction (e.g. a clicked cap-table cell or
+  // a sign-and-trade hand-off) so the modal opens straight on that action's form
+  // instead of the action picker. Resets to the picker when no initialAction is
+  // given or the player changes. (Restored after the form-hook extraction dropped
+  // this from the shared reset effect.)
+  useEffect(() => {
+    if (!player) return;
+    setSelectedAction(
+      initialAction && isContractActionKey(initialAction) ? initialAction : ''
+    );
+  }, [player, initialAction]);
+
   const hasOption = !!optionType;
 
   // Player is "under contract" if they have the current season or future guaranteed years

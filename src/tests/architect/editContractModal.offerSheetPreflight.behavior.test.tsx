@@ -60,9 +60,8 @@ vi.mock('@/shared/components/TeamSelectDropdown', () => ({
   ),
 }));
 
-vi.mock('@/features/architect/shared/ValidationWarnings', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/features/architect/shared/ValidationWarnings', () => {
+  const MockValidationWarnings = ({
     warnings,
     errors,
   }: {
@@ -77,8 +76,14 @@ vi.mock('@/features/architect/shared/ValidationWarnings', () => ({
         <div key={`warning-${index}`}>{entry.message}</div>
       ))}
     </div>
-  ),
-}));
+  );
+
+  return {
+    __esModule: true,
+    default: MockValidationWarnings,
+    ValidationWarnings: MockValidationWarnings,
+  };
+});
 
 vi.mock('@/features/architect/utils/capHelpers', () => ({
   getCapSettings: () => ({
