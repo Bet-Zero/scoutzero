@@ -63,9 +63,8 @@ type MockEditContractModalProps = {
   onSave?: unknown;
 };
 
-vi.mock('@/shared/components/EditContractModal', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/shared/components/EditContractModal', () => {
+  const EditContractModal = ({
     isOpen,
     player,
     onClose,
@@ -106,8 +105,9 @@ vi.mock('@/shared/components/EditContractModal', () => ({
         <button onClick={onClose}>Close Modal</button>
       </div>
     );
-  },
-}));
+  };
+  return { __esModule: true, default: EditContractModal, EditContractModal };
+});
 
 const PLAYER = {
   id: 'player_1',

@@ -31,8 +31,8 @@ type MockExceptionTrackerProps = {
   [key: string]: unknown;
 };
 
-vi.mock('@/features/architect/capSheet/CapSheet', () => ({
-  default: (props: MockCapSheetProps) => {
+vi.mock('@/features/architect/capSheet/CapSheet', () => {
+  const MockCapSheet = (props: MockCapSheetProps) => {
     shellHarness.lastCapSheetProps = props;
 
     const currentYear = Number(props.currentYear);
@@ -61,11 +61,12 @@ vi.mock('@/features/architect/capSheet/CapSheet', () => ({
         </button>
       </div>
     );
-  },
-}));
+  };
+  return { default: MockCapSheet, CapSheet: MockCapSheet };
+});
 
-vi.mock('@/features/architect/capSheet/ExceptionTracker', () => ({
-  default: (props: MockExceptionTrackerProps) => {
+vi.mock('@/features/architect/capSheet/ExceptionTracker', () => {
+  const MockExceptionTracker = (props: MockExceptionTrackerProps) => {
     shellHarness.lastExceptionTrackerProps = props;
 
     return (
@@ -81,8 +82,12 @@ vi.mock('@/features/architect/capSheet/ExceptionTracker', () => ({
         </div>
       </div>
     );
-  },
-}));
+  };
+  return {
+    default: MockExceptionTracker,
+    ExceptionTracker: MockExceptionTracker,
+  };
+});
 
 const buildTeamCapSheet = () => ({
   teamCode: 'LAL',

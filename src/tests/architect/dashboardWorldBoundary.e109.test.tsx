@@ -152,9 +152,8 @@ vi.mock('@/features/architect/hooks/usePlayerRulesProfiles', () => ({
     mockUsePlayerRulesProfiles(...args),
 }));
 
-vi.mock('@/shared/components/EditContractModal', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/shared/components/EditContractModal', () => {
+  const EditContractModal = ({
     isOpen,
     player,
     onClose,
@@ -246,8 +245,9 @@ vi.mock('@/shared/components/EditContractModal', () => ({
         <button onClick={onClose}>Close Contract Modal</button>
       </div>
     );
-  },
-}));
+  };
+  return { __esModule: true, default: EditContractModal, EditContractModal };
+});
 
 vi.mock('@/features/architect/GMDashboard/sections/RosterSection', () => ({
   RosterSection: () => <div data-testid="mock-roster-section">RosterSection</div>,

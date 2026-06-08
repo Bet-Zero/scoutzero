@@ -115,8 +115,8 @@ vi.mock(
   }
 );
 
-vi.mock('@/features/architect/capSheet/modals/ManageExceptionsModal', () => ({
-  default: ({
+vi.mock('@/features/architect/capSheet/modals/ManageExceptionsModal', () => {
+  const ManageExceptionsModal = ({
     isOpen,
     currentYear,
   }: {
@@ -125,8 +125,9 @@ vi.mock('@/features/architect/capSheet/modals/ManageExceptionsModal', () => ({
   }) =>
     isOpen ? (
       <div role="dialog">Manage Exceptions Modal | {String(currentYear)}</div>
-    ) : null,
-}));
+    ) : null;
+  return { default: ManageExceptionsModal, ManageExceptionsModal };
+});
 
 vi.mock('@/features/architect/capSheet/modals/ManageDeadMoneyModal', () => ({
   default: ({

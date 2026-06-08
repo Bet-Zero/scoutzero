@@ -5,9 +5,12 @@ import '@testing-library/jest-dom/vitest';
 import { OfferSheetList } from '@/features/architect/GMDashboard/components/OfferSheetList';
 import { FreeAgencySection } from '@/features/architect/GMDashboard/sections/FreeAgencySection';
 
-vi.mock('@/features/architect/freeAgency/FreeAgentPool', () => ({
-  default: () => <div data-testid="mock-free-agent-pool">FreeAgentPool</div>,
-}));
+vi.mock('@/features/architect/freeAgency/FreeAgentPool', () => {
+  const MockFreeAgentPool = () => (
+    <div data-testid="mock-free-agent-pool">FreeAgentPool</div>
+  );
+  return { default: MockFreeAgentPool, FreeAgentPool: MockFreeAgentPool };
+});
 
 const baseOfferSheet = {
   id: 'os_1',

@@ -56,25 +56,24 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
     mockValidateDraftPositionsMap(...args),
 }));
 
-vi.mock('@/features/architect/GMDashboard/components/DraftPositionsInput', () => ({
-  __esModule: true,
-  default: (props: unknown) => {
+vi.mock('@/features/architect/GMDashboard/components/DraftPositionsInput', () => {
+  const DraftPositionsInput = (props: unknown) => {
     mockDraftPositionsInput(props);
     return <div data-testid="mock-draft-positions-input" />;
-  },
-}));
+  };
+  return { __esModule: true, default: DraftPositionsInput, DraftPositionsInput };
+});
 
-vi.mock('@/features/architect/offseason/OffseasonTab', () => ({
-  __esModule: true,
-  default: (props: unknown) => {
+vi.mock('@/features/architect/offseason/OffseasonTab', () => {
+  const OffseasonTab = (props: unknown) => {
     mockOffseasonTab(props);
     return <div data-testid="mock-offseason-tab" />;
-  },
-}));
+  };
+  return { __esModule: true, default: OffseasonTab, OffseasonTab };
+});
 
-vi.mock('@/features/architect/GMDashboard/components/SeasonAdvanceModal', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/features/architect/GMDashboard/components/SeasonAdvanceModal', () => {
+  const SeasonAdvanceModal = ({
     isOpen,
     onWorldAdvanceComplete,
   }: {
@@ -150,8 +149,9 @@ vi.mock('@/features/architect/GMDashboard/components/SeasonAdvanceModal', () => 
         </button>
       </div>
     );
-  },
-}));
+  };
+  return { __esModule: true, default: SeasonAdvanceModal, SeasonAdvanceModal };
+});
 
 function buildOffseasonSectionProps() {
   return {

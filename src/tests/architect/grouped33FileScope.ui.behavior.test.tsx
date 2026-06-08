@@ -125,9 +125,8 @@ vi.mock('@/shared/components/ui/Dialog', () => ({
   }) => <div {...props}>{children}</div>,
 }));
 
-vi.mock('@/features/roster/RosterSection', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/features/roster/RosterSection', () => {
+  const RosterSection = ({
     players,
     section,
   }: {
@@ -148,8 +147,9 @@ vi.mock('@/features/roster/RosterSection', () => ({
         </span>
       </div>
     );
-  },
-}));
+  };
+  return { __esModule: true, default: RosterSection, RosterSection };
+});
 
 vi.mock('@/features/roster/utils', () => ({
   buildInitialRoster: rosterUtilsMocks.buildInitialRoster,
@@ -166,12 +166,12 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
   computeTeamCapTotals: capTotalsMocks.computeTeamCapTotals,
 }));
 
-vi.mock('@/shared/components/TeamLogo', () => ({
-  __esModule: true,
-  default: ({ teamId }: { teamId?: string }) => (
+vi.mock('@/shared/components/TeamLogo', () => {
+  const TeamLogo = ({ teamId }: { teamId?: string }) => (
     <div data-testid={`team-logo-${teamId || 'unknown'}`} />
-  ),
-}));
+  );
+  return { __esModule: true, default: TeamLogo, TeamLogo };
+});
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>(

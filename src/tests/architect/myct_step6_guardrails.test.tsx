@@ -19,13 +19,17 @@ import {
   isDevCapSheetFixturePlayer,
 } from '@/features/architect/capSheet/devCapSheetFixtures';
 
-vi.mock('@/features/architect/capSheet/CapSheet', () => ({
-  default: () => <div data-testid="mock-cap-sheet-surface" />,
-}));
+vi.mock('@/features/architect/capSheet/CapSheet', () => {
+  const CapSheet = () => <div data-testid="mock-cap-sheet-surface" />;
+  return { default: CapSheet, CapSheet };
+});
 
-vi.mock('@/features/architect/capSheet/ExceptionTracker', () => ({
-  default: () => <div data-testid="mock-exception-tracker-surface" />,
-}));
+vi.mock('@/features/architect/capSheet/ExceptionTracker', () => {
+  const ExceptionTracker = () => (
+    <div data-testid="mock-exception-tracker-surface" />
+  );
+  return { default: ExceptionTracker, ExceptionTracker };
+});
 
 const CURRENT_YEAR = 2026;
 

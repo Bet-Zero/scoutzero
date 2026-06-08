@@ -16,15 +16,19 @@ import type {
   FreeAgentSignAndTradeInitiation,
 } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 
-vi.mock('@/features/architect/hooks/useCapValidation', () => ({
-  __esModule: true,
-  default: () => ({
+vi.mock('@/features/architect/hooks/useCapValidation', () => {
+  const useCapValidation = () => ({
     warnings: [],
     errors: [],
     isValid: true,
-  }),
-  buildSigningGuardrails: () => null,
-}));
+  });
+  return {
+    __esModule: true,
+    default: useCapValidation,
+    useCapValidation,
+    buildSigningGuardrails: () => null,
+  };
+});
 
 const PLAYER = {
   id: 'player_1',

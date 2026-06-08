@@ -76,14 +76,17 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
 vi.mock('@/features/architect/utils/seasonFormat', () => ({
   getDefaultSeasonEndYear: seasonFormatMocks.getDefaultSeasonEndYear,
   toSeasonCode: seasonFormatMocks.toSeasonCode,
+  // toSeasonKey delegates to toSeasonCode in the real module; alias it so the
+  // refactored LeagueView import resolves against this mock.
+  toSeasonKey: seasonFormatMocks.toSeasonCode,
 }));
 
-vi.mock('@/shared/components/TeamLogo', () => ({
-  __esModule: true,
-  default: ({ teamId }: { teamId?: string }) => (
+vi.mock('@/shared/components/TeamLogo', () => {
+  const TeamLogo = ({ teamId }: { teamId?: string }) => (
     <div data-testid={`team-logo-${teamId || 'unknown'}`} />
-  ),
-}));
+  );
+  return { __esModule: true, default: TeamLogo, TeamLogo };
+});
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>(

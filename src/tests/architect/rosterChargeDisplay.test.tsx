@@ -330,7 +330,9 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
     );
 
     expect(screen.getAllByText('$5,000,000').length).toBeGreaterThan(0);
-    expect(readCurrencyForLabel('TOTAL CAP ALLOCATIONS')).toBe(22_971_427);
+    // The 'TOTAL CAP ALLOCATIONS' summary tile moved to the cockpit
+    // TeamStatusStrip (Phase 2A migration); the cap sheet's canonical total is
+    // now the breakdown 'Total Cap Hit' footer asserted below.
     expect(readCurrencyForLabel('Player Salaries')).toBe(9_876_543);
     expect(readCurrencyForLabel('Dead Money')).toBe(4_321_000);
     expect(readCurrencyForLabel('Cap Holds')).toBe(7_654_321);

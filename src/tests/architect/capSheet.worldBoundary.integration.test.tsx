@@ -124,13 +124,14 @@ vi.mock('@/features/architect/utils/teamLoader', async () => {
   };
 });
 
-vi.mock('@/features/architect/hooks/useArchitectPlayerData', () => ({
-  default: () => ({
+vi.mock('@/features/architect/hooks/useArchitectPlayerData', () => {
+  const useArchitectPlayerData = () => ({
     players: [],
     loading: false,
     error: null,
-  }),
-}));
+  });
+  return { default: useArchitectPlayerData, useArchitectPlayerData };
+});
 
 describe('Cap Sheet world boundary integration', () => {
   beforeEach(() => {
