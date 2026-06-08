@@ -952,9 +952,6 @@ describe('Cap Sheet UI integration flows', () => {
     const primarySurface = screen.getByRole('region', {
       name: 'Primary selected-year cap sheet surface',
     });
-    const summarySurface = within(primarySurface).getByRole('region', {
-      name: 'Selected-year canonical totals summary surface',
-    });
     const rosterSurface = within(primarySurface).getByRole('region', {
       name: 'Selected-year roster detail surface',
     });
@@ -970,13 +967,18 @@ describe('Cap Sheet UI integration flows', () => {
 
     expect(shellTruthPanel).toHaveTextContent('Cap table: 2025-26');
     expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26');
-    expect(summarySurface).toBeInTheDocument();
+    // The canonical totals SUMMARY surface (5-tile summary + hard-cap badge)
+    // moved to the persistent cockpit TeamStatusStrip (Phase 2A migration), so
+    // it is intentionally no longer rendered inside the cap sheet. The shell
+    // year-truth panel above now carries selected-year/authority truth.
     expect(
-      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
-    ).toHaveTextContent('Canonical totals: 2025-26');
+      screen.queryByRole('region', {
+        name: 'Selected-year canonical totals summary surface',
+      })
+    ).not.toBeInTheDocument();
     expect(
-      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
-    ).toHaveTextContent('Hard-cap badge authority: 2025-26');
+      screen.queryByTestId('cap-summary-surface-truth-banner')
+    ).not.toBeInTheDocument();
     expect(
       within(rosterSurface).getByText(
         /Player rows show player salaries only\./i
@@ -985,7 +987,7 @@ describe('Cap Sheet UI integration flows', () => {
     expect(
       within(rosterSurface).getByText('Selected-Year Supporting Detail')
     ).toBeInTheDocument();
-    expectBefore(summarySurface, rosterSurface);
+    expectBefore(primarySurface, rosterSurface);
     expect(
       within(breakdownSurface).getByText('Total Cap Hit Breakdown')
     ).toBeInTheDocument();
@@ -1059,7 +1061,10 @@ describe('Cap Sheet UI integration flows', () => {
       />
     );
 
-    expect(screen.getByText('Hard Capped at 1st Apron')).toBeInTheDocument();
+    // The hard-cap badge + canonical summary tiles now live in the persistent
+    // cockpit TeamStatusStrip (Phase 2A migration), not inside the cap sheet, so
+    // they are no longer asserted here. The cap sheet still owns year-truth via
+    // the shell panel and the adjacent current-season authority surface below.
     expect(
       screen.queryByTestId('cap-sheet-future-year-boundary-panel')
     ).not.toBeInTheDocument();
@@ -1070,9 +1075,6 @@ describe('Cap Sheet UI integration flows', () => {
       expect(readVisibleTotalCapHit()).toBe(futureYearTotals.totalCapAllocations);
     });
 
-    const summarySurface = screen.getByRole('region', {
-      name: 'Selected-year canonical totals summary surface',
-    });
     expect(
       screen.queryByText('Hard Capped at 1st Apron')
     ).not.toBeInTheDocument();
@@ -1085,12 +1087,6 @@ describe('Cap Sheet UI integration flows', () => {
     expect(screen.getByTestId('cap-sheet-shell-year-truth-panel')).toHaveTextContent(
       'Adjacent authority: 2025-26 only'
     );
-    expect(
-      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
-    ).toHaveTextContent('Canonical totals: 2026-27');
-    expect(
-      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
-    ).toHaveTextContent('Hard-cap badge authority: 2025-26 only');
 
     const adjacentSurface = screen.getByRole('region', {
       name: 'Adjacent current-season authority surface',
@@ -1295,45 +1291,50 @@ describe('Cap Sheet UI integration flows', () => {
       />
     );
 
+    // Cap-hit-adjusted rows show only the canonical cap hit on screen; the base
+    // salary lives in the cell's hover tooltip (2K visual redesign moved it off
+    // a cramped second line). See ContractAmountDisplay in CapSheetFull.
     const veteranRow = screen
       .getByRole('button', { name: 'Future Veteran Minimum Wing' })
       .closest('div.grid');
     const veteranFutureCell = getFutureYearCell(veteranRow, 1);
-    expect(
-      within(veteranFutureCell).getByText('$2,176,096')
-    ).toBeInTheDocument();
+    const veteranCapHit = within(veteranFutureCell).getByText('$2,176,096');
+    expect(veteranCapHit).toBeInTheDocument();
     expect(
       within(veteranFutureCell).queryByText('$2,390,000')
     ).not.toBeInTheDocument();
-    expect(
-      within(veteranFutureCell).getByText('Base $2,390,000')
-    ).toBeInTheDocument();
+    expect(veteranCapHit).toHaveAttribute(
+      'title',
+      expect.stringContaining('Base salary $2,390,000')
+    );
 
     const adjustedRow = screen
       .getByRole('button', { name: 'Future Cap-Hit Forward' })
       .closest('div.grid');
     const adjustedFutureCell = getFutureYearCell(adjustedRow, 1);
-    expect(
-      within(adjustedFutureCell).getByText('$9,000,000')
-    ).toBeInTheDocument();
+    const adjustedCapHit = within(adjustedFutureCell).getByText('$9,000,000');
+    expect(adjustedCapHit).toBeInTheDocument();
     expect(
       within(adjustedFutureCell).queryByText('$8,000,000')
     ).not.toBeInTheDocument();
-    expect(
-      within(adjustedFutureCell).getByText('Base $8,000,000')
-    ).toBeInTheDocument();
+    expect(adjustedCapHit).toHaveAttribute(
+      'title',
+      expect.stringContaining('Base salary $8,000,000')
+    );
 
     const twoWayRow = screen
       .getByRole('button', { name: 'Future Two-Way Guard' })
       .closest('div.grid');
     const twoWayFutureCell = getFutureYearCell(twoWayRow, 1);
-    expect(within(twoWayFutureCell).getByText('$0')).toBeInTheDocument();
+    const twoWayCapHit = within(twoWayFutureCell).getByText('$0');
+    expect(twoWayCapHit).toBeInTheDocument();
     expect(
       within(twoWayFutureCell).queryByText('$700,000')
     ).not.toBeInTheDocument();
-    expect(
-      within(twoWayFutureCell).getByText('Base $700,000')
-    ).toBeInTheDocument();
+    expect(twoWayCapHit).toHaveAttribute(
+      'title',
+      expect.stringContaining('Base salary $700,000')
+    );
 
     const totalRow = screen.getByText('Total Cap').closest('div.grid');
     expect(totalRow).not.toBeNull();

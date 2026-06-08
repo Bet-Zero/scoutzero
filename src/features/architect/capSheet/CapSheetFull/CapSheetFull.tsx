@@ -1171,6 +1171,7 @@ export const CapSheetFull = ({
                     computeTeamCapTotals(...) outputs directly and stays pinned
                     to the bottom of the scroll area so it is always visible. */}
                 <div
+                  role="region"
                   aria-label={CAP_SHEET_FULL_SURFACE_LABELS.canonicalYearlyTotals}
                   className="sticky bottom-0 z-20 grid border-t-2 font-bold"
                   style={{
@@ -1195,9 +1196,11 @@ export const CapSheetFull = ({
                     <span className="block text-[11px] font-extrabold uppercase italic tracking-wide text-white">
                       Total Cap
                     </span>
+                    <span className="sr-only">Canonical Yearly Totals</span>
+                    <span className="sr-only">Canonical yearly total</span>
                     <span className="sr-only">
-                      {'Canonical Yearly Totals. Canonical yearly total. '}
-                      {'Player rows above and cap hold details below support the same future-year cap story.'}
+                      Player rows above and cap hold details below support the
+                      same future-year cap story.
                     </span>
                   </div>
                   {allYears.map((year) => {
