@@ -3,10 +3,10 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import TierMakerBoard from '@/features/tierMaker/TierMakerBoard';
-import TieramidBoard from '@/features/tierMaker/TieramidBoard';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
-import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
+import { TierMakerBoard } from '@/features/tierMaker/TierMakerBoard';
+import { TieramidBoard } from '@/features/tierMaker/TieramidBoard';
+import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
+import { useFirebaseQuery } from '@/shared/hooks/useFirebaseQuery';
 import { useAuth } from '@/shared/hooks/useAuth';
 
 const toastMock = vi.hoisted(() => {
@@ -16,13 +16,15 @@ const toastMock = vi.hoisted(() => {
   return fn;
 });
 
-vi.mock('@/shared/hooks/useSimplePlayerData', () => ({
-  default: vi.fn(),
-}));
+vi.mock('@/shared/hooks/useSimplePlayerData', () => {
+  const useSimplePlayerData = vi.fn();
+  return { default: useSimplePlayerData, useSimplePlayerData };
+});
 
-vi.mock('@/shared/hooks/useFirebaseQuery', () => ({
-  default: vi.fn(),
-}));
+vi.mock('@/shared/hooks/useFirebaseQuery', () => {
+  const useFirebaseQuery = vi.fn();
+  return { default: useFirebaseQuery, useFirebaseQuery };
+});
 
 vi.mock('@/shared/hooks/useAuth', () => ({
   useAuth: vi.fn(),
@@ -37,41 +39,50 @@ vi.mock('react-hot-toast', () => ({
   toast: toastMock,
 }));
 
-vi.mock('@/features/lists/TierPlayerTile', () => ({
-  default: ({ player }) => (
+vi.mock('@/features/lists/TierPlayerTile', () => {
+  const TierPlayerTile = ({ player }) => (
     <div data-testid={`tier-player-${player.player_id || player.id}`}>
       {player.bio?.displayName || player.name || player.id}
     </div>
-  ),
-}));
+  );
+  return { default: TierPlayerTile, TierPlayerTile };
+});
 
-vi.mock('@/features/tierMaker/TieramidPlayerTile', () => ({
-  default: ({ player }) => (
+vi.mock('@/features/tierMaker/TieramidPlayerTile', () => {
+  const TieramidPlayerTile = ({ player }) => (
     <div data-testid={`tieramid-player-${player.player_id || player.id}`}>
       {player.bio?.displayName || player.name || player.id}
     </div>
-  ),
-}));
+  );
+  return { default: TieramidPlayerTile, TieramidPlayerTile };
+});
 
-vi.mock('@/shared/components/ui/drawers/DrawerShell', () => ({
-  default: ({ children }) => <div>{children}</div>,
-}));
+vi.mock('@/shared/components/ui/drawers/DrawerShell', () => {
+  const DrawerShell = ({ children }) => <div>{children}</div>;
+  return { default: DrawerShell, DrawerShell };
+});
 
-vi.mock('@/shared/components/ui/drawers/OpenDrawerButton', () => ({
-  default: ({ onClick }) => <button onClick={onClick}>Open Drawer</button>,
-}));
+vi.mock('@/shared/components/ui/drawers/OpenDrawerButton', () => {
+  const OpenDrawerButton = ({ onClick }) => (
+    <button onClick={onClick}>Open Drawer</button>
+  );
+  return { default: OpenDrawerButton, OpenDrawerButton };
+});
 
-vi.mock('@/features/roster/AddPlayerDrawer', () => ({
-  default: () => <div>Add Player Drawer</div>,
-}));
+vi.mock('@/features/roster/AddPlayerDrawer', () => {
+  const AddPlayerDrawer = () => <div>Add Player Drawer</div>;
+  return { default: AddPlayerDrawer, AddPlayerDrawer };
+});
 
-vi.mock('@/features/roster/AddPlayerDrawer/index.jsx', () => ({
-  default: () => <div>Add Player Drawer</div>,
-}));
+vi.mock('@/features/roster/AddPlayerDrawer/index.jsx', () => {
+  const AddPlayerDrawer = () => <div>Add Player Drawer</div>;
+  return { default: AddPlayerDrawer, AddPlayerDrawer };
+});
 
-vi.mock('@/features/tierMaker/CreateTierListModal', () => ({
-  default: () => null,
-}));
+vi.mock('@/features/tierMaker/CreateTierListModal', () => {
+  const CreateTierListModal = () => null;
+  return { default: CreateTierListModal, CreateTierListModal };
+});
 
 const mockedUseSimplePlayerData = vi.mocked(useSimplePlayerData);
 const mockedUseFirebaseQuery = vi.mocked(useFirebaseQuery);

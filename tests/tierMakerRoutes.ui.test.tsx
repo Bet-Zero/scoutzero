@@ -7,7 +7,7 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import TierMakerView from '@/pages/TierMakerView';
 import TierListsHome from '@/pages/TierListsHome';
 import { useAuth } from '@/shared/hooks/useAuth';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 import {
   deleteTierList,
   fetchAllTierLists,
@@ -26,9 +26,10 @@ vi.mock('@/shared/hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 
-vi.mock('@/shared/hooks/useSimplePlayerData', () => ({
-  default: vi.fn(),
-}));
+vi.mock('@/shared/hooks/useSimplePlayerData', () => {
+  const useSimplePlayerData = vi.fn();
+  return { default: useSimplePlayerData, useSimplePlayerData };
+});
 
 vi.mock('@/firebase/listHelpers', () => ({
   fetchTierList: vi.fn(),
@@ -37,13 +38,19 @@ vi.mock('@/firebase/listHelpers', () => ({
   deleteTierList: vi.fn(),
 }));
 
-vi.mock('@/features/tierMaker/TierMakerBoard', () => ({
-  default: () => <div data-testid="tiermaker-board">Tiermaker board</div>,
-}));
+vi.mock('@/features/tierMaker/TierMakerBoard', () => {
+  const TierMakerBoard = () => (
+    <div data-testid="tiermaker-board">Tiermaker board</div>
+  );
+  return { default: TierMakerBoard, TierMakerBoard };
+});
 
-vi.mock('@/features/tierMaker/TieramidBoard', () => ({
-  default: () => <div data-testid="tieramid-board">Tieramid board</div>,
-}));
+vi.mock('@/features/tierMaker/TieramidBoard', () => {
+  const TieramidBoard = () => (
+    <div data-testid="tieramid-board">Tieramid board</div>
+  );
+  return { default: TieramidBoard, TieramidBoard };
+});
 
 vi.mock('@/features/tierMaker/hooks/useTierDraft', () => ({
   useTierDraft: () => ({
@@ -67,15 +74,17 @@ vi.mock('react-hot-toast', () => ({
   toast: toastMock,
 }));
 
-vi.mock('@/features/tierMaker/CreateTierListModal', () => ({
-  default: () => null,
-}));
+vi.mock('@/features/tierMaker/CreateTierListModal', () => {
+  const CreateTierListModal = () => null;
+  return { default: CreateTierListModal, CreateTierListModal };
+});
 
-vi.mock('@/features/lists/ListSearchBar', () => ({
-  default: ({ onSelect }) => (
+vi.mock('@/features/lists/ListSearchBar', () => {
+  const ListSearchBar = ({ onSelect }) => (
     <button onClick={() => onSelect('pyramid-list')}>Select Search Result</button>
-  ),
-}));
+  );
+  return { default: ListSearchBar, ListSearchBar };
+});
 
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedUseSimplePlayerData = vi.mocked(useSimplePlayerData);

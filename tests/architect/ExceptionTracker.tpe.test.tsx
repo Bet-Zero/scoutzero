@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker/ExceptionTracker';
+import { ExceptionTracker } from '@/features/architect/capSheet/ExceptionTracker/ExceptionTracker';
 
 // Stub out capSettingsProvider to remove external dependency
 vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () => ({
