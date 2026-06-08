@@ -33,8 +33,12 @@ vi.mock('@/features/architect/capSheet/ExceptionTracker', () => {
 
 const CURRENT_YEAR = 2026;
 
-const ACTIONS_PATH =
-  'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
+// useArchitectActions was split: the dev-tools interface lives in the types
+// satellite and the fixture-injection logic in the contract-actions satellite.
+const ACTIONS_TYPES_PATH =
+  'src/features/architect/GMDashboard/hooks/useArchitectActions.types.ts';
+const CONTRACT_ACTIONS_PATH =
+  'src/features/architect/GMDashboard/hooks/useArchitectActions.contractActions.ts';
 const CAP_SHEET_SECTION_PATH =
   'src/features/architect/GMDashboard/sections/CapSheetSection.tsx';
 const GM_DASHBOARD_PATH =
@@ -145,25 +149,26 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
   });
 
   it('pins DEV-local ownership and keeps fixture callbacks out of persistence paths', () => {
-    const actionsSource = readSource(ACTIONS_PATH);
+    const typesSource = readSource(ACTIONS_TYPES_PATH);
+    const contractActionsSource = readSource(CONTRACT_ACTIONS_PATH);
     const gmDashboardSource = readSource(GM_DASHBOARD_PATH);
     const actionRegion = readRegion(
-      actionsSource,
+      contractActionsSource,
       'const hasInjectedCapSheetFixtures = useMemo(',
       'const hasInjectedTeamHistoryFixtures = useMemo('
     );
 
-    expect(actionsSource).toContain('interface CapSheetDevTools');
-    expect(actionsSource).toContain('injectLocalFixtures: () => MutationActionResult;');
-    expect(actionsSource).toContain('clearLocalFixtures: () => MutationActionResult;');
-    expect(actionsSource).toContain('hasInjectedLocalFixtures: boolean;');
-    expect(actionsSource).toContain(
+    expect(typesSource).toContain('interface CapSheetDevTools');
+    expect(typesSource).toContain('injectLocalFixtures: () => MutationActionResult;');
+    expect(typesSource).toContain('clearLocalFixtures: () => MutationActionResult;');
+    expect(typesSource).toContain('hasInjectedLocalFixtures: boolean;');
+    expect(typesSource).toContain(
       'localStateOwner: typeof DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER;'
     );
-    expect(actionsSource).toContain(
+    expect(typesSource).toContain(
       'syntheticCoverageBoundary: typeof DEV_CAP_SHEET_FIXTURE_BOUNDARY;'
     );
-    expect(actionsSource).toContain(
+    expect(typesSource).toContain(
       'runtimeBoundary: typeof DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY;'
     );
 
@@ -177,7 +182,7 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
     expect(actionRegion).toContain('setTeamCapSheetSafe(nextTeam as CapSheet)');
     expect(actionRegion.match(/setTeamCapSheetSafe\(nextTeam as CapSheet\)/g)).toHaveLength(1);
     expect(actionRegion).not.toMatch(/\bsetTeamCapSheet\(/);
-    expect(actionsSource).toContain(
+    expect(contractActionsSource).toContain(
       'runtimeBoundary: DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,'
     );
 
