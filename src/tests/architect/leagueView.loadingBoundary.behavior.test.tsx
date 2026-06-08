@@ -296,7 +296,12 @@ describe('LeagueView loading-boundary behavior', () => {
     fireEvent.click(lakersManageButton);
 
     expect(navigationMocks.navigate).toHaveBeenCalledTimes(1);
-    expect(navigationMocks.navigate.mock.calls[0]).toEqual(['/gm/lakers']);
+    // Cockpit deep-link: the route PATH carries team identity ('lakers'); the
+    // season/room query params are view hints the GM desk reads on load (the
+    // dashboard still owns season state). See useArchitectDeskNavigation.
+    expect(navigationMocks.navigate.mock.calls[0][0]).toMatch(
+      /^\/gm\/lakers\?season=\d{4}&room=roster$/
+    );
   });
 
   it('keeps model summaries honest for loaded, missing, and failed team reads', async () => {
@@ -612,13 +617,15 @@ describe('LeagueView Step 2 closeout guardrails', () => {
       'goToTeam'
     );
 
+    // Cockpit deep-link architecture (useArchitectDeskNavigation documents
+    // ?season=/?room=/?player= as shareable entry hints): the route PATH carries
+    // team identity while ?season=&room= are view hints the desk reads on entry.
+    // The dashboard remains the runtime owner of season state — the URL is an
+    // entry hint, not the source of truth.
     expect(goToTeamSource).toContain(
-      'Team handoff is route identity only; GMDashboard re-owns active season state.'
+      'navigate(`/gm/${teamSlug}?season=${viewingYear}&room=roster`);'
     );
-    expect(goToTeamSource).toContain('navigate(`/gm/${teamSlug}`);');
-    expect(goToTeamSource.replace(/\/\/.*$/gm, '')).not.toMatch(
-      /season|seasonCode|state:|\?|search/
-    );
+    expect(goToTeamSource).toContain('readPersistedViewingSeasonEndYear()');
     expect(sources.table).toContain('aria-label={`Manage ${team.teamName}. ${teamHandoffBoundaryLabel}`}');
     expect(sources.table).toContain('title={teamHandoffBoundaryLabel}');
     expect(sources.truthPanel).toContain('season.teamHandoffBoundaryLabel');
@@ -638,7 +645,9 @@ describe('LeagueView Step 2 closeout guardrails', () => {
     fireEvent.click(lakersManageButton);
 
     expect(navigationMocks.navigate).toHaveBeenCalledTimes(1);
-    expect(navigationMocks.navigate.mock.calls[0]).toEqual(['/gm/lakers']);
+    expect(navigationMocks.navigate.mock.calls[0][0]).toMatch(
+      /^\/gm\/lakers\?season=\d{4}&room=roster$/
+    );
     expect(navigationMocks.navigate.mock.calls[0][1]).toBeUndefined();
   });
 });

@@ -143,8 +143,9 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
   it('preserves ContractEditorModal default-only parity across extensionless and authority imports', async () => {
     const authorityModule = await import(contractEditorModalAuthoritySpecifier);
 
-    expect(Object.keys(authorityModule)).toEqual(['default']);
-    expect(authorityModule.default).toBe(ContractEditorModal);
+    // Post default->named export conversion (10f5fed7): named export now.
+    expect(Object.keys(authorityModule)).toEqual(['ContractEditorModal']);
+    expect(authorityModule.ContractEditorModal).toBe(ContractEditorModal);
   });
 
   it('preserves validationCache named export parity across extensionless and authority imports', async () => {
@@ -166,9 +167,10 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     const extensionlessModule = await import(tradeDebugExtensionlessSpecifier);
     const authorityModule = await import(tradeDebugAuthoritySpecifier);
 
-    expect(Object.keys(extensionlessModule)).toEqual(['default']);
-    expect(Object.keys(authorityModule)).toEqual(['default']);
-    expect(extensionlessModule.default).toBe(tradeDebug);
-    expect(authorityModule.default).toBe(tradeDebug);
+    // Post default->named export conversion (10f5fed7): exported as named `debug`.
+    expect(Object.keys(extensionlessModule)).toEqual(['debug']);
+    expect(Object.keys(authorityModule)).toEqual(['debug']);
+    expect(extensionlessModule.debug).toBe(tradeDebug);
+    expect(authorityModule.debug).toBe(tradeDebug);
   });
 });

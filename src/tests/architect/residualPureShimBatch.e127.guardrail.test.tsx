@@ -29,11 +29,13 @@ const moduleParityCases = [
     label: 'basicArchitectUtils',
     extensionlessSpecifier: '@/features/architect/utils/basicArchitectUtils',
     authoritySpecifier: '../../features/architect/utils/basicArchitectUtils.ts',
+    // Post default->named export conversion (10f5fed7): no default; the module's
+    // getCapPercentage helper is the named export that replaced it.
     exportNames: [
       'CBA_MECHANICS',
       'attachDefaultPicks',
-      'default',
       'generateDefaultPicks',
+      'getCapPercentage',
       'markHardCapTriggered',
     ],
   },
@@ -50,9 +52,9 @@ const moduleParityCases = [
       '@/features/architect/utils/tradeMachine/utils/hardCapStatus',
     authoritySpecifier:
       '../../features/architect/utils/tradeMachine/utils/hardCapStatus.ts',
+    // Post default->named export conversion (10f5fed7): no default export.
     exportNames: [
       'HARD_CAP_TYPES',
-      'default',
       'getSigningHardCapTriggerMetadata',
       'getHardCapStatus',
       'getHardCapStatusFromContext',
@@ -66,7 +68,8 @@ const moduleParityCases = [
       '@/features/architect/tradeMachine/ValidationStateHeader',
     authoritySpecifier:
       '../../features/architect/tradeMachine/ValidationStateHeader.tsx',
-    exportNames: ['MODE_TAGS', 'ModeTag', 'default'],
+    // Post default->named export conversion (10f5fed7): named ValidationStateHeader.
+    exportNames: ['MODE_TAGS', 'ModeTag', 'ValidationStateHeader'],
   },
   {
     label: 'EntitlementPicksList',
@@ -81,7 +84,8 @@ const moduleParityCases = [
       '@/features/architect/GMDashboard/components/DraftPositionsInput',
     authoritySpecifier:
       '../../features/architect/GMDashboard/components/DraftPositionsInput.tsx',
-    exportNames: ['DraftPositionsInput', 'default'],
+    // Post default->named export conversion (10f5fed7): named export only.
+    exportNames: ['DraftPositionsInput'],
   },
 ] as const;
 

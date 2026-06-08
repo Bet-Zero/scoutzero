@@ -53,9 +53,12 @@ describe('Architect final shared filter blocker compatibility guardrails', () =>
       const extensionlessModule = await import(moduleCase.extensionlessSpecifier);
       const authorityModule = await import(moduleCase.authoritySpecifier);
 
-      expect(Object.keys(extensionlessModule)).toEqual(['default']);
-      expect(Object.keys(authorityModule)).toEqual(['default']);
-      expect(extensionlessModule.default).toBe(authorityModule.default);
+      // Post default->named export conversion (10f5fed7): these are now single
+      // named exports (matching the case label) rather than default-only.
+      const exportName = moduleCase.label;
+      expect(Object.keys(extensionlessModule)).toEqual([exportName]);
+      expect(Object.keys(authorityModule)).toEqual([exportName]);
+      expect(extensionlessModule[exportName]).toBe(authorityModule[exportName]);
     });
   }
 });

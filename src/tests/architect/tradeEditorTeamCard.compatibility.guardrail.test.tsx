@@ -30,12 +30,12 @@ describe('E105 TradeEditor + TradeTeamCard compatibility guardrails', () => {
     const tradeEditorSource = readAuthoritySource('TradeEditor.tsx');
     const tradeTeamCardSource = readAuthoritySource('TradeTeamCard.tsx');
 
-    expect(tradeEditorSource).toContain('const TradeEditor = (');
-    expect(tradeEditorSource).toContain('export default TradeEditor;');
-    expect(tradeEditorSource).not.toContain('export const TradeEditor');
+    // Post default->named export conversion (10f5fed7): these authorities now
+    // use named exports instead of a trailing `export default`.
+    expect(tradeEditorSource).toContain('export const TradeEditor = (');
+    expect(tradeEditorSource).not.toContain('export default TradeEditor;');
 
-    expect(tradeTeamCardSource).toContain('const TradeTeamCard = (');
-    expect(tradeTeamCardSource).toContain('export default TradeTeamCard;');
-    expect(tradeTeamCardSource).not.toContain('export const TradeTeamCard');
+    expect(tradeTeamCardSource).toContain('export const TradeTeamCard = (');
+    expect(tradeTeamCardSource).not.toContain('export default TradeTeamCard;');
   });
 });

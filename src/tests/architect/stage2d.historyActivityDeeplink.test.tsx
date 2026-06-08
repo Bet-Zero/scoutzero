@@ -424,10 +424,24 @@ describe('Stage 2D — History / Activity deep-linking', () => {
     expect(source).not.toMatch(
       /useHistoryEventDetailRequest\(\{\s*worldId,\s*teamCode: normalizedTeamId,/
     );
-    expect(source).toMatch(
-      /<ScenarioMoveRail[\s\S]*?teamCode=\{resolvedHistoryTeamCode\}/
+    // Cockpit refactor relocated <ScenarioMoveRail> into cockpit/ActivityRail.
+    // GMDashboard now passes the resolved code down as historyTeamCode; the rail
+    // wires that prop straight into ScenarioMoveRail's teamCode. The resolved-code
+    // (not raw normalizedTeamId) seam is preserved across the handoff.
+    expect(source).toContain('historyTeamCode={resolvedHistoryTeamCode}');
+    expect(source).not.toContain('historyTeamCode={normalizedTeamId}');
+
+    const activityRailSource = readFileSync(
+      resolve(
+        process.cwd(),
+        'src/features/architect/cockpit/ActivityRail.tsx'
+      ),
+      'utf8'
     );
-    expect(source).not.toMatch(
+    expect(activityRailSource).toMatch(
+      /<ScenarioMoveRail[\s\S]*?teamCode=\{historyTeamCode\}/
+    );
+    expect(activityRailSource).not.toMatch(
       /<ScenarioMoveRail[\s\S]*?teamCode=\{normalizedTeamId\}/
     );
   });
