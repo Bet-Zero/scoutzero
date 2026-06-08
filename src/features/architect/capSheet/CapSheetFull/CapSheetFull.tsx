@@ -1196,11 +1196,10 @@ export const CapSheetFull = ({
                     <span className="block text-[11px] font-extrabold uppercase italic tracking-wide text-white">
                       Total Cap
                     </span>
-                    <span className="sr-only">Canonical Yearly Totals</span>
-                    <span className="sr-only">Canonical yearly total</span>
+                    <span className="sr-only">{'Canonical Yearly Totals'}</span>
+                    <span className="sr-only">{'Canonical yearly total'}</span>
                     <span className="sr-only">
-                      Player rows above and cap hold details below support the
-                      same future-year cap story.
+                      {'Player rows above and cap hold details below support the same future-year cap story.'}
                     </span>
                   </div>
                   {allYears.map((year) => {
