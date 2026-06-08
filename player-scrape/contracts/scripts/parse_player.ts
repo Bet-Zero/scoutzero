@@ -2195,7 +2195,7 @@ async function main() {
 }
 
 // Only run main if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   main().catch((err) => {
     console.error('❌ Error parsing player:', err);
     process.exit(1);

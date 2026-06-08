@@ -36,12 +36,12 @@ const {
 
 vi.mock('@/features/table/PlayerTable/PlayerRow/PlayerNameMini', () => ({
   __esModule: true,
-  default: ({ name }: { name?: string }) => <span>{name}</span>,
+  PlayerNameMini: ({ name }: { name?: string }) => <span>{name}</span>,
 }));
 
 vi.mock('@/shared/components/TeamLogo', () => ({
   __esModule: true,
-  default: ({
+  TeamLogo: ({
     teamId,
     teamAbbr,
     className,
@@ -192,7 +192,9 @@ describe('E101 Trade Team Card leaf-family row and list contracts', () => {
         incoming={false}
         otherTeams={OTHER_TEAMS}
         playersMap={{}}
-        openMenu={BASE_PLAYER.name}
+        openMenu={String(
+          BASE_PLAYER.id ?? BASE_PLAYER.player_id ?? BASE_PLAYER.name ?? ''
+        )}
         onSetPlayerTrade={vi.fn()}
         onUndoPlayerTrade={vi.fn()}
         setOpenMenu={vi.fn()}
@@ -229,7 +231,9 @@ describe('E101 Trade Team Card leaf-family row and list contracts', () => {
         incoming={false}
         otherTeams={OTHER_TEAMS}
         playersMap={{}}
-        openMenu={BASE_PLAYER.name}
+        openMenu={String(
+          BASE_PLAYER.id ?? BASE_PLAYER.player_id ?? BASE_PLAYER.name ?? ''
+        )}
         onSetPlayerTrade={onSetPlayerTrade}
         onUndoPlayerTrade={vi.fn()}
         setOpenMenu={vi.fn()}
@@ -263,7 +267,9 @@ describe('E101 Trade Team Card leaf-family row and list contracts', () => {
         incoming={false}
         otherTeams={OTHER_TEAMS}
         playersMap={{}}
-        openMenu={BASE_PLAYER.name}
+        openMenu={String(
+          BASE_PLAYER.id ?? BASE_PLAYER.player_id ?? BASE_PLAYER.name ?? ''
+        )}
         onSetPlayerTrade={vi.fn()}
         onUndoPlayerTrade={onUndoPlayerTrade}
         setOpenMenu={vi.fn()}
@@ -289,7 +295,12 @@ describe('E101 Trade Team Card leaf-family row and list contracts', () => {
         incoming={false}
         otherTeams={OTHER_TEAMS}
         playersMap={{}}
-        openMenu={includedPlayer.name}
+        openMenu={String(
+          includedPlayer.id ??
+            includedPlayer.player_id ??
+            includedPlayer.name ??
+            ''
+        )}
         onSetPlayerTrade={vi.fn()}
         onUndoPlayerTrade={onUndoPlayerTrade}
         setOpenMenu={vi.fn()}

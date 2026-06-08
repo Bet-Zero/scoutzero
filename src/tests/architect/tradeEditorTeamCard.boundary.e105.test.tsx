@@ -280,7 +280,7 @@ vi.mock('@/features/architect/utils/tradeHelpers', () => ({
 
 vi.mock('@/shared/components/TeamSelectDropdown', () => ({
   __esModule: true,
-  default: ({
+  TeamSelectDropdown: ({
     selectedTeamId,
     onChange,
   }: {
@@ -299,7 +299,7 @@ vi.mock('@/shared/components/TeamSelectDropdown', () => ({
 
 vi.mock('@/features/architect/tradeMachine/CapImpactTiles', () => ({
   __esModule: true,
-  default: harness.capImpactTilesMock,
+  CapImpactTiles: harness.capImpactTilesMock,
 }));
 
 vi.mock('@/features/architect/tradeMachine/SelectTeamCard', () => ({
@@ -318,7 +318,7 @@ vi.mock('@/features/architect/tradeMachine/EntitlementPicksList', () => ({
 
 vi.mock('@/features/architect/tradeMachine/TradeExceptionManager', () => ({
   __esModule: true,
-  default: harness.tradeExceptionManagerMock,
+  TradeExceptionManager: harness.tradeExceptionManagerMock,
 }));
 
 vi.mock('@/features/architect/utils/faExceptionUtils', () => ({
@@ -538,7 +538,7 @@ async function loadTradeEditor() {
 
   vi.doMock('@/features/architect/tradeMachine/TradeTeamCard', () => ({
     __esModule: true,
-    default: (props: TradeTeamCardMockProps) => {
+    TradeTeamCard: (props: TradeTeamCardMockProps) => {
       harness.editorTradeTeamCardProps.push(props);
       return (
         <div data-testid={`mock-trade-team-card-${props.teamIndex}`}>
@@ -606,7 +606,7 @@ async function loadTradeEditor() {
 
   vi.doMock('@/features/architect/tradeMachine/ValidationStateHeader', () => ({
     __esModule: true,
-    default: ({
+    ValidationStateHeader: ({
       hasValidatorResult,
     }: {
       hasValidatorResult?: boolean;
@@ -619,7 +619,7 @@ async function loadTradeEditor() {
 
   vi.doMock('@/features/architect/tradeMachine/ValidationDetailsPanel', () => ({
     __esModule: true,
-    default: ({
+    ValidationDetailsPanel: ({
       showSntInjector,
     }: {
       showSntInjector?: boolean;
@@ -671,7 +671,7 @@ async function loadTradeEditor() {
 
   vi.doMock('@/shared/components/EditContractModal', () => ({
     __esModule: true,
-    default: ({
+    EditContractModal: ({
       isOpen,
       onClose,
       onSignAndTrade,

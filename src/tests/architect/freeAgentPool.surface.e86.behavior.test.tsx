@@ -15,6 +15,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -63,9 +64,8 @@ type MockEditContractModalProps = {
   onSave?: unknown;
 };
 
-vi.mock('@/shared/components/EditContractModal', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/shared/components/EditContractModal', () => {
+  const EditContractModal = ({
     isOpen,
     player,
     onClose,
@@ -106,8 +106,9 @@ vi.mock('@/shared/components/EditContractModal', () => ({
         <button onClick={onClose}>Close Modal</button>
       </div>
     );
-  },
-}));
+  };
+  return { __esModule: true, default: EditContractModal, EditContractModal };
+});
 
 const PLAYER = {
   id: 'player_1',
@@ -271,6 +272,25 @@ const openFromRowMenu = () => {
 const getLatestModalProps = () =>
   mockEditContractModalProps.mock.calls.at(-1)?.[0] as MockEditContractModalProps;
 
+// The pool wraps the owner's standard-signing lane in a thin adapter that also
+// drops the signed free agent from the local pool on success, so the modal's
+// onSignFreeAgent is intentionally NOT reference-equal to the owner spy. Assert
+// delegation instead: invoking the modal callback calls through to the owner.
+const expectDelegatesToOwnerSigning = async (
+  onSignFreeAgent: unknown,
+  ownerSpy: ReturnType<typeof vi.fn>
+) => {
+  expect(onSignFreeAgent).toEqual(expect.any(Function));
+  ownerSpy.mockClear();
+  await act(async () => {
+    await (onSignFreeAgent as (...args: unknown[]) => Promise<unknown>)(
+      FREE_AGENT,
+      { startYear: 2026, years: 1, salaries: [1] }
+    );
+  });
+  expect(ownerSpy).toHaveBeenCalledTimes(1);
+};
+
 const getPoolRowButtons = (container: HTMLElement) =>
   Array.from(
     container.querySelectorAll('ul li > div[role="button"]')
@@ -334,17 +354,17 @@ describe('FreeAgentPool surface E86 behavior', () => {
     );
   });
 
-  it('passes grouped-owner standard signing directly into EditContractModal without onSave fallback props', () => {
+  it('passes grouped-owner standard signing directly into EditContractModal without onSave fallback props', async () => {
     const actionOwner = buildActionOwner();
     renderPool({ actionOwner });
 
     openFromSelectedCard();
 
     const modalProps = getLatestModalProps();
-    expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
     expect(modalProps?.onSave).toBeUndefined();
-    expect(modalProps?.onSignFreeAgent).toBe(
-      actionOwner.dualPathSigning.signFreeAgent
+    await expectDelegatesToOwnerSigning(
+      modalProps?.onSignFreeAgent,
+      actionOwner.dualPathSigning.signFreeAgent as ReturnType<typeof vi.fn>
     );
     expect(modalProps?.signAndTradeInitiation).toBe(
       actionOwner.freeAgentModalAvailability.signAndTradeInitiation
@@ -364,7 +384,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
     );
   });
 
-  it('threads grouped owner world-mode callbacks into EditContractModal while keeping standard signing on the authoritative owner', () => {
+  it('threads grouped owner world-mode callbacks into EditContractModal while keeping standard signing on the authoritative owner', async () => {
     const actionOwner = buildActionOwner({
       worldOnly: {},
     });
@@ -373,9 +393,9 @@ describe('FreeAgentPool surface E86 behavior', () => {
     openFromSelectedCard();
 
     const modalProps = getLatestModalProps();
-    expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
-    expect(modalProps?.onSignFreeAgent).toBe(
-      actionOwner.dualPathSigning.signFreeAgent
+    await expectDelegatesToOwnerSigning(
+      modalProps?.onSignFreeAgent,
+      actionOwner.dualPathSigning.signFreeAgent as ReturnType<typeof vi.fn>
     );
     expect(modalProps?.signAndTradeInitiation).toBe(
       actionOwner.freeAgentModalAvailability.signAndTradeInitiation
@@ -445,13 +465,17 @@ describe('FreeAgentPool surface E86 behavior', () => {
       expect.objectContaining({
         player: selectedCardModalProps.player,
         onClose: selectedCardModalProps.onClose,
-        onSignFreeAgent: selectedCardModalProps.onSignFreeAgent,
         signAndTradeInitiation: selectedCardModalProps.signAndTradeInitiation,
         getOfferSheetPreflight: selectedCardModalProps.getOfferSheetPreflight,
         onStoreOfferSheet: selectedCardModalProps.onStoreOfferSheet,
         actionsOverride: selectedCardModalProps.actionsOverride,
       })
     );
+    // onSignFreeAgent is a fresh per-open delegating wrapper (drops the signed FA
+    // from the pool on success), so it is a function on both opens rather than a
+    // shared reference.
+    expect(selectedCardModalProps.onSignFreeAgent).toEqual(expect.any(Function));
+    expect(rowMenuModalProps.onSignFreeAgent).toEqual(expect.any(Function));
     expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
       /test player/i
     );
@@ -700,7 +724,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(selectedCardModalProps).toEqual(
       expect.objectContaining({
         onClose: expect.any(Function),
-        onSignFreeAgent: actionOwner.dualPathSigning.signFreeAgent,
+        onSignFreeAgent: expect.any(Function),
         signAndTradeInitiation: null,
         getOfferSheetPreflight: undefined,
         onStoreOfferSheet: undefined,
@@ -721,7 +745,6 @@ describe('FreeAgentPool surface E86 behavior', () => {
       expect.objectContaining({
         player: selectedCardModalProps?.player,
         onClose: selectedCardModalProps?.onClose,
-        onSignFreeAgent: selectedCardModalProps?.onSignFreeAgent,
         signAndTradeInitiation: selectedCardModalProps?.signAndTradeInitiation,
         getOfferSheetPreflight:
           selectedCardModalProps?.getOfferSheetPreflight,
@@ -731,6 +754,9 @@ describe('FreeAgentPool surface E86 behavior', () => {
         showOfferSheetToggle: selectedCardModalProps?.showOfferSheetToggle,
       })
     );
+    // Fresh per-open delegating signing wrapper (see note above); function on both.
+    expect(selectedCardModalProps?.onSignFreeAgent).toEqual(expect.any(Function));
+    expect(rowMenuModalProps?.onSignFreeAgent).toEqual(expect.any(Function));
     expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
       /alias name/i
     );

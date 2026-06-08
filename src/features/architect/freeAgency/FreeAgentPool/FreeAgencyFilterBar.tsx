@@ -49,7 +49,7 @@ export const FreeAgencyFilterBar = ({
           value={filters.query}
           onChange={(e) => onChange({ query: e.target.value })}
           placeholder="Search name, team, or position..."
-          className="flex-1 min-w-[190px] bg-[#2a2a2a] text-white text-xs px-2 py-1.5 rounded border border-transparent focus:outline-none focus:ring-1 focus:ring-white/30 placeholder-white/40"
+          className="flex-1 min-w-[190px] rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-1.5 text-xs text-cockpit-text-primary placeholder-cockpit-text-muted focus:outline-none focus:ring-1 focus:ring-white/30"
         />
 
         <MultiSelectFilter
@@ -96,7 +96,7 @@ export const FreeAgencyFilterBar = ({
           onChange={(e) =>
             onChange({ sortBy: e.target.value as FreeAgencySortKey })
           }
-          className="shrink-0 bg-[#2a2a2a] text-white text-xs px-2 py-1.5 border border-transparent focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-[#3a3a3a] rounded-md"
+          className="shrink-0 rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1.5 text-xs text-cockpit-text-primary hover:bg-cockpit-raised focus:outline-none focus:ring-1 focus:ring-white/30"
         >
           {FREE_AGENCY_SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>

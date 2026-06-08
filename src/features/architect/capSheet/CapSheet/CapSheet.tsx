@@ -12,6 +12,7 @@
  *  - Latest Chunk: plans/player-rules-architect/chunks/chunk_01.md
  */
 import React, { useEffect, useState } from 'react';
+import { capConfidenceLabel } from '../CapConfidenceBadge';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -23,15 +24,19 @@ import {
   getPlayerCapHitForYear,
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
-import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { getActiveUnsignedCapHoldsByEndYear, type CapHold } from '@/features/architect/utils/capHolds';
-import { CapSummaryTiles } from './CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import { getCapPercentage } from '@/features/architect/utils/basicArchitectUtils';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
 import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
+import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
+import {
+  buildPlayerActionContext,
+  type PlayerAction,
+  type PlayerActionContext,
+} from '@/features/architect/cockpit/playerActionContext';
 
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
@@ -144,6 +149,18 @@ type CapSheetProps = {
    * no cap totals impact, no row reordering, no action behavior change.
    */
   highlightPlayerId?: string | null;
+  /** Multi-focus highlight (pinned players). Unioned with highlightPlayerId. */
+  highlightPlayerIds?: string[];
+  /**
+   * Unified player-action intents (Pin/Unpin, Trade, cross-room navigation)
+   * routed by GMDashboard via routePlayerAction. Open stays the name click.
+   * When omitted, no row menu renders (other call sites unaffected).
+   */
+  onPlayerAction?:
+    | ((action: PlayerAction, context: PlayerActionContext) => void)
+    | null;
+  /** Pinned ids so the row menu can show Pin vs Unpin. */
+  pinnedPlayerIds?: string[];
 };
 
 const CAP_SHEET_SURFACE_LABELS = {
@@ -162,6 +179,9 @@ export const CapSheet = ({
   onSelectPlayer,
   manualCapSheetMutationAuthority,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
+  onPlayerAction = null,
+  pinnedPlayerIds = [],
 }: CapSheetProps) => {
   const [internalSelectedYear, setInternalSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
@@ -218,11 +238,19 @@ export const CapSheet = ({
   );
 
   if (!teamCapSheet) {
-    return <div className="text-white/60 p-4">Loading cap sheet...</div>;
+    return (
+      <div className="p-4 text-sm text-cockpit-text-secondary">
+        Loading cap sheet…
+      </div>
+    );
   }
 
   if (!teamCapSheet.players) {
-    return <div className="text-white/60 p-4">Loading players...</div>;
+    return (
+      <div className="p-4 text-sm text-cockpit-text-secondary">
+        Loading players…
+      </div>
+    );
   }
 
   const generateYears = (startYear: number, count: number) =>
@@ -328,39 +356,13 @@ export const CapSheet = ({
     selectedYear
   ).sort((a, b) => (Number(b.amount || 0) || 0) - (Number(a.amount || 0) || 0));
 
-  const confidenceLabel = React.useMemo(() => {
-    const summary = canonicalTotals?._meta?.rulesSourcesSummary;
-    if (!summary) return null; // Fallback or loading state
-
-    // Detailed mapping for display
-    switch (summary) {
-      case 'real':
-        return {
-          text: 'Official',
-          className: 'text-green-400 bg-green-400/10 border-green-400/20',
-        };
-      case 'reported':
-        return {
-          text: 'Reported',
-          className: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-        };
-      case 'projected':
-        return {
-          text: 'Projected',
-          className: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
-        };
-      case 'unknown':
-        return {
-          text: 'Unknown',
-          className: 'text-red-400 bg-red-400/10 border-red-400/20',
-        };
-      default:
-        return {
-          text: String(summary),
-          className: 'text-white/40 bg-white/5 border-white/10',
-        };
-    }
-  }, [canonicalTotals]);
+  const confidenceLabel = React.useMemo(
+    () =>
+      capConfidenceLabel(
+        canonicalTotals?._meta?.rulesSourcesSummary as string | undefined
+      ),
+    [canonicalTotals]
+  );
 
   const handleSaveDeadCapEdit = React.useCallback(
     (deadCap: ManualDeadCapSavePayload) => {
@@ -382,50 +384,32 @@ export const CapSheet = ({
     [manualCapSheetMutationAuthority]
   );
 
-  const summaryHardCapStatus = React.useMemo(() => {
-    if (!teamCapSheet) {
-      return null;
-    }
-
-    return getHardCapStatus(teamCapSheet, {
-      capSettings: {
-        firstApron: canonicalTotals.firstApron,
-        secondApron: canonicalTotals.secondApron,
-      },
-    });
-  }, [
-    teamCapSheet,
-    canonicalTotals.firstApron,
-    canonicalTotals.secondApron,
-  ]);
-
   return (
-    <div className="text-white font-sans">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold tracking-tight text-white/90 flex items-center gap-2">
-          <span>
-            Cap Sheet <span className="text-white/40 font-light">|</span>{' '}
+    <div className="font-sans text-cockpit-text-primary">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-sm font-semibold text-cockpit-text-primary">
             {formatYearLabel(selectedYear)}
           </span>
-          {confidenceLabel && (
+          {confidenceLabel ? (
             <span
-              className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${confidenceLabel.className}`}
+              className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${confidenceLabel.className}`}
             >
               {confidenceLabel.text}
             </span>
-          )}
-        </h3>
+          ) : null}
+        </div>
 
-        {/* Year Selector */}
-        <div className="flex bg-[#0f0f0f] p-0.5 rounded-md border border-white/5">
+        <div className="flex rounded-md border border-cockpit-edge bg-cockpit-inlay p-0.5">
           {allYears.map((year) => (
             <button
               key={year}
+              type="button"
               onClick={() => handleSelectYear(year)}
-              className={`px-3 py-1 rounded text-[10px] font-medium transition-all duration-200 ${
+              className={`rounded px-3 py-1 text-[10px] font-medium transition-colors ${
                 year === selectedYear
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-white/40 hover:text-white hover:bg-white/5'
+                  ? 'bg-cockpit-raised text-cockpit-text-primary shadow-sm'
+                  : 'text-cockpit-text-muted hover:bg-cockpit-slab hover:text-cockpit-text-primary'
               }`}
             >
               {formatYearLabel(year)}
@@ -434,20 +418,19 @@ export const CapSheet = ({
         </div>
       </div>
 
-      {/* CANONICAL TOTALS CONSUMER SURFACE: Summary tiles read canonicalTotals directly. */}
-      <div data-surface-role="canonical-totals-summary">
-        <CapSummaryTiles
-          currentYear={currentYear}
-          selectedYear={selectedYear}
-          canonicalTotals={canonicalTotals}
-          hardCapStatus={summaryHardCapStatus}
-          surfaceLabel={CAP_SHEET_SURFACE_LABELS.canonicalTotalsSummary}
-        />
-      </div>
+      {/*
+        Phase 2A cockpit migration: the 5-tile canonical totals summary
+        (Total Cap, Cap Space, Luxury Tax Space, 1st/2nd Apron Space) moved
+        to the persistent TeamStatusStrip below the cockpit TopBar so the
+        team's financial posture is visible from every room — not only when
+        the user is on the Cap Sheet. The legacy CapSummaryTiles component
+        is intentionally left in the codebase (it is still referenced by
+        tests and may be reused). Phase 2C will retire it.
+      */}
 
       <section
         aria-label={CAP_SHEET_SURFACE_LABELS.rosterDetail}
-        className="mt-4 bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden shadow-2xl shadow-black/50"
+        className="mt-4 overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-lg shadow-black/40"
       >
         {/* SUPPORTING DETAIL SURFACE: Player rows explain year-by-year contract detail.
             They may borrow canonical thresholds for display, but they do not own totals truth. */}
@@ -503,7 +486,10 @@ export const CapSheet = ({
             // Use canonicalTotals.salaryCap (SSOT) for cap % to match totals display
             const capPct = getCapPercentage(capHit, canonicalTotals.salaryCap || 1);
             const capPctDisplay = capPct ? `${capPct}%` : '—';
-            const isHighlighted = playerMatchesFocus(player, highlightPlayerId);
+            const isHighlighted = [
+              ...(highlightPlayerId ? [highlightPlayerId] : []),
+              ...highlightPlayerIds,
+            ].some((focusId) => playerMatchesFocus(player, focusId));
             const rowHighlightClass = isHighlighted
               ? 'ring-1 ring-inset ring-green-400/40 bg-green-500/[0.04]'
               : 'hover:bg-white/[0.02]';
@@ -516,16 +502,48 @@ export const CapSheet = ({
                   isHighlighted ? 'cap-sheet-player-row-highlighted' : undefined
                 }
               >
-                <div className="font-medium text-xs text-white/90 truncate">
+                <div className="font-medium text-xs text-white/90 flex items-center gap-1 min-w-0">
                   <button
                     data-testid="cap-sheet-player-row-button"
                     onClick={() => openPlayerContractModal?.(player)}
-                    className="hover:text-blue-400 transition-colors text-left truncate w-full"
+                    className="hover:text-blue-400 transition-colors text-left truncate min-w-0 flex-1"
                   >
                     {player.displayName ||
                       player.bio?.displayName ||
                       player.name}
                   </button>
+                  {(() => {
+                    if (!onPlayerAction) return null;
+                    const menuContext = buildPlayerActionContext({
+                      player,
+                      sourceRoom: 'cap',
+                      targetYear: selectedYear,
+                    });
+                    if (!menuContext) return null;
+                    const isPinned = pinnedPlayerIds.some((focusId) =>
+                      playerMatchesFocus(player, focusId)
+                    );
+                    return (
+                      <PlayerActionMenu
+                        context={menuContext}
+                        visibleActions={[]}
+                        overflowActions={[
+                          'pin',
+                          'trade',
+                          'view-on-roster',
+                          'view-in-full-cap',
+                          'find-in-history',
+                          'compare-impact',
+                          'guide-next-move',
+                        ]}
+                        isPinned={isPinned}
+                        menuAlign="left"
+                        testIdPrefix="cap-sheet-player-row"
+                        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                        onAction={onPlayerAction}
+                      />
+                    );
+                  })()}
                 </div>
                 <div className="text-[10px] text-white/50">
                   {POSITION_MAP[position as keyof typeof POSITION_MAP] ||

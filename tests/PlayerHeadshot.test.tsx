@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
+import { PlayerHeadshot } from '@/shared/components/PlayerHeadshot';
 
 describe('PlayerHeadshot', () => {
   it('renders an img element', () => {

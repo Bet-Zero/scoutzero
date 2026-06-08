@@ -464,6 +464,90 @@ async function main() {
     }
   }
 
+  // --- Dead Cap (per-player, multi-year — under h3 "DEAD CAP") ---
+  // SalarySwish lists each waived/stretched/expired player in a roster-style
+  // table with one column per future season. We capture every player and all of
+  // their non-zero per-year cap hits so the Architect can sum dead money the
+  // same way it sums active salaries and cap holds.
+  type DeadCapYear = { season: string; amount: number; isStretched?: boolean };
+  const deadCap: Array<{
+    displayName: string;
+    sourceUrl?: string;
+    playerId?: string;
+    reason?: 'waived' | 'stretched' | 'buyout' | 'provision' | 'other';
+    amountByYear: DeadCapYear[];
+  }> = [];
+  {
+    const h3 = findHeading($, 'h3', 'DEAD CAP');
+    if (h3) {
+      const block = forwardUntilNextH3($, h3);
+      const tables = block.find('table.sw_teamProfileRosterSection__table');
+
+      tables.each((_, table) => {
+        const tbl = $(table);
+        const thTexts = tbl
+          .find('thead th')
+          .map((i, th) => norm($(th).text()))
+          .get();
+
+        // Year columns are the headers shaped like "2025-26".
+        const yearCols: Array<{ idx: number; season: string }> = [];
+        thTexts.forEach((text, idx) => {
+          if (/^\d{4}-\d{2}$/.test(text)) yearCols.push({ idx, season: text });
+        });
+        if (!yearCols.length) return;
+
+        // The first header cell labels the group (e.g. "Stretched", "Waived",
+        // "Expired (4 - $410,246)") which tells us why the money is dead.
+        const groupLabel = (thTexts[0] || '').toLowerCase();
+        const isStretchedGroup = /stretch/.test(groupLabel);
+        const reason: (typeof deadCap)[number]['reason'] = isStretchedGroup
+          ? 'stretched'
+          : /waiv/.test(groupLabel)
+            ? 'waived'
+            : /buy ?out/.test(groupLabel)
+              ? 'buyout'
+              : 'other';
+
+        tbl.find('tbody tr').each((__, tr) => {
+          const tds = $(tr).find('td');
+          if (!tds.length) return;
+
+          const anchor = $(tr).find('a[href^="/players/"]').first();
+          const name = norm(anchor.text() || tds.eq(0).text());
+          if (!name || /^total$/i.test(name)) return;
+          const href = anchor.attr('href');
+
+          const amountByYear: DeadCapYear[] = [];
+          for (const { idx, season: yr } of yearCols) {
+            const cell = tds.eq(idx);
+            if (!cell.length) continue;
+            const amount = moneyNum(
+              norm(cell.find('.cap_hit.team_salary_data').first().text())
+            );
+            if (amount && amount > 0) {
+              amountByYear.push(
+                isStretchedGroup
+                  ? { season: yr, amount, isStretched: true }
+                  : { season: yr, amount }
+              );
+            }
+          }
+
+          if (amountByYear.length) {
+            deadCap.push({
+              playerId: undefined,
+              displayName: name,
+              sourceUrl: href ? absoluteUrl(href) : undefined,
+              reason,
+              amountByYear,
+            });
+          }
+        });
+      });
+    }
+  }
+
   const draftPicks: Array<{
     year: number;
     round: 1 | 2;
@@ -590,6 +674,25 @@ async function main() {
     if (totalEstimate > 0) totalsBox.totalSalary = totalEstimate;
   }
 
+  // Cross-check: the per-player dead cap rows we parsed for the current season
+  // should sum to the page's "DEAD CAP HIT" summary number. A mismatch means we
+  // missed a row (or a group table) and the Architect totals will be off.
+  if (
+    Number.isFinite(totalsBox.deadCapTotal) &&
+    (totalsBox.deadCapTotal as number) > 0
+  ) {
+    const parsedCurrentSeasonDead = deadCap.reduce((sum, item) => {
+      const match = item.amountByYear.find((y) => y.season === season);
+      return sum + (match?.amount ?? 0);
+    }, 0);
+    const expected = Number(totalsBox.deadCapTotal) || 0;
+    if (Math.abs(parsedCurrentSeasonDead - expected) > 1) {
+      console.warn(
+        `⚠️ Dead cap mismatch for ${teamCode}: parsed line items sum to $${parsedCurrentSeasonDead.toLocaleString()} but page DEAD CAP HIT is $${expected.toLocaleString()}`
+      );
+    }
+  }
+
   // --- Roster (Active only) — under h5 "Season Display" ---
   const roster: Array<{
     playerId?: string;
@@ -676,7 +779,7 @@ async function main() {
     season,
 
     roster, // player refs; IDs resolved later by your mapper
-    deadCap: [], // not on this page (would need waiver/transaction data)
+    deadCap, // per-player, multi-year dead money parsed from the DEAD CAP table
     capHolds, // parsed above (may be [])
     exceptions: {
       mle: mle || undefined,
@@ -749,7 +852,7 @@ async function main() {
   await fs.writeFile(outputPath, JSON.stringify(teamDoc, null, 2), 'utf8');
   console.log(`✅ Wrote ${outputPath}`);
   console.log(
-    `  roster=${roster.length}  tpe=${tpe.length}  holds=${capHolds.length}  picks=${draftPicks.length}`
+    `  roster=${roster.length}  tpe=${tpe.length}  holds=${capHolds.length}  deadCap=${deadCap.length}  picks=${draftPicks.length}`
   );
 }
 

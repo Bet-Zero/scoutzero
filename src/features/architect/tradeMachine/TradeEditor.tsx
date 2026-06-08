@@ -5,6 +5,14 @@ import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import { useContainerDimensions } from '@/shared/hooks/useContainerDimensions';
 import { EditContractModal } from '@/shared/components/EditContractModal';
 import { TradeTeamCard } from './TradeTeamCard';
+import {
+  PrimaryButton,
+  SecondaryButton,
+  SubtleButton,
+  IconButton,
+} from './tradeMachineChrome.buttons';
+import { CapConfidenceBadge } from '@/features/architect/capSheet/CapConfidenceBadge';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import TradePreviewModal from './TradePreviewModal';
 import { ValidationStateHeader } from './ValidationStateHeader';
 import { ValidationDetailsPanel } from './ValidationDetailsPanel';
@@ -41,6 +49,11 @@ import {
   toEditContractModalPlayer,
   toEditContractModalTeamCapSheet,
 } from './TradeEditor.helpers';
+import {
+  describeTradeObjective,
+  describeTradeException,
+  describeTradeOpenAuthority,
+} from '@/features/architect/cockpit/tradeOpenRequest';
 
 export const TradeEditor = ({
   primaryTeam,
@@ -54,6 +67,10 @@ export const TradeEditor = ({
   worldId = null, // World ID for world-aware team loading
   worldAsOfDate = null,
   userId = null,
+  onDraftActivityChange = null,
+  requestedStagePlayerIds = [],
+  onStagePlayerHandled = null,
+  tradeContext = null,
 }: TradeEditorProps) => {
   const {
     teams,
@@ -104,12 +121,17 @@ export const TradeEditor = ({
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  // TMUI-01: remember a pending "open preview after validation" request
+  const [wantPreview, setWantPreview] = useState(false);
+  // TMAPPLY-02: in-flight lock so Apply can't double-submit
+  const [isApplying, setIsApplying] = useState(false);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
     useState<TradeMachineSatModalState>(null);
   // P2: Track which team's calculator to show (0 = primary team by default)
   const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
   const [entitlementEditorState, setEntitlementEditorState] =
     useState<EntitlementEditorState>(null);
+  const [contextBannerDismissed, setContextBannerDismissed] = useState(false);
 
   const canEditEntitlements = isEntitlementAuthoringEnabled();
   const isVacuumMode = !worldId;
@@ -122,6 +144,66 @@ export const TradeEditor = ({
     }
     prevWorldIdRef.current = worldId;
   }, [worldId]);
+
+  // Meaningful-draft threshold (Slice 3, open-question #18): staged assets OR an
+  // explicit objective/exception context count as in-progress; a bare overlay
+  // open with no edits and no objective does not.
+  const hasDraftActivity = useMemo(() => {
+    const hasStagedAssets = teams.some(
+      (slot) =>
+        slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+    );
+    const hasObjectiveContext = Boolean(
+      tradeContext?.objective || tradeContext?.exceptionRef
+    );
+    return hasStagedAssets || hasObjectiveContext;
+  }, [teams, tradeContext]);
+
+  useEffect(() => {
+    onDraftActivityChange?.(hasDraftActivity);
+  }, [hasDraftActivity, onDraftActivityChange]);
+
+  // TMUI-01: validation is deferred a tick so the "Validating…" state can paint.
+  // Open the preview only once that requested validation has finished.
+  useEffect(() => {
+    if (wantPreview && hasCurrentValidation && !isValidating) {
+      setPreviewOpen(true);
+      setWantPreview(false);
+    }
+  }, [wantPreview, hasCurrentValidation, isValidating]);
+
+  // Pre-stage one or more players as outgoing when the Trade Machine opens from
+  // a player-context entry (the pin board's "Trade" / "Trade all pinned").
+  // One-shot: we wait for slot 0's async init to populate the roster, stage each
+  // match, then clear the request so removing a player doesn't snap them back.
+  // Ids not on the primary roster are a no-op (v1 scope) but are still cleared.
+  const stagedRequestKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (requestedStagePlayerIds.length === 0) {
+      stagedRequestKeyRef.current = null;
+      return;
+    }
+    const requestKey = requestedStagePlayerIds.join('|');
+    if (stagedRequestKeyRef.current === requestKey) return;
+
+    const roster = teams[0]?.team?.players;
+    if (!teams[0]?.team || !Array.isArray(roster)) return; // init not ready yet
+
+    for (const playerId of requestedStagePlayerIds) {
+      const match = roster.find(
+        (p) => (p?.id || p?.player_id) === playerId
+      );
+      if (match) {
+        setPlayerTrade(
+          0,
+          match as Parameters<typeof setPlayerTrade>[1],
+          'trade'
+        );
+      }
+    }
+    stagedRequestKeyRef.current = requestKey;
+    onStagePlayerHandled?.();
+  }, [requestedStagePlayerIds, teams, setPlayerTrade, onStagePlayerHandled]);
 
   // Stale validation fix: hasCurrentValidation now comes from hook
   // It properly checks if validation result matches current draft configuration
@@ -159,12 +241,6 @@ export const TradeEditor = ({
     });
     return { players, entitlements };
   });
-
-  const addLabels: Record<number, string> = {
-    2: 'Add Team',
-    3: 'Add Team',
-    4: 'Add Team',
-  };
 
   // Phase 12.3B: Merge pickRulesById from all team slots for projection layer
   const mergedPickRulesById = useMemo(() => {
@@ -451,44 +527,188 @@ export const TradeEditor = ({
     return { success: true };
   };
 
+  const handleApplyTrade = async () => {
+    // TMAPPLY-02: in-flight guard against double-submit
+    if (isApplying) return;
+    if (!hasCurrentValidation) {
+      toast.error('Re-validate trade before applying.');
+      return;
+    }
+    if (currentPreviewAuthority?.legal !== true) {
+      toast.error('Cannot apply trade: ' + previewAuthorityReason);
+      return;
+    }
+    const tradeData = exportCurrentTrade() as TradeDataEntryLike[] | null;
+    if (!onApplyTrade || !tradeData) {
+      return;
+    }
+
+    setIsApplying(true);
+    try {
+      await onApplyTrade(tradeData);
+
+      // TMAPPLY-01: In vacuum/sandbox mode, persist entitlement transfers
+      // to localStorage ONLY after the trade actually applied — so a
+      // blocked/failed apply doesn't leave picks moved while players don't.
+      // World mode persists via the mutation pipeline.
+      //
+      // TMAPPLY-04 (decision): sandbox is an ephemeral preview for ROSTERS
+      // (players reload from base on refresh), but pick ownership uses this
+      // session overlay — the only sandbox mechanism for pick moves — which
+      // survives refresh. The "Clear session pick changes" button (shown in
+      // the header) is the reset. Unifying durability across players + picks
+      // would require new persistence and isn't worth it for a sandbox edge.
+      if (isVacuumMode) {
+        for (const teamEntry of tradeData) {
+          const outgoing = teamEntry.outgoingEntitlements || [];
+          for (const ent of outgoing) {
+            const entId = ent.entitlementId || ent.id;
+            const fromTeam = ent.fromTeamId || teamEntry.teamId;
+            const toTeam = ent.toTeamId;
+            if (entId && fromTeam && toTeam) {
+              applyVacuumTransfer(
+                String(entId),
+                String(fromTeam),
+                String(toTeam)
+              );
+            }
+          }
+        }
+      }
+
+      // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
+      refreshEntitlements();
+      onAfterTradeApplied?.();
+    } catch (error: unknown) {
+      console.error('[TradeEditor] Trade application failed:', error);
+      toast.error(
+        `Failed to apply trade: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  const bannerAuthority = tradeContext
+    ? describeTradeOpenAuthority(tradeContext.authority)
+    : null;
+  const showContextBanner = Boolean(
+    tradeContext &&
+      (tradeContext.objective ||
+        tradeContext.exceptionRef ||
+        tradeContext.relatedEventId) &&
+      !contextBannerDismissed
+  );
+
+  // Cap-figure confidence for the active season. The league cap/apron/tax
+  // numbers are hand-maintained constants; future seasons the NBA hasn't set
+  // yet are projections — surface that so they don't read as official.
+  const capRulesForYear = useMemo(() => {
+    const numericYear = Number(yearKey);
+    if (!Number.isFinite(numericYear)) return null;
+    try {
+      return getCapRulesForYear(numericYear);
+    } catch {
+      return null;
+    }
+  }, [yearKey]);
+  const capSourceSummary =
+    (capRulesForYear?._meta?.sourcesSummary as string | undefined) ?? null;
+  const capSeasonLabel = capRulesForYear?.seasonKey ?? null;
+
   return (
     <div className="text-white space-y-6">
+      {showContextBanner && tradeContext && bannerAuthority ? (
+        <div
+          className="flex items-start justify-between gap-2 rounded-md border border-white/15 bg-white/[0.04] px-3 py-2"
+          data-testid="trade-context-banner"
+        >
+          <div className="flex flex-wrap items-center gap-2 text-xs text-white/80">
+            <span
+              data-testid="trade-context-banner-authority"
+              className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                bannerAuthority.tone === 'committed'
+                  ? 'border-green-400/40 bg-green-500/10 text-green-200'
+                  : bannerAuthority.tone === 'planning'
+                    ? 'border-sky-400/40 bg-sky-500/10 text-sky-200'
+                    : 'border-amber-400/40 bg-amber-500/10 text-amber-200'
+              }`}
+            >
+              {bannerAuthority.label}
+            </span>
+            {tradeContext.objective ? (
+              <span data-testid="trade-context-banner-objective">
+                Objective: {describeTradeObjective(tradeContext.objective)}
+              </span>
+            ) : null}
+            {tradeContext.exceptionRef ? (
+              <span>
+                Using {describeTradeException(tradeContext.exceptionRef.kind)} —
+                pending validation
+              </span>
+            ) : null}
+            {tradeContext.relatedEventId ? (
+              <span>Referencing a committed trade event (not cloned)</span>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => setContextBannerDismissed(true)}
+            className="shrink-0 rounded px-1 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors"
+            aria-label="Dismiss trade context"
+            data-testid="trade-context-banner-dismiss"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
-        <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
+          {capSourceSummary ? (
+            <CapConfidenceBadge
+              summary={capSourceSummary}
+              prefix={capSeasonLabel ? `${capSeasonLabel} cap ·` : 'Cap ·'}
+              title="Confidence of the league salary cap / apron / tax figures for this season. Projected = the NBA has not set official numbers yet."
+            />
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           {/* TM-VACUUM-E1: Clear session edits button (vacuum mode only) */}
           {isVacuumMode && hasVacuumOverlay() && (
-            <button
+            <SubtleButton
+              tone="warning"
               onClick={handleClearVacuumOverlay}
-              className="bg-amber-700/60 hover:bg-amber-600/60 text-amber-200 text-xs font-medium px-3 py-1.5 rounded"
               title="Clear all session pick changes"
             >
               Clear session pick changes
-            </button>
+            </SubtleButton>
           )}
-          <button
+          <PrimaryButton
             onClick={() => {
-              handleValidate();
-              setPreviewOpen(true);
+              const status = handleValidate();
+              if (status === 'insufficient') {
+                // TMUI-03: give the click a visible result instead of nothing
+                toast.error('Add at least two teams to validate this trade.');
+                return;
+              }
+              setWantPreview(true);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-sm font-medium px-3 py-1.5 rounded"
           >
             Validate Trade
-          </button>
-          <button
-            onClick={resetTrade}
-            title="Reset Trade"
-            className="text-white/70 hover:text-white"
+          </PrimaryButton>
+          <PrimaryButton
+            tone="positive"
+            onClick={handleApplyTrade}
+            disabled={!canApplyTrade || isApplying}
           >
+            {isApplying ? 'Applying…' : 'Apply Trade'}
+          </PrimaryButton>
+          <IconButton onClick={resetTrade} title="Reset Trade">
             <RotateCcw size={18} />
-          </button>
+          </IconButton>
           {teams.length < 5 && (
-            <button
-              onClick={addTeam}
-              className="bg-neutral-700 hover:bg-neutral-600 text-sm px-3 py-1.5 rounded"
-            >
-              {addLabels[teams.length] || 'Add Team'}
-            </button>
+            <SecondaryButton onClick={addTeam}>Add Team</SecondaryButton>
           )}
         </div>
       </div>
@@ -622,87 +842,34 @@ export const TradeEditor = ({
         </div>
       )}
 
-      {/* Controls */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <button
-          onClick={async () => {
-            if (!hasCurrentValidation) {
-              toast.error('Re-validate trade before applying.');
-              return;
-            }
-            if (currentPreviewAuthority?.legal !== true) {
-              alert('Cannot apply trade: ' + previewAuthorityReason);
-              return;
-            }
-            const tradeData = exportCurrentTrade() as
-              | TradeDataEntryLike[]
-              | null;
-            if (onApplyTrade && tradeData) {
-              // TM-PICKS-E1: In vacuum/sandbox mode, persist entitlement transfers to localStorage
-              // so they survive page refresh. World mode persists via mutation pipeline.
-              if (isVacuumMode) {
-                for (const teamEntry of tradeData) {
-                  const outgoing = teamEntry.outgoingEntitlements || [];
-                  for (const ent of outgoing) {
-                    const entId = ent.entitlementId || ent.id;
-                    const fromTeam = ent.fromTeamId || teamEntry.teamId;
-                    const toTeam = ent.toTeamId;
-                    if (entId && fromTeam && toTeam) {
-                      applyVacuumTransfer(
-                        String(entId),
-                        String(fromTeam),
-                        String(toTeam)
-                      );
-                    }
-                  }
-                }
-              }
+      {/* Apply-action context — the Apply button itself now lives in the header
+          toolbar; this row carries only the contextual warning / blocked text. */}
+      {((canApplyTrade && previewHasApplyTimeWorldChecks) ||
+        currentPreviewAuthority?.legal === false) && (
+        <div className="flex flex-wrap gap-3 items-center">
+          {canApplyTrade && previewHasApplyTimeWorldChecks && (
+            <span className="text-xs text-yellow-400/50">
+              All local preview checks passed. World-state checks (duplicate
+              players, entitlement conflicts, exclusivity) run at apply time and
+              may still reject this trade.
+            </span>
+          )}
 
-              try {
-                await onApplyTrade(tradeData);
-                // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
-                refreshEntitlements();
-                onAfterTradeApplied?.();
-              } catch (error: unknown) {
-                console.error('[TradeEditor] Trade application failed:', error);
-                toast.error(
-                  `Failed to apply trade: ${error instanceof Error ? error.message : 'Unknown error'}`
-                );
-              }
-            }
-          }}
-          disabled={!canApplyTrade}
-          className={`text-sm font-medium px-3 py-1.5 rounded transition-colors ${
-            !canApplyTrade
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700 text-white'
-          }`}
-        >
-          Apply Trade
-        </button>
-
-        {canApplyTrade && previewHasApplyTimeWorldChecks && (
-          <span className="text-xs text-yellow-400/50">
-            All local preview checks passed. World-state checks (duplicate
-            players, entitlement conflicts, exclusivity) run at apply time and
-            may still reject this trade.
-          </span>
-        )}
-
-        {currentPreviewAuthority?.legal === false && (
-          <span
-            className={`text-xs ${
-              previewOverrideRequested ? 'text-amber-300' : 'text-red-400'
-            }`}
-          >
-            {previewOverrideRequested
-              ? `Override requested, but preview authority still blocks this trade: ${
-                  previewAuthorityReason
-                }`
-              : `Trade blocked: ${previewAuthorityReason}`}
-          </span>
-        )}
-      </div>
+          {currentPreviewAuthority?.legal === false && (
+            <span
+              className={`text-xs ${
+                previewOverrideRequested ? 'text-amber-300' : 'text-red-400'
+              }`}
+            >
+              {previewOverrideRequested
+                ? `Override requested, but preview authority still blocks this trade: ${
+                    previewAuthorityReason
+                  }`
+                : `Trade blocked: ${previewAuthorityReason}`}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Tasks B, C, D, E: Validation Details Panel with hard-gating and mode tags */}
       {/* Stale validation fix: Uses hasCurrentValidation for proper authority/detail gating */}

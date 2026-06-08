@@ -266,7 +266,7 @@ export function normalizePstLabel(label: string): string | undefined {
 // CLI SELF-TEST
 // ============================================================================
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   console.log('PST Team Slugs - Self Test');
   console.log('===========================');
   console.log(`Total teams: ${PST_TEAMS.length}`);

@@ -759,7 +759,7 @@ export async function buildDraftAssets(options?: {
 // CLI ENTRY POINT
 // ============================================================================
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   const ledgerDir = parseArg('ledgerDir', DEFAULT_LEDGER_DIR);
   const outDir = parseArg('outDir', DEFAULT_OUTPUT_DIR);
 

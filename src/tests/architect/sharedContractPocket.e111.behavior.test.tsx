@@ -69,20 +69,23 @@ vi.mock('@/shared/components/ui/Dialog', () => ({
   }) => <div {...props}>{children}</div>,
 }));
 
-vi.mock('@/features/architect/hooks/useCapValidation', () => ({
-  __esModule: true,
-  default: () => ({
+vi.mock('@/features/architect/hooks/useCapValidation', () => {
+  const useCapValidation = () => ({
     warnings: mockValidationState.warnings,
     errors: mockValidationState.errors,
     isValid: mockValidationState.isValid,
     incomplete: false,
-  }),
-  buildSigningGuardrails: () => mockValidationState.signingGuardrails,
-}));
+  });
+  return {
+    __esModule: true,
+    default: useCapValidation,
+    useCapValidation,
+    buildSigningGuardrails: () => mockValidationState.signingGuardrails,
+  };
+});
 
-vi.mock('@/features/architect/shared/ValidationWarnings', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/features/architect/shared/ValidationWarnings', () => {
+  const ValidationWarnings = ({
     warnings,
     errors,
     showErrors,
@@ -102,12 +105,12 @@ vi.mock('@/features/architect/shared/ValidationWarnings', () => ({
         <div key={`warning-${index}`}>{entry.message}</div>
       ))}
     </div>
-  ),
-}));
+  );
+  return { __esModule: true, default: ValidationWarnings, ValidationWarnings };
+});
 
-vi.mock('@/shared/components/TeamSelectDropdown', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/shared/components/TeamSelectDropdown', () => {
+  const TeamSelectDropdown = ({
     selectedTeamId,
     onChange,
   }: {
@@ -120,8 +123,9 @@ vi.mock('@/shared/components/TeamSelectDropdown', () => ({
         Select BOS
       </button>
     </div>
-  ),
-}));
+  );
+  return { __esModule: true, default: TeamSelectDropdown, TeamSelectDropdown };
+});
 
 vi.mock('@/features/architect/utils/capHelpers', () => ({
   getCapSettings: (currentYear: number) => ({ currentYear }),

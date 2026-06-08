@@ -187,7 +187,7 @@ const minimalTotals = {
 };
 
 describe('postStateCapValidator.ts — uses ROSTER_LIMITS including minimum check', () => {
-  it('flags ROSTER_MAX_EXCEEDED when a team exceeds MAX_STANDARD standard contracts', async () => {
+  it('warns (advisory) ROSTER_MAX_EXCEEDED when a team exceeds MAX_STANDARD standard contracts', async () => {
     const { validatePostStateCapLegality } = await import(
       '@/features/architect/utils/capLegality/postStateCapValidator'
     );
@@ -208,14 +208,20 @@ describe('postStateCapValidator.ts — uses ROSTER_LIMITS including minimum chec
       year: 2026,
     });
 
-    const rosterViolation = result.violations.find(
+    // Roster size is advisory (validationFlags.rosterEnforcement === 'warn'):
+    // the breach surfaces as a non-blocking warning, not a blocking violation.
+    const rosterWarning = result.warnings.find(
       (v) => v.code === 'ROSTER_MAX_EXCEEDED' && v.teamCode === 'LAL'
     );
-    expect(rosterViolation).toBeDefined();
-    expect(rosterViolation?.expected).toBe(ROSTER_LIMITS.MAX_STANDARD);
+    expect(rosterWarning).toBeDefined();
+    expect(rosterWarning?.expected).toBe(ROSTER_LIMITS.MAX_STANDARD);
+    expect(
+      result.violations.some((v) => v.code === 'ROSTER_MAX_EXCEEDED')
+    ).toBe(false);
+    expect(result.valid).toBe(true);
   });
 
-  it('flags ROSTER_MIN_VIOLATED when a team falls below MIN_STANDARD standard contracts', async () => {
+  it('warns (advisory) ROSTER_MIN_VIOLATED when a team falls below MIN_STANDARD standard contracts', async () => {
     const { validatePostStateCapLegality } = await import(
       '@/features/architect/utils/capLegality/postStateCapValidator'
     );
@@ -236,11 +242,15 @@ describe('postStateCapValidator.ts — uses ROSTER_LIMITS including minimum chec
       year: 2026,
     });
 
-    const rosterViolation = result.violations.find(
+    const rosterWarning = result.warnings.find(
       (v) => v.code === 'ROSTER_MIN_VIOLATED' && v.teamCode === 'LAL'
     );
-    expect(rosterViolation).toBeDefined();
-    expect(rosterViolation?.expected).toBe(ROSTER_LIMITS.MIN_STANDARD);
+    expect(rosterWarning).toBeDefined();
+    expect(rosterWarning?.expected).toBe(ROSTER_LIMITS.MIN_STANDARD);
+    expect(
+      result.violations.some((v) => v.code === 'ROSTER_MIN_VIOLATED')
+    ).toBe(false);
+    expect(result.valid).toBe(true);
   });
 
   it('flags TWO_WAY_LIMIT_EXCEEDED when a team exceeds MAX_TWO_WAY two-way contracts', async () => {
@@ -384,16 +394,80 @@ describe('TM-6C roster ownership guardrails', () => {
       year: 2026,
     });
 
-    const minViolation = postStateResult.violations.find(
+    // Roster minimum is advisory now → it lands in warnings, not violations.
+    const minWarning = postStateResult.warnings.find(
       (v) => v.code === 'ROSTER_MIN_VIOLATED' && v.teamCode === 'LAL'
     );
+    // Two-way limit stays a blocking violation (twoWayRoster === 'error').
     const twoWayViolation = postStateResult.violations.find(
       (v) => v.code === 'TWO_WAY_LIMIT_EXCEEDED' && v.teamCode === 'LAL'
     );
 
-    expect(minViolation?.expected).toBe(evaluation.minimumStandard);
-    expect(minViolation?.actual).toBe(13);
+    expect(minWarning?.expected).toBe(evaluation.minimumStandard);
+    expect(minWarning?.actual).toBe(13);
     expect(twoWayViolation?.expected).toBe(evaluation.maximumTwoWay);
     expect(twoWayViolation?.actual).toBe(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression: two-way players must NOT count toward the 15-man standard limit,
+// even when they live in `players` and are flagged only by `contractType`
+// (no precomputed `isTwoWay` flag). Previously this counted 15+2 = 17 standard
+// and rejected every trade on a phantom roster overflow.
+// ---------------------------------------------------------------------------
+
+describe('roster count — two-way players excluded from the 15-man standard limit', () => {
+  const twoWayByContract = (name: string) =>
+    makeTradePlayer(name, 500_000, {
+      // No isTwoWay flag — only the contract type marks it two-way.
+      contract: {
+        contractType: 'Two-Way',
+        salariesByYear: [{ season, salary: 500_000 }],
+      },
+    } as Partial<NormalizedPlayer>);
+
+  it('treats a 15 standard + 2 two-way roster (two-ways in players[]) as legal in a balanced trade', () => {
+    const teamAStandard = Array.from({ length: 15 }, (_, i) =>
+      makeTradePlayer(`A_Std_${i}`, 2_000_000)
+    );
+    const teamATwoWay = [twoWayByContract('A_TW_0'), twoWayByContract('A_TW_1')];
+    const teamBStandard = Array.from({ length: 15 }, (_, i) =>
+      makeTradePlayer(`B_Std_${i}`, 2_000_000)
+    );
+
+    const tradeResult = validateTrade({
+      teams: [
+        {
+          // Two-ways mixed into players[], no separate twoWayPlayers array.
+          team: makeTradeTeam('TeamA', 30_000_000, [
+            ...teamAStandard,
+            ...teamATwoWay,
+          ]),
+          sends: [teamAStandard[0]],
+          picksOut: [],
+        },
+        {
+          team: makeTradeTeam('TeamB', 30_000_000, teamBStandard),
+          sends: [teamBStandard[0]],
+          picksOut: [],
+        },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    const rosterCount = tradeResult.teamResults[0]?.rules?.rosterCount;
+    const counts = (
+      rosterCount as
+        | { rosterCounts?: { standard?: number; twoWay?: number } }
+        | undefined
+    )?.rosterCounts;
+    // Standard count excludes the two-ways (15, not 17); two-ways tallied apart.
+    expect(counts?.standard).toBe(15);
+    expect(counts?.twoWay).toBe(2);
+    // No phantom "exceeds maximum" / "must be 14–15" standard violation.
+    const texts = issueTexts(rosterCount?.violations || []);
+    expect(texts.some((t) => /exceeds maximum|must be 14/i.test(t))).toBe(false);
   });
 });

@@ -125,13 +125,18 @@ describe('E125 internal wrapper deletion batch guardrails', () => {
       const extensionlessModule = await import(moduleCase.extensionlessSpecifier);
       const authorityModule = await import(moduleCase.authoritySpecifier);
 
+      // Post default->named export conversion (10f5fed7): these components are
+      // named exports (matching the case label), and the extensionless barrel
+      // re-exports that same symbol. Parity = both expose it and resolve to the
+      // identical component object.
+      const exportName = moduleCase.label;
       expect(Object.keys(extensionlessModule)).toEqual(
-        expect.arrayContaining(['default'])
+        expect.arrayContaining([exportName])
       );
       expect(Object.keys(authorityModule)).toEqual(
-        expect.arrayContaining(['default'])
+        expect.arrayContaining([exportName])
       );
-      expect(extensionlessModule.default).toBe(authorityModule.default);
+      expect(extensionlessModule[exportName]).toBe(authorityModule[exportName]);
     });
   }
 

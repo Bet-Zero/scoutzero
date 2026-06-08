@@ -74,7 +74,7 @@ const TradePreviewModal = ({
           <div className="rounded-2xl border border-white/20 shadow-2xl overflow-hidden bg-[#111] relative">
             <button
               onClick={onClose}
-              className="absolute top-2 left-2 text-white/60 hover:text-white z-20"
+              className="absolute top-2 right-2 text-white/60 hover:text-white z-20"
               title="Close"
             >
               <X size={36} />

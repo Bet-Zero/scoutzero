@@ -570,7 +570,14 @@ export function computeNormalizedWorldMutation(
       case 'storeOfferSheet': {
         return withDefaultPlayerDeletes(
           computeStoreOfferSheetResult({
-            payload: args.payload,
+            // computeStoreOfferSheetResult reads worldId from the payload for its
+            // dedup identity. Thread the authoritative top-level worldId in (as
+            // signAndTrade does with its worldId param) so both the preflight and
+            // the commit can resolve it; callers don't always set payload.worldId.
+            payload: {
+              ...args.payload,
+              worldId: args.payload?.worldId ?? worldId,
+            },
             currentState: args.currentState,
             seasonId,
             timestamp,

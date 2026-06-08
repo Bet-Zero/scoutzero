@@ -6,7 +6,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import PlayerContractMini from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini';
+import { PlayerContractMini } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini';
 
 // Pin CURRENT_YEAR calculation: component uses getFullYear() - (month < 6 ? 1 : 0).
 // We set up salary data relative to the same logic so tests are year-stable.

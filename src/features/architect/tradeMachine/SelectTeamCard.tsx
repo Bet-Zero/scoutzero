@@ -22,9 +22,10 @@ export const SelectTeamCard = ({
     <label className="text-sm mb-1 block text-white/80">Select Team</label>
     <select
       className="w-full bg-[#111] text-white p-2 rounded text-sm"
-      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-        onSelectTeam(e.target.value)
-      }
+      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+        // TMUI-13: ignore the blank placeholder option
+        if (e.target.value) onSelectTeam(e.target.value);
+      }}
     >
       <option value="">Select Team</option>
       {TeamListFull.map((t) => (

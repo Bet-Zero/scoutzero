@@ -52,7 +52,7 @@ const issueTexts = (issues: ValidationIssue[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
 describe('roster legality via validateTrade', () => {
-  it('blocks trade that pushes a team over max standard roster (15)', () => {
+  it('does not block (advisory) a trade that pushes a team over max standard roster (15)', () => {
     const teamAPlayers = Array.from({ length: 15 }, (_, i) =>
       makePlayer(`A_Player_${i}`, 2_000_000)
     );
@@ -77,22 +77,21 @@ describe('roster legality via validateTrade', () => {
       currentYear,
     });
 
-    // Team A: 15 - 1 sent + 3 received = 17 → over max
+    // Team A: 15 - 1 sent + 3 received = 17 → over max, but roster size is
+    // advisory (validationFlags.rosterEnforcement === 'warn'): it surfaces as a
+    // warning and does not block the trade.
     const teamAResult = result.teamResults[0];
     expect(teamAResult.rules.rosterCount).toBeDefined();
-    expect(teamAResult.rules.rosterCount.passed).toBe(false);
-    expect(
-      issueTexts(teamAResult.rules.rosterCount.violations).some((v) =>
-        v.includes('exceeds maximum')
-      )
-    ).toBe(true);
+    expect(teamAResult.rules.rosterCount.passed).toBe(true);
+    expect(teamAResult.rules.rosterCount.warningsOnly).toBe(true);
+    expect(teamAResult.rules.rosterCount.message).toContain('exceeds maximum');
+    // The over-roster breach is NOT a blocking trade violation.
     expect(
       issueTexts(result.violations).some((v) => v.includes('exceeds maximum'))
-    ).toBe(true);
-    expect(result.legal).toBe(false);
+    ).toBe(false);
   });
 
-  it('blocks trade that drops a team below min standard roster (14)', () => {
+  it('does not block (advisory) a trade that drops a team below min standard roster (14)', () => {
     const teamAPlayers = Array.from({ length: 14 }, (_, i) =>
       makePlayer(`A_Player_${i}`, 2_000_000)
     );
@@ -117,19 +116,15 @@ describe('roster legality via validateTrade', () => {
       currentYear,
     });
 
-    // Team A: 14 - 3 sent + 1 received = 12 → below min
+    // Team A: 14 - 3 sent + 1 received = 12 → below min, advisory (warn) only.
     const teamAResult = result.teamResults[0];
     expect(teamAResult.rules.rosterCount).toBeDefined();
-    expect(teamAResult.rules.rosterCount.passed).toBe(false);
-    expect(
-      issueTexts(teamAResult.rules.rosterCount.violations).some((v) =>
-        v.includes('below minimum')
-      )
-    ).toBe(true);
+    expect(teamAResult.rules.rosterCount.passed).toBe(true);
+    expect(teamAResult.rules.rosterCount.warningsOnly).toBe(true);
+    expect(teamAResult.rules.rosterCount.message).toContain('below minimum');
     expect(
       issueTexts(result.violations).some((v) => v.includes('below minimum'))
-    ).toBe(true);
-    expect(result.legal).toBe(false);
+    ).toBe(false);
   });
 
   it('blocks trade that exceeds two-way max (3)', () => {

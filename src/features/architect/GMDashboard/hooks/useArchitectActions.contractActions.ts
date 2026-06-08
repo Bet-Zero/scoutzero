@@ -247,6 +247,27 @@ export function useContractActions({
     [currentYear, openPlayerContractModalRoute]
   );
 
+  // Home-base shortcut: open the existing contract modal pre-seeded to a
+  // specific action so the Full Cap Table row kebab can deep-link into
+  // waive/extend/stretch without reimplementing any mutation. The committed
+  // write still happens inside EditContractModal via its existing callbacks.
+  const handleLaunchPlayerContractAction = useCallback(
+    (
+      player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer,
+      action: 'waive' | 'extend' | 'stretch'
+    ): void => {
+      const initialAction = action === 'stretch' ? 'waiveStretch' : action;
+      openPlayerContractModalRoute({
+        player: player as PlayerRulesProfileInput | ArchitectPlayer,
+        rulesYear: currentYear,
+        initialAction,
+        targetYear: null,
+        actionContext: null,
+      });
+    },
+    [currentYear, openPlayerContractModalRoute]
+  );
+
   // Shared helper for renounce confirmation and execution
   // Now directly updates teamCapSheet instead of using capSheetState
   const confirmAndRenounceRights = useCallback(
@@ -930,6 +951,7 @@ export function useContractActions({
     handleSetDeadCap,
     handleSetExceptions,
     handleEditContract,
+    handleLaunchPlayerContractAction,
     handleCapTableModalAction,
     handleCapHoldRenounce,
     handleExtendContract,

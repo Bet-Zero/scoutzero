@@ -14,6 +14,7 @@ import React, { useEffect, useRef } from 'react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
 import { TeamCodeMap, type TeamCode } from '@/constants/teamList';
+import type { PlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
 import type { FreeAgentRowProps } from './types';
 
 function getTeamLogoId(teamCode: string | null | undefined): string {
@@ -30,8 +31,18 @@ export const FreeAgentRow = ({
   openMenuSelectionKey,
   setOpenMenuSelectionKey,
   onOpenContractModal,
+  onPlayerAction,
+  pinnedPlayerIds = [],
 }: FreeAgentRowProps) => {
   const { surfacePlayer: player, freeAgent } = entry;
+  const faPlayerId =
+    entry.playerId ||
+    (typeof player.id === 'string' ? player.id : null) ||
+    (typeof player.player_id === 'string' ? player.player_id : null) ||
+    null;
+  const isTargetPinned = faPlayerId
+    ? pinnedPlayerIds.includes(faPlayerId)
+    : false;
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -111,8 +122,8 @@ export const FreeAgentRow = ({
       role="button"
       tabIndex={0}
       onClick={() => onSelect?.(entry)}
-      className={`w-full h-[45px] rounded-sm flex items-center border border-black mb-[3px] pr-2 overflow-visible hover:bg-neutral-700 cursor-pointer focus:outline-none ${
-        isSelected ? 'bg-neutral-700 ring-1 ring-lakers' : 'bg-neutral-800'
+      className={`mb-[3px] flex h-[45px] w-full cursor-pointer items-center overflow-visible rounded-sm border border-cockpit-edge pr-2 hover:bg-cockpit-raised focus:outline-none ${
+        isSelected ? 'bg-cockpit-raised ring-1 ring-cockpit-info' : 'bg-cockpit-slab'
       }`}
     >
       {/* Position */}
@@ -137,7 +148,7 @@ export const FreeAgentRow = ({
       </div>
 
       {/* Headshot */}
-      <div className="h-[43px] w-[50px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
+      <div className="flex h-[43px] w-[50px] items-center justify-center overflow-hidden bg-cockpit-inlay">
         <img
           src={
             player.headshotUrl ||
@@ -152,7 +163,7 @@ export const FreeAgentRow = ({
             }.png`
           }
           onError={(e) => {
-            e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
           }}
           alt={formattedName}
           className="h-full w-full object-cover"
@@ -242,6 +253,51 @@ export const FreeAgentRow = ({
             >
               View Profile
             </button>
+            {onPlayerAction && faPlayerId
+              ? (() => {
+                  const faContext: PlayerActionContext = {
+                    playerId: faPlayerId,
+                    playerLabel: formattedName || faPlayerId,
+                    sourceRoom: 'fa',
+                    isFreeAgentTarget: true,
+                  };
+                  return (
+                    <>
+                      <button
+                        onClick={() => {
+                          setOpenMenuSelectionKey(null);
+                          onPlayerAction(
+                            isTargetPinned ? 'unpin' : 'pin',
+                            faContext
+                          );
+                        }}
+                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                        data-testid={`free-agent-row-target-${entry.selectionKey}`}
+                      >
+                        {isTargetPinned ? 'Remove target' : 'Pin as target'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpenMenuSelectionKey(null);
+                          onPlayerAction('compare-impact', faContext);
+                        }}
+                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                      >
+                        Compare fit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpenMenuSelectionKey(null);
+                          onPlayerAction('guide-next-move', faContext);
+                        }}
+                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                      >
+                        Guide path
+                      </button>
+                    </>
+                  );
+                })()
+              : null}
           </div>
         )}
       </div>

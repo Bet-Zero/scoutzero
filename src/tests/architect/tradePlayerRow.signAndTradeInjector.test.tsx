@@ -50,7 +50,9 @@ function renderOpenMenuRow(player: SyntheticSntPlayer) {
       incoming={false}
       otherTeams={otherTeams}
       playersMap={{}}
-      openMenu={rowPlayer.name}
+      openMenu={String(
+        rowPlayer.id ?? rowPlayer.player_id ?? rowPlayer.name ?? ''
+      )}
       onSetPlayerTrade={baseHandlers.onSetPlayerTrade}
       onUndoPlayerTrade={baseHandlers.onUndoPlayerTrade}
       setOpenMenu={baseHandlers.setOpenMenu}

@@ -299,41 +299,23 @@ function buildCommands(
 async function collectAndPlace(p, tempJsonPath?: string) {
   const dest = finalPath(p.team, p.fileId);
   await mkdir(resolve(OUT_BASE, p.team), { recursive: true });
+  // Only accept THIS run's per-player parsed output. We deliberately do NOT fall
+  // back to a shared working file (e.g. working/player.json): a stale leftover
+  // there previously caused a failed fetch/parse to silently ship a *different*
+  // player's data into every output file. Missing per-player output is a hard
+  // failure, not something to paper over.
   const perPlayer = tempJsonPath
     ? resolve(tempJsonPath)
     : resolve(WORKING_DIR, `${p.fileId}.json`);
-  const canonical = resolve(WORKING_DIR, 'player.json');
-  const candidateLegacy = resolve(CONTRACTS_DIR, 'player.json');
-  const candidateFinal = resolve(OUT_BASE, p.team, `${p.fileId}.json`);
-  const candidateFlat = resolve(OUT_BASE, `${p.fileId}.json`);
   if (await exists(perPlayer)) {
     await cp(perPlayer, dest, { force: true });
     console.log(`📥 Placed from per-player temp: ${perPlayer} → ${dest}`);
     return dest;
   }
-  if (await exists(canonical)) {
-    await cp(canonical, dest, { force: true });
-    console.log(`📥 Placed from canonical temp: ${canonical} → ${dest}`);
-    return dest;
-  }
-  if (await exists(candidateLegacy)) {
-    await cp(candidateLegacy, dest, { force: true });
-    return dest;
-  }
-  if (await exists(candidateFinal)) {
-    return candidateFinal;
-  }
-  if (await exists(candidateFlat)) {
-    await cp(candidateFlat, dest, { force: true });
-    return dest;
-  }
   throw new Error(
-    `Parsed temp not found for ${p.id}. Looked for:\n` +
-      `  - ${perPlayer}\n` +
-      `  - ${canonical}\n` +
-      `  - ${candidateLegacy}\n` +
-      `  - ${candidateFinal}\n` +
-      `  - ${candidateFlat}\n`
+    `No per-player parsed output for ${p.id}. Expected: ${perPlayer}. ` +
+      `Fetch/parse likely failed — refusing to fall back to a shared working ` +
+      `file to avoid shipping another player's data.`
   );
 }
 
@@ -396,6 +378,17 @@ async function runOne(
     await sh(parseCmd, { cwd: CONTRACTS_DIR, maxBuffer: 1024 * 1024 * 20 });
     const tempJsonPath = join(tempDir, tempJsonName);
     const placedPath = await collectAndPlace(p, tempJsonPath);
+    // Identity guard: the placed file must actually be THIS player. Catches any
+    // cross-contamination (wrong/stale source) loudly instead of silently
+    // shipping another player's record under this player's id.
+    const placedDoc = JSON.parse(await readFile(placedPath, 'utf8'));
+    const placedId = String(placedDoc?.playerId || '').toLowerCase();
+    if (placedId && placedId !== String(p.id).toLowerCase()) {
+      throw new Error(
+        `Identity mismatch for ${p.id}: placed file has playerId="${placedDoc?.playerId}". ` +
+          `Aborting to avoid shipping wrong-player data.`
+      );
+    }
     await runValidate(p, placedPath);
     if (DO_PUSH_PREVIEW) {
       const payload = JSON.parse(await readFile(placedPath, 'utf8'));

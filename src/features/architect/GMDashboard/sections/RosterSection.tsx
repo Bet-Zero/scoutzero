@@ -20,6 +20,10 @@ import {
   type RosterVisualCapSheetInput,
   type RosterVisualDetailsMap,
 } from '@/features/architect/shared/RosterVisual';
+import type {
+  PlayerAction,
+  PlayerActionContext,
+} from '@/features/architect/cockpit';
 
 type RosterPlayerLike = Record<string, unknown>;
 
@@ -39,6 +43,14 @@ type RosterSectionProps = {
    * this id render a non-mutating "just changed" outline.
    */
   highlightPlayerId?: string | null;
+  /** Multi-focus highlight (pinned players). Unioned with highlightPlayerId. */
+  highlightPlayerIds?: string[];
+  /** Unified player-action intents routed by GMDashboard (adds the card menu). */
+  onPlayerAction?:
+    | ((action: PlayerAction, context: PlayerActionContext) => void)
+    | null;
+  /** Pinned ids so each card menu can show Pin vs Unpin. */
+  pinnedPlayerIds?: string[];
 };
 
 const RosterSection = ({
@@ -47,6 +59,9 @@ const RosterSection = ({
   teamId,
   onOpenPlayerContractModal,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
+  onPlayerAction = null,
+  pinnedPlayerIds = [],
 }: RosterSectionProps) => (
   <RosterVisual
     teamCapSheet={teamCapSheet}
@@ -58,6 +73,9 @@ const RosterSection = ({
         : null
     }
     highlightPlayerId={highlightPlayerId}
+    highlightPlayerIds={highlightPlayerIds}
+    onPlayerAction={onPlayerAction}
+    pinnedPlayerIds={pinnedPlayerIds}
   />
 );
 

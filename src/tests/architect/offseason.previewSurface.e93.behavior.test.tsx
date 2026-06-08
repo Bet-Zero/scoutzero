@@ -137,10 +137,11 @@ describe('Offseason preview surface E93 behavior', () => {
       OPTION_MANAGER_AUTHORITY_SPECIFIER
     );
 
-    expect(Object.keys(offseasonTabAuthority)).toEqual(['default']);
-    expect(Object.keys(optionManagerAuthority)).toEqual(['default']);
-    expect(offseasonTabAuthority.default).toBe(OffseasonTab);
-    expect(optionManagerAuthority.default).toBe(OptionManager);
+    // Post default->named export conversion (10f5fed7): named exports now.
+    expect(Object.keys(offseasonTabAuthority)).toEqual(['OffseasonTab']);
+    expect(Object.keys(optionManagerAuthority)).toEqual(['OptionManager']);
+    expect(offseasonTabAuthority.OffseasonTab).toBe(OffseasonTab);
+    expect(optionManagerAuthority.OptionManager).toBe(OptionManager);
   });
 
   it('preserves OptionManager empty-state placement', () => {

@@ -4,6 +4,9 @@ import type {
   TeamHistoryDetailSectionLike,
   TeamHistorySelectedEntry,
 } from './types';
+import { resolveHistoryOutboundLinks } from './historyOutboundLinks';
+import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
+import { buildPlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -236,10 +239,25 @@ const buildRawPayloadSummaryLines = (
 export const HistoryDetailModal = ({
   selectedEntry,
   onClose,
+  onNavigateRoom,
+  onOpenTradeWithRequest,
+  onPlayerAction,
+  resolvePlayerLabel,
 }: HistoryDetailModalProps) => {
   if (!selectedEntry) return null;
 
   const { activeTeamCode, entry } = selectedEntry;
+  // Committed world events + explicit local-timeline entries can offer the
+  // committed-event trade context; DEV fixtures / fallbacks cannot.
+  const isCommittedEvent =
+    selectedEntry.truthKind === 'authoritative-world-event' ||
+    selectedEntry.truthKind === 'explicit-local-timeline';
+  const outboundLinks = resolveHistoryOutboundLinks(entry, {
+    isCommitted: isCommittedEvent,
+  });
+  const eventIdForContext =
+    (typeof entry.eventId === 'string' && entry.eventId) ||
+    (entry.id != null ? String(entry.id) : null);
   const rawEntry = asRecord(entry.raw);
   const truthContract = resolveTruthContract(selectedEntry, rawEntry);
   const normalizedTeamsInvolved = uniqueStrings([
@@ -315,6 +333,100 @@ export const HistoryDetailModal = ({
           </div>
           <div className="mt-1 text-[11px]">{truthContract.description}</div>
         </div>
+
+        {(onNavigateRoom || onOpenTradeWithRequest) &&
+        outboundLinks.length > 0 ? (
+          <div className="mb-4" data-testid="team-history-detail-outbound-links">
+            <div className="mb-1 text-[11px] uppercase tracking-wide text-white/45">
+              Go to — committed event; destinations show current results
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {outboundLinks.map((link) => {
+                if (link.kind === 'unavailable') {
+                  return (
+                    <span
+                      key={link.id}
+                      className="rounded border border-white/10 bg-black/20 px-2 py-1 text-[11px] text-white/40"
+                      title={link.unavailableReason}
+                      data-testid={`team-history-outbound-${link.id}`}
+                    >
+                      {link.unavailableReason}
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    key={link.id}
+                    type="button"
+                    onClick={() => {
+                      if (link.kind === 'trade-context' && link.tradeRequest) {
+                        onOpenTradeWithRequest?.(link.tradeRequest);
+                        onClose();
+                        return;
+                      }
+                      if (link.kind === 'nav' && link.room) {
+                        onNavigateRoom?.(link.room);
+                        onClose();
+                      }
+                    }}
+                    className="rounded border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-white/80 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                    data-testid={`team-history-outbound-${link.id}`}
+                  >
+                    {link.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {onPlayerAction && normalizedPlayerIds.length > 0 ? (
+          <div className="mb-4" data-testid="team-history-detail-player-menus">
+            <div className="mb-1 text-[11px] uppercase tracking-wide text-white/45">
+              Players
+            </div>
+            <ul className="flex flex-col gap-1">
+              {normalizedPlayerIds.map((playerId) => {
+                const label = resolvePlayerLabel?.(playerId) ?? playerId;
+                const context = buildPlayerActionContext({
+                  player: { id: playerId },
+                  playerLabel: label,
+                  sourceRoom: 'history',
+                  eventId: eventIdForContext,
+                });
+                if (!context) return null;
+                return (
+                  <li
+                    key={playerId}
+                    className="flex items-center gap-1.5 rounded border border-white/10 bg-black/20 px-2 py-1"
+                    data-testid={`team-history-player-${playerId}`}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[12px] text-white/85">
+                      {label}
+                    </span>
+                    <PlayerActionMenu
+                      context={context}
+                      visibleActions={[]}
+                      overflowActions={[
+                        'view-on-roster',
+                        'view-on-cap',
+                        'view-in-full-cap',
+                        'compare-impact',
+                        'guide-next-move',
+                      ]}
+                      menuAlign="left"
+                      testIdPrefix={`team-history-player-${playerId}-actions`}
+                      onAction={(action, ctx) => {
+                        onPlayerAction(action, ctx);
+                        onClose();
+                      }}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
           <div>

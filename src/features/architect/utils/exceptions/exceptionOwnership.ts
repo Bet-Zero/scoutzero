@@ -32,6 +32,12 @@ export type CanonicalNonTpeExceptionState = {
   createdOn?: string | null;
   expiresOn?: string | null;
   lastUsedAt?: string | null;
+  /**
+   * Season end-year in which this exception was last consumed. Used to enforce
+   * the Bi-Annual Exception (BAE) "every other season" restriction across
+   * season rollovers. Persisted on the entry; preserved by the lifecycle reset.
+   */
+  lastUsedSeasonEndYear?: number | null;
 };
 
 export type CanonicalDpeExceptionState = {

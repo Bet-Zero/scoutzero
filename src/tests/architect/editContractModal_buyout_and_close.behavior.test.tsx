@@ -4,15 +4,19 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import '@testing-library/jest-dom/vitest';
 import { EditContractModal } from '@/shared/components/EditContractModal';
 
-vi.mock('@/features/architect/hooks/useCapValidation', () => ({
-  __esModule: true,
-  default: () => ({
+vi.mock('@/features/architect/hooks/useCapValidation', () => {
+  const useCapValidation = () => ({
     warnings: [],
     errors: [],
     isValid: true,
-  }),
-  buildSigningGuardrails: () => null,
-}));
+  });
+  return {
+    __esModule: true,
+    default: useCapValidation,
+    useCapValidation,
+    buildSigningGuardrails: () => null,
+  };
+});
 
 const PLAYER = {
   id: 'p1',

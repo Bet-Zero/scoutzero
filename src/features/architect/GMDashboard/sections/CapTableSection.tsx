@@ -8,6 +8,17 @@ type ForwardedCapTableProps = Pick<
   | 'onRenounceCapHold'
   | 'getRulesProfileForYear'
   | 'highlightPlayerId'
+  | 'highlightPlayerIds'
+  | 'pinnedPlayerIds'
+  | 'onTogglePin'
+  | 'manualCapSheetMutationAuthority'
+  | 'exceptionsReadout'
+  | 'onLaunchPlayerAction'
+  | 'onPlayerAction'
+  | 'onLaunchFreeAgentSearch'
+  | 'freeAgentOptions'
+  | 'onOpenFreeAgentOption'
+  | 'onRemoveFreeAgentOption'
 >;
 
 type CapTableSectionProps = ForwardedCapTableProps & {
@@ -21,9 +32,20 @@ const CapTableSection = ({
   onOpenPlayerContractModal,
   onLaunchContractAction,
   onRenounceCapHold,
+  onLaunchPlayerAction = null,
+  onPlayerAction = null,
   playersMap,
   getRulesProfileForYear,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
+  pinnedPlayerIds = [],
+  onTogglePin = null,
+  manualCapSheetMutationAuthority = null,
+  exceptionsReadout = null,
+  onLaunchFreeAgentSearch = null,
+  freeAgentOptions = [],
+  onOpenFreeAgentOption = null,
+  onRemoveFreeAgentOption = null,
 }: CapTableSectionProps) => (
   <CapSheetFull
     teamCapSheet={teamCapSheet}
@@ -31,8 +53,19 @@ const CapTableSection = ({
     onOpenPlayerContractModal={onOpenPlayerContractModal}
     onLaunchContractAction={onLaunchContractAction}
     onRenounceCapHold={onRenounceCapHold}
+    onLaunchPlayerAction={onLaunchPlayerAction}
+    onPlayerAction={onPlayerAction}
     getRulesProfileForYear={getRulesProfileForYear}
     highlightPlayerId={highlightPlayerId}
+    highlightPlayerIds={highlightPlayerIds}
+    pinnedPlayerIds={pinnedPlayerIds}
+    onTogglePin={onTogglePin}
+    manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
+    exceptionsReadout={exceptionsReadout}
+    onLaunchFreeAgentSearch={onLaunchFreeAgentSearch}
+    freeAgentOptions={freeAgentOptions}
+    onOpenFreeAgentOption={onOpenFreeAgentOption}
+    onRemoveFreeAgentOption={onRemoveFreeAgentOption}
   />
 );
 

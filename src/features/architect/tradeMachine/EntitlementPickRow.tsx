@@ -191,7 +191,9 @@ export const EntitlementPickRow = ({
     setOpenMenu?.(null);
   };
 
-  const tradingToTeam = otherTeams.find((t) => t.id === currentToTeamId);
+  const tradingToTeam = otherTeams.find(
+    (t) => (t.id ?? t.teamCode) === currentToTeamId
+  );
 
   return (
     <div
@@ -333,7 +335,7 @@ export const EntitlementPickRow = ({
                       }
                       className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
                     >
-                      {isSelected && currentToTeamId === t.id
+                      {isSelected && currentToTeamId === (t.id ?? t.teamCode)
                         ? 'Cancel Trade'
                         : `Trade to ${t.teamName || t.teamCode || t.id}`}
                     </button>

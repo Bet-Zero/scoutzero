@@ -60,8 +60,10 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
     expect(dashboardSource).toContain(
       "<FreeAgencySection {...freeAgencySectionSurface} />"
     );
-    expect(dashboardSource).toContain(
-      "<OffseasonSection {...offseasonSectionSurface} />"
+    // OffseasonSection also receives an inline world-picker slot (SBX-001), so
+    // it renders multi-line — assert the handoff-surface spread is still used.
+    expect(dashboardSource).toMatch(
+      /<OffseasonSection\b[\s\S]{0,80}\{\.\.\.offseasonSectionSurface\}/
     );
   });
 

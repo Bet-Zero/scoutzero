@@ -49,8 +49,13 @@ export type ValidationFlagValue = ValidationFlags[ValidationFlagName];
  */
 export const validationFlags: ValidationFlags = {
   // Team roster validation
-  rosterEnforcement: 'error', // Roster size requirements
-  twoWayRoster: 'error', // Two-way contract limits
+  // Roster size (14–15 standard) is advisory: violations surface as warnings
+  // but do not block a trade/mutation. Deliberate sandbox-friendly choice so a
+  // user can carry an over/under-filled roster mid-plan. Honored by both gates:
+  // the Trade Machine projection (checkRosterCounts) and the post-state
+  // validator (runFinalStateRosterRecheck).
+  rosterEnforcement: 'warn', // Roster size requirements (advisory)
+  twoWayRoster: 'error', // Two-way contract limits (still blocking)
 
   // Timing & date-based validations
   timingEnforcement: 'warn', // Trade timing windows

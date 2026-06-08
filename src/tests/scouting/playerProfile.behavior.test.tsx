@@ -26,13 +26,15 @@ import { createEmptyVideoExamples } from '@/shared/utils/videoExamples';
 import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 import { usePlayerDetail } from '@/shared/hooks/usePlayerDetail';
 
-vi.mock('@/shared/hooks/useSimplePlayerData', () => ({
-  default: vi.fn(),
-}));
+vi.mock('@/shared/hooks/useSimplePlayerData', () => {
+  const useSimplePlayerData = vi.fn();
+  return { default: useSimplePlayerData, useSimplePlayerData };
+});
 
-vi.mock('@/shared/hooks/usePlayerDetail', () => ({
-  default: vi.fn(),
-}));
+vi.mock('@/shared/hooks/usePlayerDetail', () => {
+  const usePlayerDetail = vi.fn();
+  return { default: usePlayerDetail, usePlayerDetail };
+});
 
 const mockedUseSimplePlayerData = vi.mocked(useSimplePlayerData);
 const mockedUsePlayerDetail = vi.mocked(usePlayerDetail);

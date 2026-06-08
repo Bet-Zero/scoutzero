@@ -150,10 +150,20 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
 
   it('keeps production offseason reload wiring on the GMDashboard/useArchitectState authority seam', () => {
     const gmDashboardSource = readSource(gmDashboardRoot, 'GMDashboard.tsx');
-    const useArchitectStateSource = readSource(
-      hooksRoot,
-      'useArchitectState.ts'
-    );
+    // useArchitectState was split into satellites (.types/.worldLoader/
+    // .worldTracker/.freeAgents/.helpers). Scan the whole authority family so the
+    // reload/world-owner wiring assertions resolve wherever the split relocated
+    // them (type shapes moved to .types, the world loader to .worldLoader).
+    const useArchitectStateSource = [
+      'useArchitectState.ts',
+      'useArchitectState.types.ts',
+      'useArchitectState.worldLoader.ts',
+      'useArchitectState.worldTracker.ts',
+      'useArchitectState.freeAgents.ts',
+      'useArchitectState.helpers.ts',
+    ]
+      .map((file) => readSource(hooksRoot, file))
+      .join('\n');
 
     expect(useArchitectStateSource).toContain(
       'export interface ReloadActiveWorldTeamDataOptions {'

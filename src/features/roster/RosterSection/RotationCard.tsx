@@ -17,6 +17,9 @@ type RotationCardProps = {
   isExport?: boolean;
   onSelect?: (event: MouseEvent<HTMLElement>) => void;
   isHighlighted?: boolean;
+  /** Optional corner overlay (e.g. the shared PlayerActionMenu). Additive —
+   *  when omitted the card is unchanged (roster builder passes nothing). */
+  menuSlot?: React.ReactNode;
 };
 
 export const RotationCard = ({
@@ -26,6 +29,7 @@ export const RotationCard = ({
   isExport = false,
   onSelect,
   isHighlighted = false,
+  menuSlot,
 }: RotationCardProps) => {
   if (!player) return null;
 
@@ -75,7 +79,7 @@ export const RotationCard = ({
             alt={player.name ?? undefined}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = '/assets/headshots/default.png';
+              e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
             }}
           />
           {showRemove && (
@@ -106,6 +110,15 @@ export const RotationCard = ({
           />
         </div>
       </div>
+      {menuSlot ? (
+        <div
+          className="absolute right-0 top-0 z-30"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {menuSlot}
+        </div>
+      ) : null}
     </div>
   );
 };

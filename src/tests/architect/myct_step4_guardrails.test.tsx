@@ -115,8 +115,8 @@ vi.mock(
   }
 );
 
-vi.mock('@/features/architect/capSheet/modals/ManageExceptionsModal', () => ({
-  default: ({
+vi.mock('@/features/architect/capSheet/modals/ManageExceptionsModal', () => {
+  const ManageExceptionsModal = ({
     isOpen,
     currentYear,
   }: {
@@ -125,8 +125,9 @@ vi.mock('@/features/architect/capSheet/modals/ManageExceptionsModal', () => ({
   }) =>
     isOpen ? (
       <div role="dialog">Manage Exceptions Modal | {String(currentYear)}</div>
-    ) : null,
-}));
+    ) : null;
+  return { default: ManageExceptionsModal, ManageExceptionsModal };
+});
 
 vi.mock('@/features/architect/capSheet/modals/ManageDeadMoneyModal', () => ({
   default: ({
@@ -295,13 +296,14 @@ describe('MYCT Step 4 Guardrails - Source Scan', () => {
       /const\s+canonicalTotals\s*=\s*React\.useMemo\s*\(\s*\(\)\s*=>\s*computeTeamCapTotals\s*\(/
     );
     expect(capSheetSource.match(/computeTeamCapTotals\s*\(/g) || []).toHaveLength(1);
-    expect(capSheetSource).toContain(
+    // Phase 2A cockpit migration: the 5-tile canonical totals summary (and its
+    // hard-cap badge) moved out of CapSheet to the persistent cockpit
+    // TeamStatusStrip. CapSheet no longer owns summaryHardCapStatus and no longer
+    // renders <CapSummaryTiles> (it survives only as a code comment until 2C).
+    expect(capSheetSource).not.toContain(
       'const summaryHardCapStatus = React.useMemo(() => {'
     );
-    expect(capSheetSource).toContain('return getHardCapStatus(teamCapSheet, {');
-    expect(capSheetSource).toMatch(
-      /<CapSummaryTiles[\s\S]*canonicalTotals=\{canonicalTotals\}[\s\S]*hardCapStatus=\{summaryHardCapStatus\}/
-    );
+    expect(capSheetSource).not.toMatch(/<CapSummaryTiles[\s>]/);
     expect(capSheetSource).toContain('Selected-Year Supporting Detail');
     expect(capSheetSource).toContain(
       'This breakdown reads the same selected-year canonical totals as'
@@ -398,9 +400,6 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     const primarySurface = screen.getByRole('region', {
       name: 'Primary selected-year cap sheet surface',
     });
-    const summarySurface = within(primarySurface).getByRole('region', {
-      name: 'Selected-year canonical totals summary surface',
-    });
     const rosterSurface = within(primarySurface).getByRole('region', {
       name: 'Selected-year roster detail surface',
     });
@@ -417,18 +416,17 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     expect(shellTruthPanel).toHaveTextContent('Cap table: 2025-26');
     expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26');
 
+    // The canonical totals summary surface + hard-cap badge moved to the cockpit
+    // TeamStatusStrip (Phase 2A migration); the cap sheet no longer renders them.
+    // Canonical truth here is the breakdown surface below.
     expect(
-      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
-    ).toHaveTextContent('Canonical totals: 2025-26');
+      screen.queryByRole('region', {
+        name: 'Selected-year canonical totals summary surface',
+      })
+    ).not.toBeInTheDocument();
     expect(
-      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
-    ).toHaveTextContent('Hard-cap badge authority: 2025-26');
-    expect(
-      within(summarySurface).getByText(formatMoney(currentTotals.totalCapAllocations))
-    ).toBeInTheDocument();
-    expect(
-      within(summarySurface).getByText('Hard Capped at 1st Apron')
-    ).toBeInTheDocument();
+      screen.queryByText('Hard Capped at 1st Apron')
+    ).not.toBeInTheDocument();
 
     expect(
       within(rosterSurface).getByText('Selected-Year Supporting Detail')
@@ -513,9 +511,6 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     const primarySurface = screen.getByRole('region', {
       name: 'Primary selected-year cap sheet surface',
     });
-    const summarySurface = within(primarySurface).getByRole('region', {
-      name: 'Selected-year canonical totals summary surface',
-    });
     const rosterSurface = within(primarySurface).getByRole('region', {
       name: 'Selected-year roster detail surface',
     });
@@ -529,22 +524,21 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     expect(shellTruthPanel).toHaveTextContent('Cap table: 2026-27');
     expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26 only');
 
+    // Summary surface + hard-cap badge moved to the cockpit (Phase 2A); the cap
+    // sheet shows the future-year canonical total via the breakdown surface and
+    // never leaks the current-season hard-cap badge into a future view.
     expect(
-      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
-    ).toHaveTextContent('Canonical totals: 2026-27');
-    expect(
-      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
-    ).toHaveTextContent('Hard-cap badge authority: 2025-26 only');
-    expect(
-      within(summarySurface).getByText(formatMoney(futureTotals.totalCapAllocations))
-    ).toBeInTheDocument();
+      screen.queryByRole('region', {
+        name: 'Selected-year canonical totals summary surface',
+      })
+    ).not.toBeInTheDocument();
     expect(
       within(breakdownSurface).getByText(
         formatMoney(futureTotals.totalCapAllocations)
       )
     ).toBeInTheDocument();
     expect(
-      within(summarySurface).queryByText('Hard Capped at 1st Apron')
+      screen.queryByText('Hard Capped at 1st Apron')
     ).not.toBeInTheDocument();
 
     expect(

@@ -16,7 +16,16 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    setupFiles: ['./tests/setupFirebaseMocks.ts', './tests/setupDebug.ts'],
+    // Render-heavy jsdom suite: give each test a generous outer budget so a test
+    // chaining several waitFor/findBy* calls doesn't blow the default 5s under
+    // load. RTL's own async polling window is raised in the setup below.
+    testTimeout: 15000,
+    hookTimeout: 15000,
+    setupFiles: [
+      './tests/setupFirebaseMocks.ts',
+      './tests/setupDebug.ts',
+      './tests/setupReactTestingLibrary.ts',
+    ],
     include: [
       // Component/UI tests that need jsdom + React
       'tests/**/*.test.jsx',

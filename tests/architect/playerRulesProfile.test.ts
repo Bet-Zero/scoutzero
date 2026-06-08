@@ -11,7 +11,7 @@
  * @file tests/architect/playerRulesProfile.test.js
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // NOTE: This test intentionally imports INTERNAL implementation directly.
 // Most Architect code must import from salaryEngine instead:
@@ -760,6 +760,24 @@ describe('computeBirdRights', () => {
 
     expect(birdRights.type).toBe(BIRD_RIGHTS_TYPES.NONE);
     expect(birdRights.signingAbilities.canSignOverCap).toBe(false);
+  });
+
+  it('fails closed to NONE when salaryCap is missing (ENG-002)', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const birdRights = computeBirdRights(VETERAN_STAR, {
+        ...LEAGUE_CONTEXT,
+        capSettings: { ...LEAGUE_CONTEXT.capSettings, salaryCap: null },
+      });
+
+      // Without a valid salary cap we cannot compute signing abilities, so the
+      // rule fails closed instead of returning misleading 0-value amounts.
+      expect(birdRights.type).toBe(BIRD_RIGHTS_TYPES.NONE);
+      expect(birdRights.signingAbilities.canSignOverCap).toBe(false);
+      expect(birdRights.notes).toMatch(/salaryCap/i);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('calculates Early Bird max correctly', () => {

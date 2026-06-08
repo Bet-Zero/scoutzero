@@ -35,6 +35,14 @@ const CAP_SUMMARY_TILES_PATH = path.resolve(
   '../../features/architect/capSheet/CapSheet/CapSummaryTiles.tsx'
 );
 
+// Phase 2A cockpit migration: the canonical-totals summary surface moved
+// from CapSummaryTiles (rendered inside the Cap Sheet room) to
+// TeamStatusStrip (rendered persistently in the cockpit shell, every room).
+const TEAM_STATUS_STRIP_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/cockpit/TeamStatusStrip.tsx'
+);
+
 const EXCEPTION_TRACKER_PATH = path.resolve(
   __dirname,
   '../../features/architect/capSheet/ExceptionTracker/ExceptionTracker.tsx'
@@ -205,18 +213,20 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     );
   });
 
-  it('CapSheet passes parent-computed canonicalTotals into CapSummaryTiles', () => {
-    const passesCanonicalTotals =
-      /<CapSummaryTiles[\s\S]*canonicalTotals=\{canonicalTotals\}/.test(
-        capSheetContent
-      );
-    expect(passesCanonicalTotals).toBe(true);
+  it('Cap Sheet no longer renders the canonical-totals summary surface (moved to TeamStatusStrip in cockpit)', () => {
+    expect(capSheetContent).not.toMatch(/<CapSummaryTiles\b/);
+    expect(capSheetContent).not.toContain("from './CapSummaryTiles'");
   });
 
-  it('CapSheet passes currentYear into CapSummaryTiles so hard-cap truth can be year-gated', () => {
-    expect(capSheetContent).toMatch(
-      /<CapSummaryTiles[\s\S]*currentYear=\{currentYear\}/
-    );
+  it('TeamStatusStrip consumes workspace-context cap fields directly without re-running computeTeamCapTotals', () => {
+    const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
+    expect(stripContent).toContain('useArchitectWorkspaceContext');
+    expect(stripContent).toContain('cap.totalCapAllocations');
+    expect(stripContent).toContain('cap.capSpace');
+    expect(stripContent).toContain('cap.taxSpace');
+    expect(stripContent).toContain('cap.firstApronSpace');
+    expect(stripContent).toContain('cap.secondApronSpace');
+    expect(/computeTeamCapTotals\s*\(/.test(stripContent)).toBe(false);
   });
 
   it('CapSheet keeps current-year breakdown and footer as direct canonicalTotals reads', () => {
@@ -248,21 +258,16 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     );
   });
 
-  it('CapSheet resolves adjacent hard-cap presentation before handing it to CapSummaryTiles', () => {
-    expect(capSheetContent).toContain('getHardCapStatus');
-    expect(capSheetContent).toContain('const summaryHardCapStatus = React.useMemo');
-    expect(capSheetContent).toMatch(
-      /<CapSummaryTiles[\s\S]*hardCapStatus=\{summaryHardCapStatus\}/
-    );
-    expect(capSummaryTilesContent).not.toContain('getHardCapStatus');
-    expect(capSummaryTilesContent).toContain('hardCapStatus?: SummaryHardCapStatus | null;');
-    expect(capSummaryTilesContent).toContain('hardCapCeilingType');
-    expect(capSummaryTilesContent).toContain('hardCapCeilingLabel');
-    expect(capSummaryTilesContent).toContain(
-      'selectedYear === currentYear && Boolean(hardCapStatus)'
-    );
-    expect(capSummaryTilesContent).not.toContain('isHardCappedAtFirstApron');
-    expect(capSummaryTilesContent).not.toContain('getFirstApronHardCapReason');
+  it('TeamStatusStrip derives apron tone from workspace cap-space fields (no per-render hard-cap recomputation)', () => {
+    const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
+    // Apron tone semantics match the legacy CapSummaryTiles: tile color is
+    // driven by whether the team's space against the threshold is negative
+    // (over) or non-negative (under). The strip must not call
+    // getHardCapStatus itself — hard-cap presentation is handed in via the
+    // optional hardCapStatus prop computed by the dashboard composer.
+    expect(stripContent).toContain('cap.firstApronSpace');
+    expect(stripContent).toContain('cap.secondApronSpace');
+    expect(/getHardCapStatus\s*\(/.test(stripContent)).toBe(false);
   });
 });
 
@@ -303,17 +308,15 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
     expect(capSheetSectionContent).toContain('Adjacent authority:');
   });
 
-  it('keeps explicit surface-label handoff from section to ExceptionTracker and from CapSheet to CapSummaryTiles', () => {
+  it('keeps explicit surface-label handoff from section to ExceptionTracker; canonical totals summary surface is owned by the cockpit TeamStatusStrip', () => {
     expect(capSheetSectionContent).toMatch(
       /<ExceptionTracker[\s\S]*surfaceLabel=\{CAP_SHEET_SECTION_SURFACE_LABELS\.adjacentDetail\}/
     );
-    expect(capSheetContent).toMatch(
-      /<CapSummaryTiles[\s\S]*surfaceLabel=\{CAP_SHEET_SURFACE_LABELS\.canonicalTotalsSummary\}/
-    );
-    expect(capSummaryTilesContent).toContain('surfaceLabel?: string;');
-    expect(capSummaryTilesContent).toContain(
-      "surfaceLabel = 'Selected-year canonical totals summary surface'"
-    );
+    // After Phase 2A the canonical totals summary is rendered by the
+    // cockpit's TeamStatusStrip, not by CapSheet → CapSummaryTiles.
+    expect(capSheetContent).not.toMatch(/<CapSummaryTiles\b/);
+    const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
+    expect(stripContent).toContain('Team financial posture');
   });
 
   it('CapSummaryTiles explicitly fences hard-cap truth to the current season', () => {
@@ -489,9 +492,13 @@ describe('Gate 4B: ManageExceptionsModal Shared Exception Default Contract (CS-4
   it('imports and calls the shared normalized exception default helper', () => {
     expect(content).toContain('getExceptionDefaultAmountFromCapSettings');
 
+    // The status-board redesign sources every exception's CBA default from a
+    // single call site (the init seed loop) instead of the old per-branch and
+    // reference-section calls — the point is that the shared helper is used at
+    // all, never a modal-local resolver (asserted below).
     const helperCallCount =
       content.match(/getExceptionDefaultAmountFromCapSettings\s*\(/g)?.length || 0;
-    expect(helperCallCount).toBeGreaterThanOrEqual(3);
+    expect(helperCallCount).toBeGreaterThanOrEqual(1);
   });
 
   it('does NOT keep a modal-local default amount resolver', () => {
@@ -770,15 +777,18 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     readFileContent(USE_ARCHITECT_ACTIONS_OFFER_SHEET_PATH) +
     readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
   const editContractModalContent = readFileContent(EDIT_CONTRACT_MODAL_PATH);
+  // The dashboard now composes sections via a `rooms` map consumed by the
+  // cockpit Workbench. The "cap" tab area lives in the `cap:` entry and
+  // ends where the next entry (`capfull:`) begins.
   const gmDashboardCapRegion = readRegion(
     gmDashboardContent,
-    "{activeTab === 'cap' && (",
-    "{activeTab === 'capfull' && ("
+    '    cap: {',
+    '    capfull: {'
   );
   const modalActionCallbacksRegion = readRegion(
     gmDashboardContent,
     'const modalActionCallbacks: EditContractArchitectActionCallbacks = {',
-    '  if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;'
+    '  if (authLoading || isLoading) {'
   );
   const manualLedgerHelperRegion = readRegion(
     actionsContent,

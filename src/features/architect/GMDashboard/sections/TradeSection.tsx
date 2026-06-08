@@ -25,6 +25,10 @@ type ForwardedTradeEditorProps = Pick<
   | 'worldId'
   | 'worldAsOfDate'
   | 'userId'
+  | 'onDraftActivityChange'
+  | 'requestedStagePlayerIds'
+  | 'onStagePlayerHandled'
+  | 'tradeContext'
 >;
 
 type TradeSectionProps = ForwardedTradeEditorProps;
@@ -41,6 +45,10 @@ const TradeSection = ({
   worldId = null, // World ID for world-aware team loading
   worldAsOfDate = null,
   userId = null,
+  onDraftActivityChange = null,
+  requestedStagePlayerIds = [],
+  onStagePlayerHandled = null,
+  tradeContext = null,
 }: TradeSectionProps) => {
   const tradeEditorSurfaceProps = {
     primaryTeam,
@@ -54,6 +62,10 @@ const TradeSection = ({
     worldId,
     worldAsOfDate,
     userId,
+    onDraftActivityChange,
+    requestedStagePlayerIds,
+    onStagePlayerHandled,
+    tradeContext,
   } satisfies ForwardedTradeEditorProps;
 
   /* SECTION HANDOFF / FORWARDED TRADE SURFACE: TradeEditor owns local

@@ -47,7 +47,7 @@ vi.mock('@/features/architect/utils/hardCapUtils', () => ({
 
 vi.mock('@/shared/components/TeamLogo', () => ({
   __esModule: true,
-  default: ({
+  TeamLogo: ({
     teamId,
     className,
   }: {

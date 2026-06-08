@@ -1,5 +1,12 @@
 # Draft Picks Pipeline — Commands
 
+> **Source note.** The commands below (`draft-picks:*` / `team:draft-picks`) are
+> the **RealGM (legacy)** path, kept as a backup. The current/primary draft-pick
+> source is **ProSportsTransactions (PST)** — its `pst:*` pipeline produces the
+> data the app actually uses (`architect_baseEntitlements`,
+> `architect_basePickRules`, `data/pst/`). See
+> [`team-scrape/draft-picks/README.md`](../../team-scrape/draft-picks/README.md).
+
 Run everything from **repo root** (the folder that contains `package.json`).
 
 ---

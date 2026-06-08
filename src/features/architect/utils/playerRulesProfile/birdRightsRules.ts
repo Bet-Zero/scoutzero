@@ -171,20 +171,31 @@ export function computeBirdRights(
   leagueContext?: BirdRightsLeagueContextLike | null
 ): BirdRightsInfo {
   const capSettings = leagueContext?.capSettings ?? {};
-  // Require salaryCap from context - warn but continue with placeholder for backward compatibility
-  // TODO: In future version, require salaryCap and return error result if missing
   const salaryCap = capSettings.salaryCap;
   const isValidCap =
     typeof salaryCap === 'number' &&
     Number.isFinite(salaryCap) &&
     salaryCap > 0;
+  const averageSalary = capSettings.averageSalary || DEFAULT_AVERAGE_SALARY;
+  // ENG-002: salaryCap is required to compute signing abilities. Fail closed
+  // (mirroring the missing-currentYear handling below) instead of silently
+  // continuing with a 0 cap, which produced misleading 0-value signing amounts.
   if (!isValidCap) {
     console.warn(
-      '[birdRightsRules] Missing or invalid capSettings.salaryCap in leagueContext. Bird rights signing abilities may be inaccurate.'
+      '[birdRightsRules] Missing or invalid capSettings.salaryCap in leagueContext. Returning NONE — bird-rights signing abilities require a valid salary cap.'
     );
+    const result = buildBirdRightsInfo(
+      BIRD_RIGHTS_TYPES.NONE,
+      0,
+      player,
+      0,
+      averageSalary
+    );
+    result.notes =
+      'Missing or invalid salaryCap in leagueContext - signing abilities unavailable';
+    return result;
   }
-  const effectiveCap = isValidCap ? salaryCap : 0; // Use 0 to make signing abilities clearly invalid
-  const averageSalary = capSettings.averageSalary || DEFAULT_AVERAGE_SALARY;
+  const effectiveCap = salaryCap;
 
   // Require currentYear from leagueContext for deterministic behavior
   const currentYear = leagueContext?.currentYear;

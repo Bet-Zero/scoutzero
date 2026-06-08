@@ -1,5 +1,10 @@
 import type { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import type { EditContractModal } from '@/shared/components/EditContractModal';
+import type {
+  TradeObjective,
+  TradeExceptionRef,
+  TradeOpenAuthority,
+} from '@/features/architect/cockpit/tradeOpenRequest';
 import type { TradeTeamCard } from './TradeTeamCard';
 import type TradePreviewModal from './TradePreviewModal';
 import type { ValidationDetailsPanel } from './ValidationDetailsPanel';
@@ -87,4 +92,28 @@ export interface TradeEditorProps {
   worldId?: string | null;
   worldAsOfDate?: string | Date | null;
   userId?: string | null;
+  /** Notifies parent when local trade draft has outgoing assets (non-committed). */
+  onDraftActivityChange?: ((active: boolean) => void) | null;
+  /**
+   * One-shot request to pre-stage one or more players as outgoing assets when
+   * the Trade Machine opens from a player-context entry (the pin board's "Trade"
+   * / "Trade all pinned"). Each id found on the primary team's roster is staged;
+   * `onStagePlayerHandled` then clears the request. Ids not on the primary roster
+   * are a no-op (still cleared) — see v1 scope.
+   */
+  requestedStagePlayerIds?: string[];
+  onStagePlayerHandled?: (() => void) | null;
+  /**
+   * Context-carrying open (interconnectivity Slice 3): objective / exception /
+   * committed-event reference + authority. Drives the dismissible in-overlay
+   * banner. Never implies validation or apply.
+   */
+  tradeContext?: TradeOpenBannerContext | null;
+}
+
+export interface TradeOpenBannerContext {
+  objective?: TradeObjective;
+  exceptionRef?: TradeExceptionRef;
+  relatedEventId?: string | null;
+  authority: TradeOpenAuthority;
 }

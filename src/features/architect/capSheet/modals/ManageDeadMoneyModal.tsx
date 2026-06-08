@@ -264,139 +264,193 @@ export const ManageDeadMoneyModal = ({
 
   if (!isOpen) return null;
 
+  const currentSeasonKey = `${currentYear - 1}-${String(currentYear % 100).padStart(2, '0')}`;
+  const totalAllSeasons = entries.reduce(
+    (sum, entry) => sum + toDeadCapAmount(entry.amount),
+    0
+  );
+  const totalCurrentSeason = entries
+    .filter((entry) => entry.seasonKey === currentSeasonKey)
+    .reduce((sum, entry) => sum + toDeadCapAmount(entry.amount), 0);
+  const formatMoney = (value: number) => `$${value.toLocaleString()}`;
+
   return (
     <div
       data-testid="manage-dead-money-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
     >
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-          <h2 className="text-xl font-bold text-white">Manage Dead Money</h2>
-          <button
-            onClick={onClose}
-            className="text-white/50 hover:text-white"
-            disabled={isSaving}
-          >
-            &times;
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="mb-4 text-sm text-white/60 bg-blue-500/10 border border-blue-500/20 p-3 rounded">
-            <p>
-              <strong>Manual Override Mode:</strong> Use this tool to correct
-              data errors or add legacy dead money tables. Changes here will
-              replace the team's entire dead money ledger.
-            </p>
-          </div>
-
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-xs uppercase text-white/40 border-b border-white/10">
-                <th className="p-2">Description / Player</th>
-                <th className="p-2 w-32">Season</th>
-                <th className="p-2 w-32">Amount</th>
-                <th className="p-2 w-24 text-center">Stretched</th>
-                <th className="p-2 w-16"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {entries.map((entry) => (
-                <tr key={entry.id} className="group hover:bg-white/5">
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      value={entry.label}
-                      onChange={(e) =>
-                        handleChange(entry.id, 'label', e.target.value)
-                      }
-                      className="bg-transparent border border-transparent hover:border-white/20 focus:border-blue-500 focus:bg-black/20 rounded px-2 py-1 w-full text-white text-sm"
-                      placeholder="e.g. Waived: John Doe"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      value={entry.seasonKey}
-                      onChange={(e) =>
-                        handleChange(entry.id, 'seasonKey', e.target.value)
-                      }
-                      className="bg-transparent border border-transparent hover:border-white/20 focus:border-blue-500 focus:bg-black/20 rounded px-2 py-1 w-full text-white text-sm font-mono"
-                      placeholder="YYYY-YY"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="number"
-                      value={entry.amount ?? ''}
-                      onChange={(e) =>
-                        handleChange(
-                          entry.id,
-                          'amount',
-                          parseFloat(e.target.value)
-                        )
-                      }
-                      className="bg-transparent border border-transparent hover:border-white/20 focus:border-blue-500 focus:bg-black/20 rounded px-2 py-1 w-full text-white text-sm tabular-nums text-right"
-                      min="0"
-                    />
-                  </td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={entry.stretched}
-                      onChange={(e) =>
-                        handleChange(entry.id, 'stretched', e.target.checked)
-                      }
-                      className="accent-blue-500"
-                    />
-                  </td>
-                  <td className="p-2 text-right">
-                    <button
-                      onClick={() => handleDelete(entry.id)}
-                      className="text-red-400 hover:text-red-300 opacity-50 group-hover:opacity-100 transition-opacity p-1"
-                      title="Remove Entry"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {entries.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-white/30 italic">
-                    No dead money entries.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="mt-4">
+      <div className="w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0f0f0f] shadow-2xl shadow-black/60">
+        {/* Header */}
+        <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-r from-rose-500/10 via-white/[0.03] to-transparent px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/20">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="2" x2="12" y2="22" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold leading-tight text-white">
+                  Manage Dead Money
+                </h2>
+                <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/40">
+                  Manual ledger override
+                </p>
+              </div>
+            </div>
             <button
-              onClick={handleAdd}
-              className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm font-medium px-2 py-1 rounded hover:bg-blue-500/10 transition-colors"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-xl text-white/40 transition-colors hover:bg-white/5 hover:text-white"
+              disabled={isSaving}
+              aria-label="Close"
             >
-              <span className="text-lg">+</span> Add Entry
+              &times;
             </button>
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/10 bg-black/20">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {/* Summary band */}
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                Dead Money · {currentSeasonKey}
+              </div>
+              <div className="mt-1 font-mono text-xl font-bold tabular-nums text-rose-200">
+                {formatMoney(totalCurrentSeason)}
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                All Scheduled Seasons
+              </div>
+              <div className="mt-1 font-mono text-xl font-bold tabular-nums text-white/80">
+                {formatMoney(totalAllSeasons)}
+              </div>
+            </div>
+          </div>
+
+          <p className="mb-4 text-xs leading-relaxed text-white/50">
+            <strong className="text-white/70">Manual override mode.</strong> Use
+            this to correct data errors or add legacy dead-money tables. Saving
+            replaces the team&rsquo;s entire dead-money ledger.
+          </p>
+
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-[0.14em] text-white/40">
+                  <th className="px-3 py-2.5 font-semibold">Description / Player</th>
+                  <th className="px-3 py-2.5 w-32 font-semibold">Season</th>
+                  <th className="px-3 py-2.5 w-36 text-right font-semibold">Amount</th>
+                  <th className="px-3 py-2.5 w-24 text-center font-semibold">Stretched</th>
+                  <th className="px-3 py-2.5 w-12"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.06]">
+                {entries.map((entry) => (
+                  <tr key={entry.id} className="group transition-colors hover:bg-white/[0.03]">
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={entry.label}
+                        onChange={(e) =>
+                          handleChange(entry.id, 'label', e.target.value)
+                        }
+                        className="w-full rounded-md border border-transparent bg-black/20 px-2 py-1 text-sm text-white transition-colors hover:border-white/20 focus:border-rose-500/60 focus:bg-black/40 focus:outline-none"
+                        placeholder="e.g. Waived: John Doe"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={entry.seasonKey}
+                        onChange={(e) =>
+                          handleChange(entry.id, 'seasonKey', e.target.value)
+                        }
+                        className="w-full rounded-md border border-transparent bg-black/20 px-2 py-1 font-mono text-sm text-white transition-colors hover:border-white/20 focus:border-rose-500/60 focus:bg-black/40 focus:outline-none"
+                        placeholder="YYYY-YY"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-white/40">
+                          $
+                        </span>
+                        <input
+                          type="number"
+                          value={entry.amount ?? ''}
+                          onChange={(e) =>
+                            handleChange(
+                              entry.id,
+                              'amount',
+                              parseFloat(e.target.value)
+                            )
+                          }
+                          className="w-full rounded-md border border-transparent bg-black/20 px-2 py-1 pl-5 text-right text-sm tabular-nums text-white transition-colors hover:border-white/20 focus:border-rose-500/60 focus:bg-black/40 focus:outline-none"
+                          min="0"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={entry.stretched}
+                        onChange={(e) =>
+                          handleChange(entry.id, 'stretched', e.target.checked)
+                        }
+                        className="h-4 w-4 cursor-pointer accent-rose-500"
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        onClick={() => handleDelete(entry.id)}
+                        className="p-1 text-red-400/70 opacity-60 transition-opacity hover:text-red-300 group-hover:opacity-100"
+                        title="Remove Entry"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {entries.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-10 text-center text-sm italic text-white/30">
+                      No dead money entries.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-3">
+            <button
+              onClick={handleAdd}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-sm font-medium text-rose-300 transition-colors hover:bg-rose-500/20"
+            >
+              <span className="text-base leading-none">+</span> Add Entry
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 bg-black/30 px-6 py-4">
           {saveError && (
             <div
               role="alert"
-              className="mb-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+              className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
             >
               {saveError}
             </div>
@@ -405,16 +459,16 @@ export const ManageDeadMoneyModal = ({
             <button
               onClick={onClose}
               disabled={isSaving}
-              className="px-4 py-2 rounded text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-white/60 transition-colors hover:bg-white/5 hover:text-white"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 rounded text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20 transition-all hover:scale-105"
+              className="rounded-lg bg-rose-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-rose-900/20 transition-all hover:bg-rose-500 disabled:opacity-50"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </div>

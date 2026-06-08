@@ -12,7 +12,7 @@ import '@testing-library/jest-dom/vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import TeamRosterView from '@/pages/TeamRosterView';
 import RostersHome from '@/pages/RostersHome';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
   fetchAllRosterProjects,
@@ -28,9 +28,10 @@ const toastMock = vi.hoisted(() => {
   return fn;
 });
 
-vi.mock('@/shared/hooks/useSimplePlayerData', () => ({
-  default: vi.fn(),
-}));
+vi.mock('@/shared/hooks/useSimplePlayerData', () => {
+  const useSimplePlayerData = vi.fn();
+  return { default: useSimplePlayerData, useSimplePlayerData };
+});
 
 vi.mock('@/shared/hooks/useAuth', () => ({
   useAuth: vi.fn(),
@@ -49,13 +50,18 @@ vi.mock('react-hot-toast', () => ({
   toast: toastMock,
 }));
 
-vi.mock('@/shared/components/ui/drawers/DrawerShell', () => ({
-  default: ({ isOpen, children }) => (isOpen ? <div>{children}</div> : null),
-}));
+vi.mock('@/shared/components/ui/drawers/DrawerShell', () => {
+  const DrawerShell = ({ isOpen, children }) =>
+    isOpen ? <div>{children}</div> : null;
+  return { default: DrawerShell, DrawerShell };
+});
 
-vi.mock('@/features/lists/ListSearchBar', () => ({
-  default: () => <div data-testid="roster-search-bar">Roster search</div>,
-}));
+vi.mock('@/features/lists/ListSearchBar', () => {
+  const ListSearchBar = () => (
+    <div data-testid="roster-search-bar">Roster search</div>
+  );
+  return { default: ListSearchBar, ListSearchBar };
+});
 
 const mockedUseSimplePlayerData = vi.mocked(useSimplePlayerData);
 const mockedUseAuth = vi.mocked(useAuth);

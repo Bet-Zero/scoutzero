@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { TeamLogo } from '@/shared/components/TeamLogo';
 import { getYearsRemaining } from '@/shared/utils/contracts';
@@ -56,7 +56,8 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
     );
 
     // 🧮 Preprocess incoming assets by team (Phase 15: entitlements-only)
-    const incomingAssets: IncomingTradeAssets[] = teams.map((tm, idx) => {
+    // TMUI-18: memoized so the height-measuring effect doesn't re-run every render
+    const incomingAssets: IncomingTradeAssets[] = useMemo(() => teams.map((tm, idx) => {
       const players: TradePreviewPlayerLike[] = [];
       const entitlements: TradePreviewEntitlementLike[] = [];
       const targetTeam = tm.team;
@@ -95,7 +96,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
       });
 
       return { players, entitlements };
-    });
+    }), [teams]);
 
     const playerRefs = useRef<Array<HTMLDivElement | null>>([]);
     const [maxHeight, setMaxHeight] = useState(0);
@@ -219,8 +220,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                                     src={headshot}
                                     alt={p.name}
                                     onError={(e) => {
-                                      e.currentTarget.src =
-                                        '/assets/headshots/default.png';
+                                      e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
                                     }}
                                     className="w-14 h-14 object-cover rounded-lg bg-neutral-700 shadow-md"
                                   />

@@ -75,7 +75,7 @@ const PlayerRow = ({ player, isExpanded, onToggleExpand }: PlayerRowProps) => {
                 return `/assets/headshots/${normalizedId}.png`;
               })()}
               onError={(e) => {
-                e.currentTarget.src = '/assets/headshots/default.png';
+                e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
               }}
               alt={player.name}
               className="h-full w-full object-cover"

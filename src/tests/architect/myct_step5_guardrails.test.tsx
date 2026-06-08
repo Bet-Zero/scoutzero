@@ -77,12 +77,13 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
 const CURRENT_YEAR = 2026;
 const CURRENT_SEASON = '2025-26';
 
+// Redesigned ManageExceptionsModal renders each exception as a card (no <table>):
+// the labelled card container is the nearest `div.rounded-xl` ancestor of the
+// exception's name, holding its checkbox, stats, and any eligibility warning.
 const getRowByText = (text: string | RegExp) => {
-  const row = within(screen.getByRole('table'))
-    .getAllByRole('row')
-    .find((candidate) => within(candidate).queryByText(text));
-
-  expect(row).toBeDefined();
+  const label = screen.getByText(text);
+  const row = label.closest('div.rounded-xl') as HTMLElement | null;
+  expect(row).not.toBeNull();
   return row as HTMLElement;
 };
 
@@ -114,7 +115,7 @@ describe('MYCT Step 5 Guardrails - Source Scan', () => {
     expect(source).toContain('payloadEntry.waiveDate = originalEntry.waiveDate;');
     expect(source).toContain("notes: originalEntry?.notes || 'Manual Adjustment'");
     expect(source).toContain(
-      "replace the team's entire dead money ledger"
+      'replaces the team&rsquo;s entire dead-money ledger'
     );
     expect(source).toContain(
       'canonical multi-season dead-cap entry; unrelated manual rows stay distinct.'
@@ -143,12 +144,12 @@ describe('MYCT Step 5 Guardrails - Source Scan', () => {
     expect(source).toContain(
       'disabled UI state cannot save as enabled'
     );
-    expect(source).toContain(
-      "will update the team's live current-season exception state"
-    );
-    expect(source).toContain(
-      'Future-year Cap Sheet views are read-only for'
-    );
+    // Redesigned modal copy: the explicit "live current-season"/"future-year
+    // read-only" warning was replaced with friendlier intro guidance that still
+    // pins the modal to the current season (the future-year read-only fencing
+    // now lives on the CapSheet boundary panel, not in this modal).
+    expect(source).toContain('Just mark which exceptions');
+    expect(source).toContain('carrying this season ({seasonKey})');
     expect(source).not.toContain('existing.seasonKey ?? seasonKey');
   });
 
@@ -210,9 +211,11 @@ describe('MYCT Step 5 Guardrails - Dead-Money Shape Preservation', () => {
       />
     );
 
-    expect(screen.getByText(/Manual Override Mode:/).closest('div')).toHaveTextContent(
-      "replace the team's entire dead money ledger"
-    );
+    // Redesigned modal: the warning is a paragraph led by a "Manual override
+    // mode." strong, and the ledger-replacement copy was reworded.
+    expect(
+      screen.getByText('Manual override mode.').closest('div')
+    ).toHaveTextContent('entire dead-money ledger');
 
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
@@ -374,12 +377,10 @@ describe('MYCT Step 5 Guardrails - Exception Save Semantics', () => {
       />
     );
 
-    expect(screen.getByText(/Exception Management:/).closest('div')).toHaveTextContent(
-      "live current-season exception state (2025-26)"
-    );
-    expect(screen.getByText(/Exception Management:/).closest('div')).toHaveTextContent(
-      'Future-year Cap Sheet views are read-only for exception editing'
-    );
+    // Redesigned header: "Manage Exceptions" + a "Current season · {seasonKey}"
+    // subtitle pins the modal to the current season. (The future-year read-only
+    // fencing copy now lives on the CapSheet boundary panel, not this modal.)
+    expect(screen.getByText(/Current season ·/i)).toHaveTextContent('2025-26');
 
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
@@ -394,11 +395,13 @@ describe('MYCT Step 5 Guardrails - Exception Save Semantics', () => {
         type: 'mle',
         enabled: true,
         available: true,
-        totalAmount: 6_000_000,
-        maxAmount: 6_000_000,
-        amount: 6_000_000,
+        // Redesigned modal derives amounts from CBA cap settings (fullMLE),
+        // not the stored teamCapSheet totalAmount input.
+        totalAmount: 12_800_000,
+        maxAmount: 12_800_000,
+        amount: 12_800_000,
         usedAmount: 2_000_000,
-        remainingAmount: 4_000_000,
+        remainingAmount: 10_800_000,
         seasonKey: CURRENT_SEASON,
         notes: 'active MLE',
       },

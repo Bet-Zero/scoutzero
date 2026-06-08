@@ -5,10 +5,32 @@
 
 import { resolvePlayerDestinationTeamId } from './tradeValidator.ruleEnvelopes';
 import { checkRosterCounts } from '../rules/validateRoster';
+import { isTwoWayContract } from '@/features/architect/utils/contractUtils';
 import type {
   TradeValidatorPlayer,
   TradeValidatorTeamSlot,
 } from './tradeValidator.types';
+
+/**
+ * A player is two-way when the explicit `isTwoWay` flag is set OR the contract
+ * type says so. World-team player objects often carry only `contractType:
+ * "Two-Way"` (no precomputed flag), so relying on the flag alone let two-way
+ * players fall into the 15-man standard count and rejected every trade. Two-way
+ * contracts never count toward the standard roster limit.
+ */
+export function isTwoWayPlayer(
+  player: TradeValidatorPlayer | null | undefined
+): boolean {
+  if (!player) return false;
+  if (player.isTwoWay === true) return true;
+  // TradeValidatorPlayer carries contractType at runtime but its type doesn't
+  // structurally overlap ContractUtilsPlayer, and isTwoWayContract only reads
+  // the contract-type marker (null-safe). Widening that shared signature ripples
+  // through 10+ callers (weak-type incompatibilities), so bridge here instead.
+  return isTwoWayContract(
+    player as unknown as Parameters<typeof isTwoWayContract>[0]
+  );
+}
 
 export function shouldRoutePlayerToTeam({
   player,
@@ -45,24 +67,31 @@ export function computeProjectedRosterLegality(team: TradeValidatorTeamSlot) {
   const outgoing: TradeValidatorPlayer[] = team.outgoingPlayers || [];
   const incoming: TradeValidatorPlayer[] = team.incomingPlayers || [];
 
-  // Build a set of current player IDs for overlap detection.
-  // If most roster players lack IDs we fall back to simple arithmetic.
-  const allRoster = teamPlayers.concat(teamTwoWay);
-  const currentIds = new Set(
-    allRoster.map(extractPlayerId).filter(Boolean)
-  );
-  const hasReliableIds = currentIds.size > 0 && currentIds.size >= allRoster.length * 0.5;
-
-  // Determine current standard / two-way counts.
-  let currentStandard: number;
-  let currentTwoWay: number;
-  if (teamTwoWay.length > 0) {
-    currentStandard = teamPlayers.length;
-    currentTwoWay = teamTwoWay.length;
-  } else {
-    currentStandard = teamPlayers.filter((p) => !p.isTwoWay).length;
-    currentTwoWay = teamPlayers.filter((p) => p.isTwoWay).length;
+  // Build the current roster from both `players` and any separate
+  // `twoWayPlayers` array, de-duplicating by id — world data does not always
+  // keep two-ways out of `players`, which previously double-counted them into
+  // the standard total and blocked every trade on a phantom roster overflow.
+  const seenRosterIds = new Set<string>();
+  const currentRoster: TradeValidatorPlayer[] = [];
+  for (const player of teamPlayers.concat(teamTwoWay)) {
+    const pid = extractPlayerId(player);
+    if (pid) {
+      if (seenRosterIds.has(pid)) continue;
+      seenRosterIds.add(pid);
+    }
+    currentRoster.push(player);
   }
+
+  // If most roster players lack IDs we fall back to simple arithmetic.
+  const currentIds = seenRosterIds;
+  const hasReliableIds =
+    currentIds.size > 0 && currentIds.size >= currentRoster.length * 0.5;
+
+  // Determine current standard / two-way counts. Two-way status comes from the
+  // flag OR the contract type (isTwoWayPlayer), so two-ways are always excluded
+  // from the standard 15-man count.
+  const currentTwoWay = currentRoster.filter(isTwoWayPlayer).length;
+  const currentStandard = currentRoster.length - currentTwoWay;
 
   let projectedStandard: number;
   let projectedTwoWay: number;
@@ -71,29 +100,29 @@ export function computeProjectedRosterLegality(team: TradeValidatorTeamSlot) {
     // ID-aware path: only count outgoing still in roster and incoming not yet in roster.
     const outStd = outgoing.filter((p) => {
       const pid = extractPlayerId(p);
-      return !p.isTwoWay && pid && currentIds.has(pid);
+      return !isTwoWayPlayer(p) && pid && currentIds.has(pid);
     }).length;
     const outTw = outgoing.filter((p) => {
       const pid = extractPlayerId(p);
-      return p.isTwoWay && pid && currentIds.has(pid);
+      return isTwoWayPlayer(p) && pid && currentIds.has(pid);
     }).length;
     const inStd = incoming.filter((p) => {
       const pid = extractPlayerId(p);
-      return !p.isTwoWay && (!pid || !currentIds.has(pid));
+      return !isTwoWayPlayer(p) && (!pid || !currentIds.has(pid));
     }).length;
     const inTw = incoming.filter((p) => {
       const pid = extractPlayerId(p);
-      return p.isTwoWay && (!pid || !currentIds.has(pid));
+      return isTwoWayPlayer(p) && (!pid || !currentIds.has(pid));
     }).length;
 
     projectedStandard = currentStandard - outStd + inStd;
     projectedTwoWay = currentTwoWay - outTw + inTw;
   } else {
     // Simple arithmetic path (pre-trade shape or test fixtures without IDs).
-    const outStd = outgoing.filter((p) => !p.isTwoWay).length;
-    const outTw = outgoing.filter((p) => p.isTwoWay).length;
-    const inStd = incoming.filter((p) => !p.isTwoWay).length;
-    const inTw = incoming.filter((p) => p.isTwoWay).length;
+    const outStd = outgoing.filter((p) => !isTwoWayPlayer(p)).length;
+    const outTw = outgoing.filter((p) => isTwoWayPlayer(p)).length;
+    const inStd = incoming.filter((p) => !isTwoWayPlayer(p)).length;
+    const inTw = incoming.filter((p) => isTwoWayPlayer(p)).length;
 
     projectedStandard = currentStandard - outStd + inStd;
     projectedTwoWay = currentTwoWay - outTw + inTw;

@@ -33,6 +33,7 @@ GMDashboard/
     useArchitectActions.types.normalizers.ts
     useArchitectActions.types.ts
     useArchitectComparisonViewModel.ts
+    useArchitectDeskNavigation.ts
     useArchitectGuidedAnswers.ts
     useArchitectModals.ts
     useArchitectModePresentation.ts
@@ -90,6 +91,7 @@ admin/
   useEntitlementEditorState.ts
   wizardToEntitlement.ts
 capSheet/
+  CapConfidenceBadge.tsx
   CapSheet/
     CapSheet.tsx
     CapSummaryTiles.tsx
@@ -108,6 +110,30 @@ capSheet/
   modals/
     ManageDeadMoneyModal.tsx
     ManageExceptionsModal.tsx
+cockpit/
+  ActivityRail.tsx
+  CapPostureMeter.tsx
+  CockpitShell.tsx
+  CockpitStatePanel.tsx
+  ModePill.tsx
+  NavRail.tsx
+  PlayerActionMenu.tsx
+  README.md
+  RoomFrame.tsx
+  TeamStatusStrip.tsx
+  TeamStatusTile.tsx
+  TopBar.tsx
+  TradeOverlay.tsx
+  Workbench.tsx
+  WorldMenu.tsx
+  authorityLabel.ts
+  cockpitTokens.ts
+  followThroughContext.ts
+  index.ts
+  playerActionContext.ts
+  playerActionRouter.ts
+  tradeOpenRequest.ts
+  useTeamPalette.ts
 comparison/
   capDelta.ts
   deriveComparisonViewModel.ts
@@ -157,6 +183,7 @@ history/
     TeamHistoryTab.helpers.ts
     TeamHistoryTab.tsx
     WorldEventsTimeline.tsx
+    historyOutboundLinks.ts
     index.ts
     types.ts
   devTeamHistoryFixtures.ts
@@ -196,6 +223,7 @@ offseason/
 shared/
   LeagueView/
     LeagueConferenceTable.tsx
+    LeagueDeskHandoffBar.tsx
     LeagueView.tsx
     LeagueViewTruthPanel.tsx
     index.ts
@@ -232,6 +260,7 @@ tradeMachine/
   TradeTeamCard.tsx
   ValidationDetailsPanel.tsx
   ValidationStateHeader.tsx
+  tradeMachineChrome.buttons.tsx
   tradePreviewExportTypes.ts
   useTradeTeamCardSalaries.ts
   utils/
@@ -239,6 +268,7 @@ tradeMachine/
     devSntInjector.ts
     entitlementWarnings.ts
     getOfficialSalaryMatchingSnapshot.ts
+    tradeMachineDebugFlag.ts
   validationPresentationTypes.ts
 types/
   index.ts
@@ -513,5 +543,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-22T04:02:41.735Z*
+*Generated on: 2026-06-06T02:37:48.203Z*
 *Auto-updated by: npm run docs*

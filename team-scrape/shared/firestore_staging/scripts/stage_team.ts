@@ -43,6 +43,16 @@ type RawCapHoldEntry = RawTeamRosterEntry & {
   season?: string;
 };
 
+type RawDeadCapEntry = RawTeamRosterEntry & {
+  reason?: string;
+  notes?: string;
+  amountByYear?: Array<{
+    season?: string;
+    amount?: number;
+    isStretched?: boolean;
+  }>;
+};
+
 type RawException = {
   type?: string;
   total?: number;
@@ -68,6 +78,7 @@ type RawTeamData = {
   season: string;
   roster?: RawTeamRosterEntry[];
   capHolds?: RawCapHoldEntry[];
+  deadCap?: RawDeadCapEntry[];
   exceptions?: {
     mle?: RawException;
     taxpayerMle?: RawException;
@@ -373,6 +384,18 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
     'bruce brown jr': 'bruce_brown',
     'daron holmes': 'daron_holmes_ii',
     'trey jemison': 'trey_jemison_iii',
+    // SalarySwish display/slug differs from the player index canonical name
+    // (nicknames, suffixes, reversed order, alternate spellings).
+    'alexandre sarr': 'alex_sarr',
+    'cameron christie': 'cam_christie',
+    'carlton carrington': 'bub_carrington',
+    'david jones': 'david_jones_garcia',
+    'gg jackson ii': 'gg_jackson',
+    'hansen yang': 'yang_hansen',
+    'jimmy butler': 'jimmy_butler_iii',
+    'k j simpson': 'kj_simpson',
+    'sviatoslav mykhailiuk': 'svi_mykhailiuk',
+    'yanic niederhauser': 'yanic_konan_niederhauser',
   };
 
   const unresolved = new Set<string>();
@@ -383,9 +406,16 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
         normalizeDisplayName(entry.displayName) ?? entry.displayName ?? '';
       const normalizedName = name.trim().toLowerCase();
 
-      // Check manual overrides first
-      if (MANUAL_OVERRIDES[normalizedName]) {
-        const overrideId = MANUAL_OVERRIDES[normalizedName];
+      // Check manual overrides first. Match against punctuation- and
+      // spacing-normalized variants so periods in "Jr."/"Sr.", apostrophes,
+      // and spaced initials ("K. J.") still hit their override entry.
+      const overrideKey = [
+        normalizedName,
+        normalizedName.replace(/[.,']/g, ''),
+        normalizedName.replace(/[- ]/g, ' ').replace(/[.,']/g, ''),
+      ].find((key) => MANUAL_OVERRIDES[key]);
+      if (overrideKey) {
+        const overrideId = MANUAL_OVERRIDES[overrideKey];
         return {
           playerId: overrideId,
           playerName: index[overrideId]?.fullName ?? name,
@@ -978,6 +1008,37 @@ function buildBaseTeamDoc({
     };
   });
 
+  const deadCap = (rawTeam.deadCap ?? [])
+    .map((entry) => {
+      const resolved = resolver.resolve(entry, 'deadCap');
+      const amountByYear = (entry.amountByYear ?? [])
+        .filter(
+          (y): y is { season: string; amount: number; isStretched?: boolean } =>
+            typeof y?.season === 'string' &&
+            /^\d{4}-\d{2}$/.test(y.season) &&
+            typeof y.amount === 'number' &&
+            Number.isFinite(y.amount) &&
+            y.amount > 0
+        )
+        .map((y) => ({
+          season: y.season,
+          amount: y.amount,
+          ...(y.isStretched ? { isStretched: true } : {}),
+        }));
+      // originalSalary isn't shown on the dead-cap table; the remaining dead
+      // money owed (sum of per-year hits) is the best available proxy and keeps
+      // the canonical DeadCapItem schema satisfied.
+      const originalSalary = amountByYear.reduce((sum, y) => sum + y.amount, 0);
+      return {
+        playerId: resolved.playerId,
+        playerName: resolved.playerName,
+        originalSalary,
+        amountByYear,
+        notes: entry.reason ? `Dead cap reason: ${entry.reason}` : undefined,
+      };
+    })
+    .filter((entry) => entry.amountByYear.length > 0);
+
   const totals = normalizeTotals(rawTeam.totals);
 
   // Build ledger-derived views if available
@@ -1009,7 +1070,7 @@ function buildBaseTeamDoc({
     season: seasonOverride ?? rawTeam.season,
     abbreviation: rawTeam.teamCode,
     roster: rosterIds,
-    deadCap: [] as BaseTeamDoc['deadCap'],
+    deadCap,
     capHolds,
     exceptions: buildExceptions(rawTeam.exceptions),
     draftPicks: finalDraftPicks,
@@ -1207,7 +1268,7 @@ async function stageTeam({ team, season, validate, outDir, ledgerDir, draftAsset
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   stageTeam(parseArgs()).catch((err) => {
     console.error('❌ Failed to stage team:', err);
     process.exit(1);

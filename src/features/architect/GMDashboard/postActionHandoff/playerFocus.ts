@@ -49,6 +49,14 @@ const normalizeNameKey = (value: unknown): string | null => {
   return normalized || null;
 };
 
+/** First stable id token for desk URL / selection dock focus. */
+export const resolvePrimaryPlayerFocusId = (
+  player: FocusablePlayerIdentity | null | undefined
+): string | null => {
+  const keys = collectPlayerFocusKeys(player);
+  return keys[0] ?? null;
+};
+
 export const collectPlayerFocusKeys = (
   player: FocusablePlayerIdentity | null | undefined
 ): string[] => {

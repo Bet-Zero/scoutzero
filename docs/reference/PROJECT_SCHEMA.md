@@ -373,7 +373,9 @@ npm run inspect
 
 #### `team-scrape/draft-picks/scripts/realgm_draft_picks.ts`
 
-**Purpose:** Scrape draft pick data from RealGM
+**Purpose:** Scrape draft pick data from RealGM. _(Legacy backup — the
+current/primary draft-pick source is ProSportsTransactions via the `pst:*`
+pipeline.)_
 
 **Usage:**
 
@@ -446,7 +448,7 @@ npm run draft-picks:scrape-verify
 ```
 
 - `team-scrape/shared/firestore_staging/stage_team.ts`
-  - **Purpose:** Transform SalarySwish + RealGM outputs into staged `/architect/baseTeams/{teamCode}` documents
+  - **Purpose:** Transform SalarySwish (rosters/cap) + ProSportsTransactions/PST (draft-pick entitlements) outputs into staged `/architect/baseTeams/{teamCode}` documents
   - **Usage:** `npx tsx team-scrape/shared/firestore_staging/stage_team.ts --team=LAL [--season=2025-26] [--outDir=custom] [--validate]`
   - **Notes:** Writes previews to `team-scrape/shared/firestore_staging/output/` (git-ignored) and reuses the shared player index for name → playerId resolution
 - `team-scrape/shared/firestore_staging/run_full_team_scrape.ts`

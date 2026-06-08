@@ -47,11 +47,11 @@ const {
 }));
 
 vi.mock('@/shared/hooks/useImageDownload', () => ({
-  default: () => downloadSpy,
+  useImageDownload: () => downloadSpy,
 }));
 
 vi.mock('@/shared/components/TeamLogo', () => ({
-  default: ({
+  TeamLogo: ({
     teamAbbr,
     teamId,
   }: {

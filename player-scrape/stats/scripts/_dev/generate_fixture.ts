@@ -107,7 +107,7 @@ async function main() {
   console.log(`   Next: Run regression tests with run_regress.ts`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   main().catch((err) => {
     console.error('❌ Fatal error:', err);
     process.exit(1);

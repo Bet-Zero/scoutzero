@@ -187,7 +187,12 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 
 ## Draft Picks Pipeline
 
-### Draft Picks Scraping (RealGM)
+> **Source note.** The `team:draft-picks` / `draft-picks:*` / `realgm:drafts`
+> scripts below are the **RealGM (legacy)** path, kept as a backup. The
+> current/primary draft-pick source is **ProSportsTransactions (PST)** — see the
+> `pst:*` scripts and `team-scrape/draft-picks/README.md`.
+
+### Draft Picks Scraping (RealGM — legacy)
 
 | Script | Description |
 |--------|-------------|

@@ -161,7 +161,9 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     expect(draftPositionsInputSource).toContain(
       'Next-used Draft Year:'
     );
-    expect(draftPositionsInputSource).toContain(
+    // Post default->named export conversion (10f5fed7): named-only export, no
+    // trailing `export default` (named-only parity is proven in the test above).
+    expect(draftPositionsInputSource).not.toContain(
       'export default DraftPositionsInput;'
     );
   });

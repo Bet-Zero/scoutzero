@@ -81,12 +81,13 @@ const getExceptionCard = (trackerSection: HTMLElement, label: string) => {
   return card as HTMLElement;
 };
 
-const getExceptionTableRow = (table: HTMLElement, label: string) => {
-  const row = within(table)
-    .getAllByRole('row')
-    .find((candidate) => within(candidate).queryByText(label));
-  expect(row).toBeDefined();
-  return row as HTMLElement;
+// The exceptions modal is a status board (cards), not a table. This finds the
+// card for a given exception label within the modal.
+const getModalExceptionCard = (label: string) => {
+  const modal = screen.getByTestId('manage-exceptions-modal');
+  const card = within(modal).getByText(label).closest('div.rounded-xl');
+  expect(card).not.toBeNull();
+  return card as HTMLElement;
 };
 
 describe('Cap Sheet Exception Wiring (E1)', () => {
@@ -189,24 +190,26 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(trackerSection).queryByText('$11,111,111')).not.toBeInTheDocument();
     expect(within(trackerSection).queryByText('$2,222,222')).not.toBeInTheDocument();
 
-    const table = screen.getByRole('table');
-
+    // The modal seeds the canonical CBA default amounts (shown as read-only
+    // text on each card), not the legacy/top-level values.
     expect(
-      within(getExceptionTableRow(table, 'Mid-Level Exception (MLE)'))
-        .getByDisplayValue('11111111')
-    ).toBeInTheDocument();
+      within(getModalExceptionCard('Mid-Level Exception (MLE)')).getAllByText(
+        '$11,111,111'
+      ).length
+    ).toBeGreaterThan(0);
     expect(
-      within(getExceptionTableRow(table, 'Taxpayer MLE'))
-        .getByDisplayValue('2222222')
-    ).toBeInTheDocument();
+      within(getModalExceptionCard('Taxpayer MLE')).getAllByText('$2,222,222')
+        .length
+    ).toBeGreaterThan(0);
     expect(
-      within(getExceptionTableRow(table, 'Bi-Annual Exception (BAE)'))
-        .getByDisplayValue('3333333')
-    ).toBeInTheDocument();
+      within(getModalExceptionCard('Bi-Annual Exception (BAE)')).getAllByText(
+        '$3,333,333'
+      ).length
+    ).toBeGreaterThan(0);
     expect(
-      within(getExceptionTableRow(table, 'Room Exception'))
-        .getByDisplayValue('4444444')
-    ).toBeInTheDocument();
+      within(getModalExceptionCard('Room Exception')).getAllByText('$4,444,444')
+        .length
+    ).toBeGreaterThan(0);
   });
 
   it('updates ExceptionTracker cards after modal save in the same page session', async () => {
@@ -335,11 +338,15 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(tpMleCard).getByText('N/A')).toBeInTheDocument();
     expect(within(tpMleCard).queryByText('$88,000,000')).not.toBeInTheDocument();
 
-    const table = screen.getByRole('table');
-    const taxpayerRow = getExceptionTableRow(table, 'Taxpayer MLE');
-    expect(within(taxpayerRow).getByDisplayValue('5000000')).toBeInTheDocument();
-    expect(within(taxpayerRow).getByDisplayValue('0')).toBeInTheDocument();
-    expect(within(taxpayerRow).getByRole('checkbox')).not.toBeChecked();
+    const taxpayerCard = getModalExceptionCard('Taxpayer MLE');
+    // Seeds the CBA default ($5,000,000), not the legacy top-level value.
+    expect(
+      within(taxpayerCard).getAllByText('$5,000,000').length
+    ).toBeGreaterThan(0);
+    expect(
+      within(taxpayerCard).queryByText('$88,000,000')
+    ).not.toBeInTheDocument();
+    expect(within(taxpayerCard).getByRole('checkbox')).not.toBeChecked();
   });
 
   it('does not render legacy-only top-level exception data when the canonical exception entry is absent', () => {
@@ -431,12 +438,11 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(roomCard).getByText('N/A')).toBeInTheDocument();
     expect(within(trackerSection).queryByText('$4,444,444')).not.toBeInTheDocument();
 
-    const table = screen.getByRole('table');
-    const roomRow = getExceptionTableRow(table, 'Room Exception');
-    expect(roomRow).toHaveTextContent(
+    const modalRoomCard = getModalExceptionCard('Room Exception');
+    expect(modalRoomCard).toHaveTextContent(
       'Only available to teams under the salary cap'
     );
-    expect(within(roomRow).getByRole('checkbox')).toBeDisabled();
+    expect(within(modalRoomCard).getByRole('checkbox')).toBeDisabled();
   });
 
   it('keeps ROOM unavailable across tracker and modal when stored room data exists but eligibility is false', () => {
@@ -488,12 +494,11 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(roomCard).getByText('N/A')).toBeInTheDocument();
     expect(within(trackerSection).queryByText('$5,900,000')).not.toBeInTheDocument();
 
-    const table = screen.getByRole('table');
-    const roomRow = getExceptionTableRow(table, 'Room Exception');
-    expect(roomRow).toHaveTextContent(
+    const modalRoomCard = getModalExceptionCard('Room Exception');
+    expect(modalRoomCard).toHaveTextContent(
       'Only available to teams under the salary cap'
     );
-    expect(within(roomRow).getByRole('checkbox')).toBeDisabled();
+    expect(within(modalRoomCard).getByRole('checkbox')).toBeDisabled();
   });
 
   it('renders structured hard-cap level and reason from the canonical resolver in ExceptionTracker', () => {
@@ -656,27 +661,18 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
       />
     );
 
-    const table = screen.getByRole('table');
-    expect(normalizedTexts(within(table).getAllByRole('columnheader'))).toEqual([
-      'Enabled',
-      'Exception Type',
-      'Total Amount',
-      'Used Amount',
-      'Remaining',
-      'Notes',
-    ]);
+    // The modal is a status board (no inputs): exceptions render as cards in
+    // canonical order, each with an availability toggle.
+    const mleLabel = screen.getByText('Mid-Level Exception (MLE)');
+    const tpmleLabel = screen.getByText('Taxpayer MLE');
+    const baeLabel = screen.getByText('Bi-Annual Exception (BAE)');
+    const roomLabel = screen.getByText('Room Exception');
+    expectBefore(mleLabel, tpmleLabel);
+    expectBefore(tpmleLabel, baeLabel);
+    expectBefore(baeLabel, roomLabel);
 
-    const bodyRows = within(table).getAllByRole('row').slice(1);
-    expect(bodyRows).toHaveLength(4);
-    expect(normalizedTexts(bodyRows)).toEqual([
-      expect.stringContaining('Mid-Level Exception (MLE)'),
-      expect.stringContaining('Taxpayer MLE'),
-      expect.stringContaining('Bi-Annual Exception (BAE)'),
-      expect.stringContaining('Room Exception'),
-    ]);
-
-    const summaryHeading = screen.getByText(/Reference: Default Exception Amounts/i);
-    expectBefore(table, summaryHeading);
+    // One availability toggle per exception, MLE first.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(4);
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
     const saveButton = screen.getByRole('button', { name: /save changes/i });
@@ -689,30 +685,27 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     });
 
     expect(onClose).toHaveBeenCalledTimes(1);
+    // Amounts are CBA-fixed (not typed) and usage is preserved from the team's
+    // actual exception state — so totalAmount is whatever the cap settings say,
+    // while usedAmount carries through from the loaded entries.
     expect(onSave).toHaveBeenCalledWith({
-      mle: {
+      mle: expect.objectContaining({
         type: 'mle',
         enabled: true,
         available: true,
-        totalAmount: 6000000,
-        maxAmount: 6000000,
-        amount: 6000000,
         usedAmount: 2000000,
-        remainingAmount: 4000000,
         seasonKey: '2025-26',
-      },
-      bae: {
+        totalAmount: expect.any(Number),
+      }),
+      bae: expect.objectContaining({
         type: 'bae',
         enabled: false,
         available: false,
-        totalAmount: 4700000,
-        maxAmount: 4700000,
-        amount: 4700000,
         usedAmount: 1000000,
-        remainingAmount: 3700000,
         seasonKey: '2025-26',
         notes: 'carry',
-      },
+        totalAmount: expect.any(Number),
+      }),
     });
     expect(Object.keys(onSave.mock.calls[0][0])).toEqual(['mle', 'bae']);
   });

@@ -49,7 +49,7 @@ export const TieramidPlayerTile = ({ player }: TieramidPlayerTileProps) => {
           alt={displayName}
           className="w-full h-full object-cover"
           onError={(e) => {
-            e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
           }}
         />
         <div className="absolute top-0.5 left-0.5 px-[3px] py-[1px] bg-black/60 text-white/80 text-[10px] font-semibold uppercase rounded-sm tracking-wider">

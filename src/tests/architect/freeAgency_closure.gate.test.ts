@@ -373,10 +373,13 @@ describe('Gate 2: Free Agency UI prop contracts stay grouped behind actionOwner 
 describe('Gate 3: dashboard and section hand off grouped Free Agency authority (FA-1A)', () => {
   const gmDashboardContent = readFileContent(GMDASHBOARD_PATH);
   const freeAgencySectionContent = readFileContent(FREE_AGENCY_SECTION_PATH);
+  // The dashboard now composes sections via a `rooms` map consumed by the
+  // cockpit Workbench. The "fa" tab area lives in the `fa:` entry and ends
+  // where the next entry (`offseason:`) begins.
   const gmDashboardFreeAgencyRegion = readRegion(
     gmDashboardContent,
-    "{activeTab === 'fa' && (",
-    "{activeTab === 'offseason' && ("
+    '    fa: {',
+    '    offseason: {'
   );
 
   it('GMDashboard reads one grouped owner from useArchitectActions and passes it into FreeAgencySection', () => {
@@ -508,9 +511,15 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
     '  return ('
   );
 
-  it('passes standard signing directly from the grouped owner into the modal dispatch object', () => {
+  it('delegates standard signing to the grouped owner and clears the signed shortlist entry on success', () => {
     expect(modalDispatchRegion).toMatch(
-      /onSignFreeAgent:\s*dualPathSigningOwner\s*\.signFreeAgent/
+      /dualPathSigningOwner[\s\S]*\.signFreeAgent\s+as\s+NonNullable<[\s\S]*EditContractModalProps\['onSignFreeAgent'\]/
+    );
+    expect(modalDispatchRegion).toMatch(
+      /result\?\.success[\s\S]*handleRemove\(activeContractModalTarget\.selectionKey\)/
+    );
+    expect(modalDispatchRegion).toMatch(
+      /onSignFreeAgent:\s*signFreeAgent/
     );
   });
 
@@ -609,7 +618,16 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
 
   it('tracks selection and row-menu visibility by stable selection keys instead of player names', () => {
     expect(content).toMatch(
-      /const\s+\[selectedPlayerKeys,\s*setSelectedPlayerKeys\]\s*=\s*useState<string\[\]>\(\[\]\)/
+      /const\s+\[uncontrolledSelectedPlayerKeys,\s*setUncontrolledSelectedPlayerKeys\]\s*=\s*useState<string\[\]>\(\[\]\)/
+    );
+    expect(content).toMatch(
+      /const\s+selectedPlayerKeys\s*=\s*controlledSelectedPlayerKeys\s*\?\?\s*uncontrolledSelectedPlayerKeys/
+    );
+    expect(freeAgentPoolTypesContent).toMatch(
+      /selectedPlayerKeys\?:\s*string\[\];/
+    );
+    expect(freeAgentPoolTypesContent).toMatch(
+      /onSelectedPlayerKeysChange\?:\s*\(selectionKeys:\s*string\[\]\)\s*=>\s*void;/
     );
     expect(content).toMatch(
       /const\s+\[openMenuSelectionKey,\s*setOpenMenuSelectionKey\]\s*=\s*useState/

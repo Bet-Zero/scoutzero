@@ -12,6 +12,10 @@
  */
 import type { Dispatch, SetStateAction } from 'react';
 import type { FreeAgentPoolActionOwner } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import type {
+  PlayerAction,
+  PlayerActionContext,
+} from '@/features/architect/cockpit/playerActionContext';
 
 type LooseRecord = Record<string, unknown>;
 
@@ -76,6 +80,15 @@ export interface FreeAgentPoolProps {
   currentYear: number;
   actionOwner: FreeAgentPoolActionOwner;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
+  selectedPlayerKeys?: string[];
+  onSelectedPlayerKeysChange?: (selectionKeys: string[]) => void;
+  requestedOpenSelectionKey?: string | null;
+  onRequestedOpenSelectionHandled?: () => void;
+  onSelectedEntriesChange?: (entries: FreeAgentSurfaceEntry[]) => void;
+  /** Unified player-action sink (Slice 2e): Pin-as-Target / Compare / Guide. */
+  onPlayerAction?: (action: PlayerAction, context: PlayerActionContext) => void;
+  /** Pinned ids so a FA row can present Pin vs Remove-target. */
+  pinnedPlayerIds?: string[];
 }
 
 export interface FreeAgentRowProps {
@@ -87,6 +100,10 @@ export interface FreeAgentRowProps {
     | Dispatch<SetStateAction<string | null | undefined>>
     | ((value: string | null | undefined) => void);
   onOpenContractModal?: (entry: FreeAgentSurfaceEntry) => void;
+  /** Unified player-action sink (Slice 2e): Pin-as-Target / Compare / Guide. */
+  onPlayerAction?: (action: PlayerAction, context: PlayerActionContext) => void;
+  /** Pinned ids so the row can present Pin vs Remove-target. */
+  pinnedPlayerIds?: string[];
 }
 
 export interface FreeAgentCardProps {

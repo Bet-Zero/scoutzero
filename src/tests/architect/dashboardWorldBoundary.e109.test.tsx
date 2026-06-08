@@ -94,6 +94,11 @@ const dashboardRouteFixtures = vi.hoisted(() => ({
 
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ teamId: 'LAL' }),
+  // Passthrough stub so cockpit TopBar's <Link to="/gm"> renders inside
+  // unit tests that mock the entire react-router-dom module.
+  Link: ({ to, children, ...props }: { to: string; children?: React.ReactNode } & Record<string, unknown>) => (
+    <a href={typeof to === 'string' ? to : '#'} {...props}>{children}</a>
+  ),
 }));
 
 vi.mock('@/firebaseConfig', () => ({
@@ -147,9 +152,8 @@ vi.mock('@/features/architect/hooks/usePlayerRulesProfiles', () => ({
     mockUsePlayerRulesProfiles(...args),
 }));
 
-vi.mock('@/shared/components/EditContractModal', () => ({
-  __esModule: true,
-  default: ({
+vi.mock('@/shared/components/EditContractModal', () => {
+  const EditContractModal = ({
     isOpen,
     player,
     onClose,
@@ -241,8 +245,9 @@ vi.mock('@/shared/components/EditContractModal', () => ({
         <button onClick={onClose}>Close Contract Modal</button>
       </div>
     );
-  },
-}));
+  };
+  return { __esModule: true, default: EditContractModal, EditContractModal };
+});
 
 vi.mock('@/features/architect/GMDashboard/sections/RosterSection', () => ({
   RosterSection: () => <div data-testid="mock-roster-section">RosterSection</div>,
@@ -1654,6 +1659,11 @@ describe('E109 dashboard/world boundary behavior', () => {
 
   describe('GMDashboard', () => {
     it('preserves dashboard shell, tab wiring, world selector placement, world time controls, and OffseasonSection handoff', async () => {
+      // The cap-audit debug panel is now gated behind a dev-tools localStorage
+      // flag (cockpit refactor); enable it so the world-wiring assertion below
+      // still exercises the panel.
+      window.localStorage.setItem('architect.devTools.capAudit', '1');
+
       render(<GMDashboard />);
 
       expect(
@@ -1662,6 +1672,11 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(screen.getByTestId('firebase-target-mode-badge')).toHaveTextContent(
         'EMULATOR MODE'
       );
+
+      // Cockpit TopBar tucks the world controls behind an explicitly-opened
+      // popover ("decide once, then work"), so open it before reaching the
+      // WorldSelector and WorldTimeControls.
+      fireEvent.click(await screen.findByTestId('cockpit-world-menu-trigger'));
 
       await screen.findByLabelText('Architect (optional)');
       expect(screen.getByTestId('world-time-controls')).toBeInTheDocument();
@@ -1699,7 +1714,8 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(offseasonProps?.worldSeason).toBe('2025-26');
       expect(offseasonProps?.worldSeasonLoading).toBe(false);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Cap Sheet' }));
+      // Cockpit NavRail renders section nav as role="tab" (not plain buttons).
+      fireEvent.click(screen.getByRole('tab', { name: 'Cap Sheet' }));
       expect(mockSetActiveTab).toHaveBeenCalledWith('cap');
     });
 
@@ -1729,6 +1745,12 @@ describe('E109 dashboard/world boundary behavior', () => {
       );
 
       render(<GMDashboard />);
+
+      // Cockpit TopBar shows world controls inside a popover that the user
+      // explicitly opens — "decide once, then work" rather than a fluid
+      // header. Open the menu before asserting the WorldSelector and
+      // WorldTimeControls content is reachable.
+      fireEvent.click(await screen.findByTestId('cockpit-world-menu-trigger'));
 
       await screen.findByLabelText('Architect (optional)');
       expect(

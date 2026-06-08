@@ -25,6 +25,9 @@ type ForwardedCapSheetProps = Pick<
   | 'onOpenPlayerContractModal'
   | 'manualCapSheetMutationAuthority'
   | 'highlightPlayerId'
+  | 'highlightPlayerIds'
+  | 'onPlayerAction'
+  | 'pinnedPlayerIds'
 >;
 
 type DevFixtureAction = (() => unknown) | null;
@@ -72,6 +75,9 @@ const CapSheetSection = ({
   hasInjectedCapSheetFixtures = false,
   capSheetDevFixtureControls = null,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
+  onPlayerAction = null,
+  pinnedPlayerIds = [],
 }: CapSheetSectionProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
@@ -80,7 +86,11 @@ const CapSheetSection = ({
   }, [currentYear]);
 
   if (!teamCapSheet?.players) {
-    return <div className="text-white/80 mt-4">Loading cap sheet...</div>;
+    return (
+      <div className="mt-4 text-sm text-cockpit-text-secondary">
+        Loading cap sheet…
+      </div>
+    );
   }
 
   const showDevFixturePanel =
@@ -175,6 +185,9 @@ const CapSheetSection = ({
           onOpenPlayerContractModal={onOpenPlayerContractModal}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
           highlightPlayerId={highlightPlayerId}
+          highlightPlayerIds={highlightPlayerIds}
+          onPlayerAction={onPlayerAction}
+          pinnedPlayerIds={pinnedPlayerIds}
         />
       </section>
 

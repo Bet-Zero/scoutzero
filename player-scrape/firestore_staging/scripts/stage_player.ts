@@ -1150,7 +1150,7 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
   stagePlayer(parseArgs())
     .then((outPaths) => {
       console.log('Staged files created:', outPaths);

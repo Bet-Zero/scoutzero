@@ -76,6 +76,10 @@ type WorldModalProps = {
   onSubmit: () => void | Promise<void>;
   isSubmitting: boolean;
   submitLabel: string;
+  /** Error surfaced inside the modal (instead of only in the toolbar). */
+  error?: string;
+  /** Disables submit (e.g. required name not yet entered) + shows a hint. */
+  submitDisabled?: boolean;
 };
 
 const SANDBOX_OPTION_LABEL = 'Sandbox (No World Selected)';
@@ -509,7 +513,11 @@ export function WorldSelector({
         )}
       </div>
 
-      {error && <span className="text-xs text-red-400 ml-2">{error}</span>}
+      {/* Toolbar error: only when no name-entry modal is open (those show their
+          own inline error so a failure isn't hidden behind the dialog). */}
+      {error && !showCreateModal && !showBranchModal && !showRenameModal && (
+        <span className="text-xs text-red-400 ml-2">{error}</span>
+      )}
 
       {showCreateModal && (
         <WorldModal
@@ -518,6 +526,8 @@ export function WorldSelector({
           onSubmit={handleCreateWorld}
           isSubmitting={isSubmitting}
           submitLabel="Create"
+          error={error}
+          submitDisabled={!newWorldName.trim()}
         >
           <div className="space-y-3">
             <div>
@@ -563,6 +573,8 @@ export function WorldSelector({
           onSubmit={handleBranchWorld}
           isSubmitting={isSubmitting}
           submitLabel="Branch"
+          error={error}
+          submitDisabled={!newWorldName.trim()}
         >
           <div className="space-y-3">
             <p className="text-xs text-white/70">
@@ -614,6 +626,8 @@ export function WorldSelector({
           onSubmit={handleRenameWorld}
           isSubmitting={isSubmitting}
           submitLabel="Save"
+          error={error}
+          submitDisabled={!newWorldName.trim()}
         >
           <div className="space-y-3">
             <div>
@@ -688,6 +702,8 @@ function WorldModal({
   onSubmit,
   isSubmitting,
   submitLabel,
+  error,
+  submitDisabled = false,
 }: WorldModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -697,6 +713,21 @@ function WorldModal({
         <h3 className="text-sm font-semibold text-white mb-3">{title}</h3>
 
         {children}
+
+        {/* Inline feedback so a failure or a missing name is never silent. */}
+        {error ? (
+          <p
+            className="mt-3 text-xs text-red-400"
+            role="alert"
+            data-testid="world-modal-error"
+          >
+            {error}
+          </p>
+        ) : submitDisabled ? (
+          <p className="mt-3 text-xs text-white/40" data-testid="world-modal-hint">
+            Enter a name to continue.
+          </p>
+        ) : null}
 
         <div className="flex justify-end gap-2 mt-4">
           <button
@@ -710,8 +741,8 @@ function WorldModal({
           <button
             type="button"
             onClick={onSubmit}
-            className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-            disabled={isSubmitting}
+            className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600"
+            disabled={isSubmitting || submitDisabled}
           >
             {isSubmitting ? 'Working...' : submitLabel}
           </button>

@@ -54,6 +54,28 @@ export const SiteLayout = () => {
   // Pages that contain react-window/AutoSizer virtualization MUST NOT live inside overflow-y-auto ancestors.
   const isVirtualizedRoute = location.pathname.startsWith('/players');
 
+  // Architect cockpit owns the entire viewport on /gm and /gm/:teamId:
+  // - the global site header is suppressed (cockpit TopBar replaces it)
+  // - the outlet wrapper is overflow-hidden so the cockpit can enforce
+  //   its own no-page-scroll layout (h-[100dvh] + min-h-0 chain).
+  // GM League index (/gm) is treated as a normal route; only team
+  // dashboards (/gm/:teamId) get the app-shell mode.
+  const isArchitectAppShellRoute =
+    location.pathname.startsWith('/gm/') && location.pathname.length > '/gm/'.length;
+
+  if (isArchitectAppShellRoute) {
+    return (
+      <div className="h-screen bg-cockpit-void text-white flex flex-col" data-testid="site-layout-architect-app-shell">
+        <main className="flex-1 w-full flex flex-col min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <Outlet />
+          </div>
+          <Toaster position="bottom-center" />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen bg-neutral-900 text-white flex flex-col">
       <header className="bg-[#121212] border-b border-white/10 px-6 py-2 flex items-center justify-between shrink-0 z-[9999] relative">
@@ -98,7 +120,7 @@ export const SiteLayout = () => {
         </nav>
       </header>
 
-      {/* 
+      {/*
         SCROLL HANDLING STRATEGY:
         - main: Uses flex-1 + min-h-0 to establish height chain, NO overflow property here
         - For /players (virtualized): wrapper uses overflow-hidden, react-window handles scrolling

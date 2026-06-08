@@ -14,6 +14,12 @@ import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { TeamMap } from '@/constants/teamList';
 import { useParams } from 'react-router-dom';
 import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
+import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
+import {
+  buildPlayerActionContext,
+  type PlayerAction,
+  type PlayerActionContext,
+} from '@/features/architect/cockpit/playerActionContext';
 
 type RosterBio = Record<string, unknown> & {
   displayName?: string | null;
@@ -81,6 +87,21 @@ type RosterVisualProps = {
    * "just changed" outline. Visual only.
    */
   highlightPlayerId?: string | null;
+  /**
+   * Multi-focus highlight (e.g. pinned players). Any card matching one of these
+   * ids renders the "just changed" outline. Unioned with `highlightPlayerId`.
+   */
+  highlightPlayerIds?: string[];
+  /**
+   * Unified player-action intents (Pin/Unpin, Trade, cross-room navigation)
+   * routed by GMDashboard. When provided, each roster card gets the shared
+   * overflow PlayerActionMenu in its corner (card click still = Open).
+   */
+  onPlayerAction?:
+    | ((action: PlayerAction, context: PlayerActionContext) => void)
+    | null;
+  /** Pinned ids so each card menu can show Pin vs Unpin. */
+  pinnedPlayerIds?: string[];
 };
 
 const LEGACY_ROSTER_DISPLAY_ONLY_PROPS = {
@@ -238,6 +259,9 @@ export const RosterVisual = ({
   teamId: propTeamId,
   onSelectPlayer = null,
   highlightPlayerId = null,
+  highlightPlayerIds = [],
+  onPlayerAction = null,
+  pinnedPlayerIds = [],
 }: RosterVisualProps) => {
   const { teamId: routeTeamId } = useParams();
   const id = String(
@@ -301,13 +325,56 @@ export const RosterVisual = ({
   }, [onSelectPlayer]);
 
   const sectionHighlightMatcher = useMemo(() => {
-    if (!highlightPlayerId) return undefined;
+    const ids = [
+      ...(highlightPlayerId ? [highlightPlayerId] : []),
+      ...highlightPlayerIds,
+    ];
+    if (ids.length === 0) return undefined;
     return (player: unknown) =>
-      playerMatchesFocus(
-        player as Parameters<typeof playerMatchesFocus>[0],
-        highlightPlayerId
+      ids.some((focusId) =>
+        playerMatchesFocus(
+          player as Parameters<typeof playerMatchesFocus>[0],
+          focusId
+        )
       );
-  }, [highlightPlayerId]);
+  }, [highlightPlayerId, highlightPlayerIds]);
+
+  const renderPlayerMenu = useMemo(() => {
+    if (!onPlayerAction) return undefined;
+    return (cardPlayer: unknown) => {
+      const menuContext = buildPlayerActionContext({
+        player: (cardPlayer ?? {}) as RosterDisplayMember,
+        sourceRoom: 'roster',
+      });
+      if (!menuContext) return null;
+      const isPinned = pinnedPlayerIds.some((focusId) =>
+        playerMatchesFocus(
+          cardPlayer as Parameters<typeof playerMatchesFocus>[0],
+          focusId
+        )
+      );
+      return (
+        <PlayerActionMenu
+          context={menuContext}
+          visibleActions={[]}
+          overflowActions={[
+            'pin',
+            'trade',
+            'view-on-cap',
+            'view-in-full-cap',
+            'find-in-history',
+            'compare-impact',
+            'guide-next-move',
+          ]}
+          isPinned={isPinned}
+          menuAlign="right"
+          testIdPrefix="roster-card-player"
+          className="rounded bg-black/40 backdrop-blur-sm"
+          onAction={onPlayerAction}
+        />
+      );
+    };
+  }, [onPlayerAction, pinnedPlayerIds]);
 
   if (!roster) return null;
 
@@ -352,6 +419,7 @@ export const RosterVisual = ({
         {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
         onSelectPlayer={handleSectionSelect}
         isPlayerHighlighted={sectionHighlightMatcher}
+        renderPlayerMenu={renderPlayerMenu}
       />
       <RosterSection
         players={roster.rotation}
@@ -359,6 +427,7 @@ export const RosterVisual = ({
         {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
         onSelectPlayer={handleSectionSelect}
         isPlayerHighlighted={sectionHighlightMatcher}
+        renderPlayerMenu={renderPlayerMenu}
       />
       <RosterSection
         players={roster.bench}
@@ -366,6 +435,7 @@ export const RosterVisual = ({
         {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
         onSelectPlayer={handleSectionSelect}
         isPlayerHighlighted={sectionHighlightMatcher}
+        renderPlayerMenu={renderPlayerMenu}
       />
     </div>
   );

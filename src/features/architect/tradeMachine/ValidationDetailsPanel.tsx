@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ClipboardList, Wrench } from 'lucide-react';
 import { ModeTag } from './ValidationStateHeader';
 import { TradeSummaryPanel } from './TradeSummaryPanel';
 import { TradeLegalChecker } from './TradeLegalChecker';
@@ -8,6 +8,7 @@ import { FaExceptionTracker } from './FaExceptionTracker';
 import { TradeSalaryCalculator } from './TradeSalaryCalculator';
 import { TradeReceiptPanel } from './TradeReceiptPanel';
 import { getOfficialSalaryMatchingSnapshot } from './utils/getOfficialSalaryMatchingSnapshot';
+import { isTradeMachineDebugEnabled } from './utils/tradeMachineDebugFlag';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { EntitlementHealthPanel } from '@/features/architect/admin/EntitlementHealthPanel';
 import type {
@@ -44,7 +45,9 @@ interface ValidationDetailsPanelProps {
 
 interface SectionHeaderProps {
   title: string;
-  mode: string;
+  // Mode tag is developer-facing — only the dev-gated panels pass a `mode`.
+  // Production (Validation Results) sections omit it.
+  mode?: string;
   children?: React.ReactNode;
 }
 
@@ -52,7 +55,7 @@ const SectionHeader = ({ title, mode, children }: SectionHeaderProps) => (
   <div className="border-b border-white/10 pb-2 mb-3">
     <div className="flex items-center gap-2 mb-1">
       <h4 className="font-medium text-sm text-white/90">{title}</h4>
-      <ModeTag mode={mode} />
+      {mode && <ModeTag mode={mode} />}
     </div>
     {children && <div className="text-xs text-white/50">{children}</div>}
   </div>
@@ -110,6 +113,8 @@ export const ValidationDetailsPanel = ({
 }: ValidationDetailsPanelProps) => {
   const [productionExpanded, setProductionExpanded] = useState(false);
   const [devToolsExpanded, setDevToolsExpanded] = useState(false);
+  // Dev-flag gate: finished-product users never see the Development Tools panel.
+  const debugEnabled = isTradeMachineDebugEnabled();
 
   const teamOptions = useMemo(
     () =>
@@ -152,10 +157,10 @@ export const ValidationDetailsPanel = ({
           aria-controls="validation-results-content"
         >
           <span className="flex items-center gap-2">
-            <span>📋</span>
+            <ClipboardList size={15} className="text-white/60" />
             <span>Validation Results</span>
             {hasValidatorResult && (
-              <span className="text-xs text-green-400">✓ Results available</span>
+              <span className="text-xs text-green-400">Results available</span>
             )}
           </span>
           {productionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -171,7 +176,7 @@ export const ValidationDetailsPanel = ({
             ) : (
               <div className="space-y-6">
                 <section data-testid="section-validation-summary">
-                  <SectionHeader title="Validation Summary" mode="OFFICIAL">
+                  <SectionHeader title="Validation Summary">
                     Per-team matching status and trade legality
                   </SectionHeader>
                   <TradeSummaryPanel
@@ -186,10 +191,7 @@ export const ValidationDetailsPanel = ({
 
                 {snapshotValidationDetails?.teamResults && (
                   <section data-testid="section-rule-compliance">
-                    <SectionHeader
-                      title="Rule Compliance Overview"
-                      mode="OFFICIAL"
-                    >
+                    <SectionHeader title="Rule Compliance Overview">
                       CBA rule pass/fail per team (preview only — snapshot stage here, post-state preview runs locally, world-state checks run at apply time)
                     </SectionHeader>
                     <TradeLegalChecker
@@ -200,7 +202,7 @@ export const ValidationDetailsPanel = ({
                 )}
 
                 <section data-testid="section-exception-analysis">
-                  <SectionHeader title="Trade Exception Analysis" mode="OFFICIAL">
+                  <SectionHeader title="Trade Exception Analysis">
                     TPE creation, usage, FA exceptions, and existing exceptions
                   </SectionHeader>
                   <div className="space-y-4">
@@ -220,6 +222,7 @@ export const ValidationDetailsPanel = ({
         )}
       </div>
 
+      {debugEnabled && (
       <div className="border border-amber-500/30 rounded-lg overflow-hidden bg-[#111]">
         <button
           type="button"
@@ -229,7 +232,7 @@ export const ValidationDetailsPanel = ({
           aria-controls="dev-tools-content"
         >
           <span className="flex items-center gap-2">
-            <span>🛠️</span>
+            <Wrench size={15} className="text-amber-300/60" />
             <span>Development Tools</span>
             <span className="text-[10px] text-amber-400/50 italic ml-1">
               testing & debug
@@ -329,15 +332,19 @@ export const ValidationDetailsPanel = ({
                     </section>
                   )}
 
-                  <section data-testid="section-trade-receipt">
-                    <SectionHeader title="Trade Receipt" mode="DEBUG">
-                      Developer diagnostic data — not required reading
-                    </SectionHeader>
-                    <TradeReceiptPanel
-                      receipt={snapshotValidationDetails?.tradeReceipt}
-                      pickRulesById={pickRulesById}
-                    />
-                  </section>
+                  {/* TMUI-16: gate the whole section on the receipt flag so the
+                      header doesn't render alone when the panel is disabled */}
+                  {import.meta.env.VITE_SHOW_TRADE_RECEIPT === 'true' && (
+                    <section data-testid="section-trade-receipt">
+                      <SectionHeader title="Trade Receipt" mode="DEBUG">
+                        Developer diagnostic data — not required reading
+                      </SectionHeader>
+                      <TradeReceiptPanel
+                        receipt={snapshotValidationDetails?.tradeReceipt}
+                        pickRulesById={pickRulesById}
+                      />
+                    </section>
+                  )}
 
                   {Object.keys(entitlementsByTeam).length > 0 && (
                     <section data-testid="section-entitlement-health">
@@ -355,6 +362,7 @@ export const ValidationDetailsPanel = ({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

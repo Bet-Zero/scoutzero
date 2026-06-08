@@ -184,11 +184,14 @@ export function consumeSigningExceptionUsage({
   mechanism,
   contractValue,
   timestamp,
+  seasonEndYear = null,
 }: {
   updatedTeam: ArchitectMutationTeamRecord;
   mechanism: string;
   contractValue: number;
   timestamp: number;
+  /** Season end-year of the signing, recorded for BAE biennial enforcement. */
+  seasonEndYear?: number | null;
 }) {
   const exceptionKey = getCanonicalExceptionKeyForSigningMechanism(mechanism);
   if (!exceptionKey) {
@@ -252,6 +255,11 @@ export function consumeSigningExceptionUsage({
     availability.remainingAmount - contractValue
   );
   normalizedState.lastUsedAt = new Date(timestamp).toISOString();
+  // Record the season the BAE was consumed so the biennial ("every other
+  // season") restriction can be enforced after the next season rollover.
+  if (exceptionKey === 'bae' && Number.isFinite(seasonEndYear)) {
+    normalizedState.lastUsedSeasonEndYear = seasonEndYear;
+  }
 
   updatedTeam.exceptions = {
     ...updatedTeam.exceptions,
@@ -344,6 +352,7 @@ export function computeSigningResult({
     mechanism: signingMechanism,
     contractValue,
     timestamp,
+    seasonEndYear: seasonId != null ? toEndYear(seasonId) : null,
   });
   if (exceptionConsumption.error) {
     return {

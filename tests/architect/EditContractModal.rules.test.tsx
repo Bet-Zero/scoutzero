@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import EditContractModal from '@/shared/components/EditContractModal';
+import { EditContractModal } from '@/shared/components/EditContractModal';
 
 type TeamSelectDropdownProps = {
   selectedTeamId?: string | null;
@@ -9,14 +9,15 @@ type TeamSelectDropdownProps = {
 };
 
 // Stub TeamSelectDropdown so the S&T destination picker is testable
-vi.mock('@/shared/components/TeamSelectDropdown', () => ({
-  default: ({ selectedTeamId, onChange }: TeamSelectDropdownProps) => (
+vi.mock('@/shared/components/TeamSelectDropdown', () => {
+  const TeamSelectDropdown = ({ selectedTeamId, onChange }: TeamSelectDropdownProps) => (
     <select data-testid="team-select" value={selectedTeamId || ''} onChange={(e) => onChange(e.target.value)}>
       <option value="">Select Team</option>
       <option value="BOS">Boston Celtics</option>
     </select>
-  ),
-}));
+  );
+  return { default: TeamSelectDropdown, TeamSelectDropdown };
+});
 
 // Mock environment variable to enable override functionality for tests
 // In production, this would be false to prevent illegal state creation

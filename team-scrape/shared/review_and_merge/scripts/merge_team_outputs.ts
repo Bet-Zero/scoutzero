@@ -136,6 +136,17 @@ interface SalaryData {
     type: string;
     rights?: string;
   }>;
+  deadCap?: Array<{
+    displayName: string;
+    sourceUrl?: string;
+    playerId?: string;
+    reason?: string;
+    amountByYear: Array<{
+      season: string;
+      amount: number;
+      isStretched?: boolean;
+    }>;
+  }>;
   exceptions: {
     mle?: any;
     bae?: any;
@@ -201,6 +212,7 @@ interface MergedTeamData {
   season: string;
   roster: SalaryData['roster'];
   capHolds: SalaryData['capHolds'];
+  deadCap: SalaryData['deadCap'];
   exceptions: SalaryData['exceptions'];
   totals: SalaryData['totals'];
   draftPicks: {
@@ -376,6 +388,7 @@ function mergeTeamData(
       season: '2025-26', // Default season
       roster: [],
       capHolds: [],
+      deadCap: [],
       exceptions: { tpe: [] },
       totals: {},
       draftPicks: groupDraftPicksByStatus(normalizedOwned),
@@ -404,6 +417,7 @@ function mergeTeamData(
     season: salaryData.season,
     roster: salaryData.roster,
     capHolds: salaryData.capHolds,
+    deadCap: salaryData.deadCap ?? [],
     exceptions: salaryData.exceptions,
     totals: salaryData.totals,
     draftPicks: groupDraftPicksByStatus(normalizedOwned),
@@ -539,6 +553,7 @@ async function processTeam(
   log(`Merge summary for ${teamCode}:`);
   console.log(`  - Roster: ${merged.roster.length} players`);
   console.log(`  - Cap Holds: ${merged.capHolds.length} items`);
+  console.log(`  - Dead Cap: ${merged.deadCap?.length ?? 0} items`);
   console.log(`  - Draft Picks:`);
   console.log(`    - Own: ${merged.draftPicks.own.length}`);
   console.log(`    - Incoming: ${merged.draftPicks.incoming.length}`);

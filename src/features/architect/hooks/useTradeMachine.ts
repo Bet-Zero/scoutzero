@@ -126,7 +126,6 @@ export const useTradeMachine = (
     setSnapshotValidationDetails,
     setPreviewAuthority,
     setIsValidating,
-    setPreviewOpen,
     lastValidatedDraftKeyRef,
     validatedAtRef,
   });
