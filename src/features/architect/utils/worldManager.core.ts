@@ -5,6 +5,8 @@
 
 import { db, functions } from '@/firebaseConfig';
 import {
+  collection,
+  doc,
   getDoc,
   updateDoc,
   getDocs,
@@ -14,9 +16,26 @@ import {
   serverTimestamp,
   writeBatch,
   arrayUnion,
+  type DocumentReference,
+  type WriteBatch,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { worldMetadataRef, worldsCol } from './architectFirestorePaths';
+import { TeamListFull } from '@/constants/teamList';
+import {
+  ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+  ARCHITECT_WORLDS_COLLECTION,
+} from '@/constants/collections';
+import {
+  baseEntitlementRef,
+  baseTeamRef,
+  worldEntitlementRef,
+  worldEntitlementsCol,
+  worldMetadataRef,
+  worldPlayerRef,
+  worldPlayersCol,
+  worldTeamRef,
+  worldsCol,
+} from './architectFirestorePaths';
 import {
   generateWorldId,
   getCurrentSeason,
@@ -31,6 +50,461 @@ import {
 } from './worldManager.readUtils';
 
 const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const BRANCH_COPY_BATCH_LIMIT = 450;
+
+type BranchCopyRecord = Record<string, unknown>;
+type BranchCopyOperation = (batch: WriteBatch) => void;
+
+const isPlainRecord = (value: unknown): value is BranchCopyRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const clonePlainValue = <T>(value: T): T => {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  return JSON.parse(JSON.stringify(value)) as T;
+};
+
+const readSnapshotRecord = (
+  value: unknown,
+  context: string
+): BranchCopyRecord => {
+  if (!isPlainRecord(value)) {
+    throw new Error(`${context} must be an object`);
+  }
+  return value;
+};
+
+const deepMergeBranchRecord = (
+  base: BranchCopyRecord,
+  override: BranchCopyRecord
+): BranchCopyRecord => {
+  const merged: BranchCopyRecord = { ...base };
+
+  for (const [key, value] of Object.entries(override)) {
+    if (value === null) {
+      delete merged[key];
+      continue;
+    }
+
+    const baseValue = base[key];
+    if (isPlainRecord(baseValue) && isPlainRecord(value)) {
+      merged[key] = deepMergeBranchRecord(baseValue, value);
+      continue;
+    }
+
+    merged[key] = value;
+  }
+
+  return merged;
+};
+
+const rewriteWorldIdentity = (
+  data: BranchCopyRecord,
+  childWorldId: string
+): BranchCopyRecord => {
+  const next: BranchCopyRecord = { ...data };
+
+  if ('worldId' in next) {
+    next.worldId = childWorldId;
+  }
+
+  if (isPlainRecord(next.source)) {
+    next.source = {
+      ...next.source,
+      worldId: childWorldId,
+    };
+  }
+
+  return next;
+};
+
+const rewriteEventWorldIdentity = (
+  data: BranchCopyRecord,
+  childWorldId: string
+): BranchCopyRecord => {
+  const next = rewriteWorldIdentity(data, childWorldId);
+
+  if (isPlainRecord(next.mutationMetadata)) {
+    next.mutationMetadata = {
+      ...next.mutationMetadata,
+      worldId: childWorldId,
+    };
+  }
+
+  return next;
+};
+
+const appendSetOperation = (
+  operations: BranchCopyOperation[],
+  ref: DocumentReference,
+  data: BranchCopyRecord
+) => {
+  operations.push((batch) => {
+    batch.set(ref, data);
+  });
+};
+
+const commitBranchCopyOperations = async (
+  operations: BranchCopyOperation[]
+) => {
+  for (
+    let index = 0;
+    index < operations.length;
+    index += BRANCH_COPY_BATCH_LIMIT
+  ) {
+    const batch = writeBatch(db);
+    operations
+      .slice(index, index + BRANCH_COPY_BATCH_LIMIT)
+      .forEach((operation) => operation(batch));
+    await batch.commit();
+  }
+};
+
+const resolveWorldLineageIds = async (worldId: string): Promise<string[]> => {
+  const lineageIds: string[] = [];
+  const visitedIds = new Set<string>();
+  let currentWorldId: string | null = worldId;
+
+  while (currentWorldId) {
+    if (visitedIds.has(currentWorldId)) {
+      throw new Error(`World lineage cycle detected for ${currentWorldId}`);
+    }
+
+    visitedIds.add(currentWorldId);
+    lineageIds.push(currentWorldId);
+
+    const metadata = await getWorldMetadata(currentWorldId);
+    currentWorldId =
+      typeof metadata.parentWorldId === 'string' && metadata.parentWorldId.trim()
+        ? metadata.parentWorldId.trim()
+        : null;
+  }
+
+  return lineageIds;
+};
+
+const readEffectiveTeamSnapshotForBranch = async (
+  lineageIds: string[],
+  teamCode: string
+): Promise<BranchCopyRecord | null> => {
+  for (const lineageWorldId of lineageIds) {
+    const worldTeamSnap = await getDoc(worldTeamRef(lineageWorldId, teamCode));
+    if (worldTeamSnap.exists()) {
+      return readSnapshotRecord(
+        worldTeamSnap.data(),
+        `architect_worlds/${lineageWorldId}/teams/${teamCode}`
+      );
+    }
+  }
+
+  const baseTeamSnap = await getDoc(baseTeamRef(teamCode));
+  if (baseTeamSnap.exists()) {
+    return readSnapshotRecord(
+      baseTeamSnap.data(),
+      `architect_baseTeams/${teamCode}`
+    );
+  }
+
+  return null;
+};
+
+const collectEffectiveTeamSnapshotsForBranch = async (
+  lineageIds: string[],
+  childWorldId: string
+) => {
+  const snapshots = new Map<string, BranchCopyRecord>();
+
+  for (const team of TeamListFull) {
+    const teamData = await readEffectiveTeamSnapshotForBranch(
+      lineageIds,
+      team.code
+    );
+    if (!teamData) {
+      continue;
+    }
+
+    snapshots.set(team.code, rewriteWorldIdentity(teamData, childWorldId));
+  }
+
+  return snapshots;
+};
+
+const collectEffectivePlayerOverridesForBranch = async (
+  lineageIds: string[],
+  childWorldId: string
+) => {
+  const overrides = new Map<string, Map<string, BranchCopyRecord>>();
+
+  for (const team of TeamListFull) {
+    const teamOverrides = new Map<string, BranchCopyRecord>();
+
+    for (const lineageWorldId of lineageIds) {
+      const playersSnap = await getDocs(
+        worldPlayersCol(lineageWorldId, team.code)
+      );
+      for (const playerDoc of playersSnap.docs) {
+        if (teamOverrides.has(playerDoc.id)) {
+          continue;
+        }
+
+        teamOverrides.set(
+          playerDoc.id,
+          rewriteWorldIdentity(
+            readSnapshotRecord(
+              playerDoc.data(),
+              `architect_worlds/${lineageWorldId}/teams/${team.code}/players/${playerDoc.id}`
+            ),
+            childWorldId
+          )
+        );
+      }
+    }
+
+    if (teamOverrides.size > 0) {
+      overrides.set(team.code, teamOverrides);
+    }
+  }
+
+  return overrides;
+};
+
+const readEffectiveEntitlementForBranch = async (
+  lineageIds: string[],
+  entitlementId: string
+): Promise<BranchCopyRecord | null> => {
+  let resolved: BranchCopyRecord | null = null;
+
+  const baseEntitlementSnap = await getDoc(baseEntitlementRef(entitlementId));
+  if (baseEntitlementSnap.exists()) {
+    resolved = {
+      id: baseEntitlementSnap.id,
+      ...readSnapshotRecord(
+        baseEntitlementSnap.data(),
+        `architect_baseEntitlements/${entitlementId}`
+      ),
+    };
+  }
+
+  for (const lineageWorldId of [...lineageIds].reverse()) {
+    const entitlementSnap = await getDoc(
+      worldEntitlementRef(lineageWorldId, entitlementId)
+    );
+    if (!entitlementSnap.exists()) {
+      continue;
+    }
+
+    const override = {
+      id: entitlementSnap.id,
+      ...readSnapshotRecord(
+        entitlementSnap.data(),
+        `architect_worlds/${lineageWorldId}/entitlements/${entitlementId}`
+      ),
+    };
+    resolved = resolved ? deepMergeBranchRecord(resolved, override) : override;
+  }
+
+  return resolved;
+};
+
+const collectEffectiveEntitlementsForBranch = async (
+  lineageIds: string[],
+  teamSnapshots: Map<string, BranchCopyRecord>,
+  childWorldId: string
+) => {
+  const entitlementIds = new Set<string>();
+
+  for (const teamData of teamSnapshots.values()) {
+    if (!Array.isArray(teamData.entitlementIds)) {
+      continue;
+    }
+    teamData.entitlementIds.forEach((entitlementId) => {
+      if (typeof entitlementId === 'string' && entitlementId.trim()) {
+        entitlementIds.add(entitlementId.trim());
+      }
+    });
+  }
+
+  for (const lineageWorldId of lineageIds) {
+    const entitlementsSnap = await getDocs(worldEntitlementsCol(lineageWorldId));
+    entitlementsSnap.docs.forEach((entitlementDoc) => {
+      entitlementIds.add(entitlementDoc.id);
+    });
+  }
+
+  const entitlements = new Map<string, BranchCopyRecord>();
+  for (const entitlementId of entitlementIds) {
+    const entitlement = await readEffectiveEntitlementForBranch(
+      lineageIds,
+      entitlementId
+    );
+    if (entitlement) {
+      entitlements.set(
+        entitlementId,
+        rewriteWorldIdentity(entitlement, childWorldId)
+      );
+    }
+  }
+
+  return entitlements;
+};
+
+const collectSourceWorldEventsForBranch = async (
+  parentWorldId: string,
+  childWorldId: string
+) => {
+  const events = new Map<string, BranchCopyRecord>();
+  const eventsSnap = await getDocs(
+    collection(
+      db,
+      ARCHITECT_WORLDS_COLLECTION,
+      parentWorldId,
+      ARCHITECT_WORLD_EVENTS_SUBCOLLECTION
+    )
+  );
+
+  eventsSnap.docs.forEach((eventDoc) => {
+    events.set(
+      eventDoc.id,
+      rewriteEventWorldIdentity(
+        readSnapshotRecord(
+          eventDoc.data(),
+          `architect_worlds/${parentWorldId}/events/${eventDoc.id}`
+        ),
+        childWorldId
+      )
+    );
+  });
+
+  return events;
+};
+
+const appendWorldStateCopyOperations = async ({
+  operations,
+  parentWorldId,
+  childWorldId,
+}: {
+  operations: BranchCopyOperation[];
+  parentWorldId: string;
+  childWorldId: string;
+}) => {
+  const lineageIds = await resolveWorldLineageIds(parentWorldId);
+  const teamSnapshots = await collectEffectiveTeamSnapshotsForBranch(
+    lineageIds,
+    childWorldId
+  );
+  const playerOverrides = await collectEffectivePlayerOverridesForBranch(
+    lineageIds,
+    childWorldId
+  );
+  const entitlements = await collectEffectiveEntitlementsForBranch(
+    lineageIds,
+    teamSnapshots,
+    childWorldId
+  );
+  const events = await collectSourceWorldEventsForBranch(
+    parentWorldId,
+    childWorldId
+  );
+
+  for (const [teamCode, teamData] of teamSnapshots.entries()) {
+    appendSetOperation(
+      operations,
+      worldTeamRef(childWorldId, teamCode),
+      teamData
+    );
+  }
+
+  for (const [teamCode, overridesByPlayer] of playerOverrides.entries()) {
+    for (const [playerId, playerData] of overridesByPlayer.entries()) {
+      appendSetOperation(
+        operations,
+        worldPlayerRef(childWorldId, teamCode, playerId),
+        playerData
+      );
+    }
+  }
+
+  for (const [entitlementId, entitlementData] of entitlements.entries()) {
+    appendSetOperation(
+      operations,
+      worldEntitlementRef(childWorldId, entitlementId),
+      entitlementData
+    );
+  }
+
+  for (const [eventId, eventData] of events.entries()) {
+    appendSetOperation(
+      operations,
+      doc(
+        db,
+        ARCHITECT_WORLDS_COLLECTION,
+        childWorldId,
+        ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+        eventId
+      ),
+      eventData
+    );
+  }
+};
+
+const buildBranchedWorldMetadata = ({
+  worldId,
+  name,
+  description,
+  parentWorldId,
+  userId,
+  parentMetadata,
+}: {
+  worldId: string;
+  name: string;
+  description: string | undefined;
+  parentWorldId: string;
+  userId: string;
+  parentMetadata: WorldMetadata;
+}): Record<string, unknown> => {
+  const season = parentMetadata.currentSeason || getCurrentSeason();
+  const metadata: Record<string, unknown> = {
+    worldId,
+    worldName: name.trim(),
+    description: description?.trim() || '',
+    createdBy: userId,
+    createdAt: serverTimestamp(),
+    lastModifiedAt: serverTimestamp(),
+    currentSeason: season,
+    baselineSeason: parentMetadata.baselineSeason || season,
+    parentWorldId,
+    branchedFrom: serverTimestamp(),
+    childWorlds: [],
+    modifiedTeams: clonePlainValue(parentMetadata.modifiedTeams || []),
+    actionCount: parentMetadata.actionCount || 0,
+    tags: clonePlainValue(parentMetadata.tags || []),
+    isArchived: false,
+    isFavorite: false,
+    stats: clonePlainValue(
+      parentMetadata.stats || {
+        totalTrades: 0,
+        totalSignings: 0,
+        totalWaives: 0,
+        totalRenounces: 0,
+        teamsInvolved: 0,
+      }
+    ),
+  };
+
+  if (parentMetadata.asOfDate !== undefined) {
+    metadata.asOfDate = parentMetadata.asOfDate;
+  }
+
+  if (parentMetadata.draftPositionsByYear !== undefined) {
+    metadata.draftPositionsByYear = clonePlainValue(
+      parentMetadata.draftPositionsByYear
+    );
+  }
+
+  return metadata;
+};
 
 const normalizeWorldAsOfDate = (asOfDate: string): string => {
   if (!asOfDate || !ISO_DATE_ONLY_PATTERN.test(asOfDate)) {
@@ -354,14 +828,32 @@ export async function branchWorld(
   }
 
   const parentMetadata = await getWorldMetadata(parentWorldId);
-
-  return createWorld({
+  const worldId = generateWorldId();
+  const metadata = buildBranchedWorldMetadata({
+    worldId,
     name,
     description,
     parentWorldId,
     userId,
-    currentSeason: parentMetadata.currentSeason,
+    parentMetadata,
   });
+  const copyOperations: BranchCopyOperation[] = [];
+
+  await appendWorldStateCopyOperations({
+    operations: copyOperations,
+    parentWorldId,
+    childWorldId: worldId,
+  });
+  await commitBranchCopyOperations(copyOperations);
+
+  const batch = writeBatch(db);
+  batch.set(worldMetadataRef(worldId), metadata);
+  batch.update(worldMetadataRef(parentWorldId), {
+    childWorlds: arrayUnion(worldId),
+  });
+  await batch.commit();
+
+  return { worldId, metadata };
 }
 
 export async function updateWorldStats(

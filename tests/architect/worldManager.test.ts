@@ -28,6 +28,8 @@ import {
   seedWorldMetadata,
   getMockWorldMetadata,
   createMockWorld,
+  seedMockData,
+  getMockData,
   type MockWorldMetadata,
   type MockWorldStats,
 } from '../helpers/architectTestHelpers.js';
@@ -488,6 +490,175 @@ describe('World Manager', () => {
 
       expect(branchResult.metadata.currentSeason).toBe('2026-27');
       expect(branchResult.metadata.baselineSeason).toBe('2026-27');
+    });
+
+    it('copies source Team Plan state into independent branch docs', async () => {
+      const parentResult = await createWorld({
+        name: 'Parent',
+        userId,
+        currentSeason: '2026-27',
+      });
+      const parentMetadata = getRequiredWorldMetadata(parentResult.worldId);
+      seedWorldMetadata(parentResult.worldId, {
+        ...parentMetadata,
+        actionCount: 2,
+        modifiedTeams: ['LAL'],
+        stats: {
+          ...parentMetadata.stats,
+          totalTrades: 1,
+          totalSignings: 1,
+          teamsInvolved: 1,
+        },
+        asOfDate: '2026-02-01',
+        draftPositionsByYear: {
+          2026: {
+            positionsMap: { LAL: 24 },
+            method: 'manual',
+            updatedAtIso: '2026-02-01T00:00:00.000Z',
+          },
+        },
+      });
+
+      const parentTeamPath = `architect_worlds/${parentResult.worldId}/teams/LAL`;
+      const parentPlayerPath = `${parentTeamPath}/players/lal_player_1`;
+      const parentEntitlementPath = `architect_worlds/${parentResult.worldId}/entitlements/lal_2028_first`;
+      const parentEventPath = `architect_worlds/${parentResult.worldId}/events/executeTrade_1`;
+      const parentTeam = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        season: '2026-27',
+        roster: ['lal_player_1'],
+        players: [{ playerId: 'lal_player_1', displayName: 'Copied Player' }],
+        entitlementIds: ['lal_2028_first'],
+        exceptions: {
+          mle: {
+            totalAmount: 14_100_000,
+            usedAmount: 4_000_000,
+            remainingAmount: 10_100_000,
+          },
+        },
+        capHolds: [{ playerId: 'hold_1', amount: 5_000_000 }],
+        totals: {
+          totalSalary: 121_000_000,
+          capHit: 126_000_000,
+          rosterCount: 1,
+        },
+        source: {
+          type: 'world-snapshot',
+          worldId: parentResult.worldId,
+        },
+      };
+      const parentPlayerOverride = {
+        playerId: 'lal_player_1',
+        displayName: 'Copied Player',
+        teamCode: 'LAL',
+        contract: {
+          salariesByYear: [{ year: 2027, salary: 12_000_000 }],
+        },
+        source: {
+          type: 'world-snapshot',
+          worldId: parentResult.worldId,
+        },
+      };
+      const parentEntitlement = {
+        id: 'lal_2028_first',
+        holderTeam: 'LAL',
+        seasonYear: 2028,
+        round: 1,
+      };
+      const parentEvent = {
+        id: 'executeTrade_1',
+        eventId: 'executeTrade_1',
+        type: 'executeTrade',
+        worldId: parentResult.worldId,
+        teamCodes: ['LAL'],
+        teamsAffected: ['LAL'],
+        occurredAt: '2026-02-01T00:00:00.000Z',
+        mutationMetadata: {
+          worldId: parentResult.worldId,
+          teamCodes: ['LAL'],
+        },
+      };
+
+      seedMockData(parentTeamPath, parentTeam);
+      seedMockData(parentPlayerPath, parentPlayerOverride);
+      seedMockData(parentEntitlementPath, parentEntitlement);
+      seedMockData(parentEventPath, parentEvent);
+
+      const branchResult = await branchWorld(
+        parentResult.worldId,
+        'Branch',
+        'Copied branch',
+        userId
+      );
+      const branchTeamPath = `architect_worlds/${branchResult.worldId}/teams/LAL`;
+      const branchPlayerPath = `${branchTeamPath}/players/lal_player_1`;
+      const branchEntitlementPath = `architect_worlds/${branchResult.worldId}/entitlements/lal_2028_first`;
+      const branchEventPath = `architect_worlds/${branchResult.worldId}/events/executeTrade_1`;
+
+      expect(branchResult.metadata.parentWorldId).toBe(parentResult.worldId);
+      expect(branchResult.metadata.currentSeason).toBe('2026-27');
+      expect(branchResult.metadata.baselineSeason).toBe('2026-27');
+      expect(branchResult.metadata.actionCount).toBe(2);
+      expect(branchResult.metadata.modifiedTeams).toEqual(['LAL']);
+      expect(branchResult.metadata.stats).toMatchObject({
+        totalTrades: 1,
+        totalSignings: 1,
+        teamsInvolved: 1,
+      });
+      expect(branchResult.metadata.asOfDate).toBe('2026-02-01');
+      expect(branchResult.metadata.draftPositionsByYear).toMatchObject({
+        2026: {
+          positionsMap: { LAL: 24 },
+        },
+      });
+      expect(getMockData(branchTeamPath)).toMatchObject({
+        roster: ['lal_player_1'],
+        exceptions: parentTeam.exceptions,
+        capHolds: parentTeam.capHolds,
+        totals: parentTeam.totals,
+        source: {
+          worldId: branchResult.worldId,
+        },
+      });
+      expect(getMockData(branchPlayerPath)).toMatchObject({
+        playerId: 'lal_player_1',
+        contract: parentPlayerOverride.contract,
+        source: {
+          worldId: branchResult.worldId,
+        },
+      });
+      expect(getMockData(branchEntitlementPath)).toMatchObject({
+        id: 'lal_2028_first',
+        holderTeam: 'LAL',
+        seasonYear: 2028,
+        round: 1,
+      });
+      expect(getMockData(branchEventPath)).toMatchObject({
+        id: 'executeTrade_1',
+        eventId: 'executeTrade_1',
+        teamCodes: ['LAL'],
+        worldId: branchResult.worldId,
+        mutationMetadata: {
+          worldId: branchResult.worldId,
+        },
+      });
+
+      seedMockData(parentTeamPath, {
+        ...parentTeam,
+        roster: ['source_changed_after_branch'],
+        totals: {
+          ...parentTeam.totals,
+          capHit: 999_000_000,
+        },
+      });
+
+      expect(getMockData(branchTeamPath)).toMatchObject({
+        roster: ['lal_player_1'],
+        totals: {
+          capHit: 126_000_000,
+        },
+      });
     });
 
     it('throws error when parentWorldId is missing', async () => {
