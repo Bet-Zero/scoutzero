@@ -400,6 +400,8 @@ export interface UseArchitectStateReturn {
   isLoading: boolean;
   isSaving: boolean;
   error: string;
+  lastSavedAt: string | null;
+  lastSaveError: string | null;
   lastCapSheet: CapSheet | null;
   offseasonRun: boolean;
   offseasonSummary: DashboardOffseasonSummary | null;

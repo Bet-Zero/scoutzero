@@ -18,6 +18,7 @@ import {
 } from '@/features/architect/guidedQuestions';
 import { GuideSection } from '@/features/architect/GMDashboard/sections/GuideSection';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import { deriveArchitectTeamPlanSaveState } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 import type { Stage3ComparisonViewModel } from '@/features/architect/comparison/types';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
 
@@ -68,6 +69,7 @@ const makeWorkspaceContext = (
     hasError: false,
     errorMessage: null,
   },
+  saveState: deriveArchitectTeamPlanSaveState({ worldId: 'world_test' }),
   roster: { status: 'available', count: 15, source: 'players' },
   cap: {
     status: 'available',
@@ -123,6 +125,7 @@ const makeSandboxWorkspaceContext = (): ArchitectWorkspaceContext =>
       worldId: null,
       isCommittedWorldTruth: false,
     },
+    saveState: deriveArchitectTeamPlanSaveState({ worldId: null }),
     seasons: {
       selectedViewingSeason: 2025,
       selectedViewingSeasonLabel: '2025-26',

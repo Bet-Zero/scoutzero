@@ -283,6 +283,8 @@ export const GMDashboard = () => {
     isLoading,
     isSaving,
     error,
+    lastSavedAt,
+    lastSaveError,
     offseasonRun,
     offseasonSummary,
     playersMap,
@@ -324,6 +326,9 @@ export const GMDashboard = () => {
     isLoading,
     isSaving,
     error,
+    lastSavedAt,
+    lastSaveError,
+    hasStagedTradeDraft: tradeDraftActive,
     worldModeBoundary,
   });
   const resolvedHistoryTeamCode = useMemo(() => {

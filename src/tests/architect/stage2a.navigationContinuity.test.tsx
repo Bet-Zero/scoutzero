@@ -15,6 +15,7 @@ import '@testing-library/jest-dom/vitest';
 import { ArchitectWorkspaceHeader } from '@/features/architect/GMDashboard/components/ArchitectWorkspaceHeader';
 import { FreeAgencySection } from '@/features/architect/GMDashboard/sections/FreeAgencySection';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import { deriveArchitectTeamPlanSaveState } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 import type { FreeAgencyActionOwner } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 
 // FreeAgentPool mock that exposes signFreeAgent via a test button so we can
@@ -78,6 +79,7 @@ const baseContext: ArchitectWorkspaceContext = {
     hasError: false,
     errorMessage: null,
   },
+  saveState: deriveArchitectTeamPlanSaveState({ worldId: 'world_1' }),
   roster: { status: 'unavailable', count: null, source: null },
   cap: { status: 'unavailable', reason: 'no data' },
   exceptions: { status: 'unavailable', deferralHint: 'see-cap-sheet', reason: 'no data' },

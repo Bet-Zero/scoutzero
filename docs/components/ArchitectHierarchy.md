@@ -20,6 +20,7 @@ GMDashboard/
     WorldTimeControls.tsx
   hooks/
     optimisticMutationLock.ts
+    teamPlanSaveState.ts
     useArchitectActions.contractActions.ts
     useArchitectActions.helpers.offerSheet.ts
     useArchitectActions.helpers.signing.ts
@@ -543,5 +544,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-06T02:37:48.203Z*
+*Generated on: 2026-06-09T22:54:30.559Z*
 *Auto-updated by: npm run docs*

@@ -18,6 +18,11 @@ import {
   deriveArchitectModePresentation,
   type ArchitectModePresentation,
 } from './useArchitectModePresentation';
+import {
+  deriveArchitectTeamPlanSaveState,
+  type ArchitectTeamPlanDraftSource,
+  type ArchitectTeamPlanSaveState,
+} from './teamPlanSaveState';
 
 type AvailabilityStatus = 'available' | 'loading' | 'unavailable';
 
@@ -142,6 +147,7 @@ export interface ArchitectWorkspaceContext {
   worldDate: ArchitectWorkspaceWorldDateContext;
   mode: ArchitectModePresentation;
   status: ArchitectWorkspaceStatusContext;
+  saveState: ArchitectTeamPlanSaveState;
   roster: ArchitectWorkspaceRosterSummary;
   cap: ArchitectWorkspaceCapSummary;
   exceptions: ArchitectWorkspaceExceptionsSummary;
@@ -161,6 +167,10 @@ export interface ArchitectWorkspaceContextInput {
   isLoading?: boolean;
   isSaving?: boolean;
   error?: string | null;
+  lastSavedAt?: string | null;
+  lastSaveError?: string | null;
+  hasStagedTradeDraft?: boolean;
+  draftSources?: ArchitectTeamPlanDraftSource[];
   worldModeBoundary?: ArchitectWorldModeBoundary | null;
 }
 
@@ -460,9 +470,23 @@ export function deriveArchitectWorkspaceContext({
   isLoading = false,
   isSaving = false,
   error = null,
+  lastSavedAt = null,
+  lastSaveError = null,
+  hasStagedTradeDraft = false,
+  draftSources = [],
   worldModeBoundary = null,
 }: ArchitectWorkspaceContextInput): ArchitectWorkspaceContext {
   const normalizedError = error?.trim() || null;
+  const saveState = deriveArchitectTeamPlanSaveState({
+    worldId,
+    isLoading,
+    worldMetadataLoading,
+    isSaving,
+    lastSavedAt,
+    lastSaveError,
+    hasStagedTradeDraft,
+    draftSources,
+  });
 
   return {
     team: deriveTeamContext({ teamCapSheet, teamId, isLoading }),
@@ -492,6 +516,7 @@ export function deriveArchitectWorkspaceContext({
       hasError: Boolean(normalizedError),
       errorMessage: normalizedError,
     },
+    saveState,
     roster: deriveRosterSummary(teamCapSheet, isLoading),
     cap: deriveCapSummary({ teamCapSheet, currentYear, isLoading }),
     exceptions: deriveExceptionsSummary(teamCapSheet, isLoading, worldId),
@@ -519,6 +544,10 @@ export function useArchitectWorkspaceContext(
       input.error,
       input.isLoading,
       input.isSaving,
+      input.lastSavedAt,
+      input.lastSaveError,
+      input.hasStagedTradeDraft,
+      input.draftSources,
       input.teamCapSheet,
       input.teamId,
       input.worldAsOfDate,

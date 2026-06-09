@@ -34,6 +34,7 @@ import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/Sc
 import { deriveGuidedAnswers } from '@/features/architect/guidedQuestions';
 import type { Stage3ComparisonViewModel } from '@/features/architect/comparison/types';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import { deriveArchitectTeamPlanSaveState } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 import type { ActiveTab } from '@/features/architect/GMDashboard/hooks/useArchitectState.types';
 
 // Mock the scenario activity rail data hook — Stage 5 does not change rail
@@ -115,6 +116,7 @@ const makeWorkspaceContext = (
     hasError: false,
     errorMessage: null,
   },
+  saveState: deriveArchitectTeamPlanSaveState({ worldId: 'world_test' }),
   roster: { status: 'available', count: 15, source: 'players' },
   cap: {
     status: 'unavailable',

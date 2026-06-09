@@ -4,10 +4,11 @@
  * OWNERSHIP: Feature: architect/cockpit
  *
  * Mode source order: world boundary kind → sandbox/world classification
- * → emulator vs prod environment flag. Save state is derived from
- * isLoading / isSaving / hasError flags surfaced by workspace context.
+ * → emulator vs prod environment flag. Save state is read from the shared
+ * Team Plan save-state model surfaced by workspace context.
  */
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import type { ArchitectTeamPlanSaveStatus } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 
 type ModeLabel =
   | 'EMULATOR'
@@ -17,7 +18,7 @@ type ModeLabel =
   | 'BASE'
   | 'LOADING';
 
-type SaveState = 'idle' | 'saving' | 'error';
+type SaveState = ArchitectTeamPlanSaveStatus;
 
 interface ModePillProps {
   context: ArchitectWorkspaceContext;
@@ -38,9 +39,7 @@ function resolveLabel(context: ArchitectWorkspaceContext, isEmulator: boolean): 
 }
 
 function resolveSaveState(context: ArchitectWorkspaceContext): SaveState {
-  if (context.status.hasError) return 'error';
-  if (context.status.isSaving) return 'saving';
-  return 'idle';
+  return context.saveState.status;
 }
 
 const MODE_CLASSES: Record<ModeLabel, string> = {
@@ -53,15 +52,21 @@ const MODE_CLASSES: Record<ModeLabel, string> = {
 };
 
 const SAVE_CLASSES: Record<SaveState, string> = {
-  idle: 'bg-cockpit-safe',
+  loading: 'bg-white/40 animate-pulse',
+  saved: 'bg-cockpit-safe',
   saving: 'bg-cockpit-info animate-pulse',
-  error: 'bg-cockpit-danger',
+  'save-failed': 'bg-cockpit-danger',
+  'uncommitted-draft': 'bg-amber-300',
+  'local-only': 'bg-white/40',
 };
 
 const SAVE_LABEL: Record<SaveState, string> = {
-  idle: 'Idle',
-  saving: 'Saving…',
-  error: 'Error',
+  loading: 'Loading',
+  saved: 'Saved',
+  saving: 'Saving...',
+  'save-failed': 'Save failed',
+  'uncommitted-draft': 'Draft',
+  'local-only': 'Local',
 };
 
 export const ModePill = ({ context, isEmulator }: ModePillProps) => {
@@ -78,8 +83,8 @@ export const ModePill = ({ context, isEmulator }: ModePillProps) => {
       </span>
       <span
         className="inline-flex items-center gap-1.5 text-[11px] text-cockpit-text-secondary"
-        aria-label={`Save state: ${SAVE_LABEL[save]}`}
-        title={SAVE_LABEL[save]}
+        aria-label={`Team Plan save state: ${SAVE_LABEL[save]}. ${context.saveState.detail}`}
+        title={context.saveState.detail}
         data-testid="cockpit-save-state"
       >
         <span className={`h-1.5 w-1.5 rounded-full ${SAVE_CLASSES[save]}`} />

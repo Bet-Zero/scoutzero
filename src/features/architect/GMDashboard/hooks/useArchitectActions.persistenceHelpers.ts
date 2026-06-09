@@ -380,10 +380,12 @@ export function usePersistenceHelpers({
       if (!userId) {
         const message = '[Architect] Cannot save: missing userId';
         console.warn(message);
+        finishSave(message);
         options.onFailure?.(message);
         return { success: false, error: message };
       }
 
+      startSave();
       try {
         console.log(`💾 Saving ${mutationType}...`);
         const effectiveSeasonId = options.seasonIdOverride || seasonId;
@@ -410,6 +412,7 @@ export function usePersistenceHelpers({
         if (truth.ok) {
           console.log(`✅ Saved ${mutationType}!`, result);
           toast.success('Saved changes');
+          finishSave();
           options.onSuccess?.(normalizedResult);
         } else {
           console.error(`❌ Save failed:`, truth.message);
@@ -418,6 +421,7 @@ export function usePersistenceHelpers({
           if (!options.onFailure) {
             toast.error(`Save failed: ${truth.message}`);
           }
+          finishSave(truth.message || `Save failed for ${mutationType}`);
           options.onFailure?.(
             truth.message || `Save failed for ${mutationType}`,
             normalizedResult
@@ -436,11 +440,12 @@ export function usePersistenceHelpers({
           toast.error('Failed to save changes');
         }
         const message = 'Failed to save changes';
+        finishSave(message);
         options.onFailure?.(message);
         return { success: false, error: message };
       }
     },
-    [evaluateMutationTruth, worldId, userId, seasonId]
+    [evaluateMutationTruth, finishSave, startSave, worldId, userId, seasonId]
   );
 
   const reportMutationError = useCallback(

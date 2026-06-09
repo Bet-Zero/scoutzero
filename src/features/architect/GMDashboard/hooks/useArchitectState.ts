@@ -124,6 +124,8 @@ export function useArchitectState({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [lastSaveError, setLastSaveError] = useState<string | null>(null);
 
   // === Internal hook calls ===
   const { players } = useArchitectPlayerData() as { players: ArchitectPlayer[] };
@@ -333,6 +335,8 @@ export function useArchitectState({
 
       setIsLoading(true);
       setError('');
+      setLastSavedAt(null);
+      setLastSaveError(null);
       prepareCoordinatedWorldLoad(worldId);
       try {
         const coordinatedBundle = await loadCoordinatedWorldBundle(worldId);
@@ -403,13 +407,19 @@ export function useArchitectState({
   const startSave = useCallback(() => {
     setIsSaving(true);
     setError('');
+    setLastSaveError(null);
   }, []);
 
   const finishSave = useCallback((errorMsg?: string) => {
     setIsSaving(false);
     if (errorMsg !== undefined) {
       setError(errorMsg);
+      setLastSaveError(errorMsg || 'Save failed');
+      return;
     }
+
+    setLastSavedAt(new Date().toISOString());
+    setLastSaveError(null);
   }, []);
 
   const setErrorSafe = useCallback((msg: string) => {
@@ -418,6 +428,7 @@ export function useArchitectState({
 
   const clearError = useCallback(() => {
     setError('');
+    setLastSaveError(null);
   }, []);
 
   const activeWorldOwner = useMemo<ArchitectActiveWorldOwner>(
@@ -459,6 +470,8 @@ export function useArchitectState({
     isLoading,
     isSaving,
     error,
+    lastSavedAt,
+    lastSaveError,
     lastCapSheet,
     offseasonRun,
     offseasonSummary,
