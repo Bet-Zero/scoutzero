@@ -61,6 +61,10 @@ import { useArchitectPostActionReceipt } from './hooks/useArchitectPostActionRec
 import { useHistoryEventDetailRequest } from './hooks/useHistoryEventDetailRequest';
 import { deriveSeasonAdvanceReceipt } from './postActionHandoff/types';
 import { useArchitectState } from './hooks/useArchitectState';
+import {
+  buildArchitectTeamPlanContextExitMessage,
+  confirmArchitectTeamPlanContextExit,
+} from './hooks/teamPlanSaveState';
 import { useArchitectWorkspaceContext } from './hooks/useArchitectWorkspaceContext';
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
@@ -331,6 +335,40 @@ export const GMDashboard = () => {
     hasStagedTradeDraft: tradeDraftActive,
     worldModeBoundary,
   });
+  const confirmUnsafeContextExit = useCallback(
+    (intent: Parameters<typeof confirmArchitectTeamPlanContextExit>[1]) =>
+      confirmArchitectTeamPlanContextExit(workspaceContext.saveState, intent),
+    [workspaceContext.saveState]
+  );
+  const handleViewingSeasonChange = useCallback(
+    (nextYear: number) => {
+      if (nextYear === currentYear) return;
+      if (!confirmUnsafeContextExit('switch-season')) return;
+      setCurrentYear(nextYear);
+    },
+    [confirmUnsafeContextExit, currentYear, setCurrentYear]
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const message = buildArchitectTeamPlanContextExitMessage(
+      workspaceContext.saveState,
+      'leave-architect'
+    );
+    if (!message) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = message;
+      return message;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [workspaceContext.saveState]);
+
   const resolvedHistoryTeamCode = useMemo(() => {
     const capSheetTeamCode = String(teamCapSheet?.teamCode ?? '').trim();
     return (
@@ -926,6 +964,7 @@ export const GMDashboard = () => {
       userId={userId}
       activeWorldOwner={activeWorldOwner}
       worldModeBoundary={worldModeBoundary}
+      saveState={workspaceContext.saveState}
     />
   ) : null;
 
@@ -941,7 +980,9 @@ export const GMDashboard = () => {
       <span className="uppercase tracking-wide text-cockpit-text-muted">Season</span>
       <select
         value={currentYear}
-        onChange={(event) => setCurrentYear(parseInt(event.target.value, 10))}
+        onChange={(event) =>
+          handleViewingSeasonChange(parseInt(event.target.value, 10))
+        }
         aria-label="Viewing season"
         className="rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[11px] text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
       >

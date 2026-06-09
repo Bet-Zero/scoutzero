@@ -113,6 +113,9 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'worldModeBoundary: ArchitectWorldModeBoundary;'
     );
     expect(worldSelectorSource).toContain(
+      'saveState?: ArchitectTeamPlanSaveState | null;'
+    );
+    expect(worldSelectorSource).toContain(
       'const { worldId, setActiveWorld } = activeWorldOwner;'
     );
     expect(worldSelectorSource).toContain(
@@ -123,7 +126,7 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     );
     expect(worldSelectorSource).toContain('setActiveWorld(nextWorldId);');
     expect(worldSelectorSource).toContain(
-      'const clearActiveWorldSelection = useCallback(() => {'
+      'const clearActiveWorldSelection = useCallback('
     );
     expect(worldSelectorSource).toContain('archiveWorld,');
     expect(worldSelectorSource).toContain('await archiveWorld(worldId, userId);');
@@ -315,6 +318,9 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     );
     expect(gmDashboardSource).toContain(
       'worldModeBoundary={worldModeBoundary}'
+    );
+    expect(gmDashboardSource).toContain(
+      'saveState={workspaceContext.saveState}'
     );
     expect(gmDashboardSource).toContain('worldTimeOwner={worldTimeOwner}');
   });

@@ -26,6 +26,10 @@ import '@testing-library/jest-dom/vitest';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { SeasonAdvanceModal } from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
 import { GMDashboard } from '@/features/architect/GMDashboard/GMDashboard';
+import {
+  deriveArchitectTeamPlanSaveState,
+  type ArchitectTeamPlanSaveState,
+} from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 
 const {
   mockListUserWorlds,
@@ -707,11 +711,13 @@ function buildDashboardModals(
 function WorldSelectorHarness({
   userId = 'user_1',
   initialWorldId = null,
+  saveState = null,
   onWorldChange = vi.fn(),
   onSetWorldId,
 }: {
   userId?: string | null;
   initialWorldId?: string | null;
+  saveState?: ArchitectTeamPlanSaveState | null;
   onWorldChange?: (worldId: string | null) => void;
   onSetWorldId?: (worldId: string | null) => void;
 }) {
@@ -743,6 +749,7 @@ function WorldSelectorHarness({
               onReloadWorldData: null,
             }
       }
+      saveState={saveState}
       onWorldChange={onWorldChange}
     />
   );
@@ -830,6 +837,35 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(removeItemSpy).not.toHaveBeenCalledWith(
         'architect.activeWorldId.user_1'
       );
+    });
+
+    it('blocks unsafe world selection when the Team Plan guard is canceled', async () => {
+      const onWorldChange = vi.fn();
+      const onSetWorldId = vi.fn();
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+      render(
+        <WorldSelectorHarness
+          initialWorldId="world_alpha"
+          saveState={deriveArchitectTeamPlanSaveState({
+            worldId: 'world_alpha',
+            hasStagedTradeDraft: true,
+          })}
+          onWorldChange={onWorldChange}
+          onSetWorldId={onSetWorldId}
+        />
+      );
+
+      const select = await screen.findByLabelText('Architect (optional)');
+      fireEvent.change(select, { target: { value: 'world_beta' } });
+
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(confirmSpy.mock.calls[0]?.[0]).toContain(
+        'A staged trade draft is not applied.'
+      );
+      expect(select).toHaveValue('world_alpha');
+      expect(onWorldChange).not.toHaveBeenCalled();
+      expect(onSetWorldId).not.toHaveBeenCalled();
     });
 
     it('preserves create-world modal copy and create wiring', async () => {

@@ -20,6 +20,11 @@ import type {
   ArchitectWorldModeBoundary,
 } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 import {
+  confirmArchitectTeamPlanContextExit,
+  type ArchitectTeamPlanSaveState,
+  type ArchitectUnsafeContextExitIntent,
+} from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
+import {
   listUserWorlds,
   createWorld,
   branchWorld,
@@ -66,6 +71,7 @@ type WorldSelectorProps = {
   userId: string | null;
   activeWorldOwner: ArchitectActiveWorldOwner;
   worldModeBoundary: ArchitectWorldModeBoundary;
+  saveState?: ArchitectTeamPlanSaveState | null;
   onWorldChange?: WorldChangeCallback;
 };
 
@@ -95,6 +101,7 @@ export function WorldSelector({
   userId,
   activeWorldOwner,
   worldModeBoundary,
+  saveState = null,
   onWorldChange,
 }: WorldSelectorProps) {
   const { worldId, setActiveWorld } = activeWorldOwner;
@@ -170,33 +177,62 @@ export function WorldSelector({
     };
   }, []);
 
+  const confirmContextExit = useCallback(
+    (intent: ArchitectUnsafeContextExitIntent) =>
+      saveState
+        ? confirmArchitectTeamPlanContextExit(saveState, intent)
+        : true,
+    [saveState]
+  );
+
   const commitActiveWorldSelection = useCallback(
-    (nextWorldId: string | null) => {
+    (
+      nextWorldId: string | null,
+      intent: ArchitectUnsafeContextExitIntent = 'switch-world',
+      options: { skipGuard?: boolean } = {}
+    ) => {
+      if (nextWorldId === worldId) {
+        setShowActionsMenu(false);
+        return true;
+      }
+
+      if (!options.skipGuard && !confirmContextExit(intent)) {
+        return false;
+      }
+
       // WorldSelector is a control surface only. Active-world persistence lives
       // in the hook-owned state layer behind activeWorldOwner.
       setActiveWorld(nextWorldId);
       setShowActionsMenu(false);
       onWorldChange?.(nextWorldId);
+      return true;
     },
-    [onWorldChange, setActiveWorld]
+    [confirmContextExit, onWorldChange, setActiveWorld, worldId]
   );
 
-  const clearActiveWorldSelection = useCallback(() => {
-    commitActiveWorldSelection(null);
-    setShowDeleteModal(false);
-    setDeleteConfirmText('');
-  }, [commitActiveWorldSelection]);
-
-  const handleWorldSelect = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
-      const newWorldId = event.target.value || null;
-      commitActiveWorldSelection(newWorldId);
+  const clearActiveWorldSelection = useCallback(
+    (options?: { skipGuard?: boolean }) => {
+      commitActiveWorldSelection(null, 'switch-world', options);
+      setShowDeleteModal(false);
+      setDeleteConfirmText('');
     },
     [commitActiveWorldSelection]
   );
 
+  const handleWorldSelect = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const newWorldId = event.target.value || null;
+      const didCommit = commitActiveWorldSelection(newWorldId, 'switch-world');
+      if (!didCommit) {
+        event.currentTarget.value = worldId || '';
+      }
+    },
+    [commitActiveWorldSelection, worldId]
+  );
+
   const handleCreateWorld = useCallback(async () => {
     if (!userId || !newWorldName.trim()) return;
+    if (!confirmContextExit('create-world')) return;
 
     setIsSubmitting(true);
     setError('');
@@ -209,7 +245,9 @@ export function WorldSelector({
       })) as CreateWorldResultLike;
 
       await loadWorlds();
-      commitActiveWorldSelection(newWorldId);
+      commitActiveWorldSelection(newWorldId, 'create-world', {
+        skipGuard: true,
+      });
 
       setNewWorldName('');
       setNewWorldDescription('');
@@ -224,12 +262,14 @@ export function WorldSelector({
     userId,
     newWorldName,
     newWorldDescription,
+    confirmContextExit,
     commitActiveWorldSelection,
     loadWorlds,
   ]);
 
   const handleBranchWorld = useCallback(async () => {
     if (!userId || !worldId || !newWorldName.trim()) return;
+    if (!confirmContextExit('branch-world')) return;
 
     setIsSubmitting(true);
     setError('');
@@ -243,7 +283,9 @@ export function WorldSelector({
       )) as BranchWorldResultLike;
 
       await loadWorlds();
-      commitActiveWorldSelection(branchedWorldId);
+      commitActiveWorldSelection(branchedWorldId, 'branch-world', {
+        skipGuard: true,
+      });
 
       setNewWorldName('');
       setNewWorldDescription('');
@@ -259,6 +301,7 @@ export function WorldSelector({
     worldId,
     newWorldName,
     newWorldDescription,
+    confirmContextExit,
     commitActiveWorldSelection,
     loadWorlds,
   ]);
@@ -290,6 +333,7 @@ export function WorldSelector({
 
   const handleArchiveWorld = useCallback(async () => {
     if (!userId || !worldId) return;
+    if (!confirmContextExit('archive-world')) return;
 
     const currentWorld = worlds.find((world) => world.worldId === worldId);
     const worldName = currentWorld?.worldName || worldId;
@@ -307,7 +351,7 @@ export function WorldSelector({
 
     try {
       await archiveWorld(worldId, userId);
-      clearActiveWorldSelection();
+      clearActiveWorldSelection({ skipGuard: true });
 
       await loadWorlds();
     } catch (err) {
@@ -316,7 +360,14 @@ export function WorldSelector({
     } finally {
       setIsSubmitting(false);
     }
-  }, [clearActiveWorldSelection, loadWorlds, userId, worldId, worlds]);
+  }, [
+    clearActiveWorldSelection,
+    confirmContextExit,
+    loadWorlds,
+    userId,
+    worldId,
+    worlds,
+  ]);
 
   const handleDeleteWorld = useCallback(async () => {
     if (!worldId) return;
@@ -328,6 +379,7 @@ export function WorldSelector({
       setError('Please type DELETE or the world name to confirm');
       return;
     }
+    if (!confirmContextExit('delete-world')) return;
 
     setIsSubmitting(true);
     setError('');
@@ -336,7 +388,7 @@ export function WorldSelector({
       const result = (await purgeWorld(worldId)) as PurgeResultLike;
 
       if (result.ok) {
-        clearActiveWorldSelection();
+        clearActiveWorldSelection({ skipGuard: true });
         await loadWorlds();
       } else if (result.queued) {
         setError(result.message || '');
@@ -355,6 +407,7 @@ export function WorldSelector({
     worlds,
     deleteConfirmText,
     clearActiveWorldSelection,
+    confirmContextExit,
     loadWorlds,
   ]);
 

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { deriveArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
-import { deriveArchitectTeamPlanSaveState } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
+import {
+  buildArchitectTeamPlanContextExitMessage,
+  confirmArchitectTeamPlanContextExit,
+  deriveArchitectTeamPlanSaveState,
+  getArchitectTeamPlanUnsafeContextExitWarnings,
+  shouldGuardArchitectTeamPlanContextExit,
+} from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 
 describe('Architect Team Plan save-state truth', () => {
   it('marks active world mode as saved durable plan truth when no draft or save error exists', () => {
@@ -74,5 +80,85 @@ describe('Architect Team Plan save-state truth', () => {
     expect(context.saveState.status).toBe('uncommitted-draft');
     expect(context.saveState.hasUncommittedDraft).toBe(true);
     expect(context.saveState.draftSources).toContain('trade-machine');
+  });
+
+  it('does not guard safe durable world context switches', () => {
+    const state = deriveArchitectTeamPlanSaveState({
+      worldId: 'world_123',
+      lastSavedAt: '2026-06-09T22:00:00.000Z',
+    });
+
+    expect(shouldGuardArchitectTeamPlanContextExit(state, 'switch-world')).toBe(
+      false
+    );
+    expect(
+      buildArchitectTeamPlanContextExitMessage(state, 'switch-world')
+    ).toBeNull();
+  });
+
+  it('builds plain-language guard warnings for staged trade drafts', () => {
+    const state = deriveArchitectTeamPlanSaveState({
+      worldId: 'world_123',
+      hasStagedTradeDraft: true,
+    });
+
+    expect(shouldGuardArchitectTeamPlanContextExit(state, 'switch-world')).toBe(
+      true
+    );
+    expect(
+      getArchitectTeamPlanUnsafeContextExitWarnings(state, 'switch-world')
+    ).toContain('A staged trade draft is not applied.');
+    expect(
+      buildArchitectTeamPlanContextExitMessage(state, 'switch-world')
+    ).toContain('Switching worlds will leave the current Team Plan context.');
+  });
+
+  it('guards save-failed and saving states before leaving Architect', () => {
+    const failedState = deriveArchitectTeamPlanSaveState({
+      worldId: 'world_123',
+      lastSaveError: 'Permission denied',
+    });
+    const savingState = deriveArchitectTeamPlanSaveState({
+      worldId: 'world_123',
+      isSaving: true,
+    });
+
+    expect(
+      buildArchitectTeamPlanContextExitMessage(failedState, 'leave-architect')
+    ).toContain('The last Team Plan save failed: Permission denied');
+    expect(
+      buildArchitectTeamPlanContextExitMessage(savingState, 'leave-architect')
+    ).toContain('A Team Plan save is still in progress.');
+  });
+
+  it('guards local-only sandbox switching without prompting on browser leave alone', () => {
+    const state = deriveArchitectTeamPlanSaveState({ worldId: null });
+
+    expect(shouldGuardArchitectTeamPlanContextExit(state, 'switch-world')).toBe(
+      true
+    );
+    expect(
+      shouldGuardArchitectTeamPlanContextExit(state, 'leave-architect')
+    ).toBe(false);
+  });
+
+  it('returns the user confirmation result for unsafe context exits', () => {
+    const state = deriveArchitectTeamPlanSaveState({
+      worldId: 'world_123',
+      hasStagedTradeDraft: true,
+    });
+    const confirmCalls: string[] = [];
+
+    const didConfirm = confirmArchitectTeamPlanContextExit(
+      state,
+      'switch-world',
+      (message) => {
+        confirmCalls.push(message);
+        return false;
+      }
+    );
+
+    expect(didConfirm).toBe(false);
+    expect(confirmCalls[0]).toContain('A staged trade draft is not applied.');
   });
 });
