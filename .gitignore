@@ -220,3 +220,8 @@ return_packages/_local_logs/validate_project.txt
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Graphify Cache and Output
+graphify-out/
+.graphify/
+graph_report.md
