@@ -347,12 +347,16 @@ Agent-universal workflow commands. Prompt files have been archived to `archive/d
 
 ## Reference Links
 
-| Doc                                                  | What it covers                                             |
-| ---------------------------------------------------- | ---------------------------------------------------------- |
-| `docs/guides/DEVELOPER_GUIDE.md`                     | Detailed file structure, components, hooks, utilities      |
-| `copilot-instructions.md`                            | Environment setup, testing workflows, validation scenarios |
-| `docs/standards/COMMUNICATION_RULES.md`              | Ask-vs-decide examples                                     |
-| `docs/standards/CREATING_PERMANENT_DOCS.md`          | Feature READMEs, index structure, file headers             |
-| `docs/standards/DOCUMENTATION_UPDATE_RULES.md`       | When and how to update docs                                |
-| `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`  | Authoritative Firestore schema                             |
+| Doc                                                       | What it covers                                             |
+| --------------------------------------------------------- | ---------------------------------------------------------- |
+| `docs/guides/DEVELOPER_GUIDE.md`                          | Detailed file structure, components, hooks, utilities      |
+| `copilot-instructions.md`                                 | Environment setup, testing workflows, validation scenarios |
+| `docs/standards/COMMUNICATION_RULES.md`                   | Ask-vs-decide examples                                     |
+| `docs/standards/CREATING_PERMANENT_DOCS.md`               | Feature READMEs, index structure, file headers             |
+| `docs/standards/DOCUMENTATION_UPDATE_RULES.md`            | When and how to update docs                                |
+| `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`       | Authoritative Firestore schema                             |
 | `archive/docs/cursor-prompts/cursor-commands-overview.md` | Full slash command reference with workflows (archived)     |
+
+# Graphify Context
+
+Always parse `graphify-out/graph.json` to get codebase context and track module dependencies.
