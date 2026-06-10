@@ -31,6 +31,9 @@ content is read-write.
 
 For code changes, audits, dependency-sensitive work, and architecture questions,
 parse `graphify-out/graph.json` before editing so module dependencies are clear.
+Check `built_at_commit` against `git rev-parse HEAD` when freshness matters, and
+do not assume the graph includes uncommitted edits. Use
+`graphify-out/GRAPH_REPORT.md` as the human-readable summary.
 
 ## Approved Commands
 
