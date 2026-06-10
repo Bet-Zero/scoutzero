@@ -31,6 +31,13 @@ import {
   AUTHORITY_TONE_BADGE_CLASSES,
   type AuthorityLabelInput,
 } from './authorityLabel';
+import {
+  deriveCapPosturePanel,
+  deriveReceiptImpactPanel,
+  deriveTeamPlanTruthPanel,
+  isHardCapActiveForViewingSeason,
+  type TrustPanelTone,
+} from './teamPlanTrustPanelModel';
 import { PlayerActionMenu } from './PlayerActionMenu';
 import type { PlayerAction, PlayerActionContext } from './playerActionContext';
 import type { TradeObjective } from './tradeOpenRequest';
@@ -123,10 +130,32 @@ interface WatchEntry {
   tradeObjective?: TradeObjective;
 }
 
-function deriveWatchEntries(workspace: ArchitectWorkspaceContext): WatchEntry[] {
+function deriveWatchEntries(
+  workspace: ArchitectWorkspaceContext,
+  hardCapStatus?: HardCapCockpitStatus
+): WatchEntry[] {
   const entries: WatchEntry[] = [];
 
   const cap = workspace.cap;
+  if (isHardCapActiveForViewingSeason(workspace, hardCapStatus)) {
+    entries.push({
+      id: 'hard-cap',
+      tone: 'danger',
+      text: hardCapStatus?.hardCapCeilingLabel
+        ? `Hard capped at ${hardCapStatus.hardCapCeilingLabel}${
+            hardCapStatus.reason ? ` — ${hardCapStatus.reason}` : ''
+          }.`
+        : `Hard capped${
+            hardCapStatus?.reason ? ` — ${hardCapStatus.reason}` : ''
+          }.`,
+      destination: 'cap-sheet',
+      tradeObjective:
+        hardCapStatus?.hardCapCeilingType === 'FIRST_APRON'
+          ? 'clear-first-apron'
+          : 'clear-second-apron',
+    });
+  }
+
   if (cap.status === 'available') {
     if (cap.isAboveSecondApron) {
       entries.push({
@@ -193,6 +222,22 @@ const TONE_CLASSES: Record<WatchEntry['tone'], string> = {
   danger: 'border-cockpit-danger/30 bg-cockpit-danger/5 text-cockpit-danger',
 };
 
+const TRUST_TONE_CLASSES: Record<TrustPanelTone, string> = {
+  safe: 'border-cockpit-safe/30 bg-cockpit-safe/5 text-cockpit-safe',
+  info: 'border-cockpit-info/30 bg-cockpit-info/5 text-cockpit-info',
+  watch: 'border-cockpit-watch/30 bg-cockpit-watch/5 text-cockpit-watch',
+  danger: 'border-cockpit-danger/30 bg-cockpit-danger/5 text-cockpit-danger',
+  muted: 'border-cockpit-edge bg-cockpit-inlay text-cockpit-text-muted',
+};
+
+const TRUST_BADGE_CLASSES: Record<TrustPanelTone, string> = {
+  safe: 'border-cockpit-safe/30 bg-cockpit-safe/10 text-cockpit-safe',
+  info: 'border-cockpit-info/30 bg-cockpit-info/10 text-cockpit-info',
+  watch: 'border-cockpit-watch/30 bg-cockpit-watch/10 text-cockpit-watch',
+  danger: 'border-cockpit-danger/30 bg-cockpit-danger/10 text-cockpit-danger',
+  muted: 'border-cockpit-edge bg-cockpit-slab text-cockpit-text-muted',
+};
+
 const WATCH_DESTINATION_LABELS: Record<WatchDestination, string> = {
   'cap-sheet': 'View Cap Sheet',
   offseason: 'Go to Offseason',
@@ -247,6 +292,23 @@ const RailSection = ({
   </section>
 );
 
+const TrustBadge = ({
+  tone,
+  children,
+  testId,
+}: {
+  tone: TrustPanelTone;
+  children: ReactNode;
+  testId?: string;
+}) => (
+  <span
+    className={`inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide leading-4 ${TRUST_BADGE_CLASSES[tone]}`}
+    data-testid={testId}
+  >
+    {children}
+  </span>
+);
+
 export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
   function ActivityRail(
     {
@@ -288,8 +350,13 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
 
     useImperativeHandle(ref, () => ({ expand: () => setCollapsed(false) }), []);
 
-    const watch = deriveWatchEntries(workspace);
+    const planTruth = deriveTeamPlanTruthPanel(workspace.saveState);
+    const capPosture = deriveCapPosturePanel(workspace, hardCapStatus);
+    const receiptImpact = deriveReceiptImpactPanel(receipt);
+    const watch = deriveWatchEntries(workspace, hardCapStatus);
     const hasWatchDanger = watch.some((entry) => entry.tone === 'danger');
+    const hasPlanTruthDanger = planTruth.tone === 'danger';
+    const hasPlanTruthWatch = planTruth.tone === 'watch';
     const capUnavailable = workspace.cap.status === 'unavailable';
 
     // Section order is the contract's canonical order (Cap Posture → Current
@@ -328,12 +395,20 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
               danger is never hidden behind a lower-priority dot (contract:
               "Do not make collapsed indicators ambiguous if multiple severe
               states exist"). */}
-          {hasWatchDanger ? (
+          {hasWatchDanger || hasPlanTruthDanger ? (
             <span
               className="mt-3 h-2 w-2 rounded-full bg-cockpit-danger"
               aria-label="Attention needed"
               title="Attention needed"
               data-testid="cockpit-activity-rail-dot-danger"
+            />
+          ) : null}
+          {hasPlanTruthWatch ? (
+            <span
+              className="mt-3 h-2 w-2 rounded-full bg-cockpit-watch"
+              aria-label="Team Plan save or draft state needs review"
+              title="Team Plan save or draft state needs review"
+              data-testid="cockpit-activity-rail-dot-plan-truth"
             />
           ) : null}
           {receipt ? (
@@ -368,7 +443,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
           style={{ height: 56 }}
         >
           <span className="text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
-            Activity
+            Team Plan
           </span>
           <button
             type="button"
@@ -383,7 +458,90 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <RailSection label="Cap Posture" testId="cockpit-activity-rail-cap-posture">
+          <RailSection
+            label="Plan Truth"
+            testId="cockpit-activity-rail-plan-truth"
+          >
+            <div
+              className={`rounded border px-2 py-2 text-[11px] ${TRUST_TONE_CLASSES[planTruth.tone]}`}
+              data-testid="cockpit-activity-rail-plan-truth-card"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div
+                    className="font-semibold text-cockpit-text-primary"
+                    data-testid="cockpit-activity-rail-plan-truth-status"
+                  >
+                    {planTruth.statusLabel}
+                  </div>
+                  <div
+                    className="mt-0.5 text-cockpit-text-secondary"
+                    data-testid="cockpit-activity-rail-plan-truth-detail"
+                  >
+                    {planTruth.detail}
+                  </div>
+                </div>
+                <TrustBadge tone={planTruth.tone}>
+                  {workspace.saveState.label}
+                </TrustBadge>
+              </div>
+              <div className="mt-2 grid grid-cols-1 gap-1 text-[10px] text-cockpit-text-secondary">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-cockpit-text-muted">Mode</span>
+                  <span
+                    className="truncate text-right"
+                    data-testid="cockpit-activity-rail-plan-truth-mode"
+                  >
+                    {planTruth.modeLabel}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-cockpit-text-muted">Switching</span>
+                  <span
+                    className="truncate text-right"
+                    data-testid="cockpit-activity-rail-plan-truth-switching"
+                  >
+                    {planTruth.switchSafetyLabel}
+                  </span>
+                </div>
+                {planTruth.lastSavedLabel ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-cockpit-text-muted">Last saved</span>
+                    <span
+                      className="truncate text-right"
+                      data-testid="cockpit-activity-rail-plan-truth-last-saved"
+                    >
+                      {planTruth.lastSavedLabel}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            {planTruth.warnings.length > 0 ? (
+              <ul
+                className="flex flex-col gap-1"
+                data-testid="cockpit-activity-rail-plan-truth-warnings"
+              >
+                {planTruth.warnings.map((warning) => (
+                  <li
+                    key={warning}
+                    className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1 text-[10px] leading-4 text-cockpit-watch"
+                  >
+                    {warning}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[10px] leading-4 text-cockpit-text-muted">
+                No staged, failed, or saving work flagged by the Team Plan guard.
+              </p>
+            )}
+          </RailSection>
+
+          <RailSection
+            label="Current Posture"
+            testId="cockpit-activity-rail-cap-posture"
+          >
             {capUnavailable ? (
               <div data-testid="cockpit-activity-rail-cap-posture-unavailable">
                 <p className="text-xs text-cockpit-text-muted">
@@ -399,14 +557,57 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                 </p>
               </div>
             ) : (
-              <TeamStatusStrip
-                workspace={workspace}
-                hardCapStatus={hardCapStatus}
-                orientation="vertical"
-              />
+              <>
+                <div
+                  className={`rounded border px-2 py-2 text-[11px] ${TRUST_TONE_CLASSES[capPosture.tone]}`}
+                  data-testid="cockpit-activity-rail-cap-posture-summary"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div
+                        className="font-semibold text-cockpit-text-primary"
+                        data-testid="cockpit-activity-rail-cap-posture-status"
+                      >
+                        {capPosture.statusLabel}
+                      </div>
+                      <div className="mt-0.5 text-cockpit-text-secondary">
+                        {capPosture.detail}
+                      </div>
+                    </div>
+                    <TrustBadge tone={capPosture.tone}>Posture</TrustBadge>
+                  </div>
+                  <div
+                    className="mt-2 rounded border border-cockpit-edge bg-cockpit-slab px-2 py-1 text-[10px] text-cockpit-text-secondary"
+                    data-testid="cockpit-activity-rail-roster-status"
+                  >
+                    {capPosture.rosterLabel}
+                  </div>
+                  {capPosture.hardCapLabel ? (
+                    <div
+                      className="mt-1 rounded border border-cockpit-danger/30 bg-cockpit-danger/5 px-2 py-1 text-[10px] leading-4 text-cockpit-danger"
+                      data-testid="cockpit-activity-rail-hard-cap-status"
+                    >
+                      <span className="font-semibold">
+                        {capPosture.hardCapLabel}
+                      </span>
+                      {capPosture.hardCapDetail ? (
+                        <span> · {capPosture.hardCapDetail}</span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+                <TeamStatusStrip
+                  workspace={workspace}
+                  hardCapStatus={hardCapStatus}
+                  orientation="vertical"
+                />
+              </>
             )}
           </RailSection>
-          <RailSection label="Current Receipt" testId="cockpit-activity-rail-receipts">
+          <RailSection
+            label="Recent Move Impact"
+            testId="cockpit-activity-rail-receipts"
+          >
             {receipt ? (
               <>
                 <ArchitectPostActionHandoff
@@ -501,10 +702,52 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                     })}
                   </ul>
                 ) : null}
+                {receiptImpact.rows.length > 0 ? (
+                  <div
+                    className="flex flex-col gap-1"
+                    data-testid="cockpit-activity-rail-move-impact"
+                  >
+                    {receiptImpact.rows.map((row) => (
+                      <div
+                        key={row.id}
+                        className={`rounded border px-2 py-1.5 text-[11px] ${TRUST_TONE_CLASSES[row.tone]}`}
+                        data-testid={`cockpit-activity-rail-move-impact-${row.id}`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-cockpit-text-primary">
+                            {row.label}
+                          </span>
+                          <TrustBadge tone={row.tone}>
+                            {row.statusLabel}
+                          </TrustBadge>
+                        </div>
+                        <p className="mt-0.5 leading-4 text-cockpit-text-secondary">
+                          {row.summary}
+                        </p>
+                        {row.deltas.length > 0 ? (
+                          <ul className="mt-1 flex flex-col gap-0.5 text-[10px] text-cockpit-text-muted">
+                            {row.deltas.map((delta) => (
+                              <li key={delta}>{delta}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-1 text-[10px] leading-4 text-cockpit-text-muted">
+                            Exact before/after delta is not available from this
+                            receipt.
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : receiptImpact.emptyMessage ? (
+                  <p className="text-[10px] leading-4 text-cockpit-text-muted">
+                    {receiptImpact.emptyMessage}
+                  </p>
+                ) : null}
               </>
             ) : (
               <p className="text-xs text-cockpit-text-muted">
-                No recent committed actions.
+                {receiptImpact.emptyMessage}
               </p>
             )}
           </RailSection>
@@ -626,7 +869,10 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
             </RailSection>
           ) : null}
 
-          <RailSection label="Watchlist" testId="cockpit-activity-rail-watchlist">
+          <RailSection
+            label="Warnings & Validation"
+            testId="cockpit-activity-rail-watchlist"
+          >
             {watch.length === 0 ? (
               <p className="text-xs text-cockpit-text-muted">
                 No active watch items.

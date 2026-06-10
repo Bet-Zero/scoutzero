@@ -101,7 +101,7 @@ const makeReceiptPersistence = (): ArchitectPostActionPersistence => ({
 });
 
 const makeReceiptImpact = (): ArchitectPostActionImpact => {
-  const section = {
+  const notApplicable = {
     status: 'not-applicable' as const,
     summary: 'No direct effect expected.',
     deltas: [],
@@ -113,12 +113,30 @@ const makeReceiptImpact = (): ArchitectPostActionImpact => {
     playerId: 'p1',
     playerName: null,
     affectedSeasons: [],
-    roster: section,
-    cap: section,
-    exceptions: section,
-    rights: section,
-    deadMoney: section,
-    contract: section,
+    roster: {
+      status: 'partial',
+      summary:
+        'Roster impact committed, but before/after counts are not available in this receipt.',
+      deltas: [],
+    },
+    cap: {
+      status: 'available',
+      summary: '2025-26 cap space changed +$5,000,000.',
+      deltas: [
+        {
+          key: 'cap-space',
+          label: 'Cap space',
+          unit: 'currency',
+          before: -10_000_000,
+          after: -5_000_000,
+          delta: 5_000_000,
+        },
+      ],
+    },
+    exceptions: notApplicable,
+    rights: notApplicable,
+    deadMoney: notApplicable,
+    contract: notApplicable,
     notes: [],
   };
 };
@@ -185,8 +203,33 @@ describe('ActivityRail — Slice 1 audit', () => {
 
   it('renders the empty receipt and empty watchlist copy in sandbox', () => {
     renderRail();
-    expect(screen.getByText('No recent committed actions.')).toBeInTheDocument();
+    expect(screen.getByText(/No recent committed actions/)).toBeInTheDocument();
     expect(screen.getByText('No active watch items.')).toBeInTheDocument();
+  });
+
+  it('shows Team Plan save truth and unsafe-switch warnings from saveState', () => {
+    renderRail({
+      workspace: deriveArchitectWorkspaceContext({
+        teamId: 'LAL',
+        currentYear: 2025,
+        worldId: 'world_1',
+        lastSaveError: 'Permission denied',
+        hasStagedTradeDraft: true,
+      }),
+    });
+
+    expect(
+      screen.getByTestId('cockpit-activity-rail-plan-truth-status')
+    ).toHaveTextContent('Save failed');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-plan-truth-switching')
+    ).toHaveTextContent('Guard will warn before switching');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-plan-truth-warnings')
+    ).toHaveTextContent('A staged trade draft is not applied.');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-plan-truth-warnings')
+    ).toHaveTextContent('The last Team Plan save failed: Permission denied');
   });
 
   it('hides Pinned and In Progress sections when there is nothing to show', () => {
@@ -215,6 +258,35 @@ describe('ActivityRail — Slice 1 audit', () => {
       screen.getByTestId('cockpit-activity-rail-watch-apron2-action')
     );
     expect(handlers.onNavigateToCapSheet).toHaveBeenCalledTimes(1);
+  });
+
+  it('summarizes cap posture, roster count, and hard-cap status when available', () => {
+    const workspace = withAboveSecondApron(makeSandboxWorkspace());
+    renderRail({
+      workspace: {
+        ...workspace,
+        roster: { status: 'available', count: 16, source: 'players' },
+      },
+      hardCapStatus: {
+        isHardCapped: true,
+        hardCapCeilingType: 'SECOND_APRON',
+        hardCapCeilingLabel: '2nd Apron',
+        reason: 'Used restricted transaction path',
+      },
+    });
+
+    expect(
+      screen.getByTestId('cockpit-activity-rail-cap-posture-status')
+    ).toHaveTextContent('Hard capped at 2nd Apron');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-roster-status')
+    ).toHaveTextContent('16 / 15 roster spots shown');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-hard-cap-status')
+    ).toHaveTextContent('Used restricted transaction path');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-watch-hard-cap')
+    ).toHaveTextContent('Hard capped at 2nd Apron');
   });
 
   it('labels a season mismatch and routes it to Offseason', () => {
@@ -247,6 +319,21 @@ describe('ActivityRail — Slice 1 audit', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByTestId('cockpit-activity-rail-dot-in-progress')
+    ).toBeInTheDocument();
+  });
+
+  it('shows a separate collapsed dot for save/draft review states', () => {
+    renderRail({
+      workspace: deriveArchitectWorkspaceContext({
+        teamId: 'LAL',
+        currentYear: 2025,
+        worldId: 'world_1',
+        hasStagedTradeDraft: true,
+      }),
+    });
+    fireEvent.click(screen.getByTestId('cockpit-activity-rail-collapse'));
+    expect(
+      screen.getByTestId('cockpit-activity-rail-dot-plan-truth')
     ).toBeInTheDocument();
   });
 
@@ -319,6 +406,25 @@ describe('ActivityRail — Slice 1 audit', () => {
         sourceRoom: 'receipt',
         eventId: 'evt_1',
       })
+    );
+  });
+
+  it('renders receipt impact rows with exact deltas only when the receipt provides them', () => {
+    renderRail({ receipt: RECEIPT });
+
+    expect(
+      screen.getByTestId('cockpit-activity-rail-move-impact-cap')
+    ).toHaveTextContent('Exact values');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-move-impact-cap')
+    ).toHaveTextContent('Cap space: -$10,000,000 -> -$5,000,000 (+$5,000,000)');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-move-impact-roster')
+    ).toHaveTextContent('Partial');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-move-impact-roster')
+    ).toHaveTextContent(
+      'Exact before/after delta is not available from this receipt.'
     );
   });
 

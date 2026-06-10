@@ -133,6 +133,7 @@ cockpit/
   index.ts
   playerActionContext.ts
   playerActionRouter.ts
+  teamPlanTrustPanelModel.ts
   tradeOpenRequest.ts
   useTeamPalette.ts
 comparison/
@@ -544,5 +545,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-09T22:54:30.559Z*
+*Generated on: 2026-06-10T03:09:21.891Z*
 *Auto-updated by: npm run docs*
