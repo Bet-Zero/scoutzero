@@ -15,6 +15,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@t
 import '@testing-library/jest-dom/vitest';
 import {
   deriveReceiptFromMutationResult,
+  deriveReceiptFromTeamSnapshots,
   deriveSeasonAdvanceReceipt,
   kindForMutationType,
 } from '@/features/architect/GMDashboard/postActionHandoff/types';
@@ -23,7 +24,11 @@ import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/com
 import { useScenarioActivityRail } from '@/features/architect/GMDashboard/hooks/useScenarioActivityRail';
 import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
 import type { PersistMutationResult } from '@/features/architect/GMDashboard/hooks/useArchitectActions.types';
-import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
+import type {
+  ArchitectPostActionImpact,
+  ArchitectPostActionPersistence,
+  ArchitectPostActionReceipt,
+} from '@/features/architect/GMDashboard/postActionHandoff/types';
 
 const firestoreGetDocsSpy = vi.hoisted(() => vi.fn());
 
@@ -54,6 +59,42 @@ afterEach(() => {
   cleanup();
   firestoreGetDocsSpy.mockReset();
 });
+
+const makePersistence = (
+  overrides: Partial<ArchitectPostActionPersistence> = {}
+): ArchitectPostActionPersistence => ({
+  status: 'world-saved',
+  saveStateStatus: 'saved',
+  label: 'Committed world',
+  detail: 'Saved to the active durable Team Plan world.',
+  ...overrides,
+});
+
+const makeImpact = (
+  overrides: Partial<ArchitectPostActionImpact> = {}
+): ArchitectPostActionImpact => {
+  const emptySection = {
+    status: 'not-applicable' as const,
+    summary: 'No direct effect expected.',
+    deltas: [],
+  };
+  return {
+    actionType: 'trade',
+    mutationType: 'executeTrade',
+    teamCode: 'LAL',
+    playerId: null,
+    playerName: null,
+    affectedSeasons: [],
+    roster: emptySection,
+    cap: emptySection,
+    exceptions: emptySection,
+    rights: emptySection,
+    deadMoney: emptySection,
+    contract: emptySection,
+    notes: [],
+    ...overrides,
+  };
+};
 
 // ---------------------------------------------------------------------------
 // deriveReceiptFromMutationResult — pure derivation
@@ -87,6 +128,9 @@ describe('Stage 2B — deriveReceiptFromMutationResult', () => {
     expect(receipt!.primaryTeamCode).toBe('LAL');
     expect(receipt!.primaryPlayerIds).toEqual(['player_1']);
     expect(receipt!.authority).toBe('committed-world');
+    expect(receipt!.persistence.status).toBe('world-saved');
+    expect(receipt!.actionType).toBe('trade');
+    expect(receipt!.impact.cap.status).toBe('partial');
   });
 
   it('derives a signing receipt from a successful signFreeAgent result', () => {
@@ -187,6 +231,150 @@ describe('Stage 2B — deriveReceiptFromMutationResult', () => {
     });
     expect(receipt!.primaryTeamCode).toBe('MIA');
   });
+
+  it('normalizes player/team fallback data from the mutation payload', () => {
+    const receipt = deriveReceiptFromMutationResult({
+      mutationType: 'executeTrade',
+      result: {
+        success: true,
+        appliedToLocalState: true,
+        persistedToWorld: true,
+        changedTeams: [],
+        changedPlayers: [],
+      },
+      primaryTeamCode: 'LAL',
+      payload: {
+        teams: [
+          {
+            teamCode: 'LAL',
+            sends: [{ playerId: 'player_trade_1' }],
+          },
+          {
+            teamCode: 'BOS',
+            sends: [{ playerId: 'player_trade_2' }],
+          },
+        ],
+      },
+    });
+
+    expect(receipt).not.toBeNull();
+    expect(receipt!.changedTeamCodes).toEqual(['LAL', 'BOS']);
+    expect(receipt!.primaryPlayerIds).toEqual([
+      'player_trade_1',
+      'player_trade_2',
+    ]);
+    expect(receipt!.persistence.saveStateStatus).toBe('saved');
+  });
+});
+
+describe('Stage 2B — deriveReceiptFromTeamSnapshots', () => {
+  const beforeTeam = {
+    teamCode: 'LAL',
+    players: [
+      { id: 'player_1', name: 'Waived Player', contract: { salariesByYear: [] } },
+      { id: 'player_2', name: 'Roster Player', contract: { salariesByYear: [] } },
+    ],
+    roster: ['player_1', 'player_2'],
+    deadCap: [],
+    capHolds: [{ playerId: 'hold_1', amount: 1000000, active: true }],
+    exceptions: {
+      mle: {
+        available: true,
+        usedAmount: 0,
+        remainingAmount: 10000000,
+      },
+    },
+  };
+
+  it('derives roster, cap, and dead-money deltas from real snapshots', () => {
+    const receipt = deriveReceiptFromTeamSnapshots({
+      mutationType: 'waivePlayer',
+      result: {
+        success: true,
+        appliedToLocalState: true,
+        persistedToWorld: true,
+        changedTeams: [{ teamCode: 'LAL', team: {} as never }],
+        changedPlayers: [{ playerId: 'player_1', player: {} as never }],
+      },
+      beforeTeam,
+      afterTeam: {
+        ...beforeTeam,
+        players: beforeTeam.players.slice(1),
+        roster: ['player_2'],
+        deadCap: [
+          {
+            playerId: 'player_1',
+            amountByYear: [{ season: '2025-26', amount: 5000000 }],
+          },
+        ],
+      },
+      selectedYear: 2026,
+      primaryTeamCode: 'LAL',
+      primaryPlayerIds: ['player_1'],
+      actionContext: {
+        actionType: 'waive',
+        playerId: 'player_1',
+        playerName: 'Waived Player',
+        effectAreas: ['roster', 'deadMoney', 'cap'],
+      },
+    });
+
+    expect(receipt).not.toBeNull();
+    expect(receipt!.headline).toBe('Waive/buyout saved');
+    expect(receipt!.persistence.status).toBe('world-saved');
+    expect(receipt!.impact.roster.deltas[0]).toMatchObject({
+      key: 'rosterCount',
+      before: 2,
+      after: 1,
+      delta: -1,
+    });
+    expect(receipt!.impact.deadMoney.deltas).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'currentYearDeadMoney',
+          before: 0,
+          after: 5000000,
+          delta: 5000000,
+        }),
+      ])
+    );
+    expect(receipt!.impact.cap.status).toBe('available');
+    expect(receipt!.message).toContain('Roster count changed');
+  });
+
+  it('can derive a local-only receipt for sandbox/base mutations', () => {
+    const receipt = deriveReceiptFromTeamSnapshots({
+      mutationType: 'setExceptions',
+      beforeTeam,
+      afterTeam: {
+        ...beforeTeam,
+        exceptions: {
+          mle: {
+            available: false,
+            usedAmount: 0,
+            remainingAmount: 10000000,
+          },
+        },
+      },
+      selectedYear: 2026,
+      primaryTeamCode: 'LAL',
+      authority: 'local-only',
+      actionContext: {
+        actionType: 'manual-exception-edit',
+        effectAreas: ['exceptions'],
+      },
+    });
+
+    expect(receipt).not.toBeNull();
+    expect(receipt!.authority).toBe('local-only');
+    expect(receipt!.persistence.status).toBe('local-only');
+    expect(receipt!.impact.exceptions.status).toBe('available');
+    expect(receipt!.impact.exceptions.deltas[0]).toMatchObject({
+      key: 'exception:mle',
+      before: 'available, $10,000,000 remaining, $0 used',
+      after: 'unavailable, $10,000,000 remaining, $0 used',
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -235,8 +423,11 @@ describe('Stage 2B — useArchitectPostActionReceipt', () => {
     changedTeamCodes: ['LAL'],
     primaryTeamCode: 'LAL',
     primaryPlayerIds: [],
-    authority: 'committed-world',
     ...overrides,
+    actionType: overrides.actionType ?? 'trade',
+    persistence: overrides.persistence ?? makePersistence(),
+    impact: overrides.impact ?? makeImpact(),
+    authority: overrides.authority ?? 'committed-world',
   });
 
   it('publishes a receipt and increments generation', () => {
@@ -324,8 +515,11 @@ describe('Stage 2B — ArchitectPostActionHandoff', () => {
     changedTeamCodes: ['LAL', 'BOS'],
     primaryTeamCode: 'LAL',
     primaryPlayerIds: ['player_1'],
-    authority: 'committed-world',
     ...overrides,
+    actionType: overrides.actionType ?? 'trade',
+    persistence: overrides.persistence ?? makePersistence(),
+    impact: overrides.impact ?? makeImpact(),
+    authority: overrides.authority ?? 'committed-world',
   });
 
   it('renders nothing when receipt is null', () => {
@@ -361,6 +555,22 @@ describe('Stage 2B — ArchitectPostActionHandoff', () => {
     );
     expect(screen.getByTestId('post-action-handoff-team-chip-LAL')).toBeInTheDocument();
     expect(screen.getByTestId('post-action-handoff-team-chip-BOS')).toBeInTheDocument();
+  });
+
+  it('renders the optional receipt message', () => {
+    render(
+      <ArchitectPostActionHandoff
+        receipt={makeReceipt({ message: 'Roster count changed 15 -> 14.' })}
+        onNavigateToCapSheet={vi.fn()}
+        onNavigateToRoster={vi.fn()}
+        onNavigateToHistory={vi.fn()}
+        onDismiss={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('post-action-handoff-message')).toHaveTextContent(
+      'Roster count changed 15 -> 14.'
+    );
   });
 
   it('caps team chips at 3 and shows +N overflow', () => {

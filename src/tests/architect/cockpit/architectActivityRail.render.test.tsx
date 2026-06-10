@@ -14,7 +14,11 @@ import {
   type ArchitectWorkspaceContext,
 } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import { ActivityRail } from '@/features/architect/cockpit/ActivityRail';
-import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
+import type {
+  ArchitectPostActionImpact,
+  ArchitectPostActionPersistence,
+  ArchitectPostActionReceipt,
+} from '@/features/architect/GMDashboard/postActionHandoff/types';
 
 // ScenarioMoveRail reaches into a Firestore-backed hook; stub it so these
 // rail tests stay free of Firebase (same trick as the cockpit smoke test).
@@ -89,14 +93,47 @@ function withSeasonMismatch(
   };
 }
 
+const makeReceiptPersistence = (): ArchitectPostActionPersistence => ({
+  status: 'world-saved',
+  saveStateStatus: 'saved',
+  label: 'Committed world',
+  detail: 'Saved to the active durable Team Plan world.',
+});
+
+const makeReceiptImpact = (): ArchitectPostActionImpact => {
+  const section = {
+    status: 'not-applicable' as const,
+    summary: 'No direct effect expected.',
+    deltas: [],
+  };
+  return {
+    actionType: 'trade',
+    mutationType: 'executeTrade',
+    teamCode: 'LAL',
+    playerId: 'p1',
+    playerName: null,
+    affectedSeasons: [],
+    roster: section,
+    cap: section,
+    exceptions: section,
+    rights: section,
+    deadMoney: section,
+    contract: section,
+    notes: [],
+  };
+};
+
 const RECEIPT: ArchitectPostActionReceipt = {
   kind: 'trade',
+  actionType: 'trade',
   eventId: 'evt_1',
   occurredAt: '2026-01-15T00:00:00.000Z',
   headline: 'Trade applied',
   changedTeamCodes: ['LAL'],
   primaryTeamCode: 'LAL',
   primaryPlayerIds: ['p1'],
+  persistence: makeReceiptPersistence(),
+  impact: makeReceiptImpact(),
   authority: 'committed-world',
 };
 

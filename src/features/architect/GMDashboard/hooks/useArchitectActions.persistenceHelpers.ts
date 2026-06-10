@@ -740,6 +740,7 @@ export function usePersistenceHelpers({
             mutationType,
             result,
             primaryTeamCode: teamCode || null,
+            payload,
           });
           if (receipt) {
             publishPostActionReceipt(receipt);

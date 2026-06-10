@@ -20,7 +20,11 @@ import { GuideSection } from '@/features/architect/GMDashboard/sections/GuideSec
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import { deriveArchitectTeamPlanSaveState } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 import type { Stage3ComparisonViewModel } from '@/features/architect/comparison/types';
-import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
+import type {
+  ArchitectPostActionImpact,
+  ArchitectPostActionPersistence,
+  ArchitectPostActionReceipt,
+} from '@/features/architect/GMDashboard/postActionHandoff/types';
 
 afterEach(() => {
   cleanup();
@@ -168,6 +172,36 @@ const makeComparisonViewModel = (
   ...overrides,
 });
 
+const makeReceiptPersistence = (): ArchitectPostActionPersistence => ({
+  status: 'world-saved',
+  saveStateStatus: 'saved',
+  label: 'Committed world',
+  detail: 'Saved to the active durable Team Plan world.',
+});
+
+const makeReceiptImpact = (): ArchitectPostActionImpact => {
+  const section = {
+    status: 'not-applicable' as const,
+    summary: 'No direct effect expected.',
+    deltas: [],
+  };
+  return {
+    actionType: 'trade',
+    mutationType: 'executeTrade',
+    teamCode: 'LAL',
+    playerId: 'player_a',
+    playerName: null,
+    affectedSeasons: [],
+    roster: section,
+    cap: section,
+    exceptions: section,
+    rights: section,
+    deadMoney: section,
+    contract: section,
+    notes: [],
+  };
+};
+
 const makeReceipt = (
   overrides: Partial<ArchitectPostActionReceipt> = {}
 ): ArchitectPostActionReceipt => ({
@@ -178,8 +212,11 @@ const makeReceipt = (
   changedTeamCodes: ['LAL', 'BOS'],
   primaryTeamCode: 'LAL',
   primaryPlayerIds: ['player_a', 'player_b'],
-  authority: 'committed-world',
   ...overrides,
+  actionType: overrides.actionType ?? 'trade',
+  persistence: overrides.persistence ?? makeReceiptPersistence(),
+  impact: overrides.impact ?? makeReceiptImpact(),
+  authority: overrides.authority ?? 'committed-world',
 });
 
 const baseInput = (overrides: {

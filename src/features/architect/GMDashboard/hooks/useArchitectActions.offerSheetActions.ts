@@ -37,6 +37,7 @@ import {
   mergeManualExceptionSnapshot,
   normalizeManualExceptionsForMutation,
 } from './useArchitectActions.types';
+import type { ArchitectReceiptActionContext } from '../postActionHandoff/types';
 
 export type UseOfferSheetActionsParams = {
   currentYear: number;
@@ -71,6 +72,7 @@ export type UseOfferSheetActionsParams = {
     invalidMessage: string;
     seasonIdOverride?: string;
     yearOverride?: number;
+    receiptContext?: ArchitectReceiptActionContext;
   }) => { applied: boolean; operationId: string | null; persistPromise: Promise<boolean> | null };
 };
 
@@ -374,6 +376,16 @@ export function useOfferSheetActions({
         params.type === 'exceptions'
           ? normalizeManualExceptionsForMutation(params.exceptions)
           : null;
+      const deadMoneyReceiptContext: ArchitectReceiptActionContext = {
+        actionType: 'manual-dead-money-edit',
+        headlineOverride: 'Dead money updated',
+        effectAreas: ['deadMoney', 'cap'],
+      };
+      const exceptionsReceiptContext: ArchitectReceiptActionContext = {
+        actionType: 'manual-exception-edit',
+        headlineOverride: 'Exceptions updated',
+        effectAreas: ['exceptions'],
+      };
       const mutationConfig =
         params.type === 'deadCap'
           ? {
@@ -393,6 +405,7 @@ export function useOfferSheetActions({
                 teamCode,
                 deadCap: params.deadCap,
               },
+              receiptContext: deadMoneyReceiptContext,
             }
           : {
               mutationType: 'setExceptions',
@@ -414,6 +427,7 @@ export function useOfferSheetActions({
                 teamCode,
                 exceptions: normalizedExceptions,
               },
+              receiptContext: exceptionsReceiptContext,
             };
       const mutationResult = applyCapAuditedTeamMutation(mutationConfig);
       if (!mutationResult.applied) {

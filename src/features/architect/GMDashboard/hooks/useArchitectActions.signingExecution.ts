@@ -72,8 +72,14 @@ import type {
 } from './useArchitectActions.types';
 import type { UseArchitectStateReturn } from './useArchitectState';
 import type { PreparedCapAuditedMutationBoundary } from './useArchitectActions.persistenceHelpers';
-import type { ArchitectPostActionReceipt } from '../postActionHandoff/types';
-import { deriveReceiptFromMutationResult } from '../postActionHandoff/types';
+import type {
+  ArchitectPostActionReceipt,
+  ArchitectReceiptActionContext,
+} from '../postActionHandoff/types';
+import {
+  deriveReceiptFromMutationResult,
+  deriveReceiptFromTeamSnapshots,
+} from '../postActionHandoff/types';
 
 export interface UseSigningExecutionParams {
   teamCode: string;
@@ -264,11 +270,43 @@ export function useSigningExecution({
         toast.success('Saved changes');
         // Stage 2B: derive a post-action receipt from the committed result.
         if (publishPostActionReceipt) {
-          const receipt = deriveReceiptFromMutationResult({
-            mutationType: 'signFreeAgent',
-            result,
-            primaryTeamCode: teamCode || null,
-          });
+          const signingPlayerId =
+            standardSigningPayload.playerId ||
+            playerObj.id ||
+            playerObj.player_id ||
+            null;
+          const signingReceiptContext: ArchitectReceiptActionContext = {
+            actionType: 'free-agent-signing',
+            playerId: signingPlayerId,
+            playerName: playerObj.displayName || playerObj.name || null,
+            affectedSeasons:
+              standardSigningPayload.contract?.salariesByYear?.map(
+                (row) => row.season
+              ) || [],
+            effectAreas: ['roster', 'cap', 'exceptions', 'contract'],
+          };
+          const receipt = teamCapSheet
+            ? deriveReceiptFromTeamSnapshots({
+                mutationType: 'signFreeAgent',
+                result,
+                beforeTeam: teamCapSheet,
+                afterTeam:
+                  committedWorldReloadPlan.committedWorldTeam.committedTeam,
+                selectedYear: actionSeasonContext.actionYear,
+                primaryTeamCode: teamCode || null,
+                primaryPlayerIds: signingPlayerId
+                  ? [String(signingPlayerId)]
+                  : [],
+                payload: standardSigningPayload,
+                actionContext: signingReceiptContext,
+              })
+            : deriveReceiptFromMutationResult({
+                mutationType: 'signFreeAgent',
+                result,
+                primaryTeamCode: teamCode || null,
+                payload: standardSigningPayload,
+                actionContext: signingReceiptContext,
+              });
           if (receipt) {
             publishPostActionReceipt(receipt);
           }
@@ -300,6 +338,7 @@ export function useSigningExecution({
       reportMutationError,
       buildCommittedWorldReloadPlan,
       startSave,
+      teamCapSheet,
       userId,
       worldId,
       publishPostActionReceipt,
@@ -493,6 +532,7 @@ export function useSigningExecution({
       invalidMessage: string;
       seasonIdOverride?: string;
       yearOverride?: number;
+      receiptContext?: ArchitectReceiptActionContext;
     }): {
       applied: boolean;
       operationId: string | null;
@@ -506,6 +546,7 @@ export function useSigningExecution({
         invalidMessage,
         seasonIdOverride,
         yearOverride = currentYear,
+        receiptContext,
       } = params;
 
       const lockScopeKey = worldId
@@ -575,6 +616,22 @@ export function useSigningExecution({
         boundary.applyNonAuthoritativeState();
 
         if (boundary.localStateKind === 'local-validated-apply') {
+          if (publishPostActionReceipt && receiptContext) {
+            const receipt = deriveReceiptFromTeamSnapshots({
+              mutationType,
+              beforeTeam: boundary.beforeTeamSnapshot,
+              afterTeam: boundary.afterTeamSnapshot,
+              selectedYear: yearOverride,
+              primaryTeamCode: teamCode || null,
+              primaryPlayerIds: playerIds.map(String),
+              payload: persistPayload,
+              actionContext: receiptContext,
+              authority: 'local-only',
+            });
+            if (receipt) {
+              publishPostActionReceipt(receipt);
+            }
+          }
           return {
             applied: true,
             operationId: boundary.operationId,
@@ -603,6 +660,22 @@ export function useSigningExecution({
               return false;
             }
             await syncTeamFromMutationResult(mutationType, result);
+            if (publishPostActionReceipt && receiptContext) {
+              const receipt = deriveReceiptFromTeamSnapshots({
+                mutationType,
+                result,
+                beforeTeam: boundary.beforeTeamSnapshot,
+                afterTeam: boundary.afterTeamSnapshot,
+                selectedYear: yearOverride,
+                primaryTeamCode: teamCode || null,
+                primaryPlayerIds: playerIds.map(String),
+                payload: persistPayload,
+                actionContext: receiptContext,
+              });
+              if (receipt) {
+                publishPostActionReceipt(receipt);
+              }
+            }
             return true;
           })
           .catch(() => false);
@@ -629,9 +702,11 @@ export function useSigningExecution({
       currentYear,
       persistMutation,
       prepareCapAuditedMutationBoundary,
+      publishPostActionReceipt,
       reportMutationError,
       syncTeamFromMutationResult,
       teamCapSheet,
+      teamCode,
       worldId,
     ]
   );
