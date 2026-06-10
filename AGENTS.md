@@ -6,11 +6,14 @@ description: Shared AI-agent instructions for HoopZero/ScoutZero.
 # AGENTS.md - HoopZero/ScoutZero
 
 Repo-wide rules for AI agents working in this codebase. These instructions are
-binding.
+binding. This file is the quick operating contract; detailed standards live in
+the linked docs.
 
 ## Core Priorities
 
 - Protect source data. Never write to Firestore source collections.
+- Do not run production push/admin/Firestore pipeline scripts unless the user
+  explicitly requests that operation.
 - Keep validation scoped. Prefer targeted tests and never run the full suite
   unless the prompt contains the exact phrase `RUN FULL SUITE`.
 - Preserve existing behavior and visual layout when refactoring.
@@ -49,6 +52,19 @@ Use these project commands unless the user explicitly asks for something else.
 ## Testing And Validation
 
 Default to the narrowest truthful validation.
+
+For docs-only changes, run docs validation (`npm run lint:md` when applicable
+and `npm run docs:guardrails` for docs-routing/standards changes). Do not run
+app tests unless the docs change affects commands, schemas, generated outputs,
+or code behavior.
+
+When the branch has existing unrelated diffs, validate the current task scope
+rather than the whole branch. Prefer the most specific suite, or pass explicit
+files to the diff runner:
+
+```bash
+npm run test:diff -- --files AGENTS.md --reporter=dot
+```
 
 | Command | Use |
 | --- | --- |
