@@ -83,7 +83,12 @@ export interface UseOfferSheetExecutorsParams {
     invalidMessage: string;
     seasonIdOverride?: string;
     yearOverride?: number;
-  }) => { applied: boolean; operationId: string | null; persistPromise: Promise<boolean> | null };
+  }) => {
+    applied: boolean;
+    operationId: string | null;
+    message?: string;
+    persistPromise: Promise<boolean> | null;
+  };
 }
 
 export function useOfferSheetExecutors({

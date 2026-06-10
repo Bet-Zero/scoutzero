@@ -78,9 +78,18 @@ export type UseContractActionsParams = {
     seasonIdOverride?: string;
     yearOverride?: number;
     receiptContext?: ArchitectReceiptActionContext;
-  }) => { applied: boolean; operationId: string | null; persistPromise: Promise<boolean> | null };
+  }) => {
+    applied: boolean;
+    operationId: string | null;
+    message?: string;
+    persistPromise: Promise<boolean> | null;
+  };
   finalizeCapMutationResult: (
-    mutationResult: { applied: boolean; persistPromise: Promise<boolean> | null },
+    mutationResult: {
+      applied: boolean;
+      message?: string;
+      persistPromise: Promise<boolean> | null;
+    },
     failureMessage: string
   ) => Promise<MutationActionResult>;
   openPlayerContractModalRoute: (params: {

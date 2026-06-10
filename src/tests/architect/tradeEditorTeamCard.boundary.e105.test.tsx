@@ -1120,6 +1120,16 @@ describe('TradeTeamCard boundary E105', () => {
     );
 
     expect(screen.getByTestId('mock-cap-impact-tiles')).toHaveTextContent('ATL');
+    expect(harness.capImpactTilesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        team: expect.objectContaining({
+          id: 'ATL',
+          players: BASE_TEAMS[0].team.players,
+          capHolds: BASE_TEAMS[0].team.capHolds,
+        }),
+      }),
+      expect.anything()
+    );
     expect(screen.getByText(/Allowable Incoming:/i)).toBeInTheDocument();
     expect(screen.getByText(/\(125%\)/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Outgoing Salary/i })).toBeInTheDocument();

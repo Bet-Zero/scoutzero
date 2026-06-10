@@ -805,6 +805,11 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     'const applyCapAuditedTeamMutation = useCallback(',
     'const finalizeCapMutationResult = useCallback('
   );
+  const finalizeCapMutationResultRegion = readRegion(
+    actionsContent,
+    'const finalizeCapMutationResult = useCallback(',
+    '  // === Trade Actions ==='
+  );
   const handleSetDeadCapRegion = readRegion(
     actionsContent,
     'const handleSetDeadCap = useCallback(',
@@ -1201,6 +1206,18 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     );
     expect(preparedLifecycleHelperRegion).toMatch(
       /updateLocalCapAuditEvent\(\s*operationId,\s*buildPersistFailedRolledBackAuditPatch\(\)/
+    );
+  });
+
+  it('applyCapAuditedTeamMutation returns the specific cap-audit blocker message to modal finalizers', () => {
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /const\s+message\s*=\s*getFirstViolationMessage\(\s*boundary\.auditEvaluation\.validation,\s*invalidMessage\s*\)/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /applied:\s*false,\s*operationId:\s*boundary\.operationId,\s*message,\s*persistPromise:\s*null/s
+    );
+    expect(finalizeCapMutationResultRegion).toMatch(
+      /message:\s*mutationResult\.message\s*\|\|\s*failureMessage/
     );
   });
 });

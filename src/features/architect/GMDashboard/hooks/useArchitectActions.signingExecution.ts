@@ -536,6 +536,7 @@ export function useSigningExecution({
     }): {
       applied: boolean;
       operationId: string | null;
+      message?: string;
       persistPromise: Promise<boolean> | null;
     } => {
       const {
@@ -566,18 +567,26 @@ export function useSigningExecution({
               worldId,
               lockScopeKey,
             });
-            return { applied: false, operationId: null, persistPromise: null };
+            return {
+              applied: false,
+              operationId: null,
+              message: blockedMessage,
+              persistPromise: null,
+            };
           }
         }
 
         if (!teamCapSheet) {
-          reportMutationError(
-            `Cannot apply ${mutationType}: team state is not loaded.`,
-            {
-              mutationType,
-            }
-          );
-          return { applied: false, operationId: null, persistPromise: null };
+          const message = `Cannot apply ${mutationType}: team state is not loaded.`;
+          reportMutationError(message, {
+            mutationType,
+          });
+          return {
+            applied: false,
+            operationId: null,
+            message,
+            persistPromise: null,
+          };
         }
 
         const boundary = prepareCapAuditedMutationBoundary({
@@ -592,23 +601,22 @@ export function useSigningExecution({
         });
 
         if (!boundary.auditEvaluation.validation.valid) {
+          const message = getFirstViolationMessage(
+            boundary.auditEvaluation.validation,
+            invalidMessage
+          );
           // The audit record has already been written with an explicit
           // `evaluation-blocked` lifecycle state, so callers can distinguish
           // blocked preview/audit records from pending optimistic preview.
-          reportMutationError(
-            getFirstViolationMessage(
-              boundary.auditEvaluation.validation,
-              invalidMessage
-            ),
-            {
-              mutationType,
-              operationId: boundary.operationId,
-              violations: boundary.auditEvaluation.validation.violations,
-            }
-          );
+          reportMutationError(message, {
+            mutationType,
+            operationId: boundary.operationId,
+            violations: boundary.auditEvaluation.validation.violations,
+          });
           return {
             applied: false,
             operationId: boundary.operationId,
+            message,
             persistPromise: null,
           };
         }
@@ -715,18 +723,25 @@ export function useSigningExecution({
     async (
       mutationResult: {
         applied: boolean;
+        message?: string;
         persistPromise: Promise<boolean> | null;
       },
       failureMessage: string
     ): Promise<MutationActionResult> => {
       if (!mutationResult.applied) {
-        return { success: false, message: failureMessage };
+        return {
+          success: false,
+          message: mutationResult.message || failureMessage,
+        };
       }
       const persisted = mutationResult.persistPromise
         ? await mutationResult.persistPromise
         : true;
       if (!persisted) {
-        return { success: false, message: failureMessage };
+        return {
+          success: false,
+          message: mutationResult.message || failureMessage,
+        };
       }
       return { success: true };
     },

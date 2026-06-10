@@ -73,7 +73,12 @@ export type UseOfferSheetActionsParams = {
     seasonIdOverride?: string;
     yearOverride?: number;
     receiptContext?: ArchitectReceiptActionContext;
-  }) => { applied: boolean; operationId: string | null; persistPromise: Promise<boolean> | null };
+  }) => {
+    applied: boolean;
+    operationId: string | null;
+    message?: string;
+    persistPromise: Promise<boolean> | null;
+  };
 };
 
 export function useOfferSheetActions({

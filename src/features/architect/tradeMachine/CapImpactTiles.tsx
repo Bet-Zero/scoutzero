@@ -13,10 +13,13 @@ type YearKeyLike = string | number;
 
 type TradeAssetLike = Record<string, unknown>;
 
-type TeamLike = NonNullable<Parameters<typeof computeTeamCapTotals>[0]> &
-  NonNullable<Parameters<typeof isHardCappedAtFirstApron>[0]> & {
-  id?: string;
-  teamId?: string;
+type CapTotalsTeamLike = NonNullable<Parameters<typeof computeTeamCapTotals>[0]>;
+type HardCapTeamLike = NonNullable<
+  Parameters<typeof isHardCappedAtFirstApron>[0]
+>;
+type TeamLike = Record<string, unknown> & {
+  id?: string | number | null;
+  teamId?: string | number | null;
   teamTotalSalary?: number;
   totalSalary?: number;
 };
@@ -45,7 +48,7 @@ export const CapImpactTiles = ({
   isValidating = false,
 }: CapImpactTilesProps) => {
   const baselineTotals = useMemo(
-    () => (team ? computeTeamCapTotals(team, yearKey) : null),
+    () => (team ? computeTeamCapTotals(team as CapTotalsTeamLike, yearKey) : null),
     [team, yearKey]
   );
 
@@ -53,10 +56,18 @@ export const CapImpactTiles = ({
     () =>
       team
         ? {
-            isFirstApronHardCapped: isHardCappedAtFirstApron(team, yearKey),
-            isSecondApronHardCapped: isHardCappedAtSecondApron(team),
-            firstApronReason: isHardCappedAtFirstApron(team, yearKey)
-              ? getFirstApronHardCapReason(team)
+            isFirstApronHardCapped: isHardCappedAtFirstApron(
+              team as HardCapTeamLike,
+              yearKey
+            ),
+            isSecondApronHardCapped: isHardCappedAtSecondApron(
+              team as HardCapTeamLike
+            ),
+            firstApronReason: isHardCappedAtFirstApron(
+              team as HardCapTeamLike,
+              yearKey
+            )
+              ? getFirstApronHardCapReason(team as HardCapTeamLike)
               : '',
           }
         : {
@@ -223,4 +234,3 @@ export const CapImpactTiles = ({
     </div>
   );
 };
-

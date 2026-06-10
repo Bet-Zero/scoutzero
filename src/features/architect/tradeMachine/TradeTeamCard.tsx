@@ -100,19 +100,6 @@ export const TradeTeamCard = ({
       !tpe.isUsed &&
       (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
   );
-  const capImpactTeam = team
-    ? {
-        id: team.id ?? undefined,
-        teamId: team.teamId ?? undefined,
-        teamTotalSalary:
-          typeof team.teamTotalSalary === 'number'
-            ? team.teamTotalSalary
-            : undefined,
-        totalSalary:
-          typeof team.totalSalary === 'number' ? team.totalSalary : undefined,
-      }
-    : null;
-
   useEffect(() => {
     if (editingTeam && selectRef.current) {
       selectRef.current.focus();
@@ -255,7 +242,7 @@ export const TradeTeamCard = ({
       </div>
 
       <CapImpactTiles
-        team={capImpactTeam}
+        team={team}
         sends={sends}
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
@@ -844,4 +831,3 @@ export const TradeTeamCard = ({
     </div>
   );
 };
-
