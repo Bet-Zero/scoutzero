@@ -1,0 +1,52 @@
+# Graphify output
+graphify-out/
+
+# Dependencies / build / reports
+node_modules/
+dist/
+build/
+.vite/
+.vercel/
+coverage/
+playwright-report/
+
+# Legacy / scratch / non-canonical planning material
+_archive/
+archive/
+return_packages/
+active_working_docs/
+work/
+plans/
+
+# Local/dev/generated data
+data/
+dev-local/
+.emulator-data/
+firestore_staging/
+firebase-export-*/
+firebase-export-saved/
+player-scrape/
+team-scrape/
+
+# Repomix / debug / temp tooling
+.repomix/
+.repomi*/
+.debugScripts/
+tmp/
+temp/
+.cache/
+
+# Large static assets
+public/assets/headshots/
+
+# Secrets / logs / OS junk
+.env
+.env.*
+.env.backup
+.env.local
+*.log
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
