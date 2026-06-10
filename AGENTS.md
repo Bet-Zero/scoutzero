@@ -100,8 +100,8 @@ the 4-minute budget and report what happened.
 If any test run exceeds 4 minutes, stop it and switch to `npm run test:diff` or
 the closest scoped suite.
 
-Every return package/final handoff must list files changed, validation commands
-actually run, and commands intentionally skipped with the reason.
+Every final handoff must list files changed, validation commands actually run,
+and commands intentionally skipped with the reason.
 
 ## Code Rules
 
@@ -152,13 +152,18 @@ Canonical schema reference:
 
 - Permanent docs belong in `docs/` under `reference/`, `guides/`,
   `operations/`, or `standards/`.
-- Active plans, preflights, notes, and return packages belong in
-  `work/<initiative>/`.
+- Active plans, preflights, and notes belong in `work/<initiative>/`.
 - Completed initiatives move as a whole to `archive/work/<initiative>/`.
 - Update docs for significant behavior, structure, schema, or workflow changes.
 - For docs-routing or standards changes, run `npm run lint:md` and
   `npm run docs:guardrails`.
 - Run `npm run validate:project` after structural changes.
+
+Do not create return packages by default. Use the final response plus the git
+commit as the normal evidence trail. Create a return package only when the user
+explicitly asks for one, an active long-running plan requires one, multiple
+agents/sessions need durable coordination, or the work involves production data,
+release operations, or audit/fix-plan evidence.
 
 Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 `docs/standards/DOCUMENTATION_UPDATE_RULES.md`,
@@ -202,5 +207,4 @@ If a requirement is unclear, ask before guessing.
 | `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md` | Firestore schema |
 | `docs/standards/COMMUNICATION_RULES.md` | Ask-vs-decide examples |
 | `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md` | Permanent docs vs work/archive placement |
-| `docs/standards/RETURN_PACKAGE_STANDARD.md` | Return package expectations |
 | `archive/docs/cursor-prompts/cursor-commands-overview.md` | Archived slash-command reference |
