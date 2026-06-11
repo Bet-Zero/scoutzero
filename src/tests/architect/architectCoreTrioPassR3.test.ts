@@ -348,7 +348,11 @@ describe('Architect core trio pass R3 proof', () => {
           amountByYear: [
             expect.objectContaining({
               season: '2025-26',
-              amount: 18_000_000,
+              amount: 12_000_000,
+            }),
+            expect.objectContaining({
+              season: '2026-27',
+              amount: 6_000_000,
             }),
           ],
         }),

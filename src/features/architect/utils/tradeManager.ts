@@ -17,6 +17,10 @@
 import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import {
+  allocateStandardWaiverDeadCapBySeason,
+  sumWaiverDeadCapAllocations,
+} from '@/features/architect/utils/waiverDeadCapAllocation';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -66,6 +70,13 @@ interface TeamStateLike extends UnknownRecord {
 
 interface ContractLike extends UnknownRecord {
   guaranteedValue?: number;
+  salariesByYear?: Array<{
+    season?: string | number | null;
+    year?: string | number | null;
+    salary?: string | number | null;
+    guaranteed?: boolean | null;
+    guaranteedAmount?: string | number | null;
+  }>;
 }
 
 interface PlayerLike extends UnknownRecord {
@@ -226,12 +237,25 @@ export async function waivePlayer(
 
   // Calculate dead cap
   const contract = playerData.contract;
-  const remainingSalary = contract.guaranteedValue || 0;
+  const currentSeason = teamState.season || '2025-26';
+  const standardDeadCapBySeason = allocateStandardWaiverDeadCapBySeason({
+    salaryRows: Array.isArray(contract.salariesByYear)
+      ? contract.salariesByYear
+      : [],
+    currentSeason,
+  });
+  const remainingGuaranteedFromRows = sumWaiverDeadCapAllocations(
+    standardDeadCapBySeason
+  );
+  const remainingSalary =
+    remainingGuaranteedFromRows ||
+    (Array.isArray(contract.salariesByYear) && contract.salariesByYear.length > 0
+      ? 0
+      : contract.guaranteedValue || 0);
 
   if (stretch && remainingSalary > 0) {
     // Stretch over multiple years
     const stretchedAmount = Math.floor(remainingSalary / stretchYears);
-    const currentSeason = teamState.season || '2025-26';
 
     // Add to dead cap array
     updatedTeam.deadCap = updatedTeam.deadCap || [];
@@ -252,19 +276,24 @@ export async function waivePlayer(
       notes: `Stretched over ${stretchYears} years`,
     });
   } else if (remainingSalary > 0) {
-    // Immediate dead cap (current season only)
+    const amountByYear =
+      remainingGuaranteedFromRows > 0
+        ? standardDeadCapBySeason
+        : [
+            {
+              season: currentSeason,
+              amount: remainingSalary,
+              isStretched: false,
+            },
+          ];
+
+    // Standard waiver dead cap stays on the original guaranteed seasons.
     updatedTeam.deadCap = updatedTeam.deadCap || [];
     updatedTeam.deadCap.push({
       playerId,
       playerName: playerData.displayName || playerId,
       originalSalary: remainingSalary,
-      amountByYear: [
-        {
-          season: teamState.season || '2025-26',
-          amount: remainingSalary,
-          isStretched: false,
-        },
-      ],
+      amountByYear,
       waiveDate: new Date().toISOString(),
     });
   }

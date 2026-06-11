@@ -22,6 +22,8 @@ import {
   seedWorldMetadata,
   createMockWorld,
   createMockTeam,
+  createMockPlayer,
+  seedTeamSnapshot,
 } from '../helpers/architectTestHelpers.js';
 import { seedMockData } from '../__mocks__/firebase.js';
 
@@ -264,6 +266,64 @@ describe('Trade Manager', () => {
       expect(Array.isArray(deadCap)).toBe(true);
       const deadCapEntry = deadCap.find((d) => d.playerId === 'lebron_james');
       expect(deadCapEntry).toBeDefined();
+    });
+
+    it('allocates standard waiver dead cap to the original contract seasons', async () => {
+      const player = createMockPlayer({
+        playerId: 'waive_multiyear',
+        displayName: 'Waive Multi-Year',
+        teamCode: 'LAL',
+        contract: {
+          contractType: 'Standard',
+          startSeason: '2025-26',
+          endSeason: '2026-27',
+          totalValue: 30_000_000,
+          guaranteedValue: 30_000_000,
+          salariesByYear: [
+            {
+              season: '2025-26',
+              salary: 12_000_000,
+              capHit: 12_000_000,
+              guaranteed: true,
+              guaranteedAmount: 12_000_000,
+            },
+            {
+              season: '2026-27',
+              salary: 18_000_000,
+              capHit: 18_000_000,
+              guaranteed: true,
+              guaranteedAmount: 18_000_000,
+            },
+          ],
+        },
+      });
+
+      seedMockData('architect_basePlayers/waive_multiyear', player);
+      seedTeamSnapshot(
+        worldId,
+        'LAL',
+        createMockTeam({
+          teamCode: 'LAL',
+          season: '2025-26',
+          roster: ['waive_multiyear'],
+          players: [player],
+          totals: { totalSalary: 30_000_000, capHit: 30_000_000 },
+        }),
+        { padRoster: false }
+      );
+
+      const result = await waivePlayer(worldId, 'LAL', 'waive_multiyear');
+      const deadCap = getDeadCapEntries(result);
+
+      const deadCapEntry = requireValue(
+        deadCap.find((d) => d.playerId === 'waive_multiyear'),
+        'deadCapEntry'
+      );
+
+      expect(deadCapEntry.amountByYear).toEqual([
+        { season: '2025-26', amount: 12_000_000, isStretched: false },
+        { season: '2026-27', amount: 18_000_000, isStretched: false },
+      ]);
     });
 
     it('handles stretch provision', async () => {

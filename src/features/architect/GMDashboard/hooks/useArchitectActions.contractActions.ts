@@ -15,6 +15,10 @@ import {
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import {
+  allocateStandardWaiverDeadCapBySeason,
+  sumWaiverDeadCapAllocations,
+} from '@/features/architect/utils/waiverDeadCapAllocation';
 import type { ManualExceptionsSavePayload } from '@/features/architect/capSheet/CapSheet/CapSheet';
 import type { ArchitectDashboardPlayer } from './useArchitectState';
 import {
@@ -654,15 +658,14 @@ export function useContractActions({
             [];
 
           // Calculate remaining guaranteed money from current/future rows.
-          const remainingGuaranteed = contractRows
-            .filter((y) => {
-              const season = String(y.season);
-              const yearEnd = /^\d{4}-\d{2}$/.test(season)
-                ? 2000 + parseInt(season.split('-')[1], 10)
-                : parseInt(season, 10);
-              return yearEnd >= currentYear && y.guaranteed !== false;
-            })
-            .reduce((sum, y) => sum + Number(y.salary || 0), 0);
+          const standardDeadCapBySeason =
+            allocateStandardWaiverDeadCapBySeason({
+              salaryRows: contractRows,
+              currentSeason: toSeasonCode(currentYear),
+            });
+          const remainingGuaranteed = sumWaiverDeadCapAllocations(
+            standardDeadCapBySeason
+          );
 
           const boundedBuyoutAmount = buyout
             ? Math.min(remainingGuaranteed, normalizedBuyoutAmount)
@@ -695,17 +698,17 @@ export function useContractActions({
                       player.name ||
                       String(playerId),
                     originalSalary: remainingGuaranteed,
-                    amountByYear: Array.from(
-                      { length: stretchYears },
-                      (_, index) => ({
-                        season: toSeasonCode(currentYear + index),
-                        amount:
-                          shouldStretch && index < remainder
-                            ? baseAmount + 1
-                            : baseAmount,
-                        isStretched: shouldStretch,
-                      })
-                    ),
+                    amountByYear:
+                      !buyout && !shouldStretch
+                        ? standardDeadCapBySeason
+                        : Array.from({ length: stretchYears }, (_, index) => ({
+                            season: toSeasonCode(currentYear + index),
+                            amount:
+                              shouldStretch && index < remainder
+                                ? baseAmount + 1
+                                : baseAmount,
+                            isStretched: shouldStretch,
+                          })),
                     waiveDate: new Date().toISOString(),
                     notes: buyout
                       ? `Buyout reduction: $${boundedBuyoutAmount.toLocaleString()}`

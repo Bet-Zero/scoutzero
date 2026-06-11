@@ -538,6 +538,7 @@ utils/
       validationIssueText.ts
   tradeManager.ts
   validatePhase21.test.ts
+  waiverDeadCapAllocation.ts
   worldManager.core.ts
   worldManager.readUtils.ts
   worldManager.ts
@@ -545,5 +546,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-10T03:09:21.891Z*
+*Generated on: 2026-06-11T15:19:22.663Z*
 *Auto-updated by: npm run docs*

@@ -10,6 +10,10 @@ import {
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
 import {
+  allocateStandardWaiverDeadCapBySeason,
+  sumWaiverDeadCapAllocations,
+} from '@/features/architect/utils/waiverDeadCapAllocation';
+import {
   normalizeContractForWorld,
   normalizeFutureContract,
   normalizeSalaryRow,
@@ -82,17 +86,17 @@ export function computeWaiveResult({
   const contractRows = Array.isArray(contract?.salariesByYear)
     ? contract.salariesByYear
     : [];
-  const seasonEndYear = toEndYear(seasonId) ?? 0;
-  const remainingGuaranteedFromRows = contractRows
-    .filter((row) => {
-      const yearEnd = toEndYear(row.season);
-      return typeof yearEnd === 'number' && yearEnd >= seasonEndYear;
-    })
-    .filter((row) => row.guaranteed !== false)
-    .reduce((sum, row) => sum + (Number(row.salary) || 0), 0);
+  const standardDeadCapBySeason = allocateStandardWaiverDeadCapBySeason({
+    salaryRows: contractRows,
+    currentSeason: seasonId,
+  });
+  const remainingGuaranteedFromRows = sumWaiverDeadCapAllocations(
+    standardDeadCapBySeason
+  );
   const guaranteedValueFallback = Number(contract?.guaranteedValue) || 0;
   const remainingSalary =
-    remainingGuaranteedFromRows || guaranteedValueFallback;
+    remainingGuaranteedFromRows ||
+    (contractRows.length === 0 ? guaranteedValueFallback : 0);
   const rawBuyoutAmount = buyout
     ? Math.max(0, Number(payload.buyoutAmount) || 0)
     : 0;
@@ -113,7 +117,7 @@ export function computeWaiveResult({
       playerName: player.displayName || playerId,
       originalSalary: remainingSalary,
       amountByYear: Array.from({ length: stretchYears }, (_, i) => {
-        const startYear = toEndYear(seasonId) ?? seasonEndYear;
+        const startYear = toEndYear(seasonId) ?? 0;
         const yearEndYear = startYear + i;
         const yearAmount = baseStretchedAmount + (i < remainder ? 1 : 0);
         return {
@@ -128,18 +132,23 @@ export function computeWaiveResult({
         : `Stretched over ${stretchYears} years`,
     });
   } else if (deadCapAmount > 0) {
+    const amountByYear =
+      !buyout && remainingGuaranteedFromRows > 0
+        ? standardDeadCapBySeason
+        : [
+            {
+              season: seasonId,
+              amount: deadCapAmount,
+              isStretched: false,
+            },
+          ];
+
     updatedTeam.deadCap = updatedTeam.deadCap || [];
     updatedTeam.deadCap.push({
       playerId,
       playerName: player.displayName || playerId,
       originalSalary: remainingSalary,
-      amountByYear: [
-        {
-          season: seasonId,
-          amount: deadCapAmount,
-          isStretched: false,
-        },
-      ],
+      amountByYear,
       waiveDate: new Date(timestamp).toISOString(),
       notes: buyout
         ? `Buyout reduction: $${boundedBuyoutAmount.toLocaleString()}`

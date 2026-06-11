@@ -122,6 +122,11 @@ type ExtendPlayerCurrentState = Extract<
   { mutationType: 'extendPlayer' }
 >['currentState'];
 type ExtendPlayerTeamState = NonNullable<ExtendPlayerCurrentState['team']>;
+type WaivePlayerCurrentState = Extract<
+  ComputeWorldMutationInput,
+  { mutationType: 'waivePlayer' }
+>['currentState'];
+type WaivePlayerTeamState = NonNullable<WaivePlayerCurrentState['team']>;
 
 type TradeCapHoldFixture = MockCapHold & Record<string, unknown>;
 
@@ -372,6 +377,12 @@ function toExtendPlayerCurrentStateTeam(
   };
 }
 
+function toWaivePlayerCurrentStateTeam(
+  team: TradeTeamFixture
+): WaivePlayerTeamState {
+  return toExtendPlayerCurrentStateTeam(team);
+}
+
 function makeStoredOfferSheetContract(
   overrides: Partial<TradeContractFixture> = {}
 ): TradeContractFixture {
@@ -443,6 +454,66 @@ describe('mutationPipeline trade persistence truth', () => {
   beforeEach(() => {
     resetMockDataStore();
     vi.clearAllMocks();
+  });
+
+  it('allocates standard waiver dead cap by original guaranteed contract seasons', async () => {
+    const player = makePlayer('waive_multiyear_truth', 'LAL', 0, {
+      displayName: 'Waive Multi-Year Truth',
+      contract: makeContract(30_000_000, {
+        totalValue: 30_000_000,
+        guaranteedValue: 30_000_000,
+        salariesByYear: [
+          {
+            season: SEASON_ID,
+            salary: 12_000_000,
+            capHit: 12_000_000,
+            guaranteed: true,
+            guaranteedAmount: 12_000_000,
+          },
+          {
+            season: '2026-27',
+            salary: 18_000_000,
+            capHit: 18_000_000,
+            guaranteed: true,
+            guaranteedAmount: 18_000_000,
+          },
+        ],
+      }),
+    });
+    const team = makeTeam('LAL', [player]);
+
+    const result = computeWorldMutation({
+      mutationType: 'waivePlayer',
+      seasonId: SEASON_ID,
+      timestamp: TIMESTAMP,
+      currentState: {
+        teamCode: 'LAL',
+        team: toWaivePlayerCurrentStateTeam(team),
+        player,
+      },
+      payload: {
+        teamCode: 'LAL',
+        playerId: player.playerId,
+      },
+    });
+
+    expect(result.success).toBe(true);
+    const updatedTeam = requireValue(
+      result.teamUpdates?.[0]?.team,
+      'waive result team'
+    );
+    const deadCapEntry = requireValue(
+      updatedTeam.deadCap?.find(
+        (entry) => entry.playerId === 'waive_multiyear_truth'
+      ),
+      'waive dead cap entry'
+    );
+
+    expect(deadCapEntry.originalSalary).toBe(30_000_000);
+    expect(deadCapEntry.amountByYear).toEqual([
+      { season: SEASON_ID, amount: 12_000_000, isStretched: false },
+      { season: '2026-27', amount: 18_000_000, isStretched: false },
+    ]);
   });
 
   it('persists standard trade destination overrides and deletes superseded source overrides', async () => {
