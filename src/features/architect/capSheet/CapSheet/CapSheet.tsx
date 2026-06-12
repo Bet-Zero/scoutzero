@@ -76,6 +76,10 @@ type TeamCapSheetLike = Omit<
 > & {
   players?: CapSheetPlayerLike[] | null;
   deadCap?: DeadCapSourceEntry[] | null;
+  teamName?: string | null;
+  name?: string | null;
+  abbreviation?: string | null;
+  id?: string | null;
 };
 type ManualDeadCapSavePayloadEntry = {
   id?: string | null;
@@ -170,6 +174,13 @@ const CAP_SHEET_SURFACE_LABELS = {
   canonicalTotalsBreakdown: 'Selected-year canonical totals breakdown surface',
 } as const;
 
+const resolveTeamPlanLabel = (teamCapSheet: TeamCapSheetLike) =>
+  teamCapSheet.teamName ||
+  teamCapSheet.name ||
+  teamCapSheet.teamCode ||
+  teamCapSheet.abbreviation ||
+  (teamCapSheet.id != null ? String(teamCapSheet.id) : 'Active team');
+
 export const CapSheet = ({
   teamCapSheet,
   currentYear,
@@ -262,6 +273,7 @@ export const CapSheet = ({
     `${year - 1}-${String(year % 100).padStart(2, '0')}`;
   const currentSeasonLabel = formatYearLabel(currentYear);
   const selectedSeasonLabel = formatYearLabel(selectedYear);
+  const teamPlanLabel = resolveTeamPlanLabel(teamCapSheet);
 
   const renderNotes = (
     player: CapSheetPlayerLike,
@@ -438,11 +450,13 @@ export const CapSheet = ({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="text-[10px] uppercase tracking-[0.25em] text-white/45">
-                Selected-Year Supporting Detail
+                Team Plan Salary Detail
+                <span className="sr-only">Selected-Year Supporting Detail</span>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-white/70">
-                Roster rows, cap-hold detail, and the breakdown below explain
-                the selected-year canonical totals for {selectedSeasonLabel}.
+                Roster rows for {teamPlanLabel}, cap-hold detail, and the
+                breakdown below explain the selected-year canonical totals for{' '}
+                {selectedSeasonLabel}.
                 They do not replace the summary surface above.
               </p>
             </div>
@@ -595,7 +609,8 @@ export const CapSheet = ({
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                    Canonical Totals Consumer
+                    Team Plan Total Breakdown
+                    <span className="sr-only">Canonical Totals Consumer</span>
                   </p>
                   <p className="mt-1 text-xs font-semibold text-white/80">
                     Total Cap Hit Breakdown
@@ -742,7 +757,10 @@ export const CapSheet = ({
             <div className="rounded-md border border-white/5 bg-black/10 px-3 py-3 space-y-3">
               <div className="space-y-1">
                 <div className="text-[10px] uppercase tracking-[0.25em] text-white/45">
-                  Selected-Year Mutation Entry Point
+                  Dead Money Input
+                  <span className="sr-only">
+                    Selected-Year Mutation Entry Point
+                  </span>
                 </div>
                 <p className="text-xs leading-relaxed text-white/65">
                   Dead money changes are a bounded selected-year input control
@@ -777,7 +795,10 @@ export const CapSheet = ({
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
-                    Current-Season-Only Adjacent Authority
+                    Current-Season Tools
+                    <span className="sr-only">
+                      Current-Season-Only Adjacent Authority
+                    </span>
                   </div>
                   <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-100/90">
                     Authority season:{' '}
@@ -862,4 +883,3 @@ export const CapSheet = ({
     </div>
   );
 };
-

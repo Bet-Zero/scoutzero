@@ -62,6 +62,10 @@ type DeadCapEntryLike = {
 };
 type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   players?: CapSheetFullPlayerLike[] | null;
+  teamName?: string | null;
+  name?: string | null;
+  abbreviation?: string | null;
+  id?: string | null;
 };
 type ContractYearSliceLike = ReturnType<typeof getContractYearSlice>;
 type VisiblePlayerEntry = {
@@ -222,6 +226,11 @@ const EXTENSION_CELL_STYLE =
 const formatCapSheetMoney = (amount: NumericLike) =>
   `$${Number(amount ?? 0).toLocaleString()}`;
 
+const formatCapSpaceLabel = (space: number, thresholdLabel: string) =>
+  `${formatCapSheetMoney(Math.abs(space))} ${
+    space < 0 ? `over ${thresholdLabel}` : 'space'
+  }`;
+
 const formatSeasonLabel = (year: number) =>
   `${year - 1}-${String(year % 100).padStart(2, '0')}`;
 
@@ -272,6 +281,13 @@ const getDeadCapLabel = (deadCapEntry: DeadCapEntryLike) =>
   deadCapEntry.notes ||
   deadCapEntry.playerId ||
   'Dead money adjustment';
+
+const resolveTeamPlanLabel = (teamCapSheet: TeamCapSheetLike) =>
+  teamCapSheet.teamName ||
+  teamCapSheet.name ||
+  teamCapSheet.teamCode ||
+  teamCapSheet.abbreviation ||
+  (teamCapSheet.id != null ? String(teamCapSheet.id) : 'Active team');
 
 const getLatestVisibleEndYear = (
   teamCapSheet: TeamCapSheetLike,
@@ -641,6 +657,13 @@ export const CapSheetFull = ({
   const hasIncompleteCharges = allYears.some(
     (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
   );
+  const currentYearTotals = yearTotalBreakdowns[currentYear];
+  const currentSeasonLabel = formatSeasonLabel(currentYear);
+  const teamPlanLabel = resolveTeamPlanLabel(teamCapSheet);
+  const capSpace = -(currentYearTotals.deltas.vsCap || 0);
+  const taxSpace = -(currentYearTotals.deltas.vsLuxuryTax || 0);
+  const firstApronSpace = -(currentYearTotals.deltas.vsFirstApron || 0);
+  const secondApronSpace = -(currentYearTotals.deltas.vsSecondApron || 0);
   const affectedTotalYears = useMemo(() => {
     const years = new Set<number>();
     for (const player of sortedPlayers) {
@@ -741,10 +764,13 @@ export const CapSheetFull = ({
                 style={{ background: 'var(--team-secondary,#FDB927)' }}
               />
               <span className="text-[13px] font-extrabold uppercase italic tracking-wide text-white">
-                Cap Table
+                Full Cap Table
+              </span>
+              <span className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60">
+                Team Plan
               </span>
               <span className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60">
-                {formatSeasonLabel(currentYear)}
+                {currentSeasonLabel}
               </span>
             </div>
             {(hasManualCapSheetMutationAuthority || onLaunchFreeAgentSearch) && (
@@ -795,6 +821,65 @@ export const CapSheetFull = ({
               </div>
             )}
           </div>
+
+          <section
+            aria-label="Full Cap Table Team Plan context"
+            data-testid="cap-sheet-full-team-plan-context"
+            className="shrink-0 border-b border-white/10 bg-black/20 px-3 py-2"
+          >
+            <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/45">
+                  Team Plan Cap Stack
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-white/65">
+                  <span className="font-semibold text-white/85">
+                    {teamPlanLabel}
+                  </span>
+                  <span className="text-white/25" aria-hidden>
+                    ·
+                  </span>
+                  <span>Current season {currentSeasonLabel}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 text-[10px] font-medium text-white/70">
+                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
+                  Current total:{' '}
+                  {formatCapSheetMoney(currentYearTotals.totalCapAllocations)}
+                </span>
+                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
+                  Cap: {formatCapSpaceLabel(capSpace, 'cap')}
+                </span>
+                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
+                  Tax: {formatCapSpaceLabel(taxSpace, 'tax')}
+                </span>
+                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
+                  1st apron: {formatCapSpaceLabel(firstApronSpace, 'apron')}
+                </span>
+                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
+                  2nd apron: {formatCapSpaceLabel(secondApronSpace, 'apron')}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-white/45">
+              <span className="rounded border border-white/10 bg-white/[0.03] px-2 py-0.5">
+                Roster salary rows: {sortedPlayers.length}
+              </span>
+              <span className="rounded border border-white/10 bg-white/[0.03] px-2 py-0.5">
+                Cap holds: {displayedCapHolds.length}
+              </span>
+              <span className="rounded border border-white/10 bg-white/[0.03] px-2 py-0.5">
+                Dead money: {displayedDeadMoney.length}
+              </span>
+              {hasIncompleteCharges ? (
+                <span className="rounded border border-amber-300/20 bg-amber-400/10 px-2 py-0.5 text-amber-100/80">
+                  Includes incomplete roster charges
+                </span>
+              ) : null}
+            </div>
+          </section>
 
           {/* PLAYER DETAIL: hugs its content so the Total Cap footer sits
               directly above the cap-hold / exception bars (no underflow gap),

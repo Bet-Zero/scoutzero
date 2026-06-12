@@ -64,6 +64,26 @@ const CAP_SHEET_SECTION_SURFACE_LABELS = {
 const formatSeasonLabel = (endYear: number) =>
   `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
 
+const resolveTeamPlanLabel = (
+  teamCapSheet: ForwardedCapSheetProps['teamCapSheet']
+) => {
+  const source = (teamCapSheet || {}) as {
+    teamName?: string | null;
+    name?: string | null;
+    teamCode?: string | null;
+    abbreviation?: string | null;
+    id?: string | number | null;
+  };
+
+  return (
+    source.teamName ||
+    source.name ||
+    source.teamCode ||
+    source.abbreviation ||
+    (source.id != null ? String(source.id) : 'Active team')
+  );
+};
+
 const CapSheetSection = ({
   teamCapSheet,
   currentYear,
@@ -121,6 +141,7 @@ const CapSheetSection = ({
   const isViewingCurrentYear = selectedYear === currentYear;
   const currentSeasonLabel = formatSeasonLabel(currentYear);
   const selectedSeasonLabel = formatSeasonLabel(selectedYear);
+  const teamPlanLabel = resolveTeamPlanLabel(teamCapSheet);
   const shellTruthToneClasses = isViewingCurrentYear
     ? 'border-sky-400/20 bg-sky-500/[0.06] text-sky-100'
     : 'border-amber-400/20 bg-amber-500/[0.06] text-amber-100';
@@ -157,6 +178,11 @@ const CapSheetSection = ({
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-[10px] font-medium">
+            <span
+              className={`rounded-full border px-2.5 py-1 ${shellTruthChipClass}`}
+            >
+              Team Plan: {teamPlanLabel}
+            </span>
             <span
               className={`rounded-full border px-2.5 py-1 ${shellTruthChipClass}`}
             >

@@ -967,6 +967,7 @@ describe('Cap Sheet UI integration flows', () => {
 
     expect(shellTruthPanel).toHaveTextContent('Cap table: 2025-26');
     expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26');
+    expect(shellTruthPanel).toHaveTextContent('Team Plan: Los Angeles Lakers');
     // The canonical totals SUMMARY surface (5-tile summary + hard-cap badge)
     // moved to the persistent cockpit TeamStatusStrip (Phase 2A migration), so
     // it is intentionally no longer rendered inside the cap sheet. The shell
@@ -985,14 +986,26 @@ describe('Cap Sheet UI integration flows', () => {
       )
     ).toBeInTheDocument();
     expect(
+      within(rosterSurface).getByText('Team Plan Salary Detail')
+    ).toBeInTheDocument();
+    expect(
       within(rosterSurface).getByText('Selected-Year Supporting Detail')
     ).toBeInTheDocument();
     expectBefore(primarySurface, rosterSurface);
     expect(
+      within(breakdownSurface).getByText('Team Plan Total Breakdown')
+    ).toBeInTheDocument();
+    expect(
       within(breakdownSurface).getByText('Total Cap Hit Breakdown')
     ).toBeInTheDocument();
     expect(
+      within(controlSurface).getByText('Dead Money Input')
+    ).toBeInTheDocument();
+    expect(
       within(controlSurface).getByText('Selected-Year Mutation Entry Point')
+    ).toBeInTheDocument();
+    expect(
+      within(controlSurface).getByText('Current-Season Tools')
     ).toBeInTheDocument();
     expect(
       within(controlSurface).getByText('Current-Season-Only Adjacent Authority')
@@ -1413,12 +1426,42 @@ describe('Cap Sheet UI integration flows', () => {
     const playerDetailSurface = within(primarySurface).getByRole('region', {
       name: 'Multi-year player detail surface',
     });
+    const teamPlanContext = within(primarySurface).getByRole('region', {
+      name: 'Full Cap Table Team Plan context',
+    });
     const canonicalTotalsSurface = within(primarySurface).getByRole('region', {
       name: 'Multi-year canonical yearly totals surface',
     });
     const capHoldsSurface = screen.getByRole('region', {
       name: 'Multi-year cap holds detail surface',
     });
+
+    expect(
+      within(teamPlanContext).getByText('Team Plan Cap Stack')
+    ).toBeInTheDocument();
+    expect(
+      within(teamPlanContext).getByText('Los Angeles Lakers')
+    ).toBeInTheDocument();
+    expect(
+      within(teamPlanContext).getByText('Current season 2025-26')
+    ).toBeInTheDocument();
+    expect(
+      within(teamPlanContext).getByText(
+        `Current total: $${computeTeamCapTotals(
+          teamCapSheet,
+          CURRENT_YEAR
+        ).totalCapAllocations.toLocaleString()}`
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(teamPlanContext).getByText('Roster salary rows: 15')
+    ).toBeInTheDocument();
+    expect(
+      within(teamPlanContext).getByText('Cap holds: 1')
+    ).toBeInTheDocument();
+    expect(
+      within(teamPlanContext).getByText('Dead money: 0')
+    ).toBeInTheDocument();
 
     expect(
       within(playerDetailSurface).getByText(
@@ -1452,6 +1495,7 @@ describe('Cap Sheet UI integration flows', () => {
       )
     ).toBeInTheDocument();
 
+    expectBefore(teamPlanContext, playerDetailSurface);
     expectBefore(playerDetailSurface, canonicalTotalsSurface);
     expectBefore(canonicalTotalsSurface, capHoldsSurface);
 

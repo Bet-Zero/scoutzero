@@ -91,6 +91,7 @@ vi.mock('@/features/architect/capSheet/ExceptionTracker', () => {
 
 const buildTeamCapSheet = () => ({
   teamCode: 'LAL',
+  teamName: 'Los Angeles Lakers',
   players: [
     {
       id: 'fixture_guard',
@@ -142,6 +143,9 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
     ).toHaveTextContent('Current-Season Alignment');
+    expect(
+      screen.getByTestId('cap-sheet-shell-year-truth-panel')
+    ).toHaveTextContent('Team Plan: Los Angeles Lakers');
 
     fireEvent.click(screen.getByTestId('mock-cap-sheet-select-following-year'));
 
@@ -159,6 +163,9 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
     ).toHaveTextContent('Cap table: 2027-28');
+    expect(
+      screen.getByTestId('cap-sheet-shell-year-truth-panel')
+    ).toHaveTextContent('Team Plan: Los Angeles Lakers');
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
     ).toHaveTextContent('Adjacent authority: 2025-26 only');
