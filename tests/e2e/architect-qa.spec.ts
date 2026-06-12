@@ -78,8 +78,11 @@ const getWorldTeamDocument = async (worldId: string, teamCode: string) =>
     .get()
     .then((snapshot) => snapshot.data())) as
     | {
+        deadCap?: Array<Record<string, unknown>>;
         entitlementIds?: string[];
         offerSheets?: Array<Record<string, unknown>>;
+        players?: Array<Record<string, unknown>>;
+        roster?: Array<string | Record<string, unknown>>;
       }
     | undefined;
 
@@ -490,16 +493,28 @@ const seedOfferSheetHomeTeamSnapshot = async (worldId: string) => {
 
 const addTradeTeam = async (page: Page, teamName: string) => {
   const teamValue = REVIEW_TRADE_TEAM_SELECT_VALUES[teamName] || teamName;
-  const addTeamButton = page.getByRole('button', {
-    name: /Add Team|Add 2nd Team|Add 3rd Team/i,
-  });
-  await expect(addTeamButton).toBeVisible();
-  await addTeamButton.click();
+  const tradeDialog = page.getByRole('dialog', { name: /Trade Machine/i });
 
-  const teamPicker = page
+  await expect(
+    tradeDialog.getByRole('button', { name: /Los Angeles Lakers/i })
+  ).toBeVisible({ timeout: 20000 });
+
+  const teamPickers = tradeDialog
+    .locator('label', { hasText: /^Select Team$/i })
+    .locator('xpath=following-sibling::select[1]');
+
+  if ((await teamPickers.count()) === 0) {
+    const addTeamButton = tradeDialog.getByRole('button', {
+      name: /Add Team|Add 2nd Team|Add 3rd Team/i,
+    });
+    await expect(addTeamButton).toBeVisible();
+    await addTeamButton.click();
+  }
+
+  const teamPicker = tradeDialog
     .locator('label', { hasText: /^Select Team$/i })
     .locator('xpath=following-sibling::select[1]')
-    .last();
+    .first();
   await expect(teamPicker).toBeVisible();
   await teamPicker.selectOption(teamValue);
 };
@@ -1440,6 +1455,135 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(page.getByText(/^Not validated$/i)).toBeVisible();
     await expect(applyTradeButton).toBeDisabled();
     await captureEvidence(page, testInfo, 'D-MQ-004-invalid-trade-gating');
+  });
+
+  test('D-MQ-004B: Standard waiver persists original-season dead cap', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
+
+    await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+
+    await openDashboardTab(page, 'Full Cap Table');
+
+    const reavesRow = page
+      .locator('div')
+      .filter({
+        has: page.getByRole('button', {
+          name: new RegExp(
+            `^${escapeRegExp(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)}$`,
+            'i'
+          ),
+        }),
+      })
+      .filter({
+        has: page.getByRole('button', {
+          name: new RegExp(
+            `More actions for ${escapeRegExp(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)}`,
+            'i'
+          ),
+        }),
+      })
+      .first();
+
+    await expect(reavesRow).toBeVisible();
+    await reavesRow.hover();
+    await reavesRow
+      .getByRole('button', {
+        name: new RegExp(
+          `More actions for ${escapeRegExp(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)}`,
+          'i'
+        ),
+      })
+      .click();
+
+    await page.getByTestId('cap-sheet-full-player-row-action-waive').click();
+    await expect(
+      page.getByRole('heading', { name: /^Available Actions$/i })
+    ).toBeVisible();
+    await expect(page.getByTestId('contract-action-waive')).toBeChecked();
+
+    const confirmActionButton = page.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeVisible();
+    page.once('dialog', async (dialog) => {
+      await dialog.accept();
+    });
+    await confirmActionButton.click();
+
+    await expect(
+      page.getByRole('heading', { name: /^Available Actions$/i })
+    ).not.toBeVisible({ timeout: 15000 });
+
+    await expect
+      .poll(
+        async () => {
+          const persistedTeam = await getWorldTeamDocument(worldId, 'LAL');
+          const rosterEntries = Array.isArray(persistedTeam?.roster)
+            ? persistedTeam.roster
+            : [];
+          const playerEntries = Array.isArray(persistedTeam?.players)
+            ? persistedTeam.players
+            : [];
+          const hasAustinReaves = [...rosterEntries, ...playerEntries].some(
+            (entry) => {
+              if (typeof entry === 'string') {
+                return entry === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
+              }
+              const playerId =
+                entry.id || entry.playerId || entry.player_id || null;
+              return playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
+            }
+          );
+          const deadCapEntry = (persistedTeam?.deadCap || []).find(
+            (entry) =>
+              entry.playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id ||
+              entry.player_id === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+          );
+          const rawAmountByYear = deadCapEntry?.amountByYear;
+          const amountByYear = Array.isArray(rawAmountByYear)
+            ? Object.fromEntries(
+                rawAmountByYear.map((row) => {
+                  const amountRow = row as Record<string, unknown>;
+                  return [
+                    String(amountRow.season),
+                    Number(amountRow.amount || 0),
+                  ];
+                })
+              )
+            : rawAmountByYear || null;
+
+          return {
+            hasAustinReaves,
+            amountByYear,
+          };
+        },
+        {
+          timeout: 15000,
+          message:
+            'standard waiver should remove Austin Reaves and preserve dead cap by original seasons',
+        }
+      )
+      .toEqual({
+        hasAustinReaves: false,
+        amountByYear: {
+          '2025-26': 14_000_000,
+          '2026-27': 15_000_000,
+          '2027-28': 16_000_000,
+        },
+      });
+
+    addAuditNote(
+      testInfo,
+      'This proves the post-BZE-17 standard waiver path in browser review mode: Full Cap Table opens the shared action modal, Confirm Action persists the waive, Austin Reaves leaves the world roster, and deadCap.amountByYear stays on 2025-26, 2026-27, and 2027-28 instead of accelerating into the current season.'
+    );
+
+    await captureEvidence(page, testInfo, 'D-MQ-004B-standard-waiver');
   });
 
   test('D-MQ-005: Free agent offer sheet persists and rehydrates after route re-entry', async ({
