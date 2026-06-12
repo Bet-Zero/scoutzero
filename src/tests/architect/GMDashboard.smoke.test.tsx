@@ -526,6 +526,36 @@ describe('GMDashboard Smoke Test', () => {
       mockUseArchitectState.mockImplementation(() => ({
         ...buildLoadedDashboardState(),
         activeTab: 'capfull',
+        freeAgents: [
+          {
+            id: 'fa_pool_1',
+            name: 'Pool Guard',
+            formattedPosition: 'PG',
+            previousSalary: 10_000_000,
+            freeAgentType: 'UFA',
+          },
+          {
+            id: 'fa_pool_2',
+            name: 'Pool Wing',
+            formattedPosition: 'SF',
+            previousSalary: 8_000_000,
+            freeAgentType: 'RFA',
+          },
+        ],
+        playersMap: {
+          fa_pool_1: {
+            id: 'fa_pool_1',
+            name: 'Pool Guard',
+            displayName: 'Pool Guard',
+            bio: { age: 27, position: 'PG' },
+          },
+          fa_pool_2: {
+            id: 'fa_pool_2',
+            name: 'Pool Wing',
+            displayName: 'Pool Wing',
+            bio: { age: 25, position: 'SF' },
+          },
+        },
       }));
 
       render(<GMDashboard />);
@@ -538,7 +568,17 @@ describe('GMDashboard Smoke Test', () => {
       expect(
         screen.getByRole('dialog', { name: /^Sign Free Agent$/i })
       ).toBeInTheDocument();
+      expect(screen.getByText('Pool Guard')).toBeInTheDocument();
+      expect(screen.getByText('Pool Wing')).toBeInTheDocument();
+      expect(screen.getByText('2 eligible players')).toBeInTheDocument();
       expect(mockSetActiveTab).not.toHaveBeenCalledWith('fa');
+
+      fireEvent.change(screen.getByPlaceholderText('Search pool'), {
+        target: { value: 'wing' },
+      });
+      expect(screen.queryByText('Pool Guard')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Pool Wing/i }));
+      expect(screen.getByText('Selected')).toBeInTheDocument();
 
       fireEvent.click(
         screen.getByRole('button', {

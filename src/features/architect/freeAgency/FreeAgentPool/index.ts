@@ -10,4 +10,4 @@
  *  - Plan: N/A (Phase 5 folder organization)
  */
 
-export { FreeAgentPool } from './FreeAgentPool';
+export { FreeAgentPool, buildFreeAgentSurfaceEntry } from './FreeAgentPool';

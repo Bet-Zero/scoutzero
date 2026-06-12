@@ -21,7 +21,7 @@ type LooseRecord = Record<string, unknown>;
 
 export interface FreeAgentPlayerBio extends LooseRecord {
   playerId?: string | null;
-  displayName?: string;
+  displayName?: string | null;
   age?: number | string | null;
   position?: string | null;
   height?: number | string | null;
@@ -37,8 +37,8 @@ export interface FreeAgentPlayerBio extends LooseRecord {
 export interface FreeAgentListItem extends LooseRecord {
   id?: string | null;
   player_id?: string | null;
-  name?: string;
-  displayName?: string;
+  name?: string | null;
+  displayName?: string | null;
   formattedPosition?: string | null;
   teamCode?: string | null;
   headshotUrl?: string | null;
@@ -52,11 +52,11 @@ export interface FreeAgentListItem extends LooseRecord {
   fa_type?: string | null;
   yearsOfService?: number | null;
   yearsPro?: number | null;
-  bio?: FreeAgentPlayerBio;
+  bio?: FreeAgentPlayerBio | null;
 }
 
 export interface FreeAgentLookupPlayer extends FreeAgentListItem {
-  bio?: FreeAgentPlayerBio;
+  bio?: FreeAgentPlayerBio | null;
 }
 
 export interface ResolvedFreeAgentPlayer extends FreeAgentLookupPlayer {}

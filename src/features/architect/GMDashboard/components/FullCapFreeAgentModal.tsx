@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Loader2, UserPlus, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Loader2, Search, UserPlus, X } from 'lucide-react';
 import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
 
 type FullCapFreeAgentModalProps = {
@@ -29,6 +29,18 @@ const getPlayerMeta = (entry: FreeAgentSurfaceEntry) =>
     .filter(Boolean)
     .join(' / ');
 
+const getSearchText = (entry: FreeAgentSurfaceEntry) =>
+  [
+    getPlayerName(entry),
+    getPlayerMeta(entry),
+    entry.freeAgent.freeAgentType,
+    entry.freeAgent.fa_type,
+    entry.freeAgent.birdRights,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
 const formatSalary = (value: unknown) => {
   const amount = Number(value);
   return Number.isFinite(amount) && amount > 0
@@ -44,6 +56,11 @@ const FullCapFreeAgentModal = ({
   entries = [],
   isLoading = false,
 }: FullCapFreeAgentModalProps) => {
+  const [query, setQuery] = useState('');
+  const [selectedSelectionKey, setSelectedSelectionKey] = useState<string | null>(
+    null
+  );
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -57,9 +74,34 @@ const FullCapFreeAgentModal = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) return;
+    setQuery('');
+    setSelectedSelectionKey(null);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (
+      selectedSelectionKey &&
+      !entries.some((entry) => entry.selectionKey === selectedSelectionKey)
+    ) {
+      setSelectedSelectionKey(null);
+    }
+  }, [entries, selectedSelectionKey]);
 
   const hasEntries = entries.length > 0;
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredEntries = useMemo(
+    () =>
+      normalizedQuery
+        ? entries.filter((entry) => getSearchText(entry).includes(normalizedQuery))
+        : entries,
+    [entries, normalizedQuery]
+  );
+  const selectedEntry =
+    entries.find((entry) => entry.selectionKey === selectedSelectionKey) ?? null;
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -83,6 +125,9 @@ const FullCapFreeAgentModal = ({
             <h2 id="full-cap-free-agent-modal-title" className="mt-1 text-base font-bold text-cockpit-text-primary">
               Sign Free Agent
             </h2>
+            <p className="mt-1 text-xs text-cockpit-text-muted">
+              {entries.length} eligible players
+            </p>
           </div>
           <button
             type="button"
@@ -104,6 +149,18 @@ const FullCapFreeAgentModal = ({
               <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-cockpit-text-secondary">
                 Generated / Current Pool
               </h3>
+              {hasEntries && !isLoading ? (
+                <label className="mt-2 flex h-9 items-center gap-2 rounded-md border border-cockpit-edge bg-cockpit-slab px-2 text-xs text-cockpit-text-secondary focus-within:ring-1 focus-within:ring-white/35">
+                  <Search aria-hidden className="h-3.5 w-3.5" />
+                  <span className="sr-only">Search free agents</span>
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search pool"
+                    className="min-w-0 flex-1 bg-transparent text-cockpit-text-primary outline-none placeholder:text-cockpit-text-muted"
+                  />
+                </label>
+              ) : null}
             </div>
 
             {isLoading ? (
@@ -120,37 +177,52 @@ const FullCapFreeAgentModal = ({
                 data-testid="full-cap-free-agent-modal-pool"
                 className="divide-y divide-cockpit-edge"
               >
-                {entries.map((entry) => (
-                  <li
-                    key={entry.selectionKey}
-                    className="grid gap-3 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-cockpit-text-primary">
-                        {getPlayerName(entry)}
-                      </p>
-                      <p className="mt-0.5 truncate text-[11px] text-cockpit-text-muted">
-                        {getPlayerMeta(entry) || 'Free agent'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 sm:justify-end">
-                      <span className="font-mono text-xs tabular-nums text-cockpit-text-secondary">
-                        {formatSalary(
-                          entry.surfacePlayer.askingSalary ??
-                            entry.surfacePlayer.previousSalary
-                        )}
-                      </span>
+                {filteredEntries.length === 0 ? (
+                  <li className="px-4 py-8 text-center text-sm text-cockpit-text-secondary">
+                    No matches
+                  </li>
+                ) : null}
+                {filteredEntries.map((entry) => {
+                  const isSelected = entry.selectionKey === selectedSelectionKey;
+                  return (
+                    <li
+                      key={entry.selectionKey}
+                      className={`grid gap-3 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${
+                        isSelected ? 'bg-cockpit-raised' : ''
+                      }`}
+                    >
                       <button
                         type="button"
-                        disabled
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 text-xs font-semibold text-cockpit-text-muted opacity-70"
+                        aria-pressed={isSelected}
+                        onClick={() => setSelectedSelectionKey(entry.selectionKey)}
+                        className="min-w-0 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
                       >
-                        <UserPlus aria-hidden className="h-3.5 w-3.5" />
-                        Sign
+                        <p className="truncate text-sm font-semibold text-cockpit-text-primary">
+                          {getPlayerName(entry)}
+                        </p>
+                        <p className="mt-0.5 truncate text-[11px] text-cockpit-text-muted">
+                          {getPlayerMeta(entry) || 'Free agent'}
+                        </p>
                       </button>
-                    </div>
-                  </li>
-                ))}
+                      <div className="flex items-center gap-2 sm:justify-end">
+                        <span className="font-mono text-xs tabular-nums text-cockpit-text-secondary">
+                          {formatSalary(
+                            entry.surfacePlayer.askingSalary ??
+                              entry.surfacePlayer.previousSalary
+                          )}
+                        </span>
+                        <button
+                          type="button"
+                          disabled
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 text-xs font-semibold text-cockpit-text-muted opacity-70"
+                        >
+                          <UserPlus aria-hidden className="h-3.5 w-3.5" />
+                          Sign
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <div
@@ -175,6 +247,19 @@ const FullCapFreeAgentModal = ({
               Signing Actions
             </h3>
             <div className="mt-3 space-y-2">
+              {selectedEntry ? (
+                <div className="rounded-md border border-cockpit-edge bg-cockpit-slab px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cockpit-text-muted">
+                    Selected
+                  </p>
+                  <p className="mt-1 truncate text-sm font-semibold text-cockpit-text-primary">
+                    {getPlayerName(selectedEntry)}
+                  </p>
+                  <p className="mt-0.5 truncate text-[11px] text-cockpit-text-muted">
+                    {getPlayerMeta(selectedEntry) || 'Free agent'}
+                  </p>
+                </div>
+              ) : null}
               {SIGNING_ACTION_LABELS.map((label) => (
                 <button
                   key={label}

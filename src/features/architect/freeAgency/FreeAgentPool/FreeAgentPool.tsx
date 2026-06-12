@@ -69,7 +69,7 @@ const resolveLookupPlayer = (
   );
 };
 
-const buildFreeAgentSurfaceEntry = (
+export const buildFreeAgentSurfaceEntry = (
   freeAgent: FreeAgentListItem,
   playersMap: Record<string, FreeAgentLookupPlayer>
 ): FreeAgentSurfaceEntry => {

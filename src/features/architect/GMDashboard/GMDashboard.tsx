@@ -81,7 +81,12 @@ import {
   toSeasonCode,
   toSeasonKey,
 } from '@/features/architect/utils/seasonFormat';
-import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
+import { buildFreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool';
+import type {
+  FreeAgentLookupPlayer,
+  FreeAgentListItem,
+  FreeAgentSurfaceEntry,
+} from '@/features/architect/freeAgency/FreeAgentPool/types';
 
 type EditContractModalProps = Parameters<typeof EditContractModal>[0];
 type EditContractArchitectActionCallbacks = Pick<
@@ -850,6 +855,16 @@ export const GMDashboard = () => {
     onPlayerAction: handlePlayerAction,
     pinnedPlayerIds,
   };
+  const fullCapFreeAgentPoolEntries = useMemo(
+    () =>
+      (freeAgents || []).map((freeAgent) =>
+        buildFreeAgentSurfaceEntry(
+          freeAgent as FreeAgentListItem,
+          playersMap as Record<string, FreeAgentLookupPlayer>
+        )
+      ),
+    [freeAgents, playersMap]
+  );
   const offseasonSectionSurface: OffseasonSectionProps = {
     teamCapSheet,
     setTeamCapSheet,
@@ -1211,7 +1226,8 @@ export const GMDashboard = () => {
           workspaceContext.seasons.selectedViewingSeasonLabel ??
           toSeasonKey(currentYear)
         }
-        entries={freeAgentOptionEntries}
+        entries={fullCapFreeAgentPoolEntries}
+        isLoading={isLoading || worldMetadataLoading}
       />
 
       {showOffseasonModal && offseasonSummary && (
