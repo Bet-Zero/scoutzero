@@ -51,9 +51,14 @@ import { TradeEditor } from '@/features/architect/tradeMachine/TradeEditor';
 interface BuildOpts {
   rosterPlayers?: Array<Record<string, unknown>>;
   setPlayerTrade?: ReturnType<typeof vi.fn>;
+  overrides?: Record<string, unknown>;
 }
 
-function buildHookReturn({ rosterPlayers = [], setPlayerTrade }: BuildOpts) {
+function buildHookReturn({
+  rosterPlayers = [],
+  setPlayerTrade,
+  overrides = {},
+}: BuildOpts) {
   return {
     teams: [
       { team: { id: 'LAL', players: rosterPlayers }, sends: [], entitlementsOut: [] },
@@ -93,6 +98,7 @@ function buildHookReturn({ rosterPlayers = [], setPlayerTrade }: BuildOpts) {
     clearInjectedDevSntPlayers: vi.fn(),
     getValidatedAt: () => null,
     initError: null,
+    ...overrides,
   };
 }
 
@@ -263,5 +269,137 @@ describe('TradeEditor — in-overlay objective/context banner (Slice 3)', () => 
       <TradeEditor {...baseProps} onDraftActivityChange={onDraftActivityChange} />
     );
     expect(onDraftActivityChange).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('TradeEditor — validation and apply readiness hierarchy', () => {
+  it('prioritizes team setup before validation state', () => {
+    useTradeMachineMock.mockReturnValue(buildHookReturn({}));
+
+    render(<TradeEditor {...baseProps} />);
+
+    const summary = screen.getByTestId('trade-readiness-summary');
+    expect(summary).toHaveTextContent('Setup required');
+    expect(summary).toHaveTextContent(
+      'Select at least two teams before validation.'
+    );
+  });
+
+  it('prompts for assets after two teams are selected', () => {
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        overrides: {
+          teams: [
+            { team: { id: 'LAL', players: [] }, sends: [], entitlementsOut: [] },
+            { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+          ],
+          activeTeamCount: 2,
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} />);
+
+    const summary = screen.getByTestId('trade-readiness-summary');
+    expect(summary).toHaveTextContent('Setup required');
+    expect(summary).toHaveTextContent(
+      'Add a player or draft asset to the trade.'
+    );
+  });
+
+  it('shows ready-to-validate once setup has teams and staged assets', () => {
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        overrides: {
+          teams: [
+            {
+              team: { id: 'LAL', players: [] },
+              sends: [{ id: 'p1', name: 'Player One', tradeTo: 'BOS' }],
+              entitlementsOut: [],
+            },
+            { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+          ],
+          activeTeamCount: 2,
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} />);
+
+    const summary = screen.getByTestId('trade-readiness-summary');
+    expect(summary).toHaveTextContent('Ready to validate');
+    expect(summary).toHaveTextContent('Run validation before preview or apply.');
+  });
+
+  it('makes blocking validation reasons distinct from setup guidance', () => {
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        overrides: {
+          teams: [
+            {
+              team: { id: 'LAL', players: [] },
+              sends: [{ id: 'p1', name: 'Player One', tradeTo: 'BOS' }],
+              entitlementsOut: [],
+            },
+            { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+          ],
+          activeTeamCount: 2,
+          hasCurrentValidation: true,
+          previewAuthority: {
+            legal: false,
+            reason: 'Salary matching violation',
+            violations: [{ message: 'Salary matching violation' }],
+            omittedStages: [],
+          },
+          snapshotValidationDetails: {
+            teamResults: [],
+            dataWarnings: [],
+            hasDataIssues: false,
+          },
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} />);
+
+    const summary = screen.getByTestId('trade-readiness-summary');
+    expect(summary).toHaveTextContent('Trade blocked');
+    expect(summary).toHaveTextContent('Salary matching violation');
+  });
+
+  it('names the active Team Plan impact when a trade is ready to apply', () => {
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        overrides: {
+          teams: [
+            {
+              team: { id: 'LAL', players: [] },
+              sends: [{ id: 'p1', name: 'Player One', tradeTo: 'BOS' }],
+              entitlementsOut: [],
+            },
+            { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+          ],
+          activeTeamCount: 2,
+          hasCurrentValidation: true,
+          previewAuthority: {
+            legal: true,
+            reason: 'Preview authority passed',
+            violations: [],
+            omittedStages: [],
+          },
+          snapshotValidationDetails: {
+            teamResults: [],
+            dataWarnings: [],
+            hasDataIssues: false,
+          },
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} worldId="world-1" />);
+
+    const summary = screen.getByTestId('trade-readiness-summary');
+    expect(summary).toHaveTextContent('Ready to apply');
+    expect(summary).toHaveTextContent('Applies this move to the active Team Plan.');
   });
 });

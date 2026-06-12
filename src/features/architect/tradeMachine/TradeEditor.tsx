@@ -14,7 +14,10 @@ import {
 import { CapConfidenceBadge } from '@/features/architect/capSheet/CapConfidenceBadge';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import TradePreviewModal from './TradePreviewModal';
-import { ValidationStateHeader } from './ValidationStateHeader';
+import {
+  ValidationStateHeader,
+  type TradeReadinessSummary,
+} from './ValidationStateHeader';
 import { ValidationDetailsPanel } from './ValidationDetailsPanel';
 import { PickRightWizardModal } from '@/features/architect/admin/PickRightWizardModal';
 import { isEntitlementAuthoringEnabled } from '@/features/architect/utils/entitlements/entitlementWriter';
@@ -383,6 +386,142 @@ export const TradeEditor = ({
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_SNT_INJECTOR_FLAG) === 'true';
+  const selectedTradeTeamCount = useMemo(
+    () => teams.filter((slot) => Boolean(slot.team)).length,
+    [teams]
+  );
+  const hasStagedTradeAssets = useMemo(
+    () =>
+      teams.some(
+        (slot) =>
+          slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+      ),
+    [teams]
+  );
+  const validationWarningsSource = currentSnapshotValidationDetails as
+    | { dataWarnings?: unknown; hasDataIssues?: unknown }
+    | null;
+  const validationDataWarnings = Array.isArray(
+    validationWarningsSource?.dataWarnings
+  )
+    ? validationWarningsSource.dataWarnings
+    : [];
+  const hasValidationDataIssues = Boolean(
+    validationWarningsSource?.hasDataIssues && validationDataWarnings.length > 0
+  );
+  const hasCriticalDataIssues = validationDataWarnings.some(
+    (warning) =>
+      String((warning as { severity?: unknown }).severity ?? '').toLowerCase() ===
+      'error'
+  );
+  const tradeReadiness = useMemo<TradeReadinessSummary>(() => {
+    if (initError && teams.length === 0) {
+      return {
+        tone: 'blocked',
+        label: 'Unavailable',
+        message: 'Trade Machine failed to initialize.',
+      };
+    }
+
+    if (selectedTradeTeamCount < 2) {
+      return {
+        tone: 'setup',
+        label: 'Setup required',
+        message: 'Select at least two teams before validation.',
+      };
+    }
+
+    if (!hasStagedTradeAssets) {
+      return {
+        tone: 'setup',
+        label: 'Setup required',
+        message: 'Add a player or draft asset to the trade.',
+      };
+    }
+
+    if (isValidating) {
+      return {
+        tone: 'validating',
+        label: 'Validating',
+        message: 'Checking the current trade draft.',
+      };
+    }
+
+    if (!hasCurrentValidation) {
+      return {
+        tone: 'ready',
+        label: 'Ready to validate',
+        message: 'Run validation before preview or apply.',
+      };
+    }
+
+    if (currentPreviewAuthority?.legal === false) {
+      return {
+        tone: previewOverrideRequested ? 'warning' : 'blocked',
+        label: previewOverrideRequested ? 'Override blocked' : 'Trade blocked',
+        message: previewAuthorityReason,
+      };
+    }
+
+    if (canApplyTrade) {
+      if (hasCriticalDataIssues) {
+        return {
+          tone: 'warning',
+          label: 'Review data issues',
+          message: 'Validation found data blockers before apply.',
+        };
+      }
+
+      if (hasValidationDataIssues) {
+        return {
+          tone: 'warning',
+          label: 'Ready with data warnings',
+          message: isVacuumMode
+            ? 'Review warnings before applying in this session.'
+            : 'Review warnings before applying to the active Team Plan.',
+        };
+      }
+
+      if (previewHasApplyTimeWorldChecks) {
+        return {
+          tone: 'info',
+          label: 'Ready with apply-time checks',
+          message: isVacuumMode
+            ? 'Local checks passed; session checks run at apply.'
+            : 'Local checks passed; final Team Plan checks run at apply.',
+        };
+      }
+
+      return {
+        tone: 'success',
+        label: 'Ready to apply',
+        message: isVacuumMode
+          ? 'Applies this trade to the sandbox session.'
+          : 'Applies this move to the active Team Plan.',
+      };
+    }
+
+    return {
+      tone: 'ready',
+      label: 'Review validation',
+      message: 'Open Validation Results before applying.',
+    };
+  }, [
+    canApplyTrade,
+    currentPreviewAuthority?.legal,
+    hasCriticalDataIssues,
+    hasCurrentValidation,
+    hasStagedTradeAssets,
+    hasValidationDataIssues,
+    initError,
+    isVacuumMode,
+    isValidating,
+    previewAuthorityReason,
+    previewHasApplyTimeWorldChecks,
+    previewOverrideRequested,
+    selectedTradeTeamCount,
+    teams.length,
+  ]);
 
   const resolveEntitlementTeamCode = (
     entitlement: EntitlementLike | null | undefined
@@ -720,6 +859,7 @@ export const TradeEditor = ({
         hasValidatorResult={hasCurrentValidation}
         isValidating={isValidating}
         validatedAt={getValidatedAt()}
+        readiness={tradeReadiness}
       />
 
       {/* Phase 16.3: Init error display */}
@@ -965,4 +1105,3 @@ export const TradeEditor = ({
     </div>
   );
 };
-
