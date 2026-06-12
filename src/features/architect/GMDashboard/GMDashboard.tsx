@@ -102,6 +102,10 @@ type EditContractArchitectActionCallbacks = Pick<
   | 'onOptionDecision'
   | 'onRenounce'
 >;
+type ContractModalActionOverrides = Pick<
+  EditContractModalProps,
+  'actionsOverride' | 'actionLabelsOverride' | 'showOfferSheetToggle'
+>;
 type FreeAgencySectionProps = Parameters<typeof FreeAgencySection>[0];
 type CapSheetSectionProps = Parameters<typeof CapSheetSection>[0];
 type CapTableSectionProps = Parameters<typeof CapTableSection>[0];
@@ -408,6 +412,18 @@ export const GMDashboard = () => {
     closeOffseasonModal,
     setShowOffseasonModal,
   } = modals;
+  const [contractModalActionOverrides, setContractModalActionOverrides] =
+    useState<ContractModalActionOverrides | null>(null);
+  const closeDashboardContractModal = useCallback(() => {
+    setContractModalActionOverrides(null);
+    closeContractModal();
+  }, [closeContractModal]);
+
+  useEffect(() => {
+    if (!showContractModal) {
+      setContractModalActionOverrides(null);
+    }
+  }, [showContractModal]);
 
   const simulatedRulesDate = useMemo(
     () => new Date(currentYear - 1, 6, 15),
@@ -865,6 +881,29 @@ export const GMDashboard = () => {
       ),
     [freeAgents, playersMap]
   );
+  const launchFullCapFreeAgentAction = useCallback(
+    (entry: FreeAgentSurfaceEntry) => {
+      setContractModalActionOverrides({
+        actionsOverride:
+          freeAgencyActionOwner.freeAgentModalAvailability.visibleActions,
+        actionLabelsOverride:
+          freeAgencyActionOwner.freeAgentModalAvailability.actionLabelsOverride,
+        showOfferSheetToggle:
+          freeAgencyActionOwner.freeAgentModalAvailability.showOfferSheetToggle,
+      });
+      closeFullCapFreeAgentModal();
+      actions.handleEditContract(
+        entry.surfacePlayer as Parameters<typeof actions.handleEditContract>[0]
+      );
+    },
+    [
+      actions.handleEditContract,
+      closeFullCapFreeAgentModal,
+      freeAgencyActionOwner.freeAgentModalAvailability.actionLabelsOverride,
+      freeAgencyActionOwner.freeAgentModalAvailability.showOfferSheetToggle,
+      freeAgencyActionOwner.freeAgentModalAvailability.visibleActions,
+    ]
+  );
   const offseasonSectionSurface: OffseasonSectionProps = {
     teamCapSheet,
     setTeamCapSheet,
@@ -1228,6 +1267,7 @@ export const GMDashboard = () => {
         }
         entries={fullCapFreeAgentPoolEntries}
         isLoading={isLoading || worldMetadataLoading}
+        onLaunchAction={launchFullCapFreeAgentAction}
       />
 
       {showOffseasonModal && offseasonSummary && (
@@ -1305,7 +1345,7 @@ export const GMDashboard = () => {
       {showContractModal && (
         <EditContractModal
           isOpen={showContractModal}
-          onClose={closeContractModal}
+          onClose={closeDashboardContractModal}
           player={modalPlayer}
           initialAction={initialAction}
           targetYear={targetYear}
@@ -1315,6 +1355,7 @@ export const GMDashboard = () => {
           teamCapSheet={modalTeamCapSheet}
           currentYear={currentYear}
           {...modalActionCallbacks}
+          {...(contractModalActionOverrides || {})}
           playersMap={playersMap}
           playerRulesProfile={selectedPlayerRulesProfile}
           rulesLeagueContext={selectedRulesLeagueContext}

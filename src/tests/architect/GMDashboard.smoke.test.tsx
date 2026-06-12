@@ -26,6 +26,7 @@ const {
   mockFreeAgencySectionProps,
   mockTradeSectionProps,
   mockUseArchitectPostActionReceipt,
+  mockHandleEditContract,
 } = vi.hoisted(() => ({
   mockUseArchitectState: vi.fn(),
   mockSetActiveTab: vi.fn(),
@@ -33,6 +34,7 @@ const {
   mockFreeAgencySectionProps: vi.fn(),
   mockTradeSectionProps: vi.fn(),
   mockUseArchitectPostActionReceipt: vi.fn(),
+  mockHandleEditContract: vi.fn(),
 }));
 
 const buildLoadedDashboardState = () => {
@@ -273,7 +275,7 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
     const finalizeOfferSheet = vi.fn();
 
     return {
-      handleEditContract: vi.fn(),
+      handleEditContract: mockHandleEditContract,
       handleSign: signFreeAgent,
       handleSignAndTrade: signAndTrade,
       getSignAndTradePreflight,
@@ -577,8 +579,11 @@ describe('GMDashboard Smoke Test', () => {
         target: { value: 'wing' },
       });
       expect(screen.queryByText('Pool Guard')).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: /Pool Wing/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^Pool Wing/i }));
       expect(screen.getByText('Selected')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /^Start Signing$/i })
+      ).toBeEnabled();
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -599,6 +604,51 @@ describe('GMDashboard Smoke Test', () => {
       );
 
       expect(mockSetActiveTab).toHaveBeenCalledWith('fa');
+    });
+
+    it('hands selected Full Cap free agents to the existing contract action owner', () => {
+      mockUseArchitectState.mockImplementation(() => ({
+        ...buildLoadedDashboardState(),
+        activeTab: 'capfull',
+        freeAgents: [
+          {
+            id: 'fa_pool_2',
+            name: 'Pool Wing',
+            formattedPosition: 'SF',
+            previousSalary: 8_000_000,
+            freeAgentType: 'RFA',
+          },
+        ],
+        playersMap: {
+          fa_pool_2: {
+            id: 'fa_pool_2',
+            name: 'Pool Wing',
+            displayName: 'Pool Wing',
+            bio: { age: 25, position: 'SF' },
+          },
+        },
+      }));
+
+      render(<GMDashboard />);
+
+      mockSetActiveTab.mockClear();
+      fireEvent.click(
+        screen.getByRole('button', { name: /^\+ Sign Free Agent$/i })
+      );
+      fireEvent.click(screen.getByRole('button', { name: /^Pool Wing/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^Start Signing$/i }));
+
+      expect(mockHandleEditContract).toHaveBeenCalledTimes(1);
+      expect(mockHandleEditContract).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'fa_pool_2',
+          displayName: 'Pool Wing',
+        })
+      );
+      expect(mockSetActiveTab).not.toHaveBeenCalledWith('fa');
+      expect(
+        screen.queryByTestId('full-cap-free-agent-modal')
+      ).not.toBeInTheDocument();
     });
 
     it('forwards every receipt player to the Full Cap Table highlight surface', () => {

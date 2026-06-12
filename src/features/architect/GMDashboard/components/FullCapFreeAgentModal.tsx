@@ -9,9 +9,8 @@ type FullCapFreeAgentModalProps = {
   seasonLabel: string;
   entries?: FreeAgentSurfaceEntry[];
   isLoading?: boolean;
+  onLaunchAction?: (entry: FreeAgentSurfaceEntry) => void;
 };
-
-const SIGNING_ACTION_LABELS = ['Preview Contract', 'Start Signing'];
 
 const getPlayerName = (entry: FreeAgentSurfaceEntry) =>
   entry.surfacePlayer.displayName ||
@@ -55,6 +54,7 @@ const FullCapFreeAgentModal = ({
   seasonLabel,
   entries = [],
   isLoading = false,
+  onLaunchAction = undefined,
 }: FullCapFreeAgentModalProps) => {
   const [query, setQuery] = useState('');
   const [selectedSelectionKey, setSelectedSelectionKey] = useState<string | null>(
@@ -213,8 +213,10 @@ const FullCapFreeAgentModal = ({
                         </span>
                         <button
                           type="button"
-                          disabled
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 text-xs font-semibold text-cockpit-text-muted opacity-70"
+                          onClick={() => onLaunchAction?.(entry)}
+                          disabled={!onLaunchAction}
+                          aria-label={`Sign ${getPlayerName(entry)}`}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 text-xs font-semibold text-cockpit-text-secondary transition-colors hover:bg-cockpit-safe/15 hover:text-cockpit-safe disabled:text-cockpit-text-muted disabled:opacity-70 disabled:hover:bg-cockpit-raised"
                         >
                           <UserPlus aria-hidden className="h-3.5 w-3.5" />
                           Sign
@@ -260,17 +262,24 @@ const FullCapFreeAgentModal = ({
                   </p>
                 </div>
               ) : null}
-              {SIGNING_ACTION_LABELS.map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  disabled
-                  className="flex w-full items-center justify-center gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-3 py-2 text-xs font-semibold text-cockpit-text-muted opacity-70"
-                >
-                  <UserPlus aria-hidden className="h-3.5 w-3.5" />
-                  {label}
-                </button>
-              ))}
+              <button
+                type="button"
+                disabled={!selectedEntry || !onLaunchAction}
+                onClick={() => {
+                  if (selectedEntry) {
+                    onLaunchAction?.(selectedEntry);
+                  }
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-3 py-2 text-xs font-semibold text-cockpit-text-secondary transition-colors hover:bg-cockpit-safe/15 hover:text-cockpit-safe disabled:text-cockpit-text-muted disabled:opacity-70 disabled:hover:bg-cockpit-raised"
+              >
+                <UserPlus aria-hidden className="h-3.5 w-3.5" />
+                Start Signing
+              </button>
+              {!onLaunchAction ? (
+                <p className="text-xs text-cockpit-text-muted">
+                  Signing action unavailable in this context.
+                </p>
+              ) : null}
             </div>
           </aside>
         </div>
