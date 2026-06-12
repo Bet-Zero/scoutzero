@@ -496,7 +496,7 @@ describe('GMDashboard Smoke Test', () => {
       expect(titles.length).toBeGreaterThan(0);
     });
 
-    it('keeps selected free-agent options available from the Full Cap Table', () => {
+    it('opens selected free-agent options in the Full Cap modal', () => {
       let activeTab = 'fa';
       mockUseArchitectState.mockImplementation(() => ({
         ...buildLoadedDashboardState(),
@@ -511,15 +511,28 @@ describe('GMDashboard Smoke Test', () => {
 
       activeTab = 'capfull';
       view.rerender(<GMDashboard />);
+      mockSetActiveTab.mockClear();
       fireEvent.click(screen.getByRole('button', { name: 'Open Desk Option' }));
 
-      expect(mockSetActiveTab).toHaveBeenCalledWith('fa');
+      expect(mockSetActiveTab).not.toHaveBeenCalledWith('fa');
 
-      view.rerender(<GMDashboard />);
-      expect(mockFreeAgencySectionProps).toHaveBeenLastCalledWith(
+      const dialog = screen.getByRole('dialog', { name: /^Sign Free Agent$/i });
+      expect(within(dialog).getAllByText('Desk Option').length).toBeGreaterThan(
+        0
+      );
+      expect(within(dialog).getByText('Selected')).toBeInTheDocument();
+      expect(
+        within(dialog).getByRole('button', { name: /^Start Signing$/i })
+      ).toBeEnabled();
+
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: /^Start Signing$/i })
+      );
+
+      expect(mockHandleEditContract).toHaveBeenCalledWith(
         expect.objectContaining({
-          selectedPlayerKeys: ['fa_1'],
-          requestedOpenSelectionKey: 'fa_1',
+          id: 'fa_1',
+          displayName: 'Desk Option',
         })
       );
     });

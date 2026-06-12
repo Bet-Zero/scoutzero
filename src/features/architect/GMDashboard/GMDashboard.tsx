@@ -274,12 +274,22 @@ export const GMDashboard = () => {
     useState<string | null>(null);
   const [isFullCapFreeAgentModalOpen, setIsFullCapFreeAgentModalOpen] =
     useState(false);
+  const [
+    fullCapFreeAgentModalSelectionKey,
+    setFullCapFreeAgentModalSelectionKey,
+  ] = useState<string | null>(null);
   const openFullCapFreeAgentModal = useCallback(
-    () => setIsFullCapFreeAgentModalOpen(true),
+    (selectionKey: string | null = null) => {
+      setFullCapFreeAgentModalSelectionKey(selectionKey);
+      setIsFullCapFreeAgentModalOpen(true);
+    },
     []
   );
   const closeFullCapFreeAgentModal = useCallback(
-    () => setIsFullCapFreeAgentModalOpen(false),
+    () => {
+      setIsFullCapFreeAgentModalOpen(false);
+      setFullCapFreeAgentModalSelectionKey(null);
+    },
     []
   );
 
@@ -881,6 +891,16 @@ export const GMDashboard = () => {
       ),
     [freeAgents, playersMap]
   );
+  const fullCapFreeAgentModalEntries = useMemo(() => {
+    const entriesBySelectionKey = new Map<string, FreeAgentSurfaceEntry>();
+    fullCapFreeAgentPoolEntries.forEach((entry) => {
+      entriesBySelectionKey.set(entry.selectionKey, entry);
+    });
+    freeAgentOptionEntries.forEach((entry) => {
+      entriesBySelectionKey.set(entry.selectionKey, entry);
+    });
+    return Array.from(entriesBySelectionKey.values());
+  }, [freeAgentOptionEntries, fullCapFreeAgentPoolEntries]);
   const launchFullCapFreeAgentAction = useCallback(
     (entry: FreeAgentSurfaceEntry) => {
       setContractModalActionOverrides({
@@ -1139,8 +1159,7 @@ export const GMDashboard = () => {
           onLaunchFreeAgentSearch={openFullCapFreeAgentModal}
           freeAgentOptions={freeAgentOptionEntries}
           onOpenFreeAgentOption={(selectionKey) => {
-            setRequestedFreeAgentOpenKey(selectionKey);
-            setActiveTab('fa');
+            openFullCapFreeAgentModal(selectionKey);
           }}
           onRemoveFreeAgentOption={(selectionKey) => {
             setFreeAgentOptionKeys((selectionKeys) =>
@@ -1265,7 +1284,8 @@ export const GMDashboard = () => {
           workspaceContext.seasons.selectedViewingSeasonLabel ??
           toSeasonKey(currentYear)
         }
-        entries={fullCapFreeAgentPoolEntries}
+        entries={fullCapFreeAgentModalEntries}
+        initialSelectionKey={fullCapFreeAgentModalSelectionKey}
         isLoading={isLoading || worldMetadataLoading}
         onLaunchAction={launchFullCapFreeAgentAction}
       />

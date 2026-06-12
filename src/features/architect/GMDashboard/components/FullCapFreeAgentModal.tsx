@@ -8,6 +8,7 @@ type FullCapFreeAgentModalProps = {
   teamLabel: string;
   seasonLabel: string;
   entries?: FreeAgentSurfaceEntry[];
+  initialSelectionKey?: string | null;
   isLoading?: boolean;
   onLaunchAction?: (entry: FreeAgentSurfaceEntry) => void;
 };
@@ -53,6 +54,7 @@ const FullCapFreeAgentModal = ({
   teamLabel,
   seasonLabel,
   entries = [],
+  initialSelectionKey = null,
   isLoading = false,
   onLaunchAction = undefined,
 }: FullCapFreeAgentModalProps) => {
@@ -79,6 +81,13 @@ const FullCapFreeAgentModal = ({
     setQuery('');
     setSelectedSelectionKey(null);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !initialSelectionKey) return;
+    if (entries.some((entry) => entry.selectionKey === initialSelectionKey)) {
+      setSelectedSelectionKey(initialSelectionKey);
+    }
+  }, [entries, initialSelectionKey, isOpen]);
 
   useEffect(() => {
     if (
