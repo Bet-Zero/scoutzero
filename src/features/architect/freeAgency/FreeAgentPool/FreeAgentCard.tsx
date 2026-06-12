@@ -12,6 +12,7 @@
  */
 import React from 'react';
 import { TeamCodeMap, type TeamCode } from '@/constants/teamList';
+import { getFreeAgentSigningContext } from './freeAgentSigningContext';
 import type { FreeAgentCardProps } from './types';
 
 function getTeamLogoId(teamCode: string | null | undefined): string {
@@ -53,7 +54,8 @@ export const FreeAgentCard = ({
   const prevSalary =
     prevSalaryValue != null ? `$${prevSalaryValue.toLocaleString()}` : 'N/A';
 
-  const rights = player.birdRights || 'None';
+  const signingContext = getFreeAgentSigningContext(entry);
+  const rights = signingContext.rightsLabel;
 
   return (
     <div className="w-[180px] bg-[#1a1a1a] rounded-lg border border-white/10 overflow-hidden flex flex-col relative group hover:border-white/30 transition-colors">
@@ -127,6 +129,30 @@ export const FreeAgentCard = ({
           <div className="text-sm font-mono text-white/90">{prevSalary}</div>
         </div>
 
+        <div
+          data-testid="free-agent-card-signing-context"
+          className="rounded-md border border-white/10 bg-black/20 px-2 py-2 text-[10px] leading-tight text-white/60"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="uppercase tracking-wider text-white/35">Rights</span>
+            <span className="truncate text-white/85">{signingContext.rightsLabel}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <span className="uppercase tracking-wider text-white/35">Lane</span>
+            <span className="truncate text-cyan-100/90">
+              {signingContext.laneLabel}
+            </span>
+          </div>
+          {signingContext.capHoldLabel && (
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="uppercase tracking-wider text-white/35">Cap</span>
+              <span className="truncate text-amber-100/90">
+                {signingContext.capHoldLabel}
+              </span>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={() => onOpenContractModal(entry)}
           className="w-full mt-auto bg-green-600 hover:bg-green-500 text-white text-xs font-bold uppercase tracking-wider py-2 rounded transition-colors"
@@ -137,4 +163,3 @@ export const FreeAgentCard = ({
     </div>
   );
 };
-

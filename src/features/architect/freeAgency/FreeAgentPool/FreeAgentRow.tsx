@@ -15,6 +15,7 @@ import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
 import { TeamCodeMap, type TeamCode } from '@/constants/teamList';
 import type { PlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
+import { getFreeAgentSigningContext } from './freeAgentSigningContext';
 import type { FreeAgentRowProps } from './types';
 
 function getTeamLogoId(teamCode: string | null | undefined): string {
@@ -115,7 +116,7 @@ export const FreeAgentRow = ({
   // Display the previous year's salary in place of the asking price
   const asking = prevSalary;
 
-  const rights = freeAgent.birdRights;
+  const signingContext = getFreeAgentSigningContext(entry);
 
   return (
     <div
@@ -189,8 +190,21 @@ export const FreeAgentRow = ({
             </span>
           )}
         </div>
-        <div className="flex items-center justify-end text-white/50 text-[13px] gap-2 whitespace-nowrap">
-          <span>{rights}</span>
+        <div
+          data-testid="free-agent-row-signing-context"
+          className="ml-3 flex min-w-[220px] max-w-[290px] items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
+        >
+          <span className="min-w-0 truncate rounded-sm border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-white/70">
+            {signingContext.rightsLabel}
+          </span>
+          <span className="min-w-0 truncate rounded-sm border border-cyan-300/15 bg-cyan-400/[0.06] px-1.5 py-0.5 text-cyan-100/80">
+            {signingContext.laneLabel}
+          </span>
+          {signingContext.capHoldLabel && (
+            <span className="min-w-0 truncate rounded-sm border border-amber-300/15 bg-amber-400/[0.06] px-1.5 py-0.5 text-amber-100/80">
+              {signingContext.capHoldLabel}
+            </span>
+          )}
         </div>
       </div>
 
@@ -304,4 +318,3 @@ export const FreeAgentRow = ({
     </div>
   );
 };
-

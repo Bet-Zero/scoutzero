@@ -165,6 +165,7 @@ freeAgency/
     FreeAgentPoolHeader.tsx
     FreeAgentRow.tsx
     SelectedFreeAgentCards.tsx
+    freeAgentSigningContext.ts
     index.ts
     types.ts
   index.ts
@@ -546,5 +547,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-11T15:19:22.663Z*
+*Generated on: 2026-06-12T04:07:32.941Z*
 *Auto-updated by: npm run docs*

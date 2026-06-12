@@ -120,6 +120,12 @@ const PLAYER = {
   formattedPosition: 'SF',
   previousSalary: 12_000_000,
   birdRights: 'Full Bird',
+  contract: {
+    birdRights: {
+      status: 'Full Bird',
+      capHold: 61_670_178,
+    },
+  },
   bio: {
     playerId: 'player_1',
     displayName: 'Test Player',
@@ -137,6 +143,12 @@ const FREE_AGENT = {
   freeAgentType: 'RFA',
   previousSalary: 12_000_000,
   birdRights: 'Full Bird',
+  contract: {
+    birdRights: {
+      status: 'Full Bird',
+      capHold: 61_670_178,
+    },
+  },
   height: '6-8',
   weight: 220,
 };
@@ -341,6 +353,49 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(
       screen.queryByRole('button', { name: /Sign Player/i })
     ).not.toBeInTheDocument();
+  });
+
+  it('shows rights, signing lane, and cap-hold context on rows and selected cards', () => {
+    renderPool();
+
+    const rowButton = screen.getByRole('button', { name: /test player/i });
+    const rowContext = within(rowButton).getByTestId(
+      'free-agent-row-signing-context'
+    );
+    expect(rowContext).toHaveTextContent('Full Bird');
+    expect(rowContext).toHaveTextContent('Restricted rights');
+    expect(rowContext).toHaveTextContent('Hold $61.7M');
+
+    fireEvent.click(rowButton);
+
+    const cardContext = screen.getByTestId('free-agent-card-signing-context');
+    expect(cardContext).toHaveTextContent('Full Bird');
+    expect(cardContext).toHaveTextContent('Restricted rights');
+    expect(cardContext).toHaveTextContent('Hold $61.7M');
+  });
+
+  it('distinguishes no-rights free agents as cap-space or exception paths', () => {
+    renderPool({
+      freeAgents: [
+        {
+          ...FREE_AGENT,
+          id: 'space_target',
+          player_id: 'space_target',
+          name: 'Space Target',
+          freeAgentType: 'UFA',
+          birdRights: 'None',
+          contract: undefined,
+        },
+      ],
+      playersMap: {},
+    });
+
+    const rowButton = screen.getByRole('button', { name: /space target/i });
+    const rowContext = within(rowButton).getByTestId(
+      'free-agent-row-signing-context'
+    );
+    expect(rowContext).toHaveTextContent('None');
+    expect(rowContext).toHaveTextContent('Cap space / exception');
   });
 
   it('preserves selected-card sign wiring into EditContractModal', () => {
