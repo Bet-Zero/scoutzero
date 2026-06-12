@@ -525,12 +525,58 @@ describe('GMDashboard Smoke Test', () => {
       mockUseArchitectPostActionReceipt.mockReturnValue({
         receipt: {
           kind: 'trade',
+          actionType: 'trade',
           eventId: 'event_1',
           occurredAt: null,
           headline: 'Trade applied',
           changedTeamCodes: ['LAL', 'BOS'],
           primaryTeamCode: 'LAL',
           primaryPlayerIds: ['player_42', 'player_99'],
+          persistence: {
+            status: 'world-saved',
+            saveStateStatus: 'saved',
+            label: 'Saved',
+            detail: 'Committed to world.',
+          },
+          impact: {
+            actionType: 'trade',
+            mutationType: 'executeTrade',
+            teamCode: 'LAL',
+            playerId: null,
+            playerName: null,
+            affectedSeasons: [],
+            roster: {
+              status: 'not-applicable',
+              summary: '',
+              deltas: [],
+            },
+            cap: {
+              status: 'not-applicable',
+              summary: '',
+              deltas: [],
+            },
+            exceptions: {
+              status: 'not-applicable',
+              summary: '',
+              deltas: [],
+            },
+            rights: {
+              status: 'not-applicable',
+              summary: '',
+              deltas: [],
+            },
+            deadMoney: {
+              status: 'not-applicable',
+              summary: '',
+              deltas: [],
+            },
+            contract: {
+              status: 'not-applicable',
+              summary: '',
+              deltas: [],
+            },
+            notes: [],
+          },
           authority: 'committed-world',
         },
         generation: 1,

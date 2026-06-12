@@ -46,6 +46,7 @@ import { useEditContractModalPreflight } from './EditContractModal.preflight.hoo
 import { ContractSummaryPanel } from './EditContractModal.SummaryPanel';
 import { ContractCardHeader } from './EditContractModal.PlayerCardHeader';
 import { ContractActionSelector } from './EditContractModal.ActionSelector';
+import { ContractActionContext } from './EditContractModal.ActionContext';
 import { ContractDetailsForm } from './EditContractModal.DetailsForm';
 import {
   calculateCapHold,
@@ -173,6 +174,10 @@ export const EditContractModal = ({
       ? rulesLeagueContext.currentYear
       : null) ??
     CURRENT_YEAR;
+  const actionSeasonLabel = `${ACTION_YEAR - 1}-${String(ACTION_YEAR % 100).padStart(
+    2,
+    '0'
+  )}`;
 
   const capSettings = useMemo(
     () => getCapSettings(ACTION_YEAR),
@@ -313,6 +318,18 @@ export const EditContractModal = ({
       ),
     [actionSet, actionsOverride]
   );
+  const playerDisplayName =
+    player?.displayName ||
+    player?.name ||
+    player?.bio?.displayName ||
+    'Selected player';
+  const selectedActionLabel = selectedAction
+    ? actionLabelsOverride[selectedAction] || ACTION_LABELS[selectedAction]
+    : null;
+  const actionContextTitle = selectedActionLabel || 'Choose contract action';
+  const actionContextStageLabel = selectedActionLabel
+    ? 'Editing terms'
+    : 'Choosing action';
   const extensionEligibility = playerRulesProfile?.extensionEligibility;
   const isExtendEligible =
     extensionEligibility?.isEligible ?? extReason === 'Eligible';
@@ -822,12 +839,19 @@ export const EditContractModal = ({
 
           {/* === RIGHT PANEL: Actions === */}
           <div className="w-full lg:w-[65%] p-8 bg-[#0f0f0f] flex flex-col overflow-y-auto">
-          <h2 className="text-xl font-bold text-white mb-6">
+          <h2 className="text-xl font-bold text-white mb-4">
             Available Actions
           </h2>
 
+          <ContractActionContext
+            title={actionContextTitle}
+            stageLabel={actionContextStageLabel}
+            playerName={playerDisplayName}
+            seasonLabel={actionSeasonLabel}
+          />
+
           <ContractActionSelector
-            playerName={player.name || ''}
+            playerName={playerDisplayName}
             hasOption={hasOption}
             actionSet={actionSet}
             isExpiring={isExpiring}
@@ -997,4 +1021,3 @@ export const EditContractModal = ({
     </Dialog>
   );
 };
-

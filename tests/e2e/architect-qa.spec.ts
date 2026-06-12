@@ -1506,6 +1506,14 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       page.getByRole('heading', { name: /^Available Actions$/i })
     ).toBeVisible();
     await expect(page.getByTestId('contract-action-waive')).toBeChecked();
+    const actionContext = page.getByTestId('contract-modal-action-context');
+    await expect(actionContext).toContainText('Team Plan action');
+    await expect(actionContext).toContainText('Waive Player');
+    await expect(actionContext).toContainText('Editing terms');
+    await expect(actionContext).toContainText(
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
+    );
+    await expect(actionContext).toContainText('2025-26');
 
     const confirmActionButton = page.getByRole('button', {
       name: /^Confirm Action$/i,

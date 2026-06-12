@@ -259,6 +259,55 @@ afterEach(() => {
 });
 
 describe('EditContractModal future-year action-year routing', () => {
+  it('shows a choosing-action context before a direct action is selected', () => {
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={FUTURE_FA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        targetYear={2028}
+        actionYear={2028}
+        actionContext="freeAgent"
+        actionsOverride={['signNew']}
+        onSignFreeAgent={vi.fn().mockResolvedValue({ success: true })}
+      />
+    );
+
+    const context = within(screen.getByTestId('contract-modal-action-context'));
+    expect(context.getByText('Team Plan action')).toBeInTheDocument();
+    expect(context.getByText('Choose contract action')).toBeInTheDocument();
+    expect(context.getByText('Choosing action')).toBeInTheDocument();
+    expect(context.getByText('Future FA Player')).toBeInTheDocument();
+    expect(context.getByText('2027-28')).toBeInTheDocument();
+  });
+
+  it('shows the selected direct action and action season when initialized from a clicked cell', () => {
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={FUTURE_FA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        targetYear={2028}
+        actionYear={2028}
+        actionContext="freeAgent"
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onSignFreeAgent={vi.fn().mockResolvedValue({ success: true })}
+      />
+    );
+
+    const context = within(screen.getByTestId('contract-modal-action-context'));
+    expect(context.getByText('Team Plan action')).toBeInTheDocument();
+    expect(context.getByText('Sign New Contract')).toBeInTheDocument();
+    expect(context.getByText('Editing terms')).toBeInTheDocument();
+    expect(context.getByText('Future FA Player')).toBeInTheDocument();
+    expect(context.getByText('2027-28')).toBeInTheDocument();
+  });
+
   it('offers only canonical enabled signing exceptions and resets stale selections to None', async () => {
     const renderModal = (teamCapSheet: Record<string, unknown>) =>
       render(
