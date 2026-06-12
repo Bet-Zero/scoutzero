@@ -39,18 +39,18 @@ do not assume the graph includes uncommitted edits. Use
 
 Use these project commands unless the user explicitly asks for something else.
 
-| Command | Use |
-| --- | --- |
-| `npm run dev` | Start the dev server at `http://localhost:5173` for UI/manual checks |
-| `npm run build` | Production build after meaningful UI, route, or component changes |
-| `npm run typecheck` | TypeScript check after TS/TSX, hook, or utility changes |
-| `npm run validate:project` | Project-structure validation after new folders/files/exports |
-| `npm run lint` | ESLint only if asked; repo has many pre-existing errors |
-| `npm run lint:md` | Markdown lint for heavy docs edits or docs-routing changes |
-| `npm run docs:guardrails` | Workspace/docs routing guardrails after docs-routing or standards changes |
-| `npm run schema:generate` | Regenerate schema docs only when schemas change |
-| `npm run schema:check` | Verify generated schema docs only when schemas change |
-| `npm run docs` | Generate component hierarchy docs only if asked/doc-sync requires it |
+| Command                    | Use                                                                       |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `npm run dev`              | Start the dev server at `http://localhost:5173` for UI/manual checks      |
+| `npm run build`            | Production build after meaningful UI, route, or component changes         |
+| `npm run typecheck`        | TypeScript check after TS/TSX, hook, or utility changes                   |
+| `npm run validate:project` | Project-structure validation after new folders/files/exports              |
+| `npm run lint`             | ESLint only if asked; repo has many pre-existing errors                   |
+| `npm run lint:md`          | Markdown lint for heavy docs edits or docs-routing changes                |
+| `npm run docs:guardrails`  | Workspace/docs routing guardrails after docs-routing or standards changes |
+| `npm run schema:generate`  | Regenerate schema docs only when schemas change                           |
+| `npm run schema:check`     | Verify generated schema docs only when schemas change                     |
+| `npm run docs`             | Generate component hierarchy docs only if asked/doc-sync requires it      |
 
 ## Testing And Validation
 
@@ -69,18 +69,18 @@ files to the diff runner:
 npm run test:diff -- --files AGENTS.md --reporter=dot
 ```
 
-| Command | Use |
-| --- | --- |
-| `npm run test:diff` | Preferred default when unsure; selects scope from git diff |
-| `npm run test:fast` | Tiny/local changes or quick smoke validation |
-| `npm run test:cap-sheet-boundary` | Cap Sheet action-layer or mutation-boundary changes |
-| `npm run test:trade` | Trade Machine changes |
-| `npm run test:architect` | Architect feature changes |
-| `npm run test:roster` | Roster Builder changes |
-| `npm run test:scouting` | Scouting/Profile changes |
-| `npm run test:node` | Logic-heavy or non-UI changes |
-| `npm run test:ui` | UI-heavy changes needing broader UI coverage |
-| `npm run test:profile` | Only when diagnosing test slowness |
+| Command                           | Use                                                        |
+| --------------------------------- | ---------------------------------------------------------- |
+| `npm run test:diff`               | Preferred default when unsure; selects scope from git diff |
+| `npm run test:fast`               | Tiny/local changes or quick smoke validation               |
+| `npm run test:cap-sheet-boundary` | Cap Sheet action-layer or mutation-boundary changes        |
+| `npm run test:trade`              | Trade Machine changes                                      |
+| `npm run test:architect`          | Architect feature changes                                  |
+| `npm run test:roster`             | Roster Builder changes                                     |
+| `npm run test:scouting`           | Scouting/Profile changes                                   |
+| `npm run test:node`               | Logic-heavy or non-UI changes                              |
+| `npm run test:ui`                 | UI-heavy changes needing broader UI coverage               |
+| `npm run test:profile`            | Only when diagnosing test slowness                         |
 
 Always append `-- --reporter=dot` to test commands:
 
@@ -201,16 +201,18 @@ validation scope.
 Build plans with enough detail that execution can match expectations exactly.
 If a requirement is unclear, ask before guessing.
 
+When you do need to explain or check something, use plain language — skip the jargon or define it in a word, and lead with the why and the tradeoff, not the code.
+
 ## Reference Docs
 
-| Doc | Use |
-| --- | --- |
-| `docs/guides/DEVELOPER_GUIDE.md` | File structure, components, hooks, utilities |
-| `docs/reference/PROJECT_SCHEMA.md` | Repo structure, naming, and data contracts |
-| `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md` | Firestore schema |
-| `docs/standards/COMMUNICATION_RULES.md` | Ask-vs-decide examples |
-| `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md` | Permanent docs vs work/archive placement |
-| `archive/docs/cursor-prompts/cursor-commands-overview.md` | Archived slash-command reference |
+| Doc                                                       | Use                                          |
+| --------------------------------------------------------- | -------------------------------------------- |
+| `docs/guides/DEVELOPER_GUIDE.md`                          | File structure, components, hooks, utilities |
+| `docs/reference/PROJECT_SCHEMA.md`                        | Repo structure, naming, and data contracts   |
+| `docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md`       | Firestore schema                             |
+| `docs/standards/COMMUNICATION_RULES.md`                   | Ask-vs-decide examples                       |
+| `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`      | Permanent docs vs work/archive placement     |
+| `archive/docs/cursor-prompts/cursor-commands-overview.md` | Archived slash-command reference             |
 
 ## graphify
 
@@ -219,6 +221,7 @@ This project has a knowledge graph at graphify-out/ with god nodes, community st
 When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"` before doing anything else.
 
 Rules:
+
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
