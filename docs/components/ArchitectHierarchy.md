@@ -11,6 +11,7 @@ GMDashboard/
     CapAuditDebugPanel.tsx
     DeleteWorldModal.tsx
     DraftPositionsInput.tsx
+    FullCapFreeAgentModal.tsx
     OfferSheetList.tsx
     ScenarioMoveRail.tsx
     SeasonAdvanceModal.helpers.ts
@@ -547,5 +548,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-12T04:07:32.941Z*
+*Generated on: 2026-06-12T10:17:45.692Z*
 *Auto-updated by: npm run docs*

@@ -1,0 +1,197 @@
+import { useEffect } from 'react';
+import { Loader2, UserPlus, X } from 'lucide-react';
+import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
+
+type FullCapFreeAgentModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  teamLabel: string;
+  seasonLabel: string;
+  entries?: FreeAgentSurfaceEntry[];
+  isLoading?: boolean;
+};
+
+const SIGNING_ACTION_LABELS = ['Preview Contract', 'Start Signing'];
+
+const getPlayerName = (entry: FreeAgentSurfaceEntry) =>
+  entry.surfacePlayer.displayName ||
+  entry.surfacePlayer.name ||
+  entry.freeAgent.displayName ||
+  entry.freeAgent.name ||
+  'Free Agent';
+
+const getPlayerMeta = (entry: FreeAgentSurfaceEntry) =>
+  [
+    entry.surfacePlayer.formattedPosition || entry.surfacePlayer.bio?.position,
+    entry.surfacePlayer.age ? `Age ${entry.surfacePlayer.age}` : null,
+    entry.surfacePlayer.teamCode ? `Last: ${entry.surfacePlayer.teamCode}` : null,
+  ]
+    .filter(Boolean)
+    .join(' / ');
+
+const formatSalary = (value: unknown) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0
+    ? `$${amount.toLocaleString()}`
+    : 'Salary TBD';
+};
+
+const FullCapFreeAgentModal = ({
+  isOpen,
+  onClose,
+  teamLabel,
+  seasonLabel,
+  entries = [],
+  isLoading = false,
+}: FullCapFreeAgentModalProps) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const hasEntries = entries.length > 0;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="full-cap-free-agent-modal-title"
+      data-testid="full-cap-free-agent-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 text-cockpit-text-primary backdrop-blur-sm sm:p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-slab shadow-2xl shadow-black/60">
+        <header className="flex items-start justify-between gap-4 border-b border-cockpit-edge bg-cockpit-bar px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cockpit-text-muted">
+              {teamLabel} / {seasonLabel}
+            </p>
+            <h2 id="full-cap-free-agent-modal-title" className="mt-1 text-base font-bold text-cockpit-text-primary">
+              Sign Free Agent
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close Sign Free Agent modal"
+            title="Close"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-cockpit-edge bg-cockpit-inlay text-cockpit-text-secondary transition-colors hover:bg-cockpit-raised hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+          >
+            <X aria-hidden className="h-4 w-4" />
+          </button>
+        </header>
+
+        <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto p-4 md:grid-cols-[minmax(0,1fr)_220px]">
+          <section
+            aria-label="Generated or current free-agent pool"
+            className="min-w-0 rounded-lg border border-cockpit-edge bg-cockpit-inlay"
+          >
+            <div className="border-b border-cockpit-edge px-3 py-2">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-cockpit-text-secondary">
+                Generated / Current Pool
+              </h3>
+            </div>
+
+            {isLoading ? (
+              <div
+                role="status"
+                data-testid="full-cap-free-agent-modal-loading"
+                className="flex min-h-36 items-center justify-center gap-2 px-4 py-8 text-sm text-cockpit-text-secondary"
+              >
+                <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+                Loading pool
+              </div>
+            ) : hasEntries ? (
+              <ul
+                data-testid="full-cap-free-agent-modal-pool"
+                className="divide-y divide-cockpit-edge"
+              >
+                {entries.map((entry) => (
+                  <li
+                    key={entry.selectionKey}
+                    className="grid gap-3 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-cockpit-text-primary">
+                        {getPlayerName(entry)}
+                      </p>
+                      <p className="mt-0.5 truncate text-[11px] text-cockpit-text-muted">
+                        {getPlayerMeta(entry) || 'Free agent'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 sm:justify-end">
+                      <span className="font-mono text-xs tabular-nums text-cockpit-text-secondary">
+                        {formatSalary(
+                          entry.surfacePlayer.askingSalary ??
+                            entry.surfacePlayer.previousSalary
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 text-xs font-semibold text-cockpit-text-muted opacity-70"
+                      >
+                        <UserPlus aria-hidden className="h-3.5 w-3.5" />
+                        Sign
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div
+                data-testid="full-cap-free-agent-modal-empty"
+                className="flex min-h-36 flex-col items-center justify-center px-4 py-8 text-center"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-cockpit-edge bg-cockpit-raised text-cockpit-text-secondary">
+                  <UserPlus aria-hidden className="h-5 w-5" />
+                </div>
+                <p className="mt-3 text-sm font-semibold text-cockpit-text-primary">
+                  No free agents in this pool
+                </p>
+              </div>
+            )}
+          </section>
+
+          <aside
+            aria-label="Free-agent signing actions"
+            className="rounded-lg border border-cockpit-edge bg-cockpit-inlay p-3"
+          >
+            <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-cockpit-text-secondary">
+              Signing Actions
+            </h3>
+            <div className="mt-3 space-y-2">
+              {SIGNING_ACTION_LABELS.map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  disabled
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-3 py-2 text-xs font-semibold text-cockpit-text-muted opacity-70"
+                >
+                  <UserPlus aria-hidden className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export { FullCapFreeAgentModal };

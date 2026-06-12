@@ -36,6 +36,7 @@ import type { Stage4NavigationTargetId } from '@/features/architect/guidedQuesti
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
+import { FullCapFreeAgentModal } from '@/features/architect/GMDashboard/components/FullCapFreeAgentModal';
 import {
   CockpitShell,
   CockpitStatePanel,
@@ -262,6 +263,16 @@ export const GMDashboard = () => {
   >([]);
   const [requestedFreeAgentOpenKey, setRequestedFreeAgentOpenKey] =
     useState<string | null>(null);
+  const [isFullCapFreeAgentModalOpen, setIsFullCapFreeAgentModalOpen] =
+    useState(false);
+  const openFullCapFreeAgentModal = useCallback(
+    () => setIsFullCapFreeAgentModalOpen(true),
+    []
+  );
+  const closeFullCapFreeAgentModal = useCallback(
+    () => setIsFullCapFreeAgentModalOpen(false),
+    []
+  );
 
   useEffect(() => {
     if (normalizedTeamId) {
@@ -1071,7 +1082,7 @@ export const GMDashboard = () => {
           pinnedPlayerIds={pinnedPlayerIds}
           onTogglePin={togglePin}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
-          onLaunchFreeAgentSearch={() => setActiveTab('fa')}
+          onLaunchFreeAgentSearch={openFullCapFreeAgentModal}
           freeAgentOptions={freeAgentOptionEntries}
           onOpenFreeAgentOption={(selectionKey) => {
             setRequestedFreeAgentOpenKey(selectionKey);
@@ -1191,6 +1202,17 @@ export const GMDashboard = () => {
           <TradeSection {...tradeSectionSurface} />
         </TradeOverlay>
       ) : null}
+
+      <FullCapFreeAgentModal
+        isOpen={isFullCapFreeAgentModalOpen}
+        onClose={closeFullCapFreeAgentModal}
+        teamLabel={workspaceContext.team.label}
+        seasonLabel={
+          workspaceContext.seasons.selectedViewingSeasonLabel ??
+          toSeasonKey(currentYear)
+        }
+        entries={freeAgentOptionEntries}
+      />
 
       {showOffseasonModal && offseasonSummary && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">

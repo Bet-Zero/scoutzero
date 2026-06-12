@@ -185,6 +185,11 @@ vi.mock('@/features/architect/GMDashboard/sections/CapTableSection', () => ({
     return (
       <div>
         CapTableSection
+        {props.onLaunchFreeAgentSearch ? (
+          <button type="button" onClick={() => props.onLaunchFreeAgentSearch()}>
+            + Sign Free Agent
+          </button>
+        ) : null}
         {(props.freeAgentOptions || []).map(
           (entry: { selectionKey: string; surfacePlayer: { name: string } }) => (
             <button
@@ -515,6 +520,45 @@ describe('GMDashboard Smoke Test', () => {
           requestedOpenSelectionKey: 'fa_1',
         })
       );
+    });
+
+    it('opens the Full Cap free-agent modal without routing to Free Agency', () => {
+      mockUseArchitectState.mockImplementation(() => ({
+        ...buildLoadedDashboardState(),
+        activeTab: 'capfull',
+      }));
+
+      render(<GMDashboard />);
+
+      mockSetActiveTab.mockClear();
+      fireEvent.click(
+        screen.getByRole('button', { name: /^\+ Sign Free Agent$/i })
+      );
+
+      expect(
+        screen.getByRole('dialog', { name: /^Sign Free Agent$/i })
+      ).toBeInTheDocument();
+      expect(mockSetActiveTab).not.toHaveBeenCalledWith('fa');
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /close sign free agent modal/i,
+        })
+      );
+
+      expect(
+        screen.queryByTestId('full-cap-free-agent-modal')
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('CapTableSection')).toBeInTheDocument();
+
+      const tablist = screen.getByRole('tablist', {
+        name: /architect dashboard sections/i,
+      });
+      fireEvent.click(
+        within(tablist).getByRole('tab', { name: /^free agency$/i })
+      );
+
+      expect(mockSetActiveTab).toHaveBeenCalledWith('fa');
     });
 
     it('forwards every receipt player to the Full Cap Table highlight surface', () => {
