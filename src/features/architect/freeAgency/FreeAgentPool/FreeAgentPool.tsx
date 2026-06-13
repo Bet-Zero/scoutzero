@@ -142,6 +142,7 @@ export const FreeAgentPool = ({
   onSelectedEntriesChange,
   onPlayerAction,
   pinnedPlayerIds,
+  poolManagement = null,
 }: FreeAgentPoolProps) => {
   const [uncontrolledSelectedPlayerKeys, setUncontrolledSelectedPlayerKeys] =
     useState<string[]>([]);
@@ -153,6 +154,12 @@ export const FreeAgentPool = ({
   >(null);
   const [contractModalTarget, setContractModalTarget] =
     useState<FreeAgentModalLaunchTarget | null>(null);
+  const [poolManagementBusy, setPoolManagementBusy] = useState<
+    'save' | 'load' | 'reset' | null
+  >(null);
+  const [poolManagementMessage, setPoolManagementMessage] = useState<
+    string | null
+  >(null);
   const { filterState, updateFilterState, clearFilters } =
     useFreeAgencyFilterPersistence();
   const selectedPlayerKeys =
@@ -272,6 +279,76 @@ export const FreeAgentPool = ({
     () => new Set(selectedPlayerKeys),
     [selectedPlayerKeys]
   );
+  const availableSelectionKeys = useMemo(
+    () => new Set(allEntries.map((entry) => entry.selectionKey)),
+    [allEntries]
+  );
+
+  const generateVisiblePool = useCallback(() => {
+    updateSelectedPlayerKeys(() =>
+      filteredEntries.map((entry) => entry.selectionKey)
+    );
+    setPoolManagementMessage('Pool generated');
+  }, [filteredEntries, updateSelectedPlayerKeys]);
+
+  const clearManagedPool = useCallback(() => {
+    updateSelectedPlayerKeys(() => []);
+    setPoolManagementMessage('Pool cleared');
+  }, [updateSelectedPlayerKeys]);
+
+  const saveManagedPool = useCallback(async () => {
+    if (!poolManagement?.onSave || poolManagement.disabledReason) return;
+    setPoolManagementBusy('save');
+    setPoolManagementMessage(null);
+    try {
+      await poolManagement.onSave(selectedPlayerKeys);
+      setPoolManagementMessage('Pool saved');
+    } catch (error) {
+      setPoolManagementMessage(
+        error instanceof Error ? error.message : 'Pool save failed'
+      );
+    } finally {
+      setPoolManagementBusy(null);
+    }
+  }, [poolManagement, selectedPlayerKeys]);
+
+  const loadManagedPool = useCallback(async () => {
+    if (!poolManagement?.onLoad || poolManagement.disabledReason) return;
+    setPoolManagementBusy('load');
+    setPoolManagementMessage(null);
+    try {
+      const loadedSelectionKeys = (await poolManagement.onLoad()) ?? [];
+      updateSelectedPlayerKeys(() =>
+        loadedSelectionKeys.filter((selectionKey) =>
+          availableSelectionKeys.has(selectionKey)
+        )
+      );
+      setPoolManagementMessage('Pool loaded');
+    } catch (error) {
+      setPoolManagementMessage(
+        error instanceof Error ? error.message : 'Pool load failed'
+      );
+    } finally {
+      setPoolManagementBusy(null);
+    }
+  }, [availableSelectionKeys, poolManagement, updateSelectedPlayerKeys]);
+
+  const resetManagedPool = useCallback(async () => {
+    if (!poolManagement?.onReset || poolManagement.disabledReason) return;
+    setPoolManagementBusy('reset');
+    setPoolManagementMessage(null);
+    try {
+      await poolManagement.onReset();
+      updateSelectedPlayerKeys(() => []);
+      setPoolManagementMessage('Saved pool reset');
+    } catch (error) {
+      setPoolManagementMessage(
+        error instanceof Error ? error.message : 'Pool reset failed'
+      );
+    } finally {
+      setPoolManagementBusy(null);
+    }
+  }, [poolManagement, updateSelectedPlayerKeys]);
 
   const activeContractModalTarget = useMemo(
     () =>
@@ -353,6 +430,102 @@ export const FreeAgentPool = ({
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
+      <section
+        data-testid="free-agent-pool-management"
+        aria-label="Free-agent pool management"
+        className="mb-3 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+              Pool Builder
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-white/65">
+              <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
+                {selectedEntries.length} selected
+              </span>
+              {poolManagement ? (
+                <>
+                  <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
+                    {poolManagement.scopeLabel}
+                  </span>
+                  <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
+                    {poolManagement.persistenceLabel}
+                  </span>
+                </>
+              ) : null}
+              {poolManagement?.savedAtLabel ? (
+                <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
+                  {poolManagement.savedAtLabel}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={generateVisiblePool}
+              disabled={filteredEntries.length === 0}
+              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+            >
+              Generate Visible
+            </button>
+            <button
+              type="button"
+              onClick={saveManagedPool}
+              disabled={
+                !poolManagement?.onSave ||
+                Boolean(poolManagement.disabledReason) ||
+                selectedPlayerKeys.length === 0 ||
+                poolManagementBusy != null
+              }
+              title={poolManagement?.disabledReason || 'Save pool'}
+              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+            >
+              {poolManagementBusy === 'save' ? 'Saving' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={loadManagedPool}
+              disabled={
+                !poolManagement?.onLoad ||
+                Boolean(poolManagement.disabledReason) ||
+                poolManagementBusy != null
+              }
+              title={poolManagement?.disabledReason || 'Load saved pool'}
+              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+            >
+              {poolManagementBusy === 'load' ? 'Loading' : 'Load'}
+            </button>
+            <button
+              type="button"
+              onClick={resetManagedPool}
+              disabled={
+                !poolManagement?.onReset ||
+                Boolean(poolManagement.disabledReason) ||
+                poolManagementBusy != null
+              }
+              title={poolManagement?.disabledReason || 'Reset saved pool'}
+              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+            >
+              {poolManagementBusy === 'reset' ? 'Resetting' : 'Reset Saved'}
+            </button>
+            <button
+              type="button"
+              onClick={clearManagedPool}
+              disabled={selectedPlayerKeys.length === 0}
+              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+        {poolManagement?.disabledReason || poolManagementMessage ? (
+          <p className="mt-2 text-[11px] text-white/45">
+            {poolManagementMessage || poolManagement?.disabledReason}
+          </p>
+        ) : null}
+      </section>
       <FreeAgencyFilterBar
         filters={filterState}
         onChange={updateFilterState}

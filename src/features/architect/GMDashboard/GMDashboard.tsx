@@ -82,7 +82,13 @@ import {
   toSeasonKey,
 } from '@/features/architect/utils/seasonFormat';
 import { buildFreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool';
+import {
+  loadWorldTeamFreeAgentPool,
+  resetWorldTeamFreeAgentPool,
+  saveWorldTeamFreeAgentPool,
+} from '@/features/architect/freeAgency/freeAgentPoolPersistence';
 import type {
+  FreeAgentPoolManagementControls,
   FreeAgentLookupPlayer,
   FreeAgentListItem,
   FreeAgentSurfaceEntry,
@@ -270,6 +276,9 @@ export const GMDashboard = () => {
   const [freeAgentOptionEntries, setFreeAgentOptionEntries] = useState<
     FreeAgentSurfaceEntry[]
   >([]);
+  const [freeAgentPoolSavedAt, setFreeAgentPoolSavedAt] = useState<
+    string | null
+  >(null);
   const [requestedFreeAgentOpenKey, setRequestedFreeAgentOpenKey] =
     useState<string | null>(null);
   const [isFullCapFreeAgentModalOpen, setIsFullCapFreeAgentModalOpen] =
@@ -338,6 +347,10 @@ export const GMDashboard = () => {
     setOffseasonSummary,
     reloadActiveWorldTeamData,
   } = state;
+
+  useEffect(() => {
+    setFreeAgentPoolSavedAt(null);
+  }, [currentYear, normalizedTeamId, worldId]);
 
   useArchitectDeskNavigation({
     activeTab,
@@ -758,6 +771,67 @@ export const GMDashboard = () => {
 
   const freeAgencyActionOwner =
     actions.freeAgencyActionOwner as FreeAgencySectionProps['actionOwner'];
+  const freeAgentPoolSeasonKey = toSeasonKey(currentYear);
+  const buildFreeAgentPoolScope = useCallback(() => {
+    const teamCode = String(normalizedTeamId || '').trim().toUpperCase();
+    if (!worldId || !teamCode) {
+      throw new Error('Open an active Team Plan world to save this pool.');
+    }
+    return {
+      worldId,
+      teamCode,
+      seasonKey: freeAgentPoolSeasonKey,
+    };
+  }, [freeAgentPoolSeasonKey, normalizedTeamId, worldId]);
+  const saveManagedFreeAgentPool = useCallback(
+    async (selectionKeys: string[]) => {
+      const scope = buildFreeAgentPoolScope();
+      const snapshot = await saveWorldTeamFreeAgentPool({
+        ...scope,
+        selectionKeys,
+      });
+      setFreeAgentPoolSavedAt(snapshot.updatedAt);
+    },
+    [buildFreeAgentPoolScope]
+  );
+  const loadManagedFreeAgentPool = useCallback(async () => {
+    const snapshot = await loadWorldTeamFreeAgentPool(
+      buildFreeAgentPoolScope()
+    );
+    setFreeAgentPoolSavedAt(snapshot?.updatedAt || null);
+    return snapshot?.selectionKeys ?? [];
+  }, [buildFreeAgentPoolScope]);
+  const resetManagedFreeAgentPool = useCallback(async () => {
+    await resetWorldTeamFreeAgentPool(buildFreeAgentPoolScope());
+    setFreeAgentPoolSavedAt(null);
+  }, [buildFreeAgentPoolScope]);
+  const freeAgentPoolManagement = useMemo<FreeAgentPoolManagementControls>(
+    () => ({
+      scopeLabel: `${workspaceContext.team.label} / ${freeAgentPoolSeasonKey}`,
+      persistenceLabel: worldId ? 'Team Plan pool' : 'Session pool',
+      disabledReason: worldId
+        ? null
+        : 'Open an active Team Plan world to save or load this pool.',
+      savedAtLabel: freeAgentPoolSavedAt
+        ? `Saved ${new Date(freeAgentPoolSavedAt).toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+          })}`
+        : null,
+      onSave: saveManagedFreeAgentPool,
+      onLoad: loadManagedFreeAgentPool,
+      onReset: resetManagedFreeAgentPool,
+    }),
+    [
+      freeAgentPoolSavedAt,
+      freeAgentPoolSeasonKey,
+      loadManagedFreeAgentPool,
+      resetManagedFreeAgentPool,
+      saveManagedFreeAgentPool,
+      workspaceContext.team.label,
+      worldId,
+    ]
+  );
 
   const modalPlayer = selectedPlayer as EditContractModalProps['player'];
   const modalTeamCapSheet = teamCapSheet as EditContractModalProps['teamCapSheet'];
@@ -880,6 +954,7 @@ export const GMDashboard = () => {
     onAfterSigningComplete: () => setActiveTab('capfull'),
     onPlayerAction: handlePlayerAction,
     pinnedPlayerIds,
+    poolManagement: freeAgentPoolManagement,
   };
   const fullCapFreeAgentPoolEntries = useMemo(
     () =>

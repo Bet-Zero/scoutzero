@@ -75,6 +75,16 @@ export interface FreeAgentActionResult extends LooseRecord {
   message?: string;
 }
 
+export interface FreeAgentPoolManagementControls {
+  scopeLabel: string;
+  persistenceLabel: string;
+  disabledReason?: string | null;
+  savedAtLabel?: string | null;
+  onSave?: (selectionKeys: string[]) => void | Promise<void>;
+  onLoad?: () => string[] | null | Promise<string[] | null>;
+  onReset?: () => void | Promise<void>;
+}
+
 export interface FreeAgentPoolProps {
   freeAgents?: FreeAgentListItem[] | null;
   currentYear: number;
@@ -89,6 +99,7 @@ export interface FreeAgentPoolProps {
   onPlayerAction?: (action: PlayerAction, context: PlayerActionContext) => void;
   /** Pinned ids so a FA row can present Pin vs Remove-target. */
   pinnedPlayerIds?: string[];
+  poolManagement?: FreeAgentPoolManagementControls | null;
 }
 
 export interface FreeAgentRowProps {

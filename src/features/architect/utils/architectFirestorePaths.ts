@@ -35,6 +35,7 @@ import {
   ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
   ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+  ARCHITECT_WORLD_FREE_AGENT_POOLS_SUBCOLLECTION,
 } from '@/constants/collections';
 
 // Re-export base collection helpers for convenience
@@ -158,4 +159,27 @@ export const worldPlayerRef = (
     teamCode,
     ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION,
     playerId
+  );
+
+/**
+ * Get reference to a managed free-agent pool for a world team season.
+ * Path: architect_worlds/{worldId}/teams/{teamCode}/freeAgentPools/{seasonKey}
+ *
+ * @param worldId - World ID
+ * @param teamCode - Team code (e.g. "LAL")
+ * @param seasonKey - Season key (e.g. "2025-26")
+ */
+export const worldTeamFreeAgentPoolRef = (
+  worldId: string,
+  teamCode: string,
+  seasonKey: string
+): DocumentReference =>
+  doc(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
+    teamCode,
+    ARCHITECT_WORLD_FREE_AGENT_POOLS_SUBCOLLECTION,
+    seasonKey
   );

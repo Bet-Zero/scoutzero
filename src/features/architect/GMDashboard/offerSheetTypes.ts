@@ -72,4 +72,5 @@ export interface FreeAgencySectionProps {
   onPlayerAction?: FreeAgentPoolProps['onPlayerAction'];
   /** Pinned ids so FA rows can present Pin vs Remove-target. */
   pinnedPlayerIds?: string[];
+  poolManagement?: FreeAgentPoolProps['poolManagement'];
 }

@@ -57,6 +57,21 @@
 **Status**: ✅ Active (Phase 10)
 **Usage**: World overrides or world-created entitlements
 
+### `/architect_worlds/{worldId}/teams/{teamCode}/freeAgentPools/{seasonKey}` - Managed Free-Agent Pools ✅ ACTIVE
+
+**Status**: ✅ Active
+**Usage**: Active Team Plan / world-season scoped generated free-agent pool.
+
+**Structure**:
+
+- `schemaVersion` - Snapshot schema version
+- `source` - `architect-free-agent-pool-management`
+- `worldId` - Owning Architect world
+- `teamCode` - Owning team code
+- `seasonKey` - Season key, e.g. `2025-26`
+- `selectionKeys[]` - Stable free-agent selection keys included in the managed pool
+- `updatedAt` - ISO timestamp for the pool snapshot
+
 ### `/architect_basePlayers/{playerId}` - Player Contracts ✅ FINAL
 
 **Status**: ✅ Migration complete - this is the target schema  

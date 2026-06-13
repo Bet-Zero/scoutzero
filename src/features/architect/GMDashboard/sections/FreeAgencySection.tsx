@@ -53,6 +53,7 @@ const FreeAgencySection = ({
   onSelectedEntriesChange,
   onPlayerAction,
   pinnedPlayerIds,
+  poolManagement,
 }: FreeAgencySectionProps) => {
   const offerSheetSectionAvailability = actionOwner.offerSheetSectionAvailability;
   const offerSheetLifecycleActionOwner =
@@ -158,6 +159,7 @@ const FreeAgencySection = ({
         onSelectedEntriesChange={onSelectedEntriesChange}
         onPlayerAction={onPlayerAction}
         pinnedPlayerIds={pinnedPlayerIds}
+        poolManagement={poolManagement}
       />
     </div>
   );

@@ -52,6 +52,7 @@ export const ARCHITECT_BASE_PICK_RULES_PATH =
  * - architect_worlds/{worldId} - World metadata
  * - architect_worlds/{worldId}/teams/{teamCode} - Team snapshot
  * - architect_worlds/{worldId}/teams/{teamCode}/players/{playerId} - Player override
+ * - architect_worlds/{worldId}/teams/{teamCode}/freeAgentPools/{seasonKey} - Managed FA pool
  */
 export const ARCHITECT_WORLDS_COLLECTION =
   env.VITE_ARCHITECT_WORLDS_COLLECTION || 'architect_worlds';
@@ -63,6 +64,7 @@ export const ARCHITECT_WORLD_TEAMS_SUBCOLLECTION = 'teams';
 export const ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION = 'players';
 export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION = 'entitlements';
 export const ARCHITECT_WORLD_EVENTS_SUBCOLLECTION = 'events';
+export const ARCHITECT_WORLD_FREE_AGENT_POOLS_SUBCOLLECTION = 'freeAgentPools';
 
 /**
  * Free agents collection

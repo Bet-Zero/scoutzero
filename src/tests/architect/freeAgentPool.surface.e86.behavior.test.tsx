@@ -336,6 +336,58 @@ describe('FreeAgentPool surface E86 behavior', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('generates and saves a managed pool from visible entries', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderPool({
+      poolManagement: {
+        scopeLabel: 'Los Angeles Lakers / 2025-26',
+        persistenceLabel: 'Team Plan pool',
+        onSave,
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Generate Visible/i }));
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+    });
+
+    expect(onSave).toHaveBeenCalledWith(['player_1']);
+    expect(screen.getByText('Pool saved')).toBeInTheDocument();
+  });
+
+  it('loads and resets a managed pool through the published controls', async () => {
+    const onLoad = vi.fn().mockResolvedValue(['player_1', 'missing_player']);
+    const onReset = vi.fn().mockResolvedValue(undefined);
+    renderPool({
+      poolManagement: {
+        scopeLabel: 'Los Angeles Lakers / 2025-26',
+        persistenceLabel: 'Team Plan pool',
+        onLoad,
+        onReset,
+      },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Load$/i }));
+    });
+
+    expect(onLoad).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /Sign Player/i })).toBeInTheDocument();
+    expect(screen.getByText('Pool loaded')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Reset Saved$/i }));
+    });
+
+    expect(onReset).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole('button', { name: /Sign Player/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Saved pool reset')).toBeInTheDocument();
+  });
+
   it('preserves selected-card remove wiring and card content order', () => {
     renderPool();
 

@@ -169,6 +169,7 @@ freeAgency/
     freeAgentSigningContext.ts
     index.ts
     types.ts
+  freeAgentPoolPersistence.ts
   index.ts
   useFreeAgencyFilterPersistence.ts
 guidedQuestions/
@@ -548,5 +549,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-12T10:17:45.692Z*
+*Generated on: 2026-06-13T01:07:11.908Z*
 *Auto-updated by: npm run docs*
