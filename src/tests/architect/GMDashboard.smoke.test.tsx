@@ -27,6 +27,9 @@ const {
   mockTradeSectionProps,
   mockUseArchitectPostActionReceipt,
   mockHandleEditContract,
+  mockSaveWorldTeamFreeAgentPool,
+  mockLoadWorldTeamFreeAgentPool,
+  mockResetWorldTeamFreeAgentPool,
 } = vi.hoisted(() => ({
   mockUseArchitectState: vi.fn(),
   mockSetActiveTab: vi.fn(),
@@ -35,6 +38,9 @@ const {
   mockTradeSectionProps: vi.fn(),
   mockUseArchitectPostActionReceipt: vi.fn(),
   mockHandleEditContract: vi.fn(),
+  mockSaveWorldTeamFreeAgentPool: vi.fn(),
+  mockLoadWorldTeamFreeAgentPool: vi.fn(),
+  mockResetWorldTeamFreeAgentPool: vi.fn(),
 }));
 
 const buildLoadedDashboardState = () => {
@@ -155,6 +161,15 @@ const mockLoadFreeAgents = vi.fn();
 vi.mock('@/features/architect/utils/firebaseTeamPlanHelpers', () => ({
   loadTeamCapSheet: (...args: unknown[]) => mockLoadTeamCapSheet(...args),
   loadFreeAgents: (...args: unknown[]) => mockLoadFreeAgents(...args),
+}));
+
+vi.mock('@/features/architect/freeAgency/freeAgentPoolPersistence', () => ({
+  saveWorldTeamFreeAgentPool: (...args: unknown[]) =>
+    mockSaveWorldTeamFreeAgentPool(...args),
+  loadWorldTeamFreeAgentPool: (...args: unknown[]) =>
+    mockLoadWorldTeamFreeAgentPool(...args),
+  resetWorldTeamFreeAgentPool: (...args: unknown[]) =>
+    mockResetWorldTeamFreeAgentPool(...args),
 }));
 
 vi.mock('@/firebaseConfig', () => ({
@@ -387,6 +402,9 @@ function createMockTeamCapSheet() {
   };
 }
 
+const getLatestFreeAgencySectionProps = () =>
+  mockFreeAgencySectionProps.mock.calls.at(-1)?.[0] as Record<string, any>;
+
 describe('GMDashboard Smoke Test', () => {
   afterEach(() => {
     cleanup();
@@ -399,6 +417,25 @@ describe('GMDashboard Smoke Test', () => {
     const mockCapSheet = createMockTeamCapSheet();
     mockLoadTeamCapSheet.mockResolvedValue(mockCapSheet);
     mockLoadFreeAgents.mockResolvedValue(undefined);
+    mockSaveWorldTeamFreeAgentPool.mockResolvedValue({
+      schemaVersion: 1,
+      source: 'architect-free-agent-pool-management',
+      worldId: 'world_1',
+      teamCode: 'LAL',
+      seasonKey: '2025-26',
+      selectionKeys: ['fa_1'],
+      updatedAt: '2026-06-13T00:00:00.000Z',
+    });
+    mockLoadWorldTeamFreeAgentPool.mockResolvedValue({
+      schemaVersion: 1,
+      source: 'architect-free-agent-pool-management',
+      worldId: 'world_1',
+      teamCode: 'LAL',
+      seasonKey: '2025-26',
+      selectionKeys: ['fa_loaded'],
+      updatedAt: '2026-06-13T00:01:00.000Z',
+    });
+    mockResetWorldTeamFreeAgentPool.mockResolvedValue(undefined);
     mockUseArchitectState.mockImplementation(() => buildLoadedDashboardState());
     mockUseArchitectPostActionReceipt.mockReturnValue({
       receipt: null,
@@ -494,6 +531,78 @@ describe('GMDashboard Smoke Test', () => {
 
       const titles = screen.getAllByText(/HoopZero Architect.*GM Dashboard/i);
       expect(titles.length).toBeGreaterThan(0);
+    });
+
+    it('publishes session-only pool management when no active world is loaded', async () => {
+      mockUseArchitectState.mockImplementation(() => ({
+        ...buildLoadedDashboardState(),
+        activeTab: 'fa',
+        worldId: null,
+      }));
+
+      render(<GMDashboard />);
+
+      const props = getLatestFreeAgencySectionProps();
+      expect(props.poolManagement.scopeLabel).toContain('Los Angeles Lakers');
+      expect(props.poolManagement.scopeLabel).toContain('2025-26');
+      expect(props.poolManagement).toEqual(
+        expect.objectContaining({
+          persistenceLabel: 'Session pool',
+          disabledReason: 'Open an active Team Plan world to save or load this pool.',
+        })
+      );
+
+      await expect(props.poolManagement.onSave(['fa_1'])).rejects.toThrow(
+        /Open an active Team Plan world/
+      );
+      expect(mockSaveWorldTeamFreeAgentPool).not.toHaveBeenCalled();
+    });
+
+    it('wires Free Agency pool management to the active Team Plan world scope', async () => {
+      mockUseArchitectState.mockImplementation(() => ({
+        ...buildLoadedDashboardState(),
+        activeTab: 'fa',
+        worldId: 'world_1',
+      }));
+
+      render(<GMDashboard />);
+
+      const props = getLatestFreeAgencySectionProps();
+      expect(props.poolManagement).toEqual(
+        expect.objectContaining({
+          persistenceLabel: 'Team Plan pool',
+          disabledReason: null,
+        })
+      );
+
+      await props.poolManagement.onSave(['fa_1', 'fa_2']);
+
+      expect(mockSaveWorldTeamFreeAgentPool).toHaveBeenCalledWith({
+        worldId: 'world_1',
+        teamCode: 'LAL',
+        seasonKey: '2025-26',
+        selectionKeys: ['fa_1', 'fa_2'],
+      });
+      await waitFor(() =>
+        expect(getLatestFreeAgencySectionProps().poolManagement.savedAtLabel)
+          .toMatch(/^Saved /)
+      );
+
+      await expect(
+        getLatestFreeAgencySectionProps().poolManagement.onLoad()
+      ).resolves.toEqual(['fa_loaded']);
+      expect(mockLoadWorldTeamFreeAgentPool).toHaveBeenCalledWith({
+        worldId: 'world_1',
+        teamCode: 'LAL',
+        seasonKey: '2025-26',
+      });
+
+      await getLatestFreeAgencySectionProps().poolManagement.onReset();
+      expect(mockResetWorldTeamFreeAgentPool).toHaveBeenCalledWith({
+        worldId: 'world_1',
+        teamCode: 'LAL',
+        seasonKey: '2025-26',
+      });
     });
 
     it('opens selected free-agent options in the Full Cap modal', () => {
