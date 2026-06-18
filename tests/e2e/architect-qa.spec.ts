@@ -18,8 +18,9 @@ import {
 import admin from 'firebase-admin';
 
 const GM_DASHBOARD_URL = '/gm/LAL';
-const GM_DASHBOARD_CAP_ROOM_URL = '/gm/ATL';
+const GM_DASHBOARD_BOS_URL = '/gm/BOS';
 const REVIEW_MODE_FREE_AGENT_NAME = 'Review Offer Sheet Guard';
+const REVIEW_MODE_FREE_AGENT_ID = 'review_offer_sheet_guard';
 const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
 const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
 const DEV_LOCAL_STORAGE_FLAGS = {
@@ -447,38 +448,6 @@ const topUpWorldTeamRosterMinimum = async (
         )
       : [];
   const players = [...(baseSnapshot.players || []), ...fillerPlayers];
-
-  await teamRef.set(
-    {
-      ...baseSnapshot,
-      players,
-      roster: players,
-      activeContracts: buildActiveContracts(players),
-    },
-    { merge: false }
-  );
-};
-
-// D-MQ-005: the offer-sheet preflight (resolveStoreOfferSheetAuthority) resolves
-// the RFA's home team from *explicit* world team snapshots — base-team fallback
-// is not consulted for ownership. The review RFA fixture
-// (review_offer_sheet_guard) is restricted to BOS, so seed an explicit BOS world
-// snapshot that lists him in roster+players. Without it the home team cannot
-// resolve and the preflight stays "incomplete" (the confirm button never becomes
-// "Confirm Action"). The preflight reads Firestore live, so no reload is needed.
-const REVIEW_OFFER_SHEET_RFA_ID = 'review_offer_sheet_guard';
-const REVIEW_OFFER_SHEET_HOME_TEAM = { code: 'BOS', name: 'Boston Celtics' };
-
-const seedOfferSheetHomeTeamSnapshot = async (worldId: string) => {
-  const db = getReviewAdminDb();
-  const { code: teamCode, name: teamName } = REVIEW_OFFER_SHEET_HOME_TEAM;
-  const teamRef = db.doc(`architect_worlds/${worldId}/teams/${teamCode}`);
-  const baseSnapshot = await buildHydratedWorldTeamSnapshot(teamCode, teamName);
-  const rfaEntry = buildHydratedPlayerEntry(
-    REVIEW_OFFER_SHEET_RFA_ID,
-    await getBasePlayerDocument(REVIEW_OFFER_SHEET_RFA_ID)
-  );
-  const players = [...(baseSnapshot.players || []), rfaEntry];
 
   await teamRef.set(
     {
@@ -1592,18 +1561,18 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-004B-standard-waiver');
   });
 
-  test('D-MQ-005: Free agent offer sheet persists and rehydrates after route re-entry', async ({
+  test('D-MQ-005: Canonical V1 free-agent signing persists receipt, history, and reload', async ({
     page,
   }, testInfo) => {
-    await page.goto(GM_DASHBOARD_CAP_ROOM_URL, {
+    await page.goto(GM_DASHBOARD_BOS_URL, {
       waitUntil: 'domcontentloaded',
     });
     await ensureTeamDataLoaded(page, testInfo);
     const worldId = await ensureWorldSelected(page, testInfo);
 
-    // Give the RFA an explicit home-team (BOS) world snapshot so the offer-sheet
-    // preflight can resolve authoritative ownership (read live from Firestore).
-    await seedOfferSheetHomeTeamSnapshot(worldId);
+    const beforeBaseTeamDocument = await getBaseTeamDocument('BOS');
+    const beforeRosterIds = getTeamPlayerIds(beforeBaseTeamDocument);
+    expect(beforeRosterIds).not.toContain(REVIEW_MODE_FREE_AGENT_ID);
 
     await openDashboardTab(page, 'Free Agency');
 
@@ -1630,105 +1599,76 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(
       page.getByRole('heading', { name: /^Available Actions$/i })
     ).toBeVisible();
-    const contractPreviewHeading = page.getByRole('heading', {
-      name: /^New Contract Preview$/i,
-    });
-
     const signFreeAgentRadio = page.getByRole('radio', {
       name: /Sign Free Agent/i,
     });
     await expect(signFreeAgentRadio).toBeVisible();
-    await signFreeAgentRadio.check();
-
-    const offerSheetToggle = page.getByLabel(/^Offer Sheet$/i);
-    await expect(offerSheetToggle).toBeVisible();
-    await offerSheetToggle.click({ force: true });
-    await expect(offerSheetToggle).toBeChecked();
-
-    await contractPreviewHeading
-      .locator('xpath=following::select[3]')
-      .selectOption({ label: '1yr' });
-
-    const firstYearSalaryInput = contractPreviewHeading.locator(
-      'xpath=following::input[2]'
-    );
-    await firstYearSalaryInput.fill('2490000');
-    await firstYearSalaryInput.press('Tab');
+    await expect(page.getByLabel(/^Offer Sheet$/i)).toHaveCount(0);
 
     const confirmActionButton = page.getByRole('button', {
       name: /^Confirm Action$/i,
     });
     await expect(confirmActionButton).toBeVisible();
+    await expect(confirmActionButton).toBeDisabled();
+    await signFreeAgentRadio.check();
+    await expect(
+      page.getByRole('heading', { name: /^New Contract Preview$/i })
+    ).toBeVisible();
+    await expect(confirmActionButton).toBeEnabled();
     await confirmActionButton.click();
 
-    const pendingOfferSheetsCard = page
-      .locator('div')
-      .filter({
-        has: page.getByRole('heading', { name: /^My Pending Offer Sheets$/i }),
-      })
-      .first();
-    await expect(pendingOfferSheetsCard).toBeVisible();
-    await expect(pendingOfferSheetsCard).toContainText(
-      REVIEW_MODE_FREE_AGENT_NAME
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Free agent signed/i,
+      { timeout: 20000 }
     );
-    await expect(pendingOfferSheetsCard).toContainText(/PENDING MATCH/i);
-    await expect(pendingOfferSheetsCard).toContainText(
-      /Waiting for home team/i
-    );
+    await expect(
+      page.getByText(/Roster count changed 3 -> 4/i).first()
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Cap space changed -\$3,635,655/i).first()
+    ).toBeVisible();
 
-    const persistedTeamDocument = await getWorldTeamDocument(worldId, 'ATL');
-    const persistedOfferSheet = persistedTeamDocument.offerSheets?.find(
-      (offerSheet) => offerSheet.playerId === 'review_offer_sheet_guard'
+    const persistedTeamDocument = await getWorldTeamDocument(worldId, 'BOS');
+    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(
+      REVIEW_MODE_FREE_AGENT_ID
     );
 
-    expect(persistedOfferSheet).toBeTruthy();
-    expect(persistedOfferSheet).toMatchObject({
-      playerId: 'review_offer_sheet_guard',
-      playerName: REVIEW_MODE_FREE_AGENT_NAME,
-      offeringTeamCode: 'ATL',
-      homeTeamCode: 'BOS',
-      status: 'PENDING_MATCH',
-    });
-    expect(Number(persistedOfferSheet?.totalValue || 0)).toBeGreaterThan(0);
+    const persistedEvents = await getWorldEventDocuments(worldId);
+    const signingEvent = persistedEvents.find(
+      (event) => event.mutationType === 'signFreeAgent'
+    );
+    expect(signingEvent).toBeTruthy();
 
-    await reenterDashboardViaAppNavigation(page);
+    await openDashboardTab(page, 'Roster');
+    await expect(page.locator('body')).toContainText(
+      /Review\s*Offer\s+Sheet/i
+    );
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
+    await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await ensureTeamDataLoaded(page, testInfo);
-    await openDashboardTab(page, 'Free Agency');
-
-    const rehydratedPendingOfferSheetsCard = page
-      .locator('div')
-      .filter({
-        has: page.getByRole('heading', { name: /^My Pending Offer Sheets$/i }),
-      })
-      .first();
-    await expect(rehydratedPendingOfferSheetsCard).toBeVisible();
-    await expect(rehydratedPendingOfferSheetsCard).toContainText(
-      REVIEW_MODE_FREE_AGENT_NAME
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Roster');
+    await expect(page.locator('body')).toContainText(
+      /Review\s*Offer\s+Sheet/i
     );
-    await expect(rehydratedPendingOfferSheetsCard).toContainText(
-      /PENDING MATCH/i
-    );
-
     const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
       worldId,
-      'ATL'
+      'BOS'
     );
-    const persistedOfferSheetAfterReload =
-      persistedTeamDocumentAfterReload.offerSheets?.find(
-        (offerSheet) => offerSheet.playerId === 'review_offer_sheet_guard'
-      );
-
-    expect(persistedOfferSheetAfterReload).toMatchObject({
-      playerId: 'review_offer_sheet_guard',
-      status: 'PENDING_MATCH',
-      offeringTeamCode: 'ATL',
-    });
+    expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).toContain(
+      REVIEW_MODE_FREE_AGENT_ID
+    );
 
     addAuditNote(
       testInfo,
-      'This covers the real review-mode offer-sheet save path end to end: modal submit succeeds, the pending offer-sheet row renders, the saved ATL world document contains the persisted offer sheet in the Firestore emulator, and the same pending state rehydrates correctly after dashboard route re-entry.'
+      'Canonical V1 acceptance path: BOS saved-world Free Agency signs Review Offer Sheet Guard through the standard Sign Free Agent action, validation gates Confirm Action until the action is selected, the receipt reports roster/cap deltas, Team History shows the committed signFreeAgent event, and reload rehydrates the signed player from the saved world.'
     );
-    await captureEvidence(page, testInfo, 'D-MQ-005-free-agency-entry');
+    await captureEvidence(page, testInfo, 'D-MQ-005-v1-signing-acceptance');
   });
 
   test('D-MQ-006: Offseason preview shows non-persisting banner', async ({
