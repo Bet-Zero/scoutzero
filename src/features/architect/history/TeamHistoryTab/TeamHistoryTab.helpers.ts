@@ -500,7 +500,7 @@ export const resolveTeamHistoryTimeline = ({
       scopeLabel,
       sourceLabel: 'Authoritative world events',
       sourceDetail:
-        'World events own the timeline whenever a world is active and no fixture override is present.',
+        'World events own the timeline whenever an active world is selected.',
       sourceAccentClassName: 'text-sky-200',
       timelineTruthLabel: null,
       timelineTruthDetail: null,

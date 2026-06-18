@@ -672,8 +672,11 @@ describe('GuideSection UI', () => {
     render(<GuideSection viewModel={vm} onNavigate={() => undefined} />);
     const chips = screen.getAllByTestId('guide-evidence-chip');
     expect(chips.length).toBeGreaterThan(0);
-    // At least one chip displays an authority label like "navigation-only"
-    expect(chips.some((c) => /navigation-only|committed-world/i.test(c.textContent ?? ''))).toBe(true);
+    expect(
+      chips.some((c) =>
+        /Navigation only|Saved world|current season/i.test(c.textContent ?? '')
+      )
+    ).toBe(true);
   });
 
   it('renders deferred reasons when present', () => {

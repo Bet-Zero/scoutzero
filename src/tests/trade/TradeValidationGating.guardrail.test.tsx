@@ -11,6 +11,7 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 import { ValidationStateHeader, ModeTag, MODE_TAGS } from '@/features/architect/tradeMachine/ValidationStateHeader';
 import { ValidationDetailsPanel } from '@/features/architect/tradeMachine/ValidationDetailsPanel';
+import { TRADE_MACHINE_DEBUG_FLAG } from '@/features/architect/tradeMachine/utils/tradeMachineDebugFlag';
 
 type ValidationDetailsPanelProps = Parameters<typeof ValidationDetailsPanel>[0];
 
@@ -95,6 +96,10 @@ const mockCapProjections = {
 const emptyIncomingAssets: NonNullable<
   ValidationDetailsPanelProps['incomingAssets']
 > = [{ players: [], entitlements: [] }, { players: [], entitlements: [] }];
+
+const enableTradeMachineDebugPanel = () => {
+  window.localStorage.setItem(TRADE_MACHINE_DEBUG_FLAG, 'true');
+};
 
 describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
   afterEach(() => {
@@ -211,6 +216,7 @@ describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
 
 describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
   afterEach(() => {
+    window.localStorage.clear();
     cleanup();
   });
 
@@ -365,6 +371,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
     });
 
     it('CD-GR-04: Salary Calculator section has EXPLORATORY tag when validated', () => {
+      enableTradeMachineDebugPanel();
+
       render(
         <ValidationDetailsPanel
           hasValidatorResult={true}
@@ -388,6 +396,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
     });
 
     it('CD-GR-05: Trade Receipt section has DEBUG tag when validated', () => {
+      enableTradeMachineDebugPanel();
+
       render(
         <ValidationDetailsPanel
           hasValidatorResult={true}
@@ -413,6 +423,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
 
   describe('Section Order (Task C)', () => {
     it('C-GR-06: sections appear in correct order when validated', () => {
+      enableTradeMachineDebugPanel();
+
       const { container } = render(
         <ValidationDetailsPanel
           hasValidatorResult={true}

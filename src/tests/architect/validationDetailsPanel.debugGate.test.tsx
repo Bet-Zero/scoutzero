@@ -4,8 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
-// Force the dev-flag gate off so we exercise the finished-product view
-// (under vitest, import.meta.env.DEV is true, so the panel would otherwise show).
+// Force the debug gate off so we exercise the finished-product view.
 vi.mock(
   '@/features/architect/tradeMachine/utils/tradeMachineDebugFlag',
   () => ({

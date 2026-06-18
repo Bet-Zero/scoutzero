@@ -16,6 +16,7 @@ import type {
   Stage4EvidenceChip,
   Stage4GuidedAnswer,
   Stage4GuidedAnswersViewModel,
+  Stage4AuthorityLabel,
   Stage4NavigationTarget,
   Stage4NavigationTargetId,
   Stage4QuestionFamily,
@@ -98,13 +99,28 @@ const CHIP_SEVERITY_CLASS: Record<Stage4Severity, string> = {
   danger: 'bg-rose-500/10 text-rose-200 border-rose-400/30',
 };
 
+const AUTHORITY_LABEL_TEXT: Record<Stage4AuthorityLabel, string> = {
+  'committed-world': 'Saved world',
+  'committed-world / current-season': 'Saved world / current season',
+  'committed-world / event-derived': 'Saved world / event history',
+  'committed-world / session-scoped': 'Current session',
+  derived: 'Derived',
+  sandbox: 'Sandbox',
+  unavailable: 'Unavailable',
+  deferred: 'Deferred',
+  'navigation-only': 'Navigation only',
+};
+
+const formatAuthorityLabel = (label: string) =>
+  AUTHORITY_LABEL_TEXT[label as Stage4AuthorityLabel] ?? label;
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
 const AuthorityChip = ({ label }: { label: string }) => (
   <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-white/5 text-white/40 border-white/10 uppercase tracking-wide">
-    {label}
+    {formatAuthorityLabel(label)}
   </span>
 );
 
