@@ -27,6 +27,7 @@ export interface UseArchitectComparisonViewModelArgs {
   currentSeason: string | null;
   currentRosterPlayerIds: string[];
   worldModifiedTeams?: string[] | null;
+  refreshKey?: number;
 }
 
 export interface UseArchitectComparisonViewModelResult {
@@ -43,6 +44,7 @@ export function useArchitectComparisonViewModel({
   currentSeason,
   currentRosterPlayerIds,
   worldModifiedTeams,
+  refreshKey = 0,
 }: UseArchitectComparisonViewModelArgs): UseArchitectComparisonViewModelResult {
   const enabled = Boolean(worldId && teamCode);
 
@@ -55,6 +57,7 @@ export function useArchitectComparisonViewModel({
     teamCode: teamCode ?? null,
     limit: COMPARISON_EVENT_LIMIT,
     enabled,
+    refreshKey,
   });
 
   const normalizedEvents = useMemo(

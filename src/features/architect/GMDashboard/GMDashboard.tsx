@@ -575,6 +575,7 @@ export const GMDashboard = () => {
     baselineSeason: null,
     currentSeason: worldCurrentSeason ?? null,
     currentRosterPlayerIds: comparisonRosterPlayerIds,
+    refreshKey: postActionReceipt.generation,
   });
 
   // Stage 4B: derive Front Office Guide answers from existing seams.

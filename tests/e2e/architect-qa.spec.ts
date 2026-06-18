@@ -1561,7 +1561,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-004B-standard-waiver');
   });
 
-  test('D-MQ-005: Canonical V1 free-agent signing persists receipt, history, and reload', async ({
+  test('D-MQ-005: Canonical V1 free-agent signing persists receipt, history, compare, and reload', async ({
     page,
   }, testInfo) => {
     await page.goto(GM_DASHBOARD_BOS_URL, {
@@ -1649,6 +1649,22 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
     await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
 
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /1\s+team changed/i
+    );
+    await expect(page.getByTestId('comparison-changed-players')).toContainText(
+      /1\s+player touched/i
+    );
+    await expect(page.getByTestId('comparison-roster-additions')).toContainText(
+      REVIEW_MODE_FREE_AGENT_ID
+    );
+    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+
     await page.reload({ waitUntil: 'domcontentloaded' });
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
@@ -1666,7 +1682,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     addAuditNote(
       testInfo,
-      'Canonical V1 acceptance path: BOS saved-world Free Agency signs Review Offer Sheet Guard through the standard Sign Free Agent action, validation gates Confirm Action until the action is selected, the receipt reports roster/cap deltas, Team History shows the committed signFreeAgent event, and reload rehydrates the signed player from the saved world.'
+      'Canonical V1 acceptance path: BOS saved-world Free Agency signs Review Offer Sheet Guard through the standard Sign Free Agent action, validation gates Confirm Action until the action is selected, the receipt reports roster/cap deltas, Team History shows the committed signFreeAgent event, Compare shows the same committed event with roster/cap deltas, and reload rehydrates the signed player from the saved world.'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005-v1-signing-acceptance');
   });
