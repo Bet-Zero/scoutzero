@@ -134,8 +134,6 @@ import type {
   FreeAgencyWorldOnlyActionOwner,
   FreeAgencyWorldOnlyModalActionOwner,
   FreeAgentModalAvailability,
-  FreeAgentOfferSheetInitiation,
-  FreeAgentSignAndTradeInitiation,
   LocalContract,
   LocalContractLegacySalaryInput,
   ManualCapSheetLedgerMutationParams,
@@ -563,59 +561,22 @@ export function useArchitectActions({
       ]
     );
 
-  const hasWorldOnlySignAndTradeAvailability = Boolean(
-    freeAgencyWorldOnlyModalActionOwner?.signAndTrade &&
-      freeAgencyWorldOnlyModalActionOwner.getSignAndTradePreflight
-  );
-  const hasWorldOnlyOfferSheetAvailability = Boolean(
-    freeAgencyWorldOnlyModalActionOwner?.storeOfferSheet &&
-      freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight
-  );
-  const signAndTradeInitiation =
-    useMemo<FreeAgentSignAndTradeInitiation | null>(
-      () =>
-        hasWorldOnlySignAndTradeAvailability &&
-        freeAgencyWorldOnlyModalActionOwner
-          ? {
-              onSignAndTrade: freeAgencyWorldOnlyModalActionOwner.signAndTrade,
-              getSignAndTradePreflight:
-                freeAgencyWorldOnlyModalActionOwner.getSignAndTradePreflight,
-            }
-          : null,
-      [
-        freeAgencyWorldOnlyModalActionOwner,
-        hasWorldOnlySignAndTradeAvailability,
-      ]
-    );
-  const offerSheetInitiation = useMemo<FreeAgentOfferSheetInitiation | null>(
-    () =>
-      hasWorldOnlyOfferSheetAvailability && freeAgencyWorldOnlyModalActionOwner
-        ? {
-            getOfferSheetPreflight:
-              freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight,
-            storeOfferSheet:
-              freeAgencyWorldOnlyModalActionOwner.storeOfferSheet,
-          }
-        : null,
-    [freeAgencyWorldOnlyModalActionOwner, hasWorldOnlyOfferSheetAvailability]
-  );
-
   // VISUAL/MODAL CONTRACT: FreeAgentPool reads this as upstream truth for what
-  // the contract modal is allowed to show. World-only initiators appear here
-  // only when the world-only action lane exists.
+  // the contract modal is allowed to show. Architect V1 parks advanced Free
+  // Agency transaction lanes from the normal user path; the world-only
+  // handlers remain available to internal owners, but the public modal exposes
+  // only the reliable standard signing lane.
   const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
     () => ({
-      visibleActions: signAndTradeInitiation
-        ? ['signNew', 'signAndTrade']
-        : ['signNew'],
+      visibleActions: ['signNew'],
       actionLabelsOverride: {
         signNew: 'Sign Free Agent',
       },
-      showOfferSheetToggle: Boolean(offerSheetInitiation),
-      signAndTradeInitiation,
-      offerSheetInitiation,
+      showOfferSheetToggle: false,
+      signAndTradeInitiation: null,
+      offerSheetInitiation: null,
     }),
-    [offerSheetInitiation, signAndTradeInitiation]
+    []
   );
 
   // SECTION/LIFECYCLE CONTRACT: FreeAgencySection renders disabled messaging

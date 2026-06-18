@@ -62,8 +62,7 @@ export const ContractActionSelector = ({
         <p>
           <span className="text-white font-semibold">{playerName}</span> is
           currently a Free Agent (Cap Hold). You can re-sign him using Bird
-          Rights (if applicable), renounce his rights to clear cap space, or
-          execute a sign-and-trade.
+          Rights (if applicable) or renounce his rights to clear cap space.
         </p>
       )}
       {actionSet === 'underContract' && isExpiring && (

@@ -492,6 +492,7 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
         onSignAndTrade={mockOnSignAndTrade}
         getSignAndTradePreflight={mockGetSignAndTradePreflight}
         actionContext="freeAgent"
+        actionsOverride={['signAndTrade']}
       />
     );
 

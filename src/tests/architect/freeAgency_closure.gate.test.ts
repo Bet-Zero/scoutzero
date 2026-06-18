@@ -234,14 +234,11 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
       /const\s+offerSheetSectionAvailability\s*=\s*useMemo<FreeAgencyOfferSheetSectionAvailability>/
     );
     expect(content).toMatch(
-      /const\s+signAndTradeInitiation\s*=\s*useMemo<FreeAgentSignAndTradeInitiation\s*\|\s*null>/
-    );
-    expect(content).toMatch(
       /const\s+freeAgencyActionOwner\s*=\s*useMemo<FreeAgencyActionOwner>/
     );
   });
 
-  it('maps standard signing into dualPathSigning, composes the compatibility world-only aggregate, and derives modal vs section availability from the focused slices', () => {
+  it('maps standard signing into dualPathSigning, keeps world-only handlers internal, and publishes V1 modal availability', () => {
     expect(content).toMatch(/signFreeAgent:\s*handleSign/);
     expect(content).toMatch(
       /freeAgencyWorldOnlyModalActionOwner[\s\S]*\?\s*\{[\s\S]*signAndTrade:\s*handleSignAndTrade[\s\S]*storeOfferSheet:\s*handleStoreOfferSheet/
@@ -257,22 +254,16 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
       /const\s+freeAgencyActionOwner\s*=\s*useMemo<FreeAgencyActionOwner>[\s\S]*freeAgentModalAvailability,/
     );
     expect(content).toMatch(
-      /const\s+hasWorldOnlySignAndTradeAvailability\s*=\s*Boolean\([\s\S]*freeAgencyWorldOnlyModalActionOwner\?\.signAndTrade[\s\S]*freeAgencyWorldOnlyModalActionOwner\.getSignAndTradePreflight/
+      /visibleActions:\s*\['signNew'\]/
     );
     expect(content).toMatch(
-      /const\s+hasWorldOnlyOfferSheetAvailability\s*=\s*Boolean\([\s\S]*freeAgencyWorldOnlyModalActionOwner\?\.storeOfferSheet[\s\S]*freeAgencyWorldOnlyModalActionOwner\.getOfferSheetPreflight/
+      /showOfferSheetToggle:\s*false/
     );
     expect(content).toMatch(
-      /const\s+signAndTradeInitiation\s*=\s*useMemo<FreeAgentSignAndTradeInitiation\s*\|\s*null>\([\s\S]*hasWorldOnlySignAndTradeAvailability[\s\S]*freeAgencyWorldOnlyModalActionOwner[\s\S]*\?\s*\{[\s\S]*onSignAndTrade:\s*freeAgencyWorldOnlyModalActionOwner\.signAndTrade[\s\S]*getSignAndTradePreflight:\s*freeAgencyWorldOnlyModalActionOwner\.getSignAndTradePreflight[\s\S]*\}\s*:\s*null/
+      /signAndTradeInitiation:\s*null/
     );
     expect(content).toMatch(
-      /const\s+offerSheetInitiation\s*=\s*useMemo<FreeAgentOfferSheetInitiation\s*\|\s*null>\([\s\S]*hasWorldOnlyOfferSheetAvailability[\s\S]*freeAgencyWorldOnlyModalActionOwner[\s\S]*\?\s*\{[\s\S]*getOfferSheetPreflight:\s*freeAgencyWorldOnlyModalActionOwner\.getOfferSheetPreflight[\s\S]*storeOfferSheet:\s*freeAgencyWorldOnlyModalActionOwner\.storeOfferSheet[\s\S]*\}\s*:\s*null/
-    );
-    expect(content).toMatch(
-      /visibleActions:\s*signAndTradeInitiation\s*\?\s*\['signNew',\s*'signAndTrade'\]\s*:\s*\['signNew'\]/
-    );
-    expect(content).toMatch(
-      /showOfferSheetToggle:\s*Boolean\(offerSheetInitiation\)/
+      /offerSheetInitiation:\s*null/
     );
     expect(content).toMatch(
       /const\s+offerSheetSectionAvailability\s*=\s*useMemo<FreeAgencyOfferSheetSectionAvailability>\([\s\S]*lifecycleActionOwner:\s*freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabled:\s*!freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabledReason:\s*freeAgencyOfferSheetLifecycleActionOwner[\s\S]*\?\s*null[\s\S]*:\s*getFreeAgencyWorldOnlyMessage\('offerSheetLifecycle',\s*'commit'\)/

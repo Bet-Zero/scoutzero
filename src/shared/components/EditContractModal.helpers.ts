@@ -334,7 +334,7 @@ export const normalizeOfferSheetPreflightResult = (
 
 export const ACTION_SETS: Record<ActionSetKey, ContractActionKey[]> = {
   option: ['accept', 'decline', 'signNew'],
-  freeAgent: ['resign', 'signAndTrade', 'renounce'],
+  freeAgent: ['resign', 'renounce'],
   underContract: ['extend', 'waive', 'waiveStretch', 'buyout'],
 };
 

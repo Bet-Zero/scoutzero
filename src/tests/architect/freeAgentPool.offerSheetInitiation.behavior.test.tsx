@@ -127,13 +127,13 @@ const buildFreeAgentModalAvailability = ({
       : null;
 
   return {
-    visibleActions: signAndTradeInitiation ? ['signNew', 'signAndTrade'] : ['signNew'],
+    visibleActions: ['signNew'],
     actionLabelsOverride: {
       signNew: 'Sign Free Agent',
     },
-    showOfferSheetToggle: Boolean(offerSheetInitiation),
-    signAndTradeInitiation,
-    offerSheetInitiation,
+    showOfferSheetToggle: false,
+    signAndTradeInitiation: null,
+    offerSheetInitiation: null,
     ...overrides,
   };
 };
@@ -194,20 +194,20 @@ const closeSigningModal = async () => {
   });
 };
 
-const expectWorldModeActionsAndOfferSheetToggle = () => {
+const expectV1SigningOnlyActions = () => {
   expect(screen.getByLabelText(/Sign Free Agent/i)).toBeInTheDocument();
-  expect(screen.getByLabelText(/Sign & Trade/i)).toBeInTheDocument();
+  expect(screen.queryByLabelText(/Sign & Trade/i)).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
 
   expect(
-    screen.getByRole('checkbox', { name: /Offer Sheet/i })
-  ).toBeInTheDocument();
+    screen.queryByRole('checkbox', { name: /Offer Sheet/i })
+  ).not.toBeInTheDocument();
 };
 
 const expectOfferSheetSuppressedByOwnerProjection = () => {
   expect(screen.getByLabelText(/Sign Free Agent/i)).toBeInTheDocument();
-  expect(screen.getByLabelText(/Sign & Trade/i)).toBeInTheDocument();
+  expect(screen.queryByLabelText(/Sign & Trade/i)).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
 
@@ -226,8 +226,14 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     cleanup();
   });
 
-  it('world mode exposes offer-sheet toggle and keeps modal open on failed store until success', async () => {
+  it('explicitly exposed offer-sheet toggle keeps modal open on failed store until success', async () => {
     const signFreeAgent = vi.fn().mockResolvedValue({ success: true });
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
     const storeOfferSheet = vi
       .fn()
       .mockResolvedValueOnce({
@@ -238,6 +244,13 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     const actionOwner = buildActionOwner({
       dualPathSigning: { signFreeAgent },
       worldOnly: { storeOfferSheet },
+      freeAgentModalAvailability: {
+        showOfferSheetToggle: true,
+        offerSheetInitiation: {
+          getOfferSheetPreflight,
+          storeOfferSheet,
+        },
+      },
     });
 
     render(
@@ -359,7 +372,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     expect(storeOfferSheet).not.toHaveBeenCalled();
   });
 
-  it('keeps real modal action visibility and Offer Sheet toggle behavior aligned across row-menu and selected-card launch surfaces in world mode', async () => {
+  it('keeps V1 signing-only modal visibility aligned across row-menu and selected-card launch surfaces', async () => {
     const actionOwner = buildActionOwner();
 
     render(
@@ -372,11 +385,11 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     );
 
     await openFreeAgencySigningModalFromSelectedCard();
-    expectWorldModeActionsAndOfferSheetToggle();
+    expectV1SigningOnlyActions();
     await closeSigningModal();
 
     await openFreeAgencySigningModalFromRowMenu();
-    expectWorldModeActionsAndOfferSheetToggle();
+    expectV1SigningOnlyActions();
   });
 
   it('keeps real modal Offer Sheet suppression aligned across row-menu and selected-card launch surfaces when grouped-owner availability hides it', async () => {

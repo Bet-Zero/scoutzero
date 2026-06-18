@@ -482,7 +482,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(baseTeamFixture);
   });
 
-  it('publishes a grouped Free Agency action owner that points at the authoritative handlers', () => {
+  it('publishes grouped Free Agency owners while parking advanced modal lanes for V1', () => {
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
     expect(result.current.actions.freeAgencyActionOwner).toEqual({
@@ -500,20 +500,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         finalizeOfferSheet: result.current.actions.handleFinalizeOfferSheet,
       },
       freeAgentModalAvailability: {
-        visibleActions: ['signNew', 'signAndTrade'],
+        visibleActions: ['signNew'],
         actionLabelsOverride: {
           signNew: 'Sign Free Agent',
         },
-        showOfferSheetToggle: true,
-        signAndTradeInitiation: {
-          onSignAndTrade: result.current.actions.handleSignAndTrade,
-          getSignAndTradePreflight:
-            result.current.actions.getSignAndTradePreflight,
-        },
-        offerSheetInitiation: {
-          getOfferSheetPreflight: result.current.actions.getOfferSheetPreflight,
-          storeOfferSheet: result.current.actions.handleStoreOfferSheet,
-        },
+        showOfferSheetToggle: false,
+        signAndTradeInitiation: null,
+        offerSheetInitiation: null,
       },
       offerSheetSectionAvailability: {
         lifecycleActionOwner: {
