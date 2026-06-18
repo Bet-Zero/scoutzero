@@ -5,7 +5,16 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,6 +69,8 @@ async function seedOwnedWorld(): Promise<void> {
       worldId: WORLD_ID,
       name: 'Rules Integration World',
       createdBy: UID_A,
+      isArchived: false,
+      lastModifiedAt: 1,
     });
   });
 }
@@ -140,6 +151,40 @@ describeWithFirestoreEmulator(
     await seedOwnedWorld();
     const db = nonOwnerDb();
     await assertFails(getDoc(doc(db, 'architect_worlds', WORLD_ID)));
+  });
+
+  it('2b) owner can list only their architect worlds by createdBy', async () => {
+    await seedOwnedWorld();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, 'architect_worlds', 'world_owner_uid_b'), {
+        worldId: 'world_owner_uid_b',
+        name: 'Other owner world',
+        createdBy: UID_B,
+        isArchived: false,
+        lastModifiedAt: 2,
+      });
+    });
+
+    const owner = ownerDb();
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(owner, 'architect_worlds'),
+          where('createdBy', '==', UID_A)
+        )
+      )
+    );
+
+    const nonOwner = nonOwnerDb();
+    await assertFails(
+      getDocs(
+        query(
+          collection(nonOwner, 'architect_worlds'),
+          where('createdBy', '==', UID_A)
+        )
+      )
+    );
   });
 
   it('3) non-owner cannot write/update world doc', async () => {

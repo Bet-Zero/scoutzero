@@ -12,7 +12,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   serverTimestamp,
   writeBatch,
   arrayUnion,
@@ -608,83 +607,56 @@ export async function listUserWorlds(
     orderDirection = 'desc',
   } = options;
 
-  try {
-    const worldsRef = worldsCol();
-    const worldsQuery = query(
-      worldsRef,
-      where('createdBy', '==', userId),
-      ...(includeArchived ? [] : [where('isArchived', '==', false)]),
-      orderBy(orderByField, orderDirection)
+  const worldsRef = worldsCol();
+  const worldsQuery = query(worldsRef, where('createdBy', '==', userId));
+  const snapshot = await getDocs(worldsQuery);
+
+  const worlds: WorldMetadata[] = [];
+
+  for (const docSnap of snapshot.docs) {
+    const metadata = readWorldMetadataDoc(
+      docSnap.data(),
+      `architect_worlds/${docSnap.id}`,
+      docSnap.id
     );
 
-    const snapshot = await getDocs(worldsQuery);
-    return snapshot.docs.map((docSnap) =>
-      readWorldMetadataDoc(
-        docSnap.data(),
-        `architect_worlds/${docSnap.id}`,
-        docSnap.id
-      )
-    );
-  } catch (error) {
-    const queryError = error as CallableErrorLike;
+    if (!includeArchived && metadata.isArchived) continue;
 
-    console.warn(
-      'listUserWorlds: Query failed. ' +
-        'This may require a Firestore index. Error:',
-      queryError.message
-    );
+    worlds.push(metadata);
+  }
 
-    const worldsRef = worldsCol();
-    const fallbackQuery = query(worldsRef, where('createdBy', '==', userId));
-    const snapshot = await getDocs(fallbackQuery);
+  const toSortable = (val: unknown) => {
+    if (val === null || val === undefined) return null;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') return val;
+    if (typeof (val as { toMillis?: () => number })?.toMillis === 'function') {
+      return (val as { toMillis: () => number }).toMillis();
+    }
+    if (val instanceof Date) return val.getTime();
+    return val;
+  };
 
-    const worlds: WorldMetadata[] = [];
+  worlds.sort((a, b) => {
+    const valA = toSortable(a[orderByField]);
+    const valB = toSortable(b[orderByField]);
 
-    for (const docSnap of snapshot.docs) {
-      const metadata = readWorldMetadataDoc(
-        docSnap.data(),
-        `architect_worlds/${docSnap.id}`,
-        docSnap.id
-      );
-
-      if (!includeArchived && metadata.isArchived) continue;
-
-      worlds.push(metadata);
+    let comparison = 0;
+    if (valA === valB) {
+      comparison = 0;
+    } else if (valA === null) {
+      comparison = -1;
+    } else if (valB === null) {
+      comparison = 1;
+    } else if (typeof valA === 'string' && typeof valB === 'string') {
+      comparison = valA.localeCompare(valB);
+    } else {
+      comparison = valA < valB ? -1 : 1;
     }
 
-    const toSortable = (val: unknown) => {
-      if (val === null || val === undefined) return null;
-      if (typeof val === 'number') return val;
-      if (typeof val === 'string') return val;
-      if (typeof (val as { toMillis?: () => number })?.toMillis === 'function') {
-        return (val as { toMillis: () => number }).toMillis();
-      }
-      if (val instanceof Date) return val.getTime();
-      return val;
-    };
+    return orderDirection === 'desc' ? -comparison : comparison;
+  });
 
-    worlds.sort((a, b) => {
-      const valA = toSortable(a[orderByField]);
-      const valB = toSortable(b[orderByField]);
-
-      let comparison = 0;
-      if (valA === valB) {
-        comparison = 0;
-      } else if (valA === null) {
-        comparison = -1;
-      } else if (valB === null) {
-        comparison = 1;
-      } else if (typeof valA === 'string' && typeof valB === 'string') {
-        comparison = valA.localeCompare(valB);
-      } else {
-        comparison = valA < valB ? -1 : 1;
-      }
-
-      return orderDirection === 'desc' ? -comparison : comparison;
-    });
-
-    return worlds;
-  }
+  return worlds;
 }
 
 export async function updateWorldMetadata(

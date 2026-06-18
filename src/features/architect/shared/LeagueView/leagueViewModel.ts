@@ -25,7 +25,7 @@ const LEAGUE_VIEW_TOTALS_BOUNDARY_LABEL =
 const LEAGUE_VIEW_PRESENTATION_BOUNDARY_LABEL =
   'Conference grouping and alphabetical order only; totals are not recomputed.';
 const LEAGUE_VIEW_TEAM_HANDOFF_BOUNDARY_LABEL =
-  'Manage Team carries team identity only; the dashboard owns its selected season.';
+  'Manage Team opens the saved-world launcher for this team; sandbox is local preview only.';
 
 export type LeagueViewSeason = {
   endYear: number;
@@ -65,7 +65,7 @@ export const resolveLeagueViewSeason = (): LeagueViewSeason => {
     endYear,
     seasonCode: toSeasonCode(endYear),
     seasonSourceLabel: 'Default current season',
-    sourceBoundaryLabel: 'Read-only base team snapshots',
+    sourceBoundaryLabel: 'Read-only base team snapshots after sign-in',
     totalsDisplayLabel: LEAGUE_VIEW_TOTALS_DISPLAY_LABEL,
     totalsBoundaryLabel: LEAGUE_VIEW_TOTALS_BOUNDARY_LABEL,
     presentationBoundaryLabel: LEAGUE_VIEW_PRESENTATION_BOUNDARY_LABEL,

@@ -88,9 +88,10 @@ type WorldModalProps = {
   submitDisabled?: boolean;
 };
 
-const SANDBOX_OPTION_LABEL = 'Sandbox (No World Selected)';
+const WORLD_SELECTOR_LABEL = 'Saved World';
+const SANDBOX_OPTION_LABEL = 'Sandbox (local preview, no saved world)';
 const SANDBOX_HELPER_COPY =
-  'Sandbox mode: quick local what-if changes. World date, season advance, and offer sheets require a world.';
+  'Saved worlds are the primary Architect workspace. Sandbox is a local preview only; world date, season advance, and offer sheets require a saved world.';
 
 const wait = (ms: number) =>
   new Promise((resolve) => {
@@ -465,7 +466,7 @@ export function WorldSelector({
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-1">
           <label htmlFor="world-selector" className="text-xs text-white/70">
-            Architect (optional)
+            {WORLD_SELECTOR_LABEL}
           </label>
           <span
             className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] ${

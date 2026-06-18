@@ -817,7 +817,7 @@ describe('E109 dashboard/world boundary behavior', () => {
         />
       );
 
-      const select = await screen.findByLabelText('Architect (optional)');
+      const select = await screen.findByLabelText('Saved World');
       expect(select).toHaveValue('world_beta');
       expect(screen.getByRole('button', { name: '+ New' })).toBeInTheDocument();
 
@@ -856,7 +856,7 @@ describe('E109 dashboard/world boundary behavior', () => {
         />
       );
 
-      const select = await screen.findByLabelText('Architect (optional)');
+      const select = await screen.findByLabelText('Saved World');
       fireEvent.change(select, { target: { value: 'world_beta' } });
 
       expect(confirmSpy).toHaveBeenCalledTimes(1);
@@ -885,7 +885,7 @@ describe('E109 dashboard/world boundary behavior', () => {
         />
       );
 
-      await screen.findByLabelText('Architect (optional)');
+      await screen.findByLabelText('Saved World');
       fireEvent.click(screen.getByRole('button', { name: '+ New' }));
 
       expect(
@@ -936,7 +936,7 @@ describe('E109 dashboard/world boundary behavior', () => {
         />
       );
 
-      await screen.findByLabelText('Architect (optional)');
+      await screen.findByLabelText('Saved World');
       fireEvent.click(screen.getByTitle('World actions'));
 
       const actionButtons = screen.getAllByRole('button');
@@ -1020,7 +1020,7 @@ describe('E109 dashboard/world boundary behavior', () => {
         />
       );
 
-      await screen.findByLabelText('Architect (optional)');
+      await screen.findByLabelText('Saved World');
       fireEvent.click(screen.getByTitle('World actions'));
       fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
 
@@ -1049,7 +1049,7 @@ describe('E109 dashboard/world boundary behavior', () => {
         />
       );
 
-      await screen.findByLabelText('Architect (optional)');
+      await screen.findByLabelText('Saved World');
       fireEvent.click(screen.getByTitle('World actions'));
       fireEvent.click(screen.getByRole('button', { name: 'Delete Permanently' }));
 
@@ -1089,7 +1089,7 @@ describe('E109 dashboard/world boundary behavior', () => {
 
       render(<WorldSelectorHarness initialWorldId="world_alpha" />);
 
-      await screen.findByLabelText('Architect (optional)');
+      await screen.findByLabelText('Saved World');
       fireEvent.click(screen.getByTitle('World actions'));
       fireEvent.click(screen.getByRole('button', { name: 'Delete Permanently' }));
       fireEvent.change(
@@ -1714,7 +1714,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       // WorldSelector and WorldTimeControls.
       fireEvent.click(await screen.findByTestId('cockpit-world-menu-trigger'));
 
-      await screen.findByLabelText('Architect (optional)');
+      await screen.findByLabelText('Saved World');
       expect(screen.getByTestId('world-time-controls')).toBeInTheDocument();
       expect(screen.getByTestId('mock-offseason-section')).toHaveAttribute(
         'data-world-id',
@@ -1788,10 +1788,10 @@ describe('E109 dashboard/world boundary behavior', () => {
       // WorldTimeControls content is reachable.
       fireEvent.click(await screen.findByTestId('cockpit-world-menu-trigger'));
 
-      await screen.findByLabelText('Architect (optional)');
+      await screen.findByLabelText('Saved World');
       expect(
         screen.getByText(
-          'Sandbox mode: quick local what-if changes. World date, season advance, and offer sheets require a world.'
+          'Saved worlds are the primary Architect workspace. Sandbox is a local preview only; world date, season advance, and offer sheets require a saved world.'
         )
       ).toBeInTheDocument();
       expect(screen.getByTestId('world-time-controls')).toBeInTheDocument();

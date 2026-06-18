@@ -79,6 +79,7 @@ export function useArchitectState({
 
   // === World state ===
   const [worldId, setWorldId] = useState<string | null>(null);
+  const [activeWorldLabel, setActiveWorldLabel] = useState<string | null>(null);
   const [worldAsOfDate, setWorldAsOfDate] = useState<string | null>(null);
   const [worldCurrentSeason, setWorldCurrentSeason] = useState<string | null>(null);
   const [worldMetadataLoading, setWorldMetadataLoading] = useState<boolean>(false);
@@ -162,6 +163,7 @@ export function useArchitectState({
     setWorldId,
     setBaselineCapSheet,
     setTeamCapSheet,
+    setActiveWorldLabel,
     setWorldAsOfDate,
     setWorldCurrentSeason,
     setWorldMetadataLoading,
@@ -367,9 +369,28 @@ export function useArchitectState({
       }
     };
 
-    if (!authLoading) {
-      fetchData();
+    if (authLoading) {
+      return () => {
+        isCancelled = true;
+      };
     }
+
+    if (!userId) {
+      setIsLoading(false);
+      setError('Sign in to load Architect data.');
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    if (!hasRestoredActiveWorld) {
+      setIsLoading(true);
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    fetchData();
 
     return () => {
       isCancelled = true;
@@ -377,10 +398,12 @@ export function useArchitectState({
   }, [
     applyCoordinatedWorldBundle,
     authLoading,
+    hasRestoredActiveWorld,
     isFreshWorldLoadRequest,
     loadCoordinatedWorldBundle,
     prepareCoordinatedWorldLoad,
     startWorldLoadRequest,
+    userId,
     worldId,
   ]);
 
@@ -479,6 +502,7 @@ export function useArchitectState({
     capTableYears,
     players: worldAwarePlayers,
     worldId,
+    activeWorldLabel,
     worldAsOfDate,
     worldCurrentSeason,
     worldMetadataLoading,

@@ -120,6 +120,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     });
     stateMocks.loadWorldTeamData.mockResolvedValue(teamFixture);
     stateMocks.getWorldMetadata.mockResolvedValue({
+      worldName: 'Deadline World',
       createdBy: 'user_1',
       isArchived: false,
       asOfDate: '2026-07-01',
@@ -578,6 +579,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     await waitFor(() => {
       expect(result.current.worldAsOfDate).toBe('2026-07-01');
       expect(result.current.worldCurrentSeason).toBe('2025-26');
+      expect(result.current.activeWorldLabel).toBe('Deadline World');
     });
     expect(result.current.worldModeBoundary.kind).toBe('world');
     expect(result.current.worldModeBoundary.worldId).toBe('world_1');
@@ -587,6 +589,73 @@ describe('useArchitectState world-aware free agency pool', () => {
     expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
       'world_1'
     );
+  });
+
+  it('waits for persisted active-world restore before loading team data', async () => {
+    window.localStorage.setItem('architect.activeWorldId.user_1', 'world_1');
+    const restoreMetadata = createDeferred<{
+      worldName: string;
+      createdBy: string;
+      isArchived: boolean;
+      asOfDate: string;
+      currentSeason: string;
+    }>();
+    let metadataCallCount = 0;
+
+    stateMocks.getWorldMetadata.mockImplementation(async () => {
+      metadataCallCount += 1;
+      if (metadataCallCount === 1) {
+        return restoreMetadata.promise;
+      }
+
+      return {
+        worldName: 'Deadline World',
+        createdBy: 'user_1',
+        isArchived: false,
+        asOfDate: '2026-07-01',
+        currentSeason: '2025-26',
+      };
+    });
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(stateMocks.getWorldMetadata).toHaveBeenCalledTimes(1);
+    });
+    expect(result.current.isLoading).toBe(true);
+    expect(stateMocks.loadWorldTeamData).not.toHaveBeenCalled();
+
+    await act(async () => {
+      restoreMetadata.resolve({
+        createdBy: 'user_1',
+        isArchived: false,
+        worldName: 'Deadline World',
+        asOfDate: '2026-07-01',
+        currentSeason: '2025-26',
+      });
+    });
+
+    await waitFor(() => {
+      expect(stateMocks.loadWorldTeamData).toHaveBeenCalledWith(
+        'world_1',
+        'LAL'
+      );
+    });
+    expect(result.current.activeWorldLabel).toBe('Deadline World');
+    expect(stateMocks.loadWorldTeamData).not.toHaveBeenCalledWith(null, 'LAL');
   });
 
   it('clears invalid persisted active worlds in the hook instead of the selector', async () => {

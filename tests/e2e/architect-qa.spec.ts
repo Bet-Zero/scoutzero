@@ -1148,9 +1148,9 @@ const readReviewUserId = async (page: Page): Promise<string> =>
 
 // Admin-write a world metadata doc owned by `userId`. Shape mirrors createWorld
 // (worldManager.core.ts) so the WorldSelector lists it — `isArchived: false`
-// and `lastModifiedAt` are required by the ordered owner query — and the app
-// treats it as a real world. (createWorld writes metadata only; team subdocs
-// are seeded separately by tests that need a roster, as before.)
+// keeps it in the active list, and `lastModifiedAt` preserves normal local
+// sorting. The app treats it as a real world. (createWorld writes metadata only;
+// team subdocs are seeded separately by tests that need a roster, as before.)
 const seedReviewWorld = async (
   userId: string,
   worldName: string
@@ -1191,11 +1191,9 @@ const seedReviewWorld = async (
 // Persist the active-world selection exactly the way the app does
 // (writePersistedActiveWorldId → localStorage `architect.activeWorldId.<uid>`),
 // then reload so useArchitectState restores it via a single-doc get. This is
-// required because review mode CANNOT list worlds: the architect_worlds read
-// rule gates on the {worldId} path wildcard, which Firestore only binds for
-// get(), not for list/query — so the WorldSelector dropdown always errors with
-// "Failed to load worlds" and never holds the option to click. Single-doc get
-// (ownership-validated) is allowed, which is how the app rehydrates anyway.
+// still the deterministic e2e setup: WorldSelector list queries are covered by
+// Firestore rules tests, while this helper focuses reload restoration on the
+// same storage key the app writes after a user selects a world.
 const activateSeededWorld = async (
   page: Page,
   userId: string,

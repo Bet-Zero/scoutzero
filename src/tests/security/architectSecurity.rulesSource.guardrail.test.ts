@@ -28,8 +28,12 @@ describe('Architect security rules source guardrails', () => {
   it('uses createdBy owner-gating for architect_worlds', () => {
     const rules = readRules();
     expect(rules).toMatch(/function\s+isWorldOwner\s*\(\s*worldId\s*\)/);
+    expect(rules).toMatch(/function\s+isWorldMetadataOwner\s*\(\s*\)/);
     expect(rules).toMatch(/architect_worlds\/\$\(worldId\)/);
     expect(rules).toMatch(/\.data\.createdBy\s*==\s*request\.auth\.uid/);
+    expect(rules).toMatch(
+      /allow\s+get\s*,\s*list\s*:\s*if\s+isWorldMetadataOwner\(\)\s*;/
+    );
     expect(rules).toMatch(/match\s+\/architect_worlds\/\{worldId\}/);
   });
 

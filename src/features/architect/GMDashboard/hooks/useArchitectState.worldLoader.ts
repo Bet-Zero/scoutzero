@@ -37,6 +37,7 @@ export type UseWorldLoaderParams = {
   setWorldId: (v: string | null) => void;
   setBaselineCapSheet: (v: CapSheet | null) => void;
   setTeamCapSheet: (v: CapSheet | null) => void;
+  setActiveWorldLabel: (v: string | null) => void;
   setWorldAsOfDate: (v: string | null) => void;
   setWorldCurrentSeason: (v: string | null) => void;
   setWorldMetadataLoading: (v: boolean) => void;
@@ -88,6 +89,7 @@ export function useWorldLoader(params: UseWorldLoaderParams): UseWorldLoaderResu
     setWorldId,
     setBaselineCapSheet,
     setTeamCapSheet,
+    setActiveWorldLabel,
     setWorldAsOfDate,
     setWorldCurrentSeason,
     setWorldMetadataLoading,
@@ -109,15 +111,19 @@ export function useWorldLoader(params: UseWorldLoaderParams): UseWorldLoaderResu
 
   const applyWorldMetadata = useCallback(
     (metadata: WorldMetadataLike | null | undefined) => {
+      setActiveWorldLabel(metadata?.worldName || null);
       setWorldAsOfDate(metadata?.asOfDate || null);
       setWorldCurrentSeason(metadata?.currentSeason || null);
     },
-    [setWorldAsOfDate, setWorldCurrentSeason]
+    [setActiveWorldLabel, setWorldAsOfDate, setWorldCurrentSeason]
   );
 
   const applyWorldMetadataPatch = useCallback(
     (metadataPatch: WorldMetadataLike | null | undefined) => {
       if (!metadataPatch) return;
+      if (metadataPatch.worldName !== undefined) {
+        setActiveWorldLabel(metadataPatch.worldName || null);
+      }
       if (metadataPatch.asOfDate !== undefined) {
         setWorldAsOfDate(metadataPatch.asOfDate || null);
       }
@@ -125,7 +131,7 @@ export function useWorldLoader(params: UseWorldLoaderParams): UseWorldLoaderResu
         setWorldCurrentSeason(metadataPatch.currentSeason || null);
       }
     },
-    [setWorldAsOfDate, setWorldCurrentSeason]
+    [setActiveWorldLabel, setWorldAsOfDate, setWorldCurrentSeason]
   );
 
   const applyWorldRosterBundle = useCallback(

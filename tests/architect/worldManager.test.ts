@@ -329,7 +329,7 @@ describe('World Manager', () => {
       }
     });
 
-    it('falls back to in-memory filtering and sorting when the primary query fails', async () => {
+    it('uses an owner-only world query and filters/sorts in memory', async () => {
       resetMockDataStore();
       seedWorldMetadata(
         'world_alpha',
@@ -366,16 +366,18 @@ describe('World Manager', () => {
       );
 
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      vi.spyOn(firestore, 'getDocs').mockRejectedValueOnce(
-        new Error('missing index')
-      );
+      const whereSpy = vi.spyOn(firestore, 'where');
+      const orderBySpy = vi.spyOn(firestore, 'orderBy');
 
       const worlds = await listUserWorlds(userId, {
         orderBy: 'worldName',
         orderDirection: 'asc',
       });
 
-      expect(warnSpy).toHaveBeenCalled();
+      expect(whereSpy).toHaveBeenCalledWith('createdBy', '==', userId);
+      expect(whereSpy).not.toHaveBeenCalledWith('isArchived', '==', false);
+      expect(orderBySpy).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
       expect(worlds.map((world) => world.worldId)).toEqual([
         'world_alpha',
         'world_zulu',

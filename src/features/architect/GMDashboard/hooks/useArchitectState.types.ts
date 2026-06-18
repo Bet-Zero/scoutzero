@@ -132,6 +132,7 @@ export type WorldLeagueTeamLike = Pick<LeagueTeamSnapshot, 'roster'> & {
 };
 
 export type WorldMetadataLike = {
+  worldName?: string | null;
   asOfDate?: string | null;
   currentSeason?: string | null;
 };
@@ -409,6 +410,7 @@ export interface UseArchitectStateReturn {
   capTableYears: number[];
   players: ArchitectPlayer[];
   worldId: string | null;
+  activeWorldLabel: string | null;
   worldAsOfDate: string | null;
   worldCurrentSeason: string | null;
   worldMetadataLoading: boolean;

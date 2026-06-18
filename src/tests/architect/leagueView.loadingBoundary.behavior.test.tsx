@@ -233,13 +233,13 @@ describe('LeagueView loading-boundary behavior', () => {
       endYear: 2026,
       seasonCode: '2025-26',
       seasonSourceLabel: 'Default current season',
-      sourceBoundaryLabel: 'Read-only base team snapshots',
+      sourceBoundaryLabel: 'Read-only base team snapshots after sign-in',
       totalsDisplayLabel: 'Total Cap Allocations',
       totalsBoundaryLabel: 'computeTeamCapTotals totalCapAllocations',
       presentationBoundaryLabel:
         'Conference grouping and alphabetical order only; totals are not recomputed.',
       teamHandoffBoundaryLabel:
-        'Manage Team carries team identity only; the dashboard owns its selected season.',
+        'Manage Team opens the saved-world launcher for this team; sandbox is local preview only.',
     });
   });
 
@@ -254,7 +254,7 @@ describe('LeagueView loading-boundary behavior', () => {
     await waitFor(() => {
       expect(truthPanel).toHaveTextContent('Season: 2025-26');
       expect(truthPanel).toHaveTextContent('Default current season');
-      expect(truthPanel).toHaveTextContent('Read-only base team snapshots');
+      expect(truthPanel).toHaveTextContent('Read-only base team snapshots after sign-in');
       expect(truthPanel).toHaveTextContent('Total Cap Allocations');
       expect(truthPanel).toHaveTextContent(
         'computeTeamCapTotals totalCapAllocations'
@@ -263,7 +263,7 @@ describe('LeagueView loading-boundary behavior', () => {
         'Conference grouping and alphabetical order only'
       );
       expect(truthPanel).toHaveTextContent(
-        'the dashboard owns its selected season'
+        'saved-world launcher'
       );
       expect(truthPanel).toHaveTextContent('1 of 2 team snapshots loaded');
     });
@@ -285,12 +285,12 @@ describe('LeagueView loading-boundary behavior', () => {
     render(<LeagueView />);
 
     const lakersManageButton = await screen.findByRole('button', {
-      name: /Manage Los Angeles Lakers.*dashboard owns its selected season/i,
+      name: /Manage Los Angeles Lakers.*saved-world launcher/i,
     });
 
     expect(lakersManageButton).toHaveAttribute(
       'title',
-      'Manage Team carries team identity only; the dashboard owns its selected season.'
+      'Manage Team opens the saved-world launcher for this team; sandbox is local preview only.'
     );
 
     fireEvent.click(lakersManageButton);
@@ -449,7 +449,7 @@ describe('LeagueView loading-boundary behavior', () => {
 
     const truthPanel = screen.getByTestId('league-view-truth-panel');
     expect(truthPanel).toHaveTextContent('Season: 2025-26');
-    expect(truthPanel).toHaveTextContent('Read-only base team snapshots');
+    expect(truthPanel).toHaveTextContent('Read-only base team snapshots after sign-in');
     expect(truthPanel).toHaveTextContent('0 of 2 team snapshots loaded');
     expect(truthPanel).toHaveTextContent(
       'League read failed: League snapshot query failed.'
@@ -639,7 +639,7 @@ describe('LeagueView Step 2 closeout guardrails', () => {
     render(<LeagueView />);
 
     const lakersManageButton = await screen.findByRole('button', {
-      name: /Manage Los Angeles Lakers.*dashboard owns its selected season/i,
+      name: /Manage Los Angeles Lakers.*saved-world launcher/i,
     });
 
     fireEvent.click(lakersManageButton);

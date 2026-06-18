@@ -12,6 +12,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid;
     }
 
+    function isWorldMetadataOwner() {
+      return isAuthenticated()
+        && resource.data.createdBy == request.auth.uid;
+    }
+
     // Lists: strict owner-scoped access.
     match /lists/{listId} {
       allow read: if isAuthenticated()
@@ -54,11 +59,11 @@ service cloud.firestore {
 
     // Architect worlds: owner-only access based on world.createdBy.
     match /architect_worlds/{worldId} {
-      allow read: if isWorldOwner(worldId);
+      allow get, list: if isWorldMetadataOwner();
       allow create: if isAuthenticated()
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.worldId == worldId;
-      allow update, delete: if isWorldOwner(worldId);
+      allow update, delete: if isWorldMetadataOwner();
 
       match /teams/{teamCode} {
         allow read, write: if isWorldOwner(worldId);
