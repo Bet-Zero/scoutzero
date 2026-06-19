@@ -57,6 +57,29 @@ service cloud.firestore {
         && resource.data.ownerUid == request.auth.uid;
     }
 
+    // Player profile evaluation overlays: user-owned editable scouting data.
+    match /playerProfileEvaluations/{ownerUid} {
+      allow read, write: if isAuthenticated()
+        && ownerUid == request.auth.uid;
+
+      match /players/{playerId} {
+        allow read: if isAuthenticated()
+          && ownerUid == request.auth.uid;
+        allow create: if isAuthenticated()
+          && ownerUid == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.playerId == playerId;
+        allow update: if isAuthenticated()
+          && ownerUid == request.auth.uid
+          && resource.data.ownerUid == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.playerId == playerId;
+        allow delete: if isAuthenticated()
+          && ownerUid == request.auth.uid
+          && resource.data.ownerUid == request.auth.uid;
+      }
+    }
+
     // Architect worlds: owner-only access based on world.createdBy.
     match /architect_worlds/{worldId} {
       allow get, list: if isWorldMetadataOwner();
@@ -91,6 +114,21 @@ service cloud.firestore {
     match /players_v2/{playerId} {
       allow read: if isAuthenticated();
       allow write: if false;
+
+      match /contracts/{contractId} {
+        allow read: if isAuthenticated();
+        allow write: if false;
+      }
+
+      match /seasons/{seasonId} {
+        allow read: if isAuthenticated();
+        allow write: if false;
+      }
+
+      match /evaluations/{evaluationId} {
+        allow read: if isAuthenticated();
+        allow write: if false;
+      }
     }
 
     match /architect_basePlayers/{playerId} {

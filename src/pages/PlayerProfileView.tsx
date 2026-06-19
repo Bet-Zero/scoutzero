@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { usePlayerNavigation } from '@/features/profile/hooks/usePlayerNavigation';
 import { usePlayerProfileState } from '@/features/profile/hooks/usePlayerProfileState';
 import { useAutoSavePlayer } from '@/features/profile/hooks/useAutoSavePlayer';
@@ -17,8 +18,9 @@ import { PlayerSearchBar } from '@/features/profile/PlayerSearchBar';
 
 const PlayerProfileView = () => {
   const [openModal, setOpenModal] = useState<string | null>(null);
+  const { userId, loading: authLoading } = useAuth();
 
-  const nav = usePlayerNavigation(openModal);
+  const nav = usePlayerNavigation(openModal, userId);
   const evalState = usePlayerProfileState(
     nav.detailedPlayer,
     nav.selectedPlayer,
@@ -26,6 +28,7 @@ const PlayerProfileView = () => {
   );
 
   const { saveError, saveState, saveNow } = useAutoSavePlayer({
+    ownerUid: userId,
     playerId: nav.selectedPlayer,
     player: evalState.player,
     traits: evalState.traits,
@@ -41,10 +44,31 @@ const PlayerProfileView = () => {
     setHasChanges: evalState.setHasChanges,
   });
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
+        <div className="text-white text-lg">Loading HoopZero...</div>
+      </div>
+    );
+  }
+
   if (nav.isLoading) {
     return (
       <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
         <div className="text-white text-lg">Loading HoopZero...</div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center px-6">
+        <div className="text-center text-white">
+          <div className="text-lg font-semibold">Unable to initialize session</div>
+          <div className="mt-2 text-sm text-white/60">
+            Player profile edits are unavailable until the session is ready.
+          </div>
+        </div>
       </div>
     );
   }

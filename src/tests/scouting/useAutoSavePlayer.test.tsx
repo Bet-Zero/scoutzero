@@ -9,6 +9,7 @@ import { getMockData } from '../../../tests/__mocks__/firebase.js';
 const createInput = (
   setHasChanges: Dispatch<SetStateAction<boolean>>
 ): AutoSavePlayerInput => ({
+  ownerUid: 'test_user',
   playerId: 'test_player_doc',
   player: {
     id: 'test_player_doc',
@@ -63,7 +64,7 @@ afterEach(() => {
 });
 
 describe('useAutoSavePlayer', () => {
-  it('saveNow writes the evaluation and denormalized profile views', async () => {
+  it('saveNow writes the user-owned profile evaluation overlay only', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-18T12:00:00Z'));
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
@@ -77,8 +78,12 @@ describe('useAutoSavePlayer', () => {
     });
 
     expect(
-      getMockData('players_v2/test_player_doc/evaluations/current')
+      getMockData(
+        'playerProfileEvaluations/test_user/players/test_player_doc'
+      )
     ).toMatchObject({
+      ownerUid: 'test_user',
+      playerId: 'test_player_doc',
       traits: { Shooting: 82 },
       roles: {
         offense1: 'Primary Creator',
@@ -112,48 +117,34 @@ describe('useAutoSavePlayer', () => {
       },
     });
 
-    expect(
-      getMockData('players_v2/test_player_doc/seasons/2025-26')
-    ).toMatchObject({
-      evaluationView: {
-        overallGrade: 78,
-        roles: {
-          offense1: 'Primary Creator',
-          offense2: null,
-          defense1: 'Point of Attack',
-          defense2: null,
-        },
-        shootingProfile: 'Movement Shooter',
-        twoWay: 64,
-        badges: ['Touch Finisher'],
-      },
-    });
-
-    expect(getMockData('players_v2/test_player_doc')).toMatchObject({
-      currentEvaluationView: {
-        overallGrade: 78,
-        subRoles: {
-          offense: ['Advantage Creator'],
-          defense: ['Screen Navigator'],
-        },
-        traits: { Shooting: 82 },
-        blurbs: {
-          overall: 'Existing overall',
-        },
-        videoExamples: {
-          overall: [
-            {
-              url: 'https://youtu.be/original',
-              label: 'Original clip',
-              createdAt: 1,
-            },
-          ],
-        },
-      },
-    });
+    expect(getMockData('players_v2/test_player_doc/evaluations/current'))
+      .toBeUndefined();
+    expect(getMockData('players_v2/test_player_doc/seasons/2025-26'))
+      .toBeUndefined();
+    expect(getMockData('players_v2/test_player_doc')).toBeUndefined();
 
     expect(setHasChanges).toHaveBeenCalledWith(false);
     expect(result.current.saveState).toBe('saved');
     expect(result.current.saveError).toBeNull();
+  });
+
+  it('omits null overallGrade values from the profile overlay payload', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-18T12:00:00Z'));
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const setHasChanges: Dispatch<SetStateAction<boolean>> = vi.fn();
+    const { result } = renderHook(() =>
+      useAutoSavePlayer(createInput(setHasChanges))
+    );
+
+    await act(async () => {
+      await result.current.saveNow({ overallGrade: null });
+    });
+
+    expect(
+      getMockData(
+        'playerProfileEvaluations/test_user/players/test_player_doc'
+      )
+    ).not.toHaveProperty('overallGrade');
   });
 });

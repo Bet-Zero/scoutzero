@@ -133,6 +133,32 @@ const team = await getDoc(baseTeamRef(teamCode));
 
 ## User-Created Collections
 
+### `/playerProfileEvaluations/{ownerUid}/players/{playerId}` - Profile Scouting Overlays ✅ ACTIVE
+
+**Status**: ✅ Active
+**Usage**: User-owned editable player profile/scouting evaluation data. This collection stores profile edits outside read-only `players_v2` source player records.
+
+**Structure**:
+
+| Field           | Type       | Default      | Notes                                                                       |
+| --------------- | ---------- | ------------ | --------------------------------------------------------------------------- |
+| `ownerUid`      | `string`   | _(required)_ | Firebase Auth UID that owns the profile overlay namespace.                  |
+| `playerId`      | `string`   | _(required)_ | Source `players_v2` player document ID this overlay applies to.             |
+| `traits`        | `object`   | `{}`         | Editable scouting trait scores.                                             |
+| `roles`         | `object`   | `{}`         | Editable offensive/defensive role labels.                                   |
+| `subRoles`      | `object`   | `{}`         | Editable offensive/defensive sub-role arrays.                               |
+| `badges`        | `string[]` | `[]`         | Editable badge labels.                                                      |
+| `shootingProfile` | `string` | `''`         | Editable shooting profile label.                                            |
+| `overallGrade`  | `number`   | _(omitted)_  | Editable profile overall grade when set.                                    |
+| `blurbs`        | `object`   | `{}`         | Editable profile breakdown copy.                                            |
+| `videoExamples` | `object`   | `{}`         | Editable profile video examples.                                            |
+| `twoWay`        | `number`   | `50`         | Editable two-way meter value.                                               |
+| `meta`          | `object`   | `{}`         | Save metadata such as update timestamp and version.                         |
+
+**Load/Save Contract**: `players_v2` remains the immutable source of player bio, stats, contracts, and source evaluation data. Profile autosave writes only to this overlay path, and profile detail loading merges the current owner's overlay into `evaluations.current` so saved profile edits hydrate through the existing profile state model.
+
+**Compatibility Note**: Historical profile edits that were previously written under `players_v2` remain readable as source evaluation data when present. There is no broad migration in the active profile save path.
+
 ### `/lists/{listId}` - Player Lists ✅ CANONICAL (E1+)
 
 **Status**: ✅ Schema normalized (E1), ownership scoped (E4)

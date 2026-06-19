@@ -81,6 +81,18 @@ export const SEASONS_SUBCOLLECTION = 'seasons';
 export const EVALUATIONS_SUBCOLLECTION = 'evaluations';
 
 /**
+ * User-owned player profile evaluation overlays.
+ * Stores editable scouting/profile data outside read-only players_v2.
+ *
+ * Path structure:
+ * - playerProfileEvaluations/{ownerUid}/players/{playerId}
+ */
+export const PLAYER_PROFILE_EVALUATIONS_COLLECTION =
+  env.VITE_PLAYER_PROFILE_EVALUATIONS_COLLECTION ||
+  'playerProfileEvaluations';
+export const PLAYER_PROFILE_EVALUATION_PLAYERS_SUBCOLLECTION = 'players';
+
+/**
  * Player lists collection (user-owned)
  * Stores user-created ranked player lists.
  */

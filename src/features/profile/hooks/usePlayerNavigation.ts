@@ -72,17 +72,20 @@ const isTextEntryTarget = (target: EventTarget | null): boolean => {
 };
 
 export const usePlayerNavigation = (
-  openModal: unknown
+  openModal: unknown,
+  profileOwnerUid?: string | null
 ): UsePlayerNavigationResult => {
   const navigate = useNavigate();
   const location = useLocation();
   const { slug = '' } = useParams<{ slug?: string }>();
   const [searchParams] = useSearchParams();
+  const profileDataEnabled =
+    profileOwnerUid === undefined || Boolean(profileOwnerUid);
   const {
     players: fetchedPlayers,
     loading: isLoading,
     error: listError,
-  } = useSimplePlayerData();
+  } = useSimplePlayerData({ enabled: profileDataEnabled });
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [selectedPlayer, setSelectedPlayer] = useState<string>('');
   const [filteredKeys, setFilteredKeys] = useState<string[]>([]);
@@ -110,7 +113,7 @@ export const usePlayerNavigation = (
     player: detailedPlayer,
     loading: detailLoading,
     error: detailError,
-  } = usePlayerDetail(selectedPlayer);
+  } = usePlayerDetail(selectedPlayer, profileOwnerUid);
 
   // Resolve player selection from canonical pid, legacy player, or unique slug.
   useEffect(() => {
@@ -258,4 +261,3 @@ export const usePlayerNavigation = (
     handleSearchSelect,
   };
 };
-

@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/profile/hooks/useAutoSavePlayer.ts
- * PURPOSE: Autosave scouting evaluation data to Firestore evaluations/current and denormalized views.
+ * PURPOSE: Autosave scouting evaluation data to user-owned profile overlays.
  * OWNERSHIP: Feature: profile/scouting
  *
  * HISTORY:
@@ -25,7 +25,7 @@ import {
 } from 'react';
 import { writeBatch } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import { evalRef, seasonRef, playerRef } from '@/data/firestorePaths';
+import { playerProfileEvaluationRef } from '@/data/firestorePaths';
 import { normalizeBlurbs } from '@/shared/utils/blurbs';
 import type { Blurbs } from '@/shared/utils/blurbs';
 import { normalizeVideoExamples } from '@/shared/utils/videoExamples';
@@ -51,6 +51,7 @@ type SanitizedValue =
   | { [key: string]: SanitizedValue };
 
 export type AutoSavePlayerInput = {
+  ownerUid: string | null;
   playerId: string;
   player: EnrichedPlayerData<EnrichablePlayerData> | null;
   traits: Record<string, number>;
@@ -72,6 +73,7 @@ type AutoSaveSnapshot = Omit<
 >;
 
 type CompleteAutoSaveSnapshot = AutoSaveSnapshot & {
+  ownerUid: string;
   player: EnrichedPlayerData<EnrichablePlayerData>;
 };
 
@@ -132,7 +134,8 @@ const isCompleteSnapshot = (
   snapshot: Partial<AutoSaveSnapshot> | null
 ): snapshot is CompleteAutoSaveSnapshot => {
   return Boolean(
-    snapshot?.playerId &&
+    snapshot?.ownerUid &&
+      snapshot.playerId &&
       snapshot.player &&
       snapshot.traits &&
       snapshot.roles &&
@@ -146,6 +149,7 @@ const isCompleteSnapshot = (
 };
 
 export const useAutoSavePlayer = ({
+  ownerUid,
   playerId,
   player,
   traits,
@@ -183,6 +187,7 @@ export const useAutoSavePlayer = ({
 
   useEffect(() => {
     latestSnapshotRef.current = {
+      ownerUid,
       playerId,
       player,
       traits,
@@ -200,6 +205,7 @@ export const useAutoSavePlayer = ({
       changeTokenRef.current += 1;
     }
   }, [
+    ownerUid,
     playerId,
     player,
     traits,
@@ -259,12 +265,14 @@ export const useAutoSavePlayer = ({
         snapshot.videoExamples
       );
       const evaluationData = {
+        ownerUid: snapshot.ownerUid,
+        playerId: snapshot.playerId,
         traits: snapshot.traits,
         roles: snapshot.roles,
         subRoles: snapshot.subRoles,
         badges: snapshot.badges,
         shootingProfile: snapshot.shootingProfile,
-        overallGrade: snapshot.overallGrade,
+        overallGrade: snapshot.overallGrade ?? undefined,
         blurbs: normalizedBlurbs,
         videoExamples: normalizedVideoExamples,
         twoWay: snapshot.twoWay,
@@ -278,69 +286,12 @@ export const useAutoSavePlayer = ({
       // Strip undefined values to prevent Firestore errors.
       const sanitizedEvaluationData = sanitizeWriteData(evaluationData);
 
-      // Get current season info for denormalized updates.
-      const now = new Date();
-      const currentYear = now.getFullYear() + (now.getMonth() >= 6 ? 1 : 0);
-      const seasonId = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
-
-      // Batch operation to update both locations.
       const batch = writeBatch(db);
-
-      // 1. Save to main evaluations subcollection.
-      const evaluationDocRef = evalRef(snapshot.playerId, 'current');
+      const evaluationDocRef = playerProfileEvaluationRef(
+        snapshot.ownerUid,
+        snapshot.playerId
+      );
       batch.set(evaluationDocRef, sanitizedEvaluationData, { merge: true });
-
-      // 2. Update denormalized evaluationView in current season.
-      const seasonDocRef = seasonRef(snapshot.playerId, seasonId);
-      const evaluationView = {
-        overallGrade: snapshot.overallGrade,
-        roles: {
-          offense1: snapshot.roles.offense1 || null,
-          offense2: snapshot.roles.offense2 || null,
-          defense1: snapshot.roles.defense1 || null,
-          defense2: snapshot.roles.defense2 || null,
-        },
-        shootingProfile: snapshot.shootingProfile,
-        twoWay: snapshot.twoWay,
-        badges: snapshot.badges,
-      };
-      const sanitizedEvaluationView = sanitizeWriteData(evaluationView);
-      batch.set(
-        seasonDocRef,
-        {
-          evaluationView: sanitizedEvaluationView,
-        },
-        { merge: true }
-      );
-
-      // 3. Update denormalized currentEvaluationView in main document.
-      const playerDocRef = playerRef(snapshot.playerId);
-      const currentEvaluationView = {
-        overallGrade: snapshot.overallGrade,
-        roles: {
-          offense1: snapshot.roles.offense1 || null,
-          offense2: snapshot.roles.offense2 || null,
-          defense1: snapshot.roles.defense1 || null,
-          defense2: snapshot.roles.defense2 || null,
-        },
-        subRoles: snapshot.subRoles || undefined,
-        shootingProfile: snapshot.shootingProfile,
-        twoWay: snapshot.twoWay,
-        badges: snapshot.badges || [],
-        traits: snapshot.traits || {},
-        blurbs: normalizedBlurbs,
-        videoExamples: normalizedVideoExamples,
-      };
-      const sanitizedCurrentEvaluationView = sanitizeWriteData(
-        currentEvaluationView
-      );
-      batch.set(
-        playerDocRef,
-        {
-          currentEvaluationView: sanitizedCurrentEvaluationView,
-        },
-        { merge: true }
-      );
 
       await batch.commit();
 
@@ -386,7 +337,7 @@ export const useAutoSavePlayer = ({
   }, [performSave]);
 
   useEffect(() => {
-    if (!playerId || !player || !hasChanges) return;
+    if (!ownerUid || !playerId || !player || !hasChanges) return;
 
     setSaveState('saving');
     scheduleSave();
@@ -397,6 +348,7 @@ export const useAutoSavePlayer = ({
       }
     };
   }, [
+    ownerUid,
     playerId,
     player,
     traits,
@@ -435,4 +387,3 @@ export const useAutoSavePlayer = ({
 
   return { isSaving, saveError, saveState, saveNow };
 };
-

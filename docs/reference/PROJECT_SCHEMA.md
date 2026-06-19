@@ -655,6 +655,35 @@ const contracts = await getDocs(
 );
 ```
 
+### `/playerProfileEvaluations/{ownerUid}/players/{playerId}`
+
+**Status:** ✅ Active (player profile editable overlays)
+
+**Purpose:** Stores user-owned player profile/scouting edits outside read-only `players_v2`.
+
+**Top-Level Fields:**
+
+- `ownerUid` - Firebase Auth UID that owns the overlay namespace
+- `playerId` - Source `players_v2` player document ID
+- `traits`, `roles`, `subRoles`, `badges`, `shootingProfile`, `overallGrade`, `blurbs`, `videoExamples`, `twoWay` - editable profile evaluation fields
+- `meta` - save metadata
+
+**Access Pattern:**
+
+```javascript
+import { playerProfileEvaluationRef } from '@/data/firestorePaths';
+
+const profileEval = await getDoc(
+  playerProfileEvaluationRef(ownerUid, playerId)
+);
+```
+
+**Notes:**
+
+- `players_v2` remains immutable source data.
+- Profile autosave writes only to this overlay path.
+- Profile detail loading merges the current owner's overlay into `evaluations.current` so saved edits hydrate through the existing profile state model.
+
 ### `/architect_baseTeams/{teamCode}`
 
 **Status:** ✅ Active (architect)

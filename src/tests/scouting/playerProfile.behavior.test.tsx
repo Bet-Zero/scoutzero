@@ -25,6 +25,7 @@ import type { ModalSavePayload } from '@/features/profile/hooks/usePlayerProfile
 import { createEmptyVideoExamples } from '@/shared/utils/videoExamples';
 import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 import { usePlayerDetail } from '@/shared/hooks/usePlayerDetail';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 vi.mock('@/shared/hooks/useSimplePlayerData', () => {
   const useSimplePlayerData = vi.fn();
@@ -36,8 +37,14 @@ vi.mock('@/shared/hooks/usePlayerDetail', () => {
   return { default: usePlayerDetail, usePlayerDetail };
 });
 
+vi.mock('@/shared/hooks/useAuth', () => {
+  const useAuth = vi.fn();
+  return { useAuth };
+});
+
 const mockedUseSimplePlayerData = vi.mocked(useSimplePlayerData);
 const mockedUsePlayerDetail = vi.mocked(usePlayerDetail);
+const mockedUseAuth = vi.mocked(useAuth);
 
 const PLAYER_FIXTURES = [
   {
@@ -214,6 +221,11 @@ function BreakdownModalHarness({
 }
 
 beforeEach(() => {
+  mockedUseAuth.mockReturnValue({
+    user: null,
+    userId: 'test_user',
+    loading: false,
+  });
   mockedUseSimplePlayerData.mockReturnValue({
     players: PLAYER_FIXTURES,
     loading: false,

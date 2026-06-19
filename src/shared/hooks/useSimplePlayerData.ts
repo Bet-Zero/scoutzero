@@ -37,6 +37,10 @@ interface UseSimplePlayerDataResult {
   error: string | null;
 }
 
+type UseSimplePlayerDataOptions = {
+  enabled?: boolean;
+};
+
 /**
  * Simple, reliable player data hook with real-time updates
  * Replaces the 4-strategy fallback complexity in useSeasonPlayerData
@@ -44,12 +48,21 @@ interface UseSimplePlayerDataResult {
  * Returns main player documents only (no subcollections)
  * Use usePlayerDetail for full player data with subcollections
  */
-export const useSimplePlayerData = (): UseSimplePlayerDataResult => {
+export const useSimplePlayerData = ({
+  enabled = true,
+}: UseSimplePlayerDataOptions = {}): UseSimplePlayerDataResult => {
   const [players, setPlayers] = useState<SimplePlayer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setPlayers([]);
+      setLoading(true);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -104,8 +117,7 @@ export const useSimplePlayerData = (): UseSimplePlayerDataResult => {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [enabled]);
 
   return { players, loading, error };
 };
-

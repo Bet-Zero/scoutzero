@@ -13,6 +13,8 @@ import {
   CONTRACTS_SUBCOLLECTION,
   SEASONS_SUBCOLLECTION,
   EVALUATIONS_SUBCOLLECTION,
+  PLAYER_PROFILE_EVALUATIONS_COLLECTION,
+  PLAYER_PROFILE_EVALUATION_PLAYERS_SUBCOLLECTION,
 } from '@/constants/collections';
 
 type DocRef = DocumentReference<DocumentData, DocumentData>;
@@ -36,6 +38,18 @@ export const evalRef = (playerId: string, evalId: string): DocRef =>
   doc(db, PLAYERS_COLLECTION, playerId, EVALUATIONS_SUBCOLLECTION, evalId);
 
 export const playersCol = (): ColRef => collection(db, PLAYERS_COLLECTION);
+
+export const playerProfileEvaluationRef = (
+  ownerUid: string,
+  playerId: string
+): DocRef =>
+  doc(
+    db,
+    PLAYER_PROFILE_EVALUATIONS_COLLECTION,
+    ownerUid,
+    PLAYER_PROFILE_EVALUATION_PLAYERS_SUBCOLLECTION,
+    playerId
+  );
 
 // Architect base collections (for GM tools and trade machine)
 // Canonical paths (documentation): /architect/baseTeams/{teamCode} and /architect/basePlayers/{playerId}

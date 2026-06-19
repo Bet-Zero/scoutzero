@@ -6,6 +6,7 @@ import {
   contractsCol,
   seasonsCol,
   evalsCol,
+  playerProfileEvaluationRef,
 } from '@/data/firestorePaths';
 import {
   PlayerMainDocZ,
@@ -45,6 +46,50 @@ const parseFirestoreDoc = <T>(
   return parsed.data;
 };
 
+const mergeOptionalObject = <T extends object>(
+  base: T | undefined,
+  overlay: T | undefined
+): T | undefined => {
+  if (!base && !overlay) return undefined;
+  return {
+    ...(base ?? {}),
+    ...(overlay ?? {}),
+  } as T;
+};
+
+const mergeEvaluationDocs = (
+  source: EvaluationDoc | undefined,
+  overlay: EvaluationDoc
+): EvaluationDoc => {
+  const merged: EvaluationDoc = {
+    ...(source ?? {}),
+    ...overlay,
+  };
+
+  const roles = mergeOptionalObject(source?.roles, overlay.roles);
+  if (roles) merged.roles = roles;
+
+  const traits = mergeOptionalObject(source?.traits, overlay.traits);
+  if (traits) merged.traits = traits;
+
+  const subRoles = mergeOptionalObject(source?.subRoles, overlay.subRoles);
+  if (subRoles) merged.subRoles = subRoles;
+
+  const blurbs = mergeOptionalObject(source?.blurbs, overlay.blurbs);
+  if (blurbs) merged.blurbs = blurbs;
+
+  const videoExamples = mergeOptionalObject(
+    source?.videoExamples,
+    overlay.videoExamples
+  );
+  if (videoExamples) merged.videoExamples = videoExamples;
+
+  const meta = mergeOptionalObject(source?.meta, overlay.meta);
+  if (meta) merged.meta = meta;
+
+  return merged;
+};
+
 /**
  * Hook for fetching full player details including subcollections.
  *
@@ -57,7 +102,8 @@ const parseFirestoreDoc = <T>(
  * Returns v2 schema structure directly — no legacy flattening.
  */
 export const usePlayerDetail = (
-  playerId: string | null | undefined
+  playerId: string | null | undefined,
+  profileOwnerUid?: string | null
 ): UsePlayerDetailResult => {
   const [player, setPlayer] = useState<PlayerV2 | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -91,16 +137,26 @@ export const usePlayerDetail = (
           `players_v2/${playerId}`
         );
 
-        // Step 2: Fetch all subcollections in parallel
-        const [contractsSnap, seasonsSnap, evalsSnap] = await Promise.all([
+        const ownerUid = profileOwnerUid?.trim() || null;
+
+        // Step 2: Fetch source subcollections and user-owned profile overlay.
+        const [
+          contractsSnap,
+          seasonsSnap,
+          evalsSnap,
+          profileEvaluationSnap,
+        ] = await Promise.all([
           getDocs(contractsCol(playerId)),
           getDocs(seasonsCol(playerId)),
           getDocs(evalsCol(playerId)),
+          ownerUid
+            ? getDoc(playerProfileEvaluationRef(ownerUid, playerId))
+            : Promise.resolve(null),
         ]);
 
         // Step 3: Convert subcollections to records
         const contracts: Record<string, ContractDoc> = {};
-        contractsSnap.forEach((doc) => {
+        contractsSnap.docs.forEach((doc) => {
           // Filter out metadata fields like last_updated
           if (!doc.id.startsWith('last_')) {
             contracts[doc.id] = parseFirestoreDoc(
@@ -112,7 +168,7 @@ export const usePlayerDetail = (
         });
 
         const seasons: Record<string, SeasonDoc> = {};
-        seasonsSnap.forEach((doc) => {
+        seasonsSnap.docs.forEach((doc) => {
           seasons[doc.id] = parseFirestoreDoc(
             SeasonDocZ,
             doc.data(),
@@ -121,13 +177,25 @@ export const usePlayerDetail = (
         });
 
         const evaluations: Record<string, EvaluationDoc> = {};
-        evalsSnap.forEach((doc) => {
+        evalsSnap.docs.forEach((doc) => {
           evaluations[doc.id] = parseFirestoreDoc(
             EvaluationDocZ,
             doc.data(),
             `players_v2/${playerId}/evaluations/${doc.id}`
           );
         });
+
+        if (profileEvaluationSnap?.exists()) {
+          const profileEvaluation = parseFirestoreDoc(
+            EvaluationDocZ,
+            profileEvaluationSnap.data(),
+            `playerProfileEvaluations/${ownerUid}/players/${playerId}`
+          );
+          evaluations.current = mergeEvaluationDocs(
+            evaluations.current,
+            profileEvaluation
+          );
+        }
 
         // Step 4: Build v2 player structure with spread pattern for easier access
         const playerV2: PlayerV2 = {
@@ -157,8 +225,7 @@ export const usePlayerDetail = (
     return () => {
       isMounted = false;
     };
-  }, [playerId]);
+  }, [playerId, profileOwnerUid]);
 
   return { player, loading, error };
 };
-
