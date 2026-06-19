@@ -146,6 +146,146 @@ describe('Stage 2B — deriveReceiptFromMutationResult', () => {
     expect(receipt!.headline).toBe('Free agent signed');
   });
 
+  it('derives offer-sheet lifecycle receipts with outcome-specific labels', () => {
+    const lifecycleCases = [
+      {
+        mutationType: 'storeOfferSheet',
+        headline: 'Offer sheet stored',
+        actionType: 'offer-sheet',
+        payload: {
+          teamCode: 'LAL',
+          homeTeamCode: 'BOS',
+          playerId: 'player_rfa',
+          contract: {
+            salariesByYear: [{ season: '2025-26' }],
+          },
+        },
+        metadata: {},
+        messageParts: [
+          'Offer sheet stored for offering team LAL',
+          'incumbent team BOS must match or decline',
+        ],
+        expectedContractStatus: 'available',
+        expectedRosterStatus: 'not-applicable',
+      },
+      {
+        mutationType: 'matchOfferSheet',
+        headline: 'Offer sheet matched',
+        actionType: 'offer-sheet-match',
+        payload: {
+          teamCode: 'BOS',
+          offeringTeamCode: 'LAL',
+          offerSheetId: 'offer_1',
+        },
+        metadata: {
+          homeTeamCode: 'BOS',
+          playerId: 'player_rfa',
+          seasonKey: '2025-26',
+        },
+        messageParts: [
+          'incumbent team BOS matched the offer sheet',
+          'offering team LAL does not add the player',
+        ],
+        expectedContractStatus: 'available',
+        expectedRosterStatus: 'not-applicable',
+      },
+      {
+        mutationType: 'declineOfferSheet',
+        headline: 'Offer sheet declined',
+        actionType: 'offer-sheet-decline',
+        payload: {
+          teamCode: 'BOS',
+          offeringTeamCode: 'LAL',
+          offerSheetId: 'offer_1',
+        },
+        metadata: {
+          homeTeamCode: 'BOS',
+          playerId: 'player_rfa',
+          seasonKey: '2025-26',
+        },
+        messageParts: [
+          'incumbent team BOS declined the offer sheet',
+          'offering team LAL can finalize the signing',
+        ],
+        expectedContractStatus: 'available',
+        expectedRosterStatus: 'not-applicable',
+      },
+      {
+        mutationType: 'finalizeMatchedOfferSheet',
+        headline: 'Matched offer sheet finalized',
+        actionType: 'offer-sheet-finalize-matched',
+        payload: {
+          teamCode: 'BOS',
+          offeringTeamCode: 'LAL',
+          offerSheetId: 'offer_1',
+        },
+        metadata: {
+          homeTeamCode: 'BOS',
+          playerId: 'player_rfa',
+          seasonKey: '2025-26',
+        },
+        messageParts: [
+          'Matched offer sheet finalized',
+          'incumbent team BOS retains the player',
+          'offering team LAL does not add the player',
+        ],
+        expectedContractStatus: 'available',
+        expectedRosterStatus: 'partial',
+      },
+      {
+        mutationType: 'finalizeDeclinedOfferSheet',
+        headline: 'Declined offer sheet finalized',
+        actionType: 'offer-sheet-finalize-declined',
+        payload: {
+          teamCode: 'LAL',
+          offeringTeamCode: 'LAL',
+          homeTeamCode: 'BOS',
+          offerSheetId: 'offer_1',
+          playerId: 'player_rfa',
+          seasonKey: '2025-26',
+        },
+        metadata: {},
+        messageParts: [
+          'Declined offer sheet finalized',
+          'offering team LAL adds the player',
+          'incumbent team BOS no longer carries the pending sheet',
+        ],
+        expectedContractStatus: 'available',
+        expectedRosterStatus: 'partial',
+      },
+    ];
+
+    for (const testCase of lifecycleCases) {
+      const receipt = deriveReceiptFromMutationResult({
+        mutationType: testCase.mutationType,
+        result: {
+          ...baseSuccessResult,
+          metadata: {
+            type: testCase.mutationType,
+            ...testCase.metadata,
+          },
+        },
+        primaryTeamCode: String(testCase.payload.teamCode),
+        payload: testCase.payload,
+      });
+
+      expect(receipt).not.toBeNull();
+      expect(receipt!.kind).toBe('offerSheet');
+      expect(receipt!.headline).toBe(testCase.headline);
+      expect(receipt!.actionType).toBe(testCase.actionType);
+      for (const messagePart of testCase.messageParts) {
+        expect(receipt!.message).toContain(messagePart);
+      }
+      expect(receipt!.impact.contract.status).toBe(
+        testCase.expectedContractStatus
+      );
+      expect(receipt!.impact.contract.summary).toContain('2025-26');
+      expect(receipt!.impact.roster.status).toBe(
+        testCase.expectedRosterStatus
+      );
+    }
+  });
+
   it('returns null when the result is not successful', () => {
     const failure: PersistMutationResult = {
       ...baseSuccessResult,

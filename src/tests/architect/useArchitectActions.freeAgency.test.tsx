@@ -7,6 +7,7 @@ import {
   type UseArchitectActionsParams,
   type UseArchitectActionsReturn,
 } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
 
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
@@ -379,11 +380,13 @@ function renderActionsHarness({
   userId = 'user_1',
   initialTeam = baseTeamFixture,
   reloadActiveWorldTeamData,
+  publishPostActionReceipt,
 }: {
   worldId: string | null;
   userId?: string | null;
   initialTeam?: FreeAgencyTeamCapSheet;
   reloadActiveWorldTeamData?: ReloadActiveWorldTeamData | null;
+  publishPostActionReceipt?: (receipt: ArchitectPostActionReceipt) => void;
 }) {
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
@@ -435,6 +438,7 @@ function renderActionsHarness({
       modals,
       worldId,
       seasonId: '2025-26',
+      publishPostActionReceipt,
     });
 
     return {
@@ -2074,8 +2078,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       },
     });
 
+    const publishPostActionReceipt = vi.fn();
     const { result, refreshWorldRosterIndex } = renderActionsHarness({
       worldId: 'world_1',
+      publishPostActionReceipt,
     });
 
     act(() => {
@@ -2104,6 +2110,16 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
     expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
+    expect(publishPostActionReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'offerSheet',
+        headline: 'Offer sheet matched',
+        actionType: 'offer-sheet-match',
+        message: expect.stringContaining(
+          'incumbent team LAL matched the offer sheet'
+        ),
+      })
+    );
   });
 
   it('syncs declined incoming offer-sheet truth from changedTeams after decline', async () => {
@@ -2295,9 +2311,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       },
     });
 
+    const publishPostActionReceipt = vi.fn();
     const { result, refreshWorldRosterIndex } = renderActionsHarness({
       worldId: 'world_1',
       initialTeam,
+      publishPostActionReceipt,
     });
 
     act(() => {
@@ -2329,6 +2347,16 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     );
     expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
     expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+    expect(publishPostActionReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'offerSheet',
+        headline: 'Declined offer sheet finalized',
+        actionType: 'offer-sheet-finalize-declined',
+        message: expect.stringContaining(
+          'offering team LAL adds the player'
+        ),
+      })
+    );
   });
 
   it('keeps finalized lifecycle success when roster-index republish warns', async () => {

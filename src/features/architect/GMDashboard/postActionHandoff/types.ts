@@ -129,6 +129,11 @@ const HEADLINE_BY_KIND: Record<ArchitectPostActionReceiptKind, string> = {
 };
 
 const HEADLINE_BY_MUTATION_TYPE: Record<string, string> = {
+  storeOfferSheet: 'Offer sheet stored',
+  matchOfferSheet: 'Offer sheet matched',
+  declineOfferSheet: 'Offer sheet declined',
+  finalizeMatchedOfferSheet: 'Matched offer sheet finalized',
+  finalizeDeclinedOfferSheet: 'Declined offer sheet finalized',
   extendPlayer: 'Extension saved',
   waivePlayer: 'Waive/buyout saved',
   renounceRights: 'Rights renounced',
@@ -155,8 +160,8 @@ const ACTION_TYPE_BY_MUTATION_TYPE: Record<string, string> = {
   storeOfferSheet: 'offer-sheet',
   matchOfferSheet: 'offer-sheet-match',
   declineOfferSheet: 'offer-sheet-decline',
-  finalizeMatchedOfferSheet: 'offer-sheet-finalize',
-  finalizeDeclinedOfferSheet: 'offer-sheet-finalize',
+  finalizeMatchedOfferSheet: 'offer-sheet-finalize-matched',
+  finalizeDeclinedOfferSheet: 'offer-sheet-finalize-declined',
   extendPlayer: 'extension',
   waivePlayer: 'waive-buyout',
   renounceRights: 'renounce-rights',
@@ -172,6 +177,11 @@ const EFFECT_AREAS_BY_MUTATION_TYPE: Record<
   executeTrade: ['roster', 'cap', 'exceptions'],
   signFreeAgent: ['roster', 'cap', 'exceptions', 'contract'],
   signAndTrade: ['roster', 'cap', 'exceptions', 'contract'],
+  storeOfferSheet: ['contract'],
+  matchOfferSheet: ['contract'],
+  declineOfferSheet: ['contract'],
+  finalizeMatchedOfferSheet: ['roster', 'cap', 'contract'],
+  finalizeDeclinedOfferSheet: ['roster', 'cap', 'contract'],
   extendPlayer: ['contract', 'cap'],
   waivePlayer: ['roster', 'deadMoney', 'cap'],
   renounceRights: ['rights', 'cap'],
@@ -271,10 +281,133 @@ const uniqueStrings = (values: unknown[]): string[] => {
   return result;
 };
 
+const OFFER_SHEET_MUTATION_TYPES = new Set([
+  'storeOfferSheet',
+  'matchOfferSheet',
+  'declineOfferSheet',
+  'finalizeMatchedOfferSheet',
+  'finalizeDeclinedOfferSheet',
+]);
+
+function labelTeam(role: string, teamCode: string | null): string {
+  return teamCode ? `${role} ${teamCode}` : role.toLowerCase();
+}
+
+function extractOfferSheetReceiptDetails(
+  payload: unknown,
+  result?: PersistMutationResult | null
+) {
+  const record = asRecord(payload);
+  const metadata = asRecord(result?.metadata);
+  const contract = asRecord(record?.contract);
+  const salaryRows = Array.isArray(contract?.salariesByYear)
+    ? contract.salariesByYear
+    : [];
+
+  return {
+    offeringTeamCode:
+      toCleanString(record?.offeringTeamCode) ||
+      toCleanString(record?.teamCode) ||
+      toCleanString(metadata?.offeringTeamCode) ||
+      toCleanString(metadata?.offeringTeam),
+    homeTeamCode:
+      toCleanString(record?.homeTeamCode) ||
+      toCleanString(metadata?.homeTeamCode) ||
+      toCleanString(metadata?.homeTeam),
+    playerId:
+      toCleanString(record?.playerId) ||
+      toCleanString(metadata?.playerId) ||
+      null,
+    affectedSeasons: uniqueStrings([
+      record?.seasonKey,
+      metadata?.seasonKey,
+      ...salaryRows.map((row) => asRecord(row)?.season),
+    ]),
+  };
+}
+
+function buildOfferSheetReceiptMessage(
+  mutationType: string,
+  payload: unknown,
+  result?: PersistMutationResult | null
+): string | undefined {
+  const details = extractOfferSheetReceiptDetails(payload, result);
+  const offeringTeam = labelTeam('offering team', details.offeringTeamCode);
+  const incumbentTeam = labelTeam('incumbent team', details.homeTeamCode);
+
+  switch (mutationType) {
+    case 'storeOfferSheet':
+      return `Offer sheet stored for ${offeringTeam}; ${incumbentTeam} must match or decline before any roster move is final.`;
+    case 'matchOfferSheet':
+      return `${incumbentTeam} matched the offer sheet; ${offeringTeam} does not add the player.`;
+    case 'declineOfferSheet':
+      return `${incumbentTeam} declined the offer sheet; ${offeringTeam} can finalize the signing before the roster/cap move is applied.`;
+    case 'finalizeMatchedOfferSheet':
+      return `Matched offer sheet finalized: ${incumbentTeam} retains the player, and ${offeringTeam} does not add the player.`;
+    case 'finalizeDeclinedOfferSheet':
+      return `Declined offer sheet finalized: ${offeringTeam} adds the player, and ${incumbentTeam} no longer carries the pending sheet.`;
+    default:
+      return undefined;
+  }
+}
+
+function resolveReceiptActionContext({
+  mutationType,
+  result = null,
+  payload,
+  actionContext = null,
+}: {
+  mutationType: string;
+  result?: PersistMutationResult | null;
+  payload?: unknown;
+  actionContext?: ArchitectReceiptActionContext | null;
+}): ArchitectReceiptActionContext | null {
+  if (!OFFER_SHEET_MUTATION_TYPES.has(mutationType)) {
+    return actionContext;
+  }
+
+  const details = extractOfferSheetReceiptDetails(payload, result);
+  const defaults: ArchitectReceiptActionContext = {
+    actionType: ACTION_TYPE_BY_MUTATION_TYPE[mutationType],
+    headlineOverride: HEADLINE_BY_MUTATION_TYPE[mutationType],
+    message: buildOfferSheetReceiptMessage(mutationType, payload, result),
+    playerId: details.playerId,
+    affectedSeasons: details.affectedSeasons,
+    effectAreas: EFFECT_AREAS_BY_MUTATION_TYPE[mutationType],
+    notes: [
+      'Offer sheet receipt reflects an existing parked lifecycle path; it does not expose initiation as a normal public lane.',
+    ],
+  };
+
+  if (!actionContext) {
+    return defaults;
+  }
+
+  return {
+    actionType: actionContext.actionType || defaults.actionType,
+    headlineOverride:
+      actionContext.headlineOverride || defaults.headlineOverride,
+    message: actionContext.message || defaults.message,
+    playerId: actionContext.playerId ?? defaults.playerId,
+    playerName: actionContext.playerName ?? defaults.playerName,
+    affectedSeasons:
+      actionContext.affectedSeasons ?? defaults.affectedSeasons,
+    effectAreas: actionContext.effectAreas ?? defaults.effectAreas,
+    notes: uniqueStrings([
+      ...(defaults.notes || []),
+      ...(actionContext.notes || []),
+    ]),
+  };
+}
+
 function extractPayloadTeamCodes(payload: unknown): string[] {
   const record = asRecord(payload);
   if (!record) return [];
-  const values: unknown[] = [record.teamCode];
+  const values: unknown[] = [
+    record.teamCode,
+    record.homeTeamCode,
+    record.offeringTeamCode,
+  ];
   if (Array.isArray(record.teams)) {
     for (const team of record.teams) {
       values.push(asRecord(team)?.teamCode);
@@ -872,6 +1005,12 @@ export function deriveReceiptFromMutationResult({
   }
 
   const kind = kindForMutationType(mutationType);
+  const resolvedActionContext = resolveReceiptActionContext({
+    mutationType,
+    result,
+    payload,
+    actionContext,
+  });
   const changedTeamCodes = extractChangedTeamCodes(
     result,
     payload,
@@ -880,16 +1019,16 @@ export function deriveReceiptFromMutationResult({
   const primaryPlayerIds = extractPrimaryPlayerIds(
     result,
     payload,
-    actionContext
+    resolvedActionContext
   );
   const eventId = extractEventId(result);
   const headline =
-    actionContext?.headlineOverride ||
+    resolvedActionContext?.headlineOverride ||
     headlineOverride ||
     HEADLINE_BY_MUTATION_TYPE[mutationType] ||
     HEADLINE_BY_KIND[kind];
   const playerName =
-    actionContext?.playerName ||
+    resolvedActionContext?.playerName ||
     extractPayloadPlayerName(payload) ||
     toCleanString(asRecord(result?.metadata)?.playerName);
   const impact = buildGenericImpact({
@@ -897,7 +1036,7 @@ export function deriveReceiptFromMutationResult({
     primaryTeamCode,
     primaryPlayerIds,
     playerName,
-    actionContext,
+    actionContext: resolvedActionContext,
   });
 
   return {
@@ -909,7 +1048,7 @@ export function deriveReceiptFromMutationResult({
     changedTeamCodes,
     primaryTeamCode: primaryTeamCode || null,
     primaryPlayerIds,
-    message: buildReceiptMessage(impact, actionContext),
+    message: buildReceiptMessage(impact, resolvedActionContext),
     persistence: persistenceForAuthority('committed-world'),
     impact,
     authority: 'committed-world',
@@ -930,6 +1069,13 @@ export function deriveReceiptFromTeamSnapshots({
   actionContext = null,
   authority = 'committed-world',
 }: DeriveReceiptFromTeamSnapshotsArgs): ArchitectPostActionReceipt | null {
+  const resolvedActionContext = resolveReceiptActionContext({
+    mutationType,
+    result,
+    payload,
+    actionContext,
+  });
+
   if (authority === 'committed-world' && result) {
     const baseReceipt = deriveReceiptFromMutationResult({
       mutationType,
@@ -938,14 +1084,14 @@ export function deriveReceiptFromTeamSnapshots({
       occurredAt,
       headlineOverride,
       payload,
-      actionContext,
+      actionContext: resolvedActionContext,
     });
     if (!baseReceipt) return null;
 
     const mergedPlayerIds = uniqueStrings([
       ...baseReceipt.primaryPlayerIds,
       ...primaryPlayerIds,
-      actionContext?.playerId,
+      resolvedActionContext?.playerId,
     ]);
     const impact = buildImpactFromSnapshots({
       mutationType,
@@ -955,14 +1101,14 @@ export function deriveReceiptFromTeamSnapshots({
       primaryTeamCode,
       primaryPlayerIds: mergedPlayerIds,
       playerName: baseReceipt.impact.playerName,
-      actionContext,
+      actionContext: resolvedActionContext,
     });
 
     return {
       ...baseReceipt,
       actionType: impact.actionType,
       primaryPlayerIds: mergedPlayerIds,
-      message: buildReceiptMessage(impact, actionContext),
+      message: buildReceiptMessage(impact, resolvedActionContext),
       impact,
     };
   }
@@ -974,11 +1120,11 @@ export function deriveReceiptFromTeamSnapshots({
   ]);
   const mergedPlayerIds = uniqueStrings([
     ...primaryPlayerIds,
-    actionContext?.playerId,
+    resolvedActionContext?.playerId,
     ...extractPayloadPlayerIds(payload),
   ]);
   const playerName =
-    actionContext?.playerName || extractPayloadPlayerName(payload);
+    resolvedActionContext?.playerName || extractPayloadPlayerName(payload);
   const impact = buildImpactFromSnapshots({
     mutationType,
     beforeTeam,
@@ -987,7 +1133,7 @@ export function deriveReceiptFromTeamSnapshots({
     primaryTeamCode,
     primaryPlayerIds: mergedPlayerIds,
     playerName,
-    actionContext,
+    actionContext: resolvedActionContext,
   });
 
   return {
@@ -996,14 +1142,14 @@ export function deriveReceiptFromTeamSnapshots({
     eventId: null,
     occurredAt: occurredAt || new Date().toISOString(),
     headline:
-      actionContext?.headlineOverride ||
+      resolvedActionContext?.headlineOverride ||
       headlineOverride ||
       HEADLINE_BY_MUTATION_TYPE[mutationType] ||
       HEADLINE_BY_KIND[kind],
     changedTeamCodes,
     primaryTeamCode: primaryTeamCode || null,
     primaryPlayerIds: mergedPlayerIds,
-    message: buildReceiptMessage(impact, actionContext),
+    message: buildReceiptMessage(impact, resolvedActionContext),
     persistence: persistenceForAuthority(authority),
     impact,
     authority,

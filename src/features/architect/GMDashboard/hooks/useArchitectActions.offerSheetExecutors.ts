@@ -47,6 +47,11 @@ import type {
   PersistMutationResult,
 } from './useArchitectActions.types';
 import type { UseArchitectStateReturn } from './useArchitectState';
+import {
+  deriveReceiptFromMutationResult,
+  deriveReceiptFromTeamSnapshots,
+  type ArchitectPostActionReceipt,
+} from '../postActionHandoff/types';
 
 export interface UseOfferSheetExecutorsParams {
   teamCode: string;
@@ -54,8 +59,10 @@ export interface UseOfferSheetExecutorsParams {
   userId: string | null;
   seasonId: string;
   currentYear: number;
+  teamCapSheet: UseArchitectStateReturn['teamCapSheet'];
   startSave: UseArchitectStateReturn['startSave'];
   finishSave: UseArchitectStateReturn['finishSave'];
+  publishPostActionReceipt?: (receipt: ArchitectPostActionReceipt) => void;
   // from persistenceHelpers
   reportMutationError: (message: string, details?: Record<string, unknown>) => void;
   evaluateMutationTruth: (
@@ -96,8 +103,11 @@ export function useOfferSheetExecutors({
   worldId,
   userId,
   seasonId,
+  currentYear,
+  teamCapSheet,
   startSave,
   finishSave,
+  publishPostActionReceipt,
   reportMutationError,
   evaluateMutationTruth,
   getFreeAgencyWorldOnlyMessage,
@@ -106,6 +116,41 @@ export function useOfferSheetExecutors({
   applyCommittedWorldReload,
   applyCapAuditedTeamMutation,
 }: UseOfferSheetExecutorsParams) {
+  const publishOfferSheetReceipt = useCallback(
+    (
+      mutationType: OfferSheetLifecycleMutationType | 'storeOfferSheet',
+      result: PersistMutationResult,
+      payload: ArchitectMutationPayload,
+      afterTeam?: DashboardCommittedTeamSnapshot | null
+    ): void => {
+      if (!publishPostActionReceipt) {
+        return;
+      }
+
+      const receipt =
+        teamCapSheet && afterTeam
+          ? deriveReceiptFromTeamSnapshots({
+              mutationType,
+              result,
+              beforeTeam: teamCapSheet,
+              afterTeam,
+              selectedYear: currentYear,
+              primaryTeamCode: teamCode || null,
+              payload,
+            })
+          : deriveReceiptFromMutationResult({
+              mutationType,
+              result,
+              primaryTeamCode: teamCode || null,
+              payload,
+            });
+
+      if (receipt) {
+        publishPostActionReceipt(receipt);
+      }
+    },
+    [currentYear, publishPostActionReceipt, teamCapSheet, teamCode]
+  );
 
   const resolveCommittedOfferSheetState = useCallback(
     async (
@@ -272,6 +317,12 @@ export function useOfferSheetExecutors({
         }
 
         toast.success('Saved changes');
+        publishOfferSheetReceipt(
+          'storeOfferSheet',
+          result,
+          mutationPayload,
+          committedState.value.committedTeam
+        );
         finishSave();
         return {
           success: true,
@@ -296,6 +347,7 @@ export function useOfferSheetExecutors({
       evaluateMutationTruth,
       finishSave,
       getFreeAgencyWorldOnlyMessage,
+      publishOfferSheetReceipt,
       reportMutationError,
       resolveCommittedOfferSheetState,
       startSave,
@@ -496,6 +548,12 @@ export function useOfferSheetExecutors({
           committedState.value.committedTeamSource
         );
         toast.success('Saved changes');
+        publishOfferSheetReceipt(
+          mutationType,
+          result,
+          mutationPayload,
+          committedState.value.committedTeam
+        );
         finishSave();
         return {
           success: true,
@@ -521,6 +579,7 @@ export function useOfferSheetExecutors({
       evaluateMutationTruth,
       finishSave,
       getFreeAgencyWorldOnlyMessage,
+      publishOfferSheetReceipt,
       reportMutationError,
       resolveCommittedOfferSheetLifecycleState,
       seasonId,
