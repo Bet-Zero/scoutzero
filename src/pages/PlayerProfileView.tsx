@@ -123,13 +123,32 @@ const PlayerProfileView = () => {
           </div>
         )}
 
-        {!nav.isEmpty && !nav.detailError && !nav.selectedPlayer && (
+        {nav.hasUnresolvedRouteTarget && !nav.selectedPlayer && (
+          <div className="text-center text-white mt-10 px-4">
+            <div className="font-semibold">Player profile not found</div>
+            <div className="text-sm text-white/60 mt-1">
+              Search or choose a player to continue.
+            </div>
+          </div>
+        )}
+
+        {!nav.isEmpty &&
+          !nav.detailError &&
+          !nav.hasUnresolvedRouteTarget &&
+          !nav.selectedPlayer && (
           <div className="text-white/40 mt-10">
             Select a player to view their profile.
           </div>
         )}
 
-        <PlayerNavigation onPrev={nav.handlePrevPlayer} onNext={nav.handleNextPlayer} />
+        {nav.canNavigatePlayers && (
+          <PlayerNavigation
+            onPrev={nav.handlePrevPlayer}
+            onNext={nav.handleNextPlayer}
+            canGoPrev={nav.canGoPrev}
+            canGoNext={nav.canGoNext}
+          />
+        )}
 
         {evalState.player && !nav.detailLoading && (
           <>

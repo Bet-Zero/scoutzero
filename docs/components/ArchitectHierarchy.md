@@ -122,6 +122,7 @@ cockpit/
   PlayerActionMenu.tsx
   README.md
   RoomFrame.tsx
+  TeamPosturePanel.tsx
   TeamStatusStrip.tsx
   TeamStatusTile.tsx
   TopBar.tsx
@@ -550,5 +551,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-19T00:42:46.495Z*
+*Generated on: 2026-06-19T20:20:25.552Z*
 *Auto-updated by: npm run docs*

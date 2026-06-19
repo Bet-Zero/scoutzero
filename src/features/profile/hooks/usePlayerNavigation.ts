@@ -46,6 +46,10 @@ export type UsePlayerNavigationResult = {
   detailedPlayer: PlayerV2 | null;
   detailLoading: boolean;
   detailError: string | null;
+  hasUnresolvedRouteTarget: boolean;
+  canGoPrev: boolean;
+  canGoNext: boolean;
+  canNavigatePlayers: boolean;
   handlePrevPlayer: () => void;
   handleNextPlayer: () => void;
   handleSearchSelect: (id: string, team: string) => void;
@@ -89,6 +93,8 @@ export const usePlayerNavigation = (
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [selectedPlayer, setSelectedPlayer] = useState<string>('');
   const [filteredKeys, setFilteredKeys] = useState<string[]>([]);
+  const [hasUnresolvedRouteTarget, setHasUnresolvedRouteTarget] =
+    useState<boolean>(false);
   const unresolvedRouteRef = useRef<boolean>(false);
   const previousSelectedPlayerRef = useRef<string>('');
 
@@ -123,6 +129,7 @@ export const usePlayerNavigation = (
 
     if (!hasRouteTarget) {
       unresolvedRouteRef.current = false;
+      setHasUnresolvedRouteTarget(false);
       return;
     }
 
@@ -137,6 +144,7 @@ export const usePlayerNavigation = (
 
     if (!matchedPlayer) {
       unresolvedRouteRef.current = true;
+      setHasUnresolvedRouteTarget(true);
       setSelectedTeam((prev) => (prev ? '' : prev));
       setSelectedPlayer((prev) => (prev ? '' : prev));
       setFilteredKeys((prev) => (prev.length ? [] : prev));
@@ -146,6 +154,7 @@ export const usePlayerNavigation = (
     const nextTeam = matchedPlayer.bio?.display?.team || '';
     const nextFilteredKeys = getPlayersForTeam(playersData, nextTeam);
     unresolvedRouteRef.current = false;
+    setHasUnresolvedRouteTarget(false);
 
     setSelectedTeam((prev) => (prev === nextTeam ? prev : nextTeam));
     setSelectedPlayer((prev) =>
@@ -198,19 +207,20 @@ export const usePlayerNavigation = (
     selectedPlayer,
   ]);
 
+  const selectedPlayerIndex = filteredKeys.indexOf(selectedPlayer);
+  const canGoPrev = selectedPlayerIndex > 0;
+  const canGoNext =
+    selectedPlayerIndex >= 0 && selectedPlayerIndex < filteredKeys.length - 1;
+  const canNavigatePlayers = canGoPrev || canGoNext;
+
   // Prev/Next navigation
   const handlePrevPlayer = useCallback((): void => {
-    if (!selectedPlayer || filteredKeys.length === 0) return;
-    const currentIndex = filteredKeys.indexOf(selectedPlayer);
-    if (currentIndex > 0) setSelectedPlayer(filteredKeys[currentIndex - 1]);
-  }, [selectedPlayer, filteredKeys]);
+    if (canGoPrev) setSelectedPlayer(filteredKeys[selectedPlayerIndex - 1]);
+  }, [canGoPrev, filteredKeys, selectedPlayerIndex]);
 
   const handleNextPlayer = useCallback((): void => {
-    if (!selectedPlayer || filteredKeys.length === 0) return;
-    const currentIndex = filteredKeys.indexOf(selectedPlayer);
-    if (currentIndex < filteredKeys.length - 1)
-      setSelectedPlayer(filteredKeys[currentIndex + 1]);
-  }, [selectedPlayer, filteredKeys]);
+    if (canGoNext) setSelectedPlayer(filteredKeys[selectedPlayerIndex + 1]);
+  }, [canGoNext, filteredKeys, selectedPlayerIndex]);
 
   // Keyboard arrow navigation (disabled when modal is open)
   useEffect(() => {
@@ -235,6 +245,8 @@ export const usePlayerNavigation = (
   // Search result selection
   const handleSearchSelect = useCallback((id: string, team: string): void => {
     if (!id) return;
+    unresolvedRouteRef.current = false;
+    setHasUnresolvedRouteTarget(false);
     setSelectedTeam(team);
     setSelectedPlayer(id);
     const filtered = getPlayersForTeam(playersData, team);
@@ -256,6 +268,10 @@ export const usePlayerNavigation = (
     detailedPlayer,
     detailLoading,
     detailError,
+    hasUnresolvedRouteTarget,
+    canGoPrev,
+    canGoNext,
+    canNavigatePlayers,
     handlePrevPlayer,
     handleNextPlayer,
     handleSearchSelect,

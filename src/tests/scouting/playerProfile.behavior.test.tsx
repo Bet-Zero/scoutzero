@@ -412,6 +412,58 @@ describe('BreakdownModal draft behavior', () => {
 });
 
 describe('PlayerProfileView error states', () => {
+  it('keeps the empty profile route as a selector state without player navigation', async () => {
+    render(
+      <MemoryRouter initialEntries={['/profiles']}>
+        <Routes>
+          <Route path="/profiles" element={<PlayerProfileView />} />
+          <Route path="/profiles/:slug" element={<PlayerProfileView />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Select a player to view their profile.')
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByPlaceholderText('Search players...')).toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    expect(
+      screen.queryByRole('navigation', { name: 'Player navigation' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders invalid profile routes as a missing-player state with recovery controls', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/profiles/not-a-real-player?pid=not-a-real-player']}
+      >
+        <Routes>
+          <Route path="/profiles" element={<PlayerProfileView />} />
+          <Route path="/profiles/:slug" element={<PlayerProfileView />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Player profile not found')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText('Search or choose a player to continue.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Select a player to view their profile.')
+    ).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search players...')).toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    expect(
+      screen.queryByRole('navigation', { name: 'Player navigation' })
+    ).not.toBeInTheDocument();
+  });
+
   it('renders explicit detail errors instead of a false loading state', async () => {
     mockedUsePlayerDetail.mockImplementation((playerId) => ({
       player: null,
