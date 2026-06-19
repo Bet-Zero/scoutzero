@@ -97,7 +97,16 @@ const makeReceiptPersistence = (): ArchitectPostActionPersistence => ({
   status: 'world-saved',
   saveStateStatus: 'saved',
   label: 'Committed world',
-  detail: 'Saved to the active durable Team Plan world.',
+  detail:
+    'Saved to the active Team Plan world. History and compare can use this saved action.',
+});
+
+const makeLocalReceiptPersistence = (): ArchitectPostActionPersistence => ({
+  status: 'local-only',
+  saveStateStatus: 'local-only',
+  label: 'Local only',
+  detail:
+    'Applied only to this sandbox/base result. It was not saved to Team Plan history.',
 });
 
 const makeReceiptImpact = (): ArchitectPostActionImpact => {
@@ -153,6 +162,13 @@ const RECEIPT: ArchitectPostActionReceipt = {
   persistence: makeReceiptPersistence(),
   impact: makeReceiptImpact(),
   authority: 'committed-world',
+};
+
+const LOCAL_RECEIPT: ArchitectPostActionReceipt = {
+  ...RECEIPT,
+  eventId: null,
+  persistence: makeLocalReceiptPersistence(),
+  authority: 'local-only',
 };
 
 function renderRail(props: Partial<React.ComponentProps<typeof ActivityRail>> = {}) {
@@ -407,6 +423,50 @@ describe('ActivityRail — Slice 1 audit', () => {
         eventId: 'evt_1',
       })
     );
+  });
+
+  it('makes local-only receipt consequences explicit and suppresses history/compare actions', () => {
+    const onPlayerAction = vi.fn();
+    renderRail({
+      receipt: LOCAL_RECEIPT,
+      onNavigateToCompare: vi.fn(),
+      onPlayerAction,
+      resolvePlayerLabel: (id) => (id === 'p1' ? 'Anthony Davis' : id),
+    });
+
+    expect(screen.getByTestId('post-action-handoff-status-chip')).toHaveTextContent(
+      'Local only'
+    );
+    expect(screen.getByTestId('post-action-handoff-consequence')).toHaveTextContent(
+      'not saved to Team Plan history'
+    );
+    expect(
+      screen.queryByTestId('post-action-handoff-nav-history')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('cockpit-activity-rail-compare-unavailable')
+    ).toHaveTextContent('Compare unavailable for local receipt');
+
+    fireEvent.click(
+      screen.getByTestId(
+        'cockpit-activity-rail-receipt-player-p1-actions-overflow'
+      )
+    );
+    expect(
+      screen.queryByTestId(
+        'cockpit-activity-rail-receipt-player-p1-actions-overflow-find-in-history'
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(
+        'cockpit-activity-rail-receipt-player-p1-actions-overflow-compare-impact'
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(
+        'cockpit-activity-rail-receipt-player-p1-actions-overflow-guide-next-move'
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders receipt impact rows with exact deltas only when the receipt provides them', () => {

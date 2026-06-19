@@ -353,6 +353,8 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
     const planTruth = deriveTeamPlanTruthPanel(workspace.saveState);
     const capPosture = deriveCapPosturePanel(workspace, hardCapStatus);
     const receiptImpact = deriveReceiptImpactPanel(receipt);
+    const receiptHasCommittedEvidence =
+      receipt?.authority === 'committed-world';
     const watch = deriveWatchEntries(workspace, hardCapStatus);
     const hasWatchDanger = watch.some((entry) => entry.tone === 'danger');
     const hasPlanTruthDanger = planTruth.tone === 'danger';
@@ -624,7 +626,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                     className="flex flex-wrap gap-1.5"
                     data-testid="cockpit-activity-rail-post-action-links"
                   >
-                    {onNavigateToCompare ? (
+                    {onNavigateToCompare && receiptHasCommittedEvidence ? (
                       <button
                         type="button"
                         onClick={onNavigateToCompare}
@@ -633,6 +635,14 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                       >
                         Compare move
                       </button>
+                    ) : onNavigateToCompare ? (
+                      <span
+                        className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1 text-[10px] text-cockpit-watch"
+                        data-testid="cockpit-activity-rail-compare-unavailable"
+                        title="Compare is available after a saved Team Plan action."
+                      >
+                        Compare unavailable for local receipt
+                      </span>
                     ) : null}
                     {onNavigateToGuide ? (
                       <button
@@ -664,8 +674,9 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                     {receipt.primaryPlayerIds.map((playerId) => {
                       const label = resolvePlayerLabel?.(playerId) ?? playerId;
                       // Receipt rows route to inspection surfaces only — never
-                      // auto-pin (contract). eventId carries the committed event
-                      // for Slice 4's Find-in-History deepening.
+                      // auto-pin (contract). History/compare actions are only
+                      // offered when the receipt represents a saved Team Plan
+                      // action; local receipts are current-state only.
                       const receiptContext: PlayerActionContext = {
                         playerId,
                         playerLabel: label,
@@ -687,13 +698,21 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                           <PlayerActionMenu
                             context={receiptContext}
                             visibleActions={[]}
-                            overflowActions={[
-                              'view-on-roster',
-                              'view-on-cap',
-                              'find-in-history',
-                              'compare-impact',
-                              'guide-next-move',
-                            ]}
+                            overflowActions={
+                              receiptHasCommittedEvidence
+                                ? [
+                                    'view-on-roster',
+                                    'view-on-cap',
+                                    'find-in-history',
+                                    'compare-impact',
+                                    'guide-next-move',
+                                  ]
+                                : [
+                                    'view-on-roster',
+                                    'view-on-cap',
+                                    'guide-next-move',
+                                  ]
+                            }
                             testIdPrefix={`cockpit-activity-rail-receipt-player-${playerId}-actions`}
                             onAction={onPlayerAction}
                           />

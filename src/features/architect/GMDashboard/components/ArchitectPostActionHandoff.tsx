@@ -1,14 +1,14 @@
 /**
  * FILE: src/features/architect/GMDashboard/components/ArchitectPostActionHandoff.tsx
- * PURPOSE: Stage 2B post-action handoff strip — compact "what just committed" summary.
+ * PURPOSE: Stage 2B post-action handoff strip — compact action-result summary.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * Renders the active session-scoped post-action receipt with deep links to
- * Cap Sheet, Roster, and History. Navigation only — no mutation callbacks,
- * no Firestore writes, no validation or delta claims.
+ * Cap Sheet, Roster, and, for committed receipts, History. Navigation only —
+ * no mutation callbacks, no Firestore writes, no validation or delta claims.
  *
  * Truth authority: the receipt itself is a derived view of a successful
- * committed mutation result. This component does not produce new truth.
+ * action result. This component does not produce new truth.
  */
 import type { ArchitectPostActionReceipt } from '../postActionHandoff/types';
 
@@ -52,6 +52,7 @@ export const ArchitectPostActionHandoff = ({
     receipt.changedTeamCodes.length - visibleTeams.length
   );
   const formattedDate = formatHandoffDate(receipt.occurredAt);
+  const hasCommittedEvidence = receipt.authority === 'committed-world';
 
   return (
     <div
@@ -124,14 +125,24 @@ export const ArchitectPostActionHandoff = ({
           >
             View Roster
           </button>
-          <button
-            type="button"
-            onClick={onNavigateToHistory}
-            className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10 hover:text-white/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-            data-testid="post-action-handoff-nav-history"
-          >
-            View History
-          </button>
+          {hasCommittedEvidence ? (
+            <button
+              type="button"
+              onClick={onNavigateToHistory}
+              className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-white/70 hover:bg-white/10 hover:text-white/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+              data-testid="post-action-handoff-nav-history"
+            >
+              View History
+            </button>
+          ) : (
+            <span
+              className="rounded border border-amber-300/20 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-100/75"
+              data-testid="post-action-handoff-history-unavailable"
+              title="History is available after a saved Team Plan action."
+            >
+              History unavailable
+            </span>
+          )}
           <button
             type="button"
             onClick={onDismiss}
@@ -151,6 +162,12 @@ export const ArchitectPostActionHandoff = ({
           {receipt.message}
         </p>
       ) : null}
+      <p
+        className="mt-1 text-[11px] leading-4 text-white/55"
+        data-testid="post-action-handoff-consequence"
+      >
+        {receipt.persistence.detail}
+      </p>
     </div>
   );
 };

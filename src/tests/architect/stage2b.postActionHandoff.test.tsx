@@ -66,7 +66,8 @@ const makePersistence = (
   status: 'world-saved',
   saveStateStatus: 'saved',
   label: 'Committed world',
-  detail: 'Saved to the active durable Team Plan world.',
+  detail:
+    'Saved to the active Team Plan world. History and compare can use this saved action.',
   ...overrides,
 });
 
@@ -555,6 +556,50 @@ describe('Stage 2B — ArchitectPostActionHandoff', () => {
     );
     expect(screen.getByTestId('post-action-handoff-team-chip-LAL')).toBeInTheDocument();
     expect(screen.getByTestId('post-action-handoff-team-chip-BOS')).toBeInTheDocument();
+    expect(screen.getByTestId('post-action-handoff-consequence')).toHaveTextContent(
+      'History and compare can use this saved action.'
+    );
+    expect(screen.getByTestId('post-action-handoff-nav-history')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('post-action-handoff-history-unavailable')
+    ).not.toBeInTheDocument();
+  });
+
+  it('marks a local-only receipt as local and does not offer History', () => {
+    const onNavigateToHistory = vi.fn();
+    render(
+      <ArchitectPostActionHandoff
+        receipt={makeReceipt({
+          eventId: null,
+          authority: 'local-only',
+          persistence: {
+            status: 'local-only',
+            saveStateStatus: 'local-only',
+            label: 'Local only',
+            detail:
+              'Applied only to this sandbox/base result. It was not saved to Team Plan history.',
+          },
+        })}
+        onNavigateToCapSheet={vi.fn()}
+        onNavigateToRoster={vi.fn()}
+        onNavigateToHistory={onNavigateToHistory}
+        onDismiss={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('post-action-handoff-status-chip')).toHaveTextContent(
+      'Local only'
+    );
+    expect(screen.getByTestId('post-action-handoff-consequence')).toHaveTextContent(
+      'not saved to Team Plan history'
+    );
+    expect(
+      screen.getByTestId('post-action-handoff-history-unavailable')
+    ).toHaveTextContent('History unavailable');
+    expect(
+      screen.queryByTestId('post-action-handoff-nav-history')
+    ).not.toBeInTheDocument();
+    expect(onNavigateToHistory).not.toHaveBeenCalled();
   });
 
   it('renders the optional receipt message', () => {

@@ -188,14 +188,15 @@ const PERSISTENCE_BY_AUTHORITY: Record<
     status: 'world-saved',
     saveStateStatus: 'saved',
     label: 'Committed world',
-    detail: 'Saved to the active durable Team Plan world.',
+    detail:
+      'Saved to the active Team Plan world. History and compare can use this saved action.',
   },
   'local-only': {
     status: 'local-only',
     saveStateStatus: 'local-only',
     label: 'Local only',
     detail:
-      'Applied to local sandbox/base state only and not durable Team Plan truth.',
+      'Applied only to this sandbox/base result. It was not saved to Team Plan history.',
   },
 };
 
