@@ -167,6 +167,12 @@ type CapSheetFullProps = {
   freeAgentOptions?: FreeAgentSurfaceEntry[];
   onOpenFreeAgentOption?: ((selectionKey: string) => void) | null;
   onRemoveFreeAgentOption?: ((selectionKey: string) => void) | null;
+  /**
+   * League-wide player lookup (by id/name). Lets own free agents that live only
+   * as cap holds (not roster rows) resolve their full player record — so they
+   * can render as first-class, re-signable rows in the main cap table.
+   */
+  playersMap?: Record<string, unknown>;
 };
 
 const CAP_SHEET_FULL_SURFACE_LABELS = {
@@ -183,6 +189,22 @@ const normalizeFAType = (type: string | null | undefined): string | null => {
   if (t === 'unrestricted' || t === 'ufa') return 'UFA';
   if (t === 'restricted' || t === 'rfa') return 'RFA';
   return type.toUpperCase();
+};
+
+/**
+ * A "dead" cap hold is a renounce-able zombie: a generic "FA Cap Hold" the team
+ * carries for a departed/retired player it never renounced (Carmelo, Dwight),
+ * or any hold tagged to a season already in the past. These are demoted to the
+ * side drawer and never compete with this offseason's real decisions.
+ */
+const isDeadCapHoldRow = (h: CapHoldLike, currentYear: number): boolean => {
+  const end = toEndYear(h.season);
+  return (
+    String(h.type || '')
+      .toLowerCase()
+      .includes('fa cap hold') ||
+    (end != null && end < currentYear)
+  );
 };
 
 // Glossy 2K-style contract chips: gradient fill, hairline border, soft glow.
@@ -486,6 +508,7 @@ export const CapSheetFull = ({
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
+  playersMap = {},
 }: CapSheetFullProps) => {
   const [showCapHolds, setShowCapHolds] = useState(false);
   const [showDeadMoneyDetails, setShowDeadMoneyDetails] = useState(false);
@@ -635,6 +658,190 @@ export const CapSheetFull = ({
   const displayedCapHolds = ((teamCapSheet.capHolds || []) as CapHoldLike[]).filter(
     (h: CapHoldLike) => !h.isSigned
   );
+
+  // Own free agents are first-class decisions, not drawer clutter. Split the
+  // holds three ways using each hold's own season + the active `currentYear`
+  // (convention-safe — no off-by-one year guessing):
+  //   mainFaHolds : the earliest UFA/RFA decision season at-or-after currentYear
+  //                 — THIS offseason's free agents → rows in the main cap table.
+  //   sectionHolds: later-season UFA/RFA holds + dead zombie holds → side drawer.
+  const { mainFaHolds, sectionHolds } = useMemo(() => {
+    const live: CapHoldLike[] = [];
+    const dead: CapHoldLike[] = [];
+    for (const hold of displayedCapHolds) {
+      (isDeadCapHoldRow(hold, currentYear) ? dead : live).push(hold);
+    }
+
+    const liveEndYears = live
+      .map((hold) => toEndYear(hold.season))
+      .filter((year): year is number => year != null && year >= currentYear);
+    const decisionYear = liveEndYears.length ? Math.min(...liveEndYears) : null;
+
+    const main = (
+      decisionYear == null
+        ? []
+        : live.filter((hold) => toEndYear(hold.season) === decisionYear)
+    ).sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+    const future = live.filter((hold) => !main.includes(hold));
+
+    return { mainFaHolds: main, sectionHolds: [...future, ...dead] };
+  }, [displayedCapHolds, currentYear]);
+
+  // Option B — interleave own free agents INTO the roster list, sorted on the
+  // same key the roster uses (current-year dollar figure, current-year rows
+  // first). A cap hold counts against the books at its full amount, so it earns
+  // its place in money order rather than being bunched at the bottom.
+  type OrderedCapRow = (
+    | { kind: 'player'; player: CapSheetFullPlayerLike }
+    | { kind: 'hold'; hold: CapHoldLike }
+  ) & {
+    hasCurrent: boolean;
+    currentAmount: number;
+    firstVisibleYear: number;
+    firstVisibleAmount: number;
+    order: number;
+  };
+  const orderedRows = useMemo<OrderedCapRow[]>(() => {
+    const entries: OrderedCapRow[] = [];
+    let order = 0;
+
+    for (const player of sortedPlayers) {
+      const currentYearSlice = getContractYearSlice(player, currentYear);
+      const currentAmount =
+        Number(currentYearSlice?.salary ?? currentYearSlice?.capHit ?? 0) || 0;
+      let firstVisibleYear = Number.MAX_SAFE_INTEGER;
+      let firstVisibleAmount = 0;
+      for (const year of allYears) {
+        const slice = getContractYearSlice(player, year);
+        if (!slice) continue;
+        firstVisibleYear = year;
+        firstVisibleAmount = Number(slice.salary ?? slice.capHit ?? 0) || 0;
+        break;
+      }
+      entries.push({
+        kind: 'player',
+        player,
+        hasCurrent: Boolean(currentYearSlice),
+        currentAmount,
+        firstVisibleYear,
+        firstVisibleAmount,
+        order: order++,
+      });
+    }
+
+    for (const hold of mainFaHolds) {
+      const holdEnd = toEndYear(hold.season) ?? Number.MAX_SAFE_INTEGER;
+      const amount = Number(hold.amount || 0);
+      entries.push({
+        kind: 'hold',
+        hold,
+        hasCurrent: holdEnd === currentYear,
+        currentAmount: holdEnd === currentYear ? amount : 0,
+        firstVisibleYear: holdEnd,
+        firstVisibleAmount: amount,
+        order: order++,
+      });
+    }
+
+    entries.sort((a, b) => {
+      if (a.hasCurrent !== b.hasCurrent) return a.hasCurrent ? -1 : 1;
+      if (a.hasCurrent && b.hasCurrent) {
+        const delta = b.currentAmount - a.currentAmount;
+        return delta !== 0 ? delta : a.order - b.order;
+      }
+      const yearDelta = a.firstVisibleYear - b.firstVisibleYear;
+      if (yearDelta !== 0) return yearDelta;
+      const amountDelta = b.firstVisibleAmount - a.firstVisibleAmount;
+      return amountDelta !== 0 ? amountDelta : a.order - b.order;
+    });
+
+    return entries;
+  }, [sortedPlayers, mainFaHolds, allYears, currentYear]);
+
+  // Own free agents render as real cap-table rows (headshot, name, re-sign cell,
+  // hover-Absolve) — same shape as a roster row, just sourced from a cap hold.
+  const renderFaHoldRow = (hold: CapHoldLike, idx: number) => {
+    const tag = normalizeFAType(hold.type) || 'UFA';
+    const resolvedPlayer = (playersMap?.[String(hold.playerId ?? '')] ??
+      playersMap?.[String(hold.playerName ?? '')] ?? {
+        playerId: hold.playerId,
+        displayName: hold.playerName,
+      }) as unknown as CapSheetFullPlayerLike;
+    const holdEndYear = toEndYear(hold.season);
+    return (
+      <div
+        key={`fa-${hold.playerId ?? hold.playerName}-${idx}`}
+        data-testid="cap-sheet-full-fa-decision-row"
+        className="group grid items-center transition-colors hover:bg-white/[0.02]"
+        style={{ gridTemplateColumns: playerGridTemplate }}
+      >
+        <div className="sticky left-0 z-10 flex h-[24px] items-center gap-2 border-r border-white/10 bg-[#0b0e14] px-3 shadow-[4px_0_24px_rgba(0,0,0,0.5)] transition-colors group-hover:bg-[#11151d]">
+          <PlayerAvatar
+            player={resolvedPlayer}
+            name={hold.playerName || String(hold.playerId || '?')}
+          />
+          <button
+            onClick={() => openPlayerContractModal?.(resolvedPlayer)}
+            className="flex-1 truncate text-left text-[13px] font-bold tracking-tight text-white transition-colors hover:text-[color:var(--team-secondary,#FDB927)]"
+            title={hold.playerName || String(hold.playerId || '')}
+          >
+            {hold.playerName || hold.playerId}
+          </button>
+          <div className="absolute inset-0 z-20 flex items-center justify-end bg-[#0b0e14] px-3 opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="mr-auto truncate text-[13px] font-bold tracking-tight text-white">
+              {hold.playerName || hold.playerId}
+            </span>
+            <button
+              data-testid="cap-sheet-full-fa-absolve-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                renounceCapHold?.(hold);
+              }}
+              className="rounded border border-red-500/20 bg-red-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-300 hover:bg-red-500/30"
+            >
+              Absolve
+            </button>
+          </div>
+        </div>
+        {allYears.map((year) => {
+          const seasonStr = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
+          if (hold.season !== seasonStr) {
+            return (
+              <div
+                key={year}
+                className="h-[24px] border-l border-white/[0.02] opacity-30"
+              />
+            );
+          }
+          return (
+            <div
+              key={year}
+              data-testid="cap-sheet-full-fa-resign-cell"
+              onClick={() =>
+                launchContractAction?.(
+                  resolvedPlayer,
+                  tag === 'RFA' ? 'rfa' : 'ufa',
+                  holdEndYear ?? year
+                )
+              }
+              className={`relative flex h-[24px] cursor-pointer items-center justify-center gap-1 border-l border-white/[0.02] px-2 transition-all hover:ring-2 hover:ring-inset hover:ring-white/20 ${getFaCellTint(tag)}`}
+              title={`Re-sign ${hold.playerName || ''} (${tag})`}
+            >
+              <span
+                className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${getTagColor(tag)}`}
+              >
+                {tag}
+              </span>
+              <span className="font-mono text-xs tabular-nums text-cyan-200">
+                ${Number(hold.amount || 0).toLocaleString()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const displayedDeadMoney = (
     Array.isArray(teamCapSheet.deadCap) ? teamCapSheet.deadCap : []
   ) as DeadCapEntryLike[];
@@ -917,7 +1124,11 @@ export const CapSheetFull = ({
 
                 {/* Rows */}
                 <div className="divide-y divide-white/5">
-                  {sortedPlayers.map((player, idx) => {
+                  {orderedRows.map((row, idx) => {
+                    if (row.kind === 'hold') {
+                      return renderFaHoldRow(row.hold, idx);
+                    }
+                    const player = row.player;
                     const isTwoWay = isTwoWayContract(player);
                     const profileForCurrentYear =
                       getRulesProfileForYear?.(player, currentYear) || null;
@@ -1422,7 +1633,7 @@ export const CapSheetFull = ({
 
         {/* SUPPORTING DETAIL SURFACE: Cap holds remain separate from player rows
             and explain part of the same canonical Total Cap story. */}
-        {displayedCapHolds.length > 0 &&
+        {sectionHolds.length > 0 &&
           (() => {
           // 1. Create a map of player ID/Name to index from the main sortedPlayers list
           // This allows us to replicate the main table's sort order.
@@ -1433,11 +1644,13 @@ export const CapSheetFull = ({
             if (p.name) playerSortMap.set(p.name, idx);
           });
 
-          // 2. Split holds into "Roster Players" (Group A) and "Legacy/Other" (Group B)
+          // 2. Split holds into "Roster Players" (Group A) and "Legacy/Other" (Group B).
+          //    This drawer holds only future-season and dead holds; this
+          //    offseason's own free agents already render in the cap table above.
           const rosterHolds: CapHoldLike[] = [];
           const otherHolds: CapHoldLike[] = [];
 
-          displayedCapHolds.forEach((h) => {
+          sectionHolds.forEach((h) => {
             const id = h.playerId || h.playerName;
             if (playerSortMap.has(id || '') || playerSortMap.has(h.playerName || '')) {
               rosterHolds.push(h);
@@ -1489,13 +1702,24 @@ export const CapSheetFull = ({
                 </div>
               </div>
 
-              {/* Tag Column */}
+              {/* Tag Column — dead/zombie holds (departed players never
+                  renounced, or past seasons) are marked DEAD so they read as
+                  renounce-able clutter, not live decisions. */}
               <div className="px-1 py-1 flex items-center justify-center border-r border-cockpit-edge h-[24px]">
-                <span
-                  className={`${getTagColor(h.type || null)} px-1 py-px rounded-[2px] text-[8px] font-bold uppercase tracking-wider truncate max-w-full`}
-                >
-                  {h.type === 'FA Cap Hold' ? 'HOLD' : h.type || 'HOLD'}
-                </span>
+                {isDeadCapHoldRow(h, currentYear) ? (
+                  <span
+                    className="px-1 py-px rounded-[2px] text-[8px] font-bold uppercase tracking-wider truncate max-w-full border border-zinc-500/30 bg-zinc-600/20 text-zinc-300"
+                    title="Renounce-able hold for a departed player — not a live decision"
+                  >
+                    DEAD
+                  </span>
+                ) : (
+                  <span
+                    className={`${getTagColor(h.type || null)} px-1 py-px rounded-[2px] text-[8px] font-bold uppercase tracking-wider truncate max-w-full`}
+                  >
+                    {h.type === 'FA Cap Hold' ? 'HOLD' : h.type || 'HOLD'}
+                  </span>
+                )}
               </div>
 
               {/* Year Columns */}
@@ -1546,7 +1770,7 @@ export const CapSheetFull = ({
                   Cap Hold Details
                 </span>
                 <span className="rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-secondary">
-                  {displayedCapHolds.length}
+                  {sectionHolds.length}
                 </span>
                 <span className="sr-only">
                   Separate from player rows. Matching-season holds feed the

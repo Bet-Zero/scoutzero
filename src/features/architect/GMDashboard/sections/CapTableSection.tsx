@@ -50,6 +50,7 @@ const CapTableSection = ({
   <CapSheetFull
     teamCapSheet={teamCapSheet}
     currentYear={currentYear}
+    playersMap={playersMap}
     onOpenPlayerContractModal={onOpenPlayerContractModal}
     onLaunchContractAction={onLaunchContractAction}
     onRenounceCapHold={onRenounceCapHold}

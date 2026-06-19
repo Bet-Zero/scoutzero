@@ -168,10 +168,14 @@ export const hydrateBaseTeam = async (
     normalizedBaseDoc.totals?.hardCapDetail ||
     null;
   const hardCapTriggeredBy = normalizedBaseDoc.hardCapTriggeredBy || null;
+  // A team is hard-capped ONLY when it has actually triggered a hard cap by
+  // using the NT-MLE, BAE, or a sign-and-trade (which records a
+  // `hardCapTriggeredBy` / canonical `isHardCapped`). `hardCapLevel` is only a
+  // band descriptor (which apron the salary sits in) and must not, by itself,
+  // mark a team hard-capped — otherwise every apron-band team is falsely capped.
   const hardCapped =
-    hardCapLevel != null &&
-    String(hardCapLevel).toLowerCase() !== 'none' &&
-    String(hardCapLevel).toLowerCase() !== 'false';
+    Boolean(hardCapTriggeredBy) ||
+    normalizedBaseDoc.totals?.isHardCapped === true;
   const totals = (normalizedBaseDoc.totals || {}) as TeamTotals;
 
   return {

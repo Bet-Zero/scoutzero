@@ -361,6 +361,7 @@ utils/
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.readers.ts
   firebaseTeamPlanHelpers.ts
+  freeAgentRights.ts
   hardCapUtils.ts
   leagueInvariants.entitlementInvariants.ts
   leagueInvariants.playerInvariants.ts
@@ -549,5 +550,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-13T01:07:11.908Z*
+*Generated on: 2026-06-19T00:42:46.495Z*
 *Auto-updated by: npm run docs*

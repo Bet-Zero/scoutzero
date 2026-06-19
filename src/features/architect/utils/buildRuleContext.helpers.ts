@@ -37,6 +37,7 @@ import {
 } from './capHelpers';
 import { getTeamApronStatus } from '@/features/architect/utils/capUtils';
 import { getYearsOfService as getYearsOfServiceFromPlayer } from '@/features/architect/utils/salaryEngine';
+import { deriveBirdType as deriveBirdTypeCanonical } from '@/features/architect/utils/freeAgentRights';
 
 export interface BuildRuleContextInput {
   player: {
@@ -197,22 +198,23 @@ function computeMaxPercentBucket(yearsOfService: number): 0.25 | 0.3 | 0.35 {
 
 function deriveBirdType(player: BuildRuleContextInput['player']): BirdType {
   const status = player.contract?.birdRights?.status;
-  if (!status) return 'None';
+  // Delegate to the single canonical implementation; keep the diagnostic warn
+  // for genuinely unrecognized status values that fall through to 'None'.
+  const birdType = deriveBirdTypeCanonical({ contract: { birdRights: { status } } });
 
-  const normalizedStatus = String(status).toLowerCase().trim();
-  if (normalizedStatus.includes('full') || normalizedStatus === 'bird')
-    return 'Full Bird';
-  if (normalizedStatus.includes('early')) return 'Early Bird';
-  if (normalizedStatus.includes('non')) return 'Non-Bird';
-  if (normalizedStatus === 'none') return 'None';
+  if (status && birdType === 'None') {
+    const normalizedStatus = String(status).toLowerCase().trim();
+    if (normalizedStatus !== 'none') {
+      const playerId =
+        player.playerId ?? player.player_id ?? player.id ?? 'unknown';
+      console.warn(
+        `Unrecognized Bird rights status "${status}" (normalized: "${normalizedStatus}") ` +
+          `for player ${playerId}. Defaulting to 'None'.`
+      );
+    }
+  }
 
-  const playerId =
-    player.playerId ?? player.player_id ?? player.id ?? 'unknown';
-  console.warn(
-    `Unrecognized Bird rights status "${status}" (normalized: "${normalizedStatus}") ` +
-      `for player ${playerId}. Defaulting to 'None'.`
-  );
-  return 'None';
+  return birdType;
 }
 
 function computeTeamSalary(

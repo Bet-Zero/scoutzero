@@ -50,6 +50,35 @@ const toOptionalString = (value: unknown): string | null => {
   return trimmed ? trimmed : null;
 };
 
+/**
+ * True only when the team has ACTUALLY triggered a hard cap by using a
+ * hard-cap-triggering transaction (NT-MLE, BAE, or sign-and-trade). Those
+ * transactions set `hardCapped` / `hardCapTriggeredBy`. This deliberately does
+ * NOT look at `hardCapLevel`, which is only a band descriptor (which apron the
+ * salary sits in) and must never, by itself, make a team hard-capped.
+ */
+function hasHardCapTrigger(rec: UnknownRecord | null): boolean {
+  if (!rec) return false;
+
+  const isMeaningfulString = (value: unknown): boolean => {
+    if (typeof value !== 'string') return false;
+    const trimmed = value.trim().toLowerCase();
+    return trimmed !== '' && trimmed !== 'none' && trimmed !== 'false';
+  };
+
+  const hardCapped = rec.hardCapped;
+  if (hardCapped === true || hardCapped === 1 || hardCapped === 2) return true;
+  if (isMeaningfulString(hardCapped)) return true;
+
+  if (isMeaningfulString(rec.hardCapTriggeredBy)) return true;
+
+  const triggered = rec.hardCapTriggered;
+  if (triggered === true) return true;
+  if (isMeaningfulString(triggered)) return true;
+
+  return false;
+}
+
 function normalizeHardCapLevel(value: unknown): string | null {
   if (value === 2) return 'secondApron';
   if (value === 1) return 'firstApron';
@@ -87,15 +116,28 @@ export function resolveHardCapSnapshotOverlay(
   const teamRecord = asRecord(teamCapSheet);
   const existingTotals = asRecord(teamRecord?.totals);
 
-  const hardCapLevel =
-    normalizeHardCapLevel(teamRecord?.hardCapLevel) ??
-    normalizeHardCapLevel(existingTotals?.hardCapLevel) ??
+  // A hard cap exists ONLY when a triggering transaction has been used. The
+  // scraped `hardCapLevel` is a band descriptor (which apron the salary sits in)
+  // and must not, on its own, make a team hard-capped — otherwise every
+  // apron-band team is falsely reported as hard-capped at the first apron.
+  const isHardCapped =
+    existingTotals?.isHardCapped === true ||
+    hasHardCapTrigger(teamRecord) ||
+    hasHardCapTrigger(existingTotals);
+
+  // The ceiling level prefers an explicit trigger level, falling back to the
+  // band descriptor only when the team is genuinely hard-capped.
+  const triggeredLevel =
     normalizeHardCapLevel(teamRecord?.hardCapped) ??
     normalizeHardCapLevel(existingTotals?.hardCapped) ??
+    normalizeHardCapLevel(teamRecord?.hardCapTriggered) ??
     normalizeHardCapLevel(existingTotals?.hardCapTriggered);
 
-  const isHardCapped =
-    existingTotals?.isHardCapped === true || hardCapLevel !== null;
+  const bandLevel =
+    normalizeHardCapLevel(teamRecord?.hardCapLevel) ??
+    normalizeHardCapLevel(existingTotals?.hardCapLevel);
+
+  const hardCapLevel = isHardCapped ? (triggeredLevel ?? bandLevel) : null;
 
   const hardCapDetail =
     toOptionalString(existingTotals?.hardCapDetail) ??
