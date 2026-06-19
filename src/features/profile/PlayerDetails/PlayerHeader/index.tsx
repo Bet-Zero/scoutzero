@@ -14,6 +14,66 @@ export const formatProfileHeight = (inches: number | null | undefined) => {
   return `${feet}-${remainingInches}`;
 };
 
+const MAX_PLAUSIBLE_YEARS_PRO = 30;
+
+const parsePositiveYear = (value: unknown): number | null => {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseInt(value, 10)
+        : NaN;
+
+  return Number.isInteger(parsed) && parsed > 1900 ? parsed : null;
+};
+
+const parseNonNegativeInteger = (value: unknown): number | null => {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseInt(value, 10)
+        : NaN;
+
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
+
+export const formatProfileYearsPro = (
+  player: ProfilePlayer,
+  currentSeasonYear = getCurrentSeasonYear()
+): string => {
+  const display = player.bio?.display as
+    | { yearsPro?: number | string | null }
+    | null
+    | undefined;
+  const sourceYearsPro = parseNonNegativeInteger(display?.yearsPro);
+  const draft =
+    player.bio && 'draft' in player.bio
+      ? (player.bio.draft as { year?: string | number | null } | null | undefined)
+      : null;
+  const draftYear = parsePositiveYear(draft?.year);
+
+  if (draftYear) {
+    const derivedYearsPro = Math.max(0, currentSeasonYear - draftYear);
+
+    if (
+      sourceYearsPro === null ||
+      Math.abs(sourceYearsPro - derivedYearsPro) > 1
+    ) {
+      return String(derivedYearsPro);
+    }
+  }
+
+  if (
+    sourceYearsPro !== null &&
+    sourceYearsPro <= MAX_PLAUSIBLE_YEARS_PRO
+  ) {
+    return String(sourceYearsPro);
+  }
+
+  return 'N/A';
+};
+
 export const PlayerHeader = ({
   player,
   selectedPlayer,
@@ -53,6 +113,7 @@ export const PlayerHeader = ({
   const contractSummary = formatContractSummary(currentSalary, totalYears);
   const ageDisplay =
     Number.isFinite(player.age) && player.age > 0 ? player.age : 'N/A';
+  const yearsProDisplay = formatProfileYearsPro(player, thisYear);
 
   // Get free agency info from bio.display or contract subcollection (v2 structure only)
   const freeAgency = contractData?.freeAgency || {};
@@ -102,11 +163,7 @@ export const PlayerHeader = ({
           </p>
           <p>
             <span className="font-bold">YEARS PRO</span>:{' '}
-            {player.bio?.display &&
-            typeof player.bio.display === 'object' &&
-            'yearsPro' in player.bio.display
-              ? String(player.bio.display.yearsPro)
-              : 'N/A'}
+            {yearsProDisplay}
           </p>
           {(() => {
             const draft =
@@ -145,4 +202,3 @@ export const PlayerHeader = ({
     </div>
   );
 };
-

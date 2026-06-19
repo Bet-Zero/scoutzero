@@ -479,11 +479,83 @@ describe('PlayerHeader normalized display values', () => {
       screen.getByText((_, element) => element?.textContent === 'AGE: 26')
     ).toBeInTheDocument();
     expect(
+      screen.getByText((_, element) => element?.textContent === 'YEARS PRO: 4')
+    ).toBeInTheDocument();
+    expect(
       screen.getByText((_, element) =>
         element?.textContent === 'CONTRACT: $20.0M / 2 yrs'
       )
     ).toHaveTextContent(
       'CONTRACT: $20.0M / 2 yrs'
     );
+  });
+
+  it('guards stale years-pro source values with draft-year provenance', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-06T12:00:00Z'));
+
+    const player = enrichPlayerData({
+      id: 'lebron_james',
+      name: 'LeBron James',
+      bio: {
+        displayName: 'LeBron James',
+        playerId: 'lebron_james',
+        position: 'Forward',
+        height: 81,
+        weight: 250,
+        dob: '1984-12-30',
+        draft: {
+          year: 2003,
+          round: 1,
+          pick: 1,
+        },
+        display: {
+          team: 'Los Angeles Lakers',
+          yearsPro: 2,
+        },
+      },
+    });
+
+    expect(player).not.toBeNull();
+    if (!player) throw new Error('Expected enriched player');
+    render(<PlayerHeader player={player} selectedPlayer="lebron_james" />);
+
+    expect(
+      screen.getByText((_, element) => element?.textContent === 'YEARS PRO: 22')
+    ).toBeInTheDocument();
+  });
+
+  it('keeps plausible recent-player years-pro source values', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-06T12:00:00Z'));
+
+    const player = enrichPlayerData({
+      id: 'recent_player',
+      name: 'Recent Player',
+      bio: {
+        displayName: 'Recent Player',
+        playerId: 'recent_player',
+        position: 'Guard',
+        height: 76,
+        weight: 190,
+        draft: {
+          year: 2025,
+          round: 1,
+          pick: 12,
+        },
+        display: {
+          team: 'Portland Trail Blazers',
+          yearsPro: 0,
+        },
+      },
+    });
+
+    expect(player).not.toBeNull();
+    if (!player) throw new Error('Expected enriched player');
+    render(<PlayerHeader player={player} selectedPlayer="recent_player" />);
+
+    expect(
+      screen.getByText((_, element) => element?.textContent === 'YEARS PRO: 0')
+    ).toBeInTheDocument();
   });
 });
