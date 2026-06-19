@@ -49,8 +49,12 @@ describe('deriveBirdType', () => {
     expect(deriveBirdType(lebron)).toBe('Full Bird');
   });
   it('recognizes Early Bird and Non-Bird', () => {
-    expect(deriveBirdType({ contract: { birdRights: { status: 'Early Bird' } } })).toBe('Early Bird');
-    expect(deriveBirdType({ contract: { birdRights: { status: 'Non-Bird' } } })).toBe('Non-Bird');
+    expect(
+      deriveBirdType({ contract: { birdRights: { status: 'Early Bird' } } })
+    ).toBe('Early Bird');
+    expect(
+      deriveBirdType({ contract: { birdRights: { status: 'Non-Bird' } } })
+    ).toBe('Non-Bird');
   });
   it('defaults missing/unknown rights to None', () => {
     expect(deriveBirdType(carmelo)).toBe('None');
@@ -74,8 +78,23 @@ describe('resolveFreeAgentRights — own current-season free agent', () => {
     expect(result.canResignWithRights).toBe(true);
     expect(result.signingMechanism).toBe('Full Bird');
   });
-  it('derives a live, positive cap hold', () => {
-    expect(result.capHoldAmount).toBeGreaterThan(0);
+  it('uses the player-record cap hold instead of a raw Bird multiplier', () => {
+    expect(result.capHoldAmount).toBe(57_915_200);
+    expect(result.capHoldReason).toBe('Full Bird (source)');
+  });
+});
+
+describe('resolveFreeAgentRights — missing player record', () => {
+  it('does not promote an unresolved hold into the main decision table', () => {
+    const result = resolveFreeAgentRights(null, {
+      activeSeasonStartYear: ACTIVE_SEASON_START,
+      holdType: 'UFA',
+      holdSeasonStartYear: ACTIVE_SEASON_START,
+      isOnRoster: false,
+    });
+
+    expect(result.placement).toBe('side');
+    expect(result.canResignWithRights).toBe(false);
   });
 });
 
@@ -90,12 +109,14 @@ describe('resolveFreeAgentRights — stale zombie hold', () => {
   it('flags Carmelo as a dead, renounce-able hold', () => {
     expect(result.placement).toBe('dead');
     expect(result.isDeadHold).toBe(true);
-    expect(isDeadCapHold(carmelo, {
-      activeSeasonStartYear: ACTIVE_SEASON_START,
-      holdType: 'FA Cap Hold',
-      holdSeasonStartYear: 2025,
-      isOnRoster: false,
-    })).toBe(true);
+    expect(
+      isDeadCapHold(carmelo, {
+        activeSeasonStartYear: ACTIVE_SEASON_START,
+        holdType: 'FA Cap Hold',
+        holdSeasonStartYear: 2025,
+        isOnRoster: false,
+      })
+    ).toBe(true);
   });
   it('does not put dead holds in the main table', () => {
     expect(result.placement).not.toBe('main');

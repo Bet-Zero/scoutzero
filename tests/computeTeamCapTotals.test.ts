@@ -13,18 +13,21 @@ import {
 } from '@/features/architect/utils/capTotals';
 
 // Mock the imports
-vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () => ({
-  getCapSettingsForYear: vi.fn((year) => ({
-    salaryCap: 141_000_000,
-    firstApron: 179_000_000,
-    secondApron: 190_000_000,
-    _meta: {
-      source: 'mock',
-      seasonKey: `${year - 1}-${String(year).slice(-2)}`,
-    },
-  })),
-  yearToSeasonKey: vi.fn((year) => `${year - 1}-${String(year).slice(-2)}`),
-}));
+vi.mock(
+  '@/features/architect/utils/tradeMachine/utils/capSettingsProvider',
+  () => ({
+    getCapSettingsForYear: vi.fn((year) => ({
+      salaryCap: 141_000_000,
+      firstApron: 179_000_000,
+      secondApron: 190_000_000,
+      _meta: {
+        source: 'mock',
+        seasonKey: `${year - 1}-${String(year).slice(-2)}`,
+      },
+    })),
+    yearToSeasonKey: vi.fn((year) => `${year - 1}-${String(year).slice(-2)}`),
+  })
+);
 
 vi.mock('@/features/architect/utils/capRulesProfile', () => ({
   getCapRulesForYear: vi.fn((yearKey) => ({
@@ -477,6 +480,7 @@ describe('computeTeamCapTotals', () => {
         },
         hardCapLevel: 'firstApron',
         hardCapReason: 'Taxpayer MLE hard cap',
+        hardCapTriggeredBy: 'Taxpayer MLE',
       };
 
       const snapshot = createCanonicalTeamTotalsSnapshot(teamCapSheet, 2025);
@@ -583,8 +587,12 @@ describe('computeTeamCapTotals', () => {
         tradeMachineResult.totalCapAllocations
       );
       expect(capSheetResult.playersTotal).toBe(tradeMachineResult.playersTotal);
-      expect(capSheetResult.capHoldsTotal).toBe(tradeMachineResult.capHoldsTotal);
-      expect(capSheetResult.deadMoneyTotal).toBe(tradeMachineResult.deadMoneyTotal);
+      expect(capSheetResult.capHoldsTotal).toBe(
+        tradeMachineResult.capHoldsTotal
+      );
+      expect(capSheetResult.deadMoneyTotal).toBe(
+        tradeMachineResult.deadMoneyTotal
+      );
     });
   });
 });

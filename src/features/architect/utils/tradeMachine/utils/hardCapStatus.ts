@@ -50,8 +50,12 @@ type HardCapStatusTeamData = {
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
   hardCapLevel?: string | number | null;
+  hardCapReason?: string | null;
+  hardCapDetail?: string | null;
+  hardCapTriggeredBy?: string | null;
   hardCapTriggered?: boolean | string | null;
   hardCapped?: boolean | string | number | null;
+  isHardCapped?: boolean | string | number | null;
   exceptions?: Record<string, unknown> | null;
   mle?: HardCapUsageEntryLike;
   bae?: HardCapUsageEntryLike;
@@ -66,8 +70,12 @@ type HardCapStatusTeamLike = {
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
   hardCapLevel?: string | number | null;
+  hardCapReason?: string | null;
+  hardCapDetail?: string | null;
+  hardCapTriggeredBy?: string | null;
   hardCapTriggered?: boolean | string | null;
   hardCapped?: boolean | string | number | null;
+  isHardCapped?: boolean | string | number | null;
   exceptions?: Record<string, unknown> | null;
   mle?: HardCapUsageEntryLike;
   bae?: HardCapUsageEntryLike;
@@ -79,6 +87,7 @@ type HardCapStatusTeamLike = {
 type HardCapStatusOptions = {
   isWorldless?: boolean;
   capSettings?: HardCapCapSettingsLike | null;
+  inferHardCapFromExceptionUsage?: boolean;
 };
 
 type CanonicalHardCapType = HardCapTypeCanonical;
@@ -147,12 +156,7 @@ function toOptionalString(value: unknown): string | null {
 }
 
 function normalizeHardCapType(value: unknown): CanonicalHardCapType | null {
-  if (
-    value === null ||
-    value === undefined ||
-    value === false ||
-    value === 0
-  ) {
+  if (value === null || value === undefined || value === false || value === 0) {
     return null;
   }
 
@@ -172,7 +176,10 @@ function normalizeHardCapType(value: unknown): CanonicalHardCapType | null {
     return null;
   }
 
-  const normalized = value.trim().toLowerCase().replace(/[\s_-]/g, '');
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]/g, '');
   if (
     !normalized ||
     normalized === 'none' ||
@@ -239,6 +246,16 @@ function normalizeSourceLabel(source: string, rawValue: unknown): string {
     return `${source} === true`;
   }
 
+  if (
+    (source === 'team.isHardCapped' ||
+      source === 'team.team.isHardCapped' ||
+      source === 'team.totals.isHardCapped' ||
+      source === 'team.team.totals.isHardCapped') &&
+    rawValue === true
+  ) {
+    return `${source} === true`;
+  }
+
   return source;
 }
 
@@ -268,6 +285,83 @@ function getExplicitHardCapReason(
     toOptionalString(nestedTotals?.hardCapDetail) ||
     null
   );
+}
+
+function getDefaultHardCapReason(
+  hardCapType: CanonicalHardCapType | null
+): string {
+  if (hardCapType === HARD_CAP_TYPES.SECOND_APRON) {
+    return 'Hard cap triggered at Second Apron';
+  }
+
+  if (hardCapType === HARD_CAP_TYPES.FIRST_APRON) {
+    return 'Hard cap triggered at First Apron';
+  }
+
+  return 'Hard cap indicated by legacy/ambiguous value. Applying fail-closed ceiling.';
+}
+
+function getHardCapLevelCandidate(
+  team: HardCapStatusTeamLike,
+  teamLike: HardCapStatusTeamData
+): { hardCapType: CanonicalHardCapType; source: string } | null {
+  const teamTotals = toRecord(team?.totals);
+  const nestedTotals = toRecord(teamLike?.totals);
+  const levelCandidates: Array<[string, unknown]> = [
+    ['team.hardCapLevel', team.hardCapLevel],
+    ['team.team.hardCapLevel', teamLike?.hardCapLevel],
+    ['team.totals.hardCapLevel', teamTotals?.hardCapLevel],
+    ['team.team.totals.hardCapLevel', nestedTotals?.hardCapLevel],
+  ];
+
+  for (const [source, rawValue] of levelCandidates) {
+    const normalized = normalizeHardCapType(rawValue);
+    if (normalized) {
+      return {
+        hardCapType: normalized,
+        source,
+      };
+    }
+  }
+
+  return null;
+}
+
+function isPresentHardCapTriggerMetadata(value: unknown): boolean {
+  const normalized = toOptionalString(value);
+  if (!normalized) return false;
+
+  const canonical = normalized.toLowerCase().replace(/[\s_-]/g, '');
+  return !(
+    canonical === 'none' ||
+    canonical === 'false' ||
+    canonical === 'off' ||
+    canonical === 'inactive' ||
+    canonical === 'null' ||
+    canonical === '0'
+  );
+}
+
+function getHardCapTriggerMetadataSource(
+  team: HardCapStatusTeamLike,
+  teamLike: HardCapStatusTeamData
+): string | null {
+  const teamTotals = toRecord(team?.totals);
+  const nestedTotals = toRecord(teamLike?.totals);
+  const metadataCandidates: Array<[string, unknown]> = [
+    ['team.hardCapTriggeredBy', team.hardCapTriggeredBy],
+    ['team.team.hardCapTriggeredBy', teamLike?.hardCapTriggeredBy],
+    ['team.totals.hardCapTriggeredBy', teamTotals?.hardCapTriggeredBy],
+    ['team.team.totals.hardCapTriggeredBy', nestedTotals?.hardCapTriggeredBy],
+  ];
+
+  for (const [source, rawValue] of metadataCandidates) {
+    if (isPresentHardCapTriggerMetadata(rawValue)) {
+      return source;
+    }
+  }
+
+  return null;
 }
 
 function getUsageSourceLabel(
@@ -337,7 +431,8 @@ function getBucketUsageSourceLabel(
 
     if (
       bucketRecord.remaining !== undefined &&
-      toFiniteNumber(bucketRecord.amount) > toFiniteNumber(bucketRecord.remaining)
+      toFiniteNumber(bucketRecord.amount) >
+        toFiniteNumber(bucketRecord.remaining)
     ) {
       return `${sourceBase}[${normalizedType}].remaining < ${sourceBase}[${normalizedType}].amount`;
     }
@@ -364,10 +459,11 @@ function getCompatibilityHardCapUsage(
       teamLike?.faExceptionBuckets,
       ['NTMLE', 'NON_TAXPAYER_MLE']
     ) ||
-    getBucketUsageSourceLabel('team.faExceptionBuckets', team.faExceptionBuckets, [
-      'NTMLE',
-      'NON_TAXPAYER_MLE',
-    ]);
+    getBucketUsageSourceLabel(
+      'team.faExceptionBuckets',
+      team.faExceptionBuckets,
+      ['NTMLE', 'NON_TAXPAYER_MLE']
+    );
 
   const baeSource =
     getUsageSourceLabel(
@@ -383,9 +479,11 @@ function getCompatibilityHardCapUsage(
       teamLike?.faExceptionBuckets,
       ['BAE']
     ) ||
-    getBucketUsageSourceLabel('team.faExceptionBuckets', team.faExceptionBuckets, [
-      'BAE',
-    ]);
+    getBucketUsageSourceLabel(
+      'team.faExceptionBuckets',
+      team.faExceptionBuckets,
+      ['BAE']
+    );
 
   if (!mleSource && !baeSource) {
     return null;
@@ -556,7 +654,11 @@ export function getHardCapStatus(
   team: HardCapStatusTeamLike | null | undefined,
   options: HardCapStatusOptions = {}
 ): HardCapStatusResult {
-  const { isWorldless = false, capSettings = null } = options;
+  const {
+    isWorldless = false,
+    capSettings = null,
+    inferHardCapFromExceptionUsage = false,
+  } = options;
 
   if (!team) {
     return buildStatus({
@@ -570,9 +672,11 @@ export function getHardCapStatus(
 
   const teamLike = team.team || {};
   const explicitReason = getExplicitHardCapReason(team, teamLike);
+  const hardCapLevelCandidate = getHardCapLevelCandidate(team, teamLike);
   const hardCapSecondApron =
     teamLike?.hardCapSecondApron || team.hardCapSecondApron;
-  const hardCapFirstApron = teamLike?.hardCapFirstApron || team.hardCapFirstApron;
+  const hardCapFirstApron =
+    teamLike?.hardCapFirstApron || team.hardCapFirstApron;
 
   if (hardCapSecondApron?.active === true) {
     return buildStatus({
@@ -603,14 +707,14 @@ export function getHardCapStatus(
   const typedCandidates: Array<[string, unknown]> = [
     ['team.hardCapType', team.hardCapType],
     ['team.team.hardCapType', teamLike.hardCapType],
-    ['team.hardCapLevel', team.hardCapLevel],
-    ['team.team.hardCapLevel', teamLike.hardCapLevel],
-    ['team.totals.hardCapLevel', team.totals?.hardCapLevel],
-    ['team.team.totals.hardCapLevel', teamLike.totals?.hardCapLevel],
     ['team.hardCapTriggered', team.hardCapTriggered],
     ['team.team.hardCapTriggered', teamLike.hardCapTriggered],
     ['team.hardCapped', team.hardCapped],
     ['team.team.hardCapped', teamLike.hardCapped],
+    ['team.isHardCapped', team.isHardCapped],
+    ['team.team.isHardCapped', teamLike.isHardCapped],
+    ['team.totals.isHardCapped', team.totals?.isHardCapped],
+    ['team.team.totals.isHardCapped', teamLike.totals?.isHardCapped],
   ];
 
   let unknownSource: string | null = null;
@@ -620,7 +724,11 @@ export function getHardCapStatus(
       source === 'team.hardCapped' ||
       source === 'team.team.hardCapped' ||
       source === 'team.hardCapTriggered' ||
-      source === 'team.team.hardCapTriggered';
+      source === 'team.team.hardCapTriggered' ||
+      source === 'team.isHardCapped' ||
+      source === 'team.team.isHardCapped' ||
+      source === 'team.totals.isHardCapped' ||
+      source === 'team.team.totals.isHardCapped';
 
     if (isWorldless && isLegacyFlagSource && typeof rawValue === 'string') {
       continue;
@@ -630,28 +738,35 @@ export function getHardCapStatus(
     if (!normalized) continue;
 
     const sourceLabel = normalizeSourceLabel(source, rawValue);
+    const resolvedHardCapType =
+      normalized === HARD_CAP_TYPES.UNKNOWN
+        ? hardCapLevelCandidate?.hardCapType || HARD_CAP_TYPES.UNKNOWN
+        : normalized;
 
-    if (normalized === HARD_CAP_TYPES.SECOND_APRON) {
+    if (resolvedHardCapType === HARD_CAP_TYPES.SECOND_APRON) {
       return buildStatus({
         isHardCapped: true,
         hardCapType: HARD_CAP_TYPES.SECOND_APRON,
-        reason: explicitReason || 'Hard cap triggered at Second Apron',
+        reason:
+          explicitReason ||
+          getDefaultHardCapReason(HARD_CAP_TYPES.SECOND_APRON),
         source: sourceLabel,
         capSettings,
       });
     }
 
-    if (normalized === HARD_CAP_TYPES.FIRST_APRON) {
+    if (resolvedHardCapType === HARD_CAP_TYPES.FIRST_APRON) {
       return buildStatus({
         isHardCapped: true,
         hardCapType: HARD_CAP_TYPES.FIRST_APRON,
-        reason: explicitReason || 'Hard cap triggered at First Apron',
+        reason:
+          explicitReason || getDefaultHardCapReason(HARD_CAP_TYPES.FIRST_APRON),
         source: sourceLabel,
         capSettings,
       });
     }
 
-    if (normalized === HARD_CAP_TYPES.UNKNOWN && !unknownSource) {
+    if (resolvedHardCapType === HARD_CAP_TYPES.UNKNOWN && !unknownSource) {
       unknownSource = sourceLabel;
     }
   }
@@ -668,15 +783,30 @@ export function getHardCapStatus(
     });
   }
 
-  const compatibilityUsage = getCompatibilityHardCapUsage(team, teamLike);
-  if (compatibilityUsage) {
+  const triggerMetadataSource = getHardCapTriggerMetadataSource(team, teamLike);
+  if (triggerMetadataSource) {
+    const hardCapType =
+      hardCapLevelCandidate?.hardCapType || HARD_CAP_TYPES.UNKNOWN;
     return buildStatus({
       isHardCapped: true,
-      hardCapType: HARD_CAP_TYPES.FIRST_APRON,
-      reason: compatibilityUsage.reason,
-      source: compatibilityUsage.source,
+      hardCapType,
+      reason: explicitReason || getDefaultHardCapReason(hardCapType),
+      source: triggerMetadataSource,
       capSettings,
     });
+  }
+
+  if (inferHardCapFromExceptionUsage) {
+    const compatibilityUsage = getCompatibilityHardCapUsage(team, teamLike);
+    if (compatibilityUsage) {
+      return buildStatus({
+        isHardCapped: true,
+        hardCapType: HARD_CAP_TYPES.FIRST_APRON,
+        reason: compatibilityUsage.reason,
+        source: compatibilityUsage.source,
+        capSettings,
+      });
+    }
   }
 
   if (isWorldless) {
@@ -725,10 +855,13 @@ export function isTeamHardCapped(
 
 export function getHardCapStatusFromContext(
   team: HardCapStatusTeamLike | null | undefined,
-  context: { worldId?: string | null; capSettings?: HardCapCapSettingsLike | null; capSettingsUsed?: HardCapCapSettingsLike | null } = {}
+  context: {
+    worldId?: string | null;
+    capSettings?: HardCapCapSettingsLike | null;
+    capSettingsUsed?: HardCapCapSettingsLike | null;
+  } = {}
 ): HardCapStatusResult {
   const isWorldless = !context.worldId;
   const capSettings = context.capSettings || context.capSettingsUsed || null;
   return getHardCapStatus(team, { isWorldless, capSettings });
 }
-

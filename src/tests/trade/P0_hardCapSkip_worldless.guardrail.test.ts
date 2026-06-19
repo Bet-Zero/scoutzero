@@ -16,7 +16,10 @@
 
 import { describe, test, expect } from 'vitest';
 import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
-import { getHardCapStatus, isTeamHardCapped } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
+import {
+  getHardCapStatus,
+  isTeamHardCapped,
+} from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 
 const worldlessSalaryMatchingContext = {
@@ -27,7 +30,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   // ==========================================================================
   // Test 1: Worldless team with no triggers does NOT produce HARD_CAP_SKIP
   // ==========================================================================
-  
+
   describe('Worldless teams without triggers', () => {
     test('team with hardCapped=undefined does NOT trigger HARD_CAP_SKIP', () => {
       const team = {
@@ -45,7 +48,10 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
         },
       };
 
-      const result = validateSalaryMatching(team, worldlessSalaryMatchingContext); // Worldless context
+      const result = validateSalaryMatching(
+        team,
+        worldlessSalaryMatchingContext
+      ); // Worldless context
 
       expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
       expect(result.applicable).toBe(true);
@@ -68,7 +74,10 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
         },
       };
 
-      const result = validateSalaryMatching(team, worldlessSalaryMatchingContext);
+      const result = validateSalaryMatching(
+        team,
+        worldlessSalaryMatchingContext
+      );
 
       expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
       expect(result.applicable).toBe(true);
@@ -92,7 +101,10 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
         },
       };
 
-      const result = validateSalaryMatching(team, worldlessSalaryMatchingContext);
+      const result = validateSalaryMatching(
+        team,
+        worldlessSalaryMatchingContext
+      );
 
       // String values should NOT trigger HARD_CAP_SKIP in worldless mode
       expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
@@ -103,7 +115,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   // ==========================================================================
   // Test 2: Hard-capped teams now RUN salary matching (FIX applied)
   // ==========================================================================
-  
+
   describe('Hard-capped teams run salary matching', () => {
     test('hard-capped team gets proper allowableIncoming (not null)', () => {
       const team = {
@@ -175,7 +187,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   // ==========================================================================
   // Test 3: Hard-capped teams get proper rule/margin (not null)
   // ==========================================================================
-  
+
   describe('Hard-capped teams get proper matching results', () => {
     test('hard-capped team gets proper ruleApplied based on salary position', () => {
       const team = {
@@ -225,7 +237,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   // ==========================================================================
   // Test 4: Trade receipt respects new matching semantics
   // ==========================================================================
-  
+
   describe('Trade receipt matching semantics', () => {
     test('trade receipt salaryMatchingEvaluation runs for hard-capped teams', () => {
       const teams = [
@@ -265,9 +277,11 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
       });
 
       // Team A is hard-capped but salary matching RUNS (not skipped)
-      const teamAReceipt = result.tradeReceipt?.teams?.find(t => t.teamCode === 'A');
+      const teamAReceipt = result.tradeReceipt?.teams?.find(
+        (t) => t.teamCode === 'A'
+      );
       expect(teamAReceipt).toBeDefined();
-      
+
       if (teamAReceipt) {
         const salaryMatchingEval = teamAReceipt.salaryMatchingEvaluation;
         // FIXED: No longer skips - runs matching based on salary position
@@ -315,9 +329,11 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
       });
 
       // Even when skipped, receipt should include global cap settings
-      const teamAReceipt = result.tradeReceipt?.teams?.find(t => t.teamCode === 'A');
+      const teamAReceipt = result.tradeReceipt?.teams?.find(
+        (t) => t.teamCode === 'A'
+      );
       expect(teamAReceipt).toBeDefined();
-      
+
       if (teamAReceipt) {
         const salaryMatchingEval = teamAReceipt.salaryMatchingEvaluation;
         // capSettings should reference global settings even on skip
@@ -330,7 +346,7 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   // ==========================================================================
   // Test: getHardCapStatus function
   // ==========================================================================
-  
+
   describe('getHardCapStatus function', () => {
     test('returns isHardCapped=false for team with no triggers', () => {
       const team = {
@@ -365,6 +381,97 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
       const status = getHardCapStatus(team, { isWorldless: true });
 
       expect(status.isHardCapped).toBe(false);
+    });
+
+    test('does not treat hardCapLevel apron bands as hard-cap triggers', () => {
+      const status = getHardCapStatus(
+        {
+          hardCapLevel: 'firstApron',
+          totals: {
+            hardCapLevel: 'firstApron',
+            hardCapDetail: '1st Apron',
+          },
+          team: {
+            hardCapLevel: 'firstApron',
+            totals: {
+              hardCapLevel: 'firstApron',
+            },
+          },
+        },
+        { isWorldless: true }
+      );
+
+      expect(status).toEqual(
+        expect.objectContaining({
+          isHardCapped: false,
+          source: 'NO_HARD_CAP_TRIGGER',
+          hardCapType: null,
+        })
+      );
+    });
+
+    test('uses hardCapLevel only after real trigger metadata exists', () => {
+      const status = getHardCapStatus(
+        {
+          hardCapLevel: 'firstApron',
+          hardCapTriggeredBy: 'fullMLE',
+          hardCapReason: 'Triggered by Non-Taxpayer MLE',
+          totals: {
+            hardCapLevel: 'firstApron',
+          },
+        },
+        {
+          capSettings: {
+            firstApron: 178_000_000,
+            secondApron: 188_000_000,
+          },
+        }
+      );
+
+      expect(status).toEqual(
+        expect.objectContaining({
+          isHardCapped: true,
+          source: 'team.hardCapTriggeredBy',
+          reason: 'Triggered by Non-Taxpayer MLE',
+          hardCapType: 'FIRST_APRON',
+          hardCapCeiling: 178_000_000,
+        })
+      );
+    });
+
+    test('does not infer base-team hard cap from exception usedAmount alone', () => {
+      const team = {
+        hardCapLevel: 'firstApron',
+        totals: {
+          hardCapLevel: 'firstApron',
+          hardCapDetail: '1st Apron',
+        },
+        exceptions: {
+          mle: {
+            type: 'Non-Taxpayer',
+            totalAmount: 14_104_000,
+            usedAmount: 14_104_000,
+            remainingAmount: 0,
+          },
+          bae: {
+            totalAmount: 5_135_000,
+            usedAmount: 5_134_000,
+            remainingAmount: 1_000,
+          },
+        },
+      };
+
+      expect(getHardCapStatus(team).isHardCapped).toBe(false);
+      expect(
+        getHardCapStatus(team, { inferHardCapFromExceptionUsage: true })
+      ).toEqual(
+        expect.objectContaining({
+          isHardCapped: true,
+          hardCapType: 'FIRST_APRON',
+          reason:
+            'Hard cap triggered at First Apron via Non-Taxpayer MLE and BAE usage.',
+        })
+      );
     });
 
     test('isTeamHardCapped helper returns boolean', () => {

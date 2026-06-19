@@ -27,7 +27,9 @@ export interface CapHold {
  * @param season - Season string in format "YYYY-YY" (e.g., "2024-25")
  * @returns The start year as a number, or null if invalid
  */
-function parseSeasonStartYear(season: string | undefined | null): number | null {
+function parseSeasonStartYear(
+  season: string | undefined | null
+): number | null {
   if (!season || typeof season !== 'string' || !season.includes('-')) {
     return null;
   }
@@ -37,7 +39,7 @@ function parseSeasonStartYear(season: string | undefined | null): number | null 
 
 /**
  * Filters cap holds to return only active, unsigned holds for a given year.
- * 
+ *
  * @param capHolds - Array of cap holds from teamCapSheet.capHolds
  * @param yearKey - The START year of the season (e.g., 2024 for "2024-25" season)
  * @returns Filtered array of active, unsigned cap holds matching the year
@@ -51,8 +53,9 @@ export function getActiveUnsignedCapHolds(
   }
 
   return capHolds.filter((h) => {
-    // Must be active and not signed
-    if (!h.active || h.isSigned) return false;
+    // Must not be explicitly inactive or already signed. Staged base-team data
+    // omits `active` for unsigned holds, so missing active means active.
+    if (h.active === false || h.isSigned) return false;
 
     // Parse season and match to yearKey (start year)
     const seasonStart = parseSeasonStartYear(h.season);
@@ -65,7 +68,7 @@ export function getActiveUnsignedCapHolds(
 
 /**
  * Calculates the total amount of active, unsigned cap holds for a given year.
- * 
+ *
  * @param capHolds - Array of cap holds from teamCapSheet.capHolds
  * @param yearKey - The START year of the season (e.g., 2024 for "2024-25" season)
  * @returns Total amount of active, unsigned cap holds
@@ -81,7 +84,7 @@ export function getActiveUnsignedCapHoldsTotal(
 /**
  * Converts an end year to a start year for season matching.
  * Used when components receive selectedYear as the END year (e.g., 2025 for "2024-25").
- * 
+ *
  * @param endYear - The end year of the season (e.g., 2025 for "2024-25")
  * @returns The start year (e.g., 2024)
  */
@@ -92,7 +95,7 @@ export function endYearToStartYear(endYear: number): number {
 /**
  * Gets active, unsigned cap holds using an end year parameter.
  * This is a convenience wrapper for components that track selectedYear as end year.
- * 
+ *
  * @param capHolds - Array of cap holds from teamCapSheet.capHolds
  * @param selectedYear - The END year of the season (e.g., 2025 for "2024-25")
  * @returns Filtered array of active, unsigned cap holds
@@ -107,7 +110,7 @@ export function getActiveUnsignedCapHoldsByEndYear(
 /**
  * Calculates total active, unsigned cap holds using an end year parameter.
  * This is a convenience wrapper for components that track selectedYear as end year.
- * 
+ *
  * @param capHolds - Array of cap holds from teamCapSheet.capHolds
  * @param selectedYear - The END year of the season (e.g., 2025 for "2024-25")
  * @returns Total amount of active, unsigned cap holds
@@ -116,7 +119,10 @@ export function getActiveUnsignedCapHoldsTotalByEndYear(
   capHolds: CapHold[] | undefined | null,
   selectedYear: number
 ): number {
-  return getActiveUnsignedCapHoldsTotal(capHolds, endYearToStartYear(selectedYear));
+  return getActiveUnsignedCapHoldsTotal(
+    capHolds,
+    endYearToStartYear(selectedYear)
+  );
 }
 
 // ============================================================================
@@ -129,11 +135,11 @@ export function getActiveUnsignedCapHoldsTotalByEndYear(
  * These determine the cap hold amount for free agents based on their Bird rights status
  */
 export const CAP_HOLD_MULTIPLIERS = {
-  FULL_BIRD: 1.9,      // 190% of prior salary for Full Bird rights
-  EARLY_BIRD: 1.3,     // 130% of prior salary for Early Bird rights  
-  NON_BIRD: 1.2,       // 120% of prior salary for Non-Bird rights
-  MINIMUM: 1.2,        // 120% of minimum salary for players without Bird rights
-  ROOKIE_SCALE: 1.2,   // 120% of rookie scale salary for unsigned first-round picks
+  FULL_BIRD: 1.9, // 190% of prior salary for Full Bird rights
+  EARLY_BIRD: 1.3, // 130% of prior salary for Early Bird rights
+  NON_BIRD: 1.2, // 120% of prior salary for Non-Bird rights
+  MINIMUM: 1.2, // 120% of minimum salary for players without Bird rights
+  ROOKIE_SCALE: 1.2, // 120% of rookie scale salary for unsigned first-round picks
 } as const;
 
 /**
@@ -238,18 +244,20 @@ export interface CapHoldResult {
 
 /**
  * Calculate cap hold for a player based on their Bird rights status and contract history.
- * 
+ *
  * CBA Cap Hold Rules:
  * - Full Bird rights: 190% of prior salary
  * - Early Bird rights: 130% of prior salary
  * - Non-Bird rights: 120% of prior salary
  * - No Bird rights: 120% of minimum salary
  * - Unsigned first-round picks: 120% of rookie scale salary
- * 
+ *
  * @param player - Player data including contract and Bird rights info
  * @returns Cap hold result with amount and reason, or null if renounced
  */
-export function calculateCapHold(player: CapHoldPlayerInput): CapHoldResult | null {
+export function calculateCapHold(
+  player: CapHoldPlayerInput
+): CapHoldResult | null {
   if (player.renounced) return null;
 
   const experience = player.bio?.yearsExperience ?? 0;

@@ -12,10 +12,7 @@ type SalaryMatchingResultWithEffective = ReturnType<
   effectiveAllowableIncoming?: number;
 };
 
-function makeNormalizedPlayer(
-  id: string,
-  salary: number
-): NormalizedPlayer {
+function makeNormalizedPlayer(id: string, salary: number): NormalizedPlayer {
   return {
     id,
     player_id: id,
@@ -97,6 +94,7 @@ describe('salary matching validation', () => {
     const result = validateSalaryMatching(
       makeTeam(10_000_000, 12_000_000, {
         teamTotalSalary: 177_000_000,
+        hardCapped: 1,
         hardCapLevel: 'firstApron',
         context: { capSettings },
       })
@@ -113,6 +111,7 @@ describe('salary matching validation', () => {
     const result = validateSalaryMatching(
       makeTeam(10_000_000, 10_000_000, {
         teamTotalSalary: 175_000_000,
+        hardCapped: 1,
         hardCapLevel: 'firstApron',
         context: { capSettings },
       })
@@ -120,7 +119,7 @@ describe('salary matching validation', () => {
 
     expect(result.details.hardCapStatus).toMatchObject({
       isHardCapped: true,
-      source: 'team.hardCapLevel',
+      source: 'team.hardCapped',
       reason: 'Hard cap triggered at First Apron',
       hardCapCeiling: 178_000_000,
       hardCapCeilingType: 'FIRST_APRON',
@@ -132,6 +131,7 @@ describe('salary matching validation', () => {
     const result = validateSalaryMatching(
       makeTeam(10_000_000, 10_000_000, {
         teamTotalSalary: 187_000_000,
+        hardCapped: 2,
         hardCapLevel: 'secondApron',
         context: { capSettings },
       })
@@ -147,6 +147,7 @@ describe('salary matching validation', () => {
     const result = validateSalaryMatching(
       makeTeam(10_000_000, 12_000_000, {
         teamTotalSalary: 177_000_000,
+        hardCapped: 1,
         hardCapLevel: 'firstApron',
         context: { capSettings, worldId: 'world_dev_1' },
       })
@@ -197,13 +198,9 @@ describe('salary matching validation', () => {
             teamCode: 'A',
             teamName: 'A',
             totalSalary: 177_000_000,
-            players: [
-              makeNormalizedPlayer('a1', 10_000_000),
-            ],
+            players: [makeNormalizedPlayer('a1', 10_000_000)],
           },
-          sends: [
-            makeNormalizedPlayer('a1', 10_000_000),
-          ],
+          sends: [makeNormalizedPlayer('a1', 10_000_000)],
           hardCapped: true,
           entitlementsOut: [],
         },
@@ -213,13 +210,9 @@ describe('salary matching validation', () => {
             teamCode: 'B',
             teamName: 'B',
             totalSalary: 120_000_000,
-            players: [
-              makeNormalizedPlayer('b1', 12_000_000),
-            ],
+            players: [makeNormalizedPlayer('b1', 12_000_000)],
           },
-          sends: [
-            makeNormalizedPlayer('b1', 12_000_000),
-          ],
+          sends: [makeNormalizedPlayer('b1', 12_000_000)],
           entitlementsOut: [],
         },
       ],

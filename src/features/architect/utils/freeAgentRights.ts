@@ -50,14 +50,27 @@ export type FreeAgentSigningLane =
   | 'rights-renounced';
 
 /** Loose player shape — playersMap values arrive as `unknown` from storage. */
-export interface FreeAgentPlayerInput extends CapHoldPlayerInput {
+export interface FreeAgentPlayerInput {
+  renounced?: boolean;
   playerId?: unknown;
   player_id?: unknown;
   id?: unknown;
-  contract?: CapHoldPlayerInput['contract'] & {
+  bio?: {
+    yearsExperience?: number;
+  } | null;
+  draft?: {
+    pick?: number;
+    round?: number;
+  } | null;
+  contract?: {
     birdRights?: {
       status?: string;
     };
+    salariesByYear?: Array<{
+      season?: string;
+      salary?: number | null;
+      capHit?: number | null;
+    }> | null;
     freeAgency?: {
       type?: string;
       year?: number;
@@ -66,7 +79,7 @@ export interface FreeAgentPlayerInput extends CapHoldPlayerInput {
       hasOption?: boolean;
       optionType?: string | null;
     };
-  };
+  } | null;
 }
 
 /** Team-scoped context that the player record cannot supply on its own. */
@@ -139,9 +152,10 @@ const readFreeAgency = (player: FreeAgentPlayerInput | null) =>
   asRecord(player?.contract?.freeAgency);
 
 /**
- * Cap hold amount, derived live from the player. Prefers the computed value
- * (Bird tier × prior salary) and falls back to the source-provided
- * `freeAgency.capHold` only when the live computation can't produce one.
+ * Cap hold amount from the player record. Staged player data carries
+ * CBA-specific cap-hold truth, including max-salary limits that a simple
+ * Bird-tier multiplier cannot infer. Use that player-record value when present,
+ * and compute only as a fallback for missing source data.
  */
 function resolveCapHoldAmount(
   player: FreeAgentPlayerInput | null,
@@ -149,14 +163,14 @@ function resolveCapHoldAmount(
 ): { amount: number; reason: string } {
   if (!player) return { amount: 0, reason: 'No player' };
 
-  const computed = calculateCapHold(player);
-  if (computed && computed.active && computed.amount > 0) {
-    return { amount: computed.amount, reason: computed.reason };
-  }
-
   const sourceHold = toFiniteNumber(readFreeAgency(player)?.capHold);
   if (sourceHold != null && sourceHold > 0) {
     return { amount: sourceHold, reason: `${birdType} (source)` };
+  }
+
+  const computed = calculateCapHold(player as CapHoldPlayerInput);
+  if (computed && computed.active && computed.amount > 0) {
+    return { amount: computed.amount, reason: computed.reason };
   }
 
   return { amount: computed?.amount ?? 0, reason: computed?.reason ?? 'None' };
@@ -180,8 +194,12 @@ function resolvePlacement(
   freeAgencyYear: number | null,
   freeAgentType: string
 ): CapHoldPlacement {
-  const { activeSeasonStartYear, holdType, isOnRoster = true, renounced } =
-    context;
+  const {
+    activeSeasonStartYear,
+    holdType,
+    isOnRoster = true,
+    renounced,
+  } = context;
   const normalizedHoldType = String(holdType ?? '').toLowerCase();
 
   // Zombie holds: generic "FA Cap Hold" placeholders for players who have
@@ -201,6 +219,7 @@ function resolvePlacement(
 
   // Own free agent for the season being planned → first-class cap-table row.
   if (
+    isOnRoster &&
     freeAgencyYear != null &&
     activeSeasonStartYear != null &&
     freeAgencyYear === activeSeasonStartYear &&

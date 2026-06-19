@@ -354,7 +354,9 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
 
     expect(validation.valid).toBe(true);
     expect(
-      validation.violations.some((violation) => violation.code === 'HARD_CAP_EXCEEDED')
+      validation.violations.some(
+        (violation) => violation.code === 'HARD_CAP_EXCEEDED'
+      )
     ).toBe(false);
   });
 
@@ -419,7 +421,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         isHardCapped: true,
         hardCapType: 'FIRST_APRON',
         reason: 'Triggered by Bi-Annual Exception',
-        source: 'team.hardCapLevel',
+        source: 'team.hardCapped',
       })
     );
 
@@ -636,7 +638,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
       capSettings: CAP_SETTINGS,
     });
     expect(displayStatus.reason).toBe('Triggered by Bi-Annual Exception');
-    expect(displayStatus.source).toBe('team.hardCapLevel');
+    expect(displayStatus.source).toBe('team.hardCapped === true');
     expect(displayStatus.isHardCapped).toBe(true);
   });
 });

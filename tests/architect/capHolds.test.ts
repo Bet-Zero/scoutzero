@@ -81,6 +81,25 @@ describe('capHolds utility', () => {
       expect(result.map((h) => h.playerId)).toEqual(['player1', 'player2']);
     });
 
+    it('treats missing active as active for staged unsigned holds', () => {
+      const result = getActiveUnsignedCapHolds(
+        [
+          {
+            playerId: 'staged_hold',
+            playerName: 'Staged Hold',
+            amount: 7_500_000,
+            season: '2024-25',
+            type: 'UFA',
+            isSigned: false,
+          } as (typeof mockCapHolds)[number],
+        ],
+        2024
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].playerId).toBe('staged_hold');
+    });
+
     it('filters by season start year matching yearKey', () => {
       const result = getActiveUnsignedCapHolds(mockCapHolds, 2025);
       // Should only include player5 (season 2025-26, yearKey = 2025)
@@ -138,7 +157,10 @@ describe('capHolds utility', () => {
           isSigned: false,
         },
       ];
-      const total = getActiveUnsignedCapHoldsTotal(holdsWithMissingAmount, 2024);
+      const total = getActiveUnsignedCapHoldsTotal(
+        holdsWithMissingAmount,
+        2024
+      );
       expect(total).toBe(0);
     });
   });
