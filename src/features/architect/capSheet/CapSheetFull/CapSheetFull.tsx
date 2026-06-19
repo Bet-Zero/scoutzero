@@ -752,7 +752,7 @@ export const CapSheetFull = ({
           Array.from(holdKeys).some((key) => rosterLookupKeys.has(key)) ||
           Array.from(playerKeys).some((key) => rosterLookupKeys.has(key));
         const rights = resolveFreeAgentRights(
-          player as unknown as Parameters<typeof resolveFreeAgentRights>[0],
+          player as unknown as Parameters<typeof resolveFreeAgentRights>[0], // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-172
           {
             activeSeasonStartYear: currentYear,
             holdType: hold.type,
