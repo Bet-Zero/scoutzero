@@ -201,6 +201,7 @@ export const TradePlayerRow = ({
   );
 
   const canOfferSignAndTrade =
+    Boolean(onRequestSignAndTrade) &&
     !incoming &&
     !included &&
     signAndTradeEligibility.eligible &&
@@ -307,7 +308,7 @@ export const TradePlayerRow = ({
                 }}
                 className="block w-full text-left px-3 py-1 hover:bg-[#333]"
               >
-                Modify Contract
+                Contract Actions
               </button>
               <button
                 onClick={() =>
@@ -463,7 +464,7 @@ export const TradePlayerRow = ({
               }}
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >
-              Modify Contract
+              Contract Actions
             </button>
 
             <button
@@ -478,4 +479,3 @@ export const TradePlayerRow = ({
     </div>
   );
 };
-

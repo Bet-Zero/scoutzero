@@ -14,5 +14,8 @@ describe('TradeEditor DEV S&T injector gating guardrail', () => {
     expect(source).toContain('import.meta.env.DEV');
     expect(source).toContain("window.localStorage?.getItem(DEV_SNT_INJECTOR_FLAG) === 'true'");
     expect(source).toContain('showSntInjector={isDevSntInjectorEnabled}');
+    expect(source).toContain('onRequestSignAndTrade={');
+    expect(source).toContain('isDevSntInjectorEnabled');
+    expect(source).toContain(': undefined');
   });
 });

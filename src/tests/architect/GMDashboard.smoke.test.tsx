@@ -329,19 +329,13 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
           finalizeOfferSheet,
         },
         freeAgentModalAvailability: {
-          visibleActions: ['signNew', 'signAndTrade'],
+          visibleActions: ['signNew'],
           actionLabelsOverride: {
             signNew: 'Sign Free Agent',
           },
-          showOfferSheetToggle: true,
-          signAndTradeInitiation: {
-            onSignAndTrade: signAndTrade,
-            getSignAndTradePreflight,
-          },
-          offerSheetInitiation: {
-            getOfferSheetPreflight,
-            storeOfferSheet,
-          },
+          showOfferSheetToggle: false,
+          signAndTradeInitiation: null,
+          offerSheetInitiation: null,
         },
         offerSheetSectionAvailability: {
           lifecycleActionOwner: {

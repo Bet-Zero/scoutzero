@@ -868,7 +868,6 @@ export const GMDashboard = () => {
         toOverrideMetadata(overrideMetadata)
       )
     );
-  const freeAgencyWorldOnlyOwner = freeAgencyActionOwner.worldOnly;
   const modalActionCallbacks: EditContractArchitectActionCallbacks = {
     onSignFreeAgent:
       freeAgencyActionOwner.dualPathSigning
@@ -876,18 +875,10 @@ export const GMDashboard = () => {
     onResign:
       freeAgencyActionOwner.dualPathSigning
         .signFreeAgent as EditContractModalProps['onResign'],
-    onSignAndTrade: freeAgencyWorldOnlyOwner
-      ? (freeAgencyWorldOnlyOwner.signAndTrade as EditContractModalProps['onSignAndTrade'])
-      : null,
-    getSignAndTradePreflight: freeAgencyWorldOnlyOwner
-      ? (freeAgencyWorldOnlyOwner.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'])
-      : null,
-    getOfferSheetPreflight: freeAgencyWorldOnlyOwner
-      ? (freeAgencyWorldOnlyOwner.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'])
-      : null,
-    onStoreOfferSheet: freeAgencyWorldOnlyOwner
-      ? (freeAgencyWorldOnlyOwner.storeOfferSheet as EditContractModalProps['onStoreOfferSheet'])
-      : null,
+    onSignAndTrade: null,
+    getSignAndTradePreflight: null,
+    getOfferSheetPreflight: null,
+    onStoreOfferSheet: null,
     onExtend: actions.handleExtendContract as EditContractModalProps['onExtend'],
     onWaive: modalOnWaive,
     onOptionDecision: modalOnOptionDecision,

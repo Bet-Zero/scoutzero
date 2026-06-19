@@ -954,8 +954,15 @@ export const TradeEditor = ({
                     normalizeTradeActionMeta(meta)
                   )
                 }
-                onRequestSignAndTrade={(player, defaultDestinationTeamId) =>
-                  openTradeMachineSatModal(idx, player, defaultDestinationTeamId)
+                onRequestSignAndTrade={
+                  isDevSntInjectorEnabled
+                    ? (player, defaultDestinationTeamId) =>
+                        openTradeMachineSatModal(
+                          idx,
+                          player,
+                          defaultDestinationTeamId
+                        )
+                    : undefined
                 }
                 // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
                 onUndoPlayerTrade={(player) => undoPlayerTrade(player)}

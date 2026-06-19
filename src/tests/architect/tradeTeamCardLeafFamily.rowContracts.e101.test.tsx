@@ -215,7 +215,7 @@ describe('E101 Trade Team Card leaf-family row and list contracts', () => {
       'Trade to Boston Celtics',
       'Trade to Chicago Bulls',
       'Sign-and-Trade',
-      'Modify Contract',
+      'Contract Actions',
       'View Profile',
     ]);
   });
@@ -280,7 +280,7 @@ describe('E101 Trade Team Card leaf-family row and list contracts', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Sign-and-Trade' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Modify Contract' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Contract Actions' }));
     fireEvent.click(screen.getByRole('button', { name: 'View Profile' }));
 
     expect(onRequestSignAndTrade.mock.calls[0]).toEqual([BASE_PLAYER, 'BOS']);
@@ -319,7 +319,7 @@ describe('E101 Trade Team Card leaf-family row and list contracts', () => {
       'Cancel Trade',
       'Trade to Chicago Bulls',
       'Undo Trade',
-      'Modify Contract',
+      'Contract Actions',
       'View Profile',
     ]);
 

@@ -748,6 +748,7 @@ function getTabButtons() {
 
 function resetHarness() {
   cleanup();
+  window.localStorage.removeItem('hz.dev.injectSntPlayers');
   vi.clearAllMocks();
   vi.resetModules();
   harness.editorTradeTeamCardProps.length = 0;
@@ -962,7 +963,31 @@ describe('TradeEditor boundary E105', () => {
     );
   });
 
+  it('parks Trade Machine sign-and-trade requests unless the DEV injector flag is enabled', async () => {
+    const tradeMachine = makeTradeMachineReturn();
+    harness.useTradeMachineMock.mockReturnValue(tradeMachine);
+
+    const TradeEditor = await loadTradeEditor();
+
+    render(
+      <TradeEditor
+        primaryTeam="ATL"
+        capProjections={{}}
+        currentYear={2026}
+        onApplyTrade={vi.fn()}
+        onEditContract={vi.fn()}
+        worldId="world-1"
+        userId="user-1"
+      />
+    );
+
+    expect(
+      harness.editorTradeTeamCardProps[0].onRequestSignAndTrade
+    ).toBeUndefined();
+  });
+
   it('preserves world-mode auth gating and sign-and-trade result contracts', async () => {
+    window.localStorage.setItem('hz.dev.injectSntPlayers', 'true');
     const tradeMachine = makeTradeMachineReturn();
     harness.useTradeMachineMock.mockReturnValue(tradeMachine);
 

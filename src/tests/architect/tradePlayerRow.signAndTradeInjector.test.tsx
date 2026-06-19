@@ -63,6 +63,45 @@ function renderOpenMenuRow(player: SyntheticSntPlayer) {
   );
 }
 
+function renderOpenMenuRowWithoutSntHandler(player: SyntheticSntPlayer) {
+  const rowPlayer: TradePlayerRowPlayer = {
+    ...player,
+    teamCode: normalizeNullableString(player.teamCode),
+    teamAbbr: normalizeNullableString(player.teamAbbr),
+    teamId: normalizeNullableString(player.teamId),
+    team:
+      'team' in player &&
+      (typeof player.team === 'string' ||
+        typeof player.team === 'number' ||
+        player.team == null)
+        ? normalizeNullableString(player.team)
+        : undefined,
+    bio: {
+      ...player.bio,
+      team: normalizeNullableString(player.bio.team),
+    },
+  };
+
+  return render(
+    <TradePlayerRow
+      player={rowPlayer}
+      included={false}
+      yearKey={2026}
+      incoming={false}
+      otherTeams={otherTeams}
+      playersMap={{}}
+      openMenu={String(
+        rowPlayer.id ?? rowPlayer.player_id ?? rowPlayer.name ?? ''
+      )}
+      onSetPlayerTrade={baseHandlers.onSetPlayerTrade}
+      onUndoPlayerTrade={baseHandlers.onUndoPlayerTrade}
+      setOpenMenu={baseHandlers.setOpenMenu}
+      setContractPlayer={baseHandlers.setContractPlayer}
+      sourceTeamId="LAL"
+    />
+  );
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -73,6 +112,15 @@ describe('TradePlayerRow DEV S&T injector eligibility surface', () => {
     renderOpenMenuRow(eligiblePlayer);
 
     expect(screen.getByRole('button', { name: 'Sign-and-Trade' })).toBeInTheDocument();
+  });
+
+  it('hides Sign-and-Trade when no request handler is available', () => {
+    const [eligiblePlayer] = buildSyntheticSntPlayers({ teamCode: 'LAL' }, 2026);
+    renderOpenMenuRowWithoutSntHandler(eligiblePlayer);
+
+    expect(
+      screen.queryByRole('button', { name: 'Sign-and-Trade' })
+    ).not.toBeInTheDocument();
   });
 
   it('does not show Sign-and-Trade for the ineligible synthetic player', () => {
