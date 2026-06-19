@@ -16,20 +16,19 @@ export const formatStat = (
   return parsed.toFixed(1);
 };
 
-/**
- * Get the NBA stats season start year.
- * Uses ~Oct 20 rollover (when the regular season typically begins)
- * so the prior season is shown during the offseason (July–October).
- */
-function getStatsSeasonYear() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth(); // 0-indexed: 0=Jan, 9=Oct
-  const day = now.getDate();
-  // Before Oct 20 → prior season; Oct 20+ → new season
-  const isNewSeason = month > 9 || (month === 9 && day >= 20);
-  return isNewSeason ? year : year - 1;
-}
+export const resolveStatsSeasonLabel = (player: ProfilePlayer): string => {
+  const statsSeasonTag = player.latestSeasonMeta?.statsSeasonTag;
+  if (typeof statsSeasonTag === 'string' && statsSeasonTag.trim()) {
+    return statsSeasonTag;
+  }
+  if (typeof statsSeasonTag === 'number' && Number.isFinite(statsSeasonTag)) {
+    return String(statsSeasonTag);
+  }
+  if (player.latestSeasonId) {
+    return String(player.latestSeasonId);
+  }
+  return 'Latest';
+};
 
 export const PlayerStatsTable = ({ player }: { player: ProfilePlayer }) => {
   const stats = (player.latestSeasonStats || {}) as Record<
@@ -37,13 +36,7 @@ export const PlayerStatsTable = ({ player }: { player: ProfilePlayer }) => {
     string | number | null | undefined
   >;
   const gamesPlayed = stats.GP ?? 'N/A';
-
-  // Get current stats season (Oct 20 rollover so offseason shows prior year)
-  const seasonYear = getStatsSeasonYear();
-  const seasonLabel = String(
-    player.latestSeasonMeta?.statsSeasonTag ||
-      `${seasonYear}-${(seasonYear + 1).toString().slice(-2)}`
-  );
+  const seasonLabel = resolveStatsSeasonLabel(player);
 
   return (
     <div className="w-full max-w-[750px] bg-[#1f1f1f] rounded-2xl shadow-lg px-6 pt-[0.5rem] pb-[0.75rem] text-white text-sm font-medium">
@@ -89,4 +82,3 @@ export const PlayerStatsTable = ({ player }: { player: ProfilePlayer }) => {
     </div>
   );
 };
-

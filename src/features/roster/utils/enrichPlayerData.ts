@@ -461,20 +461,27 @@ export function enrichPlayerData<TPlayer extends EnrichablePlayerData>(
   let latestSeasonStats: PlayerStats = {};
   let latestSeasonMeta: SeasonMeta = {};
 
+  const latestSeasonEntry =
+    playerData.seasons && Object.keys(playerData.seasons).length > 0
+      ? Object.entries(playerData.seasons).sort(([a], [b]) =>
+          b.localeCompare(a)
+        )[0]
+      : null;
+
   if (playerData.currentSeasonStats) {
-    // Use denormalized stats from main document
+    // Use denormalized stats from main document while preserving source season metadata when available.
     latestSeasonStats = playerData.currentSeasonStats;
-  } else if (playerData.seasons && Object.keys(playerData.seasons).length > 0) {
-    // Fallback to seasons subcollection
-    const firstSeasonEntry = Object.entries(playerData.seasons).sort(([a], [b]) =>
-      b.localeCompare(a)
-    )[0];
-    if (firstSeasonEntry) {
-      const [seasonId, seasonData] = firstSeasonEntry;
+    if (latestSeasonEntry) {
+      const [seasonId, seasonData] = latestSeasonEntry;
       latestSeasonId = seasonId;
-      latestSeasonStats = seasonData?.stats || {};
       latestSeasonMeta = seasonData?.meta || {};
     }
+  } else if (latestSeasonEntry) {
+    // Fallback to seasons subcollection
+    const [seasonId, seasonData] = latestSeasonEntry;
+    latestSeasonId = seasonId;
+    latestSeasonStats = seasonData?.stats || {};
+    latestSeasonMeta = seasonData?.meta || {};
   }
 
   // Evaluation data: merge currentEvaluationView with evaluations/current (preferred)

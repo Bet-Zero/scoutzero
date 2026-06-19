@@ -14,6 +14,7 @@ import { usePlayerNavigation } from '@/features/profile/hooks/usePlayerNavigatio
 import { TeamPlayerDropdowns } from '@/features/profile/TeamPlayerDropdowns';
 import { BreakdownModal } from '@/features/profile/BreakdownModal';
 import { PlayerHeader } from '@/features/profile/PlayerDetails/PlayerHeader';
+import { PlayerStatsTable } from '@/features/profile/PlayerDetails/PlayerStatsTable';
 import PlayerProfileView from '@/pages/PlayerProfileView';
 import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
 import {
@@ -557,5 +558,84 @@ describe('PlayerHeader normalized display values', () => {
     expect(
       screen.getByText((_, element) => element?.textContent === 'YEARS PRO: 0')
     ).toBeInTheDocument();
+  });
+
+  it('formats low contract salaries without rounding to zero millions', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-06T12:00:00Z'));
+
+    const player = enrichPlayerData({
+      id: 'nick_smith_jr',
+      name: 'Nick Smith Jr.',
+      bio: {
+        displayName: 'Nick Smith Jr.',
+        playerId: 'nick_smith_jr',
+        position: 'Guard',
+        height: 74,
+        weight: 185,
+        display: {
+          team: 'Charlotte Hornets',
+          yearsPro: 2,
+        },
+      },
+      currentContractView: {
+        currentSalary: 13_197,
+        yearsRemaining: 2,
+      },
+    });
+
+    expect(player).not.toBeNull();
+    if (!player) throw new Error('Expected enriched player');
+    render(<PlayerHeader player={player} selectedPlayer="nick_smith_jr" />);
+
+    expect(
+      screen.getByText((_, element) =>
+        element?.textContent === 'CONTRACT: $13.2K / 2 yrs'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('$0.0M / 2 yrs')).not.toBeInTheDocument();
+  });
+});
+
+describe('PlayerStatsTable season label provenance', () => {
+  it('uses source season metadata for denormalized current stats', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-20T12:00:00Z'));
+
+    const player = enrichPlayerData({
+      id: 'test_stats_player',
+      bio: {
+        displayName: 'Test Stats Player',
+        playerId: 'test_stats_player',
+      },
+      currentSeasonStats: {
+        GP: 70,
+        MIN: 32.1,
+        PTS: 25.2,
+        REB: 7.8,
+        AST: 8.1,
+        'FG%': 0.525,
+        '3PT%': 0.378,
+        'FT%': 0.771,
+        'eFG%': 0.587,
+      },
+      seasons: {
+        '2025-26': {
+          stats: {
+            PTS: 25.2,
+          },
+          meta: {
+            statsSeasonTag: '2025-26',
+          },
+        },
+      },
+    });
+
+    expect(player).not.toBeNull();
+    if (!player) throw new Error('Expected enriched player');
+    render(<PlayerStatsTable player={player} />);
+
+    expect(screen.getByText('2025-26')).toBeInTheDocument();
+    expect(screen.queryByText('2026-27')).not.toBeInTheDocument();
   });
 });

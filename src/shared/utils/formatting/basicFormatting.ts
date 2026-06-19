@@ -94,7 +94,16 @@ export function formatContractSummary(
   totalYears: number | null | undefined
 ): string {
   if (!currentSalary || !totalYears) return '—';
-  return `$${(currentSalary / 1_000_000).toFixed(1)}M / ${totalYears} yrs`;
+  const absSalary = Math.abs(currentSalary);
+  const sign = currentSalary < 0 ? '-' : '';
+  const salaryDisplay =
+    absSalary >= 1_000_000
+      ? `${sign}$${(absSalary / 1_000_000).toFixed(1)}M`
+      : absSalary >= 1_000
+        ? `${sign}$${(absSalary / 1_000).toFixed(1)}K`
+        : `${sign}$${absSalary.toLocaleString('en-US')}`;
+
+  return `${salaryDisplay} / ${totalYears} yrs`;
 }
 
 export const playerAliasMap: Record<string, string> = {};
