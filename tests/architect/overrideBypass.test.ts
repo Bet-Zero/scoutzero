@@ -68,6 +68,10 @@ describe('Override Policy Classification', () => {
     it('includes option_timing as hard block', () => {
       expect(HARD_BLOCK_RULES).toContain('option_timing');
     });
+
+    it('includes option_hard_cap as hard block', () => {
+      expect(HARD_BLOCK_RULES).toContain('option_hard_cap');
+    });
   });
 
   describe('SOFT_WARNING_RULES constant', () => {
@@ -81,6 +85,10 @@ describe('Override Policy Classification', () => {
 
     it('includes first_apron as soft warning', () => {
       expect(SOFT_WARNING_RULES).toContain('first_apron');
+    });
+
+    it('does not include option_hard_cap as soft warning', () => {
+      expect(SOFT_WARNING_RULES).not.toContain('option_hard_cap');
     });
   });
 

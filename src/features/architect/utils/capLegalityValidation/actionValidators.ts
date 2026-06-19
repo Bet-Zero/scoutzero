@@ -93,13 +93,41 @@ const getNormalizedContractType = (
     ? contract.contractType.toLowerCase()
     : '';
 
-const calculateValidationPlayerOnlyTeamCapHit = (
+const calculateOptionDecisionBaselineCapHit = (
   players: MutationPlayer[] | null | undefined,
+  playerId: string | null,
   year: number
 ): number =>
   calculateTeamCapHit(
     (players || []) as Parameters<typeof calculateTeamCapHit>[0],
-    year
+    year,
+    {
+      getContractYearSlice: (capPlayer, capYear) => {
+        const mutationPlayer = capPlayer as MutationPlayer;
+        const yearEntry =
+          mutationPlayer.contract?.salariesByYear?.find(
+            (row) => toEndYear(row.season) === capYear
+          ) || null;
+
+        if (!yearEntry) return null;
+
+        const isPendingTargetOption =
+          getPlayerId(
+            mutationPlayer as Parameters<typeof getPlayerId>[0]
+          ) === playerId &&
+          Boolean(yearEntry.option) &&
+          yearEntry.optionUsed !== true;
+
+        if (isPendingTargetOption) {
+          return { capHit: 0, salary: 0 };
+        }
+
+        return {
+          capHit: toFiniteNumber(yearEntry.capHit ?? yearEntry.salary, 0),
+          salary: toFiniteNumber(yearEntry.salary ?? yearEntry.capHit, 0),
+        };
+      },
+    }
   );
 export function evaluateDataConfidence(
   rules: CapRulesProfile,
@@ -506,17 +534,22 @@ export function validateOptionDecision({
           )?.salary || 0;
 
         const players = baselineTeam.players || [];
-        const currentCapHit = calculateValidationPlayerOnlyTeamCapHit(
+        const currentCapHit = calculateOptionDecisionBaselineCapHit(
           players,
+          playerId,
           resolvedTargetYear
         );
         const projectedCapHit = currentCapHit + toFiniteNumber(optionSalary, 0);
 
         if (projectedCapHit > hardCapStatus.ceiling) {
-          warnings.push({
+          const ceilingLabel =
+            hardCapStatus.hardCapLevel === 'secondApron'
+              ? 'second apron'
+              : 'first apron';
+          violations.push({
             rule: 'option_hard_cap',
-            message: `Accepting option may cause hard cap issues in ${resolvedTargetYear - 1}-${String(resolvedTargetYear % 100).padStart(2, '0')}`,
-            severity: 'warning',
+            message: `Accepting option would exceed the ${ceilingLabel} hard cap ceiling in ${resolvedTargetYear - 1}-${String(resolvedTargetYear % 100).padStart(2, '0')}`,
+            severity: 'error',
           });
         }
       }

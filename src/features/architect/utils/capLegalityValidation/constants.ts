@@ -13,6 +13,7 @@ export const HARD_BLOCK_RULES = [
   'hard_cap', // Over hard cap ceiling
   'two_way_limit', // >3 two-way contracts
   'option_timing', // Acting on options outside allowed window
+  'option_hard_cap', // Accepting an option would exceed a known hard-cap ceiling
   'no_contract', // Extending a player with no contract
   'unknown_type', // Unknown mutation type
   'exception_blocked', // Exception usage blocked due to apron/hard cap status
@@ -153,7 +154,6 @@ export const SOFT_WARNING_RULES = [
   'first_apron', // Over first apron warning
   'second_apron', // Over second apron warning
   'extension_hard_cap', // Extension may cause future hard cap
-  'option_hard_cap', // Option may cause hard cap
   'cap_hold_creation', // Cap hold created
   'no_rights', // No rights to renounce (info)
   'cap_data', // Cap data not available

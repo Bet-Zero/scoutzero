@@ -3442,6 +3442,114 @@ describe('Cap Legality Validation', () => {
       expect(result.violations).toHaveLength(0);
     });
 
+    it('blocks accepted option when projected salary exceeds hard-cap ceiling', () => {
+      const fillerPlayers = Array.from({ length: 10 }, (_, i) => ({
+        player_id: `filler_${i}`,
+        name: `Filler ${i}`,
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [{ season: '2025-26', salary: 19_400_000 }],
+        },
+      }));
+      const optionPlayer = {
+        ...basePlayer,
+        contract: {
+          ...basePlayer.contract,
+          salariesByYear: [
+            { season: '2025-26', salary: 3_000_000, option: 'Team Option' },
+          ],
+        },
+      };
+      const acceptedPlayer = buildAcceptedPlayer(optionPlayer);
+      const hardCappedTeam = {
+        ...team,
+        players: [...fillerPlayers, optionPlayer],
+        roster: [...fillerPlayers.map((p) => p.player_id), playerId],
+        totals: {
+          capHit: 194_000_000,
+          isHardCapped: true,
+          hardCapLevel: 'firstApron',
+        },
+      };
+      const updatedTeam = {
+        ...hardCappedTeam,
+        players: [...fillerPlayers, acceptedPlayer],
+        capHolds: [],
+      };
+
+      const result = validateOptionDecision({
+        originalTeam: hardCappedTeam,
+        originalPlayer: optionPlayer,
+        updatedTeam,
+        updatedPlayer: acceptedPlayer,
+        accepted: true,
+        targetYear: 2026,
+        currentYear: 2025,
+      });
+
+      const hardCapViolation = result.violations.find(
+        (v) => v.rule === 'option_hard_cap'
+      );
+
+      expect(result.valid).toBe(false);
+      expect(hardCapViolation?.severity).toBe('error');
+      expect(hardCapViolation?.message).toMatch(/would exceed/i);
+      expect(result.warnings.some((w) => w.rule === 'option_hard_cap')).toBe(
+        false
+      );
+    });
+
+    it('allows accepted option under hard-cap ceiling without double-counting pending option salary', () => {
+      const fillerPlayers = Array.from({ length: 10 }, (_, i) => ({
+        player_id: `under_filler_${i}`,
+        name: `Under Filler ${i}`,
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [{ season: '2025-26', salary: 19_000_000 }],
+        },
+      }));
+      const optionPlayer = {
+        ...basePlayer,
+        contract: {
+          ...basePlayer.contract,
+          salariesByYear: [
+            { season: '2025-26', salary: 4_000_000, option: 'Team Option' },
+          ],
+        },
+      };
+      const acceptedPlayer = buildAcceptedPlayer(optionPlayer);
+      const hardCappedTeam = {
+        ...team,
+        players: [...fillerPlayers, optionPlayer],
+        roster: [...fillerPlayers.map((p) => p.player_id), playerId],
+        totals: {
+          capHit: 190_000_000,
+          isHardCapped: true,
+          hardCapLevel: 'firstApron',
+        },
+      };
+      const updatedTeam = {
+        ...hardCappedTeam,
+        players: [...fillerPlayers, acceptedPlayer],
+        capHolds: [],
+      };
+
+      const result = validateOptionDecision({
+        originalTeam: hardCappedTeam,
+        originalPlayer: optionPlayer,
+        updatedTeam,
+        updatedPlayer: acceptedPlayer,
+        accepted: true,
+        targetYear: 2026,
+        currentYear: 2025,
+      });
+
+      expect(result.valid).toBe(true);
+      expect(
+        result.violations.some((v) => v.rule === 'option_hard_cap')
+      ).toBe(false);
+    });
+
     it('blocks when declining option BUT missing expected cap hold', () => {
       // Simulate decline: player removed, but NO cap hold created
       const updatedTeam = {
