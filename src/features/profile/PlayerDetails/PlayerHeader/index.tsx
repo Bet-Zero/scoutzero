@@ -127,7 +127,7 @@ export const PlayerHeader = ({
       : freeAgentYear || 'N/A';
 
   return (
-    <div className="h-[220px] w-full max-w-[750px] flex items-center gap-4">
+    <div className="flex h-auto w-full max-w-[750px] flex-col items-center gap-4 px-4 sm:h-[220px] sm:flex-row sm:px-0">
       <div className="flex w-[300px] justify-between">
         <div className="flex flex-col justify-center">
           <PlayerName

@@ -11,7 +11,7 @@ export const PlayerNavigation = ({
   canGoPrev?: boolean;
   canGoNext?: boolean;
 }) => (
-  <div className="absolute top-6 right-6 flex gap-4" role="navigation" aria-label="Player navigation">
+  <div className="z-10 flex gap-4 md:absolute md:right-6 md:top-6" role="navigation" aria-label="Player navigation">
     <button
       className="px-4 py-2 text-black rounded-lg border border-black shadow"
       onClick={onPrev}

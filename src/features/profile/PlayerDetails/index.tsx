@@ -66,7 +66,7 @@ export const PlayerDetails = ({
   <>
     <PlayerHeader player={player} selectedPlayer={selectedPlayer} />
     <PlayerStatsTable player={player} />
-    <div className="flex gap-[1.25rem] w-full max-w-[750px]">
+    <div className="flex w-full max-w-[750px] flex-col gap-[1.25rem] px-4 md:flex-row md:px-0">
       <PlayerTraitsGrid
         traits={traits}
         onTraitClick={onTraitChange}
@@ -94,4 +94,3 @@ export const PlayerDetails = ({
     />
   </>
 );
-

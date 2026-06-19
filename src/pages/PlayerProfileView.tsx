@@ -86,8 +86,8 @@ const PlayerProfileView = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-neutral-900 flex flex-col items-center gap-6 py-20 relative">
-        <div className="absolute top-2 left-4 flex flex-col gap-1 mt-1">
+      <div className="relative flex min-h-screen flex-col items-center gap-6 bg-neutral-900 px-4 py-6 md:px-0 md:py-20">
+        <div className="z-10 mt-1 flex w-full max-w-[750px] flex-col gap-1 md:absolute md:left-4 md:top-2 md:w-auto md:max-w-none">
           <PlayerSearchBar
             playersData={nav.playersData}
             onSelect={nav.handleSearchSelect}

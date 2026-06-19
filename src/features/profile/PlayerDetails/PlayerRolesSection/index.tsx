@@ -95,8 +95,7 @@ export const PlayerRolesSection = ({
 }) => {
   return (
     <div
-      className="bg-[#1f1f1f] rounded-2xl shadow-lg px-4 py-4 text-white text-sm font-medium flex flex-col justify-between"
-      style={{ width: '500px', height: '460px' }}
+      className="flex min-h-[460px] w-full flex-col justify-between rounded-2xl bg-[#1f1f1f] px-4 py-4 text-sm font-medium text-white shadow-lg md:h-[460px] md:w-[500px]"
     >
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-4">
@@ -177,4 +176,3 @@ export const PlayerRolesSection = ({
     </div>
   );
 };
-

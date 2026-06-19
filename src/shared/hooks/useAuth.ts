@@ -25,7 +25,10 @@ const useAuth = (): UseAuthResult => {
         signInAnonymously(auth)
           .then((cred) => {
             console.log('🔐 Anonymous sign-in successful:', cred.user.uid);
-            // onAuthStateChanged will fire again with the new user
+            // onAuthStateChanged should fire again, but keep the UI from
+            // staying in a loading state if the follow-up callback is delayed.
+            setUser(cred.user);
+            setLoading(false);
           })
           .catch((err: unknown) => {
             console.warn('🔐 Anonymous sign-in failed:', err);

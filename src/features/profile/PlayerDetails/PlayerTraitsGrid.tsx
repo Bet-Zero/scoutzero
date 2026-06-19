@@ -15,8 +15,7 @@ export const PlayerTraitsGrid = ({
 }) => {
   return (
     <div
-      className="bg-[#1f1f1f] rounded-2xl shadow-lg px-3 py-4 text-white text-sm font-medium flex flex-col gap-3 justify-center"
-      style={{ width: '320px', height: '460px' }}
+      className="flex min-h-[460px] w-full flex-col justify-center gap-3 rounded-2xl bg-[#1f1f1f] px-3 py-4 text-sm font-medium text-white shadow-lg md:h-[460px] md:w-[320px]"
     >
       {TRAIT_ORDER.map((trait) => {
         const value = traits[trait];
@@ -54,4 +53,3 @@ export const PlayerTraitsGrid = ({
     </div>
   );
 };
-
