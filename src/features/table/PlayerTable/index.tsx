@@ -210,7 +210,7 @@ const DrawerContext = React.createContext<DrawerContextValue>({
 
 export const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultPlayerFilters());
-  const { players, loading } = useSimplePlayerData();
+  const { players, loading, error } = useSimplePlayerData();
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false); // Phase 2O: Renamed for clarity
   const [showActiveFiltersDrawer, setShowActiveFiltersDrawer] = useState(false); // Phase 2O: New drawer state
   const [searchText, setSearchText] = useState('');
@@ -396,6 +396,13 @@ export const PlayerTable = () => {
         {loading || !ready ? (
           <div className="flex items-center justify-center h-full text-white/50">
             Loading players...
+          </div>
+        ) : error ? (
+          <div className="text-center mt-10 px-4">
+            <div className="font-semibold text-red-300">
+              Unable to load players
+            </div>
+            <div className="text-sm text-red-200/80 mt-1">{error}</div>
           </div>
         ) : filteredPlayers.length === 0 ? (
           <div className="text-white/50 text-center mt-10">

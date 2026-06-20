@@ -63,9 +63,9 @@ export const TopControlsBar = ({
     'bg-[#2a2a2a] text-white text-xs px-2 py-1.5 border border-black focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-[#3a3a3a] rounded-md';
 
   return (
-    <div className="h-[48px] bg-[#1a1a1a] border border-white/10 rounded-md flex items-center px-3 gap-2">
+    <div className="min-h-[48px] bg-[#1a1a1a] border border-white/10 rounded-md flex flex-wrap items-center px-3 gap-2 py-2 md:h-[48px] md:flex-nowrap md:py-0">
       {/* Left side: Basic Filters */}
-      <div className="flex-1 flex items-center gap-2 overflow-x-auto overflow-y-hidden no-scrollbar">
+      <div className="w-full flex flex-wrap items-center gap-2 md:w-auto md:flex-1 md:flex-nowrap md:overflow-x-auto md:overflow-y-hidden md:no-scrollbar">
         <MultiSelectFilter
           value={filters.team || ''}
           options={TeamListFull}
@@ -125,7 +125,7 @@ export const TopControlsBar = ({
       </div>
 
       {/* Divider */}
-      <div className="h-6 w-px bg-white/20 shrink-0" />
+      <div className="hidden md:block h-6 w-px bg-white/20 shrink-0" />
 
       {/* Right side: Sort Controls + Active Filters button */}
       <div className="flex items-center gap-2 shrink-0">

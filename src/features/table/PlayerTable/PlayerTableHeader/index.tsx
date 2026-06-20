@@ -29,7 +29,7 @@ export const PlayerTableHeader = ({
   const currentSeason = toSeasonKey(getDefaultSeasonEndYear());
 
   return (
-    <div className="h-[60px] flex items-center justify-between">
+    <div className="flex flex-wrap items-center justify-between gap-2 md:h-[60px] md:flex-nowrap">
       <div>
         <h1 className="text-2xl font-bold text-white mb-1">Player Database</h1>
         <p className="text-gray-400 text-sm">
@@ -37,9 +37,9 @@ export const PlayerTableHeader = ({
         </p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4 md:flex-nowrap">
         <DensityToggle mode={densityMode} setMode={onDensityChange} />
-        <div className="h-6 w-px bg-gray-700" />
+        <div className="hidden md:block h-6 w-px bg-gray-700" />
         <SearchBar value={searchValue} onChange={onSearchChange} />
       </div>
     </div>

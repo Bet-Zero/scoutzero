@@ -616,7 +616,9 @@ describe('PlayerProfileView error states', () => {
     });
 
     expect(screen.getByPlaceholderText('Search players...')).toBeInTheDocument();
-    expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    // Two team/player <select> dropdowns plus the search input, which is now an
+    // ARIA combobox (BZE-75 keyboard/SR accessibility).
+    expect(screen.getAllByRole('combobox')).toHaveLength(3);
     expect(
       screen.queryByRole('navigation', { name: 'Player navigation' })
     ).not.toBeInTheDocument();
@@ -645,7 +647,9 @@ describe('PlayerProfileView error states', () => {
       screen.queryByText('Select a player to view their profile.')
     ).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search players...')).toBeInTheDocument();
-    expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    // Two team/player <select> dropdowns plus the search input, which is now an
+    // ARIA combobox (BZE-75 keyboard/SR accessibility).
+    expect(screen.getAllByRole('combobox')).toHaveLength(3);
     expect(
       screen.queryByRole('navigation', { name: 'Player navigation' })
     ).not.toBeInTheDocument();
