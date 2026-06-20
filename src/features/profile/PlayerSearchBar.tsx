@@ -32,7 +32,7 @@ export const PlayerSearchBar = ({
   return (
     <div className="relative">
       <Search
-        className="absolute left-3 top-1/2 -translate-y-1/2 text-black"
+        className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"
         size={16}
       />
       <input
@@ -40,7 +40,7 @@ export const PlayerSearchBar = ({
         placeholder="Search players..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="pl-10 pr-3 py-2 text-sm bg-neutral-800 border border-black rounded-md text-white placeholder-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+        className="pl-10 pr-3 py-2 text-sm bg-neutral-800 border border-black rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
       />
       {results.length > 0 && (
         <ul className="absolute z-10 mt-1 w-full bg-neutral-800 border border-black rounded-md max-h-52 overflow-y-auto">
@@ -58,4 +58,3 @@ export const PlayerSearchBar = ({
     </div>
   );
 };
-

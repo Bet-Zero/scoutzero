@@ -53,7 +53,7 @@ export const BadgeSelector = ({
             </span>
           ))
         ) : (
-          <span className="text-neutral-500 italic text-xs">
+          <span className="text-neutral-300 italic text-xs">
             Click to add badges
           </span>
         )}
@@ -77,4 +77,3 @@ export const BadgeSelector = ({
     </div>
   );
 };
-

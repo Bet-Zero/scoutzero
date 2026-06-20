@@ -63,7 +63,7 @@ const AutoShrinkText = ({
     >
       <div
         ref={textRef}
-        className="font-anton font-bold text-black uppercase leading-none text-ellipsis"
+        className="font-anton font-bold text-white uppercase leading-none text-ellipsis"
         style={{
           fontSize: `${fontSize}px`,
           lineHeight: '1.05',
@@ -94,4 +94,3 @@ export const PlayerName = ({ name = 'LeBron James' }: { name?: string }) => {
     </div>
   );
 };
-

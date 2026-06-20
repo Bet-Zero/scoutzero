@@ -67,7 +67,7 @@ const RoleBadge = ({ role, onEdit, side }: RoleBadgeProps) => (
         e.stopPropagation();
         onEdit(role);
       }}
-      className="text-black hover:text-white"
+      className="text-white/70 hover:text-white"
       title={`Edit ${role} blurb`}
     >
       <NotebookText size={14} strokeWidth={1.25} />
@@ -331,4 +331,3 @@ export const SubRoleSelector = ({
     </div>
   );
 };
-

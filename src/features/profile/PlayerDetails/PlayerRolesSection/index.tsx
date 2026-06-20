@@ -40,7 +40,7 @@ export const RoleSelect = ({
     {value && (
       <button
         onClick={() => setOpenModal(`role_${roleKey}`)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-neutral-400"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
         title={`Edit ${value} blurb`}
       >
         <NotebookText size={14} strokeWidth={1.25} />
@@ -63,7 +63,7 @@ const CenteredLabelWithIcon = ({
       <span className="text-base font-bold">{label}</span>
       <button
         onClick={() => onClick(modalKey)}
-        className="absolute -right-5 text-black hover:text-white"
+        className="absolute -right-5 text-white/70 hover:text-white"
         title={`Edit ${label} blurb`}
       >
         <NotebookText size={14} strokeWidth={1.25} />

@@ -15,7 +15,9 @@ import { TeamPlayerDropdowns } from '@/features/profile/TeamPlayerDropdowns';
 import { BreakdownModal } from '@/features/profile/BreakdownModal';
 import { PlayerHeader } from '@/features/profile/PlayerDetails/PlayerHeader';
 import { PlayerStatsTable } from '@/features/profile/PlayerDetails/PlayerStatsTable';
+import { PlayerTraitsGrid } from '@/features/profile/PlayerDetails/PlayerTraitsGrid';
 import PlayerProfileView from '@/pages/PlayerProfileView';
+import { DEFAULT_TRAITS } from '@/constants/scoutingConstants';
 import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
 import {
   setBlurbForKey,
@@ -496,6 +498,31 @@ describe('PlayerProfileView error states', () => {
 });
 
 describe('PlayerHeader normalized display values', () => {
+  it('uses readable dark-theme classes for player name and position', () => {
+    const player = enrichPlayerData({
+      id: 'lebron_james',
+      name: 'LeBron James',
+      bio: {
+        displayName: 'LeBron James',
+        playerId: 'lebron_james',
+        position: 'Guard',
+        height: 81,
+        weight: 250,
+        display: {
+          team: 'Los Angeles Lakers',
+        },
+      },
+    });
+
+    expect(player).not.toBeNull();
+    if (!player) throw new Error('Expected enriched player');
+    render(<PlayerHeader player={player} selectedPlayer="lebron_james" />);
+
+    expect(screen.getByText('Lebron')).toHaveClass('text-white');
+    expect(screen.getByText('James')).toHaveClass('text-white');
+    expect(screen.getByText('G')).toHaveClass('text-white');
+  });
+
   it('renders normalized age and derived contract summary', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-06T12:00:00Z'));
@@ -646,6 +673,26 @@ describe('PlayerHeader normalized display values', () => {
       )
     ).toBeInTheDocument();
     expect(screen.queryByText('$0.0M / 2 yrs')).not.toBeInTheDocument();
+  });
+});
+
+describe('PlayerTraitsGrid contrast behavior', () => {
+  it('keeps ungraded dark trait pills readable', () => {
+    render(
+      <PlayerTraitsGrid
+        traits={DEFAULT_TRAITS}
+        onTraitClick={vi.fn()}
+        setOpenModal={vi.fn()}
+      />
+    );
+
+    const shootingLabel = screen.getByText('Shooting');
+    const shootingPill = shootingLabel.closest('div')?.parentElement;
+
+    expect(shootingPill).toHaveClass('text-white');
+    expect(screen.getByTitle('Edit Shooting breakdown')).toHaveClass(
+      'text-white/80'
+    );
   });
 });
 
