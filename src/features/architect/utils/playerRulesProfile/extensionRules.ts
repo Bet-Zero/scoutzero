@@ -98,13 +98,10 @@ export function computeExtensionTerms(
     typeof terms.maxFirstYearSalary === 'number'
   ) {
     if (terms.minFirstYearSalary > terms.maxFirstYearSalary) {
-      // Expected, not a bug: a veteran whose current salary already exceeds the
-      // applicable years-of-service max % (e.g. a max-tier player) has a
-      // current-salary floor above the cap-percentage ceiling. We pin the floor
-      // to the ceiling so the displayed range stays coherent (min <= max). This
-      // is a normal domain case, so we do NOT warn — the previous
-      // "upstream calculation issue" warning was a false alarm that fired on
-      // every above-max veteran extension (surfaced for BOS).
+      // Defensive display guard for sparse or inconsistent upstream contract
+      // data. Correct veteran extension formulas should already include the
+      // Article II 105%-of-prior-salary max path, so above-max veterans should
+      // not normally reach this branch.
       terms = {
         ...terms,
         minFirstYearSalary: terms.maxFirstYearSalary,
@@ -189,7 +186,7 @@ function computeVeteranExtensionTerms(
   const averageSalary =
     leagueContext?.capSettings?.averageSalary || DEFAULT_AVERAGE_SALARY;
 
-  const maxFirstYearSalary = Math.round(
+  const extensionRaiseMax = Math.round(
     Math.max(currentSalary * 1.4, averageSalary * 1.4)
   );
 
@@ -198,8 +195,10 @@ function computeVeteranExtensionTerms(
   if (yearsOfService >= 10) maxPercent = 0.35;
   else if (yearsOfService >= 7) maxPercent = 0.3;
 
-  const maxSalary = Math.round(salaryCap * maxPercent);
-  const effectiveMax = Math.min(maxFirstYearSalary, maxSalary);
+  const capPercentageMax = Math.round(salaryCap * maxPercent);
+  const priorSalaryMax = Math.round(currentSalary * 1.05);
+  const maxAnnualSalary = Math.max(capPercentageMax, priorSalaryMax);
+  const effectiveMax = Math.min(extensionRaiseMax, maxAnnualSalary);
 
   return {
     maxYears: 4,
@@ -207,7 +206,8 @@ function computeVeteranExtensionTerms(
     minFirstYearSalary: currentSalary,
     raisePercentage: RAISE_PERCENTAGES.standard,
     extensionType: EXTENSION_TYPES.VETERAN,
-    basedOn: '140% of salary or average salary (capped at max for years of service)',
+    basedOn:
+      '140% of salary or average salary (subject to max: greater of years-of-service cap or 105% salary)',
     notes: '',
   };
 }

@@ -719,6 +719,57 @@ describe('computeExtensionTerms', () => {
 
     expect(terms.basedOn).toContain('30%'); // Higher Max
   });
+
+  it('uses the 105% prior-salary max path for above-max veteran extensions', () => {
+    const aboveMaxVeteran = {
+      playerId: 'above_max_veteran',
+      displayName: 'Above Max Veteran',
+      bio: {
+        experience: 8,
+      },
+      contract: {
+        contractType: 'Standard',
+        isRookieScale: false,
+        contractLength: 4,
+        yearsRemaining: 1,
+        startSeason: '2022-23',
+        endSeason: '2025-26',
+        signingDate: '2022-07-01',
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: 50_000_000,
+            capHit: 50_000_000,
+            guaranteed: true,
+          },
+        ],
+        birdRights: {
+          status: 'Full',
+          yearsWithTeam: 4,
+        },
+      },
+      awards: [],
+    };
+    const context = {
+      ...LEAGUE_CONTEXT,
+      currentSeason: '2025-26',
+      currentYear: 2026,
+      capSettings: {
+        ...LEAGUE_CONTEXT.capSettings,
+        salaryCap: 160_000_000,
+        averageSalary: 12_000_000,
+      },
+    };
+
+    const terms = requireExtensionTerms(
+      computeExtensionTerms(aboveMaxVeteran, context)
+    );
+
+    expect(terms.extensionType).toBe(EXTENSION_TYPES.VETERAN);
+    expect(terms.minFirstYearSalary).toBe(50_000_000);
+    expect(terms.maxFirstYearSalary).toBe(52_500_000);
+    expect(terms.basedOn).toContain('105% salary');
+  });
 });
 
 /**
@@ -1002,7 +1053,7 @@ describe('RuleContext entry points', () => {
       raisePercentage: 0.08,
       extensionType: EXTENSION_TYPES.VETERAN,
       basedOn:
-        '140% of salary or average salary (capped at max for years of service)',
+        '140% of salary or average salary (subject to max: greater of years-of-service cap or 105% salary)',
       notes: '',
     });
   });
