@@ -57,16 +57,18 @@ export const ShootingProfileSelector = ({
         `;
 
         return (
-          <div
+          <button
             key={label}
+            type="button"
             onClick={() => handleSelect(label)}
+            aria-pressed={isSelected}
+            aria-label={`${label} shooting profile`}
             className={classes}
           >
             {label}
-          </div>
+          </button>
         );
       })}
     </div>
   );
 };
-

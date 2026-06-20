@@ -65,11 +65,13 @@ export const PlayerTraitsGrid = ({
             <div className="flex items-center gap-2">
               <span>{trait}</span>
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation(); // don’t trigger grading
                   setOpenModal(`trait_${trait}`);
                 }}
                 className={`text-sm ${contrastClasses.icon}`}
+                aria-label={`Edit ${trait} breakdown`}
                 title={`Edit ${trait} breakdown`}
               >
                 <NotebookText size={14} strokeWidth={1.25} />

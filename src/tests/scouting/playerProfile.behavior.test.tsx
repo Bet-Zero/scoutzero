@@ -13,12 +13,20 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { usePlayerNavigation } from '@/features/profile/hooks/usePlayerNavigation';
 import { TeamPlayerDropdowns } from '@/features/profile/TeamPlayerDropdowns';
 import { BreakdownModal } from '@/features/profile/BreakdownModal';
+import { BadgeSelector } from '@/features/profile/PlayerDetails/BadgeSelector';
+import { OverallBlurbBox } from '@/features/profile/PlayerDetails/OverallBlurbBox';
 import { PlayerHeader } from '@/features/profile/PlayerDetails/PlayerHeader';
 import { PlayerStatsTable } from '@/features/profile/PlayerDetails/PlayerStatsTable';
+import { ShootingProfileSelector } from '@/features/profile/PlayerDetails/PlayerRolesSection/ShootingProfileSelector';
+import { SubRoleSelector } from '@/features/profile/PlayerDetails/PlayerRolesSection/SubRoleSelector';
+import { TwoWayMeter } from '@/features/profile/PlayerDetails/PlayerRolesSection/TwoWayMeter';
 import { PlayerTraitsGrid } from '@/features/profile/PlayerDetails/PlayerTraitsGrid';
 import PlayerProfileView from '@/pages/PlayerProfileView';
 import { DEFAULT_TRAITS } from '@/constants/scoutingConstants';
-import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
+import {
+  enrichPlayerData,
+  type PlayerSubRoles,
+} from '@/features/roster/utils/enrichPlayerData';
 import {
   setBlurbForKey,
   setVideoExamplesForKey,
@@ -113,6 +121,14 @@ function NavigationHarness() {
       <div data-testid="selected-player">{nav.selectedPlayer || 'none'}</div>
       <div data-testid="location">{`${location.pathname}${location.search}`}</div>
       <input aria-label="keyboard-guard-input" />
+      <div
+        role="slider"
+        tabIndex={0}
+        aria-label="keyboard-guard-slider"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={50}
+      />
       <button
         type="button"
         onClick={() =>
@@ -221,6 +237,27 @@ function BreakdownModalHarness({
       ) : null}
     </div>
   );
+}
+
+function BadgeSelectorHarness() {
+  const [badges, setBadges] = useState<string[]>([]);
+
+  return <BadgeSelector badges={badges} setBadges={setBadges} />;
+}
+
+function SubRoleSelectorHarness() {
+  const [subRoles, setSubRoles] = useState<PlayerSubRoles>({
+    offense: [],
+    defense: [],
+  });
+
+  return <SubRoleSelector subRoles={subRoles} setSubRoles={setSubRoles} />;
+}
+
+function TwoWayMeterHarness() {
+  const [twoWay, setTwoWay] = useState(50);
+
+  return <TwoWayMeter twoWayValue={twoWay} onChange={setTwoWay} />;
 }
 
 beforeEach(() => {
@@ -354,6 +391,14 @@ describe('Player profile route + interaction behavior', () => {
       'lebron_doc'
     );
 
+    fireEvent.keyDown(screen.getByRole('slider', { name: 'keyboard-guard-slider' }), {
+      key: 'ArrowRight',
+    });
+
+    expect(screen.getByTestId('selected-player')).toHaveTextContent(
+      'lebron_doc'
+    );
+
     fireEvent.keyDown(document.body, { key: 'ArrowRight' });
 
     await waitFor(() => {
@@ -410,6 +455,132 @@ describe('BreakdownModal draft behavior', () => {
     });
 
     expect(saveNow.mock.calls[0][0].blurbs.overall).toBe('Saved blurb');
+  });
+});
+
+describe('Player profile edit control accessibility', () => {
+  it('exposes accessible names for icon-only breakdown edit controls', () => {
+    const setOpenModal = vi.fn();
+
+    render(
+      <OverallBlurbBox
+        overallBlurb=""
+        setOverallBlurb={vi.fn()}
+        overallGrade={null}
+        setOverallGrade={vi.fn()}
+        setOpenModal={setOpenModal}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Edit overall breakdown' })
+    );
+    expect(setOpenModal).toHaveBeenCalledWith('overall');
+
+    cleanup();
+
+    render(
+      <PlayerTraitsGrid
+        traits={DEFAULT_TRAITS}
+        onTraitClick={vi.fn()}
+        setOpenModal={setOpenModal}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Edit Shooting breakdown' })
+    );
+    expect(setOpenModal).toHaveBeenCalledWith('trait_Shooting');
+  });
+
+  it('opens the badge dropdown and toggles badge options with semantic buttons', () => {
+    render(<BadgeSelectorHarness />);
+
+    const toggleButton = screen.getByRole('button', { name: 'BADGES' });
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggleButton);
+
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+
+    const sniperButton = screen.getByRole('button', {
+      name: 'Add Sniper badge',
+    });
+    expect(sniperButton).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(sniperButton);
+
+    expect(
+      screen.getByRole('button', { name: 'Remove Sniper badge' })
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('uses semantic buttons for shooting profile choices', () => {
+    const onChange = vi.fn();
+
+    render(<ShootingProfileSelector value="" onChange={onChange} />);
+
+    const eliteButton = screen.getByRole('button', {
+      name: 'Elite shooting profile',
+    });
+    expect(eliteButton).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(eliteButton);
+
+    expect(onChange).toHaveBeenCalledWith('Elite');
+    expect(eliteButton).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('opens sub-role choices from the keyboard and toggles choices as buttons', async () => {
+    render(<SubRoleSelectorHarness />);
+
+    const subRoleTrigger = screen.getByRole('button', {
+      name: 'Edit sub-roles',
+    });
+    fireEvent.keyDown(subRoleTrigger, { key: 'Enter' });
+
+    expect(
+      screen.getByRole('dialog', { name: 'Sub-Role Selector' })
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Add Primary Initiator sub-role',
+      })
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Remove Primary Initiator sub-role',
+      })
+    ).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: 'Sub-Role Selector' })
+      ).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Primary Initiator')).toBeInTheDocument();
+  });
+
+  it('allows the two-way meter to be adjusted from the keyboard', () => {
+    render(<TwoWayMeterHarness />);
+
+    const twoWaySlider = screen.getByRole('slider', {
+      name: 'Two-way meter',
+    });
+    expect(twoWaySlider).toHaveAttribute('aria-valuenow', '50');
+
+    fireEvent.keyDown(twoWaySlider, { key: 'ArrowRight' });
+
+    expect(twoWaySlider).toHaveAttribute('aria-valuenow', '55');
+
+    fireEvent.keyDown(twoWaySlider, { key: 'Home' });
+
+    expect(twoWaySlider).toHaveAttribute('aria-valuenow', '0');
   });
 });
 

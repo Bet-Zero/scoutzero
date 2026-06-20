@@ -9,6 +9,13 @@ import type { PlayerSubRoles } from '@/features/roster/utils/enrichPlayerData';
 import type { ProfileRoles } from '@/features/profile/hooks/usePlayerProfileState';
 
 type RoleKey = keyof ProfileRoles;
+const ROLE_SELECT_LABELS: Record<RoleKey, string> = {
+  offense1: 'Primary offense role',
+  offense2: 'Secondary offense role',
+  defense1: 'Primary defense role',
+  defense2: 'Secondary defense role',
+};
+
 type RoleSelectProps = {
   value: string;
   onChange: (value: string) => void;
@@ -29,6 +36,7 @@ export const RoleSelect = ({
       className="bg-neutral-800 text-white px-3 py-2 rounded-full w-full border border-black appearance-none pr-10"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      aria-label={ROLE_SELECT_LABELS[roleKey]}
     >
       <option value=""></option>
       {options.map((role: string) => (
@@ -39,8 +47,10 @@ export const RoleSelect = ({
     </select>
     {value && (
       <button
+        type="button"
         onClick={() => setOpenModal(`role_${roleKey}`)}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
+        aria-label={`Edit ${value} blurb`}
         title={`Edit ${value} blurb`}
       >
         <NotebookText size={14} strokeWidth={1.25} />
@@ -62,8 +72,10 @@ const CenteredLabelWithIcon = ({
     <div className="relative inline-flex items-center">
       <span className="text-base font-bold">{label}</span>
       <button
+        type="button"
         onClick={() => onClick(modalKey)}
         className="absolute -right-5 text-white/70 hover:text-white"
+        aria-label={`Edit ${label} blurb`}
         title={`Edit ${label} blurb`}
       >
         <NotebookText size={14} strokeWidth={1.25} />

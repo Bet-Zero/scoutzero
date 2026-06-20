@@ -58,16 +58,19 @@ const RoleBadge = ({ role, onEdit, side }: RoleBadgeProps) => (
           ? 'text-green-500 text-[11px]'
           : 'text-red-500 text-[11px]'
       }
+      aria-hidden="true"
     >
       {isPositiveSubRole(role) ? '✓' : '✗'}
     </span>
     <span className="text-white text-[11px] truncate">{role}</span>
     <button
+      type="button"
       onClick={(e) => {
         e.stopPropagation();
         onEdit(role);
       }}
       className="text-white/70 hover:text-white"
+      aria-label={`Edit ${role} blurb`}
       title={`Edit ${role} blurb`}
     >
       <NotebookText size={14} strokeWidth={1.25} />
@@ -117,20 +120,24 @@ const RoleGroup = ({
     <div className="mb-4">
       <div className="text-sm font-semibold mb-1 pl-3">{group}</div>
       {groupRoles.map((role) => (
-        <div
+        <button
           key={role.name}
-          className={`flex items-center px-3 py-1 mb-1 rounded cursor-pointer text-[11px] ${
+          type="button"
+          className={`flex w-full items-center px-3 py-1 mb-1 rounded cursor-pointer text-left text-[11px] ${
             selected.includes(role.name) ? 'bg-gray-700' : 'bg-neutral-800'
           }`}
+          aria-pressed={selected.includes(role.name)}
+          aria-label={`${selected.includes(role.name) ? 'Remove' : 'Add'} ${role.name} sub-role`}
           onClick={() => onToggle(role.name)}
         >
           <span
             className={`${role.isPositive ? 'text-green-500' : 'text-red-500'} mr-2`}
+            aria-hidden="true"
           >
             {role.isPositive ? '✓' : '✗'}
           </span>
           {role.name}
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -290,8 +297,7 @@ export const SubRoleSelector = ({
     });
   };
 
-  const handleOpen = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
+  const openModal = () => {
     lastActiveElementRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -299,25 +305,50 @@ export const SubRoleSelector = ({
     setIsModalOpen(true);
   };
 
+  const handleOpen = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    openModal();
+  };
+
+  const handleOpenKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    openModal();
+  };
+
   const handleEdit = (role: string) => setOpenModal?.(`subrole_${role}`);
 
   return (
-    <div className="w-full cursor-pointer" onClick={handleOpen}>
-      <div className="flex h-20 rounded-lg -mt-1.5 relative">
-        <div className="w-1/2 p-1">
-          <SelectedRoleList
-            roles={safeSubRoles.offense}
-            side="offense"
-            onEdit={handleEdit}
-          />
-        </div>
-        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-neutral-800" />
-        <div className="w-1/2 p-1">
-          <SelectedRoleList
-            roles={safeSubRoles.defense}
-            side="defense"
-            onEdit={handleEdit}
-          />
+    <>
+      <div
+        className="w-full cursor-pointer"
+        onClick={handleOpen}
+        onKeyDown={handleOpenKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label="Edit sub-roles"
+        aria-haspopup="dialog"
+        aria-expanded={isModalOpen}
+      >
+        <div className="flex h-20 rounded-lg -mt-1.5 relative">
+          <div className="w-1/2 p-1">
+            <SelectedRoleList
+              roles={safeSubRoles.offense}
+              side="offense"
+              onEdit={handleEdit}
+            />
+          </div>
+          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-neutral-800" />
+          <div className="w-1/2 p-1">
+            <SelectedRoleList
+              roles={safeSubRoles.defense}
+              side="defense"
+              onEdit={handleEdit}
+            />
+          </div>
         </div>
       </div>
       {isModalOpen && (
@@ -328,6 +359,6 @@ export const SubRoleSelector = ({
           modalRef={modalRef}
         />
       )}
-    </div>
+    </>
   );
 };

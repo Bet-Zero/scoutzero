@@ -61,16 +61,22 @@ const areArraysEqual = (
 ): boolean =>
   a.length === b.length && a.every((value, index) => value === b[index]);
 
-const isTextEntryTarget = (target: EventTarget | null): boolean => {
+const isInteractiveNavigationTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
 
   const tagName = target.tagName.toLowerCase();
+  const role = target.getAttribute('role');
+
   return (
+    tagName === 'a' ||
+    tagName === 'button' ||
     tagName === 'input' ||
     tagName === 'textarea' ||
     tagName === 'select' ||
+    role === 'button' ||
+    role === 'slider' ||
     target.isContentEditable
   );
 };
@@ -231,7 +237,7 @@ export const usePlayerNavigation = (
         event.ctrlKey ||
         event.metaKey ||
         event.shiftKey ||
-        isTextEntryTarget(event.target)
+        isInteractiveNavigationTarget(event.target)
       ) {
         return;
       }

@@ -37,6 +37,7 @@ export const OverallBlurbBox = ({
           type="button"
           onClick={() => setOpenModal?.('overall')}
           className="text-white/80 hover:text-white"
+          aria-label="Edit overall breakdown"
           title="Edit overall breakdown"
         >
           <NotebookText size={14} strokeWidth={1.25} />
