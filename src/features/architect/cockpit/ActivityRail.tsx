@@ -25,14 +25,13 @@ import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/com
 import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/ScenarioMoveRail';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
-import { TeamStatusStrip, type HardCapCockpitStatus } from './TeamStatusStrip';
+import { type HardCapCockpitStatus } from './TeamStatusStrip';
 import {
   getAuthorityLabel,
   AUTHORITY_TONE_BADGE_CLASSES,
   type AuthorityLabelInput,
 } from './authorityLabel';
 import {
-  deriveCapPosturePanel,
   deriveReceiptImpactPanel,
   deriveTeamPlanTruthPanel,
   isHardCapActiveForViewingSeason,
@@ -351,7 +350,6 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
     useImperativeHandle(ref, () => ({ expand: () => setCollapsed(false) }), []);
 
     const planTruth = deriveTeamPlanTruthPanel(workspace.saveState);
-    const capPosture = deriveCapPosturePanel(workspace, hardCapStatus);
     const receiptImpact = deriveReceiptImpactPanel(receipt);
     const receiptHasCommittedEvidence =
       receipt?.authority === 'committed-world';
@@ -359,7 +357,6 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
     const hasWatchDanger = watch.some((entry) => entry.tone === 'danger');
     const hasPlanTruthDanger = planTruth.tone === 'danger';
     const hasPlanTruthWatch = planTruth.tone === 'watch';
-    const capUnavailable = workspace.cap.status === 'unavailable';
 
     // Section order is the contract's canonical order (Cap Posture → Current
     // Receipt → Pinned → In Progress → Watchlist → Scenario Activity). The
@@ -540,72 +537,9 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
             )}
           </RailSection>
 
-          <RailSection
-            label="Current Posture"
-            testId="cockpit-activity-rail-cap-posture"
-          >
-            {capUnavailable ? (
-              <div data-testid="cockpit-activity-rail-cap-posture-unavailable">
-                <p className="text-xs text-cockpit-text-muted">
-                  Cap posture unavailable.{' '}
-                  <button
-                    type="button"
-                    onClick={onNavigateToCapSheet}
-                    className="underline decoration-dotted underline-offset-2 hover:text-cockpit-text-secondary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-                    data-testid="cockpit-activity-rail-cap-posture-cap-sheet"
-                  >
-                    View Cap Sheet for details.
-                  </button>
-                </p>
-              </div>
-            ) : (
-              <>
-                <div
-                  className={`rounded border px-2 py-2 text-[11px] ${TRUST_TONE_CLASSES[capPosture.tone]}`}
-                  data-testid="cockpit-activity-rail-cap-posture-summary"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div
-                        className="font-semibold text-cockpit-text-primary"
-                        data-testid="cockpit-activity-rail-cap-posture-status"
-                      >
-                        {capPosture.statusLabel}
-                      </div>
-                      <div className="mt-0.5 text-cockpit-text-secondary">
-                        {capPosture.detail}
-                      </div>
-                    </div>
-                    <TrustBadge tone={capPosture.tone}>Posture</TrustBadge>
-                  </div>
-                  <div
-                    className="mt-2 rounded border border-cockpit-edge bg-cockpit-slab px-2 py-1 text-[10px] text-cockpit-text-secondary"
-                    data-testid="cockpit-activity-rail-roster-status"
-                  >
-                    {capPosture.rosterLabel}
-                  </div>
-                  {capPosture.hardCapLabel ? (
-                    <div
-                      className="mt-1 rounded border border-cockpit-danger/30 bg-cockpit-danger/5 px-2 py-1 text-[10px] leading-4 text-cockpit-danger"
-                      data-testid="cockpit-activity-rail-hard-cap-status"
-                    >
-                      <span className="font-semibold">
-                        {capPosture.hardCapLabel}
-                      </span>
-                      {capPosture.hardCapDetail ? (
-                        <span> · {capPosture.hardCapDetail}</span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-                <TeamStatusStrip
-                  workspace={workspace}
-                  hardCapStatus={hardCapStatus}
-                  orientation="vertical"
-                />
-              </>
-            )}
-          </RailSection>
+          {/* Cap posture moved OUT of the activity rail into the permanent,
+              always-on TeamPosturePanel (cockpit shell). The rail is for
+              on-demand records/moves only — never staple, must-see info. */}
           <RailSection
             label="Recent Move Impact"
             testId="cockpit-activity-rail-receipts"

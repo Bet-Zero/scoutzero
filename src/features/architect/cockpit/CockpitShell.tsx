@@ -30,6 +30,7 @@ import {
 import type { PlayerAction, PlayerActionContext } from './playerActionContext';
 import type { TradeObjective } from './tradeOpenRequest';
 import type { HardCapCockpitStatus } from './TeamStatusStrip';
+import { TeamPosturePanel } from './TeamPosturePanel';
 import { useTeamPalette } from './useTeamPalette';
 
 interface CockpitShellProps {
@@ -140,6 +141,17 @@ export const CockpitShell = ({
       />
 
       {banner ? <div className="shrink-0">{banner}</div> : null}
+
+      {/* Canonical cap posture — permanent, always-on, universal across tabs.
+          Staple info lives here, NOT in the on-demand activity rail. A thin
+          full-width band so the verdict reads first without stealing more
+          workbench height than necessary. */}
+      <TeamPosturePanel
+        workspace={workspace}
+        hardCapStatus={hardCapStatus}
+        orientation="horizontal"
+        onNavigateToCapSheet={onNavigateToCapSheet}
+      />
 
       <div className="flex min-h-0 flex-1">
         <NavRail activeTab={activeTab} items={navItems} />

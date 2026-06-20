@@ -33,10 +33,19 @@ interface TeamStatusStripProps {
   orientation?: 'horizontal' | 'vertical';
 }
 
-const formatMoney = (amount: number): string => {
+// Abbreviated money so the posture reads like a clean dashboard ($239.3M), not
+// a spreadsheet ($239,343,312). No minus sign — the tile color already conveys
+// negative (red). Millions always carry one decimal ($211.0M, not $211M).
+export const formatMoney = (amount: number): string => {
   if (!Number.isFinite(amount)) return '—';
-  const sign = amount < 0 ? '-' : '';
-  return `${sign}$${Math.abs(Math.round(amount)).toLocaleString()}`;
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000) {
+    return `$${(abs / 1_000_000).toFixed(1)}M`;
+  }
+  if (abs >= 1_000) {
+    return `$${(abs / 1_000).toFixed(1)}K`;
+  }
+  return `$${Math.round(abs)}`;
 };
 
 
@@ -66,9 +75,6 @@ export const TeamStatusStrip = ({
 }: TeamStatusStripProps) => {
   const cap = workspace.cap;
   const isVertical = orientation === 'vertical';
-  const containerClassName = isVertical
-    ? 'grid shrink-0 grid-cols-2 gap-1.5 p-2'
-    : 'grid shrink-0 grid-cols-6 gap-1.5 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5';
 
   if (cap.status !== 'available') {
     return (
@@ -107,9 +113,118 @@ export const TeamStatusStrip = ({
     : 'Hard Capped';
   const hardCapReason = hardCapStatus?.reason || '';
 
+  const firstApronBadge = isFirstApronHardCapped ? (
+    <HardCapLock heading={hardCapHeading} reason={hardCapReason} />
+  ) : null;
+  const secondApronBadge = isSecondApronHardCapped ? (
+    <HardCapLock heading={hardCapHeading} reason={hardCapReason} />
+  ) : null;
+  const rosterValue = rosterCount !== null ? `${rosterCount} / 15` : '—';
+
+  // The four space tiles are shared by both layouts; `dense` shortens them for
+  // the horizontal top band where vertical height is scarce.
+  const spaceTiles = (dense: boolean) => ({
+    capSpaceTile: (
+      <TeamStatusTile
+        testId="cockpit-status-cap-space"
+        label="Cap Space"
+        value={formatMoney(cap.capSpace)}
+        valueClassName={spaceColor(cap.capSpace)}
+        dense={dense}
+      />
+    ),
+    taxSpaceTile: (
+      <TeamStatusTile
+        testId="cockpit-status-tax-space"
+        label="Luxury Tax Space"
+        value={formatMoney(cap.taxSpace)}
+        valueClassName={spaceColor(cap.taxSpace)}
+        dense={dense}
+      />
+    ),
+    firstApronTile: (
+      <TeamStatusTile
+        testId="cockpit-status-apron1"
+        label="1st Apron Space"
+        value={formatMoney(cap.firstApronSpace)}
+        valueClassName={spaceColor(cap.firstApronSpace)}
+        badge={firstApronBadge}
+        dense={dense}
+      />
+    ),
+    secondApronTile: (
+      <TeamStatusTile
+        testId="cockpit-status-apron2"
+        label="2nd Apron Space"
+        value={formatMoney(cap.secondApronSpace)}
+        valueClassName={spaceColor(cap.secondApronSpace)}
+        badge={secondApronBadge}
+        dense={dense}
+      />
+    ),
+  });
+
+  // Vertical layout (the canonical left-dock posture panel) carries a visual
+  // hierarchy: Total Cap is a prominent wide row (second-biggest figure after
+  // the panel's hero verdict), the four space tiles step down into a 2×2 grid,
+  // and roster is a thin supporting row. Horizontal keeps the legacy flat band.
+  if (isVertical) {
+    const { capSpaceTile, taxSpaceTile, firstApronTile, secondApronTile } =
+      spaceTiles(false);
+    return (
+      <section
+        className="flex shrink-0 flex-col gap-1.5"
+        data-testid="cockpit-team-status-strip"
+        data-state="ready"
+        data-orientation={orientation}
+        aria-label="Team financial posture"
+      >
+        <div
+          className="flex items-center justify-between rounded-md border border-white/10 bg-[#1c1c1c] px-2.5 py-2"
+          data-testid="cockpit-status-total-cap"
+        >
+          <span className="text-[9px] uppercase tracking-wider text-white/55">
+            Total Cap
+          </span>
+          <span
+            className="text-[17px] font-bold leading-none tabular-nums text-white"
+            data-testid="cockpit-status-total-cap-value"
+          >
+            {formatMoney(cap.totalCapAllocations)}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {capSpaceTile}
+          {taxSpaceTile}
+          {firstApronTile}
+          {secondApronTile}
+        </div>
+        <div
+          className="flex items-center justify-between rounded-md border border-white/10 bg-[#1c1c1c] px-2.5 py-1.5"
+          data-testid="cockpit-status-roster"
+        >
+          <span className="text-[9px] uppercase tracking-wider text-white/55">
+            Roster
+          </span>
+          <span
+            className="text-[13px] font-bold leading-none tabular-nums text-white"
+            data-testid="cockpit-status-roster-value"
+          >
+            {rosterValue}
+          </span>
+        </div>
+      </section>
+    );
+  }
+
+  // Horizontal lives inside the posture panel's own band, so it carries no
+  // border/background of its own — just the tile grid. Tiles are dense so the
+  // band stays short enough to keep the Full Cap Table off a scroll.
+  const { capSpaceTile, taxSpaceTile, firstApronTile, secondApronTile } =
+    spaceTiles(true);
   return (
     <section
-      className={containerClassName}
+      className="grid w-full shrink-0 grid-cols-6 gap-1.5"
       data-testid="cockpit-team-status-strip"
       data-state="ready"
       data-orientation={orientation}
@@ -119,45 +234,17 @@ export const TeamStatusStrip = ({
         testId="cockpit-status-total-cap"
         label="Total Cap"
         value={formatMoney(cap.totalCapAllocations)}
+        dense
       />
-      <TeamStatusTile
-        testId="cockpit-status-cap-space"
-        label="Cap Space"
-        value={formatMoney(cap.capSpace)}
-        valueClassName={spaceColor(cap.capSpace)}
-      />
-      <TeamStatusTile
-        testId="cockpit-status-apron1"
-        label="1st Apron Space"
-        value={formatMoney(cap.firstApronSpace)}
-        valueClassName={spaceColor(cap.firstApronSpace)}
-        badge={
-          isFirstApronHardCapped ? (
-            <HardCapLock heading={hardCapHeading} reason={hardCapReason} />
-          ) : null
-        }
-      />
-      <TeamStatusTile
-        testId="cockpit-status-apron2"
-        label="2nd Apron Space"
-        value={formatMoney(cap.secondApronSpace)}
-        valueClassName={spaceColor(cap.secondApronSpace)}
-        badge={
-          isSecondApronHardCapped ? (
-            <HardCapLock heading={hardCapHeading} reason={hardCapReason} />
-          ) : null
-        }
-      />
-      <TeamStatusTile
-        testId="cockpit-status-tax-space"
-        label="Luxury Tax Space"
-        value={formatMoney(cap.taxSpace)}
-        valueClassName={spaceColor(cap.taxSpace)}
-      />
+      {capSpaceTile}
+      {firstApronTile}
+      {secondApronTile}
+      {taxSpaceTile}
       <TeamStatusTile
         testId="cockpit-status-roster"
         label="Roster"
-        value={rosterCount !== null ? `${rosterCount} / 15` : '—'}
+        value={rosterValue}
+        dense
       />
     </section>
   );

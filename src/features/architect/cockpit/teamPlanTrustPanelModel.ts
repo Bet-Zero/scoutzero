@@ -33,6 +33,14 @@ export interface CapPosturePanel {
   tone: TrustPanelTone;
   statusLabel: string;
   detail: string;
+  /**
+   * The single number that drives the verdict (e.g. 2nd-apron space when above
+   * the 2nd apron). Signed: negative = over the binding threshold. The panel
+   * renders this as the hero figure; `null` while cap posture is unavailable.
+   */
+  headlineAmount: number | null;
+  /** Plain-language caption under the hero number, e.g. "over the 2nd apron". */
+  headlineCaption: string | null;
   rosterLabel: string;
   hardCapLabel: string | null;
   hardCapDetail: string | null;
@@ -160,6 +168,8 @@ export function deriveCapPosturePanel(
         workspace.roster.status === 'available'
           ? `${workspace.roster.count} players`
           : 'Roster count unavailable',
+      headlineAmount: null,
+      headlineCaption: null,
       hardCapLabel: null,
       hardCapDetail: null,
     };
@@ -171,24 +181,40 @@ export function deriveCapPosturePanel(
   );
   let tone: TrustPanelTone = 'safe';
   let statusLabel = 'Below cap pressure';
+  // Default headline (safe team): the cap room it has left.
+  let headlineAmount = cap.capSpace;
+  let headlineCaption = 'cap space';
 
   if (hardCapActive) {
     tone = 'danger';
     statusLabel = hardCapStatus?.hardCapCeilingLabel
       ? `Hard capped at ${hardCapStatus.hardCapCeilingLabel}`
       : 'Hard capped';
+    headlineAmount =
+      hardCapStatus?.hardCapCeilingType === 'FIRST_APRON'
+        ? cap.firstApronSpace
+        : cap.secondApronSpace;
+    headlineCaption = headlineAmount < 0 ? 'over the hard cap' : 'under hard cap';
   } else if (cap.isAboveSecondApron) {
     tone = 'danger';
     statusLabel = 'Above 2nd apron';
+    headlineAmount = cap.secondApronSpace;
+    headlineCaption = 'over the 2nd apron';
   } else if (cap.isAtOrAboveFirstApron) {
     tone = 'danger';
     statusLabel = 'At or above 1st apron';
+    headlineAmount = cap.firstApronSpace;
+    headlineCaption = 'over the 1st apron';
   } else if (cap.isOverTax) {
     tone = 'watch';
     statusLabel = 'Over luxury tax';
+    headlineAmount = cap.taxSpace;
+    headlineCaption = 'over the luxury tax';
   } else if (cap.isOverCap) {
     tone = 'watch';
     statusLabel = 'Over salary cap';
+    headlineAmount = cap.capSpace;
+    headlineCaption = 'over the cap';
   }
 
   return {
@@ -197,6 +223,8 @@ export function deriveCapPosturePanel(
     detail: `${cap.seasonLabel}: ${formatTrustPanelMoney(
       cap.capSpace
     )} cap space, ${formatTrustPanelMoney(cap.taxSpace)} tax space.`,
+    headlineAmount,
+    headlineCaption,
     rosterLabel:
       workspace.roster.status === 'available'
         ? `${workspace.roster.count} / 15 roster spots shown`

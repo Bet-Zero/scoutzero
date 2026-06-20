@@ -204,16 +204,14 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     expect(capSheetFullSource).toContain(
       'Multi-year canonical yearly totals surface'
     );
-    expect(capSheetFullSource).toContain('Multi-year cap holds detail surface');
+    // Cap-hold / dead-money / exceptions detail now share one unified tab bar.
+    expect(capSheetFullSource).toContain('Cap detail tabs');
     expect(capSheetFullSource).toContain('Canonical Yearly Totals');
     expect(capSheetFullSource).toContain(
       'Player rows show season-by-season contract detail only.'
     );
     expect(capSheetFullSource).toContain(
       'Player rows above and cap hold details below support the same'
-    );
-    expect(capSheetFullSource).toContain(
-      'Separate from player rows. Matching-season holds feed the'
     );
     expect(capSheetFullSource).toContain('Canonical yearly total');
   });

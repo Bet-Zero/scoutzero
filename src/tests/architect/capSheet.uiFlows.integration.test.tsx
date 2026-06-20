@@ -1426,42 +1426,16 @@ describe('Cap Sheet UI integration flows', () => {
     const playerDetailSurface = within(primarySurface).getByRole('region', {
       name: 'Multi-year player detail surface',
     });
-    const teamPlanContext = within(primarySurface).getByRole('region', {
-      name: 'Full Cap Table Team Plan context',
-    });
     const canonicalTotalsSurface = within(primarySurface).getByRole('region', {
       name: 'Multi-year canonical yearly totals surface',
     });
     const capHoldsSurface = screen.getByRole('region', {
-      name: 'Multi-year cap holds detail surface',
+      name: 'Cap detail tabs',
     });
 
-    expect(
-      within(teamPlanContext).getByText('Team Plan Cap Stack')
-    ).toBeInTheDocument();
-    expect(
-      within(teamPlanContext).getByText('Los Angeles Lakers')
-    ).toBeInTheDocument();
-    expect(
-      within(teamPlanContext).getByText('Current season 2025-26')
-    ).toBeInTheDocument();
-    expect(
-      within(teamPlanContext).getByText(
-        `Current total: $${computeTeamCapTotals(
-          teamCapSheet,
-          CURRENT_YEAR
-        ).totalCapAllocations.toLocaleString()}`
-      )
-    ).toBeInTheDocument();
-    expect(
-      within(teamPlanContext).getByText('Roster salary rows: 15')
-    ).toBeInTheDocument();
-    expect(
-      within(teamPlanContext).getByText('Cap holds: 1')
-    ).toBeInTheDocument();
-    expect(
-      within(teamPlanContext).getByText('Dead money: 0')
-    ).toBeInTheDocument();
+    // Cap posture + the roster/cap-hold/dead-money counts were intentionally
+    // removed from the Full Cap Table header — they live in the single canonical
+    // CURRENT POSTURE drawer now, not duplicated per-feature.
 
     expect(
       within(playerDetailSurface).getByText(
@@ -1489,16 +1463,11 @@ describe('Cap Sheet UI integration flows', () => {
       within(canonicalTotalsSurface).getByText(/^Canonical yearly total$/i)
     ).toBeInTheDocument();
 
-    expect(
-      within(capHoldsSurface).getByText(
-        /Separate from player rows\. Matching-season holds feed the canonical Total Cap row\./i
-      )
-    ).toBeInTheDocument();
-
-    expectBefore(teamPlanContext, playerDetailSurface);
     expectBefore(playerDetailSurface, canonicalTotalsSurface);
     expectBefore(canonicalTotalsSurface, capHoldsSurface);
 
+    // Cap-hold detail now opens from the unified bottom tab bar; the rows live
+    // in a popover anchored to it (so the table never scrolls).
     fireEvent.click(screen.getByTestId('cap-sheet-full-cap-holds-toggle'));
 
     expect(
@@ -1551,7 +1520,7 @@ describe('Cap Sheet UI integration flows', () => {
       name: 'Multi-year canonical yearly totals surface',
     });
     const capHoldsSurface = screen.getByRole('region', {
-      name: 'Multi-year cap holds detail surface',
+      name: 'Cap detail tabs',
     });
 
     expect(

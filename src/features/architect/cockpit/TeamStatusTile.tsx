@@ -15,6 +15,11 @@ interface TeamStatusTileProps {
   testId?: string;
   /** Optional inline marker shown next to the value (e.g. a hard-cap lock). */
   badge?: ReactNode;
+  /**
+   * Shorter tile for the horizontal top band, where vertical height is scarce
+   * (it must not push the Full Cap Table into a scroll).
+   */
+  dense?: boolean;
 }
 
 export const TeamStatusTile = ({
@@ -23,9 +28,10 @@ export const TeamStatusTile = ({
   valueClassName = 'text-white',
   testId,
   badge,
+  dense = false,
 }: TeamStatusTileProps) => (
   <div
-    className="flex h-[46px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 bg-[#1c1c1c] px-1.5 text-center"
+    className={`flex ${dense ? 'h-[34px]' : 'h-[46px]'} min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 bg-[#1c1c1c] px-1.5 text-center`}
     data-testid={testId}
   >
     <div className="w-full truncate text-[9px] uppercase tracking-wider text-white/55">

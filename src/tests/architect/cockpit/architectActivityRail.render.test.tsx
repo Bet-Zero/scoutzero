@@ -206,16 +206,9 @@ describe('ActivityRail — Slice 1 audit', () => {
     }
   });
 
-  it('shows the honest cap-posture-unavailable state with a Cap Sheet link', () => {
-    const handlers = renderRail();
-    expect(
-      screen.getByTestId('cockpit-activity-rail-cap-posture-unavailable')
-    ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByTestId('cockpit-activity-rail-cap-posture-cap-sheet')
-    );
-    expect(handlers.onNavigateToCapSheet).toHaveBeenCalledTimes(1);
-  });
+  // Cap posture itself moved to the permanent TeamPosturePanel (covered by
+  // architectTeamPosturePanel.render.test.tsx); the rail only keeps the
+  // hard-cap WATCH entry.
 
   it('renders the empty receipt and empty watchlist copy in sandbox', () => {
     renderRail();
@@ -276,13 +269,9 @@ describe('ActivityRail — Slice 1 audit', () => {
     expect(handlers.onNavigateToCapSheet).toHaveBeenCalledTimes(1);
   });
 
-  it('summarizes cap posture, roster count, and hard-cap status when available', () => {
-    const workspace = withAboveSecondApron(makeSandboxWorkspace());
+  it('surfaces a hard-cap watch entry when hard-capped', () => {
     renderRail({
-      workspace: {
-        ...workspace,
-        roster: { status: 'available', count: 16, source: 'players' },
-      },
+      workspace: withAboveSecondApron(makeSandboxWorkspace()),
       hardCapStatus: {
         isHardCapped: true,
         hardCapCeilingType: 'SECOND_APRON',
@@ -291,15 +280,6 @@ describe('ActivityRail — Slice 1 audit', () => {
       },
     });
 
-    expect(
-      screen.getByTestId('cockpit-activity-rail-cap-posture-status')
-    ).toHaveTextContent('Hard capped at 2nd Apron');
-    expect(
-      screen.getByTestId('cockpit-activity-rail-roster-status')
-    ).toHaveTextContent('16 / 15 roster spots shown');
-    expect(
-      screen.getByTestId('cockpit-activity-rail-hard-cap-status')
-    ).toHaveTextContent('Used restricted transaction path');
     expect(
       screen.getByTestId('cockpit-activity-rail-watch-hard-cap')
     ).toHaveTextContent('Hard capped at 2nd Apron');

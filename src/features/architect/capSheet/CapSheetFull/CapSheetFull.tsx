@@ -9,7 +9,13 @@
  *  - 2026-03-14: Migrated authoritative implementation to TypeScript for E88.
  *  - 2026-03-29: Clarified multi-year surface hierarchy between player rows, cap holds, and canonical yearly totals.
  */
-import React, { useCallback, useState, useMemo } from 'react';
+import React, {
+  useCallback,
+  useState,
+  useMemo,
+  useRef,
+  useLayoutEffect,
+} from 'react';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -240,18 +246,18 @@ const EXTENSION_CELL_STYLE =
 const formatCapSheetMoney = (amount: NumericLike) =>
   `$${Number(amount ?? 0).toLocaleString()}`;
 
-const formatCapSpaceLabel = (space: number, thresholdLabel: string) =>
-  `${formatCapSheetMoney(Math.abs(space))} ${
-    space < 0 ? `over ${thresholdLabel}` : 'space'
-  }`;
-
 const formatSeasonLabel = (year: number) =>
   `${year - 1}-${String(year % 100).padStart(2, '0')}`;
 
 const formatExtLabel = (year: number) =>
   `EXT '${String(year % 100).padStart(2, '0')}`;
 
-const MIN_VISIBLE_YEARS = 7;
+// Minimum visible year span. The table otherwise hugs the team's actual
+// commitments (the latest contract / cap-hold / dead-cap year), so it doesn't
+// pad out dead, all-$0 future columns. Kept small so a normal roster (4+ years
+// of deals) shows no empty trailing columns; only a barely-committed team would
+// hit this floor. Reclaims horizontal room for the docked posture panel.
+const MIN_VISIBLE_YEARS = 4;
 
 const toEndYear = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -370,13 +376,6 @@ const getDeadCapLabel = (deadCapEntry: DeadCapEntryLike) =>
   deadCapEntry.notes ||
   deadCapEntry.playerId ||
   'Dead money adjustment';
-
-const resolveTeamPlanLabel = (teamCapSheet: TeamCapSheetLike) =>
-  teamCapSheet.teamName ||
-  teamCapSheet.name ||
-  teamCapSheet.teamCode ||
-  teamCapSheet.abbreviation ||
-  (teamCapSheet.id != null ? String(teamCapSheet.id) : 'Active team');
 
 const getLatestVisibleEndYear = (
   teamCapSheet: TeamCapSheetLike,
@@ -579,9 +578,12 @@ export const CapSheetFull = ({
   onRemoveFreeAgentOption = null,
   playersMap = {},
 }: CapSheetFullProps) => {
-  const [showCapHolds, setShowCapHolds] = useState(false);
-  const [showDeadMoneyDetails, setShowDeadMoneyDetails] = useState(false);
-  const [showExceptionsReadout, setShowExceptionsReadout] = useState(false);
+  // The three bottom detail surfaces (Dead Money / Cap Holds / Exceptions) share
+  // one segmented bar: at most one panel is open at a time, and it pops up ABOVE
+  // the bar so it never pushes the Full Cap Table into scroll.
+  const [activeDetailTab, setActiveDetailTab] = useState<
+    'dead' | 'holds' | 'exceptions' | null
+  >(null);
   const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
   const [showExceptionsModal, setShowExceptionsModal] = useState(false);
   const hasManualCapSheetMutationAuthority = !!manualCapSheetMutationAuthority;
@@ -724,6 +726,10 @@ export const CapSheetFull = ({
     return visiblePlayers.map((entry) => entry.player);
   }, [teamCapSheet.players, currentYear, allYears]);
 
+  // "Do we hold this player's rights?" — built from the RAW roster, which still
+  // lists own free agents whose contracts have expired (LeBron) but excludes
+  // departed players (Carmelo). Drives the resolver's placement (own FA → main,
+  // departed → dead). NOT a dedup signal.
   const rosterLookupKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const player of teamCapSheet.players || []) {
@@ -733,6 +739,19 @@ export const CapSheetFull = ({
     }
     return keys;
   }, [teamCapSheet.players]);
+
+  // "Does this player already render as a visible roster ROW?" — built from
+  // sortedPlayers (expired-contract FAs are filtered out). The ONLY dedup
+  // signal: a player with a visible row must not also get a cap-hold row.
+  const visibleRosterKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const player of sortedPlayers) {
+      for (const key of getPlayerLookupKeys(player)) {
+        keys.add(key);
+      }
+    }
+    return keys;
+  }, [sortedPlayers]);
 
   const displayedCapHolds = useMemo(
     () =>
@@ -754,7 +773,12 @@ export const CapSheetFull = ({
         const rights = resolveFreeAgentRights(
           player as unknown as Parameters<typeof resolveFreeAgentRights>[0], // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-172
           {
-            activeSeasonStartYear: currentYear,
+            // `currentYear` is the END year of the active column (e.g. 2027 for
+            // the "2026-27" season). Free-agency years are START years (LeBron's
+            // 2026 free agency), so convert to the season START year here — else
+            // the resolver promotes NEXT season's free agents and drops this
+            // year's. See [[one_screen_principle]].
+            activeSeasonStartYear: currentYear - 1,
             holdType: hold.type,
             holdSeasonStartYear: toStartYear(hold.season),
             isOnRoster,
@@ -767,17 +791,31 @@ export const CapSheetFull = ({
   );
 
   const { mainFaHolds, sectionHolds } = useMemo(() => {
-    const main = resolvedCapHolds
-      .filter((entry) => entry.rights.placement === 'main' && entry.player)
+    // Dedup on VISIBLE rows only: a player who already renders as a roster row
+    // shows their FA tag inline there, so their cap hold is redundant and is
+    // dropped entirely. Own free agents whose contracts expired have no visible
+    // row, so their holds DO render. See [[one_screen_principle]].
+    const hasVisibleRow = (entry: ResolvedCapHoldEntry) => {
+      for (const key of getHoldLookupKeys(entry.hold)) {
+        if (visibleRosterKeys.has(key)) return true;
+      }
+      for (const key of getPlayerLookupKeys(entry.player)) {
+        if (visibleRosterKeys.has(key)) return true;
+      }
+      return false;
+    };
+    const renderable = resolvedCapHolds.filter((entry) => !hasVisibleRow(entry));
+    const main = renderable
+      .filter((entry) => entry.rights.placement === 'main')
       .sort(
         (a, b) =>
           Number(b.rights.capHoldAmount || b.hold.amount || 0) -
           Number(a.rights.capHoldAmount || a.hold.amount || 0)
       );
-    const section = resolvedCapHolds.filter((entry) => !main.includes(entry));
+    const section = renderable.filter((entry) => !main.includes(entry));
 
     return { mainFaHolds: main, sectionHolds: section };
-  }, [resolvedCapHolds]);
+  }, [resolvedCapHolds, visibleRosterKeys]);
 
   // Option B — interleave own free agents INTO the roster list, sorted on the
   // same key the roster uses (current-year dollar figure, current-year rows
@@ -787,6 +825,7 @@ export const CapSheetFull = ({
     | { kind: 'player'; player: CapSheetFullPlayerLike }
     | { kind: 'hold'; entry: ResolvedCapHoldEntry }
   ) & {
+    isTwoWay: boolean;
     hasCurrent: boolean;
     currentAmount: number;
     firstVisibleYear: number;
@@ -813,6 +852,7 @@ export const CapSheetFull = ({
       entries.push({
         kind: 'player',
         player,
+        isTwoWay: isTwoWayContract(player),
         hasCurrent: Boolean(currentYearSlice),
         currentAmount,
         firstVisibleYear,
@@ -828,6 +868,7 @@ export const CapSheetFull = ({
       entries.push({
         kind: 'hold',
         entry,
+        isTwoWay: isTwoWayContract(entry.player),
         hasCurrent: holdEnd === currentYear,
         currentAmount: holdEnd === currentYear ? amount : 0,
         firstVisibleYear: holdEnd,
@@ -837,6 +878,9 @@ export const CapSheetFull = ({
     }
 
     entries.sort((a, b) => {
+      // Two-way contracts (and two-way cap holds) always sink to the very
+      // bottom — they aren't real roster spots, regardless of dollar order.
+      if (a.isTwoWay !== b.isTwoWay) return a.isTwoWay ? 1 : -1;
       if (a.hasCurrent !== b.hasCurrent) return a.hasCurrent ? -1 : 1;
       if (a.hasCurrent && b.hasCurrent) {
         const delta = b.currentAmount - a.currentAmount;
@@ -854,8 +898,18 @@ export const CapSheetFull = ({
   // Own free agents render as real cap-table rows (headshot, name, re-sign cell,
   // hover-Absolve) — same shape as a roster row, just sourced from a cap hold.
   const renderFaHoldRow = (entry: ResolvedCapHoldEntry, idx: number) => {
-    const { hold, rights, player } = entry;
-    if (!player) return null;
+    const { hold, rights } = entry;
+    // An off-roster free agent often has no full player record in the local
+    // map (their record isn't on the roster, and hold names are "Last, First"
+    // while player keys are "First Last"). Render straight from the hold and
+    // fall back to a minimal player so a free agent is NEVER hidden just because
+    // the lookup missed — the cap hold IS the source of truth here.
+    const player =
+      entry.player ??
+      ({
+        playerId: hold.playerId,
+        displayName: hold.playerName,
+      } as unknown as CapSheetFullPlayerLike);
 
     const tag = normalizeFAType(rights.freeAgentType || hold.type) || 'UFA';
     const amount = Number(rights.capHoldAmount || hold.amount || 0);
@@ -864,10 +918,11 @@ export const CapSheetFull = ({
       <div
         key={`fa-${hold.playerId ?? hold.playerName}-${idx}`}
         data-testid="cap-sheet-full-fa-decision-row"
+        data-cap-fit-row
         className="group grid items-center transition-colors hover:bg-white/[0.02]"
         style={{ gridTemplateColumns: playerGridTemplate }}
       >
-        <div className="sticky left-0 z-10 flex h-[24px] items-center gap-2 border-r border-white/10 bg-[#0b0e14] px-3 shadow-[4px_0_24px_rgba(0,0,0,0.5)] transition-colors group-hover:bg-[#11151d]">
+        <div className="sticky left-0 z-10 flex h-[var(--cap-row-h,24px)] items-center gap-2 border-r border-white/10 bg-[#0b0e14] px-3 shadow-[4px_0_24px_rgba(0,0,0,0.5)] transition-colors group-hover:bg-[#11151d]">
           <PlayerAvatar
             player={player}
             name={hold.playerName || String(hold.playerId || '?')}
@@ -901,10 +956,14 @@ export const CapSheetFull = ({
             return (
               <div
                 key={year}
-                className="h-[24px] border-l border-white/[0.02] opacity-30"
+                className="h-[var(--cap-row-h,24px)] border-l border-white/[0.02] opacity-30"
               />
             );
           }
+          // A cap hold is PLACEHOLDER money: same number style as a salary, but
+          // dimmed + italic so it reads as "tentative / not locked in." No
+          // tag chip — the cell tint already encodes the type (blue=UFA,
+          // rose=RFA) and the tooltip spells it out. Bird icon sits bottom-right.
           return (
             <div
               key={year}
@@ -916,17 +975,20 @@ export const CapSheetFull = ({
                   holdEndYear ?? year
                 )
               }
-              className={`relative flex h-[24px] cursor-pointer items-center justify-center gap-1 border-l border-white/[0.02] px-2 transition-all hover:ring-2 hover:ring-inset hover:ring-white/20 ${getFaCellTint(tag)}`}
-              title={`Re-sign ${hold.playerName || ''} (${tag})`}
+              className={`relative flex h-[var(--cap-row-h,24px)] cursor-pointer items-center justify-center border-l border-white/[0.02] px-2 transition-all hover:ring-2 hover:ring-inset hover:ring-white/20 ${getFaCellTint(tag)}`}
+              title={`Re-sign ${hold.playerName || ''} (${tag}) · ${formatCapSheetMoney(amount)} cap hold`}
             >
-              <span
-                className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${getTagColor(tag)}`}
-              >
-                {tag}
+              <span className="text-xs font-semibold italic tabular-nums tracking-tight text-white/45">
+                {formatCapSheetMoney(amount)}
               </span>
-              <span className="font-mono text-xs tabular-nums text-cyan-200">
-                ${amount.toLocaleString()}
-              </span>
+              {rights.birdType && rights.birdType !== 'None' ? (
+                <span
+                  className="absolute bottom-0 right-0.5 flex items-center justify-center"
+                  data-testid="fa-bird-rights"
+                >
+                  <BirdRightsIcon type={rights.birdType} size={14} />
+                </span>
+              ) : null}
             </div>
           );
         })}
@@ -959,13 +1021,7 @@ export const CapSheetFull = ({
   const hasIncompleteCharges = allYears.some(
     (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
   );
-  const currentYearTotals = yearTotalBreakdowns[currentYear];
   const currentSeasonLabel = formatSeasonLabel(currentYear);
-  const teamPlanLabel = resolveTeamPlanLabel(teamCapSheet);
-  const capSpace = -(currentYearTotals.deltas.vsCap || 0);
-  const taxSpace = -(currentYearTotals.deltas.vsLuxuryTax || 0);
-  const firstApronSpace = -(currentYearTotals.deltas.vsFirstApron || 0);
-  const secondApronSpace = -(currentYearTotals.deltas.vsSecondApron || 0);
   const affectedTotalYears = useMemo(() => {
     const years = new Set<number>();
     for (const player of sortedPlayers) {
@@ -983,6 +1039,82 @@ export const CapSheetFull = ({
     }
     return years;
   }, [allYears, playerMatchesAnyFocus, sortedPlayers]);
+
+  // One tab in the unified bottom detail bar. Toggling re-opens/closes the
+  // shared popover; only one detail surface is ever open at a time.
+  const renderDetailTab = (
+    id: 'dead' | 'holds' | 'exceptions',
+    testId: string,
+    label: string,
+    count?: number
+  ) => {
+    const active = activeDetailTab === id;
+    return (
+      <button
+        type="button"
+        data-testid={testId}
+        aria-expanded={active}
+        onClick={() => setActiveDetailTab(active ? null : id)}
+        className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors ${
+          active
+            ? 'bg-white/10 text-cockpit-text-primary'
+            : 'text-cockpit-text-secondary hover:bg-white/5 hover:text-cockpit-text-primary'
+        }`}
+      >
+        <span
+          className={`text-[10px] transition-transform duration-200 ${active ? 'rotate-90' : ''}`}
+        >
+          ▶
+        </span>
+        {label}
+        {count != null ? (
+          <span className="rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-secondary">
+            {count}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
+  // ADAPTIVE ROW HEIGHT — the Full Cap Table is the workspace and must NEVER be
+  // forced into a scroll, no matter the roster size or how much chrome sits
+  // above it (e.g. the cockpit posture band). Rows read their height from the
+  // `--cap-row-h` CSS variable; this effect measures the scroll viewport and,
+  // when the natural 24px rows would overflow, shrinks every row by exactly the
+  // overflow ÷ row-count (down to a readable floor) so the content fits in one
+  // deterministic pass. The floor is generous enough that a real NBA roster
+  // (≤18 + a few cap-hold rows) always fits on any normal screen.
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
+  const DEFAULT_ROW_H = 24;
+  const MIN_ROW_H = 18;
+  useLayoutEffect(() => {
+    const el = tableScrollRef.current;
+    if (!el) return;
+    const fit = () => {
+      // Measure the natural layout at the default row height first.
+      el.style.setProperty('--cap-row-h', `${DEFAULT_ROW_H}px`);
+      const rows = el.querySelectorAll('[data-cap-fit-row]');
+      const rowCount = rows.length;
+      const available = el.clientHeight;
+      const content = el.scrollHeight;
+      if (rowCount === 0 || content <= available) {
+        el.style.setProperty('--cap-row-h', `${DEFAULT_ROW_H}px`);
+        return;
+      }
+      const overflowPerRow = Math.ceil((content - available) / rowCount);
+      const nextRowH = Math.max(MIN_ROW_H, DEFAULT_ROW_H - overflowPerRow);
+      el.style.setProperty('--cap-row-h', `${nextRowH}px`);
+    };
+    fit();
+    // ResizeObserver is unavailable in jsdom/non-browser envs — guard so the
+    // initial fit still runs there without crashing.
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+    // Re-fit whenever the row population changes (players, year span, or the
+    // free-agent / cap-hold rows that share the scroll area).
+  }, [orderedRows.length, allYears.length]);
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col font-sans text-cockpit-text-primary">
@@ -1125,69 +1257,10 @@ export const CapSheetFull = ({
             )}
           </div>
 
-          <section
-            aria-label="Full Cap Table Team Plan context"
-            data-testid="cap-sheet-full-team-plan-context"
-            className="shrink-0 border-b border-white/10 bg-black/20 px-3 py-2"
-          >
-            <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-              <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/45">
-                  Team Plan Cap Stack
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-white/65">
-                  <span className="font-semibold text-white/85">
-                    {teamPlanLabel}
-                  </span>
-                  <span className="text-white/25" aria-hidden>
-                    ·
-                  </span>
-                  <span>Current season {currentSeasonLabel}</span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5 text-[10px] font-medium text-white/70">
-                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
-                  Current total:{' '}
-                  {formatCapSheetMoney(currentYearTotals.totalCapAllocations)}
-                </span>
-                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
-                  Cap: {formatCapSpaceLabel(capSpace, 'cap')}
-                </span>
-                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
-                  Tax: {formatCapSpaceLabel(taxSpace, 'tax')}
-                </span>
-                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
-                  1st apron: {formatCapSpaceLabel(firstApronSpace, 'apron')}
-                </span>
-                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-1">
-                  2nd apron: {formatCapSpaceLabel(secondApronSpace, 'apron')}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-white/45">
-              <span className="rounded border border-white/10 bg-white/[0.03] px-2 py-0.5">
-                Roster salary rows: {sortedPlayers.length}
-              </span>
-              <span className="rounded border border-white/10 bg-white/[0.03] px-2 py-0.5">
-                Cap holds: {displayedCapHolds.length}
-              </span>
-              {mainFaHolds.length > 0 ? (
-                <span className="rounded border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-cyan-100/80">
-                  Free Agents - your decisions: {mainFaHolds.length}
-                </span>
-              ) : null}
-              <span className="rounded border border-white/10 bg-white/[0.03] px-2 py-0.5">
-                Dead money: {displayedDeadMoney.length}
-              </span>
-              {hasIncompleteCharges ? (
-                <span className="rounded border border-amber-300/20 bg-amber-400/10 px-2 py-0.5 text-amber-100/80">
-                  Includes incomplete roster charges
-                </span>
-              ) : null}
-            </div>
-          </section>
+          {/* Cap posture + roster status are NOT shown here — they live in the
+              single canonical CURRENT POSTURE drawer (cockpit). Duplicating them
+              per-feature is forbidden, and this surface owes its vertical space
+              to the Full Cap Table (must fit ~18 rows with no scroll). */}
 
           {/* PLAYER DETAIL: hugs its content so the Total Cap footer sits
               directly above the cap-hold / exception bars (no underflow gap),
@@ -1203,7 +1276,7 @@ export const CapSheetFull = ({
               is the canonical yearly cap total and can also include cap holds,
               dead money, and incomplete roster charges.
             </p>
-            <div className="min-h-0 flex-1 overflow-auto">
+            <div ref={tableScrollRef} className="min-h-0 flex-1 overflow-auto">
               <div className="min-w-full">
                 {/* Header (sticky top) */}
                 <div
@@ -1262,6 +1335,7 @@ export const CapSheetFull = ({
                             : 'hover:bg-[color:var(--team-primary,#4F46E5)]/[0.06]'
                         } ${isTwoWay ? 'opacity-70' : ''}`}
                         style={{ gridTemplateColumns: playerGridTemplate }}
+                        data-cap-fit-row
                         data-testid={
                           isRowHighlighted
                             ? 'cap-sheet-full-player-row-highlighted'
@@ -1269,7 +1343,7 @@ export const CapSheetFull = ({
                         }
                       >
                         {/* Player Name (Sticky) */}
-                        <div className="sticky left-0 z-10 flex h-[24px] items-center gap-2 border-r border-white/10 bg-[#0b0e14] px-3 shadow-[4px_0_24px_rgba(0,0,0,0.5)] transition-colors group-hover:bg-[#11151d]">
+                        <div className="sticky left-0 z-10 flex h-[var(--cap-row-h,24px)] items-center gap-2 border-r border-white/10 bg-[#0b0e14] px-3 shadow-[4px_0_24px_rgba(0,0,0,0.5)] transition-colors group-hover:bg-[#11151d]">
                           <PlayerAvatar
                             player={player}
                             name={
@@ -1429,7 +1503,7 @@ export const CapSheetFull = ({
                                       year
                                     )
                                   }
-                                  className={`relative flex items-center justify-center px-2 border-l border-white/[0.02] h-[24px] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all ${getFaCellTint(faLabel)}`}
+                                  className={`relative flex items-center justify-center px-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all ${getFaCellTint(faLabel)}`}
                                   title={
                                     rfaInfo?.reason ||
                                     rulesProfileForYear?.contractSummary
@@ -1458,7 +1532,7 @@ export const CapSheetFull = ({
                             return (
                               <div
                                 key={year}
-                                className="border-l border-white/[0.02] h-[24px]"
+                                className="border-l border-white/[0.02] h-[var(--cap-row-h,24px)]"
                               />
                             );
                           }
@@ -1486,7 +1560,7 @@ export const CapSheetFull = ({
                                     year
                                   )
                                 }
-                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[24px] transition-all cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
+                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] transition-all cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
                                 title={`Click to manage ${isPO ? 'Player' : 'Team'} Option`}
                               >
                                 {twoWayMarker}
@@ -1515,7 +1589,7 @@ export const CapSheetFull = ({
                           return (
                             <div
                               key={year}
-                              className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[24px] ${
+                              className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] ${
                                 isExtension ? EXTENSION_CELL_STYLE : ''
                               }`}
                             >
@@ -1633,84 +1707,6 @@ export const CapSheetFull = ({
             </div>
           </section>
 
-          {displayedDeadMoney.length > 0 ? (
-            <section
-              aria-label="Multi-year dead money detail surface"
-              className="shrink-0 border-t border-cockpit-edge px-4 py-1.5"
-            >
-              <button
-                type="button"
-                data-testid="cap-sheet-full-dead-money-toggle"
-                onClick={() => setShowDeadMoneyDetails((value) => !value)}
-                aria-expanded={showDeadMoneyDetails}
-                className="flex w-full items-center gap-2 text-left group"
-              >
-                <span
-                  className={`text-sm text-cockpit-text-secondary transition-transform duration-200 ${showDeadMoneyDetails ? 'rotate-90' : ''}`}
-                >
-                  ▶
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-cockpit-text-secondary group-hover:text-cockpit-text-primary">
-                  Dead Money Details
-                </span>
-                <span className="rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-secondary">
-                  {displayedDeadMoney.length}
-                </span>
-                <span className="sr-only">
-                  Separate from player rows. Matching-season dead money feeds
-                  the canonical Total Cap row.
-                </span>
-              </button>
-              {showDeadMoneyDetails ? (
-                <div className="max-h-[32vh] overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-lg">
-                  <div
-                    className="grid border-b border-cockpit-edge bg-cockpit-bar"
-                    style={{ gridTemplateColumns: playerGridTemplate }}
-                  >
-                    <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge truncate">
-                      Entry
-                    </div>
-                    {allYears.map((year) => (
-                      <div
-                        key={year}
-                        className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
-                      >
-                        {formatSeasonLabel(year)}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="divide-y divide-white/5">
-                    {displayedDeadMoney.map((deadCapEntry, index) => (
-                      <div
-                        key={`${String(deadCapEntry.playerId || getDeadCapLabel(deadCapEntry))}-${index}`}
-                        className="grid items-center hover:bg-white/[0.02] transition-colors"
-                        style={{ gridTemplateColumns: playerGridTemplate }}
-                      >
-                        <div className="h-[24px] truncate border-r border-cockpit-edge px-4 py-2 text-xs font-medium text-cockpit-text-primary">
-                          {getDeadCapLabel(deadCapEntry)}
-                        </div>
-                        {allYears.map((year) => {
-                          const amount = computeDeadMoneyForYear(
-                            { deadCap: [deadCapEntry] },
-                            year
-                          );
-                          return (
-                            <div
-                              key={year}
-                              className="flex h-[24px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-xs tabular-nums text-red-200/80"
-                            >
-                              {amount > 0 ? formatCapSheetMoney(amount) : ''}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </section>
-          ) : null}
-
           {hasIncompleteCharges ? (
             <section
               data-testid="cap-sheet-full-incomplete-roster-charges"
@@ -1743,7 +1739,9 @@ export const CapSheetFull = ({
 
           {/* SUPPORTING DETAIL SURFACE: Cap holds remain separate from player rows
             and explain part of the same canonical Total Cap story. */}
-          {sectionHolds.length > 0 &&
+          {(sectionHolds.length > 0 ||
+            displayedDeadMoney.length > 0 ||
+            Boolean(exceptionsReadout)) &&
             (() => {
               // 1. Create a map of player ID/Name to index from the main sortedPlayers list
               // This allows us to replicate the main table's sort order.
@@ -1888,107 +1886,137 @@ export const CapSheetFull = ({
 
               return (
                 <section
-                  aria-label={CAP_SHEET_FULL_SURFACE_LABELS.capHoldsDetail}
-                  className="shrink-0 border-t border-cockpit-edge px-4 py-1.5"
+                  aria-label="Cap detail tabs"
+                  data-testid="cap-sheet-full-cap-tools"
+                  className="relative shrink-0 border-t border-cockpit-edge px-4 py-1"
                 >
-                  <button
-                    data-testid="cap-sheet-full-cap-holds-toggle"
-                    onClick={() => setShowCapHolds(!showCapHolds)}
-                    aria-expanded={showCapHolds}
-                    className="flex w-full items-center gap-2 text-left group"
-                  >
-                    <span
-                      className={`text-sm text-cockpit-text-secondary transition-transform duration-200 ${showCapHolds ? 'rotate-90' : ''}`}
-                    >
-                      ▶
-                    </span>
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-cockpit-text-secondary group-hover:text-cockpit-text-primary">
-                      Cap Hold Details
-                    </span>
-                    <span className="rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-secondary">
-                      {sectionHolds.length}
-                    </span>
-                    <span className="sr-only">
-                      Separate from player rows. Matching-season holds feed the
-                      canonical Total Cap row.
-                    </span>
-                  </button>
-
-                  {showCapHolds && (
-                    <div className="max-h-[38vh] overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
-                      {/* Header */}
-                      <div
-                        className="grid border-b border-cockpit-edge bg-cockpit-bar"
-                        style={{ gridTemplateColumns: capHoldGridTemplate }}
-                      >
-                        <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge truncate">
-                          Player
-                        </div>
-                        <div className="px-1 py-3 text-center text-[9px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge">
-                          Type
-                        </div>
-                        {allYears.map((year) => (
+                  {/* The active panel pops up ABOVE the bar (absolute) so opening
+                      a detail never pushes the Full Cap Table into scroll. */}
+                  {activeDetailTab ? (
+                    <div className="absolute bottom-full left-2 right-2 z-30 mb-1 overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-150">
+                      {activeDetailTab === 'dead' &&
+                      displayedDeadMoney.length > 0 ? (
+                        <div className="max-h-[42vh] overflow-auto">
                           <div
-                            key={year}
-                            className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
+                            className="grid border-b border-cockpit-edge bg-cockpit-bar"
+                            style={{ gridTemplateColumns: playerGridTemplate }}
                           >
-                            {year - 1}-{String(year % 100).padStart(2, '0')}
+                            <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge truncate">
+                              Entry
+                            </div>
+                            {allYears.map((year) => (
+                              <div
+                                key={year}
+                                className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
+                              >
+                                {formatSeasonLabel(year)}
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-
-                      <div className="divide-y divide-white/5">
-                        {rosterHolds.map((h, i) => renderHoldRow(h, i, false))}
-
-                        {rosterHolds.length > 0 && otherHolds.length > 0 && (
-                          <div className="h-[2px] bg-white/10 w-full col-span-full relative">
-                            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-white/20"></div>
+                          <div className="divide-y divide-white/5">
+                            {displayedDeadMoney.map((deadCapEntry, index) => (
+                              <div
+                                key={`${String(deadCapEntry.playerId || getDeadCapLabel(deadCapEntry))}-${index}`}
+                                className="grid items-center hover:bg-white/[0.02] transition-colors"
+                                style={{ gridTemplateColumns: playerGridTemplate }}
+                              >
+                                <div className="h-[24px] truncate border-r border-cockpit-edge px-4 py-2 text-xs font-medium text-cockpit-text-primary">
+                                  {getDeadCapLabel(deadCapEntry)}
+                                </div>
+                                {allYears.map((year) => {
+                                  const amount = computeDeadMoneyForYear(
+                                    { deadCap: [deadCapEntry] },
+                                    year
+                                  );
+                                  return (
+                                    <div
+                                      key={year}
+                                      className="flex h-[24px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-xs tabular-nums text-red-200/80"
+                                    >
+                                      {amount > 0
+                                        ? formatCapSheetMoney(amount)
+                                        : ''}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ))}
                           </div>
-                        )}
-
-                        {otherHolds.map((h, i) => renderHoldRow(h, i, true))}
-                      </div>
+                        </div>
+                      ) : null}
+                      {activeDetailTab === 'holds' &&
+                      sectionHolds.length > 0 ? (
+                        <div className="max-h-[42vh] overflow-auto">
+                          <div
+                            className="grid border-b border-cockpit-edge bg-cockpit-bar"
+                            style={{ gridTemplateColumns: capHoldGridTemplate }}
+                          >
+                            <div className="px-4 py-3 text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge truncate">
+                              Player
+                            </div>
+                            <div className="px-1 py-3 text-center text-[9px] uppercase tracking-wider font-semibold text-cockpit-text-muted border-r border-cockpit-edge">
+                              Type
+                            </div>
+                            {allYears.map((year) => (
+                              <div
+                                key={year}
+                                className="px-2 py-3 text-center text-[10px] uppercase tracking-wider font-semibold text-cockpit-text-muted"
+                              >
+                                {year - 1}-{String(year % 100).padStart(2, '0')}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="divide-y divide-white/5">
+                            {rosterHolds.map((h, i) => renderHoldRow(h, i, false))}
+                            {rosterHolds.length > 0 && otherHolds.length > 0 && (
+                              <div className="h-[2px] bg-white/10 w-full col-span-full relative">
+                                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-white/20"></div>
+                              </div>
+                            )}
+                            {otherHolds.map((h, i) => renderHoldRow(h, i, true))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {activeDetailTab === 'exceptions' && exceptionsReadout ? (
+                        <div
+                          data-testid="cap-sheet-full-exceptions-readout"
+                          className="max-h-[42vh] space-y-2 overflow-auto p-3"
+                        >
+                          {exceptionsReadout}
+                        </div>
+                      ) : null}
                     </div>
-                  )}
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {displayedDeadMoney.length > 0
+                      ? renderDetailTab(
+                          'dead',
+                          'cap-sheet-full-dead-money-toggle',
+                          'Dead Money',
+                          displayedDeadMoney.length
+                        )
+                      : null}
+                    {sectionHolds.length > 0
+                      ? renderDetailTab(
+                          'holds',
+                          'cap-sheet-full-cap-holds-toggle',
+                          'Cap Holds',
+                          sectionHolds.length
+                        )
+                      : null}
+                    {exceptionsReadout
+                      ? renderDetailTab(
+                          'exceptions',
+                          'cap-sheet-full-exceptions-toggle',
+                          'Exceptions & Hard Cap'
+                        )
+                      : null}
+                  </div>
                 </section>
               );
             })()}
 
-          {/* HOME-BASE READOUT: the current-season exceptions / hard-cap readout,
-            collapsed by default so the table owns the screen. The headline cap
-            posture already lives in the cockpit TeamStatusStrip above. */}
-          {exceptionsReadout ? (
-            <section
-              data-testid="cap-sheet-full-cap-tools"
-              aria-label="Multi-year cap tools surface"
-              className="shrink-0 border-t border-cockpit-edge px-4 py-1.5"
-            >
-              <button
-                type="button"
-                data-testid="cap-sheet-full-exceptions-toggle"
-                onClick={() => setShowExceptionsReadout((value) => !value)}
-                aria-expanded={showExceptionsReadout}
-                className="flex w-full items-center gap-2 text-left group"
-              >
-                <span
-                  className={`text-sm text-cockpit-text-secondary transition-transform duration-200 ${showExceptionsReadout ? 'rotate-90' : ''}`}
-                >
-                  ▶
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-cockpit-text-secondary group-hover:text-cockpit-text-primary">
-                  Exceptions &amp; Hard Cap
-                </span>
-              </button>
-              {showExceptionsReadout ? (
-                <div
-                  data-testid="cap-sheet-full-exceptions-readout"
-                  className="mt-2 max-h-[40vh] space-y-2 overflow-auto"
-                >
-                  {exceptionsReadout}
-                </div>
-              ) : null}
-            </section>
-          ) : null}
         </div>
       </section>
 
