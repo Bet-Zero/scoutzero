@@ -195,26 +195,24 @@ export const ExceptionTracker = ({
           className="rounded-md border border-amber-400/20 bg-amber-500/5 px-4 py-4 text-amber-100"
         >
           <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
-            Adjacent Current-Season Authority
+            Exceptions & Hard Cap
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-medium">
             <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-amber-100/90">
-              Selected-year view: {selectedSeasonLabel}
+              Viewing: {selectedSeasonLabel}
             </span>
             <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-amber-100/90">
-              Authority season: {currentSeasonLabel} only
+              Applies to {currentSeasonLabel} only
             </span>
           </div>
           <h3 className="mt-3 text-sm font-semibold text-amber-100">
-            No future-year hard-cap, exception, or trade-exception authority is
-            shown here.
+            Hard-cap and exception details aren't shown for future seasons.
           </h3>
           <p className="mt-2 text-xs leading-relaxed text-amber-100/70">
-            This adjacent surface does not follow the selected year. This cap
-            table can show {selectedSeasonLabel} totals, but hard-cap,
-            exception, and TPE state is only authoritative for{' '}
-            {currentSeasonLabel}. Switch back to the current season to view the
-            live hard-cap and exception surface.
+            These numbers always reflect the {currentSeasonLabel} season. The
+            cap table can show {selectedSeasonLabel} totals, but hard-cap,
+            exception, and trade-exception details only apply to{' '}
+            {currentSeasonLabel}. Switch back to the current season to see them.
           </p>
         </div>
       </section>
@@ -279,9 +277,9 @@ export const ExceptionTracker = ({
       aria-label={surfaceLabel}
       className="mt-4 space-y-3"
     >
-      {/* ADJACENT PRESENTATION SURFACE: Exception cards, TPEs, and hard-cap
-          state may explain roster-building tools, but they do not own or
-          recompute canonical current-year cap totals. */}
+      {/* Exception cards, TPEs, and hard-cap state explain roster-building
+          tools for the current season. They do not recompute the cap table's
+          selected-year totals. */}
       <div
         data-testid="cap-sheet-current-season-authority-banner"
         className="rounded-md border border-sky-400/15 bg-sky-500/[0.05] px-4 py-3 text-sky-100"
@@ -289,20 +287,20 @@ export const ExceptionTracker = ({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-sky-300/80">
-              Adjacent Current-Season Authority
+              Exceptions & Hard Cap
             </div>
             <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/80">
-              This surface owns hard-cap, exception, and trade-exception
-              presentation for {currentSeasonLabel}. It does not redefine the
-              selected-year canonical totals view for {selectedSeasonLabel}.
+              Hard-cap, exception, and trade-exception details reflect the{' '}
+              {currentSeasonLabel} season. Viewing {selectedSeasonLabel} totals
+              in the cap table doesn't change them.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-[10px] font-medium">
             <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2.5 py-1 text-sky-100/90">
-              Selected-year view: {selectedSeasonLabel}
+              Viewing: {selectedSeasonLabel}
             </span>
             <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2.5 py-1 text-sky-100/90">
-              Authority season: {currentSeasonLabel}
+              Current season: {currentSeasonLabel}
             </span>
           </div>
         </div>

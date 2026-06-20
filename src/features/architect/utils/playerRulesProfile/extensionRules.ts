@@ -98,9 +98,13 @@ export function computeExtensionTerms(
     typeof terms.maxFirstYearSalary === 'number'
   ) {
     if (terms.minFirstYearSalary > terms.maxFirstYearSalary) {
-      console.warn(
-        `[extensionRules] Clamping minFirstYearSalary (${terms.minFirstYearSalary}) to maxFirstYearSalary (${terms.maxFirstYearSalary}). This may indicate an upstream calculation issue with effectiveCap=${effectiveCap}.`
-      );
+      // Expected, not a bug: a veteran whose current salary already exceeds the
+      // applicable years-of-service max % (e.g. a max-tier player) has a
+      // current-salary floor above the cap-percentage ceiling. We pin the floor
+      // to the ceiling so the displayed range stays coherent (min <= max). This
+      // is a normal domain case, so we do NOT warn — the previous
+      // "upstream calculation issue" warning was a false alarm that fired on
+      // every above-max veteran extension (surfaced for BOS).
       terms = {
         ...terms,
         minFirstYearSalary: terms.maxFirstYearSalary,

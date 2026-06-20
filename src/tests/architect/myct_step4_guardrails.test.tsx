@@ -345,10 +345,10 @@ describe('MYCT Step 4 Guardrails - Source Scan', () => {
       'cap-sheet-future-year-boundary-panel'
     );
     expect(exceptionTrackerSource).toContain(
-      'No future-year hard-cap, exception, or trade-exception authority is'
+      "Hard-cap and exception details aren't shown for future seasons."
     );
     expect(exceptionTrackerSource).toMatch(
-      /Switch back to the current season to view the[\s\S]*live hard-cap and exception surface\./
+      /Switch back to the current season to see them\./
     );
     expect(exceptionTrackerSource).toContain(
       'cap-sheet-current-season-authority-banner'
@@ -475,12 +475,12 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
       within(adjacentSurface).getByTestId(
         'cap-sheet-current-season-authority-banner'
       )
-    ).toHaveTextContent('Authority season: 2025-26');
+    ).toHaveTextContent('Current season: 2025-26');
     expect(
       within(adjacentSurface).getByTestId(
         'cap-sheet-current-season-authority-banner'
       )
-    ).toHaveTextContent('Selected-year view: 2025-26');
+    ).toHaveTextContent('Viewing: 2025-26');
     expect(within(adjacentSurface).getByText('Hard Capped')).toBeInTheDocument();
     expect(
       within(adjacentSurface).getByText('Trade Exceptions')
@@ -564,16 +564,16 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
       'cap-sheet-future-year-boundary-panel'
     );
     expect(futureYearBoundaryPanel).toHaveTextContent(
-      'No future-year hard-cap, exception, or trade-exception authority is shown here.'
+      "Hard-cap and exception details aren't shown for future seasons."
     );
     expect(futureYearBoundaryPanel).toHaveTextContent(
-      'Selected-year view: 2026-27'
+      'Viewing: 2026-27'
     );
     expect(futureYearBoundaryPanel).toHaveTextContent(
-      'Authority season: 2025-26 only'
+      'Applies to 2025-26 only'
     );
     expect(futureYearBoundaryPanel).toHaveTextContent(
-      'hard-cap, exception, and TPE state is only authoritative for 2025-26'
+      'hard-cap, exception, and trade-exception details only apply to 2025-26'
     );
     expect(
       within(adjacentSurface).queryByTestId(

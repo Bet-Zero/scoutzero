@@ -1050,7 +1050,7 @@ describe('Cap Sheet UI integration flows', () => {
       within(adjacentSurface).getByTestId(
         'cap-sheet-current-season-authority-banner'
       )
-    ).toHaveTextContent('Authority season: 2025-26');
+    ).toHaveTextContent('Current season: 2025-26');
     expect(
       within(adjacentSurface).queryByText(/^Total Cap Hit$/i)
     ).not.toBeInTheDocument();
@@ -1111,18 +1111,18 @@ describe('Cap Sheet UI integration flows', () => {
     ).toBeInTheDocument();
     expect(
       within(adjacentSurface).getByText(
-        /hard-cap, exception, and TPE state is only authoritative for 2025-26/i
+        /hard-cap, exception, and trade-exception details only apply to 2025-26/i
       )
     ).toBeInTheDocument();
     expect(
-      within(adjacentSurface).getByText('Selected-year view: 2026-27')
+      within(adjacentSurface).getByText('Viewing: 2026-27')
     ).toBeInTheDocument();
     expect(
-      within(adjacentSurface).getByText('Authority season: 2025-26 only')
+      within(adjacentSurface).getByText('Applies to 2025-26 only')
     ).toBeInTheDocument();
     expect(
       within(adjacentSurface).getByText(
-        /This cap table can show 2026-27 totals/i
+        /The cap table can show 2026-27 totals/i
       )
     ).toBeInTheDocument();
   });

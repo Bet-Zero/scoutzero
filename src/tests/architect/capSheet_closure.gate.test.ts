@@ -337,7 +337,7 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
       'const isViewingCurrentYear = selectedYear === currentYear;'
     );
     expect(exceptionTrackerContent).toContain(
-      'Adjacent Current-Season Authority'
+      'Applies to {currentSeasonLabel} only'
     );
   });
 

@@ -15,7 +15,16 @@
  * launchers (e.g. Full Cap's waive/extend/stretch) into the same overflow —
  * those still route to the surface's own owner, not through `onAction`.
  */
-import { useId, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import type { PlayerAction, PlayerActionContext } from './playerActionContext';
 
 export interface PlayerActionMenuExtraItem {
@@ -89,6 +98,11 @@ export function PlayerActionMenu({
 }: PlayerActionMenuProps) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  // `null` until positioned; rendered off-screen on the first layout pass so the
+  // portaled menu can be measured before it snaps into place (no visible flash).
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null);
 
   const hasOverflow = overflowActions.length > 0 || extraItems.length > 0;
   const primaryTextSize = size === 'sm' ? 'text-[10px]' : 'text-[11px]';
@@ -98,15 +112,72 @@ export function PlayerActionMenu({
     onAction(action, context);
   };
 
+  // M1: the overflow dropdown is portaled to <body> with fixed positioning so it
+  // escapes the Full Cap Table's `overflow-auto` scroll container (which used to
+  // clip it). Position is anchored to the trigger and flips above when there is
+  // not enough room below.
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+    const place = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const menuEl = menuRef.current;
+      const menuHeight = menuEl?.offsetHeight ?? 0;
+      const menuWidth = menuEl?.offsetWidth ?? 150;
+      const gap = 4;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUp =
+        menuHeight > 0 &&
+        spaceBelow < menuHeight + gap &&
+        rect.top > spaceBelow;
+      const top = openUp
+        ? Math.max(gap, rect.top - menuHeight - gap)
+        : rect.bottom + gap;
+      const rawLeft = menuAlign === 'left' ? rect.left : rect.right - menuWidth;
+      const left = Math.min(
+        Math.max(gap, rawLeft),
+        Math.max(gap, window.innerWidth - menuWidth - gap)
+      );
+      setMenuStyle({ position: 'fixed', top, left, zIndex: 50 });
+    };
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open, menuAlign]);
+
+  // Close on outside pointer-down or Escape (the portaled menu can't rely on the
+  // wrapper's blur containment anymore).
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
   return (
     <div
       className={`relative flex items-center gap-1 ${className ?? ''}`}
       data-testid={testIdPrefix}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-          setOpen(false);
-        }
-      }}
     >
       {visibleActions.map((action) => {
         const { label, emit: emitted } = resolveAction(action, isPinned);
@@ -126,6 +197,7 @@ export function PlayerActionMenu({
 
       {hasOverflow ? (
         <button
+          ref={triggerRef}
           type="button"
           aria-haspopup="menu"
           aria-expanded={open}
@@ -141,56 +213,66 @@ export function PlayerActionMenu({
         </button>
       ) : null}
 
-      {hasOverflow && open ? (
-        <div
-          id={menuId}
-          role="menu"
-          data-testid={`${testIdPrefix}-overflow-menu`}
-          className={`absolute top-6 z-30 min-w-[150px] overflow-hidden rounded-md border border-cockpit-edge bg-cockpit-slab py-1 shadow-xl ${
-            menuAlign === 'left' ? 'left-0' : 'right-0'
-          }`}
-        >
-          {overflowActions.map((action) => {
-            const { label, emit: emitted } = resolveAction(action, isPinned);
-            return (
-              <button
-                key={action}
-                type="button"
-                role="menuitem"
-                onClick={() => emit(emitted)}
-                className="block w-full px-3 py-1.5 text-left text-[11px] text-cockpit-text-secondary hover:bg-white/10 hover:text-cockpit-text-primary"
-                data-testid={`${testIdPrefix}-overflow-${action}`}
-              >
-                {label}
-              </button>
-            );
-          })}
-
-          {extraItems.length > 0 && overflowActions.length > 0 ? (
-            <div className="my-1 h-px bg-cockpit-edge" />
-          ) : null}
-
-          {extraItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                item.onSelect();
-              }}
-              className={`block w-full px-3 py-1.5 text-left text-[11px] hover:bg-white/10 ${
-                item.tone === 'danger'
-                  ? 'text-cockpit-danger hover:text-cockpit-danger'
-                  : 'text-cockpit-text-secondary hover:text-cockpit-text-primary'
-              }`}
-              data-testid={item.testId ?? `${testIdPrefix}-extra-${item.id}`}
+      {hasOverflow && open
+        ? createPortal(
+            <div
+              ref={menuRef}
+              id={menuId}
+              role="menu"
+              data-testid={`${testIdPrefix}-overflow-menu`}
+              style={
+                menuStyle ?? { position: 'fixed', top: -9999, left: -9999 }
+              }
+              className="min-w-[150px] overflow-hidden rounded-md border border-cockpit-edge bg-cockpit-slab py-1 shadow-xl"
             >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+              {overflowActions.map((action) => {
+                const { label, emit: emitted } = resolveAction(
+                  action,
+                  isPinned
+                );
+                return (
+                  <button
+                    key={action}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => emit(emitted)}
+                    className="block w-full px-3 py-1.5 text-left text-[11px] text-cockpit-text-secondary hover:bg-white/10 hover:text-cockpit-text-primary"
+                    data-testid={`${testIdPrefix}-overflow-${action}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+
+              {extraItems.length > 0 && overflowActions.length > 0 ? (
+                <div className="my-1 h-px bg-cockpit-edge" />
+              ) : null}
+
+              {extraItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setOpen(false);
+                    item.onSelect();
+                  }}
+                  className={`block w-full px-3 py-1.5 text-left text-[11px] hover:bg-white/10 ${
+                    item.tone === 'danger'
+                      ? 'text-cockpit-danger hover:text-cockpit-danger'
+                      : 'text-cockpit-text-secondary hover:text-cockpit-text-primary'
+                  }`}
+                  data-testid={
+                    item.testId ?? `${testIdPrefix}-extra-${item.id}`
+                  }
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

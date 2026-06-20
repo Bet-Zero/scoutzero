@@ -19,17 +19,22 @@ import React from 'react';
  * @param {string} props.type - The bird rights type ('Early Bird', 'Full Bird', 'Non-Bird', 'None')
  * @param {string} props.className - Additional CSS classes
  * @param {number} props.size - Icon size in pixels (default: 16)
+ * @param {'light'|'dark'} props.tone - Render tone. 'light' (default) recolors the
+ *        black source SVG to white so the marker is visible on dark cockpit
+ *        surfaces; 'dark' leaves the original black silhouette for light chips.
  */
 type BirdRightsIconProps = {
   type?: string | null;
   className?: string;
   size?: number;
+  tone?: 'light' | 'dark';
 };
 
 export const BirdRightsIcon = ({
   type,
   className = '',
   size = 16,
+  tone = 'light',
 }: BirdRightsIconProps) => {
   if (!type) return null;
 
@@ -51,12 +56,17 @@ export const BirdRightsIcon = ({
       : null;
   if (!iconFile) return null;
 
+  // The source SVGs are solid black (#040404); on dark cockpit surfaces they
+  // read as a blank box. `brightness(0) invert(1)` forces a crisp white
+  // silhouette so the marker is visible in-cell and in the Key/legend.
+  const toneFilter = tone === 'light' ? 'brightness(0) invert(1)' : undefined;
+
   return (
     <img
       src={`/assets/icons/${iconFile}`}
       alt={`${type} rights`}
       className={`inline-block ${className}`}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, filter: toneFilter }}
     />
   );
 };

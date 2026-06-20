@@ -135,7 +135,7 @@ const FullCapFreeAgentModal = ({
               Sign Free Agent
             </h2>
             <p className="mt-1 text-xs text-cockpit-text-muted">
-              {entries.length} eligible players
+              {entries.length} eligible {entries.length === 1 ? 'player' : 'players'}
             </p>
           </div>
           <button
