@@ -455,6 +455,16 @@ describe('BreakdownModal draft behavior', () => {
     });
 
     expect(saveNow.mock.calls[0][0].blurbs.overall).toBe('Saved blurb');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByPlaceholderText('Write your breakdown here...')
+      ).not.toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Discard changes?')).not.toBeInTheDocument();
   });
 });
 

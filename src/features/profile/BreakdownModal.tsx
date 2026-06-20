@@ -68,8 +68,12 @@ export const BreakdownModal = ({
 
   // Track save state transitions to update local feedback
   useEffect(() => {
-    // If we were saving and now saved, update local state
-    if (prevSaveStateRef.current === 'saving' && saveState === 'saved') {
+    // If this modal initiated a save and it succeeded, clear modal-local dirty state.
+    if (
+      (prevSaveStateRef.current === 'saving' || localSaveState === 'saving') &&
+      saveState === 'saved'
+    ) {
+      prevSaveStateRef.current = saveState;
       setLocalSaveState('saved');
       setModalDirty(false);
       // Reset to idle after showing "Saved"
@@ -83,7 +87,7 @@ export const BreakdownModal = ({
       setLocalSaveState('error');
     }
     prevSaveStateRef.current = saveState;
-  }, [saveState]);
+  }, [localSaveState, saveState]);
 
   // Wrapped change handlers that mark modal dirty
   const handleTextChange = useCallback(
@@ -116,7 +120,8 @@ export const BreakdownModal = ({
       );
       await onSaveNow(payload);
       onCommitSavedDraft?.(payload);
-      // State update handled by useEffect watching saveState
+      setModalDirty(false);
+      setLocalSaveState('saved');
     } catch {
       setLocalSaveState('error');
     }
@@ -240,4 +245,3 @@ export const BreakdownModal = ({
     </Modal>
   );
 };
-
