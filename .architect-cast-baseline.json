@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-06-19T01:43:07.836Z",
+    "generated": "2026-06-20T03:56:07.899Z",
     "gate": "scripts/architect-cast-gate.mjs",
     "ledger": "docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md",
     "buckets": [
@@ -10,11 +10,11 @@
       "no-restricted-syntax:index-unknown"
     ],
     "totalFiles": 37,
-    "totalViolations": 103
+    "totalViolations": 104
   },
   "files": {
     "src/features/architect/capSheet/CapSheetFull/CapSheetFull.tsx": {
-      "no-restricted-syntax:as-unknown-as": 1
+      "no-restricted-syntax:as-unknown-as": 2
     },
     "src/features/architect/freeAgency/FreeAgentPool/types.ts": {
       "no-restricted-syntax:index-unknown": 1

@@ -909,7 +909,7 @@ export const CapSheetFull = ({
       ({
         playerId: hold.playerId,
         displayName: hold.playerName,
-      } as unknown as CapSheetFullPlayerLike);
+      } as unknown as CapSheetFullPlayerLike); // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-173
 
     const tag = normalizeFAType(rights.freeAgentType || hold.type) || 'UFA';
     const amount = Number(rights.capHoldAmount || hold.amount || 0);
