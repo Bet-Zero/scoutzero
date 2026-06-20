@@ -804,7 +804,9 @@ export const CapSheetFull = ({
       }
       return false;
     };
-    const renderable = resolvedCapHolds.filter((entry) => !hasVisibleRow(entry));
+    const renderable = resolvedCapHolds.filter(
+      (entry) => !hasVisibleRow(entry)
+    );
     const main = renderable
       .filter((entry) => entry.rights.placement === 'main')
       .sort(
@@ -1918,7 +1920,9 @@ export const CapSheetFull = ({
                               <div
                                 key={`${String(deadCapEntry.playerId || getDeadCapLabel(deadCapEntry))}-${index}`}
                                 className="grid items-center hover:bg-white/[0.02] transition-colors"
-                                style={{ gridTemplateColumns: playerGridTemplate }}
+                                style={{
+                                  gridTemplateColumns: playerGridTemplate,
+                                }}
                               >
                                 <div className="h-[24px] truncate border-r border-cockpit-edge px-4 py-2 text-xs font-medium text-cockpit-text-primary">
                                   {getDeadCapLabel(deadCapEntry)}
@@ -1967,13 +1971,18 @@ export const CapSheetFull = ({
                             ))}
                           </div>
                           <div className="divide-y divide-white/5">
-                            {rosterHolds.map((h, i) => renderHoldRow(h, i, false))}
-                            {rosterHolds.length > 0 && otherHolds.length > 0 && (
-                              <div className="h-[2px] bg-white/10 w-full col-span-full relative">
-                                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-white/20"></div>
-                              </div>
+                            {rosterHolds.map((h, i) =>
+                              renderHoldRow(h, i, false)
                             )}
-                            {otherHolds.map((h, i) => renderHoldRow(h, i, true))}
+                            {rosterHolds.length > 0 &&
+                              otherHolds.length > 0 && (
+                                <div className="h-[2px] bg-white/10 w-full col-span-full relative">
+                                  <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-white/20"></div>
+                                </div>
+                              )}
+                            {otherHolds.map((h, i) =>
+                              renderHoldRow(h, i, true)
+                            )}
                           </div>
                         </div>
                       ) : null}
@@ -2016,7 +2025,6 @@ export const CapSheetFull = ({
                 </section>
               );
             })()}
-
         </div>
       </section>
 
