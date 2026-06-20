@@ -582,8 +582,33 @@ export const CapSheetFull = ({
   // one segmented bar: at most one panel is open at a time, and it pops up ABOVE
   // the bar so it never pushes the Full Cap Table into scroll.
   const [activeDetailTab, setActiveDetailTab] = useState<
-    'dead' | 'holds' | 'exceptions' | null
+    'dead' | 'holds' | 'exceptions' | 'legend' | null
   >(null);
+  // The detail popover opens upward out of the bottom bar. On a short roster the
+  // bar sits high, so we measure the room between the surface top and the bar and
+  // cap the popover height to it — it then scrolls internally instead of growing
+  // up into the table header / posture band above the surface.
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const detailBarRef = useRef<HTMLDivElement | null>(null);
+  const [detailPopoverMaxH, setDetailPopoverMaxH] = useState<number | null>(
+    null
+  );
+  useLayoutEffect(() => {
+    if (!activeDetailTab) return;
+    const measure = () => {
+      const surface = surfaceRef.current;
+      const bar = detailBarRef.current;
+      if (!surface || !bar) return;
+      const surfaceTop = surface.getBoundingClientRect().top;
+      const barTop = bar.getBoundingClientRect().top;
+      // Leave a small gap below the surface top and above the bar.
+      const room = Math.max(96, Math.floor(barTop - surfaceTop - 16));
+      setDetailPopoverMaxH(room);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [activeDetailTab]);
   const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
   const [showExceptionsModal, setShowExceptionsModal] = useState(false);
   const hasManualCapSheetMutationAuthority = !!manualCapSheetMutationAuthority;
@@ -985,10 +1010,11 @@ export const CapSheetFull = ({
               </span>
               {rights.birdType && rights.birdType !== 'None' ? (
                 <span
-                  className="absolute bottom-0 right-0.5 flex items-center justify-center"
+                  className="absolute bottom-[2px] right-[2px] flex items-center justify-center rounded-sm bg-black/45 p-[1px] ring-1 ring-white/10"
                   data-testid="fa-bird-rights"
+                  title={`${rights.birdType} rights`}
                 >
-                  <BirdRightsIcon type={rights.birdType} size={14} />
+                  <BirdRightsIcon type={rights.birdType} size={12} />
                 </span>
               ) : null}
             </div>
@@ -1023,7 +1049,6 @@ export const CapSheetFull = ({
   const hasIncompleteCharges = allYears.some(
     (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
   );
-  const currentSeasonLabel = formatSeasonLabel(currentYear);
   const affectedTotalYears = useMemo(() => {
     const years = new Set<number>();
     for (const player of sortedPlayers) {
@@ -1045,7 +1070,7 @@ export const CapSheetFull = ({
   // One tab in the unified bottom detail bar. Toggling re-opens/closes the
   // shared popover; only one detail surface is ever open at a time.
   const renderDetailTab = (
-    id: 'dead' | 'holds' | 'exceptions',
+    id: 'dead' | 'holds' | 'exceptions' | 'legend',
     testId: string,
     label: string,
     count?: number
@@ -1125,6 +1150,7 @@ export const CapSheetFull = ({
         className="flex min-h-0 flex-1 flex-col"
       >
         <div
+          ref={surfaceRef}
           className="relative flex min-h-0 max-h-full flex-col overflow-hidden rounded-lg border border-white/10 shadow-cockpit-slab"
           style={{
             background:
@@ -1201,12 +1227,6 @@ export const CapSheetFull = ({
               />
               <span className="text-[13px] font-extrabold uppercase italic tracking-wide text-white">
                 Full Cap Table
-              </span>
-              <span className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60">
-                Team Plan
-              </span>
-              <span className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60">
-                {currentSeasonLabel}
               </span>
             </div>
             {(hasManualCapSheetMutationAuthority ||
@@ -1519,12 +1539,13 @@ export const CapSheetFull = ({
                                   </span>
                                   {birdRightsTypeForYear && (
                                     <span
-                                      className="absolute bottom-0 right-0.5 flex items-center justify-center"
+                                      className="absolute bottom-[2px] right-[2px] flex items-center justify-center rounded-sm bg-black/45 p-[1px] ring-1 ring-white/10"
                                       data-testid="fa-bird-rights"
+                                      title={`${birdRightsTypeForYear} rights`}
                                     >
                                       <BirdRightsIcon
                                         type={birdRightsTypeForYear}
-                                        size={16}
+                                        size={12}
                                       />
                                     </span>
                                   )}
@@ -1644,107 +1665,123 @@ export const CapSheetFull = ({
 
                 {/* CANONICAL TOTALS (sticky footer): the Total Cap row reads
                     computeTeamCapTotals(...) outputs directly and stays pinned
-                    to the bottom of the scroll area so it is always visible. */}
+                    to the bottom of the scroll area so it is always visible.
+                    Incomplete Roster Charges render as a contributor row
+                    *inside* this same block, directly above Total Cap, so the
+                    sum and its components read together (and a thin future year
+                    no longer shows a total with no visible contributors). */}
                 <div
-                  role="region"
-                  aria-label={
-                    CAP_SHEET_FULL_SURFACE_LABELS.canonicalYearlyTotals
-                  }
-                  className="sticky bottom-0 z-20 grid border-t-2 font-bold"
+                  className="sticky bottom-0 z-20 border-t-2"
                   style={{
-                    gridTemplateColumns: playerGridTemplate,
                     borderTopColor: 'var(--team-secondary,#FDB927)',
                     background:
                       'color-mix(in srgb, var(--team-primary,#4F46E5) 22%, #0B0E14)',
                   }}
                 >
-                  <div
-                    className="sticky left-0 z-30 flex items-center gap-2 px-3 border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]"
-                    style={{
-                      background:
-                        'color-mix(in srgb, var(--team-primary,#4F46E5) 34%, #0B0E14)',
-                    }}
-                  >
-                    <span
-                      aria-hidden
-                      className="h-4 w-1 rounded-full"
-                      style={{ background: 'var(--team-secondary,#FDB927)' }}
-                    />
-                    <span className="block text-[11px] font-extrabold uppercase italic tracking-wide text-white">
-                      Total Cap
-                    </span>
-                    <span className="sr-only">{'Canonical Yearly Totals'}</span>
-                    <span className="sr-only">{'Canonical yearly total'}</span>
-                    <span className="sr-only">
-                      {
-                        'Player rows above and cap hold details below support the same future-year cap story.'
-                      }
-                    </span>
-                  </div>
-                  {allYears.map((year) => {
-                    const isTotalHighlighted = affectedTotalYears.has(year);
-                    return (
+                  {hasIncompleteCharges ? (
+                    <div
+                      data-testid="cap-sheet-full-incomplete-roster-charges"
+                      aria-label="Multi-year incomplete roster charges surface"
+                      className="grid items-stretch border-b border-white/10"
+                      style={{ gridTemplateColumns: playerGridTemplate }}
+                    >
                       <div
-                        key={year}
-                        data-testid={
-                          isTotalHighlighted
-                            ? 'cap-sheet-full-total-cell-highlighted'
-                            : 'cap-sheet-full-total-cell'
-                        }
-                        className={`flex items-center justify-center px-2 py-1 text-center text-[13px] font-bold tabular-nums tracking-tight border-l border-white/10 ${
-                          isTotalHighlighted
-                            ? 'text-[color:var(--team-secondary,#FDB927)] ring-1 ring-inset ring-[color:var(--team-secondary,#FDB927)]/40'
-                            : 'text-white'
-                        }`}
+                        className="sticky left-0 z-30 flex items-center border-r border-white/10 px-3 py-1 shadow-[4px_0_24px_rgba(0,0,0,0.5)]"
+                        style={{
+                          background:
+                            'color-mix(in srgb, var(--team-primary,#4F46E5) 34%, #0B0E14)',
+                        }}
+                        title="Incomplete Roster Charges — minimum-salary charges for empty roster spots below the 12-player minimum. Included in the Total Cap below."
                       >
-                        $
-                        {yearTotalBreakdowns[
-                          year
-                        ].totalCapAllocations.toLocaleString()}
+                        <span className="whitespace-normal break-words text-[9px] font-semibold uppercase leading-[1.15] text-amber-200/80">
+                          Incomplete roster charges
+                        </span>
                       </div>
-                    );
-                  })}
+                      {allYears.map((year) => {
+                        const { incompleteChargesTotal } =
+                          yearTotalBreakdowns[year];
+                        return (
+                          <div
+                            key={year}
+                            className="flex items-center justify-center border-l border-white/10 px-2 py-1 text-[10px] tabular-nums text-amber-200/80"
+                          >
+                            {incompleteChargesTotal > 0
+                              ? formatCapSheetMoney(incompleteChargesTotal)
+                              : ''}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                  <div
+                    role="region"
+                    aria-label={
+                      CAP_SHEET_FULL_SURFACE_LABELS.canonicalYearlyTotals
+                    }
+                    className="grid font-bold"
+                    style={{ gridTemplateColumns: playerGridTemplate }}
+                  >
+                    <div
+                      className="sticky left-0 z-30 flex items-center gap-2 px-3 border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]"
+                      style={{
+                        background:
+                          'color-mix(in srgb, var(--team-primary,#4F46E5) 34%, #0B0E14)',
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        className="h-4 w-1 rounded-full"
+                        style={{ background: 'var(--team-secondary,#FDB927)' }}
+                      />
+                      <span className="block text-[11px] font-extrabold uppercase italic tracking-wide text-white">
+                        Total Cap
+                      </span>
+                      <span className="sr-only">
+                        {'Canonical Yearly Totals'}
+                      </span>
+                      <span className="sr-only">
+                        {'Canonical yearly total'}
+                      </span>
+                      <span className="sr-only">
+                        {
+                          'Player rows above and cap hold details below support the same future-year cap story.'
+                        }
+                      </span>
+                    </div>
+                    {allYears.map((year) => {
+                      const isTotalHighlighted = affectedTotalYears.has(year);
+                      return (
+                        <div
+                          key={year}
+                          data-testid={
+                            isTotalHighlighted
+                              ? 'cap-sheet-full-total-cell-highlighted'
+                              : 'cap-sheet-full-total-cell'
+                          }
+                          className={`flex items-center justify-center px-2 py-1 text-center text-[13px] font-bold tabular-nums tracking-tight border-l border-white/10 ${
+                            isTotalHighlighted
+                              ? 'text-[color:var(--team-secondary,#FDB927)] ring-1 ring-inset ring-[color:var(--team-secondary,#FDB927)]/40'
+                              : 'text-white'
+                          }`}
+                        >
+                          $
+                          {yearTotalBreakdowns[
+                            year
+                          ].totalCapAllocations.toLocaleString()}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
-          {hasIncompleteCharges ? (
-            <section
-              data-testid="cap-sheet-full-incomplete-roster-charges"
-              aria-label="Multi-year incomplete roster charges surface"
-              className="shrink-0 border-t border-cockpit-edge px-4 py-1.5"
-            >
-              <div
-                className="grid items-center rounded border border-amber-400/10 bg-amber-400/[0.03]"
-                style={{ gridTemplateColumns: playerGridTemplate }}
-              >
-                <div className="h-[24px] truncate border-r border-cockpit-edge px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
-                  Incomplete roster charges
-                </div>
-                {allYears.map((year) => {
-                  const { incompleteChargesTotal } = yearTotalBreakdowns[year];
-                  return (
-                    <div
-                      key={year}
-                      className="flex h-[24px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-[10px] tabular-nums text-amber-200/70"
-                    >
-                      {incompleteChargesTotal > 0
-                        ? formatCapSheetMoney(incompleteChargesTotal)
-                        : ''}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ) : null}
-
           {/* SUPPORTING DETAIL SURFACE: Cap holds remain separate from player rows
-            and explain part of the same canonical Total Cap story. */}
-          {(sectionHolds.length > 0 ||
-            displayedDeadMoney.length > 0 ||
-            Boolean(exceptionsReadout)) &&
-            (() => {
+            and explain part of the same canonical Total Cap story. The bar
+            always renders so the compact Key (legend) is reachable even when a
+            team has no holds / dead money / exceptions to show. */}
+          {(() => {
               // 1. Create a map of player ID/Name to index from the main sortedPlayers list
               // This allows us to replicate the main table's sort order.
               const playerSortMap = new Map<string, number>();
@@ -1886,19 +1923,42 @@ export const CapSheetFull = ({
                 );
               };
 
+              // The bar always renders so the compact Key (legend) is reachable,
+              // but the `cap-sheet-full-cap-tools` identity only applies when
+              // there are real cap tools (dead money / holds / exceptions) — a
+              // legend-only bar is not the Cap Tools surface.
+              const hasCapTools =
+                displayedDeadMoney.length > 0 ||
+                sectionHolds.length > 0 ||
+                Boolean(exceptionsReadout);
               return (
                 <section
-                  aria-label="Cap detail tabs"
-                  data-testid="cap-sheet-full-cap-tools"
+                  ref={detailBarRef}
+                  aria-label={
+                    hasCapTools ? 'Cap detail tabs' : 'Cap table legend'
+                  }
+                  data-testid={
+                    hasCapTools ? 'cap-sheet-full-cap-tools' : undefined
+                  }
                   className="relative shrink-0 border-t border-cockpit-edge px-4 py-1"
                 >
                   {/* The active panel pops up ABOVE the bar (absolute) so opening
-                      a detail never pushes the Full Cap Table into scroll. */}
+                      a detail never pushes the Full Cap Table into scroll. Its
+                      height is capped to the room above the bar (measured into
+                      detailPopoverMaxH) so on a short roster it scrolls
+                      internally instead of overrunning the table / top chrome. */}
                   {activeDetailTab ? (
-                    <div className="absolute bottom-full left-2 right-2 z-30 mb-1 overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-150">
+                    <div
+                      className="absolute bottom-full left-2 right-2 z-30 mb-1 overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-150"
+                      style={
+                        detailPopoverMaxH
+                          ? { maxHeight: detailPopoverMaxH }
+                          : undefined
+                      }
+                    >
                       {activeDetailTab === 'dead' &&
                       displayedDeadMoney.length > 0 ? (
-                        <div className="max-h-[42vh] overflow-auto">
+                        <div>
                           <div
                             className="grid border-b border-cockpit-edge bg-cockpit-bar"
                             style={{ gridTemplateColumns: playerGridTemplate }}
@@ -1950,7 +2010,7 @@ export const CapSheetFull = ({
                       ) : null}
                       {activeDetailTab === 'holds' &&
                       sectionHolds.length > 0 ? (
-                        <div className="max-h-[42vh] overflow-auto">
+                        <div>
                           <div
                             className="grid border-b border-cockpit-edge bg-cockpit-bar"
                             style={{ gridTemplateColumns: capHoldGridTemplate }}
@@ -1989,38 +2049,134 @@ export const CapSheetFull = ({
                       {activeDetailTab === 'exceptions' && exceptionsReadout ? (
                         <div
                           data-testid="cap-sheet-full-exceptions-readout"
-                          className="max-h-[42vh] space-y-2 overflow-auto p-3"
+                          className="space-y-2 p-3"
                         >
                           {exceptionsReadout}
+                        </div>
+                      ) : null}
+                      {activeDetailTab === 'legend' ? (
+                        <div
+                          data-testid="cap-sheet-full-legend"
+                          className="p-3 text-[11px] text-cockpit-text-secondary"
+                        >
+                          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+                            Key
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTagColor('UFA')}`}
+                              >
+                                UFA
+                              </span>
+                              <span>Unrestricted free agent</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTagColor('RFA')}`}
+                              >
+                                RFA
+                              </span>
+                              <span>Restricted free agent</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTagColor('PO')}`}
+                              >
+                                PO
+                              </span>
+                              <span>Player option</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTagColor('TO')}`}
+                              >
+                                TO
+                              </span>
+                              <span>Team option</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTagColor('TWO-WAY')}`}
+                              >
+                                2W
+                              </span>
+                              <span>Two-way contract</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="relative flex h-5 w-7 items-center justify-center rounded-sm bg-black/45 p-[1px] ring-1 ring-white/10">
+                                <BirdRightsIcon type="Full Bird" size={14} />
+                              </span>
+                              <span>Bird rights (re-sign exception)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="relative inline-block h-5 w-7">
+                                <span
+                                  aria-hidden
+                                  className="block h-0 w-0 border-r-[13px] border-t-[13px] border-r-transparent border-t-cyan-400/90"
+                                />
+                                <span
+                                  aria-hidden
+                                  className="absolute left-[1px] top-0 text-[7px] font-bold uppercase leading-none text-[#06222b]"
+                                >
+                                  E
+                                </span>
+                              </span>
+                              <span>Extension-eligible season</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`h-5 w-7 rounded ${EXTENSION_CELL_STYLE}`}
+                              />
+                              <span>Active extension years</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`h-5 w-7 rounded ${getFaCellTint('UFA')}`}
+                              />
+                              <span>UFA / RFA cap-hold cell</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="h-5 w-7 rounded bg-amber-400/[0.12] ring-1 ring-amber-400/20" />
+                              <span>Incl. roster charges</span>
+                            </div>
+                          </div>
                         </div>
                       ) : null}
                     </div>
                   ) : null}
 
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {displayedDeadMoney.length > 0
-                      ? renderDetailTab(
-                          'dead',
-                          'cap-sheet-full-dead-money-toggle',
-                          'Dead Money',
-                          displayedDeadMoney.length
-                        )
-                      : null}
-                    {sectionHolds.length > 0
-                      ? renderDetailTab(
-                          'holds',
-                          'cap-sheet-full-cap-holds-toggle',
-                          'Cap Holds',
-                          sectionHolds.length
-                        )
-                      : null}
-                    {exceptionsReadout
-                      ? renderDetailTab(
-                          'exceptions',
-                          'cap-sheet-full-exceptions-toggle',
-                          'Exceptions & Hard Cap'
-                        )
-                      : null}
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {displayedDeadMoney.length > 0
+                        ? renderDetailTab(
+                            'dead',
+                            'cap-sheet-full-dead-money-toggle',
+                            'Dead Money',
+                            displayedDeadMoney.length
+                          )
+                        : null}
+                      {sectionHolds.length > 0
+                        ? renderDetailTab(
+                            'holds',
+                            'cap-sheet-full-cap-holds-toggle',
+                            'Cap Holds',
+                            sectionHolds.length
+                          )
+                        : null}
+                      {exceptionsReadout
+                        ? renderDetailTab(
+                            'exceptions',
+                            'cap-sheet-full-exceptions-toggle',
+                            'Exceptions & Hard Cap'
+                          )
+                        : null}
+                    </div>
+                    {renderDetailTab(
+                      'legend',
+                      'cap-sheet-full-legend-toggle',
+                      'Key'
+                    )}
                   </div>
                 </section>
               );
