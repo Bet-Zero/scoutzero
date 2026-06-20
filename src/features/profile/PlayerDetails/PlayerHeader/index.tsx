@@ -135,7 +135,7 @@ export const PlayerHeader = ({
           />
           <div className="flex items-center gap-4 mt-4">
             <TeamLogo teamAbbr={player.bio?.display?.team} />
-            <div className="h-[2.5rem] w-[2px] bg-white/40" />
+            <div className="h-[2.5rem] w-[2px] bg-black" />
             <PlayerPosition
               position={player.bio?.position}
               className="text-5xl"

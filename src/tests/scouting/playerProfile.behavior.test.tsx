@@ -508,10 +508,14 @@ describe('Player profile edit control accessibility', () => {
 
     const toggleButton = screen.getByRole('button', { name: 'BADGES' });
     expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+    expect(toggleButton.closest('div')).toHaveClass('z-0');
 
     fireEvent.click(toggleButton);
 
     expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+    expect(toggleButton.closest('div')).toHaveClass('z-50');
+    expect(screen.getByRole('button', { name: 'Add Sniper badge' }).parentElement)
+      .toHaveClass('z-50');
 
     const sniperButton = screen.getByRole('button', {
       name: 'Add Sniper badge',
@@ -679,7 +683,7 @@ describe('PlayerProfileView error states', () => {
 });
 
 describe('PlayerHeader normalized display values', () => {
-  it('uses readable dark-theme classes for player name and position', () => {
+  it('keeps player name and position text black', () => {
     const player = enrichPlayerData({
       id: 'lebron_james',
       name: 'LeBron James',
@@ -699,9 +703,9 @@ describe('PlayerHeader normalized display values', () => {
     if (!player) throw new Error('Expected enriched player');
     render(<PlayerHeader player={player} selectedPlayer="lebron_james" />);
 
-    expect(screen.getByText('Lebron')).toHaveClass('text-white');
-    expect(screen.getByText('James')).toHaveClass('text-white');
-    expect(screen.getByText('G')).toHaveClass('text-white');
+    expect(screen.getByText('Lebron')).toHaveClass('text-black');
+    expect(screen.getByText('James')).toHaveClass('text-black');
+    expect(screen.getByText('G')).toHaveClass('text-black');
   });
 
   it('renders normalized age and derived contract summary', () => {
@@ -858,7 +862,7 @@ describe('PlayerHeader normalized display values', () => {
 });
 
 describe('PlayerTraitsGrid contrast behavior', () => {
-  it('keeps ungraded dark trait pills readable', () => {
+  it('keeps profile trait pill text black', () => {
     render(
       <PlayerTraitsGrid
         traits={DEFAULT_TRAITS}
@@ -870,9 +874,9 @@ describe('PlayerTraitsGrid contrast behavior', () => {
     const shootingLabel = screen.getByText('Shooting');
     const shootingPill = shootingLabel.closest('div')?.parentElement;
 
-    expect(shootingPill).toHaveClass('text-white');
+    expect(shootingPill).toHaveClass('text-black');
     expect(screen.getByTitle('Edit Shooting breakdown')).toHaveClass(
-      'text-white/80'
+      'text-black'
     );
   });
 });
@@ -917,5 +921,52 @@ describe('PlayerStatsTable season label provenance', () => {
 
     expect(screen.getByText('2025-26')).toBeInTheDocument();
     expect(screen.queryByText('2026-27')).not.toBeInTheDocument();
+  });
+
+  it('uses source season stats over stale denormalized profile stats', () => {
+    const player = enrichPlayerData({
+      id: 'zion_williamson',
+      bio: {
+        displayName: 'Zion Williamson',
+        playerId: 'zion_williamson',
+      },
+      currentSeasonStats: {
+        GP: 9,
+        MIN: 30.9,
+        PTS: 21.8,
+        REB: 5.4,
+        AST: 4,
+        'FG%': 0.512,
+        '3PT%': 0,
+        'FT%': 0.703,
+        'eFG%': 0.5104895104895104,
+      },
+      seasons: {
+        '2025-26': {
+          stats: {
+            GP: 62,
+            MIN: 29.7,
+            PTS: 21.0,
+            REB: 5.7,
+            AST: 3.2,
+            'FG%': 0.6,
+            '3PT%': 0.25,
+            'FT%': 0.716,
+            'eFG%': 0.604,
+          },
+          meta: {
+            statsSeasonTag: '2025-26',
+          },
+        },
+      },
+    });
+
+    expect(player).not.toBeNull();
+    if (!player) throw new Error('Expected enriched player');
+    render(<PlayerStatsTable player={player} />);
+
+    expect(screen.getByText('G: 62')).toBeInTheDocument();
+    expect(screen.queryByText('G: 9')).not.toBeInTheDocument();
+    expect(screen.getByText('21.0')).toBeInTheDocument();
   });
 });

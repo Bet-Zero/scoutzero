@@ -15,7 +15,7 @@ export const PlayerPosition = ({
   className?: string;
 }) => {
   return (
-    <span className={`text-white font-semibold ${className}`}>
+    <span className={`text-black font-semibold ${className}`}>
       {getAbbreviatedPosition(position || 'N/A')}
     </span>
   );

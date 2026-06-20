@@ -32,7 +32,9 @@ export const BadgeSelector = ({
   return (
     <div
       ref={dropdownRef}
-      className="bg-[#1f1f1f] rounded-2xl shadow-lg px-4 py-4 text-white text-sm font-medium w-full max-w-[750px] min-h-[90px]"
+      className={`relative rounded-2xl bg-[#1f1f1f] px-4 py-4 text-sm font-medium text-white shadow-lg w-full max-w-[750px] min-h-[90px] ${
+        isDropdownOpen ? 'z-50' : 'z-0'
+      }`}
     >
       <button
         type="button"
@@ -64,7 +66,7 @@ export const BadgeSelector = ({
       {isDropdownOpen && (
         <div
           id="profile-badge-options"
-          className="mt-4 grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto"
+          className="relative z-50 mt-4 grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto"
         >
           {BadgeList.map((badge) => (
             <button

@@ -337,6 +337,9 @@ const parseSeasonStartYear = (value: number | string | null | undefined): number
   return Number.parseInt(String(value), 10);
 };
 
+const hasStats = (stats: PlayerStats | null | undefined): stats is PlayerStats =>
+  Boolean(stats && Object.keys(stats).length > 0);
+
 /**
  * Enrich player data with computed/convenience fields
  * This handles the v2 nested schema structure only
@@ -468,20 +471,22 @@ export function enrichPlayerData<TPlayer extends EnrichablePlayerData>(
         )[0]
       : null;
 
-  if (playerData.currentSeasonStats) {
-    // Use denormalized stats from main document while preserving source season metadata when available.
+  const latestSeasonEntryStats = latestSeasonEntry?.[1]?.stats;
+
+  if (latestSeasonEntry && hasStats(latestSeasonEntryStats)) {
+    // Full profile detail has source season documents; prefer them over denormalized main-doc stats.
+    const [seasonId, seasonData] = latestSeasonEntry;
+    latestSeasonId = seasonId;
+    latestSeasonStats = latestSeasonEntryStats;
+    latestSeasonMeta = seasonData?.meta || {};
+  } else if (playerData.currentSeasonStats) {
+    // List/table contexts load main docs only, so keep using the denormalized view there.
     latestSeasonStats = playerData.currentSeasonStats;
     if (latestSeasonEntry) {
       const [seasonId, seasonData] = latestSeasonEntry;
       latestSeasonId = seasonId;
       latestSeasonMeta = seasonData?.meta || {};
     }
-  } else if (latestSeasonEntry) {
-    // Fallback to seasons subcollection
-    const [seasonId, seasonData] = latestSeasonEntry;
-    latestSeasonId = seasonId;
-    latestSeasonStats = seasonData?.stats || {};
-    latestSeasonMeta = seasonData?.meta || {};
   }
 
   // Evaluation data: merge currentEvaluationView with evaluations/current (preferred)
