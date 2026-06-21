@@ -1,0 +1,40 @@
+{
+  "playerId": "mia_theo_bennett",
+  "displayName": "Theo Bennett",
+  "teamCode": "MIA",
+  "teamName": "Miami Heat",
+  "bio": {
+    "position": "G",
+    "height": "6-3",
+    "weight": "195",
+    "age": 27,
+    "experience": 6
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2028-29",
+    "contractLength": 3,
+    "yearsRemaining": 3,
+    "totalValue": 129600000,
+    "averageAnnualValue": 43200000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 40000000, "capHit": 40000000, "guaranteed": true, "option": null },
+      { "season": "2027-28", "salary": 43200000, "capHit": 43200000, "guaranteed": true, "option": null },
+      { "season": "2028-29", "salary": 46400000, "capHit": 46400000, "guaranteed": true, "option": "Player Option" }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": 15,
+    "birdRights": { "status": "Bird", "eligibleFor": ["Bird Exception"] },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2029,
+      "capHold": 49000000,
+      "hasOption": true,
+      "optionYear": "2028-29",
+      "optionType": "Player Option"
+    }
+  }
+}

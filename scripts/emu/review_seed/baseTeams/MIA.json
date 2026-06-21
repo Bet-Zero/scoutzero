@@ -1,0 +1,98 @@
+{
+  "teamCode": "MIA",
+  "teamName": "MIAMI HEAT",
+  "season": "2026-27",
+  "abbreviation": "MIA",
+  "roster": [
+    "mia_marcus_vance",
+    "mia_theo_bennett",
+    "mia_andre_cole",
+    "mia_rashad_pierce",
+    "mia_isaiah_fenn",
+    "mia_lucas_reyes",
+    "mia_devin_oakes",
+    "mia_caleb_unger",
+    "mia_owen_frost",
+    "mia_silas_park",
+    "mia_eli_navarro",
+    "mia_quentin_diaz",
+    "mia_tobias_lund",
+    "mia_grant_holloway"
+  ],
+  "deadCap": [
+    {
+      "playerId": "mia_jordan_baxter",
+      "playerName": "Jordan Baxter",
+      "originalSalary": 18000000,
+      "amountByYear": [
+        { "season": "2026-27", "amount": 6000000, "isStretched": true },
+        { "season": "2027-28", "amount": 6000000, "isStretched": true },
+        { "season": "2028-29", "amount": 6000000, "isStretched": true }
+      ],
+      "waiveDate": "2025-07-15",
+      "notes": "Stretched waiver — 3-year dead-money schedule"
+    }
+  ],
+  "capHolds": [
+    {
+      "playerId": "mia_grant_holloway",
+      "playerName": "Grant Holloway",
+      "amount": 15000000,
+      "type": "UFA",
+      "season": "2026-27",
+      "active": true,
+      "notes": "Own free agent (Bird) — live cap hold, renounce-able from the Full Cap Table"
+    },
+    {
+      "playerId": "mia_zombie_cap_hold",
+      "playerName": "Departed Veteran (Legacy Hold)",
+      "amount": 4200000,
+      "type": "FA Cap Hold",
+      "season": "2024-25",
+      "active": false,
+      "reason": "Never renounced after departure — legacy/dead hold parked in the holds drawer",
+      "notes": "Legacy non-active hold — renounce-able from the cap-holds drawer"
+    }
+  ],
+  "exceptions": {
+    "taxpayerMle": {
+      "type": "Taxpayer MLE",
+      "available": true,
+      "totalAmount": 6083000,
+      "usedAmount": 0,
+      "remainingAmount": 6083000,
+      "expiresOn": "2027-06-30"
+    },
+    "tpe": [
+      {
+        "id": "MIA_TPE_2026_DEAL",
+        "amount": 8200000,
+        "totalAmount": 8200000,
+        "usedAmount": 0,
+        "remainingAmount": 8200000,
+        "createdFrom": "Trade — outgoing salary exceeded incoming",
+        "createdOn": "2026-02-08",
+        "createdSeason": 2026,
+        "expiresOn": "2027-02-08",
+        "isUsed": false,
+        "notes": "Carried traded-player exception"
+      }
+    ]
+  },
+  "draftPicks": [
+    { "id": "MIA_2027_R1", "year": 2027, "round": 1, "pick": null, "owner": "MIA", "originalTeam": "MIA", "status": "OWNED" },
+    { "id": "MIA_2027_R2", "year": 2027, "round": 2, "pick": null, "owner": "MIA", "originalTeam": "MIA", "status": "OWNED" }
+  ],
+  "entitlementIds": [],
+  "totals": {
+    "salaryCap": 165472000,
+    "luxuryTax": 201048000,
+    "firstApron": 209661000,
+    "secondApron": 222372000,
+    "isOverTax": true,
+    "isFirstApron": true,
+    "isSecondApron": false,
+    "isHardCapped": false,
+    "hardCapLevel": null
+  }
+}

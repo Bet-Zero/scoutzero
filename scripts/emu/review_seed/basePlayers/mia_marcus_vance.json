@@ -1,0 +1,34 @@
+{
+  "playerId": "mia_marcus_vance",
+  "displayName": "Marcus Vance",
+  "teamCode": "MIA",
+  "teamName": "Miami Heat",
+  "bio": {
+    "position": "F",
+    "height": "6-7",
+    "weight": "225",
+    "age": 28,
+    "experience": 7
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2029-30",
+    "contractLength": 4,
+    "yearsRemaining": 4,
+    "totalValue": 207800000,
+    "averageAnnualValue": 51950000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 47000000, "capHit": 47000000, "guaranteed": true, "option": null },
+      { "season": "2027-28", "salary": 50760000, "capHit": 50760000, "guaranteed": true, "option": null },
+      { "season": "2028-29", "salary": 54520000, "capHit": 54520000, "guaranteed": true, "option": null },
+      { "season": "2029-30", "salary": 58280000, "capHit": 58280000, "guaranteed": true, "option": null }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Bird", "eligibleFor": ["Bird Exception"] },
+    "freeAgency": { "type": "UFA", "year": 2030, "capHold": 62000000 }
+  }
+}

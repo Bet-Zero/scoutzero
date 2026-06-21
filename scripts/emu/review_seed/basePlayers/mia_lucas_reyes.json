@@ -1,0 +1,32 @@
+{
+  "playerId": "mia_lucas_reyes",
+  "displayName": "Lucas Reyes",
+  "teamCode": "MIA",
+  "teamName": "Miami Heat",
+  "bio": {
+    "position": "G",
+    "height": "6-2",
+    "weight": "185",
+    "age": 27,
+    "experience": 5
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2027-28",
+    "contractLength": 2,
+    "yearsRemaining": 2,
+    "totalValue": 25000000,
+    "averageAnnualValue": 12500000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 12000000, "capHit": 12000000, "guaranteed": true, "option": null },
+      { "season": "2027-28", "salary": 13000000, "capHit": 13000000, "guaranteed": true, "option": null }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Non-Bird", "eligibleFor": [] },
+    "freeAgency": { "type": "UFA", "year": 2028, "capHold": 14000000 }
+  }
+}

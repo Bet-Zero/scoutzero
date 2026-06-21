@@ -1,0 +1,31 @@
+{
+  "playerId": "mia_devin_oakes",
+  "displayName": "Devin Oakes",
+  "teamCode": "MIA",
+  "teamName": "Miami Heat",
+  "bio": {
+    "position": "F",
+    "height": "6-9",
+    "weight": "240",
+    "age": 24,
+    "experience": 3
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2026-27",
+    "contractLength": 1,
+    "yearsRemaining": 1,
+    "totalValue": 8500000,
+    "averageAnnualValue": 8500000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 8500000, "capHit": 8500000, "guaranteed": true, "option": null }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Early Bird", "eligibleFor": ["Early Bird Exception"] },
+    "freeAgency": { "type": "UFA", "year": 2027, "capHold": 12750000 }
+  }
+}

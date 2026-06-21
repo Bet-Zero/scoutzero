@@ -1,0 +1,31 @@
+{
+  "playerId": "mia_eli_navarro",
+  "displayName": "Eli Navarro",
+  "teamCode": "MIA",
+  "teamName": "Miami Heat",
+  "bio": {
+    "position": "G",
+    "height": "6-1",
+    "weight": "180",
+    "age": 28,
+    "experience": 6
+  },
+  "contract": {
+    "contractType": "MINIMUM CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2026-27",
+    "contractLength": 1,
+    "yearsRemaining": 1,
+    "totalValue": 2000000,
+    "averageAnnualValue": 2000000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 2000000, "capHit": 2000000, "guaranteed": true, "option": null }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Non-Bird", "eligibleFor": [] },
+    "freeAgency": { "type": "UFA", "year": 2027, "capHold": 2000000 }
+  }
+}

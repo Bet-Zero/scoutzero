@@ -1,0 +1,31 @@
+{
+  "playerId": "mia_silas_park",
+  "displayName": "Silas Park",
+  "teamCode": "MIA",
+  "teamName": "Miami Heat",
+  "bio": {
+    "position": "F",
+    "height": "6-7",
+    "weight": "215",
+    "age": 30,
+    "experience": 9
+  },
+  "contract": {
+    "contractType": "MINIMUM CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2026-27",
+    "contractLength": 1,
+    "yearsRemaining": 1,
+    "totalValue": 2300000,
+    "averageAnnualValue": 2300000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 2300000, "capHit": 2300000, "guaranteed": true, "option": null }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Non-Bird", "eligibleFor": [] },
+    "freeAgency": { "type": "UFA", "year": 2027, "capHold": 2300000 }
+  }
+}

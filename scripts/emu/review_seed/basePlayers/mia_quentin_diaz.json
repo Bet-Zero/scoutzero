@@ -1,0 +1,40 @@
+{
+  "playerId": "mia_quentin_diaz",
+  "displayName": "Quentin Diaz",
+  "teamCode": "MIA",
+  "teamName": "Miami Heat",
+  "bio": {
+    "position": "G-F",
+    "height": "6-5",
+    "weight": "205",
+    "age": 22,
+    "experience": 2
+  },
+  "contract": {
+    "contractType": "ROOKIE SCALE CONTRACT",
+    "isExtension": false,
+    "isRookieScale": true,
+    "startSeason": "2026-27",
+    "endSeason": "2027-28",
+    "contractLength": 2,
+    "yearsRemaining": 2,
+    "totalValue": 24500000,
+    "averageAnnualValue": 12250000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 11000000, "capHit": 11000000, "guaranteed": true, "option": null },
+      { "season": "2027-28", "salary": 13500000, "capHit": 13500000, "guaranteed": true, "option": "Team Option" }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Bird", "eligibleFor": ["Bird Exception"] },
+    "freeAgency": {
+      "type": "RFA",
+      "year": 2028,
+      "capHold": 16200000,
+      "qualifyingOffer": 14800000,
+      "hasOption": true,
+      "optionYear": "2027-28",
+      "optionType": "Team Option"
+    }
+  }
+}
