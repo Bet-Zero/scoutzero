@@ -27,9 +27,11 @@ States browser-verifiable at `/gm/MIA`:
 - **Fuller roster** — 13 visible roster rows + 1 own free agent (14 roster ids).
 - **Player Option** — Theo Bennett (2028-29) and **Team Option** — Andre Cole
   (2027-28); rookie-scale Team Option — Quentin Diaz (2027-28).
-- **Live own-FA cap hold** — Grant Holloway (Bird/UFA, expired contract) renders
-  as a renounce-able ("Absolve") cap-table row.
-- **Legacy/dead hold** — an off-roster `FA Cap Hold` parked in the holds drawer.
+- **Live own-FA cap hold** — Grant Holloway (Bird/UFA). In base/sandbox review
+  mode he renders as a roster row (see limitation below); his cap-hold state is
+  data-verified by the coverage probe.
+- **Legacy/dead hold** — an off-roster `FA Cap Hold` parked in the **Cap Holds**
+  drawer ("Departed Veteran (Legacy Hold)").
 - **Multi-season dead money** — stretched waiver (Jordan Baxter) across
   2026-27 → 2028-29.
 - **Carried exception + TPE** — Taxpayer MLE and a traded-player exception.
@@ -49,10 +51,33 @@ States NOT covered (documented limitations, not faked):
   fake a state with no originating transaction.
 - **Second-apron freezes** — kept below the second apron on purpose so the
   carried Taxpayer MLE / TPE stay usable rather than frozen.
+- **Inline renounce-able own-FA row** — the resign/absolve FA decision row
+  (`cap-sheet-full-fa-decision-row`) is home-base own-FA enrichment that is not
+  surfaced in base/sandbox review mode. The own free agent (Grant Holloway)
+  appears as a roster row instead, and the legacy/non-active hold is verifiable
+  in the **Cap Holds** drawer. Exercising the inline resign/absolve row needs the
+  world/home-base own-FA pipeline.
 
 The deterministic coverage probe lives in
 `tests/architect/reviewSeedFullCapTable.coverage.test.ts` and asserts these
-states stay present (run via `npm run test:architect`).
+states stay present at the data level (run via `npm run test:architect`).
+
+## Browser verification (BZE-87)
+
+The fixture is browser-verifiable at **`/gm/MIA`** (Full Cap Table is the default
+landing room; `?room=capfull` is equivalent), season **2026-27**, in review mode.
+The Playwright probe `tests/e2e/full-cap-table-mia.spec.ts` boots the review
+harness and asserts, in a real browser, that the fuller roster, Player/Team
+Option cells, multi-season dead money, the legacy cap-holds drawer, carried
+exceptions (MLE/TPE), and the first-apron posture all render:
+
+```bash
+PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/full-cap-table-mia.spec.ts
+```
+
+The harness signs in anonymously against the auth emulator (`useAuth`), and the
+MIA base team loads through `loadTeamCapSheet` → `hydrateBaseTeam`, so no saved
+world is required for the read-only render.
 
 ## Usage
 
