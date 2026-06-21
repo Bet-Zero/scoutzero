@@ -1,0 +1,33 @@
+{
+  "teamCode": "MIN",
+  "teamName": "MINNESOTA TIMBERWOLVES",
+  "season": "2026-27",
+  "abbreviation": "MIN",
+  "roster": [
+    "min_jamal_pierce",
+    "min_eli_thornton",
+    "min_rashan_cole",
+    "min_tobias_reed",
+    "min_victor_amaro"
+  ],
+  "deadCap": [],
+  "capHolds": [],
+  "exceptions": {},
+  "draftPicks": [
+    { "id": "MIN_2027_R1", "year": 2027, "round": 1, "pick": null, "owner": "MIN", "originalTeam": "MIN", "status": "OWNED" }
+  ],
+  "entitlementIds": [],
+  "totals": {
+    "salaryCap": 165472000,
+    "luxuryTax": 201048000,
+    "firstApron": 209661000,
+    "secondApron": 222372000,
+    "isOverTax": true,
+    "isFirstApron": true,
+    "isSecondApron": true,
+    "isHardCapped": false,
+    "hardCapLevel": null,
+    "hardCapTriggeredBy": null,
+    "apronNote": "Roster salary is above the second apron — no usable exceptions and second-apron trade/aggregation restrictions apply. Not a triggered hard cap; this is a salary-derived band posture."
+  }
+}

@@ -11,6 +11,8 @@ These fixtures provide just enough data to boot the Architect feature and Trade 
 - `baseTeams/LAL.json` — Los Angeles Lakers team data (thin 3-player roster)
 - `baseTeams/BOS.json` — Boston Celtics team data (thin 3-player roster)
 - `baseTeams/MIA.json` — Miami Heat **Full Cap Table coverage fixture** (see below)
+- `baseTeams/PHX.json` — Phoenix Suns **first-apron hard-cap trigger** fixture (BZE-91)
+- `baseTeams/MIN.json` — Minnesota Timberwolves **over-the-second-apron** fixture (BZE-91)
 - `basePlayers/` — Player records for the seeded teams
 - `basePlayers/review_offer_sheet_guard.json` — Unrostered restricted free agent for review-mode free-agency coverage
 - `basePlayers/mia_*.json` — Roster + own-free-agent records for the MIA coverage fixture
@@ -42,15 +44,17 @@ States browser-verifiable at `/gm/MIA`:
 - **Future-season columns** — salaries, options, dead money and incomplete
   roster charges (as the roster thins out by 2029-30) share the same route.
 
-States NOT covered (documented limitations, not faked):
+States intentionally NOT on the MIA fixture (covered by dedicated fixtures, not faked):
 
 - **Hard-cap *trigger*** — a real hard cap is only set when a triggering
   transaction (NT-MLE, BAE, or sign-and-trade) is executed and records
-  `hardCapTriggeredBy`. The fixture exercises the **apron bands** (derived from
-  salary) but does not statically force a hard-cap trigger, since doing so would
-  fake a state with no originating transaction.
-- **Second-apron freezes** — kept below the second apron on purpose so the
-  carried Taxpayer MLE / TPE stay usable rather than frozen.
+  `hardCapTriggeredBy`. MIA exercises the **apron bands** (derived from salary)
+  but does not force a hard-cap trigger, since doing so would contradict its
+  still-usable carried exceptions. A real first-apron hard-cap trigger is covered
+  by the **PHX** fixture below (BZE-91).
+- **Second-apron freezes** — MIA is kept below the second apron on purpose so the
+  carried Taxpayer MLE / TPE stay usable rather than frozen. A real
+  over-the-second-apron posture is covered by the **MIN** fixture below (BZE-91).
 - ~~**Inline renounce-able own-FA row**~~ — RESOLVED by BZE-89 (see below). The
   inline resign/absolve FA decision row (`cap-sheet-full-fa-decision-row`) does
   **not** need the world/home-base own-FA pipeline; it renders in base/sandbox
@@ -107,6 +111,51 @@ clears the hold and removes the row:
 
 ```bash
 PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/full-cap-table-own-fa.spec.ts
+```
+
+## Hard-cap / second-apron posture (BZE-91)
+
+BZE-85 deliberately left a real hard-cap trigger and a second-apron posture off
+the MIA fixture (both would have contradicted MIA's still-usable carried
+exceptions). BZE-91 adds two **focused** fixtures that exercise those states
+honestly, on the Full Cap Table's shared cockpit posture band (the apron tiles +
+hard-cap lock). Both target season **2026-27** and are viewed under their own
+season at **`?season=2027`**, because apron posture is derived from each team's
+2026-27 salaries.
+
+### PHX — triggered first-apron hard cap (`/gm/PHX?season=2027`)
+
+A team that **triggered** a first-apron hard cap by using its **Non-Taxpayer
+MLE**. This is the honest, non-faked representation: the fixture records the
+originating trigger via `hardCapTriggeredBy: "fullMLE"` (top-level, read by
+`hydrateBaseTeam`) and mirrors it under `totals` (read by `getHardCapStatus`),
+plus `hardCapLevel: "firstApron"` and a user-facing `hardCapReason`. Roster
+salary is left well below the first apron so the team never exceeds its own
+ceiling.
+
+Browser-verifiable: the **1st Apron** posture tile (`cockpit-status-apron1`)
+carries the hard-cap lock (`cockpit-status-hard-cap-lock`); hovering it reveals
+**"Hard Capped at 1st Apron"** and the **Non-Taxpayer MLE** trigger reason.
+
+### MIN — over the second apron (`/gm/MIN?season=2027`)
+
+A team whose **real salary is above the second apron** (~$234M of roster salary
+vs the $222.37M second-apron line). This mirrors MIA's salary-derived first-apron
+band, one tier up. It carries **no** triggered hard cap and **no** usable
+exceptions (second-apron teams have them frozen), so it is honest, not a faked
+flag.
+
+Browser-verifiable: the **2nd Apron Space** tile value
+(`cockpit-status-apron2-value`) renders in the over-the-line (red) treatment, and
+there is **no** hard-cap lock badge (the second apron here is a band posture, not
+a triggered cap).
+
+The deterministic coverage probe lives in
+`tests/architect/reviewSeedHardCapApron.coverage.test.ts`; the browser proof is
+`tests/e2e/full-cap-table-hard-cap-apron.spec.ts`:
+
+```bash
+PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/full-cap-table-hard-cap-apron.spec.ts
 ```
 
 ## Usage
