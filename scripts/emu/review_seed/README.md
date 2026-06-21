@@ -51,12 +51,13 @@ States NOT covered (documented limitations, not faked):
   fake a state with no originating transaction.
 - **Second-apron freezes** — kept below the second apron on purpose so the
   carried Taxpayer MLE / TPE stay usable rather than frozen.
-- **Inline renounce-able own-FA row** — the resign/absolve FA decision row
-  (`cap-sheet-full-fa-decision-row`) is home-base own-FA enrichment that is not
-  surfaced in base/sandbox review mode. The own free agent (Grant Holloway)
-  appears as a roster row instead, and the legacy/non-active hold is verifiable
-  in the **Cap Holds** drawer. Exercising the inline resign/absolve row needs the
-  world/home-base own-FA pipeline.
+- ~~**Inline renounce-able own-FA row**~~ — RESOLVED by BZE-89 (see below). The
+  inline resign/absolve FA decision row (`cap-sheet-full-fa-decision-row`) does
+  **not** need the world/home-base own-FA pipeline; it renders in base/sandbox
+  review mode under the fixture's own season (2026-27, `?season=2027`). On the
+  app's default landing season (2025-26 as of mid-2026) Grant Holloway still has
+  a salary slice, so he renders as a roster row — that is why BZE-87 only saw a
+  roster row. See the BZE-89 section below.
 
 The deterministic coverage probe lives in
 `tests/architect/reviewSeedFullCapTable.coverage.test.ts` and asserts these
@@ -78,6 +79,35 @@ PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/full-cap-tab
 The harness signs in anonymously against the auth emulator (`useAuth`), and the
 MIA base team loads through `loadTeamCapSheet` → `hydrateBaseTeam`, so no saved
 world is required for the read-only render.
+
+## Own-FA decision row (BZE-89)
+
+The inline renounce-able own-FA decision row (`cap-sheet-full-fa-decision-row`)
+is browser-verifiable at **`/gm/MIA?season=2027`** (the fixture's own **2026-27**
+season), in base/sandbox review mode — **no saved world required**.
+
+Why the season matters: the Full Cap Table defaults to the current real-world
+season (2025-26 as of mid-2026). Under 2025-26 the own free agent **Grant
+Holloway** still has a salary slice (his contract runs 2023-24 → 2025-26), so he
+renders as a normal **roster row** (what BZE-87 observed). Under **2026-27** his
+contract has expired, so he drops off the roster list and his UFA cap hold
+resolves to `placement: 'main'` and renders as the inline resign/absolve row:
+
+- **Resign** — a clickable re-sign cell (`cap-sheet-full-fa-resign-cell`) in the
+  free-agency column, tagged with his **Bird** rights (`fa-bird-rights`).
+- **Absolve** — a renounce button (`cap-sheet-full-fa-absolve-button`) in the
+  row's hover overlay. In base/sandbox mode the renounce mutation is applied
+  `local-only` (in-memory, never persisted), so it is safe to exercise in tests:
+  a reload re-reads the seeded hold, so no state leaks between tests.
+
+The Playwright probe `tests/e2e/full-cap-table-own-fa.spec.ts` boots the review
+harness and asserts, in a real browser, that the own FA surfaces as the inline
+decision row, that the resign/absolve affordances are present, and that Absolve
+clears the hold and removes the row:
+
+```bash
+PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/full-cap-table-own-fa.spec.ts
+```
 
 ## Usage
 

@@ -1,0 +1,173 @@
+/**
+ * E2E browser probe for the Full Cap Table inline own-FA decision row (BZE-89).
+ *
+ * BZE-85 added the MIA review coverage fixture and BZE-87 proved its roster /
+ * options / dead money / cap-holds drawer / exceptions / apron states render in
+ * a real browser at `/gm/MIA`. BZE-87's report flagged ONE remaining gap: the
+ * inline renounce-able own-FA decision row (`cap-sheet-full-fa-decision-row`)
+ * was not exercised, and it was assumed to need the world/home-base own-FA
+ * pipeline.
+ *
+ * That assumption was wrong. The inline own-FA decision row is fully supported
+ * in base/sandbox review mode — it just renders under the fixture's own season
+ * (2026-27, `?season=2027`), not the app's default landing season (2025-26 as of
+ * mid-2026). Under 2026-27 the own free agent's contract has expired (his last
+ * salary slice is end-year 2026), so he drops off the roster rows and his UFA
+ * cap hold resolves to `placement: 'main'` and renders as the inline
+ * resign/absolve row. No saved world, no production change.
+ *
+ * Route/team/season/world setup:
+ *   - Route:  /gm/MIA?season=2027   (Full Cap Table is the default room)
+ *   - Team:   MIA (BZE-85 review fixture)
+ *   - Season: 2026-27 (end-year 2027)
+ *   - World:  none — base/sandbox hydration (loadTeamCapSheet -> hydrateBaseTeam)
+ *
+ * Own free agent under test: Grant Holloway (Bird/UFA, freeAgency.year 2026,
+ * $15M cap hold).
+ *
+ * Absolve is safe to exercise here: in base/sandbox mode the renounce mutation
+ * is applied `local-only` (in-memory) and is never persisted, so each test that
+ * reloads /gm/MIA?season=2027 starts from the seed again — no state leaks.
+ *
+ * Run:
+ *   PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/full-cap-table-own-fa.spec.ts
+ */
+
+import { test, expect, type Locator, type Page, type TestInfo } from '@playwright/test';
+
+// 2026-27 is the fixture's own season; `?season=` is honored ahead of any saved
+// season, so this deterministically lands on the season where the own FA's
+// contract has expired and his hold becomes the inline decision row.
+const MIA_OWN_FA_URL = '/gm/MIA?season=2027';
+
+const OWN_FA_NAME = 'Grant Holloway';
+
+const isVisible = async (locator: Locator, timeout = 3000) =>
+  locator.isVisible({ timeout }).catch(() => false);
+
+const captureEvidence = async (page: Page, testInfo: TestInfo, label: string) => {
+  await page.screenshot({
+    path: testInfo.outputPath(`${label}.png`),
+    fullPage: true,
+  });
+};
+
+// Navigate to /gm/MIA?season=2027 and wait until the dashboard leaves the
+// loading state and the seeded MIA team has rendered. Fail loudly on
+// "No team data" — the whole point is that the MIA fixture is present.
+const gotoMiaOwnFaSeason = async (page: Page) => {
+  await page.goto(MIA_OWN_FA_URL, { waitUntil: 'domcontentloaded' });
+
+  const fullCapTab = page.getByTestId('tab-full-cap-table');
+  const noTeamData = page.getByText(/^No team data$/i);
+  const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
+
+  await expect
+    .poll(
+      async () => {
+        const stillLoading = await isVisible(loadingDashboard, 1000);
+        const hasTab = await isVisible(fullCapTab, 1000);
+        const hasNoTeamData = await isVisible(noTeamData, 1000);
+        return !stillLoading && (hasTab || hasNoTeamData);
+      },
+      {
+        timeout: 60000,
+        message:
+          'GM Dashboard should leave the loading state and reach a terminal MIA dashboard state',
+      }
+    )
+    .toBe(true);
+
+  expect(
+    await isVisible(noTeamData, 1000),
+    'MIA review fixture should be seeded; "No team data" means architect:review:up did not seed architect_baseTeams/MIA'
+  ).toBe(false);
+
+  if (await isVisible(fullCapTab, 2000)) {
+    await fullCapTab.click();
+  }
+};
+
+// The own-FA decision row that carries Grant Holloway. There is exactly one
+// `main`-placement own FA in the fixture, but scope to the row that contains his
+// name so the probe stays meaningful if the fixture grows.
+const ownFaDecisionRow = (page: Page): Locator =>
+  page
+    .getByTestId('cap-sheet-full-fa-decision-row')
+    .filter({ hasText: OWN_FA_NAME });
+
+test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-verifiable', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeEach(async ({ page }) => {
+    await gotoMiaOwnFaSeason(page);
+  });
+
+  test('FCT-OWNFA-001: own free agent surfaces as the inline resign/absolve decision row', async ({
+    page,
+  }, testInfo) => {
+    // --- Full Cap Table surface renders for the 2026-27 season ---
+    const fullCapRegion = page
+      .getByRole('region', { name: /Full Cap Table/i })
+      .first();
+    await expect(fullCapRegion).toBeVisible({ timeout: 20000 });
+
+    // --- The own free agent is surfaced as the inline decision row, NOT as a
+    // roster row. Under 2026-27 his contract has expired, so he leaves the
+    // roster list and his UFA cap hold renders as the renounce-able row. ---
+    const faRow = ownFaDecisionRow(page);
+    await expect(faRow).toBeVisible({ timeout: 20000 });
+    await expect(faRow).toContainText(OWN_FA_NAME);
+
+    // He must NOT also appear as a normal roster row (no roster "More actions"
+    // menu for him this season) — that would mean the dedup/placement split
+    // regressed and we'd be double-counting the own FA.
+    await expect(
+      page.getByRole('button', {
+        name: new RegExp(`More actions for ${OWN_FA_NAME}`, 'i'),
+      })
+    ).toHaveCount(0);
+
+    // --- Resign affordance: the row exposes a clickable re-sign cell in the
+    // free-agency season column, tagged with the player's Bird rights. ---
+    const resignCell = faRow.getByTestId('cap-sheet-full-fa-resign-cell');
+    await expect(resignCell.first()).toBeVisible();
+    await expect(
+      faRow.getByTestId('fa-bird-rights').first()
+    ).toBeVisible();
+
+    // --- Absolve affordance: the renounce button is present in the row's
+    // hover overlay. Hover the row to reveal it, then assert it is actionable. ---
+    await faRow.hover();
+    const absolveButton = faRow.getByTestId('cap-sheet-full-fa-absolve-button');
+    await expect(absolveButton).toBeVisible();
+    await expect(absolveButton).toBeEnabled();
+
+    await captureEvidence(page, testInfo, 'FCT-OWNFA-001-decision-row');
+  });
+
+  test('FCT-OWNFA-002: Absolve clears the own-FA cap hold and removes the decision row', async ({
+    page,
+  }, testInfo) => {
+    // Renounce pops a window.confirm; accept it. In base/sandbox mode the
+    // mutation is local-only (never persisted), so this does not leak into other
+    // tests — the next reload re-reads the seeded hold.
+    page.on('dialog', (dialog) => {
+      void dialog.accept();
+    });
+
+    const faRow = ownFaDecisionRow(page);
+    await expect(faRow).toBeVisible({ timeout: 20000 });
+
+    await faRow.hover();
+    const absolveButton = faRow.getByTestId('cap-sheet-full-fa-absolve-button');
+    await expect(absolveButton).toBeVisible();
+    await absolveButton.click();
+
+    // After absolving, the own FA's cap hold is cleared, so the inline decision
+    // row for him is gone from the table.
+    await expect(ownFaDecisionRow(page)).toHaveCount(0, { timeout: 20000 });
+
+    await captureEvidence(page, testInfo, 'FCT-OWNFA-002-after-absolve');
+  });
+});
