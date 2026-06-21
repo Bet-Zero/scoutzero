@@ -175,4 +175,266 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
 
     await captureEvidence(page, testInfo, 'FCT-MIA-001-full-cap-table');
   });
+
+  test('FCT-MIA-002: row name and option cells launch the contract modal without committing changes', async ({
+    page,
+  }, testInfo) => {
+    const marcusRowButton = page
+      .getByTestId('cap-sheet-full-player-row-button')
+      .filter({ hasText: 'Marcus Vance' })
+      .first();
+    await expect(marcusRowButton).toBeVisible({ timeout: 20000 });
+
+    await marcusRowButton.click();
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
+      /Marcus Vance/i
+    );
+    await expect(modal.getByText(/Choose contract action/i)).toBeVisible();
+    await modal.getByRole('button', { name: /^Cancel$/i }).click();
+    await expect(modal).toHaveCount(0);
+
+    const playerOptionCell = page
+      .locator('[title="Click to manage Player Option"]')
+      .first();
+    await expect(playerOptionCell).toBeVisible();
+    await playerOptionCell.click();
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    const actionContext = modal.getByTestId('contract-modal-action-context');
+    await expect(actionContext).toContainText(/2028-29/i);
+    await expect(modal.getByText(/Accept Option/i)).toBeVisible();
+    await expect(modal.getByText(/Decline Option/i)).toBeVisible();
+    await expect(modal.getByText(/Sign New Contract/i)).toBeVisible();
+    await expect(
+      modal.getByTestId('edit-contract-confirm-action-button')
+    ).toBeDisabled();
+    await modal.getByRole('button', { name: /^Cancel$/i }).click();
+    await expect(modal).toHaveCount(0);
+
+    await captureEvidence(page, testInfo, 'FCT-MIA-002-contract-launches');
+  });
+
+  test('FCT-MIA-003: row overflow menu exposes FCT actions and launches Extend safely', async ({
+    page,
+  }, testInfo) => {
+    const playerRowButton = page
+      .getByTestId('cap-sheet-full-player-row-button')
+      .filter({ hasText: 'Marcus Vance' })
+      .first();
+    await expect(playerRowButton).toBeVisible({ timeout: 20000 });
+    await playerRowButton.hover();
+
+    const moreActions = page.getByRole('button', {
+      name: /More actions for Marcus Vance/i,
+    });
+    await expect(moreActions).toBeVisible();
+    await moreActions.click();
+
+    const overflowMenu = page.getByTestId(
+      'cap-sheet-full-player-row-overflow-menu'
+    );
+    await expect(overflowMenu).toBeVisible();
+    await expect(
+      overflowMenu.getByRole('menuitem', { name: /^Pin$/i })
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByRole('menuitem', { name: /^Trade$/i })
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByRole('menuitem', { name: /^View on Roster$/i })
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByRole('menuitem', { name: /^View on Cap Sheet$/i })
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByRole('menuitem', { name: /^Find in History$/i })
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByRole('menuitem', { name: /^Compare impact$/i })
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByRole('menuitem', { name: /^Guide next move$/i })
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByTestId('cap-sheet-full-player-row-action-extend')
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByTestId('cap-sheet-full-player-row-action-waive')
+    ).toBeVisible();
+    await expect(
+      overflowMenu.getByTestId('cap-sheet-full-player-row-action-stretch')
+    ).toBeVisible();
+
+    await overflowMenu
+      .getByTestId('cap-sheet-full-player-row-action-extend')
+      .click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
+      /Extend Contract/i
+    );
+    await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
+      /Marcus Vance/i
+    );
+    await expect(playerRowButton).toBeVisible();
+    await modal.getByRole('button', { name: /^Cancel$/i }).click();
+    await expect(modal).toHaveCount(0);
+
+    await captureEvidence(page, testInfo, 'FCT-MIA-003-row-overflow-extend');
+  });
+
+  test('FCT-MIA-004: FCT toolbar modals open with seeded data and close without saving', async ({
+    page,
+  }, testInfo) => {
+    const fullCapRegion = page
+      .getByRole('region', { name: /Full Cap Table/i })
+      .first();
+    await expect(fullCapRegion).toBeVisible({ timeout: 20000 });
+
+    await page.getByTestId('cap-sheet-full-manage-dead-money-button').click();
+    const deadMoneyModal = page.getByTestId('manage-dead-money-modal');
+    await expect(deadMoneyModal).toBeVisible({ timeout: 20000 });
+    await expect(deadMoneyModal).toContainText(/Manage Dead Money/i);
+    await expect(deadMoneyModal.locator('input').first()).toHaveValue(
+      MIA_DEAD_MONEY_NAME
+    );
+    await expect(
+      deadMoneyModal.getByRole('button', { name: /Save Changes/i })
+    ).toBeVisible();
+    await deadMoneyModal.getByRole('button', { name: /^Cancel$/i }).click();
+    await expect(deadMoneyModal).toHaveCount(0);
+    await expect(fullCapRegion).toBeVisible();
+
+    await page.getByTestId('cap-sheet-full-manage-exceptions-button').click();
+    const exceptionsModal = page.getByTestId('manage-exceptions-modal');
+    await expect(exceptionsModal).toBeVisible({ timeout: 20000 });
+    await expect(exceptionsModal).toContainText(/Manage Exceptions/i);
+    await expect(exceptionsModal).toContainText(/Taxpayer MLE/i);
+    await expect(
+      exceptionsModal.getByRole('button', { name: /Save Changes/i })
+    ).toBeVisible();
+    await exceptionsModal.getByRole('button', { name: /^Close$/i }).click();
+    await expect(exceptionsModal).toHaveCount(0);
+    await expect(fullCapRegion).toBeVisible();
+
+    await captureEvidence(page, testInfo, 'FCT-MIA-004-toolbar-modals');
+  });
+
+  test('FCT-MIA-005: Sign Free Agent modal searches and closes without launching a signing', async ({
+    page,
+  }, testInfo) => {
+    const fullCapRegion = page
+      .getByRole('region', { name: /Full Cap Table/i })
+      .first();
+    await expect(fullCapRegion).toBeVisible({ timeout: 20000 });
+
+    await page.getByTestId('cap-sheet-full-sign-free-agent-button').click();
+    const modal = page.getByTestId('full-cap-free-agent-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    await expect(modal).toContainText(/Sign Free Agent/i);
+    await expect(modal).toContainText(/MIA/i);
+    await expect(modal).toContainText(/Generated \/ Current Pool/i);
+
+    const loading = modal.getByTestId('full-cap-free-agent-modal-loading');
+    await expect
+      .poll(
+        async () => !(await loading.isVisible().catch(() => false)),
+        {
+          timeout: 20000,
+          message: 'Free-agent modal should leave its loading state',
+        }
+      )
+      .toBe(true);
+
+    const pool = modal.getByTestId('full-cap-free-agent-modal-pool');
+    const empty = modal.getByTestId('full-cap-free-agent-modal-empty');
+    await expect
+      .poll(
+        async () =>
+          (await pool.isVisible().catch(() => false)) ||
+          (await empty.isVisible().catch(() => false)),
+        {
+          timeout: 20000,
+          message: 'Free-agent modal should show either a pool or an empty state',
+        }
+      )
+      .toBe(true);
+
+    if (await pool.isVisible().catch(() => false)) {
+      const search = modal.getByPlaceholder('Search pool');
+      await expect(search).toBeVisible();
+      await search.fill('definitely-no-such-fct-player');
+      await expect(modal.getByText(/No matches/i)).toBeVisible();
+      await search.fill('');
+      const firstEntry = pool.getByRole('button').first();
+      const firstEntryName = (
+        await firstEntry.locator('p').first().innerText()
+      ).trim();
+      await firstEntry.click();
+      const signingActions = modal.getByLabel('Free-agent signing actions');
+      await expect(signingActions.getByText(/^Selected$/i)).toBeVisible();
+      await expect(
+        signingActions.getByText(firstEntryName, { exact: true })
+      ).toBeVisible();
+      await expect(
+        modal.getByRole('button', { name: /^Start Signing$/i })
+      ).toBeEnabled();
+    } else {
+      await expect(modal).toContainText(/No free agents in this pool/i);
+      await expect(
+        modal.getByRole('button', { name: /^Start Signing$/i })
+      ).toBeDisabled();
+    }
+
+    await page.keyboard.press('Escape');
+    await expect(modal).toHaveCount(0);
+    await expect(fullCapRegion).toBeVisible();
+
+    await captureEvidence(page, testInfo, 'FCT-MIA-005-sign-fa-modal');
+  });
+
+  test('FCT-MIA-006: bottom detail popover opens one panel at a time and retoggles closed', async ({
+    page,
+  }, testInfo) => {
+    const legendToggle = page.getByTestId('cap-sheet-full-legend-toggle');
+    await expect(legendToggle).toHaveAttribute('aria-expanded', 'false');
+    await legendToggle.click();
+    await expect(legendToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('cap-sheet-full-legend')).toBeVisible();
+    await legendToggle.click();
+    await expect(legendToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('cap-sheet-full-legend')).toHaveCount(0);
+
+    const deadMoneyToggle = page.getByTestId('cap-sheet-full-dead-money-toggle');
+    const capHoldsToggle = page.getByTestId('cap-sheet-full-cap-holds-toggle');
+    const exceptionsToggle = page.getByTestId(
+      'cap-sheet-full-exceptions-toggle'
+    );
+
+    await deadMoneyToggle.click();
+    await expect(deadMoneyToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByText(MIA_DEAD_MONEY_NAME).first()).toBeVisible();
+
+    await capHoldsToggle.click();
+    await expect(deadMoneyToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(capHoldsToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByText(/Legacy Hold/i).first()).toBeVisible();
+
+    await exceptionsToggle.click();
+    await expect(capHoldsToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(exceptionsToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(
+      page.getByTestId('cap-sheet-full-exceptions-readout')
+    ).toContainText(/MLE/i);
+
+    await exceptionsToggle.click();
+    await expect(exceptionsToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(
+      page.getByTestId('cap-sheet-full-exceptions-readout')
+    ).toHaveCount(0);
+
+    await captureEvidence(page, testInfo, 'FCT-MIA-006-detail-popover');
+  });
 });

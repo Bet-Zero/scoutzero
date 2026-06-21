@@ -170,4 +170,32 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
 
     await captureEvidence(page, testInfo, 'FCT-OWNFA-002-after-absolve');
   });
+
+  test('FCT-OWNFA-003: own-FA re-sign cell launches the free-agent contract action modal safely', async ({
+    page,
+  }, testInfo) => {
+    const faRow = ownFaDecisionRow(page);
+    await expect(faRow).toBeVisible({ timeout: 20000 });
+
+    const resignCell = faRow.getByTestId('cap-sheet-full-fa-resign-cell');
+    await expect(resignCell.first()).toBeVisible();
+    await resignCell.first().click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    const actionContext = modal.getByTestId('contract-modal-action-context');
+    await expect(actionContext).toContainText(OWN_FA_NAME);
+    await expect(actionContext).toContainText(/2026-27/i);
+    await expect(modal.getByText(/Re-sign Player/i)).toBeVisible();
+    await expect(modal.getByText(/Renounce Rights/i)).toBeVisible();
+    await expect(
+      modal.getByTestId('edit-contract-confirm-action-button')
+    ).toBeDisabled();
+
+    await modal.getByRole('button', { name: /^Cancel$/i }).click();
+    await expect(modal).toHaveCount(0);
+    await expect(ownFaDecisionRow(page)).toBeVisible();
+
+    await captureEvidence(page, testInfo, 'FCT-OWNFA-003-resign-cell-modal');
+  });
 });
