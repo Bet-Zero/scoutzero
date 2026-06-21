@@ -1,0 +1,28 @@
+{
+  "playerId": "min_victor_amaro",
+  "displayName": "Victor Amaro",
+  "teamCode": "MIN",
+  "teamName": "Minnesota Timberwolves",
+  "bio": { "position": "G", "height": "6-5", "weight": "210", "age": 26, "experience": 5 },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2029-30",
+    "contractLength": 4,
+    "yearsRemaining": 4,
+    "totalValue": 184000000,
+    "averageAnnualValue": 46000000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 42000000, "capHit": 42000000, "guaranteed": true, "option": null },
+      { "season": "2027-28", "salary": 45000000, "capHit": 45000000, "guaranteed": true, "option": null },
+      { "season": "2028-29", "salary": 48000000, "capHit": 48000000, "guaranteed": true, "option": null },
+      { "season": "2029-30", "salary": 49000000, "capHit": 49000000, "guaranteed": false, "option": null }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Bird", "eligibleFor": ["Bird Exception"] },
+    "freeAgency": { "type": "UFA", "year": 2030, "capHold": 53000000 }
+  }
+}

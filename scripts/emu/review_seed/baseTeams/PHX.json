@@ -1,0 +1,34 @@
+{
+  "teamCode": "PHX",
+  "teamName": "PHOENIX SUNS",
+  "season": "2026-27",
+  "abbreviation": "PHX",
+  "hardCapLevel": "firstApron",
+  "hardCapTriggeredBy": "fullMLE",
+  "hardCapReason": "Hard cap triggered at First Apron via Non-Taxpayer MLE usage.",
+  "roster": [
+    "phx_dante_rojas",
+    "phx_kai_brooks",
+    "phx_andre_silva"
+  ],
+  "deadCap": [],
+  "capHolds": [],
+  "exceptions": {},
+  "draftPicks": [
+    { "id": "PHX_2027_R1", "year": 2027, "round": 1, "pick": null, "owner": "PHX", "originalTeam": "PHX", "status": "OWNED" }
+  ],
+  "entitlementIds": [],
+  "totals": {
+    "salaryCap": 165472000,
+    "luxuryTax": 201048000,
+    "firstApron": 209661000,
+    "secondApron": 222372000,
+    "isOverTax": false,
+    "isFirstApron": false,
+    "isSecondApron": false,
+    "isHardCapped": true,
+    "hardCapLevel": "firstApron",
+    "hardCapTriggeredBy": "fullMLE",
+    "hardCapReason": "Hard cap triggered at First Apron via Non-Taxpayer MLE usage."
+  }
+}

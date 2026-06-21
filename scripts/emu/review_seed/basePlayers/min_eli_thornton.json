@@ -1,0 +1,27 @@
+{
+  "playerId": "min_eli_thornton",
+  "displayName": "Eli Thornton",
+  "teamCode": "MIN",
+  "teamName": "Minnesota Timberwolves",
+  "bio": { "position": "C", "height": "7-0", "weight": "255", "age": 25, "experience": 4 },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": true,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2030-31",
+    "contractLength": 5,
+    "yearsRemaining": 5,
+    "totalValue": 265000000,
+    "averageAnnualValue": 53000000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 49000000, "capHit": 49000000, "guaranteed": true, "option": null },
+      { "season": "2027-28", "salary": 52000000, "capHit": 52000000, "guaranteed": true, "option": null },
+      { "season": "2028-29", "salary": 55000000, "capHit": 55000000, "guaranteed": true, "option": null }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Bird", "eligibleFor": ["Bird Exception"] },
+    "freeAgency": { "type": "UFA", "year": 2031, "capHold": 58000000 }
+  }
+}

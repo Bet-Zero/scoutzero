@@ -1,0 +1,27 @@
+{
+  "playerId": "phx_kai_brooks",
+  "displayName": "Kai Brooks",
+  "teamCode": "PHX",
+  "teamName": "Phoenix Suns",
+  "bio": { "position": "F", "height": "6-8", "weight": "230", "age": 27, "experience": 6 },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2028-29",
+    "contractLength": 3,
+    "yearsRemaining": 3,
+    "totalValue": 156000000,
+    "averageAnnualValue": 52000000,
+    "salariesByYear": [
+      { "season": "2026-27", "salary": 52000000, "capHit": 52000000, "guaranteed": true, "option": null },
+      { "season": "2027-28", "salary": 54000000, "capHit": 54000000, "guaranteed": true, "option": null },
+      { "season": "2028-29", "salary": 56000000, "capHit": 56000000, "guaranteed": false, "option": null }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": { "status": "Bird", "eligibleFor": ["Bird Exception"] },
+    "freeAgency": { "type": "UFA", "year": 2029, "capHold": 60000000 }
+  }
+}
