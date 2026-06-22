@@ -19,8 +19,11 @@ import admin from 'firebase-admin';
 
 const GM_DASHBOARD_URL = '/gm/LAL';
 const GM_DASHBOARD_BOS_URL = '/gm/BOS';
+const GM_DASHBOARD_MIA_OWN_FA_URL = '/gm/MIA?season=2027';
 const REVIEW_MODE_FREE_AGENT_NAME = 'Review Offer Sheet Guard';
 const REVIEW_MODE_FREE_AGENT_ID = 'review_offer_sheet_guard';
+const REVIEW_MIA_OWN_FA_NAME = 'Grant Holloway';
+const REVIEW_MIA_OWN_FA_ID = 'mia_grant_holloway';
 const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
 const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
 const DEV_LOCAL_STORAGE_FLAGS = {
@@ -81,6 +84,7 @@ const getWorldTeamDocument = async (worldId: string, teamCode: string) =>
     | {
         deadCap?: Array<Record<string, unknown>>;
         entitlementIds?: string[];
+        capHolds?: Array<Record<string, unknown>>;
         offerSheets?: Array<Record<string, unknown>>;
         players?: Array<Record<string, unknown>>;
         roster?: Array<string | Record<string, unknown>>;
@@ -167,6 +171,84 @@ const getTeamPlayerIds = (
     })
     .filter(Boolean);
 };
+
+const getTeamPlayerRecords = (
+  teamDocument: Record<string, unknown> | undefined
+) =>
+  (Array.isArray(teamDocument?.players) ? teamDocument.players : []).filter(
+    (player): player is Record<string, unknown> =>
+      Boolean(player) && typeof player === 'object' && !Array.isArray(player)
+  );
+
+const findTeamPlayerRecord = (
+  teamDocument: Record<string, unknown> | undefined,
+  playerId: string
+) =>
+  getTeamPlayerRecords(teamDocument).find((player) => {
+    const bio =
+      player.bio && typeof player.bio === 'object'
+        ? (player.bio as Record<string, unknown>)
+        : null;
+    const candidate =
+      player.id || player.playerId || player.player_id || bio?.playerId;
+    return candidate === playerId;
+  });
+
+const hasCapHoldForPlayer = (
+  teamDocument: Record<string, unknown> | undefined,
+  playerId: string
+) =>
+  (Array.isArray(teamDocument?.capHolds) ? teamDocument.capHolds : []).some(
+    (hold) => hold?.playerId === playerId
+  );
+
+const contractHasSeasonSalary = (
+  player: Record<string, unknown> | undefined,
+  season: string,
+  expectedSalary: number
+) => {
+  const contract =
+    player && typeof player.contract === 'object' && player.contract
+      ? (player.contract as Record<string, unknown>)
+      : null;
+  const rows = Array.isArray(contract?.salariesByYear)
+    ? (contract.salariesByYear as Array<Record<string, unknown>>)
+    : [];
+
+  return rows.some(
+    (row) =>
+      row?.season === season &&
+      Number(row.salary ?? row.capHit ?? 0) === expectedSalary
+  );
+};
+
+const parseMoneyMillions = (label: string) => {
+  const match = label.replace(/,/g, '').match(/(-?\$?[\d.]+)\s*([KMB])?/i);
+  if (!match) return Number.NaN;
+  const value = Number(match[1].replace('$', ''));
+  const suffix = (match[2] || 'M').toUpperCase();
+  if (suffix === 'B') return value * 1000;
+  if (suffix === 'K') return value / 1000;
+  return value;
+};
+
+const readCockpitTotalCapMillions = async (page: Page) =>
+  parseMoneyMillions(
+    (await page.getByTestId('cockpit-status-total-cap-value').textContent()) ||
+      ''
+  );
+
+const ownFaDecisionRow = (page: Page): Locator =>
+  page
+    .getByTestId('cap-sheet-full-fa-decision-row')
+    .filter({ hasText: REVIEW_MIA_OWN_FA_NAME });
+
+const signedOwnFaPlayerRow = (page: Page): Locator =>
+  page.locator('[data-cap-fit-row]').filter({
+    has: page
+      .getByTestId('cap-sheet-full-player-row-button')
+      .filter({ hasText: REVIEW_MIA_OWN_FA_NAME }),
+  });
 
 const normalizeOptionValue = (value: unknown) => {
   if (value === 'TO') {
@@ -1685,6 +1767,240 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       'Canonical V1 acceptance path: BOS saved-world Free Agency signs Review Offer Sheet Guard through the standard Sign Free Agent action, validation gates Confirm Action until the action is selected, the receipt reports roster/cap deltas, Team History shows the committed signFreeAgent event, Compare shows the same committed event with roster/cap deltas, and reload rehydrates the signed player from the saved world.'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005-v1-signing-acceptance');
+  });
+
+  test('D-MQ-005A: Canonical V1 saved-world own-FA Re-sign persists FCT, Roster, history, compare, and reload', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(180000);
+
+    await page.goto(GM_DASHBOARD_MIA_OWN_FA_URL, {
+      waitUntil: 'domcontentloaded',
+    });
+    await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
+
+    await topUpWorldTeamRosterMinimum(worldId, 'MIA', 'MIAMI HEAT');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Full Cap Table');
+
+    const fullCapRegion = page
+      .getByRole('region', { name: /Full Cap Table/i })
+      .first();
+    await expect(fullCapRegion).toBeVisible({ timeout: 20000 });
+
+    const faRow = ownFaDecisionRow(page);
+    await expect(faRow).toBeVisible({ timeout: 20000 });
+    await expect(
+      faRow.getByTestId('cap-sheet-full-fa-resign-cell').first()
+    ).toContainText('$15,000,000');
+    await expect(signedOwnFaPlayerRow(page)).toHaveCount(0);
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
+
+    const beforeTotalCap = await readCockpitTotalCapMillions(page);
+    expect(Number.isFinite(beforeTotalCap)).toBe(true);
+    const beforePersistedTeam = await getWorldTeamDocument(worldId, 'MIA');
+    expect(getTeamPlayerIds(beforePersistedTeam)).toContain(
+      REVIEW_MIA_OWN_FA_ID
+    );
+    expect(hasCapHoldForPlayer(beforePersistedTeam, REVIEW_MIA_OWN_FA_ID)).toBe(
+      true
+    );
+    expect(
+      contractHasSeasonSalary(
+        findTeamPlayerRecord(beforePersistedTeam, REVIEW_MIA_OWN_FA_ID),
+        '2026-27',
+        12_000_000
+      )
+    ).toBe(false);
+
+    addAuditNote(
+      testInfo,
+      `BZE-111 entry proof: ${GM_DASHBOARD_MIA_OWN_FA_URL} restored saved world ${worldId}, showed MIA 2026-27, and preserved Grant Holloway as the Full Cap Table own-FA Re-sign row after reload before any move.`
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-005A-before-own-fa-resign');
+
+    await faRow.getByTestId('cap-sheet-full-fa-resign-cell').first().click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    await expect(
+      modal.getByTestId('contract-modal-action-context')
+    ).toContainText(REVIEW_MIA_OWN_FA_NAME);
+    await expect(
+      modal.getByTestId('contract-modal-action-context')
+    ).toContainText(/2026-27/i);
+    await modal.getByTestId('contract-action-resign').check();
+    await expect(modal.getByTestId('contract-action-resign')).toBeChecked();
+    await expect(
+      modal.locator('input[inputmode="decimal"]').first()
+    ).toHaveValue('$12,000,000');
+
+    const confirmButton = modal.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
+    await expect(confirmButton).toBeEnabled({ timeout: 20000 });
+    await confirmButton.click();
+    await expect(modal).toHaveCount(0, { timeout: 20000 });
+
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Free agent signed/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByText(/Cap space changed/i).first()).toBeVisible();
+
+    await expect(ownFaDecisionRow(page)).toHaveCount(0, { timeout: 20000 });
+    const signedRow = signedOwnFaPlayerRow(page);
+    await expect(signedRow).toHaveCount(1, { timeout: 20000 });
+    await expect(signedRow).toContainText('$12,000,000');
+    await expect
+      .poll(async () => readCockpitTotalCapMillions(page), {
+        message:
+          "FCT total should fall after replacing Grant Holloway's $15M cap hold with a $12M signed contract",
+      })
+      .toBeLessThan(beforeTotalCap);
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '14 / 15'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-005A-after-own-fa-resign-fct');
+
+    await openDashboardTab(page, 'Roster');
+    const rosterWorkbench = page
+      .getByTestId('cockpit-workbench')
+      .and(page.locator('[data-active-tab="roster"]'));
+    await expect(rosterWorkbench).toBeVisible();
+    const truthPanel = rosterWorkbench.getByTestId(
+      'architect-roster-truth-panel'
+    );
+    await expect(truthPanel).toHaveAttribute('data-roster-active-year', '2027');
+    await expect(truthPanel).toHaveAttribute(
+      'data-roster-displayed-count',
+      '14'
+    );
+    await expect(
+      rosterWorkbench.getByAltText(REVIEW_MIA_OWN_FA_NAME)
+    ).toHaveCount(1);
+    await captureEvidence(
+      page,
+      testInfo,
+      'D-MQ-005A-after-own-fa-resign-roster'
+    );
+
+    await expect
+      .poll(
+        async () => {
+          const persistedTeam = await getWorldTeamDocument(worldId, 'MIA');
+          const grantRecordCount = getTeamPlayerRecords(persistedTeam).filter(
+            (player) =>
+              player.id === REVIEW_MIA_OWN_FA_ID ||
+              player.playerId === REVIEW_MIA_OWN_FA_ID ||
+              player.player_id === REVIEW_MIA_OWN_FA_ID
+          ).length;
+          return {
+            hasGrant: getTeamPlayerIds(persistedTeam).includes(
+              REVIEW_MIA_OWN_FA_ID
+            ),
+            hasGrantHold: hasCapHoldForPlayer(
+              persistedTeam,
+              REVIEW_MIA_OWN_FA_ID
+            ),
+            hasSignedSalary: contractHasSeasonSalary(
+              findTeamPlayerRecord(persistedTeam, REVIEW_MIA_OWN_FA_ID),
+              '2026-27',
+              12_000_000
+            ),
+            grantRecordCount,
+          };
+        },
+        {
+          timeout: 20000,
+          message:
+            'saved-world MIA team should contain one signed Grant Holloway contract and no ghost cap hold',
+        }
+      )
+      .toEqual({
+        hasGrant: true,
+        hasGrantHold: false,
+        hasSignedSalary: true,
+        grantRecordCount: 1,
+      });
+
+    await expect
+      .poll(
+        async () => {
+          const persistedEvents = await getWorldEventDocuments(worldId);
+          return persistedEvents.some((event) => {
+            const playerIds = Array.isArray(event.playerIds)
+              ? event.playerIds
+              : [];
+            return (
+              event.mutationType === 'signFreeAgent' &&
+              playerIds.includes(REVIEW_MIA_OWN_FA_ID)
+            );
+          });
+        },
+        {
+          timeout: 20000,
+          message: 'own-FA Re-sign should persist a signFreeAgent event',
+        }
+      )
+      .toBe(true);
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
+    await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
+
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /1\s+team changed/i
+    );
+    await expect(page.getByTestId('comparison-changed-players')).toContainText(
+      /1\s+player touched/i
+    );
+    await expect(page.getByTestId('comparison-roster-additions')).toContainText(
+      /None detected/i
+    );
+    await expect(page.getByTestId('comparison-roster-removals')).toContainText(
+      /None detected/i
+    );
+    await expect(page.getByTestId('comparison-roster-changed')).toContainText(
+      /None detected/i
+    );
+    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Full Cap Table');
+    await expect(ownFaDecisionRow(page)).toHaveCount(0, { timeout: 20000 });
+    await expect(signedOwnFaPlayerRow(page)).toHaveCount(1, {
+      timeout: 20000,
+    });
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '14 / 15'
+    );
+    await openDashboardTab(page, 'Roster');
+    const reloadedRosterWorkbench = page
+      .getByTestId('cockpit-workbench')
+      .and(page.locator('[data-active-tab="roster"]'));
+    await expect(
+      reloadedRosterWorkbench.getByAltText(REVIEW_MIA_OWN_FA_NAME)
+    ).toHaveCount(1);
+
+    addAuditNote(
+      testInfo,
+      'BZE-112 canonical move proof: MIA saved-world Full Cap Table Re-sign converts Grant Holloway from a $15M own-FA cap hold into one $12M signed roster contract, removes the ghost hold, updates cockpit/FCT/Roster, records signFreeAgent history plus Compare cap-delta evidence, and survives reload in the same saved world.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-005A-after-reload');
   });
 
   test('D-MQ-006: Offseason preview shows non-persisting banner', async ({
