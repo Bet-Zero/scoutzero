@@ -15,6 +15,7 @@ import { TeamMap } from '@/constants/teamList';
 import { useParams } from 'react-router-dom';
 import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
 import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
+import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import {
   buildPlayerActionContext,
   type PlayerAction,
@@ -57,6 +58,21 @@ type LegacyRosterShape = RosterShape<
   NormalizedRosterPlayer | MissingRosterPlayer
 >;
 
+type RosterSectionCounts = {
+  starters: number;
+  rotation: number;
+  bench: number;
+};
+
+type RosterVisualState = {
+  roster: LegacyRosterShape;
+  activeYear: number | null;
+  standardCount: number;
+  twoWayCount: number;
+  displayedCount: number;
+  sectionCounts: RosterSectionCounts;
+};
+
 export type RosterVisualCapSheetInput = {
   teamId?: string | number | null;
   id?: string | number | null;
@@ -73,6 +89,8 @@ type RosterVisualProps = {
   teamCapSheet: RosterVisualCapSheetInput | null | undefined;
   playersMap?: RosterVisualDetailsMap;
   teamId?: string | null;
+  /** Selected viewing season end-year. Matches Roster to FCT's active contract slice. */
+  currentYear?: number | null;
   /**
    * Stage 2C navigation-only seam. When provided, clicking a roster
    * card invokes this callback with the resolved (merged) roster
@@ -253,10 +271,22 @@ const getMinutes = (member: RosterDisplayMember) => {
   return Number.isFinite(minutes) ? minutes : 0;
 };
 
+const countRosterSection = (
+  section: LegacyRosterShape[keyof LegacyRosterShape]
+): number => section.filter(Boolean).length;
+
+const formatCountLabel = (
+  count: number,
+  singular: string,
+  plural = `${singular}s`
+) =>
+  `${count} ${count === 1 ? singular : plural}`;
+
 export const RosterVisual = ({
   teamCapSheet,
   playersMap = {},
   teamId: propTeamId,
+  currentYear = null,
   onSelectPlayer = null,
   highlightPlayerId = null,
   highlightPlayerIds = [],
@@ -267,17 +297,24 @@ export const RosterVisual = ({
   const id = String(
     propTeamId || teamCapSheet?.teamId || teamCapSheet?.id || routeTeamId || '');
   const teamInfo = (TeamMap as Record<string, Record<string, unknown>>)[id] || {};
-  const roster = useMemo(() => {
+  const rosterState = useMemo<RosterVisualState | null>(() => {
     if (!teamCapSheet?.players || !Array.isArray(teamCapSheet.players)) return null;
+    const activeYear =
+      typeof currentYear === 'number' && Number.isFinite(currentYear)
+        ? currentYear
+        : null;
     // Membership comes from the hydrated team cap sheet. playersMap only fills
     // missing display/detail fields from the world-aware dashboard player index.
     const enriched = teamCapSheet.players.map((member) =>
       mergeRosterMemberDetails(member, findRosterDetails(member, playersMap))
     );
+    const activeMembers = activeYear !== null
+      ? enriched.filter((member) => getContractYearSlice(member, activeYear))
+      : enriched;
 
     // Separate standard and two-way contracts
-    const standardPlayers = enriched.filter((p) => !isTwoWayContract(p));
-    const twoWayPlayers = enriched.filter((p) => isTwoWayContract(p));
+    const standardPlayers = activeMembers.filter((p) => !isTwoWayContract(p));
+    const twoWayPlayers = activeMembers.filter((p) => isTwoWayContract(p));
 
     // Sort standard players by minutes
     const sorted = [...standardPlayers].sort(
@@ -315,8 +352,24 @@ export const RosterVisual = ({
       });
     }
 
-    return roster;
-  }, [teamCapSheet, playersMap]);
+    const sectionCounts = {
+      starters: countRosterSection(roster.starters),
+      rotation: countRosterSection(roster.rotation),
+      bench: countRosterSection(roster.bench),
+    };
+
+    return {
+      roster,
+      activeYear,
+      standardCount: standardPlayers.length,
+      twoWayCount: twoWayPlayers.length,
+      displayedCount:
+        sectionCounts.starters + sectionCounts.rotation + sectionCounts.bench,
+      sectionCounts,
+    };
+  }, [currentYear, teamCapSheet, playersMap]);
+
+  const roster = rosterState?.roster ?? null;
 
   const handleSectionSelect = useMemo(() => {
     if (!onSelectPlayer) return undefined;
@@ -376,7 +429,7 @@ export const RosterVisual = ({
     };
   }, [onPlayerAction, pinnedPlayerIds]);
 
-  if (!roster) return null;
+  if (!roster || !rosterState) return null;
 
   const displayName = String(
     teamInfo.nickname || teamInfo.teamName || teamCapSheet?.teamName || id);
@@ -413,6 +466,34 @@ export const RosterVisual = ({
         Team Roster
       </h3>
 
+      <div
+        className="relative z-10 mb-6 grid w-full max-w-4xl grid-cols-2 gap-2 rounded-md border border-white/10 bg-black/35 px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-white/80 shadow-sm sm:grid-cols-5"
+        data-testid="architect-roster-truth-panel"
+        data-roster-displayed-count={rosterState.displayedCount}
+        data-roster-standard-count={rosterState.standardCount}
+        data-roster-two-way-count={rosterState.twoWayCount}
+        data-roster-active-year={rosterState.activeYear ?? ''}
+        data-roster-unsupported-categories="fa,expired,waived,options"
+      >
+        <span data-testid="roster-count-displayed">
+          {formatCountLabel(rosterState.displayedCount, 'card')}
+        </span>
+        <span data-testid="roster-count-standard">
+          {formatCountLabel(rosterState.standardCount, 'standard')}
+        </span>
+        <span data-testid="roster-count-two-way">
+          {formatCountLabel(rosterState.twoWayCount, 'two-way')}
+        </span>
+        <span data-testid="roster-count-sections">
+          {rosterState.sectionCounts.starters} starters /{' '}
+          {rosterState.sectionCounts.rotation} rotation /{' '}
+          {rosterState.sectionCounts.bench} bench
+        </span>
+        <span data-testid="roster-unsupported-categories">
+          FA / expired / waived / options not surfaced
+        </span>
+      </div>
+
       <RosterSection
         players={roster.starters}
         section="starters"
@@ -440,4 +521,3 @@ export const RosterVisual = ({
     </div>
   );
 };
-

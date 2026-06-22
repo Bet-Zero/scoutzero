@@ -31,6 +31,7 @@ type RosterSectionProps = {
   teamCapSheet: RosterVisualCapSheetInput | null | undefined;
   playersMap?: RosterVisualDetailsMap;
   teamId?: string | null;
+  currentYear?: number | null;
   /**
    * Stage 2C: dashboard-owned contract-modal opener. When provided,
    * clicking a roster card opens the existing EditContractModal
@@ -57,6 +58,7 @@ const RosterSection = ({
   teamCapSheet,
   playersMap,
   teamId,
+  currentYear = null,
   onOpenPlayerContractModal,
   highlightPlayerId = null,
   highlightPlayerIds = [],
@@ -67,6 +69,7 @@ const RosterSection = ({
     teamCapSheet={teamCapSheet}
     playersMap={playersMap}
     teamId={teamId}
+    currentYear={currentYear}
     onSelectPlayer={
       onOpenPlayerContractModal
         ? (player) => onOpenPlayerContractModal(player as RosterPlayerLike)

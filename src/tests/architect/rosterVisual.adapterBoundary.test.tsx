@@ -30,7 +30,8 @@ const POSITIONS = ['G', 'G', 'G/F', 'F', 'C', 'F', 'F/C'];
 
 const renderRoster = (
   teamCapSheet: RosterVisualCapSheetInput,
-  playersMap: RosterVisualDetailsMap = {}
+  playersMap: RosterVisualDetailsMap = {},
+  currentYear: number | null = null
 ) =>
   render(
     <MemoryRouter initialEntries={['/gm/LAL']}>
@@ -38,6 +39,7 @@ const renderRoster = (
         teamCapSheet={teamCapSheet}
         playersMap={playersMap}
         teamId="LAL"
+        currentYear={currentYear}
       />
     </MemoryRouter>
   );
@@ -76,17 +78,23 @@ const makeStandardMember = (
   };
 };
 
-const makeTwoWayMember = (id: string, displayName: string): RosterMember => ({
+const makeTwoWayMember = (
+  id: string,
+  displayName: string,
+  overrides: Partial<RosterMember> = {}
+): RosterMember => ({
   id,
   name: displayName,
   displayName,
   MIN: 0,
+  ...overrides,
   bio: {
     playerId: id,
     displayName,
     position: 'G',
+    ...(overrides.bio || {}),
   },
-  contract: {
+  contract: overrides.contract || {
     contractType: 'Two-Way',
   },
 });
@@ -94,6 +102,94 @@ const makeTwoWayMember = (id: string, displayName: string): RosterMember => ({
 describe('RosterVisual adapter boundary', () => {
   afterEach(() => {
     cleanup();
+  });
+
+  it('renders browser-verifiable roster counts and category support states', () => {
+    const teamCapSheet: RosterVisualCapSheetInput = {
+      id: 'LAL',
+      teamName: 'Los Angeles Lakers',
+      players: [
+        ...Array.from({ length: 13 }, (_, index) =>
+          makeStandardMember(index + 1)
+        ),
+        makeTwoWayMember('two-way-alpha', 'Two Way Alpha'),
+        makeTwoWayMember('two-way-beta', 'Two Way Beta'),
+      ],
+    };
+
+    renderRoster(teamCapSheet);
+
+    const truthPanel = screen.getByTestId('architect-roster-truth-panel');
+    expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '15');
+    expect(truthPanel).toHaveAttribute('data-roster-standard-count', '13');
+    expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '2');
+    expect(truthPanel).toHaveAttribute(
+      'data-roster-unsupported-categories',
+      'fa,expired,waived,options'
+    );
+    expect(screen.getByTestId('roster-count-displayed')).toHaveTextContent(
+      '15 cards'
+    );
+    expect(screen.getByTestId('roster-count-standard')).toHaveTextContent(
+      '13 standards'
+    );
+    expect(screen.getByTestId('roster-count-two-way')).toHaveTextContent(
+      '2 two-ways'
+    );
+    expect(screen.getByTestId('roster-count-sections')).toHaveTextContent(
+      '5 starters / 4 rotation / 6 bench'
+    );
+    expect(screen.getByTestId('roster-unsupported-categories')).toHaveTextContent(
+      'FA / expired / waived / options not surfaced'
+    );
+  });
+
+  it('filters normal roster cards to the selected active contract year', () => {
+    const teamCapSheet: RosterVisualCapSheetInput = {
+      id: 'LAL',
+      teamName: 'Los Angeles Lakers',
+      players: [
+        makeStandardMember(1, {
+          name: 'Expired Own FA',
+          displayName: 'Expired Own FA',
+          contract: {
+            contractType: 'Standard',
+            salariesByYear: [
+              { season: '2025-26', salary: 12_000_000, capHit: 12_000_000 },
+            ],
+          },
+        }),
+        makeStandardMember(2, {
+          name: 'Active Standard',
+          displayName: 'Active Standard',
+          contract: {
+            contractType: 'Standard',
+            salariesByYear: [
+              { season: '2026-27', salary: 10_000_000, capHit: 10_000_000 },
+            ],
+          },
+        }),
+        makeTwoWayMember('two-way-active', 'Active Two Way', {
+          contract: {
+            contractType: 'Two-Way',
+            salariesByYear: [
+              { season: '2026-27', salary: 597_000, capHit: 597_000 },
+            ],
+          },
+        }),
+      ],
+    };
+
+    renderRoster(teamCapSheet, {}, 2027);
+
+    const truthPanel = screen.getByTestId('architect-roster-truth-panel');
+    expect(truthPanel).toHaveAttribute('data-roster-active-year', '2027');
+    expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '2');
+    expect(truthPanel).toHaveAttribute('data-roster-standard-count', '1');
+    expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '1');
+    expect(screen.queryByAltText('Expired Own FA')).not.toBeInTheDocument();
+    expect(screen.getByAltText('Active Standard')).toBeInTheDocument();
+    expect(screen.getByAltText('Active Two Way')).toBeInTheDocument();
   });
 
   it('uses teamCapSheet.players for roster membership and playersMap for detail enrichment', () => {
@@ -188,6 +284,12 @@ describe('RosterVisual adapter boundary', () => {
     expect(within(starters).getAllByRole('img')).toHaveLength(5);
     expect(within(rotation).getAllByRole('img')).toHaveLength(1);
     expect(within(bench).queryAllByRole('img')).toHaveLength(0);
+    expect(screen.getByTestId('roster-count-displayed')).toHaveTextContent(
+      '6 cards'
+    );
+    expect(screen.getByTestId('roster-count-two-way')).toHaveTextContent(
+      '0 two-ways'
+    );
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByText('+')).not.toBeInTheDocument();
   });

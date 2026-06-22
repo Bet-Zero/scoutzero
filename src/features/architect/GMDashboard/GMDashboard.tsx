@@ -1027,6 +1027,7 @@ export const GMDashboard = () => {
         label: 'Roster',
         glyph: 'R',
         onActivate: () => setActiveTab('roster'),
+        testId: 'tab-roster',
       },
       {
         id: 'cap',
@@ -1179,6 +1180,7 @@ export const GMDashboard = () => {
           teamCapSheet={teamCapSheet}
           playersMap={playersMap}
           teamId={normalizedTeamId}
+          currentYear={currentYear}
           onOpenPlayerContractModal={(player) =>
             actions.handleEditContract(
               player as Parameters<typeof actions.handleEditContract>[0]

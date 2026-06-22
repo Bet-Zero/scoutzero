@@ -222,6 +222,51 @@ describe('Stage 1A Architect workspace context derivation', () => {
     expect(context.seasons.viewingSeasonDiffersFromWorldSeason).toBe(true);
   });
 
+  it('counts hydrated roster players from the selected-year contract slice', () => {
+    const teamWithMixedYears = {
+      ...teamFixture,
+      players: [
+        {
+          id: 'expired-player',
+          name: 'Expired Player',
+          contract: {
+            contractType: 'Standard',
+            salariesByYear: [{ season: '2025-26', salary: 10_000_000 }],
+          },
+        },
+        {
+          id: 'active-player',
+          name: 'Active Player',
+          contract: {
+            contractType: 'Standard',
+            salariesByYear: [{ season: '2026-27', salary: 12_000_000 }],
+          },
+        },
+        {
+          id: 'future-player',
+          name: 'Future Player',
+          contract: {
+            contractType: 'Standard',
+            salariesByYear: [{ season: '2027-28', salary: 14_000_000 }],
+          },
+        },
+      ],
+    } as CapSheet;
+
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamWithMixedYears,
+      currentYear: 2027,
+      worldId: 'world_deadline',
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+
+    expect(context.roster).toMatchObject({
+      status: 'available',
+      count: 1,
+      source: 'players',
+    });
+  });
+
   it('keeps loading state visible without inventing unavailable summaries', () => {
     const context = deriveArchitectWorkspaceContext({
       teamCapSheet: null,

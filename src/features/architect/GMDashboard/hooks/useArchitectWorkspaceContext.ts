@@ -13,6 +13,7 @@ import {
   computeTeamCapTotals,
   type ComputedTeamCapTotals,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import {
   deriveArchitectModePresentation,
@@ -328,16 +329,26 @@ function deriveWorldDateContext({
 
 function deriveRosterSummary(
   teamCapSheet: CapSheet | null | undefined,
-  isLoading: boolean
+  isLoading: boolean,
+  currentYear: number | null | undefined
 ): ArchitectWorkspaceRosterSummary {
   if (isLoading && !teamCapSheet) {
     return { status: 'loading', count: null, source: null };
   }
 
   if (Array.isArray(teamCapSheet?.players)) {
+    const selectedYear =
+      typeof currentYear === 'number' && Number.isFinite(currentYear)
+        ? currentYear
+        : null;
     return {
       status: 'available',
-      count: teamCapSheet.players.length,
+      count:
+        selectedYear === null
+          ? teamCapSheet.players.length
+          : teamCapSheet.players.filter((player) =>
+              getContractYearSlice(player, selectedYear)
+            ).length,
       source: 'players',
     };
   }
@@ -517,7 +528,7 @@ export function deriveArchitectWorkspaceContext({
       errorMessage: normalizedError,
     },
     saveState,
-    roster: deriveRosterSummary(teamCapSheet, isLoading),
+    roster: deriveRosterSummary(teamCapSheet, isLoading, currentYear),
     cap: deriveCapSummary({ teamCapSheet, currentYear, isLoading }),
     exceptions: deriveExceptionsSummary(teamCapSheet, isLoading, worldId),
     draftAssets: {
