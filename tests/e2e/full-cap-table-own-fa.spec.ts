@@ -115,6 +115,35 @@ const ownFaDecisionRow = (page: Page): Locator =>
     .getByTestId('cap-sheet-full-fa-decision-row')
     .filter({ hasText: OWN_FA_NAME });
 
+const assertRosterParityAfterAbsolve = async (page: Page) => {
+  await page.getByTestId('tab-roster').click();
+  const rosterWorkbench = page
+    .getByTestId('cockpit-workbench')
+    .and(page.locator('[data-active-tab="roster"]'));
+
+  await expect(rosterWorkbench).toBeVisible();
+  const truthPanel = rosterWorkbench.getByTestId('architect-roster-truth-panel');
+  await expect(truthPanel).toHaveAttribute('data-roster-active-year', '2027');
+  await expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '13');
+  await expect(truthPanel).toHaveAttribute('data-roster-standard-count', '12');
+  await expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '1');
+  await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+    '13 / 15'
+  );
+  await expect(page.getByTestId('cockpit-team-posture-summary')).toContainText(
+    '13 / 15 roster spots shown'
+  );
+
+  await expect(rosterWorkbench.getByAltText(OWN_FA_NAME)).toHaveCount(0);
+  await expect(
+    rosterWorkbench.getByRole('button', {
+      name: new RegExp(`More actions for ${OWN_FA_NAME}`, 'i'),
+    })
+  ).toHaveCount(0);
+  await expect(rosterWorkbench.getByAltText('Marcus Vance')).toHaveCount(1);
+  await expect(rosterWorkbench.getByAltText('Tobias Lund')).toHaveCount(1);
+};
+
 test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-verifiable', () => {
   test.describe.configure({ mode: 'serial' });
 
@@ -165,7 +194,7 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
     await captureEvidence(page, testInfo, 'FCT-OWNFA-001-decision-row');
   });
 
-  test('FCT-OWNFA-002: Absolve clears the own-FA cap hold and removes the decision row', async ({
+  test('FCT-OWNFA-002: Absolve clears the own-FA cap hold and preserves FCT/Roster parity', async ({
     page,
   }, testInfo) => {
     // Renounce pops a window.confirm; accept it. In base/sandbox mode the
@@ -206,6 +235,12 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
     );
 
     await captureEvidence(page, testInfo, 'FCT-OWNFA-002-after-absolve');
+    await assertRosterParityAfterAbsolve(page);
+    await captureEvidence(
+      page,
+      testInfo,
+      'FCT-OWNFA-002-after-absolve-roster-parity'
+    );
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForMiaOwnFaDashboard(page);
