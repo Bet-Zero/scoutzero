@@ -154,10 +154,11 @@ export const FreeAgentCard = ({
         </div>
 
         <button
+          data-action-exposure-classification="preview-only"
           onClick={() => onOpenContractModal(entry)}
           className="w-full mt-auto bg-green-600 hover:bg-green-500 text-white text-xs font-bold uppercase tracking-wider py-2 rounded transition-colors"
         >
-          Sign Player
+          Sign Player (Preview)
         </button>
       </div>
     </div>

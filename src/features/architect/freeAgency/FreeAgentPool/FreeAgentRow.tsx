@@ -252,12 +252,13 @@ export const FreeAgentRow = ({
             className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
           >
             <button
+              data-action-exposure-classification="preview-only"
               onClick={() => {
                 onOpenContractModal?.(entry);
               }}
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >
-              Sign Free Agent
+              Sign Free Agent (Preview)
             </button>
             <button
               onClick={() => {

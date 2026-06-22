@@ -566,13 +566,13 @@ export function useArchitectActions({
   // VISUAL/MODAL CONTRACT: FreeAgentPool reads this as upstream truth for what
   // the contract modal is allowed to show. Architect V1 parks advanced Free
   // Agency transaction lanes from the normal user path; the world-only
-  // handlers remain available to internal owners, but the public modal exposes
-  // only the reliable standard signing lane.
+  // handlers remain available to internal owners, but the public modal labels
+  // standard FA signing as preview-only until it is part of the launch promise.
   const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
     () => ({
       visibleActions: ['signNew'],
       actionLabelsOverride: {
-        signNew: 'Sign Free Agent',
+        signNew: 'Sign Free Agent (Preview)',
       },
       showOfferSheetToggle: false,
       signAndTradeInitiation: null,

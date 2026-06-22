@@ -204,7 +204,7 @@ vi.mock('@/features/architect/GMDashboard/sections/CapTableSection', () => ({
         CapTableSection
         {props.onLaunchFreeAgentSearch ? (
           <button type="button" onClick={() => props.onLaunchFreeAgentSearch()}>
-            + Sign Free Agent
+            + Sign Free Agent Preview
           </button>
         ) : null}
         {(props.freeAgentOptions || []).map(
@@ -331,7 +331,7 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
         freeAgentModalAvailability: {
           visibleActions: ['signNew'],
           actionLabelsOverride: {
-            signNew: 'Sign Free Agent',
+            signNew: 'Sign Free Agent (Preview)',
           },
           showOfferSheetToggle: false,
           signAndTradeInitiation: null,
@@ -625,11 +625,11 @@ describe('GMDashboard Smoke Test', () => {
       );
       expect(within(dialog).getByText('Selected')).toBeInTheDocument();
       expect(
-        within(dialog).getByRole('button', { name: /^Start Signing$/i })
+        within(dialog).getByRole('button', { name: /^Start Preview Signing$/i })
       ).toBeEnabled();
 
       fireEvent.click(
-        within(dialog).getByRole('button', { name: /^Start Signing$/i })
+        within(dialog).getByRole('button', { name: /^Start Preview Signing$/i })
       );
 
       expect(mockHandleEditContract).toHaveBeenCalledWith(
@@ -680,7 +680,7 @@ describe('GMDashboard Smoke Test', () => {
 
       mockSetActiveTab.mockClear();
       fireEvent.click(
-        screen.getByRole('button', { name: /^\+ Sign Free Agent$/i })
+        screen.getByRole('button', { name: /^\+ Sign Free Agent Preview$/i })
       );
 
       expect(
@@ -688,7 +688,7 @@ describe('GMDashboard Smoke Test', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('Pool Guard')).toBeInTheDocument();
       expect(screen.getByText('Pool Wing')).toBeInTheDocument();
-      expect(screen.getByText('2 eligible players')).toBeInTheDocument();
+      expect(screen.getByText(/2 eligible players/i)).toBeInTheDocument();
       expect(mockSetActiveTab).not.toHaveBeenCalledWith('fa');
 
       fireEvent.change(screen.getByPlaceholderText('Search pool'), {
@@ -698,7 +698,7 @@ describe('GMDashboard Smoke Test', () => {
       fireEvent.click(screen.getByRole('button', { name: /^Pool Wing/i }));
       expect(screen.getByText('Selected')).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /^Start Signing$/i })
+        screen.getByRole('button', { name: /^Start Preview Signing$/i })
       ).toBeEnabled();
 
       fireEvent.click(
@@ -749,10 +749,12 @@ describe('GMDashboard Smoke Test', () => {
 
       mockSetActiveTab.mockClear();
       fireEvent.click(
-        screen.getByRole('button', { name: /^\+ Sign Free Agent$/i })
+        screen.getByRole('button', { name: /^\+ Sign Free Agent Preview$/i })
       );
       fireEvent.click(screen.getByRole('button', { name: /^Pool Wing/i }));
-      fireEvent.click(screen.getByRole('button', { name: /^Start Signing$/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /^Start Preview Signing$/i })
+      );
 
       expect(mockHandleEditContract).toHaveBeenCalledTimes(1);
       expect(mockHandleEditContract).toHaveBeenCalledWith(

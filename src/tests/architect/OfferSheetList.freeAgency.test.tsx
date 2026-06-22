@@ -72,7 +72,9 @@ describe('OfferSheetList Free Agency wiring', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /^Match$/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Match \(Preview\)$/i })
+    );
     expect(onLifecycleAction).toHaveBeenCalledTimes(1);
     expect(onLifecycleAction).toHaveBeenCalledWith({
       action: 'match',
@@ -94,7 +96,9 @@ describe('OfferSheetList Free Agency wiring', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /^Decline$/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Decline \(Preview\)$/i })
+    );
     expect(onLifecycleAction).toHaveBeenCalledTimes(1);
     expect(onLifecycleAction).toHaveBeenCalledWith({
       action: 'decline',
@@ -186,8 +190,12 @@ describe('OfferSheetList Free Agency wiring', () => {
     expect(
       screen.getByText(/Requires an active world to commit\./i)
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Match$/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /^Decline$/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /^Match \(Preview\)$/i })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /^Decline \(Preview\)$/i })
+    ).toBeDisabled();
   });
 
   it('returns null for empty offer sheet arrays', () => {
@@ -280,8 +288,12 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /^Match$/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^Decline$/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Match \(Preview\)$/i })
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Decline \(Preview\)$/i })
+    );
     fireEvent.click(screen.getByRole('button', { name: /Finalize Match/i }));
     fireEvent.click(screen.getByRole('button', { name: /Finalize Signing/i }));
 
@@ -358,9 +370,13 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
         /Offer-sheet lifecycle actions require an active world to commit\./i
       ).length
     ).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /^Match$/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /^Match \(Preview\)$/i })
+    ).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: /^Match$/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Match \(Preview\)$/i })
+    );
 
     expect(matchOfferSheet).not.toHaveBeenCalled();
   });

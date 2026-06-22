@@ -717,7 +717,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                     className="rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5 text-[10px] font-medium text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
                     data-testid="cockpit-activity-rail-pinned-trade-all"
                   >
-                    Trade all
+                    Open Trade all
                   </button>
                 ) : null
               }

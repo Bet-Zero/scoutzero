@@ -118,14 +118,14 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
     }
 
     // --- Player Option (Theo Bennett 2028-29) + Team Option (Andre Cole 2027-28)
-    // render as color-coded option cells in the future-season columns. They carry
-    // a manage tooltip rather than literal "PO"/"TO" text, so anchor on the
+    // render as color-coded option-preview cells in the future-season columns.
+    // They carry a manage tooltip rather than literal "PO"/"TO" text, so anchor on the
     // title attribute. ---
     await expect(
-      page.locator('[title="Click to manage Player Option"]').first()
+      page.locator('[title="Preview: manage Player Option"]').first()
     ).toBeVisible();
     await expect(
-      page.locator('[title="Click to manage Team Option"]').first()
+      page.locator('[title="Preview: manage Team Option"]').first()
     ).toBeVisible();
 
     // --- Own free agent on the roster. In base/sandbox review mode the live
@@ -196,7 +196,7 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
     await expect(modal).toHaveCount(0);
 
     const playerOptionCell = page
-      .locator('[title="Click to manage Player Option"]')
+      .locator('[title="Preview: manage Player Option"]')
       .first();
     await expect(playerOptionCell).toBeVisible();
     await playerOptionCell.click();
@@ -205,7 +205,7 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
     await expect(actionContext).toContainText(/2028-29/i);
     await expect(modal.getByText(/Accept Option/i)).toBeVisible();
     await expect(modal.getByText(/Decline Option/i)).toBeVisible();
-    await expect(modal.getByText(/Sign New Contract/i)).toBeVisible();
+    await expect(modal.getByText(/Sign New Contract \(Preview\)/i)).toBeVisible();
     await expect(
       modal.getByTestId('edit-contract-confirm-action-button')
     ).toBeDisabled();
@@ -239,7 +239,7 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
       overflowMenu.getByRole('menuitem', { name: /^Pin$/i })
     ).toBeVisible();
     await expect(
-      overflowMenu.getByRole('menuitem', { name: /^Trade$/i })
+      overflowMenu.getByRole('menuitem', { name: /^Open Trade$/i })
     ).toBeVisible();
     await expect(
       overflowMenu.getByRole('menuitem', { name: /^View on Roster$/i })
@@ -379,12 +379,12 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
         signingActions.getByText(firstEntryName, { exact: true })
       ).toBeVisible();
       await expect(
-        modal.getByRole('button', { name: /^Start Signing$/i })
+        modal.getByRole('button', { name: /^Start Preview Signing$/i })
       ).toBeEnabled();
     } else {
       await expect(modal).toContainText(/No free agents in this pool/i);
       await expect(
-        modal.getByRole('button', { name: /^Start Signing$/i })
+        modal.getByRole('button', { name: /^Start Preview Signing$/i })
       ).toBeDisabled();
     }
 

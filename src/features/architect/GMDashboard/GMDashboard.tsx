@@ -112,6 +112,9 @@ type ContractModalActionOverrides = Pick<
   EditContractModalProps,
   'actionsOverride' | 'actionLabelsOverride' | 'showOfferSheetToggle'
 >;
+type ContractModalActionLabelsOverride = NonNullable<
+  EditContractModalProps['actionLabelsOverride']
+>;
 type FreeAgencySectionProps = Parameters<typeof FreeAgencySection>[0];
 type CapSheetSectionProps = Parameters<typeof CapSheetSection>[0];
 type CapTableSectionProps = Parameters<typeof CapTableSection>[0];
@@ -144,6 +147,16 @@ const toOverrideMetadata = (value: unknown): ArchitectOverrideMetadata => {
 // browser console with:
 //   localStorage.setItem('architect.devTools.capAudit', '1')
 const COCKPIT_CAP_AUDIT_FLAG_KEY = 'architect.devTools.capAudit';
+
+const V1_PREVIEW_CONTRACT_ACTION_LABELS = {
+  accept: 'Accept Option (Preview)',
+  decline: 'Decline Option (Preview)',
+  signNew: 'Sign New Contract (Preview)',
+  extend: 'Extend Contract (Preview)',
+  waive: 'Waive Player (Preview)',
+  waiveStretch: 'Waive & Stretch (Preview)',
+  buyout: 'Buyout Contract (Preview)',
+} satisfies ContractModalActionLabelsOverride;
 
 function isCockpitCapAuditEnabled(): boolean {
   if (typeof window === 'undefined') return false;
@@ -884,6 +897,13 @@ export const GMDashboard = () => {
     onOptionDecision: modalOnOptionDecision,
     onRenounce: modalOnRenounce,
   };
+  const contractModalExposureOverrides: ContractModalActionOverrides = {
+    ...(contractModalActionOverrides || {}),
+    actionLabelsOverride: {
+      ...V1_PREVIEW_CONTRACT_ACTION_LABELS,
+      ...(contractModalActionOverrides?.actionLabelsOverride || {}),
+    },
+  };
 
   // SECTION HANDOFF SURFACES: The dashboard shell publishes upstream truth,
   // action owners, and reload authorities into wrappers. Major sections may
@@ -1044,6 +1064,7 @@ export const GMDashboard = () => {
         onActivate: openTrade,
         forceActive: isTradeOpen,
         indicator: tradeDraftActive,
+        title: 'Open Trade Machine - launcher only',
       },
       {
         id: 'fa',
@@ -1445,7 +1466,7 @@ export const GMDashboard = () => {
           teamCapSheet={modalTeamCapSheet}
           currentYear={currentYear}
           {...modalActionCallbacks}
-          {...(contractModalActionOverrides || {})}
+          {...contractModalExposureOverrides}
           playersMap={playersMap}
           playerRulesProfile={selectedPlayerRulesProfile}
           rulesLeagueContext={selectedRulesLeagueContext}

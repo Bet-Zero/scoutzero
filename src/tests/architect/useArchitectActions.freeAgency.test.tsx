@@ -506,7 +506,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       freeAgentModalAvailability: {
         visibleActions: ['signNew'],
         actionLabelsOverride: {
-          signNew: 'Sign Free Agent',
+          signNew: 'Sign Free Agent (Preview)',
         },
         showOfferSheetToggle: false,
         signAndTradeInitiation: null,
@@ -535,7 +535,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       freeAgentModalAvailability: {
         visibleActions: ['signNew'],
         actionLabelsOverride: {
-          signNew: 'Sign Free Agent',
+          signNew: 'Sign Free Agent (Preview)',
         },
         showOfferSheetToggle: false,
         signAndTradeInitiation: null,

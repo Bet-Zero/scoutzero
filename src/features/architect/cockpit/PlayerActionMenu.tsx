@@ -59,7 +59,7 @@ const ACTION_LABELS: Record<PlayerAction, string> = {
   open: 'Open',
   pin: 'Pin',
   unpin: 'Unpin',
-  trade: 'Trade',
+  trade: 'Open Trade',
   'view-on-roster': 'View on Roster',
   'view-on-cap': 'View on Cap Sheet',
   'view-in-full-cap': 'View in Full Cap',

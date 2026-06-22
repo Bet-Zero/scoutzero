@@ -967,6 +967,7 @@ export const CapSheetFull = ({
             </span>
             <button
               data-testid="cap-sheet-full-fa-absolve-button"
+              data-action-exposure-classification="V1 supported"
               onClick={(e) => {
                 e.stopPropagation();
                 renounceCapHold?.(hold);
@@ -995,6 +996,7 @@ export const CapSheetFull = ({
             <div
               key={year}
               data-testid="cap-sheet-full-fa-resign-cell"
+              data-action-exposure-classification="V1 supported"
               onClick={() =>
                 launchContractAction?.(
                   player,
@@ -1267,12 +1269,17 @@ export const CapSheetFull = ({
                 {onLaunchFreeAgentSearch ? (
                   <button
                     data-testid="cap-sheet-full-sign-free-agent-button"
+                    data-action-exposure-classification="preview-only"
                     type="button"
+                    title="Standard free-agent signing preview"
                     onClick={() => onLaunchFreeAgentSearch()}
-                    className="rounded-md border border-black/40 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-transform hover:scale-[1.03]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-black/40 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-transform hover:scale-[1.03]"
                     style={{ background: 'var(--team-secondary,#FDB927)' }}
                   >
                     + Sign Free Agent
+                    <span className="rounded bg-black/20 px-1 text-[9px]">
+                      Preview
+                    </span>
                   </button>
                 ) : null}
               </div>
@@ -1415,9 +1422,9 @@ export const CapSheetFull = ({
                             const extraItems = onLaunchPlayerAction
                               ? (
                                   [
-                                    ['extend', 'Extend'],
-                                    ['waive', 'Waive'],
-                                    ['stretch', 'Stretch'],
+                                    ['extend', 'Extend (Preview)'],
+                                    ['waive', 'Waive (Preview)'],
+                                    ['stretch', 'Stretch (Preview)'],
                                   ] as const
                                 ).map(([action, label]) => ({
                                   id: action,
@@ -1526,11 +1533,12 @@ export const CapSheetFull = ({
                                     )
                                   }
                                   className={`relative flex items-center justify-center px-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 transition-all ${getFaCellTint(faLabel)}`}
-                                  title={
+                                  title={`Preview: ${
                                     rfaInfo?.reason ||
                                     rulesProfileForYear?.contractSummary
-                                      ?.freeAgencyType
-                                  }
+                                      ?.freeAgencyType ||
+                                    'free-agent action'
+                                  }`}
                                 >
                                   <span
                                     className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getTagColor(faLabel)} transition-transform hover:scale-105`}
@@ -1584,7 +1592,8 @@ export const CapSheetFull = ({
                                   )
                                 }
                                 className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] transition-all cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
-                                title={`Click to manage ${isPO ? 'Player' : 'Team'} Option`}
+                                title={`Preview: manage ${isPO ? 'Player' : 'Team'} Option`}
+                                data-action-exposure-classification="preview-only"
                               >
                                 {twoWayMarker}
                                 <ContractAmountDisplay
@@ -1861,6 +1870,7 @@ export const CapSheetFull = ({
                       <div className="absolute inset-0 bg-cockpit-slab flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
                         <button
                           data-testid="cap-sheet-full-absolve-button"
+                          data-action-exposure-classification="V1 supported"
                           onClick={(e) => {
                             e.stopPropagation();
                             renounceCapHold?.(h);
