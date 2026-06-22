@@ -52,12 +52,25 @@ const captureEvidence = async (page: Page, testInfo: TestInfo, label: string) =>
   });
 };
 
-// Navigate to /gm/MIA?season=2027 and wait until the dashboard leaves the
-// loading state and the seeded MIA team has rendered. Fail loudly on
-// "No team data" — the whole point is that the MIA fixture is present.
-const gotoMiaOwnFaSeason = async (page: Page) => {
-  await page.goto(MIA_OWN_FA_URL, { waitUntil: 'domcontentloaded' });
+const parseMoneyMillions = (label: string) => {
+  const match = label.replace(/,/g, '').match(/(-?\$?[\d.]+)\s*([KMB])?/i);
+  if (!match) return Number.NaN;
+  const value = Number(match[1].replace('$', ''));
+  const suffix = (match[2] || 'M').toUpperCase();
+  if (suffix === 'B') return value * 1000;
+  if (suffix === 'K') return value / 1000;
+  return value;
+};
 
+const readCockpitTotalCapMillions = async (page: Page) =>
+  parseMoneyMillions(
+    (await page.getByTestId('cockpit-status-total-cap-value').textContent()) ||
+      ''
+  );
+
+// Wait until the dashboard leaves the loading state and the seeded MIA team has
+// rendered. Fail loudly on "No team data" because the fixture must be present.
+const waitForMiaOwnFaDashboard = async (page: Page) => {
   const fullCapTab = page.getByTestId('tab-full-cap-table');
   const noTeamData = page.getByText(/^No team data$/i);
   const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
@@ -86,6 +99,12 @@ const gotoMiaOwnFaSeason = async (page: Page) => {
   if (await isVisible(fullCapTab, 2000)) {
     await fullCapTab.click();
   }
+};
+
+// Navigate to /gm/MIA?season=2027 and wait for the fixture dashboard.
+const gotoMiaOwnFaSeason = async (page: Page) => {
+  await page.goto(MIA_OWN_FA_URL, { waitUntil: 'domcontentloaded' });
+  await waitForMiaOwnFaDashboard(page);
 };
 
 // The own-FA decision row that carries Grant Holloway. There is exactly one
@@ -158,6 +177,15 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
 
     const faRow = ownFaDecisionRow(page);
     await expect(faRow).toBeVisible({ timeout: 20000 });
+    await expect(
+      faRow.getByTestId('cap-sheet-full-fa-resign-cell').first()
+    ).toContainText('$15,000,000');
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
+
+    const beforeTotalCap = await readCockpitTotalCapMillions(page);
+    expect(Number.isFinite(beforeTotalCap)).toBe(true);
 
     await faRow.hover();
     const absolveButton = faRow.getByTestId('cap-sheet-full-fa-absolve-button');
@@ -167,8 +195,25 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
     // After absolving, the own FA's cap hold is cleared, so the inline decision
     // row for him is gone from the table.
     await expect(ownFaDecisionRow(page)).toHaveCount(0, { timeout: 20000 });
+    await expect
+      .poll(async () => readCockpitTotalCapMillions(page))
+      .toBeLessThan(beforeTotalCap);
+
+    const afterTotalCap = await readCockpitTotalCapMillions(page);
+    expect(beforeTotalCap - afterTotalCap).toBeCloseTo(15, 0);
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
 
     await captureEvidence(page, testInfo, 'FCT-OWNFA-002-after-absolve');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForMiaOwnFaDashboard(page);
+    await expect(ownFaDecisionRow(page)).toBeVisible({ timeout: 20000 });
+    expect(await readCockpitTotalCapMillions(page)).toBeCloseTo(
+      beforeTotalCap,
+      0
+    );
   });
 
   test('FCT-OWNFA-003: own-FA re-sign cell launches the free-agent contract action modal safely', async ({
