@@ -521,7 +521,9 @@ export function useCapValidation({
           const maxRaisePct = guardrails.raisePct;
           for (let i = 1; i < salaries.length; i += 1) {
             const prevSalary = salaries[i - 1] || 0;
-            const allowed = prevSalary * (1 + maxRaisePct + Number.EPSILON);
+            const allowed = Math.round(
+              prevSalary * (1 + maxRaisePct + Number.EPSILON)
+            );
             if (salaries[i] > allowed) {
               errors.push({
                 severity: 'error',
@@ -635,4 +637,3 @@ export function useCapValidation({
     rulesProfile,
   ]);
 }
-

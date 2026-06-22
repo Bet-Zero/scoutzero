@@ -531,6 +531,16 @@ export function validateSigning({
     : null;
   const engineSigningTerms =
     signingTerms?.source === 'salary_engine' ? signingTerms : null;
+  const normalizedPrimarySigningTerms = signingTerms
+    ? normalizeSigningTerms(signingTerms, {
+        fallbackMechanism: signingMechanism,
+      })
+    : null;
+  const isBirdRightsResigning =
+    !!normalizedPrimarySigningTerms?.rightsType &&
+    ['FULL_BIRD', 'EARLY_BIRD', 'NON_BIRD'].includes(
+      normalizedPrimarySigningTerms.rightsType
+    );
   const hasEngineMaxYears = engineSigningTerms?.maxYears != null;
 
   if (!isTwoWay) {
@@ -930,11 +940,12 @@ export function validateSigning({
   }
 
   // 1.8. Second apron minimum-only enforcement (PHASE 2.5 - CBA Contract Rules)
-  // Teams above second apron can ONLY sign players to minimum salary contracts
-  // This applies regardless of mechanism (even UNKNOWN) - it's a hard cap on team spending
+  // Teams above second apron can only add outside free agents on minimum salary
+  // contracts. Verified Bird-rights re-signings are exempt because the team is
+  // retaining its own player through rights, not adding an outside FA.
   // Two-way contracts are excluded - they don't count against standard cap
   // PHASE 2.5 PATCH: Use capHit (not salary) for projected cap calculation
-  if (!isTwoWay && rules) {
+  if (!isTwoWay && rules && !isBirdRightsResigning) {
     const totals = team.totals || {};
     const currentCapHit = toFiniteNumber(
       totals.capHit ?? totals.totalSalary ?? totals.totalCapAllocations,
@@ -1078,4 +1089,3 @@ export function validateSigning({
     warnings,
   };
 }
-

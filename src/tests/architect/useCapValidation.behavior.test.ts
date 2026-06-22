@@ -364,6 +364,65 @@ describe('useCapValidation', () => {
     expect(result.current.isValid).toBe(true);
   });
 
+  it('allows modal signing raises that round to the legal whole-dollar limit', () => {
+    const capSettings = requireCapSettings(2027);
+    const player = createPlayer({
+      birdRights: 'Full Bird',
+      salariesByYear: [
+        createSalaryRow(2024, 10_000_000),
+        createSalaryRow(2025, 11_000_000),
+        createSalaryRow(2026, 12_000_000),
+      ],
+    });
+    const rulesProfile = {
+      minimumSalary: 1_100_000,
+      birdRights: {
+        type: 'Full Bird',
+        signingAbilities: {
+          maxFirstYearSalary: 49_641_600,
+          raisePercentage: 0.08,
+          maxYears: 5,
+          canSignToMax: true,
+        },
+      },
+      maxSalary: {
+        maxSalary: 49_641_600,
+        maxSalaryBird: 49_641_600,
+      },
+      restrictedFreeAgency: {
+        isRFA: false,
+      },
+    };
+    const salaries = [
+      12_000_000,
+      12_960_000,
+      13_996_800,
+      15_116_544,
+      16_325_868,
+    ];
+
+    const { result } = renderHook(() =>
+      useCapValidation({
+        player,
+        action: 'resign',
+        contractData: {
+          years: salaries.length,
+          salaries,
+          guardrails: buildSigningGuardrails(rulesProfile, capSettings, 'None'),
+          exceptionType: 'None',
+        },
+        teamCapSheet: {
+          players: [player],
+        },
+        currentYear: 2027,
+        rulesProfile,
+      })
+    );
+
+    expect(result.current.errors).toEqual([]);
+    expect(result.current.isValid).toBe(true);
+  });
+
   it('preserves waive-stretch warning assembly', () => {
     const player = createPlayer({
       salariesByYear: [

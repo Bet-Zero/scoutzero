@@ -1757,6 +1757,59 @@ describe('Cap Legality Validation', () => {
       expect(apronViolation).toBeUndefined();
     });
 
+    it('allows above-second-apron own-player re-signing through Bird rights above minimum', () => {
+      const team = {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        players: [],
+        roster: [],
+        totals: { capHit: SECOND_APRON_2026 + 1_000_000 },
+      };
+
+      const player = {
+        player_id: 'own_fa_1',
+        name: 'Own Free Agent',
+        displayName: 'Own Free Agent',
+        teamId: 'LAL',
+        bio: { age: 29, experience: 7 },
+        contract: {
+          signingTeam: 'LAL',
+          birdRights: { status: 'Full Bird', yearsWithTeam: 3 },
+          freeAgency: { type: 'UFA', year: 2025, capHold: 15_000_000 },
+          salariesByYear: [
+            { season: '2022-23', salary: 10_000_000 },
+            { season: '2023-24', salary: 11_000_000 },
+            { season: '2024-25', salary: 12_000_000 },
+          ],
+        },
+        freeAgency: { type: 'UFA', year: 2025, capHold: 15_000_000 },
+      };
+
+      const contract = {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 12_000_000, capHit: 12_000_000 },
+          { season: '2026-27', salary: 12_960_000, capHit: 12_960_000 },
+          { season: '2027-28', salary: 13_996_800, capHit: 13_996_800 },
+          { season: '2028-29', salary: 15_116_544, capHit: 15_116_544 },
+          { season: '2029-30', salary: 16_325_868, capHit: 16_325_868 },
+        ],
+      };
+
+      const result = validateSigning({
+        team,
+        player,
+        contract,
+        signedUsing: null,
+        year,
+      });
+
+      expect(
+        result.violations.find((v) => v.rule === 'second_apron_minimum_only')
+      ).toBeUndefined();
+      expect(result.valid).toBe(true);
+    });
+
     it('allows below-second-apron signing at any valid salary', () => {
       const team = {
         teamCode: 'LAL',

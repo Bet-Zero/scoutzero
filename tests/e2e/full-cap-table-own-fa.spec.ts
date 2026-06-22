@@ -25,7 +25,7 @@
  * Own free agent under test: Grant Holloway (Bird/UFA, freeAgency.year 2026,
  * $15M cap hold).
  *
- * Absolve is safe to exercise here: in base/sandbox mode the renounce mutation
+ * Absolve/re-sign are safe to exercise here: in base/sandbox mode the mutation
  * is applied `local-only` (in-memory) and is never persisted, so each test that
  * reloads /gm/MIA?season=2027 starts from the seed again — no state leaks.
  *
@@ -115,6 +115,13 @@ const ownFaDecisionRow = (page: Page): Locator =>
     .getByTestId('cap-sheet-full-fa-decision-row')
     .filter({ hasText: OWN_FA_NAME });
 
+const signedOwnFaPlayerRow = (page: Page): Locator =>
+  page.locator('[data-cap-fit-row]').filter({
+    has: page
+      .getByTestId('cap-sheet-full-player-row-button')
+      .filter({ hasText: OWN_FA_NAME }),
+  });
+
 const assertRosterParityAfterAbsolve = async (page: Page) => {
   await page.getByTestId('tab-roster').click();
   const rosterWorkbench = page
@@ -140,6 +147,35 @@ const assertRosterParityAfterAbsolve = async (page: Page) => {
       name: new RegExp(`More actions for ${OWN_FA_NAME}`, 'i'),
     })
   ).toHaveCount(0);
+  await expect(rosterWorkbench.getByAltText('Marcus Vance')).toHaveCount(1);
+  await expect(rosterWorkbench.getByAltText('Tobias Lund')).toHaveCount(1);
+};
+
+const assertRosterParityAfterResign = async (page: Page) => {
+  await page.getByTestId('tab-roster').click();
+  const rosterWorkbench = page
+    .getByTestId('cockpit-workbench')
+    .and(page.locator('[data-active-tab="roster"]'));
+
+  await expect(rosterWorkbench).toBeVisible();
+  const truthPanel = rosterWorkbench.getByTestId('architect-roster-truth-panel');
+  await expect(truthPanel).toHaveAttribute('data-roster-active-year', '2027');
+  await expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '14');
+  await expect(truthPanel).toHaveAttribute('data-roster-standard-count', '13');
+  await expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '1');
+  await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+    '14 / 15'
+  );
+  await expect(page.getByTestId('cockpit-team-posture-summary')).toContainText(
+    '14 / 15 roster spots shown'
+  );
+
+  await expect(rosterWorkbench.getByAltText(OWN_FA_NAME)).toHaveCount(1);
+  await expect(
+    rosterWorkbench.getByRole('button', {
+      name: new RegExp(`More actions for ${OWN_FA_NAME}`, 'i'),
+    })
+  ).toHaveCount(1);
   await expect(rosterWorkbench.getByAltText('Marcus Vance')).toHaveCount(1);
   await expect(rosterWorkbench.getByAltText('Tobias Lund')).toHaveCount(1);
 };
@@ -277,5 +313,81 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
     await expect(ownFaDecisionRow(page)).toBeVisible();
 
     await captureEvidence(page, testInfo, 'FCT-OWNFA-003-resign-cell-modal');
+  });
+
+  test('FCT-OWNFA-004: Re-sign converts the own-FA cap hold into a roster contract across FCT/Roster/cockpit', async ({
+    page,
+  }, testInfo) => {
+    const faRow = ownFaDecisionRow(page);
+    await expect(faRow).toBeVisible({ timeout: 20000 });
+    await expect(
+      faRow.getByTestId('cap-sheet-full-fa-resign-cell').first()
+    ).toContainText('$15,000,000');
+    await expect(signedOwnFaPlayerRow(page)).toHaveCount(0);
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
+
+    const beforeTotalCap = await readCockpitTotalCapMillions(page);
+    expect(Number.isFinite(beforeTotalCap)).toBe(true);
+    await captureEvidence(page, testInfo, 'FCT-OWNFA-004-before-resign');
+
+    await faRow.getByTestId('cap-sheet-full-fa-resign-cell').first().click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    await modal.getByTestId('contract-action-resign').check();
+    await expect(modal.getByTestId('contract-action-resign')).toBeChecked();
+    await expect(
+      modal.locator('input[inputmode="decimal"]').first()
+    ).toHaveValue('$12,000,000');
+
+    const confirmButton = modal.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
+    await expect(confirmButton).toBeEnabled({ timeout: 20000 });
+    await captureEvidence(page, testInfo, 'FCT-OWNFA-004-modal-ready');
+    await confirmButton.click();
+
+    await expect(modal).toHaveCount(0, { timeout: 20000 });
+
+    await expect(ownFaDecisionRow(page)).toHaveCount(0, { timeout: 20000 });
+    const signedRow = signedOwnFaPlayerRow(page);
+    await expect(signedRow).toHaveCount(1, { timeout: 20000 });
+    await expect(signedRow).toContainText('$12,000,000');
+    await expect(
+      page
+        .getByTestId('cap-sheet-full-fa-decision-row')
+        .filter({ hasText: OWN_FA_NAME })
+    ).toHaveCount(0);
+
+    await expect
+      .poll(async () => readCockpitTotalCapMillions(page), {
+        message:
+          'The trusted Full Cap Table total should update after replacing the $15M hold with a signed contract',
+      })
+      .toBeLessThan(beforeTotalCap);
+
+    const afterTotalCap = await readCockpitTotalCapMillions(page);
+    expect(beforeTotalCap - afterTotalCap).toBeGreaterThan(0);
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '14 / 15'
+    );
+
+    await captureEvidence(page, testInfo, 'FCT-OWNFA-004-after-resign-fct');
+    await assertRosterParityAfterResign(page);
+    await captureEvidence(page, testInfo, 'FCT-OWNFA-004-after-resign-roster');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForMiaOwnFaDashboard(page);
+    await expect(ownFaDecisionRow(page)).toBeVisible({ timeout: 20000 });
+    await expect(signedOwnFaPlayerRow(page)).toHaveCount(0);
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
+    expect(await readCockpitTotalCapMillions(page)).toBeCloseTo(
+      beforeTotalCap,
+      0
+    );
   });
 });
