@@ -92,6 +92,7 @@ type ResolvedCapHoldEntry = {
   player: CapSheetFullPlayerLike | null;
   isOnRoster: boolean;
 };
+type ActionExposureClassification = 'V1 supported' | 'preview-only';
 
 export type CapSheetActionType = 'rfa' | 'ufa' | 'po' | 'to' | 'renounce';
 export type CapSheetModalActionType = Exclude<CapSheetActionType, 'renounce'>;
@@ -173,11 +174,16 @@ type CapSheetFullProps = {
    */
   exceptionsReadout?: React.ReactNode;
   /**
-   * Home-base enrichment: launches the existing Free Agency desk so a user can
-   * pull from the FA pool without leaving their cap workspace first. Navigation
-   * only — the FA signing flow itself is unchanged.
+   * Home-base enrichment: launches the existing Free Agency modal/search so a
+   * user can pull from the FA pool without leaving their cap workspace first.
+   * The FA signing flow itself is unchanged.
    */
   onLaunchFreeAgentSearch?: (() => void) | null;
+  /**
+   * Visible promise for the launcher only. The dashboard action layer owns the
+   * world-vs-preview decision; the Full Cap Table only renders that truth.
+   */
+  standardFreeAgentLauncherExposureClassification?: ActionExposureClassification;
   freeAgentOptions?: FreeAgentSurfaceEntry[];
   onOpenFreeAgentOption?: ((selectionKey: string) => void) | null;
   onRemoveFreeAgentOption?: ((selectionKey: string) => void) | null;
@@ -573,11 +579,14 @@ export const CapSheetFull = ({
   manualCapSheetMutationAuthority = null,
   exceptionsReadout = null,
   onLaunchFreeAgentSearch = null,
+  standardFreeAgentLauncherExposureClassification = 'preview-only',
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
   playersMap = {},
 }: CapSheetFullProps) => {
+  const standardFreeAgentLauncherIsSupported =
+    standardFreeAgentLauncherExposureClassification === 'V1 supported';
   // The three bottom detail surfaces (Dead Money / Cap Holds / Exceptions) share
   // one segmented bar: at most one panel is open at a time, and it pops up ABOVE
   // the bar so it never pushes the Full Cap Table into scroll.
@@ -1269,16 +1278,22 @@ export const CapSheetFull = ({
                 {onLaunchFreeAgentSearch ? (
                   <button
                     data-testid="cap-sheet-full-sign-free-agent-button"
-                    data-action-exposure-classification="preview-only"
+                    data-action-exposure-classification={
+                      standardFreeAgentLauncherExposureClassification
+                    }
                     type="button"
-                    title="Standard free-agent signing preview"
+                    title={
+                      standardFreeAgentLauncherIsSupported
+                        ? 'Saved-world standard free-agent signing'
+                        : 'Standard free-agent signing preview'
+                    }
                     onClick={() => onLaunchFreeAgentSearch()}
                     className="inline-flex items-center gap-1.5 rounded-md border border-black/40 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-transform hover:scale-[1.03]"
                     style={{ background: 'var(--team-secondary,#FDB927)' }}
                   >
                     + Sign Free Agent
                     <span className="rounded bg-black/20 px-1 text-[9px]">
-                      Preview
+                      {standardFreeAgentLauncherIsSupported ? 'V1' : 'Preview'}
                     </span>
                   </button>
                 ) : null}

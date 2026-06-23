@@ -11,6 +11,7 @@ type FullCapFreeAgentModalProps = {
   initialSelectionKey?: string | null;
   isLoading?: boolean;
   onLaunchAction?: (entry: FreeAgentSurfaceEntry) => void;
+  standardSigningExposureClassification?: 'V1 supported' | 'preview-only';
 };
 
 const getPlayerName = (entry: FreeAgentSurfaceEntry) =>
@@ -57,6 +58,7 @@ const FullCapFreeAgentModal = ({
   initialSelectionKey = null,
   isLoading = false,
   onLaunchAction = undefined,
+  standardSigningExposureClassification = 'preview-only',
 }: FullCapFreeAgentModalProps) => {
   const [query, setQuery] = useState('');
   const [selectedSelectionKey, setSelectedSelectionKey] = useState<string | null>(
@@ -109,6 +111,15 @@ const FullCapFreeAgentModal = ({
   );
   const selectedEntry =
     entries.find((entry) => entry.selectionKey === selectedSelectionKey) ?? null;
+  const standardSigningIsSupported =
+    standardSigningExposureClassification === 'V1 supported';
+  const supportBadgeLabel = standardSigningIsSupported
+    ? 'V1 supported'
+    : 'Preview only';
+  const launchActionLabel = standardSigningIsSupported ? 'Sign' : 'Preview Sign';
+  const selectedLaunchLabel = standardSigningIsSupported
+    ? 'Start Signing'
+    : 'Start Preview Signing';
 
   if (!isOpen) return null;
 
@@ -131,19 +142,24 @@ const FullCapFreeAgentModal = ({
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cockpit-text-muted">
               {teamLabel} / {seasonLabel}
             </p>
-            <h2 id="full-cap-free-agent-modal-title" className="mt-1 text-base font-bold text-cockpit-text-primary">
+            <h2
+              id="full-cap-free-agent-modal-title"
+              className="mt-1 text-base font-bold text-cockpit-text-primary"
+            >
               Sign Free Agent
               <span
                 aria-hidden="true"
                 className="ml-2 rounded border border-cockpit-watch/30 bg-cockpit-watch/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-watch"
               >
-                Preview only
+                {supportBadgeLabel}
               </span>
             </h2>
             <p className="mt-1 text-xs text-cockpit-text-muted">
-              {entries.length} eligible {entries.length === 1 ? 'player' : 'players'}.
-              Standard free-agent signing is visible as a preview, not a V1
-              supported promise.
+              {entries.length} eligible{' '}
+              {entries.length === 1 ? 'player' : 'players'}.
+              {standardSigningIsSupported
+                ? ' Standard free-agent signing uses the saved-world V1 signing path.'
+                : ' Standard free-agent signing is visible as a preview, not a V1 supported promise.'}
             </p>
           </div>
           <button
@@ -232,12 +248,14 @@ const FullCapFreeAgentModal = ({
                           type="button"
                           onClick={() => onLaunchAction?.(entry)}
                           disabled={!onLaunchAction}
-                          data-action-exposure-classification="preview-only"
-                          aria-label={`Preview sign ${getPlayerName(entry)}`}
+                          data-action-exposure-classification={
+                            standardSigningExposureClassification
+                          }
+                          aria-label={`${launchActionLabel} ${getPlayerName(entry)}`}
                           className="inline-flex h-8 items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 text-xs font-semibold text-cockpit-text-secondary transition-colors hover:bg-cockpit-safe/15 hover:text-cockpit-safe disabled:text-cockpit-text-muted disabled:opacity-70 disabled:hover:bg-cockpit-raised"
                         >
                           <UserPlus aria-hidden className="h-3.5 w-3.5" />
-                          Preview Sign
+                          {launchActionLabel}
                         </button>
                       </div>
                     </li>
@@ -264,7 +282,7 @@ const FullCapFreeAgentModal = ({
             className="rounded-lg border border-cockpit-edge bg-cockpit-inlay p-3"
           >
             <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-cockpit-text-secondary">
-              Signing Preview
+              {standardSigningIsSupported ? 'Signing Action' : 'Signing Preview'}
             </h3>
             <div className="mt-3 space-y-2">
               {selectedEntry ? (
@@ -283,7 +301,9 @@ const FullCapFreeAgentModal = ({
               <button
                 type="button"
                 disabled={!selectedEntry || !onLaunchAction}
-                data-action-exposure-classification="preview-only"
+                data-action-exposure-classification={
+                  standardSigningExposureClassification
+                }
                 onClick={() => {
                   if (selectedEntry) {
                     onLaunchAction?.(selectedEntry);
@@ -292,7 +312,7 @@ const FullCapFreeAgentModal = ({
                 className="flex w-full items-center justify-center gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-3 py-2 text-xs font-semibold text-cockpit-text-secondary transition-colors hover:bg-cockpit-safe/15 hover:text-cockpit-safe disabled:text-cockpit-text-muted disabled:opacity-70 disabled:hover:bg-cockpit-raised"
               >
                 <UserPlus aria-hidden className="h-3.5 w-3.5" />
-                Start Preview Signing
+                {selectedLaunchLabel}
               </button>
               {!onLaunchAction ? (
                 <p className="text-xs text-cockpit-text-muted">

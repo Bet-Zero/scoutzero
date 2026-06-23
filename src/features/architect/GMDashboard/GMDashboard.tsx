@@ -786,6 +786,9 @@ export const GMDashboard = () => {
 
   const freeAgencyActionOwner =
     actions.freeAgencyActionOwner as FreeAgencySectionProps['actionOwner'];
+  const standardFreeAgentExposureClassification =
+    freeAgencyActionOwner.freeAgentModalAvailability
+      .standardSigningExposureClassification;
   const freeAgentPoolSeasonKey = toSeasonKey(currentYear);
   const buildFreeAgentPoolScope = useCallback(() => {
     const teamCode = String(normalizedTeamId || '').trim().toUpperCase();
@@ -1248,6 +1251,9 @@ export const GMDashboard = () => {
           onTogglePin={togglePin}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
           onLaunchFreeAgentSearch={openFullCapFreeAgentModal}
+          standardFreeAgentLauncherExposureClassification={
+            standardFreeAgentExposureClassification
+          }
           freeAgentOptions={freeAgentOptionEntries}
           onOpenFreeAgentOption={(selectionKey) => {
             openFullCapFreeAgentModal(selectionKey);
@@ -1379,6 +1385,9 @@ export const GMDashboard = () => {
         initialSelectionKey={fullCapFreeAgentModalSelectionKey}
         isLoading={isLoading || worldMetadataLoading}
         onLaunchAction={launchFullCapFreeAgentAction}
+        standardSigningExposureClassification={
+          standardFreeAgentExposureClassification
+        }
       />
 
       {showOffseasonModal && offseasonSummary && (

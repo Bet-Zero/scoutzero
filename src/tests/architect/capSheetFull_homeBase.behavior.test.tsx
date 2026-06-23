@@ -221,6 +221,45 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(onLaunchFreeAgentSearch).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the Full Cap free-agent launcher preview-only until upstream proof marks it supported', () => {
+    const onLaunchFreeAgentSearch = vi.fn();
+    const { rerender } = render(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet}
+        currentYear={CURRENT_YEAR}
+        onLaunchFreeAgentSearch={onLaunchFreeAgentSearch}
+      />
+    );
+
+    const previewLauncher = screen.getByTestId(
+      'cap-sheet-full-sign-free-agent-button'
+    );
+    expect(previewLauncher).toHaveAttribute(
+      'data-action-exposure-classification',
+      'preview-only'
+    );
+    expect(previewLauncher).toHaveTextContent(/Preview/i);
+
+    rerender(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet}
+        currentYear={CURRENT_YEAR}
+        onLaunchFreeAgentSearch={onLaunchFreeAgentSearch}
+        standardFreeAgentLauncherExposureClassification="V1 supported"
+      />
+    );
+
+    const supportedLauncher = screen.getByTestId(
+      'cap-sheet-full-sign-free-agent-button'
+    );
+    expect(supportedLauncher).toHaveAttribute(
+      'data-action-exposure-classification',
+      'V1 supported'
+    );
+    expect(supportedLauncher).not.toHaveTextContent(/Preview/i);
+    expect(supportedLauncher).toHaveTextContent(/V1/i);
+  });
+
   it('extends season columns through the longest contract horizon', () => {
     const longContractCapSheet = {
       ...(teamCapSheet as unknown as Record<string, unknown>),

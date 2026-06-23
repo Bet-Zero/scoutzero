@@ -353,6 +353,59 @@ const openStandardFreeAgentModal = async (page: Page) => {
   return modal;
 };
 
+const openFullCapStandardFreeAgentModal = async (page: Page) => {
+  await openDashboardTab(page, 'Full Cap Table');
+
+  const launcher = page.getByTestId('cap-sheet-full-sign-free-agent-button');
+  await expect(launcher).toBeVisible({ timeout: 15000 });
+  await expect(launcher).toHaveAttribute(
+    'data-action-exposure-classification',
+    'V1 supported'
+  );
+  await expect(launcher).not.toContainText(/Preview/i);
+  await launcher.click();
+
+  const fullCapModal = page.getByTestId('full-cap-free-agent-modal');
+  await expect(fullCapModal).toBeVisible({ timeout: 20000 });
+  await expect(fullCapModal).toContainText(/V1 supported/i);
+  await expect(fullCapModal.getByText(/Preview only/i)).toHaveCount(0);
+  await expect(fullCapModal.getByText(/Start Preview Signing/i)).toHaveCount(0);
+
+  await fullCapModal.getByPlaceholder('Search pool').fill('Review Offer');
+  const targetRow = fullCapModal.locator('li').filter({
+    hasText: REVIEW_FREE_AGENT_NAME,
+  });
+  await expect(targetRow).toBeVisible({ timeout: 15000 });
+  await expect(targetRow.getByText(REVIEW_FREE_AGENT_NAME).first()).toBeVisible();
+
+  const inlineSignButton = targetRow.getByRole('button', {
+    name: new RegExp(`^Sign ${REVIEW_FREE_AGENT_NAME}$`, 'i'),
+  });
+  await expect(inlineSignButton).toHaveAttribute(
+    'data-action-exposure-classification',
+    'V1 supported'
+  );
+
+  await targetRow
+    .getByRole('button', { name: new RegExp(`^${REVIEW_FREE_AGENT_NAME}`, 'i') })
+    .first()
+    .click();
+
+  const startSigningButton = fullCapModal.getByRole('button', {
+    name: /^Start Signing$/i,
+  });
+  await expect(startSigningButton).toBeEnabled();
+  await expect(startSigningButton).toHaveAttribute(
+    'data-action-exposure-classification',
+    'V1 supported'
+  );
+  await startSigningButton.click();
+
+  const contractModal = page.getByTestId('edit-contract-modal');
+  await expect(contractModal).toBeVisible({ timeout: 20000 });
+  return contractModal;
+};
+
 test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
   test.beforeEach(async ({ page }) => {
     await enableDevAuditFlags(page);
@@ -476,6 +529,128 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
       type: 'audit-note',
       description:
         'BOS saved-world Free Agency row signs Review Offer Sheet Guard through the standard signFreeAgent action, publishes receipt/cockpit deltas, appears in Full Cap Table and Roster, records History and Compare evidence, and reloads from the saved world.',
+      });
+  });
+
+  test('BOS Full Cap launcher signs a standard FA, persists, and reloads', async ({
+    page,
+  }, testInfo: TestInfo) => {
+    const worldId = await ensureWorldSelected(page);
+
+    const beforeBaseTeamDocument = await getBaseTeamDocument(TEAM_CODE);
+    expect(getTeamPlayerIds(beforeBaseTeamDocument)).not.toContain(
+      REVIEW_FREE_AGENT_ID
+    );
+
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '3 / 15'
+    );
+
+    const modal = await openFullCapStandardFreeAgentModal(page);
+    await expect(
+      page.getByRole('heading', { name: /^Available Actions$/i })
+    ).toBeVisible();
+    const signFreeAgentRadio = modal.getByRole('radio', {
+      name: /Sign Free Agent/i,
+    });
+    await expect(signFreeAgentRadio).toBeVisible();
+    await expect(modal.getByText(/^Sign Free Agent$/i).first()).toBeVisible();
+    await expect(
+      modal.getByText(/Sign Free Agent \(Preview\)/i)
+    ).toHaveCount(0);
+    await expect(page.getByLabel(/^Offer Sheet$/i)).toHaveCount(0);
+
+    const confirmActionButton = page.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeVisible();
+    await expect(confirmActionButton).toBeDisabled();
+    await signFreeAgentRadio.check();
+    await expect(
+      page.getByRole('heading', { name: /^New Contract Preview$/i })
+    ).toBeVisible();
+    await expect(confirmActionButton).toBeEnabled();
+    await confirmActionButton.click();
+
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Free agent signed/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByText(/Roster count changed 3 -> 4/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/Cap space changed -\$3,635,655/i).first()
+    ).toBeVisible();
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '4 / 15'
+    );
+
+    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
+    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(
+      REVIEW_FREE_AGENT_ID
+    );
+
+    const persistedEvents = await getWorldEventDocuments(worldId);
+    const signingEvent = persistedEvents.find(
+      (event) => event.mutationType === 'signFreeAgent'
+    );
+    expect(signingEvent).toBeTruthy();
+
+    await openDashboardTab(page, 'Full Cap Table');
+    await expect(page.locator('body')).toContainText(
+      /Review\s*Offer\s+Sheet/i
+    );
+    await expect(
+      page.getByTestId('cap-sheet-full-sign-free-agent-button')
+    ).toHaveAttribute('data-action-exposure-classification', 'V1 supported');
+
+    await openDashboardTab(page, 'Roster');
+    await expect(page.locator('body')).toContainText(
+      /Review\s*Offer\s+Sheet/i
+    );
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
+    await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
+
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /1\s+team changed/i
+    );
+    await expect(page.getByTestId('comparison-changed-players')).toContainText(
+      /1\s+player touched/i
+    );
+    await expect(page.getByTestId('comparison-roster-additions')).toContainText(
+      REVIEW_FREE_AGENT_ID
+    );
+    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForBosDashboard(page);
+    await ensureSpecificWorldSelected(page, worldId);
+    await openDashboardTab(page, 'Roster');
+    await expect(page.locator('body')).toContainText(
+      /Review\s*Offer\s+Sheet/i
+    );
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '4 / 15'
+    );
+    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
+      worldId,
+      TEAM_CODE
+    );
+    expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).toContain(
+      REVIEW_FREE_AGENT_ID
+    );
+
+    testInfo.annotations.push({
+      type: 'audit-note',
+      description:
+        'BOS saved-world Full Cap Table launches Sign Free Agent for Review Offer Sheet Guard, reaches the standard signFreeAgent contract modal, publishes receipt/cockpit deltas, appears in Full Cap Table and Roster, records History and Compare evidence, and reloads from the saved world.',
     });
   });
 });

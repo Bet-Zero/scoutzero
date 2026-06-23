@@ -30,6 +30,7 @@ const {
   mockSaveWorldTeamFreeAgentPool,
   mockLoadWorldTeamFreeAgentPool,
   mockResetWorldTeamFreeAgentPool,
+  mockStandardSigningExposureClassification,
 } = vi.hoisted(() => ({
   mockUseArchitectState: vi.fn(),
   mockSetActiveTab: vi.fn(),
@@ -41,6 +42,7 @@ const {
   mockSaveWorldTeamFreeAgentPool: vi.fn(),
   mockLoadWorldTeamFreeAgentPool: vi.fn(),
   mockResetWorldTeamFreeAgentPool: vi.fn(),
+  mockStandardSigningExposureClassification: vi.fn(),
 }));
 
 const buildLoadedDashboardState = () => {
@@ -199,12 +201,19 @@ vi.mock('@/features/architect/GMDashboard/sections/CapSheetSection', () => ({
 vi.mock('@/features/architect/GMDashboard/sections/CapTableSection', () => ({
   CapTableSection: (props: Record<string, any>) => {
     mockCapTableSectionProps(props);
+    const launcherClassification =
+      props.standardFreeAgentLauncherExposureClassification || 'preview-only';
+    const launcherIsSupported = launcherClassification === 'V1 supported';
     return (
       <div>
         CapTableSection
         {props.onLaunchFreeAgentSearch ? (
-          <button type="button" onClick={() => props.onLaunchFreeAgentSearch()}>
-            + Sign Free Agent Preview
+          <button
+            type="button"
+            data-action-exposure-classification={launcherClassification}
+            onClick={() => props.onLaunchFreeAgentSearch()}
+          >
+            + Sign Free Agent {launcherIsSupported ? 'V1' : 'Preview'}
           </button>
         ) : null}
         {(props.freeAgentOptions || []).map(
@@ -289,6 +298,11 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
     const declineOfferSheet = vi.fn();
     const finalizeOfferSheet = vi.fn();
 
+    const standardSigningExposureClassification =
+      mockStandardSigningExposureClassification();
+    const standardSigningIsSupported =
+      standardSigningExposureClassification === 'V1 supported';
+
     return {
       handleEditContract: mockHandleEditContract,
       handleSign: signFreeAgent,
@@ -331,9 +345,11 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
         freeAgentModalAvailability: {
           visibleActions: ['signNew'],
           actionLabelsOverride: {
-            signNew: 'Sign Free Agent (Preview)',
+            signNew: standardSigningIsSupported
+              ? 'Sign Free Agent'
+              : 'Sign Free Agent (Preview)',
           },
-          standardSigningExposureClassification: 'preview-only',
+          standardSigningExposureClassification,
           showOfferSheetToggle: false,
           signAndTradeInitiation: null,
           offerSheetInitiation: null,
@@ -431,6 +447,7 @@ describe('GMDashboard Smoke Test', () => {
       updatedAt: '2026-06-13T00:01:00.000Z',
     });
     mockResetWorldTeamFreeAgentPool.mockResolvedValue(undefined);
+    mockStandardSigningExposureClassification.mockReturnValue('preview-only');
     mockUseArchitectState.mockImplementation(() => buildLoadedDashboardState());
     mockUseArchitectPostActionReceipt.mockReturnValue({
       receipt: null,
@@ -721,6 +738,76 @@ describe('GMDashboard Smoke Test', () => {
       );
 
       expect(mockSetActiveTab).toHaveBeenCalledWith('fa');
+    });
+
+    it('marks the saved-world Full Cap free-agent launcher and modal as V1 supported', () => {
+      mockStandardSigningExposureClassification.mockReturnValue('V1 supported');
+      mockUseArchitectState.mockImplementation(() => ({
+        ...buildLoadedDashboardState(),
+        activeTab: 'capfull',
+        worldId: 'world_1',
+        activeWorldOwner: {
+          worldId: 'world_1',
+          identityToken: 1,
+          setActiveWorld: vi.fn(),
+        },
+        worldModeBoundary: {
+          kind: 'world' as const,
+          worldId: 'world_1',
+          onReloadWorldData: vi.fn(),
+        },
+        freeAgents: [
+          {
+            id: 'fa_pool_2',
+            name: 'Pool Wing',
+            formattedPosition: 'SF',
+            previousSalary: 8_000_000,
+            freeAgentType: 'UFA',
+          },
+        ],
+        playersMap: {
+          fa_pool_2: {
+            id: 'fa_pool_2',
+            name: 'Pool Wing',
+            displayName: 'Pool Wing',
+            bio: { age: 25, position: 'SF' },
+          },
+        },
+      }));
+
+      render(<GMDashboard />);
+
+      const launcher = screen.getByRole('button', {
+        name: /^\+ Sign Free Agent V1$/i,
+      });
+      expect(launcher).toHaveAttribute(
+        'data-action-exposure-classification',
+        'V1 supported'
+      );
+      fireEvent.click(launcher);
+
+      const dialog = screen.getByRole('dialog', { name: /^Sign Free Agent$/i });
+      expect(within(dialog).getByText(/V1 supported/i)).toBeInTheDocument();
+      expect(
+        within(dialog).queryByText(/Start Preview Signing/i)
+      ).not.toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole('button', { name: /^Pool Wing/i }));
+
+      const startSigning = within(dialog).getByRole('button', {
+        name: /^Start Signing$/i,
+      });
+      expect(startSigning).toHaveAttribute(
+        'data-action-exposure-classification',
+        'V1 supported'
+      );
+      fireEvent.click(startSigning);
+
+      expect(mockHandleEditContract).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'fa_pool_2',
+          displayName: 'Pool Wing',
+        })
+      );
     });
 
     it('hands selected Full Cap free agents to the existing contract action owner', () => {
