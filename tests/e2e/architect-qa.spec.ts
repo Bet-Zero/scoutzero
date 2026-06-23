@@ -1550,11 +1550,25 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       })
       .click();
 
-    await page.getByTestId('cap-sheet-full-player-row-action-waive').click();
+    const waiveLauncher = page.getByTestId('cap-sheet-full-player-row-action-waive');
+    await expect(waiveLauncher).toHaveText(/^Waive$/);
+    await expect(waiveLauncher).toHaveAttribute(
+      'data-action-exposure-classification',
+      'V1 supported'
+    );
+    await expect(
+      page.getByTestId('cap-sheet-full-player-row-action-stretch')
+    ).toHaveAttribute('data-action-exposure-classification', 'preview-only');
+    await waiveLauncher.click();
     await expect(
       page.getByRole('heading', { name: /^Available Actions$/i })
     ).toBeVisible();
     await expect(page.getByTestId('contract-action-waive')).toBeChecked();
+    await expect(page.getByText(/^Waive Player$/i).first()).toBeVisible();
+    await expect(page.getByText(/Waive Player \(Preview\)/i)).toHaveCount(0);
+    await expect(
+      page.getByText(/Waive & Stretch \(Preview\)/i).first()
+    ).toBeVisible();
     const actionContext = page.getByTestId('contract-modal-action-context');
     await expect(actionContext).toContainText('Team Plan action');
     await expect(actionContext).toContainText('Waive Player');
@@ -1576,6 +1590,28 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(
       page.getByRole('heading', { name: /^Available Actions$/i })
     ).not.toBeVisible({ timeout: 15000 });
+
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Waiver saved/i,
+      { timeout: 20000 }
+    );
+    await expect(
+      page.getByText(/Roster count changed 14 -> 13/i).first()
+    ).toBeVisible();
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
+    await expect(
+      page
+        .getByTestId('cap-sheet-full-player-row-button')
+        .filter({ hasText: REVIEW_TRADE_LAL_OUTGOING_PLAYER.name })
+    ).toHaveCount(0, { timeout: 20000 });
+    const deadMoneyToggle = page.getByTestId('cap-sheet-full-dead-money-toggle');
+    await expect(deadMoneyToggle).toBeVisible();
+    await deadMoneyToggle.click();
+    await expect(
+      page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
+    ).toBeVisible();
 
     await expect
       .poll(
@@ -1635,12 +1671,113 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
         },
       });
 
+    await expect
+      .poll(
+        async () => {
+          const persistedEvents = await getWorldEventDocuments(worldId);
+          return persistedEvents.some((event) => {
+            const playerIds = Array.isArray(event.playerIds)
+              ? event.playerIds
+              : [];
+            const metadata =
+              event.metadata && typeof event.metadata === 'object'
+                ? (event.metadata as Record<string, unknown>)
+                : {};
+            const mutationMetadata =
+              event.mutationMetadata &&
+              typeof event.mutationMetadata === 'object'
+                ? (event.mutationMetadata as Record<string, unknown>)
+                : {};
+            return (
+              event.mutationType === 'waivePlayer' &&
+              playerIds.includes(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id) &&
+              metadata.stretched !== true &&
+              mutationMetadata.stretched !== true
+            );
+          });
+        },
+        {
+          timeout: 20000,
+          message: 'standard waiver should persist one non-stretch waivePlayer event',
+        }
+      )
+      .toBe(true);
+
+    await openDashboardTab(page, 'Roster');
+    const rosterWorkbench = page
+      .getByTestId('cockpit-workbench')
+      .and(page.locator('[data-active-tab="roster"]'));
+    await expect(rosterWorkbench).toBeVisible();
+    const truthPanel = rosterWorkbench.getByTestId(
+      'architect-roster-truth-panel'
+    );
+    await expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '13');
+    await expect(truthPanel).toHaveAttribute('data-roster-standard-count', '13');
+    await expect(
+      rosterWorkbench.getByAltText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)
+    ).toHaveCount(0);
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByText(/Waive Player/i).first()).toBeVisible();
+    await expect(page.getByText(/waivePlayer/i).first()).toBeVisible();
+
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /1\s+team changed/i
+    );
+    await expect(page.getByTestId('comparison-changed-players')).toContainText(
+      /1\s+player touched/i
+    );
+    await expect(page.getByTestId('comparison-roster-additions')).toContainText(
+      /None detected/i
+    );
+    await expect(page.getByTestId('comparison-roster-removals')).toContainText(
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+    );
+    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Full Cap Table');
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
+    await expect(
+      page
+        .getByTestId('cap-sheet-full-player-row-button')
+        .filter({ hasText: REVIEW_TRADE_LAL_OUTGOING_PLAYER.name })
+    ).toHaveCount(0, { timeout: 20000 });
+    const reloadedDeadMoneyToggle = page.getByTestId(
+      'cap-sheet-full-dead-money-toggle'
+    );
+    await expect(reloadedDeadMoneyToggle).toBeVisible();
+    await reloadedDeadMoneyToggle.click();
+    await expect(
+      page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
+    ).toBeVisible();
+
+    await openDashboardTab(page, 'Roster');
+    const reloadedRosterWorkbench = page
+      .getByTestId('cockpit-workbench')
+      .and(page.locator('[data-active-tab="roster"]'));
+    await expect(
+      reloadedRosterWorkbench.getByAltText(
+        REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
+      )
+    ).toHaveCount(0);
+
     addAuditNote(
       testInfo,
-      'This proves the post-BZE-17 standard waiver path in browser review mode: Full Cap Table opens the shared action modal, Confirm Action persists the waive, Austin Reaves leaves the world roster, and deadCap.amountByYear stays on 2025-26, 2026-27, and 2027-28 instead of accelerating into the current season.'
+      'This proves the V1 Standard Waive path in browser review mode: Full Cap Table row overflow launches Waive, the shared modal commits a non-stretch waiver, the receipt/count state updates, Austin Reaves leaves active roster surfaces, dead money remains visible in Full Cap Table by original guaranteed seasons, Team History and Compare read the committed waivePlayer event, and reload preserves the saved-world state.'
     );
 
-    await captureEvidence(page, testInfo, 'D-MQ-004B-standard-waiver');
+    await captureEvidence(page, testInfo, 'D-MQ-004B-standard-waiver-v1');
   });
 
   test('D-MQ-005: Canonical V1 free-agent signing persists receipt, history, compare, and reload', async ({

@@ -148,7 +148,7 @@ const toOverrideMetadata = (value: unknown): ArchitectOverrideMetadata => {
 //   localStorage.setItem('architect.devTools.capAudit', '1')
 const COCKPIT_CAP_AUDIT_FLAG_KEY = 'architect.devTools.capAudit';
 
-const V1_PREVIEW_CONTRACT_ACTION_LABELS = {
+const V1_CONTRACT_ACTION_LABEL_OVERRIDES = {
   accept: 'Accept Option (Preview)',
   decline: 'Decline Option (Preview)',
   signNew: 'Sign New Contract (Preview)',
@@ -789,6 +789,9 @@ export const GMDashboard = () => {
   const standardFreeAgentExposureClassification =
     freeAgencyActionOwner.freeAgentModalAvailability
       .standardSigningExposureClassification;
+  const standardWaiveExposureClassification = worldId
+    ? 'V1 supported'
+    : 'preview-only';
   const freeAgentPoolSeasonKey = toSeasonKey(currentYear);
   const buildFreeAgentPoolScope = useCallback(() => {
     const teamCode = String(normalizedTeamId || '').trim().toUpperCase();
@@ -903,7 +906,8 @@ export const GMDashboard = () => {
   const contractModalExposureOverrides: ContractModalActionOverrides = {
     ...(contractModalActionOverrides || {}),
     actionLabelsOverride: {
-      ...V1_PREVIEW_CONTRACT_ACTION_LABELS,
+      ...V1_CONTRACT_ACTION_LABEL_OVERRIDES,
+      waive: worldId ? 'Waive Player' : 'Waive Player (Preview)',
       ...(contractModalActionOverrides?.actionLabelsOverride || {}),
     },
   };
@@ -1253,6 +1257,9 @@ export const GMDashboard = () => {
           onLaunchFreeAgentSearch={openFullCapFreeAgentModal}
           standardFreeAgentLauncherExposureClassification={
             standardFreeAgentExposureClassification
+          }
+          standardWaiveExposureClassification={
+            standardWaiveExposureClassification
           }
           freeAgentOptions={freeAgentOptionEntries}
           onOpenFreeAgentOption={(selectionKey) => {

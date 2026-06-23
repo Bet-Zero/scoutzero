@@ -33,6 +33,8 @@ export interface PlayerActionMenuExtraItem {
   onSelect: () => void;
   testId?: string;
   tone?: 'default' | 'danger';
+  actionExposureClassification?: 'V1 supported' | 'preview-only';
+  title?: string;
 }
 
 export interface PlayerActionMenuProps {
@@ -265,6 +267,10 @@ export function PlayerActionMenu({
                   data-testid={
                     item.testId ?? `${testIdPrefix}-extra-${item.id}`
                   }
+                  data-action-exposure-classification={
+                    item.actionExposureClassification
+                  }
+                  title={item.title}
                 >
                   {item.label}
                 </button>

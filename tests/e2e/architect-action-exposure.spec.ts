@@ -185,14 +185,29 @@ test.describe('ARCH-ACTION-EXPOSURE: visible Architect action promises are hones
     await expect(
       overflowMenu.getByRole('menuitem', { name: /^Open Trade$/i })
     ).toBeVisible();
-    await expect(
-      overflowMenu.getByRole('menuitem', { name: /^Extend \(Preview\)$/i })
-    ).toBeVisible();
-    await expect(
-      overflowMenu.getByRole('menuitem', { name: /^Waive \(Preview\)$/i })
-    ).toBeVisible();
-    await expect(
-      overflowMenu.getByRole('menuitem', { name: /^Stretch \(Preview\)$/i })
-    ).toBeVisible();
+    const extendAction = overflowMenu.getByRole('menuitem', {
+      name: /^Extend \(Preview\)$/i,
+    });
+    await expect(extendAction).toBeVisible();
+    await expect(extendAction).toHaveAttribute(
+      'data-action-exposure-classification',
+      'preview-only'
+    );
+    const waiveAction = overflowMenu.getByRole('menuitem', {
+      name: /^Waive \(Preview\)$/i,
+    });
+    await expect(waiveAction).toBeVisible();
+    await expect(waiveAction).toHaveAttribute(
+      'data-action-exposure-classification',
+      'preview-only'
+    );
+    const stretchAction = overflowMenu.getByRole('menuitem', {
+      name: /^Stretch \(Preview\)$/i,
+    });
+    await expect(stretchAction).toBeVisible();
+    await expect(stretchAction).toHaveAttribute(
+      'data-action-exposure-classification',
+      'preview-only'
+    );
   });
 });

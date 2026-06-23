@@ -161,12 +161,24 @@ describe('CapSheetFull — home-base enrichments', () => {
         teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
         onLaunchPlayerAction={onLaunchPlayerAction}
+        standardWaiveExposureClassification="V1 supported"
       />
     );
 
     const overflows = screen.getAllByTestId('cap-sheet-full-player-row-overflow');
     fireEvent.click(overflows[0]);
-    fireEvent.click(screen.getByTestId('cap-sheet-full-player-row-action-waive'));
+    const waiveAction = screen.getByTestId(
+      'cap-sheet-full-player-row-action-waive'
+    );
+    expect(waiveAction).toHaveTextContent(/^Waive$/);
+    expect(waiveAction).toHaveAttribute(
+      'data-action-exposure-classification',
+      'V1 supported'
+    );
+    expect(
+      screen.getByTestId('cap-sheet-full-player-row-action-stretch')
+    ).toHaveAttribute('data-action-exposure-classification', 'preview-only');
+    fireEvent.click(waiveAction);
 
     expect(onLaunchPlayerAction).toHaveBeenCalledTimes(1);
     expect(onLaunchPlayerAction.mock.calls[0][1]).toBe('waive');

@@ -184,6 +184,7 @@ type CapSheetFullProps = {
    * world-vs-preview decision; the Full Cap Table only renders that truth.
    */
   standardFreeAgentLauncherExposureClassification?: ActionExposureClassification;
+  standardWaiveExposureClassification?: ActionExposureClassification;
   freeAgentOptions?: FreeAgentSurfaceEntry[];
   onOpenFreeAgentOption?: ((selectionKey: string) => void) | null;
   onRemoveFreeAgentOption?: ((selectionKey: string) => void) | null;
@@ -580,6 +581,7 @@ export const CapSheetFull = ({
   exceptionsReadout = null,
   onLaunchFreeAgentSearch = null,
   standardFreeAgentLauncherExposureClassification = 'preview-only',
+  standardWaiveExposureClassification = 'preview-only',
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
@@ -587,6 +589,8 @@ export const CapSheetFull = ({
 }: CapSheetFullProps) => {
   const standardFreeAgentLauncherIsSupported =
     standardFreeAgentLauncherExposureClassification === 'V1 supported';
+  const standardWaiveIsSupported =
+    standardWaiveExposureClassification === 'V1 supported';
   // The three bottom detail surfaces (Dead Money / Cap Holds / Exceptions) share
   // one segmented bar: at most one panel is open at a time, and it pops up ABOVE
   // the bar so it never pushes the Full Cap Table into scroll.
@@ -1437,16 +1441,37 @@ export const CapSheetFull = ({
                             const extraItems = onLaunchPlayerAction
                               ? (
                                   [
-                                    ['extend', 'Extend (Preview)'],
-                                    ['waive', 'Waive (Preview)'],
-                                    ['stretch', 'Stretch (Preview)'],
+                                    [
+                                      'extend',
+                                      'Extend (Preview)',
+                                      'preview-only',
+                                      'Extend is not a V1 supported entry point',
+                                    ],
+                                    [
+                                      'waive',
+                                      standardWaiveIsSupported
+                                        ? 'Waive'
+                                        : 'Waive (Preview)',
+                                      standardWaiveExposureClassification,
+                                      standardWaiveIsSupported
+                                        ? 'Standard Waive is V1 supported from Full Cap Table rows in saved-world mode'
+                                        : 'Standard Waive is visible as a preview until a saved world is active',
+                                    ],
+                                    [
+                                      'stretch',
+                                      'Stretch (Preview)',
+                                      'preview-only',
+                                      'Waive & Stretch is not a V1 supported entry point',
+                                    ],
                                   ] as const
-                                ).map(([action, label]) => ({
+                                ).map(([action, label, classification, title]) => ({
                                   id: action,
                                   label,
                                   onSelect: () =>
                                     onLaunchPlayerAction?.(player, action),
                                   testId: `cap-sheet-full-player-row-action-${action}`,
+                                  actionExposureClassification: classification,
+                                  title,
                                 }))
                               : [];
                             return (
