@@ -257,6 +257,7 @@ const buildFreeAgencyActionOwner = (
   freeAgentModalAvailability: {
     visibleActions: ['signNew'],
     actionLabelsOverride: {},
+    standardSigningExposureClassification: 'preview-only',
     showOfferSheetToggle: false,
     signAndTradeInitiation: null,
     offerSheetInitiation: null,

@@ -379,6 +379,11 @@ export const FreeAgentPool = ({
   const dualPathSigningOwner = actionOwner.dualPathSigning;
   const signAndTradeInitiation = freeAgentModalAvailability.signAndTradeInitiation;
   const offerSheetInitiation = freeAgentModalAvailability.offerSheetInitiation;
+  const standardSigningActionLabel =
+    freeAgentModalAvailability.actionLabelsOverride.signNew ||
+    'Sign Free Agent';
+  const standardSigningExposureClassification =
+    freeAgentModalAvailability.standardSigningExposureClassification;
 
   // MODAL RENDERING CONTRACT: the pool receives only the standard-signing lane
   // plus the published modal-availability slice. Lifecycle routing stays out of
@@ -553,6 +558,10 @@ export const FreeAgentPool = ({
                   entry={entry}
                   onSelect={handleSelect}
                   isSelected={selectedPlayerKeysSet.has(entry.selectionKey)}
+                  standardSigningActionLabel={standardSigningActionLabel}
+                  standardSigningExposureClassification={
+                    standardSigningExposureClassification
+                  }
                   openMenuSelectionKey={openMenuSelectionKey}
                   setOpenMenuSelectionKey={setOpenMenuSelectionKey}
                   onOpenContractModal={openContractModal}

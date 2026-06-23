@@ -378,7 +378,7 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
       /const\s+freeAgencyActionOwner\s*=\s*actions\.freeAgencyActionOwner/
     );
     expect(gmDashboardContent).toMatch(
-      /const\s+freeAgencyWorldOnlyOwner\s*=\s*freeAgencyActionOwner\.worldOnly/
+      /onSignFreeAgent:[\s\S]*freeAgencyActionOwner\.dualPathSigning[\s\S]*\.signFreeAgent/
     );
     expect(gmDashboardContent).toMatch(
       /const\s+freeAgencySectionSurface\s*:\s*FreeAgencySectionProps\s*=\s*\{[\s\S]*actionOwner:\s*freeAgencyActionOwner,/

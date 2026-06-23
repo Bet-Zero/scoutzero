@@ -1,0 +1,481 @@
+/**
+ * Focused browser proof for the standard free-agent signing V1 path.
+ *
+ * Run:
+ *   PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/architect-standard-fa-signing.spec.ts --reporter=line --workers=1
+ */
+
+import {
+  test,
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from '@playwright/test';
+import admin from 'firebase-admin';
+
+const BOS_URL = '/gm/BOS';
+const TEAM_CODE = 'BOS';
+const REVIEW_FREE_AGENT_NAME = 'Review Offer Sheet Guard';
+const REVIEW_FREE_AGENT_ID = 'review_offer_sheet_guard';
+const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
+const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
+const REVIEW_WORLD_SEASON = '2026-27';
+const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
+const DEV_LOCAL_STORAGE_FLAGS = {
+  'hz.dev.capSheetFixtures': 'true',
+  'hz.dev.offseasonPreview': 'true',
+  'hz.dev.teamHistoryFixtures': 'true',
+};
+
+const isVisible = async (locator: Locator, timeout = 3000) =>
+  locator.isVisible({ timeout }).catch(() => false);
+
+const getReviewAdminDb = () => {
+  process.env.FIRESTORE_EMULATOR_HOST = REVIEW_FIRESTORE_EMULATOR_HOST;
+
+  const app =
+    admin.apps.find(
+      (existingApp) => existingApp.name === 'standard-fa-proof'
+    ) ||
+    admin.initializeApp(
+      { projectId: REVIEW_FIRESTORE_PROJECT_ID },
+      'standard-fa-proof'
+    );
+
+  return app.firestore();
+};
+
+const getBaseTeamDocument = async (teamCode: string) =>
+  (await getReviewAdminDb()
+    .doc(`architect_baseTeams/${teamCode}`)
+    .get()
+    .then((snapshot) => snapshot.data())) as
+    | Record<string, unknown>
+    | undefined;
+
+const getWorldTeamDocument = async (worldId: string, teamCode: string) =>
+  (await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}/teams/${teamCode}`)
+    .get()
+    .then((snapshot) => snapshot.data())) as
+    | Record<string, unknown>
+    | undefined;
+
+const getWorldEventDocuments = async (worldId: string) =>
+  (await getReviewAdminDb()
+    .collection(`architect_worlds/${worldId}/events`)
+    .get()
+    .then((snapshot) =>
+      snapshot.docs
+        .map((docSnapshot) => ({
+          id: docSnapshot.id,
+          ...(docSnapshot.data() as Record<string, unknown>),
+        }))
+        .sort((left, right) => {
+          const leftTimestamp = Date.parse(
+            String(left.occurredAt || left.timestamp || 0)
+          );
+          const rightTimestamp = Date.parse(
+            String(right.occurredAt || right.timestamp || 0)
+          );
+          return rightTimestamp - leftTimestamp;
+        })
+    )) as Array<Record<string, unknown> & { id: string }>;
+
+const getTeamPlayerIds = (
+  teamDocument: Record<string, unknown> | undefined
+) => {
+  if (!teamDocument) return [] as string[];
+
+  const rawPlayers = Array.isArray(teamDocument.players)
+    ? teamDocument.players
+    : Array.isArray(teamDocument.roster)
+      ? teamDocument.roster
+      : [];
+
+  return rawPlayers
+    .map((player) => {
+      if (typeof player === 'string') return player;
+      if (!player || typeof player !== 'object') return '';
+
+      return String(
+        (player as Record<string, unknown>).playerId ||
+          (player as Record<string, unknown>).player_id ||
+          (player as Record<string, unknown>).id ||
+          ''
+      );
+    })
+    .filter(Boolean);
+};
+
+const readReviewUserId = async (page: Page): Promise<string> =>
+  page
+    .evaluate(
+      () =>
+        new Promise<string>((resolve) => {
+          let settled = false;
+          const finish = (value: string) => {
+            if (settled) return;
+            settled = true;
+            resolve(value);
+          };
+          const timer = setTimeout(() => finish(''), 4000);
+          try {
+            const request = indexedDB.open('firebaseLocalStorageDb');
+            request.onerror = () => {
+              clearTimeout(timer);
+              finish('');
+            };
+            request.onsuccess = () => {
+              const idb = request.result;
+              try {
+                const store = idb
+                  .transaction('firebaseLocalStorage', 'readonly')
+                  .objectStore('firebaseLocalStorage');
+                const getAll = store.getAll();
+                getAll.onerror = () => {
+                  clearTimeout(timer);
+                  finish('');
+                };
+                getAll.onsuccess = () => {
+                  clearTimeout(timer);
+                  const records = (getAll.result || []) as Array<{
+                    fbase_key?: string;
+                    value?: { uid?: string } | string;
+                  }>;
+                  const authRecord = records.find((record) =>
+                    String(record.fbase_key || '').includes('authUser')
+                  );
+                  let value: { uid?: string } | string | undefined =
+                    authRecord?.value;
+                  if (typeof value === 'string') {
+                    try {
+                      value = JSON.parse(value) as { uid?: string };
+                    } catch {
+                      value = undefined;
+                    }
+                  }
+                  finish(
+                    value &&
+                      typeof value === 'object' &&
+                      typeof value.uid === 'string'
+                      ? value.uid
+                      : ''
+                  );
+                };
+              } catch {
+                clearTimeout(timer);
+                finish('');
+              }
+            };
+          } catch {
+            clearTimeout(timer);
+            finish('');
+          }
+        })
+    )
+    .catch(() => '');
+
+const readActiveWorldId = async (page: Page) =>
+  page
+    .evaluate(() => {
+      const storageKey = Object.keys(window.localStorage).find((key) =>
+        key.startsWith('architect.activeWorldId.')
+      );
+
+      return storageKey ? window.localStorage.getItem(storageKey) || '' : '';
+    })
+    .catch(() => '');
+
+const seedReviewWorld = async (userId: string): Promise<string> => {
+  const worldId = `world_standard_fa_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 9)}`;
+  const now = admin.firestore.Timestamp.now();
+  await getReviewAdminDb().doc(`architect_worlds/${worldId}`).set({
+    worldId,
+    worldName: `Standard FA Proof ${Date.now()}`,
+    description: '',
+    createdBy: userId,
+    createdAt: now,
+    lastModifiedAt: now,
+    currentSeason: REVIEW_WORLD_SEASON,
+    baselineSeason: REVIEW_WORLD_SEASON,
+    asOfDate: REVIEW_WORLD_AS_OF_DATE,
+    parentWorldId: null,
+    branchedFrom: null,
+    childWorlds: [],
+    modifiedTeams: [],
+    actionCount: 0,
+    tags: [],
+    isArchived: false,
+    isFavorite: false,
+    stats: {
+      totalTrades: 0,
+      totalSignings: 0,
+      totalWaives: 0,
+      totalRenounces: 0,
+      teamsInvolved: 0,
+    },
+  });
+  return worldId;
+};
+
+const waitForBosDashboard = async (page: Page) => {
+  const fullCapTab = page.getByRole('tab', { name: /^Full Cap Table$/i });
+  const freeAgencyTab = page.getByRole('tab', { name: /^Free Agency$/i });
+  const noTeamData = page.getByText(/^No team data$/i);
+  const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
+
+  await expect
+    .poll(
+      async () => {
+        const stillLoading = await isVisible(loadingDashboard, 1000);
+        const hasFullCapTab = await isVisible(fullCapTab, 1000);
+        const hasFreeAgencyTab = await isVisible(freeAgencyTab, 1000);
+        const hasNoTeamData = await isVisible(noTeamData, 1000);
+        return !stillLoading && (hasFullCapTab || hasFreeAgencyTab || hasNoTeamData);
+      },
+      {
+        timeout: 60000,
+        message: 'BOS review dashboard should reach an interactive state',
+      }
+    )
+    .toBe(true);
+
+  expect(
+    await isVisible(noTeamData, 1000),
+    'BOS review fixture should be seeded before standard FA proof'
+  ).toBe(false);
+};
+
+const activateSeededWorld = async (
+  page: Page,
+  userId: string,
+  worldId: string
+) => {
+  await page.evaluate(
+    ({ uid, wid }) => {
+      window.localStorage.setItem(`architect.activeWorldId.${uid}`, wid);
+    },
+    { uid: userId, wid: worldId }
+  );
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitForBosDashboard(page);
+
+  const worldMenuTrigger = page.getByTestId('cockpit-world-menu-trigger');
+  await expect(worldMenuTrigger).toBeVisible({ timeout: 20000 });
+  await expect
+    .poll(
+      async () =>
+        ((await worldMenuTrigger.textContent()) || '').includes('Sandbox'),
+      {
+        timeout: 20000,
+        message: `cockpit should leave Sandbox after restoring ${worldId}`,
+      }
+    )
+    .toBe(false);
+};
+
+const ensureWorldSelected = async (page: Page) => {
+  await expect
+    .poll(async () => await readReviewUserId(page), {
+      timeout: 25000,
+      message: 'anonymous review uid should initialize',
+    })
+    .not.toBe('');
+
+  const userId = await readReviewUserId(page);
+  const worldId = await seedReviewWorld(userId);
+  await activateSeededWorld(page, userId, worldId);
+  return worldId;
+};
+
+const ensureSpecificWorldSelected = async (page: Page, worldId: string) => {
+  await expect
+    .poll(async () => await readActiveWorldId(page), {
+      timeout: 10000,
+      message: `world ${worldId} should remain active after reload`,
+    })
+    .toBe(worldId);
+};
+
+const enableDevAuditFlags = async (page: Page) => {
+  await page.addInitScript((flags) => {
+    Object.entries(flags).forEach(([key, value]) => {
+      window.localStorage.setItem(key, value);
+    });
+  }, DEV_LOCAL_STORAGE_FLAGS);
+};
+
+const openDashboardTab = async (page: Page, label: string) => {
+  const tab = page.getByRole('tab', {
+    name: new RegExp(`^${label}$`, 'i'),
+  });
+  await expect(tab).toBeVisible();
+  await tab.click();
+};
+
+const standardFreeAgentRow = (page: Page): Locator =>
+  page.locator('li').filter({
+    has: page.getByText(new RegExp(`^${REVIEW_FREE_AGENT_NAME}$`, 'i')),
+  });
+
+const openStandardFreeAgentModal = async (page: Page) => {
+  await openDashboardTab(page, 'Free Agency');
+  await expect(
+    page.getByRole('heading', { name: /^Free Agent Pool$/i })
+  ).toBeVisible();
+
+  const freeAgentRow = standardFreeAgentRow(page);
+  await expect(freeAgentRow).toBeVisible({ timeout: 15000 });
+
+  const menuButton = freeAgentRow
+    .locator('button')
+    .filter({ hasText: /\u2022\u2022\u2022/ })
+    .first();
+  await menuButton.scrollIntoViewIfNeeded();
+  await menuButton.click();
+
+  const signAction = page.getByRole('button', {
+    name: /^Sign Free Agent$/i,
+  });
+  await expect(signAction).toBeVisible();
+  await expect(signAction).toHaveAttribute(
+    'data-action-exposure-classification',
+    'V1 supported'
+  );
+  await signAction.click();
+
+  const modal = page.getByTestId('edit-contract-modal');
+  await expect(modal).toBeVisible({ timeout: 20000 });
+  return modal;
+};
+
+test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
+  test.beforeEach(async ({ page }) => {
+    await enableDevAuditFlags(page);
+    await page.goto(BOS_URL, { waitUntil: 'domcontentloaded' });
+    await waitForBosDashboard(page);
+  });
+
+  test('BOS Free Agency row signs a standard FA, persists, and reloads', async ({
+    page,
+  }, testInfo: TestInfo) => {
+    const worldId = await ensureWorldSelected(page);
+
+    const beforeBaseTeamDocument = await getBaseTeamDocument(TEAM_CODE);
+    expect(getTeamPlayerIds(beforeBaseTeamDocument)).not.toContain(
+      REVIEW_FREE_AGENT_ID
+    );
+
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '3 / 15'
+    );
+
+    const modal = await openStandardFreeAgentModal(page);
+    await expect(
+      page.getByRole('heading', { name: /^Available Actions$/i })
+    ).toBeVisible();
+    const signFreeAgentRadio = modal.getByRole('radio', {
+      name: /Sign Free Agent/i,
+    });
+    await expect(signFreeAgentRadio).toBeVisible();
+    await expect(modal.getByText(/^Sign Free Agent$/i).first()).toBeVisible();
+    await expect(
+      modal.getByText(/Sign Free Agent \(Preview\)/i)
+    ).toHaveCount(0);
+    await expect(page.getByLabel(/^Offer Sheet$/i)).toHaveCount(0);
+
+    const confirmActionButton = page.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeVisible();
+    await expect(confirmActionButton).toBeDisabled();
+    await signFreeAgentRadio.check();
+    await expect(
+      page.getByRole('heading', { name: /^New Contract Preview$/i })
+    ).toBeVisible();
+    await expect(confirmActionButton).toBeEnabled();
+    await confirmActionButton.click();
+
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Free agent signed/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByText(/Roster count changed 3 -> 4/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/Cap space changed -\$3,635,655/i).first()
+    ).toBeVisible();
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '4 / 15'
+    );
+
+    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
+    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(
+      REVIEW_FREE_AGENT_ID
+    );
+
+    const persistedEvents = await getWorldEventDocuments(worldId);
+    const signingEvent = persistedEvents.find(
+      (event) => event.mutationType === 'signFreeAgent'
+    );
+    expect(signingEvent).toBeTruthy();
+
+    await openDashboardTab(page, 'Full Cap Table');
+    await expect(page.locator('body')).toContainText(
+      /Review\s*Offer\s+Sheet/i
+    );
+
+    await openDashboardTab(page, 'Roster');
+    await expect(page.locator('body')).toContainText(
+      /Review\s*Offer\s+Sheet/i
+    );
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
+    await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
+
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /1\s+team changed/i
+    );
+    await expect(page.getByTestId('comparison-changed-players')).toContainText(
+      /1\s+player touched/i
+    );
+    await expect(page.getByTestId('comparison-roster-additions')).toContainText(
+      REVIEW_FREE_AGENT_ID
+    );
+    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForBosDashboard(page);
+    await ensureSpecificWorldSelected(page, worldId);
+    await openDashboardTab(page, 'Roster');
+    await expect(page.locator('body')).toContainText(
+      /Review\s*Offer\s+Sheet/i
+    );
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '4 / 15'
+    );
+    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
+      worldId,
+      TEAM_CODE
+    );
+    expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).toContain(
+      REVIEW_FREE_AGENT_ID
+    );
+
+    testInfo.annotations.push({
+      type: 'audit-note',
+      description:
+        'BOS saved-world Free Agency row signs Review Offer Sheet Guard through the standard signFreeAgent action, publishes receipt/cockpit deltas, appears in Full Cap Table and Roster, records History and Compare evidence, and reloads from the saved world.',
+    });
+  });
+});

@@ -95,6 +95,7 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
           actionLabelsOverride: {
             signNew: 'Sign Free Agent',
           },
+          standardSigningExposureClassification: 'V1 supported',
           showOfferSheetToggle: true,
           signAndTradeInitiation: {
             onSignAndTrade: signAndTrade,
@@ -498,6 +499,7 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
             actionLabelsOverride: {
               signNew: 'Sign Free Agent',
             },
+            standardSigningExposureClassification: 'V1 supported',
             showOfferSheetToggle: true,
             signAndTradeInitiation: {
               onSignAndTrade: signAndTrade,

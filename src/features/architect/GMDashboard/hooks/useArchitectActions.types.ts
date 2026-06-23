@@ -660,6 +660,7 @@ export interface FreeAgencyDualPathSigningOwner {
 }
 
 export type FreeAgentModalVisibleAction = 'signNew' | 'signAndTrade';
+export type ActionExposureClassification = 'V1 supported' | 'preview-only';
 
 /**
  * World-only offer-sheet creation initiators exposed through the modal layer
@@ -685,6 +686,7 @@ export interface FreeAgentOfferSheetInitiation {
 export interface FreeAgentModalAvailability {
   visibleActions: FreeAgentModalVisibleAction[];
   actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+  standardSigningExposureClassification: ActionExposureClassification;
   showOfferSheetToggle: boolean;
   signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
   offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
@@ -864,4 +866,3 @@ export interface UseArchitectActionsReturn {
   capSheetDevTools: CapSheetDevTools;
   teamHistoryDevTools: TeamHistoryDevTools;
 }
-

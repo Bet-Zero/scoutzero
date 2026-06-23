@@ -29,6 +29,8 @@ export const FreeAgentRow = ({
   entry,
   onSelect,
   isSelected = false,
+  standardSigningActionLabel = 'Sign Free Agent (Preview)',
+  standardSigningExposureClassification = 'preview-only',
   openMenuSelectionKey,
   setOpenMenuSelectionKey,
   onOpenContractModal,
@@ -252,13 +254,15 @@ export const FreeAgentRow = ({
             className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
           >
             <button
-              data-action-exposure-classification="preview-only"
+              data-action-exposure-classification={
+                standardSigningExposureClassification
+              }
               onClick={() => {
                 onOpenContractModal?.(entry);
               }}
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >
-              Sign Free Agent (Preview)
+              {standardSigningActionLabel}
             </button>
             <button
               onClick={() => {

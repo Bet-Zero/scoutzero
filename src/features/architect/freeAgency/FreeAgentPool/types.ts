@@ -12,6 +12,7 @@
  */
 import type { Dispatch, SetStateAction } from 'react';
 import type { FreeAgentPoolActionOwner } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import type { ActionExposureClassification } from '@/features/architect/GMDashboard/hooks/useArchitectActions.types';
 import type {
   PlayerAction,
   PlayerActionContext,
@@ -106,6 +107,8 @@ export interface FreeAgentRowProps {
   entry: FreeAgentSurfaceEntry;
   onSelect?: (entry: FreeAgentSurfaceEntry) => void;
   isSelected?: boolean;
+  standardSigningActionLabel?: string;
+  standardSigningExposureClassification?: ActionExposureClassification;
   openMenuSelectionKey?: string | null | undefined;
   setOpenMenuSelectionKey:
     | Dispatch<SetStateAction<string | null | undefined>>

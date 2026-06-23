@@ -564,21 +564,28 @@ export function useArchitectActions({
     );
 
   // VISUAL/MODAL CONTRACT: FreeAgentPool reads this as upstream truth for what
-  // the contract modal is allowed to show. Architect V1 parks advanced Free
-  // Agency transaction lanes from the normal user path; the world-only
-  // handlers remain available to internal owners, but the public modal labels
-  // standard FA signing as preview-only until it is part of the launch promise.
+  // the contract modal is allowed to show. Architect V1 supports the proven
+  // saved-world standard FA lane while parking advanced Free Agency transaction
+  // lanes from the normal user path.
   const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
-    () => ({
-      visibleActions: ['signNew'],
-      actionLabelsOverride: {
-        signNew: 'Sign Free Agent (Preview)',
-      },
-      showOfferSheetToggle: false,
-      signAndTradeInitiation: null,
-      offerSheetInitiation: null,
-    }),
-    []
+    () => {
+      const standardSigningIsWorldSupported = Boolean(worldId);
+
+      return {
+        visibleActions: ['signNew'],
+        actionLabelsOverride: {
+          signNew: standardSigningIsWorldSupported
+            ? 'Sign Free Agent'
+            : 'Sign Free Agent (Preview)',
+        },
+        standardSigningExposureClassification:
+          standardSigningIsWorldSupported ? 'V1 supported' : 'preview-only',
+        showOfferSheetToggle: false,
+        signAndTradeInitiation: null,
+        offerSheetInitiation: null,
+      };
+    },
+    [worldId]
   );
 
   // SECTION/LIFECYCLE CONTRACT: FreeAgencySection renders disabled messaging

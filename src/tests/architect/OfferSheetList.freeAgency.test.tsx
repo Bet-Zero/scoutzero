@@ -259,6 +259,7 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
             actionLabelsOverride: {
               signNew: 'Sign Free Agent',
             },
+            standardSigningExposureClassification: 'V1 supported',
             showOfferSheetToggle: true,
             signAndTradeInitiation: {
               onSignAndTrade: vi.fn(),
@@ -335,6 +336,7 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
             actionLabelsOverride: {
               signNew: 'Sign Free Agent',
             },
+            standardSigningExposureClassification: 'V1 supported',
             showOfferSheetToggle: true,
             signAndTradeInitiation: {
               onSignAndTrade: vi.fn(),

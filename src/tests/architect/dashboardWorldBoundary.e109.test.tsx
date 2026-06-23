@@ -651,6 +651,9 @@ function buildDashboardActions(
         actionLabelsOverride: {
           signNew: 'Sign Free Agent',
         },
+        standardSigningExposureClassification: freeAgencyWorldId
+          ? 'V1 supported'
+          : 'preview-only',
         showOfferSheetToggle: Boolean(freeAgencyWorldId),
         signAndTradeInitiation: freeAgencyWorldId
           ? {
@@ -1909,16 +1912,10 @@ describe('E109 dashboard/world boundary behavior', () => {
             dashboardActions.freeAgencyActionOwner.dualPathSigning.signFreeAgent,
           onResign:
             dashboardActions.freeAgencyActionOwner.dualPathSigning.signFreeAgent,
-          onSignAndTrade:
-            dashboardActions.freeAgencyActionOwner.worldOnly?.signAndTrade,
-          getSignAndTradePreflight:
-            dashboardActions.freeAgencyActionOwner.worldOnly
-              ?.getSignAndTradePreflight,
-          getOfferSheetPreflight:
-            dashboardActions.freeAgencyActionOwner.worldOnly
-              ?.getOfferSheetPreflight,
-          onStoreOfferSheet:
-            dashboardActions.freeAgencyActionOwner.worldOnly?.storeOfferSheet,
+          onSignAndTrade: null,
+          getSignAndTradePreflight: null,
+          getOfferSheetPreflight: null,
+          onStoreOfferSheet: null,
           onExtend: dashboardActions.handleExtendContract,
           onWaive: expect.any(Function),
           onOptionDecision: expect.any(Function),

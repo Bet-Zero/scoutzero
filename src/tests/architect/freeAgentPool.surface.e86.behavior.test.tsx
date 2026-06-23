@@ -25,6 +25,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { FreeAgentPool } from '@/features/architect/freeAgency/FreeAgentPool';
 import type {
+  ActionExposureClassification,
   FreeAgentOfferSheetInitiation,
   FreeAgentModalVisibleAction,
   FreeAgentSignAndTradeInitiation,
@@ -180,6 +181,7 @@ const buildFreeAgentModalAvailability = ({
   overrides?: Partial<{
     visibleActions: FreeAgentModalVisibleAction[];
     actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+    standardSigningExposureClassification: ActionExposureClassification;
     showOfferSheetToggle: boolean;
     signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
     offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
@@ -187,6 +189,7 @@ const buildFreeAgentModalAvailability = ({
 }): {
   visibleActions: FreeAgentModalVisibleAction[];
   actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+  standardSigningExposureClassification: ActionExposureClassification;
   showOfferSheetToggle: boolean;
   signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
   offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
@@ -213,6 +216,7 @@ const buildFreeAgentModalAvailability = ({
     actionLabelsOverride: {
       signNew: 'Sign Free Agent',
     },
+    standardSigningExposureClassification: 'V1 supported',
     showOfferSheetToggle: Boolean(offerSheetInitiation),
     signAndTradeInitiation,
     offerSheetInitiation,
@@ -230,6 +234,7 @@ const buildActionOwner = ({
   freeAgentModalAvailability?: Partial<{
     visibleActions: FreeAgentModalVisibleAction[];
     actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+    standardSigningExposureClassification: ActionExposureClassification;
     showOfferSheetToggle: boolean;
     signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
     offerSheetInitiation: FreeAgentOfferSheetInitiation | null;

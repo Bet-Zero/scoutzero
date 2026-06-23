@@ -333,6 +333,7 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
           actionLabelsOverride: {
             signNew: 'Sign Free Agent (Preview)',
           },
+          standardSigningExposureClassification: 'preview-only',
           showOfferSheetToggle: false,
           signAndTradeInitiation: null,
           offerSheetInitiation: null,
