@@ -133,6 +133,15 @@ test.describe('ARCH-ACTION-EXPOSURE: visible Architect action promises are hones
       .click();
     await expect(freeAgentModal).toHaveCount(0);
 
+    await page.getByTestId('cap-sheet-full-cap-holds-toggle').click();
+    const secondaryCapHoldAbsolve = page
+      .getByTestId('cap-sheet-full-absolve-button')
+      .first();
+    await expect(secondaryCapHoldAbsolve).toHaveAttribute(
+      'data-action-exposure-classification',
+      'preview-only'
+    );
+
     const playerOptionCell = page
       .locator('[title="Preview: manage Player Option"]')
       .first();

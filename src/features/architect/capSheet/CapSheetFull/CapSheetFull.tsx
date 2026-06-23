@@ -1885,7 +1885,8 @@ export const CapSheetFull = ({
                       <div className="absolute inset-0 bg-cockpit-slab flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
                         <button
                           data-testid="cap-sheet-full-absolve-button"
-                          data-action-exposure-classification="V1 supported"
+                          data-action-exposure-classification="preview-only"
+                          title="Secondary cap-hold drawer Absolve is not a V1 supported entry point"
                           onClick={(e) => {
                             e.stopPropagation();
                             renounceCapHold?.(h);
