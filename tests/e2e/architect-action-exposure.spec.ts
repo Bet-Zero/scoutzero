@@ -1,9 +1,10 @@
 /**
  * Browser guardrail for the Architect V1 action exposure matrix (BZE-116).
  *
- * This file verifies the visible promise at action entry points only. It does
- * not execute Trade Machine internals, prove standard FA signing, or broaden
- * into generic action-loop QA.
+ * This file verifies the visible promise at action entry points only. Saved-world
+ * standard FA, waive, team option, and extension proof lives in their focused
+ * browser specs; this guardrail keeps base-mode/parked exposure honest without
+ * broadening into generic action-loop QA.
  *
  * Run:
  *   PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/architect-action-exposure.spec.ts --reporter=line
@@ -105,7 +106,7 @@ test.describe('ARCH-ACTION-EXPOSURE: visible Architect action promises are hones
     await expect(modal).toHaveCount(0);
   });
 
-  test('unsupported and unproven entry points are labeled as preview or launchers', async ({
+  test('base-mode and parked entry points stay labeled as preview or launchers', async ({
     page,
   }) => {
     const standardFaLauncher = page.getByTestId(
