@@ -787,6 +787,9 @@ export const GMDashboard = () => {
   const standardFreeAgentExposureClassification =
     freeAgencyActionOwner.freeAgentModalAvailability
       .standardSigningExposureClassification;
+  const standardExtendExposureClassification = worldId
+    ? 'V1 supported'
+    : 'preview-only';
   const standardWaiveExposureClassification = worldId
     ? 'V1 supported'
     : 'preview-only';
@@ -910,6 +913,12 @@ export const GMDashboard = () => {
       ...V1_CONTRACT_ACTION_LABEL_OVERRIDES,
       accept: worldId ? 'Accept Option' : 'Accept Option (Preview)',
       decline: worldId ? 'Decline Option' : 'Decline Option (Preview)',
+      extend:
+        worldId &&
+        initialAction === 'extend' &&
+        selectedPlayerRulesProfile?.extensionEligibility?.isEligible === true
+          ? 'Extend Contract'
+          : 'Extend Contract (Preview)',
       waive: worldId ? 'Waive Player' : 'Waive Player (Preview)',
       ...(contractModalActionOverrides?.actionLabelsOverride || {}),
     },
@@ -1260,6 +1269,9 @@ export const GMDashboard = () => {
           onLaunchFreeAgentSearch={openFullCapFreeAgentModal}
           standardFreeAgentLauncherExposureClassification={
             standardFreeAgentExposureClassification
+          }
+          standardExtendExposureClassification={
+            standardExtendExposureClassification
           }
           standardWaiveExposureClassification={
             standardWaiveExposureClassification

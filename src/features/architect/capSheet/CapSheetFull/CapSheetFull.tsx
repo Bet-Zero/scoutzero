@@ -184,6 +184,7 @@ type CapSheetFullProps = {
    * world-vs-preview decision; the Full Cap Table only renders that truth.
    */
   standardFreeAgentLauncherExposureClassification?: ActionExposureClassification;
+  standardExtendExposureClassification?: ActionExposureClassification;
   standardWaiveExposureClassification?: ActionExposureClassification;
   optionDecisionExposureClassification?: ActionExposureClassification;
   freeAgentOptions?: FreeAgentSurfaceEntry[];
@@ -582,6 +583,7 @@ export const CapSheetFull = ({
   exceptionsReadout = null,
   onLaunchFreeAgentSearch = null,
   standardFreeAgentLauncherExposureClassification = 'preview-only',
+  standardExtendExposureClassification = 'preview-only',
   standardWaiveExposureClassification = 'preview-only',
   optionDecisionExposureClassification = 'preview-only',
   freeAgentOptions = [],
@@ -591,6 +593,8 @@ export const CapSheetFull = ({
 }: CapSheetFullProps) => {
   const standardFreeAgentLauncherIsSupported =
     standardFreeAgentLauncherExposureClassification === 'V1 supported';
+  const standardExtendIsSupported =
+    standardExtendExposureClassification === 'V1 supported';
   const standardWaiveIsSupported =
     standardWaiveExposureClassification === 'V1 supported';
   // The three bottom detail surfaces (Dead Money / Cap Holds / Exceptions) share
@@ -1426,6 +1430,14 @@ export const CapSheetFull = ({
                               targetYear: currentYear,
                             });
                             if (!menuContext) return null;
+                            const rowExtendIsSupported =
+                              standardExtendIsSupported &&
+                              profileForCurrentYear?.extensionEligibility
+                                ?.isEligible === true;
+                            const rowExtendExposureClassification: ActionExposureClassification =
+                              rowExtendIsSupported
+                                ? 'V1 supported'
+                                : 'preview-only';
                             // Open stays the name-click; the menu is overflow-only
                             // so the dense 24px row keeps its compact hover-kebab.
                             const overflowActions: PlayerAction[] = [];
@@ -1445,9 +1457,13 @@ export const CapSheetFull = ({
                                   [
                                     [
                                       'extend',
-                                      'Extend (Preview)',
-                                      'preview-only',
-                                      'Extend is not a V1 supported entry point',
+                                      rowExtendIsSupported
+                                        ? 'Extend'
+                                        : 'Extend (Preview)',
+                                      rowExtendExposureClassification,
+                                      rowExtendIsSupported
+                                        ? 'Contract Extension is V1 supported from Full Cap Table rows in saved-world mode'
+                                        : 'Contract Extension requires a saved world and an extension-eligible player row',
                                     ],
                                     [
                                       'waive',

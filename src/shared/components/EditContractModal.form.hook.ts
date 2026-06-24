@@ -46,6 +46,33 @@ type UseEditContractModalFormParams = {
   resolvedShowOfferSheetToggle: boolean;
 };
 
+const getSalaryRowEndYear = (row: { season?: unknown; year?: unknown }) => {
+  if (typeof row.year === 'number' && Number.isFinite(row.year)) {
+    return row.year;
+  }
+
+  const season = String(row.season || '').trim();
+  const seasonMatch = season.match(/^(\d{4})-(\d{2})$/);
+  if (seasonMatch) {
+    return 2000 + Number(seasonMatch[2]);
+  }
+
+  const parsed = Number(season || row.year);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getContractSalaryForEndYear = (
+  player: PlayerLike | null | undefined,
+  endYear: number
+) => {
+  const rows = Array.isArray(player?.contract?.salariesByYear)
+    ? player.contract.salariesByYear
+    : [];
+  const row = rows.find((salaryRow) => getSalaryRowEndYear(salaryRow) === endYear);
+  const salary = Number(row?.salary ?? row?.capHit ?? 0);
+  return Number.isFinite(salary) && salary > 0 ? salary : null;
+};
+
 export const useEditContractModalForm = ({
   player,
   playerRulesProfile,
@@ -70,6 +97,14 @@ export const useEditContractModalForm = ({
   const [isOfferSheet, setIsOfferSheet] = useState(false);
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState<ExtMaxState | null>(null);
+
+  const extensionMutationFirstYearMax = useMemo(() => {
+    const currentSeasonSalary = getContractSalaryForEndYear(
+      player,
+      CURRENT_YEAR
+    );
+    return currentSeasonSalary ? Math.round(currentSeasonSalary * 1.05) : null;
+  }, [CURRENT_YEAR, player]);
 
   const signingGuardrails = useMemo(() => {
     if (!isSigningAction) return null;
@@ -333,20 +368,36 @@ export const useEditContractModalForm = ({
       const min = extMax.minFirstYearSalary ?? 0;
       const max = extMax.maxFirstYearSalary ?? min;
       const target = extMax.maxFirstYearSalary ?? min;
-      const clamped = Math.max(min, Math.min(target, max || target));
+      const effectiveMax =
+        extensionMutationFirstYearMax != null
+          ? Math.min(max || target, extensionMutationFirstYearMax)
+          : max || target;
+      const clamped = Math.min(Math.max(min, target), effectiveMax);
       return clamped;
     })();
     setExtension((prev) => {
       const years = extMax.maxYears || prev.years || 1;
-      const salaries = Array(years).fill(firstYearSalary);
-      setSalaryInputs(
-        Array(years)
-          .fill(firstYearSalary)
-          .map((s) => (s ? formatCurrencyFull(s) : ''))
+      const safeRaisePct = Math.max(0, (extMax.baseRaisePct ?? 0.08) - 0.0001);
+      const salaries = buildSalarySeries(
+        firstYearSalary,
+        years,
+        safeRaisePct
       );
-      return { years, contractType: 'Standard', salaries };
+      setSalaryInputs(toSalaryInputs(salaries, years));
+      return {
+        years,
+        contractType: 'Standard',
+        salaries,
+        raisePct: safeRaisePct,
+      };
     });
-  }, [extMax, selectedAction]);
+  }, [
+    buildSalarySeries,
+    extMax,
+    extensionMutationFirstYearMax,
+    selectedAction,
+    toSalaryInputs,
+  ]);
 
   useEffect(() => {
     if (!signingGuardrails || !isSigningAction) return;

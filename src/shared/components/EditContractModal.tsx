@@ -222,6 +222,17 @@ export const EditContractModal = ({
   );
   const optionYear = optionYearEntry?.year || null;
   const optionType = optionYearEntry?.option || null;
+  const extensionStartYear = useMemo(() => {
+    const latestContractEndYear = contractYears.reduce(
+      (latestYear, yearEntry) => Math.max(latestYear, yearEntry.year),
+      Number.NEGATIVE_INFINITY
+    );
+    const nextYearAfterContract = Number.isFinite(latestContractEndYear)
+      ? latestContractEndYear + 1
+      : CURRENT_YEAR + 1;
+
+    return Math.max(nextYearAfterContract, CURRENT_YEAR + 1);
+  }, [CURRENT_YEAR, contractYears]);
 
   const lastSalaryForPrefill = useMemo(() => {
     if (!player) return 0;
@@ -748,12 +759,11 @@ export const EditContractModal = ({
             actionResult = await onRenounce?.(player, overrideMetadata);
             break;
           case 'extend': {
-            const startYear = optionYear ? optionYear + 1 : CURRENT_YEAR + 1;
             const contract = generateExtensionContract({
               firstYearSalary: extension.salaries[0] || 0,
               years: extension.years,
-              raisePct: extMax?.baseRaisePct || 0.08,
-              startYear,
+              raisePct: extension.raisePct ?? extMax?.baseRaisePct ?? 0.08,
+              startYear: extensionStartYear,
             });
             actionResult = await onExtend?.(player, {
               ...contract,
@@ -892,6 +902,7 @@ export const EditContractModal = ({
             parsedBuyoutAmount={parsedBuyoutAmount}
             buyoutAmountIsValid={buyoutAmountIsValid}
             CURRENT_YEAR={CURRENT_YEAR}
+            extensionStartYear={extensionStartYear}
             resolvedShowOfferSheetToggle={resolvedShowOfferSheetToggle}
             playerRulesProfile={playerRulesProfile}
             clampFirstYearToGuardrails={clampFirstYearToGuardrails}

@@ -41,6 +41,7 @@ type ContractDetailsFormProps = {
   parsedBuyoutAmount: number | null;
   buyoutAmountIsValid: boolean;
   CURRENT_YEAR: number;
+  extensionStartYear: number;
   resolvedShowOfferSheetToggle: boolean;
   playerRulesProfile: PlayerRulesProfileLike | null | undefined;
   clampFirstYearToGuardrails: (value: number | null | undefined) => number;
@@ -76,6 +77,7 @@ export const ContractDetailsForm = ({
   parsedBuyoutAmount,
   buyoutAmountIsValid,
   CURRENT_YEAR,
+  extensionStartYear,
   resolvedShowOfferSheetToggle,
   playerRulesProfile,
   clampFirstYearToGuardrails,
@@ -233,7 +235,8 @@ export const ContractDetailsForm = ({
           {Array.from({ length: 5 }, (_, idx) => {
             const isActive = idx < extension.years;
             const year =
-              CURRENT_YEAR + idx + (selectedAction === 'extend' ? 1 : 0);
+              (selectedAction === 'extend' ? extensionStartYear : CURRENT_YEAR) +
+              idx;
             return (
               <div
                 key={idx}
