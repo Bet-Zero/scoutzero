@@ -185,6 +185,7 @@ type CapSheetFullProps = {
    */
   standardFreeAgentLauncherExposureClassification?: ActionExposureClassification;
   standardWaiveExposureClassification?: ActionExposureClassification;
+  optionDecisionExposureClassification?: ActionExposureClassification;
   freeAgentOptions?: FreeAgentSurfaceEntry[];
   onOpenFreeAgentOption?: ((selectionKey: string) => void) | null;
   onRemoveFreeAgentOption?: ((selectionKey: string) => void) | null;
@@ -582,6 +583,7 @@ export const CapSheetFull = ({
   onLaunchFreeAgentSearch = null,
   standardFreeAgentLauncherExposureClassification = 'preview-only',
   standardWaiveExposureClassification = 'preview-only',
+  optionDecisionExposureClassification = 'preview-only',
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
@@ -1620,6 +1622,16 @@ export const CapSheetFull = ({
                             const optionStyle = isPO
                               ? OPTION_CELL_STYLE.PO
                               : OPTION_CELL_STYLE.TO;
+                            const isSupportedOptionDecision =
+                              isTO &&
+                              year === currentYear + 1 &&
+                              optionDecisionExposureClassification ===
+                                'V1 supported';
+                            const optionExposureClassification =
+                              isSupportedOptionDecision
+                                ? 'V1 supported'
+                                : 'preview-only';
+                            const optionLabel = `${isPO ? 'Player' : 'Team'} Option`;
 
                             return (
                               <div
@@ -1632,8 +1644,14 @@ export const CapSheetFull = ({
                                   )
                                 }
                                 className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] transition-all cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
-                                title={`Preview: manage ${isPO ? 'Player' : 'Team'} Option`}
-                                data-action-exposure-classification="preview-only"
+                                title={
+                                  isSupportedOptionDecision
+                                    ? `Manage ${optionLabel}`
+                                    : `Preview: manage ${optionLabel}`
+                                }
+                                data-action-exposure-classification={
+                                  optionExposureClassification
+                                }
                               >
                                 {twoWayMarker}
                                 <ContractAmountDisplay

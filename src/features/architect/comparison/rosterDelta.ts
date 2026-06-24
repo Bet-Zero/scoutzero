@@ -40,7 +40,6 @@ const TRADE_MUTATION_TYPES = new Set([
 // Mutations that modify existing roster members' contracts without changing membership.
 const CONTRACT_MUTATION_TYPES = new Set([
   'extendPlayer',
-  'optionDecision',
   'renounceRights',
   'declineOfferSheet',
   'finalizeDeclinedOfferSheet',
@@ -103,6 +102,14 @@ export function deriveRosterDelta(
       // Trade players are in both buckets; roster presence disambiguates direction.
       addingIds.push(...validIds);
       removingIds.push(...validIds);
+    } else if (mutationType === 'optionDecision') {
+      for (const id of validIds) {
+        if (currentRosterSet.has(id)) {
+          contractIds.push(id);
+        } else {
+          removingIds.push(id);
+        }
+      }
     } else if (CONTRACT_MUTATION_TYPES.has(mutationType)) {
       contractIds.push(...validIds);
     }

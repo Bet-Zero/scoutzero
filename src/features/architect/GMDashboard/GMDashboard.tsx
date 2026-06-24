@@ -149,8 +149,6 @@ const toOverrideMetadata = (value: unknown): ArchitectOverrideMetadata => {
 const COCKPIT_CAP_AUDIT_FLAG_KEY = 'architect.devTools.capAudit';
 
 const V1_CONTRACT_ACTION_LABEL_OVERRIDES = {
-  accept: 'Accept Option (Preview)',
-  decline: 'Decline Option (Preview)',
   signNew: 'Sign New Contract (Preview)',
   extend: 'Extend Contract (Preview)',
   waive: 'Waive Player (Preview)',
@@ -792,6 +790,9 @@ export const GMDashboard = () => {
   const standardWaiveExposureClassification = worldId
     ? 'V1 supported'
     : 'preview-only';
+  const optionDecisionExposureClassification = worldId
+    ? 'V1 supported'
+    : 'preview-only';
   const freeAgentPoolSeasonKey = toSeasonKey(currentYear);
   const buildFreeAgentPoolScope = useCallback(() => {
     const teamCode = String(normalizedTeamId || '').trim().toUpperCase();
@@ -907,6 +908,8 @@ export const GMDashboard = () => {
     ...(contractModalActionOverrides || {}),
     actionLabelsOverride: {
       ...V1_CONTRACT_ACTION_LABEL_OVERRIDES,
+      accept: worldId ? 'Accept Option' : 'Accept Option (Preview)',
+      decline: worldId ? 'Decline Option' : 'Decline Option (Preview)',
       waive: worldId ? 'Waive Player' : 'Waive Player (Preview)',
       ...(contractModalActionOverrides?.actionLabelsOverride || {}),
     },
@@ -1260,6 +1263,9 @@ export const GMDashboard = () => {
           }
           standardWaiveExposureClassification={
             standardWaiveExposureClassification
+          }
+          optionDecisionExposureClassification={
+            optionDecisionExposureClassification
           }
           freeAgentOptions={freeAgentOptionEntries}
           onOpenFreeAgentOption={(selectionKey) => {

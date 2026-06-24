@@ -18,6 +18,7 @@ type ForwardedCapTableProps = Pick<
   | 'onLaunchFreeAgentSearch'
   | 'standardFreeAgentLauncherExposureClassification'
   | 'standardWaiveExposureClassification'
+  | 'optionDecisionExposureClassification'
   | 'freeAgentOptions'
   | 'onOpenFreeAgentOption'
   | 'onRemoveFreeAgentOption'
@@ -47,6 +48,7 @@ const CapTableSection = ({
   onLaunchFreeAgentSearch = null,
   standardFreeAgentLauncherExposureClassification = 'preview-only',
   standardWaiveExposureClassification = 'preview-only',
+  optionDecisionExposureClassification = 'preview-only',
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
@@ -72,6 +74,7 @@ const CapTableSection = ({
       standardFreeAgentLauncherExposureClassification
     }
     standardWaiveExposureClassification={standardWaiveExposureClassification}
+    optionDecisionExposureClassification={optionDecisionExposureClassification}
     freeAgentOptions={freeAgentOptions}
     onOpenFreeAgentOption={onOpenFreeAgentOption}
     onRemoveFreeAgentOption={onRemoveFreeAgentOption}

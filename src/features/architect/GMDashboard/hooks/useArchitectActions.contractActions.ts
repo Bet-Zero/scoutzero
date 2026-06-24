@@ -810,6 +810,7 @@ export function useContractActions({
         currentYear + 1
       );
       const targetYear = yearSeasonContext.actionYear;
+      const currentSeasonId = toSeasonCode(currentYear);
       if (!playerId) {
         console.error('Option decision missing playerId', { player });
         toast.error('Cannot save: Player ID missing');
@@ -820,7 +821,7 @@ export function useContractActions({
         mutationType: 'optionDecision',
         playerIds: [String(playerId)],
         invalidMessage: 'Option decision blocked by post-state cap validation.',
-        seasonIdOverride: yearSeasonContext.seasonId,
+        seasonIdOverride: currentSeasonId,
         yearOverride: yearSeasonContext.actionYear,
         computeNextTeam: (beforeTeam) => {
           let newCapHold: CapHold | null = null;
@@ -977,6 +978,17 @@ export function useContractActions({
           playerId,
           accepted,
           targetYear,
+        },
+        receiptContext: {
+          actionType: accepted ? 'option-accept' : 'option-decline',
+          headlineOverride: accepted ? 'Option accepted' : 'Option declined',
+          playerId,
+          playerName:
+            normalizeOptionalMutationString(
+              player.displayName || player.name
+            ) || null,
+          affectedSeasons: [yearSeasonContext.seasonId],
+          effectAreas: ['roster', 'rights', 'cap', 'contract'],
         },
       });
 

@@ -169,13 +169,23 @@ describe('deriveRosterDelta', () => {
     expect(result.rosterChangedPlayers[0].playerId).toBe('player_extended');
   });
 
-  it('optionDecision classifies player in rosterChangedPlayers', () => {
+  it('optionDecision classifies still-rostered player in rosterChangedPlayers', () => {
     const event = makeEvent({
       mutationType: 'optionDecision',
       playerIds: ['player_option'],
     });
     const result = deriveRosterDelta([event], ['player_option']);
     expect(result.rosterChangedPlayers[0].playerId).toBe('player_option');
+  });
+
+  it('optionDecision classifies absent player as roster removal', () => {
+    const event = makeEvent({
+      mutationType: 'optionDecision',
+      playerIds: ['player_option'],
+    });
+    const result = deriveRosterDelta([event], []);
+    expect(result.rosterRemovals[0].playerId).toBe('player_option');
+    expect(result.rosterChangedPlayers).toHaveLength(0);
   });
 
   it('deduplicates player ids appearing in multiple events', () => {
