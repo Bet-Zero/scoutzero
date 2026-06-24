@@ -44,8 +44,14 @@ export const ContractActionSelector = ({
   onSelectAction,
   actionLabelsOverride,
   extensionEligibilityReason,
-}: ContractActionSelectorProps) => (
-  <>
+}: ContractActionSelectorProps) => {
+  const isPlayerControlledOption =
+    optionType === 'Player Option' ||
+    optionType === 'Player' ||
+    optionType === 'PO';
+
+  return (
+    <>
     <div className="mb-6 text-sm text-white/70 leading-relaxed">
       {hasOption && (
         <p>
@@ -54,8 +60,10 @@ export const ContractActionSelector = ({
           {optionYear
             ? `${optionYear - 1}-${String(optionYear % 100).padStart(2, '0')}`
             : 'upcoming'}{' '}
-          season. You may choose to accept it to retain him, decline it to make
-          him a Free Agent, or negotiate a new contract.
+          season.{' '}
+          {isPlayerControlledOption
+            ? "Record the player's decision as accepted to keep him under contract, record it as declined to make him a Free Agent, or negotiate a new contract."
+            : 'You may choose to accept it to retain him, decline it to make him a Free Agent, or negotiate a new contract.'}
         </p>
       )}
       {actionSet === 'freeAgent' && (
@@ -150,5 +158,6 @@ export const ContractActionSelector = ({
         );
       })}
     </div>
-  </>
-);
+    </>
+  );
+};

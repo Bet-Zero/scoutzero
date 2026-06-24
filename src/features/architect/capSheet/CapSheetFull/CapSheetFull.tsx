@@ -1639,7 +1639,6 @@ export const CapSheetFull = ({
                               ? OPTION_CELL_STYLE.PO
                               : OPTION_CELL_STYLE.TO;
                             const isSupportedOptionDecision =
-                              isTO &&
                               year === currentYear + 1 &&
                               optionDecisionExposureClassification ===
                                 'V1 supported';
@@ -1648,6 +1647,9 @@ export const CapSheetFull = ({
                                 ? 'V1 supported'
                                 : 'preview-only';
                             const optionLabel = `${isPO ? 'Player' : 'Team'} Option`;
+                            const supportedOptionTitle = isPO
+                              ? `Record ${optionLabel} decision`
+                              : `Manage ${optionLabel}`;
 
                             return (
                               <div
@@ -1662,7 +1664,7 @@ export const CapSheetFull = ({
                                 className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] transition-all cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
                                 title={
                                   isSupportedOptionDecision
-                                    ? `Manage ${optionLabel}`
+                                    ? supportedOptionTitle
                                     : `Preview: manage ${optionLabel}`
                                 }
                                 data-action-exposure-classification={

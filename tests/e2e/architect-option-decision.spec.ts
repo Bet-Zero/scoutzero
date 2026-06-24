@@ -9,15 +9,22 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import admin from 'firebase-admin';
 
 const MIA_URL = '/gm/MIA?season=2027';
+const MIA_PLAYER_OPTION_URL = '/gm/MIA?season=2028';
 const TEAM_CODE = 'MIA';
 const PLAYER_NAME = 'Andre Cole';
 const PLAYER_ID = 'mia_andre_cole';
 const TEAM_OPTION_SEASON = '2027-28';
 const OPTION_TARGET_YEAR = 2028;
+const PLAYER_OPTION_NAME = 'Theo Bennett';
+const PLAYER_OPTION_ID = 'mia_theo_bennett';
+const PLAYER_OPTION_SEASON = '2028-29';
+const PLAYER_OPTION_TARGET_YEAR = 2029;
 const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
 const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
 const REVIEW_WORLD_SEASON = '2026-27';
 const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
+const PLAYER_OPTION_REVIEW_WORLD_SEASON = '2027-28';
+const PLAYER_OPTION_REVIEW_WORLD_AS_OF_DATE = '2027-07-01';
 const DEV_LOCAL_STORAGE_FLAGS = {
   'hz.dev.capSheetFixtures': 'true',
   'hz.dev.offseasonPreview': 'true',
@@ -106,7 +113,9 @@ const findTeamPlayer = (
 
 const getOptionSalaryRow = (
   teamDocument: RecordLike | undefined,
-  playerId: string
+  playerId: string,
+  optionSeason = TEAM_OPTION_SEASON,
+  optionTargetYear = OPTION_TARGET_YEAR
 ) => {
   const player = findTeamPlayer(teamDocument, playerId);
   const contract =
@@ -121,8 +130,8 @@ const getOptionSalaryRow = (
     if (!row || typeof row !== 'object') return false;
     const record = row as RecordLike;
     return (
-      String(record.season || '') === TEAM_OPTION_SEASON ||
-      Number(record.year) === OPTION_TARGET_YEAR
+      String(record.season || '') === optionSeason ||
+      Number(record.year) === optionTargetYear
     );
   }) as RecordLike | undefined;
 };
@@ -143,7 +152,8 @@ const getCapHold = (
 
 const getOptionDecisionEvent = async (
   worldId: string,
-  accepted: boolean
+  accepted: boolean,
+  playerId = PLAYER_ID
 ) => {
   const events = await getWorldEventDocuments(worldId);
 
@@ -162,7 +172,7 @@ const getOptionDecisionEvent = async (
 
     return (
       event.mutationType === 'optionDecision' &&
-      eventText.includes(PLAYER_ID) &&
+      eventText.includes(playerId) &&
       [metadata.accepted, payload.accepted, event.accepted].includes(accepted)
     );
   });
@@ -170,13 +180,18 @@ const getOptionDecisionEvent = async (
 
 const waitForOptionDecisionEvent = async (
   worldId: string,
-  accepted: boolean
+  accepted: boolean,
+  playerId = PLAYER_ID
 ) => {
   await expect
-    .poll(async () => Boolean(await getOptionDecisionEvent(worldId, accepted)), {
-      timeout: 20000,
-      message: `optionDecision event should persist for ${PLAYER_ID}`,
-    })
+    .poll(
+      async () =>
+        Boolean(await getOptionDecisionEvent(worldId, accepted, playerId)),
+      {
+        timeout: 20000,
+        message: `optionDecision event should persist for ${playerId}`,
+      }
+    )
     .toBe(true);
 };
 
@@ -259,7 +274,12 @@ const readActiveWorldId = async (page: Page) =>
     })
     .catch(() => '');
 
-const seedReviewWorld = async (userId: string, label: string) => {
+const seedReviewWorld = async (
+  userId: string,
+  label: string,
+  currentSeason = REVIEW_WORLD_SEASON,
+  asOfDate = REVIEW_WORLD_AS_OF_DATE
+) => {
   const worldId = `world_option_decision_${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 9)}`;
@@ -271,9 +291,9 @@ const seedReviewWorld = async (userId: string, label: string) => {
     createdBy: userId,
     createdAt: now,
     lastModifiedAt: now,
-    currentSeason: REVIEW_WORLD_SEASON,
-    baselineSeason: REVIEW_WORLD_SEASON,
-    asOfDate: REVIEW_WORLD_AS_OF_DATE,
+    currentSeason,
+    baselineSeason: currentSeason,
+    asOfDate,
     parentWorldId: null,
     branchedFrom: null,
     childWorlds: [],
@@ -347,7 +367,12 @@ const activateSeededWorld = async (
     .toBe(false);
 };
 
-const ensureWorldSelected = async (page: Page, label: string) => {
+const ensureWorldSelected = async (
+  page: Page,
+  label: string,
+  currentSeason = REVIEW_WORLD_SEASON,
+  asOfDate = REVIEW_WORLD_AS_OF_DATE
+) => {
   await expect
     .poll(async () => await readReviewUserId(page), {
       timeout: 25000,
@@ -356,7 +381,12 @@ const ensureWorldSelected = async (page: Page, label: string) => {
     .not.toBe('');
 
   const userId = await readReviewUserId(page);
-  const worldId = await seedReviewWorld(userId, label);
+  const worldId = await seedReviewWorld(
+    userId,
+    label,
+    currentSeason,
+    asOfDate
+  );
   await activateSeededWorld(page, userId, worldId);
   return worldId;
 };
@@ -386,11 +416,14 @@ const openDashboardTab = async (page: Page, label: string) => {
   await tab.click();
 };
 
-const optionDecisionRow = (page: Page): Locator =>
+const optionDecisionRow = (
+  page: Page,
+  playerName = PLAYER_NAME
+): Locator =>
   page.locator('[data-cap-fit-row]').filter({
     has: page
       .getByTestId('cap-sheet-full-player-row-button')
-      .filter({ hasText: PLAYER_NAME }),
+      .filter({ hasText: playerName }),
   });
 
 const openTeamOptionModal = async (page: Page) => {
@@ -432,11 +465,57 @@ const openTeamOptionModal = async (page: Page) => {
   return modal;
 };
 
+const openPlayerOptionModal = async (page: Page) => {
+  await openDashboardTab(page, 'Full Cap Table');
+
+  const row = optionDecisionRow(page, PLAYER_OPTION_NAME).first();
+  await expect(row).toBeVisible({ timeout: 20000 });
+  await expect(row).toContainText(PLAYER_OPTION_NAME);
+
+  const playerOptionCell = row
+    .locator(
+      '[title="Record Player Option decision"], [title="Preview: manage Player Option"]'
+    )
+    .first();
+  await expect(playerOptionCell).toBeVisible({ timeout: 15000 });
+  await expect(playerOptionCell).toHaveAttribute(
+    'data-action-exposure-classification',
+    'V1 supported'
+  );
+  await expect(playerOptionCell).toHaveAttribute(
+    'title',
+    'Record Player Option decision'
+  );
+  await playerOptionCell.click();
+
+  const modal = page.getByTestId('edit-contract-modal');
+  await expect(modal).toBeVisible({ timeout: 20000 });
+  await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
+    PLAYER_OPTION_NAME
+  );
+  await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
+    PLAYER_OPTION_SEASON
+  );
+  await expect(
+    modal.getByText(/Record the player's decision/i).first()
+  ).toBeVisible();
+  await expect(modal.getByText(/^Accept Option$/i).first()).toBeVisible();
+  await expect(modal.getByText(/^Decline Option$/i).first()).toBeVisible();
+  await expect(modal.getByText(/Accept Option \(Preview\)/i)).toHaveCount(0);
+  await expect(modal.getByText(/Decline Option \(Preview\)/i)).toHaveCount(0);
+  await expect(
+    modal.getByText(/Sign New Contract \(Preview\)/i).first()
+  ).toBeVisible();
+
+  return modal;
+};
+
 const commitOptionDecision = async (
   page: Page,
   modal: Locator,
   worldId: string,
-  decision: 'Accept' | 'Decline'
+  decision: 'Accept' | 'Decline',
+  playerId = PLAYER_ID
 ) => {
   await modal
     .getByRole('radio', { name: new RegExp(`${decision} Option`, 'i') })
@@ -447,7 +526,7 @@ const commitOptionDecision = async (
   await expect(confirmActionButton).toBeEnabled();
   await confirmActionButton.click();
   await expect(modal).toHaveCount(0, { timeout: 20000 });
-  await waitForOptionDecisionEvent(worldId, decision === 'Accept');
+  await waitForOptionDecisionEvent(worldId, decision === 'Accept', playerId);
 };
 
 test.describe('ARCH-OPTION-DECISION: Full Cap Team Option saved-world proof', () => {
@@ -603,6 +682,215 @@ test.describe('ARCH-OPTION-DECISION: Full Cap Team Option saved-world proof', ()
     );
     expect(
       getCapHold(persistedTeamDocumentAfterReload, PLAYER_ID)
+    ).toBeTruthy();
+  });
+});
+
+test.describe('ARCH-OPTION-DECISION: Full Cap Player Option saved-world proof', () => {
+  test.beforeEach(async ({ page }) => {
+    await enableDevAuditFlags(page);
+    await page.goto(MIA_PLAYER_OPTION_URL, { waitUntil: 'domcontentloaded' });
+    await waitForMiaDashboard(page);
+  });
+
+  test('MIA Full Cap Player Option records acceptance, persists, and reloads', async ({
+    page,
+  }) => {
+    const worldId = await ensureWorldSelected(
+      page,
+      'Player Option Accept',
+      PLAYER_OPTION_REVIEW_WORLD_SEASON,
+      PLAYER_OPTION_REVIEW_WORLD_AS_OF_DATE
+    );
+
+    const modal = await openPlayerOptionModal(page);
+    await commitOptionDecision(
+      page,
+      modal,
+      worldId,
+      'Accept',
+      PLAYER_OPTION_ID
+    );
+
+    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
+    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(PLAYER_OPTION_ID);
+    expect(
+      getOptionSalaryRow(
+        persistedTeamDocument,
+        PLAYER_OPTION_ID,
+        PLAYER_OPTION_SEASON,
+        PLAYER_OPTION_TARGET_YEAR
+      )?.optionUsed
+    ).toBe(true);
+
+    const optionDecisionEvent = await getOptionDecisionEvent(
+      worldId,
+      true,
+      PLAYER_OPTION_ID
+    );
+    expect(optionDecisionEvent).toBeTruthy();
+
+    await openDashboardTab(page, 'Full Cap Table');
+    await expect(
+      optionDecisionRow(page, PLAYER_OPTION_NAME).first()
+    ).toContainText(PLAYER_OPTION_NAME);
+
+    await openDashboardTab(page, 'Roster');
+    const rosterRegion = page.getByRole('region', { name: /^Roster$/i });
+    await expect(
+      rosterRegion.getByRole('button', { name: /Theo Bennett/i }).first()
+    ).toBeVisible();
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(
+      page.getByText(/Option Decision:\s*mia_theo_bennett\s*\(accepted\)/i)
+        .first()
+    ).toBeVisible();
+
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /1\s+team changed/i
+    );
+    await expect(page.getByTestId('comparison-changed-players')).toContainText(
+      /1\s+player touched/i
+    );
+    await expect(page.getByTestId('comparison-roster-changed')).toContainText(
+      PLAYER_OPTION_ID
+    );
+    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForMiaDashboard(page);
+    await ensureSpecificWorldSelected(page, worldId);
+    await openDashboardTab(page, 'Roster');
+    const reloadedRosterRegion = page.getByRole('region', {
+      name: /^Roster$/i,
+    });
+    await expect(
+      reloadedRosterRegion
+        .getByRole('button', { name: /Theo Bennett/i })
+        .first()
+    ).toBeVisible();
+
+    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
+      worldId,
+      TEAM_CODE
+    );
+    expect(
+      getOptionSalaryRow(
+        persistedTeamDocumentAfterReload,
+        PLAYER_OPTION_ID,
+        PLAYER_OPTION_SEASON,
+        PLAYER_OPTION_TARGET_YEAR
+      )?.optionUsed
+    ).toBe(true);
+  });
+
+  test('MIA Full Cap Player Option records decline, persists, and reloads', async ({
+    page,
+  }) => {
+    const worldId = await ensureWorldSelected(
+      page,
+      'Player Option Decline',
+      PLAYER_OPTION_REVIEW_WORLD_SEASON,
+      PLAYER_OPTION_REVIEW_WORLD_AS_OF_DATE
+    );
+
+    const modal = await openPlayerOptionModal(page);
+    await commitOptionDecision(
+      page,
+      modal,
+      worldId,
+      'Decline',
+      PLAYER_OPTION_ID
+    );
+
+    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
+    expect(getTeamPlayerIds(persistedTeamDocument)).not.toContain(
+      PLAYER_OPTION_ID
+    );
+    expect(
+      findTeamPlayer(persistedTeamDocument, PLAYER_OPTION_ID)
+    ).toBeUndefined();
+    expect(
+      getOptionSalaryRow(
+        persistedTeamDocument,
+        PLAYER_OPTION_ID,
+        PLAYER_OPTION_SEASON,
+        PLAYER_OPTION_TARGET_YEAR
+      )
+    ).toBeUndefined();
+    const capHold = getCapHold(persistedTeamDocument, PLAYER_OPTION_ID);
+    expect(capHold).toBeTruthy();
+    expect(capHold?.season).toBe(PLAYER_OPTION_SEASON);
+    expect(Number(capHold?.amount || 0)).toBeGreaterThan(0);
+
+    const optionDecisionEvent = await getOptionDecisionEvent(
+      worldId,
+      false,
+      PLAYER_OPTION_ID
+    );
+    expect(optionDecisionEvent).toBeTruthy();
+
+    await openDashboardTab(page, 'Full Cap Table');
+    await expect(optionDecisionRow(page, PLAYER_OPTION_NAME)).toHaveCount(0);
+    await page.getByTestId('cap-sheet-full-cap-holds-toggle').click();
+    await expect(page.getByText(PLAYER_OPTION_NAME).first()).toBeVisible();
+
+    await openDashboardTab(page, 'Roster');
+    const rosterRegion = page.getByRole('region', { name: /^Roster$/i });
+    await expect(
+      rosterRegion.getByRole('button', { name: /Theo Bennett/i })
+    ).toHaveCount(0);
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(
+      page.getByText(/Option Decision:\s*mia_theo_bennett\s*\(declined\)/i)
+        .first()
+    ).toBeVisible();
+
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /1\s+team changed/i
+    );
+    await expect(page.getByTestId('comparison-changed-players')).toContainText(
+      /1\s+player touched/i
+    );
+    await expect(page.getByTestId('comparison-roster-removals')).toContainText(
+      PLAYER_OPTION_ID
+    );
+    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForMiaDashboard(page);
+    await ensureSpecificWorldSelected(page, worldId);
+    await openDashboardTab(page, 'Roster');
+    const reloadedRosterRegion = page.getByRole('region', {
+      name: /^Roster$/i,
+    });
+    await expect(
+      reloadedRosterRegion.getByRole('button', { name: /Theo Bennett/i })
+    ).toHaveCount(0);
+
+    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
+      worldId,
+      TEAM_CODE
+    );
+    expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).not.toContain(
+      PLAYER_OPTION_ID
+    );
+    expect(
+      getCapHold(persistedTeamDocumentAfterReload, PLAYER_OPTION_ID)
     ).toBeTruthy();
   });
 });
