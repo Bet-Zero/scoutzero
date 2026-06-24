@@ -186,6 +186,7 @@ type CapSheetFullProps = {
   standardFreeAgentLauncherExposureClassification?: ActionExposureClassification;
   standardExtendExposureClassification?: ActionExposureClassification;
   standardWaiveExposureClassification?: ActionExposureClassification;
+  standardWaiveStretchExposureClassification?: ActionExposureClassification;
   optionDecisionExposureClassification?: ActionExposureClassification;
   freeAgentOptions?: FreeAgentSurfaceEntry[];
   onOpenFreeAgentOption?: ((selectionKey: string) => void) | null;
@@ -585,6 +586,7 @@ export const CapSheetFull = ({
   standardFreeAgentLauncherExposureClassification = 'preview-only',
   standardExtendExposureClassification = 'preview-only',
   standardWaiveExposureClassification = 'preview-only',
+  standardWaiveStretchExposureClassification = 'preview-only',
   optionDecisionExposureClassification = 'preview-only',
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
@@ -597,6 +599,8 @@ export const CapSheetFull = ({
     standardExtendExposureClassification === 'V1 supported';
   const standardWaiveIsSupported =
     standardWaiveExposureClassification === 'V1 supported';
+  const standardWaiveStretchIsSupported =
+    standardWaiveStretchExposureClassification === 'V1 supported';
   // The three bottom detail surfaces (Dead Money / Cap Holds / Exceptions) share
   // one segmented bar: at most one panel is open at a time, and it pops up ABOVE
   // the bar so it never pushes the Full Cap Table into scroll.
@@ -1477,9 +1481,13 @@ export const CapSheetFull = ({
                                     ],
                                     [
                                       'stretch',
-                                      'Stretch (Preview)',
-                                      'preview-only',
-                                      'Waive & Stretch is not a V1 supported entry point',
+                                      standardWaiveStretchIsSupported
+                                        ? 'Waive & Stretch'
+                                        : 'Stretch (Preview)',
+                                      standardWaiveStretchExposureClassification,
+                                      standardWaiveStretchIsSupported
+                                        ? 'Waive & Stretch is V1 supported from Full Cap Table rows in saved-world mode'
+                                        : 'Waive & Stretch is visible as a preview until a saved world is active',
                                     ],
                                   ] as const
                                 ).map(([action, label, classification, title]) => ({

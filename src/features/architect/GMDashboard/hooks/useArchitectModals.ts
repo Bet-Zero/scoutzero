@@ -15,7 +15,7 @@ import { useState, useCallback } from 'react';
 // ==== Type Definitions ====
 
 /** Action context for contract modal */
-export type ActionContext = 'option' | 'freeAgent' | null;
+export type ActionContext = 'option' | 'freeAgent' | 'underContract' | null;
 
 /** Context parameters for opening the edit-contract modal */
 export interface EditModalContext {

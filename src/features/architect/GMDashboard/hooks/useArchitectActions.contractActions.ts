@@ -277,7 +277,7 @@ export function useContractActions({
         rulesYear: currentYear,
         initialAction,
         targetYear: null,
-        actionContext: null,
+        actionContext: 'underContract',
       });
     },
     [currentYear, openPlayerContractModalRoute]
