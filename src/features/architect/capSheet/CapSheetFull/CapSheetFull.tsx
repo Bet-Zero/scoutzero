@@ -1211,7 +1211,7 @@ export const CapSheetFull = ({
                         }
                         className="rounded px-1 text-[10px] font-medium text-cockpit-safe hover:bg-cockpit-safe/10"
                       >
-                        Open offer
+                        Open signing
                       </button>
                       <button
                         type="button"

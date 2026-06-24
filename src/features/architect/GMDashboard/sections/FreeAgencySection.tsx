@@ -75,12 +75,12 @@ const FreeAgencySection = ({
     freeAgentModalAvailability: actionOwner.freeAgentModalAvailability,
   } satisfies FreeAgentPoolActionOwner;
   const incomingOfferSheetSurface = {
-    title: 'Incoming Offer Sheets (Action Required)',
+    title: 'Incoming Offer Sheets (Preview)',
     offerSheets: incomingOfferSheets,
     surfaceRole: 'incoming' as const,
   };
   const outgoingOfferSheetSurface = {
-    title: 'My Pending Offer Sheets',
+    title: 'My Offer Sheets (Parked)',
     offerSheets: outgoingOfferSheets,
     surfaceRole: 'outgoing' as const,
   };
