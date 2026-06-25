@@ -37,6 +37,7 @@ import {
   getFirstExplicitWorldPlayerOverrideFromLineage,
   getSnapshotRosterMembership,
   getSnapshotPlayersMembership,
+  getSnapshotCapHoldMembership,
 } from './mutationPipeline.read.stateLoader.lineage';
 
 import type {
@@ -102,6 +103,10 @@ export async function resolveStoreOfferSheetAuthority({
           snapshotEntry.team,
           playerId
         );
+        const capHoldMatch = getSnapshotCapHoldMembership(
+          snapshotEntry.team,
+          playerId
+        );
 
         if (
           rosterMatch !== null &&
@@ -119,6 +124,7 @@ export async function resolveStoreOfferSheetAuthority({
           team: snapshotEntry.team,
           rosterMatch,
           playersMatch,
+          capHoldMatch,
           snapshotPlayer,
         } as StoreOfferSheetOwnershipCandidate;
       })
@@ -130,6 +136,9 @@ export async function resolveStoreOfferSheetAuthority({
   );
   const playersOwners = ownershipCandidates.filter(
     (candidate) => candidate.playersMatch === true
+  );
+  const capHoldOwners = ownershipCandidates.filter(
+    (candidate) => candidate.capHoldMatch === true
   );
 
   let resolvedOwner: StoreOfferSheetOwnershipCandidate | null = null;
@@ -147,6 +156,14 @@ export async function resolveStoreOfferSheetAuthority({
   } else if (playersOwners.length > 1) {
     throw new Error(
       `Strict storeOfferSheet ownership is ambiguous for ${playerId}: multiple players[] owners found (${playersOwners
+        .map((candidate) => candidate.teamCode)
+        .join(', ')}).`
+    );
+  } else if (capHoldOwners.length === 1) {
+    resolvedOwner = capHoldOwners[0];
+  } else if (capHoldOwners.length > 1) {
+    throw new Error(
+      `Strict storeOfferSheet ownership is ambiguous for ${playerId}: multiple cap-hold rights owners found (${capHoldOwners
         .map((candidate) => candidate.teamCode)
         .join(', ')}).`
     );
@@ -168,20 +185,32 @@ export async function resolveStoreOfferSheetAuthority({
     playerId
   );
 
-  if (overrideEntry && !resolvedOwner.snapshotPlayer) {
+  if (
+    overrideEntry &&
+    !resolvedOwner.snapshotPlayer &&
+    !resolvedOwner.capHoldMatch
+  ) {
     throw new Error(
       `Strict storeOfferSheet source truth requires a home-team snapshot player for ${playerId} on ${resolvedOwner.teamCode} before applying override truth.`
     );
   }
 
+  const capHoldRightsPlayer =
+    resolvedOwner.capHoldMatch && !resolvedOwner.snapshotPlayer
+      ? toCurrentStatePlayer(
+          await getPlayer(worldId, resolvedOwner.teamCode, playerId)
+        )
+      : null;
+  const sourcePlayer = resolvedOwner.snapshotPlayer || capHoldRightsPlayer;
+
   const canonicalPlayer = overrideEntry
     ? normalizeCurrentStatePlayerSnapshot(
         mergeLineageOverridePlayers(
-          toLineageOverrideMergePlayer(resolvedOwner.snapshotPlayer),
+          toLineageOverrideMergePlayer(sourcePlayer),
           toLineageOverrideMergePlayer(overrideEntry.player)
         )
       )
-    : resolvedOwner.snapshotPlayer;
+    : sourcePlayer;
 
   if (!canonicalPlayer) {
     throw new Error(
@@ -662,5 +691,3 @@ export function buildNormalizedOfferSheetFinalContract({
 
   return removeUndefinedDeep(normalizedContract) as ArchitectMutationContract;
 }
-
-

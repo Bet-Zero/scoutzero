@@ -1029,8 +1029,7 @@ export const GMDashboard = () => {
           freeAgencyActionOwner.freeAgentModalAvailability.visibleActions,
         actionLabelsOverride:
           freeAgencyActionOwner.freeAgentModalAvailability.actionLabelsOverride,
-        showOfferSheetToggle:
-          freeAgencyActionOwner.freeAgentModalAvailability.showOfferSheetToggle,
+        showOfferSheetToggle: false,
       });
       closeFullCapFreeAgentModal();
       actions.handleEditContract(
@@ -1041,7 +1040,6 @@ export const GMDashboard = () => {
       actions.handleEditContract,
       closeFullCapFreeAgentModal,
       freeAgencyActionOwner.freeAgentModalAvailability.actionLabelsOverride,
-      freeAgencyActionOwner.freeAgentModalAvailability.showOfferSheetToggle,
       freeAgencyActionOwner.freeAgentModalAvailability.visibleActions,
     ]
   );

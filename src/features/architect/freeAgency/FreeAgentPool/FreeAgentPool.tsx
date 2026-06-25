@@ -53,6 +53,35 @@ const getStablePlayerId = (
   return normalizedPlayerId || null;
 };
 
+const toRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const isRfaType = (value: unknown) => {
+  if (typeof value !== 'string') return false;
+  const normalizedValue = value.trim().toLowerCase();
+  return normalizedValue === 'rfa' || normalizedValue === 'restricted';
+};
+
+const isRfaOfferSheetTarget = (entry: FreeAgentModalLaunchTarget) => {
+  const freeAgent = entry.freeAgent || {};
+  const surfacePlayer = entry.surfacePlayer || {};
+  const surfaceContract = toRecord(surfacePlayer.contract);
+  const surfaceFreeAgency = toRecord(surfaceContract?.freeAgency);
+  const surfaceBio = toRecord(surfacePlayer.bio);
+  const surfaceBioDisplay = toRecord(surfaceBio?.display);
+
+  return [
+    freeAgent.freeAgentType,
+    freeAgent.fa_type,
+    surfacePlayer.freeAgentType,
+    surfacePlayer.fa_type,
+    surfaceFreeAgency?.type,
+    surfaceBioDisplay?.freeAgentType,
+  ].some(isRfaType);
+};
+
 const resolveLookupPlayer = (
   freeAgent: FreeAgentListItem,
   playersMap: Record<string, FreeAgentLookupPlayer>
@@ -390,6 +419,13 @@ export const FreeAgentPool = ({
   // this surface on purpose.
   const editContractModalProps = useMemo(() => {
     if (!activeContractModalTarget) return null;
+    const targetAllowsOfferSheet = isRfaOfferSheetTarget(
+      activeContractModalTarget
+    );
+    const targetOfferSheetInitiation =
+      targetAllowsOfferSheet && offerSheetInitiation
+        ? offerSheetInitiation
+        : null;
     const signFreeAgent: EditContractModalProps['onSignFreeAgent'] = async (
       ...args
     ) => {
@@ -412,15 +448,17 @@ export const FreeAgentPool = ({
       onSignFreeAgent: signFreeAgent,
       signAndTradeInitiation:
         signAndTradeInitiation as EditContractModalProps['signAndTradeInitiation'],
-      getOfferSheetPreflight: (offerSheetInitiation
-        ? offerSheetInitiation.getOfferSheetPreflight
+      getOfferSheetPreflight: (targetOfferSheetInitiation
+        ? targetOfferSheetInitiation.getOfferSheetPreflight
         : undefined) as EditContractModalProps['getOfferSheetPreflight'],
-      onStoreOfferSheet: (offerSheetInitiation
-        ? offerSheetInitiation.storeOfferSheet
+      onStoreOfferSheet: (targetOfferSheetInitiation
+        ? targetOfferSheetInitiation.storeOfferSheet
         : undefined) as EditContractModalProps['onStoreOfferSheet'],
       actionsOverride: freeAgentModalAvailability.visibleActions,
       actionLabelsOverride: freeAgentModalAvailability.actionLabelsOverride,
-      showOfferSheetToggle: freeAgentModalAvailability.showOfferSheetToggle,
+      showOfferSheetToggle:
+        freeAgentModalAvailability.showOfferSheetToggle &&
+        targetAllowsOfferSheet,
     } satisfies EditContractModalProps;
   }, [
     activeContractModalTarget,

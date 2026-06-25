@@ -375,7 +375,7 @@ function resolveReceiptActionContext({
     affectedSeasons: details.affectedSeasons,
     effectAreas: EFFECT_AREAS_BY_MUTATION_TYPE[mutationType],
     notes: [
-      'Offer sheet receipt reflects an existing parked lifecycle path; it does not expose initiation as a normal public lane.',
+      'Offer sheet remains pending until the home team matches, declines, or finalizes the lifecycle.',
     ],
   };
 

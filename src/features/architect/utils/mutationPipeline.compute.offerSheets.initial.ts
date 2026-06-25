@@ -7,7 +7,6 @@
  */
 
 import {
-  findPlayerInTeamPlayers,
   getTeamSourceRecord,
   requireOfferSheetTeamState,
 } from './mutationPipeline.helpers';
@@ -86,10 +85,6 @@ export function computeStoreOfferSheetResult({
 
   const playerId = player.player_id || player.id;
   const homeTeamCode = homeTeam.teamCode;
-  const authoritativeSnapshotPlayer = findPlayerInTeamPlayers(
-    homeTeam,
-    String(playerId || '')
-  );
 
   if (!playerId) {
     return {
@@ -97,14 +92,9 @@ export function computeStoreOfferSheetResult({
       error: 'storeOfferSheet requires a stable playerId from canonical truth.',
     };
   }
-
-  if (!authoritativeSnapshotPlayer) {
-    return {
-      success: false,
-      error:
-        'storeOfferSheet requires pre-resolved authoritative home-team snapshot player truth.',
-    };
-  }
+  // The state loader is the authority for home-team ownership. It accepts
+  // roster membership, players[] membership, or active unsigned cap-hold rights,
+  // and returns canonical player truth before compute runs.
 
   // Phase 18.2: worldId is REQUIRED for audit-grade dedupKey
   // Cannot store offer sheet without worldId - fail fast

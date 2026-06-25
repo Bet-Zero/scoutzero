@@ -257,13 +257,13 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
       /visibleActions:\s*\['signNew'\]/
     );
     expect(content).toMatch(
-      /showOfferSheetToggle:\s*false/
+      /showOfferSheetToggle:\s*Boolean\(offerSheetInitiation\)/
     );
     expect(content).toMatch(
       /signAndTradeInitiation:\s*null/
     );
     expect(content).toMatch(
-      /offerSheetInitiation:\s*null/
+      /offerSheetInitiation,/
     );
     expect(content).toMatch(
       /const\s+offerSheetSectionAvailability\s*=\s*useMemo<FreeAgencyOfferSheetSectionAvailability>\([\s\S]*lifecycleActionOwner:\s*freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabled:\s*!freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabledReason:\s*freeAgencyOfferSheetLifecycleActionOwner[\s\S]*\?\s*null[\s\S]*:\s*getFreeAgencyWorldOnlyMessage\('offerSheetLifecycle',\s*'commit'\)/
@@ -542,13 +542,16 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
       /const\s+offerSheetInitiation\s*=\s*freeAgentModalAvailability\.offerSheetInitiation/
     );
     expect(modalDispatchRegion).toMatch(
+      /const\s+targetAllowsOfferSheet\s*=\s*isRfaOfferSheetTarget/
+    );
+    expect(modalDispatchRegion).toMatch(
       /signAndTradeInitiation:\s*signAndTradeInitiation\s+as\s+EditContractModalProps\['signAndTradeInitiation'\]/
     );
     expect(modalDispatchRegion).toMatch(
-      /offerSheetInitiation\s*\?\s*offerSheetInitiation\.getOfferSheetPreflight/
+      /targetOfferSheetInitiation\s*\?\s*targetOfferSheetInitiation\.getOfferSheetPreflight/
     );
     expect(modalDispatchRegion).toMatch(
-      /offerSheetInitiation\s*\?\s*offerSheetInitiation\.storeOfferSheet/
+      /targetOfferSheetInitiation\s*\?\s*targetOfferSheetInitiation\.storeOfferSheet/
     );
     expect(content).toMatch(
       /actionsOverride:\s*freeAgentModalAvailability\.visibleActions/
@@ -557,13 +560,13 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
       /actionLabelsOverride:\s*freeAgentModalAvailability\.actionLabelsOverride/
     );
     expect(content).toMatch(
-      /showOfferSheetToggle:\s*freeAgentModalAvailability\.showOfferSheetToggle/
+      /showOfferSheetToggle:\s*freeAgentModalAvailability\.showOfferSheetToggle\s*&&\s*targetAllowsOfferSheet/
     );
     expect(content).toMatch(
-      /getOfferSheetPreflight:\s*\(offerSheetInitiation[\s\S]*offerSheetInitiation\.getOfferSheetPreflight/
+      /getOfferSheetPreflight:\s*\(targetOfferSheetInitiation[\s\S]*targetOfferSheetInitiation\.getOfferSheetPreflight/
     );
     expect(content).toMatch(
-      /onStoreOfferSheet:\s*\(offerSheetInitiation[\s\S]*offerSheetInitiation\.storeOfferSheet/
+      /onStoreOfferSheet:\s*\(targetOfferSheetInitiation[\s\S]*targetOfferSheetInitiation\.storeOfferSheet/
     );
     expect(content).not.toMatch(
       /actionsOverride:\s*worldOnlyActionOwner\s*\?\s*\['signNew',\s*'signAndTrade'\]\s*:\s*\['signNew'\]/
@@ -710,7 +713,7 @@ describe('Gate 4B: Step 2 UI truth keeps shared launch, owner-projected availabi
       /actionsOverride:\s*freeAgentModalAvailability\.visibleActions/
     );
     expect(freeAgentPoolContent).toMatch(
-      /showOfferSheetToggle:\s*freeAgentModalAvailability\.showOfferSheetToggle/
+      /showOfferSheetToggle:\s*freeAgentModalAvailability\.showOfferSheetToggle\s*&&\s*targetAllowsOfferSheet/
     );
     expect(freeAgentPoolTypesContent).toMatch(
       /export\s+interface\s+FreeAgentRowProps\s*\{[\s\S]*entry:\s*FreeAgentSurfaceEntry;/

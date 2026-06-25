@@ -62,10 +62,30 @@ const FREE_AGENT = {
   birdRights: 'Full Bird',
 };
 
+const UFA_PLAYER = {
+  ...PLAYER,
+  id: 'player_ufa',
+  player_id: 'player_ufa',
+  name: 'UFA Player',
+  displayName: 'UFA Player',
+};
+
+const UFA_FREE_AGENT = {
+  id: 'player_ufa',
+  player_id: 'player_ufa',
+  name: 'UFA Player',
+  freeAgentType: 'UFA',
+  previousSalary: 12_000_000,
+  birdRights: 'Non-Bird',
+};
+
 const playersMap = {
   [PLAYER.id]: PLAYER,
   [PLAYER.player_id]: PLAYER,
   [PLAYER.name]: PLAYER,
+  [UFA_PLAYER.id]: UFA_PLAYER,
+  [UFA_PLAYER.player_id]: UFA_PLAYER,
+  [UFA_PLAYER.name]: UFA_PLAYER,
 };
 
 const buildWorldOnlyActionOwner = (
@@ -307,6 +327,42 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
         screen.queryByRole('button', { name: /Confirm Action/i })
       ).not.toBeInTheDocument();
     });
+  });
+
+  it('keeps offer-sheet initiation hidden for UFA rows even when the owner publishes the saved-world seam', async () => {
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    const storeOfferSheet = vi.fn().mockResolvedValue({ success: true });
+    const actionOwner = buildActionOwner({
+      worldOnly: { storeOfferSheet },
+      freeAgentModalAvailability: {
+        showOfferSheetToggle: true,
+        offerSheetInitiation: {
+          getOfferSheetPreflight,
+          storeOfferSheet,
+        },
+      },
+    });
+
+    render(
+      <FreeAgentPool
+        freeAgents={[UFA_FREE_AGENT]}
+        currentYear={2026}
+        actionOwner={actionOwner}
+        playersMap={playersMap}
+      />
+    );
+
+    await openFreeAgencySigningModalFromRowMenu();
+
+    fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
+    expect(
+      screen.queryByRole('checkbox', { name: /Offer Sheet/i })
+    ).not.toBeInTheDocument();
   });
 
   it('base mode hides offer-sheet initiation and signs directly without store calls', async () => {

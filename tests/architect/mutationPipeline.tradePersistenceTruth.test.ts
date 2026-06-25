@@ -785,6 +785,80 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(mirroredSheet.homeTeamCode).toBe('BOS');
   });
 
+  it('resolves RFA home-team ownership from an active unsigned cap hold without rostering the player', async () => {
+    const worldId = 'world_offer_sheet_store_cap_hold_rights';
+    seedWorldMetadata(
+      worldId,
+      createMockWorld({ worldId, userId: USER_ID, currentSeason: SEASON_ID })
+    );
+
+    const rightsPlayer = makePlayer('cap_hold_rfa', 'BOS', 8_000_000, {
+      displayName: 'Cap Hold Rights Player',
+      name: 'Cap Hold Rights Player',
+    });
+    const lalKeeper = makePlayer('lal_keeper_cap_hold', 'LAL', 7_000_000);
+    const bosKeeper = makePlayer('bos_keeper_cap_hold', 'BOS', 6_000_000);
+
+    seedBasePlayer(rightsPlayer);
+    seedBasePlayer(lalKeeper);
+    seedBasePlayer(bosKeeper);
+    seedTeamSnapshot(worldId, 'LAL', makeTeam('LAL', [lalKeeper]), {
+      padRoster: false,
+    });
+    seedTeamSnapshot(
+      worldId,
+      'BOS',
+      makeTeam('BOS', [bosKeeper], [
+        {
+          playerId: 'cap_hold_rfa',
+          playerName: 'Cap Hold Rights Player',
+          amount: 2_000_000,
+          season: SEASON_ID,
+          type: 'RFA Rights',
+          active: true,
+          isSigned: false,
+        },
+      ]),
+      { padRoster: false }
+    );
+
+    const result = await applyWorldMutation({
+      userId: USER_ID,
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'storeOfferSheet',
+      timestamp: TIMESTAMP,
+      payload: {
+        teamCode: 'LAL',
+        playerId: 'cap_hold_rfa',
+        worldId,
+        contract: makeStoredOfferSheetContract(),
+        signedUsing: 'Cap Space',
+      },
+    });
+
+    expect(result.success).toBe(true);
+
+    const offeringSnapshot = requireTeamSnapshot(worldId, 'LAL');
+    const homeSnapshot = requireTeamSnapshot(worldId, 'BOS');
+    const storedSheet = requireValue(
+      getOfferSheets(offeringSnapshot)[0],
+      'Expected stored offer sheet on offering snapshot'
+    );
+    const mirroredSheet = requireValue(
+      getIncomingOfferSheets(homeSnapshot)[0],
+      'Expected mirrored offer sheet on home snapshot'
+    );
+
+    expect(homeSnapshot.players.map((player) => player.id)).not.toContain(
+      'cap_hold_rfa'
+    );
+    expect(storedSheet.playerName).toBe('Cap Hold Rights Player');
+    expect(storedSheet.homeTeamCode).toBe('BOS');
+    expect(mirroredSheet.playerName).toBe('Cap Hold Rights Player');
+    expect(mirroredSheet.homeTeamCode).toBe('BOS');
+  });
+
   it('fails closed when authoritative world snapshots cannot resolve a home-team owner', async () => {
     const worldId = 'world_offer_sheet_store_no_owner';
     seedWorldMetadata(

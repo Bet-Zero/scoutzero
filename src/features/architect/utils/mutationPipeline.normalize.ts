@@ -494,6 +494,7 @@ export type StoreOfferSheetOwnershipCandidate = {
   team: TeamLike;
   rosterMatch: boolean | null;
   playersMatch: boolean | null;
+  capHoldMatch: boolean | null;
   snapshotPlayer: PlayerLike | null;
 };
 

@@ -542,6 +542,44 @@ const topUpWorldTeamRosterMinimum = async (
   );
 };
 
+const seedWorldOfferSheetHomeTeamRights = async (
+  worldId: string,
+  teamCode: string,
+  teamName: string,
+  playerId: string
+) => {
+  const db = getReviewAdminDb();
+  const teamRef = db.doc(`architect_worlds/${worldId}/teams/${teamCode}`);
+  const existingTeam =
+    ((await getWorldTeamDocument(worldId, teamCode)) as
+      | Record<string, unknown>
+      | undefined) || (await buildHydratedWorldTeamSnapshot(teamCode, teamName));
+  const existingCapHolds = Array.isArray(existingTeam.capHolds)
+    ? existingTeam.capHolds.filter((hold) => hold?.playerId !== playerId)
+    : [];
+  const capHolds = [
+    ...existingCapHolds,
+    {
+      playerId,
+      playerName: REVIEW_MODE_FREE_AGENT_NAME,
+      amount: 2_000_000,
+      season: '2025-26',
+      type: 'RFA Rights',
+      active: true,
+      isSigned: false,
+      reason: 'Review-mode RFA offer-sheet home-team rights',
+    },
+  ];
+
+  await teamRef.set(
+    {
+      ...existingTeam,
+      capHolds,
+    },
+    { merge: false }
+  );
+};
+
 const addTradeTeam = async (page: Page, teamName: string) => {
   const teamValue = REVIEW_TRADE_TEAM_SELECT_VALUES[teamName] || teamName;
   const tradeDialog = page.getByRole('dialog', { name: /Trade Machine/i });
@@ -2419,6 +2457,185 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       'Canonical V1 acceptance path: BOS saved-world Free Agency signs Review Offer Sheet Guard through the standard Sign Free Agent action, validation gates Confirm Action until the action is selected, the receipt reports roster/cap deltas, Team History shows the committed signFreeAgent event, Compare shows the same committed event with roster/cap deltas, and reload rehydrates the signed player from the saved world.'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005-v1-signing-acceptance');
+  });
+
+  test('D-MQ-005B: RFA offer sheet stores pending state from the Free Agency row', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
+
+    await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+    await topUpWorldTeamRosterMinimum(worldId, 'BOS', 'Boston Celtics');
+    await seedWorldOfferSheetHomeTeamRights(
+      worldId,
+      'BOS',
+      'Boston Celtics',
+      REVIEW_MODE_FREE_AGENT_ID
+    );
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+
+    await openDashboardTab(page, 'Free Agency');
+
+    const reviewFreeAgentRow = page.locator('li').filter({
+      has: page.getByText(new RegExp(`^${REVIEW_MODE_FREE_AGENT_NAME}$`, 'i')),
+    });
+    await expect(reviewFreeAgentRow).toBeVisible({ timeout: 15000 });
+
+    const menuButton = reviewFreeAgentRow
+      .locator('button')
+      .filter({ hasText: '•••' })
+      .first();
+
+    await menuButton.scrollIntoViewIfNeeded();
+    await menuButton.click();
+    const signAction = page.getByRole('button', { name: /^Sign Free Agent$/i });
+    await expect(signAction).toBeVisible();
+    await signAction.click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    const signFreeAgentRadio = modal.getByRole('radio', {
+      name: /Sign Free Agent/i,
+    });
+    await expect(signFreeAgentRadio).toBeVisible();
+    await signFreeAgentRadio.check();
+    const offerSheetCheckbox = modal.getByLabel(/^Offer Sheet$/i);
+    await expect(offerSheetCheckbox).toBeVisible();
+    await offerSheetCheckbox.check();
+
+    const confirmActionButton = modal.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeEnabled({ timeout: 20000 });
+    await confirmActionButton.click();
+
+    await expect(modal).toHaveCount(0, { timeout: 20000 });
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Offer sheet stored/i,
+      { timeout: 20000 }
+    );
+    const receiptPanel = page.getByTestId('cockpit-activity-rail-receipts');
+    await expect(receiptPanel).toContainText(/Offer sheet stored/i);
+    await expect(receiptPanel).toContainText(/LAL/i);
+    await expect(receiptPanel).toContainText(/BOS/i);
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '14 / 15'
+    );
+
+    await expect
+      .poll(
+        async () => {
+          const [offeringTeam, homeTeam] = await Promise.all([
+            getWorldTeamDocument(worldId, 'LAL'),
+            getWorldTeamDocument(worldId, 'BOS'),
+          ]);
+          const outgoingOfferSheet = (offeringTeam?.offerSheets || []).find(
+            (offerSheet) =>
+              offerSheet.playerId === REVIEW_MODE_FREE_AGENT_ID &&
+              offerSheet.offeringTeamCode === 'LAL' &&
+              offerSheet.homeTeamCode === 'BOS'
+          );
+          const incomingOfferSheet = (homeTeam?.incomingOfferSheets || []).find(
+            (offerSheet) =>
+              offerSheet.playerId === REVIEW_MODE_FREE_AGENT_ID &&
+              offerSheet.offeringTeamCode === 'LAL' &&
+              offerSheet.homeTeamCode === 'BOS'
+          );
+
+          return {
+            outgoingStatus: outgoingOfferSheet?.status || null,
+            incomingStatus: incomingOfferSheet?.status || null,
+            outgoingYears: outgoingOfferSheet?.contractYears || null,
+            incomingYears: incomingOfferSheet?.contractYears || null,
+          };
+        },
+        {
+          timeout: 20000,
+          message:
+            'offer sheet should persist as mirrored pending state on offering and home teams',
+        }
+      )
+      .toEqual({
+        outgoingStatus: 'PENDING_MATCH',
+        incomingStatus: 'PENDING_MATCH',
+        outgoingYears: 4,
+        incomingYears: 4,
+      });
+
+    await expect
+      .poll(
+        async () => {
+          const persistedEvents = await getWorldEventDocuments(worldId);
+          return persistedEvents.some((event) => {
+            const metadata =
+              event.metadata && typeof event.metadata === 'object'
+                ? (event.metadata as Record<string, unknown>)
+                : {};
+            return (
+              event.mutationType === 'storeOfferSheet' &&
+              metadata.playerId === REVIEW_MODE_FREE_AGENT_ID &&
+              metadata.teamCode === 'LAL'
+            );
+          });
+        },
+        {
+          timeout: 20000,
+          message: 'offer sheet should persist one storeOfferSheet event',
+        }
+      )
+      .toBe(true);
+
+    await openDashboardTab(page, 'Roster');
+    const rosterWorkbench = page
+      .getByTestId('cockpit-workbench')
+      .and(page.locator('[data-active-tab="roster"]'));
+    await expect(rosterWorkbench).toBeVisible();
+    await expect(
+      rosterWorkbench.getByAltText(REVIEW_MODE_FREE_AGENT_NAME)
+    ).toHaveCount(0);
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByText(/Offer sheet stored/i).first()).toBeVisible();
+    await expect(page.getByText(/storeOfferSheet/i).first()).toBeVisible();
+
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /2\s+teams changed/i
+    );
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Free Agency');
+    await expect(page.getByText(/My Offer Sheets/i)).toBeVisible({
+      timeout: 20000,
+    });
+    await expect(page.getByText(REVIEW_MODE_FREE_AGENT_NAME).first()).toBeVisible();
+    await expect(page.getByText(/Waiting for home team/i)).toBeVisible();
+
+    await openDashboardTab(page, 'Full Cap Table');
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '14 / 15'
+    );
+    await expect(
+      page
+        .getByTestId('cap-sheet-full-player-row-button')
+        .filter({ hasText: REVIEW_MODE_FREE_AGENT_NAME })
+    ).toHaveCount(0);
+
+    addAuditNote(
+      testInfo,
+      'This proves the RFA offer-sheet initiation path in browser review mode: LAL saved-world Free Agency row exposes Offer Sheet only for the RFA fixture, stores a pending offer sheet against BOS home-team truth, publishes an honest pending receipt, records History and Compare evidence, keeps LAL roster/cap surfaces unchanged until lifecycle resolution, and reloads the mirrored pending state.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-005B-rfa-offer-sheet');
   });
 
   test('D-MQ-005A: Canonical V1 saved-world own-FA Re-sign persists FCT, Roster, history, compare, and reload', async ({

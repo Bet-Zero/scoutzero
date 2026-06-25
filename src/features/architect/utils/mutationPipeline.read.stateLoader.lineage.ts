@@ -237,6 +237,33 @@ export function getSnapshotPlayersMembership(
   };
 }
 
+export function getSnapshotCapHoldMembership(
+  team: TeamLike | null | undefined,
+  playerId: string
+) {
+  const materializedTeam = materializeCurrentStateTeamForAudit(team);
+  if (!Array.isArray(materializedTeam?.capHolds)) {
+    return null;
+  }
+
+  return materializedTeam.capHolds.some((hold) => {
+    if (!hold || typeof hold !== 'object' || Array.isArray(hold)) {
+      return false;
+    }
+
+    const record = hold as Record<string, unknown>;
+    const candidate = toOptionalIdString(
+      record.playerId || record.player_id || record.id
+    );
+
+    if (candidate !== playerId) {
+      return false;
+    }
+
+    return record.active !== false && record.isSigned !== true;
+  });
+}
+
 export async function resolveWorldLineage(worldId: string) {
   const lineageWorldIds: string[] = [];
   const visitedWorldIds = new Set<string>();

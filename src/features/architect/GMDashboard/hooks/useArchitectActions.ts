@@ -570,6 +570,13 @@ export function useArchitectActions({
   const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
     () => {
       const standardSigningIsWorldSupported = Boolean(worldId);
+      const offerSheetInitiation = freeAgencyWorldOnlyModalActionOwner
+        ? {
+            getOfferSheetPreflight:
+              freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight,
+            storeOfferSheet: freeAgencyWorldOnlyModalActionOwner.storeOfferSheet,
+          }
+        : null;
 
       return {
         visibleActions: ['signNew'],
@@ -580,12 +587,12 @@ export function useArchitectActions({
         },
         standardSigningExposureClassification:
           standardSigningIsWorldSupported ? 'V1 supported' : 'preview-only',
-        showOfferSheetToggle: false,
+        showOfferSheetToggle: Boolean(offerSheetInitiation),
         signAndTradeInitiation: null,
-        offerSheetInitiation: null,
+        offerSheetInitiation,
       };
     },
-    [worldId]
+    [freeAgencyWorldOnlyModalActionOwner, worldId]
   );
 
   // SECTION/LIFECYCLE CONTRACT: FreeAgencySection renders disabled messaging

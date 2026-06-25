@@ -509,9 +509,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           signNew: 'Sign Free Agent',
         },
         standardSigningExposureClassification: 'V1 supported',
-        showOfferSheetToggle: false,
+        showOfferSheetToggle: true,
         signAndTradeInitiation: null,
-        offerSheetInitiation: null,
+        offerSheetInitiation: {
+          getOfferSheetPreflight:
+            result.current.actions.getOfferSheetPreflight,
+          storeOfferSheet: result.current.actions.handleStoreOfferSheet,
+        },
       },
       offerSheetSectionAvailability: {
         lifecycleActionOwner: {
