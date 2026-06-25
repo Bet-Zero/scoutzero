@@ -796,6 +796,9 @@ export const GMDashboard = () => {
   const standardWaiveStretchExposureClassification = worldId
     ? 'V1 supported'
     : 'preview-only';
+  const standardBuyoutExposureClassification = worldId
+    ? 'V1 supported'
+    : 'preview-only';
   const optionDecisionExposureClassification = worldId
     ? 'V1 supported'
     : 'preview-only';
@@ -927,6 +930,10 @@ export const GMDashboard = () => {
         worldId && actionContext === 'underContract'
           ? 'Waive & Stretch'
           : 'Waive & Stretch (Preview)',
+      buyout:
+        worldId && actionContext === 'underContract'
+          ? 'Buyout Contract'
+          : 'Buyout Contract (Preview)',
       ...(contractModalActionOverrides?.actionLabelsOverride || {}),
     },
   };
@@ -1285,6 +1292,9 @@ export const GMDashboard = () => {
           }
           standardWaiveStretchExposureClassification={
             standardWaiveStretchExposureClassification
+          }
+          standardBuyoutExposureClassification={
+            standardBuyoutExposureClassification
           }
           optionDecisionExposureClassification={
             optionDecisionExposureClassification

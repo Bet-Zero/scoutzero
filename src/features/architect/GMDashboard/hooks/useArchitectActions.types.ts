@@ -809,7 +809,7 @@ export interface UseArchitectActionsReturn {
   ) => void;
   handleLaunchPlayerContractAction: (
     player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer,
-    action: 'waive' | 'extend' | 'stretch'
+    action: 'waive' | 'extend' | 'stretch' | 'buyout'
   ) => void;
   handleCapTableModalAction: (
     player: PlayerRulesProfileInput,

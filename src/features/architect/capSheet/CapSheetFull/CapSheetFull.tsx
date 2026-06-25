@@ -114,14 +114,14 @@ type CapSheetFullProps = {
     | null;
   onRenounceCapHold?: ((capHold: CapHoldLike) => void) | null;
   /**
-   * Home-base enrichment: row-level launcher for waive/extend/stretch. Opens the
-   * existing contract modal pre-seeded to the chosen action. Optional — when
-   * omitted, no kebab renders (other call sites are unaffected).
+   * Home-base enrichment: row-level launcher for waive/extend/stretch/buyout.
+   * Opens the existing contract modal pre-seeded to the chosen action. Optional
+   * — when omitted, no kebab renders (other call sites are unaffected).
    */
   onLaunchPlayerAction?:
     | ((
         player: CapSheetFullPlayerLike,
-        action: 'waive' | 'extend' | 'stretch'
+        action: 'waive' | 'extend' | 'stretch' | 'buyout'
       ) => void)
     | null;
   /**
@@ -187,6 +187,7 @@ type CapSheetFullProps = {
   standardExtendExposureClassification?: ActionExposureClassification;
   standardWaiveExposureClassification?: ActionExposureClassification;
   standardWaiveStretchExposureClassification?: ActionExposureClassification;
+  standardBuyoutExposureClassification?: ActionExposureClassification;
   optionDecisionExposureClassification?: ActionExposureClassification;
   freeAgentOptions?: FreeAgentSurfaceEntry[];
   onOpenFreeAgentOption?: ((selectionKey: string) => void) | null;
@@ -587,6 +588,7 @@ export const CapSheetFull = ({
   standardExtendExposureClassification = 'preview-only',
   standardWaiveExposureClassification = 'preview-only',
   standardWaiveStretchExposureClassification = 'preview-only',
+  standardBuyoutExposureClassification = 'preview-only',
   optionDecisionExposureClassification = 'preview-only',
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
@@ -601,6 +603,8 @@ export const CapSheetFull = ({
     standardWaiveExposureClassification === 'V1 supported';
   const standardWaiveStretchIsSupported =
     standardWaiveStretchExposureClassification === 'V1 supported';
+  const standardBuyoutIsSupported =
+    standardBuyoutExposureClassification === 'V1 supported';
   // The three bottom detail surfaces (Dead Money / Cap Holds / Exceptions) share
   // one segmented bar: at most one panel is open at a time, and it pops up ABOVE
   // the bar so it never pushes the Full Cap Table into scroll.
@@ -1488,6 +1492,16 @@ export const CapSheetFull = ({
                                       standardWaiveStretchIsSupported
                                         ? 'Waive & Stretch is V1 supported from Full Cap Table rows in saved-world mode'
                                         : 'Waive & Stretch is visible as a preview until a saved world is active',
+                                    ],
+                                    [
+                                      'buyout',
+                                      standardBuyoutIsSupported
+                                        ? 'Buyout'
+                                        : 'Buyout (Preview)',
+                                      standardBuyoutExposureClassification,
+                                      standardBuyoutIsSupported
+                                        ? 'Buyout is V1 supported from Full Cap Table rows in saved-world mode'
+                                        : 'Buyout is visible as a preview until a saved world is active',
                                     ],
                                   ] as const
                                 ).map(([action, label, classification, title]) => ({

@@ -264,12 +264,12 @@ export function useContractActions({
 
   // Home-base shortcut: open the existing contract modal pre-seeded to a
   // specific action so the Full Cap Table row kebab can deep-link into
-  // waive/extend/stretch without reimplementing any mutation. The committed
+  // waive/extend/stretch/buyout without reimplementing any mutation. The committed
   // write still happens inside EditContractModal via its existing callbacks.
   const handleLaunchPlayerContractAction = useCallback(
     (
       player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer,
-      action: 'waive' | 'extend' | 'stretch'
+      action: 'waive' | 'extend' | 'stretch' | 'buyout'
     ): void => {
       const initialAction = action === 'stretch' ? 'waiveStretch' : action;
       openPlayerContractModalRoute({

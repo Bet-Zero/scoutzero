@@ -162,6 +162,7 @@ describe('CapSheetFull — home-base enrichments', () => {
         currentYear={CURRENT_YEAR}
         onLaunchPlayerAction={onLaunchPlayerAction}
         standardWaiveExposureClassification="V1 supported"
+        standardBuyoutExposureClassification="V1 supported"
       />
     );
 
@@ -178,6 +179,9 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(
       screen.getByTestId('cap-sheet-full-player-row-action-stretch')
     ).toHaveAttribute('data-action-exposure-classification', 'preview-only');
+    expect(
+      screen.getByTestId('cap-sheet-full-player-row-action-buyout')
+    ).toHaveAttribute('data-action-exposure-classification', 'V1 supported');
     fireEvent.click(waiveAction);
 
     expect(onLaunchPlayerAction).toHaveBeenCalledTimes(1);
@@ -396,7 +400,7 @@ describe('CapSheetFull — home-base enrichments', () => {
     const optionsSurface = screen.getByTestId('cap-sheet-full-fa-options');
     expect(optionsSurface).toHaveTextContent('Desk Option');
     fireEvent.click(
-      within(optionsSurface).getByRole('button', { name: /open offer/i })
+      within(optionsSurface).getByRole('button', { name: /open signing/i })
     );
     fireEvent.click(
       within(optionsSurface).getByRole('button', { name: /remove desk option/i })

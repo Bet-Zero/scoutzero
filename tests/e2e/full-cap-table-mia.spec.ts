@@ -265,6 +265,9 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
     await expect(
       overflowMenu.getByTestId('cap-sheet-full-player-row-action-stretch')
     ).toBeVisible();
+    await expect(
+      overflowMenu.getByTestId('cap-sheet-full-player-row-action-buyout')
+    ).toBeVisible();
 
     await overflowMenu
       .getByTestId('cap-sheet-full-player-row-action-extend')

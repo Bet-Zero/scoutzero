@@ -2040,6 +2040,261 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-004C-waive-stretch-v1');
   });
 
+  test('D-MQ-004D: Buyout persists reduced dead cap from Full Cap Table row overflow', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
+
+    await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+
+    await openDashboardTab(page, 'Full Cap Table');
+
+    const reavesRow = page
+      .locator('div')
+      .filter({
+        has: page.getByRole('button', {
+          name: new RegExp(
+            `^${escapeRegExp(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)}$`,
+            'i'
+          ),
+        }),
+      })
+      .filter({
+        has: page.getByRole('button', {
+          name: new RegExp(
+            `More actions for ${escapeRegExp(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)}`,
+            'i'
+          ),
+        }),
+      })
+      .first();
+
+    await expect(reavesRow).toBeVisible();
+    await reavesRow.hover();
+    await reavesRow
+      .getByRole('button', {
+        name: new RegExp(
+          `More actions for ${escapeRegExp(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)}`,
+          'i'
+        ),
+      })
+      .click();
+
+    const buyoutLauncher = page.getByTestId(
+      'cap-sheet-full-player-row-action-buyout'
+    );
+    await expect(buyoutLauncher).toHaveText(/^Buyout$/);
+    await expect(buyoutLauncher).toHaveAttribute(
+      'data-action-exposure-classification',
+      'V1 supported'
+    );
+    await buyoutLauncher.click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    await expect(modal.getByTestId('contract-action-buyout')).toBeChecked();
+    await expect(modal.getByText(/^Buyout Contract$/i).first()).toBeVisible();
+    await expect(modal.getByText(/Buyout Contract \(Preview\)/i)).toHaveCount(0);
+
+    const actionContext = modal.getByTestId('contract-modal-action-context');
+    await expect(actionContext).toContainText('Team Plan action');
+    await expect(actionContext).toContainText('Buyout Contract');
+    await expect(actionContext).toContainText('Editing terms');
+    await expect(actionContext).toContainText(
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
+    );
+    await expect(actionContext).toContainText('2025-26');
+
+    await modal.getByLabel(/buyout amount/i).fill('5000000');
+
+    const confirmActionButton = page.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeVisible();
+    page.once('dialog', async (dialog) => {
+      await dialog.accept();
+    });
+    await confirmActionButton.click();
+
+    await expect(modal).toHaveCount(0, { timeout: 15000 });
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Buyout saved/i,
+      { timeout: 20000 }
+    );
+    await expect(
+      page.getByText(/Roster count changed 14 -> 13/i).first()
+    ).toBeVisible();
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
+    await expect(
+      page
+        .getByTestId('cap-sheet-full-player-row-button')
+        .filter({ hasText: REVIEW_TRADE_LAL_OUTGOING_PLAYER.name })
+    ).toHaveCount(0, { timeout: 20000 });
+
+    const deadMoneyToggle = page.getByTestId('cap-sheet-full-dead-money-toggle');
+    await expect(deadMoneyToggle).toBeVisible();
+    await deadMoneyToggle.click();
+    await expect(
+      page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
+    ).toBeVisible();
+
+    await expect
+      .poll(
+        async () => {
+          const persistedTeam = await getWorldTeamDocument(worldId, 'LAL');
+          const rosterEntries = Array.isArray(persistedTeam?.roster)
+            ? persistedTeam.roster
+            : [];
+          const playerEntries = Array.isArray(persistedTeam?.players)
+            ? persistedTeam.players
+            : [];
+          const hasAustinReaves = [...rosterEntries, ...playerEntries].some(
+            (entry) => {
+              if (typeof entry === 'string') {
+                return entry === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
+              }
+              const playerId =
+                entry.id || entry.playerId || entry.player_id || null;
+              return playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
+            }
+          );
+          const deadCapEntry = (persistedTeam?.deadCap || []).find(
+            (entry) =>
+              entry.playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id ||
+              entry.player_id === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+          );
+          const amountByYear = Array.isArray(deadCapEntry?.amountByYear)
+            ? Object.fromEntries(
+                deadCapEntry.amountByYear.map((row) => {
+                  const amountRow = row as Record<string, unknown>;
+                  return [
+                    String(amountRow.season),
+                    Number(amountRow.amount || 0),
+                  ];
+                })
+              )
+            : null;
+
+          return {
+            hasAustinReaves,
+            amountByYear,
+            notes: deadCapEntry?.notes || null,
+          };
+        },
+        {
+          timeout: 15000,
+          message:
+            'buyout should remove Austin Reaves and persist dead cap after the buyout reduction',
+        }
+      )
+      .toEqual({
+        hasAustinReaves: false,
+        amountByYear: {
+          '2025-26': 40_000_000,
+        },
+        notes: 'Buyout reduction: $5,000,000',
+      });
+
+    await expect
+      .poll(
+        async () => {
+          const persistedEvents = await getWorldEventDocuments(worldId);
+          return persistedEvents.some((event) => {
+            const playerIds = Array.isArray(event.playerIds)
+              ? event.playerIds
+              : [];
+            const metadata =
+              event.metadata && typeof event.metadata === 'object'
+                ? (event.metadata as Record<string, unknown>)
+                : {};
+            const mutationMetadata =
+              event.mutationMetadata &&
+              typeof event.mutationMetadata === 'object'
+                ? (event.mutationMetadata as Record<string, unknown>)
+                : {};
+            return (
+              event.mutationType === 'waivePlayer' &&
+              playerIds.includes(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id) &&
+              (metadata.buyout === true || mutationMetadata.buyout === true) &&
+              (metadata.buyoutAmount === 5_000_000 ||
+                mutationMetadata.buyoutAmount === 5_000_000) &&
+              (metadata.deadCapAmount === 40_000_000 ||
+                mutationMetadata.deadCapAmount === 40_000_000)
+            );
+          });
+        },
+        {
+          timeout: 20000,
+          message:
+            'buyout should persist one waivePlayer event with buyout metadata',
+        }
+      )
+      .toBe(true);
+
+    await openDashboardTab(page, 'Roster');
+    const rosterWorkbench = page
+      .getByTestId('cockpit-workbench')
+      .and(page.locator('[data-active-tab="roster"]'));
+    await expect(rosterWorkbench).toBeVisible();
+    await expect(
+      rosterWorkbench.getByAltText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)
+    ).toHaveCount(0);
+
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByText(/buyout/i).first()).toBeVisible();
+
+    await openDashboardTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /1\s+committed event/i,
+      { timeout: 20000 }
+    );
+    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+      /1\s+team changed/i
+    );
+    await expect(page.getByTestId('comparison-changed-players')).toContainText(
+      /1\s+player touched/i
+    );
+    await expect(page.getByTestId('comparison-roster-removals')).toContainText(
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+    );
+    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Full Cap Table');
+    await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+      '13 / 15'
+    );
+    await expect(
+      page
+        .getByTestId('cap-sheet-full-player-row-button')
+        .filter({ hasText: REVIEW_TRADE_LAL_OUTGOING_PLAYER.name })
+    ).toHaveCount(0, { timeout: 20000 });
+    const reloadedDeadMoneyToggle = page.getByTestId(
+      'cap-sheet-full-dead-money-toggle'
+    );
+    await expect(reloadedDeadMoneyToggle).toBeVisible();
+    await reloadedDeadMoneyToggle.click();
+    await expect(
+      page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
+    ).toBeVisible();
+
+    addAuditNote(
+      testInfo,
+      'This proves the V1 Buyout path in browser review mode: Full Cap Table row overflow launches Buyout, the shared modal commits a buyout-backed waivePlayer action, the receipt/count state updates, Austin Reaves leaves active roster surfaces, dead money reflects remaining guaranteed salary minus the entered buyout reduction, Team History and Compare read the committed buyout event, and reload preserves the saved-world state.'
+    );
+
+    await captureEvidence(page, testInfo, 'D-MQ-004D-buyout-v1');
+  });
+
   test('D-MQ-005: Canonical V1 free-agent signing persists receipt, history, compare, and reload', async ({
     page,
   }, testInfo) => {
