@@ -368,11 +368,11 @@ describe('CapSheetFull — home-base enrichments', () => {
     ).toHaveTextContent('Incomplete roster charges');
   });
 
-  it('renders free-agent options separately from roster rows', () => {
+  it('renders free-agent options separately from roster rows with honest exposure', () => {
     const onOpenFreeAgentOption = vi.fn();
     const onRemoveFreeAgentOption = vi.fn();
 
-    render(
+    const { rerender } = render(
       <CapSheetFull
         teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
@@ -399,11 +399,64 @@ describe('CapSheetFull — home-base enrichments', () => {
 
     const optionsSurface = screen.getByTestId('cap-sheet-full-fa-options');
     expect(optionsSurface).toHaveTextContent('Desk Option');
+    const previewOpenSigning = within(optionsSurface).getByRole('button', {
+      name: /open signing for desk option \(preview only\)/i,
+    });
+    expect(previewOpenSigning).toHaveAttribute(
+      'data-action-exposure-classification',
+      'preview-only'
+    );
+    expect(previewOpenSigning).toHaveTextContent(/Preview/i);
+
+    rerender(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet}
+        currentYear={CURRENT_YEAR}
+        standardFreeAgentLauncherExposureClassification="V1 supported"
+        freeAgentOptions={[
+          {
+            selectionKey: 'fa_1',
+            playerId: 'fa_1',
+            freeAgent: {
+              id: 'fa_1',
+              name: 'Desk Option',
+              askingSalary: 8_000_000,
+            },
+            surfacePlayer: {
+              id: 'fa_1',
+              name: 'Desk Option',
+              displayName: 'Desk Option',
+            },
+          },
+        ]}
+        onOpenFreeAgentOption={onOpenFreeAgentOption}
+        onRemoveFreeAgentOption={onRemoveFreeAgentOption}
+      />
+    );
+
+    const supportedOptionsSurface = screen.getByTestId(
+      'cap-sheet-full-fa-options'
+    );
+    const supportedOpenSigning = within(supportedOptionsSurface).getByRole(
+      'button',
+      {
+        name: /open signing for desk option \(v1 supported\)/i,
+      }
+    );
+    expect(supportedOpenSigning).toHaveAttribute(
+      'data-action-exposure-classification',
+      'V1 supported'
+    );
+    expect(supportedOpenSigning).toHaveTextContent(/V1/i);
     fireEvent.click(
-      within(optionsSurface).getByRole('button', { name: /open signing/i })
+      within(supportedOptionsSurface).getByRole('button', {
+        name: /open signing/i,
+      })
     );
     fireEvent.click(
-      within(optionsSurface).getByRole('button', { name: /remove desk option/i })
+      within(supportedOptionsSurface).getByRole('button', {
+        name: /remove desk option/i,
+      })
     );
 
     expect(onOpenFreeAgentOption).toHaveBeenCalledWith('fa_1');

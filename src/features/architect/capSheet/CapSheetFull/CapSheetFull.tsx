@@ -1214,12 +1214,30 @@ export const CapSheetFull = ({
                       </span>
                       <button
                         type="button"
+                        data-action-exposure-classification={
+                          standardFreeAgentLauncherExposureClassification
+                        }
+                        aria-label={`Open signing for ${playerName} (${
+                          standardFreeAgentLauncherIsSupported
+                            ? 'V1 supported'
+                            : 'preview only'
+                        })`}
+                        title={
+                          standardFreeAgentLauncherIsSupported
+                            ? 'Saved-world standard free-agent signing'
+                            : 'Standard free-agent signing preview'
+                        }
                         onClick={() =>
                           onOpenFreeAgentOption?.(entry.selectionKey)
                         }
-                        className="rounded px-1 text-[10px] font-medium text-cockpit-safe hover:bg-cockpit-safe/10"
+                        className="inline-flex items-center gap-1 rounded px-1 text-[10px] font-medium text-cockpit-safe hover:bg-cockpit-safe/10"
                       >
                         Open signing
+                        <span className="rounded bg-cockpit-safe/15 px-1 text-[9px] font-semibold uppercase tracking-wide text-cockpit-safe">
+                          {standardFreeAgentLauncherIsSupported
+                            ? 'V1'
+                            : 'Preview'}
+                        </span>
                       </button>
                       <button
                         type="button"
