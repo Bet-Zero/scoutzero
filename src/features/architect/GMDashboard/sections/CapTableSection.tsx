@@ -6,6 +6,7 @@ type ForwardedCapTableProps = Pick<
   | 'onOpenPlayerContractModal'
   | 'onLaunchContractAction'
   | 'onRenounceCapHold'
+  | 'onSignAndTradeFreeAgent'
   | 'getRulesProfileForYear'
   | 'highlightPlayerId'
   | 'highlightPlayerIds'
@@ -38,6 +39,7 @@ const CapTableSection = ({
   onOpenPlayerContractModal,
   onLaunchContractAction,
   onRenounceCapHold,
+  onSignAndTradeFreeAgent = null,
   onLaunchPlayerAction = null,
   onPlayerAction = null,
   playersMap,
@@ -66,6 +68,7 @@ const CapTableSection = ({
     onOpenPlayerContractModal={onOpenPlayerContractModal}
     onLaunchContractAction={onLaunchContractAction}
     onRenounceCapHold={onRenounceCapHold}
+    onSignAndTradeFreeAgent={onSignAndTradeFreeAgent}
     onLaunchPlayerAction={onLaunchPlayerAction}
     onPlayerAction={onPlayerAction}
     getRulesProfileForYear={getRulesProfileForYear}

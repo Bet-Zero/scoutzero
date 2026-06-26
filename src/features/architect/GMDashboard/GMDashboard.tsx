@@ -93,6 +93,7 @@ import type {
   FreeAgentListItem,
   FreeAgentSurfaceEntry,
 } from '@/features/architect/freeAgency/FreeAgentPool/types';
+import type { TradeSignAndTradeSeed } from '@/features/architect/tradeMachine/TradeEditor.types';
 
 type EditContractModalProps = Parameters<typeof EditContractModal>[0];
 type EditContractArchitectActionCallbacks = Pick<
@@ -265,6 +266,11 @@ export const GMDashboard = () => {
   // draft survive together; replaced on the next context-carrying open.
   const [tradeOpenRequest, setTradeOpenRequest] =
     useState<TradeOpenRequest | null>(null);
+  // BZE-190: one-shot sign-and-trade seed handed to the Trade Machine when the
+  // user picks "Sign & Trade" on one of their own free agents in Free Agency.
+  // Cleared by TradeEditor once consumed (mirrors requestedTradeStagePlayerIds).
+  const [signAndTradeSeed, setSignAndTradeSeed] =
+    useState<TradeSignAndTradeSeed | null>(null);
   // Follow-through context (Slice 5): the launch context carried into the
   // Compare/Guide rooms. Session-only (open-question #11) — never persisted.
   const [followThroughContext, setFollowThroughContext] =
@@ -282,6 +288,19 @@ export const GMDashboard = () => {
     setHasOpenedTrade(true);
     setIsTradeOpen(true);
   }, []);
+  // BZE-190: open the Trade Machine carrying a free agent as a sign-and-trade
+  // seed. The deal (contract, destination team, legality) is assembled there.
+  const openTradeForSignAndTrade = useCallback(
+    (player: Record<string, unknown>) => {
+      setSignAndTradeSeed({
+        player,
+        sourceTeamCode: normalizedTeamId || null,
+      });
+      setHasOpenedTrade(true);
+      setIsTradeOpen(true);
+    },
+    [normalizedTeamId]
+  );
   const closeTrade = useCallback(() => setIsTradeOpen(false), []);
   const [freeAgentOptionKeys, setFreeAgentOptionKeys] = useState<string[]>([]);
   const [freeAgentOptionEntries, setFreeAgentOptionEntries] = useState<
@@ -976,6 +995,8 @@ export const GMDashboard = () => {
     onDraftActivityChange: setTradeDraftActive,
     requestedStagePlayerIds: requestedTradeStagePlayerIds,
     onStagePlayerHandled: () => setRequestedTradeStagePlayerIds([]),
+    requestedSignAndTradeSeed: signAndTradeSeed,
+    onSignAndTradeSeedHandled: () => setSignAndTradeSeed(null),
     tradeContext: tradeOpenRequest
       ? {
           objective: tradeOpenRequest.objective,
@@ -1267,6 +1288,12 @@ export const GMDashboard = () => {
             contractActionRouting.fullCapTable.launchContractAction
           }
           onRenounceCapHold={contractActionRouting.fullCapTable.renounceCapHold}
+          onSignAndTradeFreeAgent={
+            worldId
+              ? (player) =>
+                  openTradeForSignAndTrade(player as Record<string, unknown>)
+              : null
+          }
           onLaunchPlayerAction={
             contractActionRouting.fullCapTable.launchPlayerAction
           }

@@ -43,6 +43,7 @@ import type {
   EntitlementEditorState,
   SignAndTradeResult,
   TradeEditorProps,
+  TradeSignAndTradeSeed,
   PlayerLike,
   TeamLike,
 } from './TradeEditor.types';
@@ -73,6 +74,8 @@ export const TradeEditor = ({
   onDraftActivityChange = null,
   requestedStagePlayerIds = [],
   onStagePlayerHandled = null,
+  requestedSignAndTradeSeed = null,
+  onSignAndTradeSeedHandled = null,
   tradeContext = null,
 }: TradeEditorProps) => {
   const {
@@ -130,6 +133,14 @@ export const TradeEditor = ({
   const [isApplying, setIsApplying] = useState(false);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
     useState<TradeMachineSatModalState>(null);
+  // BZE-190: a free agent handed in from Free Agency, parked as a pending
+  // sign-and-trade piece until the user sets its new contract + destination.
+  // `sourceTeamCode` is the team that holds the FA's rights, so the piece stages
+  // on that team's slot rather than blindly on slot 0.
+  const [pendingSignAndTrade, setPendingSignAndTrade] = useState<{
+    player: Record<string, unknown>;
+    sourceTeamCode: string | null;
+  } | null>(null);
   // P2: Track which team's calculator to show (0 = primary team by default)
   const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
   const [entitlementEditorState, setEntitlementEditorState] =
@@ -207,6 +218,27 @@ export const TradeEditor = ({
     stagedRequestKeyRef.current = requestKey;
     onStagePlayerHandled?.();
   }, [requestedStagePlayerIds, teams, setPlayerTrade, onStagePlayerHandled]);
+
+  // BZE-190: consume a one-shot sign-and-trade seed from Free Agency. The free
+  // agent is parked as a pending S&T piece on the source team; the user then
+  // adds the receiving team and sets the new contract + destination, which
+  // stages it through the same path as the in-Trade-Machine S&T flow. A ref
+  // guards against re-parking a dismissed piece if the seed prop lingers (mirrors
+  // the staging effect above).
+  const consumedSignAndTradeSeedRef = useRef<TradeSignAndTradeSeed | null>(null);
+  useEffect(() => {
+    if (!requestedSignAndTradeSeed) {
+      consumedSignAndTradeSeedRef.current = null;
+      return;
+    }
+    if (consumedSignAndTradeSeedRef.current === requestedSignAndTradeSeed) return;
+    consumedSignAndTradeSeedRef.current = requestedSignAndTradeSeed;
+    setPendingSignAndTrade({
+      player: requestedSignAndTradeSeed.player,
+      sourceTeamCode: requestedSignAndTradeSeed.sourceTeamCode ?? null,
+    });
+    onSignAndTradeSeedHandled?.();
+  }, [requestedSignAndTradeSeed, onSignAndTradeSeedHandled]);
 
   // Stale validation fix: hasCurrentValidation now comes from hook
   // It properly checks if validation result matches current draft configuration
@@ -662,9 +694,34 @@ export const TradeEditor = ({
       }
     );
 
+    // BZE-190: the seeded free agent is now a real staged S&T piece; drop the
+    // pending prompt so it isn't offered (or staged) twice.
+    setPendingSignAndTrade(null);
     closeTradeMachineSatModal();
     return { success: true };
   };
+
+  // BZE-190: the Trade-Machine sign-and-trade modal only collects the new
+  // contract + destination and stages a draft piece — it does not commit. The
+  // authoritative combined legality (signing phase + assembled/validated trade +
+  // first-apron hard cap) runs at the Trade Machine's Validate/Apply, and
+  // `handleTradeMachineSignAndTrade` already validates the contract before
+  // staging. So this modal's own preflight is intentionally permissive: the
+  // parked FA-direct path wired a real preflight here, which always returned
+  // 'incomplete' because no assembled trade existed yet — the exact reason
+  // sign-and-trade was blocked before. Legality is not weakened; it just moves
+  // to the proven Trade Machine validator.
+  const tradeMachineSatPreflight = useMemo<
+    NonNullable<EditContractModalProps['getSignAndTradePreflight']>
+  >(
+    () => async () => ({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    }),
+    []
+  );
 
   const handleApplyTrade = async () => {
     // TMAPPLY-02: in-flight guard against double-submit
@@ -755,6 +812,48 @@ export const TradeEditor = ({
     (capRulesForYear?._meta?.sourcesSummary as string | undefined) ?? null;
   const capSeasonLabel = capRulesForYear?.seasonKey ?? null;
 
+  // BZE-190: label for the parked sign-and-trade free agent.
+  const pendingSignAndTradePlayerName = useMemo(() => {
+    const seedPlayer = pendingSignAndTrade?.player;
+    if (!seedPlayer) return null;
+    const bio = seedPlayer.bio as { displayName?: string } | undefined;
+    return (
+      (seedPlayer.displayName as string) ||
+      (seedPlayer.name as string) ||
+      bio?.displayName ||
+      'Free agent'
+    );
+  }, [pendingSignAndTrade]);
+  const openPendingSignAndTradeEditor = () => {
+    if (!pendingSignAndTrade) return;
+    // Stage on the slot for the team that holds the FA's rights. The primary
+    // team is slot 0 in the normal flow; resolving by code keeps it correct even
+    // if the source team is moved to another slot. Falls back to slot 0.
+    const sourceCode = pendingSignAndTrade.sourceTeamCode
+      ? resolveTeamCode(pendingSignAndTrade.sourceTeamCode) ||
+        pendingSignAndTrade.sourceTeamCode
+      : null;
+    const matchedSourceIndex = sourceCode
+      ? teams.findIndex((slot) => {
+          const slotId =
+            slot?.team?.id || slot?.team?.teamCode || slot?.team?.teamId;
+          return (
+            !!slotId &&
+            (resolveTeamCode(String(slotId)) || String(slotId)) === sourceCode
+          );
+        })
+      : -1;
+    const sourceTeamIndex = matchedSourceIndex >= 0 ? matchedSourceIndex : 0;
+    const defaultDestinationTeamId =
+      teams.find((slot, idx) => idx !== sourceTeamIndex && slot?.team)?.team
+        ?.id ?? null;
+    openTradeMachineSatModal(
+      sourceTeamIndex,
+      pendingSignAndTrade.player as PlayerLike,
+      defaultDestinationTeamId
+    );
+  };
+
   return (
     <div className="text-white space-y-6">
       {showContextBanner && tradeContext && bannerAuthority ? (
@@ -843,7 +942,13 @@ export const TradeEditor = ({
           >
             {isApplying ? 'Applying…' : 'Apply Trade'}
           </PrimaryButton>
-          <IconButton onClick={resetTrade} title="Reset Trade">
+          <IconButton
+            onClick={() => {
+              resetTrade();
+              setPendingSignAndTrade(null);
+            }}
+            title="Reset Trade"
+          >
             <RotateCcw size={18} />
           </IconButton>
           {teams.length < 5 && (
@@ -851,6 +956,40 @@ export const TradeEditor = ({
           )}
         </div>
       </div>
+
+      {/* BZE-190: pending sign-and-trade prompt for a free agent seeded from
+          Free Agency. Cleared once staged (or dismissed). */}
+      {pendingSignAndTrade ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2"
+          data-testid="pending-sign-and-trade"
+        >
+          <div className="min-w-0 text-sm text-blue-100">
+            <span className="font-semibold">Sign &amp; Trade:</span>{' '}
+            <span data-testid="pending-sign-and-trade-player">
+              {pendingSignAndTradePlayerName}
+            </span>
+            <span className="ml-2 text-xs text-blue-200/70">
+              Add the receiving team, then set the new contract &amp;
+              destination.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <PrimaryButton onClick={openPendingSignAndTradeEditor}>
+              Set contract &amp; destination
+            </PrimaryButton>
+            <button
+              type="button"
+              onClick={() => setPendingSignAndTrade(null)}
+              aria-label="Cancel sign-and-trade"
+              data-testid="pending-sign-and-trade-dismiss"
+              className="shrink-0 rounded px-1 text-blue-200/60 transition-colors hover:bg-white/5 hover:text-blue-100"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Task A: Mode + Validation State Header */}
       {/* Stale validation fix: Uses hasCurrentValidation to only show "Validated"
@@ -1107,6 +1246,7 @@ export const TradeEditor = ({
             signAndTrade: 'Sign & Trade (Trade Machine)',
           }}
           onSignAndTrade={handleTradeMachineSignAndTrade}
+          getSignAndTradePreflight={tradeMachineSatPreflight}
         />
       )}
     </div>

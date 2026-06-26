@@ -78,6 +78,18 @@ export type SignAndTradeResult = {
   message?: string;
 };
 
+/**
+ * BZE-190: one-shot hand-off from Free Agency into the Trade Machine. Carries
+ * the free agent the user chose to sign-and-trade (a player they still hold the
+ * rights to) plus the source team. The editor surfaces this as a pending S&T
+ * piece on the source team; the contract + destination are set, and legality is
+ * checked, inside the Trade Machine.
+ */
+export interface TradeSignAndTradeSeed {
+  player: Record<string, unknown>;
+  sourceTeamCode?: string | null;
+}
+
 export interface TradeEditorProps {
   primaryTeam?: string | null;
   capProjections?: Record<string, unknown> | null;
@@ -103,6 +115,13 @@ export interface TradeEditorProps {
    */
   requestedStagePlayerIds?: string[];
   onStagePlayerHandled?: (() => void) | null;
+  /**
+   * One-shot sign-and-trade seed from Free Agency (BZE-190). When set, the
+   * editor pre-loads the free agent as a pending sign-and-trade piece on the
+   * source team; `onSignAndTradeSeedHandled` then clears the request.
+   */
+  requestedSignAndTradeSeed?: TradeSignAndTradeSeed | null;
+  onSignAndTradeSeedHandled?: (() => void) | null;
   /**
    * Context-carrying open (interconnectivity Slice 3): objective / exception /
    * committed-event reference + authority. Drives the dismissible in-overlay

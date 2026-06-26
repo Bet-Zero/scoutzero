@@ -154,6 +154,26 @@ function deriveLeaguePhase(date: Date): LeaguePhase {
   return 'regular';
 }
 
+/**
+ * BZE-190: whether a world as-of date falls in the NBA offseason for
+ * transaction-timing purposes (the free-agency + sign-and-trade window). Treats
+ * both the early-July moratorium and the post-moratorium offseason as
+ * "offseason", matching how the app already lets you sign / re-sign free agents
+ * from July 1 onward. Parses YYYY-MM-DD as a local date so the day isn't shifted
+ * across timezones.
+ */
+export function isOffseasonAsOfDate(
+  asOfDate: string | null | undefined
+): boolean {
+  if (!asOfDate) return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(asOfDate));
+  if (!match) return false;
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  const phase = deriveLeaguePhase(date);
+  return phase === 'offseason' || phase === 'moratorium';
+}
+
 function getSalaryForSeason(
   player: BuildRuleContextInput['player'],
   seasonId: SeasonId

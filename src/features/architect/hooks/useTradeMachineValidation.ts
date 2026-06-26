@@ -13,6 +13,7 @@ import {
   getTradePreviewAuthority,
 } from '@/features/architect/utils/tradeContext/tradeContext';
 import { validateTradeData } from '@/features/architect/utils/tradeMachine/utils/dataValidation';
+import { isOffseasonAsOfDate } from '@/features/architect/utils/buildRuleContext.helpers';
 import {
   hasTeamSlot,
   asUnknownRecord,
@@ -111,7 +112,14 @@ export function useTradeMachineValidation({
           worldId: worldId ?? undefined,
           yearKey,
           source: 'tradeMachine',
-          ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
+          ...(worldAsOfDate
+            ? {
+                asOfDate: worldAsOfDate,
+                // BZE-190: sign-and-trades are offseason-only; derive that from
+                // the world date so the validator gates correctly.
+                offseason: isOffseasonAsOfDate(worldAsOfDate),
+              }
+            : {}),
         },
       };
       const currentState: TradeContextCurrentState = {

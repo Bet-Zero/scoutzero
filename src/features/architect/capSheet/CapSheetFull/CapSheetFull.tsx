@@ -114,6 +114,13 @@ type CapSheetFullProps = {
     | null;
   onRenounceCapHold?: ((capHold: CapHoldLike) => void) | null;
   /**
+   * BZE-190: start a sign-and-trade on one of your own free agents (an active
+   * cap hold on this team). Hands the player to the Trade Machine, where the
+   * deal is assembled and rule-checked. Saved-world only — omitted in
+   * base/preview mode, so no Sign & Trade affordance renders there.
+   */
+  onSignAndTradeFreeAgent?: ((player: CapSheetFullPlayerLike) => void) | null;
+  /**
    * Home-base enrichment: row-level launcher for waive/extend/stretch/buyout.
    * Opens the existing contract modal pre-seeded to the chosen action. Optional
    * — when omitted, no kebab renders (other call sites are unaffected).
@@ -572,6 +579,7 @@ export const CapSheetFull = ({
   onOpenPlayerContractModal,
   onLaunchContractAction,
   onRenounceCapHold,
+  onSignAndTradeFreeAgent = null,
   onLaunchPlayerAction = null,
   onPlayerAction = null,
   onSelectPlayer,
@@ -992,6 +1000,20 @@ export const CapSheetFull = ({
             <span className="mr-auto truncate text-[13px] font-bold tracking-tight text-white">
               {hold.playerName || hold.playerId}
             </span>
+            {onSignAndTradeFreeAgent ? (
+              <button
+                data-testid="cap-sheet-full-fa-sign-and-trade-button"
+                data-action-exposure-classification="V1 supported"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSignAndTradeFreeAgent(player);
+                }}
+                className="mr-1.5 rounded border border-blue-400/30 bg-blue-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-200 hover:bg-blue-500/30"
+                title={`Sign & Trade ${hold.playerName || ''} — assemble the deal in the Trade Machine`}
+              >
+                Sign &amp; Trade
+              </button>
+            ) : null}
             <button
               data-testid="cap-sheet-full-fa-absolve-button"
               data-action-exposure-classification="V1 supported"

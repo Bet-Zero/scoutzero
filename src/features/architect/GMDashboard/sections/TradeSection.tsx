@@ -28,6 +28,8 @@ type ForwardedTradeEditorProps = Pick<
   | 'onDraftActivityChange'
   | 'requestedStagePlayerIds'
   | 'onStagePlayerHandled'
+  | 'requestedSignAndTradeSeed'
+  | 'onSignAndTradeSeedHandled'
   | 'tradeContext'
 >;
 
@@ -48,6 +50,8 @@ const TradeSection = ({
   onDraftActivityChange = null,
   requestedStagePlayerIds = [],
   onStagePlayerHandled = null,
+  requestedSignAndTradeSeed = null,
+  onSignAndTradeSeedHandled = null,
   tradeContext = null,
 }: TradeSectionProps) => {
   const tradeEditorSurfaceProps = {
@@ -65,6 +69,8 @@ const TradeSection = ({
     onDraftActivityChange,
     requestedStagePlayerIds,
     onStagePlayerHandled,
+    requestedSignAndTradeSeed,
+    onSignAndTradeSeedHandled,
     tradeContext,
   } satisfies ForwardedTradeEditorProps;
 

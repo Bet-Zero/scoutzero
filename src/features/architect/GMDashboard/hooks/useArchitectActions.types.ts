@@ -227,6 +227,8 @@ export type TradeExecutionPayload = {
     worldId: string | null;
     yearKey: number;
     asOfDate?: string;
+    // BZE-190: offseason-only timing rules (e.g. sign-and-trade) read this.
+    offseason?: boolean;
   };
 };
 
