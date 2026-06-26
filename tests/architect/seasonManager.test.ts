@@ -780,9 +780,11 @@ describe('Season Manager', () => {
 
       const metadata = requireWorldMetadata(worldId);
       expect(metadata.currentSeason).toBe('2026-27');
+      expect(metadata.asOfDate).toBe('2026-07-01');
       expect(result.committedState.metadata).toEqual({
         currentSeason: '2026-27',
         currentYear: 2027,
+        asOfDate: '2026-07-01',
         lastModifiedTeams: result.updatedTeams,
       });
       expect(result.committedState.focusTeamCode).toBe('LAL');

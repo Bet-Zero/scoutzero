@@ -327,6 +327,7 @@ describe('seasonManager committed team artifact boundary', () => {
     expect(result.committedState.metadata).toEqual({
       currentSeason: '2026-27',
       currentYear: 2027,
+      asOfDate: '2026-07-01',
       lastModifiedTeams: ['LAL'],
     });
     expect(result.committedState.focusTeamSnapshot).toEqual(

@@ -12,6 +12,7 @@ import {
   ANDRE_COLE_PLAYER_NAME,
   MIA_SEASON_ADVANCE_URL,
   MIA_TEAM_CODE,
+  NEXT_REVIEW_WORLD_AS_OF_DATE,
   NEXT_REVIEW_WORLD_SEASON,
   QUENTIN_DIAZ_PLAYER_ID,
   QUENTIN_DIAZ_PLAYER_NAME,
@@ -154,7 +155,8 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
     }
 
     const advancedMetadata = await getWorldMetadataDocument(worldId);
-    expect(advancedMetadata?.asOfDate).toBe(REVIEW_WORLD_AS_OF_DATE);
+    expect(advancedMetadata?.currentSeason).toBe(NEXT_REVIEW_WORLD_SEASON);
+    expect(advancedMetadata?.asOfDate).toBe(NEXT_REVIEW_WORLD_AS_OF_DATE);
     await expectAndreColeCapHold(worldId);
 
     const seasonAdvanceEvents = (await getWorldEventDocuments(worldId)).filter(
@@ -203,6 +205,9 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
         message: `world ${worldId} should remain active after reload`,
       })
       .toBe(worldId);
+    const reloadedMetadata = await getWorldMetadataDocument(worldId);
+    expect(reloadedMetadata?.currentSeason).toBe(NEXT_REVIEW_WORLD_SEASON);
+    expect(reloadedMetadata?.asOfDate).toBe(NEXT_REVIEW_WORLD_AS_OF_DATE);
 
     await openDashboardTab(page, 'Roster');
     const reloadedRosterRegion = page.getByRole('region', { name: /^Roster$/i });
@@ -218,7 +223,7 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BZE-178 proof: maintained review helper seeded a 30-team saved world, MIA advanced 2026-27 -> 2027-28 through the supported Offseason UI, Andre Cole declined into a cap hold, Roster removed him, History and Compare showed the committed seasonAdvance event, and reload preserved the active world. asOfDate intentionally remained 2026-07-01.',
+        'BZE-180 proof: maintained review helper seeded a 30-team saved world, MIA advanced 2026-27 -> 2027-28 through the supported Offseason UI, metadata.asOfDate advanced to 2027-07-01, Andre Cole declined into a cap hold, Roster removed him, History and Compare showed the committed seasonAdvance event, and reload preserved the active world plus advanced metadata.',
     });
   });
 });

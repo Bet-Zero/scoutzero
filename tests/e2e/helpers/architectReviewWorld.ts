@@ -6,6 +6,7 @@ export const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
 export const REVIEW_WORLD_SEASON = '2026-27';
 export const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
 export const NEXT_REVIEW_WORLD_SEASON = '2027-28';
+export const NEXT_REVIEW_WORLD_AS_OF_DATE = '2027-07-01';
 export const MIA_SEASON_ADVANCE_URL = '/gm/MIA?season=2027';
 export const MIA_TEAM_CODE = 'MIA';
 export const ANDRE_COLE_PLAYER_ID = 'mia_andre_cole';

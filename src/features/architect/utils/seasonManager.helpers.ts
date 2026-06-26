@@ -153,6 +153,7 @@ export type SeasonAdvanceDraftResolutionInfo = {
 export type SeasonAdvanceCommittedMetadata = {
   currentSeason: string;
   currentYear: number;
+  asOfDate: string;
   lastModifiedTeams: string[];
 };
 

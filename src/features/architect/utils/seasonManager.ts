@@ -222,6 +222,16 @@ export async function advanceSeasonInWorld(
     const fromYear = draftYear;
     const toYear = fromYear + 1;
     const toSeason = seasonAdvanceDraftContext.nextSeason;
+    const targetSeasonEndYear = toEndYear(toSeason);
+    if (
+      typeof targetSeasonEndYear !== 'number' ||
+      !Number.isFinite(targetSeasonEndYear)
+    ) {
+      throw new Error(
+        `Could not resolve asOfDate for target season "${toSeason}"`
+      );
+    }
+    const targetAsOfDate = `${targetSeasonEndYear - 1}-07-01`;
 
     // ===========================================================================
     // PHASE 5: Load draft positions for the draft year being advanced past
@@ -491,6 +501,7 @@ export async function advanceSeasonInWorld(
     const metadataRef = worldMetadataRef(worldId);
     batch.update(metadataRef, {
       currentSeason: toSeason,
+      asOfDate: targetAsOfDate,
       lastModifiedAt: serverTimestamp(),
       lastModifiedTeams: updatedTeams,
       actionCount: increment(1),
@@ -500,6 +511,7 @@ export async function advanceSeasonInWorld(
     const committedMetadata: SeasonAdvanceCommittedMetadata = {
       currentSeason: toSeason,
       currentYear: toYear,
+      asOfDate: targetAsOfDate,
       lastModifiedTeams: teamCodes,
     };
     const diffSummary = {
