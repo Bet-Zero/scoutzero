@@ -27,7 +27,6 @@ import {
 import {
   validateSignAndTradeContractPayload,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
-import { isOffseasonAsOfDate } from '@/features/architect/utils/buildRuleContext.helpers';
 import toast from 'react-hot-toast';
 import {
   buildActionSeasonContext,
@@ -269,14 +268,7 @@ export function useTradeActions({
         source: 'tradeMachine' as const,
         worldId: worldId ?? null,
         yearKey: currentYear,
-        ...(worldAsOfDate
-          ? {
-              asOfDate: worldAsOfDate,
-              // BZE-190: sign-and-trades are offseason-only; derive that from the
-              // world date so apply-time validation gates the same as preview.
-              offseason: isOffseasonAsOfDate(worldAsOfDate),
-            }
-          : {}),
+        ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
       };
       const payload = {
         teams,

@@ -9,6 +9,7 @@
  */
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { isOffseasonAsOfDate } from '@/features/architect/utils/buildRuleContext.helpers';
 import type {
   SignAndTradePlayerLike,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
@@ -615,6 +616,8 @@ export function buildTradeValidatorContext(
   }
   if (typeof rawTradeCtx.offseason === 'boolean') {
     tradeCtx.offseason = rawTradeCtx.offseason;
+  } else if (asOfDate != null) {
+    tradeCtx.offseason = isOffseasonAsOfDate(String(asOfDate));
   }
   const normalizedYearKey =
     rawTradeCtx.yearKey != null ? toEndYear(rawTradeCtx.yearKey) : null;
