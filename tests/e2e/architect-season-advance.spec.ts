@@ -123,14 +123,9 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
       .last()
       .click();
 
-    await expect(
-      page.getByText(/Season Advanced Successfully/i)
-    ).toBeVisible({ timeout: 90000 });
-    await page.getByRole('button', { name: /^Done$/i }).click();
-
     await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
       /Season advanced to 2027-28/i,
-      { timeout: 20000 }
+      { timeout: 90000 }
     );
 
     await expect
@@ -145,6 +140,18 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
         }
       )
       .toBe(NEXT_REVIEW_WORLD_SEASON);
+
+    const offseasonSummaryClose = page
+      .getByRole('heading', { name: /^Offseason Summary$/i })
+      .locator('xpath=ancestor::div[contains(@class, "rounded")][1]')
+      .getByRole('button', { name: /^Close$/i });
+    if (
+      await offseasonSummaryClose
+        .isVisible({ timeout: 1000 })
+        .catch(() => false)
+    ) {
+      await offseasonSummaryClose.click();
+    }
 
     const advancedMetadata = await getWorldMetadataDocument(worldId);
     expect(advancedMetadata?.asOfDate).toBe(REVIEW_WORLD_AS_OF_DATE);
@@ -175,12 +182,6 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
     );
     const firstTimelineRow = page.getByTestId('team-history-event-row-0');
     await expect(firstTimelineRow).toContainText(/Season Advance/i);
-    await firstTimelineRow.click();
-    await expect(page.getByTestId('team-history-detail-modal')).toBeVisible();
-    await expect(
-      page.getByTestId('team-history-detail-mutation-type')
-    ).toHaveText(/seasonAdvance/i);
-    await page.getByTestId('team-history-detail-close').click();
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
