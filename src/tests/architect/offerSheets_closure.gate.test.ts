@@ -50,6 +50,11 @@ const MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.offerSheets.initial.ts'
 );
+// BZE-191: shared matched/declined OUTCOME logic (player move) extracted here.
+const MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_OUTCOME_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.compute.offerSheets.outcome.ts'
+);
 const MUTATION_PIPELINE_COMPUTE_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.ts'
@@ -301,7 +306,8 @@ describe('Gate 4: Store mirrors to offering + home team arrays (E1)', () => {
     readFileContent(MUTATION_PIPELINE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
-    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH);
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_OUTCOME_PATH);
 
   it('defines computeStoreOfferSheetResult function', () => {
     const hasFunctionDef = /function\s+computeStoreOfferSheetResult/.test(
@@ -397,49 +403,49 @@ describe('Gate 4B: Store ownership resolves from strict home-team authority (E5)
 
 // === GATE 5: Match/Decline Enforce Status + Mirror Update ===
 
-describe('Gate 5: Match/Decline enforce status + mirror update (E1)', () => {
+describe('Gate 5: Match/Decline resolve atomically via shared outcome (E1)', () => {
+  // BZE-191: one-click match/decline now perform the FULL resolution outcome
+  // (player move) in a single mutation, reusing the shared outcome module — they
+  // no longer flip an intermediate MATCHED/DECLINED status.
   const content =
     readFileContent(MUTATION_PIPELINE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
-    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH);
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_OUTCOME_PATH);
 
-  it('computeMatchOfferSheetResult checks for PENDING_MATCH status', () => {
-    const checksStatus =
-      /computeMatchOfferSheetResult[\s\S]{0,1500}status\s*!==\s*['"]PENDING_MATCH['"]/.test(
+  it('computeMatchOfferSheetResult delegates to the shared matched outcome', () => {
+    const delegates =
+      /computeMatchOfferSheetResult[\s\S]{0,600}computeMatchedOfferSheetOutcome/.test(
         content
       );
-    expect(checksStatus).toBe(true);
+    expect(delegates).toBe(true);
   });
 
-  it('computeMatchOfferSheetResult sets status to MATCHED', () => {
-    const setsMatched =
-      /computeMatchOfferSheetResult[\s\S]{0,2000}status\s*:\s*['"]MATCHED['"]/.test(
+  it('computeDeclineOfferSheetResult delegates to the shared declined outcome', () => {
+    const delegates =
+      /computeDeclineOfferSheetResult[\s\S]{0,600}computeDeclinedOfferSheetOutcome/.test(
         content
       );
-    expect(setsMatched).toBe(true);
+    expect(delegates).toBe(true);
   });
 
-  it('computeDeclineOfferSheetResult checks for PENDING_MATCH status', () => {
-    const checksStatus =
-      /computeDeclineOfferSheetResult[\s\S]{0,1500}status\s*!==\s*['"]PENDING_MATCH['"]/.test(
+  it('one-click match/decline accept a PENDING_MATCH sheet directly', () => {
+    const acceptsPending =
+      /compute(Match|Decline)OfferSheetResult[\s\S]{0,600}acceptedStatuses:\s*\[\s*'PENDING_MATCH'\s*\]/.test(
         content
       );
-    expect(checksStatus).toBe(true);
+    expect(acceptsPending).toBe(true);
   });
 
-  it('computeDeclineOfferSheetResult sets status to DECLINED', () => {
-    const setsDeclined =
-      /computeDeclineOfferSheetResult[\s\S]{0,2000}status\s*:\s*['"]DECLINED['"]/.test(
-        content
-      );
-    expect(setsDeclined).toBe(true);
+  it('the shared outcome enforces the accepted prior status', () => {
+    const enforcesStatus = /acceptedStatuses\.includes\(/.test(content);
+    expect(enforcesStatus).toBe(true);
   });
 
-  it('match/decline mirror update to home team incomingOfferSheets', () => {
-    // Both match and decline update home team's incomingOfferSheets
+  it('match/decline outcomes mirror against home team incomingOfferSheets', () => {
     const mirrorsUpdate =
-      /compute(Match|Decline)OfferSheetResult[\s\S]{0,3000}updatedHomeTeam\.incomingOfferSheets/.test(
+      /compute(Matched|Declined)OfferSheetOutcome[\s\S]{0,4000}incomingOfferSheets/.test(
         content
       );
     expect(mirrorsUpdate).toBe(true);
@@ -453,7 +459,8 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
     readFileContent(MUTATION_PIPELINE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
-    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH);
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_OUTCOME_PATH);
 
   it('computeFinalizeMatchedOfferSheetResult is defined', () => {
     const hasFunctionDef =
@@ -463,7 +470,7 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('removes offer sheet from home team incomingOfferSheets', () => {
     const removesFromHome =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,2500}updatedHomeTeam\.incomingOfferSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
+      /computeMatchedOfferSheetOutcome[\s\S]{0,2500}updatedHomeTeam\.incomingOfferSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
         content
       );
     expect(removesFromHome).toBe(true);
@@ -471,7 +478,7 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('normalizes the matched contract before applying it', () => {
     const normalizesContract =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,3500}buildNormalizedOfferSheetFinalContract/.test(
+      /computeMatchedOfferSheetOutcome[\s\S]{0,3500}buildNormalizedOfferSheetFinalContract/.test(
         content
       );
     expect(normalizesContract).toBe(true);
@@ -479,7 +486,7 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('recomputes home team totals through the canonical totals bridge', () => {
     const recomputesTotals =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,4500}updatedHomeTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
+      /computeMatchedOfferSheetOutcome[\s\S]{0,4500}updatedHomeTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
         content
       );
     expect(recomputesTotals).toBe(true);
@@ -487,7 +494,7 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('cleans up offer sheet from offering team', () => {
     const cleansUpOffering =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,5500}updatedOfferingTeam\.offerSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
+      /computeMatchedOfferSheetOutcome[\s\S]{0,5500}updatedOfferingTeam\.offerSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
         content
       );
     expect(cleansUpOffering).toBe(true);
@@ -495,7 +502,7 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('builds canonical replace manifest with no delete path', () => {
     const usesReplaceManifest =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,6500}buildCanonicalPlayerPersistenceManifest[\s\S]{0,400}mode:\s*['"]replace['"]/.test(
+      /computeMatchedOfferSheetOutcome[\s\S]{0,6500}buildCanonicalPlayerPersistenceManifest[\s\S]{0,400}mode:\s*['"]replace['"]/.test(
         content
       );
     expect(usesReplaceManifest).toBe(true);
@@ -509,7 +516,8 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
     readFileContent(MUTATION_PIPELINE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_PATH) +
-    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH);
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_INITIAL_PATH) +
+    readFileContent(MUTATION_PIPELINE_COMPUTE_OFFER_SHEETS_OUTCOME_PATH);
 
   it('computeFinalizeDeclinedOfferSheetResult is defined', () => {
     const hasFunctionDef =
@@ -519,7 +527,7 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
 
   it('adds player to offering team roster', () => {
     const addsToOffering =
-      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,5000}updatedOfferingTeam\.players\s*=/.test(
+      /computeDeclinedOfferSheetOutcome[\s\S]{0,5000}updatedOfferingTeam\.players\s*=/.test(
         content
       );
     expect(addsToOffering).toBe(true);
@@ -527,7 +535,7 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
 
   it('recomputes offering team totals through the canonical totals bridge', () => {
     const recomputesOfferingTotals =
-      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,6000}updatedOfferingTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
+      /computeDeclinedOfferSheetOutcome[\s\S]{0,6000}updatedOfferingTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
         content
       );
     expect(recomputesOfferingTotals).toBe(true);
@@ -535,7 +543,7 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
 
   it('removes player from home team roster', () => {
     const removesFromHome =
-      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,7000}updatedHomeTeam\.players\s*=[\s\S]{0,200}filter/.test(
+      /computeDeclinedOfferSheetOutcome[\s\S]{0,7000}updatedHomeTeam\.players\s*=[\s\S]{0,200}filter/.test(
         content
       );
     expect(removesFromHome).toBe(true);
@@ -543,7 +551,7 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
 
   it('recomputes home team totals through the canonical totals bridge', () => {
     const recomputesHomeTotals =
-      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,8000}updatedHomeTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
+      /computeDeclinedOfferSheetOutcome[\s\S]{0,8000}updatedHomeTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
         content
       );
     expect(recomputesHomeTotals).toBe(true);
@@ -551,7 +559,7 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
 
   it('derives destination player from canonical home snapshot plus normalized contract', () => {
     const derivesFromSourceSnapshot =
-      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,3000}const sourcePlayer = findPlayerInTeamPlayers\(homeTeam,\s*playerId\)[\s\S]{0,2200}buildNormalizedOfferSheetFinalContract[\s\S]{0,1600}const updatedPlayer = \{\s*\.\.\.sourcePlayer/.test(
+      /computeDeclinedOfferSheetOutcome[\s\S]{0,3000}const sourcePlayer = findPlayerInTeamPlayers\(homeTeam,\s*playerId\)[\s\S]{0,2200}buildNormalizedOfferSheetFinalContract[\s\S]{0,1600}const updatedPlayer = \{\s*\.\.\.sourcePlayer/.test(
         content
       );
     expect(derivesFromSourceSnapshot).toBe(true);
@@ -559,7 +567,7 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
 
   it('builds canonical move manifest with explicit delete path', () => {
     const usesMoveManifest =
-      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,8500}buildCanonicalPlayerPersistenceManifest[\s\S]{0,500}mode:\s*['"]move['"]/.test(
+      /computeDeclinedOfferSheetOutcome[\s\S]{0,8500}buildCanonicalPlayerPersistenceManifest[\s\S]{0,500}mode:\s*['"]move['"]/.test(
         content
       );
     expect(usesMoveManifest).toBe(true);
@@ -785,10 +793,7 @@ describe('Gate 12: offer-sheet lifecycle routing stays role-aware (FA-6A/6B)', (
       /handleDeclineOfferSheet[\s\S]{0,600}runOfferSheetResolutionAction\s*\(\s*'decline'/
     );
     expect(content).toMatch(
-      /runOfferSheetResolutionAction[\s\S]{0,1600}activeTeamArrayKey:\s*'incomingOfferSheets'[\s\S]{0,800}presence:\s*'present'/
-    );
-    expect(content).toMatch(
-      /runOfferSheetResolutionAction[\s\S]{0,2200}status:\s*action\s*===\s*'match'\s*\?\s*'MATCHED'\s*:\s*'DECLINED'/
+      /runOfferSheetResolutionAction[\s\S]{0,1600}activeTeamArrayKey:\s*'incomingOfferSheets'[\s\S]{0,800}presence:\s*'absent'/
     );
     expect(content).toMatch(
       /executeWorldModeOfferSheetLifecycleMutation\s*\(\s*mutationType/
@@ -837,15 +842,12 @@ describe('Gate 13: offer-sheet lifecycle final-state sync stays explicit (FA-6C/
     expect(content).toMatch(/matchesCommittedOfferSheetLifecycleIdentity/);
   });
 
-  it('verifies present lifecycle truth against incomingOfferSheets for match and decline', () => {
+  it('verifies absent lifecycle truth against incomingOfferSheets for one-click match and decline', () => {
     expect(content).toMatch(
       /runOfferSheetResolutionAction[\s\S]{0,2200}activeTeamArrayKey:\s*'incomingOfferSheets'/
     );
     expect(content).toMatch(
-      /runOfferSheetResolutionAction[\s\S]{0,2200}presence:\s*'present'/
-    );
-    expect(content).toMatch(
-      /runOfferSheetResolutionAction[\s\S]{0,2200}status:\s*action\s*===\s*'match'\s*\?\s*'MATCHED'\s*:\s*'DECLINED'/
+      /runOfferSheetResolutionAction[\s\S]{0,2200}presence:\s*'absent'/
     );
   });
 

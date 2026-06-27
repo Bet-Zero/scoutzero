@@ -379,8 +379,13 @@ describe('mutationPipeline shared team normalizer closure', () => {
       (update) => update.teamCode === 'BOS'
     )?.team;
 
-    expect(updatedHomeTeam?.incomingOfferSheets?.[0]?.status).toBe('MATCHED');
-    expect(updatedOfferingTeam?.offerSheets?.[0]?.status).toBe('MATCHED');
+    // BZE-191: one-click match resolves atomically — the sheet is removed from
+    // BOTH teams and the home team keeps the player. There is no surviving
+    // MATCHED-status mirror; the lane's real point (roster + exception +
+    // sidecar preservation, mirror-blob stripping) is verified on the surviving
+    // home team that retained the matched player.
+    expect(updatedHomeTeam?.incomingOfferSheets ?? []).toHaveLength(0);
+    expect(updatedOfferingTeam?.offerSheets ?? []).toHaveLength(0);
     expect(updatedHomeTeam?.roster).toEqual(['rfa_match']);
     expect(updatedHomeTeam?.exceptions).toMatchObject({
       room: {

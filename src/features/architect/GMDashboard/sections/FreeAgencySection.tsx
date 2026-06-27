@@ -75,12 +75,12 @@ const FreeAgencySection = ({
     freeAgentModalAvailability: actionOwner.freeAgentModalAvailability,
   } satisfies FreeAgentPoolActionOwner;
   const incomingOfferSheetSurface = {
-    title: 'Incoming Offer Sheets (Preview)',
+    title: 'Incoming Offer Sheets',
     offerSheets: incomingOfferSheets,
     surfaceRole: 'incoming' as const,
   };
   const outgoingOfferSheetSurface = {
-    title: 'My Offer Sheets (Parked)',
+    title: 'My Offer Sheets',
     offerSheets: outgoingOfferSheets,
     surfaceRole: 'outgoing' as const,
   };
@@ -93,14 +93,12 @@ const FreeAgencySection = ({
     switch (`${surfaceRole}:${action}`) {
       case 'incoming:match':
         offerSheetLifecycleActionOwner?.matchOfferSheet(
-          String(offerSheet.offeringTeamCode || ''),
-          String(offerSheet.id || '')
+          offerSheet as OfferSheetFinalizeArg
         );
         return;
       case 'incoming:decline':
         offerSheetLifecycleActionOwner?.declineOfferSheet(
-          String(offerSheet.offeringTeamCode || ''),
-          String(offerSheet.id || '')
+          offerSheet as OfferSheetFinalizeArg
         );
         return;
       case 'incoming:finalizeMatched':

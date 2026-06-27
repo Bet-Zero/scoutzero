@@ -230,6 +230,131 @@ export async function resolveStoreOfferSheetAuthority({
   };
 }
 
+function findRawOfferSheetById(
+  offerSheets: unknown,
+  offerSheetId: string
+): Record<string, unknown> | null {
+  if (!Array.isArray(offerSheets)) {
+    return null;
+  }
+  return (
+    (offerSheets as Array<Record<string, unknown>>).find(
+      (sheet) =>
+        Boolean(sheet) &&
+        (String(sheet.id || '') === offerSheetId ||
+          String(sheet.dedupKey || '') === offerSheetId)
+    ) || null
+  );
+}
+
+function rawTeamPlayerId(player: Record<string, unknown>): string {
+  const bio =
+    player.bio && typeof player.bio === 'object'
+      ? (player.bio as Record<string, unknown>)
+      : {};
+  return String(
+    player.id || player.player_id || player.playerId || bio.playerId || ''
+  ).trim();
+}
+
+function rawRosterEntryId(entry: unknown): string {
+  if (typeof entry === 'string') {
+    return entry.trim();
+  }
+  if (entry && typeof entry === 'object') {
+    const record = entry as Record<string, unknown>;
+    return String(record.playerId || record.player_id || record.id || '').trim();
+  }
+  return '';
+}
+
+/**
+ * BZE-191: one-click match/decline atomically MOVE the offer-sheet player, so
+ * the shared resolution outcome needs the player's record on the home-team
+ * snapshot. RFA targets are frequently free agents whose rights the home team
+ * holds only through an unsigned cap hold (storeOfferSheet resolves ownership
+ * "without rostering the player"), so the player is absent from home.players.
+ * Materialize the player from authoritative truth and inject it onto the home
+ * snapshot — mirroring the cap-hold rights resolution storeOfferSheet already
+ * uses — without altering the proven outcome/guard logic. When the player is
+ * already present this is a no-op, so the legacy finalize paths are unchanged.
+ */
+async function ensureOfferSheetPlayerOnHomeTeamSnapshot({
+  worldId,
+  homeTeam,
+  offeringTeam,
+  homeTeamCode,
+  offerSheetId,
+  payloadPlayerId,
+}: {
+  worldId: string;
+  homeTeam: MutationCurrentStateOfferSheetTeamIngress | null;
+  offeringTeam: MutationCurrentStateOfferSheetTeamIngress | null;
+  homeTeamCode: string;
+  offerSheetId: string;
+  payloadPlayerId: string | null | undefined;
+}): Promise<MutationCurrentStateOfferSheetTeamIngress | null> {
+  if (!homeTeam) {
+    return homeTeam;
+  }
+
+  const offerSheet =
+    findRawOfferSheetById(homeTeam.incomingOfferSheets, offerSheetId) ||
+    findRawOfferSheetById(offeringTeam?.offerSheets, offerSheetId);
+  const playerId = String(
+    payloadPlayerId || offerSheet?.playerId || ''
+  ).trim();
+  if (!playerId) {
+    return homeTeam;
+  }
+
+  const existingPlayers = Array.isArray(homeTeam.players)
+    ? homeTeam.players
+    : [];
+  if (
+    existingPlayers.some(
+      (player) =>
+        Boolean(player) &&
+        typeof player === 'object' &&
+        rawTeamPlayerId(player as Record<string, unknown>) === playerId
+    )
+  ) {
+    return homeTeam;
+  }
+
+  let resolvedPlayer: Record<string, unknown> | null = null;
+  try {
+    resolvedPlayer = (await getPlayer(
+      worldId,
+      homeTeamCode,
+      playerId
+    )) as Record<string, unknown>;
+  } catch {
+    // Fall through with the home team unchanged; the outcome's fail-closed
+    // "player not found" guard then reports the real missing-truth error.
+    return homeTeam;
+  }
+  if (!resolvedPlayer) {
+    return homeTeam;
+  }
+
+  const injectedPlayer = {
+    ...resolvedPlayer,
+    teamCode: homeTeamCode,
+    teamName: homeTeam.teamName || resolvedPlayer.teamName || null,
+  };
+  const existingRoster = Array.isArray(homeTeam.roster) ? homeTeam.roster : [];
+  const rosterHasPlayer = existingRoster.some(
+    (entry) => rawRosterEntryId(entry) === playerId
+  );
+
+  return {
+    ...homeTeam,
+    players: [...existingPlayers, injectedPlayer],
+    roster: rosterHasPlayer ? existingRoster : [...existingRoster, playerId],
+  };
+}
+
 
 // ==============================================================================
 // MAIN ENTRY POINT
@@ -405,37 +530,37 @@ export async function loadStateForMutation(
       if (!offeringTeamCode) throw new Error(`Missing offeringTeamCode`);
       if (!offerSheetId) throw new Error(`Missing offerSheetId`);
 
-      const [homeTeam, offeringTeam] = await Promise.all([
+      const [homeTeamRaw, offeringTeamRaw] = await Promise.all([
         getTeam(worldId, homeTeamCode),
         getTeam(worldId, offeringTeamCode),
       ]);
-      const isOfferSheetMirrorMutation =
-        mutationType === 'matchOfferSheet' ||
-        mutationType === 'declineOfferSheet';
+
+      // BZE-191: match/decline are now atomic resolutions that move the player,
+      // so they require the full resolution team snapshot (players + rosters),
+      // identical to the legacy two-step finalize path. RFA targets are often
+      // free agents whose rights the home team holds only via an unsigned cap
+      // hold, so the player may be absent from the home snapshot — materialize
+      // and inject it before normalizing the resolution state.
+      const homeTeam = await ensureOfferSheetPlayerOnHomeTeamSnapshot({
+        worldId,
+        homeTeam:
+          (homeTeamRaw as MutationCurrentStateOfferSheetTeamIngress | null) ||
+          null,
+        offeringTeam:
+          (offeringTeamRaw as MutationCurrentStateOfferSheetTeamIngress | null) ||
+          null,
+        homeTeamCode,
+        offerSheetId,
+        payloadPlayerId: payload.playerId as string | null | undefined,
+      });
 
       return {
-        homeTeam: isOfferSheetMirrorMutation
-          ? toCurrentStateTeam(
-              (homeTeam as MutationCurrentStateOfferSheetTeamIngress | null) ||
-                null,
-              'offerSheetMirror'
-            )
-          : toCurrentStateTeam(
-              (homeTeam as MutationCurrentStateOfferSheetTeamIngress | null) ||
-                null,
-              'offerSheetResolution'
-            ),
-        offeringTeam: isOfferSheetMirrorMutation
-          ? toCurrentStateTeam(
-              (offeringTeam as MutationCurrentStateOfferSheetTeamIngress | null) ||
-                null,
-              'offerSheetMirror'
-            )
-          : toCurrentStateTeam(
-              (offeringTeam as MutationCurrentStateOfferSheetTeamIngress | null) ||
-                null,
-              'offerSheetResolution'
-            ),
+        homeTeam: toCurrentStateTeam(homeTeam, 'offerSheetResolution'),
+        offeringTeam: toCurrentStateTeam(
+          (offeringTeamRaw as MutationCurrentStateOfferSheetTeamIngress | null) ||
+            null,
+          'offerSheetResolution'
+        ),
         offerSheetId,
       };
     }

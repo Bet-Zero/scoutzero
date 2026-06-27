@@ -12,7 +12,6 @@ import {
   normalizeTeamOnlyMutationCurrentState,
   normalizeTeamAndPlayerMutationCurrentState,
   normalizeOfferSheetTeamAndPlayerMutationCurrentState,
-  normalizeOfferSheetMirrorMutationCurrentState,
   normalizeOfferSheetResolutionMutationCurrentState,
   normalizeSignAndTradeMutationCurrentState,
   toTradePayload,
@@ -110,8 +109,6 @@ const STORE_OFFER_SHEET_MUTATION_PAYLOAD_KEYS = [
   'offerSheetId',
   'worldId',
 ] as const satisfies readonly (keyof ArchitectMutationPayload)[];
-const OFFER_SHEET_MIRROR_MUTATION_PAYLOAD_KEYS =
-  [] as const satisfies readonly (keyof ArchitectMutationPayload)[];
 const OFFER_SHEET_RESOLUTION_MUTATION_PAYLOAD_KEYS = [
   'dedupKey',
 ] as const satisfies readonly (keyof ArchitectMutationPayload)[];
@@ -210,13 +207,10 @@ function normalizeComputeWorldMutationPayload<
         STORE_OFFER_SHEET_MUTATION_PAYLOAD_KEYS
       ) as MutationPayloadInputByType[TMutationType];
 
+    // BZE-191: match/decline are now atomic resolutions sharing the finalize
+    // resolution payload shape (offer-sheet identity + optional dedupKey).
     case 'matchOfferSheet':
     case 'declineOfferSheet':
-      return pickMutationPayloadFields(
-        publicPayload,
-        OFFER_SHEET_MIRROR_MUTATION_PAYLOAD_KEYS
-      ) as MutationPayloadInputByType[TMutationType];
-
     case 'finalizeMatchedOfferSheet':
     case 'finalizeDeclinedOfferSheet':
       return pickMutationPayloadFields(
@@ -330,19 +324,11 @@ export function normalizeComputeWorldMutationArgs(
         ),
       };
 
+    // BZE-191: match/decline now perform the full atomic resolution outcome and
+    // therefore need the resolution current-state shape (both teams' players /
+    // rosters), identical to the legacy two-step finalize path.
     case 'matchOfferSheet':
     case 'declineOfferSheet':
-      return {
-        ...args,
-        payload: normalizeComputeWorldMutationPayload(
-          args.mutationType,
-          args.payload
-        ),
-        currentState: normalizeOfferSheetMirrorMutationCurrentState(
-          args.currentState
-        ),
-      };
-
     case 'finalizeMatchedOfferSheet':
     case 'finalizeDeclinedOfferSheet':
       return {

@@ -409,6 +409,7 @@ export interface OfferSheet {
   homeTeamCode?: string;
   dedupKey?: string;
   playerId?: string;
+  playerName?: string;
   seasonKey?: string;
 }
 
@@ -725,8 +726,10 @@ export interface FreeAgencyWorldOnlyModalActionOwner {
  * The action layer owns these routes; section surfaces only forward UI intent.
  */
 export interface FreeAgencyOfferSheetLifecycleActionOwner {
-  matchOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
-  declineOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
+  // BZE-191: one-click resolution — Match keeps the player, Decline moves the
+  // player + cap to the offering team, both in a single atomic mutation.
+  matchOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
+  declineOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
   finalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
 }
 
@@ -843,14 +846,8 @@ export interface UseArchitectActionsReturn {
     playerObj: ArchitectPlayer,
     contract: SigningDetails
   ) => Promise<MutationActionResult>;
-  handleMatchOfferSheet: (
-    offeringTeamCode: string,
-    offerSheetId: string
-  ) => void;
-  handleDeclineOfferSheet: (
-    offeringTeamCode: string,
-    offerSheetId: string
-  ) => void;
+  handleMatchOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
+  handleDeclineOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
   handleFinalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
 
   // Trade actions

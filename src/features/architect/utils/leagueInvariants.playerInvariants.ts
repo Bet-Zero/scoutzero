@@ -316,6 +316,9 @@ export function extractIncomingPlayers(
       break;
     }
 
+    // BZE-191: one-click declineOfferSheet now performs the player move directly
+    // (same incoming-player target as the legacy two-step finalizeDeclined).
+    case 'declineOfferSheet':
     case 'finalizeDeclinedOfferSheet': {
       const playerId = payload?.playerId;
       const targetTeamCode = payload?.offeringTeamCode || payload?.teamCode;

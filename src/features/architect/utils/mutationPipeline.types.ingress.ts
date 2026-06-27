@@ -325,8 +325,8 @@ export type PublicMutationCurrentStateInputByType = {
   optionDecision: MutationTeamAndPlayerCurrentStateInput;
   renounceRights: MutationTeamAndPlayerCurrentStateInput;
   storeOfferSheet: MutationOfferSheetTeamAndPlayerCurrentStateInput;
-  matchOfferSheet: MutationOfferSheetMirrorCurrentStateInput;
-  declineOfferSheet: MutationOfferSheetMirrorCurrentStateInput;
+  matchOfferSheet: MutationOfferSheetResolutionCurrentStateInput;
+  declineOfferSheet: MutationOfferSheetResolutionCurrentStateInput;
   finalizeMatchedOfferSheet: MutationOfferSheetResolutionCurrentStateInput;
   finalizeDeclinedOfferSheet: MutationOfferSheetResolutionCurrentStateInput;
   signAndTrade: MutationSignAndTradeCurrentStateInput;
@@ -341,8 +341,8 @@ export type PublicMutationPayloadInputByType = {
   optionDecision: PublicOptionMutationPayloadInput;
   renounceRights: PublicRenounceMutationPayloadInput;
   storeOfferSheet: PublicStoreOfferSheetMutationPayloadInput;
-  matchOfferSheet: PublicOfferSheetMirrorMutationPayloadInput;
-  declineOfferSheet: PublicOfferSheetMirrorMutationPayloadInput;
+  matchOfferSheet: PublicOfferSheetResolutionMutationPayloadInput;
+  declineOfferSheet: PublicOfferSheetResolutionMutationPayloadInput;
   finalizeMatchedOfferSheet: PublicOfferSheetResolutionMutationPayloadInput;
   finalizeDeclinedOfferSheet: PublicOfferSheetResolutionMutationPayloadInput;
   signAndTrade: PublicSignAndTradeMutationPayloadInput;
@@ -360,8 +360,8 @@ export type MutationCurrentStateInputByType = {
   optionDecision: MutationTeamAndPlayerCurrentState;
   renounceRights: MutationTeamAndPlayerCurrentState;
   storeOfferSheet: MutationOfferSheetTeamAndPlayerCurrentState;
-  matchOfferSheet: MutationOfferSheetMirrorCurrentState;
-  declineOfferSheet: MutationOfferSheetMirrorCurrentState;
+  matchOfferSheet: MutationOfferSheetResolutionCurrentState;
+  declineOfferSheet: MutationOfferSheetResolutionCurrentState;
   finalizeMatchedOfferSheet: MutationOfferSheetResolutionCurrentState;
   finalizeDeclinedOfferSheet: MutationOfferSheetResolutionCurrentState;
   signAndTrade: MutationSignAndTradeCurrentState;
@@ -376,8 +376,8 @@ export type MutationPayloadInputByType = {
   optionDecision: OptionMutationPayloadInput;
   renounceRights: RenounceMutationPayloadInput;
   storeOfferSheet: StoreOfferSheetMutationPayloadInput;
-  matchOfferSheet: OfferSheetMirrorMutationPayloadInput;
-  declineOfferSheet: OfferSheetMirrorMutationPayloadInput;
+  matchOfferSheet: OfferSheetResolutionMutationPayloadInput;
+  declineOfferSheet: OfferSheetResolutionMutationPayloadInput;
   finalizeMatchedOfferSheet: OfferSheetResolutionMutationPayloadInput;
   finalizeDeclinedOfferSheet: OfferSheetResolutionMutationPayloadInput;
   signAndTrade: SignAndTradeMutationPayloadInput;

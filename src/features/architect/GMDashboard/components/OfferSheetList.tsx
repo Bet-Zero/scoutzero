@@ -43,10 +43,10 @@ type OfferSheetLifecycleSurfaceState =
     };
 
 const OFFER_SHEET_ACTION_LABELS: Record<OfferSheetLifecycleAction, string> = {
-  match: 'Match (Preview)',
-  decline: 'Decline (Preview)',
-  finalizeMatched: 'Finalize Match (Preview)',
-  finalizeDeclined: 'Finalize Signing (Preview)',
+  match: 'Match',
+  decline: 'Decline',
+  finalizeMatched: 'Finalize Match',
+  finalizeDeclined: 'Finalize Signing',
 };
 
 const OFFER_SHEET_ACTION_TONE_CLASSES: Record<
@@ -188,7 +188,9 @@ export const OfferSheetList = ({
                           })
                         }
                         disabled={actionsDisabled}
-                        data-action-exposure-classification="preview-only"
+                        data-action-exposure-classification={
+                          actionsDisabled ? 'preview-only' : 'V1 supported'
+                        }
                         title={
                           actionsDisabled ? actionsDisabledReason : undefined
                         }

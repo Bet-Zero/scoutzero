@@ -2638,6 +2638,262 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-005B-rfa-offer-sheet');
   });
 
+  test('D-MQ-005D: Home-team Decline resolves an incoming offer sheet — player + cap move to the offering team', async ({
+    page,
+  }, testInfo) => {
+    // This proof spans two dashboards (store on LAL, resolve on BOS) plus a
+    // reload-parity pass, so it needs more than the default per-test budget.
+    test.setTimeout(150_000);
+    // BZE-191 acceptance gate: an incoming offer sheet is resolved with a single
+    // one-click Decline on the HOME team dashboard. The player and cap must
+    // actually move to the offering team, the sheet must disappear from both
+    // teams, a declineOfferSheet world event must persist, and reload parity
+    // must hold. (Match keeps the player on the home team — covered by the unit
+    // suite; this proof exercises the higher-risk Decline movement.)
+    await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
+
+    await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+    await topUpWorldTeamRosterMinimum(worldId, 'BOS', 'Boston Celtics');
+    await seedWorldOfferSheetHomeTeamRights(
+      worldId,
+      'BOS',
+      'Boston Celtics',
+      REVIEW_MODE_FREE_AGENT_ID
+    );
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+
+    // --- Store a pending LAL → BOS offer sheet via the offering-team (LAL) UI,
+    // mirroring D-MQ-005B so the pending state has the exact committed shape the
+    // resolution flow must consume. ---
+    await openDashboardTab(page, 'Free Agency');
+
+    const reviewFreeAgentRow = page.locator('li').filter({
+      has: page.getByText(new RegExp(`^${REVIEW_MODE_FREE_AGENT_NAME}$`, 'i')),
+    });
+    await expect(reviewFreeAgentRow).toBeVisible({ timeout: 15000 });
+
+    const menuButton = reviewFreeAgentRow
+      .locator('button')
+      .filter({ hasText: '•••' })
+      .first();
+    await menuButton.scrollIntoViewIfNeeded();
+    await menuButton.click();
+    const signAction = page.getByRole('button', { name: /^Sign Free Agent$/i });
+    await expect(signAction).toBeVisible();
+    await signAction.click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    const signFreeAgentRadio = modal.getByRole('radio', {
+      name: /Sign Free Agent/i,
+    });
+    await expect(signFreeAgentRadio).toBeVisible();
+    await signFreeAgentRadio.check();
+    const offerSheetCheckbox = modal.getByLabel(/^Offer Sheet$/i);
+    await expect(offerSheetCheckbox).toBeVisible();
+    await offerSheetCheckbox.check();
+
+    const confirmActionButton = modal.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeEnabled({ timeout: 20000 });
+    await confirmActionButton.click();
+
+    await expect(modal).toHaveCount(0, { timeout: 20000 });
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Offer sheet stored/i,
+      { timeout: 20000 }
+    );
+
+    await expect
+      .poll(
+        async () => {
+          const [offeringTeam, homeTeam] = await Promise.all([
+            getWorldTeamDocument(worldId, 'LAL'),
+            getWorldTeamDocument(worldId, 'BOS'),
+          ]);
+          const outgoing = (offeringTeam?.offerSheets || []).find(
+            (sheet) =>
+              sheet.playerId === REVIEW_MODE_FREE_AGENT_ID &&
+              sheet.offeringTeamCode === 'LAL' &&
+              sheet.homeTeamCode === 'BOS'
+          );
+          const incoming = (homeTeam?.incomingOfferSheets || []).find(
+            (sheet) =>
+              sheet.playerId === REVIEW_MODE_FREE_AGENT_ID &&
+              sheet.offeringTeamCode === 'LAL' &&
+              sheet.homeTeamCode === 'BOS'
+          );
+          return {
+            outgoingStatus: outgoing?.status || null,
+            incomingStatus: incoming?.status || null,
+          };
+        },
+        {
+          timeout: 20000,
+          message:
+            'offer sheet should persist as mirrored PENDING_MATCH state before resolution',
+        }
+      )
+      .toEqual({
+        outgoingStatus: 'PENDING_MATCH',
+        incomingStatus: 'PENDING_MATCH',
+      });
+
+    // --- Switch to the HOME team (BOS) dashboard and Decline the incoming
+    // offer sheet with one click. ---
+    await page.goto(GM_DASHBOARD_BOS_URL, { waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Free Agency');
+
+    const incomingOfferSheetsSection = page
+      .locator('div')
+      .filter({
+        has: page.getByRole('heading', { name: /Incoming Offer Sheets/i }),
+      })
+      .first();
+    await expect(incomingOfferSheetsSection).toBeVisible({ timeout: 20000 });
+    await expect(
+      incomingOfferSheetsSection.getByText(REVIEW_MODE_FREE_AGENT_NAME).first()
+    ).toBeVisible();
+
+    const declineButton = incomingOfferSheetsSection.getByRole('button', {
+      name: /^Decline$/i,
+    });
+    await expect(declineButton).toBeEnabled({ timeout: 20000 });
+    await declineButton.click();
+
+    // --- Acceptance assertions: the player + cap moved to LAL, the sheet is
+    // gone from both teams, the world event persisted. ---
+    await expect
+      .poll(
+        async () => {
+          const [offeringTeam, homeTeam] = await Promise.all([
+            getWorldTeamDocument(worldId, 'LAL'),
+            getWorldTeamDocument(worldId, 'BOS'),
+          ]);
+          const offeringPlayer = getTeamPlayerRecords(
+            offeringTeam as Record<string, unknown> | undefined
+          ).find((player) => {
+            const bio =
+              player.bio && typeof player.bio === 'object'
+                ? (player.bio as Record<string, unknown>)
+                : {};
+            return (
+              player.playerId === REVIEW_MODE_FREE_AGENT_ID ||
+              player.player_id === REVIEW_MODE_FREE_AGENT_ID ||
+              player.id === REVIEW_MODE_FREE_AGENT_ID ||
+              bio.playerId === REVIEW_MODE_FREE_AGENT_ID
+            );
+          });
+          const offeringContract =
+            offeringPlayer && typeof offeringPlayer.contract === 'object'
+              ? (offeringPlayer.contract as Record<string, unknown>)
+              : null;
+          return {
+            offeringHasPlayer: Boolean(offeringPlayer),
+            offeringPlayerTeam: String(offeringPlayer?.teamCode || ''),
+            offeringSignedUsing: String(offeringContract?.signedUsing || ''),
+            offeringRosterHasPlayer: getTeamPlayerIds(
+              offeringTeam as Record<string, unknown> | undefined
+            ).includes(REVIEW_MODE_FREE_AGENT_ID),
+            offeringSheetCount: (offeringTeam?.offerSheets || []).filter(
+              (sheet) => sheet.playerId === REVIEW_MODE_FREE_AGENT_ID
+            ).length,
+            homeIncomingCount: (homeTeam?.incomingOfferSheets || []).filter(
+              (sheet) => sheet.playerId === REVIEW_MODE_FREE_AGENT_ID
+            ).length,
+            homeRosterHasPlayer: getTeamPlayerIds(
+              homeTeam as Record<string, unknown> | undefined
+            ).includes(REVIEW_MODE_FREE_AGENT_ID),
+          };
+        },
+        {
+          timeout: 25000,
+          message:
+            'declining the offer sheet should move the player + cap to LAL and clear the sheet from both teams',
+        }
+      )
+      .toEqual({
+        offeringHasPlayer: true,
+        offeringPlayerTeam: 'LAL',
+        offeringSignedUsing: 'Offer Sheet',
+        offeringRosterHasPlayer: true,
+        offeringSheetCount: 0,
+        homeIncomingCount: 0,
+        homeRosterHasPlayer: false,
+      });
+
+    await expect
+      .poll(
+        async () => {
+          const persistedEvents = await getWorldEventDocuments(worldId);
+          return persistedEvents.some((event) => {
+            const metadata =
+              event.metadata && typeof event.metadata === 'object'
+                ? (event.metadata as Record<string, unknown>)
+                : {};
+            return (
+              event.mutationType === 'declineOfferSheet' &&
+              metadata.playerId === REVIEW_MODE_FREE_AGENT_ID
+            );
+          });
+        },
+        {
+          timeout: 20000,
+          message: 'decline should persist one declineOfferSheet world event',
+        }
+      )
+      .toBe(true);
+
+    // --- Reload parity: the resolved state survives a fresh load. ---
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Free Agency');
+    await expect(
+      page.getByRole('heading', { name: /Incoming Offer Sheets/i })
+    ).toHaveCount(0, { timeout: 20000 });
+
+    const [reloadedOfferingTeam, reloadedHomeTeam] = await Promise.all([
+      getWorldTeamDocument(worldId, 'LAL'),
+      getWorldTeamDocument(worldId, 'BOS'),
+    ]);
+    expect(
+      getTeamPlayerIds(reloadedOfferingTeam as Record<string, unknown> | undefined)
+    ).toContain(REVIEW_MODE_FREE_AGENT_ID);
+    expect(
+      getTeamPlayerIds(reloadedHomeTeam as Record<string, unknown> | undefined)
+    ).not.toContain(REVIEW_MODE_FREE_AGENT_ID);
+    expect(
+      (reloadedOfferingTeam?.offerSheets || []).filter(
+        (sheet) => sheet.playerId === REVIEW_MODE_FREE_AGENT_ID
+      )
+    ).toHaveLength(0);
+
+    addAuditNote(
+      testInfo,
+      'This proves BZE-191 offer-sheet resolution in browser review mode: a pending LAL → BOS offer sheet is resolved with a single one-click Decline on the BOS (home) dashboard; the player and cap move to LAL with an Offer Sheet contract, the sheet disappears from both teams, a declineOfferSheet world event persists, and the resolved state survives reload.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-005D-offer-sheet-decline');
+  });
+
+  // NOTE (BZE-191): a one-click *Match* browser proof was attempted (D-MQ-005E)
+  // but intentionally removed. In the review world (as-of 2026-07-01) an offer
+  // sheet stored "now" carries a wall-clock createdAt, so the 48-hour match
+  // window has already expired and the leagueInvariants guard *correctly* blocks
+  // the match ("48-hour match window expired"). That guard is pre-existing,
+  // correct legality — not a BZE-191 movement defect — and a green Match proof
+  // would only be reachable by manipulating the world clock (testing the window
+  // invariant, not the resolution). Match's player-keep movement is covered by
+  // the unit suite (sharedTeamNormalizerClosure / committedSnapshotRoundtrip /
+  // currentStateIngressHardening) and exercises the identical stateLoader RFA
+  // cap-hold injection that the Decline proof (D-MQ-005D) verifies live.
+
   test('D-MQ-005A: Canonical V1 saved-world own-FA Re-sign persists FCT, Roster, history, compare, and reload', async ({
     page,
   }, testInfo) => {

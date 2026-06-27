@@ -673,7 +673,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     toastMocks.error.mockClear();
 
     act(() => {
-      result.current.actions.handleMatchOfferSheet('BOS', 'offer_1');
+      result.current.actions.handleMatchOfferSheet({
+        offeringTeamCode: 'BOS',
+        id: 'offer_1',
+      });
     });
 
     await waitFor(() => {
@@ -2069,9 +2072,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
   });
 
   it('syncs matched incoming offer-sheet truth from changedTeams after match', async () => {
-    const matchedTeam = buildIncomingOfferSheetLifecycleTeamFixture('MATCHED', {
-      id: 'offer_match_1',
-    });
+    // BZE-191: one-click match resolves atomically — the home team keeps the
+    // player and the pending sheet is removed from the committed snapshot.
+    const matchedTeam = {
+      ...baseTeamFixture,
+      offerSheets: [],
+      incomingOfferSheets: [],
+    };
     mutationMocks.applyWorldMutation.mockResolvedValue({
       success: true,
       changedTeams: [{ teamCode: 'LAL', team: matchedTeam }],
@@ -2091,13 +2098,15 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     act(() => {
-      result.current.actions.handleMatchOfferSheet('BOS', 'offer_match_1');
+      result.current.actions.handleMatchOfferSheet({
+        offeringTeamCode: 'BOS',
+        id: 'offer_match_1',
+        playerId: 'player_1',
+      });
     });
 
     await waitFor(() => {
-      expect(
-        result.current.teamCapSheet?.incomingOfferSheets?.[0]?.status
-      ).toBe('MATCHED');
+      expect(result.current.teamCapSheet?.incomingOfferSheets).toEqual([]);
     });
 
     expect(
@@ -2129,12 +2138,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
   });
 
   it('syncs declined incoming offer-sheet truth from changedTeams after decline', async () => {
-    const declinedTeam = buildIncomingOfferSheetLifecycleTeamFixture(
-      'DECLINED',
-      {
-        id: 'offer_decline_1',
-      }
-    );
+    // BZE-191: one-click decline resolves atomically — the player + cap move to
+    // the offering team and the pending sheet is removed from the home snapshot.
+    const declinedTeam = {
+      ...baseTeamFixture,
+      offerSheets: [],
+      incomingOfferSheets: [],
+    };
     mutationMocks.applyWorldMutation.mockResolvedValue({
       success: true,
       changedTeams: [{ teamCode: 'LAL', team: declinedTeam }],
@@ -2152,13 +2162,15 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     act(() => {
-      result.current.actions.handleDeclineOfferSheet('BOS', 'offer_decline_1');
+      result.current.actions.handleDeclineOfferSheet({
+        offeringTeamCode: 'BOS',
+        id: 'offer_decline_1',
+        playerId: 'player_1',
+      });
     });
 
     await waitFor(() => {
-      expect(
-        result.current.teamCapSheet?.incomingOfferSheets?.[0]?.status
-      ).toBe('DECLINED');
+      expect(result.current.teamCapSheet?.incomingOfferSheets).toEqual([]);
     });
 
     expect(
@@ -2422,9 +2434,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
   });
 
   it('reloads committed incoming lifecycle truth when changedTeams omits the active team after match', async () => {
-    const reloadedTeam = buildIncomingOfferSheetLifecycleTeamFixture('MATCHED', {
-      id: 'offer_reload_match_1',
-    });
+    // BZE-191: one-click match removes the pending sheet from the committed
+    // home snapshot (atomic resolution).
+    const reloadedTeam = {
+      ...baseTeamFixture,
+      offerSheets: [],
+      incomingOfferSheets: [],
+    };
     mutationMocks.applyWorldMutation.mockResolvedValue({
       success: true,
       changedTeams: [{ teamCode: 'BOS', team: { teamCode: 'BOS' } }],
@@ -2451,10 +2467,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     act(() => {
-      result.current.actions.handleMatchOfferSheet(
-        'BOS',
-        'offer_reload_match_1'
-      );
+      result.current.actions.handleMatchOfferSheet({
+        offeringTeamCode: 'BOS',
+        id: 'offer_reload_match_1',
+        playerId: 'player_1',
+      });
     });
 
     await waitFor(() => {
@@ -2557,10 +2574,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     const beforeTeamSnapshot = result.current.teamCapSheet;
 
     act(() => {
-      result.current.actions.handleMatchOfferSheet(
-        'BOS',
-        'offer_missing_snapshot_1'
-      );
+      result.current.actions.handleMatchOfferSheet({
+        offeringTeamCode: 'BOS',
+        id: 'offer_missing_snapshot_1',
+      });
     });
 
     await waitFor(() => {
@@ -2611,7 +2628,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     const beforeTeamSnapshot = result.current.teamCapSheet;
 
     act(() => {
-      result.current.actions.handleMatchOfferSheet('BOS', 'offer_match_verify_1');
+      result.current.actions.handleMatchOfferSheet({
+        offeringTeamCode: 'BOS',
+        id: 'offer_match_verify_1',
+      });
     });
 
     await waitFor(() => {
@@ -2691,7 +2711,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     const { result } = renderActionsHarness({ worldId: null });
 
     act(() => {
-      result.current.actions.handleMatchOfferSheet('BOS', 'offer_1');
+      result.current.actions.handleMatchOfferSheet({
+        offeringTeamCode: 'BOS',
+        id: 'offer_1',
+      });
     });
 
     await waitFor(() => {

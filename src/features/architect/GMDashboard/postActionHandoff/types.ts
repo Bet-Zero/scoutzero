@@ -178,8 +178,10 @@ const EFFECT_AREAS_BY_MUTATION_TYPE: Record<
   signFreeAgent: ['roster', 'cap', 'exceptions', 'contract'],
   signAndTrade: ['roster', 'cap', 'exceptions', 'contract'],
   storeOfferSheet: ['contract'],
-  matchOfferSheet: ['contract'],
-  declineOfferSheet: ['contract'],
+  // BZE-191: match/decline now resolve the offer sheet atomically (player +
+  // cap move), so they carry the same roster/cap effects as finalize.
+  matchOfferSheet: ['roster', 'cap', 'contract'],
+  declineOfferSheet: ['roster', 'cap', 'contract'],
   finalizeMatchedOfferSheet: ['roster', 'cap', 'contract'],
   finalizeDeclinedOfferSheet: ['roster', 'cap', 'contract'],
   extendPlayer: ['contract', 'cap'],

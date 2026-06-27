@@ -6,17 +6,18 @@
  * computeDeclineOfferSheetResult.
  */
 
-import {
-  getTeamSourceRecord,
-  requireOfferSheetTeamState,
-} from './mutationPipeline.helpers';
+import { getTeamSourceRecord } from './mutationPipeline.helpers';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { normalizeSalaryRow } from '@/features/architect/utils/contractNormalization';
+import {
+  computeMatchedOfferSheetOutcome,
+  computeDeclinedOfferSheetOutcome,
+} from './mutationPipeline.compute.offerSheets.outcome';
 import type {
   ArchitectMutationOfferSheet,
   ComputeMutationParamsWithCurrentState,
   ComputeResultLike,
-  MutationOfferSheetMirrorCurrentState,
+  MutationOfferSheetResolutionCurrentState,
   MutationOfferSheetTeamAndPlayerCurrentState,
   MutationPayloadInputByType,
   NormalizedMutationSalaryRow,
@@ -230,176 +231,51 @@ export function computeStoreOfferSheetResult({
 }
 
 /**
- * Compute match offer sheet result
+ * BZE-191: One-click MATCH. The home team keeps the player in a single atomic
+ * mutation — no separate finalize step. Reuses the shared matched outcome, which
+ * applies the offer-sheet contract to the home player and clears the sheet from
+ * both teams, accepting a PENDING_MATCH sheet directly.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- params required by ComputeMutationParamsWithCurrentState interface
 export function computeMatchOfferSheetResult({
-  payload: _payload, // eslint-disable-line @typescript-eslint/no-unused-vars
+  payload,
   currentState,
-  seasonId: _seasonId, // eslint-disable-line @typescript-eslint/no-unused-vars
+  seasonId,
   timestamp,
 }: ComputeMutationParamsWithCurrentState<
-  MutationOfferSheetMirrorCurrentState,
+  MutationOfferSheetResolutionCurrentState,
   MutationPayloadInputByType['matchOfferSheet']
 >): ComputeResultLike {
-  const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
+  return computeMatchedOfferSheetOutcome({
+    payload,
     currentState,
-    'matchOfferSheet'
-  );
-
-  // Find offer sheet on offering team
-  const offeringOfferSheets = offeringTeam.offerSheets ?? [];
-  const offerSheetIndex = offeringOfferSheets.findIndex(
-    (offerSheet) => offerSheet.id === offerSheetId
-  );
-  if (offerSheetIndex === -1) {
-    return {
-      success: false,
-      error: `Offer sheet ${offerSheetId} not found on team ${offeringTeam.teamCode}`,
-    };
-  }
-
-  const existingSheet = offeringOfferSheets[offerSheetIndex];
-
-  if (existingSheet.status !== 'PENDING_MATCH') {
-    return {
-      success: false,
-      error: `Offer sheet status is ${existingSheet.status}, expected PENDING_MATCH`,
-    };
-  }
-
-  // Update status
-  const updatedOfferSheet = {
-    ...existingSheet,
-    status: 'MATCHED',
-    matchedAt: new Date(timestamp).toISOString(),
-  };
-
-  const updatedOfferingTeam = { ...offeringTeam };
-  updatedOfferingTeam.offerSheets = [...offeringOfferSheets];
-  updatedOfferingTeam.offerSheets[offerSheetIndex] = updatedOfferSheet;
-  updatedOfferingTeam.source = {
-    ...getTeamSourceRecord(updatedOfferingTeam.source),
-    lastModifiedAt: new Date(timestamp).toISOString(),
-  };
-
-  const teamUpdates = [
-    { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam },
-  ];
-
-  // MIRRORING: Update logic on home team
-  if (homeTeam && homeTeam.incomingOfferSheets) {
-    const homeIndex = homeTeam.incomingOfferSheets.findIndex(
-      (offerSheet) => offerSheet.id === offerSheetId
-    );
-    if (homeIndex !== -1) {
-    const updatedHomeTeam = { ...homeTeam };
-    const incomingOfferSheets = updatedHomeTeam.incomingOfferSheets ?? [];
-    updatedHomeTeam.incomingOfferSheets = [...incomingOfferSheets];
-    updatedHomeTeam.incomingOfferSheets[homeIndex] = updatedOfferSheet;
-      updatedHomeTeam.source = {
-        ...getTeamSourceRecord(updatedHomeTeam.source),
-        lastModifiedAt: new Date(timestamp).toISOString(),
-      };
-      teamUpdates.push({ teamCode: homeTeam.teamCode, team: updatedHomeTeam });
-    }
-  }
-
-  return {
-    success: true,
-    teamUpdates,
-    playerUpdates: [],
-    metadata: {
-      type: 'matchOfferSheet',
-      offeringTeamCode: offeringTeam.teamCode,
-      homeTeamCode: homeTeam.teamCode,
-      offerSheetId,
-      timestamp,
-    },
-  };
+    seasonId,
+    timestamp,
+    acceptedStatuses: ['PENDING_MATCH'],
+    metadataType: 'matchOfferSheet',
+  });
 }
 
 /**
- * Compute decline offer sheet result
+ * BZE-191: One-click DECLINE. The player + cap move to the offering team in a
+ * single atomic mutation — no separate finalize step. Reuses the shared declined
+ * outcome, which signs the player onto the offering team and removes them (and
+ * the sheet) from the home team, accepting a PENDING_MATCH sheet directly.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- params required by ComputeMutationParamsWithCurrentState interface
 export function computeDeclineOfferSheetResult({
-  payload: _payload, // eslint-disable-line @typescript-eslint/no-unused-vars
+  payload,
   currentState,
-  seasonId: _seasonId, // eslint-disable-line @typescript-eslint/no-unused-vars
+  seasonId,
   timestamp,
 }: ComputeMutationParamsWithCurrentState<
-  MutationOfferSheetMirrorCurrentState,
+  MutationOfferSheetResolutionCurrentState,
   MutationPayloadInputByType['declineOfferSheet']
 >): ComputeResultLike {
-  const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
+  return computeDeclinedOfferSheetOutcome({
+    payload,
     currentState,
-    'declineOfferSheet'
-  );
-
-  // Find offer sheet
-  const offeringOfferSheets = offeringTeam.offerSheets ?? [];
-  const offerSheetIndex = offeringOfferSheets.findIndex(
-    (offerSheet) => offerSheet.id === offerSheetId
-  );
-  if (offerSheetIndex === -1) {
-    return { success: false, error: `Offer sheet ${offerSheetId} not found` };
-  }
-
-  const existingSheet = offeringOfferSheets[offerSheetIndex];
-  if (existingSheet.status !== 'PENDING_MATCH') {
-    return {
-      success: false,
-      error: `Offer sheet status is ${existingSheet.status}, expected PENDING_MATCH`,
-    };
-  }
-
-  const updatedOfferSheet = {
-    ...existingSheet,
-    status: 'DECLINED',
-    declinedAt: new Date(timestamp).toISOString(),
-  };
-
-  const updatedOfferingTeam = { ...offeringTeam };
-  updatedOfferingTeam.offerSheets = [...offeringOfferSheets];
-  updatedOfferingTeam.offerSheets[offerSheetIndex] = updatedOfferSheet;
-  updatedOfferingTeam.source = {
-    ...getTeamSourceRecord(updatedOfferingTeam.source),
-    lastModifiedAt: new Date(timestamp).toISOString(),
-  };
-
-  const teamUpdates = [
-    { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam },
-  ];
-
-  // MIRRORING: Update logic on home team
-  if (homeTeam && homeTeam.incomingOfferSheets) {
-    const homeIndex = homeTeam.incomingOfferSheets.findIndex(
-      (offerSheet) => offerSheet.id === offerSheetId
-    );
-    if (homeIndex !== -1) {
-      const updatedHomeTeam = { ...homeTeam };
-      const incomingOfferSheets = updatedHomeTeam.incomingOfferSheets ?? [];
-      updatedHomeTeam.incomingOfferSheets = [...incomingOfferSheets];
-      updatedHomeTeam.incomingOfferSheets[homeIndex] = updatedOfferSheet;
-      updatedHomeTeam.source = {
-        ...getTeamSourceRecord(updatedHomeTeam.source),
-        lastModifiedAt: new Date(timestamp).toISOString(),
-      };
-      teamUpdates.push({ teamCode: homeTeam.teamCode, team: updatedHomeTeam });
-    }
-  }
-
-  return {
-    success: true,
-    teamUpdates,
-    playerUpdates: [],
-    metadata: {
-      type: 'declineOfferSheet',
-      offeringTeamCode: offeringTeam.teamCode,
-      homeTeamCode: homeTeam.teamCode,
-      offerSheetId,
-      timestamp,
-    },
-  };
+    seasonId,
+    timestamp,
+    acceptedStatuses: ['PENDING_MATCH'],
+    metadataType: 'declineOfferSheet',
+  });
 }

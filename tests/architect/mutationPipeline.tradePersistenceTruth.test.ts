@@ -1011,7 +1011,7 @@ describe('mutationPipeline trade persistence truth', () => {
     ).toHaveLength(0);
   });
 
-  it('keeps E4 matched finalization compatible for offer sheets created under the strict store path', async () => {
+  it('keeps E4 matched resolution compatible for offer sheets created under the strict store path', async () => {
     const worldId = 'world_offer_sheet_store_to_match_finalize';
     seedWorldMetadata(
       worldId,
@@ -1082,6 +1082,10 @@ describe('mutationPipeline trade persistence truth', () => {
       getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))[0]?.id || null;
     expect(offerSheetId).toBeTruthy();
 
+    // BZE-191: one-click match resolves the sheet atomically (no separate
+    // finalize step) — the home team keeps the player on the matched contract
+    // and the sheet is removed from both teams in a single mutation. Standalone
+    // finalize coverage lives in the directly-seeded finalize* tests below.
     const matchResult = await applyWorldMutation({
       userId: USER_ID,
       worldId,
@@ -1096,20 +1100,6 @@ describe('mutationPipeline trade persistence truth', () => {
     });
     expect(matchResult.success).toBe(true);
 
-    const finalizeResult = await applyWorldMutation({
-      userId: USER_ID,
-      worldId,
-      seasonId: SEASON_ID,
-      mutationType: 'finalizeMatchedOfferSheet',
-      timestamp: TIMESTAMP + 2,
-      payload: {
-        teamCode: 'BOS',
-        offeringTeamCode: 'LAL',
-        offerSheetId,
-      },
-    });
-    expect(finalizeResult.success).toBe(true);
-
     const persistedPlayer = await getPlayer(worldId, 'BOS', 'store_match_rfa');
     expect(persistedPlayer.teamCode).toBe('BOS');
     expect(persistedPlayer.contract?.signedUsing).toBe('Match');
@@ -1119,7 +1109,7 @@ describe('mutationPipeline trade persistence truth', () => {
     ).toHaveLength(0);
   });
 
-  it('keeps E4 declined finalization compatible for offer sheets created under the strict store path', async () => {
+  it('keeps E4 declined resolution compatible for offer sheets created under the strict store path', async () => {
     const worldId = 'world_offer_sheet_store_to_decline_finalize';
     seedWorldMetadata(
       worldId,
@@ -1204,6 +1194,10 @@ describe('mutationPipeline trade persistence truth', () => {
       'Expected stored offer sheet for declined finalization path'
     );
 
+    // BZE-191: one-click decline resolves the sheet atomically (no separate
+    // finalize step) — the player + cap move to the offering team and the sheet
+    // is removed from both teams in a single mutation. Standalone finalize
+    // coverage lives in the directly-seeded finalize* tests below.
     const declineResult = await applyWorldMutation({
       userId: USER_ID,
       worldId,
@@ -1217,22 +1211,6 @@ describe('mutationPipeline trade persistence truth', () => {
       },
     });
     expect(declineResult.success).toBe(true);
-
-    const finalizeResult = await applyWorldMutation({
-      userId: USER_ID,
-      worldId,
-      seasonId: SEASON_ID,
-      mutationType: 'finalizeDeclinedOfferSheet',
-      timestamp: TIMESTAMP + 2,
-      payload: {
-        teamCode: 'LAL',
-        homeTeamCode: 'BOS',
-        offeringTeamCode: 'LAL',
-        offerSheetId: storedOfferSheet.id,
-        dedupKey: storedOfferSheet.dedupKey,
-      },
-    });
-    expect(finalizeResult.success).toBe(true);
 
     const persistedPlayer = await getPlayer(
       worldId,
