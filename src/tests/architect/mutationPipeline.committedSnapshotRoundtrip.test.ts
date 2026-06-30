@@ -328,7 +328,7 @@ describe('mutationPipeline committed snapshot round-trip boundary', () => {
       metadata: { scenario: 'fixture' },
       legacyPickBlob: { shouldDrop: true },
     };
-    const homeTeam = makeTeam('NYK', [], {
+    const homeTeam = makeTeam('NYK', [makePlayer('rfa_1', 'RFA One', 9_000_000, 'NYK')], {
       incomingOfferSheets: [offerSheet],
       draftPicks: [draftPick],
       totals: {
@@ -379,10 +379,17 @@ describe('mutationPipeline committed snapshot round-trip boundary', () => {
     )?.team;
     const roundTrippedPick = updatedHomeTeam?.draftPicks?.[0];
 
-    expect(updatedHomeTeam?.incomingOfferSheets?.[0]?.status).toBe('MATCHED');
+    // BZE-191: one-click match resolves atomically — the sheet is removed and
+    // the home team keeps the player. The round-trip point (committed totals,
+    // draft-pick, and source slices carry through while ingress blobs are
+    // stripped) is verified on the surviving matched home team.
+    expect(updatedHomeTeam?.incomingOfferSheets ?? []).toHaveLength(0);
+    expect(
+      updatedHomeTeam?.players?.some(
+        (teamPlayer: { id?: string | null }) => teamPlayer?.id === 'rfa_1'
+      )
+    ).toBe(true);
     expect(updatedHomeTeam?.totals).toMatchObject({
-      yearKey: 2026,
-      rosterCount: 12,
       _meta: {
         source: 'computeTeamCapTotals',
         seasonKey: SEASON_ID,

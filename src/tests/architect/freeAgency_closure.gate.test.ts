@@ -1311,11 +1311,11 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(runOfferSheetResolutionActionRegion).toMatch(
       /activeTeamArrayKey:\s*'incomingOfferSheets'/
     );
+    // BZE-191: one-click match/decline resolves atomically and removes the
+    // sheet from both teams, so the committed home-team snapshot must show the
+    // sheet ABSENT (no intermediate MATCHED/DECLINED status flip).
     expect(runOfferSheetResolutionActionRegion).toMatch(
-      /presence:\s*'present'/
-    );
-    expect(runOfferSheetResolutionActionRegion).toMatch(
-      /status:\s*action\s*===\s*'match'\s*\?\s*'MATCHED'\s*:\s*'DECLINED'/
+      /presence:\s*'absent'/
     );
     expect(runOfferSheetResolutionActionRegion).toMatch(
       /executeWorldModeOfferSheetLifecycleMutation\s*\(\s*mutationType/

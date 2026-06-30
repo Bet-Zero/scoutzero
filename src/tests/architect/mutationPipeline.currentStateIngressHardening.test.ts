@@ -333,23 +333,32 @@ describe('mutationPipeline current-state ingress hardening', () => {
 
     expect(result.success).toBe(true);
 
-    const updatedOfferingSheet = result.changedTeams?.find(
+    const updatedOfferingTeam = result.changedTeams?.find(
       (update) => update.teamCode === 'BOS'
-    )?.team?.offerSheets?.[0];
-    const updatedHomeSheet = result.changedTeams?.find(
+    )?.team;
+    const updatedHomeTeam = result.changedTeams?.find(
       (update) => update.teamCode === 'NYK'
-    )?.team?.incomingOfferSheets?.[0];
+    )?.team;
 
-    expect(updatedOfferingSheet?.status).toBe('MATCHED');
-    expect(updatedHomeSheet?.status).toBe('MATCHED');
-    expect(updatedOfferingSheet).not.toHaveProperty('compatBag');
-    expect(updatedHomeSheet).not.toHaveProperty('compatBag');
-    expect(updatedOfferingSheet?.salariesByYear?.[0]).not.toHaveProperty(
-      'compatRow'
+    // BZE-191: one-click match resolves atomically — the offer sheet is removed
+    // from BOTH teams and the home team keeps the player on the matched contract.
+    // There is no surviving MATCHED-status sheet to inspect, so the ingress
+    // compatibility-bag stripping point is now verified on the surviving
+    // surfaces: the home player's matched contract and the team objects.
+    expect(updatedHomeTeam?.incomingOfferSheets ?? []).toHaveLength(0);
+    expect(updatedOfferingTeam?.offerSheets ?? []).toHaveLength(0);
+
+    const matchedPlayer = updatedHomeTeam?.players?.find(
+      (teamPlayer: { id?: string | null }) => teamPlayer?.id === 'rfa_1'
     );
-    expect(updatedHomeSheet?.salariesByYear?.[0]).not.toHaveProperty(
-      'compatRow'
-    );
+    expect(matchedPlayer).toBeDefined();
+    expect(matchedPlayer?.teamCode).toBe('NYK');
+    const matchedContract = matchedPlayer?.contract;
+    expect(matchedContract).toBeDefined();
+    expect(matchedContract).not.toHaveProperty('compatBag');
+    expect(matchedContract?.salariesByYear?.[0]).not.toHaveProperty('compatRow');
+    expect(updatedHomeTeam).not.toHaveProperty('compatBag');
+    expect(updatedOfferingTeam).not.toHaveProperty('compatBag');
   });
 
   it('preserves the consumed top-level bird-rights compatibility field on the option-decline player path', async () => {

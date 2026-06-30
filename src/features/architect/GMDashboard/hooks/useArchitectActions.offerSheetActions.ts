@@ -171,12 +171,12 @@ export function useOfferSheetActions({
   const runOfferSheetResolutionAction = useCallback(
     (
       action: OfferSheetResolutionAction,
-      offeringTeamCode: string,
-      offerSheetId: string
+      offerSheet: OfferSheet | null | undefined
     ): void => {
       const mutationType: OfferSheetResolutionMutationType =
         action === 'match' ? 'matchOfferSheet' : 'declineOfferSheet';
-      const actionLabel = action === 'match' ? 'match' : 'decline';
+      const offeringTeamCode = String(offerSheet?.offeringTeamCode || '');
+      const offerSheetId = String(offerSheet?.id || '');
 
       void (async () => {
         const worldRequiredMessage =
@@ -194,7 +194,7 @@ export function useOfferSheetActions({
 
         if (!offeringTeamCode || !offerSheetId) {
           reportMutationError(
-            `Cannot ${actionLabel} offer sheet: missing offering team or offer sheet ID.`,
+            `Cannot ${action} offer sheet: missing offering team or offer sheet ID.`,
             {
               offeringTeamCode,
               offerSheetId,
@@ -204,14 +204,22 @@ export function useOfferSheetActions({
           return;
         }
 
+        // BZE-191: one-click resolution removes the offer sheet from BOTH teams in
+        // a single atomic mutation (Match keeps the player on the home team;
+        // Decline moves player + cap to the offering team). The committed home-team
+        // snapshot therefore no longer carries the pending sheet — so we verify the
+        // sheet is ABSENT, and pass full identity so league-invariant and receipt
+        // derivation run at parity with the legacy finalize path.
         const expectation: OfferSheetLifecycleCommittedStateExpectation = {
           activeTeamArrayKey: 'incomingOfferSheets',
-          presence: 'present',
+          presence: 'absent',
           identity: {
             offerSheetId,
             offeringTeamCode,
             homeTeamCode: teamCode,
-            status: action === 'match' ? 'MATCHED' : 'DECLINED',
+            dedupKey: offerSheet?.dedupKey,
+            playerId: offerSheet?.playerId,
+            seasonKey: offerSheet?.seasonKey,
           },
         };
 
@@ -219,8 +227,13 @@ export function useOfferSheetActions({
           mutationType,
           {
             teamCode,
+            homeTeamCode: teamCode,
             offeringTeamCode,
             offerSheetId,
+            playerId: offerSheet?.playerId,
+            playerName: offerSheet?.playerName,
+            dedupKey: offerSheet?.dedupKey,
+            seasonKey: offerSheet?.seasonKey,
           },
           expectation
         );
@@ -301,15 +314,15 @@ export function useOfferSheetActions({
   );
 
   const handleMatchOfferSheet = useCallback(
-    (offeringTeamCode: string, offerSheetId: string): void => {
-      runOfferSheetResolutionAction('match', offeringTeamCode, offerSheetId);
+    (offerSheet: OfferSheet | null | undefined): void => {
+      runOfferSheetResolutionAction('match', offerSheet);
     },
     [runOfferSheetResolutionAction]
   );
 
   const handleDeclineOfferSheet = useCallback(
-    (offeringTeamCode: string, offerSheetId: string): void => {
-      runOfferSheetResolutionAction('decline', offeringTeamCode, offerSheetId);
+    (offerSheet: OfferSheet | null | undefined): void => {
+      runOfferSheetResolutionAction('decline', offerSheet);
     },
     [runOfferSheetResolutionAction]
   );
