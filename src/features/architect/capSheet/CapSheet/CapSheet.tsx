@@ -450,23 +450,14 @@ export const CapSheet = ({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="text-[10px] uppercase tracking-[0.25em] text-white/45">
-                Team Plan Salary Detail
+                Salary Detail
                 <span className="sr-only">Selected-Year Supporting Detail</span>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-white/70">
-                Roster rows for {teamPlanLabel}, cap-hold detail, and the
-                breakdown below explain the selected-year canonical totals for{' '}
-                {selectedSeasonLabel}.
-                They do not replace the summary surface above.
+                Contract-by-contract detail for {teamPlanLabel} in{' '}
+                {selectedSeasonLabel}, including cap holds and the breakdown
+                below.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-[10px] font-medium text-white/60">
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                Detail season: {selectedSeasonLabel}
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                Totals owner: canonical summary
-              </span>
             </div>
           </div>
           <p className="text-[10px] text-white/40 leading-relaxed">
@@ -621,8 +612,7 @@ export const CapSheet = ({
                 </span>
               </div>
               <p className="text-[10px] text-white/40 leading-relaxed">
-                This breakdown reads the same selected-year canonical totals as
-                the summary tiles.
+                This breakdown matches the summary tiles above.
               </p>
               <p className="text-[10px] text-white/40 leading-relaxed">
                 Player salaries from the table above plus non-player cap
@@ -801,16 +791,13 @@ export const CapSheet = ({
                     </span>
                   </div>
                   <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-100/90">
-                    Authority season:{' '}
                     {isViewingCurrentYear
                       ? currentSeasonLabel
                       : `${currentSeasonLabel} only`}
                   </span>
                 </div>
                 <p className="text-xs leading-relaxed text-white/65">
-                  Exception edits always stay on {currentSeasonLabel}. The
-                  adjacent authority surface remains the live hard-cap,
-                  exception, and trade-exception reference.
+                  Exception edits always apply to {currentSeasonLabel}.
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

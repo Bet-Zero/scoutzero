@@ -412,7 +412,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows rights, signing lane, and cap-hold context on rows and selected cards', () => {
+  it('shows rights and cap-hold context on rows and selected cards', () => {
     renderPool();
 
     const rowButton = screen.getByRole('button', { name: /test player/i });
@@ -420,7 +420,9 @@ describe('FreeAgentPool surface E86 behavior', () => {
       'free-agent-row-signing-context'
     );
     expect(rowContext).toHaveTextContent('Full Bird');
-    expect(rowContext).toHaveTextContent('Restricted rights');
+    // The signing-lane chip no longer prints on rows (BZE-209): the rights
+    // chip and PO/TO column already carry that information for a GM.
+    expect(rowContext).not.toHaveTextContent('Restricted rights');
     expect(rowContext).toHaveTextContent('Hold $61.7M');
 
     fireEvent.click(rowButton);
@@ -431,7 +433,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(cardContext).toHaveTextContent('Hold $61.7M');
   });
 
-  it('distinguishes no-rights free agents as cap-space or exception paths', () => {
+  it('keeps rights context on rows for no-rights free agents', () => {
     renderPool({
       freeAgents: [
         {
@@ -452,7 +454,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
       'free-agent-row-signing-context'
     );
     expect(rowContext).toHaveTextContent('None');
-    expect(rowContext).toHaveTextContent('Cap space / exception');
+    expect(rowContext).not.toHaveTextContent('Cap space / exception');
   });
 
   it('preserves selected-card sign wiring into EditContractModal', () => {

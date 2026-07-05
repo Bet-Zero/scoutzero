@@ -67,31 +67,21 @@ test.describe('ARCH-ROSTER: Roster counts and categories are browser-verifiable'
   }, testInfo) => {
     await gotoMiaRoster(page);
 
+    // The roster count chip is no longer a visible product surface (BZE-209);
+    // the counts stay browser-verifiable through the hidden data-attribute panel.
     const truthPanel = page.getByTestId('architect-roster-truth-panel');
-    await expect(truthPanel).toBeVisible({ timeout: 20000 });
+    await expect(truthPanel).toBeAttached({ timeout: 20000 });
     await expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '13');
     await expect(truthPanel).toHaveAttribute('data-roster-standard-count', '12');
     await expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '1');
     await expect(truthPanel).toHaveAttribute('data-roster-active-year', '2027');
     await expect(truthPanel).toHaveAttribute(
-      'data-roster-unsupported-categories',
-      'fa,expired,waived,options'
-    );
-
-    await expect(page.getByTestId('roster-count-displayed')).toHaveText(
-      '13 cards'
-    );
-    await expect(page.getByTestId('roster-count-standard')).toHaveText(
-      '12 standards'
-    );
-    await expect(page.getByTestId('roster-count-two-way')).toHaveText(
-      '1 two-way'
-    );
-    await expect(page.getByTestId('roster-count-sections')).toHaveText(
+      'data-roster-section-counts',
       '5 starters / 4 rotation / 4 bench'
     );
-    await expect(page.getByTestId('roster-unsupported-categories')).toHaveText(
-      'FA / expired / waived / options not surfaced'
+    await expect(truthPanel).toHaveAttribute(
+      'data-roster-unsupported-categories',
+      'fa,expired,waived,options'
     );
 
     await expect(page.getByTestId('roster-card-starter')).toHaveCount(5);

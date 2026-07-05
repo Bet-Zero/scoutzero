@@ -87,7 +87,7 @@ export const TeamStatusStrip = ({
         data-testid="cockpit-team-status-strip"
         data-state="unavailable"
       >
-        Cap posture is loading…
+        Cap status is loading…
       </div>
     );
   }
@@ -177,7 +177,7 @@ export const TeamStatusStrip = ({
         data-testid="cockpit-team-status-strip"
         data-state="ready"
         data-orientation={orientation}
-        aria-label="Team financial posture"
+        aria-label="Team financial status"
       >
         <div
           className="flex items-center justify-between rounded-md border border-white/10 bg-[#1c1c1c] px-2.5 py-2"
@@ -228,7 +228,7 @@ export const TeamStatusStrip = ({
       data-testid="cockpit-team-status-strip"
       data-state="ready"
       data-orientation={orientation}
-      aria-label="Team financial posture"
+      aria-label="Team financial status"
     >
       <TeamStatusTile
         testId="cockpit-status-total-cap"

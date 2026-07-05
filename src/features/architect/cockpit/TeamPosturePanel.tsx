@@ -133,7 +133,7 @@ export const TeamPosturePanel = ({
               className={`flex shrink-0 items-center gap-3 rounded border px-2.5 py-1 ${TONE_CLASSES[capPosture.tone]}`}
               data-testid="cockpit-team-posture-summary"
             >
-              <PostureBadge tone={capPosture.tone}>Posture</PostureBadge>
+              <PostureBadge tone={capPosture.tone}>Cap Status</PostureBadge>
               <div className="flex min-w-0 flex-col justify-center">
                 <span className="truncate text-[11px] font-semibold uppercase leading-tight tracking-wide text-cockpit-text-primary">
                   {capPosture.statusLabel}
@@ -208,7 +208,7 @@ export const TeamPosturePanel = ({
               <div className="text-[12px] font-semibold uppercase leading-tight tracking-wide text-cockpit-text-primary">
                 {capPosture.statusLabel}
               </div>
-              <PostureBadge tone={capPosture.tone}>Posture</PostureBadge>
+              <PostureBadge tone={capPosture.tone}>Cap Status</PostureBadge>
             </div>
 
             {capPosture.headlineAmount !== null ? (

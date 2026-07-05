@@ -213,7 +213,7 @@ vi.mock('@/features/architect/GMDashboard/sections/CapTableSection', () => ({
             data-action-exposure-classification={launcherClassification}
             onClick={() => props.onLaunchFreeAgentSearch()}
           >
-            + Sign Free Agent {launcherIsSupported ? 'V1' : 'Preview'}
+            + Sign Free Agent {launcherIsSupported ? '' : 'Preview'}
           </button>
         ) : null}
         {(props.freeAgentOptions || []).map(
@@ -778,7 +778,7 @@ describe('GMDashboard Smoke Test', () => {
       render(<GMDashboard />);
 
       const launcher = screen.getByRole('button', {
-        name: /^\+ Sign Free Agent V1$/i,
+        name: /^\+ Sign Free Agent$/i,
       });
       expect(launcher).toHaveAttribute(
         'data-action-exposure-classification',
@@ -786,8 +786,12 @@ describe('GMDashboard Smoke Test', () => {
       );
       fireEvent.click(launcher);
 
+      // Supported signing shows no support badge at all (BZE-209): "V1" was
+      // internal release vocabulary. Only the preview state is labeled.
       const dialog = screen.getByRole('dialog', { name: /^Sign Free Agent$/i });
-      expect(within(dialog).getByText(/V1 supported/i)).toBeInTheDocument();
+      expect(
+        within(dialog).queryByText(/Preview only/i)
+      ).not.toBeInTheDocument();
       expect(
         within(dialog).queryByText(/Start Preview Signing/i)
       ).not.toBeInTheDocument();

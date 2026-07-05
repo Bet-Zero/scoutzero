@@ -202,6 +202,23 @@ const ApronPostureDisplay = ({ delta }: { delta: Stage3TaxApronPostureDelta }) =
   );
 };
 
+// Owner-facing names for internal comparison field keys (BZE-209): the raw
+// keys stay in the view-model contract, but never print on screen.
+const UNAVAILABLE_FIELD_LABELS: Record<string, string> = {
+  capTotalDelta: 'Cap totals',
+  draftAssetDelta: 'Draft picks',
+  seasonComparison: 'Season-to-season comparison',
+  exceptionDelta: 'Exceptions',
+};
+
+const formatUnavailableFieldLabel = (field: string) =>
+  UNAVAILABLE_FIELD_LABELS[field] ??
+  // Fallback: split camelCase into words instead of printing a variable name.
+  field
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .toLowerCase()
+    .replace(/^./, (char) => char.toUpperCase());
+
 const UnavailableList = ({
   entries,
 }: {
@@ -209,8 +226,10 @@ const UnavailableList = ({
 }) => (
   <ul className="space-y-1">
     {entries.map((entry) => (
-      <li key={entry.field} className="text-xs text-white/40">
-        <span className="font-mono text-white/30">{entry.field}</span>
+      <li key={entry.field} data-field={entry.field} className="text-xs text-white/40">
+        <span className="text-white/60">
+          {formatUnavailableFieldLabel(entry.field)}
+        </span>
         {' — '}
         {entry.reason}
       </li>
@@ -471,7 +490,7 @@ export const ComparisonSection = ({
       {hasEvents && viewModel.taxApronPostureDelta && (
         <SectionCard testId="comparison-apron-delta">
           <div className="flex items-center gap-2 mb-2">
-            <SectionHeading>Tax / Apron Posture</SectionHeading>
+            <SectionHeading>Tax / Apron Status</SectionHeading>
             <AuthorityChip label="event-derived" />
           </div>
           <ApronPostureDisplay delta={viewModel.taxApronPostureDelta} />
@@ -483,7 +502,7 @@ export const ComparisonSection = ({
         <SectionCard testId="comparison-unavailable-summary">
           <SectionHeading>Deferred / Unavailable</SectionHeading>
           <p className="text-[11px] text-white/30 mb-1">
-            These deltas are not surfaced in this read-only comparison.
+            These changes are not part of this comparison yet.
           </p>
           <UnavailableList entries={viewModel.unavailableSummary} />
         </SectionCard>

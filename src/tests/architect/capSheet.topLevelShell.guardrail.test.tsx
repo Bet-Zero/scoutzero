@@ -142,10 +142,10 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
     });
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
-    ).toHaveTextContent('Current-Season Alignment');
+    ).toHaveTextContent('Showing 2025-26');
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
-    ).toHaveTextContent('Team Plan: Los Angeles Lakers');
+    ).toHaveAttribute('data-team-plan-label', 'Los Angeles Lakers');
 
     fireEvent.click(screen.getByTestId('mock-cap-sheet-select-following-year'));
 
@@ -162,13 +162,13 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
     });
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
-    ).toHaveTextContent('Cap table: 2027-28');
+    ).toHaveTextContent('Showing 2027-28');
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
-    ).toHaveTextContent('Team Plan: Los Angeles Lakers');
+    ).toHaveAttribute('data-team-plan-label', 'Los Angeles Lakers');
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
-    ).toHaveTextContent('Adjacent authority: 2025-26 only');
+    ).toHaveTextContent('always reflect the current season (2025-26)');
 
     rerender(<CapSheetSection {...buildBaseProps(2027)} />);
 
@@ -185,24 +185,25 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
     });
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
-    ).toHaveTextContent('Current-Season Alignment');
+    ).toHaveTextContent('Showing 2026-27');
     expect(
       screen.getByTestId('cap-sheet-shell-year-truth-panel')
-    ).toHaveTextContent('Cap table: 2026-27');
-    expect(
-      screen.getByTestId('cap-sheet-shell-year-truth-panel')
-    ).toHaveTextContent('Adjacent authority: 2026-27');
+    ).toHaveTextContent(
+      'All figures on this page are for the current season, 2026-27.'
+    );
   });
 
   it('keeps current-year and future-year shell messaging meaningfully different', async () => {
     render(<CapSheetSection {...buildBaseProps(2026)} />);
 
     const shellTruthPanel = screen.getByTestId('cap-sheet-shell-year-truth-panel');
-    expect(shellTruthPanel).toHaveTextContent('Current-Season Alignment');
+    expect(shellTruthPanel).toHaveTextContent('Showing 2025-26');
     expect(shellTruthPanel).toHaveTextContent(
-      'The main cap sheet and the adjacent hard-cap, exception, and TPE surface are both aligned to 2025-26.'
+      'All figures on this page are for the current season, 2025-26.'
     );
-    expect(shellTruthPanel).not.toHaveTextContent('Selected-Year Totals View');
+    expect(shellTruthPanel).not.toHaveTextContent(
+      'always reflect the current season'
+    );
 
     fireEvent.click(screen.getByTestId('mock-cap-sheet-select-next-year'));
 
@@ -213,12 +214,12 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
       });
     });
 
-    expect(shellTruthPanel).toHaveTextContent('Selected-Year Totals View');
+    expect(shellTruthPanel).toHaveTextContent('Showing 2026-27');
     expect(shellTruthPanel).toHaveTextContent(
-      'The main cap sheet is showing 2026-27 totals and detail, while adjacent hard-cap, exception, and TPE authority remains on 2025-26 only.'
+      'Salary figures below are for 2026-27. Hard cap, exceptions, and trade exceptions always reflect the current season (2025-26).'
     );
     expect(shellTruthPanel).not.toHaveTextContent(
-      'The main cap sheet and the adjacent hard-cap, exception, and TPE surface are both aligned to 2025-26.'
+      'All figures on this page are for the current season'
     );
   });
 

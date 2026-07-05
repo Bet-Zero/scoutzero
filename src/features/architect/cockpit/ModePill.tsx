@@ -72,15 +72,21 @@ const SAVE_LABEL: Record<SaveState, string> = {
 export const ModePill = ({ context, isEmulator }: ModePillProps) => {
   const label = resolveLabel(context, isEmulator);
   const save = resolveSaveState(context);
+  // EMULATOR/PROD are Firebase-environment safety badges for engineers, not
+  // product state. Production builds must never show environment scaffolding.
+  const isEnvironmentBadge = label === 'EMULATOR' || label === 'PROD';
+  const showModeBadge = !isEnvironmentBadge || import.meta.env.DEV;
 
   return (
     <div className="flex items-center gap-2" data-testid="cockpit-mode-pill">
-      <span
-        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${MODE_CLASSES[label]}`}
-        data-testid="firebase-target-mode-badge"
-      >
-        {label === 'EMULATOR' ? 'EMULATOR MODE' : label === 'PROD' ? 'PROD MODE' : label}
-      </span>
+      {showModeBadge ? (
+        <span
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${MODE_CLASSES[label]}`}
+          data-testid="firebase-target-mode-badge"
+        >
+          {label === 'EMULATOR' ? 'EMULATOR MODE' : label === 'PROD' ? 'PROD MODE' : label}
+        </span>
+      ) : null}
       <span
         className="inline-flex items-center gap-1.5 text-[11px] text-cockpit-text-secondary"
         aria-label={`Team Plan save state: ${SAVE_LABEL[save]}. ${context.saveState.detail}`}

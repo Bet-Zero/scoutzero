@@ -306,7 +306,7 @@ describe('MYCT Step 4 Guardrails - Source Scan', () => {
     expect(capSheetSource).not.toMatch(/<CapSummaryTiles[\s>]/);
     expect(capSheetSource).toContain('Selected-Year Supporting Detail');
     expect(capSheetSource).toContain(
-      'This breakdown reads the same selected-year canonical totals as'
+      'This breakdown matches the summary tiles above.'
     );
 
     expect(capSummaryTilesSource).toContain(
@@ -413,8 +413,8 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
       name: 'Adjacent current-season authority surface',
     });
 
-    expect(shellTruthPanel).toHaveTextContent('Cap table: 2025-26');
-    expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26');
+    expect(shellTruthPanel).toHaveTextContent('Showing 2025-26');
+    expect(shellTruthPanel).toHaveTextContent('All figures on this page are for the current season, 2025-26.');
 
     // The canonical totals summary surface + hard-cap badge moved to the cockpit
     // TeamStatusStrip (Phase 2A migration); the cap sheet no longer renders them.
@@ -433,12 +433,12 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     ).toBeInTheDocument();
     expect(
       within(rosterSurface).getByText(
-        /the selected-year canonical totals for 2025-26/i
+        /Contract-by-contract detail for .* in 2025-26/i
       )
     ).toBeInTheDocument();
     expect(
       within(breakdownSurface).getByText(
-        /This breakdown reads the same selected-year canonical totals as the summary tiles\./i
+        /This breakdown matches the summary tiles above\./i
       )
     ).toBeInTheDocument();
     expect(
@@ -455,7 +455,7 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     ).toBeInTheDocument();
     expect(within(controlSurface).getByText('Input season: 2025-26')).toBeInTheDocument();
     expect(
-      within(controlSurface).getByText('Authority season: 2025-26')
+      within(controlSurface).getByText('2025-26')
     ).toBeInTheDocument();
     expect(
       within(controlSurface).getByText('Selected-year view: 2025-26')
@@ -521,8 +521,8 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
       name: 'Adjacent current-season authority surface',
     });
 
-    expect(shellTruthPanel).toHaveTextContent('Cap table: 2026-27');
-    expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26 only');
+    expect(shellTruthPanel).toHaveTextContent('Showing 2026-27');
+    expect(shellTruthPanel).toHaveTextContent('always reflect the current season (2025-26)');
 
     // Summary surface + hard-cap badge moved to the cockpit (Phase 2A); the cap
     // sheet shows the future-year canonical total via the breakdown surface and
@@ -542,7 +542,7 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     ).not.toBeInTheDocument();
 
     expect(
-      within(controlSurface).getByText('Authority season: 2025-26 only')
+      within(controlSurface).getByText('2025-26 only')
     ).toBeInTheDocument();
     expect(
       within(controlSurface).getByText('Selected-year view: 2026-27')

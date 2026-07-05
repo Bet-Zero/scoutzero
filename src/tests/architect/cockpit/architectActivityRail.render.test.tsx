@@ -232,7 +232,7 @@ describe('ActivityRail — Slice 1 audit', () => {
     ).toHaveTextContent('Save failed');
     expect(
       screen.getByTestId('cockpit-activity-rail-plan-truth-switching')
-    ).toHaveTextContent('Guard will warn before switching');
+    ).toHaveTextContent('You will be warned before switching');
     expect(
       screen.getByTestId('cockpit-activity-rail-plan-truth-warnings')
     ).toHaveTextContent('A staged trade draft is not applied.');

@@ -34,10 +34,10 @@ describe('Team History base mode no-events query', () => {
 
     expect(screen.getByTestId('team-history-base-banner')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Section-derived fallback'
+      'Recent team records'
     );
     expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
-      'deriving local fallback rows from waived contracts'
+      'signings, waives, exceptions, and pick moves'
     );
     expect(screen.getByText('No timeline entries yet.')).toBeInTheDocument();
     expect(useWorldTeamEventsMock).not.toHaveBeenCalled();
@@ -63,13 +63,13 @@ describe('Team History base mode no-events query', () => {
     );
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Explicit local timeline'
+      'This session'
     );
     expect(screen.getByTestId('team-history-base-truth-label')).toHaveTextContent(
-      'Direct local timeline rows'
+      'Session history'
     );
     expect(screen.getByTestId('team-history-base-truth-detail')).toHaveTextContent(
-      'already timeline-shaped local entries'
+      'recorded directly in this session'
     );
     expect(screen.getByText('LOCAL_TIMELINE_ENTRY')).toBeInTheDocument();
     expect(useWorldTeamEventsMock).not.toHaveBeenCalled();

@@ -148,55 +148,30 @@ const CapSheetSection = ({
   const shellTruthEyebrowClass = isViewingCurrentYear
     ? 'text-sky-300/80'
     : 'text-amber-300/80';
-  const shellTruthChipClass = isViewingCurrentYear
-    ? 'border-sky-300/20 bg-sky-500/10 text-sky-100/90'
-    : 'border-amber-300/20 bg-amber-500/10 text-amber-100/90';
-
+  // (chip row removed in BZE-209 — season + boundary now read as one sentence)
   return (
     <>
       <section
         aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.shellYearTruth}
         data-testid="cap-sheet-shell-year-truth-panel"
+        data-team-plan-label={teamPlanLabel}
         className={`mb-4 rounded-lg border px-4 py-3 ${shellTruthToneClasses}`}
       >
         {/* SECTION HANDOFF / SHELL TRUTH SURFACE: The dashboard seam owns
-            selectedYear, top-level year-truth signaling, and separation
-            between the authoritative feature surfaces below. */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div
-              className={`text-[10px] uppercase tracking-[0.25em] ${shellTruthEyebrowClass}`}
-            >
-              {isViewingCurrentYear
-                ? 'Current-Season Alignment'
-                : 'Selected-Year Totals View'}
-            </div>
-            <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/80">
-              {isViewingCurrentYear
-                ? `The main cap sheet and the adjacent hard-cap, exception, and TPE surface are both aligned to ${currentSeasonLabel}.`
-                : `The main cap sheet is showing ${selectedSeasonLabel} totals and detail, while adjacent hard-cap, exception, and TPE authority remains on ${currentSeasonLabel} only.`}
-            </p>
+            selectedYear and top-level year signaling. Copy stays in plain GM
+            language (BZE-209) while still distinguishing current-season view
+            from a future-year view. */}
+        <div>
+          <div
+            className={`text-[10px] uppercase tracking-[0.25em] ${shellTruthEyebrowClass}`}
+          >
+            Showing {selectedSeasonLabel}
           </div>
-          <div className="flex flex-wrap gap-2 text-[10px] font-medium">
-            <span
-              className={`rounded-full border px-2.5 py-1 ${shellTruthChipClass}`}
-            >
-              Team Plan: {teamPlanLabel}
-            </span>
-            <span
-              className={`rounded-full border px-2.5 py-1 ${shellTruthChipClass}`}
-            >
-              Cap table: {selectedSeasonLabel}
-            </span>
-            <span
-              className={`rounded-full border px-2.5 py-1 ${shellTruthChipClass}`}
-            >
-              Adjacent authority:{' '}
-              {isViewingCurrentYear
-                ? currentSeasonLabel
-                : `${currentSeasonLabel} only`}
-            </span>
-          </div>
+          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/80">
+            {isViewingCurrentYear
+              ? `All figures on this page are for the current season, ${currentSeasonLabel}.`
+              : `Salary figures below are for ${selectedSeasonLabel}. Hard cap, exceptions, and trade exceptions always reflect the current season (${currentSeasonLabel}).`}
+          </p>
         </div>
       </section>
 

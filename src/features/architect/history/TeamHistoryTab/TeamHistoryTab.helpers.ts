@@ -465,7 +465,9 @@ export const resolveTeamHistoryTimeline = ({
   worldId?: string | null;
   hasInjectedFixtures: boolean;
 }): TeamHistoryTimelineResolution => {
-  const scopeLabel = worldId ? `World ${worldId}` : 'Base context';
+  // Owner-facing scope: never print the raw world id (BZE-209). The id stays
+  // available to tests via data attributes on the banner.
+  const scopeLabel = worldId ? 'This saved season' : 'Unsaved session';
   const explicitTimeline = sortTimelineNewestFirst(
     Array.isArray(teamCapSheet?.historyTimeline)
       ? teamCapSheet.historyTimeline
@@ -498,9 +500,9 @@ export const resolveTeamHistoryTimeline = ({
     return {
       key: 'world-events',
       scopeLabel,
-      sourceLabel: 'Authoritative world events',
+      sourceLabel: 'Saved season history',
       sourceDetail:
-        'World events own the timeline whenever an active world is selected.',
+        'Everything below happened in this saved season.',
       sourceAccentClassName: 'text-sky-200',
       timelineTruthLabel: null,
       timelineTruthDetail: null,
@@ -514,13 +516,13 @@ export const resolveTeamHistoryTimeline = ({
     return {
       key: 'local-timeline',
       scopeLabel,
-      sourceLabel: 'Explicit local timeline',
+      sourceLabel: 'This session',
       sourceDetail:
-        'Outside world-event mode, direct historyTimeline rows take priority over any section-derived local fallback.',
+        'Showing moves recorded in this session.',
       sourceAccentClassName: 'text-amber-200',
-      timelineTruthLabel: 'Direct local timeline rows',
+      timelineTruthLabel: 'Session history',
       timelineTruthDetail:
-        'Rendering explicit historyTimeline rows only. These are already timeline-shaped local entries, not synthesized section summaries.',
+        'These entries were recorded directly in this session.',
       timelineTruthClassName:
         'border-amber-500/20 bg-amber-500/5 text-amber-100/85',
       usesWorldEvents: false,
@@ -531,13 +533,13 @@ export const resolveTeamHistoryTimeline = ({
   return {
     key: 'synthesized',
     scopeLabel,
-    sourceLabel: 'Section-derived fallback',
+    sourceLabel: 'Recent team records',
     sourceDetail:
-      'No explicit historyTimeline rows were found, so Team History is deriving local fallback rows from waived contracts, exception history, and pick log.',
+      'Showing recent signings, waives, exceptions, and pick moves recorded for this team.',
     sourceAccentClassName: 'text-zinc-200',
-    timelineTruthLabel: 'Derived local convenience history',
+    timelineTruthLabel: 'Reconstructed history',
     timelineTruthDetail:
-      'These rows are synthesized from local section records. They preserve source labels and timestamps where available, but they do not carry world-event payloads or before/after totals.',
+      'These entries were reconstructed from team records. Amounts and dates are shown where available.',
     timelineTruthClassName: 'border-white/10 bg-white/[0.03] text-white/75',
     usesWorldEvents: false,
     timelineEntries: synthesizedTimeline,

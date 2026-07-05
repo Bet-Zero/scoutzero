@@ -161,10 +161,10 @@ describe('TEAM_HISTORY_STEP1 source-selection guardrails', () => {
     );
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Authoritative world events'
+      'Saved season history'
     );
     expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
-      'World events own the timeline'
+      'Everything below happened in this saved season'
     );
     expect(screen.getByText('WORLD_EVENTS_WIN')).toBeInTheDocument();
     expect(
@@ -208,16 +208,16 @@ describe('TEAM_HISTORY_STEP1 source-selection guardrails', () => {
     );
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Explicit local timeline'
+      'This session'
     );
     expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
-      'direct historyTimeline rows take priority'
+      'Showing moves recorded in this session'
     );
     expect(screen.getByTestId('team-history-base-truth-label')).toHaveTextContent(
-      'Direct local timeline rows'
+      'Session history'
     );
     expect(screen.getByTestId('team-history-base-truth-detail')).toHaveTextContent(
-      'explicit historyTimeline rows only'
+      'recorded directly in this session'
     );
     expect(screen.getByText('LOCAL_TIMELINE_WINS')).toBeInTheDocument();
     expect(screen.queryByText('Fallback Only was waived.')).not.toBeInTheDocument();
@@ -243,16 +243,16 @@ describe('TEAM_HISTORY_STEP1 source-selection guardrails', () => {
     );
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Section-derived fallback'
+      'Recent team records'
     );
     expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
-      'deriving local fallback rows from waived contracts'
+      'signings, waives, exceptions, and pick moves'
     );
     expect(screen.getByTestId('team-history-base-truth-label')).toHaveTextContent(
-      'Derived local convenience history'
+      'Reconstructed history'
     );
     expect(screen.getByTestId('team-history-base-truth-detail')).toHaveTextContent(
-      'do not carry world-event payloads'
+      'reconstructed from team records'
     );
     expect(
       screen.getByText('Waiver record: Fallback Forward was waived and stretched.')

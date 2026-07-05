@@ -127,21 +127,13 @@ describe('RosterVisual adapter boundary', () => {
       'data-roster-unsupported-categories',
       'fa,expired,waived,options'
     );
-    expect(screen.getByTestId('roster-count-displayed')).toHaveTextContent(
-      '15 cards'
-    );
-    expect(screen.getByTestId('roster-count-standard')).toHaveTextContent(
-      '13 standards'
-    );
-    expect(screen.getByTestId('roster-count-two-way')).toHaveTextContent(
-      '2 two-ways'
-    );
-    expect(screen.getByTestId('roster-count-sections')).toHaveTextContent(
+    // Counts moved from visible chip text to data attributes (BZE-209): the
+    // chip read like an internal audit on a product surface.
+    expect(truthPanel).toHaveAttribute(
+      'data-roster-section-counts',
       '5 starters / 4 rotation / 6 bench'
     );
-    expect(screen.getByTestId('roster-unsupported-categories')).toHaveTextContent(
-      'FA / expired / waived / options not surfaced'
-    );
+    expect(truthPanel).not.toBeVisible();
   });
 
   it('filters normal roster cards to the selected active contract year', () => {
@@ -284,12 +276,9 @@ describe('RosterVisual adapter boundary', () => {
     expect(within(starters).getAllByRole('img')).toHaveLength(5);
     expect(within(rotation).getAllByRole('img')).toHaveLength(1);
     expect(within(bench).queryAllByRole('img')).toHaveLength(0);
-    expect(screen.getByTestId('roster-count-displayed')).toHaveTextContent(
-      '6 cards'
-    );
-    expect(screen.getByTestId('roster-count-two-way')).toHaveTextContent(
-      '0 two-ways'
-    );
+    const truthPanel = screen.getByTestId('architect-roster-truth-panel');
+    expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '6');
+    expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '0');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByText('+')).not.toBeInTheDocument();
   });

@@ -1239,11 +1239,11 @@ export const CapSheetFull = ({
                         data-action-exposure-classification={
                           standardFreeAgentLauncherExposureClassification
                         }
-                        aria-label={`Open signing for ${playerName} (${
+                        aria-label={`Open signing for ${playerName}${
                           standardFreeAgentLauncherIsSupported
-                            ? 'V1 supported'
-                            : 'preview only'
-                        })`}
+                            ? ''
+                            : ' (preview only)'
+                        }`}
                         title={
                           standardFreeAgentLauncherIsSupported
                             ? 'Saved-world standard free-agent signing'
@@ -1255,11 +1255,11 @@ export const CapSheetFull = ({
                         className="inline-flex items-center gap-1 rounded px-1 text-[10px] font-medium text-cockpit-safe hover:bg-cockpit-safe/10"
                       >
                         Open signing
-                        <span className="rounded bg-cockpit-safe/15 px-1 text-[9px] font-semibold uppercase tracking-wide text-cockpit-safe">
-                          {standardFreeAgentLauncherIsSupported
-                            ? 'V1'
-                            : 'Preview'}
-                        </span>
+                        {standardFreeAgentLauncherIsSupported ? null : (
+                          <span className="rounded bg-cockpit-safe/15 px-1 text-[9px] font-semibold uppercase tracking-wide text-cockpit-safe">
+                            Preview
+                          </span>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -1350,9 +1350,11 @@ export const CapSheetFull = ({
                     style={{ background: 'var(--team-secondary,#FDB927)' }}
                   >
                     + Sign Free Agent
-                    <span className="rounded bg-black/20 px-1 text-[9px]">
-                      {standardFreeAgentLauncherIsSupported ? 'V1' : 'Preview'}
-                    </span>
+                    {standardFreeAgentLauncherIsSupported ? null : (
+                      <span className="rounded bg-black/20 px-1 text-[9px]">
+                        Preview
+                      </span>
+                    )}
                   </button>
                 ) : null}
               </div>
@@ -1510,8 +1512,8 @@ export const CapSheetFull = ({
                                         : 'Extend (Preview)',
                                       rowExtendExposureClassification,
                                       rowExtendIsSupported
-                                        ? 'Contract Extension is V1 supported from Full Cap Table rows in saved-world mode'
-                                        : 'Contract Extension requires a saved world and an extension-eligible player row',
+                                        ? 'Extend this player\'s contract'
+                                        : 'Contract extension requires a saved plan and an extension-eligible player',
                                     ],
                                     [
                                       'waive',
@@ -1520,8 +1522,8 @@ export const CapSheetFull = ({
                                         : 'Waive (Preview)',
                                       standardWaiveExposureClassification,
                                       standardWaiveIsSupported
-                                        ? 'Standard Waive is V1 supported from Full Cap Table rows in saved-world mode'
-                                        : 'Standard Waive is visible as a preview until a saved world is active',
+                                        ? 'Waive this player'
+                                        : 'Waive is a preview until a saved plan is active',
                                     ],
                                     [
                                       'stretch',
@@ -1530,8 +1532,8 @@ export const CapSheetFull = ({
                                         : 'Stretch (Preview)',
                                       standardWaiveStretchExposureClassification,
                                       standardWaiveStretchIsSupported
-                                        ? 'Waive & Stretch is V1 supported from Full Cap Table rows in saved-world mode'
-                                        : 'Waive & Stretch is visible as a preview until a saved world is active',
+                                        ? 'Waive this player and stretch the remaining salary'
+                                        : 'Waive & Stretch is a preview until a saved plan is active',
                                     ],
                                     [
                                       'buyout',
@@ -1540,8 +1542,8 @@ export const CapSheetFull = ({
                                         : 'Buyout (Preview)',
                                       standardBuyoutExposureClassification,
                                       standardBuyoutIsSupported
-                                        ? 'Buyout is V1 supported from Full Cap Table rows in saved-world mode'
-                                        : 'Buyout is visible as a preview until a saved world is active',
+                                        ? 'Negotiate a buyout with this player'
+                                        : 'Buyout is a preview until a saved plan is active',
                                     ],
                                   ] as const
                                 ).map(([action, label, classification, title]) => ({

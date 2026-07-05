@@ -91,7 +91,7 @@ describe('TEAM_HISTORY_STEP4 fallback-contract guardrails', () => {
     );
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Authoritative world events'
+      'Saved season history'
     );
     expect(screen.getByText('WORLD_EVENT_STILL_WINS')).toBeInTheDocument();
     expect(screen.queryByText('LOCAL_ROW_SHOULD_NOT_RENDER')).not.toBeInTheDocument();
@@ -143,10 +143,10 @@ describe('TEAM_HISTORY_STEP4 fallback-contract guardrails', () => {
     );
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Explicit local timeline'
+      'This session'
     );
     expect(screen.getByTestId('team-history-base-truth-label')).toHaveTextContent(
-      'Direct local timeline rows'
+      'Session history'
     );
     expect(screen.getByText('LOCAL_TIMELINE_STAYS_AUTHORITATIVE')).toBeInTheDocument();
     expect(

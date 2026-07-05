@@ -63,12 +63,12 @@ export interface ReceiptImpactPanel {
 
 const SAVE_STATUS_LABELS: Record<ArchitectTeamPlanSaveState['status'], string> =
   {
-    loading: 'Save state loading',
-    saved: 'Saved durable Team Plan',
-    saving: 'Saving Team Plan',
+    loading: 'Checking save status',
+    saved: 'All changes saved',
+    saving: 'Saving changes',
     'save-failed': 'Save failed',
-    'uncommitted-draft': 'Draft not committed',
-    'local-only': 'Local what-if mode',
+    'uncommitted-draft': 'Unsaved draft work',
+    'local-only': 'What-if session (not saved)',
   };
 
 const IMPACT_ORDER: ArchitectPostActionImpactArea[] = [
@@ -127,13 +127,13 @@ export function deriveTeamPlanTruthPanel(
     tone: saveTone(saveState),
     statusLabel: SAVE_STATUS_LABELS[saveState.status],
     modeLabel: saveState.isDurableWorldMode
-      ? 'Durable world mode'
-      : 'Sandbox/base mode',
+      ? 'Saved plan'
+      : 'What-if session',
     detail: saveState.detail,
     switchSafetyLabel:
       warnings.length > 0
-        ? 'Guard will warn before switching'
-        : 'Clear for world or season switch',
+        ? 'You will be warned before switching'
+        : 'Safe to switch plans or seasons',
     lastSavedLabel: saveState.lastSavedAt
       ? formatDate(saveState.lastSavedAt)
       : null,
@@ -159,11 +159,11 @@ export function deriveCapPosturePanel(
   if (cap.status !== 'available') {
     return {
       tone: 'muted',
-      statusLabel: 'Cap posture unavailable',
+      statusLabel: 'Cap status unavailable',
       detail:
         cap.status === 'unavailable'
           ? cap.reason
-          : 'Cap posture is still loading.',
+          : 'Cap status is still loading.',
       rosterLabel:
         workspace.roster.status === 'available'
           ? `${workspace.roster.count} players`

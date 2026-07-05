@@ -194,8 +194,8 @@ describe('ComparisonSection — no committed events', () => {
       <ComparisonSection status="available" viewModel={makeScopeViewModel()} />
     );
     expect(screen.getByTestId('comparison-unavailable-summary')).toBeInTheDocument();
-    expect(screen.getByText(/capTotalDelta/)).toBeInTheDocument();
-    expect(screen.getByText(/draftAssetDelta/)).toBeInTheDocument();
+    expect(screen.getByText(/Cap totals/)).toBeInTheDocument();
+    expect(screen.getByText(/Draft picks/)).toBeInTheDocument();
   });
 });
 
@@ -433,7 +433,7 @@ describe('ComparisonSection — deferred and unavailable', () => {
         viewModel={makeViewModelWithEvents()}
       />
     );
-    expect(screen.getByText(/draftAssetDelta/)).toBeInTheDocument();
+    expect(screen.getByText(/Draft picks/)).toBeInTheDocument();
   });
 
   it('exception delta is not a number — it is labeled deferred', () => {

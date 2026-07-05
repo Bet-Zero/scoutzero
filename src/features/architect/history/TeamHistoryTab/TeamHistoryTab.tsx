@@ -64,14 +64,15 @@ export const TeamHistoryTab = ({
         data-testid={
           worldId ? 'team-history-world-banner' : 'team-history-base-banner'
         }
+        data-history-world-id={worldId ?? ''}
+        data-history-source-key={timelineResolution.key}
         className="mb-4 rounded border border-white/10 bg-[#121212] px-3 py-2 text-xs text-white/70"
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <span data-testid="team-history-scope-label">
-            Scope: {timelineResolution.scopeLabel}
+            {timelineResolution.scopeLabel}
           </span>
           <span data-testid="team-history-active-source-label">
-            Active timeline:{' '}
             <span
               className={`font-semibold ${timelineResolution.sourceAccentClassName}`}
             >

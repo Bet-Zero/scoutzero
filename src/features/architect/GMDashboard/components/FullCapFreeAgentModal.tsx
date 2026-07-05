@@ -113,9 +113,7 @@ const FullCapFreeAgentModal = ({
     entries.find((entry) => entry.selectionKey === selectedSelectionKey) ?? null;
   const standardSigningIsSupported =
     standardSigningExposureClassification === 'V1 supported';
-  const supportBadgeLabel = standardSigningIsSupported
-    ? 'V1 supported'
-    : 'Preview only';
+  const supportBadgeLabel = standardSigningIsSupported ? null : 'Preview only';
   const launchActionLabel = standardSigningIsSupported ? 'Sign' : 'Preview Sign';
   const selectedLaunchLabel = standardSigningIsSupported
     ? 'Start Signing'
@@ -147,19 +145,21 @@ const FullCapFreeAgentModal = ({
               className="mt-1 text-base font-bold text-cockpit-text-primary"
             >
               Sign Free Agent
-              <span
-                aria-hidden="true"
-                className="ml-2 rounded border border-cockpit-watch/30 bg-cockpit-watch/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-watch"
-              >
-                {supportBadgeLabel}
-              </span>
+              {supportBadgeLabel ? (
+                <span
+                  aria-hidden="true"
+                  className="ml-2 rounded border border-cockpit-watch/30 bg-cockpit-watch/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-watch"
+                >
+                  {supportBadgeLabel}
+                </span>
+              ) : null}
             </h2>
             <p className="mt-1 text-xs text-cockpit-text-muted">
               {entries.length} eligible{' '}
               {entries.length === 1 ? 'player' : 'players'}.
               {standardSigningIsSupported
-                ? ' Standard free-agent signing uses the saved-world V1 signing path.'
-                : ' Standard free-agent signing is visible as a preview, not a V1 supported promise.'}
+                ? ''
+                : ' Signing from here is a preview — it will not change your plan yet.'}
             </p>
           </div>
           <button

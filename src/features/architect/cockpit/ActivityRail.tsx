@@ -458,7 +458,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           <RailSection
-            label="Plan Truth"
+            label="Save Status"
             testId="cockpit-activity-rail-plan-truth"
           >
             <div
@@ -532,7 +532,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
               </ul>
             ) : (
               <p className="text-[10px] leading-4 text-cockpit-text-muted">
-                No staged, failed, or saving work flagged by the Team Plan guard.
+                Nothing waiting to be saved.
               </p>
             )}
           </RailSection>

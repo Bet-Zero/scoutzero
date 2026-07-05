@@ -965,9 +965,9 @@ describe('Cap Sheet UI integration flows', () => {
       'cap-sheet-control-surface'
     );
 
-    expect(shellTruthPanel).toHaveTextContent('Cap table: 2025-26');
-    expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26');
-    expect(shellTruthPanel).toHaveTextContent('Team Plan: Los Angeles Lakers');
+    expect(shellTruthPanel).toHaveTextContent('Showing 2025-26');
+    expect(shellTruthPanel).toHaveTextContent('All figures on this page are for the current season, 2025-26.');
+    expect(shellTruthPanel).toHaveAttribute('data-team-plan-label', 'Los Angeles Lakers');
     // The canonical totals SUMMARY surface (5-tile summary + hard-cap badge)
     // moved to the persistent cockpit TeamStatusStrip (Phase 2A migration), so
     // it is intentionally no longer rendered inside the cap sheet. The shell
@@ -986,7 +986,7 @@ describe('Cap Sheet UI integration flows', () => {
       )
     ).toBeInTheDocument();
     expect(
-      within(rosterSurface).getByText('Team Plan Salary Detail')
+      within(rosterSurface).getByText('Salary Detail')
     ).toBeInTheDocument();
     expect(
       within(rosterSurface).getByText('Selected-Year Supporting Detail')
@@ -1095,10 +1095,10 @@ describe('Cap Sheet UI integration flows', () => {
       screen.queryByText('Triggered by Non-Taxpayer MLE')
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('cap-sheet-shell-year-truth-panel')).toHaveTextContent(
-      'Cap table: 2026-27'
+      'Showing 2026-27'
     );
     expect(screen.getByTestId('cap-sheet-shell-year-truth-panel')).toHaveTextContent(
-      'Adjacent authority: 2025-26 only'
+      'always reflect the current season (2025-26)'
     );
 
     const adjacentSurface = screen.getByRole('region', {
@@ -1168,7 +1168,7 @@ describe('Cap Sheet UI integration flows', () => {
     );
     expect(
       screen.getByTestId('cap-sheet-control-surface')
-    ).toHaveTextContent('Authority season: 2025-26 only');
+    ).toHaveTextContent('2025-26 only');
 
     fireEvent.click(futureYearExceptionsButton);
     expect(

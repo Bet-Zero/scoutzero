@@ -199,9 +199,10 @@ export const FreeAgentRow = ({
           <span className="min-w-0 truncate rounded-sm border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-white/70">
             {signingContext.rightsLabel}
           </span>
-          <span className="min-w-0 truncate rounded-sm border border-cyan-300/15 bg-cyan-400/[0.06] px-1.5 py-0.5 text-cyan-100/80">
-            {signingContext.laneLabel}
-          </span>
+          {/* The signing-lane chip ("Bird rights path", "Option decision") is
+              internal routing speak — the rights chip and the PO/TO column
+              already say everything a GM needs (BZE-209). Lane data still
+              drives signing logic; it just doesn't print here. */}
           {signingContext.capHoldLabel && (
             <span className="min-w-0 truncate rounded-sm border border-amber-300/15 bg-amber-400/[0.06] px-1.5 py-0.5 text-amber-100/80">
               {signingContext.capHoldLabel}

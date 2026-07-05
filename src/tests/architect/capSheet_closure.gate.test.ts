@@ -302,10 +302,10 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
     expect(capSheetSectionContent).toMatch(
       /useEffect\(\(\)\s*=>\s*\{\s*setSelectedYear\(currentYear\);\s*\},\s*\[currentYear\]\)/
     );
-    expect(capSheetSectionContent).toContain('Current-Season Alignment');
-    expect(capSheetSectionContent).toContain('Selected-Year Totals View');
-    expect(capSheetSectionContent).toContain('Cap table:');
-    expect(capSheetSectionContent).toContain('Adjacent authority:');
+    expect(capSheetSectionContent).toContain('All figures on this page are for the current season');
+    expect(capSheetSectionContent).toContain('always reflect the current season');
+    expect(capSheetSectionContent).toContain('Showing {selectedSeasonLabel}');
+    expect(capSheetSectionContent).toContain('data-team-plan-label');
   });
 
   it('keeps explicit surface-label handoff from section to ExceptionTracker; canonical totals summary surface is owned by the cockpit TeamStatusStrip', () => {
@@ -316,7 +316,7 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
     // cockpit's TeamStatusStrip, not by CapSheet → CapSummaryTiles.
     expect(capSheetContent).not.toMatch(/<CapSummaryTiles\b/);
     const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
-    expect(stripContent).toContain('Team financial posture');
+    expect(stripContent).toContain('Team financial status');
   });
 
   it('CapSummaryTiles explicitly fences hard-cap truth to the current season', () => {

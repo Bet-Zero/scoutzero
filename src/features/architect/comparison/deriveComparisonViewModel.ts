@@ -54,13 +54,12 @@ export interface DeriveComparisonViewModelInput {
 const EXCEPTION_DELTA_DEFERRED = {
   status: 'deferred' as const,
   reason:
-    'Exception delta across multiple mutations is not reliably derivable from the current event stream.',
+    'Exception changes cannot be compared reliably yet after multiple moves.',
 };
 
 const DRAFT_UNAVAILABLE = {
   field: 'draftAssetDelta',
-  reason:
-    'Draft asset and pick delta comparison is deferred. The entitlements sub-collection is not a comparison source in Stage 3.',
+  reason: 'Draft pick changes are not part of this comparison yet.',
 };
 
 /** Sort events chronologically (oldest first) by occurredAt ISO string. */
@@ -160,14 +159,14 @@ export function deriveComparisonViewModel(
       unavailableSummary.push({
         field: 'capTotalDelta',
         reason:
-          'Cap total baseline is not available from the committed event stream for this team.',
+          'A starting cap baseline is not available for this team yet.',
       });
     }
   } else {
     unavailableSummary.push({
       field: 'capTotalDelta',
       reason:
-        'No committed events in this world. Cap baseline is unavailable.',
+        'No saved moves in this season yet, so there is no cap change to show.',
     });
   }
 
@@ -176,7 +175,7 @@ export function deriveComparisonViewModel(
   if (hasMismatch) {
     unavailableSummary.push({
       field: 'seasonComparison',
-      reason: `This world includes ${seasonAdvanceEventCount} season-advance event(s). Cap delta accumulates across multiple seasons.`,
+      reason: `This season has been advanced ${seasonAdvanceEventCount} time(s), so cap changes span multiple seasons.`,
     });
   }
 

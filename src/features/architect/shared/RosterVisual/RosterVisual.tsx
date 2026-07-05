@@ -275,13 +275,6 @@ const countRosterSection = (
   section: LegacyRosterShape[keyof LegacyRosterShape]
 ): number => section.filter(Boolean).length;
 
-const formatCountLabel = (
-  count: number,
-  singular: string,
-  plural = `${singular}s`
-) =>
-  `${count} ${count === 1 ? singular : plural}`;
-
 const SPARSE_ROSTER_CARD_COUNT = 5;
 
 export const RosterVisual = ({
@@ -489,35 +482,20 @@ export const RosterVisual = ({
         Team Roster
       </h3>
 
+      {/* Machine-readable roster verification data for tests/e2e only. The
+          old visible count chip read like an internal audit on a product
+          surface (BZE-209), so this element carries the data attributes but
+          never renders. */}
       <div
-        className={`relative z-10 grid w-full max-w-4xl grid-cols-2 gap-2 rounded-md border border-white/10 bg-black/35 px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-white/80 shadow-sm sm:grid-cols-5 ${
-          isSparseRoster ? 'mb-3' : 'mb-6'
-        }`}
+        hidden
         data-testid="architect-roster-truth-panel"
         data-roster-displayed-count={rosterState.displayedCount}
         data-roster-standard-count={rosterState.standardCount}
         data-roster-two-way-count={rosterState.twoWayCount}
+        data-roster-section-counts={`${rosterState.sectionCounts.starters} starters / ${rosterState.sectionCounts.rotation} rotation / ${rosterState.sectionCounts.bench} bench`}
         data-roster-active-year={rosterState.activeYear ?? ''}
         data-roster-unsupported-categories="fa,expired,waived,options"
-      >
-        <span data-testid="roster-count-displayed">
-          {formatCountLabel(rosterState.displayedCount, 'card')}
-        </span>
-        <span data-testid="roster-count-standard">
-          {formatCountLabel(rosterState.standardCount, 'standard')}
-        </span>
-        <span data-testid="roster-count-two-way">
-          {formatCountLabel(rosterState.twoWayCount, 'two-way')}
-        </span>
-        <span data-testid="roster-count-sections">
-          {rosterState.sectionCounts.starters} starters /{' '}
-          {rosterState.sectionCounts.rotation} rotation /{' '}
-          {rosterState.sectionCounts.bench} bench
-        </span>
-        <span data-testid="roster-unsupported-categories">
-          FA / expired / waived / options not surfaced
-        </span>
-      </div>
+      />
 
       <RosterSection
         players={roster.starters}

@@ -273,7 +273,8 @@ describe('CapSheetFull — home-base enrichments', () => {
       'V1 supported'
     );
     expect(supportedLauncher).not.toHaveTextContent(/Preview/i);
-    expect(supportedLauncher).toHaveTextContent(/V1/i);
+    // BZE-209: supported signing carries no badge — 'V1' was internal release
+    // vocabulary. Support state stays asserted via the data attribute above.
   });
 
   it('extends season columns through the longest contract horizon', () => {
@@ -440,14 +441,16 @@ describe('CapSheetFull — home-base enrichments', () => {
     const supportedOpenSigning = within(supportedOptionsSurface).getByRole(
       'button',
       {
-        name: /open signing for desk option \(v1 supported\)/i,
+        name: /^open signing for desk option$/i,
       }
     );
     expect(supportedOpenSigning).toHaveAttribute(
       'data-action-exposure-classification',
       'V1 supported'
     );
-    expect(supportedOpenSigning).toHaveTextContent(/V1/i);
+    // BZE-209: supported signing carries no visible badge — support state
+    // stays asserted via the data attribute above.
+    expect(supportedOpenSigning).not.toHaveTextContent(/V1/i);
     fireEvent.click(
       within(supportedOptionsSurface).getByRole('button', {
         name: /open signing/i,

@@ -119,23 +119,23 @@ export function deriveArchitectTeamPlanSaveState({
 
   if (isLoadingSaveTruth) {
     status = 'loading';
-    detail = 'Team Plan save state is loading.';
+    detail = 'Checking save status.';
   } else if (!isDurableWorldMode) {
     status = 'local-only';
     detail =
-      'Sandbox/base mode is local what-if state and is not durable Team Plan truth.';
+      'You are in a what-if session — changes here are not saved to a plan.';
   } else if (normalizedSaveError) {
     status = 'save-failed';
     detail = normalizedSaveError;
   } else if (isSaving) {
     status = 'saving';
-    detail = 'World-mode Team Plan mutation is saving.';
+    detail = 'Saving your changes.';
   } else if (hasUncommittedDraft) {
     status = 'uncommitted-draft';
-    detail = 'Local draft work is staged and not committed.';
+    detail = 'You have draft work that is not saved yet.';
   } else {
     status = 'saved';
-    detail = 'Active world Team Plan is saved durable truth.';
+    detail = 'All changes are saved to your plan.';
   }
 
   const isSaved = status === 'saved';
@@ -170,7 +170,7 @@ export function getArchitectTeamPlanUnsafeContextExitWarnings(
   if (includesDraftSource(saveState, 'trade-machine')) {
     warnings.push('A staged trade draft is not applied.');
   } else if (saveState.hasUncommittedDraft) {
-    warnings.push('Local draft work is staged and not committed.');
+    warnings.push('You have draft work that is not saved yet.');
   }
 
   if (saveState.hasSaveError) {
@@ -187,7 +187,7 @@ export function getArchitectTeamPlanUnsafeContextExitWarnings(
 
   if (saveState.isLocalOnly && intent !== 'leave-architect') {
     warnings.push(
-      'Sandbox/base mode is local what-if state and is not durable Team Plan truth.'
+      'You are in a what-if session — changes here are not saved to a plan.'
     );
   }
 

@@ -188,7 +188,7 @@ describe('TEAM_HISTORY_STEP6 fixture safety guardrails', () => {
     );
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Authoritative world events'
+      'Saved season history'
     );
     expect(screen.getByText('WORLD_EVENTS_RETURN')).toBeInTheDocument();
     expect(useWorldTeamEventsMock).toHaveBeenCalledTimes(1);
@@ -269,7 +269,7 @@ describe('TEAM_HISTORY_STEP6 fixture safety guardrails', () => {
     rerender(<TeamHistoryTab teamCapSheet={explicitLocalTeam} worldId={null} />);
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Explicit local timeline'
+      'This session'
     );
     expect(
       screen.queryByTestId('team-history-fixtures-active-note')
@@ -286,7 +286,7 @@ describe('TEAM_HISTORY_STEP6 fixture safety guardrails', () => {
     rerender(<TeamHistoryTab teamCapSheet={buildEmptyTeam()} worldId="world_lal" />);
 
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Authoritative world events'
+      'Saved season history'
     );
     expect(
       screen.queryByTestId('team-history-fixtures-active-note')

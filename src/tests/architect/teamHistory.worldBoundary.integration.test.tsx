@@ -85,10 +85,10 @@ describe('Team History world boundary integration', () => {
 
     expect(screen.getByTestId('team-history-world-banner')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
-      'Authoritative world events'
+      'Saved season history'
     );
     expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
-      'World events own the timeline'
+      'Everything below happened in this saved season'
     );
     expect(screen.getByText('WORLD_A_EVENT')).toBeInTheDocument();
 
