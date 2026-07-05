@@ -54,11 +54,78 @@ const expectAndreColeCapHold = async (worldId: string) => {
   expect(Number(capHold?.amount || 0)).toBeGreaterThan(0);
 };
 
+const DRAFT_POSITIONS_PROOF_MAP = {
+  BOS: 5,
+  LAL: 10,
+  MIA: 15,
+};
+
 test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
   test.beforeEach(async ({ page }) => {
     await enableArchitectReviewFlags(page);
     await page.goto(MIA_SEASON_ADVANCE_URL, { waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
+  });
+
+  test('saves draft positions in the Offseason editor and reloads committed world state', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(120000);
+
+    const worldId = await prepareSeasonAdvanceReviewWorld(page);
+
+    await openDashboardTab(page, 'Offseason');
+    await expect(page.getByText(/^Draft Positions Input$/i)).toBeVisible();
+    await expect(
+      page.getByText(/World Season:\s*2026-27/i).last()
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Next-used Draft Year:\s*2027/i).last()
+    ).toBeVisible();
+
+    const editor = page.locator('textarea').first();
+    await expect(editor).toBeVisible();
+    await editor.fill(JSON.stringify(DRAFT_POSITIONS_PROOF_MAP, null, 2));
+
+    await page.getByRole('button', { name: /^Validate$/i }).click();
+    await expect(
+      page.getByText(/Editor JSON is valid but not yet saved/i)
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: /^Save$/i }).click();
+    await expect(
+      page.getByText(/Saved draft positions for 2027/i)
+    ).toBeVisible({ timeout: 20000 });
+
+    await expect
+      .poll(
+        async () => {
+          const metadata = await getWorldMetadataDocument(worldId);
+          const savedDraftPositions = metadata?.draftPositionsByYear as
+            | Record<string, { positionsMap?: Record<string, number> }>
+            | undefined;
+          return savedDraftPositions?.['2027']?.positionsMap || null;
+        },
+        {
+          timeout: 20000,
+          message: 'draft positions should persist under world metadata',
+        }
+      )
+      .toMatchObject(DRAFT_POSITIONS_PROOF_MAP);
+
+    await page.goto(MIA_SEASON_ADVANCE_URL, { waitUntil: 'domcontentloaded' });
+    await waitForReviewDashboard(page);
+    await openDashboardTab(page, 'Offseason');
+    await expect(page.getByText(/Last saved:/i)).toBeVisible({
+      timeout: 20000,
+    });
+    await expect(page.locator('textarea').first()).toHaveValue(/"MIA": 15/);
+
+    testInfo.annotations.push({
+      type: 'audit-note',
+      description:
+        'BZE-193 proof: saved 2027 draft positions through the existing Offseason Draft Positions Input, verified draftPositionsByYear.2027.positionsMap in saved-world metadata, reloaded the world, and confirmed the editor rehydrated from committed world state.',
+    });
   });
 
   test('MIA advances season, preserves Andre Cole decline evidence, and reloads', async ({
