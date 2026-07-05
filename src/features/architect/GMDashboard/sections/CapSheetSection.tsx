@@ -150,12 +150,12 @@ const CapSheetSection = ({
     : 'text-amber-300/80';
   // (chip row removed in BZE-209 — season + boundary now read as one sentence)
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col gap-3">
       <section
         aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.shellYearTruth}
         data-testid="cap-sheet-shell-year-truth-panel"
         data-team-plan-label={teamPlanLabel}
-        className={`mb-4 rounded-lg border px-4 py-3 ${shellTruthToneClasses}`}
+        className={`shrink-0 rounded-lg border px-4 py-3 ${shellTruthToneClasses}`}
       >
         {/* SECTION HANDOFF / SHELL TRUTH SURFACE: The dashboard seam owns
             selectedYear and top-level year signaling. Copy stays in plain GM
@@ -175,7 +175,10 @@ const CapSheetSection = ({
         </div>
       </section>
 
-      <section aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.primary}>
+      <section
+        aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.primary}
+        className="min-h-0 flex-1"
+      >
         {/* PRIMARY FEATURE SURFACE: CapSheet owns selected-year cap-table
             composition, canonical totals consumers, and supporting detail. */}
         <CapSheet
@@ -192,7 +195,10 @@ const CapSheetSection = ({
         />
       </section>
 
-      <section aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.adjacent}>
+      <section
+        aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.adjacent}
+        className="shrink-0"
+      >
         {/* ADJACENT CURRENT-SEASON AUTHORITY SURFACE: Keep exception/TPE/
             hard-cap display separate from the selected-year cap-table owner. */}
         <ExceptionTracker
@@ -280,7 +286,7 @@ const CapSheetSection = ({
           </div>
         </aside>
       )}
-    </>
+    </div>
   );
 };
 

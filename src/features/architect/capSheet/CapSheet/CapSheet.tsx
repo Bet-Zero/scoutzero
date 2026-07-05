@@ -11,7 +11,13 @@
  *  - Plan: plans/player-rules-architect/plan.md
  *  - Latest Chunk: plans/player-rules-architect/chunks/chunk_01.md
  */
-import React, { useEffect, useState } from 'react';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { capConfidenceLabel } from '../CapConfidenceBadge';
 import type {
   PlayerRulesProfile,
@@ -181,6 +187,91 @@ const resolveTeamPlanLabel = (teamCapSheet: TeamCapSheetLike) =>
   teamCapSheet.abbreviation ||
   (teamCapSheet.id != null ? String(teamCapSheet.id) : 'Active team');
 
+const formatCapSheetMoney = (amount: NumericLike) =>
+  `$${Number(amount ?? 0).toLocaleString()}`;
+
+const getPlayerDisplayName = (player: CapSheetPlayerLike) =>
+  player.displayName || player.bio?.displayName || player.name || 'Unknown';
+
+const getPlayerInitials = (name: string): string =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? '')
+    .join('');
+
+const resolveHeadshotSlug = (player: CapSheetPlayerLike): string => {
+  const anyPlayer = player as {
+    id?: unknown;
+    player_id?: unknown;
+    playerId?: unknown;
+    name?: unknown;
+    bio?: { playerId?: unknown };
+  };
+  const raw =
+    anyPlayer.bio?.playerId ??
+    anyPlayer.playerId ??
+    anyPlayer.id ??
+    anyPlayer.player_id ??
+    anyPlayer.name ??
+    '';
+  return String(raw)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+};
+
+const PlayerAvatar = ({
+  player,
+  name,
+}: {
+  player: CapSheetPlayerLike;
+  name: string;
+}) => {
+  const [failed, setFailed] = useState(false);
+  const slug = resolveHeadshotSlug(player);
+
+  if (failed || !slug) {
+    return (
+      <span
+        aria-hidden
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-extrabold tracking-wide text-[color:var(--team-on-primary,#fff)]"
+        style={{
+          background:
+            'linear-gradient(135deg, var(--team-primary,#4F46E5), #0b0e14)',
+          boxShadow:
+            'inset 0 0 0 1.5px color-mix(in srgb, var(--team-secondary,#FDB927) 60%, transparent), 0 1px 4px rgba(0,0,0,0.5)',
+        }}
+      >
+        {getPlayerInitials(name) || '-'}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="flex h-6 w-6 shrink-0 overflow-hidden rounded-full"
+      style={{
+        boxShadow:
+          'inset 0 0 0 1.5px color-mix(in srgb, var(--team-secondary,#FDB927) 70%, transparent), 0 1px 4px rgba(0,0,0,0.5)',
+      }}
+    >
+      <img
+        src={`/assets/headshots/${slug}.png`}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        className="h-full w-full object-cover object-top"
+        style={{ background: '#0b0e14' }}
+        onError={() => setFailed(true)}
+      />
+    </span>
+  );
+};
+
 export const CapSheet = ({
   teamCapSheet,
   currentYear,
@@ -202,6 +293,7 @@ export const CapSheet = ({
     !!manualCapSheetMutationAuthority;
   const openPlayerContractModal =
     onOpenPlayerContractModal ?? onSelectPlayer ?? null;
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
   const hasControlledSelectedYear = Number.isFinite(controlledSelectedYear);
   const selectedYear = hasControlledSelectedYear
     ? Number(controlledSelectedYear)
@@ -209,6 +301,51 @@ export const CapSheet = ({
   const isViewingCurrentYear = selectedYear === currentYear;
   const canManageExceptions =
     hasManualCapSheetMutationAuthority && isViewingCurrentYear;
+  const focusedCapSheetPlayerIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [...highlightPlayerIds, highlightPlayerId].filter(
+            (playerId): playerId is string => Boolean(playerId)
+          )
+        )
+      ),
+    [highlightPlayerId, highlightPlayerIds]
+  );
+
+  useLayoutEffect(() => {
+    const el = tableScrollRef.current;
+    if (!el) return;
+
+    const DEFAULT_ROW_H = 38;
+    const MIN_ROW_H = 30;
+
+    const fitRows = () => {
+      el.style.setProperty('--cap-sheet-row-h', `${DEFAULT_ROW_H}px`);
+      const rows = el.querySelectorAll('[data-cap-sheet-fit-row]');
+      const rowCount = rows.length;
+      if (rowCount === 0 || el.scrollHeight <= el.clientHeight) return;
+
+      const overflowPerRow = Math.ceil(
+        (el.scrollHeight - el.clientHeight) / rowCount
+      );
+      el.style.setProperty(
+        '--cap-sheet-row-h',
+        `${Math.max(MIN_ROW_H, DEFAULT_ROW_H - overflowPerRow)}px`
+      );
+    };
+
+    fitRows();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(fitRows);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [
+    selectedYear,
+    showCapHolds,
+    teamCapSheet?.players?.length,
+    teamCapSheet?.capHolds?.length,
+  ]);
 
   useEffect(() => {
     if (!hasControlledSelectedYear) {
@@ -397,39 +534,7 @@ export const CapSheet = ({
   );
 
   return (
-    <div className="font-sans text-cockpit-text-primary">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="text-sm font-semibold text-cockpit-text-primary">
-            {formatYearLabel(selectedYear)}
-          </span>
-          {confidenceLabel ? (
-            <span
-              className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${confidenceLabel.className}`}
-            >
-              {confidenceLabel.text}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex rounded-md border border-cockpit-edge bg-cockpit-inlay p-0.5">
-          {allYears.map((year) => (
-            <button
-              key={year}
-              type="button"
-              onClick={() => handleSelectYear(year)}
-              className={`rounded px-3 py-1 text-[10px] font-medium transition-colors ${
-                year === selectedYear
-                  ? 'bg-cockpit-raised text-cockpit-text-primary shadow-sm'
-                  : 'text-cockpit-text-muted hover:bg-cockpit-slab hover:text-cockpit-text-primary'
-              }`}
-            >
-              {formatYearLabel(year)}
-            </button>
-          ))}
-        </div>
-      </div>
-
+    <div className="flex h-full min-h-0 w-full flex-col font-sans text-cockpit-text-primary">
       {/*
         Phase 2A cockpit migration: the 5-tile canonical totals summary
         (Total Cap, Cap Space, Luxury Tax Space, 1st/2nd Apron Space) moved
@@ -442,299 +547,324 @@ export const CapSheet = ({
 
       <section
         aria-label={CAP_SHEET_SURFACE_LABELS.rosterDetail}
-        className="mt-4 overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-inlay shadow-lg shadow-black/40"
+        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/10 shadow-cockpit-slab"
+        style={{
+          background:
+            'radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--team-primary,#4F46E5) 22%, #0B0E14), #07090D 70%)',
+          boxShadow:
+            'inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px color-mix(in srgb, var(--team-primary,#4F46E5) 40%, transparent), 0 18px 50px -20px rgba(0,0,0,0.8)',
+        }}
       >
         {/* SUPPORTING DETAIL SURFACE: Player rows explain year-by-year contract detail.
             They may borrow canonical thresholds for display, but they do not own totals truth. */}
-        <div className="px-4 py-3 border-b border-white/5 bg-white/[0.03] space-y-2">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.25em] text-white/45">
-                Salary Detail
-                <span className="sr-only">Selected-Year Supporting Detail</span>
+        <div
+          className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-3 py-2"
+          style={{
+            background:
+              'linear-gradient(90deg, color-mix(in srgb, var(--team-primary,#4F46E5) 30%, #0B0E14), #0B0E14 60%)',
+          }}
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              aria-hidden
+              className="h-5 w-1 rounded-full"
+              style={{ background: 'var(--team-secondary,#FDB927)' }}
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[13px] font-extrabold uppercase italic tracking-wide text-white">
+                  Salary Detail
+                  <span className="sr-only">
+                    Selected-Year Supporting Detail
+                  </span>
+                </span>
+                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold text-white/70">
+                  {selectedSeasonLabel}
+                </span>
+                {confidenceLabel ? (
+                  <span
+                    className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${confidenceLabel.className}`}
+                  >
+                    {confidenceLabel.text}
+                  </span>
+                ) : null}
               </div>
-              <p className="mt-2 text-xs leading-relaxed text-white/70">
-                Contract-by-contract detail for {teamPlanLabel} in{' '}
-                {selectedSeasonLabel}, including cap holds and the breakdown
-                below.
+              <p className="mt-1 truncate text-[11px] text-cockpit-text-secondary">
+                {teamPlanLabel} contract detail. Total Cap Hit also includes
+                dead money, cap holds, and incomplete roster charges.
               </p>
             </div>
           </div>
-          <p className="text-[10px] text-white/40 leading-relaxed">
-            Player rows show player salaries only. Total Cap Hit also includes
-            dead money, cap holds, and incomplete roster charges when present.
-          </p>
-        </div>
 
-        {/* Roster detail table header */}
-        <div className="grid grid-cols-[2fr,0.8fr,0.6fr,1.2fr,0.8fr,1.2fr,1.5fr] gap-2 px-4 py-2 bg-white/5 border-b border-white/5 text-[10px] uppercase tracking-wider font-semibold text-white/40">
-          <div>Player</div>
-          <div>Pos</div>
-          <div>Age</div>
-          <div className="text-right">Cap Hit</div>
-          <div className="text-right">Cap %</div>
-          <div className="text-right">Base Salary</div>
-          <div>Notes</div>
-        </div>
-
-        {/* Supporting detail rows */}
-        <div className="divide-y divide-white/5">
-          {filteredPlayers.map((player, idx) => {
-            const slice = getContractYearSlice(player, selectedYear);
-            const salary = slice?.salary ?? slice?.capHit ?? 0;
-            const capHit = getPlayerCapHitForYear(player, selectedYear);
-            const isExtensionSeason = slice?.isExtensionSeason;
-            const rulesProfile = getProfile(player);
-
-            const age = player.age ?? '-';
-            const position = player.position ?? '-';
-            // Use canonicalTotals.salaryCap (SSOT) for cap % to match totals display
-            const capPct = getCapPercentage(capHit, canonicalTotals.salaryCap || 1);
-            const capPctDisplay = capPct ? `${capPct}%` : '—';
-            const isHighlighted = [
-              ...(highlightPlayerId ? [highlightPlayerId] : []),
-              ...highlightPlayerIds,
-            ].some((focusId) => playerMatchesFocus(player, focusId));
-            const rowHighlightClass = isHighlighted
-              ? 'ring-1 ring-inset ring-green-400/40 bg-green-500/[0.04]'
-              : 'hover:bg-white/[0.02]';
-
-            return (
-              <div
-                key={`${player.name}-${idx}`}
-                className={`grid grid-cols-[2fr,0.8fr,0.6fr,1.2fr,0.8fr,1.2fr,1.5fr] gap-2 px-4 py-2 items-center transition-colors group ${rowHighlightClass}`}
-                data-testid={
-                  isHighlighted ? 'cap-sheet-player-row-highlighted' : undefined
-                }
+          <div className="flex max-w-full overflow-x-auto rounded-md border border-cockpit-edge bg-cockpit-inlay p-0.5">
+            {allYears.map((year) => (
+              <button
+                key={year}
+                type="button"
+                onClick={() => handleSelectYear(year)}
+                className={`shrink-0 rounded px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                  year === selectedYear
+                    ? 'bg-cockpit-raised text-cockpit-text-primary shadow-sm'
+                    : 'text-cockpit-text-muted hover:bg-cockpit-slab hover:text-cockpit-text-primary'
+                }`}
               >
-                <div className="font-medium text-xs text-white/90 flex items-center gap-1 min-w-0">
-                  <button
-                    data-testid="cap-sheet-player-row-button"
-                    onClick={() => openPlayerContractModal?.(player)}
-                    className="hover:text-blue-400 transition-colors text-left truncate min-w-0 flex-1"
+                {formatYearLabel(year)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div ref={tableScrollRef} className="min-h-0 flex-1 overflow-auto">
+          <div className="min-w-[920px]">
+            {/* Roster detail table header */}
+            <div className="sticky top-0 z-20 grid grid-cols-[2.25fr,0.55fr,0.45fr,1fr,0.6fr,1fr,1.45fr] gap-2 border-b border-cockpit-edge bg-cockpit-bar px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+              <div>Player</div>
+              <div>Pos</div>
+              <div>Age</div>
+              <div className="text-right">Cap Hit</div>
+              <div className="text-right">Cap %</div>
+              <div className="text-right">Base Salary</div>
+              <div className="text-right">Notes</div>
+            </div>
+
+            {/* Supporting detail rows */}
+            <div className="divide-y divide-white/5">
+              {filteredPlayers.map((player, idx) => {
+                const slice = getContractYearSlice(player, selectedYear);
+                const salary = slice?.salary ?? slice?.capHit ?? 0;
+                const capHit = getPlayerCapHitForYear(player, selectedYear);
+                const isExtensionSeason = slice?.isExtensionSeason;
+                const rulesProfile = getProfile(player);
+
+                const age = player.age ?? '-';
+                const position = player.position ?? '-';
+                // Use canonicalTotals.salaryCap (SSOT) for cap % to match totals display
+                const capPct = getCapPercentage(
+                  capHit,
+                  canonicalTotals.salaryCap || 1
+                );
+                const capPctDisplay = capPct ? `${capPct}%` : '—';
+                const isHighlighted = focusedCapSheetPlayerIds.some((focusId) =>
+                  playerMatchesFocus(player, focusId)
+                );
+                const rowHighlightClass = isHighlighted
+                  ? 'ring-1 ring-inset ring-[color:var(--team-secondary,#FDB927)]/50 bg-[color:var(--team-primary,#4F46E5)]/[0.08]'
+                  : 'hover:bg-[color:var(--team-primary,#4F46E5)]/[0.06]';
+                const displayName = getPlayerDisplayName(player);
+
+                return (
+                  <div
+                    key={`${player.name}-${idx}`}
+                    className={`group grid min-h-[var(--cap-sheet-row-h,38px)] grid-cols-[2.25fr,0.55fr,0.45fr,1fr,0.6fr,1fr,1.45fr] items-center gap-2 px-4 py-1.5 transition-colors ${rowHighlightClass}`}
+                    data-cap-sheet-fit-row
+                    data-testid={
+                      isHighlighted
+                        ? 'cap-sheet-player-row-highlighted'
+                        : undefined
+                    }
                   >
-                    {player.displayName ||
-                      player.bio?.displayName ||
-                      player.name}
-                  </button>
-                  {(() => {
-                    if (!onPlayerAction) return null;
-                    const menuContext = buildPlayerActionContext({
-                      player,
-                      sourceRoom: 'cap',
-                      targetYear: selectedYear,
-                    });
-                    if (!menuContext) return null;
-                    const isPinned = pinnedPlayerIds.some((focusId) =>
-                      playerMatchesFocus(player, focusId)
-                    );
-                    return (
-                      <PlayerActionMenu
-                        context={menuContext}
-                        visibleActions={[]}
-                        overflowActions={[
-                          'pin',
-                          'trade',
-                          'view-on-roster',
-                          'view-in-full-cap',
-                          'find-in-history',
-                          'compare-impact',
-                          'guide-next-move',
-                        ]}
-                        isPinned={isPinned}
-                        menuAlign="left"
-                        testIdPrefix="cap-sheet-player-row"
-                        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
-                        onAction={onPlayerAction}
-                      />
-                    );
-                  })()}
-                </div>
-                <div className="text-[10px] text-white/50">
-                  {POSITION_MAP[position as keyof typeof POSITION_MAP] ||
-                    position ||
-                    '—'}
-                </div>
-                <div className="text-[10px] text-white/50">{age}</div>
-                <div className="text-xs font-medium text-right tabular-nums tracking-tight">
-                  <span
-                    className={`inline-flex items-center justify-end tabular-nums ${
-                      isExtensionSeason
-                        ? 'text-cyan-100 bg-cyan-500/10 border border-cyan-500/30 rounded px-2 py-1'
-                        : 'text-white/90'
-                    }`}
-                  >
-                    ${Number(capHit).toLocaleString()}
-                  </span>
-                </div>
-                <div className="text-[10px] text-white/50 text-right tabular-nums">
-                  {capPctDisplay}
-                </div>
-                <div className="text-[10px] text-right tabular-nums">
-                  <span
-                    className={`inline-flex items-center justify-end ${
-                      isExtensionSeason ? 'text-cyan-100' : 'text-white/50'
-                    }`}
-                  >
-                    ${Number(salary).toLocaleString()}
-                  </span>
-                </div>
-                <div className="text-[10px]">
-                  {renderNotes(player, selectedYear, rulesProfile)}
-                </div>
-              </div>
-            );
-          })}
+                    <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-white/90">
+                      <PlayerAvatar player={player} name={displayName} />
+                      <button
+                        data-testid="cap-sheet-player-row-button"
+                        onClick={() => openPlayerContractModal?.(player)}
+                        className="min-w-0 flex-1 truncate text-left text-[13px] font-bold tracking-tight text-white transition-colors hover:text-[color:var(--team-secondary,#FDB927)]"
+                        title={displayName}
+                      >
+                        {displayName}
+                      </button>
+                      {(() => {
+                        if (!onPlayerAction) return null;
+                        const menuContext = buildPlayerActionContext({
+                          player,
+                          sourceRoom: 'cap',
+                          targetYear: selectedYear,
+                        });
+                        if (!menuContext) return null;
+                        const isPinned = pinnedPlayerIds.some((focusId) =>
+                          playerMatchesFocus(player, focusId)
+                        );
+                        return (
+                          <PlayerActionMenu
+                            context={menuContext}
+                            visibleActions={[]}
+                            overflowActions={[
+                              'pin',
+                              'trade',
+                              'view-on-roster',
+                              'view-in-full-cap',
+                              'find-in-history',
+                              'compare-impact',
+                              'guide-next-move',
+                            ]}
+                            isPinned={isPinned}
+                            menuAlign="left"
+                            testIdPrefix="cap-sheet-player-row"
+                            className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                            onAction={onPlayerAction}
+                          />
+                        );
+                      })()}
+                    </div>
+                    <div className="text-[10px] font-semibold text-white/55">
+                      {POSITION_MAP[position as keyof typeof POSITION_MAP] ||
+                        position ||
+                        '—'}
+                    </div>
+                    <div className="text-[10px] text-white/50">{age}</div>
+                    <div className="text-right text-xs font-medium tabular-nums tracking-tight">
+                      <span
+                        className={`inline-flex items-center justify-end rounded px-2 py-1 tabular-nums ${
+                          isExtensionSeason
+                            ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-100'
+                            : 'bg-white/[0.035] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+                        }`}
+                      >
+                        {formatCapSheetMoney(capHit)}
+                      </span>
+                    </div>
+                    <div className="text-right text-[10px] tabular-nums text-white/50">
+                      {capPctDisplay}
+                    </div>
+                    <div className="text-right text-[10px] tabular-nums">
+                      <span
+                        className={`inline-flex items-center justify-end ${
+                          isExtensionSeason ? 'text-cyan-100' : 'text-white/50'
+                        }`}
+                      >
+                        {formatCapSheetMoney(salary)}
+                      </span>
+                    </div>
+                    <div className="text-[10px]">
+                      {renderNotes(player, selectedYear, rulesProfile)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Supporting detail, control rows, and canonical totals breakdown stay
             in one frame visually, but remain separated by ownership below. */}
-        <div className="bg-white/[0.02] border-t border-white/5">
+        <div className="shrink-0 border-t border-white/10 bg-white/[0.02]">
           {/* CANONICAL TOTALS CONSUMER SURFACE: These breakdown rows and the
               footer consume canonicalTotals directly and define the totals view. */}
           <section
             aria-label={CAP_SHEET_SURFACE_LABELS.canonicalTotalsBreakdown}
-            className="border-b border-white/5"
+            className="border-b border-white/10"
           >
-            <div className="px-4 py-3 border-b border-white/5 bg-white/[0.03] space-y-2">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                    Team Plan Total Breakdown
-                    <span className="sr-only">Canonical Totals Consumer</span>
-                  </p>
-                  <p className="mt-1 text-xs font-semibold text-white/80">
-                    Total Cap Hit Breakdown
-                  </p>
-                </div>
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/60">
+            <div className="grid gap-2 px-3 py-2 md:grid-cols-[minmax(190px,1.15fr)_repeat(4,minmax(112px,1fr))]">
+              <div className="rounded-md border border-white/10 bg-white/[0.05] px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                  Total Cap Hit
+                  <span className="sr-only">Canonical Totals Consumer</span>
+                </p>
+                <p className="mt-0.5 text-[10px] text-white/35">
                   {selectedSeasonLabel}
+                </p>
+                <span className="mt-2 block text-xl font-extrabold tracking-tight text-white tabular-nums">
+                  {formatCapSheetMoney(canonicalTotals.totalCapAllocations)}
                 </span>
               </div>
-              <p className="text-[10px] text-white/40 leading-relaxed">
-                This breakdown matches the summary tiles above.
-              </p>
-              <p className="text-[10px] text-white/40 leading-relaxed">
-                Player salaries from the table above plus non-player cap
-                allocations roll into the total below.
-              </p>
-            </div>
 
-            <div className="border-b border-white/5 bg-white/[0.01] px-4 py-2 space-y-1">
-              <div className="flex items-center justify-between text-[10px] text-white/50">
-                <span>Player Salaries</span>
-                <span className="tabular-nums">
-                  ${canonicalTotals.playersTotal.toLocaleString()}
-                </span>
+              <div className="rounded-md border border-white/10 bg-black/15 px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                  Player Salaries
+                </p>
+                <p className="mt-1 text-sm font-bold text-white/80 tabular-nums">
+                  {formatCapSheetMoney(canonicalTotals.playersTotal)}
+                </p>
               </div>
-              {canonicalTotals.deadMoneyTotal > 0 && (
-                <div className="flex items-center justify-between text-[10px] text-white/50">
-                  <span>Dead Money</span>
-                  <span className="tabular-nums">
-                    ${canonicalTotals.deadMoneyTotal.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {canonicalTotals.capHoldsTotal > 0 && (
-                <div className="flex items-center justify-between text-[10px] text-white/50">
-                  <span>Cap Holds</span>
-                  <span className="tabular-nums">
-                    ${canonicalTotals.capHoldsTotal.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {canonicalTotals.incompleteChargesTotal > 0 && (
-                <div
-                  data-testid="incomplete-roster-charge-row"
-                  className="flex items-center justify-between text-[10px] text-amber-400/80"
-                >
+
+              <div className="rounded-md border border-white/10 bg-black/15 px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                  Dead Money
+                </p>
+                <p className="mt-1 text-sm font-bold text-white/80 tabular-nums">
+                  {formatCapSheetMoney(canonicalTotals.deadMoneyTotal)}
+                </p>
+              </div>
+
+              <div className="rounded-md border border-white/10 bg-black/15 px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                  Cap Holds
+                </p>
+                <p className="mt-1 text-sm font-bold text-white/80 tabular-nums">
+                  {formatCapSheetMoney(canonicalTotals.capHoldsTotal)}
+                </p>
+              </div>
+
+              <div
+                data-testid={
+                  canonicalTotals.incompleteChargesTotal > 0
+                    ? 'incomplete-roster-charge-row'
+                    : undefined
+                }
+                className={`rounded-md border px-3 py-2 ${
+                  canonicalTotals.incompleteChargesTotal > 0
+                    ? 'border-amber-400/25 bg-amber-500/[0.06] text-amber-200'
+                    : 'border-white/10 bg-black/15 text-white/60'
+                }`}
+              >
+                <p className="text-[9px] font-semibold uppercase tracking-wider">
+                  Incomplete Roster Charge
+                </p>
+                <p className="mt-1 flex items-baseline justify-between gap-2 text-sm font-bold tabular-nums">
                   <span>
-                    Incomplete Roster Charge
-                    {canonicalTotals._meta?.incompleteRosterCharge?.missingSlots && (
-                      <span className="text-white/40 ml-1">
-                        ({canonicalTotals._meta.incompleteRosterCharge.missingSlots}{' '}
-                        open{' '}
-                        {canonicalTotals._meta.incompleteRosterCharge.missingSlots ===
-                        1
-                          ? 'slot'
-                          : 'slots'}
-                        )
-                      </span>
+                    {formatCapSheetMoney(
+                      canonicalTotals.incompleteChargesTotal
                     )}
                   </span>
-                  <span className="tabular-nums">
-                    ${canonicalTotals.incompleteChargesTotal.toLocaleString()}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="px-4 py-3 flex items-center justify-between bg-white/[0.02]">
-              <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
-                Total Cap Hit
-              </span>
-              <span className="text-lg font-bold text-white tabular-nums tracking-tight">
-                ${canonicalTotals.totalCapAllocations.toLocaleString()}
-              </span>
+                  {canonicalTotals._meta?.incompleteRosterCharge
+                    ?.missingSlots ? (
+                    <span className="text-[10px] font-medium text-white/40">
+                      {
+                        canonicalTotals._meta.incompleteRosterCharge
+                          .missingSlots
+                      }{' '}
+                      open{' '}
+                      {canonicalTotals._meta.incompleteRosterCharge
+                        .missingSlots === 1
+                        ? 'slot'
+                        : 'slots'}
+                    </span>
+                  ) : null}
+                </p>
+              </div>
             </div>
           </section>
 
           {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the
               canonical capHoldsTotal without becoming a totals owner. */}
-          {displayedCapHolds.length > 0 && (
+          {displayedCapHolds.length > 0 && showCapHolds && (
             <section
               aria-label={CAP_SHEET_SURFACE_LABELS.capHoldsDetail}
-              className="border-b border-white/5"
+              className="max-h-36 overflow-auto border-b border-white/10 bg-black/25"
             >
-              <button
-                onClick={() => setShowCapHolds(!showCapHolds)}
-                className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
-              >
-                <div className="flex flex-col items-start gap-1 text-left">
-                  <div className="flex items-center gap-2">
-                    <span>
-                      {showCapHolds ? 'Hide' : 'Show'} Cap Hold Details
-                    </span>
-                    <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">
-                      {displayedCapHolds.length}
-                    </span>
+              <div className="sticky top-0 z-10 grid grid-cols-[2fr,1.2fr,3fr] gap-2 border-b border-white/10 bg-cockpit-bar px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                <div>Player</div>
+                <div>Amount</div>
+                <div>Reason</div>
+              </div>
+              <div className="divide-y divide-white/5">
+                {displayedCapHolds.map((h) => (
+                  <div
+                    key={`${h.playerId}-${h.season}-${h.type}`}
+                    className="grid grid-cols-[2fr,1.2fr,3fr] items-center gap-2 px-4 py-2 hover:bg-white/[0.02]"
+                  >
+                    <div className="truncate text-xs text-white/70">
+                      {h.playerName || h.playerId}
+                    </div>
+                    <div className="text-xs text-white/55 tabular-nums">
+                      {formatCapSheetMoney(h.amount)}
+                    </div>
+                    <div className="truncate text-[10px] text-white/35">
+                      {h.reason || h.type || ''}
+                    </div>
                   </div>
-                  <span className="text-[9px] text-white/30">
-                    Active cap holds are included in Total Cap Hit.
-                  </span>
-                </div>
-                <span className="text-xs opacity-50">
-                  {showCapHolds ? '−' : '+'}
-                </span>
-              </button>
-
-              {showCapHolds && (
-                <div className="bg-black/20 border-t border-white/5">
-                  <div className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider font-semibold text-white/30">
-                    <div>Player</div>
-                    <div>Amount</div>
-                    <div>Reason</div>
-                  </div>
-                  <div className="divide-y divide-white/5">
-                    {displayedCapHolds.map((h) => (
-                      <div
-                        key={`${h.playerId}-${h.season}-${h.type}`}
-                        className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
-                      >
-                        <div className="text-xs text-white/60">
-                          {h.playerName || h.playerId}
-                        </div>
-                        <div className="text-xs text-white/40 tabular-nums">
-                          ${Number(h.amount || 0).toLocaleString()}
-                        </div>
-                        <div className="text-[10px] text-white/30">
-                          {h.reason || h.type || ''}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
             </section>
           )}
 
@@ -742,82 +872,56 @@ export const CapSheet = ({
               own or redefine current-year totals display. */}
           <div
             data-testid="cap-sheet-control-surface"
-            className="bg-white/[0.015] px-4 py-3 grid gap-4 lg:grid-cols-2"
+            className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
           >
-            <div className="rounded-md border border-white/5 bg-black/10 px-3 py-3 space-y-3">
-              <div className="space-y-1">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-white/45">
-                  Dead Money Input
-                  <span className="sr-only">
-                    Selected-Year Mutation Entry Point
-                  </span>
-                </div>
-                <p className="text-xs leading-relaxed text-white/65">
-                  Dead money changes are a bounded selected-year input control
-                  for the cap table you are currently viewing.
-                </p>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/60">
-                  Input season: {selectedSeasonLabel}
-                </span>
+            <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px] text-cockpit-text-secondary">
+              {displayedCapHolds.length > 0 ? (
                 <button
-                  data-testid="cap-sheet-manage-dead-money-button"
                   type="button"
-                  disabled={!hasManualCapSheetMutationAuthority}
-                  onClick={() => {
-                    if (!hasManualCapSheetMutationAuthority) return;
-                    setShowDeadMoneyModal(true);
-                  }}
-                  className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
-                    hasManualCapSheetMutationAuthority
-                      ? 'text-white/40 hover:text-white'
-                      : 'text-white/20 cursor-not-allowed'
-                  }`}
+                  aria-expanded={showCapHolds}
+                  onClick={() => setShowCapHolds(!showCapHolds)}
+                  className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors hover:bg-white/10 hover:text-white"
                 >
-                  <span className="opacity-50">Configure</span> Manage Dead
-                  Money
+                  {showCapHolds ? 'Hide' : 'Show'} Cap Holds
+                  <span className="ml-1 rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-secondary">
+                    {displayedCapHolds.length}
+                  </span>
                 </button>
-              </div>
+              ) : null}
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-medium text-white/60">
+                Dead money season: {selectedSeasonLabel}
+              </span>
+              <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 font-medium text-amber-100/90">
+                Exceptions: {currentSeasonLabel}
+              </span>
+              {!isViewingCurrentYear &&
+                hasManualCapSheetMutationAuthority && (
+                  <span
+                    data-testid="cap-sheet-future-year-exception-edit-boundary"
+                    className="text-amber-300/80"
+                  >
+                    Exception editing is only available for the current season.
+                  </span>
+                )}
             </div>
 
-            <div className="rounded-md border border-amber-400/15 bg-amber-500/[0.04] px-3 py-3 space-y-3">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
-                    Current-Season Tools
-                    <span className="sr-only">
-                      Current-Season-Only Adjacent Authority
-                    </span>
-                  </div>
-                  <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-100/90">
-                    {isViewingCurrentYear
-                      ? currentSeasonLabel
-                      : `${currentSeasonLabel} only`}
-                  </span>
-                </div>
-                <p className="text-xs leading-relaxed text-white/65">
-                  Exception edits always apply to {currentSeasonLabel}.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-h-[1rem]">
-                  {!isViewingCurrentYear &&
-                    hasManualCapSheetMutationAuthority && (
-                      <span
-                        data-testid="cap-sheet-future-year-exception-edit-boundary"
-                        className="text-[10px] text-amber-300/80"
-                      >
-                        Exception editing is only available for the current
-                        season. Viewing {selectedSeasonLabel} does not create
-                        future-year exception authority.
-                      </span>
-                    )}
-                </div>
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/60">
-                  Selected-year view: {selectedSeasonLabel}
-                </span>
-              </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                data-testid="cap-sheet-manage-dead-money-button"
+                type="button"
+                disabled={!hasManualCapSheetMutationAuthority}
+                onClick={() => {
+                  if (!hasManualCapSheetMutationAuthority) return;
+                  setShowDeadMoneyModal(true);
+                }}
+                className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all ${
+                  hasManualCapSheetMutationAuthority
+                    ? 'border-white/15 bg-white/5 text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-white/10 hover:text-white'
+                    : 'cursor-not-allowed border-white/5 text-white/20'
+                }`}
+              >
+                Manage Dead Money
+              </button>
               <button
                 data-testid="cap-sheet-manage-exceptions-button"
                 type="button"
@@ -833,18 +937,16 @@ export const CapSheet = ({
                   if (!canManageExceptions) return;
                   setShowExceptionsModal(true);
                 }}
-                className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
+                className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all ${
                   canManageExceptions
-                    ? 'text-white/40 hover:text-white'
-                    : 'text-white/20 cursor-not-allowed'
+                    ? 'border-white/15 bg-white/5 text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-white/10 hover:text-white'
+                    : 'cursor-not-allowed border-white/5 text-white/20'
                 }`}
               >
-                <span className="opacity-50">Configure</span> Manage
-                Exceptions
+                Manage Exceptions
               </button>
             </div>
           </div>
-
         </div>
       </section>
 
