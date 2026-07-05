@@ -318,6 +318,9 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
         ],
       },
       deadCap: [{ id: 'dead-1' }],
+      // Genuinely hard-capped: the team used its NT-MLE. `hardCapLevel` alone
+      // is only the apron-band descriptor and must not mark a team hard-capped.
+      hardCapTriggeredBy: 'NT-MLE',
       totals: {
         totalSalary: 190_000_000,
         hardCapLevel: 'firstApron',
