@@ -282,6 +282,8 @@ const formatCountLabel = (
 ) =>
   `${count} ${count === 1 ? singular : plural}`;
 
+const SPARSE_ROSTER_CARD_COUNT = 5;
+
 export const RosterVisual = ({
   teamCapSheet,
   playersMap = {},
@@ -435,22 +437,39 @@ export const RosterVisual = ({
     teamInfo.nickname || teamInfo.teamName || teamCapSheet?.teamName || id);
   const teamKey = getTeamLogoFilename(id || displayName);
   const { primary, secondary } = getTeamColors(teamKey);
+  const isSparseRoster =
+    rosterState.displayedCount > 0 &&
+    rosterState.displayedCount <= SPARSE_ROSTER_CARD_COUNT;
 
   return (
-    <div className="relative max-w-[1100px] mx-auto text-white p-6 flex flex-col items-center overflow-hidden">
+    <div
+      className={`relative mx-auto flex max-w-[1100px] flex-col items-center overflow-hidden text-white ${
+        isSparseRoster ? 'px-6 pb-6 pt-3' : 'p-6'
+      }`}
+    >
       {displayName && (
         <img
           src={`/assets/logos/${teamKey}.png`}
           alt=""
-          className="absolute inset-0 w-full h-full object-contain opacity-20 blur-sm mt-4 pointer-events-none select-none"
+          className={`absolute inset-0 h-full w-full object-contain pointer-events-none select-none ${
+            isSparseRoster
+              ? '-translate-y-8 scale-75 opacity-10 blur-[1px]'
+              : 'mt-4 opacity-20 blur-sm'
+          }`}
           style={{ zIndex: 0 }}
         />
       )}
 
       {displayName && (
-        <div className="w-full flex justify-center relative z-10 mb-2">
+        <div
+          className={`relative z-10 flex w-full justify-center ${
+            isSparseRoster ? 'mb-0' : 'mb-2'
+          }`}
+        >
           <h2
-            className="text-5xl font-black tracking-wide uppercase relative"
+            className={`relative font-black uppercase tracking-wide ${
+              isSparseRoster ? 'text-4xl' : 'text-5xl'
+            }`}
             style={{
               color: '#1e1e1e',
               textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`,
@@ -462,12 +481,18 @@ export const RosterVisual = ({
         </div>
       )}
 
-      <h3 className="text-xl text-neutral-500 font-semibold z-10 mb-8 opacity-90 tracking-wide">
+      <h3
+        className={`z-10 text-xl font-semibold tracking-wide text-neutral-500 opacity-90 ${
+          isSparseRoster ? 'mb-4' : 'mb-8'
+        }`}
+      >
         Team Roster
       </h3>
 
       <div
-        className="relative z-10 mb-6 grid w-full max-w-4xl grid-cols-2 gap-2 rounded-md border border-white/10 bg-black/35 px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-white/80 shadow-sm sm:grid-cols-5"
+        className={`relative z-10 grid w-full max-w-4xl grid-cols-2 gap-2 rounded-md border border-white/10 bg-black/35 px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-white/80 shadow-sm sm:grid-cols-5 ${
+          isSparseRoster ? 'mb-3' : 'mb-6'
+        }`}
         data-testid="architect-roster-truth-panel"
         data-roster-displayed-count={rosterState.displayedCount}
         data-roster-standard-count={rosterState.standardCount}
