@@ -2882,17 +2882,257 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-005D-offer-sheet-decline');
   });
 
-  // NOTE (BZE-191): a one-click *Match* browser proof was attempted (D-MQ-005E)
-  // but intentionally removed. In the review world (as-of 2026-07-01) an offer
-  // sheet stored "now" carries a wall-clock createdAt, so the 48-hour match
-  // window has already expired and the leagueInvariants guard *correctly* blocks
-  // the match ("48-hour match window expired"). That guard is pre-existing,
-  // correct legality — not a BZE-191 movement defect — and a green Match proof
-  // would only be reachable by manipulating the world clock (testing the window
-  // invariant, not the resolution). Match's player-keep movement is covered by
-  // the unit suite (sharedTeamNormalizerClosure / committedSnapshotRoundtrip /
-  // currentStateIngressHardening) and exercises the identical stateLoader RFA
-  // cap-hold injection that the Decline proof (D-MQ-005D) verifies live.
+  test('D-MQ-005E: Home-team Match resolves an incoming offer sheet while the world date is within the 48h window', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(150_000);
+    // BZE-196 acceptance gate: the stored sheet must carry a world-time
+    // createdAt so the home-team Match button is still legal in the review
+    // world. Match keeps the player on BOS, clears the mirrored sheet, persists
+    // a matchOfferSheet event, and survives reload.
+    await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
+
+    await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+    await topUpWorldTeamRosterMinimum(worldId, 'BOS', 'Boston Celtics');
+    await seedWorldOfferSheetHomeTeamRights(
+      worldId,
+      'BOS',
+      'Boston Celtics',
+      REVIEW_MODE_FREE_AGENT_ID
+    );
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+
+    // --- Store a pending LAL → BOS offer sheet via the offering-team UI. ---
+    await openDashboardTab(page, 'Free Agency');
+
+    const reviewFreeAgentRow = page.locator('li').filter({
+      has: page.getByText(new RegExp(`^${REVIEW_MODE_FREE_AGENT_NAME}$`, 'i')),
+    });
+    await expect(reviewFreeAgentRow).toBeVisible({ timeout: 15000 });
+
+    const menuButton = reviewFreeAgentRow
+      .locator('button')
+      .filter({ hasText: '•••' })
+      .first();
+    await menuButton.scrollIntoViewIfNeeded();
+    await menuButton.click();
+    const signAction = page.getByRole('button', { name: /^Sign Free Agent$/i });
+    await expect(signAction).toBeVisible();
+    await signAction.click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+    const signFreeAgentRadio = modal.getByRole('radio', {
+      name: /Sign Free Agent/i,
+    });
+    await expect(signFreeAgentRadio).toBeVisible();
+    await signFreeAgentRadio.check();
+    const offerSheetCheckbox = modal.getByLabel(/^Offer Sheet$/i);
+    await expect(offerSheetCheckbox).toBeVisible();
+    await offerSheetCheckbox.check();
+
+    const confirmActionButton = modal.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeEnabled({ timeout: 20000 });
+    await confirmActionButton.click();
+
+    await expect(modal).toHaveCount(0, { timeout: 20000 });
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Offer sheet stored/i,
+      { timeout: 20000 }
+    );
+
+    await expect
+      .poll(
+        async () => {
+          const [offeringTeam, homeTeam] = await Promise.all([
+            getWorldTeamDocument(worldId, 'LAL'),
+            getWorldTeamDocument(worldId, 'BOS'),
+          ]);
+          const outgoing = (offeringTeam?.offerSheets || []).find(
+            (sheet) =>
+              sheet.playerId === REVIEW_MODE_FREE_AGENT_ID &&
+              sheet.offeringTeamCode === 'LAL' &&
+              sheet.homeTeamCode === 'BOS'
+          );
+          const incoming = (homeTeam?.incomingOfferSheets || []).find(
+            (sheet) =>
+              sheet.playerId === REVIEW_MODE_FREE_AGENT_ID &&
+              sheet.offeringTeamCode === 'LAL' &&
+              sheet.homeTeamCode === 'BOS'
+          );
+          return {
+            outgoingStatus: outgoing?.status || null,
+            incomingStatus: incoming?.status || null,
+            outgoingCreatedDate:
+              typeof outgoing?.createdAt === 'string'
+                ? outgoing.createdAt.slice(0, 10)
+                : null,
+            incomingCreatedDate:
+              typeof incoming?.createdAt === 'string'
+                ? incoming.createdAt.slice(0, 10)
+                : null,
+          };
+        },
+        {
+          timeout: 20000,
+          message:
+            'offer sheet should persist as mirrored PENDING_MATCH state stamped in world-time before match',
+        }
+      )
+      .toEqual({
+        outgoingStatus: 'PENDING_MATCH',
+        incomingStatus: 'PENDING_MATCH',
+        outgoingCreatedDate: REVIEW_WORLD_AS_OF_DATE,
+        incomingCreatedDate: REVIEW_WORLD_AS_OF_DATE,
+      });
+
+    // --- Switch to the HOME team (BOS) dashboard and Match the incoming sheet. ---
+    await page.goto(GM_DASHBOARD_BOS_URL, { waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Free Agency');
+
+    const incomingOfferSheetsSection = page
+      .locator('div')
+      .filter({
+        has: page.getByRole('heading', { name: /Incoming Offer Sheets/i }),
+      })
+      .first();
+    await expect(incomingOfferSheetsSection).toBeVisible({ timeout: 20000 });
+    await expect(
+      incomingOfferSheetsSection.getByText(REVIEW_MODE_FREE_AGENT_NAME).first()
+    ).toBeVisible();
+
+    const matchButton = incomingOfferSheetsSection.getByRole('button', {
+      name: /^Match$/i,
+    });
+    await expect(matchButton).toBeEnabled({ timeout: 20000 });
+    await matchButton.click();
+
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Offer sheet matched/i,
+      { timeout: 20000 }
+    );
+
+    await expect
+      .poll(
+        async () => {
+          const [offeringTeam, homeTeam] = await Promise.all([
+            getWorldTeamDocument(worldId, 'LAL'),
+            getWorldTeamDocument(worldId, 'BOS'),
+          ]);
+          const homePlayer = getTeamPlayerRecords(
+            homeTeam as Record<string, unknown> | undefined
+          ).find((player) => {
+            const bio =
+              player.bio && typeof player.bio === 'object'
+                ? (player.bio as Record<string, unknown>)
+                : {};
+            return (
+              player.playerId === REVIEW_MODE_FREE_AGENT_ID ||
+              player.player_id === REVIEW_MODE_FREE_AGENT_ID ||
+              player.id === REVIEW_MODE_FREE_AGENT_ID ||
+              bio.playerId === REVIEW_MODE_FREE_AGENT_ID
+            );
+          });
+          const homeContract =
+            homePlayer && typeof homePlayer.contract === 'object'
+              ? (homePlayer.contract as Record<string, unknown>)
+              : null;
+          return {
+            homeHasPlayer: Boolean(homePlayer),
+            homePlayerTeam: String(homePlayer?.teamCode || ''),
+            homeSignedUsing: String(homeContract?.signedUsing || ''),
+            homeRosterHasPlayer: getTeamPlayerIds(
+              homeTeam as Record<string, unknown> | undefined
+            ).includes(REVIEW_MODE_FREE_AGENT_ID),
+            offeringRosterHasPlayer: getTeamPlayerIds(
+              offeringTeam as Record<string, unknown> | undefined
+            ).includes(REVIEW_MODE_FREE_AGENT_ID),
+            offeringSheetCount: (offeringTeam?.offerSheets || []).filter(
+              (sheet) => sheet.playerId === REVIEW_MODE_FREE_AGENT_ID
+            ).length,
+            homeIncomingCount: (homeTeam?.incomingOfferSheets || []).filter(
+              (sheet) => sheet.playerId === REVIEW_MODE_FREE_AGENT_ID
+            ).length,
+          };
+        },
+        {
+          timeout: 25000,
+          message:
+            'matching the offer sheet should keep the player on BOS and clear the sheet from both teams',
+        }
+      )
+      .toEqual({
+        homeHasPlayer: true,
+        homePlayerTeam: 'BOS',
+        homeSignedUsing: 'Match',
+        homeRosterHasPlayer: true,
+        offeringRosterHasPlayer: false,
+        offeringSheetCount: 0,
+        homeIncomingCount: 0,
+      });
+
+    await expect
+      .poll(
+        async () => {
+          const persistedEvents = await getWorldEventDocuments(worldId);
+          return persistedEvents.some((event) => {
+            const metadata =
+              event.metadata && typeof event.metadata === 'object'
+                ? (event.metadata as Record<string, unknown>)
+                : {};
+            return (
+              event.mutationType === 'matchOfferSheet' &&
+              metadata.playerId === REVIEW_MODE_FREE_AGENT_ID
+            );
+          });
+        },
+        {
+          timeout: 20000,
+          message: 'match should persist one matchOfferSheet world event',
+        }
+      )
+      .toBe(true);
+
+    // --- Reload parity: the matched state survives a fresh load. ---
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Free Agency');
+    await expect(
+      page.getByRole('heading', { name: /Incoming Offer Sheets/i })
+    ).toHaveCount(0, { timeout: 20000 });
+
+    const [reloadedOfferingTeam, reloadedHomeTeam] = await Promise.all([
+      getWorldTeamDocument(worldId, 'LAL'),
+      getWorldTeamDocument(worldId, 'BOS'),
+    ]);
+    expect(
+      getTeamPlayerIds(reloadedHomeTeam as Record<string, unknown> | undefined)
+    ).toContain(REVIEW_MODE_FREE_AGENT_ID);
+    expect(
+      getTeamPlayerIds(
+        reloadedOfferingTeam as Record<string, unknown> | undefined
+      )
+    ).not.toContain(REVIEW_MODE_FREE_AGENT_ID);
+    expect(
+      (reloadedOfferingTeam?.offerSheets || []).filter(
+        (sheet) => sheet.playerId === REVIEW_MODE_FREE_AGENT_ID
+      )
+    ).toHaveLength(0);
+
+    addAuditNote(
+      testInfo,
+      'This proves BZE-196/BZE-191 Match in browser review mode: a pending LAL → BOS offer sheet is stamped with the review world date, resolved with one-click Match on BOS while still inside the 48-hour window, keeps the player and cap on BOS with a Match contract, clears the sheet from both teams, persists a matchOfferSheet event, and survives reload.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-005E-offer-sheet-match');
+  });
 
   test('D-MQ-005A: Canonical V1 saved-world own-FA Re-sign persists FCT, Roster, history, compare, and reload', async ({
     page,

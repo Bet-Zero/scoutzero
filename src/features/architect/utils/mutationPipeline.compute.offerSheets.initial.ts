@@ -6,7 +6,10 @@
  * computeDeclineOfferSheetResult.
  */
 
-import { getTeamSourceRecord } from './mutationPipeline.helpers';
+import {
+  findPlayerInTeamPlayers,
+  getTeamSourceRecord,
+} from './mutationPipeline.helpers';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { normalizeSalaryRow } from '@/features/architect/utils/contractNormalization';
 import {
@@ -23,15 +26,54 @@ import type {
   NormalizedMutationSalaryRow,
 } from './mutationPipeline';
 
+const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function buildOfferSheetCreatedAt({
+  asOfDate,
+  timestamp,
+}: {
+  asOfDate?: string | number | null;
+  timestamp: number;
+}): string {
+  const dateOnly =
+    typeof asOfDate === 'string' && ISO_DATE_ONLY_PATTERN.test(asOfDate.trim())
+      ? asOfDate.trim()
+      : null;
+
+  return dateOnly
+    ? `${dateOnly}T00:00:00.000Z`
+    : new Date(timestamp).toISOString();
+}
+
+function hasActiveUnsignedCapHoldRights(
+  team: MutationOfferSheetTeamAndPlayerCurrentState['homeTeam'],
+  playerId: string
+): boolean {
+  return (team?.capHolds || []).some((hold) => {
+    const candidateId = String(
+      hold?.playerId || (hold as { player_id?: unknown })?.player_id || ''
+    ).trim();
+
+    return (
+      candidateId === playerId &&
+      hold?.active !== false &&
+      hold?.isSigned !== true
+    );
+  });
+}
+
 export function computeStoreOfferSheetResult({
   payload,
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
 }: ComputeMutationParamsWithCurrentState<
   MutationOfferSheetTeamAndPlayerCurrentState,
   MutationPayloadInputByType['storeOfferSheet']
->): ComputeResultLike {
+> & {
+  asOfDate?: string | number | null;
+}): ComputeResultLike {
   const { team: offeringTeam, player, teamCode, homeTeam } = currentState;
   const { contract, worldId } = payload;
   const currentYear = toEndYear(seasonId);
@@ -96,6 +138,16 @@ export function computeStoreOfferSheetResult({
   // The state loader is the authority for home-team ownership. It accepts
   // roster membership, players[] membership, or active unsigned cap-hold rights,
   // and returns canonical player truth before compute runs.
+  if (
+    !findPlayerInTeamPlayers(homeTeam, playerId) &&
+    !hasActiveUnsignedCapHoldRights(homeTeam, playerId)
+  ) {
+    return {
+      success: false,
+      error:
+        'storeOfferSheet requires canonical home-team snapshot player truth or active cap-hold rights before offer-sheet creation.',
+    };
+  }
 
   // Phase 18.2: worldId is REQUIRED for audit-grade dedupKey
   // Cannot store offer sheet without worldId - fail fast
@@ -115,6 +167,7 @@ export function computeStoreOfferSheetResult({
   // Generate unique ID (includes timestamp for uniqueness, but NOT used for dedup)
   const offerSheetId =
     payload.offerSheetId || `os_${teamCode}_${playerId}_${timestamp}`;
+  const createdAt = buildOfferSheetCreatedAt({ asOfDate, timestamp });
 
   // Build canonical OfferSheet object
   const offerSheet: ArchitectMutationOfferSheet = {
@@ -132,7 +185,7 @@ export function computeStoreOfferSheetResult({
         | NormalizedMutationSalaryRow[]
         | undefined) || [],
     status: 'PENDING_MATCH',
-    createdAt: new Date(timestamp).toISOString(),
+    createdAt,
     totalValue: contract.totalValue,
   };
 

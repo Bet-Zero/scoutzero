@@ -444,6 +444,92 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
     };
   };
 
+  describe('BZE-196: World-time lifecycle stamps', () => {
+    it('stamps mirrored offer-sheet createdAt from the world date, not the wall-clock mutation timestamp', () => {
+      const wallClockTimestamp = Date.parse('2026-03-25T12:00:00.000Z');
+
+      const result = computeWorldMutation({
+        mutationType: 'storeOfferSheet',
+        payload: createMockPayload({ offerSheetId: 'os_world_time' }),
+        currentState: createMockState(),
+        seasonId: '2025-26',
+        timestamp: wallClockTimestamp,
+        asOfDate: '2026-07-01',
+      });
+
+      expect(result.success).toBe(true);
+
+      const offeringSheet = requireValue(
+        getOfferSheets(getUpdatedTeam(result, 'LAL'), 'LAL')[0],
+        'Expected offering-team offer sheet'
+      );
+      const homeSheet = requireValue(
+        getIncomingOfferSheets(getUpdatedTeam(result, 'BOS'), 'BOS')[0],
+        'Expected home-team incoming offer sheet'
+      );
+
+      expect(offeringSheet.id).toBe(`os_world_time`);
+      expect(offeringSheet.createdAt).toBe('2026-07-01T00:00:00.000Z');
+      expect(homeSheet.createdAt).toBe('2026-07-01T00:00:00.000Z');
+      expect(offeringSheet.createdAt).not.toBe(
+        new Date(wallClockTimestamp).toISOString()
+      );
+    });
+
+    it('allows Match through D+2, blocks after the window, and leaves Decline unblocked', () => {
+      const storeResult = computeWorldMutation({
+        mutationType: 'storeOfferSheet',
+        payload: createMockPayload({ offerSheetId: 'os_match_window' }),
+        currentState: createMockState(),
+        seasonId: '2025-26',
+        timestamp: Date.parse('2026-03-25T12:00:00.000Z'),
+        asOfDate: '2026-07-01',
+      });
+
+      const offerSheet = requireValue(
+        getIncomingOfferSheets(getUpdatedTeam(storeResult, 'BOS'), 'BOS')[0],
+        'Expected incoming offer sheet for match-window validation'
+      );
+
+      for (const asOfDate of ['2026-07-01', '2026-07-02', '2026-07-03']) {
+        const result = validateOfferSheetResolution({
+          offerSheet,
+          actingTeamCode: 'BOS',
+          action: 'match',
+          asOfDate,
+        });
+
+        expect(result.valid, `Expected Match to be allowed on ${asOfDate}`).toBe(
+          true
+        );
+      }
+
+      const expiredMatch = validateOfferSheetResolution({
+        offerSheet,
+        actingTeamCode: 'BOS',
+        action: 'match',
+        asOfDate: '2026-07-04',
+      });
+
+      expect(expiredMatch.valid).toBe(false);
+      expect(expiredMatch.violations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ rule: 'offer_sheet_window_expired' }),
+        ])
+      );
+
+      const lateDecline = validateOfferSheetResolution({
+        offerSheet,
+        actingTeamCode: 'BOS',
+        action: 'decline',
+        asOfDate: '2026-07-04',
+      });
+
+      expect(lateDecline.valid).toBe(true);
+      expect(lateDecline.violations).toHaveLength(0);
+    });
+  });
+
   describe('A1: Store twice with different offerSheetId → Still 1 entry', () => {
     it('should produce only 1 offer sheet when stored twice with different IDs but same dedupKey inputs', () => {
       const currentState = createMockState();

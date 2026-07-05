@@ -568,6 +568,7 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
           })
         );
       }
