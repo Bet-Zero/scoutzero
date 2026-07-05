@@ -291,7 +291,9 @@ describe('E111 EditContractModal behavior', () => {
 
     expect(screen.getByTestId('edit-contract-modal')).toBeInTheDocument();
     expect(screen.getByText('Available Actions')).toBeInTheDocument();
-    expect(screen.getByText('Waive Player')).toBeInTheDocument();
+    // "Waive Player" renders twice by design: the action-picker option label
+    // and the BZE-19 "Team Plan action" context banner title.
+    expect(screen.getAllByText('Waive Player')).toHaveLength(2);
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
     expect(
       screen.getByTestId('edit-contract-confirm-action-button')

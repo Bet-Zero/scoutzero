@@ -187,7 +187,10 @@ describe('Stage 2B — deriveReceiptFromMutationResult', () => {
           'offering team LAL does not add the player',
         ],
         expectedContractStatus: 'available',
-        expectedRosterStatus: 'not-applicable',
+        // BZE-191: match resolves the sheet atomically and carries roster
+        // effects like finalize, so the receipt reports a partial roster
+        // section instead of not-applicable.
+        expectedRosterStatus: 'partial',
       },
       {
         mutationType: 'declineOfferSheet',
@@ -205,10 +208,11 @@ describe('Stage 2B — deriveReceiptFromMutationResult', () => {
         },
         messageParts: [
           'incumbent team BOS declined the offer sheet',
-          'offering team LAL can finalize the signing',
+          'offering team LAL adds the player',
         ],
         expectedContractStatus: 'available',
-        expectedRosterStatus: 'not-applicable',
+        // BZE-191: one-click decline moves the player + cap atomically.
+        expectedRosterStatus: 'partial',
       },
       {
         mutationType: 'finalizeMatchedOfferSheet',

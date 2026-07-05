@@ -67,10 +67,14 @@ const ELIGIBLE_PROFILE = {
     reason: 'Eligible',
     extensionType: 'Veteran Extension',
   },
+  // Terms must be coherent with BASE_PLAYER's $12M salary: the form clamps
+  // the prefill to the extension-mutation first-year max (currentSalary ×
+  // 1.05 = $12.6M, mirroring extensionRules.ts), so a real profile for this
+  // player could never carry a $15M floor.
   extensionTerms: {
     maxYears: 3,
-    maxFirstYearSalary: 20_000_000,
-    minFirstYearSalary: 15_000_000,
+    maxFirstYearSalary: 12_500_000,
+    minFirstYearSalary: 10_000_000,
     raisePercentage: 0.08,
     extensionType: 'Veteran Extension',
     basedOn: 'Test range',

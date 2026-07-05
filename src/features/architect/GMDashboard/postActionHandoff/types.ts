@@ -343,7 +343,7 @@ function buildOfferSheetReceiptMessage(
     case 'matchOfferSheet':
       return `${incumbentTeam} matched the offer sheet; ${offeringTeam} does not add the player.`;
     case 'declineOfferSheet':
-      return `${incumbentTeam} declined the offer sheet; ${offeringTeam} can finalize the signing before the roster/cap move is applied.`;
+      return `${incumbentTeam} declined the offer sheet; ${offeringTeam} adds the player.`;
     case 'finalizeMatchedOfferSheet':
       return `Matched offer sheet finalized: ${incumbentTeam} retains the player, and ${offeringTeam} does not add the player.`;
     case 'finalizeDeclinedOfferSheet':
