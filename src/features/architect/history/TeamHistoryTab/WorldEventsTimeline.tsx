@@ -14,6 +14,24 @@ type WorldEventsTimelineProps = {
   onRequestedHistoryEventDetailHandled?: ((requestKey: number) => void) | null;
 };
 
+const formatHistoryTimestamp = (value: string | null | undefined) => {
+  if (!value) return '—';
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return value;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(parsed));
+};
+
+const getEntryTeams = (entry: TeamHistoryWorldEventRow) => {
+  const teams = Array.isArray(entry.teamCodes) ? entry.teamCodes : [];
+  return teams.length > 0 ? teams.join(' · ') : 'Team plan';
+};
+
 export const WorldEventsTimeline = ({
   worldId,
   teamCode,
@@ -85,7 +103,10 @@ export const WorldEventsTimeline = ({
 
   if (loading && timelineRows.length === 0) {
     return (
-      <p data-testid="team-history-world-events-loading">
+      <p
+        data-testid="team-history-world-events-loading"
+        className="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60"
+      >
         Loading history events...
       </p>
     );
@@ -95,7 +116,7 @@ export const WorldEventsTimeline = ({
     return (
       <p
         data-testid="team-history-world-events-error"
-        className="text-rose-300"
+        className="rounded-lg border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"
       >
         Unable to load world history events. {error}
       </p>
@@ -133,57 +154,53 @@ export const WorldEventsTimeline = ({
         </p>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
-          <thead>
-            <tr>
-              <th className="p-2 text-left">Timestamp</th>
-              <th className="p-2 text-left">Category</th>
-              <th className="p-2 text-left">Type</th>
-              <th className="p-2 text-left">Summary</th>
-            </tr>
-          </thead>
-          <tbody>
-            {timelineRows.map((entry, idx) => (
-              <tr
-                key={entry.id || idx}
-                data-testid={`team-history-event-row-${idx}`}
-                className="odd:bg-[#171717] cursor-pointer hover:bg-white/5"
-                onClick={() => onSelectEntry(entry)}
-              >
-                <td className="p-2">
-                  {entry.occurredAt || entry.timestamp || '—'}
-                </td>
-                <td className="p-2">{entry.category || '—'}</td>
-                <td className="p-2">{entry.type || '—'}</td>
-                <td className="p-2">
-                  <div
-                    data-testid="team-history-event-summary"
-                    className="font-medium"
+      <div className="space-y-2">
+        {timelineRows.map((entry, idx) => {
+          const rawTimestamp = entry.occurredAt || entry.timestamp || '';
+          return (
+            <button
+              key={entry.id || idx}
+              type="button"
+              data-testid={`team-history-event-row-${idx}`}
+              onClick={() => onSelectEntry(entry)}
+              className="group w-full rounded-lg border border-white/10 bg-[#10141B] p-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-white/20 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div
+                  data-testid="team-history-event-summary"
+                  className="min-w-0"
+                >
+                  <span
+                    data-testid={`team-history-row-${idx}`}
+                    className="block truncate text-sm font-bold text-white"
                   >
-                    <span data-testid={`team-history-row-${idx}`}>
-                      {entry.summary || '—'}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-[11px] text-white/60">
-                    <span>{entry.occurredAt || entry.timestamp || '—'}</span>
-                    <span className="mx-1">•</span>
-                    <span>
-                      {entry.mutationType || entry.type || 'world-event'}
-                    </span>
-                    {Array.isArray(entry.teamCodes) &&
-                      entry.teamCodes.length > 0 && (
-                        <>
-                          <span className="mx-1">•</span>
-                          <span>{entry.teamCodes.join(' · ')}</span>
-                        </>
-                      )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    {entry.summary || 'History entry'}
+                  </span>
+                  <span className="mt-1 block text-[11px] text-white/45">
+                    {formatHistoryTimestamp(rawTimestamp)}
+                    {rawTimestamp ? (
+                      <span className="sr-only"> {rawTimestamp}</span>
+                    ) : null}
+                  </span>
+                </div>
+                <span className="rounded-md border border-white/10 bg-black/25 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/55">
+                  {entry.category || 'Move'}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-white/55">
+                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5">
+                  {entry.mutationType || entry.type || 'Team plan move'}
+                </span>
+                <span>{getEntryTeams(entry)}</span>
+              </div>
+              {entry.primaryDeltas && entry.primaryDeltas !== entry.summary ? (
+                <p className="mt-2 line-clamp-2 text-[12px] text-white/65">
+                  {entry.primaryDeltas}
+                </p>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
       {hasMore && typeof loadMore === 'function' && (

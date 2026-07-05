@@ -8,6 +8,7 @@ import {
 } from '@/features/architect/history/devTeamHistoryFixtures';
 import { HistoryDetailModal } from './HistoryDetailModal';
 import type {
+  TeamHistoryLooseTimelineEntry,
   TeamHistorySelectedEntry,
   TeamHistoryTabProps,
   TeamHistoryTimelineSourceKey,
@@ -17,6 +18,85 @@ import {
   buildSelectedHistoryEntry,
 } from './TeamHistoryTab.helpers';
 import { WorldEventsTimeline } from './WorldEventsTimeline';
+
+const formatHistoryTimestamp = (value: string | null | undefined) => {
+  if (!value) return '—';
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return value;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(parsed));
+};
+
+const getEntryTeams = (entry: TeamHistoryLooseTimelineEntry) => {
+  const teams = Array.isArray(entry.teamsInvolved)
+    ? entry.teamsInvolved
+    : Array.isArray(entry.teamCodes)
+      ? entry.teamCodes
+      : [];
+  return teams.length > 0 ? teams.join(' · ') : 'Team plan';
+};
+
+const TimelineEntryCards = ({
+  entries,
+  onSelectEntry,
+}: {
+  entries: TeamHistoryLooseTimelineEntry[];
+  onSelectEntry: (entry: TeamHistoryLooseTimelineEntry) => void;
+}) => (
+  <div className="space-y-2">
+    {entries.map((entry, idx) => {
+      const rawTimestamp = entry.timestamp || entry.occurredAt || '';
+      return (
+        <button
+          key={entry.id || idx}
+          type="button"
+          data-testid={`team-history-event-row-${idx}`}
+          onClick={() => onSelectEntry(entry)}
+          className="group w-full rounded-lg border border-white/10 bg-[#10141B] p-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-white/20 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div
+              data-testid="team-history-event-summary"
+              className="min-w-0"
+            >
+              <span
+                data-testid={`team-history-row-${idx}`}
+                className="block truncate text-sm font-bold text-white"
+              >
+                {entry.summary || 'History entry'}
+              </span>
+              <span className="mt-1 block text-[11px] text-white/45">
+                {formatHistoryTimestamp(rawTimestamp)}
+                {rawTimestamp ? (
+                  <span className="sr-only"> {rawTimestamp}</span>
+                ) : null}
+              </span>
+            </div>
+            <span className="rounded-md border border-white/10 bg-black/25 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/55">
+              {entry.category || 'Move'}
+            </span>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-white/55">
+            <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5">
+              {entry.type || entry.mutationType || 'Team plan move'}
+            </span>
+            <span>{getEntryTeams(entry)}</span>
+          </div>
+          {entry.primaryDeltas && entry.primaryDeltas !== entry.summary ? (
+            <p className="mt-2 line-clamp-2 text-[12px] text-white/65">
+              {entry.primaryDeltas}
+            </p>
+          ) : null}
+        </button>
+      );
+    })}
+  </div>
+);
 
 export const TeamHistoryTab = ({
   teamCapSheet,
@@ -57,41 +137,69 @@ export const TeamHistoryTab = ({
   );
 
   return (
-    <div className="text-white">
-      <h2 className="text-xl font-semibold mb-4">Team Transaction History</h2>
-
-      <div
+    <div className="flex h-full min-h-0 flex-col overflow-hidden text-white">
+      <section
         data-testid={
           worldId ? 'team-history-world-banner' : 'team-history-base-banner'
         }
         data-history-world-id={worldId ?? ''}
         data-history-source-key={timelineResolution.key}
-        className="mb-4 rounded border border-white/10 bg-[#121212] px-3 py-2 text-xs text-white/70"
+        className="relative shrink-0 overflow-hidden rounded-lg border border-white/10 bg-cockpit-slab shadow-cockpit-slab"
       >
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span data-testid="team-history-scope-label">
-            {timelineResolution.scopeLabel}
-          </span>
-          <span data-testid="team-history-active-source-label">
-            <span
-              className={`font-semibold ${timelineResolution.sourceAccentClassName}`}
-            >
-              {timelineResolution.sourceLabel}
-            </span>
-          </span>
-        </div>
         <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-cyan-300 to-amber-300"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/45">
+              Team Transaction History
+            </p>
+            <h2 className="text-2xl font-black uppercase tracking-wide text-white">
+              Team Plan History
+            </h2>
+            <p className="mt-0.5 text-xs text-cockpit-text-secondary">
+              Moves saved for this Architect world and team plan.
+            </p>
+          </div>
+
+          <div className="grid min-w-[320px] flex-1 grid-cols-2 gap-2 lg:max-w-[520px]">
+            <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+                Plan View
+              </p>
+              <p
+                data-testid="team-history-scope-label"
+                className="mt-1 text-sm font-extrabold text-white"
+              >
+                {timelineResolution.scopeLabel}
+              </p>
+            </div>
+            <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+                History Source
+              </p>
+              <p
+                data-testid="team-history-active-source-label"
+                className={`mt-1 text-sm font-extrabold ${timelineResolution.sourceAccentClassName}`}
+              >
+                {timelineResolution.sourceLabel}
+              </p>
+            </div>
+          </div>
+        </div>
+        <p
           data-testid="team-history-active-source-detail"
-          className="mt-1 text-[11px] text-white/55"
+          className="border-t border-white/10 px-4 py-2 text-[11px] text-white/55"
         >
           {timelineResolution.sourceDetail}
-        </div>
-      </div>
+        </p>
+      </section>
 
       {showDevFixturePanel && (
         <section
           data-testid="team-history-fixtures-panel"
-          className="mb-6 rounded border border-emerald-500/30 bg-[#08120c] p-3 text-xs text-emerald-100/80 space-y-3"
+          className="mt-3 shrink-0 space-y-3 rounded border border-emerald-500/30 bg-[#08120c] p-3 text-xs text-emerald-100/80"
         >
           <div className="font-semibold text-emerald-200">
             Team History Fixtures (DEV)
@@ -135,136 +243,124 @@ export const TeamHistoryTab = ({
         </section>
       )}
 
-      <section data-testid="team-history-section-timeline" className="mb-10">
-        <h3 className="text-lg font-semibold mb-2">Recent History Timeline</h3>
-        {timelineResolution.timelineTruthLabel &&
-          timelineResolution.timelineTruthDetail &&
-          timelineResolution.timelineEntries.length > 0 && (
-            <div
-              data-testid="team-history-base-truth-note"
-              className={`mb-3 rounded border px-3 py-2 text-xs ${timelineResolution.timelineTruthClassName || 'border-white/10 bg-white/[0.03] text-white/75'}`}
-            >
-              <div
-                data-testid="team-history-base-truth-label"
-                className="font-semibold uppercase tracking-[0.08em]"
-              >
-                {timelineResolution.timelineTruthLabel}
+      <div className="mt-3 grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)]">
+        <section
+          data-testid="team-history-section-timeline"
+          className="flex min-h-0 flex-col rounded-lg border border-white/10 bg-[#070A0F] shadow-cockpit-slab"
+        >
+          <div className="shrink-0 border-b border-white/10 px-4 py-3">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-white">
+                  Saved Moves Timeline
+                </h3>
+                <p className="mt-0.5 text-[11px] text-cockpit-text-secondary">
+                  Click a move to inspect the saved Team Plan detail.
+                </p>
               </div>
-              <div
-                data-testid="team-history-base-truth-detail"
-                className="mt-1 text-[11px]"
-              >
-                {timelineResolution.timelineTruthDetail}
-              </div>
+              {!timelineResolution.usesWorldEvents ? (
+                <span className="rounded-md border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/65">
+                  {timelineResolution.timelineEntries.length}{' '}
+                  {timelineResolution.timelineEntries.length === 1
+                    ? 'entry'
+                    : 'entries'}
+                </span>
+              ) : null}
             </div>
-          )}
-        {timelineResolution.usesWorldEvents ? (
-          <WorldEventsTimeline
-            worldId={worldId || ''}
-            teamCode={teamCapSheet?.teamCode || null}
-            requestedHistoryEventDetail={requestedHistoryEventDetail}
-            onRequestedHistoryEventDetailHandled={
-              onRequestedHistoryEventDetailHandled
-            }
-            onSelectEntry={(entry) =>
-              setSelectedEntry(
-                buildSelectedHistoryEntry({
-                  activeTeamCode: teamCapSheet?.teamCode || null,
-                  entry,
-                  timelineSourceKey: 'world-events',
-                })
-              )
-            }
-          />
-        ) : timelineResolution.timelineEntries.length === 0 ? (
-          <p>No timeline entries yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
-              <thead>
-                <tr>
-                  <th className="p-2 text-left">Timestamp</th>
-                  <th className="p-2 text-left">Category</th>
-                  <th className="p-2 text-left">Type</th>
-                  <th className="p-2 text-left">Summary</th>
-                </tr>
-              </thead>
-              <tbody>
-                {timelineResolution.timelineEntries.map((entry, idx) => (
-                  <tr
-                    key={entry.id || idx}
-                    data-testid={`team-history-event-row-${idx}`}
-                    className="odd:bg-[#171717] cursor-pointer hover:bg-white/5"
-                    onClick={() =>
-                      setSelectedEntry(
-                        buildSelectedHistoryEntry({
-                          activeTeamCode: teamCapSheet?.teamCode || null,
-                          entry,
-                          timelineSourceKey: timelineResolution.key,
-                        })
-                      )
-                    }
+            {timelineResolution.timelineTruthLabel &&
+              timelineResolution.timelineTruthDetail &&
+              timelineResolution.timelineEntries.length > 0 && (
+                <div
+                  data-testid="team-history-base-truth-note"
+                  className={`mt-3 rounded border px-3 py-2 text-xs ${timelineResolution.timelineTruthClassName || 'border-white/10 bg-white/[0.03] text-white/75'}`}
+                >
+                  <div
+                    data-testid="team-history-base-truth-label"
+                    className="font-semibold uppercase tracking-[0.08em]"
                   >
-                    <td className="p-2">
-                      {entry.timestamp || entry.occurredAt || '—'}
-                    </td>
-                    <td className="p-2">{entry.category || '—'}</td>
-                    <td className="p-2">{entry.type || '—'}</td>
-                    <td className="p-2">
-                      <div
-                        data-testid="team-history-event-summary"
-                        className="font-medium"
-                      >
-                        <span data-testid={`team-history-row-${idx}`}>
-                          {entry.summary || '—'}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-[11px] text-white/60">
-                        <span>
-                          {entry.timestamp || entry.occurredAt || '—'}
-                        </span>
-                        {entry.type && (
-                          <>
-                            <span className="mx-1">•</span>
-                            <span>{entry.type}</span>
-                          </>
-                        )}
-                        {Array.isArray(entry.teamsInvolved) &&
-                          entry.teamsInvolved.length > 0 && (
-                            <>
-                              <span className="mx-1">•</span>
-                              <span>{entry.teamsInvolved.join(' · ')}</span>
-                            </>
-                          )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    {timelineResolution.timelineTruthLabel}
+                  </div>
+                  <div
+                    data-testid="team-history-base-truth-detail"
+                    className="mt-1 text-[11px]"
+                  >
+                    {timelineResolution.timelineTruthDetail}
+                  </div>
+                </div>
+              )}
           </div>
-        )}
-      </section>
 
-      <section data-testid="team-history-section-waive" className="mb-10">
-        <WaiveStretchTracker
-          waivedContracts={teamCapSheet.waivedContracts || []}
-        />
-      </section>
+          <div className="min-h-0 flex-1 overflow-auto p-3">
+            {timelineResolution.usesWorldEvents ? (
+              <WorldEventsTimeline
+                worldId={worldId || ''}
+                teamCode={teamCapSheet?.teamCode || null}
+                requestedHistoryEventDetail={requestedHistoryEventDetail}
+                onRequestedHistoryEventDetailHandled={
+                  onRequestedHistoryEventDetailHandled
+                }
+                onSelectEntry={(entry) =>
+                  setSelectedEntry(
+                    buildSelectedHistoryEntry({
+                      activeTeamCode: teamCapSheet?.teamCode || null,
+                      entry,
+                      timelineSourceKey: 'world-events',
+                    })
+                  )
+                }
+              />
+            ) : timelineResolution.timelineEntries.length === 0 ? (
+              <p className="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
+                No timeline entries yet.
+              </p>
+            ) : (
+              <TimelineEntryCards
+                entries={timelineResolution.timelineEntries}
+                onSelectEntry={(entry) =>
+                  setSelectedEntry(
+                    buildSelectedHistoryEntry({
+                      activeTeamCode: teamCapSheet?.teamCode || null,
+                      entry,
+                      timelineSourceKey: timelineResolution.key,
+                    })
+                  )
+                }
+              />
+            )}
+          </div>
+        </section>
 
-      <section data-testid="team-history-section-exceptions" className="mb-10">
-        <ExceptionHistoryTracker
-          exceptionHistory={teamCapSheet.exceptionHistory || []}
-          mleHistory={teamCapSheet.mleHistory || []}
-        />
-      </section>
+        <aside className="min-h-0 space-y-3 overflow-auto">
+          <section
+            data-testid="team-history-section-waive"
+            className="rounded-lg border border-white/10 bg-white/[0.035] p-3"
+          >
+            <WaiveStretchTracker
+              waivedContracts={teamCapSheet.waivedContracts || []}
+            />
+          </section>
 
-      <section data-testid="team-history-section-draft">
-        <DraftPickTracker
-          pickLog={teamCapSheet.pickLog || []}
-          currentPicks={teamCapSheet.currentPicks || {}}
-        />
-      </section>
+          <section
+            data-testid="team-history-section-exceptions"
+            className="rounded-lg border border-white/10 bg-white/[0.035] p-3"
+          >
+            <ExceptionHistoryTracker
+              exceptionHistory={teamCapSheet.exceptionHistory || []}
+              mleHistory={teamCapSheet.mleHistory || []}
+            />
+          </section>
+
+          <section
+            data-testid="team-history-section-draft"
+            className="rounded-lg border border-white/10 bg-white/[0.035] p-3"
+          >
+            <DraftPickTracker
+              pickLog={teamCapSheet.pickLog || []}
+              currentPicks={teamCapSheet.currentPicks || {}}
+            />
+          </section>
+        </aside>
+      </div>
 
       <HistoryDetailModal
         selectedEntry={selectedEntry}
