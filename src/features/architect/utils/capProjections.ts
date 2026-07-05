@@ -50,18 +50,19 @@ export const capProjections: Record<string, CapProjectionLike> = {
     confirmed: true,
   },
   '2026-27': {
-    cap: 165472000,
-    floor: 148924800,
-    tax: 201048000,
-    firstApron: 209661000,
-    secondApron: 222372000,
-    bae: 5494000,
-    roomMLE: 9396000,
-    fullMLE: 15091000,
-    taxpayerMLE: 6083000,
+    // Official NBA numbers, set June 30 2026 (effective July 1)
+    cap: 164961000,
+    floor: 148465000, // minimum team salary
+    tax: 200428000,
+    firstApron: 209015000,
+    secondApron: 221686000,
+    bae: 5477000,
+    roomMLE: 9366000,
+    fullMLE: 15044000,
+    taxpayerMLE: 6064000,
     // rookieMin removed (will be projected)
-    growthRate: 0.07,
-    confirmed: false,
+    growthRate: 0.0667, // actual increase from 2025-26
+    confirmed: true,
   },
   '2027-28': {
     cap: 182019000,
