@@ -15,6 +15,7 @@ type StarterCardProps = {
   onRemove?: (event: MouseEvent<HTMLElement>) => void;
   showRemove?: boolean;
   isExport?: boolean;
+  variant?: 'legacy' | 'architect';
   onSelect?: (event: MouseEvent<HTMLElement>) => void;
   isHighlighted?: boolean;
   /** Optional corner overlay (e.g. the shared PlayerActionMenu). Additive —
@@ -27,11 +28,13 @@ export const StarterCard = ({
   onRemove,
   showRemove = true,
   isExport = false,
+  variant = 'legacy',
   onSelect,
   isHighlighted = false,
   menuSlot,
 }: StarterCardProps) => {
   if (!player) return null;
+  const isArchitect = variant === 'architect';
 
   const playerId = player.bio?.playerId || player.id;
   // Normalize special characters for headshot lookup (e.g., kristaps_porzingis -> kristaps_porziņģis)
@@ -46,9 +49,17 @@ export const StarterCard = ({
     player.headshotUrl ||
     `/assets/headshots/${normalizedId}.png`;
 
-  const innerCardClass = `relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border ${
-    isHighlighted ? 'border-green-400/70 ring-2 ring-green-400/40' : 'border-white/10'
-  } rounded-md overflow-hidden shadow-md flex flex-col w-40 h-60 text-base hover:shadow-xl transition-all duration-200`;
+  const innerCardClass = isArchitect
+    ? `relative flex h-40 w-28 flex-col overflow-hidden rounded-md border bg-[#10131A] text-sm shadow-[0_10px_28px_-18px_rgba(0,0,0,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 ${
+        isHighlighted
+          ? 'border-amber-300/70 ring-2 ring-amber-300/30'
+          : 'border-white/10'
+      }`
+    : `relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border ${
+        isHighlighted
+          ? 'border-green-400/70 ring-2 ring-green-400/40'
+          : 'border-white/10'
+      } rounded-md overflow-hidden shadow-md flex flex-col w-40 h-60 text-base hover:shadow-xl transition-all duration-200`;
 
   const handleSelect = onSelect
     ? (event: MouseEvent<HTMLElement>) => onSelect(event)
@@ -77,7 +88,9 @@ export const StarterCard = ({
           <img
             src={headshot}
             alt={player.name ?? undefined}
-            className="w-full h-full object-cover"
+            className={`h-full w-full object-cover ${
+              isArchitect ? 'object-top saturate-110' : ''
+            }`}
             onError={(e) => {
               e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
             }}
@@ -94,16 +107,27 @@ export const StarterCard = ({
             </button>
           )}
           <div
-            className={`absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[16px] ${isExport ? 'font-normal' : 'font-semibold'} uppercase rounded-sm tracking-wider shadow-md`}
+            className={
+              isArchitect
+                ? 'absolute left-2 top-2 rounded border border-white/10 bg-black/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/80 shadow-sm backdrop-blur'
+                : `absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[16px] ${isExport ? 'font-normal' : 'font-semibold'} uppercase rounded-sm tracking-wider shadow-md`
+            }
           >
             {getPlayerPositionLabel(
               player.bio?.position || player.formattedPosition
             )}
           </div>
         </div>
-        <div className="bg-[#0f0f0f] px-2 pt-1 pb-2 h-[60px] flex flex-col items-center justify-center text-center border-t border-white/10">
+        <div
+          className={
+            isArchitect
+              ? 'flex h-[46px] flex-col items-center justify-center border-t border-white/10 bg-[#080B10]/95 px-1.5 py-1.5 text-center'
+              : 'bg-[#0f0f0f] px-2 pt-1 pb-2 h-[60px] flex flex-col items-center justify-center text-center border-t border-white/10'
+          }
+        >
           <PlayerNameMini
             name={player.bio?.displayName || player.name || undefined}
+            scale={isArchitect ? 0.76 : undefined}
             firstWeightClass={isExport ? 'font-normal' : 'font-light'}
             lastWeightClass={isExport ? 'font-normal' : 'font-bold'}
           />
@@ -121,4 +145,3 @@ export const StarterCard = ({
     </div>
   );
 };
-

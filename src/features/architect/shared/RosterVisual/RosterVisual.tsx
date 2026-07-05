@@ -275,7 +275,31 @@ const countRosterSection = (
   section: LegacyRosterShape[keyof LegacyRosterShape]
 ): number => section.filter(Boolean).length;
 
-const SPARSE_ROSTER_CARD_COUNT = 5;
+const STANDARD_ROSTER_LIMIT = 15;
+const TWO_WAY_ROSTER_LIMIT = 3;
+
+const formatSeasonLabel = (seasonEndYear: number | null) => {
+  if (!seasonEndYear) return 'Current season';
+  return `${seasonEndYear - 1}-${String(seasonEndYear).slice(-2)}`;
+};
+
+const rosterBands = [
+  {
+    key: 'starters',
+    label: 'Starting Five',
+    detail: 'Opening group',
+  },
+  {
+    key: 'rotation',
+    label: 'Rotation',
+    detail: 'Main bench minutes',
+  },
+  {
+    key: 'bench',
+    label: 'Bench',
+    detail: 'Depth and two-way slots',
+  },
+] as const;
 
 export const RosterVisual = ({
   teamCapSheet,
@@ -430,57 +454,101 @@ export const RosterVisual = ({
     teamInfo.nickname || teamInfo.teamName || teamCapSheet?.teamName || id);
   const teamKey = getTeamLogoFilename(id || displayName);
   const { primary, secondary } = getTeamColors(teamKey);
-  const isSparseRoster =
-    rosterState.displayedCount > 0 &&
-    rosterState.displayedCount <= SPARSE_ROSTER_CARD_COUNT;
+  const seasonLabel = formatSeasonLabel(rosterState.activeYear);
+  const openStandardSlots = Math.max(
+    0,
+    STANDARD_ROSTER_LIMIT - rosterState.standardCount
+  );
+  const openTwoWaySlots = Math.max(
+    0,
+    TWO_WAY_ROSTER_LIMIT - rosterState.twoWayCount
+  );
+  const rosterSurfaceStyle = {
+    '--team-primary': primary,
+    '--team-secondary': secondary,
+  } as React.CSSProperties;
+  const metricTiles = [
+    {
+      label: 'Active Players',
+      value: rosterState.displayedCount,
+      detail: `${rosterState.sectionCounts.starters} starters · ${rosterState.sectionCounts.rotation} rotation · ${rosterState.sectionCounts.bench} bench`,
+    },
+    {
+      label: 'Standard',
+      value: `${rosterState.standardCount}/${STANDARD_ROSTER_LIMIT}`,
+      detail:
+        openStandardSlots === 1
+          ? '1 open roster spot'
+          : `${openStandardSlots} open roster spots`,
+    },
+    {
+      label: 'Two-Way',
+      value: `${rosterState.twoWayCount}/${TWO_WAY_ROSTER_LIMIT}`,
+      detail:
+        openTwoWaySlots === 1
+          ? '1 open two-way slot'
+          : `${openTwoWaySlots} open two-way slots`,
+    },
+  ];
 
   return (
     <div
-      className={`relative mx-auto flex max-w-[1100px] flex-col items-center overflow-hidden text-white ${
-        isSparseRoster ? 'px-6 pb-6 pt-3' : 'p-6'
-      }`}
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden text-white"
+      style={rosterSurfaceStyle}
     >
-      {displayName && (
-        <img
-          src={`/assets/logos/${teamKey}.png`}
-          alt=""
-          className={`absolute inset-0 h-full w-full object-contain pointer-events-none select-none ${
-            isSparseRoster
-              ? '-translate-y-8 scale-75 opacity-10 blur-[1px]'
-              : 'mt-4 opacity-20 blur-sm'
-          }`}
-          style={{ zIndex: 0 }}
-        />
-      )}
-
-      {displayName && (
-        <div
-          className={`relative z-10 flex w-full justify-center ${
-            isSparseRoster ? 'mb-0' : 'mb-2'
-          }`}
-        >
-          <h2
-            className={`relative font-black uppercase tracking-wide ${
-              isSparseRoster ? 'text-4xl' : 'text-5xl'
-            }`}
-            style={{
-              color: '#1e1e1e',
-              textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`,
-              transform: 'translateX(3px)',
-            }}
-          >
-            {displayName}
-          </h2>
-        </div>
-      )}
-
-      <h3
-        className={`z-10 text-xl font-semibold tracking-wide text-neutral-500 opacity-90 ${
-          isSparseRoster ? 'mb-4' : 'mb-8'
-        }`}
+      <section
+        className="relative shrink-0 overflow-hidden rounded-lg border border-white/10 bg-cockpit-slab shadow-cockpit-slab"
+        aria-label="Roster overview"
       >
-        Team Roster
-      </h3>
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-1"
+          style={{
+            background: `linear-gradient(90deg, ${primary}, ${secondary})`,
+          }}
+        />
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {displayName ? (
+              <img
+                src={`/assets/logos/${teamKey}.png`}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-md border border-white/10 bg-black/30 object-contain p-1.5"
+              />
+            ) : null}
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/45">
+                Team Roster
+              </p>
+              <h2 className="truncate text-2xl font-black uppercase tracking-wide text-white">
+                {displayName}
+              </h2>
+              <p className="mt-0.5 text-xs text-cockpit-text-secondary">
+                Player-state workspace · {seasonLabel}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid min-w-[320px] flex-1 grid-cols-3 gap-2">
+            {metricTiles.map((tile) => (
+              <div
+                key={tile.label}
+                className="rounded-md border border-white/10 bg-black/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+              >
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+                  {tile.label}
+                </p>
+                <p className="mt-1 text-lg font-extrabold leading-none text-white tabular-nums">
+                  {tile.value}
+                </p>
+                <p className="mt-1 truncate text-[10px] text-white/45">
+                  {tile.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Machine-readable roster verification data for tests/e2e only. The
           old visible count chip read like an internal audit on a product
@@ -497,30 +565,45 @@ export const RosterVisual = ({
         data-roster-unsupported-categories="fa,expired,waived,options"
       />
 
-      <RosterSection
-        players={roster.starters}
-        section="starters"
-        {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
-        onSelectPlayer={handleSectionSelect}
-        isPlayerHighlighted={sectionHighlightMatcher}
-        renderPlayerMenu={renderPlayerMenu}
-      />
-      <RosterSection
-        players={roster.rotation}
-        section="rotation"
-        {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
-        onSelectPlayer={handleSectionSelect}
-        isPlayerHighlighted={sectionHighlightMatcher}
-        renderPlayerMenu={renderPlayerMenu}
-      />
-      <RosterSection
-        players={roster.bench}
-        section="bench"
-        {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
-        onSelectPlayer={handleSectionSelect}
-        isPlayerHighlighted={sectionHighlightMatcher}
-        renderPlayerMenu={renderPlayerMenu}
-      />
+      <div className="mt-3 min-h-0 flex-1 overflow-auto rounded-lg border border-white/10 bg-[#070A0F] p-2.5 shadow-cockpit-slab">
+        <div className="space-y-2.5">
+          {rosterBands.map((band) => {
+            const count = rosterState.sectionCounts[band.key];
+            return (
+              <section
+                key={band.key}
+                aria-label={`${band.label} roster group`}
+                className="rounded-lg border border-white/10 bg-white/[0.035] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+              >
+                <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-extrabold uppercase tracking-wide text-white">
+                      {band.label}
+                    </h3>
+                    <p className="mt-0.5 text-[11px] text-cockpit-text-secondary">
+                      {band.detail}
+                    </p>
+                  </div>
+                  <span className="rounded-md border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/65">
+                    {count} {count === 1 ? 'player' : 'players'}
+                  </span>
+                </div>
+
+                <RosterSection
+                  players={roster[band.key]}
+                  section={band.key}
+                  {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+                  previewSpacing
+                  variant="architect"
+                  onSelectPlayer={handleSectionSelect}
+                  isPlayerHighlighted={sectionHighlightMatcher}
+                  renderPlayerMenu={renderPlayerMenu}
+                />
+              </section>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

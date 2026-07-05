@@ -12,11 +12,13 @@ import type {
 
 type RosterSectionName = keyof RosterShape;
 type RosterSectionPlayer = NormalizedRosterPlayer | MissingRosterPlayer;
+type RosterCardVariant = 'legacy' | 'architect';
 type RosterCardProps = {
   player: RosterSectionPlayer;
   onRemove?: (event: MouseEvent<HTMLElement>) => void;
   showRemove?: boolean;
   isExport?: boolean;
+  variant?: RosterCardVariant;
   onSelect?: (event: MouseEvent<HTMLElement>) => void;
   isHighlighted?: boolean;
   menuSlot?: ReactNode;
@@ -40,6 +42,8 @@ type RosterSectionProps = {
    * `handleEditContract` exactly the way Cap Sheet rows already do.
    */
   onSelectPlayer?: (player: RosterSectionPlayer) => void;
+  /** Architect dashboard presentation keeps the roster builder/export cards unchanged. */
+  variant?: RosterCardVariant;
   /**
    * Stage 2C focus highlight: when `isPlayerHighlighted(player)` returns
    * true, the matching card renders a non-mutating "just changed"
@@ -56,9 +60,24 @@ type RosterSectionProps = {
 
 const getSectionClass = (
   section: RosterSectionName,
-  previewSpacing: boolean
+  previewSpacing: boolean,
+  variant: RosterCardVariant
 ) => {
   const base = 'flex justify-center';
+
+  if (variant === 'architect') {
+    if (section === 'starters') {
+      return `${base} flex-wrap items-end gap-3`;
+    }
+
+    if (section === 'rotation') {
+      return `${base} flex-wrap items-end gap-2.5`;
+    }
+
+    if (section === 'bench') {
+      return `${base} flex-wrap items-end gap-2`;
+    }
+  }
 
   if (section === 'starters') {
     return `${base} gap-4 ${previewSpacing ? 'mb-3' : 'mb-10'}`;
@@ -95,11 +114,12 @@ export const RosterSection = ({
   isExport = false,
   previewSpacing = false,
   onSelectPlayer,
+  variant = 'legacy',
   isPlayerHighlighted,
   renderPlayerMenu,
 }: RosterSectionProps) => {
   const CardComponent = cardMap[section];
-  const sectionClass = getSectionClass(section, previewSpacing);
+  const sectionClass = getSectionClass(section, previewSpacing, variant);
   const showMutationControls = !isExport && Boolean(onRemove);
 
   return (
@@ -121,6 +141,7 @@ export const RosterSection = ({
               }
               showRemove={showMutationControls}
               isExport={isExport}
+              variant={variant}
               onSelect={handleSelect}
               isHighlighted={highlighted}
               menuSlot={renderPlayerMenu?.(player)}
@@ -141,4 +162,3 @@ export const RosterSection = ({
     </div>
   );
 };
-
