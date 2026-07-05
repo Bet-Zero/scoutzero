@@ -114,6 +114,7 @@ capSheet/
     ManageExceptionsModal.tsx
 cockpit/
   ActivityRail.tsx
+  AssetsPanel.tsx
   CapPostureMeter.tsx
   CockpitShell.tsx
   CockpitStatePanel.tsx
@@ -552,5 +553,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-06-27T03:53:52.453Z*
+*Generated on: 2026-07-05T12:28:24.361Z*
 *Auto-updated by: npm run docs*

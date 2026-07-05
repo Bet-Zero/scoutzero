@@ -1,17 +1,21 @@
 /**
  * FILE: src/features/architect/cockpit/ActivityRail.tsx
- * PURPOSE: Right-side persistent rail in the Architect cockpit. Embeds the
- *          existing post-action receipt + scenario activity stream, and adds
- *          a thin read-only watchlist derived from workspace context.
+ * PURPOSE: Right-side persistent rail in the Architect cockpit — the Team
+ *          Plan Hub (BZE-208 Decision 1 / BZE-211). A compact active-plan
+ *          overview: plan header (team / plan / season / save state), status
+ *          strip, active alerts, active work, recent moves, asset counts, and
+ *          pinned items. Detail views (full pick stash, full history) live in
+ *          expanded panels (AssetsPanel, Team History), never stacked in the
+ *          drawer.
  * OWNERSHIP: Feature: architect/cockpit
  *
- * Phase 1 notes:
+ * Notes:
  *  - No new state engines. Receipt source is the existing
- *    `ArchitectPostActionHandoff` (single current receipt). World events
- *    use the existing `ScenarioMoveRail` unchanged.
- *  - Watchlist is a thin presentational re-render of workspace-context
- *    warning flags (apron posture, exception availability, season
- *    mismatch). No new rules engine.
+ *    `ArchitectPostActionHandoff` (single current receipt). Recent moves
+ *    use the existing `ScenarioMoveRail` unchanged (last 5, View full history).
+ *  - Alerts are a thin presentational re-render of workspace-context
+ *    warning flags (apron posture, season mismatch) plus unsafe-switch
+ *    save warnings. No new rules engine.
  *  - Collapse persisted to localStorage.
  */
 import {
@@ -24,6 +28,7 @@ import {
 import { ArchitectPostActionHandoff } from '@/features/architect/GMDashboard/components/ArchitectPostActionHandoff';
 import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/ScenarioMoveRail';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
+import { getArchitectTeamPlanUnsafeContextExitWarnings } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import { type HardCapCockpitStatus } from './TeamStatusStrip';
 import {
@@ -32,11 +37,13 @@ import {
   type AuthorityLabelInput,
 } from './authorityLabel';
 import {
+  deriveCapPosturePanel,
   deriveReceiptImpactPanel,
   deriveTeamPlanTruthPanel,
   isHardCapActiveForViewingSeason,
   type TrustPanelTone,
 } from './teamPlanTrustPanelModel';
+import { AssetsPanel } from './AssetsPanel';
 import { PlayerActionMenu } from './PlayerActionMenu';
 import type { PlayerAction, PlayerActionContext } from './playerActionContext';
 import type { TradeObjective } from './tradeOpenRequest';
@@ -180,26 +187,15 @@ function deriveWatchEntries(
         destination: 'cap-sheet',
         tradeObjective: 'reduce-tax',
       });
-    } else if (cap.isOverCap) {
-      entries.push({
-        id: 'cap',
-        tone: 'watch',
-        text: 'Over the salary cap.',
-        destination: 'cap-sheet',
-        tradeObjective: 'solve-cap',
-      });
     }
+    // Over-the-cap alone is strip-only (owner decision, BZE-211): being over
+    // the cap is normal for NBA teams — it only alerts once tax/apron/hard-cap
+    // restrictions actually bind.
   }
 
-  const exc = workspace.exceptions;
-  if (exc.status === 'available' && !exc.hasAnyActive) {
-    entries.push({
-      id: 'exceptions',
-      tone: 'info',
-      text: 'No active exceptions (MLE / BAE / TPE / Room).',
-      destination: 'cap-sheet',
-    });
-  }
+  // "No active exceptions" is status, not a warning — it lives in the status
+  // strip and Assets panel now (owner direction: alerts show only meaningful
+  // warnings).
 
   const seasons = workspace.seasons;
   if (seasons.viewingSeasonDiffersFromWorldSeason) {
@@ -240,6 +236,32 @@ const TRUST_BADGE_CLASSES: Record<TrustPanelTone, string> = {
 const WATCH_DESTINATION_LABELS: Record<WatchDestination, string> = {
   'cap-sheet': 'View Cap Sheet',
   offseason: 'Go to Offseason',
+};
+
+const TONE_TEXT_CLASSES: Record<TrustPanelTone, string> = {
+  safe: 'text-cockpit-safe',
+  info: 'text-cockpit-info',
+  watch: 'text-cockpit-watch',
+  danger: 'text-cockpit-danger',
+  muted: 'text-cockpit-text-secondary',
+};
+
+/** Compact status-strip save indicator: dot color + short GM phrase. */
+const SAVE_DOT_CLASSES: Record<TrustPanelTone, string> = {
+  safe: 'bg-cockpit-safe',
+  info: 'bg-cockpit-info',
+  watch: 'bg-cockpit-watch',
+  danger: 'bg-cockpit-danger',
+  muted: 'bg-cockpit-text-muted',
+};
+
+const SAVE_INDICATOR_LABELS: Record<string, string> = {
+  loading: 'Checking save status',
+  saved: 'Saved',
+  saving: 'Saving…',
+  'save-failed': 'Save failed',
+  'uncommitted-draft': 'Unsaved changes',
+  'local-only': 'Not saved (what-if)',
 };
 
 /**
@@ -349,28 +371,101 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
 
     useImperativeHandle(ref, () => ({ expand: () => setCollapsed(false) }), []);
 
+    const [assetsOpen, setAssetsOpen] = useState(false);
+
     const planTruth = deriveTeamPlanTruthPanel(workspace.saveState);
+    // Plan header (Team Plan Hub): current team · active plan · season · save state.
+    const planLabel =
+      workspace.world.status === 'sandbox'
+        ? 'What-if session'
+        : workspace.world.label;
+    const seasonLabel =
+      workspace.seasons.selectedViewingSeasonLabel ??
+      workspace.seasons.authoritativeWorldSeasonLabel;
+    const identityMetaLine = [
+      seasonLabel ? `Season ${seasonLabel}` : null,
+      workspace.worldDate.status === 'available'
+        ? `through ${workspace.worldDate.label}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    const saveIndicatorLabel =
+      SAVE_INDICATOR_LABELS[workspace.saveState.status] ??
+      workspace.saveState.label;
+    const saveIndicatorLine = planTruth.lastSavedLabel
+      ? `${saveIndicatorLabel} · ${planTruth.lastSavedLabel}`
+      : saveIndicatorLabel;
+
+    // Status strip: canonical cap model (single source — same derivation the
+    // permanent posture band uses), roster/two-way counts, pick + exception counts.
+    const capPanel = deriveCapPosturePanel(workspace, hardCapStatus);
+    const roster = workspace.roster;
+    const draftAssets = workspace.draftAssets;
+    const exceptions = workspace.exceptions;
+    const pickStripValue =
+      draftAssets.status === 'available'
+        ? `${draftAssets.firstRoundCount} · ${draftAssets.secondRoundCount}`
+        : '—';
+    const exceptionStripValue =
+      exceptions.status === 'available'
+        ? [
+            exceptions.hasAvailableMle ? 'MLE' : null,
+            exceptions.hasAvailableBae ? 'BAE' : null,
+            exceptions.hasAvailableRoom ? 'Room' : null,
+            exceptions.tpeCount > 0 ? `${exceptions.tpeCount} TPE` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ') || 'None'
+        : '—';
+    const pickSummaryValue =
+      draftAssets.status === 'available'
+        ? `${draftAssets.firstRoundCount} firsts · ${draftAssets.secondRoundCount} seconds`
+        : draftAssets.status === 'loading'
+          ? 'Loading'
+          : 'Not available yet';
+    const rosterSpotsValue =
+      roster.status === 'available' && roster.standardCount !== null
+        ? `${Math.max(0, 15 - roster.standardCount)} standard · ${
+            roster.twoWayCount !== null
+              ? Math.max(0, 3 - roster.twoWayCount)
+              : '—'
+          } two-way open`
+        : '—';
+
+    // Active work: pending/unsaved things the GM is in the middle of.
+    const draftPositionEditPending =
+      workspace.saveState.hasUncommittedDraft &&
+      workspace.saveState.draftSources.includes('draft-position-editor');
+    const otherUnsavedWork =
+      workspace.saveState.hasUncommittedDraft &&
+      !draftPositionEditPending &&
+      !tradeDraftActive;
+    const hasActiveWork =
+      tradeDraftActive || draftPositionEditPending || otherUnsavedWork;
     const receiptImpact = deriveReceiptImpactPanel(receipt);
     const receiptHasCommittedEvidence =
       receipt?.authority === 'committed-world';
     const watch = deriveWatchEntries(workspace, hardCapStatus);
+    // Alerts show actionable save problems only. The steady "what-if session"
+    // notice is status (header indicator), so use the intent that omits it.
+    const saveAlerts = getArchitectTeamPlanUnsafeContextExitWarnings(
+      workspace.saveState,
+      'leave-architect'
+    );
     const hasWatchDanger = watch.some((entry) => entry.tone === 'danger');
     const hasPlanTruthDanger = planTruth.tone === 'danger';
     const hasPlanTruthWatch = planTruth.tone === 'watch';
 
-    // Section order is the contract's canonical order (Cap Posture → Current
-    // Receipt → Pinned → In Progress → Watchlist → Scenario Activity). The
-    // expanded rail scrolls (overflow-y-auto) rather than dropping sections, so
-    // no section is ever permanently hidden under height pressure. The contract's
-    // Section Priority Rules (critical/pending → Receipt → In Progress →
-    // Watchlist danger → Pinned → Cap Posture → Scenario Activity → Next Steps)
-    // are honored in collapsed state: the indicator dots below surface receipt,
-    // watchlist-danger, and in-progress so a danger/critical state is never
-    // buried behind a lower-priority dot.
-    //
-    // "Next Steps" is intentionally folded (open-question #5): the Current
-    // Receipt carries Compare/Guide buttons and Watchlist entries carry their
-    // own destination actions. No standalone Next Steps section in v1.
+    // Section order is the Team Plan Hub contract (BZE-211 owner direction):
+    // Plan header → Status strip → Alerts (only when present) → Active Work →
+    // Recent Moves → Assets summary → Pinned (only when present). Header and
+    // strip stay fixed; the rest scrolls (overflow-y-auto) rather than
+    // dropping sections. Detail views (year-by-year pick stash, full history)
+    // live in expanded panels, never stacked in the drawer. Collapsed-state
+    // indicator dots below surface danger, unsaved work, receipt, and
+    // in-progress separately so a danger is never buried behind a
+    // lower-priority dot.
 
     if (collapsed) {
       return (
@@ -405,8 +500,8 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
           {hasPlanTruthWatch ? (
             <span
               className="mt-3 h-2 w-2 rounded-full bg-cockpit-watch"
-              aria-label="Team Plan save or draft state needs review"
-              title="Team Plan save or draft state needs review"
+              aria-label="Team Plan save state needs review"
+              title="Team Plan save state needs review"
               data-testid="cockpit-activity-rail-dot-plan-truth"
             />
           ) : null}
@@ -421,8 +516,8 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
           {tradeDraftActive ? (
             <span
               className="mt-3 h-2 w-2 rounded-full bg-cockpit-watch"
-              aria-label="Trade draft in progress"
-              title="Trade draft in progress"
+              aria-label="Trade in progress"
+              title="Trade in progress"
               data-testid="cockpit-activity-rail-dot-in-progress"
             />
           ) : null}
@@ -456,92 +551,254 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <RailSection
-            label="Save Status"
-            testId="cockpit-activity-rail-plan-truth"
+        <div
+          className="shrink-0 border-b border-cockpit-edge bg-cockpit-inlay px-3 py-2.5"
+          data-testid="cockpit-activity-rail-identity"
+        >
+          <div
+            className="truncate text-[13px] font-semibold leading-5 text-cockpit-text-primary"
+            title={workspace.team.label}
+            data-testid="cockpit-activity-rail-identity-team"
           >
+            {workspace.team.label}
+          </div>
+          <div
+            className="mt-0.5 truncate text-[11px] leading-4 text-cockpit-text-secondary"
+            title={planLabel}
+            data-testid="cockpit-activity-rail-identity-plan"
+          >
+            {planLabel}
+          </div>
+          {identityMetaLine ? (
             <div
-              className={`rounded border px-2 py-2 text-[11px] ${TRUST_TONE_CLASSES[planTruth.tone]}`}
-              data-testid="cockpit-activity-rail-plan-truth-card"
+              className="mt-0.5 truncate text-[10px] leading-4 text-cockpit-text-muted"
+              data-testid="cockpit-activity-rail-identity-season"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+              {identityMetaLine}
+            </div>
+          ) : null}
+          <div
+            className="mt-1.5 flex items-center gap-1.5 text-[10px] leading-4 text-cockpit-text-secondary"
+            data-testid="cockpit-activity-rail-save-indicator"
+            data-save-status={workspace.saveState.status}
+          >
+            <span
+              aria-hidden
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${SAVE_DOT_CLASSES[planTruth.tone]}`}
+            />
+            <span className="truncate" title={planTruth.detail}>
+              {saveIndicatorLine}
+            </span>
+          </div>
+        </div>
+
+        <div
+          className="grid shrink-0 grid-cols-3 gap-px border-b border-cockpit-edge bg-cockpit-edge"
+          data-testid="cockpit-activity-rail-strip"
+        >
+          <div
+            className="col-span-3 bg-cockpit-bar px-3 py-1.5"
+            data-testid="cockpit-activity-rail-strip-cap"
+            data-tone={capPanel.tone}
+          >
+            <div className="text-[9px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+              Cap Status
+            </div>
+            <div
+              className={`truncate text-[11px] font-semibold ${TONE_TEXT_CLASSES[capPanel.tone]}`}
+              title={capPanel.detail}
+            >
+              {capPanel.statusLabel}
+            </div>
+          </div>
+          <div
+            className="bg-cockpit-bar px-3 py-1.5"
+            data-testid="cockpit-activity-rail-strip-roster"
+          >
+            <div className="text-[9px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+              Roster
+            </div>
+            <div className="text-[11px] font-semibold text-cockpit-text-primary">
+              {roster.status === 'available'
+                ? `${roster.standardCount ?? roster.count} / 15`
+                : '—'}
+            </div>
+          </div>
+          <div
+            className="bg-cockpit-bar px-3 py-1.5"
+            data-testid="cockpit-activity-rail-strip-two-way"
+          >
+            <div className="text-[9px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+              Two-Way
+            </div>
+            <div className="text-[11px] font-semibold text-cockpit-text-primary">
+              {roster.status === 'available' && roster.twoWayCount !== null
+                ? `${roster.twoWayCount} / 3`
+                : '—'}
+            </div>
+          </div>
+          <div
+            className="bg-cockpit-bar px-3 py-1.5"
+            data-testid="cockpit-activity-rail-strip-picks"
+            title="First-round picks · second-round picks held"
+          >
+            <div className="text-[9px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+              1sts · 2nds
+            </div>
+            <div className="text-[11px] font-semibold text-cockpit-text-primary">
+              {pickStripValue}
+            </div>
+          </div>
+          <div
+            className="col-span-3 bg-cockpit-bar px-3 py-1.5"
+            data-testid="cockpit-activity-rail-strip-exceptions"
+          >
+            <div className="text-[9px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+              Exceptions
+            </div>
+            <div className="truncate text-[11px] font-semibold text-cockpit-text-primary">
+              {exceptionStripValue}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {/* Active alerts: only meaningful warnings, only when they exist.
+              Save state lives in the header indicator; cap posture lives in
+              the permanent TeamPosturePanel band. */}
+          {watch.length > 0 || saveAlerts.length > 0 ? (
+            <RailSection label="Alerts" testId="cockpit-activity-rail-alerts">
+              {watch.map((entry) => {
+                const onNavigate =
+                  entry.destination === 'offseason'
+                    ? onNavigateToOffseason
+                    : onNavigateToCapSheet;
+                return (
                   <div
-                    className="font-semibold text-cockpit-text-primary"
-                    data-testid="cockpit-activity-rail-plan-truth-status"
+                    key={entry.id}
+                    className={`rounded border px-2 py-1.5 text-[11px] ${TONE_CLASSES[entry.tone]}`}
+                    data-testid={`cockpit-activity-rail-watch-${entry.id}`}
                   >
-                    {planTruth.statusLabel}
+                    <div className="flex items-start gap-1.5">
+                      {entry.authority ? (
+                        <AuthorityChip
+                          authority={entry.authority}
+                          testId={`cockpit-activity-rail-watch-${entry.id}-authority`}
+                        />
+                      ) : null}
+                      <span className="min-w-0 flex-1">{entry.text}</span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={onNavigate}
+                        className="rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-0.5 text-[10px] font-medium text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                        data-testid={`cockpit-activity-rail-watch-${entry.id}-action`}
+                      >
+                        {WATCH_DESTINATION_LABELS[entry.destination]}
+                      </button>
+                      {entry.tradeObjective && onOpenTradeForObjective ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenTradeForObjective(entry.tradeObjective!)
+                          }
+                          className="rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-0.5 text-[10px] font-medium text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                          data-testid={`cockpit-activity-rail-watch-${entry.id}-trade`}
+                        >
+                          Open Trade
+                        </button>
+                      ) : null}
+                      {entry.tradeObjective && onOpenGuideForObjective ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenGuideForObjective(entry.tradeObjective!)
+                          }
+                          className="rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-0.5 text-[10px] font-medium text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                          data-testid={`cockpit-activity-rail-watch-${entry.id}-guide`}
+                        >
+                          Guide
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
+                );
+              })}
+              {saveAlerts.map((warning) => (
+                <div
+                  key={warning}
+                  className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-[11px] leading-4 text-cockpit-watch"
+                  data-testid="cockpit-activity-rail-alert-save"
+                >
+                  {warning}
+                </div>
+              ))}
+            </RailSection>
+          ) : null}
+
+          <RailSection
+            label="Active Work"
+            testId="cockpit-activity-rail-work"
+          >
+            {hasActiveWork ? (
+              <>
+                {tradeDraftActive ? (
                   <div
-                    className="mt-0.5 text-cockpit-text-secondary"
-                    data-testid="cockpit-activity-rail-plan-truth-detail"
+                    className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-[11px] text-cockpit-watch"
+                    data-testid="cockpit-activity-rail-trade-draft"
                   >
-                    {planTruth.detail}
-                  </div>
-                </div>
-                <TrustBadge tone={planTruth.tone}>
-                  {workspace.saveState.label}
-                </TrustBadge>
-              </div>
-              <div className="mt-2 grid grid-cols-1 gap-1 text-[10px] text-cockpit-text-secondary">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-cockpit-text-muted">Mode</span>
-                  <span
-                    className="truncate text-right"
-                    data-testid="cockpit-activity-rail-plan-truth-mode"
-                  >
-                    {planTruth.modeLabel}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-cockpit-text-muted">Switching</span>
-                  <span
-                    className="truncate text-right"
-                    data-testid="cockpit-activity-rail-plan-truth-switching"
-                  >
-                    {planTruth.switchSafetyLabel}
-                  </span>
-                </div>
-                {planTruth.lastSavedLabel ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-cockpit-text-muted">Last saved</span>
-                    <span
-                      className="truncate text-right"
-                      data-testid="cockpit-activity-rail-plan-truth-last-saved"
-                    >
-                      {planTruth.lastSavedLabel}
-                    </span>
+                    <div className="font-medium">Trade in progress</div>
+                    <div className="mt-0.5 text-[10px] text-cockpit-text-secondary">
+                      Not applied to plan yet.
+                    </div>
+                    {onResumeTradeDraft ? (
+                      <button
+                        type="button"
+                        onClick={onResumeTradeDraft}
+                        className="mt-1.5 rounded border border-cockpit-watch/40 bg-cockpit-watch/10 px-2 py-0.5 text-[10px] font-medium text-cockpit-watch hover:bg-cockpit-watch/20 focus:outline-none focus-visible:ring-1 focus-visible:ring-cockpit-watch/50"
+                        data-testid="cockpit-activity-rail-trade-draft-resume"
+                      >
+                        Resume trade
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
-              </div>
-            </div>
-            {planTruth.warnings.length > 0 ? (
-              <ul
-                className="flex flex-col gap-1"
-                data-testid="cockpit-activity-rail-plan-truth-warnings"
-              >
-                {planTruth.warnings.map((warning) => (
-                  <li
-                    key={warning}
-                    className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1 text-[10px] leading-4 text-cockpit-watch"
+                {draftPositionEditPending ? (
+                  <div
+                    className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-[11px] text-cockpit-watch"
+                    data-testid="cockpit-activity-rail-work-draft-position"
                   >
-                    {warning}
-                  </li>
-                ))}
-              </ul>
+                    <div className="font-medium">Draft position edit</div>
+                    <div className="mt-0.5 text-[10px] text-cockpit-text-secondary">
+                      Not saved yet.
+                    </div>
+                  </div>
+                ) : null}
+                {otherUnsavedWork ? (
+                  <div
+                    className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-[11px] text-cockpit-watch"
+                    data-testid="cockpit-activity-rail-work-unsaved"
+                  >
+                    <div className="font-medium">Unsaved changes</div>
+                    <div className="mt-0.5 text-[10px] text-cockpit-text-secondary">
+                      {workspace.saveState.detail}
+                    </div>
+                  </div>
+                ) : null}
+              </>
             ) : (
-              <p className="text-[10px] leading-4 text-cockpit-text-muted">
-                Nothing waiting to be saved.
+              <p
+                className="text-xs text-cockpit-text-muted"
+                data-testid="cockpit-activity-rail-work-empty"
+              >
+                Nothing in progress.
               </p>
             )}
           </RailSection>
 
-          {/* Cap posture moved OUT of the activity rail into the permanent,
-              always-on TeamPosturePanel (cockpit shell). The rail is for
-              on-demand records/moves only — never staple, must-see info. */}
           <RailSection
-            label="Recent Move Impact"
+            label="Recent Moves"
             testId="cockpit-activity-rail-receipts"
           >
             {receipt ? (
@@ -692,22 +949,71 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
                       </div>
                     ))}
                   </div>
-                ) : receiptImpact.emptyMessage ? (
-                  <p className="text-[10px] leading-4 text-cockpit-text-muted">
-                    {receiptImpact.emptyMessage}
-                  </p>
                 ) : null}
               </>
-            ) : (
-              <p className="text-xs text-cockpit-text-muted">
-                {receiptImpact.emptyMessage}
-              </p>
-            )}
+            ) : null}
+            {/* Last committed moves (capped at 5) with View full history — the
+                receipt above only renders when there is a fresh move. */}
+            <ScenarioMoveRail
+              worldId={worldId}
+              teamCode={historyTeamCode}
+              onOpenHistory={onOpenHistory}
+              onOpenHistoryEntry={onOpenHistoryEntry}
+              refreshKey={receiptGeneration}
+              highlightEventId={receipt?.eventId ?? null}
+            />
+          </RailSection>
+
+          <RailSection
+            label="Assets"
+            testId="cockpit-activity-rail-assets"
+            action={
+              <button
+                type="button"
+                onClick={() => setAssetsOpen(true)}
+                className="rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5 text-[10px] font-medium text-cockpit-text-secondary hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                data-testid="cockpit-activity-rail-assets-open"
+              >
+                View all assets
+              </button>
+            }
+          >
+            {/* Counts only — the year-by-year pick detail lives in the
+                expanded AssetsPanel (layering contract). */}
+            <dl className="flex flex-col gap-1 text-[11px]">
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-cockpit-text-muted">Draft picks</dt>
+                <dd
+                  className="m-0 truncate text-right text-cockpit-text-primary"
+                  data-testid="cockpit-activity-rail-assets-picks"
+                >
+                  {pickSummaryValue}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-cockpit-text-muted">Exceptions</dt>
+                <dd
+                  className="m-0 truncate text-right text-cockpit-text-primary"
+                  data-testid="cockpit-activity-rail-assets-exceptions"
+                >
+                  {exceptionStripValue}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-cockpit-text-muted">Roster spots</dt>
+                <dd
+                  className="m-0 truncate text-right text-cockpit-text-primary"
+                  data-testid="cockpit-activity-rail-assets-roster"
+                >
+                  {rosterSpotsValue}
+                </dd>
+              </div>
+            </dl>
           </RailSection>
 
           {pinnedPlayers.length > 0 ? (
             <RailSection
-              label="Pinned Players"
+              label="Pinned"
               testId="cockpit-activity-rail-pinned"
               action={
                 pinnedPlayers.length > 1 && onTradeAllPinned ? (
@@ -781,127 +1087,18 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
               </ul>
             </RailSection>
           ) : null}
-
-          {tradeDraftActive ? (
-            <RailSection
-              label="In Progress"
-              testId="cockpit-activity-rail-in-progress"
-              action={
-                <AuthorityChip
-                  authority={{ kind: 'local-only-preview' }}
-                  testId="cockpit-activity-rail-in-progress-authority"
-                />
-              }
-            >
-              {onResumeTradeDraft ? (
-                <button
-                  type="button"
-                  onClick={onResumeTradeDraft}
-                  className="w-full rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-left text-[11px] text-cockpit-watch transition-colors hover:bg-cockpit-watch/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-cockpit-watch/50"
-                  data-testid="cockpit-activity-rail-trade-draft"
-                  title="Resume trade draft"
-                >
-                  <span className="font-medium">Trade draft</span>
-                  <span className="text-cockpit-text-muted"> · </span>
-                  <span className="text-cockpit-text-secondary">
-                    Local until applied. Click to resume.
-                  </span>
-                </button>
-              ) : (
-                <div
-                  className="rounded border border-cockpit-watch/30 bg-cockpit-watch/5 px-2 py-1.5 text-[11px] text-cockpit-watch"
-                  data-testid="cockpit-activity-rail-trade-draft"
-                >
-                  <span className="font-medium">Trade draft</span>
-                  <span className="text-cockpit-text-muted"> · </span>
-                  <span className="text-cockpit-text-secondary">
-                    Local until applied — not committed world truth.
-                  </span>
-                </div>
-              )}
-            </RailSection>
-          ) : null}
-
-          <RailSection
-            label="Warnings & Validation"
-            testId="cockpit-activity-rail-watchlist"
-          >
-            {watch.length === 0 ? (
-              <p className="text-xs text-cockpit-text-muted">
-                No active watch items.
-              </p>
-            ) : (
-              watch.map((entry) => {
-                const onNavigate =
-                  entry.destination === 'offseason'
-                    ? onNavigateToOffseason
-                    : onNavigateToCapSheet;
-                return (
-                  <div
-                    key={entry.id}
-                    className={`rounded border px-2 py-1.5 text-[11px] ${TONE_CLASSES[entry.tone]}`}
-                    data-testid={`cockpit-activity-rail-watch-${entry.id}`}
-                  >
-                    <div className="flex items-start gap-1.5">
-                      {entry.authority ? (
-                        <AuthorityChip
-                          authority={entry.authority}
-                          testId={`cockpit-activity-rail-watch-${entry.id}-authority`}
-                        />
-                      ) : null}
-                      <span className="min-w-0 flex-1">{entry.text}</span>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={onNavigate}
-                        className="text-[10px] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-                        data-testid={`cockpit-activity-rail-watch-${entry.id}-action`}
-                      >
-                        {WATCH_DESTINATION_LABELS[entry.destination]}
-                      </button>
-                      {entry.tradeObjective && onOpenTradeForObjective ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onOpenTradeForObjective(entry.tradeObjective!)
-                          }
-                          className="text-[10px] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-                          data-testid={`cockpit-activity-rail-watch-${entry.id}-trade`}
-                        >
-                          Open Trade
-                        </button>
-                      ) : null}
-                      {entry.tradeObjective && onOpenGuideForObjective ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onOpenGuideForObjective(entry.tradeObjective!)
-                          }
-                          className="text-[10px] font-medium underline decoration-dotted underline-offset-2 hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-                          data-testid={`cockpit-activity-rail-watch-${entry.id}-guide`}
-                        >
-                          Guide
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </RailSection>
-
-          <RailSection label="World Events" testId="cockpit-activity-rail-events">
-            <ScenarioMoveRail
-              worldId={worldId}
-              teamCode={historyTeamCode}
-              onOpenHistory={onOpenHistory}
-              onOpenHistoryEntry={onOpenHistoryEntry}
-              refreshKey={receiptGeneration}
-              highlightEventId={receipt?.eventId ?? null}
-            />
-          </RailSection>
         </div>
+
+        <AssetsPanel
+          open={assetsOpen}
+          onClose={() => setAssetsOpen(false)}
+          teamLabel={workspace.team.label}
+          planLabel={planLabel}
+          draftAssets={draftAssets}
+          exceptions={exceptions}
+          roster={roster}
+          onOpenHistory={onOpenHistory}
+        />
       </aside>
     );
   }

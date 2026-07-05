@@ -107,7 +107,7 @@ describe('Architect Team Plan save-state truth', () => {
     );
     expect(
       getArchitectTeamPlanUnsafeContextExitWarnings(state, 'switch-world')
-    ).toContain('A staged trade draft is not applied.');
+    ).toContain('A trade in progress has not been applied to your plan.');
     expect(
       buildArchitectTeamPlanContextExitMessage(state, 'switch-world')
     ).toContain('Switching worlds will leave the current Team Plan context.');
@@ -159,6 +159,6 @@ describe('Architect Team Plan save-state truth', () => {
     );
 
     expect(didConfirm).toBe(false);
-    expect(confirmCalls[0]).toContain('A staged trade draft is not applied.');
+    expect(confirmCalls[0]).toContain('A trade in progress has not been applied to your plan.');
   });
 });

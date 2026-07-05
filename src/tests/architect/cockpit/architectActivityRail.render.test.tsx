@@ -13,6 +13,7 @@ import {
   deriveArchitectWorkspaceContext,
   type ArchitectWorkspaceContext,
 } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import type { CapSheet } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 import { ActivityRail } from '@/features/architect/cockpit/ActivityRail';
 import type {
   ArchitectPostActionImpact,
@@ -70,6 +71,34 @@ function withAboveSecondApron(
       isOverTax: true,
       isAtOrAboveFirstApron: true,
       isAboveSecondApron: true,
+      source: 'computeTeamCapTotals',
+    } as ArchitectWorkspaceContext['cap'],
+  };
+}
+
+/** Over the salary cap, but below tax/aprons: status-strip only. */
+function withOverSalaryCapOnly(
+  workspace: ArchitectWorkspaceContext
+): ArchitectWorkspaceContext {
+  return {
+    ...workspace,
+    cap: {
+      status: 'available',
+      season: 2025,
+      seasonLabel: '2025-26',
+      totalCapAllocations: 150_000_000,
+      salaryCap: 140_000_000,
+      capSpace: -10_000_000,
+      luxuryTax: 170_000_000,
+      taxSpace: 20_000_000,
+      firstApron: 178_000_000,
+      firstApronSpace: 28_000_000,
+      secondApron: 188_000_000,
+      secondApronSpace: 38_000_000,
+      isOverCap: true,
+      isOverTax: false,
+      isAtOrAboveFirstApron: false,
+      isAboveSecondApron: false,
       source: 'computeTeamCapTotals',
     } as ArchitectWorkspaceContext['cap'],
   };
@@ -210,13 +239,18 @@ describe('ActivityRail — Slice 1 audit', () => {
   // architectTeamPosturePanel.render.test.tsx); the rail only keeps the
   // hard-cap WATCH entry.
 
-  it('renders the empty receipt and empty watchlist copy in sandbox', () => {
+  it('shows a quiet default in sandbox: no alerts section, small active-work empty state', () => {
     renderRail();
-    expect(screen.getByText(/No recent committed actions/)).toBeInTheDocument();
-    expect(screen.getByText('No active watch items.')).toBeInTheDocument();
+    // Alerts render only when there is something meaningful to warn about.
+    expect(screen.queryByTestId('cockpit-activity-rail-alerts')).toBeNull();
+    expect(
+      screen.getByTestId('cockpit-activity-rail-work-empty')
+    ).toHaveTextContent('Nothing in progress.');
+    // Recent moves always carries the committed-move stream (stubbed here).
+    expect(screen.getByTestId('scenario-move-rail-stub')).toBeInTheDocument();
   });
 
-  it('shows Team Plan save truth and unsafe-switch warnings from saveState', () => {
+  it('shows save state in the header indicator and save warnings as alerts', () => {
     renderRail({
       workspace: deriveArchitectWorkspaceContext({
         teamId: 'LAL',
@@ -227,33 +261,34 @@ describe('ActivityRail — Slice 1 audit', () => {
       }),
     });
 
-    expect(
-      screen.getByTestId('cockpit-activity-rail-plan-truth-status')
-    ).toHaveTextContent('Save failed');
-    expect(
-      screen.getByTestId('cockpit-activity-rail-plan-truth-switching')
-    ).toHaveTextContent('You will be warned before switching');
-    expect(
-      screen.getByTestId('cockpit-activity-rail-plan-truth-warnings')
-    ).toHaveTextContent('A staged trade draft is not applied.');
-    expect(
-      screen.getByTestId('cockpit-activity-rail-plan-truth-warnings')
-    ).toHaveTextContent('The last Team Plan save failed: Permission denied');
+    const indicator = screen.getByTestId(
+      'cockpit-activity-rail-save-indicator'
+    );
+    expect(indicator).toHaveTextContent('Save failed');
+    expect(indicator).toHaveAttribute('data-save-status', 'save-failed');
+    const alerts = screen.getByTestId('cockpit-activity-rail-alerts');
+    expect(alerts).toHaveTextContent('A trade in progress has not been applied to your plan.');
+    expect(alerts).toHaveTextContent(
+      'The last Team Plan save failed: Permission denied'
+    );
   });
 
-  it('hides Pinned and In Progress sections when there is nothing to show', () => {
+  it('hides the Pinned section when there is nothing pinned', () => {
     renderRail();
     expect(screen.queryByTestId('cockpit-activity-rail-pinned')).toBeNull();
-    expect(screen.queryByTestId('cockpit-activity-rail-in-progress')).toBeNull();
   });
 
-  it('labels an in-progress trade draft as Local draft via the shared helper', () => {
+  it('uses the approved active-work language for an in-progress trade', () => {
     renderRail({ tradeDraftActive: true, onResumeTradeDraft: vi.fn() });
-    const chip = screen.getByTestId(
-      'cockpit-activity-rail-in-progress-authority'
-    );
-    expect(chip).toHaveTextContent('Local draft');
-    expect(chip).toHaveAttribute('data-authority-tone', 'local');
+    const card = screen.getByTestId('cockpit-activity-rail-trade-draft');
+    expect(card).toHaveTextContent('Trade in progress');
+    expect(card).toHaveTextContent('Not applied to plan yet.');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-trade-draft-resume')
+    ).toHaveTextContent('Resume trade');
+    expect(
+      screen.queryByTestId('cockpit-activity-rail-in-progress-authority')
+    ).toBeNull();
   });
 
   it('surfaces an above-2nd-apron danger warning that routes to the Cap Sheet', () => {
@@ -267,6 +302,18 @@ describe('ActivityRail — Slice 1 audit', () => {
       screen.getByTestId('cockpit-activity-rail-watch-apron2-action')
     );
     expect(handlers.onNavigateToCapSheet).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps over-salary-cap posture in the strip only, without a default alert', () => {
+    renderRail({
+      workspace: withOverSalaryCapOnly(makeSandboxWorkspace()),
+    });
+
+    expect(
+      screen.getByTestId('cockpit-activity-rail-strip-cap')
+    ).toHaveTextContent('Over salary cap');
+    expect(screen.queryByTestId('cockpit-activity-rail-alerts')).toBeNull();
+    expect(screen.queryByTestId('cockpit-activity-rail-watch-cap')).toBeNull();
   });
 
   it('surfaces a hard-cap watch entry when hard-capped', () => {
@@ -487,5 +534,181 @@ describe('ActivityRail — Slice 1 audit', () => {
       screen.getByTestId('cockpit-activity-rail-receipt-open-trade')
     );
     expect(onOpenTradeFromReceipt).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** Saved-world workspace with a draft-pick stash on the cap sheet. */
+function makeWorldWorkspaceWithPicks(): ArchitectWorkspaceContext {
+  return deriveArchitectWorkspaceContext({
+    teamCapSheet: {
+      teamCode: 'LAL',
+      teamName: 'Los Angeles Lakers',
+      draftPicks: [
+        { id: 'p1', year: 2026, round: 1, pick: null, owner: 'LAL' },
+        {
+          id: 'p2',
+          year: 2026,
+          round: 2,
+          pick: null,
+          owner: 'LAL',
+          originalTeam: 'BOS',
+          protection: 'Top-55',
+        },
+        {
+          id: 'p3',
+          year: 2027,
+          round: 1,
+          pick: null,
+          owner: 'LAL',
+          originalTeam: 'DEN',
+          protection: 'Top-10',
+          isSwap: true,
+        },
+        // Own pick owed to another team — shows under "Owed to other teams".
+        {
+          id: 'p4',
+          year: 2027,
+          round: 2,
+          pick: null,
+          owner: 'MIL',
+          originalTeam: 'LAL',
+        },
+      ],
+      exceptions: {
+        mle: { available: true },
+        bae: null,
+        room: null,
+        tpe: [{ id: 'tpe1', remainingAmount: 8_000_000 }],
+      },
+    } as CapSheet,
+    teamId: 'LAL',
+    currentYear: 2026,
+    worldId: 'world_hub_1',
+    activeWorldLabel: 'Deadline Reset',
+    worldCurrentSeason: '2025-26',
+    worldAsOfDate: '2026-02-01',
+    isLoading: false,
+    isSaving: false,
+    error: null,
+    worldModeBoundary: {
+      kind: 'world',
+      worldId: 'world_hub_1',
+      onReloadWorldData: vi.fn(async () => null),
+    },
+  });
+}
+
+describe('ActivityRail — Team Plan Hub (BZE-211)', () => {
+  afterEach(() => {
+    cleanup();
+    try {
+      window.localStorage.clear();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  it('shows the plan identity header: team, plan name, season', () => {
+    renderRail({ workspace: makeWorldWorkspaceWithPicks() });
+    expect(
+      screen.getByTestId('cockpit-activity-rail-identity-team')
+    ).toHaveTextContent('Los Angeles Lakers');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-identity-plan')
+    ).toHaveTextContent('Deadline Reset');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-identity-season')
+    ).toHaveTextContent('Season 2025-26 · through 2026-02-01');
+  });
+
+  it('labels a sandbox session as a what-if session, never as internal mode names', () => {
+    renderRail();
+    expect(
+      screen.getByTestId('cockpit-activity-rail-identity-plan')
+    ).toHaveTextContent('What-if session');
+  });
+
+  it('falls back to a friendly plan name and never prints the raw world id', () => {
+    const workspace = deriveArchitectWorkspaceContext({
+      teamId: 'LAL',
+      currentYear: 2026,
+      worldId: 'world_1783222375513_jlfu3g5',
+      activeWorldLabel: null,
+      isLoading: false,
+      worldModeBoundary: {
+        kind: 'world',
+        worldId: 'world_1783222375513_jlfu3g5',
+        onReloadWorldData: vi.fn(async () => null),
+      },
+    });
+    renderRail({ workspace });
+    expect(
+      screen.getByTestId('cockpit-activity-rail-identity-plan')
+    ).toHaveTextContent('Saved Team Plan');
+    expect(
+      screen.getByTestId('cockpit-activity-rail-identity').textContent
+    ).not.toContain('world_');
+  });
+
+  it('shows the status strip: cap status, roster and two-way counts, pick counts', () => {
+    renderRail({ workspace: makeWorldWorkspaceWithPicks() });
+    expect(
+      screen.getByTestId('cockpit-activity-rail-strip-cap')
+    ).toHaveTextContent('Cap Status');
+    // Pick fixture has no players → roster tile falls back to em dash.
+    expect(
+      screen.getByTestId('cockpit-activity-rail-strip-picks')
+    ).toHaveTextContent('2 · 1');
+  });
+
+  it('shows the assets summary as counts only — no year-by-year list in the drawer', () => {
+    renderRail({ workspace: makeWorldWorkspaceWithPicks() });
+    expect(
+      screen.getByTestId('cockpit-activity-rail-assets-picks')
+    ).toHaveTextContent('2 firsts · 1 seconds');
+    // The detailed stash must not be stacked in the default drawer.
+    expect(screen.queryByText(/via BOS/)).toBeNull();
+    expect(screen.queryByTestId('cockpit-assets-panel')).toBeNull();
+  });
+
+  it('opens the expanded Assets panel with the pick detail and routes pick history', () => {
+    const handlers = renderRail({ workspace: makeWorldWorkspaceWithPicks() });
+    fireEvent.click(screen.getByTestId('cockpit-activity-rail-assets-open'));
+    expect(screen.getByTestId('cockpit-assets-panel')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('cockpit-assets-panel-picks-2026-first')
+    ).toHaveTextContent('1st: Own');
+    expect(
+      screen.getByTestId('cockpit-assets-panel-picks-2026-second')
+    ).toHaveTextContent('2nd: via BOS (Top-55)');
+    expect(
+      screen.getByTestId('cockpit-assets-panel-picks-2027-first')
+    ).toHaveTextContent('1st: via DEN (Top-10) · swap');
+    // Outgoing picks and TPE amounts appear only in the expanded panel.
+    expect(
+      screen.getByTestId('cockpit-assets-panel-outgoing')
+    ).toHaveTextContent('2027 2nd — to MIL');
+    expect(screen.getByTestId('cockpit-assets-panel')).toHaveTextContent(
+      'Trade exception — $8.0M remaining'
+    );
+
+    fireEvent.click(screen.getByTestId('cockpit-assets-panel-history'));
+    expect(handlers.onOpenHistory).toHaveBeenCalledTimes(1);
+    // The panel closes itself before navigating.
+    expect(screen.queryByTestId('cockpit-assets-panel')).toBeNull();
+  });
+
+  it('closes the Assets panel with the Close button', () => {
+    renderRail({ workspace: makeWorldWorkspaceWithPicks() });
+    fireEvent.click(screen.getByTestId('cockpit-activity-rail-assets-open'));
+    fireEvent.click(screen.getByTestId('cockpit-assets-panel-close'));
+    expect(screen.queryByTestId('cockpit-assets-panel')).toBeNull();
+  });
+
+  it('shows a plain not-available summary when the cap sheet has no pick data', () => {
+    renderRail();
+    expect(
+      screen.getByTestId('cockpit-activity-rail-assets-picks')
+    ).toHaveTextContent('Not available yet');
   });
 });

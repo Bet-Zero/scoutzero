@@ -60,7 +60,7 @@ const STATUS_LABEL: Record<ArchitectTeamPlanSaveStatus, string> = {
   saved: 'Saved',
   saving: 'Saving...',
   'save-failed': 'Save failed',
-  'uncommitted-draft': 'Draft',
+  'uncommitted-draft': 'Unsaved',
   'local-only': 'Local',
 };
 
@@ -132,7 +132,7 @@ export function deriveArchitectTeamPlanSaveState({
     detail = 'Saving your changes.';
   } else if (hasUncommittedDraft) {
     status = 'uncommitted-draft';
-    detail = 'You have draft work that is not saved yet.';
+    detail = 'You have unsaved work in this plan.';
   } else {
     status = 'saved';
     detail = 'All changes are saved to your plan.';
@@ -168,9 +168,9 @@ export function getArchitectTeamPlanUnsafeContextExitWarnings(
   const warnings: string[] = [];
 
   if (includesDraftSource(saveState, 'trade-machine')) {
-    warnings.push('A staged trade draft is not applied.');
+    warnings.push('A trade in progress has not been applied to your plan.');
   } else if (saveState.hasUncommittedDraft) {
-    warnings.push('You have draft work that is not saved yet.');
+    warnings.push('You have unsaved work in this plan.');
   }
 
   if (saveState.hasSaveError) {

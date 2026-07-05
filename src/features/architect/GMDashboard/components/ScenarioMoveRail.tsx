@@ -67,7 +67,7 @@ export const ScenarioMoveRail = ({
           className="text-white/25 hover:text-white/50 text-[11px] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded px-1"
           data-testid="scenario-move-rail-open-history"
         >
-          Open History →
+          View full history →
         </button>
       </div>
 

@@ -34,7 +34,8 @@ unchanged — the Workbench wraps them externally.
 | `CockpitShell.tsx` | Composes TopBar + NavRail + Workbench + ActivityRail. Single entry point. |
 | `TopBar.tsx` | Identity (team/world/season), cap posture, roster count, mode pill, last receipt. Reuses existing WorldSelector / WorldTimeControls / season select via slots. |
 | `NavRail.tsx` | Left nav, 9 items. Collapsed 64px / expanded 220px. Pin persisted to localStorage. |
-| `ActivityRail.tsx` | Right rail. Embeds existing `ArchitectPostActionHandoff` and `ScenarioMoveRail`. Adds a read-only watchlist derived from workspace context. Collapse persisted to localStorage. |
+| `ActivityRail.tsx` | Right rail — the **Team Plan Hub** (BZE-208 Decision 1 / BZE-211). Compact overview: plan header (team · plan · season · save dot), status strip (cap / roster / two-way / picks / exceptions), alerts (only when present), active work, recent moves (`ScenarioMoveRail` + receipt when fresh), asset counts, pinned. Detail lives in `AssetsPanel` / Team History, never stacked in the drawer. Collapse persisted to localStorage. |
+| `AssetsPanel.tsx` | Expanded team-assets modal for the hub: draft-pick stash by year (own / via / protection / swap), exception availability, roster spots, pick-history link. Read-only. |
 | `Workbench.tsx` | Center area. Wraps active room in `RoomFrame` and cross-fades on tab change. |
 | `RoomFrame.tsx` | 48px section header + scrollable body. Composed by Workbench, not imported by sections. |
 | `CapPostureMeter.tsx` | Compact Cap → Tax → Apron 1 → Apron 2 track with team-total marker. |

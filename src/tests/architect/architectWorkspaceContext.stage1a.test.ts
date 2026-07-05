@@ -202,8 +202,11 @@ describe('Stage 1A Architect workspace context derivation', () => {
     if (context.exceptions.status === 'unavailable') {
       expect(context.exceptions.deferralHint).toBe('see-cap-sheet');
     }
+    // teamFixture has no draftPicks field → unavailable with see-trade-history hint
     expect(context.draftAssets.status).toBe('unavailable');
-    expect(context.draftAssets.deferralHint).toBe('see-trade-history');
+    if (context.draftAssets.status === 'unavailable') {
+      expect(context.draftAssets.deferralHint).toBe('see-trade-history');
+    }
     expect(context.recentActivity.status).toBe('deferred');
     expect(context.recentActivity.entryPoint).toBe('history-tab');
   });
@@ -286,7 +289,7 @@ describe('Stage 1A Architect workspace context derivation', () => {
     expect(context.cap.status).toBe('loading');
   });
 
-  it('uses world id as conservative fallback label when no world name is available', () => {
+  it('uses a friendly default label (never the raw world id) when no world name is available', () => {
     const context = deriveArchitectWorkspaceContext({
       teamCapSheet: teamFixture,
       currentYear: 2026,
@@ -298,7 +301,9 @@ describe('Stage 1A Architect workspace context derivation', () => {
     expect(context.world.status).toBe('available');
     if (context.world.status === 'available') {
       expect(context.world.labelSource).toBe('world-id-fallback');
-      expect(context.world.label).toMatch(/^World /);
+      expect(context.world.label).toBe('Saved Team Plan');
+      // Raw ids never leak into the display label (BZE-209 rule).
+      expect(context.world.label).not.toContain('world_');
       expect(context.world.id).toBe('world_12345678abcd');
     }
   });
@@ -382,7 +387,7 @@ describe('Stage 1C exception summary derivation', () => {
     expect(context.exceptions.status).toBe('loading');
   });
 
-  it('draft assets always carries see-trade-history deferral hint', () => {
+  it('draft assets defer to trade history when the cap sheet has no pick data', () => {
     const context = deriveArchitectWorkspaceContext({
       teamCapSheet: teamFixture,
       currentYear: 2026,
@@ -391,7 +396,102 @@ describe('Stage 1C exception summary derivation', () => {
     });
 
     expect(context.draftAssets.status).toBe('unavailable');
-    expect(context.draftAssets.deferralHint).toBe('see-trade-history');
+    if (context.draftAssets.status === 'unavailable') {
+      expect(context.draftAssets.deferralHint).toBe('see-trade-history');
+    }
+  });
+
+  it('derives the draft-pick stash from cap sheet draftPicks in GM language', () => {
+    const teamWithPicks = {
+      ...teamFixture,
+      draftPicks: [
+        // Own 2026 first — kept
+        { id: 'p1', year: 2026, round: 1, pick: null, owner: 'LAL' },
+        // Acquired 2027 first via BOS with protection — kept, labeled "via BOS"
+        {
+          id: 'p2',
+          year: 2027,
+          round: 1,
+          pick: null,
+          owner: 'LAL',
+          originalTeam: 'BOS',
+          protection: 'Top-10',
+        },
+        // Own 2026 second involved in a swap — kept, swap flagged
+        {
+          id: 'p3',
+          year: 2026,
+          round: 2,
+          pick: null,
+          owner: 'LAL',
+          originalTeam: 'LAL',
+          isSwap: true,
+        },
+        // Own pick traded away (current owner is another team) — listed as outgoing
+        {
+          id: 'p4',
+          year: 2027,
+          round: 2,
+          pick: null,
+          owner: 'MIL',
+          originalTeam: 'LAL',
+        },
+        // Another team's pick passing through the data — not this team's asset
+        {
+          id: 'p6',
+          year: 2028,
+          round: 1,
+          pick: null,
+          owner: 'BOS',
+          originalTeam: 'PHX',
+        },
+        // Past-year pick — excluded from the forward-looking stash
+        { id: 'p5', year: 2024, round: 1, pick: null, owner: 'LAL' },
+      ],
+    } as CapSheet;
+
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: teamWithPicks,
+      currentYear: 2026,
+      worldId: 'world_deadline',
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+
+    expect(context.draftAssets.status).toBe('available');
+    if (context.draftAssets.status === 'available') {
+      expect(context.draftAssets.firstRoundCount).toBe(2);
+      expect(context.draftAssets.secondRoundCount).toBe(1);
+      expect(context.draftAssets.years.map((y) => y.year)).toEqual([
+        2026, 2027,
+      ]);
+
+      const [y2026, y2027] = context.draftAssets.years;
+      expect(y2026.firstRound).toHaveLength(1);
+      expect(y2026.firstRound[0]).toMatchObject({
+        isOwn: true,
+        sourceLabel: 'Own',
+        protectionLabel: null,
+        isSwap: false,
+      });
+      expect(y2026.secondRound[0]).toMatchObject({
+        isOwn: true,
+        isSwap: true,
+      });
+
+      expect(y2027.firstRound[0]).toMatchObject({
+        isOwn: false,
+        sourceLabel: 'via BOS',
+        protectionLabel: 'Top-10',
+      });
+      // The traded-away 2027 second is not in the held stash — it lists as outgoing.
+      expect(y2027.secondRound).toHaveLength(0);
+      expect(context.draftAssets.outgoing).toHaveLength(1);
+      expect(context.draftAssets.outgoing[0]).toMatchObject({
+        year: 2027,
+        round: 2,
+        sourceLabel: 'to MIL',
+      });
+    }
   });
 
   it('recent activity always points to history tab', () => {

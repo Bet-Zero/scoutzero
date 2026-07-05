@@ -864,7 +864,7 @@ describe('E109 dashboard/world boundary behavior', () => {
 
       expect(confirmSpy).toHaveBeenCalledTimes(1);
       expect(confirmSpy.mock.calls[0]?.[0]).toContain(
-        'A staged trade draft is not applied.'
+        'A trade in progress has not been applied to your plan.'
       );
       expect(select).toHaveValue('world_alpha');
       expect(onWorldChange).not.toHaveBeenCalled();

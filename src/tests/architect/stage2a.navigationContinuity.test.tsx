@@ -80,7 +80,13 @@ const baseContext: ArchitectWorkspaceContext = {
     errorMessage: null,
   },
   saveState: deriveArchitectTeamPlanSaveState({ worldId: 'world_1' }),
-  roster: { status: 'unavailable', count: null, source: null },
+  roster: {
+    status: 'unavailable',
+    count: null,
+    standardCount: null,
+    twoWayCount: null,
+    source: null,
+  },
   cap: { status: 'unavailable', reason: 'no data' },
   exceptions: { status: 'unavailable', deferralHint: 'see-cap-sheet', reason: 'no data' },
   draftAssets: { status: 'unavailable', deferralHint: 'see-trade-history', reason: 'no data' },
@@ -127,6 +133,7 @@ const contextWithExceptions: ArchitectWorkspaceContext = {
   exceptions: {
     status: 'available',
     tpeCount: 1,
+    tpeRemainingAmounts: [],
     hasAvailableMle: true,
     hasAvailableBae: false,
     hasAvailableRoom: false,

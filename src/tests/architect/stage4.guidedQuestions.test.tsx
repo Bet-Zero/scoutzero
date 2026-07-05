@@ -74,7 +74,13 @@ const makeWorkspaceContext = (
     errorMessage: null,
   },
   saveState: deriveArchitectTeamPlanSaveState({ worldId: 'world_test' }),
-  roster: { status: 'available', count: 15, source: 'players' },
+  roster: {
+    status: 'available',
+    count: 15,
+    standardCount: 15,
+    twoWayCount: 0,
+    source: 'players',
+  },
   cap: {
     status: 'available',
     season: 2025,
@@ -97,6 +103,7 @@ const makeWorkspaceContext = (
   exceptions: {
     status: 'available',
     tpeCount: 1,
+    tpeRemainingAmounts: [],
     hasAvailableMle: true,
     hasAvailableBae: false,
     hasAvailableRoom: false,
@@ -344,7 +351,13 @@ describe('team-status answers', () => {
 
   it('roster-count flags over-limit roster as danger', () => {
     const ctx = makeWorkspaceContext({
-      roster: { status: 'available', count: 18, source: 'players' },
+      roster: {
+        status: 'available',
+        count: 18,
+        standardCount: 18,
+        twoWayCount: 0,
+        source: 'players',
+      },
     });
     const vm = deriveGuidedAnswers(baseInput({ workspaceContext: ctx }));
     const ans = vm.answers.find((a) => a.id === 'roster-count')!;
@@ -354,7 +367,13 @@ describe('team-status answers', () => {
 
   it('roster-count flags below-floor roster as warning', () => {
     const ctx = makeWorkspaceContext({
-      roster: { status: 'available', count: 12, source: 'players' },
+      roster: {
+        status: 'available',
+        count: 12,
+        standardCount: 12,
+        twoWayCount: 0,
+        source: 'players',
+      },
     });
     const vm = deriveGuidedAnswers(baseInput({ workspaceContext: ctx }));
     const ans = vm.answers.find((a) => a.id === 'roster-count')!;

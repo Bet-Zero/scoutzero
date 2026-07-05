@@ -17,7 +17,7 @@
  * - GuideSection section title is present
  * - GuideSection still renders no input, textarea, or contentEditable
  * - GuideSection navigation buttons carry navigation-only intent labelling
- * - ScenarioMoveRail history button label is "Open History →"
+ * - ScenarioMoveRail history button label is "View full history →"
  * - ArchitectWorkspaceHeader bottom row uses "·" separator copy
  */
 
@@ -117,7 +117,7 @@ const makeWorkspaceContext = (
     errorMessage: null,
   },
   saveState: deriveArchitectTeamPlanSaveState({ worldId: 'world_test' }),
-  roster: { status: 'available', count: 15, source: 'players' },
+  roster: { status: 'available', count: 15, standardCount: 15, twoWayCount: 0, source: 'players' },
   cap: {
     status: 'unavailable',
     reason: 'No cap snapshot available in this fixture.',
@@ -395,7 +395,7 @@ describe('GuideSection (Stage 5A polish)', () => {
 // ---------------------------------------------------------------------------
 
 describe('ScenarioMoveRail (Stage 5A polish)', () => {
-  it('history button reads "Open History →"', () => {
+  it('history button reads "View full history →"', () => {
     render(
       <ScenarioMoveRail
         worldId={null}
@@ -404,7 +404,7 @@ describe('ScenarioMoveRail (Stage 5A polish)', () => {
       />
     );
     const button = screen.getByTestId('scenario-move-rail-open-history');
-    expect(button).toHaveTextContent('Open History');
+    expect(button).toHaveTextContent("View full history");
     expect(button).toHaveAttribute('type', 'button');
   });
 

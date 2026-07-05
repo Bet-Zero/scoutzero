@@ -67,7 +67,7 @@ const SAVE_STATUS_LABELS: Record<ArchitectTeamPlanSaveState['status'], string> =
     saved: 'All changes saved',
     saving: 'Saving changes',
     'save-failed': 'Save failed',
-    'uncommitted-draft': 'Unsaved draft work',
+    'uncommitted-draft': 'Unsaved work',
     'local-only': 'What-if session (not saved)',
   };
 
