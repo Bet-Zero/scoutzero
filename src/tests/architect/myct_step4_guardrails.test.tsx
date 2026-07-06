@@ -406,6 +406,9 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     const breakdownSurface = within(rosterSurface).getByRole('region', {
       name: 'Selected-year canonical totals breakdown surface',
     });
+    // BZE-216: dead-money/exception tools are collapsed behind the Cap Tools
+    // toggle by default; open the drawer before asserting the control surface.
+    fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
     const controlSurface = within(rosterSurface).getByTestId(
       'cap-sheet-control-surface'
     );
@@ -490,6 +493,8 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
   it('fails closed for future years and keeps chips, disabled states, and boundary notes aligned with current-season-only exception authority', async () => {
     const { futureTotals } = renderCapSheetSection();
 
+    // BZE-216: open the Cap Tools drawer to reach the manage buttons.
+    fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
     const controlSurface = screen.getByTestId('cap-sheet-control-surface');
     fireEvent.click(
       within(controlSurface).getByRole('button', {

@@ -839,6 +839,8 @@ describe('Cap Sheet UI integration flows', () => {
 
     const beforeActionsTotal = readVisibleTotalCapHit();
 
+    // BZE-216: manage buttons live in the collapsed Cap Tools drawer.
+    fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
     fireEvent.click(screen.getByTestId('cap-sheet-manage-dead-money-button'));
 
     const deadMoneyModal = await screen.findByTestId('manage-dead-money-modal');
@@ -912,6 +914,8 @@ describe('Cap Sheet UI integration flows', () => {
   it('disables manual dead-money and exception edit buttons when no audited authority is provided', () => {
     render(<ModalFlowsHarness includeManualCapSheetMutationAuthority={false} />);
 
+    // BZE-216: manage buttons live in the collapsed Cap Tools drawer.
+    fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
     const deadMoneyButton = screen.getByTestId(
       'cap-sheet-manage-dead-money-button'
     );
@@ -961,6 +965,9 @@ describe('Cap Sheet UI integration flows', () => {
     const breakdownSurface = within(rosterSurface).getByRole('region', {
       name: 'Selected-year canonical totals breakdown surface',
     });
+    // BZE-216: dead-money/exception tools are collapsed behind the Cap Tools
+    // toggle by default; open the drawer before asserting the control surface.
+    fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
     const controlSurface = within(rosterSurface).getByTestId(
       'cap-sheet-control-surface'
     );
@@ -1144,6 +1151,8 @@ describe('Cap Sheet UI integration flows', () => {
       />
     );
 
+    // BZE-216: manage buttons live in the collapsed Cap Tools drawer.
+    fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
     fireEvent.click(screen.getByTestId('cap-sheet-manage-exceptions-button'));
     expect(
       await screen.findByTestId('manage-exceptions-modal')
@@ -1197,6 +1206,9 @@ describe('Cap Sheet UI integration flows', () => {
     const capHoldsSurface = within(rosterSurface).getByRole('region', {
       name: 'Selected-year cap holds detail surface',
     });
+    // BZE-216: dead-money/exception tools are collapsed behind the Cap Tools
+    // toggle by default; open the drawer before asserting the control surface.
+    fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
     const controlSurface = within(rosterSurface).getByTestId(
       'cap-sheet-control-surface'
     );

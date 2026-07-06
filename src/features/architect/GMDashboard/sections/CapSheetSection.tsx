@@ -150,7 +150,7 @@ const CapSheetSection = ({
     : 'text-amber-300/80';
   // (chip row removed in BZE-209 — season + boundary now read as one sentence)
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 p-2.5">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 p-2">
       <section
         aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.shellYearTruth}
         data-testid="cap-sheet-shell-year-truth-panel"

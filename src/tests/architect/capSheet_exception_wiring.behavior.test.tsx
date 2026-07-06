@@ -81,6 +81,14 @@ const getExceptionCard = (trackerSection: HTMLElement, label: string) => {
   return card as HTMLElement;
 };
 
+// BZE-216: exception cards and the TPE list are collapsed by default behind
+// the tracker banner's details toggle; expand before asserting card detail.
+const expandExceptionDetails = () => {
+  fireEvent.click(
+    screen.getByTestId('cap-sheet-exceptions-details-toggle')
+  );
+};
+
 // The exceptions modal is a status board (cards), not a table. This finds the
 // card for a given exception label within the modal.
 const getModalExceptionCard = (label: string) => {
@@ -181,6 +189,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
+    expandExceptionDetails();
     const ntMleCard = getExceptionCard(trackerSection, 'NT-MLE');
     const tpMleCard = getExceptionCard(trackerSection, 'TP-MLE');
     expect(within(ntMleCard).getByText('$0')).toBeInTheDocument();
@@ -260,6 +269,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
+    expandExceptionDetails();
 
     expect(within(trackerSection).getByText('$9,765,432')).toBeInTheDocument();
 
@@ -296,6 +306,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
+    expandExceptionDetails();
     const tpMleCard = getExceptionCard(trackerSection, 'TP-MLE');
     expect(within(tpMleCard).getByText('$4,000,000')).toBeInTheDocument();
     expect(within(tpMleCard).queryByText('$99,000,000')).not.toBeInTheDocument();
@@ -333,6 +344,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
+    expandExceptionDetails();
     const tpMleCard = getExceptionCard(trackerSection, 'TP-MLE');
     expect(within(tpMleCard).getByText('$0')).toBeInTheDocument();
     expect(within(tpMleCard).getByText('N/A')).toBeInTheDocument();
@@ -366,6 +378,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
+    expandExceptionDetails();
     const baeCard = getExceptionCard(trackerSection, 'BAE');
     expect(within(baeCard).getByText('$0')).toBeInTheDocument();
     expect(within(baeCard).getByText('N/A')).toBeInTheDocument();
@@ -397,6 +410,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
+    expandExceptionDetails();
     const mleCard = getExceptionCard(trackerSection, 'NT-MLE');
     expect(within(mleCard).getByText('$0')).toBeInTheDocument();
     expect(within(mleCard).getByText('N/A')).toBeInTheDocument();
@@ -433,6 +447,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
+    expandExceptionDetails();
     const roomCard = getExceptionCard(trackerSection, 'ROOM');
     expect(within(roomCard).getByText('$0')).toBeInTheDocument();
     expect(within(roomCard).getByText('N/A')).toBeInTheDocument();
@@ -489,6 +504,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet current-season exception authority surface'
     );
+    expandExceptionDetails();
     const roomCard = getExceptionCard(trackerSection, 'ROOM');
     expect(within(roomCard).getByText('$0')).toBeInTheDocument();
     expect(within(roomCard).getByText('N/A')).toBeInTheDocument();
@@ -722,6 +738,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const { rerender } = render(
       <ExceptionTracker teamCapSheet={{ hardCapped: 0 }} currentYear={2026} />
     );
+    expandExceptionDetails();
     expect(screen.getByText('2027-06-30')).toBeInTheDocument();
 
     hoistedMocks.tpeList = [

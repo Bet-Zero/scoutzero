@@ -287,6 +287,7 @@ export const CapSheet = ({
 }: CapSheetProps) => {
   const [internalSelectedYear, setInternalSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
+  const [showCapTools, setShowCapTools] = useState(false);
   const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
   const [showExceptionsModal, setShowExceptionsModal] = useState(false);
   const hasManualCapSheetMutationAuthority =
@@ -318,7 +319,7 @@ export const CapSheet = ({
     if (!el) return;
 
     const DEFAULT_ROW_H = 36;
-    const MIN_ROW_H = 22;
+    const MIN_ROW_H = 20;
 
     const fitRows = () => {
       el.style.setProperty('--cap-sheet-row-h', `${DEFAULT_ROW_H}px`);
@@ -343,6 +344,7 @@ export const CapSheet = ({
   }, [
     selectedYear,
     showCapHolds,
+    showCapTools,
     teamCapSheet?.players?.length,
     teamCapSheet?.capHolds?.length,
   ]);
@@ -580,6 +582,10 @@ export const CapSheet = ({
               <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold text-white/70">
                 {selectedSeasonLabel}
               </span>
+              <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold text-white/70 tabular-nums">
+                {filteredPlayers.length}{' '}
+                {filteredPlayers.length === 1 ? 'contract' : 'contracts'}
+              </span>
               {confidenceLabel ? (
                 <span
                   className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${confidenceLabel.className}`}
@@ -746,13 +752,17 @@ export const CapSheet = ({
         </div>
 
         {/* Supporting detail, control rows, and canonical totals breakdown stay
-            in one frame visually, but remain separated by ownership below. */}
+            in one frame visually, but remain separated by ownership below.
+            BZE-216 hierarchy rework: the default view keeps only the one-line
+            canonical totals bar and one slim strip; cap-hold rows and the
+            dead-money/exception tools open on demand instead of stacking
+            under the table. */}
         <div className="shrink-0 border-t border-white/10 bg-white/[0.02]">
-          {/* CANONICAL TOTALS CONSUMER SURFACE: These breakdown tiles consume
-              canonicalTotals directly and define the totals view. */}
+          {/* CANONICAL TOTALS CONSUMER SURFACE: This breakdown bar consumes
+              canonicalTotals directly and defines the totals view. */}
           <section
             aria-label={CAP_SHEET_SURFACE_LABELS.canonicalTotalsBreakdown}
-            className="border-b border-white/10 px-3 py-1.5"
+            className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1"
           >
             <p className="sr-only">
               Total Cap Hit Breakdown
@@ -763,48 +773,44 @@ export const CapSheet = ({
               from the table above plus non-player cap allocations roll into
               the total below.
             </p>
-            <div className="grid gap-1.5 md:grid-cols-[repeat(4,minmax(0,1fr))_minmax(245px,1.35fr)]">
-              <div className="rounded-md border border-white/10 bg-black/15 px-2.5 py-1">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
-                  Player Salaries
-                </p>
-                <span className="block text-[13px] font-bold text-white/80 tabular-nums">
-                  {formatCapSheetMoney(canonicalTotals.playersTotal)}
-                </span>
-              </div>
+            <div className="flex min-w-0 items-baseline gap-1.5">
+              <p className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                Player Salaries
+              </p>
+              <span className="text-xs font-bold text-white/80 tabular-nums">
+                {formatCapSheetMoney(canonicalTotals.playersTotal)}
+              </span>
+            </div>
 
-              <div className="rounded-md border border-white/10 bg-black/15 px-2.5 py-1">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+            {canonicalTotals.deadMoneyTotal > 0 && (
+              <div className="flex min-w-0 items-baseline gap-1.5">
+                <p className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-white/35">
                   Dead Money
                 </p>
-                <span className="block text-[13px] font-bold text-white/80 tabular-nums">
+                <span className="text-xs font-bold text-white/80 tabular-nums">
                   {formatCapSheetMoney(canonicalTotals.deadMoneyTotal)}
                 </span>
               </div>
+            )}
 
-              <div className="rounded-md border border-white/10 bg-black/15 px-2.5 py-1">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">
+            {canonicalTotals.capHoldsTotal > 0 && (
+              <div className="flex min-w-0 items-baseline gap-1.5">
+                <p className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-white/35">
                   Cap Holds
                 </p>
-                <span className="block text-[13px] font-bold text-white/80 tabular-nums">
+                <span className="text-xs font-bold text-white/80 tabular-nums">
                   {formatCapSheetMoney(canonicalTotals.capHoldsTotal)}
                 </span>
               </div>
+            )}
 
+            {canonicalTotals.incompleteChargesTotal > 0 && (
               <div
-                data-testid={
-                  canonicalTotals.incompleteChargesTotal > 0
-                    ? 'incomplete-roster-charge-row'
-                    : undefined
-                }
-                className={`rounded-md border px-2.5 py-1 ${
-                  canonicalTotals.incompleteChargesTotal > 0
-                    ? 'border-amber-400/25 bg-amber-500/[0.06] text-amber-200'
-                    : 'border-white/10 bg-black/15 text-white/60'
-                }`}
+                data-testid="incomplete-roster-charge-row"
+                className="flex min-w-0 items-baseline gap-1.5"
               >
                 <p
-                  className="truncate text-[9px] font-semibold uppercase tracking-wider"
+                  className="truncate text-[9px] font-semibold uppercase tracking-wider text-amber-300/80"
                   title={
                     canonicalTotals._meta?.incompleteRosterCharge?.missingSlots
                       ? `Incomplete Roster Charge — ${canonicalTotals._meta.incompleteRosterCharge.missingSlots} open ${
@@ -833,164 +839,195 @@ export const CapSheet = ({
                     </span>
                   ) : null}
                 </p>
-                <span className="block text-[13px] font-bold tabular-nums">
+                <span className="text-xs font-bold tabular-nums text-amber-200">
                   {formatCapSheetMoney(canonicalTotals.incompleteChargesTotal)}
                 </span>
               </div>
+            )}
 
-              <div
-                className="flex items-center justify-between gap-3 rounded-md border px-3 py-1"
-                style={{
-                  borderColor:
-                    'color-mix(in srgb, var(--team-secondary,#FDB927) 40%, transparent)',
-                  background:
-                    'linear-gradient(90deg, color-mix(in srgb, var(--team-primary,#4F46E5) 24%, #0B0E14), rgba(255,255,255,0.04))',
-                }}
-              >
-                <p className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider text-white">
-                  Total Cap Hit
-                  <span className="sr-only">Canonical Totals Consumer</span>
-                </p>
-                <span className="whitespace-nowrap text-base font-extrabold tracking-tight text-white tabular-nums">
-                  {formatCapSheetMoney(canonicalTotals.totalCapAllocations)}
-                </span>
-              </div>
+            <div
+              className="ml-auto flex shrink-0 items-baseline gap-2 rounded-md border px-2.5 py-0.5"
+              style={{
+                borderColor:
+                  'color-mix(in srgb, var(--team-secondary,#FDB927) 40%, transparent)',
+                background:
+                  'linear-gradient(90deg, color-mix(in srgb, var(--team-primary,#4F46E5) 24%, #0B0E14), rgba(255,255,255,0.04))',
+              }}
+            >
+              <p className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider text-white">
+                Total Cap Hit
+                <span className="sr-only">Canonical Totals Consumer</span>
+              </p>
+              <span className="whitespace-nowrap text-[15px] font-extrabold tracking-tight text-white tabular-nums">
+                {formatCapSheetMoney(canonicalTotals.totalCapAllocations)}
+              </span>
             </div>
           </section>
 
-          {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the
-              canonical capHoldsTotal without becoming a totals owner. */}
-          {displayedCapHolds.length > 0 && (
-            <section
-              aria-label={CAP_SHEET_SURFACE_LABELS.capHoldsDetail}
-              className="border-b border-white/10 bg-black/20"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1">
-                <p className="min-w-0 truncate text-[10px] text-white/50">
-                  <span className="font-semibold uppercase tracking-wider text-white/45">
-                    Cap Holds ({displayedCapHolds.length})
-                  </span>{' '}
-                  — Active cap holds are included in Total Cap Hit.
-                </p>
-                <button
-                  type="button"
-                  aria-expanded={showCapHolds}
-                  onClick={() => setShowCapHolds(!showCapHolds)}
-                  className="shrink-0 rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                >
-                  {showCapHolds ? 'Hide' : 'Show'} cap hold details
-                </button>
-              </div>
-              {showCapHolds && (
-                <div className="max-h-28 overflow-auto border-t border-white/10">
-                  <div className="divide-y divide-white/5">
-                    {displayedCapHolds.map((h) => (
-                      <div
-                        key={`${h.playerId}-${h.season}-${h.type}`}
-                        className="grid grid-cols-[2fr,1.2fr,3fr] items-center gap-2 px-3 py-1 hover:bg-white/[0.02]"
-                      >
-                        <div className="truncate text-xs text-white/70">
-                          {h.playerName || h.playerId}
-                        </div>
-                        <div className="text-xs text-white/55 tabular-nums">
-                          {formatCapSheetMoney(h.amount)}
-                        </div>
-                        <div className="truncate text-[10px] text-white/35">
-                          {h.reason || h.type || ''}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* CONTROL SURFACE: These actions mutate canonical inputs, but do not
-              own or redefine current-year totals display. */}
-          <div
-            data-testid="cap-sheet-control-surface"
-            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-1"
-          >
-            <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px] text-cockpit-text-secondary">
-              <span className="font-semibold uppercase tracking-wider text-white/45">
-                Dead Money Input
-                <span className="sr-only">
-                  Selected-Year Mutation Entry Point
-                </span>
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-medium text-white/60">
-                Input season: {selectedSeasonLabel}
-              </span>
-              <button
-                data-testid="cap-sheet-manage-dead-money-button"
-                type="button"
-                disabled={!hasManualCapSheetMutationAuthority}
-                onClick={() => {
-                  if (!hasManualCapSheetMutationAuthority) return;
-                  setShowDeadMoneyModal(true);
-                }}
-                className={`rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-all ${
-                  hasManualCapSheetMutationAuthority
-                    ? 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white'
-                    : 'cursor-not-allowed border-white/5 text-white/20'
-                }`}
+          {/* Slim secondary strip: cap-hold detail and the dead-money /
+              exception tools live behind toggles so the salary table keeps
+              the default-view space. */}
+          <div className="flex flex-wrap items-stretch border-t border-white/10">
+            {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the
+                canonical capHoldsTotal without becoming a totals owner. */}
+            {displayedCapHolds.length > 0 ? (
+              <section
+                aria-label={CAP_SHEET_SURFACE_LABELS.capHoldsDetail}
+                className="min-w-0 flex-1 bg-black/20"
               >
-                Manage Dead Money
-              </button>
-            </div>
-
-            <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px] text-cockpit-text-secondary">
-              <span className="font-semibold uppercase tracking-wider text-amber-300/80">
-                Current-Season Tools
-                <span className="sr-only">
-                  Current-Season-Only Adjacent Authority
-                </span>
-              </span>
-              <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-100/90">
-                {isViewingCurrentYear
-                  ? currentSeasonLabel
-                  : `${currentSeasonLabel} only`}
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-medium text-white/60">
-                Selected-year view: {selectedSeasonLabel}
-              </span>
-              {!isViewingCurrentYear &&
-                hasManualCapSheetMutationAuthority && (
-                  <span
-                    data-testid="cap-sheet-future-year-exception-edit-boundary"
-                    className="text-amber-300/80"
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1">
+                  <p className="min-w-0 truncate text-[10px] text-white/50">
+                    <span className="font-semibold uppercase tracking-wider text-white/45">
+                      Cap Holds ({displayedCapHolds.length})
+                    </span>
+                    <span className="sr-only">
+                      {' '}
+                      — Active cap holds are included in Total Cap Hit.
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    aria-expanded={showCapHolds}
+                    onClick={() => setShowCapHolds(!showCapHolds)}
+                    className="shrink-0 rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                   >
-                    Exception editing is only available for the current season.{' '}
-                    Viewing {selectedSeasonLabel} does not create{' '}
-                    future-year exception authority.
-                  </span>
+                    {showCapHolds ? 'Hide' : 'Show'} cap hold details
+                  </button>
+                </div>
+                {showCapHolds && (
+                  <div className="max-h-28 overflow-auto border-t border-white/10">
+                    <div className="divide-y divide-white/5">
+                      {displayedCapHolds.map((h) => (
+                        <div
+                          key={`${h.playerId}-${h.season}-${h.type}`}
+                          className="grid grid-cols-[2fr,1.2fr,3fr] items-center gap-2 px-3 py-1 hover:bg-white/[0.02]"
+                        >
+                          <div className="truncate text-xs text-white/70">
+                            {h.playerName || h.playerId}
+                          </div>
+                          <div className="text-xs text-white/55 tabular-nums">
+                            {formatCapSheetMoney(h.amount)}
+                          </div>
+                          <div className="truncate text-[10px] text-white/35">
+                            {h.reason || h.type || ''}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
+              </section>
+            ) : (
+              <p className="min-w-0 flex-1 px-3 py-1 text-[10px] text-white/30">
+                No active cap holds in {selectedSeasonLabel}.
+              </p>
+            )}
+
+            <div className="flex shrink-0 items-center gap-2 border-l border-white/10 px-3 py-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                Cap Tools
+              </span>
               <button
-                data-testid="cap-sheet-manage-exceptions-button"
+                data-testid="cap-sheet-tools-toggle"
                 type="button"
-                disabled={!canManageExceptions}
-                title={
-                  !hasManualCapSheetMutationAuthority
-                    ? undefined
-                    : !isViewingCurrentYear
-                      ? 'Exception editing is only available for the current season.'
-                      : undefined
-                }
-                onClick={() => {
-                  if (!canManageExceptions) return;
-                  setShowExceptionsModal(true);
-                }}
-                className={`rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-all ${
-                  canManageExceptions
-                    ? 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white'
-                    : 'cursor-not-allowed border-white/5 text-white/20'
-                }`}
+                aria-expanded={showCapTools}
+                aria-label={`${showCapTools ? 'Close' : 'Open'} dead money and exception tools`}
+                onClick={() => setShowCapTools(!showCapTools)}
+                className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               >
-                Manage Exceptions
+                {showCapTools ? 'Close' : 'Open'}
               </button>
             </div>
           </div>
+
+          {/* CONTROL SURFACE: These actions mutate canonical inputs, but do not
+              own or redefine current-year totals display. Opens from the Cap
+              Tools toggle so it never competes for default-view space. */}
+          {showCapTools && (
+            <div
+              data-testid="cap-sheet-control-surface"
+              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-white/10 px-3 py-1"
+            >
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px] text-cockpit-text-secondary">
+                <span className="font-semibold uppercase tracking-wider text-white/45">
+                  Dead Money Input
+                  <span className="sr-only">
+                    Selected-Year Mutation Entry Point
+                  </span>
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-medium text-white/60">
+                  Input season: {selectedSeasonLabel}
+                </span>
+                <button
+                  data-testid="cap-sheet-manage-dead-money-button"
+                  type="button"
+                  disabled={!hasManualCapSheetMutationAuthority}
+                  onClick={() => {
+                    if (!hasManualCapSheetMutationAuthority) return;
+                    setShowDeadMoneyModal(true);
+                  }}
+                  className={`rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-all ${
+                    hasManualCapSheetMutationAuthority
+                      ? 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white'
+                      : 'cursor-not-allowed border-white/5 text-white/20'
+                  }`}
+                >
+                  Manage Dead Money
+                </button>
+              </div>
+
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px] text-cockpit-text-secondary">
+                <span className="font-semibold uppercase tracking-wider text-amber-300/80">
+                  Current-Season Tools
+                  <span className="sr-only">
+                    Current-Season-Only Adjacent Authority
+                  </span>
+                </span>
+                <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-100/90">
+                  {isViewingCurrentYear
+                    ? currentSeasonLabel
+                    : `${currentSeasonLabel} only`}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-medium text-white/60">
+                  Selected-year view: {selectedSeasonLabel}
+                </span>
+                {!isViewingCurrentYear &&
+                  hasManualCapSheetMutationAuthority && (
+                    <span
+                      data-testid="cap-sheet-future-year-exception-edit-boundary"
+                      className="text-amber-300/80"
+                    >
+                      Exception editing is only available for the current season.{' '}
+                      Viewing {selectedSeasonLabel} does not create{' '}
+                      future-year exception authority.
+                    </span>
+                  )}
+                <button
+                  data-testid="cap-sheet-manage-exceptions-button"
+                  type="button"
+                  disabled={!canManageExceptions}
+                  title={
+                    !hasManualCapSheetMutationAuthority
+                      ? undefined
+                      : !isViewingCurrentYear
+                        ? 'Exception editing is only available for the current season.'
+                        : undefined
+                  }
+                  onClick={() => {
+                    if (!canManageExceptions) return;
+                    setShowExceptionsModal(true);
+                  }}
+                  className={`rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-all ${
+                    canManageExceptions
+                      ? 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white'
+                      : 'cursor-not-allowed border-white/5 text-white/20'
+                  }`}
+                >
+                  Manage Exceptions
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

@@ -176,12 +176,21 @@ export const ExceptionTracker = ({
   const currentSeasonLabel = formatSeasonLabel(currentYear);
   const resolvedSelectedYear = selectedYear ?? currentYear;
   const selectedSeasonLabel = formatSeasonLabel(resolvedSelectedYear);
+  // BZE-216 hierarchy rework: exception cards and the TPE list are secondary
+  // detail — collapsed by default behind the banner's details toggle so the
+  // cap table keeps the default-view space.
+  const [showExceptionDetails, setShowExceptionDetails] = React.useState(false);
+  const roomExceptionEligibility = React.useMemo(() => {
+    if (!teamCapSheet || !currentYear) {
+      return { eligible: false, reason: 'Missing team data' };
+    }
+    return canUseRoomException(teamCapSheet, currentYear);
+  }, [teamCapSheet, currentYear]);
 
   if (!isViewingCurrentYear) {
     return (
       <section
         aria-label={surfaceLabel}
-        className="mt-2"
       >
         <div
           data-testid="cap-sheet-future-year-boundary-panel"
@@ -220,12 +229,6 @@ export const ExceptionTracker = ({
   const hardCapStatus = getHardCapStatus(teamCapSheet, {
     capSettings: capData,
   });
-  const roomExceptionEligibility = React.useMemo(() => {
-    if (!teamCapSheet || !currentYear) {
-      return { eligible: false, reason: 'Missing team data' };
-    }
-    return canUseRoomException(teamCapSheet, currentYear);
-  }, [teamCapSheet, currentYear]);
 
   const mleException = getCanonicalExceptionAvailability(teamCapSheet, 'mle');
   const tpMleException = getCanonicalExceptionAvailability(teamCapSheet, 'tpmle');
@@ -268,12 +271,13 @@ export const ExceptionTracker = ({
   return (
     <section
       aria-label={surfaceLabel}
-      className="mt-2 space-y-1.5"
+      className="space-y-1.5"
     >
       {/* Exception cards, TPEs, and hard-cap state explain roster-building
           tools for the current season. They do not recompute the cap table's
-          selected-year totals. Single-strip banner + one combined row keep the
-          adjacent authority surface inside the review viewport (BZE-216). */}
+          selected-year totals. The banner is the whole default-view surface
+          (BZE-216 hierarchy rework): hard-cap truth and the TPE count stay
+          visible, and the card/TPE detail opens from the details toggle. */}
       <div
         data-testid="cap-sheet-current-season-authority-banner"
         className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-sky-400/15 bg-sky-500/[0.05] px-3 py-1 text-sky-100"
@@ -281,81 +285,98 @@ export const ExceptionTracker = ({
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
           Exceptions & Hard Cap
         </span>
-        <span className="min-w-0 truncate text-[10px] text-white/60">
+        <span className="sr-only">
           Always reflect the {currentSeasonLabel} season, whatever season the
           cap table shows.
         </span>
+        <HardCapCard
+          hardCapStatus={hardCapStatus}
+          hasApronData={Boolean(capData.firstApron || capData.secondApron)}
+        />
+        <span className="flex items-center gap-1.5 text-[10px] text-white/60">
+          <span>Trade Exceptions</span>
+          <span className="rounded bg-white/5 px-1.5 text-[9px] text-white/40 tabular-nums">
+            {tradeExceptions.length}
+          </span>
+        </span>
         <span className="ml-auto flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-medium">
-          <HardCapCard
-            hardCapStatus={hardCapStatus}
-            hasApronData={Boolean(capData.firstApron || capData.secondApron)}
-          />
           <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-0.5 text-sky-100/90">
             Viewing: {selectedSeasonLabel}
           </span>
           <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-0.5 text-sky-100/90">
             Current season: {currentSeasonLabel}
           </span>
+          <button
+            data-testid="cap-sheet-exceptions-details-toggle"
+            type="button"
+            aria-expanded={showExceptionDetails}
+            onClick={() => setShowExceptionDetails(!showExceptionDetails)}
+            className="rounded border border-sky-300/25 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-100 transition-colors hover:bg-sky-500/20"
+          >
+            {showExceptionDetails ? 'Hide' : 'Show'} details
+          </button>
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-[repeat(4,minmax(118px,1fr))_minmax(200px,1.3fr)]">
-        <ExceptionCard
-          label="NT-MLE"
-          amount={mleRemaining}
-          subtext="Non-Taxpayer"
-          color={mleRemaining > 0 ? 'blue' : 'gray'}
-          statusLabel={mleStatus}
-        />
-        <ExceptionCard
-          label="TP-MLE"
-          amount={tpRemaining}
-          subtext="Taxpayer"
-          color={tpRemaining > 0 ? 'green' : 'gray'}
-          statusLabel={tpStatus}
-        />
-        <ExceptionCard
-          label="BAE"
-          amount={baeRemaining}
-          subtext="Bi-Annual"
-          color={baeRemaining > 0 ? 'orange' : 'gray'}
-          statusLabel={baeStatus}
-        />
-        <ExceptionCard
-          label="ROOM"
-          amount={roomRemaining}
-          subtext="Under-Cap"
-          color={roomRemaining > 0 ? 'blue' : 'gray'}
-          statusLabel={roomStatus}
-        />
+      {showExceptionDetails && (
+        <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-[repeat(4,minmax(118px,1fr))_minmax(200px,1.3fr)]">
+          <ExceptionCard
+            label="NT-MLE"
+            amount={mleRemaining}
+            subtext="Non-Taxpayer"
+            color={mleRemaining > 0 ? 'blue' : 'gray'}
+            statusLabel={mleStatus}
+          />
+          <ExceptionCard
+            label="TP-MLE"
+            amount={tpRemaining}
+            subtext="Taxpayer"
+            color={tpRemaining > 0 ? 'green' : 'gray'}
+            statusLabel={tpStatus}
+          />
+          <ExceptionCard
+            label="BAE"
+            amount={baeRemaining}
+            subtext="Bi-Annual"
+            color={baeRemaining > 0 ? 'orange' : 'gray'}
+            statusLabel={baeStatus}
+          />
+          <ExceptionCard
+            label="ROOM"
+            amount={roomRemaining}
+            subtext="Under-Cap"
+            color={roomRemaining > 0 ? 'blue' : 'gray'}
+            statusLabel={roomStatus}
+          />
 
-        {/* Trade Exceptions compact list shares the row with the cards. */}
-        <div className="col-span-2 flex flex-col rounded-md border border-white/5 bg-[#0f0f0f] px-3 py-1.5 lg:col-span-1">
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
-              <BadgeAlert size={12} className="text-purple-400" />
-              Trade Exceptions
-            </h3>
-            <span className="rounded bg-white/5 px-1.5 text-[9px] text-white/30">
-              {tradeExceptions.length}
-            </span>
-          </div>
+          {/* Trade Exceptions compact list shares the row with the cards. */}
+          <div className="col-span-2 flex flex-col rounded-md border border-white/5 bg-[#0f0f0f] px-3 py-1.5 lg:col-span-1">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
+                <BadgeAlert size={12} className="text-purple-400" />
+                Trade Exception Detail
+              </h3>
+              <span className="rounded bg-white/5 px-1.5 text-[9px] text-white/30">
+                {tradeExceptions.length}
+              </span>
+            </div>
 
-          <div className="max-h-16 flex-1 overflow-auto">
-            {tradeExceptions.length === 0 ? (
-              <div className="py-2 text-center text-[10px] text-white/20">
-                No Active TPEs
-              </div>
-            ) : (
-              <div className="flex flex-col">
-                {tradeExceptions.map((tpe, idx) => (
-                  <CompactTradeExceptionRow key={idx} tpe={tpe} />
-                ))}
-              </div>
-            )}
+            <div className="max-h-16 flex-1 overflow-auto">
+              {tradeExceptions.length === 0 ? (
+                <div className="py-2 text-center text-[10px] text-white/20">
+                  No Active TPEs
+                </div>
+              ) : (
+                <div className="flex flex-col">
+                  {tradeExceptions.map((tpe, idx) => (
+                    <CompactTradeExceptionRow key={idx} tpe={tpe} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 };

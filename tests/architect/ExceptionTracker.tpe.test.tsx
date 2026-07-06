@@ -3,10 +3,20 @@
  * PURPOSE: Gap D guard — verifies ExceptionTracker reads TPEs via getTeamTpeList (canonical + legacy fallback).
  * OWNERSHIP: Test suite — TM-1 fixpack
  */
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { ExceptionTracker } from '@/features/architect/capSheet/ExceptionTracker/ExceptionTracker';
+
+afterEach(() => {
+  cleanup();
+});
+
+// BZE-216: the TPE list is collapsed by default behind the tracker banner's
+// details toggle; expand before asserting TPE detail.
+const expandExceptionDetails = () => {
+  fireEvent.click(screen.getByTestId('cap-sheet-exceptions-details-toggle'));
+};
 
 // Stub out capSettingsProvider to remove external dependency
 vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () => ({
@@ -50,6 +60,8 @@ describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
 
     render(<ExceptionTracker teamCapSheet={sheet} currentYear={2026} />);
 
+    expandExceptionDetails();
+
     expect(screen.getAllByText('$5,000,000').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/from Trade vs BOS/).length).toBeGreaterThan(0);
   });
@@ -68,6 +80,8 @@ describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
 
     render(<ExceptionTracker teamCapSheet={sheet} currentYear={2026} />);
 
+    expandExceptionDetails();
+
     expect(screen.getAllByText('$5,000,000').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/from Trade vs BOS/).length).toBeGreaterThan(0);
     expect(screen.queryByText('$9,000,000')).not.toBeInTheDocument();
@@ -83,6 +97,8 @@ describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
 
     render(<ExceptionTracker teamCapSheet={sheet} currentYear={2026} />);
 
+    expandExceptionDetails();
+
     expect(screen.getByText('$3,000,000')).toBeInTheDocument();
     expect(screen.getAllByText(/from Trade vs MIA/).length).toBeGreaterThan(0);
   });
@@ -93,6 +109,8 @@ describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
     };
 
     render(<ExceptionTracker teamCapSheet={sheet} currentYear={2026} />);
+
+    expandExceptionDetails();
 
     expect(screen.getByText(/No Active TPEs/)).toBeInTheDocument();
   });
