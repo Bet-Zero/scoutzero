@@ -584,9 +584,13 @@ export const GMDashboard = () => {
       if (!p || typeof p !== 'object') continue;
       const player = p as Record<string, unknown>;
       const bio = player['bio'] as Record<string, unknown> | null | undefined;
+      // Committed FA signings store the id as top-level `playerId` on the
+      // world snapshot, so it must be part of this union (BZE-218: a
+      // re-signed player otherwise reads as a Removal in Compare).
       const id =
         (typeof player['id'] === 'string' ? player['id'] : null) ??
         (typeof player['player_id'] === 'string' ? player['player_id'] : null) ??
+        (typeof player['playerId'] === 'string' ? player['playerId'] : null) ??
         (typeof bio?.['playerId'] === 'string' ? bio['playerId'] : null);
       if (id && id.trim()) ids.push(id.trim());
     }
@@ -606,6 +610,7 @@ export const GMDashboard = () => {
     currentSeason: worldCurrentSeason ?? null,
     currentRosterPlayerIds: comparisonRosterPlayerIds,
     refreshKey: postActionReceipt.generation,
+    resolvePlayerDisplayName: resolveFocusedPlayerLabel,
   });
 
   // Stage 4B: derive Front Office Guide answers from existing seams.

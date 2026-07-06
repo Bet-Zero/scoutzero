@@ -1776,8 +1776,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(page.getByTestId('comparison-roster-additions')).toContainText(
       /None detected/i
     );
+    // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
-      REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
     );
     await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
 
@@ -2044,8 +2045,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
       /1\s+player touched/i
     );
+    // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
-      REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
     );
     await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
 
@@ -2299,8 +2301,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
       /1\s+player touched/i
     );
+    // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
-      REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
     );
     await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
 
@@ -2432,8 +2435,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
       /1\s+player touched/i
     );
+    // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-additions')).toContainText(
-      REVIEW_MODE_FREE_AGENT_ID
+      REVIEW_MODE_FREE_AGENT_NAME
     );
     await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
 

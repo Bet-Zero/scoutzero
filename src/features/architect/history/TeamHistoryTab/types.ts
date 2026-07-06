@@ -140,6 +140,8 @@ export type TeamHistoryCurrentPickInventory = Record<
 export type TeamHistoryCapSheetLike = {
   teamCode?: string | null;
   waivedContracts?: TeamHistoryWaivedContractEntry[] | null;
+  /** Canonical dead-money ledger written by committed waive/buyout mutations. */
+  deadCap?: unknown[] | null;
   exceptionHistory?: TeamHistoryExceptionHistoryEntry[] | null;
   mleHistory?: TeamHistoryMLEHistoryEntry[] | null;
   pickLog?: TeamHistoryPickLogEntry[] | null;

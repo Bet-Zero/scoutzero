@@ -99,6 +99,15 @@ export function toTeamHistoryEventDisplay(
     mutationMetadata.playerId,
     metadata.playerId
   );
+  // Single-player mutations record the display name in their own metadata;
+  // merge it into the caller lookup so owner-facing copy prefers real names
+  // over raw player ids even when no external lookup is supplied (BZE-218).
+  const effectivePlayerNameLookup: Record<string, string> = {
+    ...(metadataPlayerId && metadataPlayerName
+      ? { [metadataPlayerId]: metadataPlayerName }
+      : {}),
+    ...(playerNameLookup || {}),
+  };
   const fallbackPlayerToken = metadataPlayerId || metadataPlayerName;
   const displayPlayerTokens =
     playerIds.length > 0
@@ -107,7 +116,7 @@ export function toTeamHistoryEventDisplay(
         ? [fallbackPlayerToken]
         : [];
   const playerLabels = uniqueStrings(displayPlayerTokens).map((playerToken) =>
-    formatPlayerLabel(playerToken, playerNameLookup)
+    formatPlayerLabel(playerToken, effectivePlayerNameLookup)
   );
   const firstPlayerLabel = playerLabels[0] || null;
 
@@ -153,7 +162,7 @@ export function toTeamHistoryEventDisplay(
       ? uniqueStrings(toArrayOfStrings(diffSummary.playersMoved))
       : displayPlayerTokens;
   const tradePlayerLines = tradePlayerTokens.map((playerToken) =>
-    formatPlayerLabel(playerToken, playerNameLookup)
+    formatPlayerLabel(playerToken, effectivePlayerNameLookup)
   );
   const tradePickLines =
     uniqueStrings(toArrayOfStrings(diffSummary.picksMoved)).length > 0
@@ -469,7 +478,8 @@ export function toTeamHistoryEventDisplay(
 
 export function normalizeWorldEventsForTeamHistory(
   rawEvents: GenericRecord[],
-  activeTeamCode?: string | null
+  activeTeamCode?: string | null,
+  options: Pick<TeamHistoryEventDisplayOptions, 'playerNameLookup'> = {}
 ): TeamHistoryWorldEventRow[] {
   const normalizedTeamCode = activeTeamCode
     ? String(activeTeamCode).trim()
@@ -478,6 +488,7 @@ export function normalizeWorldEventsForTeamHistory(
   const rows = (Array.isArray(rawEvents) ? rawEvents : []).map((rawInput) =>
     toTeamHistoryEventDisplay(asObject(rawInput), {
       teamCode: normalizedTeamCode,
+      playerNameLookup: options.playerNameLookup,
     })
   );
 

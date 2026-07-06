@@ -1,4 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { WaiveStretchTracker } from '@/features/architect/offseason/WaiveStretchTracker';
 import { ExceptionHistoryTracker } from '@/features/architect/capSheet/ExceptionHistoryTracker';
 import { DraftPickTracker } from '@/features/architect/offseason/DraftPickTracker';
@@ -8,15 +13,20 @@ import {
 } from '@/features/architect/history/devTeamHistoryFixtures';
 import { HistoryDetailModal } from './HistoryDetailModal';
 import type {
+  TeamHistoryCapSheetLike,
   TeamHistoryLooseTimelineEntry,
   TeamHistorySelectedEntry,
   TeamHistoryTabProps,
-  TeamHistoryTimelineSourceKey,
 } from './types';
 import {
   resolveTeamHistoryTimeline,
   buildSelectedHistoryEntry,
+  resolveWaivedContractDisplayEntries,
 } from './TeamHistoryTab.helpers';
+import {
+  createSharedWorldEventsStore,
+  type SharedWorldEventsStore,
+} from './worldEventsShare';
 import { WorldEventsTimeline } from './WorldEventsTimeline';
 
 const formatHistoryTimestamp = (value: string | null | undefined) => {
@@ -98,6 +108,31 @@ const TimelineEntryCards = ({
   </div>
 );
 
+/**
+ * World-mode waived-contracts panel: subscribes to the shared world-events
+ * store fed by WorldEventsTimeline so committed waives (including zero-dead-
+ * money ones) always appear, without a second world-events query (BZE-218).
+ */
+const WorldReconciledWaivePanel = ({
+  teamCapSheet,
+  store,
+}: {
+  teamCapSheet: TeamHistoryCapSheetLike;
+  store: SharedWorldEventsStore;
+}) => {
+  const committedWorldEvents = useSyncExternalStore(
+    store.subscribe,
+    store.get,
+    store.get
+  );
+  const entries = useMemo(
+    () =>
+      resolveWaivedContractDisplayEntries(teamCapSheet, committedWorldEvents),
+    [teamCapSheet, committedWorldEvents]
+  );
+  return <WaiveStretchTracker waivedContracts={entries} />;
+};
+
 export const TeamHistoryTab = ({
   teamCapSheet,
   worldId,
@@ -135,6 +170,18 @@ export const TeamHistoryTab = ({
       }),
     [hasActiveFixtureOverride, teamCapSheet, worldId]
   );
+
+  // Committed world events back-fill zero-dead-money waives (two-way /
+  // non-guaranteed deals) into the side panel, so it can never contradict
+  // the world-events timeline (BZE-218). The events flow from the
+  // WorldEventsTimeline's single query through this store — this component
+  // never issues a world-events query of its own (base-mode guardrail), and
+  // only the panel re-renders when events arrive.
+  const worldEventsStoreRef = useRef<SharedWorldEventsStore | null>(null);
+  if (!worldEventsStoreRef.current) {
+    worldEventsStoreRef.current = createSharedWorldEventsStore();
+  }
+  const worldEventsStore = worldEventsStoreRef.current;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-2.5 text-white">
@@ -275,6 +322,8 @@ export const TeamHistoryTab = ({
               <WorldEventsTimeline
                 worldId={worldId || ''}
                 teamCode={teamCapSheet?.teamCode || null}
+                resolvePlayerLabel={resolvePlayerLabel}
+                onEventsLoaded={worldEventsStore.set}
                 requestedHistoryEventDetail={requestedHistoryEventDetail}
                 onRequestedHistoryEventDetailHandled={
                   onRequestedHistoryEventDetailHandled
@@ -315,9 +364,18 @@ export const TeamHistoryTab = ({
             data-testid="team-history-section-waive"
             className="rounded-lg border border-white/10 bg-white/[0.035] p-3"
           >
-            <WaiveStretchTracker
-              waivedContracts={teamCapSheet.waivedContracts || []}
-            />
+            {timelineResolution.usesWorldEvents ? (
+              <WorldReconciledWaivePanel
+                teamCapSheet={teamCapSheet}
+                store={worldEventsStore}
+              />
+            ) : (
+              <WaiveStretchTracker
+                waivedContracts={resolveWaivedContractDisplayEntries(
+                  teamCapSheet
+                )}
+              />
+            )}
           </section>
 
           <section

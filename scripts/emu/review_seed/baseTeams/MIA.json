@@ -83,7 +83,7 @@
     { "id": "MIA_2027_R1", "year": 2027, "round": 1, "pick": null, "owner": "MIA", "originalTeam": "MIA", "status": "OWNED" },
     { "id": "MIA_2027_R2", "year": 2027, "round": 2, "pick": null, "owner": "MIA", "originalTeam": "MIA", "status": "OWNED" }
   ],
-  "entitlementIds": [],
+  "entitlementIds": ["MIA_2027_R1", "MIA_2027_R2"],
   "totals": {
     "salaryCap": 165472000,
     "luxuryTax": 201048000,

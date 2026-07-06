@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
+import {
+  useWorldTeamEvents,
+  type WorldEventRecord,
+} from '@/features/architect/history/hooks/useWorldTeamEvents';
 import {
   normalizeWorldEventsForTeamHistory,
   type TeamHistoryWorldEventRow,
@@ -12,6 +15,14 @@ type WorldEventsTimelineProps = {
   onSelectEntry: (entry: TeamHistoryWorldEventRow) => void;
   requestedHistoryEventDetail?: RequestedHistoryEventDetail | null;
   onRequestedHistoryEventDetailHandled?: ((requestKey: number) => void) | null;
+  /** Resolves a player id to an owner-facing display name (BZE-218). */
+  resolvePlayerLabel?: ((playerId: string) => string) | null;
+  /**
+   * Reports the loaded committed events upward so sibling panels (e.g. the
+   * waived-contracts tracker) can reconcile against them without issuing a
+   * second world-events query (BZE-218).
+   */
+  onEventsLoaded?: ((events: WorldEventRecord[]) => void) | null;
 };
 
 const formatHistoryTimestamp = (value: string | null | undefined) => {
@@ -38,6 +49,8 @@ export const WorldEventsTimeline = ({
   onSelectEntry,
   requestedHistoryEventDetail = null,
   onRequestedHistoryEventDetailHandled = null,
+  resolvePlayerLabel = null,
+  onEventsLoaded = null,
 }: WorldEventsTimelineProps) => {
   const handledRequestKeyRef = useRef<number | null>(null);
   const {
@@ -55,9 +68,50 @@ export const WorldEventsTimeline = ({
     enabled: Boolean(worldId && teamCode),
   });
 
+  // Report by content signature, not array identity: hook mocks (and any
+  // upstream memoization slip) may hand back a fresh array each render, and
+  // reporting those would loop parent setState → re-render forever.
+  const eventsSignature = useMemo(
+    () =>
+      `${events.length}:${events
+        .map((event) => String(event?.eventId ?? event?.id ?? ''))
+        .join('|')}`,
+    [events]
+  );
+  const lastReportedSignatureRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!onEventsLoaded) return;
+    if (lastReportedSignatureRef.current === eventsSignature) return;
+    lastReportedSignatureRef.current = eventsSignature;
+    onEventsLoaded(events);
+  }, [eventsSignature, events, onEventsLoaded]);
+
+  // Resolve display names for every player id in the loaded events so the
+  // timeline copy never prints raw ids when a name is known (BZE-218).
+  const playerNameLookup = useMemo(() => {
+    if (!resolvePlayerLabel) return undefined;
+    const lookup: Record<string, string> = {};
+    for (const event of events) {
+      const playerIds = (event as { playerIds?: unknown }).playerIds;
+      if (!Array.isArray(playerIds)) continue;
+      for (const rawId of playerIds) {
+        const playerId = String(rawId || '').trim();
+        if (!playerId || lookup[playerId]) continue;
+        const label = resolvePlayerLabel(playerId);
+        if (label && label !== playerId) {
+          lookup[playerId] = label;
+        }
+      }
+    }
+    return lookup;
+  }, [events, resolvePlayerLabel]);
+
   const timelineRows = useMemo(
-    () => normalizeWorldEventsForTeamHistory(events, teamCode),
-    [events, teamCode]
+    () =>
+      normalizeWorldEventsForTeamHistory(events, teamCode, {
+        playerNameLookup,
+      }),
+    [events, teamCode, playerNameLookup]
   );
 
   useEffect(() => {

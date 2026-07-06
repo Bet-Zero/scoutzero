@@ -9,7 +9,7 @@
  * No Firestore writes, no new event source, no mutation authority.
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
 import { normalizeWorldEventsForTeamHistory } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
 import { deriveComparisonViewModel } from '@/features/architect/comparison/deriveComparisonViewModel';
@@ -28,6 +28,8 @@ export interface UseArchitectComparisonViewModelArgs {
   currentRosterPlayerIds: string[];
   worldModifiedTeams?: string[] | null;
   refreshKey?: number;
+  /** Optional player id → display name resolver (e.g. playersMap-backed). */
+  resolvePlayerDisplayName?: ((playerId: string) => string | null) | null;
 }
 
 export interface UseArchitectComparisonViewModelResult {
@@ -45,6 +47,7 @@ export function useArchitectComparisonViewModel({
   currentRosterPlayerIds,
   worldModifiedTeams,
   refreshKey = 0,
+  resolvePlayerDisplayName = null,
 }: UseArchitectComparisonViewModelArgs): UseArchitectComparisonViewModelResult {
   const enabled = Boolean(worldId && teamCode);
 
@@ -68,6 +71,36 @@ export function useArchitectComparisonViewModel({
     [enabled, rawEvents, teamCode]
   );
 
+  // Names recorded on the committed events themselves (mutation metadata).
+  // These cover players who are no longer in any roster map (BZE-218).
+  const eventPlayerNames = useMemo(() => {
+    const names: Record<string, string> = {};
+    for (const rawEvent of Array.isArray(rawEvents) ? rawEvents : []) {
+      const event = rawEvent as {
+        mutationMetadata?: { playerId?: unknown; playerName?: unknown } | null;
+        metadata?: { playerId?: unknown; playerName?: unknown } | null;
+      };
+      for (const source of [event.mutationMetadata, event.metadata]) {
+        const playerId =
+          typeof source?.playerId === 'string' ? source.playerId.trim() : '';
+        const playerName =
+          typeof source?.playerName === 'string' ? source.playerName.trim() : '';
+        if (playerId && playerName && playerName !== playerId) {
+          names[playerId] = playerName;
+        }
+      }
+    }
+    return names;
+  }, [rawEvents]);
+
+  const resolveDisplayName = useCallback(
+    (playerId: string): string | null =>
+      eventPlayerNames[playerId] ??
+      resolvePlayerDisplayName?.(playerId) ??
+      null,
+    [eventPlayerNames, resolvePlayerDisplayName]
+  );
+
   const viewModel = useMemo(() => {
     if (!worldId || !teamCode) {
       return null;
@@ -81,6 +114,7 @@ export function useArchitectComparisonViewModel({
       committedEventRows: normalizedEvents,
       currentRosterPlayerIds,
       worldModifiedTeams,
+      resolvePlayerDisplayName: resolveDisplayName,
     });
   }, [
     worldId,
@@ -91,6 +125,7 @@ export function useArchitectComparisonViewModel({
     normalizedEvents,
     currentRosterPlayerIds,
     worldModifiedTeams,
+    resolveDisplayName,
   ]);
 
   if (!worldId) {

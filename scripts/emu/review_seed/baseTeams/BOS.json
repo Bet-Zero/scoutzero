@@ -6,7 +6,7 @@
   "roster": ["jayson_tatum", "jaylen_brown", "derrick_white"],
   "deadCap": [],
   "capHolds": [],
-  "entitlementIds": [],
+  "entitlementIds": ["BOS_2027_R1", "BOS_2027_R2"],
   "capSheet": {
     "totalSalary": 180000000,
     "capSpace": -40000000,

@@ -33,6 +33,23 @@ That's it! The emulator will:
 | `npm run emu:reseed:entitlements` | **Force-refresh** entitlements: deletes and re-seeds `architect_baseEntitlements` + team entitlementIds |
 | `npm run emu:reseed:baseTeams`    | **Restore** `architect_baseTeams` from staged JSON (full doc replacement)                               |
 | `npm run emu:repair:teams`        | **Fix broken teams**: restores baseTeams then patches entitlementIds                                    |
+| `npm run architect:review:world`  | Seed a realistic review **world** for an anon uid (BOS/LAL/MIA/MIN/PHX hydrated) — see below            |
+
+### architect:review:world (review-world seeder, BZE-218)
+
+Seeds an `architect_worlds/<worldId>` doc plus 30 team snapshots into the
+running Firestore emulator so world-scoped rooms (Compare, Team History,
+Trade Machine) can be reviewed in non-empty states. BOS/LAL/MIA/MIN/PHX are
+hydrated from the `review_seed` fixtures (real names, contracts, caps,
+entitlementIds); other teams get generic depth rosters. Review/test-only:
+refuses to run without `FIRESTORE_EMULATOR_HOST`.
+
+```
+npm run architect:review:up                     # harness on :5173
+# load http://localhost:5173/gm/MIA once so the anon uid exists
+npm run architect:review:world -- --uid <uid>   # prints the worldId
+# paste the printed localStorage snippet into the browser console + reload
+```
 
 ## When to Use Force-Reseed
 

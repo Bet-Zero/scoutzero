@@ -248,8 +248,10 @@ export function formatPlayerLabel(
   if (!playerToken) {
     return '';
   }
+  // Owner-facing copy: show the display name alone when it is known; the raw
+  // player id is a fallback, never a suffix (BZE-218).
   const playerName = playerNameLookup?.[playerToken];
-  return playerName ? `${playerName} (${playerToken})` : playerToken;
+  return playerName || playerToken;
 }
 
 export function readTeamCapDelta(

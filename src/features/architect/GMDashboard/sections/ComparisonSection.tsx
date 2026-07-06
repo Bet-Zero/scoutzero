@@ -121,8 +121,12 @@ const RosterList = ({
   return (
     <ul className="space-y-0.5">
       {entries.map((entry) => (
-        <li key={entry.playerId} className="text-xs text-white/70 font-mono">
-          {entry.playerId}
+        <li
+          key={entry.playerId}
+          className="text-xs text-white/70"
+          title={entry.playerId}
+        >
+          {entry.displayName || entry.playerId}
         </li>
       ))}
     </ul>

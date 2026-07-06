@@ -193,6 +193,7 @@ history/
     historyOutboundLinks.ts
     index.ts
     types.ts
+    worldEventsShare.ts
   devTeamHistoryFixtures.ts
   hooks/
     useWorldTeamEvents.ts
@@ -553,5 +554,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-07-05T12:28:24.361Z*
+*Generated on: 2026-07-06T23:31:01.635Z*
 *Auto-updated by: npm run docs*

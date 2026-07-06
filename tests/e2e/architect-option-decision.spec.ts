@@ -657,8 +657,9 @@ test.describe('ARCH-OPTION-DECISION: Full Cap Team Option saved-world proof', ()
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
       /1\s+player touched/i
     );
+    // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
-      PLAYER_ID
+      PLAYER_NAME
     );
     await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
 
@@ -866,8 +867,9 @@ test.describe('ARCH-OPTION-DECISION: Full Cap Player Option saved-world proof', 
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
       /1\s+player touched/i
     );
+    // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
-      PLAYER_OPTION_ID
+      PLAYER_OPTION_NAME
     );
     await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
 

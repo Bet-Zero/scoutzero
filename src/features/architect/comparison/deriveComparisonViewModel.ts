@@ -49,6 +49,12 @@ export interface DeriveComparisonViewModelInput {
   currentRosterPlayerIds: string[];
   /** From WorldMetadata.modifiedTeams. Best-effort; may be incomplete. */
   worldModifiedTeams?: string[] | null;
+  /**
+   * Resolves a player id to an owner-facing display name (BZE-218).
+   * Returns null/the id itself when no name is known; entries keep a null
+   * displayName in that case so the UI can fall back explicitly.
+   */
+  resolvePlayerDisplayName?: ((playerId: string) => string | null) | null;
 }
 
 const EXCEPTION_DELTA_DEFERRED = {
@@ -85,6 +91,7 @@ export function deriveComparisonViewModel(
     committedEventRows,
     currentRosterPlayerIds,
     worldModifiedTeams,
+    resolvePlayerDisplayName,
   } = input;
 
   const unavailableSummary: Stage3UnavailableSummaryEntry[] = [];
@@ -136,8 +143,24 @@ export function deriveComparisonViewModel(
   }
 
   // Roster delta
-  const { rosterAdditions, rosterRemovals, rosterChangedPlayers } =
-    deriveRosterDelta(sorted, currentRosterPlayerIds);
+  const rosterDelta = deriveRosterDelta(sorted, currentRosterPlayerIds);
+
+  // Populate display names so the UI never prints raw player ids (BZE-218).
+  const withDisplayNames = (entries: typeof rosterDelta.rosterAdditions) =>
+    entries.map((entry) => {
+      const resolved = resolvePlayerDisplayName?.(entry.playerId) ?? null;
+      return {
+        ...entry,
+        displayName:
+          resolved && resolved !== entry.playerId ? resolved : entry.displayName,
+      };
+    });
+
+  const rosterAdditions = withDisplayNames(rosterDelta.rosterAdditions);
+  const rosterRemovals = withDisplayNames(rosterDelta.rosterRemovals);
+  const rosterChangedPlayers = withDisplayNames(
+    rosterDelta.rosterChangedPlayers
+  );
 
   // Cap delta: earliest event before-totals vs most recent event after-totals
   let capTotalDelta = null;

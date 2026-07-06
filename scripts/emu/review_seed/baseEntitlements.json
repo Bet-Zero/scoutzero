@@ -1,46 +1,90 @@
 [
   {
-    "id": "LAL_2027_R1",
-    "teamCode": "LAL",
-    "originalOwner": "LAL",
-    "currentOwner": "LAL",
-    "year": 2027,
+    "id": "MIA_2027_R1",
+    "kind": "pick_ownership",
+    "holderTeam": "MIA",
+    "originalTeam": "MIA",
+    "seasonYear": 2027,
     "round": 1,
-    "type": "DRAFT_PICK",
+    "underlyingStatus": "clean",
     "protections": [],
-    "status": "OWNED"
+    "description": null
+  },
+  {
+    "id": "MIA_2027_R2",
+    "kind": "pick_ownership",
+    "holderTeam": "MIA",
+    "originalTeam": "MIA",
+    "seasonYear": 2027,
+    "round": 2,
+    "underlyingStatus": "clean",
+    "protections": [],
+    "description": null
+  },
+  {
+    "id": "MIN_2027_R1",
+    "kind": "pick_ownership",
+    "holderTeam": "MIN",
+    "originalTeam": "MIN",
+    "seasonYear": 2027,
+    "round": 1,
+    "underlyingStatus": "clean",
+    "protections": [],
+    "description": null
+  },
+  {
+    "id": "PHX_2027_R1",
+    "kind": "pick_ownership",
+    "holderTeam": "PHX",
+    "originalTeam": "PHX",
+    "seasonYear": 2027,
+    "round": 1,
+    "underlyingStatus": "clean",
+    "protections": [],
+    "description": null
+  },
+  {
+    "id": "LAL_2027_R1",
+    "kind": "pick_ownership",
+    "holderTeam": "LAL",
+    "originalTeam": "LAL",
+    "seasonYear": 2027,
+    "round": 1,
+    "underlyingStatus": "clean",
+    "protections": [],
+    "description": null
   },
   {
     "id": "LAL_2027_R2",
-    "teamCode": "LAL",
-    "originalOwner": "LAL",
-    "currentOwner": "LAL",
-    "year": 2027,
+    "kind": "pick_ownership",
+    "holderTeam": "LAL",
+    "originalTeam": "LAL",
+    "seasonYear": 2027,
     "round": 2,
-    "type": "DRAFT_PICK",
+    "underlyingStatus": "clean",
     "protections": [],
-    "status": "OWNED"
+    "description": null
   },
   {
     "id": "BOS_2027_R1",
-    "teamCode": "BOS",
-    "originalOwner": "BOS",
-    "currentOwner": "BOS",
-    "year": 2027,
+    "kind": "pick_ownership",
+    "holderTeam": "BOS",
+    "originalTeam": "BOS",
+    "seasonYear": 2027,
     "round": 1,
-    "type": "DRAFT_PICK",
+    "underlyingStatus": "clean",
     "protections": [],
-    "status": "OWNED"
+    "description": null
   },
   {
     "id": "BOS_2027_R2",
-    "teamCode": "BOS",
-    "originalOwner": "BOS",
-    "currentOwner": "BOS",
-    "year": 2027,
+    "kind": "pick_ownership",
+    "holderTeam": "BOS",
+    "originalTeam": "BOS",
+    "seasonYear": 2027,
     "round": 2,
-    "type": "DRAFT_PICK",
+    "underlyingStatus": "clean",
     "protections": [],
-    "status": "OWNED"
+    "description": null
   }
 ]

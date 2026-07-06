@@ -3,12 +3,14 @@
  * Extracted to reduce TeamHistoryTab.tsx from 955 lines.
  */
 
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import type {
   TeamHistoryCapSheetLike,
   TeamHistoryDisplayEntry,
   TeamHistoryLooseTimelineEntry,
   TeamHistorySelectedEntry,
   TeamHistoryTimelineSourceKey,
+  TeamHistoryWaivedContractEntry,
 } from './types';
 
 export type TeamHistoryTimelineResolution = {
@@ -141,6 +143,234 @@ const formatDeadCapLines = (
   return Object.entries(deadCap)
     .sort(([yearA], [yearB]) => Number(yearA) - Number(yearB))
     .map(([year, amount]) => `${year}: $${amount.toLocaleString()}`);
+};
+
+const toFiniteNumber = (value: unknown): number | null => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const formatWaiveDate = (value: unknown): string | null => {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return null;
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    return value;
+  }
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(parsed));
+};
+
+const toDeadCapYearKey = (season: unknown): string | null => {
+  const endYear = toEndYear(season);
+  if (endYear != null) {
+    return String(endYear);
+  }
+  if (typeof season === 'string' && season.trim()) {
+    return season.trim();
+  }
+  if (typeof season === 'number' && Number.isFinite(season)) {
+    return String(season);
+  }
+  return null;
+};
+
+/**
+ * Adapts one canonical team.deadCap[] ledger entry (written by committed
+ * waive/buyout mutations) into the waived-contract display shape the
+ * WaiveStretchTracker side panel renders.
+ */
+const toWaivedContractEntryFromDeadCap = (
+  item: unknown
+): TeamHistoryWaivedContractEntry | null => {
+  const record = asRecord(item);
+  if (!record) {
+    return null;
+  }
+
+  const playerId =
+    typeof record.playerId === 'string' && record.playerId.trim()
+      ? record.playerId.trim()
+      : null;
+  const playerName =
+    typeof record.playerName === 'string' && record.playerName.trim()
+      ? record.playerName.trim()
+      : null;
+
+  const deadCapByYear: Record<string, number> = {};
+  let stretched = false;
+
+  const amountByYear = record.amountByYear;
+  if (Array.isArray(amountByYear)) {
+    for (const row of amountByYear) {
+      const rowRecord = asRecord(row);
+      if (!rowRecord) continue;
+      const yearKey = toDeadCapYearKey(rowRecord.season);
+      const amount = toFiniteNumber(rowRecord.amount);
+      if (yearKey && amount != null) {
+        deadCapByYear[yearKey] = (deadCapByYear[yearKey] || 0) + amount;
+      }
+      if (rowRecord.isStretched === true) {
+        stretched = true;
+      }
+    }
+  } else {
+    const amountByYearMap = asRecord(amountByYear);
+    if (amountByYearMap) {
+      for (const [season, rawValue] of Object.entries(amountByYearMap)) {
+        const yearKey = toDeadCapYearKey(season);
+        const valueRecord = asRecord(rawValue);
+        const amount = toFiniteNumber(
+          valueRecord ? valueRecord.amount : rawValue
+        );
+        if (yearKey && amount != null) {
+          deadCapByYear[yearKey] = (deadCapByYear[yearKey] || 0) + amount;
+        }
+        if (valueRecord?.isStretched === true) {
+          stretched = true;
+        }
+      }
+    }
+  }
+
+  if (!playerId && !playerName && Object.keys(deadCapByYear).length === 0) {
+    return null;
+  }
+
+  return {
+    id: playerId,
+    name: playerName || playerId || 'Player',
+    waivedOn: formatWaiveDate(record.waiveDate),
+    stretched,
+    deadCap: deadCapByYear,
+  };
+};
+
+const WAIVE_EVENT_MUTATION_TYPES = new Set([
+  'waivePlayer',
+  'waiveAndStretch',
+  'buyoutPlayer',
+]);
+
+/**
+ * Adapts a committed waive-kind world event into the waived-contract display
+ * shape. This covers waives that produce no dead money (e.g. non-guaranteed /
+ * two-way contracts), which never reach the canonical team.deadCap[] ledger
+ * but still must not be contradicted by the side panel (BZE-218).
+ */
+const toWaivedContractEntryFromWaiveEvent = (
+  event: unknown
+): TeamHistoryWaivedContractEntry | null => {
+  const record = asRecord(event);
+  if (!record) {
+    return null;
+  }
+  const mutationType =
+    typeof record.mutationType === 'string'
+      ? record.mutationType
+      : typeof record.type === 'string'
+        ? record.type
+        : '';
+  if (!WAIVE_EVENT_MUTATION_TYPES.has(mutationType)) {
+    return null;
+  }
+
+  const mutationMetadata = asRecord(record.mutationMetadata) || {};
+  const metadata = asRecord(record.metadata) || {};
+  const playerId =
+    [mutationMetadata.playerId, metadata.playerId]
+      .map((value) => (typeof value === 'string' ? value.trim() : ''))
+      .find(Boolean) ||
+    (Array.isArray(record.playerIds) && typeof record.playerIds[0] === 'string'
+      ? record.playerIds[0].trim()
+      : '');
+  const playerName = [mutationMetadata.playerName, metadata.playerName]
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .find(Boolean);
+
+  if (!playerId && !playerName) {
+    return null;
+  }
+
+  const occurredAt =
+    typeof record.occurredAt === 'string'
+      ? record.occurredAt
+      : typeof record.timestamp === 'string'
+        ? record.timestamp
+        : null;
+  const stretched =
+    mutationMetadata.stretched === true || metadata.stretched === true;
+
+  return {
+    id: playerId || null,
+    name: playerName || playerId || 'Player',
+    waivedOn: formatWaiveDate(occurredAt),
+    stretched,
+    // Dead-money schedules belong to the canonical deadCap ledger; a waive
+    // event reaching this adapter has no ledger entry (zero dead money).
+    deadCap: {},
+  };
+};
+
+const entryDedupeKeys = (
+  entry: TeamHistoryWaivedContractEntry
+): string[] =>
+  [entry.id, entry.name]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.toLowerCase());
+
+/**
+ * Resolves the waived-contract entries the Team History side panel displays.
+ *
+ * Committed world waives write to the canonical team.deadCap[] ledger, while
+ * older data uses the legacy waivedContracts[] list, and zero-dead-money
+ * waives (non-guaranteed / two-way deals) only exist as committed world
+ * events. The side panel merges all three so it never contradicts a
+ * committed waive on the timeline (BZE-218). Canonical ledger entries win
+ * when multiple sources describe the same player.
+ */
+export const resolveWaivedContractDisplayEntries = (
+  teamCapSheet: TeamHistoryCapSheetLike = {},
+  committedWorldEvents: unknown[] = []
+): TeamHistoryWaivedContractEntry[] => {
+  const canonicalEntries = (
+    Array.isArray(teamCapSheet.deadCap) ? teamCapSheet.deadCap : []
+  )
+    .map(toWaivedContractEntryFromDeadCap)
+    .filter((entry): entry is TeamHistoryWaivedContractEntry =>
+      Boolean(entry)
+    );
+
+  const seenKeys = new Set(canonicalEntries.flatMap(entryDedupeKeys));
+
+  const eventEntries: TeamHistoryWaivedContractEntry[] = [];
+  for (const event of Array.isArray(committedWorldEvents)
+    ? committedWorldEvents
+    : []) {
+    const entry = toWaivedContractEntryFromWaiveEvent(event);
+    if (!entry) continue;
+    const keys = entryDedupeKeys(entry);
+    if (keys.some((key) => seenKeys.has(key))) continue;
+    keys.forEach((key) => seenKeys.add(key));
+    eventEntries.push(entry);
+  }
+
+  const legacyEntries = (
+    Array.isArray(teamCapSheet.waivedContracts)
+      ? teamCapSheet.waivedContracts
+      : []
+  ).filter((entry) => {
+    const legacyKeys = [entry?.id, entry?.name]
+      .filter((value): value is string => typeof value === 'string')
+      .map((value) => value.toLowerCase());
+    return !legacyKeys.some((key) => seenKeys.has(key));
+  });
+
+  return [...canonicalEntries, ...eventEntries, ...legacyEntries];
 };
 
 const buildWaivedContractTimelineEntry = (
@@ -422,9 +652,7 @@ const normalizeTimelineFromSections = (
 ): TeamHistoryLooseTimelineEntry[] => {
   const timeline: TeamHistoryLooseTimelineEntry[] = [];
 
-  const waivedContracts = Array.isArray(teamCapSheet.waivedContracts)
-    ? teamCapSheet.waivedContracts
-    : [];
+  const waivedContracts = resolveWaivedContractDisplayEntries(teamCapSheet);
   waivedContracts.forEach((entry, idx) => {
     timeline.push(buildWaivedContractTimelineEntry(teamCapSheet, entry, idx));
   });

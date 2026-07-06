@@ -6,7 +6,7 @@
   "roster": ["lebron_james", "austin_reaves", "dalton_knecht"],
   "deadCap": [],
   "capHolds": [],
-  "entitlementIds": [],
+  "entitlementIds": ["LAL_2027_R1", "LAL_2027_R2"],
   "capSheet": {
     "totalSalary": 125000000,
     "capSpace": 15000000,

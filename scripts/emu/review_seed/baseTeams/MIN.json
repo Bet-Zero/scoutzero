@@ -16,7 +16,7 @@
   "draftPicks": [
     { "id": "MIN_2027_R1", "year": 2027, "round": 1, "pick": null, "owner": "MIN", "originalTeam": "MIN", "status": "OWNED" }
   ],
-  "entitlementIds": [],
+  "entitlementIds": ["MIN_2027_R1"],
   "totals": {
     "salaryCap": 165472000,
     "luxuryTax": 201048000,

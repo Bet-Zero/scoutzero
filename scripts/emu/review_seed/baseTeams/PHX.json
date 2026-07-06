@@ -17,7 +17,7 @@
   "draftPicks": [
     { "id": "PHX_2027_R1", "year": 2027, "round": 1, "pick": null, "owner": "PHX", "originalTeam": "PHX", "status": "OWNED" }
   ],
-  "entitlementIds": [],
+  "entitlementIds": ["PHX_2027_R1"],
   "totals": {
     "salaryCap": 165472000,
     "luxuryTax": 201048000,
