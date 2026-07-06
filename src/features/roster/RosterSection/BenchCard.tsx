@@ -50,7 +50,7 @@ export const BenchCard = ({
     `/assets/headshots/${normalizedId}.png`;
 
   const innerCardClass = isArchitect
-    ? `relative flex h-32 w-24 flex-col overflow-hidden rounded-md border bg-[#10131A] text-xs shadow-[0_10px_24px_-18px_rgba(0,0,0,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 ${
+    ? `relative flex h-[6.3rem] w-[5.2rem] flex-col overflow-hidden rounded-md border bg-[#10131A] text-xs shadow-[0_10px_24px_-18px_rgba(0,0,0,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 ${
         isHighlighted
           ? 'border-amber-300/70 ring-2 ring-amber-300/30'
           : 'border-white/10'
@@ -121,13 +121,13 @@ export const BenchCard = ({
         <div
           className={
             isArchitect
-              ? 'flex h-[40px] flex-col items-center justify-center border-t border-white/10 bg-[#080B10]/95 px-1.5 py-1.5 text-center'
+              ? 'flex h-[28px] flex-col items-center justify-center border-t border-white/10 bg-[#080B10]/95 px-1 py-1 text-center'
               : 'bg-[#0f0f0f] px-2 pt-1 pb-2 h-[46px] flex flex-col items-center justify-center text-center border-t border-white/10'
           }
         >
           <PlayerNameMini
             name={player.bio?.displayName || player.name || undefined}
-            scale={isArchitect ? 0.62 : 0.77}
+            scale={isArchitect ? 0.54 : 0.77}
             firstWeightClass={isExport ? 'font-normal' : 'font-light'}
             lastWeightClass={isExport ? 'font-normal' : 'font-bold'}
           />

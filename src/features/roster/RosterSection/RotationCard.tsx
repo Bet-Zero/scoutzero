@@ -50,7 +50,7 @@ export const RotationCard = ({
     `/assets/headshots/${normalizedId}.png`;
 
   const innerCardClass = isArchitect
-    ? `relative flex h-36 w-24 flex-col overflow-hidden rounded-md border bg-[#10131A] text-xs shadow-[0_10px_26px_-18px_rgba(0,0,0,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 ${
+    ? `relative flex h-[7.2rem] w-[5.6rem] flex-col overflow-hidden rounded-md border bg-[#10131A] text-xs shadow-[0_10px_26px_-18px_rgba(0,0,0,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 ${
         isHighlighted
           ? 'border-amber-300/70 ring-2 ring-amber-300/30'
           : 'border-white/10'
@@ -121,13 +121,13 @@ export const RotationCard = ({
         <div
           className={
             isArchitect
-              ? 'flex h-[42px] flex-col items-center justify-center border-t border-white/10 bg-[#080B10]/95 px-1.5 py-1.5 text-center'
+              ? 'flex h-[30px] flex-col items-center justify-center border-t border-white/10 bg-[#080B10]/95 px-1 py-1 text-center'
               : 'bg-[#0f0f0f] px-2 pt-1 pb-2 h-[52px] flex flex-col items-center justify-center text-center border-t border-white/10'
           }
         >
           <PlayerNameMini
             name={player.bio?.displayName || player.name || undefined}
-            scale={isArchitect ? 0.66 : 0.87}
+            scale={isArchitect ? 0.58 : 0.87}
             firstWeightClass={isExport ? 'font-normal' : 'font-light'}
             lastWeightClass={isExport ? 'font-normal' : 'font-bold'}
           />

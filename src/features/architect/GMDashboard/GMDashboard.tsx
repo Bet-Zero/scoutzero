@@ -1248,6 +1248,8 @@ export const GMDashboard = () => {
       id: 'roster',
       title: 'Roster',
       subtitle: workspaceContext.team.label,
+      hideHeader: true,
+      bleed: true,
       content: (
         <RosterSection
           teamCapSheet={teamCapSheet}
@@ -1270,6 +1272,8 @@ export const GMDashboard = () => {
       id: 'cap',
       title: 'Cap Sheet',
       subtitle: workspaceContext.seasons.selectedViewingSeasonLabel ?? undefined,
+      hideHeader: true,
+      bleed: true,
       content: <CapSheetSection {...capSheetSectionSurface} />,
     },
     capfull: {
@@ -1374,6 +1378,8 @@ export const GMDashboard = () => {
     history: {
       id: 'history',
       title: 'Team History',
+      hideHeader: true,
+      bleed: true,
       content: (
         <HistorySection
           teamCapSheet={teamCapSheet}

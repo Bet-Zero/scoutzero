@@ -493,7 +493,7 @@ export const RosterVisual = ({
 
   return (
     <div
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden text-white"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden p-2.5 text-white"
       style={rosterSurfaceStyle}
     >
       <section
@@ -502,48 +502,43 @@ export const RosterVisual = ({
       >
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-1"
+          className="absolute inset-x-0 top-0 h-0.5"
           style={{
             background: `linear-gradient(90deg, ${primary}, ${secondary})`,
           }}
         />
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2.5">
             {displayName ? (
               <img
                 src={`/assets/logos/${teamKey}.png`}
                 alt=""
-                className="h-12 w-12 shrink-0 rounded-md border border-white/10 bg-black/30 object-contain p-1.5"
+                className="h-9 w-9 shrink-0 rounded-md border border-white/10 bg-black/30 object-contain p-1"
               />
             ) : null}
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/45">
-                Team Roster
-              </p>
-              <h2 className="truncate text-2xl font-black uppercase tracking-wide text-white">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
+              <h2 className="truncate text-lg font-black uppercase leading-tight tracking-wide text-white">
                 {displayName}
               </h2>
-              <p className="mt-0.5 text-xs text-cockpit-text-secondary">
-                Player-state workspace · {seasonLabel}
+              <p className="whitespace-nowrap text-[11px] text-cockpit-text-secondary">
+                <span>Team Roster</span> · {seasonLabel}
               </p>
             </div>
           </div>
 
-          <div className="grid min-w-[320px] flex-1 grid-cols-3 gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {metricTiles.map((tile) => (
               <div
                 key={tile.label}
-                className="rounded-md border border-white/10 bg-black/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                title={tile.detail}
+                className="flex items-baseline gap-1.5 rounded-md border border-white/10 bg-black/20 px-2.5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
               >
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
                   {tile.label}
-                </p>
-                <p className="mt-1 text-lg font-extrabold leading-none text-white tabular-nums">
+                </span>
+                <span className="text-sm font-extrabold leading-none text-white tabular-nums">
                   {tile.value}
-                </p>
-                <p className="mt-1 truncate text-[10px] text-white/45">
-                  {tile.detail}
-                </p>
+                </span>
               </div>
             ))}
           </div>
@@ -565,44 +560,37 @@ export const RosterVisual = ({
         data-roster-unsupported-categories="fa,expired,waived,options"
       />
 
-      <div className="mt-3 min-h-0 flex-1 overflow-auto rounded-lg border border-white/10 bg-[#070A0F] p-2.5 shadow-cockpit-slab">
-        <div className="space-y-2.5">
-          {rosterBands.map((band) => {
-            const count = rosterState.sectionCounts[band.key];
-            return (
-              <section
-                key={band.key}
-                aria-label={`${band.label} roster group`}
-                className="rounded-lg border border-white/10 bg-white/[0.035] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-              >
-                <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-extrabold uppercase tracking-wide text-white">
-                      {band.label}
-                    </h3>
-                    <p className="mt-0.5 text-[11px] text-cockpit-text-secondary">
-                      {band.detail}
-                    </p>
-                  </div>
-                  <span className="rounded-md border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/65">
-                    {count} {count === 1 ? 'player' : 'players'}
-                  </span>
-                </div>
+      <div className="mt-2 flex min-h-0 flex-1 flex-col justify-between gap-1.5 overflow-auto rounded-lg border border-white/10 bg-[#070A0F] px-2.5 py-2 shadow-cockpit-slab">
+        {rosterBands.map((band) => {
+          const count = rosterState.sectionCounts[band.key];
+          return (
+            <section
+              key={band.key}
+              aria-label={`${band.label} roster group`}
+              className="rounded-lg border border-white/10 bg-white/[0.035] px-2 pb-1.5 pt-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+            >
+              <div className="mb-1 flex flex-wrap items-baseline gap-x-2 px-1">
+                <h3 className="text-xs font-extrabold uppercase tracking-wide text-white">
+                  {band.label}
+                </h3>
+                <p className="text-[10px] text-cockpit-text-secondary">
+                  {band.detail} · {count} {count === 1 ? 'player' : 'players'}
+                </p>
+              </div>
 
-                <RosterSection
-                  players={roster[band.key]}
-                  section={band.key}
-                  {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
-                  previewSpacing
-                  variant="architect"
-                  onSelectPlayer={handleSectionSelect}
-                  isPlayerHighlighted={sectionHighlightMatcher}
-                  renderPlayerMenu={renderPlayerMenu}
-                />
-              </section>
-            );
-          })}
-        </div>
+              <RosterSection
+                players={roster[band.key]}
+                section={band.key}
+                {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+                previewSpacing
+                variant="architect"
+                onSelectPlayer={handleSectionSelect}
+                isPlayerHighlighted={sectionHighlightMatcher}
+                renderPlayerMenu={renderPlayerMenu}
+              />
+            </section>
+          );
+        })}
       </div>
     </div>
   );

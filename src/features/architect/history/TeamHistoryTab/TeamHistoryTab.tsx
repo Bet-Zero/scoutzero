@@ -137,7 +137,10 @@ export const TeamHistoryTab = ({
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden text-white">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden p-2.5 text-white">
+      {/* Single title strip: the room is named once here, then the timeline
+          starts. Scope/source chips replace the old stacked banner headings
+          (BZE-216 viewport-fit correction). */}
       <section
         data-testid={
           worldId ? 'team-history-world-banner' : 'team-history-base-banner'
@@ -148,52 +151,34 @@ export const TeamHistoryTab = ({
       >
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-cyan-300 to-amber-300"
+          className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-cyan-300 to-amber-300"
         />
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/45">
-              Team Transaction History
-            </p>
-            <h2 className="text-2xl font-black uppercase tracking-wide text-white">
-              Team Plan History
-            </h2>
-            <p className="mt-0.5 text-xs text-cockpit-text-secondary">
-              Moves saved for this Architect world and team plan.
-            </p>
-          </div>
-
-          <div className="grid min-w-[320px] flex-1 grid-cols-2 gap-2 lg:max-w-[520px]">
-            <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
-                Plan View
-              </p>
-              <p
-                data-testid="team-history-scope-label"
-                className="mt-1 text-sm font-extrabold text-white"
-              >
-                {timelineResolution.scopeLabel}
-              </p>
-            </div>
-            <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
-                History Source
-              </p>
-              <p
-                data-testid="team-history-active-source-label"
-                className={`mt-1 text-sm font-extrabold ${timelineResolution.sourceAccentClassName}`}
-              >
-                {timelineResolution.sourceLabel}
-              </p>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
+          <h2 className="whitespace-nowrap text-sm font-extrabold uppercase tracking-wide text-white">
+            Team Transaction History
+          </h2>
+          <p
+            data-testid="team-history-active-source-detail"
+            className="min-w-0 flex-1 truncate text-[11px] text-white/55"
+            title={timelineResolution.sourceDetail}
+          >
+            {timelineResolution.sourceDetail}
+          </p>
+          <span className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
+            <span
+              data-testid="team-history-scope-label"
+              className="rounded-md border border-white/10 bg-black/25 px-2 py-0.5 text-[10px] font-bold text-white/80"
+            >
+              {timelineResolution.scopeLabel}
+            </span>
+            <span
+              data-testid="team-history-active-source-label"
+              className={`rounded-md border border-white/10 bg-black/25 px-2 py-0.5 text-[10px] font-bold ${timelineResolution.sourceAccentClassName}`}
+            >
+              {timelineResolution.sourceLabel}
+            </span>
+          </span>
         </div>
-        <p
-          data-testid="team-history-active-source-detail"
-          className="border-t border-white/10 px-4 py-2 text-[11px] text-white/55"
-        >
-          {timelineResolution.sourceDetail}
-        </p>
       </section>
 
       {showDevFixturePanel && (
@@ -243,23 +228,18 @@ export const TeamHistoryTab = ({
         </section>
       )}
 
-      <div className="mt-3 grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)]">
+      <div className="mt-2 grid min-h-0 flex-1 gap-2 overflow-hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)]">
         <section
           data-testid="team-history-section-timeline"
           className="flex min-h-0 flex-col rounded-lg border border-white/10 bg-[#070A0F] shadow-cockpit-slab"
         >
-          <div className="shrink-0 border-b border-white/10 px-4 py-3">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-white">
-                  Saved Moves Timeline
-                </h3>
-                <p className="mt-0.5 text-[11px] text-cockpit-text-secondary">
-                  Click a move to inspect the saved Team Plan detail.
-                </p>
-              </div>
+          <div className="shrink-0 border-b border-white/10 px-3 py-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-white/60">
+                Saved Moves
+              </h3>
               {!timelineResolution.usesWorldEvents ? (
-                <span className="rounded-md border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/65">
+                <span className="rounded-md border border-white/10 bg-black/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/65">
                   {timelineResolution.timelineEntries.length}{' '}
                   {timelineResolution.timelineEntries.length === 1
                     ? 'entry'
@@ -272,25 +252,25 @@ export const TeamHistoryTab = ({
               timelineResolution.timelineEntries.length > 0 && (
                 <div
                   data-testid="team-history-base-truth-note"
-                  className={`mt-3 rounded border px-3 py-2 text-xs ${timelineResolution.timelineTruthClassName || 'border-white/10 bg-white/[0.03] text-white/75'}`}
+                  className={`mt-1.5 rounded border px-2.5 py-1 text-xs ${timelineResolution.timelineTruthClassName || 'border-white/10 bg-white/[0.03] text-white/75'}`}
                 >
-                  <div
+                  <span
                     data-testid="team-history-base-truth-label"
                     className="font-semibold uppercase tracking-[0.08em]"
                   >
                     {timelineResolution.timelineTruthLabel}
-                  </div>
-                  <div
+                  </span>{' '}
+                  <span
                     data-testid="team-history-base-truth-detail"
-                    className="mt-1 text-[11px]"
+                    className="text-[11px]"
                   >
                     {timelineResolution.timelineTruthDetail}
-                  </div>
+                  </span>
                 </div>
               )}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto p-3">
+          <div className="min-h-0 flex-1 overflow-auto p-2.5">
             {timelineResolution.usesWorldEvents ? (
               <WorldEventsTimeline
                 worldId={worldId || ''}
@@ -330,7 +310,7 @@ export const TeamHistoryTab = ({
           </div>
         </section>
 
-        <aside className="min-h-0 space-y-3 overflow-auto">
+        <aside className="min-h-0 space-y-2 overflow-auto">
           <section
             data-testid="team-history-section-waive"
             className="rounded-lg border border-white/10 bg-white/[0.035] p-3"

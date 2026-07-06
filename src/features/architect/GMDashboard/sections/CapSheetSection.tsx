@@ -150,29 +150,28 @@ const CapSheetSection = ({
     : 'text-amber-300/80';
   // (chip row removed in BZE-209 — season + boundary now read as one sentence)
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-2 p-2.5">
       <section
         aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.shellYearTruth}
         data-testid="cap-sheet-shell-year-truth-panel"
         data-team-plan-label={teamPlanLabel}
-        className={`shrink-0 rounded-lg border px-4 py-3 ${shellTruthToneClasses}`}
+        className={`flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1 rounded-md border px-3 py-1.5 ${shellTruthToneClasses}`}
       >
         {/* SECTION HANDOFF / SHELL TRUTH SURFACE: The dashboard seam owns
             selectedYear and top-level year signaling. Copy stays in plain GM
             language (BZE-209) while still distinguishing current-season view
-            from a future-year view. */}
-        <div>
-          <div
-            className={`text-[10px] uppercase tracking-[0.25em] ${shellTruthEyebrowClass}`}
-          >
-            Showing {selectedSeasonLabel}
-          </div>
-          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/80">
-            {isViewingCurrentYear
-              ? `All figures on this page are for the current season, ${currentSeasonLabel}.`
-              : `Salary figures below are for ${selectedSeasonLabel}. Hard cap, exceptions, and trade exceptions always reflect the current season (${currentSeasonLabel}).`}
-          </p>
-        </div>
+            from a future-year view. Single-line strip — the review viewport
+            budget belongs to the cap table itself (BZE-216). */}
+        <span
+          className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.25em] ${shellTruthEyebrowClass}`}
+        >
+          Showing {selectedSeasonLabel}
+        </span>
+        <p className="min-w-0 text-[11px] leading-snug text-white/80">
+          {isViewingCurrentYear
+            ? `All figures on this page are for the current season, ${currentSeasonLabel}.`
+            : `Salary figures below are for ${selectedSeasonLabel}. Hard cap, exceptions, and trade exceptions always reflect the current season (${currentSeasonLabel}).`}
+        </p>
       </section>
 
       <section

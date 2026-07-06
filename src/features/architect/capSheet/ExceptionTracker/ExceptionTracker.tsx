@@ -66,26 +66,22 @@ const ExceptionCard = ({
 
   return (
     <div
-      className={`relative rounded-md border px-3 py-2 flex flex-col justify-between transition-all group ${colorStyles[color]}`}
+      className={`relative flex items-center justify-between gap-1.5 rounded-md border px-2 py-1 transition-all group ${colorStyles[color]}`}
+      title={subtext}
     >
-      <div className="flex justify-between items-start mb-0.5">
-        <span className="text-[9px] uppercase tracking-widest font-bold opacity-70">
+      <span className="flex min-w-0 items-center gap-1">
+        <span className="truncate text-[9px] uppercase tracking-wide font-bold opacity-70">
           {label}
         </span>
         {statusLabel && (
-          <span className="text-[8px] uppercase tracking-wider font-bold opacity-50 border border-current px-1 rounded-sm">
+          <span className="shrink-0 text-[8px] uppercase tracking-wider font-bold opacity-50 border border-current px-1 rounded-sm">
             {statusLabel}
           </span>
         )}
-      </div>
-      <div className="text-sm font-bold tracking-tight text-white/90 tabular-nums">
+      </span>
+      <span className="whitespace-nowrap text-[11px] font-bold tracking-tight text-white/90 tabular-nums">
         ${amount.toLocaleString()}
-      </div>
-      {subtext && (
-        <div className="text-[9px] opacity-50 group-hover:opacity-80 transition-opacity">
-          {subtext}
-        </div>
-      )}
+      </span>
     </div>
   );
 };
@@ -106,8 +102,8 @@ const HardCapCard = ({ hardCapStatus, hasApronData }: HardCapCardProps) => {
 
   if (!isActive)
     return (
-      <div className="flex items-center gap-3 px-3 py-2 rounded-md border border-white/5 bg-white/[0.02] text-white/40">
-        <ShieldAlert size={14} />
+      <div className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.02] px-3 py-1 text-white/40">
+        <ShieldAlert size={13} />
         <span className="text-[10px] uppercase tracking-wider font-semibold">
           No Hard Cap Active
         </span>
@@ -115,28 +111,25 @@ const HardCapCard = ({ hardCapStatus, hasApronData }: HardCapCardProps) => {
     );
 
   return (
-    <div className="flex flex-col gap-1 px-3 py-2 rounded-md border border-red-500/20 bg-red-500/5 text-red-400">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ShieldAlert size={14} className="text-red-500" />
-          <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-widest font-bold text-red-100">
-              Hard Capped
-            </span>
-            {ceilingLabel && (
-              <span className="text-[8px] uppercase tracking-widest text-red-300/70">
-                {ceilingLabel}
-              </span>
-            )}
-          </div>
-        </div>
-        <span className="text-xs font-bold tabular-nums text-red-100">
-          {limitAmount !== null ? `$${limitAmount.toLocaleString()}` : '—'}
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-1 text-red-400">
+      <ShieldAlert size={13} className="shrink-0 text-red-500" />
+      <span className="text-[10px] uppercase tracking-widest font-bold text-red-100">
+        Hard Capped
+      </span>
+      {ceilingLabel && (
+        <span className="text-[9px] uppercase tracking-widest text-red-300/70">
+          {ceilingLabel}
         </span>
-      </div>
-      <div className="text-[9px] text-red-400/70 pl-6 leading-tight max-w-[200px]">
+      )}
+      <span className="text-xs font-bold tabular-nums text-red-100">
+        {limitAmount !== null ? `$${limitAmount.toLocaleString()}` : '—'}
+      </span>
+      <span
+        className="min-w-0 flex-1 truncate text-right text-[9px] leading-tight text-red-400/70"
+        title={description}
+      >
         {description}
-      </div>
+      </span>
     </div>
   );
 };
@@ -150,7 +143,7 @@ const CompactTradeExceptionRow = ({ tpe }: CompactTradeExceptionRowProps) => {
     tpe.expiresOn || tpe.expirationDate || tpe.expires || '—';
 
   return (
-    <div className="grid grid-cols-[80px_1fr_auto] gap-3 items-center py-2 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-all group relative overflow-hidden">
+    <div className="grid grid-cols-[80px_1fr_auto] gap-3 items-center py-1 px-2 border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-all group relative overflow-hidden">
       {/* "Spice" - left accent */}
       <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-purple-500/50 opacity-0 group-hover:opacity-100 transition-opacity" />
 
@@ -188,27 +181,27 @@ export const ExceptionTracker = ({
     return (
       <section
         aria-label={surfaceLabel}
-        className="mt-4"
+        className="mt-2"
       >
         <div
           data-testid="cap-sheet-future-year-boundary-panel"
-          className="rounded-md border border-amber-400/20 bg-amber-500/5 px-4 py-4 text-amber-100"
+          className="rounded-md border border-amber-400/20 bg-amber-500/5 px-3 py-2 text-amber-100"
         >
-          <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
-            Exceptions & Hard Cap
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-medium">
-            <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-amber-100/90">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
+              Exceptions & Hard Cap
+            </span>
+            <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-100/90">
               Viewing: {selectedSeasonLabel}
             </span>
-            <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-amber-100/90">
+            <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-100/90">
               Applies to {currentSeasonLabel} only
             </span>
           </div>
-          <h3 className="mt-3 text-sm font-semibold text-amber-100">
+          <h3 className="mt-1.5 text-xs font-semibold text-amber-100">
             Hard-cap and exception details aren't shown for future seasons.
           </h3>
-          <p className="mt-2 text-xs leading-relaxed text-amber-100/70">
+          <p className="mt-1 text-[11px] leading-snug text-amber-100/70">
             These numbers always reflect the {currentSeasonLabel} season. The
             cap table can show {selectedSeasonLabel} totals, but hard-cap,
             exception, and trade-exception details only apply to{' '}
@@ -275,95 +268,83 @@ export const ExceptionTracker = ({
   return (
     <section
       aria-label={surfaceLabel}
-      className="mt-4 space-y-3"
+      className="mt-2 space-y-1.5"
     >
       {/* Exception cards, TPEs, and hard-cap state explain roster-building
           tools for the current season. They do not recompute the cap table's
-          selected-year totals. */}
+          selected-year totals. Single-strip banner + one combined row keep the
+          adjacent authority surface inside the review viewport (BZE-216). */}
       <div
         data-testid="cap-sheet-current-season-authority-banner"
-        className="rounded-md border border-sky-400/15 bg-sky-500/[0.05] px-4 py-3 text-sky-100"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-sky-400/15 bg-sky-500/[0.05] px-3 py-1 text-sky-100"
       >
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-sky-300/80">
-              Exceptions & Hard Cap
-            </div>
-            <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/80">
-              Hard-cap, exception, and trade-exception details reflect the{' '}
-              {currentSeasonLabel} season. Viewing {selectedSeasonLabel} totals
-              in the cap table doesn't change them.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-[10px] font-medium">
-            <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2.5 py-1 text-sky-100/90">
-              Viewing: {selectedSeasonLabel}
-            </span>
-            <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2.5 py-1 text-sky-100/90">
-              Current season: {currentSeasonLabel}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr,1fr]">
-        {/* Left Column: Exceptions & Hard Cap Info */}
-        <div className="flex flex-col gap-3">
-          {/* Hard Cap Section */}
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
+          Exceptions & Hard Cap
+        </span>
+        <span className="min-w-0 truncate text-[10px] text-white/60">
+          Always reflect the {currentSeasonLabel} season, whatever season the
+          cap table shows.
+        </span>
+        <span className="ml-auto flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-medium">
           <HardCapCard
             hardCapStatus={hardCapStatus}
             hasApronData={Boolean(capData.firstApron || capData.secondApron)}
           />
+          <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-0.5 text-sky-100/90">
+            Viewing: {selectedSeasonLabel}
+          </span>
+          <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-0.5 text-sky-100/90">
+            Current season: {currentSeasonLabel}
+          </span>
+        </span>
+      </div>
 
-          {/* Exception Stats Grid */}
-          <div className="grid grid-cols-4 gap-2">
-            <ExceptionCard
-              label="NT-MLE"
-              amount={mleRemaining}
-              subtext="Non-Taxpayer"
-              color={mleRemaining > 0 ? 'blue' : 'gray'}
-              statusLabel={mleStatus}
-            />
-            <ExceptionCard
-              label="TP-MLE"
-              amount={tpRemaining}
-              subtext="Taxpayer"
-              color={tpRemaining > 0 ? 'green' : 'gray'}
-              statusLabel={tpStatus}
-            />
-            <ExceptionCard
-              label="BAE"
-              amount={baeRemaining}
-              subtext="Bi-Annual"
-              color={baeRemaining > 0 ? 'orange' : 'gray'}
-              statusLabel={baeStatus}
-            />
-            <ExceptionCard
-              label="ROOM"
-              amount={roomRemaining}
-              subtext="Under-Cap"
-              color={roomRemaining > 0 ? 'blue' : 'gray'}
-              statusLabel={roomStatus}
-            />
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-[repeat(4,minmax(118px,1fr))_minmax(200px,1.3fr)]">
+        <ExceptionCard
+          label="NT-MLE"
+          amount={mleRemaining}
+          subtext="Non-Taxpayer"
+          color={mleRemaining > 0 ? 'blue' : 'gray'}
+          statusLabel={mleStatus}
+        />
+        <ExceptionCard
+          label="TP-MLE"
+          amount={tpRemaining}
+          subtext="Taxpayer"
+          color={tpRemaining > 0 ? 'green' : 'gray'}
+          statusLabel={tpStatus}
+        />
+        <ExceptionCard
+          label="BAE"
+          amount={baeRemaining}
+          subtext="Bi-Annual"
+          color={baeRemaining > 0 ? 'orange' : 'gray'}
+          statusLabel={baeStatus}
+        />
+        <ExceptionCard
+          label="ROOM"
+          amount={roomRemaining}
+          subtext="Under-Cap"
+          color={roomRemaining > 0 ? 'blue' : 'gray'}
+          statusLabel={roomStatus}
+        />
 
-        {/* Right Column: Trade Exceptions Compact List */}
-        <div className="bg-[#0f0f0f] border border-white/5 rounded-md p-3 flex flex-col h-full min-h-[140px]">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-[10px] font-bold text-white/50 tracking-widest uppercase flex items-center gap-1.5">
+        {/* Trade Exceptions compact list shares the row with the cards. */}
+        <div className="col-span-2 flex flex-col rounded-md border border-white/5 bg-[#0f0f0f] px-3 py-1.5 lg:col-span-1">
+          <div className="flex items-center justify-between">
+            <h3 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
               <BadgeAlert size={12} className="text-purple-400" />
               Trade Exceptions
             </h3>
-            <span className="bg-white/5 text-white/30 px-1.5 rounded text-[9px]">
+            <span className="rounded bg-white/5 px-1.5 text-[9px] text-white/30">
               {tradeExceptions.length}
             </span>
           </div>
 
-          <div className="flex-1 overflow-visible">
+          <div className="max-h-16 flex-1 overflow-auto">
             {tradeExceptions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-white/20 py-4">
-                <span className="text-[10px]">No Active TPEs</span>
+              <div className="py-2 text-center text-[10px] text-white/20">
+                No Active TPEs
               </div>
             ) : (
               <div className="flex flex-col">
