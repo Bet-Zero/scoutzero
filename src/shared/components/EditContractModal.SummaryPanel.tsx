@@ -32,10 +32,11 @@ export const ContractSummaryPanel = ({
   currentYear,
   freeAgencyYears = [],
 }: ContractSummaryPanelProps) => (
-  // No internal scroll — the panel sizes to its content so every contract
-  // year stays visible.
-  <div className="w-full lg:w-[35%] bg-[#161616] border-r border-white/10 flex flex-col">
-    <div className="flex flex-1 flex-col px-8 pt-5 pb-6">
+  // The panel sizes to its content so every contract year stays visible;
+  // overflow-y is a safety net for short (720p) viewports where the modal
+  // itself is height-capped and would otherwise hard-clip the year list.
+  <div className="w-full lg:w-[35%] bg-[#161616] border-r border-white/10 flex min-h-0 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-8 pt-5 pb-6">
       <div className="text-center mb-4">
         <div className="text-2xl font-bold text-white tracking-tight">
           {formatCurrency(summary.totalValue)}{' '}

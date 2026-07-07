@@ -112,35 +112,46 @@ const FreeAgencySection = ({
     }
   };
 
+  const hasOfferSheets =
+    (incomingOfferSheets?.length ?? 0) > 0 ||
+    (outgoingOfferSheets?.length ?? 0) > 0;
+
   return (
-    <div>
+    <div className="flex h-full min-h-0 flex-col gap-2 px-4 py-3">
       {/*
         OFFER-SHEET SECTION CONTRACT: lifecycle actions are persist-only world
         mutations. This wrapper renders the published gating state and routes
         UI events into the lifecycle owner; it does not own those mutations.
       */}
-      {offerSheetSectionAvailability.actionsDisabled &&
+      {hasOfferSheets &&
+      offerSheetSectionAvailability.actionsDisabled &&
       offerSheetLifecycleDisabledReason ? (
-        <p className="text-xs text-amber-400 mb-2">
+        <p className="shrink-0 text-xs text-amber-400">
           {offerSheetLifecycleDisabledReason}
         </p>
       ) : null}
 
-      {/* Incoming Offers (Home Team View) */}
-      <OfferSheetList
-        {...incomingOfferSheetSurface}
-        onLifecycleAction={handleOfferSheetLifecycleAction}
-        actionsDisabled={offerSheetSectionAvailability.actionsDisabled}
-        actionsDisabledReason={offerSheetLifecycleDisabledReason}
-      />
+      {/* Offer-sheet surfaces stay pinned above the pool but never eat the
+          room: they cap at ~1/4 of the viewport and scroll internally. */}
+      {hasOfferSheets ? (
+        <div className="max-h-[180px] shrink-0 space-y-2 overflow-y-auto">
+          {/* Incoming Offers (Home Team View) */}
+          <OfferSheetList
+            {...incomingOfferSheetSurface}
+            onLifecycleAction={handleOfferSheetLifecycleAction}
+            actionsDisabled={offerSheetSectionAvailability.actionsDisabled}
+            actionsDisabledReason={offerSheetLifecycleDisabledReason}
+          />
 
-      {/* Outgoing Offers (Offering Team View) */}
-      <OfferSheetList
-        {...outgoingOfferSheetSurface}
-        onLifecycleAction={handleOfferSheetLifecycleAction}
-        actionsDisabled={offerSheetSectionAvailability.actionsDisabled}
-        actionsDisabledReason={offerSheetLifecycleDisabledReason}
-      />
+          {/* Outgoing Offers (Offering Team View) */}
+          <OfferSheetList
+            {...outgoingOfferSheetSurface}
+            onLifecycleAction={handleOfferSheetLifecycleAction}
+            actionsDisabled={offerSheetSectionAvailability.actionsDisabled}
+            actionsDisabledReason={offerSheetLifecycleDisabledReason}
+          />
+        </div>
+      ) : null}
 
       {/* FREE-AGENT POOL CONTRACT: the pool only receives the modal/rendering
           slice of the broader Free Agency action contract. Offer-sheet

@@ -96,7 +96,7 @@ function getOfferSheetLifecycleSurfaceState(
       return {
         kind: 'info',
         text: 'Matched by Home Team',
-        className: 'text-xs text-blue-600 font-medium',
+        className: 'text-xs text-blue-300 font-medium',
       };
     case 'outgoing:PENDING_MATCH':
       return {
@@ -124,20 +124,22 @@ export const OfferSheetList = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-6">
-      <h3 className="text-lg font-bold mb-4">{title}</h3>
+    <div className="rounded-md border border-white/10 bg-cockpit-slab px-3 py-2">
+      <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/55">
+        {title}
+      </h3>
       {actionsDisabled && (
-        <p className="text-xs text-amber-700 mb-3">{actionsDisabledReason}</p>
+        <p className="mb-2 text-xs text-amber-400">{actionsDisabledReason}</p>
       )}
-      <table className="w-full text-left text-sm">
+      <table className="w-full text-left text-xs text-white/80">
         <thead>
-          <tr className="border-b">
-            <th className="py-2">Player</th>
-            <th className="py-2">{getOfferSheetCounterpartyLabel(surfaceRole)}</th>
-            <th className="py-2">Terms</th>
-            <th className="py-2">Status</th>
-            <th className="py-2">Date</th>
-            <th className="py-2 text-right">Actions</th>
+          <tr className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40">
+            <th className="py-1 font-semibold">Player</th>
+            <th className="py-1 font-semibold">{getOfferSheetCounterpartyLabel(surfaceRole)}</th>
+            <th className="py-1 font-semibold">Terms</th>
+            <th className="py-1 font-semibold">Status</th>
+            <th className="py-1 font-semibold">Date</th>
+            <th className="py-1 text-right font-semibold">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -150,32 +152,32 @@ export const OfferSheetList = ({
             return (
               <tr
                 key={os.id}
-                className="border-b last:border-0 hover:bg-gray-50"
+                className="border-b border-white/5 last:border-0 hover:bg-white/[0.04]"
               >
-                <td className="py-3 font-medium">{os.playerName}</td>
-                <td className="py-3">
+                <td className="py-1.5 font-medium text-white">{os.playerName}</td>
+                <td className="py-1.5">
                   {getOfferSheetCounterpartyCode(os, surfaceRole)}
                 </td>
-                <td className="py-3">
+                <td className="py-1.5 tabular-nums">
                   {os.contractYears}y / {formatCurrency(os.totalValue)}
                 </td>
-                <td className="py-3">
+                <td className="py-1.5">
                   <span
-                    className={`px-2 py-1 rounded text-xs font-bold
-                    ${os.status === 'MATCHED' ? 'bg-blue-100 text-blue-800' : ''}
-                    ${os.status === 'DECLINED' ? 'bg-red-100 text-red-800' : ''}
-                    ${os.status === 'PENDING_MATCH' ? 'bg-yellow-100 text-yellow-800' : ''}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold
+                    ${os.status === 'MATCHED' ? 'bg-blue-500/20 text-blue-200' : ''}
+                    ${os.status === 'DECLINED' ? 'bg-red-500/20 text-red-200' : ''}
+                    ${os.status === 'PENDING_MATCH' ? 'bg-yellow-500/20 text-yellow-100' : ''}
                   `}
                   >
                     {os.status.replace('_', ' ')}
                   </span>
                 </td>
-                <td className="py-3 text-gray-500">
+                <td className="py-1.5 text-white/45">
                   {new Date(
                     os.createdAt as string | number | Date
                   ).toLocaleDateString()}
                 </td>
-                <td className="py-3 text-right space-x-2">
+                <td className="py-1.5 text-right space-x-2">
                   {lifecycleSurfaceState.kind === 'actions' &&
                     lifecycleSurfaceState.actions.map((action) => (
                       <button

@@ -471,19 +471,18 @@ export const FreeAgentPool = ({
   ]);
 
   return (
-    <div className="text-white">
-      <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
+    <div className="flex h-full min-h-0 flex-1 flex-col text-white">
       <section
         data-testid="free-agent-pool-management"
         aria-label="Free-agent pool management"
-        className="mb-3 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2"
+        className="mb-2 shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
-              Pool Builder
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-white/65">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-white">
+              Free Agent Pool
+            </h2>
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-white/65">
               <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
                 {selectedEntries.length} selected
               </span>
@@ -564,7 +563,7 @@ export const FreeAgentPool = ({
           </div>
         </div>
         {poolManagement?.disabledReason || poolManagementMessage ? (
-          <p className="mt-2 text-[11px] text-white/45">
+          <p className="mt-1 text-[11px] text-white/45">
             {poolManagementMessage || poolManagement?.disabledReason}
           </p>
         ) : null}
@@ -577,15 +576,15 @@ export const FreeAgentPool = ({
         totalCount={allAgents.length}
       />
 
-      <FreeAgentPoolHeader />
-
       <SelectedFreeAgentCards
         selectedEntries={selectedEntries}
         onOpenContractModal={openContractModal}
         onRemove={handleRemove}
       />
 
-      <ul className="space-y-[3px] mb-4 px-6">
+      <FreeAgentPoolHeader />
+
+      <ul className="min-h-0 flex-1 space-y-[3px] overflow-y-auto pb-2">
         {filteredEntries.length === 0 ? (
           <li className="text-center text-sm text-white/60 py-4">No matches</li>
         ) : (

@@ -848,7 +848,10 @@ export const EditContractModal = ({
           />
 
           {/* === RIGHT PANEL: Actions === */}
-          <div className="w-full lg:w-[65%] p-8 bg-[#0f0f0f] flex flex-col overflow-y-auto">
+          {/* Footer stays pinned below the scrollable action content so
+              Cancel/Confirm never leave the viewport at short (720p) heights. */}
+          <div className="w-full lg:w-[65%] bg-[#0f0f0f] flex min-h-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-8 pb-2">
           <h2 className="text-xl font-bold text-white mb-4">
             Available Actions
           </h2>
@@ -1002,8 +1005,10 @@ export const EditContractModal = ({
             </div>
           )}
 
+          </div>
+
           {/* Footer Buttons */}
-          <div className="mt-auto pt-6 flex justify-end gap-3">
+          <div className="flex shrink-0 justify-end gap-3 px-8 py-4">
             <button
               onClick={onClose}
               disabled={isSubmitting}

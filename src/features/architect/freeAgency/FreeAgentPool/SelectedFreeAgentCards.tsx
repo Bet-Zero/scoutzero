@@ -1,6 +1,8 @@
 /**
  * FILE: src/features/architect/freeAgency/FreeAgentPool/SelectedFreeAgentCards.tsx
- * PURPOSE: Selected free-agent card strip rendered above the pool list.
+ * PURPOSE: Selected free-agent decision deck docked between the filters and the
+ *          pool list. Fixed-height region so the pool always stays on screen at
+ *          the 1280×720 review viewport; overflows internally beyond two rows.
  * OWNERSHIP: Feature: architect/freeAgency
  */
 import React from 'react';
@@ -21,15 +23,20 @@ export const SelectedFreeAgentCards = ({
   if (selectedEntries.length === 0) return null;
 
   return (
-    <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 flex flex-wrap gap-4">
-      {selectedEntries.map((entry) => (
-        <FreeAgentCard
-          key={entry.selectionKey}
-          entry={entry}
-          onOpenContractModal={onOpenContractModal}
-          onRemove={onRemove}
-        />
-      ))}
+    <div
+      data-testid="selected-free-agent-deck"
+      className="mb-2 max-h-[236px] shrink-0 overflow-y-auto rounded-md border border-cockpit-info/25 bg-white/[0.03] p-2"
+    >
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-2">
+        {selectedEntries.map((entry) => (
+          <FreeAgentCard
+            key={entry.selectionKey}
+            entry={entry}
+            onOpenContractModal={onOpenContractModal}
+            onRemove={onRemove}
+          />
+        ))}
+      </div>
     </div>
   );
 };

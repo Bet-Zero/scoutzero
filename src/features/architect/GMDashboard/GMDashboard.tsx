@@ -1368,6 +1368,8 @@ export const GMDashboard = () => {
     fa: {
       id: 'fa',
       title: 'Free Agency',
+      hideHeader: true,
+      bleed: true,
       content: <FreeAgencySection {...freeAgencySectionSurface} />,
     },
     offseason: {

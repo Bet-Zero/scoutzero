@@ -6,7 +6,7 @@
 import React from 'react';
 
 export const FreeAgentPoolHeader = () => (
-  <div className="px-6 mb-1">
+  <div className="mb-1 shrink-0">
     <div className="mr-2 flex h-5 items-center text-[11px] font-semibold text-cockpit-text-muted">
       <div className="w-[45px] text-center">POS</div>
       <div className="w-[50px] text-center ml-1">TEAM</div>

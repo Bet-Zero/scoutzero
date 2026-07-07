@@ -1,10 +1,16 @@
 /**
  * FILE: src/features/architect/freeAgency/FreeAgentPool/FreeAgentCard.tsx
  * PURPOSE: Authoritative selected-player card renderer for the Free Agent Pool surface.
+ *          Compact horizontal decision card: identity, prior salary, signing
+ *          context, and an always-visible Sign action sized for the selected
+ *          deck at the 1280×720 review viewport.
  * OWNERSHIP: Feature: architect/freeAgency
  *
  * HISTORY:
  *  - 2026-03-14: Migrated from JSX during TM_VALIDATOR_TS_FREE_AGENT_POOL_SURFACE_E86 execution.
+ *  - 2026-07-07: BZE-222 selected-player pass — vertical trading card reworked
+ *    into a horizontal deck card so every selected player keeps its Sign action
+ *    on screen at 720p.
  *
  * LINKS:
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENT_POOL_SURFACE_E86_RETURN_PACKAGE.md
@@ -28,7 +34,6 @@ export const FreeAgentCard = ({
   onRemove,
 }: FreeAgentCardProps) => {
   const { surfacePlayer: player } = entry;
-  // Logic from FreeAgentRow to format name/headshot
   const formattedName =
     player.bio?.displayName || player.displayName || player.name || '';
   const nameParts = formattedName.split(' ');
@@ -36,53 +41,39 @@ export const FreeAgentCard = ({
   const lastName = nameParts.slice(1).join(' ') || '';
 
   const rawPosition = player.bio?.position || player.formattedPosition || '';
-  // Simple mapping if utils not available, or just render raw.
-  // Assuming getPlayerPositionLabel isn't strictly needed for the simplified card or we can key off raw.
-  // Let's try to match row style but keep it simple.
 
   const formatHeight = (inches: number | string | null | undefined) => {
     if (!inches || inches === 0) return null;
     const numericInches = Number(inches);
-    if (Number.isNaN(numericInches)) return null;
+    if (Number.isNaN(numericInches)) return inches;
     return `${Math.floor(numericInches / 12)}-${numericInches % 12}`;
   };
 
-  const height = formatHeight(player.bio?.height) || player.height || '—';
-  const weight = player.bio?.weight || player.weight || '—';
+  const height =
+    formatHeight(player.bio?.height) ||
+    player.height ||
+    entry.freeAgent.height ||
+    '—';
+  const weight =
+    player.bio?.weight || player.weight || entry.freeAgent.weight || '—';
 
   const prevSalaryValue = player.previousSalary || player.askingSalary;
   const prevSalary =
     prevSalaryValue != null ? `$${prevSalaryValue.toLocaleString()}` : 'N/A';
 
   const signingContext = getFreeAgentSigningContext(entry);
-  const rights = signingContext.rightsLabel;
 
   return (
-    <div className="w-[180px] bg-[#1a1a1a] rounded-lg border border-white/10 overflow-hidden flex flex-col relative group hover:border-white/30 transition-colors">
-      {/* Remove Button (top right) */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove(entry.selectionKey);
-        }}
-        className="absolute top-1 right-1 z-10 w-6 h-6 rounded-full bg-black/50 hover:bg-red-500/80 text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        ✕
-      </button>
-
-      {/* Headshot Area */}
-      <div className="h-[140px] w-full bg-[#151515] relative flex items-end justify-center pt-2">
-        {/* Team Logo Background/Overlay */}
+    <div className="flex h-[104px] items-stretch overflow-hidden rounded-md border border-white/10 bg-cockpit-slab transition-colors hover:border-white/30">
+      {/* Headshot */}
+      <div className="relative w-[84px] shrink-0 bg-cockpit-inlay">
         {player.teamCode && (
-          <div className="absolute top-2 left-2 opacity-20 z-0">
-            <img
-              src={`/assets/logos/${getTeamLogoId(player.teamCode)}.png`}
-              className="h-8 w-8 object-contain"
-              alt=""
-            />
-          </div>
+          <img
+            src={`/assets/logos/${getTeamLogoId(player.teamCode)}.png`}
+            className="absolute left-1 top-1 z-0 h-5 w-5 object-contain opacity-30"
+            alt=""
+          />
         )}
-
         <img
           src={
             player.headshotUrl ||
@@ -97,68 +88,72 @@ export const FreeAgentCard = ({
             }.png`
           }
           onError={(e) => {
-            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/assets/headshots/default.png';
           }}
           alt={formattedName}
-          className="h-full object-contain relative z-1"
+          className="relative z-1 h-full w-full object-cover"
         />
+      </div>
 
-        {/* Name Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2 pt-8">
-          <div className="font-anton font-bold uppercase text-white text-lg leading-none">
-            {firstName} <span className="text-white/70 block">{lastName}</span>
+      {/* Identity + signing context */}
+      <div className="flex min-w-0 flex-1 flex-col justify-between px-3 py-2">
+        <div className="min-w-0">
+          <div className="truncate font-anton font-bold uppercase leading-none text-white text-[17px]">
+            {firstName} <span className="font-light text-white/70">{lastName}</span>
           </div>
-          <div className="text-[10px] text-white/60 font-mono mt-1 flex justify-between">
-            <span>{rawPosition}</span>
-            <span>{rights !== 'None' ? rights : ''}</span>
+          <div className="mt-1 flex items-center gap-2 whitespace-nowrap font-mono text-[10px] text-white/50">
+            <span>{rawPosition || '—'}</span>
+            <span className="text-white/25">|</span>
+            <span>
+              {height} · {weight !== '—' ? `${weight} lbs` : '—'}
+            </span>
           </div>
+        </div>
+        <div
+          data-testid="free-agent-card-signing-context"
+          className="flex flex-wrap items-center gap-1.5 text-[10px] leading-tight"
+        >
+          <span className="rounded-sm border border-white/10 bg-black/25 px-1.5 py-0.5 text-white/75">
+            {signingContext.rightsLabel}
+          </span>
+          <span className="rounded-sm border border-cyan-300/15 bg-cyan-400/[0.07] px-1.5 py-0.5 text-cyan-100/85">
+            {signingContext.laneLabel}
+          </span>
+          {signingContext.capHoldLabel && (
+            <span className="rounded-sm border border-amber-300/15 bg-amber-400/[0.06] px-1.5 py-0.5 text-amber-100/85">
+              {signingContext.capHoldLabel}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Info Body */}
-      <div className="p-3 bg-[#1a1a1a] flex-1 flex flex-col gap-2">
-        <div className="flex justify-between items-center text-xs text-white/50 border-b border-white/5 pb-2">
-          <span>
-            {height} | {weight}lbs
-          </span>
-        </div>
-        <div className="text-center py-1">
-          <div className="text-[10px] uppercase text-white/40 font-semibold mb-0.5">
-            Previous Salary
-          </div>
-          <div className="text-sm font-mono text-white/90">{prevSalary}</div>
-        </div>
-
-        <div
-          data-testid="free-agent-card-signing-context"
-          className="rounded-md border border-white/10 bg-black/20 px-2 py-2 text-[10px] leading-tight text-white/60"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="uppercase tracking-wider text-white/35">Rights</span>
-            <span className="truncate text-white/85">{signingContext.rightsLabel}</span>
-          </div>
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <span className="uppercase tracking-wider text-white/35">Lane</span>
-            <span className="truncate text-cyan-100/90">
-              {signingContext.laneLabel}
-            </span>
-          </div>
-          {signingContext.capHoldLabel && (
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <span className="uppercase tracking-wider text-white/35">Cap</span>
-              <span className="truncate text-amber-100/90">
-                {signingContext.capHoldLabel}
-              </span>
+      {/* Prior salary + actions */}
+      <div className="flex w-[150px] shrink-0 flex-col items-end justify-between border-l border-white/5 bg-black/20 px-2.5 py-2">
+        <div className="flex w-full items-start justify-between gap-2">
+          <div className="min-w-0 text-left">
+            <div className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+              Previous Salary
             </div>
-          )}
+            <div className="font-mono text-xs text-white/90">{prevSalary}</div>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(entry.selectionKey);
+            }}
+            title="Remove from selection"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] text-white/70 transition-colors hover:bg-red-500/80 hover:text-white"
+          >
+            ✕
+          </button>
         </div>
-
         <button
           data-action-exposure-classification="preview-only"
           onClick={() => onOpenContractModal(entry)}
-          className="w-full mt-auto bg-green-600 hover:bg-green-500 text-white text-xs font-bold uppercase tracking-wider py-2 rounded transition-colors"
+          className="w-full rounded bg-green-600 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-green-500"
         >
-          Sign Player (Preview)
+          Sign Player
         </button>
       </div>
     </div>
