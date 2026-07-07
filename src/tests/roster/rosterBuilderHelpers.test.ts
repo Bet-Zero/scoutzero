@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getDefaultAddPlayerFilters } from '@/shared/utils/filtering';
+import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
 import {
   createMissingRosterPlayer,
   filterRosterDrawerPlayers,
@@ -135,7 +136,7 @@ describe('Roster Builder Helpers', () => {
     const salary = findSalaryForYear({
       currentContractView: {
         salaryByYear: {
-          2025: 24_500_000,
+          [DEFAULT_SALARY_YEAR]: 24_500_000,
         },
       },
     });
