@@ -216,8 +216,20 @@ Done rules:
 - No-code issues (planning, triage, capture, discovery): `Done` when the
   output/decision exists and downstream issues or closure notes are linked.
 - Branch-mode UI work stays off main until explicit owner approval.
-- Use `Fixes BZE-XXX` in the PR title/description or commit message when the
-  merge should close the issue; use `Refs BZE-XXX` for non-closing references.
+
+Git↔Linear linking (verified against the live integration on 2026-07-07):
+
+- BZE issue numbers must appear in branch names for code work
+  (e.g. `feature/bze-224-trade-machine-visual-pass`; a slug without the number
+  does not link).
+- PR descriptions are the source of truth for Linear automation.
+- Use `Fixes BZE-XXX` in the PR description when the PR should close the
+  issue on merge.
+- Use `Refs BZE-XXX` in the PR description for non-closing context.
+- Do not rely on commit messages alone for Linear linking/closing —
+  commit-only linking did not fire in the integration test.
+- For any direct-to-main work (no PR), manually comment on the Linear issue
+  with the commit hash, validation actually run, and merged-to-main status.
 
 ## Communication
 
