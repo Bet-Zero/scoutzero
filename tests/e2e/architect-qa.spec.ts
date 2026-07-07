@@ -1616,7 +1616,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(actionContext).toContainText(
       REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
     );
-    await expect(actionContext).toContainText('2025-26');
+    await expect(actionContext).toContainText(REVIEW_WORLD_SEASON);
 
     const confirmActionButton = page.getByRole('button', {
       name: /^Confirm Action$/i,
@@ -1888,7 +1888,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(actionContext).toContainText(
       REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
     );
-    await expect(actionContext).toContainText('2025-26');
+    await expect(actionContext).toContainText(REVIEW_WORLD_SEASON);
 
     const confirmActionButton = page.getByRole('button', {
       name: /^Confirm Action$/i,
@@ -2147,7 +2147,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(actionContext).toContainText(
       REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
     );
-    await expect(actionContext).toContainText('2025-26');
+    await expect(actionContext).toContainText(REVIEW_WORLD_SEASON);
 
     await modal.getByLabel(/buyout amount/i).fill('5000000');
 

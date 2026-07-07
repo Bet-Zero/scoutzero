@@ -14,7 +14,7 @@
  * stubs keep the test focused on the integration wiring.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import { act, cleanup, render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 const useTradeMachineMock = vi.fn();
@@ -37,7 +37,8 @@ vi.mock('@/features/architect/tradeMachine/TradeTeamCard', () => ({
   TradeTeamCard: () => null,
 }));
 vi.mock('@/features/architect/tradeMachine/TradePreviewModal', () => ({
-  default: () => null,
+  default: ({ open }: { open?: boolean }) =>
+    open ? <div data-testid="trade-preview-modal" /> : null,
 }));
 vi.mock('@/shared/components/EditContractModal', () => ({
   EditContractModal: () => null,
@@ -365,6 +366,51 @@ describe('TradeEditor — validation and apply readiness hierarchy', () => {
     const summary = screen.getByTestId('trade-readiness-summary');
     expect(summary).toHaveTextContent('Trade blocked');
     expect(summary).toHaveTextContent('Salary matching violation');
+  });
+
+  it('does not auto-open the share preview when validation blocks the trade', async () => {
+    const handleValidate = vi.fn(() => 'started');
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        overrides: {
+          teams: [
+            {
+              team: { id: 'LAL', players: [] },
+              sends: [{ id: 'p1', name: 'Player One', tradeTo: 'BOS' }],
+              entitlementsOut: [],
+            },
+            { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+          ],
+          activeTeamCount: 2,
+          handleValidate,
+          hasCurrentValidation: true,
+          previewAuthority: {
+            legal: false,
+            reason: 'Salary matching violation',
+            violations: [{ message: 'Salary matching violation' }],
+            omittedStages: [],
+          },
+          snapshotValidationDetails: {
+            teamResults: [{ teamId: 'LAL' }],
+            dataWarnings: [],
+            hasDataIssues: false,
+          },
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Validate Trade$/i }));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(handleValidate).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('trade-readiness-summary')).toHaveTextContent(
+      'Trade blocked'
+    );
+    expect(screen.queryByTestId('trade-preview-modal')).not.toBeInTheDocument();
   });
 
   it('names the active Team Plan impact when a trade is ready to apply', () => {

@@ -179,12 +179,15 @@ export const TradeEditor = ({
 
   // TMUI-01: validation is deferred a tick so the "Validating…" state can paint.
   // Open the preview only once that requested validation has finished.
+  const previewIsLegal = previewAuthority?.legal === true;
   useEffect(() => {
     if (wantPreview && hasCurrentValidation && !isValidating) {
-      setPreviewOpen(true);
+      if (previewIsLegal) {
+        setPreviewOpen(true);
+      }
       setWantPreview(false);
     }
-  }, [wantPreview, hasCurrentValidation, isValidating]);
+  }, [wantPreview, hasCurrentValidation, isValidating, previewIsLegal]);
 
   // Pre-stage one or more players as outgoing when the Trade Machine opens from
   // a player-context entry (the pin board's "Trade" / "Trade all pinned").
