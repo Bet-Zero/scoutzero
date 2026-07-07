@@ -186,6 +186,39 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 - If validation fails, first determine whether the current change caused it.
   Fix in-scope failures; document pre-existing or unrelated failures.
 
+## Linear And Git Workflow
+
+Session-start checks, in order:
+
+1. Is main green (`npm run test:diff -- --reporter=dot` on main scope)? If not,
+   fixing main is the task. Start no new branch-mode UI work while main is red.
+2. Are 2 issues already `In Review` awaiting owner review? If yes, do not start
+   another subjective/UI branch; pick non-review work instead.
+
+Issue rules:
+
+- Before filing a bug, search Linear for the failing test name, file path, or
+  error string. If a match exists, comment there instead of filing a new issue.
+- Priority: `Urgent` = main broken / validation untrustworthy (stop the line).
+  `High` = the one active lane. Everything else = no priority.
+- New lanes are issues (or a parent issue with sub-issues), not new Linear
+  projects. Projects are reserved for durable product areas or real
+  multi-week phases.
+- Durable Architect boundary rules live in
+  `docs/agent-guides/architect-boundary.md`. Reference it plus one short local
+  scope line per issue; do not re-paste boundary text into issues or projects.
+
+Done rules:
+
+- Code issues: `Done` only when the change is merged to main and the closing
+  comment lists branch, commit hash or PR link, and validation actually run.
+  Work on an unmerged branch caps out at `In Review`.
+- No-code issues (planning, triage, capture, discovery): `Done` when the
+  output/decision exists and downstream issues or closure notes are linked.
+- Branch-mode UI work stays off main until explicit owner approval.
+- Use `Fixes BZE-XXX` in the PR title/description or commit message when the
+  merge should close the issue; use `Refs BZE-XXX` for non-closing references.
+
 ## Communication
 
 The user does not have coding experience and should not be asked to make
