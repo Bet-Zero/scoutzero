@@ -998,8 +998,13 @@ export const TradeEditor = ({
       {/* Stale validation fix: Uses hasCurrentValidation to only show "Validated"
           when the current preview authority/detail payload matches this draft */}
       {/* BZE-224: sticky so the verdict (especially a blocked deal) stays
-          visible while scrolling the cards / validation details below. */}
-      <div className="sticky top-0 z-30 -mx-5 bg-[#05070c]/95 px-5 py-1 backdrop-blur-sm">
+          visible while scrolling the cards / validation details below. The
+          band is opaque and matches the overlay void, so at rest it is
+          invisible and, when pinned, content slides cleanly underneath it —
+          no translucent ghosting (owner review fix). The -mx-5/px-5 bleed
+          matches TradeOverlay's inner padding, the overlay being the Trade
+          Machine's only host. */}
+      <div className="sticky top-0 z-30 -mx-5 bg-cockpit-void px-5 pb-2 pt-2 shadow-[0_10px_14px_-12px_rgba(0,0,0,0.85)]">
         <ValidationStateHeader
           hasValidatorResult={hasCurrentValidation}
           isValidating={isValidating}

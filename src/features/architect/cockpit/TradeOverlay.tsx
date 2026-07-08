@@ -75,11 +75,15 @@ export const TradeOverlay = ({
         </button>
       </div>
 
+      {/* Padding lives on an inner wrapper, not the scroll container: sticky
+          children (the Trade Machine's verdict banner) pin to the scrollport
+          edge, and container padding would leave a gap above them where
+          scrolled content ghosts through (BZE-224 review fix). */}
       <div
-        className="flex-1 min-h-0 overflow-auto px-5 py-4"
+        className="flex-1 min-h-0 overflow-auto"
         data-testid="trade-overlay-body"
       >
-        {children}
+        <div className="px-5 pt-4 pb-5">{children}</div>
       </div>
     </div>
   );
