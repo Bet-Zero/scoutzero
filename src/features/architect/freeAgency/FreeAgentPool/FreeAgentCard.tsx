@@ -33,6 +33,7 @@ export const FreeAgentCard = ({
   onOpenContractModal,
   onRemove,
   isPreviewSigning = false,
+  exposureClassification = 'preview-only',
 }: FreeAgentCardProps) => {
   const { surfacePlayer: player } = entry;
   const formattedName =
@@ -150,7 +151,7 @@ export const FreeAgentCard = ({
           </button>
         </div>
         <button
-          data-action-exposure-classification="preview-only"
+          data-action-exposure-classification={exposureClassification}
           onClick={() => onOpenContractModal(entry)}
           className="w-full rounded bg-green-600 py-1.5 text-[11px] font-bold uppercase leading-none tracking-wider text-white transition-colors hover:bg-green-500"
         >

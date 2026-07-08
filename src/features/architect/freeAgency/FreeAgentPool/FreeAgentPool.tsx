@@ -590,6 +590,7 @@ export const FreeAgentPool = ({
         onOpenContractModal={openContractModal}
         onRemove={handleRemove}
         isPreviewSigning={/\(Preview\)/i.test(standardSigningActionLabel)}
+        exposureClassification={standardSigningExposureClassification}
       />
 
       <FreeAgentPoolHeader />

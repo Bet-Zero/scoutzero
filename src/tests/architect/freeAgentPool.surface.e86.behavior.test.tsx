@@ -341,6 +341,50 @@ describe('FreeAgentPool surface E86 behavior', () => {
     ).not.toBeInTheDocument();
   });
 
+  // BZE-186: the selected-card deck must report the same action-exposure truth
+  // the pool rows do, instead of hardcoding preview-only. Otherwise the deck
+  // Sign action misreports a V1-supported saved-world signing as preview-only.
+  it('reports V1-supported exposure on the deck Sign action in a saved world', () => {
+    renderPool({
+      actionOwner: buildActionOwner({
+        freeAgentModalAvailability: {
+          actionLabelsOverride: { signNew: 'Sign Free Agent' },
+          standardSigningExposureClassification: 'V1 supported',
+        },
+      }),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /test player/i }));
+    const deckSignButton = screen.getByRole('button', { name: /Sign Player/i });
+
+    expect(deckSignButton).toHaveAttribute(
+      'data-action-exposure-classification',
+      'V1 supported'
+    );
+    // Supported saved-world signing must not carry the sandbox "(Preview)" marker.
+    expect(deckSignButton).not.toHaveTextContent(/\(Preview\)/i);
+  });
+
+  it('reports preview-only exposure and marker on the deck Sign action in sandbox', () => {
+    renderPool({
+      actionOwner: buildActionOwner({
+        freeAgentModalAvailability: {
+          actionLabelsOverride: { signNew: 'Sign Free Agent (Preview)' },
+          standardSigningExposureClassification: 'preview-only',
+        },
+      }),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /test player/i }));
+    const deckSignButton = screen.getByRole('button', { name: /Sign Player/i });
+
+    expect(deckSignButton).toHaveAttribute(
+      'data-action-exposure-classification',
+      'preview-only'
+    );
+    expect(deckSignButton).toHaveTextContent(/\(Preview\)/i);
+  });
+
   it('generates and saves a managed pool from visible entries', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     renderPool({
