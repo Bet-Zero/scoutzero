@@ -10,7 +10,7 @@
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENT_POOL_SURFACE_E86_RETURN_PACKAGE.md
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
 import { TeamCodeMap, type TeamCode } from '@/constants/teamList';
@@ -48,6 +48,9 @@ export const FreeAgentRow = ({
     : false;
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+  // The pool list is a scroll container, so a downward menu on the last
+  // visible rows would clip. Flip upward when the space below is short.
+  const [menuOpensUp, setMenuOpensUp] = useState(false);
 
   useEffect(() => {
     if (openMenuSelectionKey === entry.selectionKey) {
@@ -239,6 +242,11 @@ export const FreeAgentRow = ({
           ref={buttonRef}
           onClick={(e) => {
             e.stopPropagation();
+            const buttonRect = e.currentTarget.getBoundingClientRect();
+            const scrollBoundary =
+              e.currentTarget.closest('ul')?.getBoundingClientRect().bottom ??
+              window.innerHeight;
+            setMenuOpensUp(scrollBoundary - buttonRect.bottom < 160);
             setOpenMenuSelectionKey(
               openMenuSelectionKey === entry.selectionKey
                 ? null
@@ -252,7 +260,7 @@ export const FreeAgentRow = ({
         {openMenuSelectionKey === entry.selectionKey && (
           <div
             ref={menuRef}
-            className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
+            className={`absolute right-0 ${menuOpensUp ? 'bottom-5' : 'top-5'} bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]`}
           >
             <button
               data-action-exposure-classification={

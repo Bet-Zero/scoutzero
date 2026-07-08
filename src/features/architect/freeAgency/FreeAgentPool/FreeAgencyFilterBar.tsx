@@ -42,7 +42,7 @@ export const FreeAgencyFilterBar = ({
     'w-[130px] border border-none focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-[#3a3a3a] text-xs rounded-md';
 
   return (
-    <div className="px-6 mb-2">
+    <div className="mb-2 shrink-0">
       <div className="bg-[#1a1a1a] border border-white/10 rounded-md p-2 flex flex-wrap items-center gap-2">
         <input
           type="text"
