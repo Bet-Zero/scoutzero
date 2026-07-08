@@ -192,8 +192,33 @@ Session-start checks, in order:
 
 1. Is main green (`npm run test:diff -- --reporter=dot` on main scope)? If not,
    fixing main is the task. Start no new branch-mode UI work while main is red.
-2. Are 2 issues already `In Review` awaiting owner review? If yes, do not start
-   another subjective/UI branch; pick non-review work instead.
+2. Work awaiting owner review does NOT block starting the next wave. Start it
+   on its own branch and batch review requests so the owner can review several
+   waves in one sitting.
+
+## Owner Review Model (owner-set, 2026-07-08)
+
+- Work in **waves as big as coherently reviewable** — a whole page/room per
+  wave by default, larger when coherent. Do not slice subjective UI work into
+  micro-tasks that each demand an owner touchpoint.
+- The review package is **one hosted artifact link**: screenshots of every
+  changed state at 1280×720 plus a short plain-language summary. No export
+  folders, no PDF/HTML bundles, no duplicated long-form status comments. The
+  Linear comment is the link, the status, and a one-line validation note.
+- **Quality bar is "finished," not "renders".** Before requesting review, do an
+  adversarial design self-review: render every state, judge it as a design
+  critic, and iterate until there is nothing an owner would obviously demand
+  fixed (clipping, misalignment, inconsistent spacing, leftover debug/internal
+  vocabulary, unpolished defaults). Defects like these reaching the owner mean
+  the self-review failed.
+- **Test-pinned copy or layout is not a design constraint.** If a better design
+  changes a pinned string or structure, change the test with the work. Never
+  ship a worse design around a pin and list it as a "known weakness".
+- **Owner communication is product language only.** Git mechanics (branches,
+  PRs, merges, commit hashes, CI) are agent-internal; at most one receipts line
+  at the end of a report. The owner's entire role: open the link, reply
+  approve / approve-with-notes / reject. "Approve with notes" means land the
+  work and fix the notes without another review round.
 
 Issue rules:
 
