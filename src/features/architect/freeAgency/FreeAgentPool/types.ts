@@ -124,4 +124,5 @@ export interface FreeAgentCardProps {
   entry: FreeAgentSurfaceEntry;
   onOpenContractModal: (entry: FreeAgentSurfaceEntry) => void;
   onRemove: (selectionKey: string) => void;
+  isPreviewSigning?: boolean;
 }

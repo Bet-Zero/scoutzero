@@ -111,6 +111,8 @@ export const EditContractModal = ({
   rulesLeagueContext = null,
   actionsOverride = null,
   actionLabelsOverride = {},
+  actionDescriptionsOverride = {},
+  actionContextCopy = null,
   showOfferSheetToggle = null,
   onAuditLog = null, // Callback to record override audit entries
 }: EditContractModalProps) => {
@@ -526,6 +528,23 @@ export const EditContractModal = ({
     !buyoutAmountIsValid ||
     isSubmitting;
 
+  // Plain-language "why is Confirm unavailable" line shown next to the button so
+  // the disabled state is never a mystery. Presentational only — mirrors the
+  // disableConfirm predicate above, it does not gate the action itself.
+  const confirmDisabledReason = isSubmitting
+    ? null
+    : !selectedAction
+      ? 'Select an action to continue'
+      : selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode
+        ? 'Choose a destination team'
+        : !buyoutAmountIsValid
+          ? 'Enter a valid buyout amount'
+          : validationState.incomplete
+            ? 'Finish the contract details to continue'
+            : !validationState.isLegal && !isOverrideConfirmed
+              ? 'Resolve the blocking issues above to continue'
+              : null;
+
   const showOverrideOption =
     canOverride &&
     selectedAction &&
@@ -878,6 +897,8 @@ export const EditContractModal = ({
             selectedAction={selectedAction}
             onSelectAction={setSelectedAction}
             actionLabelsOverride={actionLabelsOverride}
+            actionDescriptionsOverride={actionDescriptionsOverride}
+            actionContextCopy={actionContextCopy}
             extensionEligibilityReason={playerRulesProfile?.extensionEligibility?.reason}
           />
 
@@ -1008,11 +1029,19 @@ export const EditContractModal = ({
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex shrink-0 justify-end gap-3 px-8 py-4">
+          <div className="flex shrink-0 items-center gap-3 px-8 py-4">
+            {disableConfirm && confirmDisabledReason && (
+              <span
+                data-testid="edit-contract-confirm-disabled-reason"
+                className="mr-auto text-xs text-amber-300/80"
+              >
+                {confirmDisabledReason}
+              </span>
+            )}
             <button
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium rounded bg-white/5 hover:bg-white/10 text-white transition-colors"
+              className="ml-auto px-4 py-2 text-sm font-medium rounded bg-white/5 hover:bg-white/10 text-white transition-colors"
             >
               Cancel
             </button>
@@ -1020,12 +1049,14 @@ export const EditContractModal = ({
               data-testid="edit-contract-confirm-action-button"
               onClick={handleConfirm}
               disabled={disableConfirm}
-              className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                validationState.isLegal
-                  ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
+              aria-disabled={disableConfirm}
+              title={disableConfirm ? confirmDisabledReason ?? undefined : undefined}
+              className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all ${
+                disableConfirm
+                  ? 'cursor-not-allowed bg-white/[0.06] text-white/35 shadow-none ring-1 ring-inset ring-white/10'
                   : isOverrideConfirmed
                     ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
-                    : 'bg-gray-600 text-white/50'
+                    : 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
               }`}
             >
               {confirmButtonLabel}

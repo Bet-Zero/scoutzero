@@ -295,6 +295,11 @@ export type EditContractModalProps = {
   rulesLeagueContext?: RulesLeagueContextLike;
   actionsOverride?: string[] | null;
   actionLabelsOverride?: Partial<Record<ContractActionKey, string>>;
+  actionDescriptionsOverride?: Partial<Record<ContractActionKey, string>>;
+  // When provided, replaces the inferred contract-state intro paragraph with a
+  // caller-supplied predicate (rendered after the bold player name). Used by the
+  // Free Agency sign flow so pool free agents don't get expiring/extend/waive copy.
+  actionContextCopy?: string | null;
   showOfferSheetToggle?: boolean | null;
   onAuditLog?: AuditLogCallback | null;
   capProjections?: CapProjectionOverrides | null;

@@ -456,6 +456,15 @@ export const FreeAgentPool = ({
         : undefined) as EditContractModalProps['onStoreOfferSheet'],
       actionsOverride: freeAgentModalAvailability.visibleActions,
       actionLabelsOverride: freeAgentModalAvailability.actionLabelsOverride,
+      // Free Agency signing context: keep the modal copy about signing a pool
+      // free agent to a new contract. Without this the modal infers the intro
+      // paragraph from the player's fixture contract and can show expiring /
+      // extend / waive language, which is wrong for a free-agent signing.
+      actionContextCopy:
+        'is a free agent. Set the salary and term below, then confirm to sign him to a new contract.',
+      actionDescriptionsOverride: {
+        signNew: 'Sign him to a new contract at the salary and term you set below.',
+      },
       showOfferSheetToggle:
         freeAgentModalAvailability.showOfferSheetToggle &&
         targetAllowsOfferSheet,
@@ -580,6 +589,7 @@ export const FreeAgentPool = ({
         selectedEntries={selectedEntries}
         onOpenContractModal={openContractModal}
         onRemove={handleRemove}
+        isPreviewSigning={/\(Preview\)/i.test(standardSigningActionLabel)}
       />
 
       <FreeAgentPoolHeader />

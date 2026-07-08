@@ -25,6 +25,8 @@ type ContractActionSelectorProps = {
   selectedAction: SelectedContractAction;
   onSelectAction: (action: SelectedContractAction) => void;
   actionLabelsOverride: Partial<Record<string, string>>;
+  actionDescriptionsOverride?: Partial<Record<string, string>>;
+  actionContextCopy?: string | null;
   extensionEligibilityReason?: string | null;
 };
 
@@ -43,6 +45,8 @@ export const ContractActionSelector = ({
   selectedAction,
   onSelectAction,
   actionLabelsOverride,
+  actionDescriptionsOverride = {},
+  actionContextCopy = null,
   extensionEligibilityReason,
 }: ContractActionSelectorProps) => {
   const isPlayerControlledOption =
@@ -53,6 +57,13 @@ export const ContractActionSelector = ({
   return (
     <>
     <div className="mb-6 text-sm text-white/70 leading-relaxed">
+      {actionContextCopy ? (
+        <p>
+          <span className="text-white font-semibold">{playerName}</span>{' '}
+          {actionContextCopy}
+        </p>
+      ) : (
+        <>
       {hasOption && (
         <p>
           <span className="text-white font-semibold">{playerName}</span>{' '}
@@ -87,6 +98,8 @@ export const ContractActionSelector = ({
           under contract. You can extend his deal if eligible, or waive him to
           clear a roster spot (with potential dead cap implications).
         </p>
+      )}
+        </>
       )}
     </div>
 
@@ -141,7 +154,7 @@ export const ContractActionSelector = ({
                 {actionLabelsOverride[type] || ACTION_LABELS[type]}
               </div>
               <div className="text-xs text-white/50 mt-0.5">
-                {ACTION_DESCRIPTIONS[type]}
+                {actionDescriptionsOverride[type] || ACTION_DESCRIPTIONS[type]}
                 {extendBlocked && (
                   <span className="block text-red-300 mt-1">
                     {extensionEligibilityReason || 'Not extension eligible'}

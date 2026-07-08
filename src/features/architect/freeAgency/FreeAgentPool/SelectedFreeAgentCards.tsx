@@ -13,12 +13,16 @@ interface SelectedFreeAgentCardsProps {
   selectedEntries: FreeAgentSurfaceEntry[];
   onOpenContractModal: (entry: FreeAgentSurfaceEntry) => void;
   onRemove: (selectionKey: string) => void;
+  // Mirrors the modal's world-aware signing label so the deck's Sign action
+  // carries the same "(Preview)" marker in sandbox and drops it in a saved world.
+  isPreviewSigning?: boolean;
 }
 
 export const SelectedFreeAgentCards = ({
   selectedEntries,
   onOpenContractModal,
   onRemove,
+  isPreviewSigning = false,
 }: SelectedFreeAgentCardsProps) => {
   if (selectedEntries.length === 0) return null;
 
@@ -34,6 +38,7 @@ export const SelectedFreeAgentCards = ({
             entry={entry}
             onOpenContractModal={onOpenContractModal}
             onRemove={onRemove}
+            isPreviewSigning={isPreviewSigning}
           />
         ))}
       </div>
