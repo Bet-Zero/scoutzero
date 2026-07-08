@@ -257,7 +257,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                       {/* 🧾 Entitlements Section (Phase 15) */}
                       <div className="min-h-[150px] mt-6 flex flex-col justify-end">
                         <h4 className="text-neutral-300 font-semibold text-sm uppercase tracking-wide border-l-4 border-neutral-500 pl-3">
-                          Entitlements Received
+                          Picks Received
                         </h4>
                         <div className="space-y-2 min-h-[60px] mt-2">
                           {entitlements.length ? (
@@ -305,7 +305,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                             })
                           ) : (
                             <div className="text-neutral-500 text-center py-2 italic text-sm">
-                              No entitlements received
+                              No picks received
                             </div>
                           )}
                         </div>

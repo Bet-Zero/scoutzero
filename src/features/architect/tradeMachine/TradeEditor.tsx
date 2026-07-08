@@ -858,7 +858,7 @@ export const TradeEditor = ({
   };
 
   return (
-    <div className="text-white space-y-6">
+    <div className="text-white space-y-4">
       {showContextBanner && tradeContext && bannerAuthority ? (
         <div
           className="flex items-start justify-between gap-2 rounded-md border border-white/15 bg-white/[0.04] px-3 py-2"
@@ -997,12 +997,16 @@ export const TradeEditor = ({
       {/* Task A: Mode + Validation State Header */}
       {/* Stale validation fix: Uses hasCurrentValidation to only show "Validated"
           when the current preview authority/detail payload matches this draft */}
-      <ValidationStateHeader
-        hasValidatorResult={hasCurrentValidation}
-        isValidating={isValidating}
-        validatedAt={getValidatedAt()}
-        readiness={tradeReadiness}
-      />
+      {/* BZE-224: sticky so the verdict (especially a blocked deal) stays
+          visible while scrolling the cards / validation details below. */}
+      <div className="sticky top-0 z-30 -mx-5 bg-[#05070c]/95 px-5 py-1 backdrop-blur-sm">
+        <ValidationStateHeader
+          hasValidatorResult={hasCurrentValidation}
+          isValidating={isValidating}
+          validatedAt={getValidatedAt()}
+          readiness={tradeReadiness}
+        />
+      </div>
 
       {/* Phase 16.3: Init error display */}
       {initError && teams.length === 0 && (
@@ -1131,34 +1135,8 @@ export const TradeEditor = ({
         </div>
       )}
 
-      {/* Apply-action context — the Apply button itself now lives in the header
-          toolbar; this row carries only the contextual warning / blocked text. */}
-      {((canApplyTrade && previewHasApplyTimeWorldChecks) ||
-        currentPreviewAuthority?.legal === false) && (
-        <div className="flex flex-wrap gap-3 items-center">
-          {canApplyTrade && previewHasApplyTimeWorldChecks && (
-            <span className="text-xs text-yellow-400/50">
-              All local preview checks passed. World-state checks (duplicate
-              players, entitlement conflicts, exclusivity) run at apply time and
-              may still reject this trade.
-            </span>
-          )}
-
-          {currentPreviewAuthority?.legal === false && (
-            <span
-              className={`text-xs ${
-                previewOverrideRequested ? 'text-amber-300' : 'text-red-400'
-              }`}
-            >
-              {previewOverrideRequested
-                ? `Override requested, but preview authority still blocks this trade: ${
-                    previewAuthorityReason
-                  }`
-                : `Trade blocked: ${previewAuthorityReason}`}
-            </span>
-          )}
-        </div>
-      )}
+      {/* The verdict banner (ValidationStateHeader) above the cards carries the
+          blocked / apply-time-checks messaging; no duplicate text row here. */}
 
       {/* Tasks B, C, D, E: Validation Details Panel with hard-gating and mode tags */}
       {/* Stale validation fix: Uses hasCurrentValidation for proper authority/detail gating */}

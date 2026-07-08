@@ -84,6 +84,9 @@ export const ModeTag = ({ mode }: ModeTagProps) => {
   );
 };
 
+// The pill is deliberately neutral: it reports WHEN the deal was last checked,
+// while the surrounding banner carries the verdict color. A green pill next to
+// a red "Trade blocked" banner half-read as success (BZE-224).
 const ValidationStatePill = ({
   hasValidatorResult,
   isValidating,
@@ -91,8 +94,8 @@ const ValidationStatePill = ({
 }: ValidationStatePillProps) => {
   if (isValidating) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30">
-        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30">
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
         Validating…
       </span>
     );
@@ -107,80 +110,73 @@ const ValidationStatePill = ({
       : '';
 
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-600/20 text-green-300 border border-green-500/30">
-        <span className="w-2 h-2 rounded-full bg-green-400" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/5 text-white/60 border border-white/15">
+        <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
         Validated{timeStr && ` at ${timeStr}`}
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-neutral-600/20 text-neutral-400 border border-neutral-500/30">
-      <span className="w-2 h-2 rounded-full bg-neutral-500" />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-neutral-600/20 text-neutral-400 border border-neutral-500/30">
+      <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
       Not validated
     </span>
   );
 };
 
+// One banner row carries the verdict: the container color IS the state. The
+// blocked tone is deliberately the loudest treatment on the page so a failed
+// deal can never scan as success.
 const READINESS_STYLES: Record<
   TradeReadinessTone,
-  { icon: LucideIcon; className: string }
+  { icon: LucideIcon; container: string; label: string; message: string }
 > = {
   setup: {
     icon: CircleDashed,
-    className: 'border-neutral-500/30 bg-neutral-500/10 text-neutral-200',
+    container: 'border-white/10 border-l-neutral-400/60 bg-[#0a0a0a]',
+    label: 'text-neutral-200',
+    message: 'text-neutral-400',
   },
   ready: {
     icon: Info,
-    className: 'border-sky-500/30 bg-sky-500/10 text-sky-200',
+    container: 'border-sky-500/25 border-l-sky-400/80 bg-sky-950/30',
+    label: 'text-sky-100',
+    message: 'text-sky-200/70',
   },
   validating: {
     icon: Loader2,
-    className: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
+    container: 'border-blue-500/25 border-l-blue-400/80 bg-blue-950/30',
+    label: 'text-blue-100',
+    message: 'text-blue-200/70',
   },
   blocked: {
     icon: XCircle,
-    className: 'border-red-500/40 bg-red-500/10 text-red-200',
+    container: 'border-red-500/50 border-l-red-500 bg-red-950/50',
+    label: 'text-red-100',
+    message: 'text-red-200/90',
   },
   warning: {
     icon: AlertTriangle,
-    className: 'border-amber-500/40 bg-amber-500/10 text-amber-200',
+    container: 'border-amber-500/40 border-l-amber-400 bg-amber-950/40',
+    label: 'text-amber-100',
+    message: 'text-amber-200/80',
   },
   info: {
     icon: Info,
-    className: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
+    container: 'border-blue-500/25 border-l-blue-400/80 bg-blue-950/30',
+    label: 'text-blue-100',
+    message: 'text-blue-200/70',
   },
   success: {
     icon: CheckCircle2,
-    className: 'border-green-500/30 bg-green-500/10 text-green-200',
+    container: 'border-green-500/40 border-l-green-400 bg-green-950/40',
+    label: 'text-green-100',
+    message: 'text-green-200/80',
   },
 };
 
-const TradeReadinessLine = ({
-  readiness,
-}: {
-  readiness: TradeReadinessSummary;
-}) => {
-  const style = READINESS_STYLES[readiness.tone];
-  const Icon = style.icon;
-
-  return (
-    <div
-      className={`flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-xs ${style.className}`}
-      data-testid="trade-readiness-summary"
-      aria-live="polite"
-    >
-      <Icon
-        size={14}
-        className={
-          readiness.tone === 'validating' ? 'shrink-0 animate-spin' : 'shrink-0'
-        }
-      />
-      <span className="font-semibold">{readiness.label}</span>
-      <span className="text-current/80">{readiness.message}</span>
-    </div>
-  );
-};
+const NEUTRAL_CONTAINER = 'border-white/10 bg-[#0a0a0a]';
 
 export const ValidationStateHeader = ({
   hasValidatorResult = false,
@@ -188,20 +184,50 @@ export const ValidationStateHeader = ({
   validatedAt = null,
   readiness = null,
 }: ValidationStateHeaderProps) => {
+  const style = readiness ? READINESS_STYLES[readiness.tone] : null;
+  const Icon = style?.icon;
+
   return (
     <div
-      className="flex flex-col gap-2 px-4 py-3 mb-4 bg-[#0a0a0a] border border-white/10 rounded-lg"
+      className={`rounded-lg border border-l-4 px-4 py-2.5 ${
+        style ? style.container : NEUTRAL_CONTAINER
+      }`}
       data-testid="validation-state-header"
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-xs text-white/50 font-medium">Validation:</span>
-        <ValidationStatePill
-          hasValidatorResult={hasValidatorResult}
-          isValidating={isValidating}
-          validatedAt={validatedAt}
-        />
+      <div
+        className="flex flex-wrap items-center gap-x-2.5 gap-y-1"
+        data-testid="trade-readiness-summary"
+        aria-live="polite"
+      >
+        {readiness && style && Icon ? (
+          <>
+            <Icon
+              size={16}
+              className={`shrink-0 ${style.label} ${
+                readiness.tone === 'validating' ? 'animate-spin' : ''
+              }`}
+            />
+            <span
+              className={`text-sm font-bold uppercase tracking-wide ${style.label}`}
+            >
+              {readiness.label}
+            </span>
+            <span className={`text-xs ${style.message}`}>
+              {readiness.message}
+            </span>
+          </>
+        ) : null}
+        <span className="ml-auto flex shrink-0 items-center gap-2">
+          <span className="text-[11px] text-white/40 font-medium">
+            Validation:
+          </span>
+          <ValidationStatePill
+            hasValidatorResult={hasValidatorResult}
+            isValidating={isValidating}
+            validatedAt={validatedAt}
+          />
+        </span>
       </div>
-      {readiness && <TradeReadinessLine readiness={readiness} />}
     </div>
   );
 };

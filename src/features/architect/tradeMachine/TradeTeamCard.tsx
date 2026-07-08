@@ -82,8 +82,10 @@ export const TradeTeamCard = ({
 }: TradeTeamCardProps) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
-  const [showOutgoing, setShowOutgoing] = useState(false);
-  const [showIncoming, setShowIncoming] = useState(false);
+  // Staged pieces are the deal — show them by default so the package is
+  // readable at a glance; the rows still toggle closed for a tighter card.
+  const [showOutgoing, setShowOutgoing] = useState(true);
+  const [showIncoming, setShowIncoming] = useState(true);
   const selectRef = useRef<{
     focus: () => void;
     showPicker?: () => void;
@@ -328,9 +330,12 @@ export const TradeTeamCard = ({
                 return (
                   <span
                     key={String(getPlayerKey(p))}
-                    className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
+                    className="bg-red-950/40 text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-red-400/25 flex items-center gap-1"
                   >
                     {getPlayerLabel(p)}
+                    <span className="text-white/50">
+                      {formatSalary(baseSalary)}
+                    </span>
                     {/* P1: Player-level adjustment indicator with specific tooltip */}
                     {hasPlayerAdjustment && (
                       <span
@@ -357,9 +362,14 @@ export const TradeTeamCard = ({
                 .map((e) => (
                   <span
                     key={String(getEntitlementKey(e))}
-                    className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                    className="bg-red-950/40 text-white/80 text-[11px] px-2 py-0.5 rounded-full border border-red-400/25"
                   >
-                    {e.seasonYear ?? '—'} R{e.round ?? '—'}{' '}
+                    {e.seasonYear ?? '—'}{' '}
+                    {Number(e.round) === 1
+                      ? '1st Rd'
+                      : Number(e.round) === 2
+                        ? '2nd Rd'
+                        : `R${e.round ?? '—'}`}{' '}
                     {e.kind === 'swap_right' ? 'Swap' : 'Pick'}
                   </span>
                 ))}
@@ -443,9 +453,12 @@ export const TradeTeamCard = ({
                 return (
                   <span
                     key={String(getPlayerKey(p))}
-                    className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
+                    className="bg-green-950/40 text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-green-400/25 flex items-center gap-1"
                   >
                     {getPlayerLabel(p)}
+                    <span className="text-white/50">
+                      {formatSalary(baseSalary)}
+                    </span>
                     {/* P1: Player-level adjustment indicator with specific tooltip */}
                     {hasPlayerAdjustment && (
                       <span
@@ -470,10 +483,15 @@ export const TradeTeamCard = ({
               {incomingEntitlements.map((e) => (
                 <span
                   key={String(getEntitlementKey(e))}
-                  className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
+                  className="bg-green-950/40 text-white/80 text-[11px] px-2 py-0.5 rounded-full border border-green-400/25"
                 >
-                  {e.seasonYear ?? '—'} R{e.round ?? '—'}{' '}
-                  {e.kind === 'swap_right' ? 'Swap' : ''}
+                  {e.seasonYear ?? '—'}{' '}
+                  {Number(e.round) === 1
+                    ? '1st Rd'
+                    : Number(e.round) === 2
+                      ? '2nd Rd'
+                      : `R${e.round ?? '—'}`}{' '}
+                  {e.kind === 'swap_right' ? 'Swap' : 'Pick'}
                 </span>
               ))}
             </div>
@@ -532,6 +550,8 @@ export const TradeTeamCard = ({
                   The formatSkipReasonLabel helper converts internal codes to readable labels. */}
               {/* Show rule label only when applicable (no skipReason) and rule is meaningful */}
               {/* P0-3: Hide rule label during validation */}
+              {/* BZE-224: run the rule label through the skip-reason formatter so
+                  validator codes (UNDER_CAP, SECOND_APRON…) never render raw */}
               {!isValidating &&
                 !salaryMatchingSkipReason &&
                 salaryMatchingRuleLabel &&
@@ -540,9 +560,15 @@ export const TradeTeamCard = ({
                     className="ml-1 text-white/40"
                     title={salaryMatchingFormula}
                     role="note"
-                    aria-label={`Rule: ${salaryMatchingRuleLabel}. Formula: ${salaryMatchingFormula}`}
+                    aria-label={`Rule: ${
+                      formatSkipReasonLabel(salaryMatchingRuleLabel) ??
+                      salaryMatchingRuleLabel
+                    }. Formula: ${salaryMatchingFormula}`}
                   >
-                    ({salaryMatchingRuleLabel})
+                    (
+                    {formatSkipReasonLabel(salaryMatchingRuleLabel) ??
+                      salaryMatchingRuleLabel}
+                    )
                   </span>
                 )}
               {!isValidating && hardCapIsLimiter && (
@@ -648,8 +674,7 @@ export const TradeTeamCard = ({
             .filter((id): id is string | number => id !== undefined)}
           // Phase 12.3B: Pass pick rules for structured derivation
           pickRulesById={team.pickRulesById || {}}
-          // Phase 14: Empty state hint for debugging
-          emptyStateHint="Check emulator seed / baseTeams.entitlementIds"
+          emptyStateHint="This team has no tradeable picks loaded."
           // Phase 17: Pass multi-team destination routing props
           otherTeams={entitlementOtherTeams}
           entitlementsOut={entitlementsOut}
