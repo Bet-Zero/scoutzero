@@ -201,6 +201,10 @@ Session-start checks, in order:
 - Work in **waves as big as coherently reviewable** — a whole page/room per
   wave by default, larger when coherent. Do not slice subjective UI work into
   micro-tasks that each demand an owner touchpoint.
+- **Finished waves queue for review without limit** and batch into one owner
+  sitting. Build each wave from current main and independent of unreviewed
+  waves where possible; when a wave visually depends on an unreviewed wave,
+  say so in its review link in product terms.
 - The review package is **one hosted artifact link**: screenshots of every
   changed state at 1280×720 plus a short plain-language summary. No export
   folders, no PDF/HTML bundles, no duplicated long-form status comments. The
@@ -211,14 +215,23 @@ Session-start checks, in order:
   fixed (clipping, misalignment, inconsistent spacing, leftover debug/internal
   vocabulary, unpolished defaults). Defects like these reaching the owner mean
   the self-review failed.
-- **Test-pinned copy or layout is not a design constraint.** If a better design
-  changes a pinned string or structure, change the test with the work. Never
-  ship a worse design around a pin and list it as a "known weakness".
+- **Test-pinned copy or layout is not a design constraint, but guardrail
+  intent survives.** If a better design changes a pinned string or structure,
+  change the test with the work — never ship a worse design around a pin and
+  list it as a "known weakness". Tests that pin product promises (a blocked
+  state can never read as success, required honesty disclosures, no implied
+  guarantees) get their wording updated, never their intent removed, unless
+  the owner explicitly changes the promise.
 - **Owner communication is product language only.** Git mechanics (branches,
   PRs, merges, commit hashes, CI) are agent-internal; at most one receipts line
-  at the end of a report. The owner's entire role: open the link, reply
-  approve / approve-with-notes / reject. "Approve with notes" means land the
-  work and fix the notes without another review round.
+  at the end of a report. Full evidence (PR link, validation run, merge,
+  issue closure) still lands on Linear/GitHub — invisible to the owner, not
+  absent. The owner's entire role: open the link, reply approve /
+  approve-with-notes / reject. "Approve with notes" means land the work and
+  fix the notes without another review round; if a note materially changes
+  layout, visual direction, or status treatment, land it and post refreshed
+  screenshots to the record — the owner may object but is not required to
+  re-approve.
 
 Issue rules:
 
