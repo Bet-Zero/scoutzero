@@ -159,8 +159,10 @@ export const ValidationDetailsPanel = ({
           <span className="flex items-center gap-2">
             <ClipboardList size={15} className="text-white/60" />
             <span>Validation Results</span>
+            {/* Neutral on purpose: results existing is not a verdict — the
+                banner above owns pass/blocked coloring. */}
             {hasValidatorResult && (
-              <span className="text-xs text-green-400">Results available</span>
+              <span className="text-xs text-white/50">Results available</span>
             )}
           </span>
           {productionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}

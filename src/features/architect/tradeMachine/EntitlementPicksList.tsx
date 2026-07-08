@@ -139,7 +139,7 @@ export const EntitlementPicksList = ({
     return (
       <div>
         <div className="flex items-center justify-between mb-1">
-          <h4 className="text-sm text-white/70">Draft Assets (Entitlements)</h4>
+          <h4 className="text-sm text-white/70">Draft Picks</h4>
           {onCreateEntitlement && (
             <EntitlementEditorCreateButton
               onClick={onCreateEntitlement}
@@ -148,7 +148,7 @@ export const EntitlementPicksList = ({
           )}
         </div>
         <div className="text-xs text-white/40 px-1">
-          No entitlements loaded.
+          No draft picks to show.
           {emptyStateHint && (
             <span className="block mt-1 text-white/30 text-[10px]">
               {emptyStateHint}
@@ -162,7 +162,7 @@ export const EntitlementPicksList = ({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h4 className="text-sm text-white/70">Draft Assets (Entitlements)</h4>
+        <h4 className="text-sm text-white/70">Draft Picks</h4>
         {onCreateEntitlement && (
           <EntitlementEditorCreateButton
             onClick={onCreateEntitlement}

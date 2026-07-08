@@ -396,11 +396,11 @@ describe('E99 TradeExportCapture guardrails', () => {
     expect(teamHeadings).toEqual(['Boston Celtics', 'Los Angeles Lakers']);
 
     expect(screen.getAllByText('Players Received')).toHaveLength(2);
-    expect(screen.getAllByText('Entitlements Received')).toHaveLength(2);
+    expect(screen.getAllByText('Picks Received')).toHaveLength(2);
     expect(screen.getByText('Visible Name')).toBeInTheDocument();
     expect(screen.getByText('SALARY:7500000 • 3 yrs')).toBeInTheDocument();
     expect(screen.getByText('No players received')).toBeInTheDocument();
-    expect(screen.getByText('No entitlements received')).toBeInTheDocument();
+    expect(screen.getByText('No picks received')).toBeInTheDocument();
     expect(screen.getByText('2028 R1')).toBeInTheDocument();
     expect(screen.getByText('BADGE')).toBeInTheDocument();
     expect(screen.getByText('formatted terms')).toBeInTheDocument();

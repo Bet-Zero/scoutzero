@@ -71,14 +71,16 @@ const TradePreviewModal = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Close sits outside the overflow-hidden capture card so it never
+              overlaps the summary header (date) baked into the export. */}
+          <button
+            onClick={onClose}
+            className="absolute -top-5 -right-5 z-30 rounded-full border border-white/20 bg-neutral-900 p-2 text-white/70 shadow-lg hover:text-white hover:bg-neutral-800 transition-colors"
+            title="Close"
+          >
+            <X size={22} />
+          </button>
           <div className="rounded-2xl border border-white/20 shadow-2xl overflow-hidden bg-[#111] relative">
-            <button
-              onClick={onClose}
-              className="absolute top-2 right-2 text-white/60 hover:text-white z-20"
-              title="Close"
-            >
-              <X size={36} />
-            </button>
             <TradeExportCapture
               teams={teams}
               previewAuthority={previewAuthority}
