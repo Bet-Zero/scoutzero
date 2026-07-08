@@ -125,4 +125,11 @@ export interface FreeAgentCardProps {
   onOpenContractModal: (entry: FreeAgentSurfaceEntry) => void;
   onRemove: (selectionKey: string) => void;
   isPreviewSigning?: boolean;
+  /**
+   * Machine-readable exposure honesty for the deck Sign action. Mirrors the row's
+   * `standardSigningExposureClassification` so the deck reports the same
+   * supported/preview truth (V1 supported in a saved world, preview-only in sandbox)
+   * instead of a hardcoded value.
+   */
+  exposureClassification?: ActionExposureClassification;
 }

@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import { FreeAgentCard } from './FreeAgentCard';
+import type { ActionExposureClassification } from '@/features/architect/GMDashboard/hooks/useArchitectActions.types';
 import type { FreeAgentSurfaceEntry } from './types';
 
 interface SelectedFreeAgentCardsProps {
@@ -16,6 +17,9 @@ interface SelectedFreeAgentCardsProps {
   // Mirrors the modal's world-aware signing label so the deck's Sign action
   // carries the same "(Preview)" marker in sandbox and drops it in a saved world.
   isPreviewSigning?: boolean;
+  // Same world-aware exposure truth the pool rows report, so the deck's Sign
+  // action doesn't hardcode a preview-only classification in a saved world.
+  exposureClassification?: ActionExposureClassification;
 }
 
 export const SelectedFreeAgentCards = ({
@@ -23,6 +27,7 @@ export const SelectedFreeAgentCards = ({
   onOpenContractModal,
   onRemove,
   isPreviewSigning = false,
+  exposureClassification = 'preview-only',
 }: SelectedFreeAgentCardsProps) => {
   if (selectedEntries.length === 0) return null;
 
@@ -39,6 +44,7 @@ export const SelectedFreeAgentCards = ({
             onOpenContractModal={onOpenContractModal}
             onRemove={onRemove}
             isPreviewSigning={isPreviewSigning}
+            exposureClassification={exposureClassification}
           />
         ))}
       </div>
