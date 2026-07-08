@@ -335,7 +335,7 @@ describe('GuideSection (Stage 5A polish)', () => {
     render(<GuideSection viewModel={vm} onNavigate={() => undefined} />);
     expect(screen.getByText('Front Office Guide')).toBeInTheDocument();
     expect(
-      screen.getByText(/Read-only · Deterministic · Navigation only/i)
+      screen.getByText(/Read-only · Navigation only/i)
     ).toBeInTheDocument();
   });
 

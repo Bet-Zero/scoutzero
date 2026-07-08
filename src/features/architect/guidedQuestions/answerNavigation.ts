@@ -70,7 +70,7 @@ export function buildNavigationHistoryAnswer(): Stage4GuidedAnswer {
 export function buildNavigationComparisonAnswer(): Stage4GuidedAnswer {
   return staticNavAnswer(
     'navigation-comparison',
-    'Compare shows committed scenario deltas (rosters, cap, apron posture) for the active world.',
+    'Compare shows committed scenario deltas (rosters, cap, apron standing) for the active world.',
     'Scenario deltas → Compare',
     { id: 'compare', label: 'Open Compare', intent: 'navigate' }
   );
