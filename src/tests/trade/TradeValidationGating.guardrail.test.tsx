@@ -8,7 +8,7 @@
  */
 
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { ValidationStateHeader, ModeTag, MODE_TAGS } from '@/features/architect/tradeMachine/ValidationStateHeader';
 import { ValidationDetailsPanel } from '@/features/architect/tradeMachine/ValidationDetailsPanel';
 import { TRADE_MACHINE_DEBUG_FLAG } from '@/features/architect/tradeMachine/utils/tradeMachineDebugFlag';
@@ -99,6 +99,10 @@ const emptyIncomingAssets: NonNullable<
 
 const enableTradeMachineDebugPanel = () => {
   window.localStorage.setItem(TRADE_MACHINE_DEBUG_FLAG, 'true');
+  // The Trade Receipt section is also gated on the VITE_SHOW_TRADE_RECEIPT build
+  // flag. It's only present via a local .env.local, so stub it here — otherwise
+  // these tests silently pass on a dev machine and fail in CI where it's unset.
+  vi.stubEnv('VITE_SHOW_TRADE_RECEIPT', 'true');
 };
 
 describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
@@ -217,6 +221,7 @@ describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
 describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
   afterEach(() => {
     window.localStorage.clear();
+    vi.unstubAllEnvs();
     cleanup();
   });
 
