@@ -578,14 +578,14 @@ export const RosterVisual = ({
         data-roster-unsupported-categories="fa,expired,waived,options"
       />
 
-      <div className="mt-2.5 flex min-h-0 flex-1 flex-col justify-between gap-2 overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay px-2.5 py-2.5">
+      <div className="mt-2.5 flex min-h-0 flex-1 flex-col justify-start gap-2 overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay px-2.5 py-2.5">
         {rosterBands.map((band) => {
           const count = rosterState.sectionCounts[band.key];
           return (
             <section
               key={band.key}
               aria-label={`${band.label} roster group`}
-              className="rounded-lg border border-cockpit-edge bg-cockpit-slab px-2.5 pb-1.5 pt-1.5"
+              className="shrink-0 rounded-lg border border-cockpit-edge bg-cockpit-slab px-2.5 pb-1.5 pt-1.5"
             >
               <div className="mb-1 flex flex-wrap items-baseline gap-x-2 px-1">
                 <h3 className="text-xs font-extrabold uppercase tracking-wide text-cockpit-text-primary">
@@ -596,16 +596,26 @@ export const RosterVisual = ({
                 </p>
               </div>
 
-              <RosterSection
-                players={roster[band.key]}
-                section={band.key}
-                {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
-                previewSpacing
-                variant="architect"
-                onSelectPlayer={handleSectionSelect}
-                isPlayerHighlighted={sectionHighlightMatcher}
-                renderPlayerMenu={renderPlayerMenu}
-              />
+              {count === 0 ? (
+                <div
+                  data-roster-empty-band={band.key}
+                  data-testid={`roster-empty-band-${band.key}`}
+                  className="flex items-center justify-center rounded-md border border-dashed border-cockpit-edge px-3 py-3 text-[11px] text-cockpit-text-ghost"
+                >
+                  No {band.label.toLowerCase()} players yet — open slots
+                </div>
+              ) : (
+                <RosterSection
+                  players={roster[band.key]}
+                  section={band.key}
+                  {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+                  previewSpacing
+                  variant="architect"
+                  onSelectPlayer={handleSectionSelect}
+                  isPlayerHighlighted={sectionHighlightMatcher}
+                  renderPlayerMenu={renderPlayerMenu}
+                />
+              )}
             </section>
           );
         })}

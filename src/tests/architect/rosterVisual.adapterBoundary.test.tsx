@@ -271,10 +271,13 @@ describe('RosterVisual adapter boundary', () => {
     const { container } = renderRoster(teamCapSheet);
     const starters = getRosterSection(container, 'starters');
     const rotation = getRosterSection(container, 'rotation');
-    const bench = getRosterSection(container, 'bench');
 
     expect(within(starters).getAllByRole('img')).toHaveLength(5);
     expect(within(rotation).getAllByRole('img')).toHaveLength(1);
+    // An empty band renders a composed display-only placeholder ("open slots")
+    // instead of an empty legacy grid — still no phantom player cards and no
+    // add/remove controls (the display-only guarantee this test protects).
+    const bench = screen.getByTestId('roster-empty-band-bench');
     expect(within(bench).queryAllByRole('img')).toHaveLength(0);
     const truthPanel = screen.getByTestId('architect-roster-truth-panel');
     expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '6');
