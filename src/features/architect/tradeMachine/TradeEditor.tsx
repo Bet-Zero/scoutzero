@@ -517,13 +517,16 @@ export const TradeEditor = ({
         };
       }
 
+      // E2A disclosure guardrail: the apply surface must keep naming the
+      // remaining apply-only gates (duplicates, pick conflicts, exclusivity)
+      // and that they run at apply time.
       if (previewHasApplyTimeWorldChecks) {
         return {
           tone: 'info',
           label: 'Ready with apply-time checks',
           message: isVacuumMode
-            ? 'Local checks passed; session checks run at apply.'
-            : 'Local checks passed; final Team Plan checks run at apply.',
+            ? 'Local checks passed; duplicate-player, pick-conflict, and exclusivity checks run at apply time.'
+            : 'Local checks passed; the Team Plan runs duplicate-player, pick-conflict, and exclusivity checks at apply time.',
         };
       }
 
