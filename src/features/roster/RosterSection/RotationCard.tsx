@@ -109,13 +109,15 @@ export const RotationCard = ({
           <div
             className={
               isArchitect
-                ? 'absolute left-1.5 top-1.5 rounded border border-white/10 bg-black/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/80 shadow-sm backdrop-blur'
+                ? 'absolute left-[3px] top-[3px] rounded border border-white/10 bg-black/60 px-1 py-0.5 text-[9px] font-bold uppercase tracking-normal text-white/80 shadow-sm backdrop-blur'
                 : `absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[14px] ${isExport ? 'font-normal' : 'font-semibold'} uppercase rounded-sm tracking-wider shadow-md`
             }
           >
-            {getPlayerPositionLabel(
-              player.bio?.position || player.formattedPosition
-            )}
+            {(
+              getPlayerPositionLabel(
+                player.bio?.position || player.formattedPosition
+              ) || ''
+            ).replace(/-/g, '/')}
           </div>
         </div>
         <div
@@ -135,7 +137,7 @@ export const RotationCard = ({
       </div>
       {menuSlot ? (
         <div
-          className="absolute right-1.5 top-1.5 z-30"
+          className="absolute right-[3px] top-[3px] z-30"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >

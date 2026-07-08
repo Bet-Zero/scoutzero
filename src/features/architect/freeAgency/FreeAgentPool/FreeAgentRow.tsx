@@ -51,10 +51,6 @@ export const FreeAgentRow = ({
   // The pool list is a scroll container, so a downward menu on the last
   // visible rows would clip. Flip upward when the space below is short.
   const [menuOpensUp, setMenuOpensUp] = useState(false);
-  // Review/fictional players have no headshot file. On fallback, render the
-  // placeholder as a clean centered avatar (contain, not cover) so every
-  // no-photo row is uniform instead of cropping the silhouette inconsistently.
-  const [headshotFallback, setHeadshotFallback] = useState(false);
 
   useEffect(() => {
     if (openMenuSelectionKey === entry.selectionKey) {
@@ -157,8 +153,19 @@ export const FreeAgentRow = ({
         )}
       </div>
 
-      {/* Headshot */}
-      <div className="flex h-[43px] w-[50px] items-center justify-center overflow-hidden bg-cockpit-inlay">
+      {/* Headshot — a uniform silhouette sits behind every cell; a real photo
+          loads on top and covers it, and a missing photo (review fixtures) just
+          falls through to the same silhouette, so every no-photo row matches. */}
+      <div className="relative flex h-[43px] w-[50px] shrink-0 items-center justify-center overflow-hidden bg-cockpit-inlay">
+        <svg
+          viewBox="0 0 50 43"
+          className="absolute inset-0 h-full w-full text-white/20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <circle cx="25" cy="15" r="9.5" />
+          <path d="M7 43c0-10.5 8-16.5 18-16.5s18 6 18 16.5z" />
+        </svg>
         <img
           src={
             player.headshotUrl ||
@@ -173,14 +180,10 @@ export const FreeAgentRow = ({
             }.png`
           }
           onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = '/assets/headshots/default.png';
-            setHeadshotFallback(true);
+            e.currentTarget.style.display = 'none';
           }}
           alt={formattedName}
-          className={`h-full w-full ${
-            headshotFallback ? 'object-contain p-1 opacity-70' : 'object-cover'
-          }`}
+          className="relative h-full w-full object-cover"
         />
       </div>
 
