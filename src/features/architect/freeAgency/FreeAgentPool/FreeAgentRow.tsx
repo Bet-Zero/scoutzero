@@ -51,6 +51,10 @@ export const FreeAgentRow = ({
   // The pool list is a scroll container, so a downward menu on the last
   // visible rows would clip. Flip upward when the space below is short.
   const [menuOpensUp, setMenuOpensUp] = useState(false);
+  // Review/fictional players have no headshot file. On fallback, render the
+  // placeholder as a clean centered avatar (contain, not cover) so every
+  // no-photo row is uniform instead of cropping the silhouette inconsistently.
+  const [headshotFallback, setHeadshotFallback] = useState(false);
 
   useEffect(() => {
     if (openMenuSelectionKey === entry.selectionKey) {
@@ -169,10 +173,14 @@ export const FreeAgentRow = ({
             }.png`
           }
           onError={(e) => {
-            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/assets/headshots/default.png';
+            setHeadshotFallback(true);
           }}
           alt={formattedName}
-          className="h-full w-full object-cover"
+          className={`h-full w-full ${
+            headshotFallback ? 'object-contain p-1 opacity-70' : 'object-cover'
+          }`}
         />
       </div>
 
