@@ -73,6 +73,7 @@ import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRule
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
+  ARCHITECT_REVIEW_MODE,
   FIREBASE_TARGET_MODE,
   isLikelyEmulatorConnectionError,
 } from '@/firebaseConfig';
@@ -1571,6 +1572,7 @@ export const GMDashboard = () => {
     <CockpitShell
       workspace={workspaceContext}
       isEmulator={isEmulatorMode}
+      isReviewMode={ARCHITECT_REVIEW_MODE}
       activeTab={activeTab}
       navItems={navItems}
       rooms={rooms}

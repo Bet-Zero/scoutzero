@@ -177,6 +177,7 @@ vi.mock('@/features/architect/freeAgency/freeAgentPoolPersistence', () => ({
 vi.mock('@/firebaseConfig', () => ({
   db: {},
   FIREBASE_TARGET_MODE: 'EMULATOR',
+  ARCHITECT_REVIEW_MODE: false,
   isLikelyEmulatorConnectionError: () => false,
 }));
 
