@@ -1,0 +1,44 @@
+{
+  "playerId": "den_cyrus_hale",
+  "displayName": "Cyrus Hale",
+  "teamCode": "DEN",
+  "teamName": "Denver Nuggets",
+  "bio": {
+    "position": "F",
+    "height": "6-6",
+    "weight": "210",
+    "age": 31,
+    "experience": 10
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2026-27",
+    "contractLength": 1,
+    "yearsRemaining": 1,
+    "totalValue": 5500000,
+    "averageAnnualValue": 5500000,
+    "salariesByYear": [
+      {
+        "season": "2026-27",
+        "salary": 5500000,
+        "capHit": 5500000,
+        "guaranteed": true,
+        "option": null
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Non-Bird",
+      "eligibleFor": []
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2027,
+      "capHold": 6600000
+    }
+  }
+}

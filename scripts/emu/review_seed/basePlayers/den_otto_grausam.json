@@ -1,0 +1,65 @@
+{
+  "playerId": "den_otto_grausam",
+  "displayName": "Otto Grausam",
+  "teamCode": "DEN",
+  "teamName": "Denver Nuggets",
+  "bio": {
+    "position": "C",
+    "height": "6-6",
+    "weight": "210",
+    "age": 28,
+    "experience": 7
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2029-30",
+    "contractLength": 4,
+    "yearsRemaining": 4,
+    "totalValue": 128700000,
+    "averageAnnualValue": 32200000,
+    "salariesByYear": [
+      {
+        "season": "2026-27",
+        "salary": 29000000,
+        "capHit": 29000000,
+        "guaranteed": true,
+        "option": null
+      },
+      {
+        "season": "2027-28",
+        "salary": 31000000,
+        "capHit": 31000000,
+        "guaranteed": true,
+        "option": null
+      },
+      {
+        "season": "2028-29",
+        "salary": 33200000,
+        "capHit": 33200000,
+        "guaranteed": true,
+        "option": null
+      },
+      {
+        "season": "2029-30",
+        "salary": 35500000,
+        "capHit": 35500000,
+        "guaranteed": true,
+        "option": "player"
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Bird",
+      "eligibleFor": []
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2030,
+      "capHold": 42600000
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "teamCode": "DEN",
+  "teamName": "DENVER NUGGETS",
+  "season": "2026-27",
+  "abbreviation": "DEN",
+  "roster": [
+    "den_elias_rho",
+    "den_marcus_devlin",
+    "den_otto_grausam",
+    "den_rhys_calder",
+    "den_nikolai_vasquez",
+    "den_damon_pearl",
+    "den_silas_wren",
+    "den_ivo_karlsson",
+    "den_teo_marchetti",
+    "den_cyrus_hale",
+    "den_bruno_falk",
+    "den_aaron_pike",
+    "den_dominic_sears",
+    "den_xavier_boone",
+    "den_reggie_voss",
+    "den_kai_lindqvist",
+    "den_obi_nwachukwu",
+    "den_lev_tarasov"
+  ],
+  "deadCap": [],
+  "capHolds": [],
+  "exceptions": {
+    "nonTaxpayerMle": {
+      "type": "Non-Taxpayer MLE",
+      "available": false,
+      "totalAmount": 0,
+      "usedAmount": 0,
+      "remainingAmount": 0
+    },
+    "taxpayerMle": {
+      "type": "Taxpayer MLE",
+      "available": true,
+      "totalAmount": 6083000,
+      "usedAmount": 0,
+      "remainingAmount": 6083000,
+      "expiresOn": "2027-06-30"
+    },
+    "bae": {
+      "type": "Bi-Annual Exception",
+      "available": false,
+      "totalAmount": 0,
+      "usedAmount": 0,
+      "remainingAmount": 0
+    },
+    "tradeExceptions": []
+  },
+  "draftPicks": [
+    {
+      "id": "DEN_2027_R1",
+      "year": 2027,
+      "round": 1,
+      "pick": null,
+      "owner": "DEN",
+      "originalTeam": "DEN",
+      "status": "OWNED"
+    },
+    {
+      "id": "DEN_2027_R2",
+      "year": 2027,
+      "round": 2,
+      "pick": null,
+      "owner": "DEN",
+      "originalTeam": "DEN",
+      "status": "OWNED"
+    }
+  ],
+  "entitlementIds": [
+    "DEN_2027_R1",
+    "DEN_2027_R2"
+  ],
+  "totals": {
+    "salaryCap": 165472000,
+    "luxuryTax": 201048000,
+    "firstApron": 209661000,
+    "secondApron": 222372000,
+    "isOverTax": true,
+    "isFirstApron": true,
+    "isSecondApron": false,
+    "isHardCapped": false,
+    "hardCapLevel": null
+  }
+}
