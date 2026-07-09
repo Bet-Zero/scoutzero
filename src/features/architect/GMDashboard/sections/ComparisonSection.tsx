@@ -47,22 +47,22 @@ const CompareFocusBanner = ({
   if (!focus) return null;
   return (
     <div
-      className="rounded-md border border-white/10 bg-white/[0.03] px-4 py-2"
+      className="rounded-md border border-cockpit-edge bg-cockpit-slab px-4 py-2"
       data-testid="comparison-focus-banner"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-white/80">
+        <span className="text-sm font-semibold text-cockpit-text-secondary">
           {focus.heading}
         </span>
         <span
-          className="inline-flex items-center rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55"
+          className="inline-flex items-center rounded border border-cockpit-edge bg-cockpit-raised px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-text-muted"
           data-testid="comparison-focus-authority"
         >
           {focus.authorityLabel}
         </span>
       </div>
       {focus.authority === 'unavailable' ? (
-        <p className="mt-1 text-[11px] text-white/40">
+        <p className="mt-1 text-[11px] text-cockpit-text-muted">
           Player-level comparison is not available yet. Showing the committed
           team/event view below.
         </p>
@@ -76,7 +76,7 @@ const CompareFocusBanner = ({
 // ---------------------------------------------------------------------------
 
 const AuthorityChip = ({ label }: { label: string }) => (
-  <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-white/5 text-white/40 border-white/10 uppercase tracking-wide">
+  <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-md border bg-cockpit-raised text-cockpit-text-muted border-cockpit-edge uppercase tracking-wide">
     {label}
   </span>
 );
@@ -89,7 +89,7 @@ const SectionCard = ({
   testId?: string;
 }) => (
   <div
-    className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-3 space-y-2"
+    className="rounded-md border border-cockpit-edge bg-cockpit-slab px-4 py-3 space-y-2"
     data-testid={testId}
   >
     {children}
@@ -97,7 +97,7 @@ const SectionCard = ({
 );
 
 const SectionHeading = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">
+  <h3 className="text-xs font-semibold text-cockpit-text-muted uppercase tracking-wider mb-1">
     {children}
   </h3>
 );
@@ -116,14 +116,14 @@ const RosterList = ({
   emptyLabel: string;
 }) => {
   if (entries.length === 0) {
-    return <p className="text-xs text-white/30 italic">{emptyLabel}</p>;
+    return <p className="text-xs text-cockpit-text-ghost italic">{emptyLabel}</p>;
   }
   return (
     <ul className="space-y-0.5">
       {entries.map((entry) => (
         <li
           key={entry.playerId}
-          className="text-xs text-white/70"
+          className="text-xs text-cockpit-text-secondary"
           title={entry.playerId}
         >
           {entry.displayName || entry.playerId}
@@ -139,38 +139,38 @@ const CapDeltaDisplay = ({
   delta: Stage3CapTotalDelta;
 }) => (
   <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-    <dt className="text-white/50">Cap allocation</dt>
+    <dt className="text-cockpit-text-muted">Cap allocation</dt>
     <dd
       className={`font-mono ${
         delta.totalCapAllocationsDelta === null
-          ? 'text-white/30'
+          ? 'text-cockpit-text-ghost'
           : delta.totalCapAllocationsDelta > 0
-            ? 'text-rose-300'
-            : 'text-green-300'
+            ? 'text-cockpit-danger'
+            : 'text-cockpit-safe'
       }`}
     >
       {fmtDelta(delta.totalCapAllocationsDelta)}
     </dd>
-    <dt className="text-white/50">Cap space</dt>
+    <dt className="text-cockpit-text-muted">Cap space</dt>
     <dd
       className={`font-mono ${
         delta.capSpaceDelta === null
-          ? 'text-white/30'
+          ? 'text-cockpit-text-ghost'
           : delta.capSpaceDelta < 0
-            ? 'text-rose-300'
-            : 'text-green-300'
+            ? 'text-cockpit-danger'
+            : 'text-cockpit-safe'
       }`}
     >
       {fmtDelta(delta.capSpaceDelta)}
     </dd>
-    <dt className="text-white/50">Tax space</dt>
+    <dt className="text-cockpit-text-muted">Tax space</dt>
     <dd
       className={`font-mono ${
         delta.taxSpaceDelta === null
-          ? 'text-white/30'
+          ? 'text-cockpit-text-ghost'
           : delta.taxSpaceDelta < 0
-            ? 'text-rose-300'
-            : 'text-green-300'
+            ? 'text-cockpit-danger'
+            : 'text-cockpit-safe'
       }`}
     >
       {fmtDelta(delta.taxSpaceDelta)}
@@ -188,14 +188,14 @@ const ApronPostureDisplay = ({ delta }: { delta: Stage3TaxApronPostureDelta }) =
     <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
       {rows.map(({ label, value }) => (
         <React.Fragment key={label}>
-          <dt className="text-white/50">{label}</dt>
+          <dt className="text-cockpit-text-muted">{label}</dt>
           <dd
             className={
               value === null
-                ? 'text-white/30'
+                ? 'text-cockpit-text-ghost'
                 : value
-                  ? 'text-amber-300 font-semibold'
-                  : 'text-white/40'
+                  ? 'text-cockpit-watch font-semibold'
+                  : 'text-cockpit-text-muted'
             }
           >
             {value === null ? '—' : value ? 'Yes' : 'No'}
@@ -230,8 +230,8 @@ const UnavailableList = ({
 }) => (
   <ul className="space-y-1">
     {entries.map((entry) => (
-      <li key={entry.field} data-field={entry.field} className="text-xs text-white/40">
-        <span className="text-white/60">
+      <li key={entry.field} data-field={entry.field} className="text-xs text-cockpit-text-muted">
+        <span className="text-cockpit-text-secondary">
           {formatUnavailableFieldLabel(entry.field)}
         </span>
         {' — '}
@@ -261,13 +261,13 @@ export const ComparisonSection = ({
   if (status === 'sandbox') {
     return (
       <div
-        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-6 text-center space-y-3"
+        className="rounded-md border border-cockpit-edge bg-cockpit-slab px-4 py-6 text-center space-y-3"
         data-testid="comparison-sandbox-state"
       >
-        <p className="text-sm font-semibold text-white/60">
+        <p className="text-sm font-semibold text-cockpit-text-secondary">
           Comparison requires a committed world
         </p>
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-cockpit-text-muted">
           Create or select a world below to compare committed scenario changes
           for this team.
         </p>
@@ -286,12 +286,12 @@ export const ComparisonSection = ({
   if (status === 'loading') {
     return (
       <div
-        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-6 text-center"
+        className="rounded-md border border-cockpit-edge bg-cockpit-slab px-4 py-6 text-center"
         data-testid="comparison-loading-state"
         role="status"
         aria-live="polite"
       >
-        <p className="text-sm text-white/50 italic">
+        <p className="text-sm text-cockpit-text-muted italic">
           Loading comparison data…
         </p>
       </div>
@@ -301,7 +301,7 @@ export const ComparisonSection = ({
   if (status === 'error') {
     return (
       <div
-        className="rounded-md border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+        className="rounded-md border border-cockpit-danger/30 bg-cockpit-danger/10 px-4 py-3 text-sm text-cockpit-danger"
         data-testid="comparison-error-state"
         role="alert"
       >
@@ -314,10 +314,10 @@ export const ComparisonSection = ({
   if (!viewModel) {
     return (
       <div
-        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-6 text-center"
+        className="rounded-md border border-cockpit-edge bg-cockpit-slab px-4 py-6 text-center"
         data-testid="comparison-available"
       >
-        <p className="text-sm text-white/40 italic">
+        <p className="text-sm text-cockpit-text-muted italic">
           No comparison data available.
         </p>
       </div>
@@ -335,21 +335,21 @@ export const ComparisonSection = ({
       {/* Scope header */}
       <SectionCard testId="comparison-scope">
         <div className="flex flex-wrap items-baseline gap-2 mb-1">
-          <h2 className="text-sm font-semibold text-white/80">
+          <h2 className="text-sm font-semibold text-cockpit-text-secondary">
             Committed Scenario Comparison
           </h2>
-          <span className="text-[11px] text-white/40">
+          <span className="text-[11px] text-cockpit-text-muted">
             Read-only · Event-derived
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <AuthorityChip label="Committed world" />
           {scope.worldName && (
-            <span className="text-sm font-semibold text-white/80">
+            <span className="text-sm font-semibold text-cockpit-text-secondary">
               {scope.worldName}
             </span>
           )}
-          <span className="text-xs text-white/40">
+          <span className="text-xs text-cockpit-text-muted">
             {scope.teamCode}
             {scope.currentSeason ? ` · ${scope.currentSeason}` : ''}
           </span>
@@ -357,16 +357,16 @@ export const ComparisonSection = ({
 
         {/* Summary row */}
         <div
-          className="flex flex-wrap gap-3 text-xs text-white/50"
+          className="flex flex-wrap gap-3 text-xs text-cockpit-text-muted"
           data-testid="comparison-event-count"
         >
           <span>
-            <span className="font-semibold text-white/70">{committedEventCount}</span>
+            <span className="font-semibold text-cockpit-text-secondary">{committedEventCount}</span>
             {' '}committed event{committedEventCount !== 1 ? 's' : ''}
           </span>
           {changedTeams.teamCodes.length > 0 && (
             <span
-              className="text-white/40"
+              className="text-cockpit-text-muted"
               data-testid="comparison-changed-teams"
             >
               {changedTeams.teamCodes.length} team{changedTeams.teamCodes.length !== 1 ? 's' : ''} changed
@@ -374,7 +374,7 @@ export const ComparisonSection = ({
           )}
           {changedPlayers.playerIds.length > 0 && (
             <span
-              className="text-white/40"
+              className="text-cockpit-text-muted"
               data-testid="comparison-changed-players"
             >
               {changedPlayers.playerIds.length} player{changedPlayers.playerIds.length !== 1 ? 's' : ''} touched
@@ -391,7 +391,7 @@ export const ComparisonSection = ({
             <button
               type="button"
               onClick={onNavigateToHistory}
-              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+              className="text-xs px-2.5 py-1 rounded-md border border-cockpit-edge bg-cockpit-raised hover:bg-cockpit-edge text-cockpit-text-secondary hover:text-cockpit-text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
               data-testid="comparison-nav-history"
             >
               View History
@@ -401,7 +401,7 @@ export const ComparisonSection = ({
             <button
               type="button"
               onClick={onNavigateToCapSheet}
-              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+              className="text-xs px-2.5 py-1 rounded-md border border-cockpit-edge bg-cockpit-raised hover:bg-cockpit-edge text-cockpit-text-secondary hover:text-cockpit-text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
               data-testid="comparison-nav-cap-sheet"
             >
               View Cap Sheet
@@ -411,7 +411,7 @@ export const ComparisonSection = ({
             <button
               type="button"
               onClick={onNavigateToRoster}
-              className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+              className="text-xs px-2.5 py-1 rounded-md border border-cockpit-edge bg-cockpit-raised hover:bg-cockpit-edge text-cockpit-text-secondary hover:text-cockpit-text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
               data-testid="comparison-nav-roster"
             >
               View Roster
@@ -423,7 +423,7 @@ export const ComparisonSection = ({
       {/* Multi-season warning */}
       {viewModel.isMultiSeasonComparison && (
         <div
-          className="rounded-md border border-amber-300/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200"
+          className="rounded-md border border-cockpit-watch/30 bg-cockpit-watch/10 px-3 py-2 text-xs text-cockpit-watch"
           data-testid="comparison-multi-season-warning"
         >
           Multi-season comparison — this world includes season-advance events.
@@ -434,7 +434,7 @@ export const ComparisonSection = ({
       {/* Empty state */}
       {!hasEvents && (
         <SectionCard testId="comparison-empty-state">
-          <p className="text-xs text-white/40 italic">
+          <p className="text-xs text-cockpit-text-muted italic">
             No committed events in this world yet. Cap baseline and roster delta
             will appear here once mutations are committed.
           </p>
@@ -505,7 +505,7 @@ export const ComparisonSection = ({
       {viewModel.unavailableSummary.length > 0 && (
         <SectionCard testId="comparison-unavailable-summary">
           <SectionHeading>Deferred / Unavailable</SectionHeading>
-          <p className="text-[11px] text-white/30 mb-1">
+          <p className="text-[11px] text-cockpit-text-ghost mb-1">
             These changes are not part of this comparison yet.
           </p>
           <UnavailableList entries={viewModel.unavailableSummary} />

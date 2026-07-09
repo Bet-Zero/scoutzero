@@ -712,12 +712,12 @@ export const resolveTeamHistoryTimeline = ({
       sourceLabel: 'DEV fixture override',
       sourceDetail:
         'Injected synthetic DEV Team History fixtures temporarily take ownership of the local history view and suppress authoritative world events until cleared.',
-      sourceAccentClassName: 'text-emerald-200',
+      sourceAccentClassName: 'text-cockpit-safe',
       timelineTruthLabel: 'Synthetic DEV fixture history',
       timelineTruthDetail:
         'These timeline rows and Team History section values are injected DEV-only test data. They are useful for coverage, but they are not authoritative Team History truth.',
       timelineTruthClassName:
-        'border-emerald-500/20 bg-emerald-500/5 text-emerald-100/85',
+        'border-cockpit-safe/20 bg-cockpit-safe/5 text-cockpit-safe',
       usesWorldEvents: false,
       timelineEntries:
         explicitTimeline.length > 0 ? explicitTimeline : synthesizedTimeline,
@@ -731,7 +731,7 @@ export const resolveTeamHistoryTimeline = ({
       sourceLabel: 'Saved season history',
       sourceDetail:
         'Everything below happened in this saved season.',
-      sourceAccentClassName: 'text-sky-200',
+      sourceAccentClassName: 'text-cockpit-info',
       timelineTruthLabel: null,
       timelineTruthDetail: null,
       timelineTruthClassName: null,
@@ -747,12 +747,12 @@ export const resolveTeamHistoryTimeline = ({
       sourceLabel: 'This session',
       sourceDetail:
         'Showing moves recorded in this session.',
-      sourceAccentClassName: 'text-amber-200',
+      sourceAccentClassName: 'text-cockpit-watch',
       timelineTruthLabel: 'Session history',
       timelineTruthDetail:
         'These entries were recorded directly in this session.',
       timelineTruthClassName:
-        'border-amber-500/20 bg-amber-500/5 text-amber-100/85',
+        'border-cockpit-watch/20 bg-cockpit-watch/5 text-cockpit-watch',
       usesWorldEvents: false,
       timelineEntries: explicitTimeline,
     };
@@ -764,11 +764,11 @@ export const resolveTeamHistoryTimeline = ({
     sourceLabel: 'Recent team records',
     sourceDetail:
       'Showing recent signings, waives, exceptions, and pick moves recorded for this team.',
-    sourceAccentClassName: 'text-zinc-200',
+    sourceAccentClassName: 'text-cockpit-text-secondary',
     timelineTruthLabel: 'Reconstructed history',
     timelineTruthDetail:
       'These entries were reconstructed from team records. Amounts and dates are shown where available.',
-    timelineTruthClassName: 'border-white/10 bg-white/[0.03] text-white/75',
+    timelineTruthClassName: 'border-cockpit-edge bg-cockpit-slab text-cockpit-text-secondary',
     usesWorldEvents: false,
     timelineEntries: synthesizedTimeline,
   };

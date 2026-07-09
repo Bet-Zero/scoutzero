@@ -67,7 +67,7 @@ const TimelineEntryCards = ({
           type="button"
           data-testid={`team-history-event-row-${idx}`}
           onClick={() => onSelectEntry(entry)}
-          className="group w-full rounded-lg border border-white/10 bg-[#10141B] p-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-white/20 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+          className="group w-full rounded-lg border border-cockpit-edge bg-cockpit-slab p-3 text-left shadow-cockpit-slab transition-colors hover:border-cockpit-text-muted hover:bg-cockpit-raised focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
         >
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div
@@ -76,29 +76,29 @@ const TimelineEntryCards = ({
             >
               <span
                 data-testid={`team-history-row-${idx}`}
-                className="block truncate text-sm font-bold text-white"
+                className="block truncate text-sm font-bold text-cockpit-text-primary"
               >
                 {entry.summary || 'History entry'}
               </span>
-              <span className="mt-1 block text-[11px] text-white/45">
+              <span className="mt-1 block text-[11px] text-cockpit-text-muted">
                 {formatHistoryTimestamp(rawTimestamp)}
                 {rawTimestamp ? (
                   <span className="sr-only"> {rawTimestamp}</span>
                 ) : null}
               </span>
             </div>
-            <span className="rounded-md border border-white/10 bg-black/25 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/55">
+            <span className="rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cockpit-text-muted">
               {entry.category || 'Move'}
             </span>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-white/55">
-            <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-cockpit-text-muted">
+            <span className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2 py-0.5">
               {entry.type || entry.mutationType || 'Team plan move'}
             </span>
             <span>{getEntryTeams(entry)}</span>
           </div>
           {entry.primaryDeltas && entry.primaryDeltas !== entry.summary ? (
-            <p className="mt-2 line-clamp-2 text-[12px] text-white/65">
+            <p className="mt-2 line-clamp-2 text-xs text-cockpit-text-secondary">
               {entry.primaryDeltas}
             </p>
           ) : null}
@@ -184,7 +184,7 @@ export const TeamHistoryTab = ({
   const worldEventsStore = worldEventsStoreRef.current;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden p-2.5 text-white">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden p-2.5 text-cockpit-text-primary">
       {/* Single title strip: the room is named once here, then the timeline
           starts. Scope/source chips replace the old stacked banner headings
           (BZE-216 viewport-fit correction). */}
@@ -194,19 +194,19 @@ export const TeamHistoryTab = ({
         }
         data-history-world-id={worldId ?? ''}
         data-history-source-key={timelineResolution.key}
-        className="relative shrink-0 overflow-hidden rounded-lg border border-white/10 bg-cockpit-slab shadow-cockpit-slab"
+        className="relative shrink-0 overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-slab shadow-cockpit-slab"
       >
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-cyan-300 to-amber-300"
+          className="absolute inset-x-0 top-0 h-0.5 bg-[var(--team-primary,#4F46E5)]"
         />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
-          <h2 className="whitespace-nowrap text-sm font-extrabold uppercase tracking-wide text-white">
+          <h2 className="whitespace-nowrap text-sm font-extrabold uppercase tracking-wide text-cockpit-text-primary">
             Team Transaction History
           </h2>
           <p
             data-testid="team-history-active-source-detail"
-            className="min-w-0 flex-1 truncate text-[11px] text-white/55"
+            className="min-w-0 flex-1 truncate text-[11px] text-cockpit-text-muted"
             title={timelineResolution.sourceDetail}
           >
             {timelineResolution.sourceDetail}
@@ -214,13 +214,13 @@ export const TeamHistoryTab = ({
           <span className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
             <span
               data-testid="team-history-scope-label"
-              className="rounded-md border border-white/10 bg-black/25 px-2 py-0.5 text-[10px] font-bold text-white/80"
+              className="rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-0.5 text-[10px] font-bold text-cockpit-text-secondary"
             >
               {timelineResolution.scopeLabel}
             </span>
             <span
               data-testid="team-history-active-source-label"
-              className={`rounded-md border border-white/10 bg-black/25 px-2 py-0.5 text-[10px] font-bold ${timelineResolution.sourceAccentClassName}`}
+              className={`rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-0.5 text-[10px] font-bold ${timelineResolution.sourceAccentClassName}`}
             >
               {timelineResolution.sourceLabel}
             </span>
@@ -231,19 +231,19 @@ export const TeamHistoryTab = ({
       {showDevFixturePanel && (
         <section
           data-testid="team-history-fixtures-panel"
-          className="mt-3 shrink-0 space-y-3 rounded border border-emerald-500/30 bg-[#08120c] p-3 text-xs text-emerald-100/80"
+          className="mt-3 shrink-0 space-y-3 rounded-md border border-cockpit-safe/30 bg-cockpit-safe/5 p-3 text-xs text-cockpit-safe"
         >
-          <div className="font-semibold text-emerald-200">
+          <div className="font-semibold text-cockpit-safe">
             Team History Fixtures (DEV)
           </div>
-          <div className="text-emerald-200/70">
+          <div className="text-cockpit-text-muted">
             Injects deterministic in-memory history entries only (no Firestore
             writes).
           </div>
           {hasActiveFixtureOverride && (
             <div
               data-testid="team-history-fixtures-active-note"
-              className="rounded border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-100/85"
+              className="rounded-md border border-cockpit-safe/25 bg-cockpit-safe/10 px-3 py-2 text-[11px] text-cockpit-safe"
             >
               Synthetic Team History fixtures are active. Clear them before
               trusting world-event or local-history behavior.
@@ -254,7 +254,7 @@ export const TeamHistoryTab = ({
               type="button"
               data-testid="team-history-inject-fixtures-button"
               onClick={() => onInjectTeamHistoryFixtures?.()}
-              className="rounded bg-emerald-700/70 hover:bg-emerald-600/70 px-3 py-1.5 text-xs font-medium text-emerald-100"
+              className="rounded-md bg-cockpit-safe/20 hover:bg-cockpit-safe/30 px-3 py-1.5 text-xs font-medium text-cockpit-safe"
             >
               Inject Team History Fixtures
             </button>
@@ -265,8 +265,8 @@ export const TeamHistoryTab = ({
               disabled={!hasActiveFixtureOverride}
               className={`rounded px-3 py-1.5 text-xs font-medium ${
                 hasActiveFixtureOverride
-                  ? 'bg-neutral-700 hover:bg-neutral-600 text-white'
-                  : 'bg-neutral-800 text-white/40 cursor-not-allowed'
+                  ? 'bg-cockpit-raised hover:bg-cockpit-edge text-cockpit-text-primary'
+                  : 'bg-cockpit-slab text-cockpit-text-muted cursor-not-allowed'
               }`}
             >
               Clear Injected Fixtures
@@ -278,15 +278,15 @@ export const TeamHistoryTab = ({
       <div className="mt-2 grid min-h-0 flex-1 gap-2 overflow-hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)]">
         <section
           data-testid="team-history-section-timeline"
-          className="flex min-h-0 flex-col rounded-lg border border-white/10 bg-[#070A0F] shadow-cockpit-slab"
+          className="flex min-h-0 flex-col rounded-lg border border-cockpit-edge bg-cockpit-void shadow-cockpit-slab"
         >
-          <div className="shrink-0 border-b border-white/10 px-3 py-1.5">
+          <div className="shrink-0 border-b border-cockpit-edge px-3 py-1.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-white/60">
+              <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-cockpit-text-secondary">
                 Saved Moves
               </h3>
               {!timelineResolution.usesWorldEvents ? (
-                <span className="rounded-md border border-white/10 bg-black/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/65">
+                <span className="rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-cockpit-text-secondary">
                   {timelineResolution.timelineEntries.length}{' '}
                   {timelineResolution.timelineEntries.length === 1
                     ? 'entry'
@@ -299,7 +299,7 @@ export const TeamHistoryTab = ({
               timelineResolution.timelineEntries.length > 0 && (
                 <div
                   data-testid="team-history-base-truth-note"
-                  className={`mt-1.5 rounded border px-2.5 py-1 text-xs ${timelineResolution.timelineTruthClassName || 'border-white/10 bg-white/[0.03] text-white/75'}`}
+                  className={`mt-1.5 rounded border px-2.5 py-1 text-xs ${timelineResolution.timelineTruthClassName || 'border-cockpit-edge bg-cockpit-slab text-cockpit-text-secondary'}`}
                 >
                   <span
                     data-testid="team-history-base-truth-label"
@@ -339,7 +339,7 @@ export const TeamHistoryTab = ({
                 }
               />
             ) : timelineResolution.timelineEntries.length === 0 ? (
-              <p className="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
+              <p className="rounded-lg border border-cockpit-edge bg-cockpit-slab p-4 text-sm text-cockpit-text-secondary">
                 No timeline entries yet.
               </p>
             ) : (
@@ -362,7 +362,7 @@ export const TeamHistoryTab = ({
         <aside className="min-h-0 space-y-2 overflow-auto">
           <section
             data-testid="team-history-section-waive"
-            className="rounded-lg border border-white/10 bg-white/[0.035] p-3"
+            className="rounded-lg border border-cockpit-edge bg-cockpit-slab p-3"
           >
             {timelineResolution.usesWorldEvents ? (
               <WorldReconciledWaivePanel
@@ -380,7 +380,7 @@ export const TeamHistoryTab = ({
 
           <section
             data-testid="team-history-section-exceptions"
-            className="rounded-lg border border-white/10 bg-white/[0.035] p-3"
+            className="rounded-lg border border-cockpit-edge bg-cockpit-slab p-3"
           >
             <ExceptionHistoryTracker
               exceptionHistory={teamCapSheet.exceptionHistory || []}
@@ -390,7 +390,7 @@ export const TeamHistoryTab = ({
 
           <section
             data-testid="team-history-section-draft"
-            className="rounded-lg border border-white/10 bg-white/[0.035] p-3"
+            className="rounded-lg border border-cockpit-edge bg-cockpit-slab p-3"
           >
             <DraftPickTracker
               pickLog={teamCapSheet.pickLog || []}

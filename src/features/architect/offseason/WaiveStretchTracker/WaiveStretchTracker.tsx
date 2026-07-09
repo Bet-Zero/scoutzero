@@ -37,7 +37,7 @@ export const WaiveStretchTracker = ({
       ) : (
         <table
           data-testid="team-history-waived-table"
-          className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+          className="min-w-full text-sm bg-cockpit-raised border border-cockpit-edge rounded-md"
         >
           <thead>
             <tr>
@@ -52,7 +52,7 @@ export const WaiveStretchTracker = ({
               <tr
                 key={idx}
                 data-testid={`team-history-waived-row-${idx}`}
-                className="odd:bg-[#171717]"
+                className="odd:bg-cockpit-slab"
               >
                 <td className="p-2">{wc.name}</td>
                 <td className="p-2">{wc.waivedOn}</td>
@@ -77,7 +77,7 @@ export const WaiveStretchTracker = ({
       ) : (
         <table
           data-testid="team-history-dead-cap-table"
-          className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+          className="min-w-full text-sm bg-cockpit-raised border border-cockpit-edge rounded-md"
         >
           <thead>
             <tr>
@@ -90,7 +90,7 @@ export const WaiveStretchTracker = ({
               <tr
                 key={year}
                 data-testid={`team-history-dead-cap-row-${year}`}
-                className="odd:bg-[#171717]"
+                className="odd:bg-cockpit-slab"
               >
                 <td className="p-2">{year}</td>
                 <td className="p-2">${deadCapByYear[year].toLocaleString()}</td>

@@ -77,7 +77,7 @@ export const ExceptionHistoryTracker = ({
     return (
       <table
         data-testid="team-history-tpe-table"
-        className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+        className="min-w-full text-sm bg-cockpit-raised border border-cockpit-edge rounded-md"
       >
         <thead>
           <tr>
@@ -93,7 +93,7 @@ export const ExceptionHistoryTracker = ({
             <tr
               key={entry.id || idx}
               data-testid={`team-history-tpe-row-${idx}`}
-              className="odd:bg-[#171717]"
+              className="odd:bg-cockpit-slab"
             >
               <td className="p-2">{entry.date}</td>
               <td className="p-2">{entry.action}</td>
@@ -112,7 +112,7 @@ export const ExceptionHistoryTracker = ({
     return (
       <table
         data-testid="team-history-mle-table"
-        className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+        className="min-w-full text-sm bg-cockpit-raised border border-cockpit-edge rounded-md"
       >
         <thead>
           <tr>
@@ -128,7 +128,7 @@ export const ExceptionHistoryTracker = ({
             <tr
               key={mle.id || idx}
               data-testid={`team-history-mle-row-${idx}`}
-              className="odd:bg-[#171717]"
+              className="odd:bg-cockpit-slab"
             >
               <td className="p-2">{mle.year || '—'}</td>
               <td className="p-2">${mle.total?.toLocaleString() ?? '—'}</td>
