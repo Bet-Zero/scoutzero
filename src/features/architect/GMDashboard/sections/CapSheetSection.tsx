@@ -142,12 +142,20 @@ const CapSheetSection = ({
   const currentSeasonLabel = formatSeasonLabel(currentYear);
   const selectedSeasonLabel = formatSeasonLabel(selectedYear);
   const teamPlanLabel = resolveTeamPlanLabel(teamCapSheet);
+  // A restrained neutral strip that matches the canonical Full Cap Table: the
+  // status meaning rides on a narrow dot + eyebrow accent, never a colored band
+  // wash (visual standard §3 — color is meaning, not decoration). Future-year
+  // views keep a subtle watch tint because the disclosure itself is the caution
+  // (figures are projected; caps/exceptions stay current-season).
   const shellTruthToneClasses = isViewingCurrentYear
-    ? 'border-sky-400/20 bg-sky-500/[0.06] text-sky-100'
-    : 'border-amber-400/20 bg-amber-500/[0.06] text-amber-100';
+    ? 'border-cockpit-edge bg-cockpit-slab'
+    : 'border-cockpit-watch/25 bg-cockpit-watch/[0.06]';
+  const shellTruthDotClass = isViewingCurrentYear
+    ? 'bg-cockpit-info'
+    : 'bg-cockpit-watch';
   const shellTruthEyebrowClass = isViewingCurrentYear
-    ? 'text-sky-300/80'
-    : 'text-amber-300/80';
+    ? 'text-cockpit-info/90'
+    : 'text-cockpit-watch/90';
   // (chip row removed in BZE-209 — season + boundary now read as one sentence)
   return (
     <div className="flex h-full min-h-0 flex-col gap-1.5 p-2">
@@ -163,11 +171,15 @@ const CapSheetSection = ({
             from a future-year view. Single-line strip — the review viewport
             budget belongs to the cap table itself (BZE-216). */}
         <span
-          className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.25em] ${shellTruthEyebrowClass}`}
+          className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] ${shellTruthEyebrowClass}`}
         >
+          <span
+            aria-hidden="true"
+            className={`h-1.5 w-1.5 rounded-full ${shellTruthDotClass}`}
+          />
           Showing {selectedSeasonLabel}
         </span>
-        <p className="min-w-0 text-[11px] leading-snug text-white/80">
+        <p className="min-w-0 text-[11px] leading-snug text-cockpit-text-secondary">
           {isViewingCurrentYear
             ? `All figures on this page are for the current season, ${currentSeasonLabel}.`
             : `Salary figures below are for ${selectedSeasonLabel}. Hard cap, exceptions, and trade exceptions always reflect the current season (${currentSeasonLabel}).`}

@@ -280,9 +280,9 @@ export const ExceptionTracker = ({
           visible, and the card/TPE detail opens from the details toggle. */}
       <div
         data-testid="cap-sheet-current-season-authority-banner"
-        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-sky-400/15 bg-sky-500/[0.05] px-3 py-1 text-sky-100"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-cockpit-edge bg-cockpit-slab px-3 py-1 text-cockpit-text-secondary"
       >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cockpit-text-muted">
           Exceptions & Hard Cap
         </span>
         <span className="sr-only">
@@ -293,17 +293,17 @@ export const ExceptionTracker = ({
           hardCapStatus={hardCapStatus}
           hasApronData={Boolean(capData.firstApron || capData.secondApron)}
         />
-        <span className="flex items-center gap-1.5 text-[10px] text-white/60">
+        <span className="flex items-center gap-1.5 text-[10px] text-cockpit-text-secondary">
           <span>Trade Exceptions</span>
-          <span className="rounded bg-white/5 px-1.5 text-[9px] text-white/40 tabular-nums">
+          <span className="rounded bg-cockpit-raised px-1.5 text-[9px] text-cockpit-text-muted tabular-nums">
             {tradeExceptions.length}
           </span>
         </span>
         <span className="ml-auto flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-medium">
-          <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-0.5 text-sky-100/90">
+          <span className="rounded-full border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-cockpit-text-secondary">
             Viewing: {selectedSeasonLabel}
           </span>
-          <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-0.5 text-sky-100/90">
+          <span className="rounded-full border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-cockpit-text-secondary">
             Current season: {currentSeasonLabel}
           </span>
           <button
@@ -311,7 +311,7 @@ export const ExceptionTracker = ({
             type="button"
             aria-expanded={showExceptionDetails}
             onClick={() => setShowExceptionDetails(!showExceptionDetails)}
-            className="rounded border border-sky-300/25 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-100 transition-colors hover:bg-sky-500/20"
+            className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-text-secondary transition-colors hover:bg-cockpit-edge"
           >
             {showExceptionDetails ? 'Hide' : 'Show'} details
           </button>
