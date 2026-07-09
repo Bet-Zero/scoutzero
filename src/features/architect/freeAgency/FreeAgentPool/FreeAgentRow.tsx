@@ -133,12 +133,12 @@ export const FreeAgentRow = ({
       }`}
     >
       {/* Position */}
-      <div className="w-[45px] flex items-center justify-center text-white/60 text-sm font-semibold">
+      <div className="w-[45px] shrink-0 flex items-center justify-center text-white/60 text-sm font-semibold">
         {position}
       </div>
 
       {/* Team Logo */}
-      <div className="w-[50px] flex items-center justify-center ml-1">
+      <div className="w-[50px] shrink-0 flex items-center justify-center ml-1">
         {player.teamCode && (
           <img
             src={`/assets/logos/${
@@ -188,18 +188,18 @@ export const FreeAgentRow = ({
       </div>
 
       {/* Name + Rights */}
-      <div className="flex items-center ml-3 flex-1 justify-between mr-2">
+      <div className="flex min-w-0 items-center ml-3 flex-1 justify-between mr-2">
         <div
-          className="flex items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap overflow-visible"
+          className="flex min-w-0 items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap"
           style={{ fontSize: '17px', maxWidth: '300px' }}
         >
-          <span>
+          <span className="truncate">
             {firstName}{' '}
             <span className="text-white/70 font-light">{lastName}</span>
           </span>
           {age && (
             <span
-              className="text-white/50 font-light ml-2"
+              className="shrink-0 text-white/50 font-light ml-2"
               style={{ fontSize: '12px' }}
             >
               ({age})
@@ -208,7 +208,7 @@ export const FreeAgentRow = ({
         </div>
         <div
           data-testid="free-agent-row-signing-context"
-          className="ml-3 flex min-w-[220px] max-w-[290px] items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
+          className="ml-3 flex min-w-[120px] max-w-[290px] shrink-0 items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
         >
           <span className="min-w-0 truncate rounded-sm border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-white/70">
             {signingContext.rightsLabel}
@@ -226,7 +226,7 @@ export const FreeAgentRow = ({
       </div>
 
       {/* Aligned Stats Block */}
-      <div className="flex items-center justify-end text-white/50 text-[13px] w-[290px] mr-3 whitespace-nowrap tabular-nums">
+      <div className="flex shrink-0 items-center justify-end text-white/50 text-[13px] w-[290px] mr-3 whitespace-nowrap tabular-nums">
         {/* FA Type */}
         <span
           className={`w-[44px] text-center px-1.5 py-[2px] rounded text-[12px] font-semibold ${getTagColor(faType)}`}
@@ -248,7 +248,7 @@ export const FreeAgentRow = ({
       </div>
 
       {/* Options */}
-      <div className="flex items-center relative">
+      <div className="flex shrink-0 items-center relative">
         <button
           ref={buttonRef}
           onClick={(e) => {

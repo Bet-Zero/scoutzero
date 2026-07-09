@@ -109,7 +109,7 @@ export const StarterCard = ({
           <div
             className={
               isArchitect
-                ? 'absolute left-[3px] top-[3px] rounded border border-white/10 bg-black/60 px-1 py-0.5 text-[10px] font-bold uppercase tracking-normal text-white/80 shadow-sm backdrop-blur'
+                ? 'absolute left-[3px] top-[3px] flex h-[17px] w-[26px] items-center justify-center rounded border border-white/10 bg-black/60 text-[10px] font-bold uppercase tracking-normal text-white/80 shadow-sm backdrop-blur'
                 : `absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[16px] ${isExport ? 'font-normal' : 'font-semibold'} uppercase rounded-sm tracking-wider shadow-md`
             }
           >
