@@ -39,11 +39,11 @@ export const FreeAgencyFilterBar = ({
   totalCount,
 }: FreeAgencyFilterBarProps) => {
   const selectClass =
-    'w-[130px] border border-none focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-[#3a3a3a] text-xs rounded-md';
+    'w-[130px] border border-none focus:outline-none focus:ring-1 focus:ring-white/30 hover:bg-cockpit-raised text-xs rounded-md';
 
   return (
     <div className="mb-2 shrink-0">
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-md p-2 flex flex-wrap items-center gap-2">
+      <div className="bg-cockpit-slab border border-cockpit-edge rounded-md p-2 flex flex-wrap items-center gap-2">
         <input
           type="text"
           value={filters.query}
@@ -108,13 +108,13 @@ export const FreeAgencyFilterBar = ({
         <button
           type="button"
           onClick={onClear}
-          className="shrink-0 px-2 py-1.5 rounded-md text-xs font-semibold bg-white/10 text-white/80 hover:bg-white/20"
+          className="shrink-0 px-2 py-1.5 rounded-md text-xs font-semibold bg-cockpit-raised text-cockpit-text-secondary hover:bg-cockpit-edge"
         >
           Clear
         </button>
 
         {filteredCount != null && (
-          <span className="shrink-0 text-xs text-white/50 tabular-nums ml-auto">
+          <span className="shrink-0 text-xs text-cockpit-text-muted tabular-nums ml-auto">
             {filteredCount === totalCount
               ? `${filteredCount} results`
               : `${filteredCount} of ${totalCount} results`}

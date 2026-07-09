@@ -66,7 +66,7 @@ export const FreeAgentCard = ({
   const signingContext = getFreeAgentSigningContext(entry);
 
   return (
-    <div className="flex h-[104px] items-stretch overflow-hidden rounded-md border border-white/10 bg-cockpit-slab transition-colors hover:border-white/30">
+    <div className="flex h-[104px] items-stretch overflow-hidden rounded-md border border-cockpit-edge bg-cockpit-slab transition-colors hover:border-cockpit-text-ghost">
       {/* Headshot */}
       <div className="relative w-[84px] shrink-0 bg-cockpit-inlay">
         {player.teamCode && (
@@ -102,11 +102,11 @@ export const FreeAgentCard = ({
       <div className="flex min-w-0 flex-1 flex-col justify-between px-3 py-2">
         <div className="min-w-0">
           <div className="truncate font-anton font-bold uppercase leading-none text-white text-[17px]">
-            {firstName} <span className="font-light text-white/70">{lastName}</span>
+            {firstName} <span className="font-light text-cockpit-text-secondary">{lastName}</span>
           </div>
-          <div className="mt-1 flex items-center gap-2 whitespace-nowrap font-mono text-[10px] text-white/50">
+          <div className="mt-1 flex items-center gap-2 whitespace-nowrap font-mono text-[10px] text-cockpit-text-muted">
             <span>{rawPosition || '—'}</span>
-            <span className="text-white/25">|</span>
+            <span className="text-cockpit-text-ghost">|</span>
             <span>
               {height} · {weight !== '—' ? `${weight} lbs` : '—'}
             </span>
@@ -116,14 +116,14 @@ export const FreeAgentCard = ({
           data-testid="free-agent-card-signing-context"
           className="flex flex-wrap items-center gap-1.5 text-[10px] leading-tight"
         >
-          <span className="rounded-sm border border-white/10 bg-black/25 px-1.5 py-0.5 text-white/75">
+          <span className="rounded-sm border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5 text-cockpit-text-secondary">
             {signingContext.rightsLabel}
           </span>
           <span className="rounded-sm border border-cyan-300/15 bg-cyan-400/[0.07] px-1.5 py-0.5 text-cyan-100/85">
             {signingContext.laneLabel}
           </span>
           {signingContext.capHoldLabel && (
-            <span className="rounded-sm border border-amber-300/15 bg-amber-400/[0.06] px-1.5 py-0.5 text-amber-100/85">
+            <span className="rounded-sm border border-cockpit-watch/25 bg-cockpit-watch/10 px-1.5 py-0.5 text-cockpit-watch">
               {signingContext.capHoldLabel}
             </span>
           )}
@@ -131,13 +131,13 @@ export const FreeAgentCard = ({
       </div>
 
       {/* Prior salary + actions */}
-      <div className="flex w-[150px] shrink-0 flex-col items-end justify-between border-l border-white/5 bg-black/20 px-2.5 py-2">
+      <div className="flex w-[150px] shrink-0 flex-col items-end justify-between border-l border-cockpit-edge bg-cockpit-inlay px-2.5 py-2">
         <div className="flex w-full items-start justify-between gap-2">
           <div className="min-w-0 text-left">
-            <div className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+            <div className="text-[9px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
               Previous Salary
             </div>
-            <div className="font-mono text-xs text-white/90">{prevSalary}</div>
+            <div className="font-mono text-xs text-cockpit-text-primary">{prevSalary}</div>
           </div>
           <button
             onClick={(e) => {
@@ -145,7 +145,7 @@ export const FreeAgentCard = ({
               onRemove(entry.selectionKey);
             }}
             title="Remove from selection"
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] text-white/70 transition-colors hover:bg-red-500/80 hover:text-white"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cockpit-raised text-[10px] text-cockpit-text-secondary transition-colors hover:bg-cockpit-danger hover:text-cockpit-text-primary"
           >
             ✕
           </button>

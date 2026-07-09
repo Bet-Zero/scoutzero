@@ -126,7 +126,7 @@ const FreeAgencySection = ({
       {hasOfferSheets &&
       offerSheetSectionAvailability.actionsDisabled &&
       offerSheetLifecycleDisabledReason ? (
-        <p className="shrink-0 text-xs text-amber-400">
+        <p className="shrink-0 text-xs text-cockpit-watch">
           {offerSheetLifecycleDisabledReason}
         </p>
       ) : null}

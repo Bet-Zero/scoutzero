@@ -19,7 +19,7 @@ export const FreeAgentPoolHeader = () => (
         <span className="w-[44px] text-center">FA</span>
         <div className="ml-6 flex items-center gap-[8px]">
           <span className="w-[32px] text-right">HT</span>
-          <span className="text-white/30">|</span>
+          <span className="text-cockpit-text-ghost">|</span>
           <span className="w-[56px] text-left">WT</span>
         </div>
         <span className="ml-10 w-[78px] text-right">PREV SAL</span>
