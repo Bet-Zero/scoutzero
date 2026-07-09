@@ -64,8 +64,8 @@ export function buildCapPostureAnswer(
       status: 'unavailable',
       shortAnswer:
         cap.status === 'loading'
-          ? 'Cap posture is loading.'
-          : 'Cap posture is unavailable.',
+          ? 'Cap situation is loading.'
+          : 'Cap situation is unavailable.',
       evidence: [],
       authorityLabels:
         cap.status === 'loading'

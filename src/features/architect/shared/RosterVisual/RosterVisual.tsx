@@ -448,12 +448,30 @@ export const RosterVisual = ({
     };
   }, [onPlayerAction, pinnedPlayerIds]);
 
-  if (!roster || !rosterState) return null;
-
   const displayName = String(
     teamInfo.nickname || teamInfo.teamName || teamCapSheet?.teamName || id);
   const teamKey = getTeamLogoFilename(id || displayName);
   const { primary, secondary } = getTeamColors(teamKey);
+
+  if (!roster || !rosterState) {
+    return (
+      <div
+        className="flex h-full min-h-0 w-full flex-col items-center justify-center bg-cockpit-void p-3 text-cockpit-text-primary"
+        data-testid="architect-roster-empty"
+      >
+        <div className="w-full max-w-sm rounded-lg border border-cockpit-edge bg-cockpit-slab px-5 py-6 text-center shadow-cockpit-slab">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-cockpit-text-secondary">
+            {displayName ? `${displayName} Roster` : 'Team Roster'}
+          </h2>
+          <p className="mt-2 text-xs text-cockpit-text-muted">
+            No roster loaded yet. Choose a team plan to see its starting five,
+            rotation, and bench here.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const seasonLabel = formatSeasonLabel(rosterState.activeYear);
   const openStandardSlots = Math.max(
     0,
@@ -493,11 +511,11 @@ export const RosterVisual = ({
 
   return (
     <div
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden p-2.5 text-white"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-cockpit-void p-3 text-cockpit-text-primary"
       style={rosterSurfaceStyle}
     >
       <section
-        className="relative shrink-0 overflow-hidden rounded-lg border border-white/10 bg-cockpit-slab shadow-cockpit-slab"
+        className="relative shrink-0 overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-slab shadow-cockpit-slab"
         aria-label="Roster overview"
       >
         <div
@@ -507,17 +525,17 @@ export const RosterVisual = ({
             background: `linear-gradient(90deg, ${primary}, ${secondary})`,
           }}
         />
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-3.5 py-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
             {displayName ? (
               <img
                 src={`/assets/logos/${teamKey}.png`}
                 alt=""
-                className="h-9 w-9 shrink-0 rounded-md border border-white/10 bg-black/30 object-contain p-1"
+                className="h-9 w-9 shrink-0 rounded-md border border-cockpit-edge bg-cockpit-inlay object-contain p-1"
               />
             ) : null}
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
-              <h2 className="truncate text-lg font-black uppercase leading-tight tracking-wide text-white">
+              <h2 className="truncate text-lg font-black uppercase leading-tight tracking-wide text-cockpit-text-primary">
                 {displayName}
               </h2>
               <p className="whitespace-nowrap text-[11px] text-cockpit-text-secondary">
@@ -531,12 +549,12 @@ export const RosterVisual = ({
               <div
                 key={tile.label}
                 title={tile.detail}
-                className="flex items-baseline gap-1.5 rounded-md border border-white/10 bg-black/20 px-2.5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                className="flex items-baseline gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-inlay px-2.5 py-1.5"
               >
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-white/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
                   {tile.label}
                 </span>
-                <span className="text-sm font-extrabold leading-none text-white tabular-nums">
+                <span className="text-sm font-extrabold leading-none text-cockpit-text-primary tabular-nums">
                   {tile.value}
                 </span>
               </div>
@@ -560,34 +578,44 @@ export const RosterVisual = ({
         data-roster-unsupported-categories="fa,expired,waived,options"
       />
 
-      <div className="mt-2 flex min-h-0 flex-1 flex-col justify-between gap-1.5 overflow-auto rounded-lg border border-white/10 bg-[#070A0F] px-2.5 py-2 shadow-cockpit-slab">
+      <div className="mt-2.5 flex min-h-0 flex-1 flex-col justify-start gap-2 overflow-auto rounded-lg border border-cockpit-edge bg-cockpit-inlay px-2.5 py-2.5">
         {rosterBands.map((band) => {
           const count = rosterState.sectionCounts[band.key];
           return (
             <section
               key={band.key}
               aria-label={`${band.label} roster group`}
-              className="rounded-lg border border-white/10 bg-white/[0.035] px-2 pb-1.5 pt-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+              className="shrink-0 rounded-lg border border-cockpit-edge bg-cockpit-slab px-2.5 pb-1.5 pt-1.5"
             >
               <div className="mb-1 flex flex-wrap items-baseline gap-x-2 px-1">
-                <h3 className="text-xs font-extrabold uppercase tracking-wide text-white">
+                <h3 className="text-xs font-extrabold uppercase tracking-wide text-cockpit-text-primary">
                   {band.label}
                 </h3>
-                <p className="text-[10px] text-cockpit-text-secondary">
+                <p className="text-[10px] text-cockpit-text-muted">
                   {band.detail} · {count} {count === 1 ? 'player' : 'players'}
                 </p>
               </div>
 
-              <RosterSection
-                players={roster[band.key]}
-                section={band.key}
-                {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
-                previewSpacing
-                variant="architect"
-                onSelectPlayer={handleSectionSelect}
-                isPlayerHighlighted={sectionHighlightMatcher}
-                renderPlayerMenu={renderPlayerMenu}
-              />
+              {count === 0 ? (
+                <div
+                  data-roster-empty-band={band.key}
+                  data-testid={`roster-empty-band-${band.key}`}
+                  className="flex items-center justify-center rounded-md border border-dashed border-cockpit-edge px-3 py-3 text-[11px] text-cockpit-text-ghost"
+                >
+                  No {band.label.toLowerCase()} players yet — open slots
+                </div>
+              ) : (
+                <RosterSection
+                  players={roster[band.key]}
+                  section={band.key}
+                  {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+                  previewSpacing
+                  variant="architect"
+                  onSelectPlayer={handleSectionSelect}
+                  isPlayerHighlighted={sectionHighlightMatcher}
+                  renderPlayerMenu={renderPlayerMenu}
+                />
+              )}
             </section>
           );
         })}

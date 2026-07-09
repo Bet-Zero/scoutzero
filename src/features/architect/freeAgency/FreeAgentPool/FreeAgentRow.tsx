@@ -133,12 +133,12 @@ export const FreeAgentRow = ({
       }`}
     >
       {/* Position */}
-      <div className="w-[45px] flex items-center justify-center text-white/60 text-sm font-semibold">
+      <div className="w-[45px] shrink-0 flex items-center justify-center text-white/60 text-sm font-semibold">
         {position}
       </div>
 
       {/* Team Logo */}
-      <div className="w-[50px] flex items-center justify-center ml-1">
+      <div className="w-[50px] shrink-0 flex items-center justify-center ml-1">
         {player.teamCode && (
           <img
             src={`/assets/logos/${
@@ -153,8 +153,19 @@ export const FreeAgentRow = ({
         )}
       </div>
 
-      {/* Headshot */}
-      <div className="flex h-[43px] w-[50px] items-center justify-center overflow-hidden bg-cockpit-inlay">
+      {/* Headshot — a uniform silhouette sits behind every cell; a real photo
+          loads on top and covers it, and a missing photo (review fixtures) just
+          falls through to the same silhouette, so every no-photo row matches. */}
+      <div className="relative flex h-[43px] w-[50px] shrink-0 items-center justify-center overflow-hidden bg-cockpit-inlay">
+        <svg
+          viewBox="0 0 50 43"
+          className="absolute inset-0 h-full w-full text-white/20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <circle cx="25" cy="15" r="9.5" />
+          <path d="M7 43c0-10.5 8-16.5 18-16.5s18 6 18 16.5z" />
+        </svg>
         <img
           src={
             player.headshotUrl ||
@@ -169,26 +180,26 @@ export const FreeAgentRow = ({
             }.png`
           }
           onError={(e) => {
-            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
+            e.currentTarget.style.display = 'none';
           }}
           alt={formattedName}
-          className="h-full w-full object-cover"
+          className="relative h-full w-full object-cover"
         />
       </div>
 
       {/* Name + Rights */}
-      <div className="flex items-center ml-3 flex-1 justify-between mr-2">
+      <div className="flex min-w-0 items-center ml-3 flex-1 justify-between mr-2">
         <div
-          className="flex items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap overflow-visible"
+          className="flex min-w-0 items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap"
           style={{ fontSize: '17px', maxWidth: '300px' }}
         >
-          <span>
+          <span className="truncate">
             {firstName}{' '}
             <span className="text-white/70 font-light">{lastName}</span>
           </span>
           {age && (
             <span
-              className="text-white/50 font-light ml-2"
+              className="shrink-0 text-white/50 font-light ml-2"
               style={{ fontSize: '12px' }}
             >
               ({age})
@@ -197,7 +208,7 @@ export const FreeAgentRow = ({
         </div>
         <div
           data-testid="free-agent-row-signing-context"
-          className="ml-3 flex min-w-[220px] max-w-[290px] items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
+          className="ml-3 flex min-w-[120px] max-w-[290px] shrink-0 items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
         >
           <span className="min-w-0 truncate rounded-sm border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-white/70">
             {signingContext.rightsLabel}
@@ -215,7 +226,7 @@ export const FreeAgentRow = ({
       </div>
 
       {/* Aligned Stats Block */}
-      <div className="flex items-center justify-end text-white/50 text-[13px] w-[290px] mr-3 whitespace-nowrap tabular-nums">
+      <div className="flex shrink-0 items-center justify-end text-white/50 text-[13px] w-[290px] mr-3 whitespace-nowrap tabular-nums">
         {/* FA Type */}
         <span
           className={`w-[44px] text-center px-1.5 py-[2px] rounded text-[12px] font-semibold ${getTagColor(faType)}`}
@@ -237,7 +248,7 @@ export const FreeAgentRow = ({
       </div>
 
       {/* Options */}
-      <div className="flex items-center relative">
+      <div className="flex shrink-0 items-center relative">
         <button
           ref={buttonRef}
           onClick={(e) => {

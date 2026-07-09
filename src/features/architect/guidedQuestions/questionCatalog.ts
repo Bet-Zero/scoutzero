@@ -21,7 +21,7 @@ export const STAGE4_QUESTION_CATALOG: readonly Stage4QuestionCatalogEntry[] = [
   // Family A — Team Status
   {
     id: 'cap-posture',
-    title: 'What is our current cap posture?',
+    title: 'What is our current cap situation?',
     family: 'team-status',
     relatedQuestionIds: ['current-constraints', 'exceptions-available'],
   },

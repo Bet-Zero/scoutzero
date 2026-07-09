@@ -65,17 +65,20 @@ const FAMILY_ORDER: Stage4QuestionFamily[] = [
 ];
 
 const SEVERITY_CLASS: Record<Stage4Severity, string> = {
-  info: 'border-white/10 bg-white/[0.02]',
-  success: 'border-green-400/30 bg-green-500/5',
-  warning: 'border-amber-300/30 bg-amber-400/5',
-  danger: 'border-rose-400/30 bg-rose-500/5',
+  info: 'border-cockpit-edge bg-cockpit-slab',
+  success: 'border-cockpit-safe/30 bg-cockpit-safe/[0.06]',
+  warning: 'border-cockpit-watch/30 bg-cockpit-watch/[0.06]',
+  danger: 'border-cockpit-danger/30 bg-cockpit-danger/[0.06]',
 };
 
+// Title tint only — the body copy stays neutral for readability. State is
+// carried by the card border and the status chip, not by washing the whole
+// card in a status color.
 const SEVERITY_TEXT: Record<Stage4Severity, string> = {
-  info: 'text-white/70',
-  success: 'text-green-200',
-  warning: 'text-amber-200',
-  danger: 'text-rose-200',
+  info: 'text-cockpit-text-primary',
+  success: 'text-cockpit-safe',
+  warning: 'text-cockpit-watch',
+  danger: 'text-cockpit-danger',
 };
 
 const STATUS_LABEL: Record<Stage4AnswerStatus, string> = {
@@ -86,17 +89,17 @@ const STATUS_LABEL: Record<Stage4AnswerStatus, string> = {
 };
 
 const STATUS_CHIP_CLASS: Record<Stage4AnswerStatus, string> = {
-  available: 'bg-green-500/10 text-green-200 border-green-400/30',
-  partial: 'bg-amber-400/10 text-amber-200 border-amber-300/30',
-  deferred: 'bg-white/10 text-white/60 border-white/20',
-  unavailable: 'bg-white/5 text-white/40 border-white/10',
+  available: 'bg-cockpit-safe/10 text-cockpit-safe border-cockpit-safe/30',
+  partial: 'bg-cockpit-watch/10 text-cockpit-watch border-cockpit-watch/30',
+  deferred: 'bg-white/5 text-cockpit-text-muted border-cockpit-edge',
+  unavailable: 'bg-white/5 text-cockpit-text-ghost border-cockpit-edge',
 };
 
 const CHIP_SEVERITY_CLASS: Record<Stage4Severity, string> = {
-  info: 'bg-white/5 text-white/70 border-white/10',
-  success: 'bg-green-500/10 text-green-200 border-green-400/30',
-  warning: 'bg-amber-400/10 text-amber-200 border-amber-300/30',
-  danger: 'bg-rose-500/10 text-rose-200 border-rose-400/30',
+  info: 'bg-cockpit-inlay text-cockpit-text-secondary border-cockpit-edge',
+  success: 'bg-cockpit-safe/10 text-cockpit-safe border-cockpit-safe/30',
+  warning: 'bg-cockpit-watch/10 text-cockpit-watch border-cockpit-watch/30',
+  danger: 'bg-cockpit-danger/10 text-cockpit-danger border-cockpit-danger/30',
 };
 
 const AUTHORITY_LABEL_TEXT: Record<Stage4AuthorityLabel, string> = {
@@ -119,7 +122,7 @@ const formatAuthorityLabel = (label: string) =>
 // ---------------------------------------------------------------------------
 
 const AuthorityChip = ({ label }: { label: string }) => (
-  <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-white/5 text-white/40 border-white/10 uppercase tracking-wide">
+  <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-cockpit-inlay text-cockpit-text-muted border-cockpit-edge uppercase tracking-wide">
     {formatAuthorityLabel(label)}
   </span>
 );
@@ -164,7 +167,7 @@ const BlockingConstraintPill = ({
 
 const DeferredReasonRow = ({ reason }: { reason: Stage4DeferredReason }) => (
   <li
-    className="text-xs text-white/50"
+    className="text-xs text-cockpit-text-muted"
     data-testid="guide-deferred-reason"
   >
     <span>{reason.reason}</span>{' '}
@@ -181,7 +184,7 @@ const NavigationButton = ({ target, onNavigate }: NavigationButtonProps) => (
   <button
     type="button"
     onClick={() => onNavigate(target.id)}
-    className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+    className="text-xs px-2.5 py-1 rounded border border-cockpit-edge bg-cockpit-slab hover:bg-cockpit-raised text-cockpit-text-secondary hover:text-cockpit-text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-cockpit-info/50"
     data-testid={`guide-nav-${target.id}`}
     title="Navigation only — opens the existing surface"
     aria-label={`${target.label} (navigation only)`}
@@ -209,7 +212,7 @@ const AnswerCard = ({
     </div>
 
     <p
-      className={`text-xs ${SEVERITY_TEXT[answer.severity]}`}
+      className="text-xs text-cockpit-text-secondary"
       data-testid="guide-short-answer"
     >
       {answer.shortAnswer}
@@ -274,7 +277,7 @@ const FamilyGroup = ({
       className="space-y-2"
       data-testid={`guide-family-${family}`}
     >
-      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+      <h3 className="text-xs font-extrabold text-cockpit-text-muted uppercase tracking-wide">
         {FAMILY_LABELS[family]}
       </h3>
       <div className="space-y-2">
@@ -309,13 +312,13 @@ export const GuideSection: React.FC<GuideSectionProps> = ({
   if (!viewModel.scope.teamCode) {
     return (
       <div
-        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-6 text-center space-y-2"
+        className="rounded-md border border-cockpit-edge bg-cockpit-slab px-4 py-6 text-center space-y-2"
         data-testid="guide-unavailable-state"
       >
-        <p className="text-sm font-semibold text-white/60">
+        <p className="text-sm font-semibold text-cockpit-text-secondary">
           Guide is unavailable
         </p>
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-cockpit-text-muted">
           {viewModel.status.workspaceError ||
             'Active team identity is not available.'}
         </p>
@@ -337,31 +340,31 @@ export const GuideSection: React.FC<GuideSectionProps> = ({
   return (
     <div className="space-y-4" data-testid="guide-section">
       <header
-        className="rounded-md border border-white/10 bg-white/[0.015] px-4 py-3 space-y-1"
+        className="rounded-md border border-cockpit-edge bg-cockpit-slab px-4 py-3 space-y-1"
         data-testid="guide-scope"
       >
         <div className="flex flex-wrap items-baseline gap-2">
-          <h2 className="text-sm font-semibold text-white/80">
+          <h2 className="text-sm font-semibold text-cockpit-text-primary">
             Front Office Guide
           </h2>
-          <span className="text-[11px] text-white/40">
-            Read-only · Deterministic · Navigation only
+          <span className="text-[11px] text-cockpit-text-muted">
+            Read-only · Navigation only
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <AuthorityChip
             label={viewModel.scope.sandbox ? 'Sandbox' : 'Committed world'}
           />
-          <span className="text-sm font-semibold text-white/80">
+          <span className="text-sm font-semibold text-cockpit-text-primary">
             {viewModel.scope.teamCode}
           </span>
           {viewModel.scope.season && (
-            <span className="text-xs text-white/40">
+            <span className="text-xs text-cockpit-text-muted">
               Season {viewModel.scope.season}
             </span>
           )}
           {viewModel.scope.sandbox && (
-            <span className="text-xs text-white/40 italic">
+            <span className="text-xs text-cockpit-text-muted italic">
               Scenario answers require an active world.
             </span>
           )}
@@ -370,16 +373,16 @@ export const GuideSection: React.FC<GuideSectionProps> = ({
 
       {objective ? (
         <div
-          className="rounded-md border border-sky-400/25 bg-sky-500/5 px-4 py-2"
+          className="rounded-md border border-cockpit-info/25 bg-cockpit-info/[0.06] px-4 py-2"
           data-testid="guide-objective-banner"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-sky-300/80">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-cockpit-info">
                 Objective
               </span>
               <span
-                className="text-sm font-semibold text-white/85"
+                className="text-sm font-semibold text-cockpit-text-primary"
                 data-testid="guide-objective-text"
               >
                 {objective}
@@ -396,7 +399,7 @@ export const GuideSection: React.FC<GuideSectionProps> = ({
                     })
                   )
                 }
-                className="text-xs px-2.5 py-1 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white/90 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                className="text-xs px-2.5 py-1 rounded border border-cockpit-edge bg-cockpit-slab hover:bg-cockpit-raised text-cockpit-text-secondary hover:text-cockpit-text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-cockpit-info/50"
                 data-testid="guide-objective-open-trade"
               >
                 Open Trade
