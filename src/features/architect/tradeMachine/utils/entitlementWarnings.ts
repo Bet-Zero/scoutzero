@@ -156,21 +156,21 @@ export function getEntitlementKindBadge(
 ): EntitlementBadge {
   switch (kind) {
     case 'pick_ownership':
-      return { label: 'Own', colorClass: 'bg-blue-600/30 text-blue-300' };
+      return { label: 'Own', colorClass: 'bg-cockpit-info/20 text-cockpit-info' };
     case 'conveyance_right':
       return {
         label: 'Conditional',
-        colorClass: 'bg-purple-600/30 text-purple-300',
+        colorClass: 'bg-cockpit-info/20 text-cockpit-info',
       };
     case 'swap_right':
       return {
         label: 'Swap Option',
-        colorClass: 'bg-amber-600/30 text-amber-300',
+        colorClass: 'bg-cockpit-watch/20 text-cockpit-watch',
       };
     default:
       return {
         label: kind || 'Unknown',
-        colorClass: 'bg-white/10 text-white/60',
+        colorClass: 'bg-cockpit-raised text-cockpit-text-secondary',
       };
   }
 }

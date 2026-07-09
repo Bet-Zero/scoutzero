@@ -52,12 +52,12 @@ interface SectionHeaderProps {
 }
 
 const SectionHeader = ({ title, mode, children }: SectionHeaderProps) => (
-  <div className="border-b border-white/10 pb-2 mb-3">
+  <div className="border-b border-cockpit-edge pb-2 mb-3">
     <div className="flex items-center gap-2 mb-1">
-      <h4 className="font-medium text-sm text-white/90">{title}</h4>
+      <h4 className="font-medium text-sm text-cockpit-text-primary">{title}</h4>
       {mode && <ModeTag mode={mode} />}
     </div>
-    {children && <div className="text-xs text-white/50">{children}</div>}
+    {children && <div className="text-xs text-cockpit-text-muted">{children}</div>}
   </div>
 );
 
@@ -79,13 +79,13 @@ function getCalculatorTpes(team: TeamCoreLike | null | undefined): TpeLike[] {
 
 const NotValidatedCallout = () => (
   <div
-    className="p-4 bg-amber-900/20 border border-amber-600/30 rounded-lg text-center"
+    className="p-4 bg-cockpit-watch/20 border border-cockpit-watch/30 rounded-lg text-center"
     data-testid="not-validated-callout"
   >
-    <div className="text-amber-300 font-medium mb-1">
+    <div className="text-cockpit-watch font-medium mb-1">
       No Validation Results Available
     </div>
-    <div className="text-sm text-amber-200/70">
+    <div className="text-sm text-cockpit-watch/70">
       Run <span className="font-semibold">Validate Trade</span> to generate
       official results.
     </div>
@@ -148,21 +148,21 @@ export const ValidationDetailsPanel = ({
 
   return (
     <div className="mt-6 space-y-4" data-testid="validation-details-panel">
-      <div className="border border-white/10 rounded-lg overflow-hidden bg-[#111]">
+      <div className="border border-cockpit-edge rounded-lg overflow-hidden bg-cockpit-slab">
         <button
           type="button"
           onClick={() => setProductionExpanded(!productionExpanded)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-[#111] hover:bg-[#1a1a1a] text-sm font-medium text-white/80 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 bg-cockpit-slab hover:bg-cockpit-raised text-sm font-medium text-cockpit-text-secondary transition-colors"
           aria-expanded={productionExpanded}
           aria-controls="validation-results-content"
         >
           <span className="flex items-center gap-2">
-            <ClipboardList size={15} className="text-white/60" />
+            <ClipboardList size={15} className="text-cockpit-text-secondary" />
             <span>Validation Results</span>
             {/* Neutral on purpose: results existing is not a verdict — the
                 banner above owns pass/blocked coloring. */}
             {hasValidatorResult && (
-              <span className="text-xs text-white/50">Results available</span>
+              <span className="text-xs text-cockpit-text-muted">Results available</span>
             )}
           </span>
           {productionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -171,7 +171,7 @@ export const ValidationDetailsPanel = ({
         {productionExpanded && (
           <div
             id="validation-results-content"
-            className="p-4 border-t border-white/10"
+            className="p-4 border-t border-cockpit-edge"
           >
             {!hasValidatorResult ? (
               <NotValidatedCallout />
@@ -225,18 +225,18 @@ export const ValidationDetailsPanel = ({
       </div>
 
       {debugEnabled && (
-      <div className="border border-amber-500/30 rounded-lg overflow-hidden bg-[#111]">
+      <div className="border border-cockpit-watch/30 rounded-lg overflow-hidden bg-cockpit-slab">
         <button
           type="button"
           onClick={() => setDevToolsExpanded(!devToolsExpanded)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-[#0d0906] hover:bg-[#1a1408] text-sm font-medium text-amber-300/70 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 bg-cockpit-watch/10 hover:bg-cockpit-watch/15 text-sm font-medium text-cockpit-watch/70 transition-colors"
           aria-expanded={devToolsExpanded}
           aria-controls="dev-tools-content"
         >
           <span className="flex items-center gap-2">
-            <Wrench size={15} className="text-amber-300/60" />
+            <Wrench size={15} className="text-cockpit-watch/60" />
             <span>Development Tools</span>
-            <span className="text-[10px] text-amber-400/50 italic ml-1">
+            <span className="text-[10px] text-cockpit-watch/50 italic ml-1">
               testing & debug
             </span>
           </span>
@@ -244,7 +244,7 @@ export const ValidationDetailsPanel = ({
         </button>
 
         {devToolsExpanded && (
-          <div id="dev-tools-content" className="p-4 border-t border-amber-500/20">
+          <div id="dev-tools-content" className="p-4 border-t border-cockpit-watch/20">
             <div className="space-y-6">
               {showSntInjector && (
                 <section data-testid="section-snt-injector">
@@ -252,10 +252,10 @@ export const ValidationDetailsPanel = ({
                     Inject one eligible and one ineligible synthetic player for
                     Sign-and-Trade runtime verification.
                   </SectionHeader>
-                  <div className="rounded border border-amber-500/30 bg-[#120e09] p-3 text-xs text-amber-100/80 space-y-3">
+                  <div className="rounded border border-cockpit-watch/30 bg-cockpit-watch/10 p-3 text-xs text-cockpit-watch/80 space-y-3">
                     <div>
                       Enabled via local flag:{' '}
-                      <code className="font-mono text-amber-200">
+                      <code className="font-mono text-cockpit-watch">
                         hz.dev.injectSntPlayers=true
                       </code>
                     </div>
@@ -263,7 +263,7 @@ export const ValidationDetailsPanel = ({
                       <button
                         type="button"
                         onClick={() => onInjectSntPlayers?.()}
-                        className="rounded bg-amber-700/70 hover:bg-amber-600/70 px-3 py-1.5 text-xs font-medium text-amber-100"
+                        className="rounded bg-cockpit-watch/70 hover:bg-cockpit-watch/70 px-3 py-1.5 text-xs font-medium text-cockpit-watch"
                       >
                         Inject S&T Test Players
                       </button>
@@ -273,8 +273,8 @@ export const ValidationDetailsPanel = ({
                         disabled={!hasInjectedSntPlayers}
                         className={`rounded px-3 py-1.5 text-xs font-medium ${
                           hasInjectedSntPlayers
-                            ? 'bg-neutral-700 hover:bg-neutral-600 text-white'
-                            : 'bg-neutral-800 text-white/40 cursor-not-allowed'
+                            ? 'bg-cockpit-raised hover:bg-cockpit-edge text-cockpit-text-primary'
+                            : 'bg-cockpit-slab text-cockpit-text-muted cursor-not-allowed'
                         }`}
                       >
                         Clear Injected Players
@@ -302,7 +302,7 @@ export const ValidationDetailsPanel = ({
                             onChange={(event) =>
                               onCalculatorTeamChange?.(Number(event.target.value))
                             }
-                            className="bg-[#222] border border-white/20 rounded px-2 py-1 text-xs"
+                            className="bg-cockpit-raised border border-cockpit-edge rounded px-2 py-1 text-xs"
                           >
                             {teamOptions.map((item) => (
                               <option key={item.idx} value={item.idx}>

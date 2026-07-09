@@ -20,8 +20,8 @@ interface RuleDisplayProps {
 
 export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
   const getRuleStatus = (passed: boolean | null | undefined) => {
-    if (passed === undefined || passed === null) return 'text-gray-500';
-    return passed ? 'text-green-400' : 'text-red-400';
+    if (passed === undefined || passed === null) return 'text-cockpit-text-muted';
+    return passed ? 'text-cockpit-safe' : 'text-cockpit-danger';
   };
 
   const RuleDisplay = ({ rule, label }: RuleDisplayProps) => {
@@ -43,12 +43,12 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
       <div>
         <div className={`${getRuleStatus(rule.passed)}`}>• {label}</div>
         {summaryText && (
-          <span className="block text-xs text-white/50 pl-4">
+          <span className="block text-xs text-cockpit-text-muted pl-4">
             {summaryText}
           </span>
         )}
         {warnings.length > 0 && (
-          <span className="block text-[10px] text-amber-300/80 pl-4">
+          <span className="block text-[10px] text-cockpit-watch/80 pl-4">
             {warnings.length} warning{warnings.length === 1 ? '' : 's'}
           </span>
         )}
@@ -57,7 +57,7 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
   };
 
   return (
-    <div className="bg-[#111] border border-white/10 rounded-lg p-4">
+    <div className="bg-cockpit-slab border border-cockpit-edge rounded-lg p-4">
       <h3 className="font-medium mb-3">CBA Rule Compliance Overview</h3>
 
       {teamResults?.map((team, index) => (
@@ -143,21 +143,21 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
                         return (
                           <div
                             key={violationIndex}
-                            className="text-xs bg-red-900/20 border border-red-900/30 rounded px-2 py-1"
+                            className="text-xs bg-cockpit-danger/20 border border-cockpit-danger/30 rounded px-2 py-1"
                           >
                             {conflictExplanation && (
-                              <div className="text-red-300 font-medium">
+                              <div className="text-cockpit-danger font-medium">
                                 {conflictExplanation}
                               </div>
                             )}
                             {entitlementIds.length > 0 && (
-                                <div className="text-white/40 mt-0.5">
+                                <div className="text-cockpit-text-muted mt-0.5">
                                   Conflicts between:{' '}
                                   {entitlementIds.join(' ↔ ')}
                                 </div>
                               )}
                             {claimMeta && (
-                                <div className="text-white/40 mt-0.5">
+                                <div className="text-cockpit-text-muted mt-0.5">
                                   Claim:{' '}
                                   {claimMeta}
                                 </div>
@@ -166,7 +166,7 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
                         );
                       })}
                     {team.rules.entitlementExclusivity.violations.length > 3 && (
-                      <div className="text-xs text-white/30 pl-2">
+                      <div className="text-xs text-cockpit-text-ghost pl-2">
                         +
                         {team.rules.entitlementExclusivity.violations.length -
                           3}{' '}
@@ -180,9 +180,9 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
         </div>
       ))}
 
-      <div className="mt-3 text-xs text-white/60">
+      <div className="mt-3 text-xs text-cockpit-text-secondary">
         <p>🟢 Compliant • 🔴 Violation • ⚪ Not Applicable</p>
-        <p className="mt-2 text-yellow-400/40">
+        <p className="mt-2 text-cockpit-watch/40">
           Preview covers CBA validator and post-state cap checks. World-state
           checks (duplicate players, entitlement conflicts, exclusivity) run at
           apply time.

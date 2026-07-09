@@ -139,7 +139,7 @@ export const EntitlementPicksList = ({
     return (
       <div>
         <div className="flex items-center justify-between mb-1">
-          <h4 className="text-sm text-white/70">Draft Picks</h4>
+          <h4 className="text-sm text-cockpit-text-secondary">Draft Picks</h4>
           {onCreateEntitlement && (
             <EntitlementEditorCreateButton
               onClick={onCreateEntitlement}
@@ -147,10 +147,10 @@ export const EntitlementPicksList = ({
             />
           )}
         </div>
-        <div className="text-xs text-white/40 px-1">
+        <div className="text-xs text-cockpit-text-muted px-1">
           No draft picks to show.
           {emptyStateHint && (
-            <span className="block mt-1 text-white/30 text-[10px]">
+            <span className="block mt-1 text-cockpit-text-ghost text-[10px]">
               {emptyStateHint}
             </span>
           )}
@@ -162,7 +162,7 @@ export const EntitlementPicksList = ({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h4 className="text-sm text-white/70">Draft Picks</h4>
+        <h4 className="text-sm text-cockpit-text-secondary">Draft Picks</h4>
         {onCreateEntitlement && (
           <EntitlementEditorCreateButton
             onClick={onCreateEntitlement}
@@ -173,7 +173,7 @@ export const EntitlementPicksList = ({
       <div className="space-y-3 max-h-[375px] overflow-y-auto pr-1">
         {Array.from(groupedByYear.entries()).map(([year, yearEntitlements]) => (
           <div key={year} className="space-y-1">
-            <div className="text-[10px] text-white/50 uppercase tracking-wide px-1 pt-1">
+            <div className="text-[10px] text-cockpit-text-muted uppercase tracking-wide px-1 pt-1">
               {year}
             </div>
             {yearEntitlements.map((entitlement) => {

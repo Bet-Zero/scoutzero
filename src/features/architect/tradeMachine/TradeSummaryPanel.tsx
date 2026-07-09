@@ -67,16 +67,16 @@ export function TradeSummaryPanel({
         : '⚪ Preview authority unavailable';
 
   return (
-    <div className="mt-6 text-sm border-t border-white/10 pt-4 space-y-6">
+    <div className="mt-6 text-sm border-t border-cockpit-edge pt-4 space-y-6">
       <div>
         <strong className="text-base">{topStatus}</strong>
         {previewFailed && !hasOverrideRequest && (
-          <div className="text-xs text-white/60 mt-1">
+          <div className="text-xs text-cockpit-text-secondary mt-1">
             Fix the issues below before applying the trade.
           </div>
         )}
         {previewFailed && hasOverrideRequest && (
-          <div className="text-xs text-amber-300/80 mt-1">
+          <div className="text-xs text-cockpit-watch/80 mt-1">
             {String(
               overrideState.message ||
                 'Override state is tracked separately. It does not change authoritative legality.'
@@ -92,11 +92,11 @@ export function TradeSummaryPanel({
       />
 
       {showRuleExplanations && topLevelViolations.length > 0 && (
-        <div className="bg-[#121212] border border-red-500/30 rounded p-3">
+        <div className="bg-cockpit-slab border border-cockpit-danger/30 rounded p-3">
           <div className="font-semibold mb-2">Why it fails</div>
           <ul className="list-disc list-inside space-y-1">
             {topLevelViolations.map((violation, index) => (
-              <li key={index} className="text-red-300">
+              <li key={index} className="text-cockpit-danger">
                 {getValidationIssueText(violation)}
               </li>
             ))}
@@ -143,8 +143,8 @@ export function TradeSummaryPanel({
             return (
               <div
                 key={teamSummary.teamName || teamMeta?.team?.id || index}
-                className={`border rounded bg-[#111] overflow-hidden ${
-                  isIllegal ? 'border-red-500' : 'border-white/10'
+                className={`border rounded bg-cockpit-slab overflow-hidden ${
+                  isIllegal ? 'border-cockpit-danger' : 'border-cockpit-edge'
                 }`}
               >
                 <div
@@ -163,7 +163,7 @@ export function TradeSummaryPanel({
                       <h4 className="font-semibold">{teamSummary.teamName}</h4>
                     </div>
                     {isIllegal && (
-                      <span className="text-xs text-red-400 font-semibold">
+                      <span className="text-xs text-cockpit-danger font-semibold">
                         ❌ Rejected
                       </span>
                     )}
@@ -199,18 +199,18 @@ export function TradeSummaryPanel({
                         isHardCapped && hardCapDetails?.limiter === 'hardCap';
 
                       return (
-                        <div className="text-xs text-white/70 space-y-1">
+                        <div className="text-xs text-cockpit-text-secondary space-y-1">
                           <p>
                             Matching In / Allowed:{' '}
                             {isValidating ? (
-                              <span className="text-blue-400 animate-pulse">
+                              <span className="text-cockpit-info animate-pulse">
                                 Updating…
                               </span>
                             ) : (
                               <>
                                 {formatCurrency(salaryIn)} / {formattedAllowed}
                                 {skipReason && (
-                                  <span className="text-white/40 ml-1">
+                                  <span className="text-cockpit-text-muted ml-1">
                                     ({skipReason})
                                   </span>
                                 )}
@@ -222,7 +222,7 @@ export function TradeSummaryPanel({
                           </p>
 
                           {isHardCapped && !isValidating && showAllowed && (
-                            <div className="pl-2 border-l border-white/20 text-[10px] text-white/50 space-y-0.5">
+                            <div className="pl-2 border-l border-cockpit-edge text-[10px] text-cockpit-text-muted space-y-0.5">
                               <div className="flex justify-between">
                                 <span>Salary Match Ceiling:</span>
                                 <span>
@@ -238,7 +238,7 @@ export function TradeSummaryPanel({
                                 </span>
                                 <span
                                   className={
-                                    hardCapIsLimiter ? 'text-yellow-400' : ''
+                                    hardCapIsLimiter ? 'text-cockpit-watch' : ''
                                   }
                                 >
                                   {hardCapCeiling != null
@@ -255,7 +255,7 @@ export function TradeSummaryPanel({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <div className="text-xs text-white/60 mb-1">
+                      <div className="text-xs text-cockpit-text-secondary mb-1">
                         Players Received
                       </div>
                       {incomingPlayers.length ? (
@@ -277,20 +277,20 @@ export function TradeSummaryPanel({
                             return (
                               <div
                                 key={player.player_id || player.id}
-                                className="flex items-center justify-between bg-white/5 px-2 py-1 rounded"
+                                className="flex items-center justify-between bg-cockpit-raised px-2 py-1 rounded"
                               >
                                 <div className="flex items-center gap-1 truncate">
                                   {player.name || player.fullName}
                                   {hasAdjustment && (
                                     <span
-                                      className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
+                                      className="px-1 py-0.5 text-[10px] bg-cockpit-info/30 text-cockpit-info rounded leading-none"
                                       title={tooltipText}
                                     >
                                       Adj
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-white/50 text-xs">
+                                <div className="text-cockpit-text-muted text-xs">
                                   {baseSalary
                                     ? formatCurrency(baseSalary)
                                     : '—'}
@@ -300,12 +300,12 @@ export function TradeSummaryPanel({
                           })}
                         </div>
                       ) : (
-                        <div className="text-xs text-white/40 italic">None</div>
+                        <div className="text-xs text-cockpit-text-muted italic">None</div>
                       )}
                     </div>
 
                     <div>
-                      <div className="text-xs text-white/60 mb-1">
+                      <div className="text-xs text-cockpit-text-secondary mb-1">
                         Entitlements Received
                       </div>
                       {incomingEntitlements.length ? (
@@ -332,16 +332,16 @@ export function TradeSummaryPanel({
                                     entitlement.entitlementId ||
                                     entitlementIndex
                                   }
-                                  className="flex flex-col bg-white/5 px-2 py-1 rounded"
+                                  className="flex flex-col bg-cockpit-raised px-2 py-1 rounded"
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 truncate">
-                                      <span className="text-white/90">
+                                      <span className="text-cockpit-text-primary">
                                         {entitlement.seasonYear} R
                                         {entitlement.round}
                                       </span>
                                       <span
-                                        className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.colorClass}`}
                                       >
                                         {badge.label}
                                       </span>
@@ -349,7 +349,7 @@ export function TradeSummaryPanel({
                                   </div>
                                   {secondaryText && (
                                     <div
-                                      className="text-white/40 text-[10px] mt-0.5 truncate"
+                                      className="text-cockpit-text-muted text-[10px] mt-0.5 truncate"
                                       title={secondaryText}
                                     >
                                       {secondaryText}
@@ -361,13 +361,13 @@ export function TradeSummaryPanel({
                           )}
                         </div>
                       ) : (
-                        <div className="text-xs text-white/40 italic">None</div>
+                        <div className="text-xs text-cockpit-text-muted italic">None</div>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-xs text-white/60 mb-1">
+                    <div className="text-xs text-cockpit-text-secondary mb-1">
                       Entitlements Traded
                     </div>
                     {entitlementsOut.length > 0 ? (
@@ -396,22 +396,22 @@ export function TradeSummaryPanel({
                                   entitlement.entitlementId ||
                                   entitlementIndex
                                 }
-                                className="flex flex-col bg-white/5 px-2 py-1.5 rounded text-xs"
+                                className="flex flex-col bg-cockpit-raised px-2 py-1.5 rounded text-xs"
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2 truncate">
-                                    <span className="text-white/90">
+                                    <span className="text-cockpit-text-primary">
                                       {entitlement.seasonYear} R
                                       {entitlement.round}
                                     </span>
                                     <span
-                                      className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.colorClass}`}
                                     >
                                       {badge.label}
                                     </span>
                                   </div>
                                   <div
-                                    className="text-white/50 text-[10px] truncate max-w-[120px]"
+                                    className="text-cockpit-text-muted text-[10px] truncate max-w-[120px]"
                                     title={entitlementDescription}
                                   >
                                     {entitlementDescription.slice(0, 25)}
@@ -422,7 +422,7 @@ export function TradeSummaryPanel({
                                 </div>
                                 {secondaryText && (
                                   <div
-                                    className="text-white/40 text-[10px] mt-0.5 truncate"
+                                    className="text-cockpit-text-muted text-[10px] mt-0.5 truncate"
                                     title={secondaryText}
                                   >
                                     {secondaryText}
@@ -434,11 +434,11 @@ export function TradeSummaryPanel({
                         )}
                       </div>
                     ) : (
-                      <div className="text-xs text-white/40 italic">None</div>
+                      <div className="text-xs text-cockpit-text-muted italic">None</div>
                     )}
 
                     {entitlementWarnings.length > 0 && (
-                      <div className="mt-2 p-2 bg-amber-900/20 border border-amber-500/30 rounded text-xs text-amber-300">
+                      <div className="mt-2 p-2 bg-cockpit-watch/20 border border-cockpit-watch/30 rounded text-xs text-cockpit-watch">
                         <div className="flex items-center gap-1 mb-1 font-medium">
                           <AlertTriangle size={12} />
                           <span>Entitlement Warnings</span>

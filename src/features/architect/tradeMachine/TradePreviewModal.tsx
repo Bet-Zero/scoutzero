@@ -59,7 +59,7 @@ const TradePreviewModal = ({
         />
       </div>
       <div
-        className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8 overflow-auto"
+        className="fixed inset-0 z-50 bg-cockpit-void/80 flex items-center justify-center p-8 overflow-auto"
         onClick={onClose}
       >
         <div
@@ -75,12 +75,12 @@ const TradePreviewModal = ({
               overlaps the summary header (date) baked into the export. */}
           <button
             onClick={onClose}
-            className="absolute -top-5 -right-5 z-30 rounded-full border border-white/20 bg-neutral-900 p-2 text-white/70 shadow-lg hover:text-white hover:bg-neutral-800 transition-colors"
+            className="absolute -top-5 -right-5 z-30 rounded-full border border-cockpit-edge bg-cockpit-slab p-2 text-cockpit-text-secondary shadow-lg hover:text-cockpit-text-primary hover:bg-cockpit-raised transition-colors"
             title="Close"
           >
             <X size={22} />
           </button>
-          <div className="rounded-2xl border border-white/20 shadow-2xl overflow-hidden bg-[#111] relative">
+          <div className="rounded-2xl border border-cockpit-edge shadow-2xl overflow-hidden bg-cockpit-slab relative">
             <TradeExportCapture
               teams={teams}
               previewAuthority={previewAuthority}
@@ -90,7 +90,7 @@ const TradePreviewModal = ({
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30">
               <button
                 onClick={handleDownload}
-                className="bg-neutral-200 text-black text-lg font-semibold px-4 py-1.5 rounded shadow-lg hover:bg-neutral-300 transition"
+                className="bg-cockpit-info text-cockpit-void text-lg font-semibold px-4 py-1.5 rounded-md shadow-lg hover:bg-cockpit-info/90 transition"
               >
                 Download
               </button>

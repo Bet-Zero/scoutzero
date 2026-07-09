@@ -38,22 +38,22 @@ export const getEntitlementKindTag = (
     case 'pick_ownership':
       return {
         label: 'Own',
-        colorClass: 'bg-green-600/30 text-green-400',
+        colorClass: 'bg-cockpit-safe/20 text-cockpit-safe',
       };
     case 'conveyance_right':
       return {
         label: 'Conditional',
-        colorClass: 'bg-amber-600/30 text-amber-400',
+        colorClass: 'bg-cockpit-watch/20 text-cockpit-watch',
       };
     case 'swap_right':
       return {
         label: 'Swap Option',
-        colorClass: 'bg-purple-600/30 text-purple-400',
+        colorClass: 'bg-cockpit-info/20 text-cockpit-info',
       };
     default:
       return {
         label: kind || 'Unknown',
-        colorClass: 'bg-gray-600/30 text-gray-400',
+        colorClass: 'bg-cockpit-raised text-cockpit-text-muted',
       };
   }
 };

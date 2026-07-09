@@ -199,10 +199,10 @@ export const EntitlementPickRow = ({
     <div
       className={`flex flex-col px-3 py-2 rounded-md text-xs border transition-colors ${
         isSelected
-          ? 'bg-green-800/40 border-green-500/50'
+          ? 'bg-cockpit-safe/40 border-cockpit-safe/50'
           : incoming
-            ? 'bg-neutral-700 border-white/10'
-            : 'bg-[#1c1c1c] border-white/10 hover:border-white/20'
+            ? 'bg-cockpit-raised border-cockpit-edge'
+            : 'bg-cockpit-raised border-cockpit-edge hover:border-cockpit-edge'
       }`}
     >
       <div className="flex items-center justify-between">
@@ -213,13 +213,13 @@ export const EntitlementPickRow = ({
 
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-white/90 truncate" title={label}>
+              <span className="text-cockpit-text-primary truncate" title={label}>
                 {pickRow.year} - Round {pickRow.round}
               </span>
 
               {isEncumbered && (
                 <span
-                  className="flex items-center gap-0.5 text-amber-400 flex-shrink-0"
+                  className="flex items-center gap-0.5 text-cockpit-watch flex-shrink-0"
                   title="This pick is encumbered"
                 >
                   <AlertTriangle size={12} />
@@ -228,7 +228,7 @@ export const EntitlementPickRow = ({
 
               {isPooled && (
                 <span
-                  className="flex items-center gap-0.5 text-purple-400 flex-shrink-0"
+                  className="flex items-center gap-0.5 text-cockpit-info flex-shrink-0"
                   title="Pooled entitlement (multi-team)"
                 >
                   <Layers size={12} />
@@ -237,17 +237,17 @@ export const EntitlementPickRow = ({
 
               {hasLinkedEntitlements && (
                 <span
-                  className="flex items-center gap-0.5 text-cyan-400 flex-shrink-0"
+                  className="flex items-center gap-0.5 text-cockpit-info flex-shrink-0"
                   title={`Linked to ${linkedCount} other entitlement${linkedCount > 1 ? 's' : ''}`}
                 >
                   <Link2 size={12} />
-                  <span className="text-[9px]">{linkedCount}</span>
+                  <span className="text-[10px]">{linkedCount}</span>
                 </span>
               )}
 
               {isResidual && (
                 <span
-                  className="flex items-center gap-0.5 text-teal-400 flex-shrink-0"
+                  className="flex items-center gap-0.5 text-cockpit-safe flex-shrink-0"
                   title="Residual (depends on another entitlement's outcome)"
                 >
                   <GitBranch size={12} />
@@ -256,7 +256,7 @@ export const EntitlementPickRow = ({
 
               {DEBUG_PICKROW && pickRow._debug && (
                 <span
-                  className="flex items-center text-blue-400/50 flex-shrink-0 cursor-help"
+                  className="flex items-center text-cockpit-info/50 flex-shrink-0 cursor-help"
                   title={JSON.stringify(pickRow._debug.sourceHints, null, 2)}
                 >
                   <Info size={10} />
@@ -266,7 +266,7 @@ export const EntitlementPickRow = ({
 
             {!compact && (pickRowLabel || secondaryText) && (
               <span
-                className="text-white/50 text-[10px] truncate"
+                className="text-cockpit-text-muted text-[10px] truncate"
                 title={[pickRowLabel, secondaryText]
                   .filter(Boolean)
                   .join(' - ')}
@@ -283,7 +283,7 @@ export const EntitlementPickRow = ({
 
         <div className="flex items-center gap-2 flex-shrink-0">
           {isSelected && tradingToTeam && (
-            <span className="text-[10px] text-green-300 flex items-center gap-1">
+            <span className="text-[10px] text-cockpit-safe flex items-center gap-1">
               →{' '}
               {tradingToTeam.teamName ||
                 tradingToTeam.teamCode ||
@@ -292,12 +292,12 @@ export const EntitlementPickRow = ({
           )}
 
           {!compact && isVacuumMode && isSessionOnly && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-900/30 text-purple-300 border border-purple-500/30">
+            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-cockpit-info/30 text-cockpit-info border border-cockpit-info/30">
               Session-only
             </span>
           )}
           {!compact && isVacuumMode && isEditedSession && !isSessionOnly && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-900/30 text-amber-300 border border-amber-500/30">
+            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-cockpit-watch/30 text-cockpit-watch border border-cockpit-watch/30">
               Edited (this session)
             </span>
           )}
@@ -316,7 +316,7 @@ export const EntitlementPickRow = ({
                   openMenu === entitlementId ? null : (entitlementId ?? null)
                 )
               }
-              className="text-xs text-blue-400 hover:underline px-1"
+              className="text-xs text-cockpit-info hover:underline px-1"
             >
               •••
             </button>
@@ -324,7 +324,7 @@ export const EntitlementPickRow = ({
             {openMenu === entitlementId && (
               <div
                 ref={menuRef}
-                className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem] shadow-lg"
+                className="absolute right-0 top-5 bg-cockpit-raised border border-cockpit-edge rounded z-20 text-xs min-w-[10rem] max-w-[14rem] shadow-lg"
               >
                 {!incoming &&
                   otherTeams.map((t) => (
@@ -333,7 +333,7 @@ export const EntitlementPickRow = ({
                       onClick={() =>
                         handleTradeToTeam(t.id || t.teamCode || '')
                       }
-                      className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
+                      className="block w-full text-left px-3 py-1.5 hover:bg-cockpit-edge truncate"
                     >
                       {isSelected && currentToTeamId === (t.id ?? t.teamCode)
                         ? 'Cancel Trade'
@@ -344,20 +344,20 @@ export const EntitlementPickRow = ({
                 {(isSelected || incoming) && (
                   <button
                     onClick={handleUndoTrade}
-                    className="block w-full text-left px-3 py-1.5 hover:bg-[#333]"
+                    className="block w-full text-left px-3 py-1.5 hover:bg-cockpit-edge"
                   >
                     Undo Trade
                   </button>
                 )}
 
                 {(otherTeams.length > 0 || isSelected || incoming) && (
-                  <div className="border-t border-white/10 my-1" />
+                  <div className="border-t border-cockpit-edge my-1" />
                 )}
 
                 {onEdit && (
                   <button
                     onClick={handleModify}
-                    className="block w-full text-left px-3 py-1.5 hover:bg-[#333]"
+                    className="block w-full text-left px-3 py-1.5 hover:bg-cockpit-edge"
                   >
                     Modify
                   </button>
@@ -365,21 +365,21 @@ export const EntitlementPickRow = ({
 
                 <button
                   onClick={handleViewDetails}
-                  className="block w-full text-left px-3 py-1.5 hover:bg-[#333]"
+                  className="block w-full text-left px-3 py-1.5 hover:bg-cockpit-edge"
                 >
                   View Details
                 </button>
 
                 {isVacuumMode && (isEditedSession || isSessionOnly) && (
                   <>
-                    <div className="border-t border-white/10 my-1" />
+                    <div className="border-t border-cockpit-edge my-1" />
                     {isEditedSession && !isSessionOnly && onRevertEdit && (
                       <button
                         onClick={() => {
                           onRevertEdit(entitlement);
                           setOpenMenu?.(null);
                         }}
-                        className="block w-full text-left px-3 py-1.5 hover:bg-[#333] text-amber-300"
+                        className="block w-full text-left px-3 py-1.5 hover:bg-cockpit-edge text-cockpit-watch"
                       >
                         Revert this edit
                       </button>
@@ -390,7 +390,7 @@ export const EntitlementPickRow = ({
                           onDeleteSessionPickRight(entitlement);
                           setOpenMenu?.(null);
                         }}
-                        className="block w-full text-left px-3 py-1.5 hover:bg-[#333] text-red-300"
+                        className="block w-full text-left px-3 py-1.5 hover:bg-cockpit-edge text-cockpit-danger"
                       >
                         Delete this session pick right
                       </button>

@@ -861,21 +861,21 @@ export const TradeEditor = ({
   };
 
   return (
-    <div className="text-white space-y-4">
+    <div className="text-cockpit-text-primary space-y-4">
       {showContextBanner && tradeContext && bannerAuthority ? (
         <div
-          className="flex items-start justify-between gap-2 rounded-md border border-white/15 bg-white/[0.04] px-3 py-2"
+          className="flex items-start justify-between gap-2 rounded-md border border-cockpit-edge bg-cockpit-slab px-3 py-2"
           data-testid="trade-context-banner"
         >
-          <div className="flex flex-wrap items-center gap-2 text-xs text-white/80">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-cockpit-text-secondary">
             <span
               data-testid="trade-context-banner-authority"
-              className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+              className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                 bannerAuthority.tone === 'committed'
-                  ? 'border-green-400/40 bg-green-500/10 text-green-200'
+                  ? 'border-cockpit-safe/40 bg-cockpit-safe/10 text-cockpit-safe'
                   : bannerAuthority.tone === 'planning'
-                    ? 'border-sky-400/40 bg-sky-500/10 text-sky-200'
-                    : 'border-amber-400/40 bg-amber-500/10 text-amber-200'
+                    ? 'border-cockpit-info/40 bg-cockpit-info/10 text-cockpit-info'
+                    : 'border-cockpit-watch/40 bg-cockpit-watch/10 text-cockpit-watch'
               }`}
             >
               {bannerAuthority.label}
@@ -898,7 +898,7 @@ export const TradeEditor = ({
           <button
             type="button"
             onClick={() => setContextBannerDismissed(true)}
-            className="shrink-0 rounded px-1 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors"
+            className="shrink-0 rounded-md px-1 text-cockpit-text-muted hover:text-cockpit-text-secondary hover:bg-cockpit-raised transition-colors"
             aria-label="Dismiss trade context"
             data-testid="trade-context-banner-dismiss"
           >
@@ -906,9 +906,11 @@ export const TradeEditor = ({
           </button>
         </div>
       ) : null}
-      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+      <div className="flex items-center justify-between border-b border-cockpit-edge pb-2">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
+          <h2 className="text-lg font-black uppercase leading-tight tracking-wide">
+            Trade Machine
+          </h2>
           {capSourceSummary ? (
             <CapConfidenceBadge
               summary={capSourceSummary}
@@ -967,15 +969,15 @@ export const TradeEditor = ({
           Free Agency. Cleared once staged (or dismissed). */}
       {pendingSignAndTrade ? (
         <div
-          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-cockpit-info/40 bg-cockpit-info/10 px-3 py-2"
           data-testid="pending-sign-and-trade"
         >
-          <div className="min-w-0 text-sm text-blue-100">
-            <span className="font-semibold">Sign &amp; Trade:</span>{' '}
+          <div className="min-w-0 text-sm text-cockpit-text-primary">
+            <span className="font-semibold text-cockpit-info">Sign &amp; Trade:</span>{' '}
             <span data-testid="pending-sign-and-trade-player">
               {pendingSignAndTradePlayerName}
             </span>
-            <span className="ml-2 text-xs text-blue-200/70">
+            <span className="ml-2 text-xs text-cockpit-text-muted">
               Add the receiving team, then set the new contract &amp;
               destination.
             </span>
@@ -989,7 +991,7 @@ export const TradeEditor = ({
               onClick={() => setPendingSignAndTrade(null)}
               aria-label="Cancel sign-and-trade"
               data-testid="pending-sign-and-trade-dismiss"
-              className="shrink-0 rounded px-1 text-blue-200/60 transition-colors hover:bg-white/5 hover:text-blue-100"
+              className="shrink-0 rounded-md px-1 text-cockpit-text-muted transition-colors hover:bg-cockpit-raised hover:text-cockpit-text-primary"
             >
               ×
             </button>
@@ -1018,12 +1020,12 @@ export const TradeEditor = ({
 
       {/* Phase 16.3: Init error display */}
       {initError && teams.length === 0 && (
-        <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-4 text-red-200">
-          <div className="font-semibold text-red-100 mb-1">
+        <div className="bg-cockpit-danger/15 border border-cockpit-danger/50 rounded-lg p-4 text-cockpit-text-secondary">
+          <div className="font-semibold text-cockpit-danger mb-1">
             Trade Machine failed to initialize.
           </div>
           <div className="text-sm mb-2">{initError}</div>
-          <div className="text-xs text-red-300/70">
+          <div className="text-xs text-cockpit-text-muted">
             Check console for [tradeMachine:init] error.
           </div>
         </div>
@@ -1137,7 +1139,7 @@ export const TradeEditor = ({
       {/* Scroll fade indicators for scroll mode */}
       {layoutMode === 'scroll' && (
         <div className="flex justify-center gap-2 mt-2">
-          <span className="text-white/40 text-xs">
+          <span className="text-cockpit-text-muted text-xs">
             ← Scroll to see all teams →
           </span>
         </div>

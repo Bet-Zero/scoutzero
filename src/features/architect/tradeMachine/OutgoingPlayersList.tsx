@@ -119,7 +119,7 @@ export const OutgoingPlayersList = ({
           />
         ))}
         {available.length === 0 && (
-          <div className="text-xs text-white/40">No players available</div>
+          <div className="text-xs text-cockpit-text-muted">No players available</div>
         )}
       </div>
     </div>
