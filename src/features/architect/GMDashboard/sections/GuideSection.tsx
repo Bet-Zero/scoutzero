@@ -91,8 +91,8 @@ const STATUS_LABEL: Record<Stage4AnswerStatus, string> = {
 const STATUS_CHIP_CLASS: Record<Stage4AnswerStatus, string> = {
   available: 'bg-cockpit-safe/10 text-cockpit-safe border-cockpit-safe/30',
   partial: 'bg-cockpit-watch/10 text-cockpit-watch border-cockpit-watch/30',
-  deferred: 'bg-white/5 text-cockpit-text-muted border-cockpit-edge',
-  unavailable: 'bg-white/5 text-cockpit-text-ghost border-cockpit-edge',
+  deferred: 'bg-cockpit-inlay text-cockpit-text-muted border-cockpit-edge',
+  unavailable: 'bg-cockpit-inlay text-cockpit-text-ghost border-cockpit-edge',
 };
 
 const CHIP_SEVERITY_CLASS: Record<Stage4Severity, string> = {
