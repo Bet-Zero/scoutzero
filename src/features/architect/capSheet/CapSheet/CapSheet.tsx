@@ -549,23 +549,11 @@ export const CapSheet = ({
 
       <section
         aria-label={CAP_SHEET_SURFACE_LABELS.rosterDetail}
-        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-cockpit-edge shadow-cockpit-slab"
-        style={{
-          background:
-            'radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--team-primary,#4F46E5) 22%, #0B0E14), #07090D 70%)',
-          boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px color-mix(in srgb, var(--team-primary,#4F46E5) 40%, transparent), 0 18px 50px -20px rgba(0,0,0,0.8)',
-        }}
+        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-slab shadow-cockpit-slab"
       >
         {/* SUPPORTING DETAIL SURFACE: Player rows explain year-by-year contract detail.
             They may borrow canonical thresholds for display, but they do not own totals truth. */}
-        <div
-          className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-cockpit-edge px-3 py-1.5"
-          style={{
-            background:
-              'linear-gradient(90deg, color-mix(in srgb, var(--team-primary,#4F46E5) 30%, #0B0E14), #0B0E14 60%)',
-          }}
-        >
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <span
               aria-hidden
@@ -845,15 +833,7 @@ export const CapSheet = ({
               </div>
             )}
 
-            <div
-              className="ml-auto flex shrink-0 items-baseline gap-2 rounded-md border px-2.5 py-0.5"
-              style={{
-                borderColor:
-                  'color-mix(in srgb, var(--team-secondary,#FDB927) 40%, transparent)',
-                background:
-                  'linear-gradient(90deg, color-mix(in srgb, var(--team-primary,#4F46E5) 24%, #0B0E14), rgba(255,255,255,0.04))',
-              }}
-            >
+            <div className="ml-auto flex shrink-0 items-baseline gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-0.5">
               <p className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider text-cockpit-text-primary">
                 Total Cap Hit
                 <span className="sr-only">Canonical Totals Consumer</span>

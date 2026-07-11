@@ -1026,7 +1026,8 @@ export const TradeEditor = ({
           </div>
           <div className="text-sm mb-2">{initError}</div>
           <div className="text-xs text-cockpit-text-muted">
-            Check console for [tradeMachine:init] error.
+            Close and reopen the Trade Machine to try again. If it keeps
+            failing, refresh the page.
           </div>
         </div>
       )}

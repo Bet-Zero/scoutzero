@@ -100,6 +100,11 @@ const CapSheetSection = ({
   pinnedPlayerIds = [],
 }: CapSheetSectionProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  // BZE-229 (owner-approved): the exceptions / hard-cap readout is collapsed by
+  // default to match the Full Cap Table, so the cap table lands a full 18-man
+  // roster with no hidden scroll. Hard-cap and apron status still surface
+  // universally in the TopBar cap meter + Team Plan alerts.
+  const [showExceptions, setShowExceptions] = useState(false);
 
   useEffect(() => {
     setSelectedYear(currentYear);
@@ -211,13 +216,31 @@ const CapSheetSection = ({
         className="shrink-0"
       >
         {/* ADJACENT CURRENT-SEASON AUTHORITY SURFACE: Keep exception/TPE/
-            hard-cap display separate from the selected-year cap-table owner. */}
-        <ExceptionTracker
-          teamCapSheet={teamCapSheet}
-          currentYear={currentYear}
-          selectedYear={selectedYear}
-          surfaceLabel={CAP_SHEET_SECTION_SURFACE_LABELS.adjacentDetail}
-        />
+            hard-cap display separate from the selected-year cap-table owner.
+            Collapsed by default (BZE-229) behind a one-line toggle so the cap
+            table keeps the review-viewport budget, matching the Full Cap Table. */}
+        <button
+          type="button"
+          data-testid="cap-sheet-exceptions-toggle"
+          aria-expanded={showExceptions}
+          onClick={() => setShowExceptions((prev) => !prev)}
+          className="flex w-full items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-slab px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-cockpit-text-muted transition-colors hover:text-cockpit-text-secondary"
+        >
+          <span aria-hidden="true" className="text-cockpit-text-ghost">
+            {showExceptions ? '▾' : '▸'}
+          </span>
+          Exceptions &amp; Hard Cap
+        </button>
+        {showExceptions && (
+          <div className="mt-1.5">
+            <ExceptionTracker
+              teamCapSheet={teamCapSheet}
+              currentYear={currentYear}
+              selectedYear={selectedYear}
+              surfaceLabel={CAP_SHEET_SECTION_SURFACE_LABELS.adjacentDetail}
+            />
+          </div>
+        )}
       </section>
 
       {showDevFixturePanel && (

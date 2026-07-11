@@ -7,6 +7,7 @@ import type {
 import { resolveHistoryOutboundLinks } from './historyOutboundLinks';
 import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
 import { buildPlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -297,6 +298,14 @@ export const HistoryDetailModal = ({
           ? `Before/after totals are present for ${referenceCapRow.teamCode}, but no normalized cap delta was provided.`
           : 'No normalized before/after totals were carried on this entry.';
   const rawPayloadSummaryLines = buildRawPayloadSummaryLines(rawEntry);
+  // BZE-229 (owner-approved): the raw-identifier and payload-inspection sections
+  // are engineer diagnostics, not GM information. They stay behind the existing
+  // developer toggle (the same DEV + fixture flag that reveals the fixtures
+  // panel), so owners — in review or production — never see raw IDs or JSON.
+  const showDeveloperDetail =
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    window.localStorage?.getItem(DEV_TEAM_HISTORY_FIXTURE_FLAG) === 'true';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-cockpit-void/80 p-4">
@@ -446,17 +455,19 @@ export const HistoryDetailModal = ({
               {entry.timestamp || entry.occurredAt || EMPTY_VALUE}
             </div>
           </div>
-          <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Raw Payload Type
+          {showDeveloperDetail && (
+            <div>
+              <div className="text-xs uppercase text-cockpit-text-muted">
+                Raw Payload Type
+              </div>
+              <div
+                data-testid="team-history-detail-raw-type"
+                className="font-medium"
+              >
+                {getDisplayText(rawEntry?.type)}
+              </div>
             </div>
-            <div
-              data-testid="team-history-detail-raw-type"
-              className="font-medium"
-            >
-              {getDisplayText(rawEntry?.type)}
-            </div>
-          </div>
+          )}
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">Mutation Type</div>
             <div
@@ -512,6 +523,7 @@ export const HistoryDetailModal = ({
               {entry.primaryDeltas || EMPTY_VALUE}
             </div>
           </div>
+          {showDeveloperDetail && (
           <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
             <div className="text-xs uppercase text-cockpit-text-muted">Identity</div>
             <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -566,6 +578,7 @@ export const HistoryDetailModal = ({
               fallback identifier.
             </div>
           </div>
+          )}
           {detailSections.length > 0 && (
             <div
               className="md:col-span-2 space-y-3"
@@ -607,6 +620,8 @@ export const HistoryDetailModal = ({
               ))}
             </ul>
           </div>
+          {showDeveloperDetail && (
+          <>
           <div className="md:col-span-2">
             <div className="text-xs uppercase text-cockpit-text-muted">
               Before Totals By Team
@@ -656,6 +671,8 @@ export const HistoryDetailModal = ({
               {stringifySafe(rawEntry)}
             </pre>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>

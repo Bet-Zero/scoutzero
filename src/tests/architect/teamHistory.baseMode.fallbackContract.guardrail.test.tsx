@@ -4,7 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
-import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
+import {
+  injectTeamHistoryFixtures,
+  DEV_TEAM_HISTORY_FIXTURE_FLAG,
+} from '@/features/architect/history/devTeamHistoryFixtures';
 
 const useWorldTeamEventsMock = vi.fn();
 
@@ -25,10 +28,14 @@ const buildBaseTeam = (): TeamHistoryCapSheetLike => ({
 describe('TEAM_HISTORY_STEP4 fallback-contract guardrails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // BZE-229: the detail modal's raw-identifier / payload inspector is gated
+    // behind the existing developer toggle; this suite verifies it.
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
   });
 
   afterEach(() => {
     cleanup();
+    window.localStorage.clear();
   });
 
   it('keeps fixture and world ownership ahead of the base-mode fallback branch', () => {

@@ -190,8 +190,8 @@ export const FreeAgentRow = ({
       {/* Name + Rights */}
       <div className="flex min-w-0 items-center ml-3 flex-1 justify-between mr-2">
         <div
-          className="flex min-w-0 items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap"
-          style={{ fontSize: '17px', maxWidth: '300px' }}
+          className="flex min-w-0 flex-1 items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap"
+          style={{ fontSize: '17px' }}
         >
           <span className="truncate">
             {firstName}{' '}
@@ -208,7 +208,7 @@ export const FreeAgentRow = ({
         </div>
         <div
           data-testid="free-agent-row-signing-context"
-          className="ml-3 flex min-w-[120px] max-w-[290px] shrink-0 items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
+          className="ml-3 flex max-w-[290px] shrink-0 items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
         >
           <span className="min-w-0 truncate rounded-sm border border-cockpit-edge bg-cockpit-raised px-1.5 py-0.5 text-cockpit-text-secondary">
             {signingContext.rightsLabel}

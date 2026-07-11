@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 import { buildWorldMutationEventPayload } from '@/features/architect/utils/mutationPipeline';
 
 const useWorldTeamEventsMock = vi.fn();
@@ -71,6 +72,7 @@ function buildEvent({
 describe('TEAM_HISTORY_E5 display integration from enriched world events', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
   });
 
   it('renders transaction-log quality summary/details from enriched payload shapes', () => {

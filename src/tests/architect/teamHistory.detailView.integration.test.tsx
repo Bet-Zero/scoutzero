@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   cleanup,
   fireEvent,
@@ -9,7 +9,10 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
-import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
+import {
+  injectTeamHistoryFixtures,
+  DEV_TEAM_HISTORY_FIXTURE_FLAG,
+} from '@/features/architect/history/devTeamHistoryFixtures';
 
 const seededTeam = injectTeamHistoryFixtures({
   teamCode: 'BOS',
@@ -22,8 +25,15 @@ const seededTeam = injectTeamHistoryFixtures({
 });
 
 describe('Team History detail view integration', () => {
+  // BZE-229: the detail modal's raw-identifier and payload-inspection sections
+  // are gated behind the existing developer toggle (DEV + fixture flag) so owners
+  // never see them. These tests exercise that inspector, so enable the toggle.
+  beforeEach(() => {
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
+  });
   afterEach(() => {
     cleanup();
+    window.localStorage.clear();
   });
 
   it('opens detail modal from row click and closes cleanly', async () => {
