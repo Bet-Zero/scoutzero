@@ -1333,7 +1333,10 @@ describe('Cap Sheet UI integration flows', () => {
       .getByRole('button', { name: 'Future Veteran Minimum Wing' })
       .closest('div.grid');
     const veteranFutureCell = getFutureYearCell(veteranRow, 1);
-    const veteranCapHit = within(veteranFutureCell).getByText('$2,176,096');
+    // 2027-28 vet-min cap-hit relief derives from the official minimum scale
+    // (BZE-220 reconciliation follow-up, e746836d) — was $2,176,096 under the
+    // old projected 2026-27 rookie minimum.
+    const veteranCapHit = within(veteranFutureCell).getByText('$2,449,421');
     expect(veteranCapHit).toBeInTheDocument();
     expect(
       within(veteranFutureCell).queryByText('$2,390,000')
@@ -1378,8 +1381,9 @@ describe('Cap Sheet UI integration flows', () => {
         `$${totals.totalCapAllocations.toLocaleString()}`
       )
     ).toBeInTheDocument();
-    expect(totals.playersTotal).toBe(23_176_096);
-    expect(totals.totalCapAllocations).toBe(23_176_096);
+    // Reconciled 2027-28 vet-min relief (see the $2,449,421 note above).
+    expect(totals.playersTotal).toBe(23_449_421);
+    expect(totals.totalCapAllocations).toBe(23_449_421);
   });
 
   it('shows future-only contract contributors in the multi-year body alongside coherent future totals', () => {
@@ -1568,11 +1572,13 @@ describe('Cap Sheet UI integration flows', () => {
       totals.capHoldsTotal
     );
 
-    expect(totals.playersTotal).toBe(29_176_096);
+    // Player total carries the reconciled 2027-28 vet-min relief ($2,449,421,
+    // was $2,176,096 under the old projected minimum) — see e746836d.
+    expect(totals.playersTotal).toBe(29_449_421);
     expect(totals.deadMoneyTotal).toBe(0);
     expect(totals.incompleteChargesTotal).toBe(0);
     expect(totals.capHoldsTotal).toBe(4_250_000);
-    expect(totals.totalCapAllocations).toBe(33_426_096);
+    expect(totals.totalCapAllocations).toBe(33_699_421);
 
     fireEvent.click(screen.getByTestId('cap-sheet-full-cap-holds-toggle'));
 
