@@ -38,7 +38,7 @@ export const SelectedFreeAgentCards = ({
   return (
     <div
       data-testid="selected-free-agent-deck"
-      className="mb-2 shrink-0 overflow-hidden rounded-md border border-cockpit-info/25 bg-white/[0.03]"
+      className="mb-2 shrink-0 overflow-hidden rounded-md border border-cockpit-info/25 bg-cockpit-slab"
     >
       <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-cockpit-text-secondary">
@@ -55,7 +55,7 @@ export const SelectedFreeAgentCards = ({
             collapsed ? 'Show selected free agents' : 'Hide selected free agents'
           }
           onClick={() => setCollapsed((prev) => !prev)}
-          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-cockpit-text-secondary transition-colors hover:bg-white/5 hover:text-cockpit-text-primary"
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-cockpit-text-secondary transition-colors hover:bg-cockpit-raised hover:text-cockpit-text-primary"
         >
           {collapsed ? 'Show' : 'Hide'}
           <svg

@@ -19,34 +19,38 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 type TonelessButtonProps = Omit<ButtonProps, 'tone'>;
 
 const BASE =
-  'inline-flex items-center justify-center gap-1.5 rounded text-sm font-medium ' +
+  'inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium ' +
   'px-3 py-1.5 transition-colors focus:outline-none focus-visible:ring-2 ' +
   'focus-visible:ring-white/30 disabled:cursor-not-allowed';
 
+// Filled action buttons carry a status-toned fill. The cockpit status colors are
+// light, so solid fills pair with near-black (`text-cockpit-void`) text for
+// legible contrast; disabled collapses to a recessed slab so it reads disabled.
 const PRIMARY_TONE: Record<ButtonTone, string> = {
   default:
-    'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-600 disabled:text-gray-400',
+    'bg-cockpit-info hover:bg-cockpit-info/90 text-cockpit-void disabled:bg-cockpit-raised disabled:text-cockpit-text-ghost',
   positive:
-    'bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-600 disabled:text-gray-400',
+    'bg-cockpit-safe hover:bg-cockpit-safe/90 text-cockpit-void disabled:bg-cockpit-raised disabled:text-cockpit-text-ghost',
   warning:
-    'bg-amber-600 hover:bg-amber-700 text-white disabled:bg-gray-600 disabled:text-gray-400',
+    'bg-cockpit-watch hover:bg-cockpit-watch/90 text-cockpit-void disabled:bg-cockpit-raised disabled:text-cockpit-text-ghost',
 };
 
 const SUBTLE_TONE: Record<ButtonTone, string> = {
-  default: 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white',
-  positive: 'bg-green-700/50 hover:bg-green-600/50 text-green-200',
-  warning: 'bg-amber-700/60 hover:bg-amber-600/60 text-amber-200',
+  default:
+    'bg-cockpit-raised hover:bg-cockpit-edge text-cockpit-text-secondary hover:text-cockpit-text-primary',
+  positive: 'bg-cockpit-safe/15 hover:bg-cockpit-safe/25 text-cockpit-safe',
+  warning: 'bg-cockpit-watch/15 hover:bg-cockpit-watch/25 text-cockpit-watch',
 };
 
 const SECONDARY =
-  'bg-neutral-700 hover:bg-neutral-600 text-white ' +
-  'disabled:bg-neutral-800 disabled:text-white/40';
+  'bg-cockpit-raised hover:bg-cockpit-edge text-cockpit-text-primary ' +
+  'disabled:bg-cockpit-slab disabled:text-cockpit-text-muted';
 
 const ICON =
-  'inline-flex items-center justify-center rounded p-1.5 text-white/70 ' +
-  'hover:text-white hover:bg-white/5 transition-colors focus:outline-none ' +
+  'inline-flex items-center justify-center rounded-md p-1.5 text-cockpit-text-secondary ' +
+  'hover:text-cockpit-text-primary hover:bg-cockpit-raised transition-colors focus:outline-none ' +
   'focus-visible:ring-2 focus-visible:ring-white/30 disabled:cursor-not-allowed ' +
-  'disabled:text-white/30';
+  'disabled:text-cockpit-text-ghost';
 
 /** Main affirmative action — Validate, Apply. Use `tone="positive"` for Apply. */
 export const PrimaryButton = ({

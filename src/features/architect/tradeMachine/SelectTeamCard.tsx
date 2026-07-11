@@ -10,18 +10,18 @@ export const SelectTeamCard = ({
   onSelectTeam,
   onRemove,
 }: SelectTeamCardProps) => (
-  <div className="flex-1 border border-white/20 rounded-lg p-4 bg-[#111] relative shadow-inner">
+  <div className="flex-1 border border-cockpit-edge rounded-lg p-4 bg-cockpit-slab relative shadow-cockpit-slab">
     {onRemove && (
       <button
         onClick={onRemove}
-        className="absolute top-2 right-2 text-red-400 text-xs"
+        className="absolute top-2 right-2 text-cockpit-text-muted hover:text-cockpit-text-primary text-xs"
       >
         ✕
       </button>
     )}
-    <label className="text-sm mb-1 block text-white/80">Select Team</label>
+    <label className="text-sm mb-1 block text-cockpit-text-secondary">Select Team</label>
     <select
-      className="w-full bg-[#111] text-white p-2 rounded text-sm"
+      className="w-full bg-cockpit-inlay text-cockpit-text-primary p-2 rounded-md text-sm border border-cockpit-edge"
       onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
         // TMUI-13: ignore the blank placeholder option
         if (e.target.value) onSelectTeam(e.target.value);

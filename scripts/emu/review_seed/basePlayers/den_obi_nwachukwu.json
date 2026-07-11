@@ -1,0 +1,45 @@
+{
+  "playerId": "den_obi_nwachukwu",
+  "displayName": "Obi Nwachukwu",
+  "teamCode": "DEN",
+  "teamName": "Denver Nuggets",
+  "bio": {
+    "position": "F",
+    "height": "6-5",
+    "weight": "200",
+    "age": 22,
+    "experience": 1
+  },
+  "contract": {
+    "contractType": "Two-Way",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2026-27",
+    "contractLength": 1,
+    "yearsRemaining": 1,
+    "totalValue": 600000,
+    "averageAnnualValue": 600000,
+    "salariesByYear": [
+      {
+        "season": "2026-27",
+        "salary": 600000,
+        "capHit": 600000,
+        "guaranteed": false,
+        "guaranteedAmount": 0,
+        "option": null
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Non-Bird",
+      "eligibleFor": []
+    },
+    "freeAgency": {
+      "type": "RFA",
+      "year": 2027,
+      "capHold": 2300000
+    }
+  }
+}

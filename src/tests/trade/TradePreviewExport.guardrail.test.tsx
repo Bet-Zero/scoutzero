@@ -210,7 +210,8 @@ function findBackdrop(container: HTMLElement) {
   return Array.from(container.querySelectorAll('div')).find(
     (element) =>
       typeof element.className === 'string' &&
-      element.className.includes('fixed inset-0 z-50 bg-black/80')
+      // BZE-235: backdrop scrim migrated from bg-black/80 to the cockpit void token
+      element.className.includes('fixed inset-0 z-50 bg-cockpit-void/80')
   );
 }
 

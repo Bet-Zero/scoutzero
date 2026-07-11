@@ -210,49 +210,49 @@ export const TradePlayerRow = ({
   if (compact) {
     return (
       <div
-        className={`w-full h-[40px] flex items-center border border-black rounded-sm pr-2 overflow-visible relative ${
+        className={`w-full h-[40px] flex items-center border border-cockpit-edge rounded-sm pr-2 overflow-visible relative ${
           included
-            ? 'bg-green-800/40'
+            ? 'bg-cockpit-safe/15'
             : incoming
-              ? 'bg-neutral-700'
-              : 'bg-neutral-800'
+              ? 'bg-cockpit-raised'
+              : 'bg-cockpit-slab'
         }`}
       >
         <div
-          className={`h-full w-8 flex items-center justify-center text-white font-normal text-xs font-mono flex-shrink-0 ${
-            incoming ? 'bg-neutral-700' : 'bg-neutral-800'
+          className={`h-full w-8 flex items-center justify-center text-cockpit-text-primary font-normal text-xs font-mono flex-shrink-0 ${
+            incoming ? 'bg-cockpit-raised' : 'bg-cockpit-slab'
           }`}
         >
           {position}
         </div>
 
         <div className="flex items-center ml-2 min-w-0 flex-1">
-          <span className="text-white text-xs truncate">
+          <span className="text-cockpit-text-primary text-xs truncate">
             {player.bio?.displayName || player.name}
           </span>
         </div>
 
         {incoming &&
           (player.signAndTrade ? (
-            <span className="ml-2 text-blue-300 font-semibold text-[10px] flex-shrink-0">
+            <span className="ml-2 text-cockpit-info font-semibold text-[10px] flex-shrink-0">
               S&amp;T
             </span>
           ) : (
-            <ArrowsRightLeftIcon className="ml-2 w-4 h-4 text-blue-300 flex-shrink-0" />
+            <ArrowsRightLeftIcon className="ml-2 w-4 h-4 text-cockpit-info flex-shrink-0" />
           ))}
 
         <div className="ml-auto mr-2 flex items-center gap-2 whitespace-nowrap flex-shrink-0">
-          <span className="text-white font-semibold text-xs">
+          <span className="text-cockpit-text-primary font-semibold text-xs">
             {formatSalary(salary)}
           </span>
-          <span className="text-white/60 text-[10px]">{yearsLeft}Y</span>
+          <span className="text-cockpit-text-secondary text-[10px]">{yearsLeft}Y</span>
         </div>
 
         <div className="flex items-center relative">
           <button
             ref={buttonRef}
             onClick={() => setOpenMenu(openMenu === menuId ? null : menuId)}
-            className="text-xs text-blue-400 hover:underline"
+            className="text-xs text-cockpit-text-muted hover:text-cockpit-text-primary"
           >
             •••
           </button>
@@ -260,7 +260,7 @@ export const TradePlayerRow = ({
           {openMenu === menuId && (
             <div
               ref={menuRef}
-              className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem]"
+              className="absolute right-0 top-5 bg-cockpit-raised border border-cockpit-edge rounded-md z-20 text-xs min-w-[10rem] max-w-[14rem]"
             >
               {!incoming &&
                 otherTeams.map((t) => (
@@ -272,7 +272,7 @@ export const TradePlayerRow = ({
                       onSetPlayerTrade?.(player, action, t.id);
                       setOpenMenu(null);
                     }}
-                    className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
+                    className="block w-full text-left px-3 py-1.5 hover:bg-cockpit-edge truncate"
                   >
                     {included && player.tradeTo === t.id
                       ? 'Cancel Trade'
@@ -285,7 +285,7 @@ export const TradePlayerRow = ({
                     onRequestSignAndTrade?.(player, otherTeams[0]?.id);
                     setOpenMenu(null);
                   }}
-                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                  className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
                 >
                   Sign-and-Trade
                 </button>
@@ -296,7 +296,7 @@ export const TradePlayerRow = ({
                     onUndoPlayerTrade?.(player);
                     setOpenMenu(null);
                   }}
-                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                  className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
                 >
                   Undo Trade
                 </button>
@@ -306,7 +306,7 @@ export const TradePlayerRow = ({
                   setContractPlayer?.(player);
                   setOpenMenu(null);
                 }}
-                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
               >
                 Contract Actions
               </button>
@@ -314,7 +314,7 @@ export const TradePlayerRow = ({
                 onClick={() =>
                   window.open(getPlayerProfileUrl(player), '_blank', 'noopener')
                 }
-                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
               >
                 View Profile
               </button>
@@ -327,24 +327,24 @@ export const TradePlayerRow = ({
 
   return (
     <div
-      className={`w-full h-[68px] flex items-center border border-black rounded-sm pr-2 overflow-visible relative ${
+      className={`w-full h-[68px] flex items-center border border-cockpit-edge rounded-sm pr-2 overflow-visible relative ${
         included
-          ? 'bg-green-800/40'
+          ? 'bg-cockpit-safe/15'
           : incoming
-            ? 'bg-neutral-700'
-            : 'bg-neutral-800'
+            ? 'bg-cockpit-raised'
+            : 'bg-cockpit-slab'
       }`}
     >
       <div
-        className={`h-full w-10 flex flex-col items-center justify-center text-white font-normal text-base font-mono relative ${
-          incoming ? 'bg-neutral-700' : 'bg-neutral-800'
+        className={`h-full w-10 flex flex-col items-center justify-center text-cockpit-text-primary font-normal text-base font-mono relative ${
+          incoming ? 'bg-cockpit-raised' : 'bg-cockpit-slab'
         }`}
       >
         <div>{position}</div>
-        <div className="absolute right-0 top-0 h-full w-[2px] bg-neutral-950"></div>
+        <div className="absolute right-0 top-0 h-full w-[2px] bg-cockpit-void"></div>
       </div>
 
-      <div className="h-full w-[70px] bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
+      <div className="h-full w-[70px] bg-cockpit-raised flex items-center justify-center overflow-hidden">
         <img
           src={`/assets/headshots/${
             player.bio?.playerId || details.bio?.playerId || player.player_id
@@ -364,14 +364,14 @@ export const TradePlayerRow = ({
             scale={0.85}
           />
         </div>
-        <div className="flex items-center mt-[0px] mb-0 gap-2 text-white/50 text-[11px]">
+        <div className="flex items-center mt-[0px] mb-0 gap-2 text-cockpit-text-muted text-[11px]">
           <TeamLogo
             teamAbbr={team}
             className="w-5 h-5"
           />
           <div>
             {player.bio?.height || player.height || player.height_ft_in || '—'}{' '}
-            <span className="text-white/30">|</span>{' '}
+            <span className="text-cockpit-text-ghost">|</span>{' '}
             {player.bio?.weight || player.weight || player.weight_lbs || '—'}{' '}
             lbs
           </div>
@@ -381,22 +381,22 @@ export const TradePlayerRow = ({
       {incoming &&
         (player.signAndTrade ? (
           <div
-            className="ml-10 text-blue-300 font-semibold text-sm"
+            className="ml-10 text-cockpit-info font-semibold text-sm"
             title="Sign-and-Trade"
           >
             S&amp;T
           </div>
         ) : (
-          <div className="ml-10 text-blue-300" title="Traded">
+          <div className="ml-10 text-cockpit-info" title="Traded">
             <ArrowsRightLeftIcon className="w-6 h-6" />
           </div>
         ))}
 
       <div className="ml-auto mr-4 flex flex-col items-end whitespace-nowrap">
-        <div className="text-white font-semibold text-sm">
+        <div className="text-cockpit-text-primary font-semibold text-sm">
           {formatSalary(salary)}
         </div>
-        <div className="text-white/60 text-[11px] font-semibold">
+        <div className="text-cockpit-text-secondary text-[11px] font-semibold">
           {yearsLeft} YRS
         </div>
       </div>
@@ -405,7 +405,7 @@ export const TradePlayerRow = ({
         <button
           ref={buttonRef}
           onClick={() => setOpenMenu(openMenu === menuId ? null : menuId)}
-          className="text-xs text-blue-400 hover:underline"
+          className="text-xs text-cockpit-text-muted hover:text-cockpit-text-primary"
         >
           •••
         </button>
@@ -413,7 +413,7 @@ export const TradePlayerRow = ({
         {openMenu === menuId && (
           <div
             ref={menuRef}
-            className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem]"
+            className="absolute right-0 top-5 bg-cockpit-raised border border-cockpit-edge rounded-md z-20 text-xs min-w-[10rem] max-w-[14rem]"
           >
             {!incoming &&
               otherTeams.map((t) => (
@@ -425,7 +425,7 @@ export const TradePlayerRow = ({
                     onSetPlayerTrade?.(player, action, t.id);
                     setOpenMenu(null);
                   }}
-                  className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
+                  className="block w-full text-left px-3 py-1.5 hover:bg-cockpit-edge truncate"
                 >
                   {included && player.tradeTo === t.id
                     ? 'Cancel Trade'
@@ -439,7 +439,7 @@ export const TradePlayerRow = ({
                   onRequestSignAndTrade?.(player, otherTeams[0]?.id);
                   setOpenMenu(null);
                 }}
-                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
               >
                 Sign-and-Trade
               </button>
@@ -451,7 +451,7 @@ export const TradePlayerRow = ({
                   onUndoPlayerTrade?.(player);
                   setOpenMenu(null);
                 }}
-                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
               >
                 Undo Trade
               </button>
@@ -462,14 +462,14 @@ export const TradePlayerRow = ({
                 setContractPlayer?.(player);
                 setOpenMenu(null);
               }}
-              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
             >
               Contract Actions
             </button>
 
             <button
               onClick={() => (window.location.href = getPlayerProfileUrl(player))}
-              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
             >
               View Profile
             </button>

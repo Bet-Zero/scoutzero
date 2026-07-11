@@ -1,0 +1,44 @@
+{
+  "playerId": "den_dominic_sears",
+  "displayName": "Dominic Sears",
+  "teamCode": "DEN",
+  "teamName": "Denver Nuggets",
+  "bio": {
+    "position": "G",
+    "height": "6-6",
+    "weight": "210",
+    "age": 28,
+    "experience": 7
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2026-27",
+    "endSeason": "2026-27",
+    "contractLength": 1,
+    "yearsRemaining": 1,
+    "totalValue": 2600000,
+    "averageAnnualValue": 2600000,
+    "salariesByYear": [
+      {
+        "season": "2026-27",
+        "salary": 2600000,
+        "capHit": 2600000,
+        "guaranteed": true,
+        "option": null
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Non-Bird",
+      "eligibleFor": []
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2027,
+      "capHold": 3100000
+    }
+  }
+}

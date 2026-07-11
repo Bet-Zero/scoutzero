@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 
 const useWorldTeamEventsMock = vi.fn();
 
@@ -24,6 +25,7 @@ describe('Team History world events integration', () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
   });
 
   it('renders world-event timeline in newest-first order and opens detail modal', () => {

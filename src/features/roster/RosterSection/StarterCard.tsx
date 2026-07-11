@@ -50,10 +50,10 @@ export const StarterCard = ({
     `/assets/headshots/${normalizedId}.png`;
 
   const innerCardClass = isArchitect
-    ? `relative flex h-[8.4rem] w-[6.5rem] flex-col overflow-hidden rounded-md border bg-[#10131A] text-sm shadow-[0_10px_28px_-18px_rgba(0,0,0,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 ${
+    ? `relative flex h-[8.4rem] w-[6.5rem] flex-col overflow-hidden rounded-md border bg-cockpit-slab text-sm shadow-[0_10px_28px_-18px_rgba(0,0,0,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cockpit-text-ghost ${
         isHighlighted
-          ? 'border-amber-300/70 ring-2 ring-amber-300/30'
-          : 'border-white/10'
+          ? 'border-[color:var(--team-primary,#4F46E5)]/70 ring-2 ring-[color:var(--team-primary,#4F46E5)]/40'
+          : 'border-cockpit-edge'
       }`
     : `relative bg-gradient-to-br from-[#1e1e1e] to-[#111] border ${
         isHighlighted
@@ -109,7 +109,7 @@ export const StarterCard = ({
           <div
             className={
               isArchitect
-                ? 'absolute left-[3px] top-[3px] flex h-[17px] w-[26px] items-center justify-center rounded border border-white/10 bg-black/60 text-[10px] font-bold uppercase tracking-normal text-white/80 shadow-sm backdrop-blur'
+                ? 'absolute left-[3px] top-[3px] flex h-[17px] w-[26px] items-center justify-center rounded border border-cockpit-edge bg-black/60 text-[10px] font-bold uppercase tracking-normal text-cockpit-text-primary shadow-sm backdrop-blur'
                 : `absolute top-1 left-1 px-1 py-[2px] bg-black/00 text-white/40 text-[16px] ${isExport ? 'font-normal' : 'font-semibold'} uppercase rounded-sm tracking-wider shadow-md`
             }
           >
@@ -123,7 +123,7 @@ export const StarterCard = ({
         <div
           className={
             isArchitect
-              ? 'flex h-[34px] flex-col items-center justify-center border-t border-white/10 bg-[#080B10]/95 px-1 py-1 text-center'
+              ? 'flex h-[34px] flex-col items-center justify-center border-t border-cockpit-edge bg-cockpit-void/95 px-1 py-1 text-center'
               : 'bg-[#0f0f0f] px-2 pt-1 pb-2 h-[60px] flex flex-col items-center justify-center text-center border-t border-white/10'
           }
         >

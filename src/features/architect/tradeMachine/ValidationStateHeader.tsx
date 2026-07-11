@@ -50,22 +50,22 @@ export interface TradeReadinessSummary {
 export const MODE_TAGS: Record<string, ModeTagDefinition> = {
   OFFICIAL: {
     label: 'Official (Validator)',
-    color: 'bg-blue-600/30 text-blue-300 border-blue-500/50',
+    color: 'bg-cockpit-info/20 text-cockpit-info border-cockpit-info/40',
     description: 'Authoritative validator results',
   },
   SETUP: {
     label: 'Setup',
-    color: 'bg-neutral-600/30 text-neutral-300 border-neutral-500/50',
+    color: 'bg-cockpit-raised text-cockpit-text-secondary border-cockpit-edge',
     description: 'Configuration and team selection',
   },
   EXPLORATORY: {
     label: 'Exploratory',
-    color: 'bg-amber-600/30 text-amber-300 border-amber-500/50',
+    color: 'bg-cockpit-watch/20 text-cockpit-watch border-cockpit-watch/40',
     description: 'What-if calculations (sandbox)',
   },
   DEBUG: {
     label: 'Debug',
-    color: 'bg-purple-600/30 text-purple-300 border-purple-500/50',
+    color: 'bg-cockpit-raised text-cockpit-text-muted border-cockpit-edge',
     description: 'Developer-only diagnostic data',
   },
 };
@@ -94,8 +94,8 @@ const ValidationStatePill = ({
 }: ValidationStatePillProps) => {
   if (isValidating) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30">
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-cockpit-info/20 text-cockpit-info border border-cockpit-info/30">
+        <span className="w-1.5 h-1.5 rounded-full bg-cockpit-info animate-pulse" />
         Validating…
       </span>
     );
@@ -110,16 +110,16 @@ const ValidationStatePill = ({
       : '';
 
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/5 text-white/60 border border-white/15">
-        <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-cockpit-raised text-cockpit-text-secondary border border-cockpit-edge">
+        <span className="w-1.5 h-1.5 rounded-full bg-cockpit-text-muted" />
         Validated{timeStr && ` at ${timeStr}`}
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-neutral-600/20 text-neutral-400 border border-neutral-500/30">
-      <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-cockpit-inlay text-cockpit-text-muted border border-cockpit-edge">
+      <span className="w-1.5 h-1.5 rounded-full bg-cockpit-text-ghost" />
       Not validated
     </span>
   );
@@ -134,49 +134,49 @@ const READINESS_STYLES: Record<
 > = {
   setup: {
     icon: CircleDashed,
-    container: 'border-white/10 border-l-neutral-400/60 bg-[#0a0a0a]',
-    label: 'text-neutral-200',
-    message: 'text-neutral-400',
+    container: 'border-cockpit-edge border-l-cockpit-text-muted/60 bg-cockpit-void',
+    label: 'text-cockpit-text-primary',
+    message: 'text-cockpit-text-muted',
   },
   ready: {
     icon: Info,
-    container: 'border-sky-500/25 border-l-sky-400/80 bg-sky-950/30',
-    label: 'text-sky-100',
-    message: 'text-sky-200/70',
+    container: 'border-cockpit-info/25 border-l-cockpit-info/80 bg-cockpit-info/10',
+    label: 'text-cockpit-info',
+    message: 'text-cockpit-info/70',
   },
   validating: {
     icon: Loader2,
-    container: 'border-blue-500/25 border-l-blue-400/80 bg-blue-950/30',
-    label: 'text-blue-100',
-    message: 'text-blue-200/70',
+    container: 'border-cockpit-info/25 border-l-cockpit-info/80 bg-cockpit-info/10',
+    label: 'text-cockpit-info',
+    message: 'text-cockpit-info/70',
   },
   blocked: {
     icon: XCircle,
-    container: 'border-red-500/50 border-l-red-500 bg-red-950/50',
-    label: 'text-red-100',
-    message: 'text-red-200/90',
+    container: 'border-cockpit-danger/50 border-l-cockpit-danger bg-cockpit-danger/15',
+    label: 'text-cockpit-danger',
+    message: 'text-cockpit-danger/90',
   },
   warning: {
     icon: AlertTriangle,
-    container: 'border-amber-500/40 border-l-amber-400 bg-amber-950/40',
-    label: 'text-amber-100',
-    message: 'text-amber-200/80',
+    container: 'border-cockpit-watch/40 border-l-cockpit-watch bg-cockpit-watch/10',
+    label: 'text-cockpit-watch',
+    message: 'text-cockpit-watch/80',
   },
   info: {
     icon: Info,
-    container: 'border-blue-500/25 border-l-blue-400/80 bg-blue-950/30',
-    label: 'text-blue-100',
-    message: 'text-blue-200/70',
+    container: 'border-cockpit-info/25 border-l-cockpit-info/80 bg-cockpit-info/10',
+    label: 'text-cockpit-info',
+    message: 'text-cockpit-info/70',
   },
   success: {
     icon: CheckCircle2,
-    container: 'border-green-500/40 border-l-green-400 bg-green-950/40',
-    label: 'text-green-100',
-    message: 'text-green-200/80',
+    container: 'border-cockpit-safe/40 border-l-cockpit-safe bg-cockpit-safe/10',
+    label: 'text-cockpit-safe',
+    message: 'text-cockpit-safe/80',
   },
 };
 
-const NEUTRAL_CONTAINER = 'border-white/10 bg-[#0a0a0a]';
+const NEUTRAL_CONTAINER = 'border-cockpit-edge bg-cockpit-void';
 
 export const ValidationStateHeader = ({
   hasValidatorResult = false,
@@ -218,7 +218,7 @@ export const ValidationStateHeader = ({
           </>
         ) : null}
         <span className="ml-auto flex shrink-0 items-center gap-2">
-          <span className="text-[11px] text-white/40 font-medium">
+          <span className="text-[11px] text-cockpit-text-muted font-medium">
             Validation:
           </span>
           <ValidationStatePill

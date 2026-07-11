@@ -27,6 +27,7 @@ import { ScenarioMoveRail } from '@/features/architect/GMDashboard/components/Sc
 import { useHistoryEventDetailRequest } from '@/features/architect/GMDashboard/hooks/useHistoryEventDetailRequest';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
 import { WorldEventsTimeline } from '@/features/architect/history/TeamHistoryTab/WorldEventsTimeline';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 import type {
   ArchitectPostActionImpact,
   ArchitectPostActionPersistence,
@@ -200,6 +201,9 @@ describe('Stage 2D — History / Activity deep-linking', () => {
     cleanup();
     vi.clearAllMocks();
     mockWorldEvents([makeTradeEvent()]);
+    // BZE-229: the history detail modal's event/operation-ID inspector is gated
+    // behind the existing developer toggle; enable it for these deep-link checks.
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
   });
 
   it('opens the matching History detail from post-action handoff View History when eventId exists', async () => {

@@ -23,6 +23,14 @@ type SaveState = ArchitectTeamPlanSaveStatus;
 interface ModePillProps {
   context: ArchitectWorkspaceContext;
   isEmulator: boolean;
+  /**
+   * True on owner-facing review surfaces (VITE_ARCHITECT_REVIEW_MODE). The pill
+   * is engineer/production save-state chrome; in review the only states it can
+   * ever show are the banned "EMULATOR MODE" environment badge and the anon
+   * "Local" save state, both of which the Architect Visual Standard §10 bans on
+   * visible surfaces. So the whole pill is suppressed on review surfaces.
+   */
+  isReviewMode?: boolean;
 }
 
 function resolveLabel(context: ArchitectWorkspaceContext, isEmulator: boolean): ModeLabel {
@@ -43,21 +51,21 @@ function resolveSaveState(context: ArchitectWorkspaceContext): SaveState {
 }
 
 const MODE_CLASSES: Record<ModeLabel, string> = {
-  EMULATOR: 'bg-amber-400/15 text-amber-200 border-amber-300/30',
-  PROD: 'bg-rose-500/15 text-rose-200 border-rose-300/30',
-  WORLD: 'bg-emerald-500/15 text-emerald-200 border-emerald-300/30',
-  SANDBOX: 'bg-white/10 text-white/70 border-white/20',
-  BASE: 'bg-sky-500/15 text-sky-200 border-sky-300/30',
-  LOADING: 'bg-white/5 text-white/50 border-white/10',
+  EMULATOR: 'bg-cockpit-watch/15 text-cockpit-watch border-cockpit-watch/30',
+  PROD: 'bg-cockpit-danger/15 text-cockpit-danger border-cockpit-danger/30',
+  WORLD: 'bg-cockpit-safe/15 text-cockpit-safe border-cockpit-safe/30',
+  SANDBOX: 'bg-cockpit-raised text-cockpit-text-secondary border-cockpit-edge',
+  BASE: 'bg-cockpit-info/15 text-cockpit-info border-cockpit-info/30',
+  LOADING: 'bg-cockpit-slab text-cockpit-text-muted border-cockpit-edge',
 };
 
 const SAVE_CLASSES: Record<SaveState, string> = {
-  loading: 'bg-white/40 animate-pulse',
+  loading: 'bg-cockpit-text-muted animate-pulse',
   saved: 'bg-cockpit-safe',
   saving: 'bg-cockpit-info animate-pulse',
   'save-failed': 'bg-cockpit-danger',
-  'uncommitted-draft': 'bg-amber-300',
-  'local-only': 'bg-white/40',
+  'uncommitted-draft': 'bg-cockpit-watch',
+  'local-only': 'bg-cockpit-text-muted',
 };
 
 const SAVE_LABEL: Record<SaveState, string> = {
@@ -69,7 +77,15 @@ const SAVE_LABEL: Record<SaveState, string> = {
   'local-only': 'Local',
 };
 
-export const ModePill = ({ context, isEmulator }: ModePillProps) => {
+export const ModePill = ({
+  context,
+  isEmulator,
+  isReviewMode = false,
+}: ModePillProps) => {
+  // Owner-facing review surfaces must never show review-build chrome. In review
+  // the pill can only ever read "EMULATOR MODE" + "Local" — both banned by §10.
+  // Engineer dev and real production render it unchanged.
+  if (isReviewMode) return null;
   const label = resolveLabel(context, isEmulator);
   const save = resolveSaveState(context);
   // EMULATOR/PROD are Firebase-environment safety badges for engineers, not

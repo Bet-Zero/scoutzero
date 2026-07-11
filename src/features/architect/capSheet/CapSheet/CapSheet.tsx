@@ -434,17 +434,17 @@ export const CapSheet = ({
     if (isTwoWay)
       notes.push({
         label: '2W',
-        className: 'bg-white/5 border-white/20 text-white/50',
+        className: 'bg-cockpit-raised border-cockpit-edge text-cockpit-text-muted',
       });
     if (isPO)
       notes.push({
         label: 'PO',
-        className: 'bg-green-500/10 border-green-500/30 text-green-300',
+        className: 'bg-cockpit-safe/10 border-cockpit-safe/30 text-cockpit-safe',
       });
     if (isTO)
       notes.push({
         label: 'TO',
-        className: 'bg-orange-500/10 border-orange-500/30 text-orange-300',
+        className: 'bg-cockpit-watch/10 border-cockpit-watch/30 text-cockpit-watch',
       });
     if (player.isMinimum && Number(player.yearsOfService) >= 3)
       notes.push({ label: 'Vet Min' });
@@ -461,8 +461,8 @@ export const CapSheet = ({
       notes.push({
         label: extLabel,
         className: isEligible
-          ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-200'
-          : 'bg-amber-500/10 border-amber-500/30 text-amber-200',
+          ? 'bg-cockpit-info/10 border-cockpit-info/30 text-cockpit-info'
+          : 'bg-cockpit-watch/10 border-cockpit-watch/30 text-cockpit-watch',
         title:
           (isEligible
             ? 'Extension eligible'
@@ -478,7 +478,7 @@ export const CapSheet = ({
         {notes.map((note, i) => (
           <span
             key={i}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/5 text-white/50 border border-white/10 ${
+            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-cockpit-raised text-cockpit-text-muted border border-cockpit-edge ${
               note.className || ''
             }`}
             title={note.title}
@@ -549,23 +549,11 @@ export const CapSheet = ({
 
       <section
         aria-label={CAP_SHEET_SURFACE_LABELS.rosterDetail}
-        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/10 shadow-cockpit-slab"
-        style={{
-          background:
-            'radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--team-primary,#4F46E5) 22%, #0B0E14), #07090D 70%)',
-          boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px color-mix(in srgb, var(--team-primary,#4F46E5) 40%, transparent), 0 18px 50px -20px rgba(0,0,0,0.8)',
-        }}
+        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-cockpit-edge bg-cockpit-slab shadow-cockpit-slab"
       >
         {/* SUPPORTING DETAIL SURFACE: Player rows explain year-by-year contract detail.
             They may borrow canonical thresholds for display, but they do not own totals truth. */}
-        <div
-          className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-white/10 px-3 py-1.5"
-          style={{
-            background:
-              'linear-gradient(90deg, color-mix(in srgb, var(--team-primary,#4F46E5) 30%, #0B0E14), #0B0E14 60%)',
-          }}
-        >
+        <div className="flex shrink-0 flex-nowrap items-center justify-between gap-x-3 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <span
               aria-hidden
@@ -573,22 +561,22 @@ export const CapSheet = ({
               style={{ background: 'var(--team-secondary,#FDB927)' }}
             />
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="text-[13px] font-extrabold uppercase italic tracking-wide text-white">
+              <span className="text-xs font-extrabold uppercase italic tracking-wide text-cockpit-text-primary">
                 Salary Detail
                 <span className="sr-only">
                   Selected-Year Supporting Detail
                 </span>
               </span>
-              <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold text-white/70">
+              <span className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-[10px] font-semibold text-cockpit-text-secondary">
                 {selectedSeasonLabel}
               </span>
-              <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold text-white/70 tabular-nums">
+              <span className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-[10px] font-semibold text-cockpit-text-secondary tabular-nums">
                 {filteredPlayers.length}{' '}
                 {filteredPlayers.length === 1 ? 'contract' : 'contracts'}
               </span>
               {confidenceLabel ? (
                 <span
-                  className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${confidenceLabel.className}`}
+                  className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${confidenceLabel.className}`}
                 >
                   {confidenceLabel.text}
                 </span>
@@ -605,13 +593,13 @@ export const CapSheet = ({
             </div>
           </div>
 
-          <div className="flex max-w-full overflow-x-auto rounded-md border border-cockpit-edge bg-cockpit-inlay p-0.5">
+          <div className="flex min-w-0 max-w-full shrink overflow-x-auto rounded-md border border-cockpit-edge bg-cockpit-inlay p-0.5">
             {allYears.map((year) => (
               <button
                 key={year}
                 type="button"
                 onClick={() => handleSelectYear(year)}
-                className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
                   year === selectedYear
                     ? 'bg-cockpit-raised text-cockpit-text-primary shadow-sm'
                     : 'text-cockpit-text-muted hover:bg-cockpit-slab hover:text-cockpit-text-primary'
@@ -637,7 +625,7 @@ export const CapSheet = ({
             </div>
 
             {/* Supporting detail rows */}
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-cockpit-edge">
               {filteredPlayers.map((player, idx) => {
                 const slice = getContractYearSlice(player, selectedYear);
                 const salary = slice?.salary ?? slice?.capHit ?? 0;
@@ -661,7 +649,7 @@ export const CapSheet = ({
                 return (
                   <div
                     key={`${player.name}-${idx}`}
-                    className={`group grid min-h-[var(--cap-sheet-row-h,36px)] grid-cols-[2.25fr,0.55fr,0.45fr,1fr,0.6fr,1fr,1.45fr] items-center gap-2 px-3 py-0.5 transition-colors ${rowHighlightClass}`}
+                    className={`group grid min-h-[var(--cap-sheet-row-h,36px)] grid-cols-[2.25fr,0.55fr,0.45fr,1fr,0.6fr,1fr,1.45fr] items-center gap-2 px-3 py-0 transition-colors ${rowHighlightClass}`}
                     data-cap-sheet-fit-row
                     data-testid={
                       isHighlighted
@@ -669,12 +657,12 @@ export const CapSheet = ({
                         : undefined
                     }
                   >
-                    <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-white/90">
+                    <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-cockpit-text-primary">
                       <PlayerAvatar player={player} name={displayName} />
                       <button
                         data-testid="cap-sheet-player-row-button"
                         onClick={() => openPlayerContractModal?.(player)}
-                        className="min-w-0 flex-1 truncate text-left text-xs font-bold tracking-tight text-white transition-colors hover:text-[color:var(--team-secondary,#FDB927)]"
+                        className="min-w-0 flex-1 truncate text-left text-xs font-bold tracking-tight text-cockpit-text-primary transition-colors hover:text-[color:var(--team-secondary,#FDB927)]"
                         title={displayName}
                       >
                         {displayName}
@@ -712,30 +700,30 @@ export const CapSheet = ({
                         );
                       })()}
                     </div>
-                    <div className="text-[10px] font-semibold text-white/55">
+                    <div className="text-[10px] font-semibold text-cockpit-text-muted">
                       {POSITION_MAP[position as keyof typeof POSITION_MAP] ||
                         position ||
                         '—'}
                     </div>
-                    <div className="text-[10px] text-white/50">{age}</div>
+                    <div className="text-[10px] text-cockpit-text-muted">{age}</div>
                     <div className="text-right text-xs font-medium tabular-nums tracking-tight">
                       <span
                         className={`inline-flex items-center justify-end rounded px-1.5 py-0.5 tabular-nums ${
                           isExtensionSeason
-                            ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-100'
-                            : 'bg-white/[0.035] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+                            ? 'border border-cockpit-info/30 bg-cockpit-info/10 text-cockpit-info'
+                            : 'bg-cockpit-raised text-cockpit-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
                         }`}
                       >
                         {formatCapSheetMoney(capHit)}
                       </span>
                     </div>
-                    <div className="text-right text-[10px] tabular-nums text-white/50">
+                    <div className="text-right text-[10px] tabular-nums text-cockpit-text-muted">
                       {capPctDisplay}
                     </div>
                     <div className="text-right text-[10px] tabular-nums">
                       <span
                         className={`inline-flex items-center justify-end ${
-                          isExtensionSeason ? 'text-cyan-100' : 'text-white/50'
+                          isExtensionSeason ? 'text-cockpit-info' : 'text-cockpit-text-muted'
                         }`}
                       >
                         {formatCapSheetMoney(salary)}
@@ -757,7 +745,7 @@ export const CapSheet = ({
             canonical totals bar and one slim strip; cap-hold rows and the
             dead-money/exception tools open on demand instead of stacking
             under the table. */}
-        <div className="shrink-0 border-t border-white/10 bg-white/[0.02]">
+        <div className="shrink-0 border-t border-cockpit-edge bg-cockpit-slab">
           {/* CANONICAL TOTALS CONSUMER SURFACE: This breakdown bar consumes
               canonicalTotals directly and defines the totals view. */}
           <section
@@ -774,20 +762,20 @@ export const CapSheet = ({
               the total below.
             </p>
             <div className="flex min-w-0 items-baseline gap-1.5">
-              <p className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-white/35">
+              <p className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
                 Player Salaries
               </p>
-              <span className="text-xs font-bold text-white/80 tabular-nums">
+              <span className="text-xs font-bold text-cockpit-text-primary tabular-nums">
                 {formatCapSheetMoney(canonicalTotals.playersTotal)}
               </span>
             </div>
 
             {canonicalTotals.deadMoneyTotal > 0 && (
               <div className="flex min-w-0 items-baseline gap-1.5">
-                <p className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                <p className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
                   Dead Money
                 </p>
-                <span className="text-xs font-bold text-white/80 tabular-nums">
+                <span className="text-xs font-bold text-cockpit-text-primary tabular-nums">
                   {formatCapSheetMoney(canonicalTotals.deadMoneyTotal)}
                 </span>
               </div>
@@ -795,10 +783,10 @@ export const CapSheet = ({
 
             {canonicalTotals.capHoldsTotal > 0 && (
               <div className="flex min-w-0 items-baseline gap-1.5">
-                <p className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-white/35">
+                <p className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
                   Cap Holds
                 </p>
-                <span className="text-xs font-bold text-white/80 tabular-nums">
+                <span className="text-xs font-bold text-cockpit-text-primary tabular-nums">
                   {formatCapSheetMoney(canonicalTotals.capHoldsTotal)}
                 </span>
               </div>
@@ -810,7 +798,7 @@ export const CapSheet = ({
                 className="flex min-w-0 items-baseline gap-1.5"
               >
                 <p
-                  className="truncate text-[9px] font-semibold uppercase tracking-wider text-amber-300/80"
+                  className="truncate text-[10px] font-semibold uppercase tracking-wider text-cockpit-watch"
                   title={
                     canonicalTotals._meta?.incompleteRosterCharge?.missingSlots
                       ? `Incomplete Roster Charge — ${canonicalTotals._meta.incompleteRosterCharge.missingSlots} open ${
@@ -839,45 +827,57 @@ export const CapSheet = ({
                     </span>
                   ) : null}
                 </p>
-                <span className="text-xs font-bold tabular-nums text-amber-200">
+                <span className="text-xs font-bold tabular-nums text-cockpit-watch">
                   {formatCapSheetMoney(canonicalTotals.incompleteChargesTotal)}
                 </span>
               </div>
             )}
 
-            <div
-              className="ml-auto flex shrink-0 items-baseline gap-2 rounded-md border px-2.5 py-0.5"
-              style={{
-                borderColor:
-                  'color-mix(in srgb, var(--team-secondary,#FDB927) 40%, transparent)',
-                background:
-                  'linear-gradient(90deg, color-mix(in srgb, var(--team-primary,#4F46E5) 24%, #0B0E14), rgba(255,255,255,0.04))',
-              }}
-            >
-              <p className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider text-white">
-                Total Cap Hit
-                <span className="sr-only">Canonical Totals Consumer</span>
-              </p>
-              <span className="whitespace-nowrap text-[15px] font-extrabold tracking-tight text-white tabular-nums">
-                {formatCapSheetMoney(canonicalTotals.totalCapAllocations)}
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <div className="flex items-baseline gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-0.5">
+                <p className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider text-cockpit-text-primary">
+                  Total Cap Hit
+                  <span className="sr-only">Canonical Totals Consumer</span>
+                </p>
+                <span className="whitespace-nowrap text-sm font-extrabold tracking-tight text-cockpit-text-primary tabular-nums">
+                  {formatCapSheetMoney(canonicalTotals.totalCapAllocations)}
+                </span>
+              </div>
+              {/* BZE-242: Cap Tools toggle folded onto the totals line so the
+                  footer is one row and the table well can fit a full 18-man
+                  roster with no scroll. */}
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+                Cap Tools
               </span>
+              <button
+                data-testid="cap-sheet-tools-toggle"
+                type="button"
+                aria-expanded={showCapTools}
+                aria-label={`${showCapTools ? 'Close' : 'Open'} dead money and exception tools`}
+                onClick={() => setShowCapTools(!showCapTools)}
+                className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-text-secondary transition-colors hover:bg-cockpit-edge hover:text-cockpit-text-primary"
+              >
+                {showCapTools ? 'Close' : 'Open'}
+              </button>
             </div>
           </section>
 
           {/* Slim secondary strip: cap-hold detail and the dead-money /
               exception tools live behind toggles so the salary table keeps
               the default-view space. */}
-          <div className="flex flex-wrap items-stretch border-t border-white/10">
-            {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the
-                canonical capHoldsTotal without becoming a totals owner. */}
-            {displayedCapHolds.length > 0 ? (
+          {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the canonical
+              capHoldsTotal without becoming a totals owner. Only rendered when
+              holds exist (BZE-242 — keeps the footer one line otherwise, so the
+              table well fits a full 18-man roster). */}
+          {displayedCapHolds.length > 0 && (
+            <div className="border-t border-cockpit-edge">
               <section
                 aria-label={CAP_SHEET_SURFACE_LABELS.capHoldsDetail}
-                className="min-w-0 flex-1 bg-black/20"
+                className="min-w-0 bg-cockpit-inlay"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1">
-                  <p className="min-w-0 truncate text-[10px] text-white/50">
-                    <span className="font-semibold uppercase tracking-wider text-white/45">
+                  <p className="min-w-0 truncate text-[10px] text-cockpit-text-muted">
+                    <span className="font-semibold uppercase tracking-wider text-cockpit-text-muted">
                       Cap Holds ({displayedCapHolds.length})
                     </span>
                     <span className="sr-only">
@@ -889,26 +889,26 @@ export const CapSheet = ({
                     type="button"
                     aria-expanded={showCapHolds}
                     onClick={() => setShowCapHolds(!showCapHolds)}
-                    className="shrink-0 rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                    className="shrink-0 rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-text-secondary transition-colors hover:bg-cockpit-edge hover:text-cockpit-text-primary"
                   >
                     {showCapHolds ? 'Hide' : 'Show'} cap hold details
                   </button>
                 </div>
                 {showCapHolds && (
-                  <div className="max-h-28 overflow-auto border-t border-white/10">
-                    <div className="divide-y divide-white/5">
+                  <div className="max-h-28 overflow-auto border-t border-cockpit-edge">
+                    <div className="divide-y divide-cockpit-edge">
                       {displayedCapHolds.map((h) => (
                         <div
                           key={`${h.playerId}-${h.season}-${h.type}`}
-                          className="grid grid-cols-[2fr,1.2fr,3fr] items-center gap-2 px-3 py-1 hover:bg-white/[0.02]"
+                          className="grid grid-cols-[2fr,1.2fr,3fr] items-center gap-2 px-3 py-1 hover:bg-cockpit-raised"
                         >
-                          <div className="truncate text-xs text-white/70">
+                          <div className="truncate text-xs text-cockpit-text-secondary">
                             {h.playerName || h.playerId}
                           </div>
-                          <div className="text-xs text-white/55 tabular-nums">
+                          <div className="text-xs text-cockpit-text-muted tabular-nums">
                             {formatCapSheetMoney(h.amount)}
                           </div>
-                          <div className="truncate text-[10px] text-white/35">
+                          <div className="truncate text-[10px] text-cockpit-text-muted">
                             {h.reason || h.type || ''}
                           </div>
                         </div>
@@ -917,28 +917,8 @@ export const CapSheet = ({
                   </div>
                 )}
               </section>
-            ) : (
-              <p className="min-w-0 flex-1 px-3 py-1 text-[10px] text-white/30">
-                No active cap holds in {selectedSeasonLabel}.
-              </p>
-            )}
-
-            <div className="flex shrink-0 items-center gap-2 border-l border-white/10 px-3 py-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
-                Cap Tools
-              </span>
-              <button
-                data-testid="cap-sheet-tools-toggle"
-                type="button"
-                aria-expanded={showCapTools}
-                aria-label={`${showCapTools ? 'Close' : 'Open'} dead money and exception tools`}
-                onClick={() => setShowCapTools(!showCapTools)}
-                className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                {showCapTools ? 'Close' : 'Open'}
-              </button>
             </div>
-          </div>
+          )}
 
           {/* CONTROL SURFACE: These actions mutate canonical inputs, but do not
               own or redefine current-year totals display. Opens from the Cap
@@ -946,16 +926,16 @@ export const CapSheet = ({
           {showCapTools && (
             <div
               data-testid="cap-sheet-control-surface"
-              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-white/10 px-3 py-1"
+              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-cockpit-edge px-3 py-1"
             >
               <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px] text-cockpit-text-secondary">
-                <span className="font-semibold uppercase tracking-wider text-white/45">
+                <span className="font-semibold uppercase tracking-wider text-cockpit-text-muted">
                   Dead Money Input
                   <span className="sr-only">
                     Selected-Year Mutation Entry Point
                   </span>
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-medium text-white/60">
+                <span className="rounded-full border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 font-medium text-cockpit-text-secondary">
                   Input season: {selectedSeasonLabel}
                 </span>
                 <button
@@ -968,8 +948,8 @@ export const CapSheet = ({
                   }}
                   className={`rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-all ${
                     hasManualCapSheetMutationAuthority
-                      ? 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white'
-                      : 'cursor-not-allowed border-white/5 text-white/20'
+                      ? 'border-cockpit-edge bg-cockpit-raised text-cockpit-text-secondary hover:bg-cockpit-edge hover:text-cockpit-text-primary'
+                      : 'cursor-not-allowed border-cockpit-edge text-cockpit-text-ghost'
                   }`}
                 >
                   Manage Dead Money
@@ -977,25 +957,25 @@ export const CapSheet = ({
               </div>
 
               <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px] text-cockpit-text-secondary">
-                <span className="font-semibold uppercase tracking-wider text-amber-300/80">
+                <span className="font-semibold uppercase tracking-wider text-cockpit-watch">
                   Current-Season Tools
                   <span className="sr-only">
                     Current-Season-Only Adjacent Authority
                   </span>
                 </span>
-                <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-100/90">
+                <span className="rounded-full border border-cockpit-watch/25 bg-cockpit-watch/10 px-2 py-0.5 font-medium text-cockpit-watch">
                   {isViewingCurrentYear
                     ? currentSeasonLabel
                     : `${currentSeasonLabel} only`}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-medium text-white/60">
+                <span className="rounded-full border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 font-medium text-cockpit-text-secondary">
                   Selected-year view: {selectedSeasonLabel}
                 </span>
                 {!isViewingCurrentYear &&
                   hasManualCapSheetMutationAuthority && (
                     <span
                       data-testid="cap-sheet-future-year-exception-edit-boundary"
-                      className="text-amber-300/80"
+                      className="text-cockpit-watch"
                     >
                       Exception editing is only available for the current season.{' '}
                       Viewing {selectedSeasonLabel} does not create{' '}
@@ -1019,8 +999,8 @@ export const CapSheet = ({
                   }}
                   className={`rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-all ${
                     canManageExceptions
-                      ? 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white'
-                      : 'cursor-not-allowed border-white/5 text-white/20'
+                      ? 'border-cockpit-edge bg-cockpit-raised text-cockpit-text-secondary hover:bg-cockpit-edge hover:text-cockpit-text-primary'
+                      : 'cursor-not-allowed border-cockpit-edge text-cockpit-text-ghost'
                   }`}
                 >
                   Manage Exceptions

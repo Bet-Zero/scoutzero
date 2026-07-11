@@ -480,33 +480,33 @@ export const FreeAgentPool = ({
   ]);
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col text-white">
+    <div className="flex h-full min-h-0 flex-1 flex-col text-cockpit-text-primary">
       <section
         data-testid="free-agent-pool-management"
         aria-label="Free-agent pool management"
-        className="mb-2 shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5"
+        className="mb-2 shrink-0 rounded-md border border-cockpit-edge bg-cockpit-raised px-3 py-1.5"
       >
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-cockpit-text-primary">
               Free Agent Pool
             </h2>
-            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-white/65">
-              <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-cockpit-text-secondary">
+              <span className="rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5">
                 {selectedEntries.length} selected
               </span>
               {poolManagement ? (
                 <>
-                  <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
+                  <span className="rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5">
                     {poolManagement.scopeLabel}
                   </span>
-                  <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
+                  <span className="rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5">
                     {poolManagement.persistenceLabel}
                   </span>
                 </>
               ) : null}
               {poolManagement?.savedAtLabel ? (
-                <span className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5">
+                <span className="rounded border border-cockpit-edge bg-cockpit-inlay px-1.5 py-0.5">
                   {poolManagement.savedAtLabel}
                 </span>
               ) : null}
@@ -517,7 +517,7 @@ export const FreeAgentPool = ({
               type="button"
               onClick={generateVisiblePool}
               disabled={filteredEntries.length === 0}
-              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+              className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-cockpit-text-secondary hover:bg-cockpit-edge hover:text-cockpit-text-primary disabled:cursor-not-allowed disabled:border-cockpit-edge disabled:text-cockpit-text-ghost"
             >
               Generate Visible
             </button>
@@ -531,7 +531,7 @@ export const FreeAgentPool = ({
                 poolManagementBusy != null
               }
               title={poolManagement?.disabledReason || 'Save pool'}
-              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+              className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-cockpit-text-secondary hover:bg-cockpit-edge hover:text-cockpit-text-primary disabled:cursor-not-allowed disabled:border-cockpit-edge disabled:text-cockpit-text-ghost"
             >
               {poolManagementBusy === 'save' ? 'Saving' : 'Save'}
             </button>
@@ -544,7 +544,7 @@ export const FreeAgentPool = ({
                 poolManagementBusy != null
               }
               title={poolManagement?.disabledReason || 'Load saved pool'}
-              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+              className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-cockpit-text-secondary hover:bg-cockpit-edge hover:text-cockpit-text-primary disabled:cursor-not-allowed disabled:border-cockpit-edge disabled:text-cockpit-text-ghost"
             >
               {poolManagementBusy === 'load' ? 'Loading' : 'Load'}
             </button>
@@ -557,7 +557,7 @@ export const FreeAgentPool = ({
                 poolManagementBusy != null
               }
               title={poolManagement?.disabledReason || 'Reset saved pool'}
-              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+              className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-cockpit-text-secondary hover:bg-cockpit-edge hover:text-cockpit-text-primary disabled:cursor-not-allowed disabled:border-cockpit-edge disabled:text-cockpit-text-ghost"
             >
               {poolManagementBusy === 'reset' ? 'Resetting' : 'Reset Saved'}
             </button>
@@ -565,14 +565,14 @@ export const FreeAgentPool = ({
               type="button"
               onClick={clearManagedPool}
               disabled={selectedPlayerKeys.length === 0}
-              className="rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/75 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/25"
+              className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-cockpit-text-secondary hover:bg-cockpit-edge hover:text-cockpit-text-primary disabled:cursor-not-allowed disabled:border-cockpit-edge disabled:text-cockpit-text-ghost"
             >
               Clear
             </button>
           </div>
         </div>
         {poolManagement?.disabledReason || poolManagementMessage ? (
-          <p className="mt-1 text-[11px] text-white/45">
+          <p className="mt-1 text-[11px] text-cockpit-text-muted">
             {poolManagementMessage || poolManagement?.disabledReason}
           </p>
         ) : null}
@@ -597,7 +597,7 @@ export const FreeAgentPool = ({
 
       <ul className="min-h-0 flex-1 space-y-[3px] overflow-y-auto pb-2">
         {filteredEntries.length === 0 ? (
-          <li className="text-center text-sm text-white/60 py-4">No matches</li>
+          <li className="text-center text-sm text-cockpit-text-muted py-4">No matches</li>
         ) : (
           filteredEntries.map((entry) => {
             return (

@@ -84,7 +84,10 @@ describe('Architect shared runtime blocker behavior', () => {
     const selectedLabel = screen.getByText('Atlanta Hawks');
     const selectedLogo = container.querySelector('img[alt="hawks logo"]');
 
-    expect(selectedLabel.style.color).not.toBe('');
+    // BZE-229 visual pass: the selected team name is now primary (white) text with
+    // the colored logo as the identity accent — the old inline team-color style was
+    // dropped. Intent survives: the team is rendered and visually identified.
+    expect(selectedLabel.className).toContain('text-cockpit-text-primary');
     expect(selectedLogo).not.toBeNull();
     expect((selectedLogo as HTMLImageElement).src).toContain(
       '/assets/logos/hawks.png'

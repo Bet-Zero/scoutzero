@@ -3,6 +3,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 
 const useWorldTeamEventsMock = vi.fn();
 
@@ -23,6 +24,7 @@ const teamCapSheet = {
 describe('TEAM_HISTORY_E4 fail-soft guardrail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
   });
 
   it('renders safe fallback summaries and raw payload when metadata is sparse', () => {

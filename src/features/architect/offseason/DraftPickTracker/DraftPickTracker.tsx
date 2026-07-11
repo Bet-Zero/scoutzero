@@ -34,7 +34,7 @@ export const DraftPickTracker = ({
       ) : (
         <table
           data-testid="team-history-pick-log-table"
-          className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+          className="min-w-full text-sm bg-cockpit-raised border border-cockpit-edge rounded-md"
         >
           <thead>
             <tr>
@@ -50,7 +50,7 @@ export const DraftPickTracker = ({
               <tr
                 key={`${entry.date}-${idx}`}
                 data-testid={`team-history-pick-log-row-${idx}`}
-                className="odd:bg-[#171717]"
+                className="odd:bg-cockpit-slab"
               >
                 <td className="p-2">{entry.date || 'Unknown'}</td>
                 <td className="p-2">{entry.action || '—'}</td>
@@ -69,7 +69,7 @@ export const DraftPickTracker = ({
       ) : (
         <table
           data-testid="team-history-current-picks-table"
-          className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+          className="min-w-full text-sm bg-cockpit-raised border border-cockpit-edge rounded-md"
         >
           <thead>
             <tr>
@@ -83,7 +83,7 @@ export const DraftPickTracker = ({
               <tr
                 key={year}
                 data-testid={`team-history-current-picks-row-${year}`}
-                className="odd:bg-[#171717]"
+                className="odd:bg-cockpit-slab"
               >
                 <td className="p-2">{year}</td>
                 <td className="p-2">{currentPicks[year]?.first || '—'}</td>

@@ -65,30 +65,30 @@ export const TradeExceptionDashboard = ({
   };
 
   return (
-    <div className="bg-[#111] border border-white/10 rounded-lg p-4">
+    <div className="bg-cockpit-slab border border-cockpit-edge rounded-lg p-4">
       <h3 className="font-medium mb-3">Trade Exception Analysis</h3>
 
       {tpeData.map((team, index) => (
         <div key={index} className="mb-4 last:mb-0">
-          <h4 className="font-medium text-sm mb-2 text-blue-400">
+          <h4 className="font-medium text-sm mb-2 text-cockpit-info">
             {team.teamName}
           </h4>
 
           {team.createdTPE && (
-            <div className="mb-3 p-2 bg-green-900/20 border border-green-500/30 rounded">
-              <div className="text-xs text-green-400 font-medium mb-1">
+            <div className="mb-3 p-2 bg-cockpit-safe/20 border border-cockpit-safe/30 rounded">
+              <div className="text-xs text-cockpit-safe font-medium mb-1">
                 🎯 TPE Created
               </div>
-              <div className="text-xs text-white/80">
+              <div className="text-xs text-cockpit-text-secondary">
                 <div>
                   Amount:{' '}
-                  <span className="text-green-400 font-mono">
+                  <span className="text-cockpit-safe font-mono">
                     {formatCurrency(team.createdTPE.amount)}
                   </span>
                 </div>
                 <div>
                   Expires:{' '}
-                  <span className="text-white/60">
+                  <span className="text-cockpit-text-secondary">
                     {formatDate(
                       getTpeExpiryISO(
                         team.createdTPE as Record<string, unknown>
@@ -96,7 +96,7 @@ export const TradeExceptionDashboard = ({
                     )}
                   </span>
                 </div>
-                <div className="text-white/50 mt-1">
+                <div className="text-cockpit-text-muted mt-1">
                   Created from sending {formatCurrency(team.salaryOut)} vs
                   receiving {formatCurrency(team.salaryIn)}
                 </div>
@@ -106,20 +106,20 @@ export const TradeExceptionDashboard = ({
 
           {team.existingTPEs.length > 0 && (
             <div className="mb-3">
-              <div className="text-xs text-blue-400 font-medium mb-1">
+              <div className="text-xs text-cockpit-info font-medium mb-1">
                 💼 Existing Trade Exceptions
               </div>
               {team.existingTPEs.map((tpe, tpeIndex: number) => (
-                <div key={tpeIndex} className="text-xs text-white/80 mb-1 pl-2">
+                <div key={tpeIndex} className="text-xs text-cockpit-text-secondary mb-1 pl-2">
                   <span className="font-mono">
                     {formatCurrency(tpe.amount || 0)}
                   </span>
                   {(tpe.name || tpe.createdFrom) && (
-                    <span className="text-white/60 ml-1">
+                    <span className="text-cockpit-text-secondary ml-1">
                       ({tpe.name || tpe.createdFrom})
                     </span>
                   )}
-                  <span className="text-white/50 ml-2">
+                  <span className="text-cockpit-text-muted ml-2">
                     expires {formatDate(getTpeExpiryISO(tpe))}
                   </span>
                 </div>
@@ -130,14 +130,14 @@ export const TradeExceptionDashboard = ({
           {team.incomingPlayers.some(
             (player) => player.absorptionMode === 'TPE'
           ) && (
-            <div className="mb-3 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
-              <div className="text-xs text-yellow-400 font-medium mb-1">
+            <div className="mb-3 p-2 bg-cockpit-watch/20 border border-cockpit-watch/30 rounded">
+              <div className="text-xs text-cockpit-watch font-medium mb-1">
                 🔄 TPE Usage
               </div>
               {team.incomingPlayers
                 .filter((player) => player.absorptionMode === 'TPE')
                 .map((player, playerIndex) => (
-                  <div key={playerIndex} className="text-xs text-white/80">
+                  <div key={playerIndex} className="text-xs text-cockpit-text-secondary">
                     {player.name} ({formatCurrency(player.salary || 0)}) via TPE
                     #{(player.tpeIndex ?? 0) + 1}
                   </div>
@@ -146,13 +146,13 @@ export const TradeExceptionDashboard = ({
           )}
 
           {team.tradeExceptionViolations.length > 0 && (
-            <div className="mb-3 p-2 bg-red-900/20 border border-red-500/30 rounded">
-              <div className="text-xs text-red-300 font-medium mb-1">
+            <div className="mb-3 p-2 bg-cockpit-danger/20 border border-cockpit-danger/30 rounded">
+              <div className="text-xs text-cockpit-danger font-medium mb-1">
                 Trade Exception Blockers
               </div>
               {team.tradeExceptionViolations.map(
                 (violation, violationIndex) => (
-                  <div key={violationIndex} className="text-xs text-white/80">
+                  <div key={violationIndex} className="text-xs text-cockpit-text-secondary">
                     {getValidationIssueText(violation)}
                   </div>
                 )
@@ -161,12 +161,12 @@ export const TradeExceptionDashboard = ({
           )}
 
           {team.tradeExceptionWarnings.length > 0 && (
-            <div className="mb-3 p-2 bg-amber-900/20 border border-amber-500/30 rounded">
-              <div className="text-xs text-amber-300 font-medium mb-1">
+            <div className="mb-3 p-2 bg-cockpit-watch/20 border border-cockpit-watch/30 rounded">
+              <div className="text-xs text-cockpit-watch font-medium mb-1">
                 Trade Exception Warnings
               </div>
               {team.tradeExceptionWarnings.map((warning, warningIndex) => (
-                <div key={warningIndex} className="text-xs text-white/80">
+                <div key={warningIndex} className="text-xs text-cockpit-text-secondary">
                   {getValidationIssueText(warning)}
                 </div>
               ))}
@@ -175,7 +175,7 @@ export const TradeExceptionDashboard = ({
         </div>
       ))}
 
-      <div className="mt-3 pt-2 border-t border-white/10 text-xs text-white/60">
+      <div className="mt-3 pt-2 border-t border-cockpit-edge text-xs text-cockpit-text-secondary">
         <p>
           💡 TPEs are created when sending more salary than received (over-cap
           teams only)

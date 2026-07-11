@@ -200,20 +200,25 @@ describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
   });
 
   describe('MODE_TAGS Constants', () => {
-    it('A-GR-11: OFFICIAL tag has blue color class', () => {
-      expect(MODE_TAGS.OFFICIAL.color).toContain('blue');
+    // BZE-235: mode-tag palette migrated to cockpit status/neutral tokens.
+    // Intent preserved — each mode keeps a distinct, meaningful tone:
+    // OFFICIAL = info, EXPLORATORY = watch, SETUP/DEBUG = neutral (DEBUG quietest,
+    // since it is a dev-only diagnostic and must not read as a product accent).
+    it('A-GR-11: OFFICIAL tag uses the info status token', () => {
+      expect(MODE_TAGS.OFFICIAL.color).toContain('cockpit-info');
     });
 
-    it('A-GR-12: SETUP tag has neutral color class', () => {
-      expect(MODE_TAGS.SETUP.color).toContain('neutral');
+    it('A-GR-12: SETUP tag uses a neutral surface token', () => {
+      expect(MODE_TAGS.SETUP.color).toContain('cockpit-raised');
     });
 
-    it('A-GR-13: EXPLORATORY tag has amber color class', () => {
-      expect(MODE_TAGS.EXPLORATORY.color).toContain('amber');
+    it('A-GR-13: EXPLORATORY tag uses the watch status token', () => {
+      expect(MODE_TAGS.EXPLORATORY.color).toContain('cockpit-watch');
     });
 
-    it('A-GR-14: DEBUG tag has purple color class', () => {
-      expect(MODE_TAGS.DEBUG.color).toContain('purple');
+    it('A-GR-14: DEBUG tag uses the quietest neutral (muted) token', () => {
+      expect(MODE_TAGS.DEBUG.color).toContain('cockpit-text-muted');
+      expect(MODE_TAGS.DEBUG.color).not.toContain('cockpit-info');
     });
   });
 });

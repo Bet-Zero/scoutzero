@@ -474,6 +474,11 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
       })
     ).toBeEnabled();
 
+    // BZE-229: the exception authority surface is collapsed by default behind a
+    // one-line toggle (matching the Full Cap Table); reveal it before asserting.
+    fireEvent.click(
+      within(adjacentSurface).getByTestId('cap-sheet-exceptions-toggle')
+    );
     expect(
       within(adjacentSurface).getByTestId(
         'cap-sheet-current-season-authority-banner'
@@ -565,6 +570,10 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
       })
     ).toBeDisabled();
 
+    // BZE-229: reveal the collapsed-by-default exception/boundary surface.
+    fireEvent.click(
+      within(adjacentSurface).getByTestId('cap-sheet-exceptions-toggle')
+    );
     const futureYearBoundaryPanel = within(adjacentSurface).getByTestId(
       'cap-sheet-future-year-boundary-panel'
     );

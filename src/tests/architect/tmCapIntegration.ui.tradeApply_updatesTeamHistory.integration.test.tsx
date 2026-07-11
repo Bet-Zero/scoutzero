@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 
 const useWorldTeamEventsMock = vi.fn();
@@ -24,6 +25,7 @@ const teamCapSheet: TeamHistoryCapSheetLike = {
 describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Team History surface', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
   });
 
   it('renders executeTrade timeline row and opens detail modal with core fields', () => {

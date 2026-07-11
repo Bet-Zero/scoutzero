@@ -133,7 +133,7 @@ export const FreeAgentRow = ({
       }`}
     >
       {/* Position */}
-      <div className="w-[45px] shrink-0 flex items-center justify-center text-white/60 text-sm font-semibold">
+      <div className="w-[45px] shrink-0 flex items-center justify-center text-cockpit-text-secondary text-sm font-semibold">
         {position}
       </div>
 
@@ -159,7 +159,7 @@ export const FreeAgentRow = ({
       <div className="relative flex h-[43px] w-[50px] shrink-0 items-center justify-center overflow-hidden bg-cockpit-inlay">
         <svg
           viewBox="0 0 50 43"
-          className="absolute inset-0 h-full w-full text-white/20"
+          className="absolute inset-0 h-full w-full text-cockpit-text-ghost"
           fill="currentColor"
           aria-hidden="true"
         >
@@ -190,16 +190,16 @@ export const FreeAgentRow = ({
       {/* Name + Rights */}
       <div className="flex min-w-0 items-center ml-3 flex-1 justify-between mr-2">
         <div
-          className="flex min-w-0 items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap"
-          style={{ fontSize: '17px', maxWidth: '300px' }}
+          className="flex min-w-0 flex-1 items-center text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap"
+          style={{ fontSize: '17px' }}
         >
           <span className="truncate">
             {firstName}{' '}
-            <span className="text-white/70 font-light">{lastName}</span>
+            <span className="text-cockpit-text-secondary font-light">{lastName}</span>
           </span>
           {age && (
             <span
-              className="shrink-0 text-white/50 font-light ml-2"
+              className="shrink-0 text-cockpit-text-muted font-light ml-2"
               style={{ fontSize: '12px' }}
             >
               ({age})
@@ -208,9 +208,9 @@ export const FreeAgentRow = ({
         </div>
         <div
           data-testid="free-agent-row-signing-context"
-          className="ml-3 flex min-w-[120px] max-w-[290px] shrink-0 items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
+          className="ml-3 flex max-w-[290px] shrink-0 items-center justify-end gap-1.5 overflow-hidden whitespace-nowrap text-[10px]"
         >
-          <span className="min-w-0 truncate rounded-sm border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-white/70">
+          <span className="min-w-0 truncate rounded-sm border border-cockpit-edge bg-cockpit-raised px-1.5 py-0.5 text-cockpit-text-secondary">
             {signingContext.rightsLabel}
           </span>
           {/* The signing-lane chip ("Bird rights path", "Option decision") is
@@ -218,7 +218,7 @@ export const FreeAgentRow = ({
               already say everything a GM needs (BZE-209). Lane data still
               drives signing logic; it just doesn't print here. */}
           {signingContext.capHoldLabel && (
-            <span className="min-w-0 truncate rounded-sm border border-amber-300/15 bg-amber-400/[0.06] px-1.5 py-0.5 text-amber-100/80">
+            <span className="min-w-0 truncate rounded-sm border border-cockpit-watch/25 bg-cockpit-watch/10 px-1.5 py-0.5 text-cockpit-watch">
               {signingContext.capHoldLabel}
             </span>
           )}
@@ -226,7 +226,7 @@ export const FreeAgentRow = ({
       </div>
 
       {/* Aligned Stats Block */}
-      <div className="flex shrink-0 items-center justify-end text-white/50 text-[13px] w-[290px] mr-3 whitespace-nowrap tabular-nums">
+      <div className="flex shrink-0 items-center justify-end text-cockpit-text-muted text-[13px] w-[290px] mr-3 whitespace-nowrap tabular-nums">
         {/* FA Type */}
         <span
           className={`w-[44px] text-center px-1.5 py-[2px] rounded text-[12px] font-semibold ${getTagColor(faType)}`}
@@ -237,7 +237,7 @@ export const FreeAgentRow = ({
         {/* Spacer between FA Type and Height/Weight */}
         <div className="ml-6 flex items-center gap-[8px]">
           <span className="w-[32px] text-right">{height}</span>
-          <span className="text-white/30">|</span>
+          <span className="text-cockpit-text-ghost">|</span>
           <span className="w-[56px] text-left">
             {weight !== '—' ? `${weight} lbs` : weight}
           </span>
@@ -264,14 +264,14 @@ export const FreeAgentRow = ({
                 : entry.selectionKey
             );
           }}
-          className="text-xs text-blue-400 hover:underline"
+          className="text-xs text-cockpit-text-muted hover:text-cockpit-text-primary"
         >
           •••
         </button>
         {openMenuSelectionKey === entry.selectionKey && (
           <div
             ref={menuRef}
-            className={`absolute right-0 ${menuOpensUp ? 'bottom-5' : 'top-5'} bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]`}
+            className={`absolute right-0 ${menuOpensUp ? 'bottom-5' : 'top-5'} bg-cockpit-raised border border-cockpit-edge rounded z-20 text-xs min-w-[8rem]`}
           >
             <button
               data-action-exposure-classification={
@@ -280,7 +280,7 @@ export const FreeAgentRow = ({
               onClick={() => {
                 onOpenContractModal?.(entry);
               }}
-              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
             >
               {standardSigningActionLabel}
             </button>
@@ -288,7 +288,7 @@ export const FreeAgentRow = ({
               onClick={() => {
                 window.location.href = getPlayerProfileUrl(player);
               }}
-              className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
             >
               View Profile
             </button>
@@ -310,7 +310,7 @@ export const FreeAgentRow = ({
                             faContext
                           );
                         }}
-                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                        className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
                         data-testid={`free-agent-row-target-${entry.selectionKey}`}
                       >
                         {isTargetPinned ? 'Remove target' : 'Pin as target'}
@@ -320,7 +320,7 @@ export const FreeAgentRow = ({
                           setOpenMenuSelectionKey(null);
                           onPlayerAction('compare-impact', faContext);
                         }}
-                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                        className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
                       >
                         Compare fit
                       </button>
@@ -329,7 +329,7 @@ export const FreeAgentRow = ({
                           setOpenMenuSelectionKey(null);
                           onPlayerAction('guide-next-move', faContext);
                         }}
-                        className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                        className="block w-full text-left px-3 py-1 hover:bg-cockpit-edge"
                       >
                         Guide path
                       </button>

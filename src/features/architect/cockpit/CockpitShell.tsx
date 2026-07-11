@@ -36,6 +36,7 @@ import { useTeamPalette } from './useTeamPalette';
 interface CockpitShellProps {
   workspace: ArchitectWorkspaceContext;
   isEmulator: boolean;
+  isReviewMode?: boolean;
   activeTab: ActiveTab;
   navItems: NavRailItem[];
   rooms: Record<ActiveTab, RoomDescriptor>;
@@ -76,6 +77,7 @@ interface CockpitShellProps {
 export const CockpitShell = ({
   workspace,
   isEmulator,
+  isReviewMode = false,
   activeTab,
   navItems,
   rooms,
@@ -133,6 +135,7 @@ export const CockpitShell = ({
       <TopBar
         workspace={workspace}
         isEmulator={isEmulator}
+        isReviewMode={isReviewMode}
         receipt={receipt}
         onExpandActivity={handleExpandActivity}
         worldSelectorSlot={worldSelectorSlot}

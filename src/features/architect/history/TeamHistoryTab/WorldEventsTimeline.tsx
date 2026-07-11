@@ -159,7 +159,7 @@ export const WorldEventsTimeline = ({
     return (
       <p
         data-testid="team-history-world-events-loading"
-        className="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60"
+        className="rounded-lg border border-cockpit-edge bg-cockpit-slab p-4 text-sm text-cockpit-text-secondary"
       >
         Loading history events...
       </p>
@@ -170,7 +170,7 @@ export const WorldEventsTimeline = ({
     return (
       <p
         data-testid="team-history-world-events-error"
-        className="rounded-lg border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200"
+        className="rounded-lg border border-cockpit-danger/20 bg-cockpit-danger/10 p-4 text-sm text-cockpit-danger"
       >
         Unable to load world history events. {error}
       </p>
@@ -191,7 +191,7 @@ export const WorldEventsTimeline = ({
         resolution === 'mixed-compatible') && (
         <p
           data-testid="team-history-world-events-compatibility-note"
-          className="text-[11px] text-white/55"
+          className="text-[11px] text-cockpit-text-muted"
         >
           {resolution === 'mixed-compatible'
             ? 'Showing a merged Team History feed with canonical and compatible legacy records for this team.'
@@ -202,7 +202,7 @@ export const WorldEventsTimeline = ({
       {error && (
         <p
           data-testid="team-history-world-events-inline-error"
-          className="text-xs text-rose-300"
+          className="text-xs text-cockpit-danger"
         >
           Unable to load more world history events. {error}
         </p>
@@ -217,7 +217,7 @@ export const WorldEventsTimeline = ({
               type="button"
               data-testid={`team-history-event-row-${idx}`}
               onClick={() => onSelectEntry(entry)}
-              className="group w-full rounded-lg border border-white/10 bg-[#10141B] p-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-white/20 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+              className="group w-full rounded-lg border border-cockpit-edge bg-cockpit-slab p-3 text-left shadow-cockpit-slab transition-colors hover:border-cockpit-text-muted hover:bg-cockpit-raised focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div
@@ -230,25 +230,25 @@ export const WorldEventsTimeline = ({
                   >
                     {entry.summary || 'History entry'}
                   </span>
-                  <span className="mt-1 block text-[11px] text-white/45">
+                  <span className="mt-1 block text-[11px] text-cockpit-text-muted">
                     {formatHistoryTimestamp(rawTimestamp)}
                     {rawTimestamp ? (
                       <span className="sr-only"> {rawTimestamp}</span>
                     ) : null}
                   </span>
                 </div>
-                <span className="rounded-md border border-white/10 bg-black/25 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/55">
+                <span className="rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cockpit-text-muted">
                   {entry.category || 'Move'}
                 </span>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-white/55">
-                <span className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5">
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-cockpit-text-muted">
+                <span className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2 py-0.5">
                   {entry.mutationType || entry.type || 'Team plan move'}
                 </span>
                 <span>{getEntryTeams(entry)}</span>
               </div>
               {entry.primaryDeltas && entry.primaryDeltas !== entry.summary ? (
-                <p className="mt-2 line-clamp-2 text-[12px] text-white/65">
+                <p className="mt-2 line-clamp-2 text-xs text-cockpit-text-secondary">
                   {entry.primaryDeltas}
                 </p>
               ) : null}
@@ -263,7 +263,7 @@ export const WorldEventsTimeline = ({
           data-testid="team-history-world-events-load-more"
           onClick={() => loadMore()}
           disabled={loadingMore}
-          className="rounded border border-white/20 px-3 py-1.5 text-xs hover:bg-white/10"
+          className="rounded-md border border-cockpit-edge px-3 py-1.5 text-xs hover:bg-cockpit-raised"
         >
           {loadingMore ? 'Loading more...' : 'Load more'}
         </button>

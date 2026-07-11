@@ -135,6 +135,11 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
       currentYear: 2026,
       selectedYear: 2026,
     });
+    // BZE-229 (owner-approved): the exceptions / hard-cap readout is collapsed by
+    // default behind a one-line toggle, so the tracker isn't mounted until it's
+    // expanded. Expand it, then assert the section still owns and forwards the
+    // selected/current year to the tracker surface (the guardrail's real intent).
+    fireEvent.click(screen.getByTestId('cap-sheet-exceptions-toggle'));
     expect(shellHarness.lastExceptionTrackerProps).toMatchObject({
       currentYear: 2026,
       selectedYear: 2026,

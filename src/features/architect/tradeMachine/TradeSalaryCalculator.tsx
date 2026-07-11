@@ -169,9 +169,9 @@ export const TradeSalaryCalculator = ({
 
   if (!matchingResult) {
     return (
-      <div className="border border-white/10 rounded-lg p-4 mt-4 bg-[#111]">
+      <div className="border border-cockpit-edge rounded-lg p-4 mt-4 bg-cockpit-slab">
         <h3 className="font-medium mb-3">Salary Matching Calculator</h3>
-        <p className="text-white/60 text-sm">
+        <p className="text-cockpit-text-secondary text-sm">
           Missing cap settings or team salary data
         </p>
       </div>
@@ -179,8 +179,8 @@ export const TradeSalaryCalculator = ({
   }
 
   return (
-    <div className="border border-white/10 rounded-lg p-4 mt-4 bg-[#111]">
-      <div className="mb-4 px-3 py-2 bg-amber-900/20 border border-amber-600/30 rounded text-xs text-amber-300">
+    <div className="border border-cockpit-edge rounded-lg p-4 mt-4 bg-cockpit-slab">
+      <div className="mb-4 px-3 py-2 bg-cockpit-watch/20 border border-cockpit-watch/30 rounded text-xs text-cockpit-watch">
         ⚠️ <strong>Exploratory tool</strong> — validator is authoritative for
         final trade legality.
       </div>
@@ -189,36 +189,36 @@ export const TradeSalaryCalculator = ({
 
       <div className="space-y-4">
         {hasValidatorResult && (
-          <div className="bg-blue-900/20 border border-blue-500/30 rounded p-3">
-            <div className="text-xs font-semibold text-blue-300 mb-2 flex items-center gap-1">
+          <div className="bg-cockpit-info/20 border border-cockpit-info/30 rounded p-3">
+            <div className="text-xs font-semibold text-cockpit-info mb-2 flex items-center gap-1">
               <span>✓</span> Official Validator Result
             </div>
             {validatorSkipReason ? (
-              <div className="text-sm text-blue-100">
-                <span className="text-blue-200/60">Status: </span>
+              <div className="text-sm text-cockpit-info">
+                <span className="text-cockpit-info/60">Status: </span>
                 Salary matching not applicable ({validatorSkipReason})
               </div>
             ) : validatorAllowableIncoming != null ? (
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <div className="text-xs text-blue-200/60 mb-1">
+                  <div className="text-xs text-cockpit-info/60 mb-1">
                     Allowable Incoming
                   </div>
-                  <div className="font-mono text-blue-100">
+                  <div className="font-mono text-cockpit-info">
                     {formatCurrency(validatorAllowableIncoming)}
                   </div>
                 </div>
                 {validatorRule && (
                   <div>
-                    <div className="text-xs text-blue-200/60 mb-1">
+                    <div className="text-xs text-cockpit-info/60 mb-1">
                       Rule Applied
                     </div>
-                    <div className="text-blue-100">{validatorRule}</div>
+                    <div className="text-cockpit-info">{validatorRule}</div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="text-sm text-blue-100/60">
+              <div className="text-sm text-cockpit-info/60">
                 Validator result available but no allowable incoming value
               </div>
             )}
@@ -226,12 +226,12 @@ export const TradeSalaryCalculator = ({
         )}
 
         <div
-          className={`rounded p-3 ${hasValidatorResult ? 'bg-white/5 border border-white/10' : ''}`}
+          className={`rounded p-3 ${hasValidatorResult ? 'bg-cockpit-raised border border-cockpit-edge' : ''}`}
         >
-          <div className="text-xs font-semibold text-white/60 mb-3 flex items-center gap-1">
+          <div className="text-xs font-semibold text-cockpit-text-secondary mb-3 flex items-center gap-1">
             {hasValidatorResult ? (
               <>
-                <span className="text-yellow-400">⚡</span> Sandbox Estimate
+                <span className="text-cockpit-watch">⚡</span> Sandbox Estimate
                 (local calculation)
               </>
             ) : (
@@ -241,26 +241,26 @@ export const TradeSalaryCalculator = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/60 mb-1">
+              <label className="block text-xs text-cockpit-text-secondary mb-1">
                 Outgoing Salary
               </label>
-              <div className="font-mono bg-[#222] p-2 rounded">
+              <div className="font-mono bg-cockpit-raised p-2 rounded">
                 {formatCurrency(outgoingSalary)}
               </div>
             </div>
             <div>
-              <label className="block text-xs text-white/60 mb-1">
+              <label className="block text-xs text-cockpit-text-secondary mb-1">
                 Allowable Incoming
               </label>
               <div
                 className={`font-mono p-2 rounded ${
-                  isValid ? 'bg-green-900/30' : 'bg-red-900/30'
+                  isValid ? 'bg-cockpit-safe/30' : 'bg-cockpit-danger/30'
                 }`}
               >
                 {formatCurrency(allowableIncoming)}
               </div>
               {officialDiffers && (
-                <div className="text-xs text-blue-300 mt-1">
+                <div className="text-xs text-cockpit-info mt-1">
                   Validator will use:{' '}
                   {formatCurrency(validatorAllowableIncoming)}
                 </div>
@@ -268,37 +268,37 @@ export const TradeSalaryCalculator = ({
             </div>
           </div>
 
-          <div className="bg-[#222] p-3 rounded border border-white/10 mt-4">
-            <div className="text-xs text-white/70 mb-2">
+          <div className="bg-cockpit-raised p-3 rounded border border-cockpit-edge mt-4">
+            <div className="text-xs text-cockpit-text-secondary mb-2">
               <span className="font-semibold">Rule Applied:</span>{' '}
               {breakdown.rule}
               {hasValidatorResult &&
                 validatorRule &&
                 validatorRule !== breakdown.rule && (
-                  <span className="text-blue-300 ml-2">
+                  <span className="text-cockpit-info ml-2">
                     (Validator: {validatorRule})
                   </span>
                 )}
             </div>
             {breakdown.formula && (
-              <div className="text-xs text-white/50 mb-2 font-mono">
+              <div className="text-xs text-cockpit-text-muted mb-2 font-mono">
                 {breakdown.formula}
               </div>
             )}
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="text-center">
-                <div className="text-white/60">Base</div>
+                <div className="text-cockpit-text-secondary">Base</div>
                 <div>{formatCurrency(breakdown.base)}</div>
               </div>
               <div className="text-center">
-                <div className="text-white/60">TPEs</div>
-                <div className={breakdown.tpe > 0 ? 'text-blue-300' : ''}>
+                <div className="text-cockpit-text-secondary">TPEs</div>
+                <div className={breakdown.tpe > 0 ? 'text-cockpit-info' : ''}>
                   +{formatCurrency(breakdown.tpe)}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-white/60">Min Ex</div>
-                <div className={breakdown.min > 0 ? 'text-green-300' : ''}>
+                <div className="text-cockpit-text-secondary">Min Ex</div>
+                <div className={breakdown.min > 0 ? 'text-cockpit-safe' : ''}>
                   +{formatCurrency(breakdown.min)}
                 </div>
               </div>
@@ -307,43 +307,43 @@ export const TradeSalaryCalculator = ({
         </div>
 
         <div>
-          <label className="block text-xs text-white/60 mb-1">
+          <label className="block text-xs text-cockpit-text-secondary mb-1">
             Test Incoming Salary
           </label>
           <input
             type="number"
             value={incomingSalary || ''}
             onChange={(event) => setIncomingSalary(Number(event.target.value) || 0)}
-            className="w-full bg-[#222] border border-white/10 rounded px-3 py-2 font-mono"
+            className="w-full bg-cockpit-raised border border-cockpit-edge rounded px-3 py-2 font-mono"
             placeholder="Enter amount to test"
           />
         </div>
 
         {isSandboxDisabled ? (
-          <div className="p-3 rounded bg-neutral-800/50 border border-neutral-600/30">
-            <div className="font-medium flex items-center text-neutral-400">
+          <div className="p-3 rounded-md bg-cockpit-slab border border-cockpit-edge">
+            <div className="font-medium flex items-center text-cockpit-text-muted">
               <span className="mr-2">⊘</span>
               <span>Sandbox Disabled</span>
             </div>
-            <div className="text-sm mt-1 text-neutral-400">
+            <div className="text-sm mt-1 text-cockpit-text-muted">
               {sandboxDisabledReason}
             </div>
           </div>
         ) : validatorContradictsSandbox ? (
-          <div className="p-3 rounded bg-amber-900/20 border border-amber-600/30">
-            <div className="font-medium flex items-center text-amber-300">
+          <div className="p-3 rounded bg-cockpit-watch/20 border border-cockpit-watch/30">
+            <div className="font-medium flex items-center text-cockpit-watch">
               <span className="mr-2">⚠️</span>
               <span>Sandbox vs Validator Mismatch</span>
             </div>
-            <div className="text-sm mt-1 text-amber-200/80">
+            <div className="text-sm mt-1 text-cockpit-watch/80">
               Sandbox: {incomingSalary <= allowableIncoming ? 'Valid' : 'Invalid'}{' '}
               |
-              <span className="font-semibold text-blue-300 ml-1">
+              <span className="font-semibold text-cockpit-info ml-1">
                 Validator (authoritative):{' '}
                 {incomingSalary <= validatorAllowableIncoming ? 'Valid' : 'Invalid'}
               </span>
             </div>
-            <div className="text-xs mt-2 text-amber-200/60 italic">
+            <div className="text-xs mt-2 text-cockpit-watch/60 italic">
               The official validator result takes precedence over sandbox
               estimates.
             </div>
@@ -351,18 +351,18 @@ export const TradeSalaryCalculator = ({
         ) : (
           <div
             className={`p-3 rounded ${
-              isValid ? 'bg-green-900/20' : 'bg-red-900/20'
+              isValid ? 'bg-cockpit-safe/20' : 'bg-cockpit-danger/20'
             }`}
           >
             <div className="font-medium flex items-center">
               {isValid ? (
                 <>
-                  <span className="text-green-400 mr-2">✓</span>
+                  <span className="text-cockpit-safe mr-2">✓</span>
                   <span>Sandbox Result (salary matching only)</span>
                 </>
               ) : (
                 <>
-                  <span className="text-red-400 mr-2">✗</span>
+                  <span className="text-cockpit-danger mr-2">✗</span>
                   <span>Sandbox Result (salary matching only)</span>
                 </>
               )}

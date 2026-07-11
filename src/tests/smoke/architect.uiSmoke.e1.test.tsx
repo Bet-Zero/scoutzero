@@ -41,6 +41,7 @@ vi.mock('@/firebaseConfig', () => ({
   functions: {},
   auth: {},
   FIREBASE_TARGET_MODE: 'EMULATOR',
+  ARCHITECT_REVIEW_MODE: false,
   isLikelyEmulatorConnectionError: () => false,
 }));
 

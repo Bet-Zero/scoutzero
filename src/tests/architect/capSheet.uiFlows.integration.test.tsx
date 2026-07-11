@@ -1048,6 +1048,12 @@ describe('Cap Sheet UI integration flows', () => {
       name: 'Adjacent current-season authority surface',
     });
     expectBefore(primarySurface, adjacentSurface);
+    // BZE-229: the exception authority surface is collapsed by default behind a
+    // one-line toggle (matching the Full Cap Table). Reveal it before asserting
+    // its contents — the structural separation the guardrail checks is unchanged.
+    fireEvent.click(
+      within(adjacentSurface).getByTestId('cap-sheet-exceptions-toggle')
+    );
     expect(
       within(adjacentSurface).getByRole('region', {
         name: 'Cap sheet current-season exception authority surface',
@@ -1111,6 +1117,10 @@ describe('Cap Sheet UI integration flows', () => {
     const adjacentSurface = screen.getByRole('region', {
       name: 'Adjacent current-season authority surface',
     });
+    // BZE-229: reveal the collapsed-by-default exception/boundary surface first.
+    fireEvent.click(
+      within(adjacentSurface).getByTestId('cap-sheet-exceptions-toggle')
+    );
     expect(
       within(adjacentSurface).getByTestId(
         'cap-sheet-future-year-boundary-panel'

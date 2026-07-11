@@ -55,13 +55,13 @@ const ExceptionCard = ({
   statusLabel,
 }: ExceptionCardProps) => {
   const colorStyles = {
-    blue: 'bg-blue-500/5 border-blue-500/20 text-blue-400 hover:bg-blue-500/10',
+    blue: 'bg-cockpit-info/5 border-cockpit-info/20 text-cockpit-info hover:bg-cockpit-info/10',
     green:
-      'bg-green-500/5 border-green-500/20 text-green-400 hover:bg-green-500/10',
+      'bg-cockpit-safe/5 border-cockpit-safe/20 text-cockpit-safe hover:bg-cockpit-safe/10',
     orange:
-      'bg-orange-500/5 border-orange-500/20 text-orange-400 hover:bg-orange-500/10',
-    red: 'bg-red-500/5 border-red-500/20 text-red-500 hover:bg-red-500/10',
-    gray: 'bg-white/[0.02] border-white/5 text-zinc-500',
+      'bg-cockpit-watch/5 border-cockpit-watch/20 text-cockpit-watch hover:bg-cockpit-watch/10',
+    red: 'bg-cockpit-danger/5 border-cockpit-danger/20 text-cockpit-danger hover:bg-cockpit-danger/10',
+    gray: 'bg-cockpit-raised border-cockpit-edge text-cockpit-text-muted',
   };
 
   return (
@@ -70,16 +70,16 @@ const ExceptionCard = ({
       title={subtext}
     >
       <span className="flex min-w-0 items-center gap-1">
-        <span className="truncate text-[9px] uppercase tracking-wide font-bold opacity-70">
+        <span className="truncate text-[10px] uppercase tracking-wide font-bold opacity-70">
           {label}
         </span>
         {statusLabel && (
-          <span className="shrink-0 text-[8px] uppercase tracking-wider font-bold opacity-50 border border-current px-1 rounded-sm">
+          <span className="shrink-0 text-[10px] uppercase tracking-wider font-bold opacity-50 border border-current px-1 rounded-sm">
             {statusLabel}
           </span>
         )}
       </span>
-      <span className="whitespace-nowrap text-[11px] font-bold tracking-tight text-white/90 tabular-nums">
+      <span className="whitespace-nowrap text-[11px] font-bold tracking-tight text-cockpit-text-primary tabular-nums">
         ${amount.toLocaleString()}
       </span>
     </div>
@@ -102,7 +102,7 @@ const HardCapCard = ({ hardCapStatus, hasApronData }: HardCapCardProps) => {
 
   if (!isActive)
     return (
-      <div className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.02] px-3 py-1 text-white/40">
+      <div className="flex items-center gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-3 py-1 text-cockpit-text-muted">
         <ShieldAlert size={13} />
         <span className="text-[10px] uppercase tracking-wider font-semibold">
           No Hard Cap Active
@@ -111,21 +111,21 @@ const HardCapCard = ({ hardCapStatus, hasApronData }: HardCapCardProps) => {
     );
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-1 text-red-400">
-      <ShieldAlert size={13} className="shrink-0 text-red-500" />
-      <span className="text-[10px] uppercase tracking-widest font-bold text-red-100">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border border-cockpit-danger/20 bg-cockpit-danger/5 px-3 py-1 text-cockpit-danger">
+      <ShieldAlert size={13} className="shrink-0 text-cockpit-danger" />
+      <span className="text-[10px] uppercase tracking-widest font-bold text-cockpit-danger">
         Hard Capped
       </span>
       {ceilingLabel && (
-        <span className="text-[9px] uppercase tracking-widest text-red-300/70">
+        <span className="text-[10px] uppercase tracking-widest text-cockpit-danger/70">
           {ceilingLabel}
         </span>
       )}
-      <span className="text-xs font-bold tabular-nums text-red-100">
+      <span className="text-xs font-bold tabular-nums text-cockpit-danger">
         {limitAmount !== null ? `$${limitAmount.toLocaleString()}` : '—'}
       </span>
       <span
-        className="min-w-0 flex-1 truncate text-right text-[9px] leading-tight text-red-400/70"
+        className="min-w-0 flex-1 truncate text-right text-[10px] leading-tight text-cockpit-danger/70"
         title={description}
       >
         {description}
@@ -143,22 +143,22 @@ const CompactTradeExceptionRow = ({ tpe }: CompactTradeExceptionRowProps) => {
     tpe.expiresOn || tpe.expirationDate || tpe.expires || '—';
 
   return (
-    <div className="grid grid-cols-[80px_1fr_auto] gap-3 items-center py-1 px-2 border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-all group relative overflow-hidden">
-      {/* "Spice" - left accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-purple-500/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className="grid grid-cols-[80px_1fr_auto] gap-3 items-center py-1 px-2 border-b border-cockpit-edge last:border-0 hover:bg-cockpit-raised transition-all group relative overflow-hidden">
+      {/* Narrow team-accent hairline on hover (visual standard §3). */}
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[color:var(--team-primary,#4F46E5)] opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div className="flex flex-col">
-        <span className="text-xs font-bold text-white/90 tabular-nums group-hover:text-purple-200 transition-colors">
+        <span className="text-xs font-bold text-cockpit-text-primary tabular-nums transition-colors">
           ${(tpe.amount || 0).toLocaleString()}
         </span>
       </div>
 
-      <div className="flex items-center text-[10px] text-white/40 group-hover:text-white/60 transition-colors truncate">
+      <div className="flex items-center text-[10px] text-cockpit-text-muted group-hover:text-cockpit-text-secondary transition-colors truncate">
         {Boolean(tpe.createdFrom) && <span>from {String(tpe.createdFrom)}</span>}
       </div>
 
       <div className="text-right whitespace-nowrap">
-        <span className="text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">
+        <span className="text-[10px] text-cockpit-text-muted font-medium group-hover:text-cockpit-text-secondary transition-colors">
           {String(expiryDisplay)}
         </span>
       </div>
@@ -194,23 +194,23 @@ export const ExceptionTracker = ({
       >
         <div
           data-testid="cap-sheet-future-year-boundary-panel"
-          className="rounded-md border border-amber-400/20 bg-amber-500/5 px-3 py-2 text-amber-100"
+          className="rounded-md border border-cockpit-watch/25 bg-cockpit-watch/[0.06] px-3 py-2 text-cockpit-text-secondary"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-cockpit-watch">
               Exceptions & Hard Cap
             </span>
-            <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-100/90">
+            <span className="rounded-full border border-cockpit-watch/25 bg-cockpit-watch/10 px-2 py-0.5 text-[10px] font-medium text-cockpit-watch">
               Viewing: {selectedSeasonLabel}
             </span>
-            <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-100/90">
+            <span className="rounded-full border border-cockpit-watch/25 bg-cockpit-watch/10 px-2 py-0.5 text-[10px] font-medium text-cockpit-watch">
               Applies to {currentSeasonLabel} only
             </span>
           </div>
-          <h3 className="mt-1.5 text-xs font-semibold text-amber-100">
+          <h3 className="mt-1.5 text-xs font-semibold text-cockpit-text-primary">
             Hard-cap and exception details aren't shown for future seasons.
           </h3>
-          <p className="mt-1 text-[11px] leading-snug text-amber-100/70">
+          <p className="mt-1 text-[11px] leading-snug text-cockpit-text-muted">
             These numbers always reflect the {currentSeasonLabel} season. The
             cap table can show {selectedSeasonLabel} totals, but hard-cap,
             exception, and trade-exception details only apply to{' '}
@@ -280,9 +280,9 @@ export const ExceptionTracker = ({
           visible, and the card/TPE detail opens from the details toggle. */}
       <div
         data-testid="cap-sheet-current-season-authority-banner"
-        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-sky-400/15 bg-sky-500/[0.05] px-3 py-1 text-sky-100"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-cockpit-edge bg-cockpit-slab px-3 py-1 text-cockpit-text-secondary"
       >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cockpit-text-muted">
           Exceptions & Hard Cap
         </span>
         <span className="sr-only">
@@ -293,17 +293,17 @@ export const ExceptionTracker = ({
           hardCapStatus={hardCapStatus}
           hasApronData={Boolean(capData.firstApron || capData.secondApron)}
         />
-        <span className="flex items-center gap-1.5 text-[10px] text-white/60">
+        <span className="flex items-center gap-1.5 text-[10px] text-cockpit-text-secondary">
           <span>Trade Exceptions</span>
-          <span className="rounded bg-white/5 px-1.5 text-[9px] text-white/40 tabular-nums">
+          <span className="rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-muted tabular-nums">
             {tradeExceptions.length}
           </span>
         </span>
         <span className="ml-auto flex min-w-0 flex-wrap items-center gap-1.5 text-[10px] font-medium">
-          <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-0.5 text-sky-100/90">
+          <span className="rounded-full border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-cockpit-text-secondary">
             Viewing: {selectedSeasonLabel}
           </span>
-          <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2 py-0.5 text-sky-100/90">
+          <span className="rounded-full border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-cockpit-text-secondary">
             Current season: {currentSeasonLabel}
           </span>
           <button
@@ -311,7 +311,7 @@ export const ExceptionTracker = ({
             type="button"
             aria-expanded={showExceptionDetails}
             onClick={() => setShowExceptionDetails(!showExceptionDetails)}
-            className="rounded border border-sky-300/25 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-100 transition-colors hover:bg-sky-500/20"
+            className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-text-secondary transition-colors hover:bg-cockpit-edge"
           >
             {showExceptionDetails ? 'Hide' : 'Show'} details
           </button>
@@ -350,20 +350,20 @@ export const ExceptionTracker = ({
           />
 
           {/* Trade Exceptions compact list shares the row with the cards. */}
-          <div className="col-span-2 flex flex-col rounded-md border border-white/5 bg-[#0f0f0f] px-3 py-1.5 lg:col-span-1">
+          <div className="col-span-2 flex flex-col rounded-md border border-cockpit-edge bg-cockpit-inlay px-3 py-1.5 lg:col-span-1">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
-                <BadgeAlert size={12} className="text-purple-400" />
+              <h3 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-cockpit-text-secondary">
+                <BadgeAlert size={12} className="text-cockpit-text-muted" />
                 Trade Exception Detail
               </h3>
-              <span className="rounded bg-white/5 px-1.5 text-[9px] text-white/30">
+              <span className="rounded bg-cockpit-raised px-1.5 text-[10px] text-cockpit-text-muted">
                 {tradeExceptions.length}
               </span>
             </div>
 
             <div className="max-h-16 flex-1 overflow-auto">
               {tradeExceptions.length === 0 ? (
-                <div className="py-2 text-center text-[10px] text-white/20">
+                <div className="py-2 text-center text-[10px] text-cockpit-text-ghost">
                   No Active TPEs
                 </div>
               ) : (

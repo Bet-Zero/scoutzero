@@ -28,6 +28,7 @@ import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboar
 interface TopBarProps {
   workspace: ArchitectWorkspaceContext;
   isEmulator: boolean;
+  isReviewMode?: boolean;
   receipt: ArchitectPostActionReceipt | null;
   onExpandActivity: () => void;
   worldSelectorSlot?: ReactNode;
@@ -53,6 +54,7 @@ const formatRelative = (iso: string | null): string => {
 export const TopBar = ({
   workspace,
   isEmulator,
+  isReviewMode = false,
   receipt,
   onExpandActivity,
   worldSelectorSlot,
@@ -105,7 +107,11 @@ export const TopBar = ({
           worldTimeControls={worldTimeControlsSlot}
         />
         {seasonSelectorSlot}
-        <ModePill context={workspace} isEmulator={isEmulator} />
+        <ModePill
+          context={workspace}
+          isEmulator={isEmulator}
+          isReviewMode={isReviewMode}
+        />
         {receipt ? (
           <button
             type="button"

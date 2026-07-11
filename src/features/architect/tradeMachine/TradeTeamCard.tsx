@@ -217,11 +217,11 @@ export const TradeTeamCard = ({
     <div
       className={`flex-1 rounded-lg ${
         compact ? 'p-3 space-y-2' : 'p-4 space-y-4'
-      } bg-[#111] relative shadow-inner border`}
+      } bg-cockpit-slab relative shadow-cockpit-slab border`}
       style={{ borderColor: primary || 'transparent' }}
     >
       {/* Team Header */}
-      <div className="relative flex items-center justify-between border-b border-white/10 pb-2">
+      <div className="relative flex items-center justify-between border-b border-cockpit-edge pb-2">
         <div className="flex-1 min-w-0 max-w-[260px]">
           <TeamSelectDropdown
             selectedTeamId={team.id}
@@ -235,7 +235,7 @@ export const TradeTeamCard = ({
         {onRemove && (
           <button
             onClick={onRemove}
-            className="absolute -top-[8px] -right-[8px] text-white/20 text-xs p-0 leading-none hover:text-white/50"
+            className="absolute -top-[8px] -right-[8px] text-cockpit-text-ghost text-xs p-0 leading-none hover:text-cockpit-text-muted"
             title="Remove team"
           >
             ✕
@@ -258,9 +258,9 @@ export const TradeTeamCard = ({
         <div>
           <button
             onClick={() => setShowOutgoing((prev) => !prev)}
-            className={`w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 ${
+            className={`w-full text-left bg-cockpit-raised px-3 py-1.5 rounded-md border border-cockpit-edge hover:border-cockpit-text-muted ${
               compact ? 'text-xs' : 'text-sm'
-            } flex flex-col gap-0.5 text-white/80`}
+            } flex flex-col gap-0.5 text-cockpit-text-secondary`}
           >
             <div className="flex justify-between items-center w-full">
               <span className="flex items-center gap-1">
@@ -268,7 +268,7 @@ export const TradeTeamCard = ({
                 Outgoing {hasOutgoingAdjustment ? 'Matching Value' : 'Salary'}:{' '}
                 {/* P0-3: Show loading state during validation in-flight */}
                 {isValidating && sends.length > 0 ? (
-                  <span className="text-blue-400 animate-pulse">
+                  <span className="text-cockpit-info animate-pulse">
                     {hasValidatorResult ? 'Updating…' : 'Calculating…'}
                   </span>
                 ) : (
@@ -278,7 +278,7 @@ export const TradeTeamCard = ({
                 {/* P0-3: Hide estimate badge during validation - show loading instead */}
                 {!isValidating && isEstimate && sends.length > 0 && (
                   <span
-                    className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
+                    className="ml-1 px-1.5 py-0.5 text-[10px] bg-cockpit-watch/20 text-cockpit-watch rounded-md"
                     title="Value is an estimate until trade is validated"
                   >
                     Estimate
@@ -288,7 +288,7 @@ export const TradeTeamCard = ({
                 {/* P0-3: Hide adjustment badge during validation */}
                 {!isValidating && hasOutgoingAdjustment && (
                   <span
-                    className="px-1.5 py-0.5 text-[10px] bg-purple-600/20 text-purple-300 rounded"
+                    className="px-1.5 py-0.5 text-[10px] bg-cockpit-info/20 text-cockpit-info rounded-md"
                     title="Includes BYC, poison pill, or trade kicker adjustments"
                   >
                     Adjusted
@@ -304,7 +304,7 @@ export const TradeTeamCard = ({
             {/* Phase 2.3: Show base salary as secondary line when there's an adjustment */}
             {/* P0-3: Hide base salary line during validation */}
             {!isValidating && hasOutgoingAdjustment && (
-              <span className="text-[11px] text-white/50">
+              <span className="text-[11px] text-cockpit-text-muted">
                 Base Salary: {formatSalary(outgoingBaseSalary)}
               </span>
             )}
@@ -330,16 +330,16 @@ export const TradeTeamCard = ({
                 return (
                   <span
                     key={String(getPlayerKey(p))}
-                    className="bg-red-950/40 text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-red-400/25 flex items-center gap-1"
+                    className="bg-cockpit-danger/15 text-cockpit-text-primary text-[11px] px-2 py-0.5 rounded-full border border-cockpit-danger/25 flex items-center gap-1"
                   >
                     {getPlayerLabel(p)}
-                    <span className="text-white/50">
+                    <span className="text-cockpit-text-muted">
                       {formatSalary(baseSalary)}
                     </span>
                     {/* P1: Player-level adjustment indicator with specific tooltip */}
                     {hasPlayerAdjustment && (
                       <span
-                        className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
+                        className="px-1 py-0.5 text-[10px] bg-cockpit-info/20 text-cockpit-info rounded-md leading-none"
                         title={tooltipText}
                       >
                         Adj
@@ -348,7 +348,7 @@ export const TradeTeamCard = ({
                     {onUndoPlayerTrade && (
                       <button
                         onClick={() => handleUndoPlayerTrade(p)}
-                        className="ml-1 text-white/50 hover:text-white"
+                        className="ml-1 text-cockpit-text-muted hover:text-cockpit-text-primary"
                       >
                         ✕
                       </button>
@@ -362,7 +362,7 @@ export const TradeTeamCard = ({
                 .map((e) => (
                   <span
                     key={String(getEntitlementKey(e))}
-                    className="bg-red-950/40 text-white/80 text-[11px] px-2 py-0.5 rounded-full border border-red-400/25"
+                    className="bg-cockpit-danger/15 text-cockpit-text-secondary text-[11px] px-2 py-0.5 rounded-full border border-cockpit-danger/25"
                   >
                     {e.seasonYear ?? '—'}{' '}
                     {Number(e.round) === 1
@@ -381,9 +381,9 @@ export const TradeTeamCard = ({
         <div>
           <button
             onClick={() => setShowIncoming((prev) => !prev)}
-            className={`w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 ${
+            className={`w-full text-left bg-cockpit-raised px-3 py-1.5 rounded-md border border-cockpit-edge hover:border-cockpit-text-muted ${
               compact ? 'text-xs' : 'text-sm'
-            } flex flex-col gap-0.5 text-white/80`}
+            } flex flex-col gap-0.5 text-cockpit-text-secondary`}
           >
             <div className="flex justify-between items-center w-full">
               <span className="flex items-center gap-1">
@@ -391,7 +391,7 @@ export const TradeTeamCard = ({
                 Incoming {hasIncomingAdjustment ? 'Matching Value' : 'Salary'}:{' '}
                 {/* P0-3: Show loading state during validation in-flight */}
                 {isValidating && incomingPlayers.length > 0 ? (
-                  <span className="text-blue-400 animate-pulse">
+                  <span className="text-cockpit-info animate-pulse">
                     {hasValidatorResult ? 'Updating…' : 'Calculating…'}
                   </span>
                 ) : (
@@ -401,7 +401,7 @@ export const TradeTeamCard = ({
                 {/* P0-3: Hide estimate badge during validation - show loading instead */}
                 {!isValidating && isEstimate && incomingPlayers.length > 0 && (
                   <span
-                    className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
+                    className="ml-1 px-1.5 py-0.5 text-[10px] bg-cockpit-watch/20 text-cockpit-watch rounded-md"
                     title="Value is an estimate until trade is validated"
                   >
                     Estimate
@@ -411,7 +411,7 @@ export const TradeTeamCard = ({
                 {/* P0-3: Hide adjustment badge during validation */}
                 {!isValidating && hasIncomingAdjustment && (
                   <span
-                    className="px-1.5 py-0.5 text-[10px] bg-purple-600/20 text-purple-300 rounded"
+                    className="px-1.5 py-0.5 text-[10px] bg-cockpit-info/20 text-cockpit-info rounded-md"
                     title="Includes BYC, poison pill, or trade kicker adjustments"
                   >
                     Adjusted
@@ -427,7 +427,7 @@ export const TradeTeamCard = ({
             {/* Phase 2.3: Show base salary as secondary line when there's an adjustment */}
             {/* P0-3: Hide base salary line during validation */}
             {!isValidating && hasIncomingAdjustment && (
-              <span className="text-[11px] text-white/50">
+              <span className="text-[11px] text-cockpit-text-muted">
                 Base Salary: {formatSalary(incomingBaseSalary)}
               </span>
             )}
@@ -453,16 +453,16 @@ export const TradeTeamCard = ({
                 return (
                   <span
                     key={String(getPlayerKey(p))}
-                    className="bg-green-950/40 text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-green-400/25 flex items-center gap-1"
+                    className="bg-cockpit-safe/15 text-cockpit-text-primary text-[11px] px-2 py-0.5 rounded-full border border-cockpit-safe/25 flex items-center gap-1"
                   >
                     {getPlayerLabel(p)}
-                    <span className="text-white/50">
+                    <span className="text-cockpit-text-muted">
                       {formatSalary(baseSalary)}
                     </span>
                     {/* P1: Player-level adjustment indicator with specific tooltip */}
                     {hasPlayerAdjustment && (
                       <span
-                        className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
+                        className="px-1 py-0.5 text-[10px] bg-cockpit-info/20 text-cockpit-info rounded-md leading-none"
                         title={tooltipText}
                       >
                         Adj
@@ -471,7 +471,7 @@ export const TradeTeamCard = ({
                     {onUndoPlayerTrade && (
                       <button
                         onClick={() => handleUndoPlayerTrade(p)}
-                        className="ml-1 text-white/50 hover:text-white"
+                        className="ml-1 text-cockpit-text-muted hover:text-cockpit-text-primary"
                       >
                         ✕
                       </button>
@@ -483,7 +483,7 @@ export const TradeTeamCard = ({
               {incomingEntitlements.map((e) => (
                 <span
                   key={String(getEntitlementKey(e))}
-                  className="bg-green-950/40 text-white/80 text-[11px] px-2 py-0.5 rounded-full border border-green-400/25"
+                  className="bg-cockpit-safe/15 text-cockpit-text-secondary text-[11px] px-2 py-0.5 rounded-full border border-cockpit-safe/25"
                 >
                   {e.seasonYear ?? '—'}{' '}
                   {Number(e.round) === 1
@@ -497,13 +497,13 @@ export const TradeTeamCard = ({
             </div>
           )}
           {/* Show Allowable Incoming and TPEs side-by-side */}
-          <div className="flex flex-wrap gap-4 text-xs text-white/60 mt-1 items-center">
+          <div className="flex flex-wrap gap-4 text-xs text-cockpit-text-secondary mt-1 items-center">
             <div>
               Allowable Incoming:{' '}
-              <span className="font-semibold text-white/80">
+              <span className="font-semibold text-cockpit-text-primary">
                 {/* P0-3: Show loading state during validation in-flight */}
                 {isValidating ? (
-                  <span className="text-blue-400 animate-pulse">
+                  <span className="text-cockpit-info animate-pulse">
                     {hasValidatorResult ? 'Updating…' : 'Calculating…'}
                   </span>
                 ) : allowableIncomingNoTPE != null ? (
@@ -528,7 +528,7 @@ export const TradeTeamCard = ({
                 allowableIncomingNoTPE == null &&
                 salaryMatchingSkipReason && (
                   <span
-                    className="ml-1 text-white/40 text-[10px]"
+                    className="ml-1 text-cockpit-text-muted text-[10px]"
                     title={`Not applicable: ${formatSkipReasonLabel(
                       salaryMatchingSkipReason
                     )}`}
@@ -540,7 +540,7 @@ export const TradeTeamCard = ({
               {/* P0-3: Hide estimate badge during validation - show loading instead */}
               {!isValidating && isEstimate && (
                 <span
-                  className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-600/20 text-amber-400 rounded"
+                  className="ml-1 px-1.5 py-0.5 text-[10px] bg-cockpit-watch/20 text-cockpit-watch rounded-md"
                   title="Value is an estimate until trade is validated"
                 >
                   Estimate
@@ -557,7 +557,7 @@ export const TradeTeamCard = ({
                 salaryMatchingRuleLabel &&
                 salaryMatchingRuleLabel !== 'unknown' && (
                   <span
-                    className="ml-1 text-white/40"
+                    className="ml-1 text-cockpit-text-muted"
                     title={salaryMatchingFormula}
                     role="note"
                     aria-label={`Rule: ${
@@ -573,7 +573,7 @@ export const TradeTeamCard = ({
                 )}
               {!isValidating && hardCapIsLimiter && (
                 <span
-                  className="ml-1 text-yellow-400 text-[10px]"
+                  className="ml-1 text-cockpit-watch text-[10px]"
                   title={`Hard cap ceiling is the active allowable incoming limiter (${hardCapLimiterLabel})`}
                 >
                   ({hardCapLimiterLabel} Limited)
@@ -583,11 +583,11 @@ export const TradeTeamCard = ({
             {/* TMUI-17: gate on ACTIVE TPEs so the "Available" label matches reality */}
             {activeTradeExceptions.length > 0 && (
               <div className="flex gap-2 items-center">
-                <span className="text-white/60">Available TPEs:</span>
+                <span className="text-cockpit-text-secondary">Available TPEs:</span>
                 {activeTradeExceptions.map((tpe, tpeIdx) => (
                   <span
                     key={String(tpe.id ?? tpeIdx)}
-                    className="bg-[#2a2a2a] text-white/80 px-2 py-0.5 rounded-full border border-white/10"
+                    className="bg-cockpit-raised text-cockpit-text-secondary px-2 py-0.5 rounded-full border border-cockpit-edge"
                   >
                     {formatMillions(Number(tpe.amount ?? 0), 1)}
                   </span>
@@ -602,11 +602,13 @@ export const TradeTeamCard = ({
       <div
         className={`flex ${
           compact ? 'gap-2 text-xs' : 'gap-4 text-sm'
-        } border-b border-white/10 pb-1`}
+        } border-b border-cockpit-edge pb-1`}
       >
         <button
           className={`pb-1 ${
-            activeTab === 'players' ? 'text-white border-b-2' : 'text-white/60'
+            activeTab === 'players'
+              ? 'text-cockpit-text-primary border-b-2'
+              : 'text-cockpit-text-secondary'
           }`}
           style={activeTab === 'players' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('players')}
@@ -615,7 +617,9 @@ export const TradeTeamCard = ({
         </button>
         <button
           className={`pb-1 ${
-            activeTab === 'picks' ? 'text-white border-b-2' : 'text-white/60'
+            activeTab === 'picks'
+              ? 'text-cockpit-text-primary border-b-2'
+              : 'text-cockpit-text-secondary'
           }`}
           style={activeTab === 'picks' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('picks')}
@@ -625,8 +629,8 @@ export const TradeTeamCard = ({
         <button
           className={`pb-1 ${
             activeTab === 'exceptions'
-              ? 'text-white border-b-2'
-              : 'text-white/60'
+              ? 'text-cockpit-text-primary border-b-2'
+              : 'text-cockpit-text-secondary'
           }`}
           style={activeTab === 'exceptions' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('exceptions')}
@@ -726,7 +730,7 @@ export const TradeTeamCard = ({
             teamId={team.id ?? undefined}
           />
         ) : (
-          <div className="text-xs text-white/40 px-1">
+          <div className="text-xs text-cockpit-text-muted px-1">
             No trade exceptions available for this team.
           </div>
         ))}
@@ -734,11 +738,11 @@ export const TradeTeamCard = ({
       {/* Phase 14.2: Show if incoming players or entitlements */}
       {(incomingPlayers.length > 0 || incomingEntitlements.length > 0) && (
         <div
-          className="bg-[#222] border rounded p-3 text-sm max-h-[300px] overflow-y-auto"
+          className="bg-cockpit-raised border rounded-md p-3 text-sm max-h-[300px] overflow-y-auto"
           style={{ borderColor: primary }}
         >
-          <h4 className="text-white/70 text-sm mb-2">Incoming</h4>
-          <div className="text-white/90">
+          <h4 className="text-cockpit-text-secondary text-sm mb-2">Incoming</h4>
+          <div className="text-cockpit-text-primary">
             {incomingPlayers.map((p) => {
               // Auto-detect absorption mode: if no explicit mode set and player fits a TPE, default to TPE
               const isTpeEligible = tpeEligiblePlayers.some(
@@ -756,7 +760,7 @@ export const TradeTeamCard = ({
                   {validationFlags.faExceptionTrade !== 'off' && (
                     <>
                       <select
-                        className="bg-[#333] text-xs rounded px-1"
+                        className="bg-cockpit-raised text-xs rounded-md px-1"
                         value={String(effectiveMode)}
                         onChange={(e) =>
                           onSetPlayerTrade &&
@@ -774,7 +778,7 @@ export const TradeTeamCard = ({
                       {/* TPE selector - show when TPE mode selected */}
                       {effectiveMode === 'TPE' && (
                         <select
-                          className="bg-[#333] text-xs rounded px-1"
+                          className="bg-cockpit-raised text-xs rounded-md px-1"
                           value={p.tpeId == null ? '' : String(p.tpeId)}
                           onChange={(e) =>
                             onSetPlayerTrade &&
@@ -817,7 +821,7 @@ export const TradeTeamCard = ({
                       )}
                       {effectiveMode === 'FA_EXCEPTION' && (
                         <select
-                          className="bg-[#333] text-xs rounded px-1"
+                          className="bg-cockpit-raised text-xs rounded-md px-1"
                           value={String(p.bucketType ?? '')}
                           onChange={(e) =>
                             onSetPlayerTrade &&

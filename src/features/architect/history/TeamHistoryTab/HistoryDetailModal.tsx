@@ -7,6 +7,7 @@ import type {
 import { resolveHistoryOutboundLinks } from './historyOutboundLinks';
 import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
 import { buildPlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -297,19 +298,27 @@ export const HistoryDetailModal = ({
           ? `Before/after totals are present for ${referenceCapRow.teamCode}, but no normalized cap delta was provided.`
           : 'No normalized before/after totals were carried on this entry.';
   const rawPayloadSummaryLines = buildRawPayloadSummaryLines(rawEntry);
+  // BZE-229 (owner-approved): the raw-identifier and payload-inspection sections
+  // are engineer diagnostics, not GM information. They stay behind the existing
+  // developer toggle (the same DEV + fixture flag that reveals the fixtures
+  // panel), so owners — in review or production — never see raw IDs or JSON.
+  const showDeveloperDetail =
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    window.localStorage?.getItem(DEV_TEAM_HISTORY_FIXTURE_FLAG) === 'true';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-cockpit-void/80 p-4">
       <div
         data-testid="team-history-detail-modal"
-        className="w-full max-w-2xl rounded border border-white/10 bg-[#151515] p-4 text-white shadow-xl"
+        className="w-full max-w-2xl rounded-lg border border-cockpit-edge bg-cockpit-slab p-4 text-cockpit-text-primary shadow-cockpit-slab"
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold">History Item Detail</h3>
             <p
               data-testid="team-history-detail-summary"
-              className="text-sm text-white/70"
+              className="text-sm text-cockpit-text-secondary"
             >
               {entry.summary || EMPTY_VALUE}
             </p>
@@ -318,7 +327,7 @@ export const HistoryDetailModal = ({
             type="button"
             data-testid="team-history-detail-close"
             onClick={onClose}
-            className="rounded border border-white/20 px-2 py-1 text-xs hover:bg-white/10"
+            className="rounded-md border border-cockpit-edge px-2 py-1 text-xs hover:bg-cockpit-raised"
           >
             Close
           </button>
@@ -326,7 +335,7 @@ export const HistoryDetailModal = ({
 
         <div
           data-testid="team-history-detail-truth-note"
-          className="mb-4 rounded border border-sky-500/20 bg-sky-500/5 px-3 py-2 text-xs text-sky-100/85"
+          className="mb-4 rounded-md border border-cockpit-info/20 bg-cockpit-info/5 px-3 py-2 text-xs text-cockpit-info"
         >
           <div className="font-semibold uppercase tracking-[0.08em]">
             {truthContract.label}
@@ -337,7 +346,7 @@ export const HistoryDetailModal = ({
         {(onNavigateRoom || onOpenTradeWithRequest) &&
         outboundLinks.length > 0 ? (
           <div className="mb-4" data-testid="team-history-detail-outbound-links">
-            <div className="mb-1 text-[11px] uppercase tracking-wide text-white/45">
+            <div className="mb-1 text-[11px] uppercase tracking-wide text-cockpit-text-muted">
               Go to — committed event; destinations show current results
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -346,7 +355,7 @@ export const HistoryDetailModal = ({
                   return (
                     <span
                       key={link.id}
-                      className="rounded border border-white/10 bg-black/20 px-2 py-1 text-[11px] text-white/40"
+                      className="rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[11px] text-cockpit-text-muted"
                       title={link.unavailableReason}
                       data-testid={`team-history-outbound-${link.id}`}
                     >
@@ -369,7 +378,7 @@ export const HistoryDetailModal = ({
                         onClose();
                       }
                     }}
-                    className="rounded border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-white/80 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                    className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2 py-1 text-[11px] text-cockpit-text-secondary hover:bg-cockpit-edge hover:text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
                     data-testid={`team-history-outbound-${link.id}`}
                   >
                     {link.label}
@@ -382,7 +391,7 @@ export const HistoryDetailModal = ({
 
         {onPlayerAction && normalizedPlayerIds.length > 0 ? (
           <div className="mb-4" data-testid="team-history-detail-player-menus">
-            <div className="mb-1 text-[11px] uppercase tracking-wide text-white/45">
+            <div className="mb-1 text-[11px] uppercase tracking-wide text-cockpit-text-muted">
               Players
             </div>
             <ul className="flex flex-col gap-1">
@@ -398,10 +407,10 @@ export const HistoryDetailModal = ({
                 return (
                   <li
                     key={playerId}
-                    className="flex items-center gap-1.5 rounded border border-white/10 bg-black/20 px-2 py-1"
+                    className="flex items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1"
                     data-testid={`team-history-player-${playerId}`}
                   >
-                    <span className="min-w-0 flex-1 truncate text-[12px] text-white/85">
+                    <span className="min-w-0 flex-1 truncate text-xs text-cockpit-text-primary">
                       {label}
                     </span>
                     <PlayerActionMenu
@@ -430,7 +439,7 @@ export const HistoryDetailModal = ({
 
         <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
           <div>
-            <div className="text-xs uppercase text-white/60">
+            <div className="text-xs uppercase text-cockpit-text-muted">
               Category / Type
             </div>
             <div data-testid="team-history-detail-type" className="font-medium">
@@ -438,7 +447,7 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-white/60">Timestamp</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">Timestamp</div>
             <div
               data-testid="team-history-detail-timestamp"
               className="font-medium"
@@ -446,19 +455,21 @@ export const HistoryDetailModal = ({
               {entry.timestamp || entry.occurredAt || EMPTY_VALUE}
             </div>
           </div>
-          <div>
-            <div className="text-xs uppercase text-white/60">
-              Raw Payload Type
+          {showDeveloperDetail && (
+            <div>
+              <div className="text-xs uppercase text-cockpit-text-muted">
+                Raw Payload Type
+              </div>
+              <div
+                data-testid="team-history-detail-raw-type"
+                className="font-medium"
+              >
+                {getDisplayText(rawEntry?.type)}
+              </div>
             </div>
-            <div
-              data-testid="team-history-detail-raw-type"
-              className="font-medium"
-            >
-              {getDisplayText(rawEntry?.type)}
-            </div>
-          </div>
+          )}
           <div>
-            <div className="text-xs uppercase text-white/60">Mutation Type</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">Mutation Type</div>
             <div
               data-testid="team-history-detail-mutation-type"
               className="font-medium"
@@ -467,7 +478,7 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-white/60">
+            <div className="text-xs uppercase text-cockpit-text-muted">
               Teams Involved
             </div>
             <div
@@ -478,7 +489,7 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-white/60">Team Codes</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">Team Codes</div>
             <div
               data-testid="team-history-detail-team-codes"
               className="font-medium"
@@ -487,7 +498,7 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-white/60">Player IDs</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">Player IDs</div>
             <div
               data-testid="team-history-detail-player-ids"
               className="font-medium break-all"
@@ -496,13 +507,13 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-white/60">Cap Delta</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">Cap Delta</div>
             <div className="font-medium">
               {formatNumberDelta(entry.capDelta)}
             </div>
           </div>
           <div className="md:col-span-2">
-            <div className="text-xs uppercase text-white/60">
+            <div className="text-xs uppercase text-cockpit-text-muted">
               Primary Deltas
             </div>
             <div
@@ -512,11 +523,12 @@ export const HistoryDetailModal = ({
               {entry.primaryDeltas || EMPTY_VALUE}
             </div>
           </div>
-          <div className="md:col-span-2 rounded border border-white/10 bg-black/20 p-3">
-            <div className="text-xs uppercase text-white/60">Identity</div>
+          {showDeveloperDetail && (
+          <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
+            <div className="text-xs uppercase text-cockpit-text-muted">Identity</div>
             <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
-                <div className="text-[11px] uppercase text-white/45">
+                <div className="text-[11px] uppercase text-cockpit-text-muted">
                   Selected Row ID
                 </div>
                 <div
@@ -527,7 +539,7 @@ export const HistoryDetailModal = ({
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-white/45">
+                <div className="text-[11px] uppercase text-cockpit-text-muted">
                   Mutation ID
                 </div>
                 <div
@@ -538,7 +550,7 @@ export const HistoryDetailModal = ({
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-white/45">
+                <div className="text-[11px] uppercase text-cockpit-text-muted">
                   Event ID
                 </div>
                 <div
@@ -549,7 +561,7 @@ export const HistoryDetailModal = ({
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-white/45">
+                <div className="text-[11px] uppercase text-cockpit-text-muted">
                   Operation ID
                 </div>
                 <div
@@ -560,12 +572,13 @@ export const HistoryDetailModal = ({
                 </div>
               </div>
             </div>
-            <div className="mt-2 text-[11px] text-white/55">
+            <div className="mt-2 text-[11px] text-cockpit-text-muted">
               Selected row identity is shown exactly as carried on the Team
               History entry. The modal does not coalesce these IDs into one
               fallback identifier.
             </div>
           </div>
+          )}
           {detailSections.length > 0 && (
             <div
               className="md:col-span-2 space-y-3"
@@ -574,12 +587,12 @@ export const HistoryDetailModal = ({
               {detailSections.map((section, index) => (
                 <div
                   key={`${section.title}-${index}`}
-                  className="rounded border border-white/10 bg-black/20 p-2"
+                  className="rounded-md border border-cockpit-edge bg-cockpit-inlay p-2"
                 >
-                  <div className="text-xs uppercase text-white/60">
+                  <div className="text-xs uppercase text-cockpit-text-muted">
                     {section.title}
                   </div>
-                  <ul className="mt-1 space-y-1 text-sm text-white/90">
+                  <ul className="mt-1 space-y-1 text-sm text-cockpit-text-primary">
                     {(Array.isArray(section.lines) ? section.lines : [])
                       .filter(Boolean)
                       .map((line, lineIdx) => (
@@ -592,13 +605,13 @@ export const HistoryDetailModal = ({
           )}
           <div
             data-testid="team-history-detail-cap-alignment"
-            className="md:col-span-2 rounded border border-white/10 bg-black/20 p-3"
+            className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3"
           >
-            <div className="text-xs uppercase text-white/60">
+            <div className="text-xs uppercase text-cockpit-text-muted">
               Cap Delta Alignment
             </div>
-            <div className="mt-1 text-sm text-white/85">{capAlignmentStatus}</div>
-            <ul className="mt-2 space-y-1 text-sm text-white/90">
+            <div className="mt-1 text-sm text-cockpit-text-secondary">{capAlignmentStatus}</div>
+            <ul className="mt-2 space-y-1 text-sm text-cockpit-text-primary">
               {capAlignmentRows.map((row) => (
                 <li key={row.teamCode}>
                   • {row.teamCode} total cap allocations: {formatCurrency(row.before)}{' '}
@@ -607,38 +620,40 @@ export const HistoryDetailModal = ({
               ))}
             </ul>
           </div>
+          {showDeveloperDetail && (
+          <>
           <div className="md:col-span-2">
-            <div className="text-xs uppercase text-white/60">
+            <div className="text-xs uppercase text-cockpit-text-muted">
               Before Totals By Team
             </div>
             <pre
               data-testid="team-history-detail-before-totals"
-              className="mt-1 max-h-40 overflow-auto rounded bg-black/30 p-2 text-xs text-white/80"
+              className="mt-1 max-h-40 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
             >
               {stringifySafe(beforeTotalsByTeam)}
             </pre>
           </div>
           <div className="md:col-span-2">
-            <div className="text-xs uppercase text-white/60">
+            <div className="text-xs uppercase text-cockpit-text-muted">
               After Totals By Team
             </div>
             <pre
               data-testid="team-history-detail-after-totals"
-              className="mt-1 max-h-40 overflow-auto rounded bg-black/30 p-2 text-xs text-white/80"
+              className="mt-1 max-h-40 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
             >
               {stringifySafe(afterTotalsByTeam)}
             </pre>
           </div>
-          <div className="md:col-span-2 rounded border border-white/10 bg-black/20 p-3">
-            <div className="text-xs uppercase text-white/60">
+          <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
+            <div className="text-xs uppercase text-cockpit-text-muted">
               {truthContract.rawPayloadTitle}
             </div>
-            <div className="mt-1 text-[11px] text-white/55">
+            <div className="mt-1 text-[11px] text-cockpit-text-muted">
               {truthContract.rawPayloadDescription}
             </div>
             <ul
               data-testid="team-history-detail-raw-summary"
-              className="mt-2 space-y-1 text-sm text-white/90"
+              className="mt-2 space-y-1 text-sm text-cockpit-text-primary"
             >
               {rawPayloadSummaryLines.map((line) => (
                 <li key={line}>• {line}</li>
@@ -646,16 +661,18 @@ export const HistoryDetailModal = ({
             </ul>
           </div>
           <div className="md:col-span-2">
-            <div className="text-xs uppercase text-white/60">
+            <div className="text-xs uppercase text-cockpit-text-muted">
               Raw Event Payload
             </div>
             <pre
               data-testid="team-history-raw-payload"
-              className="mt-1 max-h-56 overflow-auto rounded bg-black/30 p-2 text-xs text-white/80"
+              className="mt-1 max-h-56 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
             >
               {stringifySafe(rawEntry)}
             </pre>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>
