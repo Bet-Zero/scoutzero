@@ -10,6 +10,21 @@
  * REFERENCE:
  *  - CBA Article II, Sec. 6 - Minimum Player Salary Rule
  *  - CBA Exhibit C - Minimum Annual Salary Scale
+ *
+ * SOURCING (per BZE-220):
+ *  - Minimum salaries escalate each season by the same percentage as the
+ *    Salary Cap (CBA Article II, Sec. 6). The 2026-27 cap was officially set
+ *    on 2026-06-30 (a +6.7% increase), so the 2026-27 minimum scale is now
+ *    official — not a projection.
+ *  - 2026-27 values below are transcribed verbatim from Hoops Rumors'
+ *    "NBA Minimum Salaries For 2026/27" (Luke Adams, updated 2026-07-01),
+ *    https://www.hoopsrumors.com/2026/07/nba-minimum-salaries-for-2026-27.html
+ *    which states "Data from RealGM was used in the creation of this post"
+ *    (RealGM's CBA Minimum Annual Salary Scale — a source this project trusts).
+ *    Rookie ($1,357,763) and 10+ ($3,876,529) endpoints independently
+ *    corroborated across multiple July-2026 reports.
+ *  - Earlier seasons below (2024-25, 2025-26) are the pre-existing values and
+ *    were NOT re-sourced under BZE-220 (2025-26 is a labeled projection).
  */
 
 import type { SeasonId } from '../utils/seasonHelpers';
@@ -79,6 +94,23 @@ export const MINIMUM_SALARY_SCALES: Record<SeasonId, Record<number, number>> = {
     8: 3_536_000,
     9: 3_744_000,
     10: 3_952_000,
+  },
+  '2026-27': {
+    // Official 2026-27 scale (cap set 2026-06-30, +6.7%). Source: Hoops Rumors
+    // "NBA Minimum Salaries For 2026/27" (Luke Adams, 2026-07-01) citing RealGM.
+    // See the SOURCING note in the file header. Values are transcribed as-is,
+    // not calculated — note the CBA scale's real 8→9 near-flat step.
+    0: 1_357_763, // Rookie minimum
+    1: 2_185_116,
+    2: 2_449_421,
+    3: 2_537_526,
+    4: 2_625_627,
+    5: 2_845_883,
+    6: 3_066_143,
+    7: 3_286_399,
+    8: 3_506_659,
+    9: 3_524_115,
+    10: 3_876_529, // 10+ years
   },
 } as Record<SeasonId, Record<number, number>>;
 
