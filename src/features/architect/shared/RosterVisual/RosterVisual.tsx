@@ -66,6 +66,8 @@ type RosterSectionCounts = {
 
 type RosterVisualState = {
   roster: LegacyRosterShape;
+  /** All two-way players, carded in their own dedicated group (BZE-241). */
+  twoWay: Array<NormalizedRosterPlayer | MissingRosterPlayer>;
   activeYear: number | null;
   standardCount: number;
   twoWayCount: number;
@@ -297,7 +299,7 @@ const rosterBands = [
   {
     key: 'bench',
     label: 'Bench',
-    detail: 'Depth and two-way slots',
+    detail: 'Depth',
   },
 ] as const;
 
@@ -340,36 +342,24 @@ export const RosterVisual = ({
       (a, b) => getMinutes(b) - getMinutes(a)
     );
 
-    // Build initial roster (up to 15 standard players)
+    // Standard bands (Starting Five / Rotation / Bench) card the standard
+    // players only. Two-way players are NOT folded into the bench — they get
+    // their own dedicated group below, so every two-way player on the roster is
+    // carded and reachable even at a full 15+3 (BZE-241). Previously two-way
+    // players were only appended to the bench when a team had < 15 standard,
+    // so a 15+3 team (e.g. Denver) surfaced none of them.
     const roster: LegacyRosterShape = normalizeRosterShape(
       buildInitialRoster(sorted)
     );
 
-    // Ensure we always have 15 players total by filling with two-way contracts if needed
-    const totalPlayers = roster.starters.filter(Boolean).length +
-                        roster.rotation.filter(Boolean).length +
-                        roster.bench.filter(Boolean).length;
-
-    if (totalPlayers < 15 && twoWayPlayers.length > 0) {
-      // Fill remaining slots with two-way players
-      const needed = 15 - totalPlayers;
-      const twoWayToAdd = twoWayPlayers.slice(0, needed);
-
-      // Add two-way players to bench slots
-      const emptyBenchSlots = roster.bench
-        .map((player, index) => (player === null ? index : null))
-        .filter((index): index is number => index !== null);
-
-      twoWayToAdd.forEach((player, index) => {
-        const benchIndex = emptyBenchSlots[index];
-        if (benchIndex !== undefined) {
-          const normalizedTwoWay = normalizePlayer(player);
-          if (normalizedTwoWay) {
-            roster.bench[benchIndex] = normalizedTwoWay;
-          }
-        }
-      });
-    }
+    // Card every two-way player (no cap — the roster only ever holds up to 3,
+    // and the header already reports the y/3 slot usage).
+    const twoWay = twoWayPlayers
+      .map((player) => normalizePlayer(player))
+      .filter(
+        (player): player is NormalizedRosterPlayer | MissingRosterPlayer =>
+          Boolean(player)
+      );
 
     const sectionCounts = {
       starters: countRosterSection(roster.starters),
@@ -379,11 +369,16 @@ export const RosterVisual = ({
 
     return {
       roster,
+      twoWay,
       activeYear,
       standardCount: standardPlayers.length,
       twoWayCount: twoWayPlayers.length,
+      // Total cards rendered across the standard bands + the two-way group.
       displayedCount:
-        sectionCounts.starters + sectionCounts.rotation + sectionCounts.bench,
+        sectionCounts.starters +
+        sectionCounts.rotation +
+        sectionCounts.bench +
+        twoWay.length,
       sectionCounts,
     };
   }, [currentYear, teamCapSheet, playersMap]);
@@ -489,7 +484,11 @@ export const RosterVisual = ({
     {
       label: 'Active Players',
       value: rosterState.displayedCount,
-      detail: `${rosterState.sectionCounts.starters} starters · ${rosterState.sectionCounts.rotation} rotation · ${rosterState.sectionCounts.bench} bench`,
+      detail: `${rosterState.sectionCounts.starters} starters · ${rosterState.sectionCounts.rotation} rotation · ${rosterState.sectionCounts.bench} bench${
+        rosterState.twoWay.length > 0
+          ? ` · ${rosterState.twoWay.length} two-way`
+          : ''
+      }`,
     },
     {
       label: 'Standard',
@@ -619,6 +618,41 @@ export const RosterVisual = ({
             </section>
           );
         })}
+
+        {/* Dedicated Two-Way group (BZE-241): every two-way player on the
+            roster gets a card here, using the same Bench card family as the
+            standard bands. Only rendered when the team carries two-way players
+            — the header's Two-Way y/3 tile stays the slot-usage source of
+            truth. Denver (15+3) surfaces all three here; previously none. */}
+        {rosterState.twoWay.length > 0 ? (
+          <section
+            aria-label="Two-Way roster group"
+            data-testid="roster-two-way-group"
+            className="shrink-0 rounded-lg border border-cockpit-edge bg-cockpit-slab px-2.5 pb-1.5 pt-1.5"
+          >
+            <div className="mb-1 flex flex-wrap items-baseline gap-x-2 px-1">
+              <h3 className="text-xs font-extrabold uppercase tracking-wide text-cockpit-text-primary">
+                Two-Way
+              </h3>
+              <p className="text-[10px] text-cockpit-text-muted">
+                Two-way contracts ({TWO_WAY_ROSTER_LIMIT} slots) ·{' '}
+                {rosterState.twoWay.length}{' '}
+                {rosterState.twoWay.length === 1 ? 'player' : 'players'}
+              </p>
+            </div>
+
+            <RosterSection
+              players={rosterState.twoWay}
+              section="bench"
+              {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+              previewSpacing
+              variant="architect"
+              onSelectPlayer={handleSectionSelect}
+              isPlayerHighlighted={sectionHighlightMatcher}
+              renderPlayerMenu={renderPlayerMenu}
+            />
+          </section>
+        ) : null}
       </div>
     </div>
   );
