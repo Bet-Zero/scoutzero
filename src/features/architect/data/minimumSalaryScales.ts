@@ -115,6 +115,35 @@ export const MINIMUM_SALARY_SCALES: Record<SeasonId, Record<number, number>> = {
 } as Record<SeasonId, Record<number, number>>;
 
 /**
+ * Seasons whose scale above is the OFFICIAL post-cap-set CBA scale (verbatim
+ * transcription of the league figures), as opposed to a projection.
+ *
+ * Only 2026-27 qualifies today (added under BZE-220). Earlier seasons are
+ * approximations/projections: 2025-26 is a labeled ~4% projection and the
+ * 2024-25 mid-scale rows are rounded — so they are intentionally NOT listed
+ * here even though their rookie rung happens to match the real value.
+ *
+ * This is a source marker only; the salary numbers live solely in
+ * MINIMUM_SALARY_SCALES (no value is duplicated). Consumers that must not
+ * report a projected figure as official (e.g. the rookie-minimum resolver in
+ * capRulesProfile) gate on isOfficialScaleSeason().
+ */
+const OFFICIAL_SCALE_SEASONS: ReadonlySet<SeasonId> = new Set([
+  '2026-27' as SeasonId,
+]);
+
+/**
+ * Whether a season's minimum salary scale is the official CBA scale (not a
+ * projection). Accepts a SeasonId, "YYYY-YY" string, or numeric end-year.
+ */
+export function isOfficialScaleSeason(
+  seasonId: SeasonId | string | number | null | undefined
+): boolean {
+  const normalizedSeasonId = normalizeSeasonIdInput(seasonId);
+  return normalizedSeasonId ? OFFICIAL_SCALE_SEASONS.has(normalizedSeasonId) : false;
+}
+
+/**
  * Get available seasons that have minimum salary scale data
  * @returns Array of SeasonIds with scale data
  */
