@@ -19,6 +19,7 @@
  */
 import { FreeAgentPool } from '@/features/architect/freeAgency/FreeAgentPool';
 import { OfferSheetList } from '@/features/architect/GMDashboard/components/OfferSheetList';
+import { OwnFreeAgentsPanel } from '@/features/architect/freeAgency/OwnFreeAgentsPanel/OwnFreeAgentsPanel';
 import type { FreeAgentPoolProps } from '@/features/architect/freeAgency/FreeAgentPool/types';
 
 import type {
@@ -54,6 +55,8 @@ const FreeAgencySection = ({
   onPlayerAction,
   pinnedPlayerIds,
   poolManagement,
+  ownFreeAgents,
+  onSignAndTradeOwnFreeAgent,
 }: FreeAgencySectionProps) => {
   const offerSheetSectionAvailability = actionOwner.offerSheetSectionAvailability;
   const offerSheetLifecycleActionOwner =
@@ -151,6 +154,18 @@ const FreeAgencySection = ({
             actionsDisabledReason={offerSheetLifecycleDisabledReason}
           />
         </div>
+      ) : null}
+
+      {/* BZE-249: the GM's own free agents live on the Full Cap Table (re-sign /
+          absolve), but the sign-and-trade workflow STARTS here in Free Agency.
+          This panel is that start point — it hands the free agent to the Trade
+          Machine via the same seed the Full Cap Table uses. Own FAs only exist
+          in a saved world, so the panel self-hides in base/preview mode. */}
+      {onSignAndTradeOwnFreeAgent && (ownFreeAgents?.length ?? 0) > 0 ? (
+        <OwnFreeAgentsPanel
+          ownFreeAgents={ownFreeAgents ?? []}
+          onSignAndTrade={onSignAndTradeOwnFreeAgent}
+        />
       ) : null}
 
       {/* FREE-AGENT POOL CONTRACT: the pool only receives the modal/rendering

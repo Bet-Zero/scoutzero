@@ -171,6 +171,8 @@ freeAgency/
     freeAgentSigningContext.ts
     index.ts
     types.ts
+  OwnFreeAgentsPanel/
+    OwnFreeAgentsPanel.tsx
   freeAgentPoolPersistence.ts
   index.ts
   useFreeAgencyFilterPersistence.ts
@@ -419,6 +421,7 @@ utils/
     resolveOffseasonTransition.optionDecisions.ts
     resolveOffseasonTransition.ts
     resolveOffseasonTransition.validation.ts
+  ownFreeAgents.ts
   persistenceContracts/
     contracts.ts
     enforcement.ts
@@ -556,5 +559,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-07-11T10:59:04.801Z*
+*Generated on: 2026-07-11T12:47:12.674Z*
 *Auto-updated by: npm run docs*
