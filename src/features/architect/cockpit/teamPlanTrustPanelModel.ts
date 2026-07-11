@@ -7,7 +7,10 @@ import {
   getArchitectTeamPlanUnsafeContextExitWarnings,
   type ArchitectTeamPlanSaveState,
 } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
-import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import type {
+  ArchitectWorkspaceContext,
+  ArchitectWorkspaceRosterSummary,
+} from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import type {
   ArchitectPostActionImpactArea,
   ArchitectPostActionImpactDelta,
@@ -151,6 +154,20 @@ export function isHardCapActiveForViewingSeason(
   return onCurrentSeason && Boolean(hardCapStatus?.isHardCapped);
 }
 
+// Roster caption for the posture summary. Standard players count against the 15
+// standard slots; two-way players are surfaced separately against their 3 two-
+// way slots — consistent with the Roster room, the Team Plan rail, and the
+// TeamStatusStrip. Folding both into the 15 denominator made a legal 15+3
+// roster read as "18 / 15 roster spots shown" (a false over-limit). Falls back
+// to the raw count when the split is unknown (id-only / roster-array source).
+function deriveRosterLabel(roster: ArchitectWorkspaceRosterSummary): string {
+  if (roster.status !== 'available') return 'Roster count unavailable';
+  const standard = roster.standardCount ?? roster.count;
+  return roster.twoWayCount && roster.twoWayCount > 0
+    ? `${standard} / 15 roster · ${roster.twoWayCount} / 3 two-way`
+    : `${standard} / 15 roster spots shown`;
+}
+
 export function deriveCapPosturePanel(
   workspace: ArchitectWorkspaceContext,
   hardCapStatus?: HardCapCockpitStatus
@@ -225,10 +242,7 @@ export function deriveCapPosturePanel(
     )} cap space, ${formatTrustPanelMoney(cap.taxSpace)} tax space.`,
     headlineAmount,
     headlineCaption,
-    rosterLabel:
-      workspace.roster.status === 'available'
-        ? `${workspace.roster.count} / 15 roster spots shown`
-        : 'Roster count unavailable',
+    rosterLabel: deriveRosterLabel(workspace.roster),
     hardCapLabel: hardCapActive ? statusLabel : null,
     hardCapDetail: hardCapActive ? hardCapStatus?.reason || null : null,
   };
