@@ -120,6 +120,7 @@ describe('RosterVisual adapter boundary', () => {
     renderRoster(teamCapSheet);
 
     const truthPanel = screen.getByTestId('architect-roster-truth-panel');
+    // displayedCount is total cards rendered: 13 standard bands + 2 two-way.
     expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '15');
     expect(truthPanel).toHaveAttribute('data-roster-standard-count', '13');
     expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '2');
@@ -129,11 +130,19 @@ describe('RosterVisual adapter boundary', () => {
     );
     // Counts moved from visible chip text to data attributes (BZE-209): the
     // chip read like an internal audit on a product surface.
+    // Two-way players are no longer folded into the bench (BZE-241) — the 13
+    // standard players fill 5/4/4, and the 2 two-way get their own group.
     expect(truthPanel).toHaveAttribute(
       'data-roster-section-counts',
-      '5 starters / 4 rotation / 6 bench'
+      '5 starters / 4 rotation / 4 bench'
     );
     expect(truthPanel).not.toBeVisible();
+
+    // Every two-way player is carded in the dedicated Two-Way group, reachable
+    // even at a full standard roster (BZE-241).
+    const twoWayGroup = screen.getByTestId('roster-two-way-group');
+    expect(within(twoWayGroup).getByAltText('Two Way Alpha')).toBeInTheDocument();
+    expect(within(twoWayGroup).getByAltText('Two Way Beta')).toBeInTheDocument();
   });
 
   it('filters normal roster cards to the selected active contract year', () => {
@@ -243,13 +252,18 @@ describe('RosterVisual adapter boundary', () => {
     const starters = getRosterSection(container, 'starters');
     const rotation = getRosterSection(container, 'rotation');
     const bench = getRosterSection(container, 'bench');
+    const twoWayGroup = screen.getByTestId('roster-two-way-group');
 
+    // 13 standard players fill 5/4/4; the bench holds standard depth only
+    // (two-way players are no longer folded in — BZE-241).
     expect(within(starters).getAllByRole('img')).toHaveLength(5);
     expect(within(rotation).getAllByRole('img')).toHaveLength(4);
-    expect(within(bench).getAllByRole('img')).toHaveLength(6);
+    expect(within(bench).getAllByRole('img')).toHaveLength(4);
     expect(within(starters).getByAltText('World Map Guard')).toBeInTheDocument();
-    expect(within(bench).getByAltText('Two Way Alpha')).toBeInTheDocument();
-    expect(within(bench).getByAltText('Two Way Beta')).toBeInTheDocument();
+    // Two-way players live in their own dedicated group, not the bench.
+    expect(within(twoWayGroup).getByAltText('Two Way Alpha')).toBeInTheDocument();
+    expect(within(twoWayGroup).getByAltText('Two Way Beta')).toBeInTheDocument();
+    expect(within(bench).queryByAltText('Two Way Alpha')).not.toBeInTheDocument();
     expect(
       within(starters).queryByAltText('Two Way Alpha')
     ).not.toBeInTheDocument();

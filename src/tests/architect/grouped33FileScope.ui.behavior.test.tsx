@@ -391,15 +391,19 @@ describe('Grouped 33-file scope UI behavior', () => {
     expect(screen.getByTestId('roster-section-rotation')).toHaveTextContent(
       'rotation:4'
     );
-    expect(screen.getByTestId('roster-section-bench')).toHaveTextContent(
-      'bench:6'
-    );
-    expect(screen.getByTestId('roster-section-bench')).toHaveTextContent(
-      'Two Way 1'
-    );
-    expect(screen.getByTestId('roster-section-bench')).toHaveTextContent(
-      'Two Way 2'
-    );
+
+    // Standard bench holds the remaining standard depth only — the 2 two-way
+    // players are no longer folded in (BZE-241). The dedicated Two-Way group
+    // also renders through a Bench-family RosterSection, so scope to the first
+    // (standard) bench section for this assertion.
+    const [standardBench] = screen.getAllByTestId('roster-section-bench');
+    expect(standardBench).toHaveTextContent('bench:4');
+    expect(standardBench).not.toHaveTextContent('Two Way 1');
+
+    // Every two-way player is carded in the dedicated Two-Way group.
+    const twoWayGroup = screen.getByTestId('roster-two-way-group');
+    expect(twoWayGroup).toHaveTextContent('Two Way 1');
+    expect(twoWayGroup).toHaveTextContent('Two Way 2');
   });
 
   it('renders LeagueView from SSOT team totals and routes Manage Team clicks', async () => {
