@@ -92,8 +92,7 @@ export const TeamStatusStrip = ({
     );
   }
 
-  const rosterCount =
-    workspace.roster.status === 'available' ? workspace.roster.count : null;
+  const roster = workspace.roster;
 
   const spaceColor = (space: number) =>
     space < 0 ? 'text-red-400' : 'text-green-400';
@@ -119,7 +118,19 @@ export const TeamStatusStrip = ({
   const secondApronBadge = isSecondApronHardCapped ? (
     <HardCapLock heading={hardCapHeading} reason={hardCapReason} />
   ) : null;
-  const rosterValue = rosterCount !== null ? `${rosterCount} / 15` : '—';
+  // Standard players fill the 15 standard slots; two-way players are counted
+  // separately against their own 3 two-way slots — matching the Roster room and
+  // the Team Plan rail (which already split the count). Folding both into the
+  // 15 denominator makes a legal 15+3 roster read as "18 / 15" (over-limit).
+  // Falls back to the raw count when the split is unknown (id-only / roster-
+  // array source), preserving the legacy `N / 15` read.
+  const rosterValue = (() => {
+    if (roster.status !== 'available') return '—';
+    const standard = roster.standardCount ?? roster.count;
+    return roster.twoWayCount && roster.twoWayCount > 0
+      ? `${standard} / 15 · ${roster.twoWayCount} / 3`
+      : `${standard} / 15`;
+  })();
 
   // The four space tiles are shared by both layouts; `dense` shortens them for
   // the horizontal top band where vertical height is scarce.
