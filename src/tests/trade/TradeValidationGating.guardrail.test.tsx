@@ -133,7 +133,7 @@ describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
       expect(screen.getByText('Validating…')).toBeTruthy();
     });
 
-    it('A-GR-03: shows "Validated" pill when hasValidatorResult=true', () => {
+    it('A-GR-03: shows the neutral "Last checked" pill when hasValidatorResult=true', () => {
       render(
         <ValidationStateHeader
           hasValidatorResult={true}
@@ -142,9 +142,11 @@ describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
         />
       );
 
-      // Should contain "Validated" in the text
-      const pill = screen.getByText(/Validated/);
+      // BZE-247: neutral recency wording — "Validated" on a blocked deal read
+      // as success. The pill must never carry verdict language.
+      const pill = screen.getByText(/Last checked/);
       expect(pill).toBeTruthy();
+      expect(screen.queryByText(/^Validated/)).toBeNull();
     });
 
     it('A-GR-04: shows validation timestamp when provided', () => {
@@ -158,7 +160,7 @@ describe('ValidationStateHeader Guardrail Tests (Task A)', () => {
       );
 
       // Should contain time in the pill
-      expect(screen.getByText(/Validated at/)).toBeTruthy();
+      expect(screen.getByText(/Last checked at/)).toBeTruthy();
     });
   });
 

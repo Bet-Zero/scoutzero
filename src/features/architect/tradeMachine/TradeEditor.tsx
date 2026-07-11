@@ -18,6 +18,12 @@ import {
   ValidationStateHeader,
   type TradeReadinessSummary,
 } from './ValidationStateHeader';
+import { TradeVerdictStrip } from './TradeVerdictStrip';
+import { buildVerdictItems } from './verdictSummary';
+import type {
+  PreviewAuthorityLike,
+  SnapshotValidationDetailsLike,
+} from './validationPresentationTypes';
 import { ValidationDetailsPanel } from './ValidationDetailsPanel';
 import { PickRightWizardModal } from '@/features/architect/admin/PickRightWizardModal';
 import { isEntitlementAuthoringEnabled } from '@/features/architect/utils/entitlements/entitlementWriter';
@@ -127,8 +133,6 @@ export const TradeEditor = ({
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
-  // TMUI-01: remember a pending "open preview after validation" request
-  const [wantPreview, setWantPreview] = useState(false);
   // TMAPPLY-02: in-flight lock so Apply can't double-submit
   const [isApplying, setIsApplying] = useState(false);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
@@ -177,17 +181,9 @@ export const TradeEditor = ({
     onDraftActivityChange?.(hasDraftActivity);
   }, [hasDraftActivity, onDraftActivityChange]);
 
-  // TMUI-01: validation is deferred a tick so the "Validating…" state can paint.
-  // Open the preview only once that requested validation has finished.
-  const previewIsLegal = previewAuthority?.legal === true;
-  useEffect(() => {
-    if (wantPreview && hasCurrentValidation && !isValidating) {
-      if (previewIsLegal) {
-        setPreviewOpen(true);
-      }
-      setWantPreview(false);
-    }
-  }, [wantPreview, hasCurrentValidation, isValidating, previewIsLegal]);
+  // BZE-247: Validate no longer opens the shareable Trade Summary as a side
+  // effect — the verdict banner is the validation result. The summary opens
+  // only from its own button (legal trades only).
 
   // Pre-stage one or more players as outgoing when the Trade Machine opens from
   // a player-context entry (the pin board's "Trade" / "Trade all pinned").
@@ -417,6 +413,20 @@ export const TradeEditor = ({
     currentPreviewAuthority.omittedStages.length > 0;
   const canApplyTrade =
     hasCurrentValidation && currentPreviewAuthority?.legal === true;
+  // BZE-247: team-attributed violations/warnings for the sticky verdict band,
+  // derived from the same payloads the Validation Results panel renders.
+  const verdictItems = useMemo(() => {
+    const details = (currentSnapshotValidationDetails ??
+      null) as SnapshotValidationDetailsLike | null;
+    return buildVerdictItems(
+      details?.teamResults,
+      (currentPreviewAuthority ?? null) as PreviewAuthorityLike | null
+    );
+  }, [currentPreviewAuthority, currentSnapshotValidationDetails]);
+  const verdictWarningCount = useMemo(
+    () => verdictItems.filter((item) => item.kind === 'warning').length,
+    [verdictItems]
+  );
   const isDevSntInjectorEnabled =
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
@@ -517,25 +527,33 @@ export const TradeEditor = ({
         };
       }
 
-      // E2A disclosure guardrail: the apply surface must keep naming the
-      // remaining apply-only gates (duplicates, pick conflicts, exclusivity)
-      // and that they run at apply time.
-      if (previewHasApplyTimeWorldChecks) {
+      // BZE-247: rule warnings on an allowed trade surface here, before
+      // apply, instead of hiding in the collapsed Validation Results panel.
+      if (verdictWarningCount > 0) {
         return {
-          tone: 'info',
-          label: 'Ready with apply-time checks',
-          message: isVacuumMode
-            ? 'Local checks passed; duplicate-player, pick-conflict, and exclusivity checks run at apply time.'
-            : 'Local checks passed; the Team Plan runs duplicate-player, pick-conflict, and exclusivity checks at apply time.',
+          tone: 'warning',
+          label: 'Ready with warnings',
+          message:
+            verdictItems.find((item) => item.kind === 'warning')?.text ||
+            'Review the warnings above before applying.',
         };
       }
 
+      // E2A disclosure guardrail: the apply surface must keep naming the
+      // remaining apply-only gates (duplicates, pick conflicts, exclusivity)
+      // and that they run at apply time. BZE-247 folds that disclosure into
+      // the green ready state so a fully validated legal trade actually
+      // reaches "Ready to apply" in world mode.
       return {
         tone: 'success',
         label: 'Ready to apply',
-        message: isVacuumMode
-          ? 'Applies this trade to the sandbox session.'
-          : 'Applies this move to the active Team Plan.',
+        message: previewHasApplyTimeWorldChecks
+          ? isVacuumMode
+            ? 'Local checks passed; duplicate-player, pick-conflict, and exclusivity checks run at apply time.'
+            : 'Local checks passed; the Team Plan runs duplicate-player, pick-conflict, and exclusivity checks at apply time.'
+          : isVacuumMode
+            ? 'Applies this trade to the sandbox session.'
+            : 'Applies this move to the active Team Plan.',
       };
     }
 
@@ -559,6 +577,8 @@ export const TradeEditor = ({
     previewOverrideRequested,
     selectedTradeTeamCount,
     teams.length,
+    verdictItems,
+    verdictWarningCount,
   ]);
 
   const resolveEntitlementTeamCode = (
@@ -936,9 +956,7 @@ export const TradeEditor = ({
               if (status === 'insufficient') {
                 // TMUI-03: give the click a visible result instead of nothing
                 toast.error('Add at least two teams to validate this trade.');
-                return;
               }
-              setWantPreview(true);
             }}
           >
             Validate Trade
@@ -950,6 +968,20 @@ export const TradeEditor = ({
           >
             {isApplying ? 'Applying…' : 'Apply Trade'}
           </PrimaryButton>
+          {/* BZE-247: the shareable summary is a deliberate action, not a
+              validation side effect; it stays gated to legal trades. */}
+          <SecondaryButton
+            onClick={() => setPreviewOpen(true)}
+            disabled={!canApplyTrade}
+            title={
+              canApplyTrade
+                ? 'Open the shareable trade summary'
+                : 'Validate a legal trade to open the shareable summary'
+            }
+            data-testid="trade-summary-button"
+          >
+            Trade Summary
+          </SecondaryButton>
           <IconButton
             onClick={() => {
               resetTrade();
@@ -1016,6 +1048,10 @@ export const TradeEditor = ({
           validatedAt={getValidatedAt()}
           readiness={tradeReadiness}
         />
+        {/* BZE-247: the verdict's team-attributed reasons and warnings live in
+            the sticky band with the banner — at the point of decision, not
+            buried in the collapsed Validation Results panel. */}
+        <TradeVerdictStrip items={verdictItems} />
       </div>
 
       {/* Phase 16.3: Init error display */}
@@ -1178,7 +1214,7 @@ export const TradeEditor = ({
       <TradePreviewModal
         open={
           previewOpen &&
-          !!currentPreviewAuthority &&
+          currentPreviewAuthority?.legal === true &&
           !!currentSnapshotValidationDetails
         }
         onClose={() => setPreviewOpen(false)}
