@@ -727,8 +727,10 @@ const executePersistedReviewTradeProof = async (
   await expect(validateTradeButton).toBeVisible();
   await validateTradeButton.click();
 
+  // BZE-247: the neutral recency pill reads "Last checked" (never "Validated",
+  // which half-read as success on blocked deals).
   await expect(page.getByTestId('validation-state-header')).toContainText(
-    /Validated/i
+    /Last checked/i
   );
 
   const applyTradeButton = page.getByRole('button', {
@@ -3495,8 +3497,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     });
     await expect(validateTradeButton).toBeVisible();
     await validateTradeButton.click();
+    // BZE-247: neutral recency pill wording ("Last checked", not "Validated").
     await expect(page.getByTestId('validation-state-header')).toContainText(
-      /Validated/i,
+      /Last checked/i,
       { timeout: 20000 }
     );
 

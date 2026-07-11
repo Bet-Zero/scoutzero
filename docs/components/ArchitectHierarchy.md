@@ -266,6 +266,7 @@ tradeMachine/
   TradeSummaryPanel.tsx
   TradeTeamCard.helpers.ts
   TradeTeamCard.tsx
+  TradeVerdictStrip.tsx
   ValidationDetailsPanel.tsx
   ValidationStateHeader.tsx
   tradeMachineChrome.buttons.tsx
@@ -278,6 +279,7 @@ tradeMachine/
     getOfficialSalaryMatchingSnapshot.ts
     tradeMachineDebugFlag.ts
   validationPresentationTypes.ts
+  verdictSummary.ts
 types/
   index.ts
   playerRulesProfiles.ts
@@ -554,5 +556,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-07-06T23:31:01.635Z*
+*Generated on: 2026-07-11T10:59:04.801Z*
 *Auto-updated by: npm run docs*

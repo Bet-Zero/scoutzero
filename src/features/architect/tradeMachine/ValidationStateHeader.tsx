@@ -86,7 +86,8 @@ export const ModeTag = ({ mode }: ModeTagProps) => {
 
 // The pill is deliberately neutral: it reports WHEN the deal was last checked,
 // while the surrounding banner carries the verdict color. A green pill next to
-// a red "Trade blocked" banner half-read as success (BZE-224).
+// a red "Trade blocked" banner half-read as success (BZE-224), and "Validated"
+// wording on a blocked deal read the same way (BZE-247) — hence "Last checked".
 const ValidationStatePill = ({
   hasValidatorResult,
   isValidating,
@@ -112,7 +113,7 @@ const ValidationStatePill = ({
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-cockpit-raised text-cockpit-text-secondary border border-cockpit-edge">
         <span className="w-1.5 h-1.5 rounded-full bg-cockpit-text-muted" />
-        Validated{timeStr && ` at ${timeStr}`}
+        Last checked{timeStr && ` at ${timeStr}`}
       </span>
     );
   }

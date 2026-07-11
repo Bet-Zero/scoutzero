@@ -863,6 +863,13 @@ describe('TradeEditor boundary E105', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Validate Trade' }));
     expect(tradeMachine.handleValidate).toHaveBeenCalledTimes(1);
+    // BZE-247: Validate no longer opens the shareable summary as a side
+    // effect — the deliberate Trade Summary button does (legal trades only).
+    expect(
+      screen.queryByTestId('mock-trade-preview-modal')
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('trade-summary-button'));
     expect(screen.getByTestId('mock-trade-preview-modal')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close Preview' }));
