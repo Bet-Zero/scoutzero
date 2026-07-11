@@ -1,14 +1,14 @@
 ---
 name: architect-v1-completion-contract.md
-description: Product boundary and proof standard for calling Architect V1 complete. Owner-approved gate for BZE-243; companion to architect-boundary.md.
+description: Owner-approved (2026-07-11) product boundary and proof standard for calling Architect V1 complete. Serves the BZE-243 completion gate; companion to architect-boundary.md.
 ---
 
 # Architect V1 Completion Contract
 
-**Status: PENDING OWNER APPROVAL** (BZE-244, drafted 2026-07-11 against main
-`85d1f54c`). The verified gap ledger (BZE-245) must not begin until the owner
-approves this contract. Once approved, update this line with the decision
-date and any owner notes.
+**Status: OWNER-APPROVED (approve-with-notes), 2026-07-11** (BZE-244;
+drafted against main `85d1f54c`, owner notes applied the same day). The
+three decisions raised at review were resolved by the owner and are encoded
+below. The verified gap ledger (BZE-245) may begin.
 
 ## Precedence
 
@@ -29,8 +29,9 @@ conflict, this contract wins.
   until decided.
 
 Room names as they exist on main: Roster, Cap Sheet, Full Cap Table,
-Trade Machine, Free Agency, Offseason, Team History, Compare, Guide, plus
-the cockpit chrome (top bar, navigation rail, Team Plan drawer).
+Trade Machine, Free Agency, Offseason (excluded from V1 navigation — see
+exclusions), Team History, Compare, Guide, plus the cockpit chrome (top
+bar, navigation rail, Team Plan drawer).
 
 ## Required V1 workflows
 
@@ -56,9 +57,12 @@ and the Roster room presents standard and two-way groups completely.
 
 ### W3. Waive, waive-and-stretch, buyout
 
-From the Full Cap Table row overflow and Roster actions. Complete when each
-variant produces the correct dead-cap treatment, the player leaves the
-roster, and the dead cap survives reload in the right season(s).
+From the Full Cap Table row overflow — the approved, proven entry point.
+This contract does not require additional entry points (e.g. Roster
+actions); adding one is a scope expansion needing separate confirmation.
+Complete when each variant produces the correct dead-cap treatment, the
+player leaves the roster, and the dead cap survives reload in the right
+season(s).
 
 ### W4. Contracts and options
 
@@ -89,10 +93,14 @@ player home and decline moves player and cap to the offering team, with the
 
 ### W8. Sign-and-trade
 
-From the Full Cap Table own-FA row into the Trade Machine. Complete when the
-seeded sign-and-trade validates and applies like any trade, the receiving
-team is hard-capped at the first apron, and the piece survives the full
-trade lifecycle.
+Starts from Free Agency; assembled, validated, and finished in the Trade
+Machine (owner decision BZE-190, reaffirmed 2026-07-11). Complete when the
+sign-and-trade validates and applies like any trade, the receiving team is
+hard-capped at the first apron, and the piece survives the full trade
+lifecycle. Context for the gap pass: current main's proven entry is the
+Full Cap Table own-FA row (BZE-190 closing record — own free agents do not
+appear in the world-mode FA pool today); making the Free Agency start point
+real is expected, in-scope V1 work, not a silent scope change.
 
 ### W9. Trades and draft assets
 
@@ -102,7 +110,9 @@ validates with a clear, reachable ready state and applies; an illegal trade
 is fail-closed before apply with the verdict and per-team reasons visible at
 the point of decision (not buried); warnings on allowed trades surface
 before apply; and a trade in progress is never silently discarded by
-leaving the room.
+leaving the room. The downloadable trade-summary export is part of V1
+(owner decision 2026-07-11) and is held to this contract's behavior and
+presentation standards like any other required surface.
 
 ### W10. Draft-asset rules
 
@@ -132,6 +142,14 @@ names, and is world-gated with inline create/select rather than a dead end.
 
 The Guide room's guided questions produce next-move guidance in GM language
 with no dead ends. (Modest bar: works, honest, presentable.)
+
+### W15. Team Plan Hub
+
+The Team Plan drawer/hub reports the active team, world, and season
+identity, save status, moves made so far, pending/unsaved work, pinned
+players, draft assets, and cap/roster warnings. Complete when everything it
+shows stays accurate and consistent with the saved world — after every
+applied action and after reload. (Added by owner decision 2026-07-11.)
 
 ## Universal behavior standard
 
@@ -166,27 +184,23 @@ product, not only in tests:
   own history only; never mixed by default.
 - **JSON or raw-data entry anywhere in the GM flow** — owner decision
   2026-07-05; the product is operated through normal UI only.
+- **Offseason room** — owner decision 2026-07-11: V1 does not ship a
+  prominent nonfunctional preview room, so the Offseason room must not
+  appear in normal V1 navigation (hiding/parking it is in-scope V1 work).
+  Season advance (W11) is the supported offseason mechanism; the guided
+  Offseason experience is post-V1.
+- **Entitlement and pick authoring controls** — owner decision 2026-07-11:
+  hidden from normal V1 GM users (today they are feature-flagged on in
+  review builds). Trading existing picks, protections, and entitlements
+  through the Trade Machine (W9/W10) remains fully in scope.
 
 ## Undecided — owner decisions required
 
-Answer these with (or before) contract approval. Do not implement either
-direction until decided.
-
-1. **Offseason room in V1.** Today it is a preview with an explicit
-   non-persisting banner; the guided offseason workflow (owner direction
-   from 2026-07-05) was later parked. Decide: (a) V1 ships with Offseason as
-   a clearly labeled preview, or (b) the guided workflow must be built
-   before V1 closes. Recommendation: (a), with the guided workflow as its
-   own post-V1 lane.
-2. **Entitlement and pick authoring in the GM product.** Creating/modifying
-   entitlements and pick terms works and is proven, but it is authoring
-   tooling; it is currently feature-flagged (visible in review builds,
-   default off). Decide whether V1 GMs see authoring controls or V1 keeps
-   them hidden.
-3. **Trade summary export.** The downloadable trade-summary sheet exists
-   inside the validate flow. Decide whether exporting is part of V1 or
-   parked. (How the verdict and any summary are presented is design work
-   judged by screenshots; whether export is in scope is the owner call.)
+None open. The three decisions raised at the 2026-07-11 review (the
+Offseason room, authoring controls, and the trade-summary export) were
+resolved by the owner the same day and are encoded in the sections above.
+Any genuinely-owner question surfaced by the gap pass gets added here and
+answered before implementation in either direction.
 
 ## Evidence standard
 
