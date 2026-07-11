@@ -188,6 +188,17 @@ Reuse these; don't reinvent per room.
 - **Exactly one scroll region per room** — the `RoomFrame` body (or a single
   designated list well inside it). The page itself never scrolls horizontally and
   never scrolls vertically at the document level.
+- **Zero-scroll is reserved for the money workspaces.** The Full Cap Table and the
+  Cap Sheet must fit their tallest realistic state (18-man roster) with *zero* body
+  scroll — they are the surfaces the owner works a decision on, so everything must
+  be on one screen. **Read-only reference pages (Compare, Team History) are an
+  accepted exception**: they may use the `RoomFrame` body's designated scroll for
+  secondary content that sits below the fold, provided the *primary* content is
+  fully above the fold at 1280×720 with both drawers open. Accepted case (BZE-236,
+  owner-approved 2026-07-11): on a fully populated committed-world comparison, the
+  read-only "Deferred / Unavailable" footer sits ~70px below the fold while every
+  primary card (additions, removals, contract changes, cap-allocation delta,
+  tax/apron status) is above it. This is within the standard, not a defect.
 - When a room's own interior already provides a title/toolbar (Full Cap Table,
   Roster), use `hideHeader` + `bleed` and hand those pixels to content. One-line
   title/banner strips over stacked headers.

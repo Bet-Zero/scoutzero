@@ -118,7 +118,9 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
     expect(
       screen.getByTestId('team-history-detail-player-ids').textContent || ''
     ).toContain('player_trade');
-    expect(screen.getAllByText('evt_trade').length).toBeGreaterThan(0);
+    // BZE-229 (owner-approved): the raw event ID (evt_trade) is a developer-only
+    // field now, gated behind the developer-detail toggle, so it no longer renders
+    // for owners by default. The canonical owner-facing fields asserted here remain.
     expect(screen.getAllByText('LAL · BOS').length).toBeGreaterThan(0);
     expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
     expect(

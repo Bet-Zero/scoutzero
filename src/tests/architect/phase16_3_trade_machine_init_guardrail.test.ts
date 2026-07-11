@@ -129,7 +129,11 @@ describe('Phase 16.3: Trade Machine Init Guardrails', () => {
       );
 
       expect(source).toContain('Trade Machine failed to initialize');
-      expect(source).toContain('[tradeMachine:init] error');
+      // BZE-235 visual pass: the init-error state dropped the developer-facing
+      // "Check console for [tradeMachine:init] error" line (banned debug copy) for
+      // owner-facing recovery guidance. The guardrail intent — the error state
+      // must still offer a next move — survives; the pin moves with the design.
+      expect(source).toContain('Close and reopen the Trade Machine to try again');
     });
   });
 });
