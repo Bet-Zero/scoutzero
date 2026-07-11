@@ -10,10 +10,13 @@ reference this doc plus one short issue-specific scope line — never restate it
 
 ## Status
 
-Architect is functionally 🟢 (all supported actions verified, 2026-07-04).
-Current work is owner-driven UI/UX only. Do not reopen functional work unless a
-verified gate regresses; if a UI task turns out to require functional/engine
-changes, split it into a separately flagged issue — never absorb it silently.
+Owner decision 2026-07-11 (BZE-243): Architect is **not complete**; the
+2026-07-04 "functionally 🟢" label is superseded. What "complete" means now
+lives in `docs/agent-guides/architect-v1-completion-contract.md` — supported
+actions verified on 2026-07-04 remain valid evidence that moves execute, and
+proven work is not reopened without evidence it is stale, incomplete, or
+contradicted. If a UI task turns out to require functional/engine changes,
+split it into a separately flagged issue — never absorb it silently.
 
 ## Trusted surfaces
 
