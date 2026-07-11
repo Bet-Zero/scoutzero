@@ -15,6 +15,7 @@ import type {
   FreeAgentSurfaceEntry,
   FreeAgentPoolProps,
 } from '@/features/architect/freeAgency/FreeAgentPool/types';
+import type { OwnFreeAgentEntry } from '@/features/architect/utils/ownFreeAgents';
 
 type LooseRecord = Record<string, unknown>;
 
@@ -73,4 +74,18 @@ export interface FreeAgencySectionProps {
   /** Pinned ids so FA rows can present Pin vs Remove-target. */
   pinnedPlayerIds?: string[];
   poolManagement?: FreeAgentPoolProps['poolManagement'];
+  /**
+   * BZE-249: the GM's own free agents (the same set the Full Cap Table shows as
+   * FA decision rows), surfaced in the Free Agency room as the sign-and-trade
+   * start point. Empty in base/preview mode.
+   */
+  ownFreeAgents?: OwnFreeAgentEntry[];
+  /**
+   * Hands an own free agent to the Trade Machine as a sign-and-trade seed
+   * (reuses the Full Cap Table's `openTradeForSignAndTrade` path). Null in
+   * base/preview mode, where no Sign & Trade start point renders.
+   */
+  onSignAndTradeOwnFreeAgent?:
+    | ((player: Record<string, unknown>) => void)
+    | null;
 }

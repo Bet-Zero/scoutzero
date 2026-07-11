@@ -78,6 +78,7 @@ import {
   isLikelyEmulatorConnectionError,
 } from '@/firebaseConfig';
 import { capProjections } from '@/features/architect/utils/capProjections';
+import { resolveOwnFreeAgents } from '@/features/architect/utils/ownFreeAgents';
 import {
   toSeasonCode,
   toSeasonKey,
@@ -1012,6 +1013,20 @@ export const GMDashboard = () => {
         }
       : null,
   };
+  // BZE-249: own free agents (unsigned cap holds the team holds rights to) are a
+  // saved-world concept — the same set the Full Cap Table shows as FA decision
+  // rows. Surfaced in the Free Agency room as the sign-and-trade start point.
+  const ownFreeAgents = useMemo(
+    () =>
+      worldId
+        ? resolveOwnFreeAgents(
+            teamCapSheet as Parameters<typeof resolveOwnFreeAgents>[0],
+            playersMap as Record<string, unknown>,
+            currentYear
+          )
+        : [],
+    [worldId, teamCapSheet, playersMap, currentYear]
+  );
   const freeAgencySectionSurface: FreeAgencySectionProps = {
     freeAgents,
     currentYear,
@@ -1028,6 +1043,10 @@ export const GMDashboard = () => {
     onPlayerAction: handlePlayerAction,
     pinnedPlayerIds,
     poolManagement: freeAgentPoolManagement,
+    ownFreeAgents,
+    onSignAndTradeOwnFreeAgent: worldId
+      ? (player) => openTradeForSignAndTrade(player as Record<string, unknown>)
+      : null,
   };
   const fullCapFreeAgentPoolEntries = useMemo(
     () =>

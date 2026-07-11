@@ -3595,6 +3595,213 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-005C-sign-and-trade-proof');
   });
 
+  test('D-MQ-005F: Sign-and-trade STARTS from the Free Agency room, then persists and hard-caps the receiver', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(240000);
+
+    // BZE-249: the sign-and-trade workflow starts from the Free Agency room's
+    // "Your Free Agents" panel (contract W8), then assembles + rule-checks in the
+    // Trade Machine exactly like the Full Cap Table entry (D-MQ-005C). This test
+    // proves the NEW entry point launches the identical, fully-applying flow:
+    // MIA's Grant Holloway out on a new LAL contract, Austin Reaves back, apply,
+    // persist, hard-cap LAL, and rehydrate.
+    await page.goto(GM_DASHBOARD_MIA_OWN_FA_URL, {
+      waitUntil: 'domcontentloaded',
+    });
+    await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
+
+    await topUpWorldTeamRosterMinimum(worldId, 'MIA', 'Miami Heat');
+    await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+
+    const beforeMia = await getWorldTeamDocument(worldId, 'MIA');
+    const beforeLal = await getWorldTeamDocument(worldId, 'LAL');
+    const beforeEvents = await getWorldEventDocuments(worldId);
+    expect(hasCapHoldForPlayer(beforeMia, REVIEW_MIA_OWN_FA_ID)).toBe(true);
+    expect(getTeamPlayerIds(beforeLal)).toContain(
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+    );
+
+    // --- Entry: Free Agency room → "Your Free Agents" panel → Sign & Trade ---
+    await openDashboardTab(page, 'Free Agency');
+    const ownFaPanel = page.getByTestId('own-free-agents-panel');
+    await expect(ownFaPanel).toBeVisible({ timeout: 20000 });
+    const ownFaRow = page
+      .getByTestId('own-free-agent-row')
+      .filter({ hasText: REVIEW_MIA_OWN_FA_NAME });
+    await expect(ownFaRow).toBeVisible({ timeout: 20000 });
+    // Parity: the Free Agency panel surfaces the same own free agent the Full
+    // Cap Table shows as an FA decision row.
+    await ownFaRow
+      .getByTestId('own-free-agent-sign-and-trade-button')
+      .click();
+
+    // --- The Trade Machine opens with the free agent parked as a pending piece ---
+    const tradeDialog = page.getByRole('dialog', { name: /Trade Machine/i });
+    await expect(tradeDialog).toBeVisible({ timeout: 20000 });
+    await expect(
+      tradeDialog.getByTestId('pending-sign-and-trade')
+    ).toBeVisible({ timeout: 20000 });
+    await expect(
+      tradeDialog.getByTestId('pending-sign-and-trade-player')
+    ).toContainText(REVIEW_MIA_OWN_FA_NAME);
+
+    // --- Add the receiving team (LAL) so it can be the trade destination ---
+    await expect(
+      tradeDialog.getByRole('button', { name: /Miami Heat/i })
+    ).toBeVisible({ timeout: 20000 });
+    const existingTeamPickers = tradeDialog
+      .locator('label', { hasText: /^Select Team$/i })
+      .locator('xpath=following-sibling::select[1]');
+    if ((await existingTeamPickers.count()) === 0) {
+      await tradeDialog
+        .getByRole('button', { name: /Add Team|Add 2nd Team/i })
+        .click();
+    }
+    const teamPicker = tradeDialog
+      .locator('label', { hasText: /^Select Team$/i })
+      .locator('xpath=following-sibling::select[1]')
+      .first();
+    await expect(teamPicker).toBeVisible();
+    await teamPicker.selectOption('lakers');
+
+    // --- Set the new contract + destination on the pending sign-and-trade ---
+    await tradeDialog
+      .getByRole('button', { name: /Set contract & destination/i })
+      .click();
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20000 });
+
+    await modal.locator('button[aria-haspopup="listbox"]').first().click();
+    await page.getByRole('option', { name: /Los Angeles Lakers/i }).click();
+
+    const yearsSelect = modal
+      .locator('select')
+      .filter({ has: page.getByRole('option', { name: '3yr' }) })
+      .first();
+    await yearsSelect.selectOption('3');
+    const firstYearSalary = modal.locator('input[inputmode="decimal"]').first();
+    await firstYearSalary.fill('15000000');
+
+    const confirmContractButton = modal.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
+    await expect(confirmContractButton).toBeEnabled({ timeout: 20000 });
+    await confirmContractButton.click();
+    await expect(modal).toHaveCount(0, { timeout: 20000 });
+
+    await expect(
+      tradeDialog.getByTestId('pending-sign-and-trade')
+    ).toHaveCount(0);
+
+    // --- Match salary back: Austin Reaves (LAL) → Miami Heat ---
+    await routeTradePlayer(
+      page,
+      'Los Angeles Lakers',
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.name,
+      'Miami Heat'
+    );
+
+    // --- Validate + apply ---
+    const validateTradeButton = tradeDialog.getByRole('button', {
+      name: /^Validate Trade$/i,
+    });
+    await expect(validateTradeButton).toBeVisible();
+    await validateTradeButton.click();
+    await expect(page.getByTestId('validation-state-header')).toContainText(
+      /Last checked/i,
+      { timeout: 20000 }
+    );
+
+    const applyTradeButton = tradeDialog.getByRole('button', {
+      name: /^Apply Trade$/i,
+    });
+    await expect
+      .poll(async () => applyTradeButton.isEnabled(), {
+        timeout: 20000,
+        message: 'sign-and-trade should validate as legal before apply',
+      })
+      .toBe(true);
+
+    const previewCloseButton = page.locator('button[title="Close"]').first();
+    if (await isVisible(previewCloseButton, 2000)) {
+      await previewCloseButton.click();
+    }
+    await applyTradeButton.click();
+
+    // --- Persistence + hard-cap proof (identical to D-MQ-005C) ---
+    await expect
+      .poll(
+        async () => {
+          const [miaDocument, lalDocument, worldEvents] = await Promise.all([
+            getWorldTeamDocument(worldId, 'MIA'),
+            getWorldTeamDocument(worldId, 'LAL'),
+            getWorldEventDocuments(worldId),
+          ]);
+          const tradeEvent = worldEvents.find((event) => {
+            if (event.mutationType !== 'executeTrade') return false;
+            const playerIds = Array.isArray(event.playerIds)
+              ? event.playerIds.map((id) => String(id))
+              : [];
+            return (
+              playerIds.includes(REVIEW_MIA_OWN_FA_ID) &&
+              playerIds.includes(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id)
+            );
+          });
+          return {
+            lalHasHolloway: getTeamPlayerIds(lalDocument).includes(
+              REVIEW_MIA_OWN_FA_ID
+            ),
+            miaHasReaves: getTeamPlayerIds(miaDocument).includes(
+              REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+            ),
+            miaHoldCleared: !hasCapHoldForPlayer(
+              miaDocument,
+              REVIEW_MIA_OWN_FA_ID
+            ),
+            lalHardCapped: Boolean(
+              (lalDocument as { totals?: { isHardCapped?: boolean } })?.totals
+                ?.isHardCapped
+            ),
+            sawTradeEvent: Boolean(tradeEvent),
+          };
+        },
+        {
+          timeout: 20000,
+          message:
+            'Free Agency-launched sign-and-trade should persist the new contract on LAL, clear the MIA cap hold, move Reaves to MIA, hard-cap LAL, and record an executeTrade event',
+        }
+      )
+      .toMatchObject({
+        lalHasHolloway: true,
+        miaHasReaves: true,
+        miaHoldCleared: true,
+        lalHardCapped: true,
+        sawTradeEvent: true,
+      });
+
+    const afterEvents = await getWorldEventDocuments(worldId);
+    expect(afterEvents.length).toBeGreaterThan(beforeEvents.length);
+
+    // --- Reload / re-entry rehydrates the persisted world ---
+    await reenterDashboardViaAppNavigation(page);
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByText(/executeTrade/i).first()).toBeVisible();
+
+    addAuditNote(
+      testInfo,
+      'BZE-249 Free Agency sign-and-trade start point: the MIA saved-world Free Agency room "Your Free Agents" panel launches Grant Holloway into the Trade Machine as a pending sign-and-trade piece; a 3-year $15M new contract + Austin Reaves return validates and applies; the saved world persists the new contract on LAL, removes the MIA cap hold, moves Reaves to MIA, hard-caps LAL at the first apron, records an executeTrade event, and the re-entered dashboard rehydrates the committed trade in Team History.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-005F-fa-sign-and-trade-proof');
+  });
+
   test('D-MQ-006: Offseason preview shows non-persisting banner', async ({
     page,
   }, testInfo) => {
