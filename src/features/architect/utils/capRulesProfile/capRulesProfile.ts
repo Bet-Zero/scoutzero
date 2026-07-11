@@ -21,7 +21,10 @@ import {
   CBA_THRESHOLDS,
 } from '../tradeMachine/constants/cbaConstants';
 import { capProjections } from '../capProjections';
-import { getScaleForSeason } from '../../data/minimumSalaryScales';
+import {
+  getScaleForSeason,
+  isOfficialScaleSeason,
+} from '../../data/minimumSalaryScales';
 
 export type SourceTag = 'real' | 'reported' | 'projected' | 'unknown';
 type ThresholdFieldPath =
@@ -31,6 +34,7 @@ type ThresholdFieldPath =
 type RookieMinResolver =
   | 'capSettings'
   | 'legacyThreshold'
+  | 'minimumSalaryScale'
   | 'previousYearCapGrowth'
   | 'previousYearFixedGrowth';
 
@@ -212,6 +216,27 @@ function resolveRookieMinimumForYear(
       salarySource: 'real',
       resolver: 'legacyThreshold',
     };
+  }
+
+  // Single source of truth: when a season has the OFFICIAL minimum-salary scale,
+  // its rookie rung (scale[0]) IS the rookie minimum — don't project it. This
+  // keeps rules.salaries.rookieMin consistent with getMinimumForYOS(0), so no
+  // Architect subsystem can report a different rookie minimum for a season with
+  // an official scale (e.g. 2026-27; BZE-220 follow-up). Gated on
+  // isOfficialScaleSeason so a projected scale (2025-26) is not mislabeled real
+  // and keeps its existing projection-fallback provenance. Seasons with an
+  // explicit capSettings.rookieMin are handled above; seasons without an
+  // official scale fall through to the cap-growth projection below.
+  if (isOfficialScaleSeason(seasonKey)) {
+    const officialRookieMin = getScaleForSeason(seasonKey)?.[0];
+    if (officialRookieMin && officialRookieMin > 0) {
+      return {
+        rookieMin: officialRookieMin,
+        sourceTag: 'real',
+        salarySource: 'real',
+        resolver: 'minimumSalaryScale',
+      };
+    }
   }
 
   try {

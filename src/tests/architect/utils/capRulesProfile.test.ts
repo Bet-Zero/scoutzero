@@ -112,4 +112,22 @@ describe('CapRulesProfile Facade', () => {
     // The veteran minimum is no longer pinned to the rookie minimum.
     expect(getMinimumForYOS(10)).not.toBe(rookieMin);
   });
+
+  // Follow-up to BZE-220: capProjections has no explicit 2026-27 rookieMin, so
+  // the resolver used to PROJECT it (~$1,241,999) — disagreeing with the
+  // official scale's $1,357,763 that getMinimumForYOS(0) returns. The official
+  // scale is now the single source of truth for the rookie minimum.
+  it('resolves the 2026-27 rookie minimum from the official scale (single source, no projection)', () => {
+    const rules = getCapRulesForYear(2027);
+
+    expect(rules.salaries.rookieMin).toBe(1_357_763);
+    // No subsystem can disagree: the rookieMin field equals the scale's rung 0.
+    expect(rules.salaries.rookieMin).toBe(rules.salaries.getMinimumForYOS(0));
+
+    // Provenance is honest: sourced from the official scale, tagged real.
+    expect(rules.salaries.rookieMinSource).toBe('real');
+    expect(rules._meta?.provenance.rookieMinResolver).toBe('minimumSalaryScale');
+    expect(rules._meta?.sourcesSummary).toBe('real');
+    expect(rules._meta?.sourcesMixed).toBe(false);
+  });
 });

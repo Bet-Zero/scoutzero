@@ -12,6 +12,7 @@ import {
   getScaleForSeason,
   hasScaleForSeason,
   getLatestScale,
+  isOfficialScaleSeason,
 } from '@/features/architect/data/minimumSalaryScales';
 
 // Official 2026-27 scale, sourced per BZE-220 (Hoops Rumors / RealGM, cap set
@@ -52,5 +53,16 @@ describe('minimumSalaryScales — 2026-27 selection (BZE-220)', () => {
 
   it('treats 2026-27 as the latest scale (used when a later season lacks its own)', () => {
     expect(getLatestScale()).toEqual(OFFICIAL_2026_27);
+  });
+
+  // The official marker gates whether a scale may be reported as a "real"
+  // rookie-minimum source (vs a projection). Only 2026-27 qualifies today.
+  it('marks only 2026-27 as an official (non-projected) scale season', () => {
+    expect(isOfficialScaleSeason('2026-27')).toBe(true);
+    expect(isOfficialScaleSeason(2027)).toBe(true);
+    // 2025-26 is a labeled projection; 2024-25 mid-scale rows are rounded.
+    expect(isOfficialScaleSeason('2025-26')).toBe(false);
+    expect(isOfficialScaleSeason('2024-25')).toBe(false);
+    expect(isOfficialScaleSeason(null)).toBe(false);
   });
 });
