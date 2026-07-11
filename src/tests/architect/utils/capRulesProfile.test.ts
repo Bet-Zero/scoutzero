@@ -88,4 +88,28 @@ describe('CapRulesProfile Facade', () => {
   it('throws error for invalid year', () => {
     expect(() => getCapRulesForYear(1990)).toThrow();
   });
+
+  // BZE-220: before the official 2026-27 minimum scale was added, getScaleForSeason
+  // returned null for 2026-27, so getMinimumForYOS collapsed EVERY years-of-service
+  // bucket to the (projected) rookie minimum. With the scale present it must return
+  // the correct per-YOS values from CBA Exhibit C (as reported for 2026-27).
+  it('resolves the official 2026-27 minimum salary by years of service (no rookie-min collapse)', () => {
+    const { getMinimumForYOS, rookieMin } = getCapRulesForYear(2027).salaries;
+
+    // Exact per-YOS values from the sourced 2026-27 scale.
+    expect(getMinimumForYOS(0)).toBe(1_357_763);
+    expect(getMinimumForYOS(2)).toBe(2_449_421);
+    expect(getMinimumForYOS(7)).toBe(3_286_399);
+    expect(getMinimumForYOS(10)).toBe(3_876_529);
+    // 10+ years all use the final row.
+    expect(getMinimumForYOS(15)).toBe(3_876_529);
+
+    // Regression guard: the buckets are genuinely distinct — not every YOS
+    // collapsed to the same rookie value.
+    const buckets = [0, 1, 2, 5, 10].map((yos) => getMinimumForYOS(yos));
+    expect(new Set(buckets).size).toBe(buckets.length);
+    expect(getMinimumForYOS(10)).toBeGreaterThan(getMinimumForYOS(0));
+    // The veteran minimum is no longer pinned to the rookie minimum.
+    expect(getMinimumForYOS(10)).not.toBe(rookieMin);
+  });
 });

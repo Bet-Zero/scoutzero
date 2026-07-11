@@ -656,21 +656,24 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     );
     const totals = computeTeamCapTotals(team, FUTURE_YEAR);
 
+    // BZE-220: FUTURE_YEAR (2026-27) now resolves the official 2026-27 minimum
+    // scale, so the 3+-YOS veteran-minimum cap hit is the official 2-year min
+    // ($2,449,421) instead of the pre-fix 2025-26 fallback ($2,176,096).
     expect(getPlayerCapSheetAmountsForYear(veteranMinimumPlayer, FUTURE_YEAR)).toEqual({
       contractSlice: expect.objectContaining({
         salary: 2_390_000,
         capHit: 2_390_000,
       }),
-      capHit: 2_176_096,
+      capHit: 2_449_421,
       baseSalary: 2_390_000,
       hasCapHitAdjustment: true,
     });
-    expect(bodyPlayersTotal).toBe(29_176_096);
+    expect(bodyPlayersTotal).toBe(29_449_421);
     expect(totals.playersTotal).toBe(bodyPlayersTotal);
     expect(totals.deadMoneyTotal).toBe(0);
     expect(totals.incompleteChargesTotal).toBe(0);
     expect(totals.capHoldsTotal).toBe(4_250_000);
-    expect(totals.totalCapAllocations).toBe(33_426_096);
+    expect(totals.totalCapAllocations).toBe(33_699_421);
     expect(totals.totalCapAllocations - totals.playersTotal).toBe(
       totals.capHoldsTotal
     );
