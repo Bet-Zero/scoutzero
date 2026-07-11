@@ -553,7 +553,7 @@ export const CapSheet = ({
       >
         {/* SUPPORTING DETAIL SURFACE: Player rows explain year-by-year contract detail.
             They may borrow canonical thresholds for display, but they do not own totals truth. */}
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5">
+        <div className="flex shrink-0 flex-nowrap items-center justify-between gap-x-3 border-b border-cockpit-edge bg-cockpit-bar px-3 py-1.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <span
               aria-hidden
@@ -593,13 +593,13 @@ export const CapSheet = ({
             </div>
           </div>
 
-          <div className="flex max-w-full overflow-x-auto rounded-md border border-cockpit-edge bg-cockpit-inlay p-0.5">
+          <div className="flex min-w-0 max-w-full shrink overflow-x-auto rounded-md border border-cockpit-edge bg-cockpit-inlay p-0.5">
             {allYears.map((year) => (
               <button
                 key={year}
                 type="button"
                 onClick={() => handleSelectYear(year)}
-                className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
                   year === selectedYear
                     ? 'bg-cockpit-raised text-cockpit-text-primary shadow-sm'
                     : 'text-cockpit-text-muted hover:bg-cockpit-slab hover:text-cockpit-text-primary'
@@ -649,7 +649,7 @@ export const CapSheet = ({
                 return (
                   <div
                     key={`${player.name}-${idx}`}
-                    className={`group grid min-h-[var(--cap-sheet-row-h,36px)] grid-cols-[2.25fr,0.55fr,0.45fr,1fr,0.6fr,1fr,1.45fr] items-center gap-2 px-3 py-0.5 transition-colors ${rowHighlightClass}`}
+                    className={`group grid min-h-[var(--cap-sheet-row-h,36px)] grid-cols-[2.25fr,0.55fr,0.45fr,1fr,0.6fr,1fr,1.45fr] items-center gap-2 px-3 py-0 transition-colors ${rowHighlightClass}`}
                     data-cap-sheet-fit-row
                     data-testid={
                       isHighlighted
@@ -833,27 +833,47 @@ export const CapSheet = ({
               </div>
             )}
 
-            <div className="ml-auto flex shrink-0 items-baseline gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-0.5">
-              <p className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider text-cockpit-text-primary">
-                Total Cap Hit
-                <span className="sr-only">Canonical Totals Consumer</span>
-              </p>
-              <span className="whitespace-nowrap text-sm font-extrabold tracking-tight text-cockpit-text-primary tabular-nums">
-                {formatCapSheetMoney(canonicalTotals.totalCapAllocations)}
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <div className="flex items-baseline gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-0.5">
+                <p className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider text-cockpit-text-primary">
+                  Total Cap Hit
+                  <span className="sr-only">Canonical Totals Consumer</span>
+                </p>
+                <span className="whitespace-nowrap text-sm font-extrabold tracking-tight text-cockpit-text-primary tabular-nums">
+                  {formatCapSheetMoney(canonicalTotals.totalCapAllocations)}
+                </span>
+              </div>
+              {/* BZE-242: Cap Tools toggle folded onto the totals line so the
+                  footer is one row and the table well can fit a full 18-man
+                  roster with no scroll. */}
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
+                Cap Tools
               </span>
+              <button
+                data-testid="cap-sheet-tools-toggle"
+                type="button"
+                aria-expanded={showCapTools}
+                aria-label={`${showCapTools ? 'Close' : 'Open'} dead money and exception tools`}
+                onClick={() => setShowCapTools(!showCapTools)}
+                className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-text-secondary transition-colors hover:bg-cockpit-edge hover:text-cockpit-text-primary"
+              >
+                {showCapTools ? 'Close' : 'Open'}
+              </button>
             </div>
           </section>
 
           {/* Slim secondary strip: cap-hold detail and the dead-money /
               exception tools live behind toggles so the salary table keeps
               the default-view space. */}
-          <div className="flex flex-wrap items-stretch border-t border-cockpit-edge">
-            {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the
-                canonical capHoldsTotal without becoming a totals owner. */}
-            {displayedCapHolds.length > 0 ? (
+          {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the canonical
+              capHoldsTotal without becoming a totals owner. Only rendered when
+              holds exist (BZE-242 — keeps the footer one line otherwise, so the
+              table well fits a full 18-man roster). */}
+          {displayedCapHolds.length > 0 && (
+            <div className="border-t border-cockpit-edge">
               <section
                 aria-label={CAP_SHEET_SURFACE_LABELS.capHoldsDetail}
-                className="min-w-0 flex-1 bg-cockpit-inlay"
+                className="min-w-0 bg-cockpit-inlay"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1">
                   <p className="min-w-0 truncate text-[10px] text-cockpit-text-muted">
@@ -897,28 +917,8 @@ export const CapSheet = ({
                   </div>
                 )}
               </section>
-            ) : (
-              <p className="min-w-0 flex-1 px-3 py-1 text-[10px] text-cockpit-text-muted">
-                No active cap holds in {selectedSeasonLabel}.
-              </p>
-            )}
-
-            <div className="flex shrink-0 items-center gap-2 border-l border-cockpit-edge px-3 py-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-cockpit-text-muted">
-                Cap Tools
-              </span>
-              <button
-                data-testid="cap-sheet-tools-toggle"
-                type="button"
-                aria-expanded={showCapTools}
-                aria-label={`${showCapTools ? 'Close' : 'Open'} dead money and exception tools`}
-                onClick={() => setShowCapTools(!showCapTools)}
-                className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-text-secondary transition-colors hover:bg-cockpit-edge hover:text-cockpit-text-primary"
-              >
-                {showCapTools ? 'Close' : 'Open'}
-              </button>
             </div>
-          </div>
+          )}
 
           {/* CONTROL SURFACE: These actions mutate canonical inputs, but do not
               own or redefine current-year totals display. Opens from the Cap
