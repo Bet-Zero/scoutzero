@@ -1529,6 +1529,99 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-003-persisted-trade-proof');
   });
 
+  test('D-MQ-003B: An in-progress trade draft survives leaving the Trade Machine and returning (W9)', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(180000);
+    // W9 lifecycle (BZE-248): a staged-but-unapplied trade must NOT be silently
+    // discarded by leaving the room. In the current cockpit the Trade Machine is
+    // a full-viewport overlay whose subtree is kept mounted (visibility toggled),
+    // so the draft survives close/reopen, and the shell labels the in-progress
+    // draft honestly (nav-rail "Draft in progress" dot + activity-rail
+    // "Trade in progress / Not applied to plan yet" card). This pins that
+    // behavior at the whole-app level so it cannot silently regress.
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureWorldSelected(page, testInfo);
+
+    // --- Stage a two-team draft (no validate/apply — an unapplied draft) ---
+    await openDashboardTab(page, 'Trade Machine');
+    await expect(
+      page.getByRole('heading', { name: /^Trade Machine$/i })
+    ).toBeVisible();
+
+    await addTradeTeam(page, 'Boston Celtics');
+    await routeTradePlayer(
+      page,
+      'Los Angeles Lakers',
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.name,
+      'Boston Celtics'
+    );
+    await routeTradePlayer(
+      page,
+      'Boston Celtics',
+      REVIEW_TRADE_BOS_OUTGOING_PLAYER.name,
+      'Los Angeles Lakers'
+    );
+
+    const tradeDialog = page.getByRole('dialog', { name: /Trade Machine/i });
+    await expect(
+      tradeDialog.getByRole('button', { name: /Boston Celtics/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /^Validate Trade$/i })
+    ).toBeVisible();
+    await captureEvidence(page, testInfo, 'D-MQ-003B-01-draft-staged');
+
+    // --- Leave the Trade Machine: close the overlay, then visit another room ---
+    await page.getByRole('button', { name: /Close Trade Machine/i }).click();
+    const overlay = page.getByTestId('trade-overlay');
+    await expect(overlay).toHaveAttribute('data-open', 'false');
+
+    // Honest labeling while the draft sits unapplied and out of view: the nav
+    // rail flags the Trade Machine as having a draft, and the activity rail
+    // surfaces the in-progress draft — as the labeled "Active Work" card
+    // ("Trade in progress / Not applied to plan yet") when expanded, or the
+    // in-progress dot when collapsed. Either way the draft is never silently
+    // gone.
+    await expect(page.getByTestId('trade-draft-indicator')).toBeVisible();
+    await expect(
+      page
+        .getByTestId('cockpit-activity-rail-trade-draft')
+        .or(page.getByTestId('cockpit-activity-rail-dot-in-progress'))
+        .first()
+    ).toBeVisible();
+    await captureEvidence(page, testInfo, 'D-MQ-003B-02-draft-flagged-away');
+
+    // Now the overlay is hidden, the nav rail is interactable — visit Roster.
+    await openDashboardTab(page, 'Roster');
+    await expect(overlay).toHaveAttribute('data-open', 'false');
+
+    // --- Return to the Trade Machine: the draft is exactly where we left it ---
+    await openDashboardTab(page, 'Trade Machine');
+    await expect(overlay).toHaveAttribute('data-open', 'true');
+
+    // The second team the user added and the routed pieces are still staged —
+    // the room does NOT come back at "Setup required" with the draft discarded.
+    await expect(
+      tradeDialog.getByRole('button', { name: /Boston Celtics/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /^Validate Trade$/i })
+    ).toBeVisible();
+    await expect(
+      tradeDialog
+        .getByAltText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name, { exact: true })
+        .or(tradeDialog.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name, { exact: true }))
+        .first()
+    ).toBeVisible();
+
+    addAuditNote(
+      testInfo,
+      'W9 (BZE-248): staged a two-team Lakers/Celtics draft, closed the Trade Machine overlay, visited the Roster room, and reopened the Trade Machine — the added Celtics team and the routed pieces survive intact (no "Setup required" reset). While away, the nav-rail "Draft in progress" indicator and the activity-rail in-progress dot honestly flag the unapplied draft. Reload persistence of unapplied drafts is out of scope per the W9 contract.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-003B-03-draft-restored');
+  });
+
   test('D-MQ-004: Invalid trade path is fail-closed before apply', async ({
     page,
   }, testInfo) => {
