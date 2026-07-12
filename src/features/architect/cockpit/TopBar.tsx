@@ -34,6 +34,7 @@ interface TopBarProps {
   worldSelectorSlot?: ReactNode;
   worldTimeControlsSlot?: ReactNode;
   seasonSelectorSlot?: ReactNode;
+  seasonAdvanceSlot?: ReactNode;
 }
 
 const formatRelative = (iso: string | null): string => {
@@ -60,6 +61,7 @@ export const TopBar = ({
   worldSelectorSlot,
   worldTimeControlsSlot,
   seasonSelectorSlot,
+  seasonAdvanceSlot,
 }: TopBarProps) => {
   const teamLabel = workspace.team.label;
 
@@ -105,6 +107,7 @@ export const TopBar = ({
           workspace={workspace}
           worldSelector={worldSelectorSlot}
           worldTimeControls={worldTimeControlsSlot}
+          seasonAdvance={seasonAdvanceSlot}
         />
         {seasonSelectorSlot}
         <ModePill

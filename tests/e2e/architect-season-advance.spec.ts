@@ -45,6 +45,34 @@ const chooseSeasonAdvanceOption = async (
     .check();
 };
 
+// BZE-250: season advance moved out of the (now V1-hidden) Offseason room into
+// the top-bar World menu. Open the World-menu popover and click the relocated
+// trigger; the wizard / draft-positions editor render at the dashboard root.
+const openSeasonAdvanceControl = async (
+  page: Page,
+  control: 'advance' | 'draft-positions'
+) => {
+  const trigger = page.getByTestId('cockpit-world-menu-trigger');
+  const popover = page.getByTestId('cockpit-world-menu-popover');
+  // The cockpit re-mounts the TopBar on world select, resetting popover state,
+  // so a single click doesn't reliably stick — nudge until it opens.
+  await expect
+    .poll(
+      async () => {
+        if (await popover.isVisible().catch(() => false)) return true;
+        await trigger.click({ timeout: 2000 }).catch(() => undefined);
+        return await popover.isVisible().catch(() => false);
+      },
+      { timeout: 15000, message: 'world menu popover should open' }
+    )
+    .toBe(true);
+  const triggerTestId =
+    control === 'advance'
+      ? 'cockpit-season-advance-open'
+      : 'cockpit-season-advance-draft-positions';
+  await page.getByTestId(triggerTestId).click();
+};
+
 const expectAndreColeCapHold = async (worldId: string) => {
   const miaDocument = await getWorldTeamDocument(worldId, MIA_TEAM_CODE);
   expect(getTeamPlayerIds(miaDocument)).not.toContain(ANDRE_COLE_PLAYER_ID);
@@ -67,14 +95,14 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
     await waitForReviewDashboard(page);
   });
 
-  test('saves draft positions in the Offseason editor and reloads committed world state', async ({
+  test('saves draft positions via the World menu and reloads committed world state', async ({
     page,
   }, testInfo) => {
     test.setTimeout(120000);
 
     const worldId = await prepareSeasonAdvanceReviewWorld(page);
 
-    await openDashboardTab(page, 'Offseason');
+    await openSeasonAdvanceControl(page, 'draft-positions');
     await expect(page.getByText(/^Draft Positions Input$/i)).toBeVisible();
     await expect(
       page.getByText(/World Season:\s*2026-27/i).last()
@@ -115,7 +143,7 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
 
     await page.goto(MIA_SEASON_ADVANCE_URL, { waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
-    await openDashboardTab(page, 'Offseason');
+    await openSeasonAdvanceControl(page, 'draft-positions');
     await expect(page.getByText(/Last saved:/i)).toBeVisible({
       timeout: 20000,
     });
@@ -124,7 +152,7 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BZE-193 proof: saved 2027 draft positions through the existing Offseason Draft Positions Input, verified draftPositionsByYear.2027.positionsMap in saved-world metadata, reloaded the world, and confirmed the editor rehydrated from committed world state.',
+        'BZE-193/BZE-250 proof: saved 2027 draft positions through the World-menu Draft Positions editor (relocated from the now-hidden Offseason room), verified draftPositionsByYear.2027.positionsMap in saved-world metadata, reloaded the world, and confirmed the editor rehydrated from committed world state.',
     });
   });
 
@@ -150,8 +178,9 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
       ANDRE_COLE_PLAYER_ID
     );
 
-    await openDashboardTab(page, 'Offseason');
-    await page.getByRole('button', { name: /^Advance Season$/i }).click();
+    // BZE-250: the trigger in the World-menu popover opens the advance wizard
+    // directly (no intermediate room).
+    await openSeasonAdvanceControl(page, 'advance');
     await expect(
       page.getByRole('heading', { name: /^Advance Season$/i })
     ).toBeVisible();
@@ -246,7 +275,10 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
 
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(page.getByTestId('team-history-world-banner')).toContainText(
+    // The banner scopes history to the active world via a data attribute (the
+    // world id was never surfaced as visible banner text).
+    await expect(page.getByTestId('team-history-world-banner')).toHaveAttribute(
+      'data-history-world-id',
       worldId
     );
     const firstTimelineRow = page.getByTestId('team-history-event-row-0');
@@ -290,7 +322,7 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BZE-180 proof: maintained review helper seeded a 30-team saved world, MIA advanced 2026-27 -> 2027-28 through the supported Offseason UI, metadata.asOfDate advanced to 2027-07-01, Andre Cole declined into a cap hold, Roster removed him, History and Compare showed the committed seasonAdvance event, and reload preserved the active world plus advanced metadata.',
+        'BZE-180 proof: maintained review helper seeded a 30-team saved world, MIA advanced 2026-27 -> 2027-28 through the World-menu Season Advance (relocated from the now-hidden Offseason room), metadata.asOfDate advanced to 2027-07-01, Andre Cole declined into a cap hold, Roster removed him, History and Compare showed the committed seasonAdvance event, and reload preserved the active world plus advanced metadata.',
     });
   });
 });

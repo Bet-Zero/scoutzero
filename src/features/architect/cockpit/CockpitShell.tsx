@@ -49,6 +49,7 @@ interface CockpitShellProps {
   worldSelectorSlot?: ReactNode;
   worldTimeControlsSlot?: ReactNode;
   seasonSelectorSlot?: ReactNode;
+  seasonAdvanceSlot?: ReactNode;
   onNavigateToCapSheet: () => void;
   onNavigateToRoster: () => void;
   onNavigateToOffseason: () => void;
@@ -90,6 +91,7 @@ export const CockpitShell = ({
   worldSelectorSlot,
   worldTimeControlsSlot,
   seasonSelectorSlot,
+  seasonAdvanceSlot,
   onNavigateToCapSheet,
   onNavigateToRoster,
   onNavigateToOffseason,
@@ -141,6 +143,7 @@ export const CockpitShell = ({
         worldSelectorSlot={worldSelectorSlot}
         worldTimeControlsSlot={worldTimeControlsSlot}
         seasonSelectorSlot={seasonSelectorSlot}
+        seasonAdvanceSlot={seasonAdvanceSlot}
       />
 
       {banner ? <div className="shrink-0">{banner}</div> : null}

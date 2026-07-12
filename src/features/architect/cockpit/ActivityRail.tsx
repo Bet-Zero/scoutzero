@@ -235,7 +235,9 @@ const TRUST_BADGE_CLASSES: Record<TrustPanelTone, string> = {
 
 const WATCH_DESTINATION_LABELS: Record<WatchDestination, string> = {
   'cap-sheet': 'View Cap Sheet',
-  offseason: 'Go to Offseason',
+  // BZE-250: the Offseason room is hidden; the season-mismatch nudge now opens
+  // the relocated Season Advance flow (World menu) rather than the room.
+  offseason: 'Advance season',
 };
 
 const TONE_TEXT_CLASSES: Record<TrustPanelTone, string> = {

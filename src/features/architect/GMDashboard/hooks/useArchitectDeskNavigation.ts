@@ -28,10 +28,16 @@ const SLUG_TO_TAB = Object.fromEntries(
   Object.entries(DESK_ROOM_SLUGS).map(([tab, slug]) => [slug, tab as ActiveTab])
 ) as Record<string, ActiveTab>;
 
+// BZE-250: rooms hidden from V1 navigation. Their code is parked (not deleted),
+// but a `?room=<slug>` deep link must not route into them — it falls back to the
+// default home surface (Full Cap Table). Season advance moved to the World menu.
+const V1_HIDDEN_ROOM_SLUGS = new Set<string>([DESK_ROOM_SLUGS.offseason]);
+
 export function readRoomFromUrl(): ActiveTab | null {
   if (typeof window === 'undefined') return null;
   const slug = new URLSearchParams(window.location.search).get(ROOM_PARAM);
   if (!slug) return null;
+  if (V1_HIDDEN_ROOM_SLUGS.has(slug)) return null;
   return SLUG_TO_TAB[slug] ?? null;
 }
 

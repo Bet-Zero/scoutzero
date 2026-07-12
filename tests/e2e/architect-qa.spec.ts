@@ -3895,31 +3895,31 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-005F-fa-sign-and-trade-proof');
   });
 
-  test('D-MQ-006: Offseason preview shows non-persisting banner', async ({
+  test('D-MQ-006: Offseason room is excluded from V1 navigation', async ({
     page,
   }, testInfo) => {
     await ensureTeamDataLoaded(page, testInfo);
 
-    await openDashboardTab(page, 'Offseason');
+    // BZE-250 (owner-decided exclusion): V1 does not ship the nonfunctional
+    // Offseason preview as a navigable room. It must not appear as a nav tab,
+    // and its `?room=offseason` deep link falls back to the home surface rather
+    // than rendering the parked preview room. Season advance (the supported W11
+    // mechanism) moved to the top-bar World menu; the room + code stay parked.
+    await expect(page.getByRole('tab', { name: /^Offseason$/i })).toHaveCount(0);
 
-    if (await isVisible(page.getByText(/World Season Advancement/i), 2000)) {
-      addAuditNote(
-        testInfo,
-        'World season advancement controls are visible because a world is selected in this session.'
-      );
-    } else {
-      addAuditNote(
-        testInfo,
-        'Offseason preview is available in base mode, but season advancement controls remain hidden until a world is selected.'
-      );
-    }
+    const deepLink = `${GM_DASHBOARD_URL}${GM_DASHBOARD_URL.includes('?') ? '&' : '?'}room=offseason`;
+    await page.goto(deepLink, { waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
 
-    const previewBanner = page.getByTestId('offseason-preview-banner');
-    await expect(previewBanner).toBeVisible();
-    await expect(previewBanner).toContainText(/Preview only/i);
-    await expect(previewBanner).toContainText(/does not persist/i);
+    // The deep link resolves to the home surface — not the preview room.
+    await expect(page.getByTestId('offseason-preview-banner')).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: /^Offseason$/i })).toHaveCount(0);
 
-    await captureEvidence(page, testInfo, 'D-MQ-006-offseason-preview');
+    addAuditNote(
+      testInfo,
+      'BZE-250: the Offseason preview room is absent from V1 navigation — no Offseason nav tab, and a ?room=offseason deep link falls back to the Full Cap Table home surface (no preview banner). The room + its code are parked for post-V1; season advance moved to the World menu.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-006-offseason-excluded');
   });
 
   test('D-MQ-007: Season Advance modal opens with world-aware gating', async ({
@@ -3928,11 +3928,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await ensureTeamDataLoaded(page, testInfo);
     await ensureWorldSelected(page, testInfo);
 
-    await openDashboardTab(page, 'Offseason');
-
-    const advanceSeasonButton = page.getByRole('button', {
-      name: /^Advance Season$/i,
-    });
+    // BZE-250: season advance opens from the top-bar World menu, not a room.
+    const advanceSeasonButton = page.getByTestId('cockpit-season-advance-open');
+    await openWorldMenuFor(page, advanceSeasonButton);
     await expect(advanceSeasonButton).toBeVisible();
     await advanceSeasonButton.click();
 
@@ -4272,21 +4270,27 @@ test.describe('SBX-001: Sandbox world-gated screens offer inline world create/se
     await gotoDashboard(page);
   });
 
-  test('Offseason sandbox state surfaces an inline world create/select control', async ({
+  test('Sandbox season advance offers the World-menu world create/select path', async ({
     page,
   }, testInfo) => {
     await ensureTeamDataLoaded(page, testInfo);
-    await openDashboardTab(page, 'Offseason');
 
-    const picker = page.getByTestId('offseason-sandbox-world-picker');
-    await expect(picker).toBeVisible({ timeout: 25000 });
+    // BZE-250: season advance moved into the top-bar World menu. A Sandbox user
+    // (no world) opens the World menu and finds both the disabled Season Advance
+    // entry (with its reason) and the shared world create/select control, so the
+    // world-gated flow is never a dead end.
+    const popover = page.getByTestId('cockpit-world-menu-popover');
+    await openWorldMenuFor(page, popover.getByTestId('cockpit-season-advance-section'));
+    await expect(
+      popover.getByTestId('cockpit-season-advance-section')
+    ).toContainText(/Select a world to unlock season advance/i);
     // The inline control is the shared WorldSelector: it exposes "+ New" to
     // create a world and the #world-selector dropdown to pick an existing one.
     await expect(
-      picker.getByRole('button', { name: /^\+ New$/i })
+      popover.getByRole('button', { name: /^\+ New$/i })
     ).toBeVisible({ timeout: 25000 });
-    await expect(picker.locator('#world-selector')).toBeVisible();
-    await captureEvidence(page, testInfo, 'SBX-001-offseason-inline-world-picker');
+    await expect(popover.locator('#world-selector')).toBeVisible();
+    await captureEvidence(page, testInfo, 'SBX-001-worldmenu-world-picker');
   });
 
   test('Compare sandbox state surfaces an inline world create/select control', async ({

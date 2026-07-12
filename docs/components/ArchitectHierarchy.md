@@ -17,8 +17,10 @@ GMDashboard/
     SeasonAdvanceModal.helpers.ts
     SeasonAdvanceModal.tsx
     SeasonAdvanceModal.types.ts
+    SeasonAdvanceModals.tsx
     WorldSelector.tsx
     WorldTimeControls.tsx
+    seasonAdvanceCoordination.ts
   hooks/
     optimisticMutationLock.ts
     teamPlanSaveState.ts
@@ -123,6 +125,7 @@ cockpit/
   PlayerActionMenu.tsx
   README.md
   RoomFrame.tsx
+  SeasonAdvanceMenuSection.tsx
   TeamPosturePanel.tsx
   TeamStatusStrip.tsx
   TeamStatusTile.tsx
@@ -559,5 +562,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-07-11T12:47:12.674Z*
+*Generated on: 2026-07-12T01:06:12.231Z*
 *Auto-updated by: npm run docs*

@@ -27,6 +27,10 @@ import { ExceptionTracker } from '@/features/architect/capSheet/ExceptionTracker
 import { TradeSection } from './sections/TradeSection';
 import { FreeAgencySection } from './sections/FreeAgencySection';
 import { OffseasonSection } from './sections/OffseasonSection';
+import { SeasonAdvanceModals } from '@/features/architect/GMDashboard/components/SeasonAdvanceModals';
+import { SeasonAdvanceMenuSection } from '@/features/architect/cockpit/SeasonAdvanceMenuSection';
+import { getOffseasonWorldAdvanceAvailability } from '@/features/architect/GMDashboard/components/seasonAdvanceCoordination';
+import { getSeasonAdvanceDraftContext } from '@/features/architect/utils/seasonFormat';
 import { HistorySection } from './sections/HistorySection';
 import { ComparisonSection } from './sections/ComparisonSection';
 import { GuideSection } from './sections/GuideSection';
@@ -257,6 +261,11 @@ export const GMDashboard = () => {
   // and the in-progress draft inside it — survives close/reopen untouched.
   const [isTradeOpen, setIsTradeOpen] = useState(false);
   const [hasOpenedTrade, setHasOpenedTrade] = useState(false);
+  // BZE-250: Season advance relocated from the (now V1-hidden) Offseason room to
+  // the top-bar World menu. The trigger lives in that popover; these flags open
+  // the wizard + draft-positions editor, which render at the dashboard root.
+  const [seasonAdvanceModalOpen, setSeasonAdvanceModalOpen] = useState(false);
+  const [draftPositionsModalOpen, setDraftPositionsModalOpen] = useState(false);
   // One-shot request to pre-stage one or more players into the Trade Machine,
   // set when the overlay is opened from a player-context entry (the pin board's
   // per-row "Trade" or "Trade all pinned"). Cleared by TradeEditor once
@@ -641,7 +650,10 @@ export const GMDashboard = () => {
           setActiveTab('fa');
           return;
         case 'offseason':
-          setActiveTab('offseason');
+          // BZE-250: the Offseason room is hidden; a Guide answer about the
+          // offseason opens the relocated Season Advance flow (World menu) so the
+          // path still ends on a live surface.
+          setSeasonAdvanceModalOpen(true);
           return;
         case 'history':
           openHistoryRoot();
@@ -1149,12 +1161,9 @@ export const GMDashboard = () => {
         glyph: 'FA',
         onActivate: () => setActiveTab('fa'),
       },
-      {
-        id: 'offseason',
-        label: 'Offseason',
-        glyph: '↻',
-        onActivate: () => setActiveTab('offseason'),
-      },
+      // BZE-250: the Offseason room is hidden from V1 navigation (owner-decided
+      // exclusion). Season advance — the supported W11 mechanism — moved to the
+      // top-bar World menu. The room + its code stay parked for post-V1.
       {
         id: 'history',
         label: 'Team History',
@@ -1246,6 +1255,27 @@ export const GMDashboard = () => {
       </select>
     </label>
   );
+
+  // BZE-250: Season Advance trigger for the World-menu popover. Availability
+  // mirrors the old Offseason room gate (world present + season metadata loaded).
+  const seasonAdvanceDraftContext =
+    getSeasonAdvanceDraftContext(worldCurrentSeason);
+  const seasonAdvanceAvailability =
+    getOffseasonWorldAdvanceAvailability(worldId);
+  const canAdvanceWorldSeason = Boolean(
+    worldId && seasonAdvanceDraftContext && !worldMetadataLoading
+  );
+  const seasonAdvanceSlot = userId ? (
+    <SeasonAdvanceMenuSection
+      hasActiveWorld={seasonAdvanceAvailability.hasActiveWorld}
+      canAdvance={canAdvanceWorldSeason}
+      worldSeasonLabel={seasonAdvanceDraftContext?.authoritativeSeason ?? null}
+      worldSeasonLoading={worldMetadataLoading}
+      disabledReason={seasonAdvanceAvailability.unavailableReason}
+      onOpenAdvance={() => setSeasonAdvanceModalOpen(true)}
+      onOpenDraftPositions={() => setDraftPositionsModalOpen(true)}
+    />
+  ) : null;
 
   const banner = (
     <div className="flex flex-col gap-1 px-4 py-2 empty:hidden">
@@ -1493,6 +1523,17 @@ export const GMDashboard = () => {
         }
       />
 
+      {/* BZE-250: relocated Season Advance flow. Triggered from the World-menu
+          popover (SeasonAdvanceMenuSection); rendered here at the dashboard root
+          so the popover's outside-click close cannot unmount an open wizard. */}
+      <SeasonAdvanceModals
+        {...offseasonSectionSurface}
+        advanceModalOpen={seasonAdvanceModalOpen}
+        onAdvanceModalClose={() => setSeasonAdvanceModalOpen(false)}
+        draftPositionsModalOpen={draftPositionsModalOpen}
+        onDraftPositionsModalClose={() => setDraftPositionsModalOpen(false)}
+      />
+
       {showOffseasonModal && offseasonSummary && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
           <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-cockpit-edge bg-cockpit-slab p-5 text-sm text-cockpit-text-primary shadow-xl">
@@ -1606,9 +1647,10 @@ export const GMDashboard = () => {
       worldSelectorSlot={worldSelectorSlot}
       worldTimeControlsSlot={worldTimeControlsSlot}
       seasonSelectorSlot={seasonSelectorSlot}
+      seasonAdvanceSlot={seasonAdvanceSlot}
       onNavigateToCapSheet={() => setActiveTab('cap')}
       onNavigateToRoster={() => setActiveTab('roster')}
-      onNavigateToOffseason={() => setActiveTab('offseason')}
+      onNavigateToOffseason={() => setSeasonAdvanceModalOpen(true)}
       onOpenHistory={openHistoryRoot}
       onOpenHistoryEntry={(eventId) =>
         requestHistoryEventDetail(eventId, 'activity-rail')
