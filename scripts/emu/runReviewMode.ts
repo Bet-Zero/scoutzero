@@ -439,7 +439,15 @@ const startVite = (): ChildProcess => {
       env: {
         ...process.env,
         VITE_ARCHITECT_REVIEW_MODE: 'true',
-        VITE_FEATURE_ENTITLEMENT_AUTHORING: 'true',
+        // BZE-251: the owner-facing review build must NOT show admin
+        // entitlement/pick authoring controls. Authoring stays OFF unless the
+        // invoker explicitly opts in (data seeding, or e2e D-MQ-009 which proves
+        // authoring + conflicting-claim blocking). Setting it explicitly here
+        // makes the review server authoritative over any local .env.local=true.
+        VITE_FEATURE_ENTITLEMENT_AUTHORING:
+          process.env.VITE_FEATURE_ENTITLEMENT_AUTHORING === 'true'
+            ? 'true'
+            : 'false',
       },
     }
   );
