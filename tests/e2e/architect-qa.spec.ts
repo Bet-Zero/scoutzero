@@ -1438,14 +1438,36 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await gotoDashboard(page);
   });
 
-  test('D-MQ-001: Header mode badge and emulator warning display correctly', async ({
+  test('D-MQ-001: Header chrome is correct for the surface (engineer mode badge shown in dev, suppressed on owner-facing review) and the emulator warning is honest', async ({
     page,
   }, testInfo) => {
     await ensureTeamDataLoaded(page, testInfo);
 
+    // The GM Dashboard header must render its identity chrome on every surface.
+    const dashboardHeading = page.getByRole('heading', {
+      name: /GM Dashboard/i,
+    });
+    await expect(dashboardHeading).toBeVisible();
+
+    // Surface-aware mode chrome. The engineer environment ModePill (the
+    // EMULATOR/PROD badge) is deliberately suppressed on owner-facing review
+    // surfaces (BZE-239; ARCHITECT_VISUAL_STANDARD §10) so review-build chrome
+    // never leaks to a GM. On engineer dev / production it stays present and
+    // honest. Detect the surface by the pill wrapper and assert the right
+    // promise for each — never assert a badge the owner-facing build must hide.
+    const modePill = page.getByTestId('cockpit-mode-pill');
     const modeBadge = page.getByTestId('firebase-target-mode-badge');
-    await expect(modeBadge).toBeVisible();
-    await expect(modeBadge).toContainText(/EMULATOR|PROD/i);
+    if (await isVisible(modePill, 5000)) {
+      await expect(modeBadge).toBeVisible();
+      await expect(modeBadge).toContainText(/EMULATOR|PROD/i);
+    } else {
+      await expect(modePill).toHaveCount(0);
+      await expect(modeBadge).toHaveCount(0);
+      addAuditNote(
+        testInfo,
+        'Owner-facing review surface: the engineer ModePill (EMULATOR/PROD badge) is correctly suppressed so review-build chrome never reaches a GM (BZE-239 / Visual Standard §10).'
+      );
+    }
 
     const warningBanner = page.getByTestId('firebase-emulator-warning-banner');
     if (await isVisible(warningBanner)) {
@@ -3969,9 +3991,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await openDashboardTab(page, 'Team History');
 
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(page.getByTestId('team-history-world-banner')).toContainText(
-      worldId
-    );
+    // The owner-facing history banner shows GM copy ("This saved season") and
+    // never a raw world id (BZE-209 boundary / banned internal vocabulary). The
+    // world scope stays verifiable through the data attribute the banner carries.
+    await expect(
+      page.getByTestId('team-history-world-banner')
+    ).toHaveAttribute('data-history-world-id', worldId);
 
     const firstTimelineRow = page.getByTestId('team-history-event-row-0');
     await expect(firstTimelineRow).toBeVisible();
@@ -4298,7 +4323,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
   }, testInfo) => {
     await ensureTeamDataLoaded(page, testInfo);
 
-    await expect(page.getByTestId('firebase-target-mode-badge')).toBeVisible();
+    // Dashboard-loaded sanity check. The engineer mode badge is suppressed on
+    // owner-facing review surfaces (BZE-239), so anchor on the header heading
+    // rather than the badge before exercising the Cap Sheet handoff.
+    await expect(
+      page.getByRole('heading', { name: /GM Dashboard/i })
+    ).toBeVisible();
     await openDashboardTab(page, 'Cap Sheet');
     await expect(page.getByTestId('tab-cap-sheet')).toBeVisible();
 
