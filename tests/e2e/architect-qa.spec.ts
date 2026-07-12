@@ -1438,14 +1438,36 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await gotoDashboard(page);
   });
 
-  test('D-MQ-001: Header mode badge and emulator warning display correctly', async ({
+  test('D-MQ-001: Header chrome is correct for the surface (engineer mode badge shown in dev, suppressed on owner-facing review) and the emulator warning is honest', async ({
     page,
   }, testInfo) => {
     await ensureTeamDataLoaded(page, testInfo);
 
+    // The GM Dashboard header must render its identity chrome on every surface.
+    const dashboardHeading = page.getByRole('heading', {
+      name: /GM Dashboard/i,
+    });
+    await expect(dashboardHeading).toBeVisible();
+
+    // Surface-aware mode chrome. The engineer environment ModePill (the
+    // EMULATOR/PROD badge) is deliberately suppressed on owner-facing review
+    // surfaces (BZE-239; ARCHITECT_VISUAL_STANDARD §10) so review-build chrome
+    // never leaks to a GM. On engineer dev / production it stays present and
+    // honest. Detect the surface by the pill wrapper and assert the right
+    // promise for each — never assert a badge the owner-facing build must hide.
+    const modePill = page.getByTestId('cockpit-mode-pill');
     const modeBadge = page.getByTestId('firebase-target-mode-badge');
-    await expect(modeBadge).toBeVisible();
-    await expect(modeBadge).toContainText(/EMULATOR|PROD/i);
+    if (await isVisible(modePill, 5000)) {
+      await expect(modeBadge).toBeVisible();
+      await expect(modeBadge).toContainText(/EMULATOR|PROD/i);
+    } else {
+      await expect(modePill).toHaveCount(0);
+      await expect(modeBadge).toHaveCount(0);
+      addAuditNote(
+        testInfo,
+        'Owner-facing review surface: the engineer ModePill (EMULATOR/PROD badge) is correctly suppressed so review-build chrome never reaches a GM (BZE-239 / Visual Standard §10).'
+      );
+    }
 
     const warningBanner = page.getByTestId('firebase-emulator-warning-banner');
     if (await isVisible(warningBanner)) {
@@ -2070,12 +2092,22 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
             'waive-and-stretch should remove Austin Reaves and spread dead cap across three seasons',
         }
       )
+      // Source-verified re-baseline for the current 2026-27 seeded world (was
+      // authored against a 2025-26 world). Austin Reaves' guaranteed salary is
+      // 2025-26 $14M / 2026-27 $15M / 2027-28 $16M (review_seed/basePlayers/
+      // austin_reaves.json). Waiving in a 2026-27 world:
+      //   - allocateStandardWaiverDeadCapBySeason drops the past 2025-26 row
+      //     (seasonEndYear 2026 < current 2027), leaving $15M + $16M = $31M.
+      //   - computeWaiveResult stretches $31M over stretchYears=3 starting at
+      //     seasonId 2026-27: floor(31M/3)=10,333,333, remainder 1 → year 0
+      //     gets +1 (mutationPipeline.compute.signings.playerOps.ts:110-133).
+      // Product behavior is correct; only the pre-roll seasons/amounts drifted.
       .toEqual({
         hasAustinReaves: false,
         amountByYear: {
-          '2025-26': { amount: 15_000_000, isStretched: true },
-          '2026-27': { amount: 15_000_000, isStretched: true },
-          '2027-28': { amount: 15_000_000, isStretched: true },
+          '2026-27': { amount: 10_333_334, isStretched: true },
+          '2027-28': { amount: 10_333_333, isStretched: true },
+          '2028-29': { amount: 10_333_333, isStretched: true },
         },
         notes: 'Stretched over 3 years',
       });
@@ -2328,10 +2360,17 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
             'buyout should remove Austin Reaves and persist dead cap after the buyout reduction',
         }
       )
+      // Source-verified re-baseline for the 2026-27 seeded world. Reaves'
+      // guaranteed remaining from the current season = $15M (2026-27) + $16M
+      // (2027-28) = $31M (the past 2025-26 $14M row is excluded). A $5,000,000
+      // buyout reduces the dead cap to $31M - $5M = $26M, persisted as a single
+      // lump in the current season 2026-27 for a non-stretch buyout
+      // (mutationPipeline.compute.signings.playerOps.ts:100-156). Product is
+      // correct; the prior {2025-26: $40M} was the 2025-26-world value.
       .toEqual({
         hasAustinReaves: false,
         amountByYear: {
-          '2025-26': 40_000_000,
+          '2026-27': 26_000_000,
         },
         notes: 'Buyout reduction: $5,000,000',
       });
@@ -2359,8 +2398,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
               (metadata.buyout === true || mutationMetadata.buyout === true) &&
               (metadata.buyoutAmount === 5_000_000 ||
                 mutationMetadata.buyoutAmount === 5_000_000) &&
-              (metadata.deadCapAmount === 40_000_000 ||
-                mutationMetadata.deadCapAmount === 40_000_000)
+              // Same 2026-27 re-baseline as the dead-cap poll above: post-buyout
+              // dead cap is $31M remaining - $5M buyout = $26M (was $40M in the
+              // 2025-26-authored world). The event metadata carries the same
+              // computed deadCapAmount confirmed persisted above.
+              (metadata.deadCapAmount === 26_000_000 ||
+                mutationMetadata.deadCapAmount === 26_000_000)
             );
           });
         },
@@ -2494,8 +2537,17 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(
       page.getByText(/Roster count changed 3 -> 4/i).first()
     ).toBeVisible();
+    // Source-verified re-baseline for the 2026-27 seeded world (confirmed
+    // against the signFreeAgent event's before/after BOS cap totals:
+    // capSpace $16,125,607 -> $12,683,370). The default offer's first-year
+    // salary is $4,800,000, but signing fills one of BOS's empty roster slots,
+    // so the incomplete-roster charge drops by one slot at the 2026-27 rookie
+    // minimum ($1,357,763). Net cap-space change = $4,800,000 - $1,357,763 =
+    // $3,442,237. The prior -$3,635,655 used the 2025-26 rookie min
+    // ($1,164,345); the product's cap accounting is correct, only the seed's
+    // rookie-minimum incomplete-roster charge changed.
     await expect(
-      page.getByText(/Cap space changed -\$3,635,655/i).first()
+      page.getByText(/Cap space changed -\$3,442,237/i).first()
     ).toBeVisible();
 
     const persistedTeamDocument = await getWorldTeamDocument(worldId, 'BOS');
@@ -3261,8 +3313,13 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       faRow.getByTestId('cap-sheet-full-fa-resign-cell').first()
     ).toContainText('$15,000,000');
     await expect(signedOwnFaPlayerRow(page)).toHaveCount(0);
+    // Source-verified re-baseline (BZE-241 two-way separation): the status strip
+    // reads "{standard} / 15 · {two-way} / 3". Before re-signing, MIA is 12
+    // standard + 1 two-way (mia_tobias_lund, $597K); Grant Holloway is still a
+    // $15M own-FA cap hold, not a rostered player. Was "13 / 15" (pre-BZE-241,
+    // the single two-way was folded into the standard count).
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '13 / 15'
+      '12 / 15 · 1 / 3'
     );
 
     const beforeTotalCap = await readCockpitTotalCapMillions(page);
@@ -3327,8 +3384,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
           "FCT total should fall after replacing Grant Holloway's $15M cap hold with a $12M signed contract",
       })
       .toBeLessThan(beforeTotalCap);
+    // Source-verified re-baseline: re-signing Grant Holloway (from a $15M cap
+    // hold to a $12M signed Standard contract, Full Bird) adds him to the
+    // standard roster, so the strip advances to 13 standard + 1 two-way. Was
+    // "14 / 15" (pre-BZE-241 two-way folding).
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '14 / 15'
+      '13 / 15 · 1 / 3'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005A-after-own-fa-resign-fct');
 
@@ -3430,8 +3491,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
       /1\s+player touched/i
     );
+    // BZE-218: an own-FA re-sign lands under Compare Additions — the re-signed
+    // player joins the rostered set from a cap hold (roster went 12 -> 13
+    // standard). Was "None detected" (a pre-BZE-218 assumption that re-signs
+    // were contract-only, not roster additions). Removals/changed stay none.
     await expect(page.getByTestId('comparison-roster-additions')).toContainText(
-      /None detected/i
+      REVIEW_MIA_OWN_FA_NAME
     );
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
       /None detected/i
@@ -3449,8 +3514,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(signedOwnFaPlayerRow(page)).toHaveCount(1, {
       timeout: 20000,
     });
+    // Reload preserves the post-resign roster: 13 standard + 1 two-way (was
+    // "14 / 15" pre-BZE-241 two-way folding).
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '14 / 15'
+      '13 / 15 · 1 / 3'
     );
     await openDashboardTab(page, 'Roster');
     const reloadedRosterWorkbench = page
@@ -3969,9 +4036,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await openDashboardTab(page, 'Team History');
 
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(page.getByTestId('team-history-world-banner')).toContainText(
-      worldId
-    );
+    // The owner-facing history banner shows GM copy ("This saved season") and
+    // never a raw world id (BZE-209 boundary / banned internal vocabulary). The
+    // world scope stays verifiable through the data attribute the banner carries.
+    await expect(
+      page.getByTestId('team-history-world-banner')
+    ).toHaveAttribute('data-history-world-id', worldId);
 
     const firstTimelineRow = page.getByTestId('team-history-event-row-0');
     await expect(firstTimelineRow).toBeVisible();
@@ -4298,7 +4368,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
   }, testInfo) => {
     await ensureTeamDataLoaded(page, testInfo);
 
-    await expect(page.getByTestId('firebase-target-mode-badge')).toBeVisible();
+    // Dashboard-loaded sanity check. The engineer mode badge is suppressed on
+    // owner-facing review surfaces (BZE-239), so anchor on the header heading
+    // rather than the badge before exercising the Cap Sheet handoff.
+    await expect(
+      page.getByRole('heading', { name: /GM Dashboard/i })
+    ).toBeVisible();
     await openDashboardTab(page, 'Cap Sheet');
     await expect(page.getByTestId('tab-cap-sheet')).toBeVisible();
 

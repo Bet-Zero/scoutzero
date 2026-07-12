@@ -77,7 +77,7 @@ test.describe('ARCH-ROSTER: Roster counts and categories are browser-verifiable'
     await expect(truthPanel).toHaveAttribute('data-roster-active-year', '2027');
     await expect(truthPanel).toHaveAttribute(
       'data-roster-section-counts',
-      '5 starters / 4 rotation / 4 bench'
+      '5 starters / 4 rotation / 3 bench'
     );
     await expect(truthPanel).toHaveAttribute(
       'data-roster-unsupported-categories',
@@ -86,6 +86,10 @@ test.describe('ARCH-ROSTER: Roster counts and categories are browser-verifiable'
 
     await expect(page.getByTestId('roster-card-starter')).toHaveCount(5);
     await expect(page.getByTestId('roster-card-rotation')).toHaveCount(4);
+    // 3 standard bench + the single two-way player, which is still individually
+    // carded (BZE-241: two-way players are no longer folded into the bench count
+    // but remain reachable as cards). The section-counts attribute above reports
+    // standard-only bench (3); the rendered bench cards include the two-way (4).
     await expect(page.getByTestId('roster-card-bench')).toHaveCount(4);
 
     await captureEvidence(page, testInfo, 'ARCH-ROSTER-COUNT-001-mia-roster');

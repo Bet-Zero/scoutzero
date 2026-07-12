@@ -92,11 +92,16 @@ test.describe('ARCH-ROSTER-FCT: Roster agrees with FCT player state', () => {
     await expect(truthPanel).toHaveAttribute('data-roster-displayed-count', '13');
     await expect(truthPanel).toHaveAttribute('data-roster-standard-count', '12');
     await expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '1');
+    // BZE-241 two-way separation: the status-value strip reads
+    // "{standard} / 15 · {two-way} / 3" — 12 standard + 1 two-way (the
+    // truth-panel counts above confirm this; Grant Holloway is an own-FA cap
+    // hold, not a card). Was "13 / 15" (pre-BZE-241, two-way folded in). The
+    // posture summary adopted the same two-way-separated wording.
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '13 / 15'
+      '12 / 15 · 1 / 3'
     );
     await expect(page.getByTestId('cockpit-team-posture-summary')).toContainText(
-      '13 / 15 roster spots shown'
+      '12 / 15 roster · 1 / 3 two-way'
     );
 
     await expect(rosterWorkbench.getByAltText(OWN_FA_NAME)).toHaveCount(0);

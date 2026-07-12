@@ -135,10 +135,10 @@ const assertRosterParityAfterAbsolve = async (page: Page) => {
   await expect(truthPanel).toHaveAttribute('data-roster-standard-count', '12');
   await expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '1');
   await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-    '13 / 15'
+    '12 / 15 · 1 / 3'
   );
   await expect(page.getByTestId('cockpit-team-posture-summary')).toContainText(
-    '13 / 15 roster spots shown'
+    '12 / 15 roster · 1 / 3 two-way'
   );
 
   await expect(rosterWorkbench.getByAltText(OWN_FA_NAME)).toHaveCount(0);
@@ -164,10 +164,10 @@ const assertRosterParityAfterResign = async (page: Page) => {
   await expect(truthPanel).toHaveAttribute('data-roster-standard-count', '13');
   await expect(truthPanel).toHaveAttribute('data-roster-two-way-count', '1');
   await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-    '14 / 15'
+    '13 / 15 · 1 / 3'
   );
   await expect(page.getByTestId('cockpit-team-posture-summary')).toContainText(
-    '14 / 15 roster spots shown'
+    '13 / 15 roster · 1 / 3 two-way'
   );
 
   await expect(rosterWorkbench.getByAltText(OWN_FA_NAME)).toHaveCount(1);
@@ -246,7 +246,7 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
       faRow.getByTestId('cap-sheet-full-fa-resign-cell').first()
     ).toContainText('$15,000,000');
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '13 / 15'
+      '12 / 15 · 1 / 3'
     );
 
     const beforeTotalCap = await readCockpitTotalCapMillions(page);
@@ -267,7 +267,7 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
     const afterTotalCap = await readCockpitTotalCapMillions(page);
     expect(beforeTotalCap - afterTotalCap).toBeCloseTo(15, 0);
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '13 / 15'
+      '12 / 15 · 1 / 3'
     );
 
     await captureEvidence(page, testInfo, 'FCT-OWNFA-002-after-absolve');
@@ -325,7 +325,7 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
     ).toContainText('$15,000,000');
     await expect(signedOwnFaPlayerRow(page)).toHaveCount(0);
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '13 / 15'
+      '12 / 15 · 1 / 3'
     );
 
     const beforeTotalCap = await readCockpitTotalCapMillions(page);
@@ -371,7 +371,7 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
     const afterTotalCap = await readCockpitTotalCapMillions(page);
     expect(beforeTotalCap - afterTotalCap).toBeGreaterThan(0);
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '14 / 15'
+      '13 / 15 · 1 / 3'
     );
 
     await captureEvidence(page, testInfo, 'FCT-OWNFA-004-after-resign-fct');
@@ -383,7 +383,7 @@ test.describe('FCT-OWNFA: Full Cap Table inline own-FA decision row is browser-v
     await expect(ownFaDecisionRow(page)).toBeVisible({ timeout: 20000 });
     await expect(signedOwnFaPlayerRow(page)).toHaveCount(0);
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '13 / 15'
+      '12 / 15 · 1 / 3'
     );
     expect(await readCockpitTotalCapMillions(page)).toBeCloseTo(
       beforeTotalCap,

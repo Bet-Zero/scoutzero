@@ -128,16 +128,24 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
       page.locator('[title="Preview: manage Team Option"]').first()
     ).toBeVisible();
 
-    // --- Own free agent on the roster. In base/sandbox review mode the live
-    // own-FA (Grant Holloway) renders as a roster row, not as the inline
-    // renounce-able resign/absolve decision row — that inline row is home-base
-    // own-FA enrichment that is not surfaced without the own-FA pipeline (see the
-    // documented limitation in the BZE-87 report / README). Its non-active cap
-    // hold is still verifiable via the Cap Holds drawer below. ---
+    // --- Own free agent on the Full Cap Table. On current main the live own-FA
+    // (Grant Holloway) surfaces as the inline own-FA decision row — a re-sign
+    // cell carrying his $15M cap hold plus an Absolve control — NOT as a plain
+    // roster row with a "More actions" overflow. The BZE-87 base/sandbox
+    // limitation that once hid this enrichment is resolved: own FAs now render on
+    // the Full Cap Table decision row even in base/sandbox review mode
+    // (BZE-111 / BZE-190), matching roster-fct-parity and D-MQ-005A. His legacy
+    // non-active cap hold is still verifiable via the Cap Holds drawer below. ---
     await expect(
       page.getByRole('button', {
         name: new RegExp(`More actions for ${MIA_CAP_HOLD_NAME}`, 'i'),
       })
+    ).toHaveCount(0);
+    await expect(
+      page
+        .getByTestId('cap-sheet-full-fa-resign-cell')
+        .filter({ hasText: '$15,000,000' })
+        .first()
     ).toBeVisible();
 
     // --- The detail panel only renders a toggle for a category when the fixture
@@ -161,11 +169,18 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
     await capHoldsToggle.click();
     await expect(page.getByText(/Legacy Hold/i).first()).toBeVisible();
 
-    // Expand exceptions and confirm the carried MLE readout.
+    // Expand exceptions, then open the exception-card disclosure. BZE-216
+    // reworked this readout: the default banner shows only hard-cap status + the
+    // Trade Exceptions count, and the MLE/BAE/ROOM cards open from a "Show
+    // details" toggle. The carried Taxpayer MLE surfaces as the "TP-MLE" card.
     await exceptionsToggle.click();
-    await expect(
-      page.getByTestId('cap-sheet-full-exceptions-readout')
-    ).toContainText(/MLE/i);
+    const exceptionsReadout = page.getByTestId(
+      'cap-sheet-full-exceptions-readout'
+    );
+    await exceptionsReadout
+      .getByTestId('cap-sheet-exceptions-details-toggle')
+      .click();
+    await expect(exceptionsReadout).toContainText(/MLE/i);
 
     // --- Apron posture: real salaries place MIA over the tax and into the first
     // apron band. The shared cap-posture strip exposes the apron tiles. ---
@@ -428,9 +443,14 @@ test.describe('FCT-MIA: Full Cap Table MIA review fixture is browser-verifiable'
     await exceptionsToggle.click();
     await expect(capHoldsToggle).toHaveAttribute('aria-expanded', 'false');
     await expect(exceptionsToggle).toHaveAttribute('aria-expanded', 'true');
+    // The exceptions panel opened. BZE-216 keeps the MLE/BAE/ROOM cards behind a
+    // "Show details" disclosure (the Taxpayer MLE is proven via that path in
+    // FCT-MIA-001); the always-visible banner carries the hard-cap status and the
+    // Trade Exceptions count, which confirms the panel rendered for this
+    // toggle-behavior test without changing the disclosure state.
     await expect(
       page.getByTestId('cap-sheet-full-exceptions-readout')
-    ).toContainText(/MLE/i);
+    ).toContainText(/Trade Exceptions/i);
 
     await exceptionsToggle.click();
     await expect(exceptionsToggle).toHaveAttribute('aria-expanded', 'false');
