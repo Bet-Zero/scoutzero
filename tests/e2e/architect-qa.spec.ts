@@ -4005,7 +4005,17 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-008-team-history-detail');
   });
 
-  test('D-MQ-009: Entitlement authoring saves world data and blocks conflicting claims', async ({
+  // BZE-251: entitlement/pick authoring is hidden from owner-facing V1 builds.
+  // D-MQ-009 exercises the admin authoring path, so it is declared only when the
+  // flag is opted in (VITE_FEATURE_ENTITLEMENT_AUTHORING=true); otherwise it is
+  // skipped at declaration time so its beforeEach dashboard load is skipped too.
+  // D-MQ-009B (below) covers the default flag-off owner-facing build.
+  const entitlementAuthoringEnabled =
+    process.env.VITE_FEATURE_ENTITLEMENT_AUTHORING === 'true';
+  const authoringOnlyTest = entitlementAuthoringEnabled ? test : test.skip;
+  const authoringOffOnlyTest = entitlementAuthoringEnabled ? test.skip : test;
+
+  authoringOnlyTest('D-MQ-009: Entitlement authoring saves world data and blocks conflicting claims', async ({
     page,
   }, testInfo) => {
     await ensureTeamDataLoaded(page, testInfo);
@@ -4241,6 +4251,46 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     expect(beforeEntitlementIds.length + 1).toBe(
       afterCreateEntitlementIds.length
     );
+  });
+
+  // BZE-251 (owner-decided exclusion): in the owner-facing V1 build the Trade
+  // Machine must NOT surface admin authoring affordances — no "+ New Entitlement"
+  // create control and no pick "Modify" edit control. Trading existing
+  // picks/entitlements stays fully in scope; only the authoring controls are
+  // hidden. Declared for the default flag-off build; skipped when authoring is
+  // opted in (that path is D-MQ-009).
+  authoringOffOnlyTest('D-MQ-009B: The normal Trade Machine shows no entitlement/pick authoring controls', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureWorldSelected(page, testInfo);
+
+    await openDashboardTab(page, 'Trade Machine');
+    await expect(
+      page.getByRole('heading', { name: /^Trade Machine$/i })
+    ).toBeVisible();
+
+    // Open the primary team's Picks tab — where authoring controls would live.
+    const picksTabButton = page
+      .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
+      .first();
+    await expect(picksTabButton).toBeVisible();
+    await picksTabButton.click();
+
+    // No admin authoring: neither the create ("+ New Entitlement") nor the pick
+    // edit ("Modify") control is present.
+    await expect(
+      page.getByRole('button', { name: /New Entitlement/i })
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /^Modify$/i })
+    ).toHaveCount(0);
+
+    addAuditNote(
+      testInfo,
+      'BZE-251: the owner-facing Trade Machine (entitlement authoring flag off) exposes no admin authoring affordances — no "+ New Entitlement" create control and no pick "Modify" edit control on the Picks tab. Trading existing picks/entitlements remains available; only authoring is hidden. The admin authoring path itself stays proven by D-MQ-009 under VITE_FEATURE_ENTITLEMENT_AUTHORING=true.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-009B-no-authoring-controls');
   });
 
   test('D-MQ-010: Base-write deny evidence remains paired with rules proof', async ({
