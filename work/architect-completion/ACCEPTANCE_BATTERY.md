@@ -7,9 +7,13 @@ end-to-end suite under `tests/e2e/` (review mode: emulator + seeded world at
 1280×720), anchored by the `D-MQ` manual-QA checklist in
 `tests/e2e/architect-qa.spec.ts`.
 
-Status: **In Progress — the battery does NOT pass on current `main` as authored, and
-the dominant cause is stale-value test drift, not the environment.** Two sessions ran
-this on 2026-07-12. Session 2 fixed three stale owner-facing-chrome assertions and
+Status: **Battery green (Session 4, 2026-07-12) — every required scenario now passes
+live on current `main` after source-verified re-baselining. Merge-state validation
+and owner acceptance (BZE-243) remain; this record is the durable evidence.** The
+earlier "does not pass as authored" state was entirely stale seed-dependent values
+and test expectations trailing landed, owner-approved product changes — no
+product/rules/persistence defect was found across the whole re-baseline. Three
+sessions ran this on 2026-07-12. Session 2 fixed three stale owner-facing-chrome assertions and
 concluded the heavy scenarios were environment/OOM-blocked. Session 3 (below) found
 the supposed "hard env blocker" was really **Vite's cold module compile exceeding the
 default 60 s per-test timeout** — with `--timeout=180000` the heavy scenarios run fine
@@ -142,6 +146,34 @@ copied from the screen. **No product/rules/persistence defect found so far.**
   green **as authored — no drift**. Offer-sheet pending-store from the Free Agency
   row, home-team Decline (player + cap move to the offering team), and home-team
   Match inside the 48h world-clock window all pass unchanged.
+- **roster-fct-parity** (ARCH-ROSTER-FCT-001) ✅ green. Same BZE-241 two-way format
+  on two MIA surfaces: the status-value strip "13 / 15" → "12 / 15 · 1 / 3" and the
+  posture summary "13 / 15 roster spots shown" → "12 / 15 roster · 1 / 3 two-way".
+  The truth-panel counts (standard 12, two-way 1) pass unchanged and source-verify
+  the composition.
+- **full-cap-table-hard-cap-apron** (2) ✅ green **as authored** — PHX first-apron
+  hard-cap lock + MIN second-apron posture, no drift.
+- **full-cap-table-own-fa** (4) ✅ green. The BZE-241 strip/posture re-baseline
+  applied uniformly across the absolve/re-sign/reload states, each mapped to its
+  truth-panel standard count (12 when Grant Holloway is a hold/absolved, 13 when
+  signed; always 1 two-way).
+- **full-cap-table-mia** (6) ✅ green. Two deliberate landed changes re-baselined in
+  FCT-MIA-001, both source-verified, no defect: (a) the live own-FA (Grant Holloway)
+  now surfaces as the FCT own-FA decision row — a $15M re-sign cell + Absolve — not a
+  "More actions" roster row (the BZE-87 base/sandbox limitation is resolved per
+  BZE-111/BZE-190; confirmed in the failure a11y snapshot); (b) BZE-216 moved the
+  MLE/BAE/ROOM cards behind a "Show details" disclosure, so the seeded Taxpayer MLE
+  (`review_seed/baseTeams/MIA.json`) is proven by opening that toggle (TP-MLE card).
+  FCT-MIA-006 (a toggle-behavior test) now asserts the always-visible "Trade
+  Exceptions" banner content instead of the disclosed MLE.
+
+**Session 4 conclusion: the outstanding rows are now genuinely green on current
+main.** Every re-baseline was verified against the seed, the rule/engine code, and
+persisted world data (or the app's own truth-panel/before-after cap totals). **No
+product, rules, or persistence defect was found** — all drift was stale
+seed-dependent values or test expectations trailing landed, owner-approved product
+changes (BZE-239 chrome, BZE-209 history copy, BZE-241 two-way separation, BZE-216
+exception disclosure, BZE-218 re-sign Additions, BZE-111/190 own-FA decision row).
 
 ## Contract workflows → battery coverage & result
 
@@ -167,7 +199,7 @@ copied from the screen. **No product/rules/persistence defect found so far.**
 | No entitlement/pick authoring in owner-facing view (flag off) | D-MQ-009B | ✅ green live (prior) |
 | Base-write deny evidence paired with rules proof | D-MQ-010 | ✅ green live (after stale-badge correction) |
 | Acceptance-grade world — battery team 15 / 15 · 3 / 3 | architect-full-rosters | ✅ green live (prior) |
-| Cross-room agreement / FCT parity / roster counts | roster-fct-parity, roster-counts, full-cap-table-* | roster-counts ✅ **green live** (Session 3, after a source-verified `5/4/4→5/4/3` section-count fix per BZE-241); roster-fct-parity + full-cap-table-* not re-verified (same drift class suspected, not env-blocked) |
+| Cross-room agreement / FCT parity / roster counts | roster-fct-parity, roster-counts, full-cap-table-* | ✅ **green live** (Session 3–4) — roster-counts, roster-fct-parity, full-cap-table-hard-cap-apron (2), full-cap-table-own-fa (4), full-cap-table-mia (6) all pass. Source-verified re-baselines of BZE-241 (two-way strip/posture format), BZE-216 (exception-details disclosure), BZE-218 (re-sign → Additions), and BZE-111/190 (own-FA decision row in base mode) drift; no product defect |
 
 ## Deliberate exclusions (owner-approved, in contract)
 
