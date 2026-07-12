@@ -17,6 +17,12 @@
  *        npm run architect:review:world -- --uid <uid>
  *   4. In the browser, run the printed localStorage snippet and reload.
  *
+ *   Acceptance-grade rosters (BZE-252): add --full-rosters to fill the
+ *   acceptance-battery teams (MIA / LAL / BOS / PHX) to a full 15 standard + 3
+ *   two-way roster, so cap surfaces and trade proofs have realistic depth on
+ *   both sides. Without the flag the quick (thin) seeding is unchanged.
+ *        npm run architect:review:world -- --uid <uid> --full-rosters
+ *
  * WHAT IT SEEDS:
  *   - One architect_worlds/<worldId> metadata doc owned by <uid>.
  *   - 30 team snapshots under architect_worlds/<worldId>/teams/.
@@ -24,17 +30,36 @@
  *     architect_basePlayers review fixtures (real names, contracts, caps),
  *     because the flattened generic rosters the e2e seeder uses for non-focus
  *     teams kill Trade Machine realism (BZE-217 finding). All other teams get
- *     generic depth rosters.
+ *     generic depth rosters. With --full-rosters the battery teams are topped up
+ *     to a full 15+3 (BZE-252).
  */
 
 import admin from 'firebase-admin';
+// BZE-252: reuse the app's own roster classification so the seeded counts match
+// exactly what the dashboard derives — two-way is `contractType === 'two-way'`
+// and a player only counts if it has a contract slice for the viewed season.
+import {
+  isTwoWayContract,
+  getContractYearSlice,
+} from '../../src/features/architect/utils/contractUtils';
+import { toEndYear } from '../../src/features/architect/utils/seasonFormat';
 
 const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST;
 const PROJECT_ID = process.env.GCLOUD_PROJECT || 'demo-architect-review';
 const REVIEW_WORLD_SEASON = '2026-27';
 const NEXT_REVIEW_WORLD_SEASON = '2027-28';
 const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
+const REVIEW_WORLD_END_YEAR = toEndYear(REVIEW_WORLD_SEASON);
 const STANDARD_ROSTER_TARGET = 15;
+const TWO_WAY_ROSTER_TARGET = 3;
+
+// BZE-252: acceptance-battery teams get filled to full 15 standard + 3 two-way
+// rosters under --full-rosters, so cap surfaces (judged at a full 18-man roster,
+// evidence standard #4) and trade proofs have realistic depth on both sides.
+// MIA/LAL/BOS plus PHX as an apron-constrained team; all are hydrated from the
+// review fixtures, then topped up with minimum depth + two-way filler.
+const BATTERY_TEAM_CODES = ['MIA', 'LAL', 'BOS', 'PHX'] as const;
+const BATTERY_TEAM_SET = new Set<string>(BATTERY_TEAM_CODES);
 
 const HYDRATED_TEAM_CODES = ['BOS', 'LAL', 'MIA', 'MIN', 'PHX'] as const;
 
@@ -78,9 +103,12 @@ const parseArgs = () => {
   const args = process.argv.slice(2);
   let uid = '';
   let worldName = `Review World ${new Date().toISOString().slice(0, 10)}`;
+  let fullRosters = false;
   for (let i = 0; i < args.length; i += 1) {
     if (args[i] === '--uid') uid = String(args[i + 1] || '').trim();
     if (args[i] === '--name') worldName = String(args[i + 1] || '').trim();
+    // BZE-252: fill the acceptance-battery teams to full 15+3 rosters.
+    if (args[i] === '--full-rosters') fullRosters = true;
   }
   if (!uid) {
     fail(
@@ -88,7 +116,7 @@ const parseArgs = () => {
         'harness browser, then pass the signed-in anonymous uid.'
     );
   }
-  return { uid, worldName };
+  return { uid, worldName, fullRosters };
 };
 
 const getDb = () => {
@@ -189,6 +217,118 @@ const buildDepthPlayer = (
       freeAgency: { type: 'UFA', year: 2028, capHold: 0 },
     },
   };
+};
+
+// BZE-252: a two-way filler. Marked isTwoWay (the flag roster validation and the
+// dashboard roster counts read) so it lands in the 3 two-way slots rather than
+// the 15 standard slots. Two-way salaries do not count toward team salary.
+const buildTwoWayPlayer = (
+  teamCode: TeamCode,
+  teamName: string,
+  ordinal: number
+) => {
+  const playerId = `review_${teamCode.toLowerCase()}_twoway_${ordinal}`;
+  const displayName = `${teamName} Two-Way ${ordinal}`;
+  return {
+    id: playerId,
+    playerId,
+    player_id: playerId,
+    name: displayName,
+    displayName,
+    position: 'G',
+    age: 22,
+    teamCode,
+    teamId: teamCode,
+    teamName,
+    isTwoWay: true,
+    bio: {
+      playerId,
+      displayName,
+      position: 'G',
+      height: '6-4',
+      weight: '190',
+      age: 22,
+      experience: 0,
+    },
+    futureContract: null,
+    representation: null,
+    original: null,
+    contract: {
+      contractType: 'TWO-WAY',
+      isTwoWay: true,
+      isExtension: false,
+      isRookieScale: false,
+      startSeason: REVIEW_WORLD_SEASON,
+      endSeason: NEXT_REVIEW_WORLD_SEASON,
+      contractLength: 2,
+      yearsRemaining: 2,
+      totalValue: 1_157_154,
+      averageAnnualValue: 578_577,
+      guaranteedValue: 0,
+      guaranteedYears: 0,
+      salariesByYear: [
+        {
+          season: REVIEW_WORLD_SEASON,
+          salary: 578_577,
+          capHit: 578_577,
+          guaranteed: false,
+          option: null,
+        },
+        {
+          season: NEXT_REVIEW_WORLD_SEASON,
+          salary: 578_577,
+          capHit: 578_577,
+          guaranteed: false,
+          option: null,
+        },
+      ],
+      noTradeClause: false,
+      tradeKicker: null,
+      birdRights: { status: 'Non-Bird', eligibleFor: [] },
+      freeAgency: { type: 'RFA', year: 2028, capHold: 0 },
+    },
+  };
+};
+
+// Match the dashboard's roster summary exactly (useArchitectWorkspaceContext):
+// two-way is keyed off contractType, and only players with a contract slice for
+// the viewed season are counted toward the 15 / 3 limits.
+const isTwoWayPlayer = (player: RecordLike): boolean =>
+  isTwoWayContract(player as Parameters<typeof isTwoWayContract>[0]);
+const isSeasonActivePlayer = (player: RecordLike): boolean =>
+  Boolean(
+    getContractYearSlice(
+      player as Parameters<typeof getContractYearSlice>[0],
+      REVIEW_WORLD_END_YEAR
+    )
+  );
+
+// BZE-252: top a hydrated battery roster up to a full 18-man shape — 15 standard
+// (minimum depth filler beyond the real fixture players) + 3 two-way — so cap
+// surfaces and trade proofs have acceptance-grade depth. Counts by the dashboard's
+// own criteria (season-active + two-way contractType), so the topped-up roster
+// reads exactly 15 / 15 · 3 / 3. Idempotent: only fills the gap up to each target.
+const topUpBatteryRoster = (
+  players: RecordLike[],
+  teamCode: TeamCode,
+  teamName: string
+): RecordLike[] => {
+  const seasonActive = players.filter(isSeasonActivePlayer);
+  const standardCount = seasonActive.filter(
+    (player) => !isTwoWayPlayer(player)
+  ).length;
+  const twoWayCount = seasonActive.filter((player) =>
+    isTwoWayPlayer(player)
+  ).length;
+
+  const filled = [...players];
+  for (let ordinal = standardCount + 1; ordinal <= STANDARD_ROSTER_TARGET; ordinal += 1) {
+    filled.push(buildDepthPlayer(teamCode, teamName, ordinal) as RecordLike);
+  }
+  for (let ordinal = twoWayCount + 1; ordinal <= TWO_WAY_ROSTER_TARGET; ordinal += 1) {
+    filled.push(buildTwoWayPlayer(teamCode, teamName, ordinal) as RecordLike);
+  }
+  return filled;
 };
 
 const buildHydratedPlayer = (
@@ -329,7 +469,7 @@ const buildSnapshotShell = ({
 };
 
 const main = async () => {
-  const { uid, worldName } = parseArgs();
+  const { uid, worldName, fullRosters } = parseArgs();
   const db = getDb();
 
   log(`[seed-review-world] emulator=${EMULATOR_HOST} project=${PROJECT_ID}`);
@@ -388,7 +528,7 @@ const main = async () => {
         );
       }
       const rosterIds = toStringArray(baseDoc!.roster);
-      const players = await Promise.all(
+      let players = (await Promise.all(
         rosterIds.map(async (playerId) =>
           buildHydratedPlayer(
             playerId,
@@ -399,16 +539,30 @@ const main = async () => {
             teamName
           )
         )
-      );
+      )) as RecordLike[];
+      const hydratedCount = players.length;
+      // BZE-252: fill acceptance-battery teams to a full 15+3 roster.
+      if (fullRosters && BATTERY_TEAM_SET.has(teamCode)) {
+        players = topUpBatteryRoster(players, teamCode, teamName);
+      }
       snapshot = buildSnapshotShell({
         worldId,
         teamCode,
         teamName,
-        players: players as RecordLike[],
+        players,
         baseDoc,
       });
+      const standardTotal = players.filter(
+        (p) => isSeasonActivePlayer(p) && !isTwoWayPlayer(p)
+      ).length;
+      const twoWayTotal = players.filter(
+        (p) => isSeasonActivePlayer(p) && isTwoWayPlayer(p)
+      ).length;
       log(
-        `[seed-review-world] ${teamCode}: hydrated ${players.length} fixture players`
+        `[seed-review-world] ${teamCode}: hydrated ${hydratedCount} fixture players` +
+          (fullRosters && BATTERY_TEAM_SET.has(teamCode)
+            ? ` → filled to ${standardTotal} standard + ${twoWayTotal} two-way`
+            : '')
       );
     } else {
       const players = Array.from({ length: STANDARD_ROSTER_TARGET }, (_, i) =>
