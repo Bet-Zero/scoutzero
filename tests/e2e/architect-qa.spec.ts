@@ -3313,8 +3313,13 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       faRow.getByTestId('cap-sheet-full-fa-resign-cell').first()
     ).toContainText('$15,000,000');
     await expect(signedOwnFaPlayerRow(page)).toHaveCount(0);
+    // Source-verified re-baseline (BZE-241 two-way separation): the status strip
+    // reads "{standard} / 15 · {two-way} / 3". Before re-signing, MIA is 12
+    // standard + 1 two-way (mia_tobias_lund, $597K); Grant Holloway is still a
+    // $15M own-FA cap hold, not a rostered player. Was "13 / 15" (pre-BZE-241,
+    // the single two-way was folded into the standard count).
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '13 / 15'
+      '12 / 15 · 1 / 3'
     );
 
     const beforeTotalCap = await readCockpitTotalCapMillions(page);
@@ -3379,8 +3384,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
           "FCT total should fall after replacing Grant Holloway's $15M cap hold with a $12M signed contract",
       })
       .toBeLessThan(beforeTotalCap);
+    // Source-verified re-baseline: re-signing Grant Holloway (from a $15M cap
+    // hold to a $12M signed Standard contract, Full Bird) adds him to the
+    // standard roster, so the strip advances to 13 standard + 1 two-way. Was
+    // "14 / 15" (pre-BZE-241 two-way folding).
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '14 / 15'
+      '13 / 15 · 1 / 3'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005A-after-own-fa-resign-fct');
 
@@ -3482,8 +3491,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
       /1\s+player touched/i
     );
+    // BZE-218: an own-FA re-sign lands under Compare Additions — the re-signed
+    // player joins the rostered set from a cap hold (roster went 12 -> 13
+    // standard). Was "None detected" (a pre-BZE-218 assumption that re-signs
+    // were contract-only, not roster additions). Removals/changed stay none.
     await expect(page.getByTestId('comparison-roster-additions')).toContainText(
-      /None detected/i
+      REVIEW_MIA_OWN_FA_NAME
     );
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
       /None detected/i
@@ -3501,8 +3514,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(signedOwnFaPlayerRow(page)).toHaveCount(1, {
       timeout: 20000,
     });
+    // Reload preserves the post-resign roster: 13 standard + 1 two-way (was
+    // "14 / 15" pre-BZE-241 two-way folding).
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
-      '14 / 15'
+      '13 / 15 · 1 / 3'
     );
     await openDashboardTab(page, 'Roster');
     const reloadedRosterWorkbench = page

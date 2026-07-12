@@ -129,6 +129,15 @@ copied from the screen. **No product/rules/persistence defect found so far.**
   roster charge at the 2026-27 rookie min $1,357,763. The old value used the
   2025-26 rookie min $1,164,345 ($4,800,000 − $1,164,345 = $3,635,655). Cap
   accounting is correct; only the seed's rookie-minimum charge changed.
+- **D-MQ-005A** (own-FA re-sign) ✅ green. Persisted data confirms the workflow:
+  Grant Holloway converts from a $15M own-FA cap hold to a $12M signed Standard
+  contract (Full Bird, 8% raises), the hold is removed, MIA goes 12→13 standard
+  (+1 two-way `mia_tobias_lund`), one Holloway record, no ghost hold, reload holds.
+  Two deliberate landed changes were re-baselined (no defect): (a) the status
+  strip is now `{std} / 15 · {two-way} / 3` (BZE-241 two-way separation), so
+  "13/15"→"12/15 · 1/3" before and "14/15"→"13/15 · 1/3" after/reload; (b) Compare
+  Additions shows the re-signed player (BZE-218 "re-sign lands under Additions"),
+  was "None detected".
 
 ## Contract workflows → battery coverage & result
 
@@ -141,7 +150,7 @@ copied from the screen. **No product/rules/persistence defect found so far.**
 | Waiver dead cap persists | D-MQ-004B | ✅ green live (prior) |
 | Waive & Stretch / Buyout dead cap persists | D-MQ-004C, D-MQ-004D | ✅ **green live** (Session 4, `--timeout=180000`) — both source-verified re-baselined to the 2026-27 world: 004C stretch $31M/3 → 2026-27 $10,333,334 / 2027-28 $10,333,333 / 2028-29 $10,333,333; 004D buyout $31M−$5M = $26M in 2026-27 (dead-cap poll + event `deadCapAmount`). Product correct; only stale hardcoded values changed |
 | FA signing — receipt + history + compare + reload | D-MQ-005 | ✅ **green live** (Session 4) — cap-delta re-baselined `-$3,635,655` → `-$3,442,237`, source-verified from the event before/after cap totals (= $4.8M offer − 2026-27 rookie-min $1,357,763 incomplete-roster charge). Product correct |
-| Own-FA re-sign — FCT/Roster/history/compare/reload | D-MQ-005A | ⏳ env-blocked this session |
+| Own-FA re-sign — FCT/Roster/history/compare/reload | D-MQ-005A | ✅ **green live** (Session 4) — $15M own-FA hold → $12M signed Standard (Full Bird), hold removed, roster 12→13 standard, reload holds. Re-baselined the status strip to the BZE-241 two-way format ("13/15"→"12/15 · 1/3", "14/15"→"13/15 · 1/3") and Compare Additions to show the re-signed player (BZE-218). Product correct |
 | RFA offer sheet — pending / decline / match (48h) | D-MQ-005B, D-MQ-005D, D-MQ-005E | ⏳ env-blocked this session |
 | Sign-and-trade from FCT own-FA — hard-cap + rehydrate | D-MQ-005C | ✅ green live (prior) |
 | Sign-and-trade starts from Free Agency room — hard-cap | D-MQ-005F | ✅ green live (prior) |
