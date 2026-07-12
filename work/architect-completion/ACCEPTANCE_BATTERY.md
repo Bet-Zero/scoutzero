@@ -114,12 +114,21 @@ copied from the screen. **No product/rules/persistence defect found so far.**
   2025-26 $14M / 2026-27 $15M / 2027-28 $16M (`review_seed/basePlayers/austin_reaves.json`).
   In a 2026-27 world `allocateStandardWaiverDeadCapBySeason` drops the past 2025-26
   row → remaining $31M; `computeWaiveResult` stretches $31M over 3 years from
-  2026-27: 2026-27 $10,333,334 / 2027-28 $10,333,333 / 2028-29 $10,333,333 (floor
-  + 1 remainder). Was `{2025-26,2026-27,2027-28} × $15M` (the 2025-26-world $45M/3).
+  2026-27: 2026-27 $10,333,334 / 2027-28 $10,333,333 / 2028-29 $10,333,333
+  (floored, remainder of $1 to year 0). Was `{2025-26,2026-27,2027-28} × $15M`
+  (the 2025-26-world $45M/3).
 - **D-MQ-004D** (buyout, no stretch) ✅ green. Remaining $31M − $5M buyout = $26M
   dead cap, single lump in 2026-27. Two stale values corrected: the dead-cap poll
   (`{2025-26: $40M}` → `{2026-27: $26M}`) and the event-metadata `deadCapAmount`
   (`$40M` → `$26M`) — same $45M→$31M base shift.
+- **D-MQ-005** (league-pool FA signing) ✅ green. The default offer applies a 4-yr
+  contract starting $4,800,000 (5% raises). Cap-space delta re-baselined
+  `-$3,635,655` → `-$3,442,237`, source-verified against the `signFreeAgent`
+  event's before/after BOS cap totals (capSpace $16,125,607 → $12,683,370): the
+  delta = first-year salary $4,800,000 − one filled roster slot's incomplete-
+  roster charge at the 2026-27 rookie min $1,357,763. The old value used the
+  2025-26 rookie min $1,164,345 ($4,800,000 − $1,164,345 = $3,635,655). Cap
+  accounting is correct; only the seed's rookie-minimum charge changed.
 
 ## Contract workflows → battery coverage & result
 
@@ -131,7 +140,7 @@ copied from the screen. **No product/rules/persistence defect found so far.**
 | Illegal/blocked trade — fail-closed before apply | D-MQ-004 | ✅ green live (prior) |
 | Waiver dead cap persists | D-MQ-004B | ✅ green live (prior) |
 | Waive & Stretch / Buyout dead cap persists | D-MQ-004C, D-MQ-004D | ✅ **green live** (Session 4, `--timeout=180000`) — both source-verified re-baselined to the 2026-27 world: 004C stretch $31M/3 → 2026-27 $10,333,334 / 2027-28 $10,333,333 / 2028-29 $10,333,333; 004D buyout $31M−$5M = $26M in 2026-27 (dead-cap poll + event `deadCapAmount`). Product correct; only stale hardcoded values changed |
-| FA signing — receipt + history + compare + reload | D-MQ-005 | ⚠️ **stale test, not env** (Session 3): signing executes + persists (receipt, roster 3→4, persisted doc); fails on a **hardcoded cap-delta magic number** (`-$3,635,655`), format intact. No product failure observed; needs re-baseline |
+| FA signing — receipt + history + compare + reload | D-MQ-005 | ✅ **green live** (Session 4) — cap-delta re-baselined `-$3,635,655` → `-$3,442,237`, source-verified from the event before/after cap totals (= $4.8M offer − 2026-27 rookie-min $1,357,763 incomplete-roster charge). Product correct |
 | Own-FA re-sign — FCT/Roster/history/compare/reload | D-MQ-005A | ⏳ env-blocked this session |
 | RFA offer sheet — pending / decline / match (48h) | D-MQ-005B, D-MQ-005D, D-MQ-005E | ⏳ env-blocked this session |
 | Sign-and-trade from FCT own-FA — hard-cap + rehydrate | D-MQ-005C | ✅ green live (prior) |

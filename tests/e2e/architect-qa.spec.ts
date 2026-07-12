@@ -2537,8 +2537,17 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(
       page.getByText(/Roster count changed 3 -> 4/i).first()
     ).toBeVisible();
+    // Source-verified re-baseline for the 2026-27 seeded world (confirmed
+    // against the signFreeAgent event's before/after BOS cap totals:
+    // capSpace $16,125,607 -> $12,683,370). The default offer's first-year
+    // salary is $4,800,000, but signing fills one of BOS's empty roster slots,
+    // so the incomplete-roster charge drops by one slot at the 2026-27 rookie
+    // minimum ($1,357,763). Net cap-space change = $4,800,000 - $1,357,763 =
+    // $3,442,237. The prior -$3,635,655 used the 2025-26 rookie min
+    // ($1,164,345); the product's cap accounting is correct, only the seed's
+    // rookie-minimum incomplete-roster charge changed.
     await expect(
-      page.getByText(/Cap space changed -\$3,635,655/i).first()
+      page.getByText(/Cap space changed -\$3,442,237/i).first()
     ).toBeVisible();
 
     const persistedTeamDocument = await getWorldTeamDocument(worldId, 'BOS');
