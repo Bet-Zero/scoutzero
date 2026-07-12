@@ -102,6 +102,25 @@ is done.
 > `git add -A` committed Session 3's identical edits in `c13f4486`). Owner should
 > ensure only one session drives this to completion.
 
+## Session 4 findings (2026-07-12) — source-verified re-baselining underway
+
+Resumed on the pushed branch after an owner restart, running each outstanding
+workflow individually with `--timeout=180000`, one paced batch per clean harness
+boot (ports cleared first). Every re-baseline below is **source-verified** against
+the seed contract, the applicable rule code, and the persisted world data — not
+copied from the screen. **No product/rules/persistence defect found so far.**
+
+- **D-MQ-004C** (waive-and-stretch) ✅ green. Reaves' guaranteed salary is
+  2025-26 $14M / 2026-27 $15M / 2027-28 $16M (`review_seed/basePlayers/austin_reaves.json`).
+  In a 2026-27 world `allocateStandardWaiverDeadCapBySeason` drops the past 2025-26
+  row → remaining $31M; `computeWaiveResult` stretches $31M over 3 years from
+  2026-27: 2026-27 $10,333,334 / 2027-28 $10,333,333 / 2028-29 $10,333,333 (floor
+  + 1 remainder). Was `{2025-26,2026-27,2027-28} × $15M` (the 2025-26-world $45M/3).
+- **D-MQ-004D** (buyout, no stretch) ✅ green. Remaining $31M − $5M buyout = $26M
+  dead cap, single lump in 2026-27. Two stale values corrected: the dead-cap poll
+  (`{2025-26: $40M}` → `{2026-27: $26M}`) and the event-metadata `deadCapAmount`
+  (`$40M` → `$26M`) — same $45M→$31M base shift.
+
 ## Contract workflows → battery coverage & result
 
 | Contract workflow (BZE-246 scope) | Battery test(s) | Result |
@@ -111,7 +130,7 @@ is done.
 | In-progress draft survives leaving the room (W9) | D-MQ-003B | ✅ green live (prior) |
 | Illegal/blocked trade — fail-closed before apply | D-MQ-004 | ✅ green live (prior) |
 | Waiver dead cap persists | D-MQ-004B | ✅ green live (prior) |
-| Waive & Stretch / Buyout dead cap persists | D-MQ-004C, D-MQ-004D | ⚠️ **stale test, not env** (Session 3): 004C runs to the app with `--timeout=180000`, waive-and-stretch executes + persists (UI: saved, roster 14→13, Reaves removed); fails on **hardcoded stretch seasons** (`2025-26…`) stale for the 2026-27 seed. 004D not re-verified. No product failure observed; needs re-baseline |
+| Waive & Stretch / Buyout dead cap persists | D-MQ-004C, D-MQ-004D | ✅ **green live** (Session 4, `--timeout=180000`) — both source-verified re-baselined to the 2026-27 world: 004C stretch $31M/3 → 2026-27 $10,333,334 / 2027-28 $10,333,333 / 2028-29 $10,333,333; 004D buyout $31M−$5M = $26M in 2026-27 (dead-cap poll + event `deadCapAmount`). Product correct; only stale hardcoded values changed |
 | FA signing — receipt + history + compare + reload | D-MQ-005 | ⚠️ **stale test, not env** (Session 3): signing executes + persists (receipt, roster 3→4, persisted doc); fails on a **hardcoded cap-delta magic number** (`-$3,635,655`), format intact. No product failure observed; needs re-baseline |
 | Own-FA re-sign — FCT/Roster/history/compare/reload | D-MQ-005A | ⏳ env-blocked this session |
 | RFA offer sheet — pending / decline / match (48h) | D-MQ-005B, D-MQ-005D, D-MQ-005E | ⏳ env-blocked this session |

@@ -2092,12 +2092,22 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
             'waive-and-stretch should remove Austin Reaves and spread dead cap across three seasons',
         }
       )
+      // Source-verified re-baseline for the current 2026-27 seeded world (was
+      // authored against a 2025-26 world). Austin Reaves' guaranteed salary is
+      // 2025-26 $14M / 2026-27 $15M / 2027-28 $16M (review_seed/basePlayers/
+      // austin_reaves.json). Waiving in a 2026-27 world:
+      //   - allocateStandardWaiverDeadCapBySeason drops the past 2025-26 row
+      //     (seasonEndYear 2026 < current 2027), leaving $15M + $16M = $31M.
+      //   - computeWaiveResult stretches $31M over stretchYears=3 starting at
+      //     seasonId 2026-27: floor(31M/3)=10,333,333, remainder 1 → year 0
+      //     gets +1 (mutationPipeline.compute.signings.playerOps.ts:110-133).
+      // Product behavior is correct; only the pre-roll seasons/amounts drifted.
       .toEqual({
         hasAustinReaves: false,
         amountByYear: {
-          '2025-26': { amount: 15_000_000, isStretched: true },
-          '2026-27': { amount: 15_000_000, isStretched: true },
-          '2027-28': { amount: 15_000_000, isStretched: true },
+          '2026-27': { amount: 10_333_334, isStretched: true },
+          '2027-28': { amount: 10_333_333, isStretched: true },
+          '2028-29': { amount: 10_333_333, isStretched: true },
         },
         notes: 'Stretched over 3 years',
       });
@@ -2350,10 +2360,17 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
             'buyout should remove Austin Reaves and persist dead cap after the buyout reduction',
         }
       )
+      // Source-verified re-baseline for the 2026-27 seeded world. Reaves'
+      // guaranteed remaining from the current season = $15M (2026-27) + $16M
+      // (2027-28) = $31M (the past 2025-26 $14M row is excluded). A $5,000,000
+      // buyout reduces the dead cap to $31M - $5M = $26M, persisted as a single
+      // lump in the current season 2026-27 for a non-stretch buyout
+      // (mutationPipeline.compute.signings.playerOps.ts:100-156). Product is
+      // correct; the prior {2025-26: $40M} was the 2025-26-world value.
       .toEqual({
         hasAustinReaves: false,
         amountByYear: {
-          '2025-26': 40_000_000,
+          '2026-27': 26_000_000,
         },
         notes: 'Buyout reduction: $5,000,000',
       });
@@ -2381,8 +2398,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
               (metadata.buyout === true || mutationMetadata.buyout === true) &&
               (metadata.buyoutAmount === 5_000_000 ||
                 mutationMetadata.buyoutAmount === 5_000_000) &&
-              (metadata.deadCapAmount === 40_000_000 ||
-                mutationMetadata.deadCapAmount === 40_000_000)
+              // Same 2026-27 re-baseline as the dead-cap poll above: post-buyout
+              // dead cap is $31M remaining - $5M buyout = $26M (was $40M in the
+              // 2025-26-authored world). The event metadata carries the same
+              // computed deadCapAmount confirmed persisted above.
+              (metadata.deadCapAmount === 26_000_000 ||
+                mutationMetadata.deadCapAmount === 26_000_000)
             );
           });
         },
