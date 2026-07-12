@@ -7,13 +7,19 @@ end-to-end suite under `tests/e2e/` (review mode: emulator + seeded world at
 1280×720), anchored by the `D-MQ` manual-QA checklist in
 `tests/e2e/architect-qa.spec.ts`.
 
-Status: **In Progress — blocked on a healthy environment for the heavy scenarios.**
-Session 2 (2026-07-12) reclaimed the environment, proved the harness healthy at low
-load, and **fixed three stale test assertions** that were pinning owner-facing chrome
-the product deliberately removed (see "Session 2 findings"). The heavier live
-scenarios still cannot complete on this machine: the local review harness OOMs
-(Vite dev service crashes / app never leaves "Loading GM Dashboard") whenever free
-memory collapses under the harness + browser working set. See "Environment".
+Status: **In Progress — the battery does NOT pass on current `main` as authored, and
+the dominant cause is stale-value test drift, not the environment.** Two sessions ran
+this on 2026-07-12. Session 2 fixed three stale owner-facing-chrome assertions and
+concluded the heavy scenarios were environment/OOM-blocked. Session 3 (below) found
+the supposed "hard env blocker" was really **Vite's cold module compile exceeding the
+default 60 s per-test timeout** — with `--timeout=180000` the heavy scenarios run fine
+on this machine (D-MQ-001/004C/008/010 and roster-counts all executed to the app and
+past init). What they then hit is a **larger, separate drift class**: hardcoded
+seed-dependent expectations (dead-cap seasons, cap-dollar amounts, roster sub-counts)
+authored against an older seeded world and now stale against current main's advanced
+seed (world-season 2026-27; BZE-241 two-way separation; BZE-252 rosters). See
+"Session 3 findings". Consequence: **a CI run will not be clean** — the suite needs
+source-verified re-baselining before BZE-246/BZE-243 can close.
 
 ## Session 2 findings (2026-07-12) — stale-test corrections
 
@@ -33,7 +39,68 @@ intervening sessions, so the mismatch went unseen).
 
 A static audit of every outstanding test found **no further** stale owner-facing
 assertions of this class (no raw-id leakage into visible text, no other dev-only
-chrome asserted visible). This de-risks the eventual CI run.
+chrome asserted visible). This de-risks the eventual CI run **for this class only** —
+Session 3 found a second, larger drift class the chrome audit did not cover.
+
+## Session 3 findings (2026-07-12) — env is workable; the real blocker is seed-drift
+
+**The environment is not a hard blocker.** The Session 2 "OOM / app never leaves
+Loading GM Dashboard" failures were the **default 60 s per-test timeout being
+consumed by Vite's cold on-demand module compile** (the whole Architect graph is
+transformed on the first `/gm/*` navigation of each fresh harness boot). Re-run with
+`--timeout=180000`, one small batch per boot, ports cleared first, and the heavy
+scenarios execute to the app and through their workflows. Proof this session:
+
+| Test | Result this session | Note |
+| --- | --- | --- |
+| D-MQ-001 | ✅ **green live** (`--timeout=180000`) | stale-chrome fix verified |
+| D-MQ-008 | ✅ **green live** (`--timeout=180000`) | upgrades the Session 2 "⏳ env-blocked" row — the world-id→attribute fix is now verified live, not just source-verified |
+| D-MQ-010 | ✅ **green live** (`--timeout=180000`) | stale-chrome fix verified |
+| ARCH-ROSTER-COUNT-001 (roster-counts) | ✅ **green live** after a fix | see drift below |
+
+**The real barrier to a clean battery pass is a second drift class: hardcoded
+seed-dependent expectations, stale against the advanced seed.** The suite was
+authored against an older review world (world-season 2025-26, pre-BZE-241 roster
+sectioning). Current main's seed advanced. The workflows still execute and persist —
+only the pinned numbers/seasons/counts drifted. Confirmed live this session:
+
+- **roster-counts** — `data-roster-section-counts` expected `5 / 4 / 4` (two-way
+  folded into bench, the pre-BZE-241 behavior). Current main cards two-way players in
+  their own group, so standard-bench is `5 / 4 / 3` while the bench **cards** still
+  total 4 (3 standard + 1 two-way, both source-verified in
+  `RosterVisual.tsx:336-382`). Fixed the section-count string; **kept** bench-card
+  count at 4. **Now green.** (A near-miss worth recording: naive "make the number
+  match" would have wrongly changed the card count too — every drift value needs
+  source verification, not inference.)
+- **D-MQ-004C** (waive-and-stretch) — executes and persists (UI shows "Waive-and-
+  stretch saved", roster 14→13, Reaves removed). It then fails the **persisted
+  dead-cap** poll, which pins seasons `2025-26 / 2026-27 / 2027-28`. The freshly
+  seeded world is now at **2026-27**, so the stretch lands on different seasons. No
+  product failure observed; the hardcoded seasons are stale. (Not yet re-baselined —
+  the correct seasons/amounts must be source-verified, not guessed.)
+- **D-MQ-005** (FA signing) — executes and persists (receipt "Free agent signed",
+  roster 3→4, persisted team doc contains the signee). It then fails a **hardcoded
+  cap-delta magic number** (`-$3,635,655`); the receipt format is intact
+  (`postActionHandoff/types.ts:635`), only the seed-dependent dollar amount drifted.
+  (Not yet re-baselined.)
+
+**Not re-verified this session** (blocked by the re-baseline effort, not the
+environment): D-MQ-004D, D-MQ-005A, D-MQ-005B/005D/005E, roster-fct-parity,
+full-cap-table-* . By the pattern above these are expected to be the same
+stale-value drift, but each must be run and **source-verified** before it can be
+called stale-vs-real — no confirmed product regression has been found, and none may
+be assumed away.
+
+**Corrected recommendation:** a plain CI run will surface, not resolve, this drift.
+Closing BZE-246 requires **re-baselining the drifted hardcoded expectations against
+the current seed, source-verified per assertion**, then a clean live pass. That is a
+bounded but genuine follow-up lane, not a rubber-stamp. BZE-243 cannot close until it
+is done.
+
+> Concurrent-session note: Sessions 2 and 3 both worked BZE-246 on this shared
+> worktree on 2026-07-12 and converged on the same three chrome fixes (Session 2's
+> `git add -A` committed Session 3's identical edits in `c13f4486`). Owner should
+> ensure only one session drives this to completion.
 
 ## Contract workflows → battery coverage & result
 
@@ -44,8 +111,8 @@ chrome asserted visible). This de-risks the eventual CI run.
 | In-progress draft survives leaving the room (W9) | D-MQ-003B | ✅ green live (prior) |
 | Illegal/blocked trade — fail-closed before apply | D-MQ-004 | ✅ green live (prior) |
 | Waiver dead cap persists | D-MQ-004B | ✅ green live (prior) |
-| Waive & Stretch / Buyout dead cap persists | D-MQ-004C, D-MQ-004D | ⏳ env-blocked this session (app OOM on "Loading GM Dashboard") — not a product failure |
-| FA signing — receipt + history + compare + reload | D-MQ-005 | ⏳ env-blocked this session (Vite dev service crash / OOM). One degraded run reached the cap-delta assertion (flow executed through receipt + roster-count + persisted doc), i.e. no product failure observed — but **no clean pass captured** |
+| Waive & Stretch / Buyout dead cap persists | D-MQ-004C, D-MQ-004D | ⚠️ **stale test, not env** (Session 3): 004C runs to the app with `--timeout=180000`, waive-and-stretch executes + persists (UI: saved, roster 14→13, Reaves removed); fails on **hardcoded stretch seasons** (`2025-26…`) stale for the 2026-27 seed. 004D not re-verified. No product failure observed; needs re-baseline |
+| FA signing — receipt + history + compare + reload | D-MQ-005 | ⚠️ **stale test, not env** (Session 3): signing executes + persists (receipt, roster 3→4, persisted doc); fails on a **hardcoded cap-delta magic number** (`-$3,635,655`), format intact. No product failure observed; needs re-baseline |
 | Own-FA re-sign — FCT/Roster/history/compare/reload | D-MQ-005A | ⏳ env-blocked this session |
 | RFA offer sheet — pending / decline / match (48h) | D-MQ-005B, D-MQ-005D, D-MQ-005E | ⏳ env-blocked this session |
 | Sign-and-trade from FCT own-FA — hard-cap + rehydrate | D-MQ-005C | ✅ green live (prior) |
@@ -54,12 +121,12 @@ chrome asserted visible). This de-risks the eventual CI run.
 | Season Advance opens (world-aware gating) | D-MQ-007 | ✅ green live (prior) |
 | Season advance — apply 2026-27→2027-28 + reload, decline preserved | architect-season-advance | ✅ green live (prior) |
 | Draft positions — save + reload from committed world state | architect-season-advance | ✅ green live (prior) |
-| Team History rehydrates persisted world events | D-MQ-008 | ⏳ stale assertion corrected (source-verified); live env-blocked this session |
+| Team History rehydrates persisted world events | D-MQ-008 | ✅ **green live** (Session 3, `--timeout=180000`) — world-id→`data-history-world-id` fix now verified live |
 | Entitlement authoring saves + blocks conflicting claim (admin, flag on) | D-MQ-009 | ✅ green live (prior) |
 | No entitlement/pick authoring in owner-facing view (flag off) | D-MQ-009B | ✅ green live (prior) |
 | Base-write deny evidence paired with rules proof | D-MQ-010 | ✅ green live (after stale-badge correction) |
 | Acceptance-grade world — battery team 15 / 15 · 3 / 3 | architect-full-rosters | ✅ green live (prior) |
-| Cross-room agreement / FCT parity / roster counts | roster-fct-parity, roster-counts, full-cap-table-* | ⏳ env-blocked this session (60s attribute-wait timeout — panel never rendered under memory pressure) |
+| Cross-room agreement / FCT parity / roster counts | roster-fct-parity, roster-counts, full-cap-table-* | roster-counts ✅ **green live** (Session 3, after a source-verified `5/4/4→5/4/3` section-count fix per BZE-241); roster-fct-parity + full-cap-table-* not re-verified (same drift class suspected, not env-blocked) |
 
 ## Deliberate exclusions (owner-approved, in contract)
 
@@ -110,11 +177,19 @@ Levers tried and ruled out:
 No process leak on the harness side (it tears down cleanly when it exits normally;
 only hard crashes orphan the emulator/Vite, which were reclaimed this session).
 
-**Recommendation (unchanged, now de-risked):** run the full
-`tests/e2e/architect-*.spec.ts` suite in CI or on a fresh machine to capture the
-single green pass required to close BZE-246. The code under test is on `main`; the
-three stale-test corrections on `feature/bze-246-acceptance-battery` remove the only
-false-failure class the audit found, so the CI run should be clean. The two
-scenarios the handoff flagged as unproven are resolved as far as this environment
-allows: **D-MQ-001 is now genuinely green (it was a real stale test, not a flake);
-D-MQ-005 shows no product failure but has no clean local pass.**
+> **Superseded by Session 3.** The memory pressure above is real but was *not* the
+> blocker it appeared to be — the failing signature ("app never leaves Loading GM
+> Dashboard") was Vite's cold compile exceeding the default 60 s per-test timeout,
+> which `--timeout=180000` resolves (see "Session 3 findings"). The heavy scenarios
+> run here; they fail on stale seed-dependent expectations, which a CI run would
+> surface rather than resolve.
+
+**Recommendation (corrected, Session 3):** do **not** treat this as "just needs a CI
+run." Closing BZE-246 requires **re-baselining the drifted hardcoded expectations
+against the current seed, source-verified per assertion** (dead-cap seasons,
+cap-dollar amounts, roster sub-counts across D-MQ-004C/004D/005/005A/005B/005D/005E,
+roster-fct-parity, full-cap-table-*), then a clean live pass with the higher
+per-test timeout. Verified green so far (current main + the committed corrections):
+D-MQ-001, D-MQ-008, D-MQ-010, roster-counts. No confirmed product regression has been
+found — the workflows execute and persist — but the battery does not yet pass, so
+BZE-243 stays open.
