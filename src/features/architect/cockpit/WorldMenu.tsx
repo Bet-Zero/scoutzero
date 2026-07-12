@@ -19,12 +19,15 @@ interface WorldMenuProps {
   workspace: ArchitectWorkspaceContext;
   worldSelector: ReactNode;
   worldTimeControls?: ReactNode;
+  /** BZE-250: relocated Season Advance entry (trigger buttons only). */
+  seasonAdvance?: ReactNode;
 }
 
 export const WorldMenu = ({
   workspace,
   worldSelector,
   worldTimeControls,
+  seasonAdvance,
 }: WorldMenuProps) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -111,6 +114,8 @@ export const WorldMenu = ({
               </div>
             </div>
           ) : null}
+
+          {seasonAdvance ?? null}
         </div>
       ) : null}
     </div>

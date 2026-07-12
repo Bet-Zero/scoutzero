@@ -518,7 +518,10 @@ describe('GMDashboard Smoke Test', () => {
       expect(within(tablist).getByRole('tab', { name: /^full cap table$/i })).toBeInTheDocument();
       expect(within(tablist).getByRole('tab', { name: /^trade machine$/i })).toBeInTheDocument();
       expect(within(tablist).getByRole('tab', { name: /^free agency$/i })).toBeInTheDocument();
-      expect(within(tablist).getByRole('tab', { name: /^offseason$/i })).toBeInTheDocument();
+      // BZE-250: the Offseason room is hidden from V1 navigation (owner-decided
+      // exclusion); season advance moved to the top-bar World menu. The nav rail
+      // must NOT offer an Offseason tab.
+      expect(within(tablist).queryByRole('tab', { name: /^offseason$/i })).toBeNull();
       expect(within(tablist).getByRole('tab', { name: /^team history$/i })).toBeInTheDocument();
     });
 
