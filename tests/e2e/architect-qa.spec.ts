@@ -2089,27 +2089,28 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
         {
           timeout: 15000,
           message:
-            'waive-and-stretch should remove Austin Reaves and spread dead cap across three seasons',
+            'waive-and-stretch should remove Austin Reaves and spread dead cap across five seasons',
         }
       )
-      // Source-verified re-baseline for the current 2026-27 seeded world (was
-      // authored against a 2025-26 world). Austin Reaves' guaranteed salary is
-      // 2025-26 $14M / 2026-27 $15M / 2027-28 $16M (review_seed/basePlayers/
-      // austin_reaves.json). Waiving in a 2026-27 world:
+      // Source-verified for the current 2026-27 seeded world. Austin Reaves'
+      // guaranteed salary is 2025-26 $14M / 2026-27 $15M / 2027-28 $16M
+      // (review_seed/basePlayers/austin_reaves.json). Waiving in a 2026-27 world:
       //   - allocateStandardWaiverDeadCapBySeason drops the past 2025-26 row
       //     (seasonEndYear 2026 < current 2027), leaving $15M + $16M = $31M.
-      //   - computeWaiveResult stretches $31M over stretchYears=3 starting at
-      //     seasonId 2026-27: floor(31M/3)=10,333,333, remainder 1 → year 0
-      //     gets +1 (mutationPipeline.compute.signings.playerOps.ts:110-133).
-      // Product behavior is correct; only the pre-roll seasons/amounts drifted.
+      //   - 2 seasons remain on the contract (2026-27, 2027-28), so the CBA
+      //     stretch term is 2 x 2 + 1 = 5 years. computeWaiveResult spreads $31M
+      //     over 5 seasons from 2026-27: 31M / 5 = 6,200,000 exactly (remainder 0)
+      //     (mutationPipeline.compute.signings.playerOps.ts).
       .toEqual({
         hasAustinReaves: false,
         amountByYear: {
-          '2026-27': { amount: 10_333_334, isStretched: true },
-          '2027-28': { amount: 10_333_333, isStretched: true },
-          '2028-29': { amount: 10_333_333, isStretched: true },
+          '2026-27': { amount: 6_200_000, isStretched: true },
+          '2027-28': { amount: 6_200_000, isStretched: true },
+          '2028-29': { amount: 6_200_000, isStretched: true },
+          '2029-30': { amount: 6_200_000, isStretched: true },
+          '2030-31': { amount: 6_200_000, isStretched: true },
         },
-        notes: 'Stretched over 3 years',
+        notes: 'Stretched over 5 years',
       });
 
     await expect
@@ -2134,8 +2135,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
               playerIds.includes(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id) &&
               (metadata.stretched === true ||
                 mutationMetadata.stretched === true) &&
-              (metadata.stretchYears === 3 ||
-                mutationMetadata.stretchYears === 3)
+              (metadata.stretchYears === 5 ||
+                mutationMetadata.stretchYears === 5)
             );
           });
         },
@@ -2201,7 +2202,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     addAuditNote(
       testInfo,
-      'This proves the V1 Waive & Stretch path in browser review mode: Full Cap Table row overflow launches Waive & Stretch, the shared modal commits a stretched waiver, the receipt/count state updates, Austin Reaves leaves active roster surfaces, dead money is spread across three seasons in Full Cap Table, Team History and Compare read the committed stretched waivePlayer event, and reload preserves the saved-world state.'
+      'This proves the V1 Waive & Stretch path in browser review mode: Full Cap Table row overflow launches Waive & Stretch, the shared modal commits a stretched waiver, the receipt/count state updates, Austin Reaves leaves active roster surfaces, dead money is spread across five seasons in Full Cap Table, Team History and Compare read the committed stretched waivePlayer event, and reload preserves the saved-world state.'
     );
 
     await captureEvidence(page, testInfo, 'D-MQ-004C-waive-stretch-v1');

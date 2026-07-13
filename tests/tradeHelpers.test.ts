@@ -96,9 +96,10 @@ describe('calculateAllowableIncoming', () => {
       tpeAmount: 3_000_000,
     });
 
+    // Band 2 (10M outgoing): 10M + 9.096M expanded TPE = 19.096M, + 3M TPE = 22.096M
     expect(allowable).toEqual({
-      ceiling: 20_500_000,
-      margin: 10_500_000,
+      ceiling: 22_096_000,
+      margin: 12_096_000,
     });
   });
 });

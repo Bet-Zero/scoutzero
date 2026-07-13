@@ -63,7 +63,7 @@ describe('tradeValidator', () => {
       isBYC: true,
       previousSalary: 8_000_000,
     };
-    const incomingPlayer = makePlayer('Bstar', 18_000_000);
+    const incomingPlayer = makePlayer('Bstar', 20_000_000);
     teamA.players.push(bycPlayer);
     teamB.players.push(incomingPlayer);
 
@@ -86,15 +86,18 @@ describe('tradeValidator', () => {
       },
     });
 
-    expect(rawSalaryResult.allowableIncoming).toBeGreaterThan(18_000_000);
+    // Raw (un-BYC) 20M outgoing would allow the 20M incoming, but BYC drops
+    // matchOutgoing to 10M so the Band 2 ceiling (10M + 9.096M = 19.096M) is
+    // exceeded — proving BYC recompute happens before legality.
+    expect(rawSalaryResult.allowableIncoming).toBeGreaterThan(20_000_000);
     expect(result.legal).toBe(false);
     expect(bycPlayer.matchOutgoing).toBe(10_000_000);
     expect(bycPlayer.matchIncoming).toBe(20_000_000);
     expect(result.teamResults[0].salaryOut).toBe(10_000_000);
     expect(result.teamResults[0].salaryOut).not.toBe(20_000_000);
-    expect(result.teamResults[0].salaryIn).toBe(18_000_000);
+    expect(result.teamResults[0].salaryIn).toBe(20_000_000);
     expect(result.teamResults[0].rules.salaryMatching.allowableIncoming).toBe(
-      17_500_000
+      19_096_000
     );
     expect(result.teamResults[0].rules.salaryMatching.passed).toBe(false);
     expect(issueTexts(result.teamResults[0].violations)).toEqual(
@@ -145,7 +148,7 @@ describe('tradeValidator', () => {
     expect(bycPlayer.previousSalary).toBe(10_000_000);
     expect(bycPlayer.matchOutgoing).toBe(15_000_000);
     expect(result.teamResults[0].rules.salaryMatching.allowableIncoming).toBe(
-      22_500_000
+      24_096_000
     );
     expect(result.teamResults[0].rules.salaryMatching.passed).toBe(true);
   });

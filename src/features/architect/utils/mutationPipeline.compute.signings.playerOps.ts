@@ -11,6 +11,8 @@ import {
 } from '@/features/architect/utils/seasonFormat';
 import {
   allocateStandardWaiverDeadCapBySeason,
+  countRemainingContractSeasons,
+  getStretchProvisionYears,
   sumWaiverDeadCapAllocations,
 } from '@/features/architect/utils/waiverDeadCapAllocation';
 import {
@@ -57,7 +59,6 @@ export function computeWaiveResult({
   );
   const teamCode = currentState.teamCode || team.teamCode || null;
   const stretch = payload.stretch ?? false;
-  const stretchYears = Number(payload.stretchYears ?? 3);
   const buyout = payload.buyout ?? false;
 
   const playerId = payload.playerId || player.player_id || player.id;
@@ -93,6 +94,14 @@ export function computeWaiveResult({
   const remainingGuaranteedFromRows = sumWaiverDeadCapAllocations(
     standardDeadCapBySeason
   );
+  // CBA stretch term: dead salary spreads over (2 x seasons remaining) + 1,
+  // derived from the contract itself. Falls back to 3 only if the contract has
+  // no dated rows (guaranteedValue-only path) so the term can't be computed.
+  const remainingSeasonCount = countRemainingContractSeasons({
+    salaryRows: contractRows,
+    currentSeason: seasonId,
+  });
+  const stretchYears = getStretchProvisionYears(remainingSeasonCount) || 3;
   const guaranteedValueFallback = Number(contract?.guaranteedValue) || 0;
   const remainingSalary =
     remainingGuaranteedFromRows ||
