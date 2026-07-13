@@ -61,7 +61,7 @@ describe('Unified Salary Matching Rules', () => {
         expect(result.allowableIncoming).toBe(13_250_000);
       });
 
-      it('Band 2: applies 100% + $7.5M for $6.5M < outgoing ≤ $19.6M', () => {
+      it('Band 2: applies outgoing + expanded TPE for $8.846M < outgoing ≤ $35.384M', () => {
         const result = getSalaryMatchingResult({
           teamTotalSalary: 150_000_000,
           outgoingSalary: 10_000_000,
@@ -69,11 +69,11 @@ describe('Unified Salary Matching Rules', () => {
         });
 
         expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2);
-        // 10M + 7.5M = 17.5M
-        expect(result.allowableIncoming).toBe(17_500_000);
+        // 10M + 9.096M (2026-27 expanded TPE) = 19.096M
+        expect(result.allowableIncoming).toBe(19_096_000);
       });
 
-      it('Band 2: at threshold boundary $19.6M', () => {
+      it('Band 2: mid-range $19.6M outgoing', () => {
         const result = getSalaryMatchingResult({
           teamTotalSalary: 150_000_000,
           outgoingSalary: 19_600_000,
@@ -81,20 +81,20 @@ describe('Unified Salary Matching Rules', () => {
         });
 
         expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2);
-        // 19.6M + 7.5M = 27.1M
-        expect(result.allowableIncoming).toBe(27_100_000);
+        // 19.6M + 9.096M = 28.696M
+        expect(result.allowableIncoming).toBe(28_696_000);
       });
 
-      it('Band 3: applies 125% + $250k for outgoing > $19.6M', () => {
+      it('Band 3: applies 125% + $250k for outgoing > $35.384M', () => {
         const result = getSalaryMatchingResult({
           teamTotalSalary: 150_000_000,
-          outgoingSalary: 25_000_000,
+          outgoingSalary: 40_000_000,
           capSettings: defaultCapSettings,
         });
 
         expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3);
-        // 25M * 1.25 + 250k = 31.5M
-        expect(result.allowableIncoming).toBe(31_500_000);
+        // 40M * 1.25 + 250k = 50.25M
+        expect(result.allowableIncoming).toBe(50_250_000);
       });
     });
 
@@ -155,8 +155,8 @@ describe('Unified Salary Matching Rules', () => {
         capSettings: defaultCapSettings,
       });
 
-      // Band 2: 17.5M - 10M = 7.5M margin
-      expect(margin).toBe(7_500_000);
+      // Band 2: 19.096M - 10M = 9.096M margin
+      expect(margin).toBe(9_096_000);
     });
   });
 
@@ -168,8 +168,8 @@ describe('Unified Salary Matching Rules', () => {
         capSettings: defaultCapSettings,
       });
 
-      // Band 2: 10M + 7.5M = 17.5M
-      expect(ceiling).toBe(17_500_000);
+      // Band 2: 10M + 9.096M = 19.096M
+      expect(ceiling).toBe(19_096_000);
     });
   });
 
@@ -178,7 +178,7 @@ describe('Unified Salary Matching Rules', () => {
       const result = validateIncomingSalary({
         teamTotalSalary: 150_000_000,
         outgoingSalary: 10_000_000,
-        incomingSalary: 15_000_000, // below 17.5M allowable
+        incomingSalary: 15_000_000, // below 19.096M allowable
         capSettings: defaultCapSettings,
       });
 
@@ -190,7 +190,7 @@ describe('Unified Salary Matching Rules', () => {
       const result = validateIncomingSalary({
         teamTotalSalary: 150_000_000,
         outgoingSalary: 10_000_000,
-        incomingSalary: 20_000_000, // above 17.5M allowable
+        incomingSalary: 20_000_000, // above 19.096M allowable
         capSettings: defaultCapSettings,
       });
 
@@ -201,15 +201,15 @@ describe('Unified Salary Matching Rules', () => {
 
   describe('tier constants', () => {
     it('exports correct tier thresholds', () => {
-      expect(SALARY_MATCHING_TIERS.TIER_1_THRESHOLD).toBe(6_500_000);
-      expect(SALARY_MATCHING_TIERS.TIER_2_THRESHOLD).toBe(19_600_000);
+      expect(SALARY_MATCHING_TIERS.TIER_1_THRESHOLD).toBe(8_846_000);
+      expect(SALARY_MATCHING_TIERS.TIER_2_THRESHOLD).toBe(35_384_000);
     });
 
     it('exports correct band parameters', () => {
       expect(SALARY_MATCHING_TIERS.BAND_1_MULTIPLIER).toBe(2.0);
       expect(SALARY_MATCHING_TIERS.BAND_1_BONUS).toBe(250_000);
       expect(SALARY_MATCHING_TIERS.BAND_2_MULTIPLIER).toBe(1.0);
-      expect(SALARY_MATCHING_TIERS.BAND_2_BONUS).toBe(7_500_000);
+      expect(SALARY_MATCHING_TIERS.BAND_2_BONUS).toBe(9_096_000);
       expect(SALARY_MATCHING_TIERS.BAND_3_MULTIPLIER).toBe(1.25);
       expect(SALARY_MATCHING_TIERS.BAND_3_BONUS).toBe(250_000);
     });

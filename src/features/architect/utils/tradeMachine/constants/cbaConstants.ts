@@ -44,21 +44,22 @@ export const CBA_THRESHOLDS: Record<string, ThresholdMap> = {
  * This constant is kept for backwards compatibility but the authoritative
  * source is in src/features/architect/utils/tradeMachine/utils/salaryMatchingRules
  *
- * 2023 CBA tiered matching rules for over-cap teams below first apron:
- *  - Band 1: outgoing ≤ $6.5M → 200% + $250k
- *  - Band 2: $6.5M < outgoing ≤ $19.6M → outgoing + $7.5M
- *  - Band 3: outgoing > $19.6M → 125% + $250k
+ * 2023 CBA tiered matching rules for over-cap teams below first apron
+ * (2026-27 league year; the cushion is the Expanded Traded Player Exception):
+ *  - Band 1: outgoing ≤ $8.846M → 200% + $250k
+ *  - Band 2: $8.846M < outgoing ≤ $35.384M → outgoing + $9.096M (expanded TPE)
+ *  - Band 3: outgoing > $35.384M → 125% + $250k
  */
 export const SALARY_MATCHING_BANDS = {
-  // These values are DEPRECATED and may be incorrect
-  // Use SALARY_MATCHING_TIERS from salaryMatchingRules.js instead
-  FIRST_TIER_THRESHOLD: 6_500_000,   // Band 1 -> Band 2 boundary
-  SECOND_TIER_THRESHOLD: 19_600_000, // Band 2 -> Band 3 boundary
+  // These values are DEPRECATED. Use SALARY_MATCHING_TIERS from
+  // salaryMatchingRules.ts instead (the authoritative, ETPE-indexed source).
+  FIRST_TIER_THRESHOLD: 8_846_000,   // Band 1 -> Band 2 boundary (ETPE - $250k)
+  SECOND_TIER_THRESHOLD: 35_384_000, // Band 2 -> Band 3 boundary (4 x (ETPE - $250k))
   FIRST_TIER_MULTIPLIER: 2.0,        // Band 1: 200%
-  SECOND_TIER_MULTIPLIER: 1.0,       // Band 2: 100% + $7.5M bonus
+  SECOND_TIER_MULTIPLIER: 1.0,       // Band 2: 100% + expanded TPE bonus
   THIRD_TIER_MULTIPLIER: 1.25,       // Band 3: 125%
   FIRST_TIER_ADDITION: 250_000,      // Band 1: +$250k
-  SECOND_TIER_ADDITION: 7_500_000,   // Band 2: +$7.5M
+  SECOND_TIER_ADDITION: 9_096_000,   // Band 2: +expanded TPE (2026-27)
   THIRD_TIER_ADDITION: 250_000,      // Band 3: +$250k
 };
 

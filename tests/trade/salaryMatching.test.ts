@@ -69,7 +69,7 @@ describe('salary matching validation', () => {
 
   it('validates allowable incoming margin', () => {
     const result = validateSalaryMatching(
-      makeTeam(10_000_000, 18_000_000, {
+      makeTeam(10_000_000, 20_000_000, {
         teamTotalSalary: 150_000_000,
         context: {
           capSettings: {
@@ -100,7 +100,7 @@ describe('salary matching validation', () => {
       })
     ) as SalaryMatchingResultWithEffective;
 
-    expect(result.allowableIncoming).toBe(17_500_000);
+    expect(result.allowableIncoming).toBe(19_096_000);
     expect(result.hardCapIncomingCeiling).toBe(11_000_000);
     expect(result.effectiveAllowableIncoming).toBe(11_000_000);
     expect(result.details.hardCapStatus?.hardCapType).toBe('FIRST_APRON');
@@ -153,7 +153,7 @@ describe('salary matching validation', () => {
       })
     ) as SalaryMatchingResultWithEffective;
 
-    expect(result.allowableIncoming).toBe(17_500_000);
+    expect(result.allowableIncoming).toBe(19_096_000);
     expect(result.hardCapIncomingCeiling).toBe(11_000_000);
     expect(result.effectiveAllowableIncoming).toBe(11_000_000);
     expect(result.passed).toBe(true);

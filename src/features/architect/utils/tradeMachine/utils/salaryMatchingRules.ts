@@ -11,8 +11,19 @@
  * RULES:
  *  The 2023 CBA salary matching tiers for over-cap teams below first apron:
  *  - Band 1: outgoing <= TIER_1_THRESHOLD -> 200% + $250k
- *  - Band 2: TIER_1_THRESHOLD < outgoing <= TIER_2_THRESHOLD -> outgoing + $7.5M
+ *  - Band 2: TIER_1_THRESHOLD < outgoing <= TIER_2_THRESHOLD -> outgoing + expanded TPE
  *  - Band 3: outgoing > TIER_2_THRESHOLD -> 125% + $250k
+ *
+ *  The Band 2 cushion is the Expanded Traded Player Exception (ETPE), an amount
+ *  indexed to the salary cap that grows each season. The tier boundaries are
+ *  derived from it so the piecewise function stays continuous:
+ *    TIER_1_THRESHOLD = ETPE - $250k       (Band 1 <-> Band 2 crossover)
+ *    TIER_2_THRESHOLD = 4 x (ETPE - $250k) (Band 2 <-> Band 3 crossover)
+ *  UPDATE ANNUALLY with the ETPE when the league year rolls (same maintenance
+ *  model as capProjections). 2026-27 ETPE = $9,096,000 (Hoops Rumors / SBC,
+ *  "Values of 2026/27 Exceptions" and "Understanding Trade Matching in the New
+ *  CBA", verified 2026-07-12); for reference the 2025-26 ETPE was $8,527,000.
+ *  Sanity check: $10M outgoing -> $19,096,000 allowable incoming.
  *
  *  Apron teams:
  *  - First apron: 100% matching (dollar-for-dollar)
@@ -60,16 +71,21 @@ function toFiniteNumber(value: unknown): number {
 }
 
 /**
- * 2023 CBA salary matching tier thresholds
- * These are the authoritative values - all other constants should derive from these
+ * 2023 CBA salary matching tier thresholds (2026-27 league year).
+ * These are the authoritative values - all other constants should derive from these.
+ *
+ * The single cap-indexed input is the Expanded Traded Player Exception (the Band
+ * 2 cushion); the two tier boundaries are derived from it so the piecewise
+ * matching function stays continuous. Update EXPANDED_TPE each league year.
  */
+const EXPANDED_TPE = 9_096_000; // 2026-27 Expanded Traded Player Exception
 export const SALARY_MATCHING_TIERS = {
-  TIER_1_THRESHOLD: 6_500_000,
-  TIER_2_THRESHOLD: 19_600_000,
+  TIER_1_THRESHOLD: EXPANDED_TPE - 250_000, // 8,846,000: Band 1 <-> Band 2 crossover
+  TIER_2_THRESHOLD: 4 * (EXPANDED_TPE - 250_000), // 35,384,000: Band 2 <-> Band 3 crossover
   BAND_1_MULTIPLIER: 2.0,
   BAND_1_BONUS: 250_000,
   BAND_2_MULTIPLIER: 1.0,
-  BAND_2_BONUS: 7_500_000,
+  BAND_2_BONUS: EXPANDED_TPE, // outgoing + expanded TPE
   BAND_3_MULTIPLIER: 1.25,
   BAND_3_BONUS: 250_000,
   APRON_MULTIPLIER: 1.0,
@@ -120,7 +136,7 @@ export const SALARY_MATCHING_RULE_LABELS: Record<SalaryMatchingRuleKey, string> 
     [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_1]:
       'Over Cap (Band 1): 200% + $250k',
     [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2]:
-      'Over Cap (Band 2): 100% + $7.5M',
+      'Over Cap (Band 2): 100% + expanded TPE',
     [SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3]:
       'Over Cap (Band 3): 125% + $250k',
     [SALARY_MATCHING_RULE_KEYS.FIRST_APRON]: 'First Apron: 100% matching',

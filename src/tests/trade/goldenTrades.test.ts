@@ -105,37 +105,37 @@ describe('Golden Trade Regression Tests', () => {
     it('GOLDEN-01: Band 1 boundary at TIER_1_THRESHOLD yields 200% + $250k', () => {
       const result = getSalaryMatchingResult({
         teamTotalSalary: 150_000_000, // over cap, below apron
-        outgoingSalary: SALARY_MATCHING_TIERS.TIER_1_THRESHOLD, // exactly tier 1 threshold ($6.5M)
+        outgoingSalary: SALARY_MATCHING_TIERS.TIER_1_THRESHOLD, // exactly tier 1 threshold ($8.846M)
         capSettings: DEFAULT_CAP_SETTINGS,
       });
 
-      // 6.5M * 2.0 + 250k = 13.25M
+      // 8.846M * 2.0 + 250k = 17.942M
       expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_1);
-      expect(result.allowableIncoming).toBe(13_250_000);
+      expect(result.allowableIncoming).toBe(17_942_000);
     });
 
-    it('GOLDEN-02: Band 2 boundary at TIER_2_THRESHOLD yields outgoing + $7.5M', () => {
+    it('GOLDEN-02: Band 2 boundary at TIER_2_THRESHOLD yields outgoing + expanded TPE', () => {
       const result = getSalaryMatchingResult({
         teamTotalSalary: 150_000_000,
-        outgoingSalary: SALARY_MATCHING_TIERS.TIER_2_THRESHOLD, // exactly tier 2 threshold ($19.6M)
+        outgoingSalary: SALARY_MATCHING_TIERS.TIER_2_THRESHOLD, // exactly tier 2 threshold ($35.384M)
         capSettings: DEFAULT_CAP_SETTINGS,
       });
 
-      // 19.6M + 7.5M = 27.1M
+      // 35.384M + 9.096M (2026-27 expanded TPE) = 44.48M
       expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2);
-      expect(result.allowableIncoming).toBe(27_100_000);
+      expect(result.allowableIncoming).toBe(44_480_000);
     });
 
-    it('GOLDEN-03: Band 3 for $25M outgoing yields 125% + $250k', () => {
+    it('GOLDEN-03: Band 3 for $40M outgoing yields 125% + $250k', () => {
       const result = getSalaryMatchingResult({
         teamTotalSalary: 150_000_000,
-        outgoingSalary: 25_000_000, // above $19.6M
+        outgoingSalary: 40_000_000, // above $35.384M
         capSettings: DEFAULT_CAP_SETTINGS,
       });
 
-      // 25M * 1.25 + 250k = 31.5M
+      // 40M * 1.25 + 250k = 50.25M
       expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3);
-      expect(result.allowableIncoming).toBe(31_500_000);
+      expect(result.allowableIncoming).toBe(50_250_000);
     });
   });
 

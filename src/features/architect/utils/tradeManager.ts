@@ -19,6 +19,8 @@ import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import {
   allocateStandardWaiverDeadCapBySeason,
+  countRemainingContractSeasons,
+  getStretchProvisionYears,
   sumWaiverDeadCapAllocations,
 } from '@/features/architect/utils/waiverDeadCapAllocation';
 
@@ -215,7 +217,7 @@ export async function waivePlayer(
     throw new Error('worldId, teamCode, and playerId are required');
   }
 
-  const { stretch = false, stretchYears = 3 } = options;
+  const { stretch = false, stretchYears: explicitStretchYears } = options;
 
   // Load team and player states
   const teamState = (await getTeam(worldId, teamCode)) as TeamStateLike;
@@ -252,6 +254,19 @@ export async function waivePlayer(
     (Array.isArray(contract.salariesByYear) && contract.salariesByYear.length > 0
       ? 0
       : contract.guaranteedValue || 0);
+
+  // CBA stretch term: (2 x seasons remaining) + 1, derived from the contract.
+  // An explicit stretchYears option (if provided) overrides for callers/tests.
+  const remainingSeasonCount = countRemainingContractSeasons({
+    salaryRows: Array.isArray(contract.salariesByYear)
+      ? contract.salariesByYear
+      : [],
+    currentSeason,
+  });
+  const stretchYears =
+    typeof explicitStretchYears === 'number' && explicitStretchYears > 0
+      ? explicitStretchYears
+      : getStretchProvisionYears(remainingSeasonCount) || 3;
 
   if (stretch && remainingSalary > 0) {
     // Stretch over multiple years

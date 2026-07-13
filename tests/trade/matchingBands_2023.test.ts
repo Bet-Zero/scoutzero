@@ -29,26 +29,26 @@ describe('2023 matching bands below first apron', () => {
     expect(edge).toBe(BAND1 * 2 + 250_000);
   });
 
-  it('Band B between BAND1 and BAND2: +7.5M', () => {
+  it('Band B between BAND1 and BAND2: + expanded TPE', () => {
     const { ceiling } = calculateAllowableIncoming({
       ...base,
       salaryOut: 10_000_000,
     });
-    expect(ceiling).toBe(17_500_000);
+    expect(ceiling).toBe(19_096_000); // 10M + 9.096M (2026-27 expanded TPE)
 
     const { ceiling: edge } = calculateAllowableIncoming({
       ...base,
       salaryOut: BAND2,
     });
-    expect(edge).toBe(BAND2 + 7_500_000);
+    expect(edge).toBe(BAND2 + 9_096_000);
   });
 
   it('Band C above BAND2: 125% + 250k', () => {
     const { ceiling } = calculateAllowableIncoming({
       ...base,
-      salaryOut: 25_000_000,
+      salaryOut: 40_000_000,
     });
-    expect(ceiling).toBe(31_500_000);
+    expect(ceiling).toBe(50_250_000);
   });
 });
 

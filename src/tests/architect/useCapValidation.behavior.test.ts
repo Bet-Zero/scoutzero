@@ -442,6 +442,7 @@ describe('useCapValidation', () => {
       })
     );
 
+    // 2 seasons remain (2026, 2027), so the CBA stretch term is 2 x 2 + 1 = 5.
     expect(result.current.warnings).toEqual([
       {
         severity: 'info',
@@ -449,7 +450,7 @@ describe('useCapValidation', () => {
       },
       {
         severity: 'info',
-        message: 'Stretched over ~3 years',
+        message: 'Stretched over 5 years',
       },
     ]);
     expect(result.current.errors).toEqual([]);

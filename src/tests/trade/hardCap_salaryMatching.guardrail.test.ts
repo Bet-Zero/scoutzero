@@ -94,7 +94,7 @@ describe('Hard-capped teams still follow salary matching', () => {
         hardCapped: true, // Hard capped at first apron
         teamTotalSalary: 150_000_000, // BUT salary is below first apron
         salaryIn: 17_500_000, // Within Band 2 allowable
-        salaryOut: 10_000_000, // Band 2: 10M + 7.5M = 17.5M allowable
+        salaryOut: 10_000_000, // Band 2: 10M + 9.096M = 19.096M allowable
         context: { capSettings: defaultCapSettings },
       };
 
@@ -102,7 +102,7 @@ describe('Hard-capped teams still follow salary matching', () => {
 
       // Should use Band 2 matching (not 100% matching)
       expect(result.details.ruleApplied).toContain('BAND');
-      expect(result.allowableIncoming).toBe(17_500_000); // Band 2: 10M + 7.5M
+      expect(result.allowableIncoming).toBe(19_096_000); // Band 2: 10M + 9.096M
       expect(result.passed).toBe(true);
     });
 
@@ -203,19 +203,19 @@ describe('Hard-capped teams still follow salary matching', () => {
         hardCapped: true,
         teamTotalSalary: 175_000_000, // 3M below first apron (hard cap at 178M)
         salaryIn: 12_000_000, // Under both ceilings
-        salaryOut: 10_000_000, // Band 2: allows 17.5M
+        salaryOut: 10_000_000, // Band 2: allows 19.096M
         context: { capSettings: defaultCapSettings },
       };
 
       const result = validateSalaryMatching(team, {});
 
-      // Salary match ceiling = 17.5M (Band 2)
-      expect(result.allowableIncoming).toBe(17_500_000);
+      // Salary match ceiling = 19.096M (Band 2)
+      expect(result.allowableIncoming).toBe(19_096_000);
 
       // Hard cap ceiling = 10M + 3M = 13M
       expect(result.hardCapIncomingCeiling).toBe(13_000_000);
 
-      // Effective = min(17.5M, 13M) = 13M
+      // Effective = min(19.096M, 13M) = 13M
       expect(result.effectiveAllowableIncoming).toBe(13_000_000);
     });
 
@@ -248,19 +248,19 @@ describe('Hard-capped teams still follow salary matching', () => {
         hardCapped: true,
         teamTotalSalary: 177_000_000, // 1M below first apron
         salaryIn: 11_000_000,
-        salaryOut: 10_000_000, // Band 2: allows 17.5M
+        salaryOut: 10_000_000, // Band 2: allows 19.096M
         context: { capSettings: defaultCapSettings },
       };
 
       const result = validateSalaryMatching(team, {});
 
-      // Salary match ceiling = 17.5M
-      expect(result.allowableIncoming).toBe(17_500_000);
+      // Salary match ceiling = 19.096M
+      expect(result.allowableIncoming).toBe(19_096_000);
 
       // Hard cap ceiling = 10M + 1M = 11M
       expect(result.hardCapIncomingCeiling).toBe(11_000_000);
 
-      // Effective = min(17.5M, 11M) = 11M
+      // Effective = min(19.096M, 11M) = 11M
       expect(result.effectiveAllowableIncoming).toBe(11_000_000);
 
       // Limiter should be hardCap

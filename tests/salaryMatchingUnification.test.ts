@@ -40,9 +40,9 @@ describe('UI and Validator Consistency (Phase 2 Verification)', () => {
       expectedRuleKey: SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2,
     },
     {
-      name: 'Over-cap team Band 3 (outgoing > $19.6M)',
+      name: 'Over-cap team Band 3 (outgoing > $35.384M)',
       teamTotalSalary: 150_000_000,
-      salaryOut: 25_000_000,
+      salaryOut: 40_000_000,
       salaryIn: 30_000_000,
       expectedRuleKey: SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3,
     },
@@ -104,40 +104,40 @@ describe('UI and Validator Consistency (Phase 2 Verification)', () => {
       expect(result.allowableIncoming).toBe(13_250_000);
     });
 
-    it('just above Band 1/2 boundary ($6.5M + 1) uses Band 2', () => {
+    it('just above Band 1/2 boundary ($8.846M + 1) uses Band 2', () => {
       const result = getSalaryMatchingResult({
         teamTotalSalary: 150_000_000,
-        outgoingSalary: 6_500_001,
+        outgoingSalary: 8_846_001,
         capSettings: defaultCapSettings,
       });
 
       expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2);
-      // 6,500,001 + 7.5M = 14,000,001
-      expect(result.allowableIncoming).toBe(14_000_001);
+      // 8,846,001 + 9.096M (expanded TPE) = 17,942,001
+      expect(result.allowableIncoming).toBe(17_942_001);
     });
 
-    it('exact threshold at Band 2/3 boundary ($19.6M) uses Band 2', () => {
+    it('exact threshold at Band 2/3 boundary ($35.384M) uses Band 2', () => {
       const result = getSalaryMatchingResult({
         teamTotalSalary: 150_000_000,
-        outgoingSalary: 19_600_000,
+        outgoingSalary: 35_384_000,
         capSettings: defaultCapSettings,
       });
 
       expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_2);
-      // 19.6M + 7.5M = 27.1M
-      expect(result.allowableIncoming).toBe(27_100_000);
+      // 35.384M + 9.096M = 44.48M
+      expect(result.allowableIncoming).toBe(44_480_000);
     });
 
-    it('just above Band 2/3 boundary ($19.6M + 1) uses Band 3', () => {
+    it('just above Band 2/3 boundary ($35.384M + 1) uses Band 3', () => {
       const result = getSalaryMatchingResult({
         teamTotalSalary: 150_000_000,
-        outgoingSalary: 19_600_001,
+        outgoingSalary: 35_384_001,
         capSettings: defaultCapSettings,
       });
 
       expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.OVER_CAP_BAND_3);
-      // 19,600,001 * 1.25 + 250k = 24,750,001.25
-      expect(result.allowableIncoming).toBeCloseTo(24_750_001.25, 0);
+      // 35,384,001 * 1.25 + 250k = 44,480,001.25
+      expect(result.allowableIncoming).toBeCloseTo(44_480_001.25, 0);
     });
 
     it('exact at first apron threshold uses FIRST_APRON', () => {

@@ -613,12 +613,18 @@ export function useCapValidation({
         });
 
         if (action === 'waiveStretch') {
-          const stretchYears = Math.ceil(
-            remainingGuaranteed / (remainingGuaranteed / 3)
-          );
+          // CBA stretch term: (2 x seasons remaining on the contract) + 1.
+          const remainingSeasonCount = (
+            player.contract?.salariesByYear || []
+          ).filter((y) => {
+            const yearNum = parseInt(String(y.season).split('-')[1], 10) + 2000;
+            return yearNum >= resolvedCurrentYear;
+          }).length;
+          const stretchYears =
+            remainingSeasonCount > 0 ? remainingSeasonCount * 2 + 1 : 3;
           warnings.push({
             severity: 'info',
-            message: `Stretched over ~${stretchYears} years`,
+            message: `Stretched over ${stretchYears} years`,
           });
         }
       }

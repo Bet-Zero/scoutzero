@@ -231,9 +231,13 @@ describe('Gate 5: World Compute Honors Buyout Fields (E1)', () => {
     readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH);
 
   it('computeWaiveResult reads payload.buyoutAmount', () => {
-    // Pattern: payload.buyoutAmount in computeWaiveResult
+    // Pattern: payload.buyoutAmount in computeWaiveResult.
+    // Window widened from 1500 when the CBA stretch-term derivation
+    // (countRemainingContractSeasons / getStretchProvisionYears) was added
+    // ahead of the buyout block. Intent is unchanged: computeWaiveResult must
+    // still read the buyout amount off the payload.
     const readsBuyoutAmount =
-      /computeWaiveResult[\s\S]{0,1500}payload\.buyoutAmount/.test(content);
+      /computeWaiveResult[\s\S]{0,2500}payload\.buyoutAmount/.test(content);
     expect(readsBuyoutAmount).toBe(true);
   });
 

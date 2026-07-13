@@ -17,6 +17,8 @@ import {
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
   allocateStandardWaiverDeadCapBySeason,
+  countRemainingContractSeasons,
+  getStretchProvisionYears,
   sumWaiverDeadCapAllocations,
 } from '@/features/architect/utils/waiverDeadCapAllocation';
 import type { ManualExceptionsSavePayload } from '@/features/architect/capSheet/CapSheet/CapSheet';
@@ -641,6 +643,16 @@ export function useContractActions({
         ? Math.max(0, Number(buyoutAmount) || 0)
         : 0;
 
+      // CBA stretch term for the persisted metadata: (2 x seasons remaining) + 1.
+      const payloadStretchYears = stretch
+        ? getStretchProvisionYears(
+            countRemainingContractSeasons({
+              salaryRows: player.contract?.salariesByYear || [],
+              currentSeason: toSeasonCode(currentYear),
+            })
+          ) || 3
+        : 0;
+
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'waivePlayer',
         playerIds: [String(playerId)],
@@ -678,7 +690,15 @@ export function useContractActions({
             : remainingGuaranteed;
 
           const shouldStretch = !!stretch && deadCapAmount > 0;
-          const stretchYears = shouldStretch ? 3 : 1;
+          // CBA stretch term: (2 x seasons remaining) + 1, derived from the
+          // contract. Falls back to 3 only when the term can't be computed.
+          const remainingSeasonCount = countRemainingContractSeasons({
+            salaryRows: contractRows,
+            currentSeason: toSeasonCode(currentYear),
+          });
+          const stretchYears = shouldStretch
+            ? getStretchProvisionYears(remainingSeasonCount) || 3
+            : 1;
           const baseAmount = shouldStretch
             ? Math.floor(deadCapAmount / stretchYears)
             : deadCapAmount;
@@ -755,7 +775,7 @@ export function useContractActions({
           teamCode,
           playerId,
           stretch: !!stretch,
-          stretchYears: stretch ? 3 : 0, // Default stretch years
+          stretchYears: payloadStretchYears, // CBA term: (2 x seasons remaining) + 1
           buyout: !!buyout,
           buyoutAmount: buyout ? normalizedBuyoutAmount : 0,
           isGracePeriod: false, // Default, UI doesn't currently expose this
