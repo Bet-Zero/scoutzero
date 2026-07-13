@@ -343,8 +343,54 @@ The durable fix is not "more tests." It is that **any test asserting a real-worl
 
 **The league-average salary is now quantified.** Part 1 graded this CAN'T-VERIFY. It is sourceable after all: the 2025-26 **Estimated Average Player Salary is $13,870,000**. The code uses **$11,100,000** — **25% low** — and that number is the live input to every Early Bird and veteran-extension offer the tool computes.
 
-**Score (Part 2): 17 PASS · 18 WRONG · 6 CAN'T-VERIFY / FLAG.**
-**Running total (Parts 1+2): 41 PASS · 38 WRONG · 11 CAN'T-VERIFY.**
+**Score (Part 2): ~16 PASS · ~22 WRONG · 7 CAN'T-VERIFY / FLAG** (45 numbered checks, #74-#118).
+
+> ### ⚠️ CORRECTION (2026-07-13) — my own summary was wrong
+>
+> I first reported a "running total of 41 PASS · 38 WRONG · **11 CAN'T-VERIFY**." **That number is wrong.** I added Part 2's unverified items to Part 1's without subtracting the ones Part 2 *resolved* — which was the entire purpose of Part 2.
+>
+> **Part 1 left 4 unverified: #29 (renegotiation), #58 (reacquisition), #60 (TPE mechanics), #62 (league-average salary). Part 2 closed all four.**
+>
+> **The true open set is 7, and every one of them is new from Part 2:** #80, #94, #101, #102, #107, #110, #114. They are listed and dispositioned in "The 7 open items" below.
+>
+> The PASS/WRONG totals in both parts are **approximate** — they were counted by hand, some rows carry split verdicts ("WRONG (partial)", "PASS (simplified)"), and Part 1's header claimed 5 unverified when its table shows 4. **Do not cite the headline scores as facts.** The numbered ledger is the record; the scores are a summary of it, and a summary is exactly the kind of thing this audit exists to distrust.
+
+---
+
+## THE 7 OPEN ITEMS — what "CAN'T-VERIFY" actually means here, and the plan for each
+
+Every one is open for the same underlying reason: **this audit checked the code against expert secondary reporting, not against the primary CBA text.** See "A note on sources" below.
+
+| # | Item | Why it's open | Risk if left | Plan |
+|---|---|---|---|---|
+| 80 | TPE usage blocked whenever *any* outgoing salary exists | Could not source whether a trade may combine a matched swap **and** a separate TPE absorption | Tool **refuses legal trades** | **Primary CBA text.** Blocks nothing today — the code is over-strict, not wrong-answer |
+| 94 | Jan-15 restriction applied to S&T players | The bar governs re-signed FAs; it appears misapplied — but it is **inert** (S&T already requires offseason) | None (dead code) | Delete or justify during **BZE-264** |
+| 101 | "Cannot aggregate salaries from multiple clubs" | Could not source this as a distinct CBA rule | Tool may **refuse legal trades** | **Primary CBA text.** Do not delete on a hunch |
+| 102 | Apron tier picked from **pre-trade** salary (first apron) vs **post-trade** (second apron) | Could not source whether a sub-apron team may use 125% matching to cross the apron | Either over- or under-blocks | **Primary CBA text.** Settle inside **BZE-257** |
+| 107 | 36-month wait after renegotiation blocks an extension | Plausible; not sourceable in this exact form | Low | Resolve **only if** the owner puts renegotiation in scope |
+| 110 | Two parallel reacquisition implementations | Not a rule question — a duplication question | Divergence over time | Consolidate during **BZE-264** |
+| 114 | **2026-27** Estimated Average Player Salary | **Genuinely not publicly published.** Not a research failure — the league does not release the computed figure | Cannot be "fixed," only labelled honestly | **BZE-256:** store the sourced 2025-26 value ($13,870,000); carry 2026-27 as an explicit projection, never `confirmed: true` |
+
+**Four of the seven (#80, #101, #102, and to a lesser extent #94) share one property: the code may be *too strict*, refusing trades the CBA allows.** That is the opposite failure from most of this lane, and it is the reason none of them should be "fixed" by loosening the code on intuition — **loosening a rule on intuition is precisely what produced the second-apron aggregation bug (#95).**
+
+**#114 will never close.** It is not a gap to grind down; it is a fact about what the league publishes. The correct engineering response is honest provenance, not a number.
+
+---
+
+## A NOTE ON SOURCES — the real limitation of both audits
+
+**What I actually compared the code against: expert secondary reporting, not the CBA itself.**
+
+The bulk of this ledger rests on **Hoops Rumors** — a specialist NBA salary-cap outlet, and the best public one — supplemented by Sports Business Classroom, cbaguide.com, and NBA.com. That is a real and material limitation, and it should be stated plainly rather than dressed up as "authoritative sources":
+
+1. **Single-outlet concentration.** If Hoops Rumors is wrong about a rule, this audit inherits that error and reports it with full confidence. Most findings have exactly one independent source.
+2. **The primary text was never read.** The **2023 NBA Collective Bargaining Agreement is public** (nba.com / nbpa.com, ~600 pages). It is the actual oracle. I did not read it. Every rule in this ledger could be checked against the contract itself.
+3. **Larry Coon's CBA FAQ — the standard reference — was unreachable** (`cbafaq.com` serves an expired TLS certificate). That is the one source that would most efficiently cross-check the rest.
+4. **The sources do disagree, and I had to adjudicate.** The first-apron matching band (#98) came down to one outlet's verbatim bullet list against two others saying 110%. I judged the dissenters stale using an internal tell (they also mis-state the second apron). **That judgment could be wrong**, and it is load-bearing: if 110% is right, the tool blocks legal trades for every first-apron team.
+
+**This is the same class of weakness the audit was built to expose — one step removed.** Part 1 trusted the code; this audit trusts one website. It is a large improvement and it is not the end state.
+
+**Recommendation:** before or alongside the fix wave, **check the ~15 load-bearing rules against the CBA text itself** — the aggregation ban (#95), the apron matching bands (#97, #98), the four open over-strictness items (#80, #101, #102, #94), and the cap-hold and QO rules from Part 1. That is the only step that upgrades this from "sourced" to "verified." It is an owner call on cost, not a technical blocker.
 
 **Good news, and it matters:** the salary-matching bands BZE-253 rebuilt are **correct**, including the counter-intuitive one — **first-apron teams are limited to 100%, not 110%**. Two reputable sources say 110%. They are stale. **Do not "fix" this.** See #98.
 
