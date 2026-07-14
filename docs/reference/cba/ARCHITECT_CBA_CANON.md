@@ -1,13 +1,17 @@
 # The Architect — CBA & Transaction Rules Canon
 
-**Edition:** Primary-source-verified benchmark, v1.0  
+**Edition:** Primary-source-verified benchmark, v1.1 — index amendment  
 **Purpose:** The all-in-one Cap Manager + Trade Machine reference, implementation checklist, and acceptance-test canon for ScoutZero's Architect  
 **Authority cutoff:** July 12, 2026  
 **Current Salary Cap Year:** 2026–27  
 **Discovery source:** [The CBA Guide](https://cbaguide.com/) — useful for finding issues, but never controlling  
 **Primary authorities:** [2023 NBA–NBPA Collective Bargaining Agreement](https://ak-static.cms.nba.com/wp-content/uploads/sites/4/2023/06/2023-NBA-Collective-Bargaining-Agreement.pdf) and [June 2024 NBA Constitution and By-Laws](https://official.nba.com/wp-content/uploads/sites/4/2024/06/NBA-Consitution-By-Laws-June-2024.pdf)  
 **Official explanatory source:** [NBA 2024–25 CBA 101](https://official.nba.com/wp-content/uploads/sites/4/2024/11/2024-25-CBA-101.pdf)  
-**Annual-value sources:** NBA Communications releases for [2026–27](https://pr.nba.com/2026-27-salary-cap/), [2025–26](https://pr.nba.com/nba-salary-cap-2025-26-season/), [2024–25](https://pr.nba.com/2024-25-nba-season-salary-cap/), and [2023–24](https://pr.nba.com/nba-salary-cap-for-2023-24-season-set-at-136-021-million/)
+**Annual-value sources:** NBA Communications releases for [2026–27](https://pr.nba.com/2026-27-salary-cap/), [2025–26](https://pr.nba.com/nba-salary-cap-2025-26-season/), [2024–25](https://pr.nba.com/2024-25-nba-season-salary-cap/), and [2023–24](https://pr.nba.com/nba-salary-cap-for-2023-24-season-set-at-136-021-million/)  
+**Amendment date:** July 14, 2026  
+**Provenance — v1.0:** SHA-256 `b8cf5d01356b3a83de4663f5bd6843e9aa58c8c06a84227385ae93bc02d969ef`, primary-source-verified and independently checked. That verification carries forward unchanged.
+
+**What v1.1 changed:** the **index only**. v1.1 adds audit IDs, sub-IDs, verification-method classifications, acceptance scenarios, and cross-references. It changes **no** CBA rule, formula, threshold, dollar value, deadline, authority label, or source interpretation, and it renumbers, deletes, or repurposes **no** existing ID or scenario. The register is a two-level tree: **GROUP** nodes are navigation anchors, and **LEAF** nodes are the 368 independently auditable obligations that form the entire audit universe (§15.6). The authority cutoff remains **July 12, 2026**; v1.1 performed no new source review. Because the checksum of a file cannot be stated inside that file, the active v1.1 checksum is recorded in `work/architect-completion/ARCHITECT_CBA_CANON_CODE_MAP.md` and `work/architect-completion/ARCHITECT_CBA_CANON_V1_1_MIGRATION.md`.
 
 > **Use rule:** Architect may rely on a rule as deterministic only when the required inputs exist and the rule is marked **CBA**, **BYL**, **NBA**, or **DERIVED** under the authority system below. An **OPS** item is a league-operational rule for which no current public primary text was located; it must remain configurable and must not be represented as language from the CBA. An **EXT** item requires a league, physician, expert, or legal determination.
 
@@ -15,6 +19,8 @@
 |---|---|---|
 | Discovery benchmark | July 12, 2026 | CBAguide category inventory and initial Architect checklist |
 | **Verified canon v1.0** | **July 12, 2026** | Primary-source hierarchy; signed-CBA/By-Laws verification; 2026–27 parameters; corrected formulas, deadlines, apron, roster, DPE, waiver, and pick rules; OPS/EXT separation; release gate |
+| Verified canon v1.0 (checksum of record) | July 12, 2026 | SHA-256 `b8cf5d01356b3a83de4663f5bd6843e9aa58c8c06a84227385ae93bc02d969ef` — preserved as the provenance anchor for the independent primary-source verification |
+| **Index amendment v1.1** | **July 14, 2026** | **Index only.** 14 new top-level IDs (A19–A21, C19–C25, S01–S04) and 357 sub-IDs, forming a 427-node register of 59 GROUP anchors and **368 auditable LEAF obligations**; a verification method for every LEAF; and acceptance scenarios 47–89. No rule, formula, value, deadline, authority label, or source interpretation changed; no existing ID or scenario renumbered |
 
 ---
 
@@ -855,6 +861,20 @@ These are **testable coverage questions**, not confirmed bugs. They should becom
 | C01–C18 | §§5–8 and 10; authority map §19.1 |
 | R01–R10 | §§9 and 11; BYL §§5–6; CBA VII.7(d), XXVII, XXIX |
 | L01–L10 | §§4.2–4.4 and 10–14; authority map §19.1 |
+| A19 | §12.8 |
+| A20 | §12.9; §10.4 |
+| A21 | §12.6 |
+| C19 | §5.1; §14 |
+| C20 | §5.2; §13.2; §14 |
+| C21 | §5.3; §3 row 14 |
+| C22 | §5.6; §5.7 |
+| C23 | §5.9; §3 row 11 |
+| C24 | §5.5; §5.6; §3 row 10 |
+| C25 | §6.1 |
+| S01 | §3.1; §5.7; §14 |
+| S02 | §1.2; §3 rows 5–6; §3.1 |
+| S03 | §1.1; §9.3; §17; §19.3 |
+| S04 | §3.1 |
 
 ### 15.1 Critical correctness candidates
 
@@ -932,6 +952,599 @@ These are **testable coverage questions**, not confirmed bugs. They should becom
 | CBA-L09 | Are frozen/slid/unfrozen picks represented in ownership and Stepien logic? | Availability changes years after the trigger. |
 | CBA-L10 | Can externally adjudicated states be set explicitly with provenance? | Medical/expert/league decisions should not be guessed. |
 
+### 15.5 Index amendment — new top-level IDs (v1.1)
+
+These fourteen IDs were added in v1.1 because **no existing ID is a truthful parent** for the requirement. No existing ID was renumbered, deleted, repurposed, or changed in meaning. Each question below is derived strictly from canon rules already stated in v1.0; no rule, formula, threshold, dollar value, deadline, or source interpretation was created or altered.
+
+`Node` is defined in §15.6: a **GROUP** is an organizational parent whose child obligations are the auditable units; a **LEAF** is an independently auditable obligation.
+
+| ID | Node | Leaf obligations | Audit question | Why it matters |
+|---|---|---:|---|---|
+| CBA-A19 | GROUP | 5 | Does Architect enforce sign-and-trade player eligibility and contract shape, not only its apron consequences? | An illegal sign-and-trade can otherwise pass every registered check, because v1.0 registered the consequences (A04, A12, A13) and none of the preconditions. |
+| CBA-A20 | GROUP | 5 | Does Architect enforce the extend-and-trade salary ceiling, length, and raise limits? | Only the six-month trade restriction was indexed; the 120% ceiling and restricted shape were not. |
+| CBA-A21 | LEAF | 1 | Does Architect enforce the minimum-contract stacking limit and its three conjunctive conditions? | Acceptance scenario 10 already tests this rule; v1.0 minted no ID to own it. |
+| CBA-C19 | GROUP | 6 | Are Ten-Day and Rest-of-Season contracts modelled, including the January 5 opening, concurrent capacity, and proration? | An entire contract type with cap, apron, tax, and exception effects had no registered owner. |
+| CBA-C20 | GROUP | 9 | Are Two-Way eligibility, shape, conversion, and $0 trade treatment enforced separately from two-way game usage? | R08 indexes game usage only; a Two-Way can be legal on games and illegal on shape. |
+| CBA-C21 | GROUP | 11 | Are Exhibit 10 and Exhibit 9 contracts modelled, including limits, conversion, and the injury termination fee? | A whole canon subsection carried zero audit representation. |
+| CBA-C22 | GROUP | 4 | Are minimum scales, raise limits, and the July 1 maximum adjustment enforced with the correct reduction order? | Raises measured from Year 1 rather than compounded, and the maximum adjustment order, change real dollars. |
+| CBA-C23 | GROUP | 6 | Are signing-bonus, incentive, deferred-compensation, and EIPPA limits enforced? | Both incentive caps and the signing-bonus ceiling had no registered owner. |
+| CBA-C24 | GROUP | 7 | Are option and ETO shape and deadlines enforced, including the prior-to-June-25 RFA option? | L02 asks whether options are event-driven, not whether their shape and deadlines are legal. |
+| CBA-C25 | GROUP | 3 | Does Team Salary include retired players under contract, reportable pending contracts, and grievance exposure? | These are Team Salary components; omitting them understates the base ledger. |
+| CBA-S01 | GROUP | 6 | Is every cap-indexed value season-keyed in a configuration layer, with the enumerated set complete and tables loaded whole? | Every monetary verdict reads this layer; a correct rule reading a wrong constant returns a wrong answer. |
+| CBA-S02 | GROUP | 4 | Does each constant have exactly one canonical sourced value, and does the enforcing code path read the audited constant? | A duplicated or unread constant makes a verified value meaningless. |
+| CBA-S03 | GROUP | 3 | Are OPS and EXT rules configurable, truthfully labelled, and never promoted to CBA-verified? | Provenance is a canon requirement; mislabelling an operational rule as CBA text is a correctness claim the canon forbids. |
+| CBA-S04 | GROUP | 2 | Are scaled amounts, crossovers, bracket widths, and percentage-derived limits recomputed from published inputs with rounding only at the rule-defined final step? | Hard-coded or prematurely rounded derived values silently change legal maxima. |
+
+**The S series.** `A` is critical trade correctness, `C` is Cap Manager, `R` is waivers and rosters, and `L` is lifecycle. The season-parameter and provenance layer is none of these — it sits *beneath* all of them, and every monetary verdict reads it. It is given its own series so that the foundation of every verdict is not filed as one more Cap Manager checkbox.
+
+### 15.6 Registry structure — GROUP and LEAF (v1.1)
+
+A parent ID may summarize a rule family, but where a parent owns more than one **independently verifiable condition**, a single Covered/Partial/Missing verdict on the parent would hide mixed compliance. Every such condition therefore carries its own sub-ID, numbered contiguously from `.1` in canon order beneath its parent. There are no reserved or skipped numbers.
+
+The register is a two-level tree, and the two node types are **not interchangeable**:
+
+| Node | Definition | Role |
+|---|---|---|
+| **GROUP** | A top-level ID that owns child obligations | Navigation and traceability anchor only. Its status is a **derived rollup** of its children. |
+| **LEAF** | An obligation that is independently auditable | The unit of audit: a sub-ID, or a top-level ID that owns exactly one obligation. |
+
+**Rules that follow from this, and that Phase 2 must honour:**
+
+1. Only LEAF identifiers are Phase 2 execution units.
+2. Only LEAF identifiers carry an independent evidence status and a verification method.
+3. Only LEAF identifiers count toward Phase 2 packet totals.
+4. Only LEAF identifiers receive a Found / Partial / No obvious implementation site classification.
+5. A GROUP is a stable anchor for navigation and traceability; it is never an execution unit.
+6. A GROUP's status is a rollup of its children, never a separate compliance verdict.
+7. Mixed children are **never** collapsed into one parent PASS/FAIL. Report the child-status distribution.
+8. Every LEAF appears exactly once in the execution map and exactly once in a Phase 2 packet.
+9. Every GROUP has at least one child and appears only as a hierarchy/rollup entry.
+10. Every substantive obligation has exactly one owning LEAF.
+
+**Counting a GROUP as an execution unit alongside its children double-counts the rule family** and permits a parent verdict that contradicts its own children. It is prohibited.
+
+| Measure | Count |
+|---|---:|
+| Registry nodes (GROUP + LEAF) | **427** |
+| **GROUP** nodes | **59** |
+| **LEAF** nodes — *the auditable universe* | **368** |
+| …top-level LEAF (owns exactly one obligation) | 11 |
+| …sub-ID LEAF | 357 |
+| Substantive obligations, each with exactly one owning LEAF | **368** |
+
+#### Top-level hierarchy
+
+| ID | Node | Leaf obligations | Sub-ID range | Packet |
+|---|---|---:|---|---|
+| CBA-A01 | GROUP | 4 | `CBA-A01.1` – `CBA-A01.4` | P1 |
+| CBA-A02 | GROUP | 8 | `CBA-A02.1` – `CBA-A02.8` | P3 |
+| CBA-A03 | GROUP | 5 | `CBA-A03.1` – `CBA-A03.5` | P2 |
+| CBA-A04 | LEAF | 1 | *(top-level leaf)* | P2 |
+| CBA-A05 | GROUP | 2 | `CBA-A05.1` – `CBA-A05.2` | P2 |
+| CBA-A06 | GROUP | 2 | `CBA-A06.1` – `CBA-A06.2` | P2 |
+| CBA-A07 | GROUP | 9 | `CBA-A07.1` – `CBA-A07.9` | P2 |
+| CBA-A08 | GROUP | 2 | `CBA-A08.1` – `CBA-A08.2` | P2 |
+| CBA-A09 | GROUP | 5 | `CBA-A09.1` – `CBA-A09.5` | P3 |
+| CBA-A10 | GROUP | 3 | `CBA-A10.1` – `CBA-A10.3` | P3 |
+| CBA-A11 | LEAF | 1 | *(top-level leaf)* | P3 |
+| CBA-A12 | GROUP | 10 | `CBA-A12.1` – `CBA-A12.10` | P3 |
+| CBA-A13 | LEAF | 1 | *(top-level leaf)* | P3 |
+| CBA-A14 | GROUP | 4 | `CBA-A14.1` – `CBA-A14.4` | P3 |
+| CBA-A15 | GROUP | 5 | `CBA-A15.1` – `CBA-A15.5` | P6 |
+| CBA-A16 | LEAF | 1 | *(top-level leaf)* | P5 |
+| CBA-A17 | GROUP | 7 | `CBA-A17.1` – `CBA-A17.7` | P6 |
+| CBA-A18 | GROUP | 8 | `CBA-A18.1` – `CBA-A18.8` | P6 |
+| CBA-A19 | GROUP | 5 | `CBA-A19.1` – `CBA-A19.5` | P3 |
+| CBA-A20 | GROUP | 5 | `CBA-A20.1` – `CBA-A20.5` | P3 |
+| CBA-A21 | LEAF | 1 | *(top-level leaf)* | P3 |
+| CBA-C01 | GROUP | 6 | `CBA-C01.1` – `CBA-C01.6` | P4 |
+| CBA-C02 | GROUP | 2 | `CBA-C02.1` – `CBA-C02.2` | P4 |
+| CBA-C03 | GROUP | 2 | `CBA-C03.1` – `CBA-C03.2` | P4 |
+| CBA-C04 | GROUP | 2 | `CBA-C04.1` – `CBA-C04.2` | P4 |
+| CBA-C05 | GROUP | 5 | `CBA-C05.1` – `CBA-C05.5` | P1 |
+| CBA-C06 | LEAF | 1 | *(top-level leaf)* | P1 |
+| CBA-C07 | GROUP | 10 | `CBA-C07.1` – `CBA-C07.10` | P1 |
+| CBA-C08 | GROUP | 5 | `CBA-C08.1` – `CBA-C08.5` | P1 |
+| CBA-C09 | GROUP | 2 | `CBA-C09.1` – `CBA-C09.2` | P1 |
+| CBA-C10 | GROUP | 5 | `CBA-C10.1` – `CBA-C10.5` | P1 |
+| CBA-C11 | GROUP | 9 | `CBA-C11.1` – `CBA-C11.9` | P4 |
+| CBA-C12 | GROUP | 2 | `CBA-C12.1` – `CBA-C12.2` | P4 |
+| CBA-C13 | GROUP | 15 | `CBA-C13.1` – `CBA-C13.15` | P4 |
+| CBA-C14 | GROUP | 9 | `CBA-C14.1` – `CBA-C14.9` | P4 |
+| CBA-C15 | GROUP | 2 | `CBA-C15.1` – `CBA-C15.2` | P4 |
+| CBA-C16 | GROUP | 14 | `CBA-C16.1` – `CBA-C16.14` | P4 |
+| CBA-C17 | GROUP | 7 | `CBA-C17.1` – `CBA-C17.7` | P4 |
+| CBA-C18 | LEAF | 1 | *(top-level leaf)* | P4 |
+| CBA-C19 | GROUP | 6 | `CBA-C19.1` – `CBA-C19.6` | P4 |
+| CBA-C20 | GROUP | 9 | `CBA-C20.1` – `CBA-C20.9` | P4 |
+| CBA-C21 | GROUP | 11 | `CBA-C21.1` – `CBA-C21.11` | P4 |
+| CBA-C22 | GROUP | 4 | `CBA-C22.1` – `CBA-C22.4` | P4 |
+| CBA-C23 | GROUP | 6 | `CBA-C23.1` – `CBA-C23.6` | P4 |
+| CBA-C24 | GROUP | 7 | `CBA-C24.1` – `CBA-C24.7` | P4 |
+| CBA-C25 | GROUP | 3 | `CBA-C25.1` – `CBA-C25.3` | P1 |
+| CBA-L01 | GROUP | 5 | `CBA-L01.1` – `CBA-L01.5` | P1 |
+| CBA-L02 | GROUP | 8 | `CBA-L02.1` – `CBA-L02.8` | P4 |
+| CBA-L03 | GROUP | 15 | `CBA-L03.1` – `CBA-L03.15` | P7 |
+| CBA-L04 | GROUP | 17 | `CBA-L04.1` – `CBA-L04.17` | P4 |
+| CBA-L05 | GROUP | 7 | `CBA-L05.1` – `CBA-L05.7` | P6 |
+| CBA-L06 | GROUP | 3 | `CBA-L06.1` – `CBA-L06.3` | P3 |
+| CBA-L07 | LEAF | 1 | *(top-level leaf)* | P3 |
+| CBA-L08 | GROUP | 6 | `CBA-L08.1` – `CBA-L08.6` | P7 |
+| CBA-L09 | LEAF | 1 | *(top-level leaf)* | P6 |
+| CBA-L10 | GROUP | 9 | `CBA-L10.1` – `CBA-L10.9` | P7 |
+| CBA-R01 | GROUP | 10 | `CBA-R01.1` – `CBA-R01.10` | P5 |
+| CBA-R02 | GROUP | 7 | `CBA-R02.1` – `CBA-R02.7` | P5 |
+| CBA-R03 | LEAF | 1 | *(top-level leaf)* | P5 |
+| CBA-R04 | GROUP | 6 | `CBA-R04.1` – `CBA-R04.6` | P5 |
+| CBA-R05 | GROUP | 5 | `CBA-R05.1` – `CBA-R05.5` | P5 |
+| CBA-R06 | GROUP | 6 | `CBA-R06.1` – `CBA-R06.6` | P5 |
+| CBA-R07 | LEAF | 1 | *(top-level leaf)* | P5 |
+| CBA-R08 | GROUP | 5 | `CBA-R08.1` – `CBA-R08.5` | P5 |
+| CBA-R09 | GROUP | 2 | `CBA-R09.1` – `CBA-R09.2` | P5 |
+| CBA-R10 | GROUP | 4 | `CBA-R10.1` – `CBA-R10.4` | P5 |
+| CBA-S01 | GROUP | 6 | `CBA-S01.1` – `CBA-S01.6` | P1 |
+| CBA-S02 | GROUP | 4 | `CBA-S02.1` – `CBA-S02.4` | P1 |
+| CBA-S03 | GROUP | 3 | `CBA-S03.1` – `CBA-S03.3` | P1 |
+| CBA-S04 | GROUP | 2 | `CBA-S04.1` – `CBA-S04.2` | P1 |
+
+### 15.7 Index amendment — LEAF register (v1.1)
+
+**Every row below is a LEAF: an independently auditable obligation.** These 368 rows are the complete audit universe. The eleven top-level LEAF IDs (`CBA-A04`, `A11`, `A13`, `A16`, `A21`, `C06`, `C18`, `L07`, `L09`, `R03`, `R07`) own exactly one obligation each and so carry no sub-IDs; they appear here at the top level.
+
+**Verification method** is the primary way the condition can be proven. Not every obligation is an executable test:
+
+| Method | Meaning |
+|---|---|
+| **SCEN** | Executable scenario |
+| **STATIC** | Static/configuration inspection |
+| **LIFECYCLE** | Lifecycle/state review |
+| **UI** | Manual UI review |
+| **EXTS** | External-state handling |
+| **OPSV** | Operational verification |
+
+`Scenario` cites §16. `Authority` and the requirement text are carried unchanged from the canon sections cited in the locator.
+
+#### A series — Critical correctness
+
+| LEAF ID | Parent | Canon § | Condition | Authority | Method | Scenario |
+|---|---|---|---|---|---|---|
+| CBA-A01.1 | CBA-A01 | §4.1 | Team, Apron, Tax, OTS, and ITS derived as five independent ledgers | CBA | SCEN | #47 |
+| CBA-A01.2 | CBA-A01 | §4.1 | Player-compensation ledger (base, bonuses, deferred comp, protection, buyout, set-off) modeled separately from Team Salary | CBA | SCEN | #47 |
+| CBA-A01.3 | CBA-A01 | §4.1 | No shared mutable salary field; every ledger derived from canonical contract/event data for a given date and team context | CBA | SCEN | #47 |
+| CBA-A01.4 | CBA-A01 | §6.1 | Team Salary includes salaries of players on the roster | CBA | SCEN | #47 |
+| CBA-A02.1 | CBA-A02 | §3 | Implement the official Expanded TPE formula; never hard-code the Guide's displayed boundaries | CBA/DERIVED | SCEN | #1 |
+| CBA-A02.2 | CBA-A02 | §3 | The $250K allowance test uses post-assignment Apron Team Salary, not post-trade Team Salary | CBA | SCEN | #56 |
+| CBA-A02.3 | CBA-A02 | §3 | The remembered 200/175/150/125/110% tiers are not the current Expanded TPE structure | CBA | SCEN | #1 |
+| CBA-A02.4 | CBA-A02 | §12.4 | Expanded TPE: one or more outgoing and incoming; official formula; must land at/below the First Apron; simultaneous; creates a First Apron hard cap | CBA | SCEN | #1, #2 |
+| CBA-A02.5 | CBA-A02 | §12.4 | Maximum ITS = max(min(2 x O + K, O + A), 1.25 x O + K) | CBA/DERIVED | SCEN | #1 |
+| CBA-A02.6 | CBA-A02 | §12.4 | If a UI shows tiers, derive the breakpoints from A and K for that season; never store fixed tier boundaries | DERIVED | SCEN | #1 |
+| CBA-A02.7 | CBA-A02 | §12.4 | The 110% Transition TPE existed only for 2023-24; preserve it only in historical simulations, not as a current fifth tier | CBA | SCEN | #56 |
+| CBA-A02.8 | CBA-A02 | §12.5 | The $250K allowance is reduced to zero if post-assignment Apron Team Salary would exceed the First Apron | CBA | SCEN | #56 |
+| CBA-A03.1 | CBA-A03 | §3 | Non-guaranteed in-season OTS = salary less unearned/unprotected compensation; test at 0%, 25%, 100% elapsed | CBA | SCEN | #7 |
+| CBA-A03.2 | CBA-A03 | §12.3 | OTS window 1 - July 1 to regular-season start: count the protected amount | CBA | SCEN | #7 |
+| CBA-A03.3 | CBA-A03 | §12.3 | OTS window 2 - regular-season start through January 7: salary less unearned/unprotected base compensation | CBA | SCEN | #7 |
+| CBA-A03.4 | CBA-A03 | §12.3 | OTS window 3 - January 8 through regular-season end: deem current salary protected | CBA | SCEN | #7 |
+| CBA-A03.5 | CBA-A03 | §12.3 | OTS window 4 - after the regular season through June 30: lesser of current-year salary and protected next-year salary | CBA | SCEN | #7 |
+| CBA-A04 | *(none — top-level leaf)* | §12.3 | Sign-and-trade base-year adjustment: sending-team OTS is the greater of prior salary or 50% of first-year new salary, using actual prior minimum compensation including the reimbursed portion | CBA | SCEN | #15 |
+| CBA-A05.1 | CBA-A05 | §10.4 | Trading before the extension begins triggers poison-pill incoming trade salary | CBA | SCEN | #11 |
+| CBA-A05.2 | CBA-A05 | §12.3 | Poison pill: a signed but unstarted Rookie Scale extension uses average annual salary over the current contract plus extension, including option treatment, for ITS | CBA | SCEN | #11 |
+| CBA-A06.1 | CBA-A06 | §5.9 | Bonus likelihood is based on the preceding season and can change on a team change when the criterion is team-related, so sender and receiver can use different trade-salary values | CBA | SCEN | #12 |
+| CBA-A06.2 | CBA-A06 | §12.3 | Team-related performance bonuses are re-tested for likelihood using each team's preceding performance, so OTS and ITS can differ | CBA | SCEN | #12 |
+| CBA-A07.1 | CBA-A07 | §5.4 | A trade bonus cannot push salary plus unlikely bonuses above 120% of scale | CBA | SCEN | #13 |
+| CBA-A07.2 | CBA-A07 | §5.9 | A trade bonus may be fixed or percentage-based, capped at 15% of remaining base compensation, paid once and generally by the sender, and allocated to the receiver's salary over remaining guaranteed seasons | CBA | SCEN | #13 |
+| CBA-A07.3 | CBA-A07 | §12.3 | The current-year allocated trade-bonus portion increases ITS and receiving Team Salary | CBA | SCEN | #13 |
+| CBA-A07.4 | CBA-A07 | §12.7 | Trade bonus maximum is 15% of remaining base compensation; it may be fixed, percentage-based, or the lesser of the two | CBA | SCEN | #13 |
+| CBA-A07.5 | CBA-A07 | §12.7 | A trade bonus is triggered only once; an initial sign-and-trade or extend-and-trade does not consume it, but a later trade can | CBA | SCEN | #49 |
+| CBA-A07.6 | CBA-A07 | §12.7 | The player may reduce or waive the bonus as part of a trade, causing a six-month renegotiation restriction | CBA | SCEN | #14 |
+| CBA-A07.7 | CBA-A07 | §12.7 | Percentage calculation uses guaranteed base compensation still owed: current-season remainder by days plus guaranteed future seasons, excluding unexercised options | CBA | SCEN | #13 |
+| CBA-A07.8 | CBA-A07 | §12.7 | Allocate the trade bonus across guaranteed remaining seasons like a signing bonus, then reduce it if the annual maximum salary would be exceeded | CBA | SCEN | #49 |
+| CBA-A07.9 | CBA-A07 | §12.7 | The sending team normally pays the bonus; the receiving team carries the cap/trade allocation | CBA | SCEN | #49 |
+| CBA-A08.1 | CBA-A08 | §7.3 | Minimum Exception: up to 2 seasons at the applicable minimum with no ordinary bonuses; prorates from season start; a qualifying acquisition may count as $0 ITS | CBA | SCEN | #9 |
+| CBA-A08.2 | CBA-A08 | §12.3 | A qualifying Minimum Exception contract can count as $0 ITS while the sender retains OTS | CBA | SCEN | #9 |
+| CBA-A09.1 | CBA-A09 | §7.3 | TPEs are acquisition exceptions whose availability and hard-cap effects depend on TPE type and apron | CBA | SCEN | #3, #4, #5, #6 |
+| CBA-A09.2 | CBA-A09 | §12.4 | Room path: team below the cap; incoming limit is room + $250K; cannot be combined simultaneously with another TPE path | CBA | SCEN | #89 |
+| CBA-A09.3 | CBA-A09 | §12.4 | Standard TPE: one outgoing, one or more incoming; limit 100% OTS + $250K; can be non-simultaneous; remainder normally expires in 12 months; First-Apron timing shortens usability | CBA | SCEN | #3, #5, #6 |
+| CBA-A09.4 | CBA-A09 | §12.4 | Aggregated TPE: multiple outgoing aggregated; limit 100% aggregate OTS + $250K; must land at/below the Second Apron; simultaneous | CBA | SCEN | #4 |
+| CBA-A09.5 | CBA-A09 | §12.5 | A First-Apron team can still use a Standard TPE before it becomes an 'aged' TPE under CBA VII.2(e)(4) row F; the underlying one-year non-simultaneous expiration still applies | CBA | SCEN | #5 |
+| CBA-A10.1 | CBA-A10 | §8.3 | 'No aggregation' bars combining multiple outgoing contracts; it does not bar receiving multiple players for one outgoing player under a valid Standard TPE | CBA | SCEN | #3, #4 |
+| CBA-A10.2 | CBA-A10 | §12.5 | A player acquired using an exception generally cannot be aggregated for two months; if acquired on or before December 16, the restriction does not apply to a trade on the day before or the day of the deadline | CBA | SCEN | #50 |
+| CBA-A10.3 | CBA-A10 | §12.8 | The player cannot be re-aggregated for the prescribed period; the base-year OTS adjustment may apply to the sender | CBA | SCEN | #15 |
+| CBA-A11 | *(none — top-level leaf)* | §12.4 | Each team is evaluated separately and may split a multi-player transaction into CBA-permitted component trades; Architect must find a legal decomposition or explain why none exists | CBA | SCEN | #48 |
+| CBA-A12.1 | CBA-A12 | §8.2 | Using the BAE is prohibited if post-transaction Apron Salary exceeds the First Apron | CBA | SCEN | #17 |
+| CBA-A12.2 | CBA-A12 | §8.2 | Using the NTMLE outside TMLE-compatible treatment is prohibited above the First Apron | CBA | SCEN | #16 |
+| CBA-A12.3 | CBA-A12 | §8.2 | Acquiring a player by sign-and-trade is prohibited above the First Apron | CBA | SCEN | #15 |
+| CBA-A12.4 | CBA-A12 | §8.2 | Signing a qualifying high-salary waived player during the regular season is prohibited above the First Apron | CBA | SCEN | #58 |
+| CBA-A12.5 | CBA-A12 | §8.2 | Using the Expanded TPE is prohibited above the First Apron | CBA | SCEN | #2 |
+| CBA-A12.6 | CBA-A12 | §8.2 | Using a Standard TPE beyond the special timing allowed to First-Apron teams is prohibited above the First Apron | CBA | SCEN | #5 |
+| CBA-A12.7 | CBA-A12 | §8.3 | Using the Aggregated TPE is prohibited if post-transaction Apron Salary exceeds the Second Apron | CBA | SCEN | #4 |
+| CBA-A12.8 | CBA-A12 | §8.3 | Using a TPE created from a sign-and-traded contract is prohibited above the Second Apron | CBA | SCEN | #58 |
+| CBA-A12.9 | CBA-A12 | §8.3 | Using the TMLE is prohibited above the Second Apron | CBA | SCEN | #18 |
+| CBA-A12.10 | CBA-A12 | §12.8 | Receiving a player by sign-and-trade is a First Apron transaction and creates a First Apron hard cap | CBA | SCEN | #15 |
+| CBA-A13 | *(none — top-level leaf)* | §8.2 | Executing any First-Apron-limited transaction creates a First Apron hard cap for the applicable Salary Cap Year | CBA | SCEN | #15, #16, #17 |
+| CBA-A14.1 | CBA-A14 | §3 | Gate the dual-year apron test by transaction type, not every apron-triggering action | CBA | SCEN | #19 |
+| CBA-A14.2 | CBA-A14 | §8.4 | Post-regular-season transactions using the CBA VII.2(e)(2) mechanisms must satisfy the applicable apron in both the current and next Salary Cap Years | CBA | SCEN | #19 |
+| CBA-A14.3 | CBA-A14 | §8.4 | The next-year test assumes options exercised, ETOs not exercised, conditioned Higher Max salaries achieved, current apron levels retained, and no further current-year transactions | CBA | SCEN | #43 |
+| CBA-A14.4 | CBA-A14 | §8.4 | Such a transaction can hard-cap both the current and next Salary Cap Years | CBA | SCEN | #59 |
+| CBA-A15.1 | CBA-A15 | §12.2 | Two-team trade: each team must send/receive an eligible player contract, qualifying pick, draft rights, swap, or minimum cash amount | OPS | SCEN | #46 |
+| CBA-A15.2 | CBA-A15 | §12.2 | Trade of three or more teams: each team must touch at least two other teams by sending or receiving a qualifying asset | OPS | SCEN | #46 |
+| CBA-A15.3 | CBA-A15 | §12.2 | Multi-team asset definitions are stricter: extinguishable conditional picks and nominal cash may not count | OPS | SCEN | #46 |
+| CBA-A15.4 | CBA-A15 | §12.2 | Draft-rights assets need a qualifying NBA prospect; recency and professional-rotation tests can create deemed status | OPS | SCEN | #54 |
+| CBA-A15.5 | CBA-A15 | §12.2 | Multi-team validity is a graph problem; salary matching alone cannot validate it | OPS | SCEN | #46 |
+| CBA-A16 | *(none — top-level leaf)* | §9.4 | A team receiving more players than it sends must have the open Standard roster spots before completing the trade, even with a planned immediate waiver | BYL | SCEN | #36 |
+| CBA-A17.1 | CBA-A17 | §4.2 | Pick ownership, swaps, protections, deferrals, conveyance dependencies, frozen/slid status, and Stepien availability | CBA/BYL | LIFECYCLE | #45 |
+| CBA-A17.2 | CBA-A17 | §13.3 | Future picks must identify a year and already be owned; a team cannot promise an asset it merely expects to acquire | BYL | SCEN | #45 |
+| CBA-A17.3 | CBA-A17 | §13.3 | Picks can carry protections, fallback conveyances, and one-year deferral rights; protection and deferral cannot be combined on the same conveyance | OPS | SCEN | #45 |
+| CBA-A17.4 | CBA-A17 | §13.3 | OPS: first- and second-round picks can be traded only through the seventh future draft; treat the horizon as a versioned league rule | OPS | SCEN | #45 |
+| CBA-A17.5 | CBA-A17 | §13.3 | BYL 7.03: a team may not sell a first for cash or trade it if the result MAY leave the team without firsts in two consecutive future drafts; another team's owned first can satisfy possession; test all protection branches | BYL | SCEN | #45 |
+| CBA-A17.6 | CBA-A17 | §13.3 | Protections must be evaluated across all possible conveyance branches, not only the most likely outcome | BYL | SCEN | #45 |
+| CBA-A17.7 | CBA-A17 | §13.3 | Conditional 'two years after prior conveyance' language is limited and cannot defeat the seven-year rule | OPS | SCEN | #55 |
+| CBA-A18.1 | CBA-A18 | §4.1 | Cash-in-trade ledger with separate sent and received balances | CBA | SCEN | #53 |
+| CBA-A18.2 | CBA-A18 | §8.3 | Paying cash in a trade is prohibited above the Second Apron | CBA | SCEN | #53 |
+| CBA-A18.3 | CBA-A18 | §12.8 | A signing bonus paid by the sending team is treated as cash-in-trade | CBA | SCEN | #53 |
+| CBA-A18.4 | CBA-A18 | §12.12 | Annual cash sent and cash received limits are separate, each a cap-indexed percentage | CBA | SCEN | #53 |
+| CBA-A18.5 | CBA-A18 | §12.12 | Do not net cash sent against cash received | CBA | SCEN | #53 |
+| CBA-A18.6 | CBA-A18 | §12.12 | Cash has no Team Salary effect | CBA | SCEN | #53 |
+| CBA-A18.7 | CBA-A18 | §12.12 | Conditional cash tied to a pick is charged to the Salary Cap Year of the trade, not the later payment date; re-trading the conditional asset can create additional accounting | CBA | SCEN | #53 |
+| CBA-A18.8 | CBA-A18 | §12.12 | Paying cash is a Second Apron-limited transaction | CBA | SCEN | #53 |
+| CBA-A19.1 | CBA-A19 | §12.8 | The sign-and-trade player must be a free agent who finished the prior season on the sending team's roster | CBA | SCEN | #51 |
+| CBA-A19.2 | CBA-A19 | §12.8 | The sign-and-trade must be completed before the regular season | CBA | SCEN | #51 |
+| CBA-A19.3 | CBA-A19 | §12.8 | The new contract must cover at least three seasons excluding options and no more than four; Year 1 must be fully protected for lack of skill | CBA | SCEN | #51 |
+| CBA-A19.4 | CBA-A19 | §12.8 | Certain exceptions cannot be used to sign the sign-and-trade player | CBA | SCEN | #51 |
+| CBA-A19.5 | CBA-A19 | §12.8 | The receiving team must have sufficient transaction authority for salary plus applicable unlikely bonuses | CBA | SCEN | #51 |
+| CBA-A20.1 | CBA-A20 | §10.4 | Extend-and-trade reduces allowable salary to 120% measures, limits total length, and uses 5% changes | CBA | SCEN | #52 |
+| CBA-A20.2 | CBA-A20 | §12.9 | Extend-and-trade requires ordinary extension eligibility and is unavailable in a specified end-of-contract offseason window | CBA | SCEN | #52 |
+| CBA-A20.3 | CBA-A20 | §12.9 | Starting extension salary is capped by the greater of 120% of prior regular salary or 120% of EAPS, adjusted for incentives | CBA | SCEN | #52 |
+| CBA-A20.4 | CBA-A20 | §12.9 | Total length and annual changes are more restrictive than an ordinary extension | CBA | SCEN | #52 |
+| CBA-A20.5 | CBA-A20 | §12.9 | The extension and trade must be linked and completed within the permitted process; richer pre/post-trade extensions are restricted for six months | CBA | SCEN | #41 |
+| CBA-A21 | *(none — top-level leaf)* | §12.6 | A team cannot send more than one Minimum Traded Player when all three conditions hold (trade outside December 15 through the deadline, at least three aggregated outgoing contracts, fewer players in than out); classification uses the current season, or the next cap year after the regular season | CBA | SCEN | #10 |
+
+#### C series — Cap Manager
+
+| LEAF ID | Parent | Canon § | Condition | Authority | Method | Scenario |
+|---|---|---|---|---|---|---|
+| CBA-C01.1 | CBA-C01 | §6.1 | Team Salary includes free-agent, first-round-pick, open-roster, and available-exception cap holds | CBA | SCEN | #24, #26, #27, #28 |
+| CBA-C01.2 | CBA-C01 | §6.2 | Free-agent holds preserve the prior team's Bird mechanism and block using room before re-signing over the cap | CBA | SCEN | #24 |
+| CBA-C01.3 | CBA-C01 | §6.2 | The hold is based on prior Regular Salary, signing-bonus allocation, and actually earned incentives, then bounded by the player's minimum and maximum | CBA | SCEN | #24 |
+| CBA-C01.4 | CBA-C01 | §6.2 | Hold multipliers: rookie-scale fourth-year FAs at 300%/250% of prior salary (below/above EAPS); Full Bird 190%/150%; Early Bird 130%; Non-Bird 120%; minimum-contract FAs at the new minimum, no higher than the two-YOS minimum | CBA | SCEN | #24 |
+| CBA-C01.5 | CBA-C01 | §6.2 | The RFA hold is the greatest of the applicable UFA hold, the qualifying offer, or the matching amount | CBA | SCEN | #25 |
+| CBA-C01.6 | CBA-C01 | §6.3 | A narrow unrenouncing route exists when room was created to sign an offer sheet the other team matched, subject to two-day and team-salary limits | CBA | SCEN | #63 |
+| CBA-C02.1 | CBA-C02 | §6.2 | First-round-pick hold = 120% of the Rookie Scale Amount, added immediately on selection, removed by signing/loss of rights/non-NBA events/formal temporary waiver, and can return later | CBA | SCEN | #26 |
+| CBA-C02.2 | CBA-C02 | §13.1 | First-round rights create a cap hold; second-round rights do not use the same hold but interact with required tenders and Apron Salary | CBA | SCEN | #26 |
+| CBA-C03.1 | CBA-C03 | §6.2 | The open-roster count includes Standard players, free-agent holds, first-round-pick holds, and players with offer sheets | CBA | SCEN | #27 |
+| CBA-C03.2 | CBA-C03 | §6.2 | From July 1 through the day before the regular season, if the count is below 12 charge one 0-YOS minimum per missing slot; do not continue it as an in-season roster charge | CBA | SCEN | #27 |
+| CBA-C04.1 | CBA-C04 | §6.2 | Exception cap holds prevent acting as a room team and an over-cap exception team at once; the exception amount or unused balance is included until used, renounced, or lost | CBA | SCEN | #28 |
+| CBA-C04.2 | CBA-C04 | §7.1 | An over-cap exception is available only when Team Salary is at/above the cap or below it by less than the available exception amount | CBA | SCEN | #28 |
+| CBA-C05.1 | CBA-C05 | §3 | Model the minimum-contract subsidy as a component; do not treat the whole contract as zero | CBA | SCEN | #33 |
+| CBA-C05.2 | CBA-C05 | §6.4 | For a qualifying one-year, Ten-Day, or Rest-of-Season minimum contract, cap/apron/tax treatment reduces to the two-YOS minimum for players above two YOS; the benefits fund reimburses the excess | CBA | SCEN | #33 |
+| CBA-C05.3 | CBA-C05 | §6.4 | A player below two YOS counts at his actual applicable minimum | CBA | SCEN | #75 |
+| CBA-C05.4 | CBA-C05 | §6.4 | The subsidy disappears when calculating dead salary after a waiver; use actual base compensation and protection | CBA | SCEN | #33 |
+| CBA-C05.5 | CBA-C05 | §6.4 | Minimum Exception eligibility and league subsidy eligibility are separate tests | CBA | SCEN | #75 |
+| CBA-C06 | *(none — top-level leaf)* | §5.9 | Likely bonuses count in Salary; unlikely bonuses are excluded from Team Salary but count in Apron Salary and maximum/room tests where specified | CBA | SCEN | #22 |
+| CBA-C07.1 | CBA-C07 | §8.1 | Apron Salary: add Performance Bonuses excluded from Salary, principally unlikely performance bonuses | CBA | SCEN | #57 |
+| CBA-C07.2 | CBA-C07 | §8.1 | Apron Salary: add the two-YOS-minimum uplift for qualifying 0-1 YOS free-agent Standard contracts | CBA | SCEN | #57 |
+| CBA-C07.3 | CBA-C07 | §8.1 | Apron Salary: add potential grievance exposure specified by CBA VII.4(a)(1)(iii) | CBA/EXT | EXTS | #57 |
+| CBA-C07.4 | CBA-C07 | §8.1 | Apron Salary: subtract Free Agent Amounts | CBA | SCEN | #57 |
+| CBA-C07.5 | CBA-C07 | §8.1 | Apron Salary: for an RFA, add the greater of the outstanding QO/Maximum QO amount and the First Refusal Exercise Notice amount, including specified unlikely bonuses | CBA | SCEN | #57 |
+| CBA-C07.6 | CBA-C07 | §8.1 | Apron Salary: subtract unsigned first-round-pick holds, then add outstanding Required Tenders to first-round picks | CBA | SCEN | #57 |
+| CBA-C07.7 | CBA-C07 | §8.1 | Apron Salary: subtract exception holds included in Team Salary under CBA VII.4(a)(7) and 6(n)(2) | CBA | SCEN | #57 |
+| CBA-C07.8 | CBA-C07 | §8.1 | Apron Salary: add Second Round Pick Exception amounts temporarily excluded from Team Salary | CBA | SCEN | #57 |
+| CBA-C07.9 | CBA-C07 | §8.1 | Apron Salary: subtract incomplete-roster holds | CBA | SCEN | #57 |
+| CBA-C07.10 | CBA-C07 | §8.1 | Apron Salary must be computed both before and after a proposed transaction | CBA | SCEN | #2 |
+| CBA-C08.1 | CBA-C08 | §5.9 | Suspension generally does not reduce Team Salary, but certain league suspensions reduce Tax Salary by 50% of forfeited compensation | CBA | SCEN | #22 |
+| CBA-C08.2 | CBA-C08 | §8.6 | Tax Salary is finalized near the last regular-season game, with specified later adjustments | CBA | LIFECYCLE | — |
+| CBA-C08.3 | CBA-C08 | §8.6 | Tax Salary includes normal salaries, earned unlikely bonuses, relevant trade-bonus and grievance adjustments, and the 0-1 YOS uplift | CBA | SCEN | #22 |
+| CBA-C08.4 | CBA-C08 | §8.6 | Tax Salary removes likely bonuses not earned and 50% of compensation lost to a league suspension where applicable | CBA | SCEN | #22 |
+| CBA-C08.5 | CBA-C08 | §8.6 | Repeater status applies when a team is a taxpayer now and was a taxpayer in at least three of the immediately preceding four Salary Cap Years | CBA | SCEN | #21 |
+| CBA-C09.1 | CBA-C09 | §8.6 | Tax is progressive by cap-indexed brackets; from 2025-26 non-repeater rates are 1.00/1.25/3.50/4.75 and repeater 3.00/3.25/5.50/6.75, +0.50 per additional bracket; 2023-24 and 2024-25 use the legacy rates | CBA | SCEN | #23 |
+| CBA-C09.2 | CBA-C09 | §8.6 | The calculator must sum full prior brackets plus the partial final bracket | DERIVED | SCEN | #23 |
+| CBA-C10.1 | CBA-C10 | §6.1 | Team Salary includes the minimum-team-salary adjustment | CBA | SCEN | #60 |
+| CBA-C10.2 | CBA-C10 | §8.7 | Minimum team salary is 90% of the Salary Cap, using its own adjusted salary base | CBA | SCEN | #60 |
+| CBA-C10.3 | CBA-C10 | §8.7 | A team below the line at the start of the regular season pays the difference, receives an equal Team Salary charge, and loses specified sharing eligibility | CBA | SCEN | #60 |
+| CBA-C10.4 | CBA-C10 | §8.7 | Its opening salary becomes a continuing in-season floor; falling below it requires prompt correction | CBA | SCEN | #60 |
+| CBA-C10.5 | CBA-C10 | §8.7 | A minimum charge can persist and may be reconciled again at year end | CBA | SCEN | #60 |
+| CBA-C11.1 | CBA-C11 | §3 | The DPE/TPE bar attaches to the disabled player, not to the DPE replacement player | CBA | SCEN | #76 |
+| CBA-C11.2 | CBA-C11 | §4.2 | DPE state, medical decision, amount, use, and extinguishment | CBA/EXT | EXTS | #29 |
+| CBA-C11.3 | CBA-C11 | §6.5 | DPE grants an additional limited exception to replace a player; the injured player's salary remains on the books | CBA | SCEN | #30 |
+| CBA-C11.4 | CBA-C11 | §6.5 | The long-term injury exclusion removes salary only after termination through waivers, the CBA waiting period, and a jointly selected physician / Fitness-to-Play finding | CBA/EXT | EXTS | #30 |
+| CBA-C11.5 | CBA-C11 | §6.5 | Only the team holding the contract when the condition became (or should have become) known may apply for the exclusion | CBA | SCEN | #76 |
+| CBA-C11.6 | CBA-C11 | §6.5 | An approved team can never re-sign or reacquire the excluded player | CBA | SCEN | #76 |
+| CBA-C11.7 | CBA-C11 | §6.5 | A DPE request, granted or denied, precludes a long-term exclusion request for that player in the same Salary Cap Year | CBA | SCEN | #76 |
+| CBA-C11.8 | CBA-C11 | §6.5 | If an excluded player later appears in 25 NBA regular-season/Play-In/playoff games, salary returns for that and later cap years, subject to the elevated-risk exception and timing rules | CBA | SCEN | #76 |
+| CBA-C11.9 | CBA-C11 | §12.5 | If a team used a DPE in respect of the disabled player, trading that player in the same cap year cannot generate a TPE; the restriction does not attach to the replacement; the DPE extinguishes if the disabled player returns or is traded before use | CBA | SCEN | #29 |
+| CBA-C12.1 | CBA-C12 | §3 | DPE medical test is 'unable to play through the following June 15', not 'likely to return by' | CBA | SCEN | #29 |
+| CBA-C12.2 | CBA-C12 | §7.3 | DPE: lesser of 50% of the disabled player's salary or the NTMLE; one-season or remaining-term contract; application July 1 - January 15; expires March 10; extinguishes before use if the disabled player returns or is traded | CBA/EXT | EXTS | #29 |
+| CBA-C13.1 | CBA-C13 | §4.1 | Exception-inventory ledger: amount, used portion, allowed method, apron ceiling, expiration, hard-cap effect | CBA | SCEN | #62 |
+| CBA-C13.2 | CBA-C13 | §4.4 | Exception creation, use, partial use, renunciation, and expiration | CBA | LIFECYCLE | #6, #28 |
+| CBA-C13.3 | CBA-C13 | §7.1 | Different exceptions generally cannot be aggregated to sign or acquire one player | CBA | SCEN | #62 |
+| CBA-C13.4 | CBA-C13 | §7.1 | Most unused exceptions begin daily proration on January 10; the Minimum Exception prorates from the season start; DPE and TPE do not prorate | CBA | SCEN | #62 |
+| CBA-C13.5 | CBA-C13 | §7.1 | Full exception value may remain relevant for a trade or offer sheet where the rule permits | CBA | SCEN | #62 |
+| CBA-C13.6 | CBA-C13 | §7.1 | Exception usage must track the allowed transaction method: signing, trade, waiver claim, or a subset | CBA | SCEN | #62 |
+| CBA-C13.7 | CBA-C13 | §7.3 | NTMLE: sign/trade/claim/offer-sheet match, divisible, up to 4 years and 5% changes; must land at/below the First Apron; use creates a First Apron hard cap unless terms fit TMLE treatment | CBA | SCEN | #16 |
+| CBA-C13.8 | CBA-C13 | §7.3 | TMLE: signing only, divisible, up to 2 years and 5% changes; must land at/below the Second Apron; use creates a Second Apron hard cap and disables specified First-Apron-team tools | CBA | SCEN | #18 |
+| CBA-C13.9 | CBA-C13 | §7.3 | Room MLE: up to 3 years and 5% changes; mutually exclusive with NTMLE, TMLE, and BAE | CBA | SCEN | #28 |
+| CBA-C13.10 | CBA-C13 | §7.3 | BAE: sign/trade/claim, divisible, up to 2 years and 5% changes, unavailable in consecutive years; First Apron transaction and hard cap | CBA | SCEN | #17 |
+| CBA-C13.11 | CBA-C13 | §7.3 | Second Round Pick Exception: prescribed 2+option or 3+option structures at minimum-based salaries | CBA | SCEN | #62 |
+| CBA-C13.12 | CBA-C13 | §7.3 | SRPE amounts are temporarily excluded from Team Salary through July 30 but added to Apron Salary | CBA | SCEN | #62 |
+| CBA-C13.13 | CBA-C13 | §7.3 | Rookie Scale Exception: over-cap authority to sign the team's own first-round pick to a Rookie Scale contract | CBA | SCEN | #26 |
+| CBA-C13.14 | CBA-C13 | §10.1 | A UFA can sign via cap room, an applicable exception, Bird rights with the prior team, or a sign-and-trade | CBA | SCEN | #62 |
+| CBA-C13.15 | CBA-C13 | §13.2 | Second-round picks may sign via the Second Round Pick Exception, Minimum Exception, a Two-Way contract, cap room, or another valid path | CBA | SCEN | #62 |
+| CBA-C14.1 | CBA-C14 | §4.2 | Bird-rights type and clock persisted | CBA | LIFECYCLE | #40 |
+| CBA-C14.2 | CBA-C14 | §6.3 | Renouncing a veteran free-agent hold removes it and ordinarily sacrifices the signing use of Bird rights, though re-signing can continue the underlying clock | CBA | SCEN | #28 |
+| CBA-C14.3 | CBA-C14 | §6.3 | A team can renounce from Early Bird down to Non-Bird to avoid the Early Bird minimum term | CBA | SCEN | #63 |
+| CBA-C14.4 | CBA-C14 | §7.2 | Bird first-year signing authority by type: Non-Bird greater of 120% of prior salary or minimum; Early Bird greater of 175% of prior or 105% of average salary; Full Bird up to the maximum | CBA | SCEN | #24 |
+| CBA-C14.5 | CBA-C14 | §7.2 | Bird term and raise limits: Non-Bird up to 4 years / 5%; Early Bird 2-4 years / 8%; Full Bird up to 5 years / 8% | CBA | SCEN | #63 |
+| CBA-C14.6 | CBA-C14 | §7.2 | Trades and waiver claims generally transfer the Bird clock | CBA | SCEN | #63 |
+| CBA-C14.7 | CBA-C14 | §7.2 | A waiver during the most recent contract can reset the clock; a waiver during an earlier completed contract does not necessarily erase accumulated seasons | CBA | SCEN | #63 |
+| CBA-C14.8 | CBA-C14 | §7.2 | Certain one-year contracts that would create Full/Early Bird rights lose them on trade and generate an automatic consent right unless waived | CBA | SCEN | #40 |
+| CBA-C14.9 | CBA-C14 | §12.10 | Automatic consent rights can arise on a one-year contract when a trade would reduce Full/Early Bird rights; the player can waive that right | CBA | SCEN | #40 |
+| CBA-C15.1 | CBA-C15 | §10.3 | The offering team must preserve sufficient room throughout the matching process | CBA | SCEN | #64 |
+| CBA-C15.2 | CBA-C15 | §10.3 | Arenas: Years 1-2 limited and Years 3-4 can jump; the offering team uses average annual salary for room/Team Salary; the matching team may use the stated schedule or, in specified below-cap circumstances, elect averaging | CBA | SCEN | #64 |
+| CBA-C16.1 | CBA-C16 | §5.4 | Rookie Scale: four seasons, Years 1-2 guaranteed, Team Options in Years 3-4 | CBA | SCEN | #26 |
+| CBA-C16.2 | CBA-C16 | §5.4 | Salary plus unlikely bonuses may range from 80% to 120% of the slot's Rookie Scale Amount | CBA | SCEN | #26 |
+| CBA-C16.3 | CBA-C16 | §5.4 | Rookie option decisions are due by October 31 in the preceding season | CBA | SCEN | #65 |
+| CBA-C16.4 | CBA-C16 | §5.4 | Declining either option leads to UFA status and caps the prior team's new first-year offer at the declined option amount | CBA | SCEN | #65 |
+| CBA-C16.5 | CBA-C16 | §5.5 | A Standard contract may have one option year; Rookie Scale contracts have two prescribed Team Options | CBA | SCEN | #65 |
+| CBA-C16.6 | CBA-C16 | §5.7 | Maximum salary is 25/30/35% of cap by YOS, subject to the 105%-of-prior-salary override and Higher Max criteria; it includes Salary plus unlikely bonuses | CBA | SCEN | #65 |
+| CBA-C16.7 | CBA-C16 | §5.7 | Higher Max eligibility depends on specified MVP, DPOY, or All-NBA achievements and award game thresholds | CBA | SCEN | #65 |
+| CBA-C16.8 | CBA-C16 | §10.4 | A Rookie Scale extension requires exercised options and signature in the prescribed window before the fourth regular season | CBA | SCEN | #65 |
+| CBA-C16.9 | CBA-C16 | §10.4 | Starting salary can reach the normal maximum, with conditional 25%-30% Higher Max language | CBA | SCEN | #65 |
+| CBA-C16.10 | CBA-C16 | §10.4 | Term and raises depend on salary level; up to 8% changes | CBA | SCEN | #65 |
+| CBA-C16.11 | CBA-C16 | §10.4 | Veteran extension eligibility depends on existing term, signing/renegotiation date, remaining seasons, and projected Full Bird status | CBA | SCEN | #65 |
+| CBA-C16.12 | CBA-C16 | §10.4 | General first-year extended salary is the greater of 140% of final regular salary or 140% of EAPS, subject to maximum salary and bonus adjustments | CBA | SCEN | #65 |
+| CBA-C16.13 | CBA-C16 | §10.4 | Designated Veteran / Supermax rules add YOS, original-team/trade-history, honor, term, and one-year trade restrictions | CBA | SCEN | #41 |
+| CBA-C16.14 | CBA-C16 | §10.4 | A Designated Veteran Extension cannot include Incentive Compensation | CBA | SCEN | #65 |
+| CBA-C17.1 | CBA-C17 | §5.8 | Over-38 applies to a contract/extension/renegotiation covering at least four seasons when the player is 38 on October 1 of a covered season | CBA | SCEN | #44 |
+| CBA-C17.2 | CBA-C17 | §5.8 | A narrow moratorium-birthday rule can use age as of the prior June 30 | CBA | SCEN | #66 |
+| CBA-C17.3 | CBA-C17 | §5.8 | For a non-Full-Bird case, Over-38 Years begin at the later of the fourth contract year or the first October 1 on which the player is 38 | CBA | SCEN | #44 |
+| CBA-C17.4 | CBA-C17 | §5.8 | Full Bird players aged 35-36 re-signing with the prior team get special treatment (four-year deal may avoid reallocation; five-year reallocates only Year 5); a sign-and-trade gets no relief | CBA | SCEN | #44 |
+| CBA-C17.5 | CBA-C17 | §5.8 | Salary from Over-38 Years is initially reallocated proportionally across non-Over-38 Years | CBA | SCEN | #44 |
+| CBA-C17.6 | CBA-C17 | §5.8 | Reattribution can recur on July 1 while the contract is active and an Over-38 Year is within two years | CBA | SCEN | #44 |
+| CBA-C17.7 | CBA-C17 | §5.8 | Required inputs: DOB, signing date, origin, term, Bird status, sign-and-trade status, annual salary, guarantee state, historical active status | CBA | SCEN | #66 |
+| CBA-C18 | *(none — top-level leaf)* | §5.9 | Signing bonuses are allocated across guaranteed seasons in proportion to guaranteed salary; ETO years are excluded; allocation can collapse into the first year if all future years are unprotected | CBA | SCEN | #67 |
+| CBA-C19.1 | CBA-C19 | §5.1 | Ten-Day contracts open January 5, last the longer of ten days or three team games; max two with one team | CBA | SCEN | #71 |
+| CBA-C19.2 | CBA-C19 | §5.1 | Concurrent Ten-Day capacity by Standard roster size (12->0, 13->1, 14->2, 15->3); hardship can expand it | CBA | SCEN | #71 |
+| CBA-C19.3 | CBA-C19 | §5.1 | Ten-Day contracts bypass the waiver process; written termination is immediate | CBA | SCEN | #71 |
+| CBA-C19.4 | CBA-C19 | §5.1 | Rest-of-Season contracts are Standard contracts prorated by remaining regular-season days; future seasons may be included | CBA | SCEN | #71 |
+| CBA-C19.5 | CBA-C19 | §5.1 | Proration flows into cap, apron, tax, exception usage, and threshold planning | CBA | SCEN | #71 |
+| CBA-C19.6 | CBA-C19 | §14 | The January 5 Ten-Day opening has no owning contract rule in the register (see 5.1) | CBA | SCEN | #71 |
+| CBA-C20.1 | CBA-C20 | §5.2 | Up to three Two-Ways; they do not consume Standard spots and normally do not count in Team Salary | CBA | SCEN | #38 |
+| CBA-C20.2 | CBA-C20 | §5.2 | Two-Way eligibility generally requires no more than four YOS, with a narrow four-YOS exception | CBA | SCEN | #72 |
+| CBA-C20.3 | CBA-C20 | §5.2 | No Two-Way if the player has been under a Two-Way with that team in more than three Salary Cap Years | CBA | SCEN | #72 |
+| CBA-C20.4 | CBA-C20 | §5.2 | A Two-Way covers at most two seasons and cannot include options, ETOs, loans, bonuses, incentives, deferred comp, or alternate payment schedules | CBA | SCEN | #72 |
+| CBA-C20.5 | CBA-C20 | §5.2 | Conversion to Standard at the applicable minimum for the same remaining term, or replacement by a newly negotiated Standard contract if the team has the mechanism | CBA | SCEN | #72 |
+| CBA-C20.6 | CBA-C20 | §5.2 | Conversion is allowed after July 1 and before the team's final regular-season game | CBA | SCEN | #72 |
+| CBA-C20.7 | CBA-C20 | §5.2 | Two-Way contracts count as $0 in trade salary and create no TPE | CBA | SCEN | #72 |
+| CBA-C20.8 | CBA-C20 | §13.2 | Undrafted rookies are free agents immediately after the draft and need an ordinary signing mechanism or a Two-Way contract | CBA | SCEN | #72 |
+| CBA-C20.9 | CBA-C20 | §14 | The March 4 Two-Way signing deadline has no owning contract rule in the register (see 5.2) | CBA | SCEN | #72 |
+| CBA-C21.1 | CBA-C21 | §3 | A qualifying Exhibit 9 carries a $15,000 injury termination fee plus eligibility prerequisites | CBA | SCEN | #73 |
+| CBA-C21.2 | CBA-C21 | §5.3 | Exhibit 10: one-season minimum Standard contract, generally non-guaranteed, convertible to a Two-Way before the first regular-season day | CBA | SCEN | #73 |
+| CBA-C21.3 | CBA-C21 | §5.3 | A team may hold no more than six Exhibit 10 contracts at once | CBA | SCEN | #73 |
+| CBA-C21.4 | CBA-C21 | §5.3 | Conversion rescinds the Exhibit 10 bonus and triggers the conversion protection amount | CBA | SCEN | #73 |
+| CBA-C21.5 | CBA-C21 | §5.3 | The bonus/protection range is cap-indexed and the two amounts must match when both are present | CBA | SCEN | #73 |
+| CBA-C21.6 | CBA-C21 | §5.3 | The Exhibit 10 bonus is excluded from Team Salary; payment depends on preseason waiver, timely G League assignment/reporting, and 60 consecutive days of service | CBA | SCEN | #73 |
+| CBA-C21.7 | CBA-C21 | §5.3 | Trading an Exhibit 10 can create a deemed bonus when specified conditions exist | CBA | SCEN | #73 |
+| CBA-C21.8 | CBA-C21 | §5.3 | Exhibit 9: one-season non-guaranteed camp contract at a minimum/two-way salary with a $15,000 injury termination fee | CBA | SCEN | #73 |
+| CBA-C21.9 | CBA-C21 | §5.3 | Exhibit 9 salary is normally excluded from Team Salary until the regular season begins | CBA | SCEN | #73 |
+| CBA-C21.10 | CBA-C21 | §5.3 | Exhibit 9 requires at least 14 other players on non-Exhibit-9 contracts and is limited to six Exhibit 9 contracts | CBA | SCEN | #73 |
+| CBA-C21.11 | CBA-C21 | §5.3 | If an Exhibit 9 player is retained into the regular season, the team needs room or an applicable exception | CBA | SCEN | #73 |
+| CBA-C22.1 | CBA-C22 | §5.6 | Protection generally cannot increase by percentage in a later season unless conditioned on something that cannot occur until the earlier season ends | CBA | SCEN | #70 |
+| CBA-C22.2 | CBA-C22 | §5.7 | Minimum contracts generally prohibit bonuses, excepting trade bonuses, Exhibit 10 bonuses, and allowed international payment treatment | CBA | SCEN | #70 |
+| CBA-C22.3 | CBA-C22 | §5.7 | A future percentage-based maximum must be adjusted on the applicable July 1; excess is reduced in order: signing bonus, then incentive compensation, then base compensation | CBA | SCEN | #70 |
+| CBA-C22.4 | CBA-C22 | §5.7 | Raise/decrease limits are 5% (8% where permitted), measured from Year 1 rather than compounded; sign-and-trade and extend-and-trade use stricter limits | CBA | SCEN | #70 |
+| CBA-C23.1 | CBA-C23 | §3 | Validate both incentive caps: total <=20% and unlikely <=15% of Base Compensation | CBA | SCEN | #68 |
+| CBA-C23.2 | CBA-C23 | §5.9 | A signing bonus may not exceed 15% of total compensation excluding incentives; in an offer sheet the limit is 10% | CBA | SCEN | #68 |
+| CBA-C23.3 | CBA-C23 | §5.9 | Deferred compensation counts in the season earned, not the season paid, and is generally limited to 25% of that season's compensation | CBA | SCEN | #68 |
+| CBA-C23.4 | CBA-C23 | §5.9 | Total Incentive Compensation <=20% of Base Compensation; unlikely Incentive Compensation <=15%, subject to extension/renegotiation carryover rules | CBA | SCEN | #68 |
+| CBA-C23.5 | CBA-C23 | §5.9 | EIPPA is a fixed schedule (+$25K/yr), usable once per three Salary Cap Years, blocks a Two-Way/Exhibit 10 path for the specified period, and any excess is treated as a signing bonus and Salary | CBA | SCEN | #68 |
+| CBA-C23.6 | CBA-C23 | §5.9 | Below-market loan interest can be imputed as Salary; premium reimbursements may be excluded when requirements are met | CBA | SCEN | #68 |
+| CBA-C24.1 | CBA-C24 | §3 | An RFA-triggering option must be exercised prior to June 25; encode the legal comparison, not the label | CBA | SCEN | #69 |
+| CBA-C24.2 | CBA-C24 | §5.5 | An option covers one season, cannot be conditional, cannot reduce salary/likely/unlikely bonuses, and otherwise carries unchanged terms and protection | CBA | SCEN | #69 |
+| CBA-C24.3 | CBA-C24 | §5.5 | Standard option deadline is June 29 at 5:00 p.m. ET | CBA | SCEN | #43 |
+| CBA-C24.4 | CBA-C24 | §5.5 | An option in favor of a player who would otherwise become an RFA must be exercised prior to June 25 | CBA | SCEN | #69 |
+| CBA-C24.5 | CBA-C24 | §5.5 | An ETO is a player termination right that must shorten the fourth season, cannot be conditional, and is generally exercised by June 29 | CBA | SCEN | #69 |
+| CBA-C24.6 | CBA-C24 | §5.5 | Exercising an ETO prevents a later extension; signing an applicable extension may require eliminating the ETO | CBA | SCEN | #69 |
+| CBA-C24.7 | CBA-C24 | §5.6 | Team and Player Option years have different pre-exercise protection behavior | CBA | SCEN | #69 |
+| CBA-C25.1 | CBA-C25 | §6.1 | Team Salary includes retired players under contract and circumvention-related imputed amounts | CBA | SCEN | #74 |
+| CBA-C25.2 | CBA-C25 | §6.1 | Team Salary includes pending contracts required to be reported | CBA | SCEN | #74 |
+| CBA-C25.3 | CBA-C25 | §6.1 | Team Salary includes a portion of current/future grievance exposure, with later reconciliation | CBA/EXT | EXTS | #74 |
+
+#### R series — Waivers and rosters
+
+| LEAF ID | Parent | Canon § | Condition | Authority | Method | Scenario |
+|---|---|---|---|---|---|---|
+| CBA-R01.1 | CBA-R01 | §4.3 | Open slots at the instant a trade or waiver claim occurs | CBA/BYL | LIFECYCLE | #36 |
+| CBA-R01.2 | CBA-R01 | §4.4 | Waiver request, clearance, claim, buyout, stretch-election, and set-off dates | BYL/CBA | LIFECYCLE | #34, #35 |
+| CBA-R01.3 | CBA-R01 | §6.1 | Team Salary includes contracts assigned by trade or waiver claim | CBA | SCEN | #77 |
+| CBA-R01.4 | CBA-R01 | §9.4 | A waiver request frees a roster spot immediately; the team need not wait for the player to clear | BYL | SCEN | #77 |
+| CBA-R01.5 | CBA-R01 | §9.4 | A waiver claimant must have an open slot and sufficient room or exception authority | BYL | SCEN | #77 |
+| CBA-R01.6 | CBA-R01 | §11.1 | The standard waiver period is 48 hours and the request cannot be withdrawn | BYL | SCEN | #77 |
+| CBA-R01.7 | CBA-R01 | §11.1 | Roster spot and non-guaranteed salary are freed at request time | BYL/CBA | SCEN | #77 |
+| CBA-R01.8 | CBA-R01 | §11.1 | A claiming team assumes the full contract and receives a 30-day trade restriction | BYL | SCEN | #41 |
+| CBA-R01.9 | CBA-R01 | §11.1 | Claim priority uses record with date-dependent season selection and tie breakers | BYL | SCEN | #77 |
+| CBA-R01.10 | CBA-R01 | §11.1 | A player requested after March 1 generally cannot join another team's postseason roster | BYL | SCEN | #77 |
+| CBA-R02.1 | CBA-R02 | §4.1 | Dead-salary schedule ledger: protection, buyout allocation, stretch election, set-off reductions | CBA | SCEN | #78 |
+| CBA-R02.2 | CBA-R02 | §5.6 | January 10 is the universal current-season guarantee date; the practical cut request is around January 7 | CBA | SCEN | #31, #32 |
+| CBA-R02.3 | CBA-R02 | §5.6 | Before that date, earned compensation can exceed stated protection and become the controlling dead-salary amount | CBA | SCEN | #31, #32 |
+| CBA-R02.4 | CBA-R02 | §6.1 | Team Salary includes protected/dead salary of waived players with stretch/buyout/set-off treatment | CBA | SCEN | #31, #34, #35 |
+| CBA-R02.5 | CBA-R02 | §11.2 | If unclaimed, protected compensation remains as dead salary; unearned unprotected compensation and ordinary bonuses do not | CBA | SCEN | #31, #32 |
+| CBA-R02.6 | CBA-R02 | §11.2 | Before January 10, current-year dead salary is the greater of earned base compensation and the protected amount | CBA | SCEN | #31, #32 |
+| CBA-R02.7 | CBA-R02 | §11.2 | ETO years are treated as guaranteed for dead salary; Team Options not yet exercised are not; Player Options depend on contract language | CBA | SCEN | #78 |
+| CBA-R03 | *(none — top-level leaf)* | §11.2 | Use actual base compensation, not the subsidized cap amount, for a waived veteran-minimum player | CBA | SCEN | #33 |
+| CBA-R04.1 | CBA-R04 | §11.3 | A stretch election spreads applicable dead salary over twice the remaining seasons plus one | CBA | SCEN | #34 |
+| CBA-R04.2 | CBA-R04 | §11.3 | A July 1 - August 31 election includes the current season; a September 1 - June 30 election leaves current-year dead salary untouched and stretches future amounts | CBA | SCEN | #34 |
+| CBA-R04.3 | CBA-R04 | §11.3 | The contract must be terminated before the September 1 preceding its final season, and the stretch elected before that same September 1 | CBA | SCEN | #34 |
+| CBA-R04.4 | CBA-R04 | §11.3 | A stretch is unavailable if future-year Team Salary attributable to all waived/former players already exceeds, or would exceed, 15% of the cap in effect at election | CBA | SCEN | #34 |
+| CBA-R04.5 | CBA-R04 | §11.3 | A team that stretches cannot re-sign or reacquire the player before the July 1 following the last season of the terminated contract, including an option year | CBA | SCEN | #80 |
+| CBA-R04.6 | CBA-R04 | §11.3 | Payment timing and Team Salary allocation are separate decisions | CBA | SCEN | #80 |
+| CBA-R05.1 | CBA-R05 | §11.4 | A buyout reduces protected compensation in exchange for release and reallocates the reduced dead salary proportionally across affected seasons | CBA | SCEN | #35 |
+| CBA-R05.2 | CBA-R05 | §11.4 | Set-off can reduce a prior team's obligation when the waived player earns compensation elsewhere during the original term | CBA | SCEN | #35 |
+| CBA-R05.3 | CBA-R05 | §11.4 | Set-off formula: new compensation minus the applicable 0-YOS or 1-YOS minimum, then 50% of the positive remainder, with detailed deferred/non-NBA treatment | CBA | SCEN | #35 |
+| CBA-R05.4 | CBA-R05 | §11.4 | Set-off allocation follows the relevant dead-salary schedule; a buyout may waive or reduce set-off rights | CBA | SCEN | #81 |
+| CBA-R05.5 | CBA-R05 | §11.4 | Re-signing restrictions apply after a trade/waive or a buyout | CBA | SCEN | #81 |
+| CBA-R06.1 | CBA-R06 | §4.3 | Per team: Standard-contract count, active-list count, two-way count, offseason count | CBA/BYL | LIFECYCLE | #37, #39 |
+| CBA-R06.2 | CBA-R06 | §9.1 | Active + inactive list is normally 14-15 Standard players | CBA/BYL | SCEN | #37 |
+| CBA-R06.3 | CBA-R06 | §9.1 | Temporary shortage to 12 or 13 for no more than two consecutive weeks and 28 total days in the season | CBA/BYL | SCEN | #37 |
+| CBA-R06.4 | CBA-R06 | §9.1 | Active list is normally 12-15, with a temporary 11-player window under similar limits | CBA/BYL | SCEN | #79 |
+| CBA-R06.5 | CBA-R06 | §9.1 | At least eight players must be available on the bench | BYL | SCEN | #79 |
+| CBA-R06.6 | CBA-R06 | §9.1 | Up to three Two-Way contracts, separate from Standard minimum/maximum counts | CBA | SCEN | #38 |
+| CBA-R07 | *(none — top-level leaf)* | §4.3 | Short-roster consecutive-day and season-total clocks | CBA | LIFECYCLE | #37 |
+| CBA-R08.1 | CBA-R08 | §4.3 | Under-Fifteen Games accumulation | CBA | LIFECYCLE | #38 |
+| CBA-R08.2 | CBA-R08 | §4.3 | Two-way active-game usage | CBA | LIFECYCLE | #38 |
+| CBA-R08.3 | CBA-R08 | §5.2 | A Two-Way player may be active for no more than 50 games, prorated after a late signing | CBA | SCEN | #38 |
+| CBA-R08.4 | CBA-R08 | §5.2 | Teams face a 90 Under-Fifteen-Games limit when Two-Way players are active below 15 signed Standard players | CBA | SCEN | #38 |
+| CBA-R08.5 | CBA-R08 | §9.3 | Track per-player two-way maximum active games and team-wide Under-Fifteen Games | CBA | SCEN | #38 |
+| CBA-R09.1 | CBA-R09 | §9.2 | After the 14-15 Standard requirement ends, the aggregate offseason maximum is 21 across Active, Inactive, and Two-Way lists | CBA | SCEN | #39 |
+| CBA-R09.2 | CBA-R09 | §9.2 | On the day after the league's last day of Season, Inactive/Two-Way players transfer to the Active List (max 21 including Two-Ways) until the day before the next regular season; a playoff team's elimination is not the league's last day | CBA | SCEN | #39 |
+| CBA-R10.1 | CBA-R10 | §4.3 | Per player: Standard/Two-Way/Exhibit contract type and current list (active, inactive, two-way, voluntarily retired, suspended) | CBA/BYL | LIFECYCLE | #82 |
+| CBA-R10.2 | CBA-R10 | §4.3 | Hardship and treatment-program exceptions | CBA/EXT | EXTS | #82 |
+| CBA-R10.3 | CBA-R10 | §9.1 | A league suspension can open a spot after the fifth game; a team suspension after the third | CBA/BYL | SCEN | #82 |
+| CBA-R10.4 | CBA-R10 | §9.1 | Hardship and specified treatment-program rules can permit more than the normal maximum | CBA/EXT | EXTS | #82 |
+
+#### L series — Rights, dates, and GM lifecycle
+
+| LEAF ID | Parent | Canon § | Condition | Authority | Method | Scenario |
+|---|---|---|---|---|---|---|
+| CBA-L01.1 | CBA-L01 | §4.4 | Evaluate an explicit asOfDate and Salary Cap Year; never infer 'today' | CBA | LIFECYCLE | #83 |
+| CBA-L01.2 | CBA-L01 | §4.4 | Regular-season start/end and the number of elapsed season days | NBA | LIFECYCLE | #7 |
+| CBA-L01.3 | CBA-L01 | §10.1 | Negotiation/signing timing and the July Moratorium govern free-agent signings | CBA | SCEN | #41 |
+| CBA-L01.4 | CBA-L01 | §14 | Architect must expose a transaction date and automatically apply the appropriate calendar version | CBA/NBA | SCEN | #83 |
+| CBA-L01.5 | CBA-L01 | §14 | The critical event set is represented on the calendar: July 1 rollover/moratorium, moratorium end, tender/QO/option deadlines, first regular-season day, January 5, January 8, January 10, January 15, March 1, March 4, March 10, trade deadline/playoff restrictions, end of regular season, June 29, June 30 | CBA/NBA | SCEN | #83 |
+| CBA-L02.1 | CBA-L02 | §4.4 | Contract signing, amendment, conversion, option, ETO, extension, and renegotiation dates | CBA | LIFECYCLE | #43 |
+| CBA-L02.2 | CBA-L02 | §4.4 | Guarantee trigger dates and protection changes | CBA | LIFECYCLE | #8 |
+| CBA-L02.3 | CBA-L02 | §5.6 | Base compensation can be protected for lack of skill and specified injury/illness categories | CBA | SCEN | #31 |
+| CBA-L02.4 | CBA-L02 | §5.6 | Protection may be partial, conditional, date-triggered, performance-triggered, or subject to a prior-injury exclusion | CBA | SCEN | #8 |
+| CBA-L02.5 | CBA-L02 | §10.5 | Renegotiation requires cap space, an original contract covering at least four seasons, and generally the third anniversary | CBA | SCEN | #85 |
+| CBA-L02.6 | CBA-L02 | §10.5 | Renegotiation is unavailable March 1 through June 30 | CBA | SCEN | #85 |
+| CBA-L02.7 | CBA-L02 | §10.5 | Renegotiation can raise current salary and bonuses only within cap room and cannot simply lower existing salary | CBA | SCEN | #85 |
+| CBA-L02.8 | CBA-L02 | §10.5 | Renegotiate-and-extend may allow up to a 40% drop into the extended term under its specific rules | CBA | SCEN | #85 |
+| CBA-L03.1 | CBA-L03 | §4.2 | Player consent and no-trade status persisted | CBA | LIFECYCLE | #40 |
+| CBA-L03.2 | CBA-L03 | §4.2 | Signing, extension, renegotiation, trade, waiver-claim, and re-sign restrictions with start and end dates | CBA | LIFECYCLE | #41 |
+| CBA-L03.3 | CBA-L03 | §4.4 | Trade date and physical-contingency state | BYL/EXT | EXTS | #86 |
+| CBA-L03.4 | CBA-L03 | §5.4 | First-round signees cannot be traded for 30 days after signing; draft rights can be traded immediately | CBA/BYL | SCEN | #41 |
+| CBA-L03.5 | CBA-L03 | §10.3 | Matched contracts cannot be amended for one year, and trade restrictions apply including a one-year ban on trading to the offering team | CBA | SCEN | #42 |
+| CBA-L03.6 | CBA-L03 | §10.4 | A six-month rule prevents a richer extension immediately before or after a trade | CBA | SCEN | #41 |
+| CBA-L03.7 | CBA-L03 | §10.5 | A renegotiated player cannot be traded for six months | CBA | SCEN | #41 |
+| CBA-L03.8 | CBA-L03 | §12.10 | An express no-trade clause requires at least eight YOS and four YOS with the signing team | CBA | SCEN | #86 |
+| CBA-L03.9 | CBA-L03 | §12.10 | Matched RFA offer sheets and other transactions create separate consent/recipient restrictions | CBA | SCEN | #42 |
+| CBA-L03.10 | CBA-L03 | §12.11 | The validator needs a rule-generated tradeEligibleOn plus recipient/consent constraints rather than one generic date | CBA | SCEN | #41 |
+| CBA-L03.11 | CBA-L03 | §12.11 | Later of three months or December 15 for ordinary free-agent signings | CBA | SCEN | #41 |
+| CBA-L03.12 | CBA-L03 | §12.11 | Later of three months or January 15 for specified Bird-rights re-signings | CBA | SCEN | #41 |
+| CBA-L03.13 | CBA-L03 | §12.11 | 30 days after a Two-Way signing in the specified contexts | CBA | SCEN | #86 |
+| CBA-L03.14 | CBA-L03 | §12.11 | End-of-season option/ETO trade restrictions | CBA | SCEN | #43 |
+| CBA-L03.15 | CBA-L03 | §12.11 | Window restrictions: July Moratorium, trade deadline, playoffs, lottery, and draft-day asset windows | CBA/BYL | SCEN | #86 |
+| CBA-L04.1 | CBA-L04 | §4.2 | RFA / QO / offer-sheet / matching status persisted | CBA | LIFECYCLE | #25 |
+| CBA-L04.2 | CBA-L04 | §4.4 | QO, offer sheet, ROFR notice, renunciation, and unrenunciation dates | CBA | LIFECYCLE | #25 |
+| CBA-L04.3 | CBA-L04 | §6.1 | Team Salary includes outstanding offer sheets | CBA | SCEN | #25 |
+| CBA-L04.4 | CBA-L04 | §6.3 | RFA rights require relinquishing matching rights, not a simple cap-hold renunciation | CBA | SCEN | #84 |
+| CBA-L04.5 | CBA-L04 | §10.1 | Rights status must distinguish free agent, RFA, and retained draft rights | CBA | SCEN | #84 |
+| CBA-L04.6 | CBA-L04 | §10.2 | RFA applies to specified first-round players after Year 4, qualifying Two-Way players, and other players with no more than three YOS | CBA | SCEN | #84 |
+| CBA-L04.7 | CBA-L04 | §10.2 | The prior team must issue a timely QO to preserve its right of first refusal | CBA | SCEN | #25 |
+| CBA-L04.8 | CBA-L04 | §10.2 | A QO must be made by 5:00 p.m. ET on June 29; unless extended it stays open through October 1 and never later than March 1 | CBA | SCEN | #84 |
+| CBA-L04.9 | CBA-L04 | §10.2 | The QO may be withdrawn unilaterally through July 13; after that player written consent is required, and a withdrawal on or after July 14 is also treated as a renunciation | CBA | SCEN | #84 |
+| CBA-L04.10 | CBA-L04 | §10.2 | QO size can depend on draft slot, prior salary, and starter criteria (starts/minutes) | CBA | SCEN | #84 |
+| CBA-L04.11 | CBA-L04 | §10.2 | A standard QO is one year, fully protected for specified reasons, with required payment/term language | CBA | SCEN | #84 |
+| CBA-L04.12 | CBA-L04 | §10.2 | A Maximum QO carries maximum base compensation, 8% increases, five seasons, full protection, and no option or ETO | CBA | SCEN | #84 |
+| CBA-L04.13 | CBA-L04 | §10.2 | Two-Way RFAs have separate QO rules | CBA | SCEN | #84 |
+| CBA-L04.14 | CBA-L04 | §10.2 | Withdrawal dates affect UFA status and whether Bird rights are deemed renounced | CBA | SCEN | #84 |
+| CBA-L04.15 | CBA-L04 | §10.3 | The ordinary last date to sign an offer sheet is March 1; it must cover more than one season excluding an option, or more than two if a Maximum QO was tendered | CBA | SCEN | #84 |
+| CBA-L04.16 | CBA-L04 | §10.3 | First Refusal Exercise Notice timing: received before noon ET is due 11:59 p.m. the next day; at/after noon, the second following day; a Moratorium offer sheet uses the special July 7 deadline | CBA | SCEN | #84 |
+| CBA-L04.17 | CBA-L04 | §10.3 | Matching cannot be used as a sign-and-trade | CBA | SCEN | #84 |
+| CBA-L05.1 | CBA-L05 | §4.2 | Draft rights, required tender, non-NBA contract, and cap-hold status persisted | CBA | LIFECYCLE | #26 |
+| CBA-L05.2 | CBA-L05 | §4.4 | Draft, required tender, non-NBA contract, and draft-rights dates | CBA | LIFECYCLE | #26 |
+| CBA-L05.3 | CBA-L05 | §13.1 | Drafting creates exclusive negotiating rights | CBA | SCEN | #26 |
+| CBA-L05.4 | CBA-L05 | §13.1 | Rights persist through timely Required Tenders and qualifying non-NBA contract events | CBA | SCEN | #87 |
+| CBA-L05.5 | CBA-L05 | §13.1 | Required Tender deadlines and terms differ for first- and second-round picks | CBA | SCEN | #87 |
+| CBA-L05.6 | CBA-L05 | §13.1 | Failure to tender can produce rookie free agency | CBA | SCEN | #87 |
+| CBA-L05.7 | CBA-L05 | §13.1 | Draft-and-stash rights need non-NBA contract dates, availability notice, new-tender events, and subsequent-draft rules | CBA | SCEN | #26 |
+| CBA-L06.1 | CBA-L06 | §4.2 | Standard TPE amount, source transaction, remaining amount, and expiration | CBA | LIFECYCLE | #6 |
+| CBA-L06.2 | CBA-L06 | §12.1 | Step 11: the transaction must create resulting state - TPE balances, hard caps, roster/list assignments, rights, restrictions, picks, and cash balances | CBA | LIFECYCLE | #6 |
+| CBA-L06.3 | CBA-L06 | §12.5 | Standard TPE remainder and expiration must persist and support partial use | CBA | LIFECYCLE | #6 |
+| CBA-L07 | *(none — top-level leaf)* | §4.2 | Team hard-cap level and trigger event persisted | CBA | LIFECYCLE | #15 |
+| CBA-L08.1 | CBA-L08 | §3 | Frozen-pick measurement is Apron Team Salary at the start of the final regular-season game; store the four-year history | CBA | LIFECYCLE | #20 |
+| CBA-L08.2 | CBA-L08 | §4.2 | Taxpayer/repeater history and second-apron history | CBA | LIFECYCLE | #20, #21 |
+| CBA-L08.3 | CBA-L08 | §8.5 | Apron Team Salary above the Second Apron as of the start of the final regular-season game freezes the first-round pick in the seventh following draft | CBA | LIFECYCLE | #20 |
+| CBA-L08.4 | CBA-L08 | §8.5 | Exceeding the Second Apron in at least two of the next four seasons slides the frozen pick to the end of the first round | CBA | LIFECYCLE | #20 |
+| CBA-L08.5 | CBA-L08 | §8.5 | At or below the Second Apron in at least three of those four seasons unfreezes the pick the day after the third such regular season, without sliding | CBA | LIFECYCLE | #20 |
+| CBA-L08.6 | CBA-L08 | §8.5 | This requires persisted historical team-apron state and future-pick status, not current-year validation alone | CBA | LIFECYCLE | #20 |
+| CBA-L09 | *(none — top-level leaf)* | §13.3 | Second Apron frozen picks are unavailable until unfreezing; slid picks have fixed end-of-round placement | CBA | LIFECYCLE | #20 |
+| CBA-L10.1 | CBA-L10 | §1.1 | EXT rules must consume an explicit decision/assumption and never drive an automatic verdict | EXT | EXTS | #88 |
+| CBA-L10.2 | CBA-L10 | §18 | Physical examinations: represent pending/passed/failed/waived/terms-adjusted; never determine medical fitness | EXT | EXTS | #88 |
+| CBA-L10.3 | CBA-L10 | §18 | DPE and career-ending injury findings are inputs; verify consequences after a ruling and warn when the wrong standard is selected | EXT | EXTS | #29 |
+| CBA-L10.4 | CBA-L10 | §18 | Bonus-likelihood appeals: preserve an expert override, its source, and its effective date | EXT | EXTS | #88 |
+| CBA-L10.5 | CBA-L10 | §18 | Circumvention: warn about suspicious structures, never present them as approved, and issue no definitive legal finding | EXT | EXTS | #88 |
+| CBA-L10.6 | CBA-L10 | §18 | Anti-collusion and tampering: negotiation dates are checkable, but communications and intent sit outside the product's data | EXT | EXTS | #88 |
+| CBA-L10.7 | CBA-L10 | §18 | Grievances and settlements: known disputed amounts and awards can be entered and allocated; Architect cannot predict the award | EXT | EXTS | #88 |
+| CBA-L10.8 | CBA-L10 | §18 | League approvals and hardship exceptions: use an explicit approval record; never infer approval from similar roster conditions | EXT | EXTS | #88 |
+| CBA-L10.9 | CBA-L10 | §18 | These states must appear in the UI as 'requires external determination' or 'assumption required', never as unqualified PASS or FAIL | EXT | UI | #88 |
+
+#### S series — Foundation — parameters and provenance
+
+| LEAF ID | Parent | Canon § | Condition | Authority | Method | Scenario |
+|---|---|---|---|---|---|---|
+| CBA-S01.1 | CBA-S01 | §3.1 | Season parameter set (cap, minimum, tax, both aprons, NTMLE, TMLE, Room MLE) for the current and regression seasons | NBA | STATIC | — |
+| CBA-S01.2 | CBA-S01 | §3.1 | Load the complete minimum-salary and Rookie Scale tables; never infer them from current salary or one percentage | CBA | STATIC | — |
+| CBA-S01.3 | CBA-S01 | §3.1 | All cap-indexed values live in a season-configuration layer; no example dollars embedded in rule logic | DERIVED | STATIC | — |
+| CBA-S01.4 | CBA-S01 | §3.1 | The enumerated per-season configured set (cap/tax/apron/floor, minimum scale, rookie scale, NTMLE/TMLE/Room MLE/BAE/EIPPA, two-way, Exhibit 10, cash limit, bracket width and rates, season day count and deadlines, Expanded TPE scaled amount) | DERIVED | STATIC | — |
+| CBA-S01.5 | CBA-S01 | §5.7 | Minimum salary depends on YOS and the year the contract began; multi-year minimum scales move by contract year | CBA | STATIC | — |
+| CBA-S01.6 | CBA-S01 | §14 | Season-specific dates (trade deadline, game calendar) must be versioned; they are not permanent constants | NBA | STATIC | — |
+| CBA-S02.1 | CBA-S02 | §1.2 | On a source change, update the source/parameter layer and rerun tests; never silently edit a hard-coded result | DERIVED | STATIC | — |
+| CBA-S02.2 | CBA-S02 | §3 | One canonical, validated source per season value (TMLE $5.685M vs $5.585M conflict) | DERIVED | STATIC | — |
+| CBA-S02.3 | CBA-S02 | §3 | Do not duplicate constants across calculators (tax-bracket width conflict) | DERIVED | STATIC | — |
+| CBA-S02.4 | CBA-S02 | §3.1 | Each constant has exactly one canonical sourced value, and the enforcing code path must read the audited constant | DERIVED | STATIC | — |
+| CBA-S03.1 | CBA-S03 | §1.1 | OPS rules must stay configurable, carry visible provenance, and never be presented as CBA language | OPS | STATIC | — |
+| CBA-S03.2 | CBA-S03 | §9.3 | A potential CBA adjustment (Standard minimum to 15, or fewer Two-Way spots, based on league-wide roster averages) must be a configurable league rule, not a permanent constant | OPS | STATIC | — |
+| CBA-S03.3 | CBA-S03 | §17 | OPS and EXT rules stay visibly labeled and configurable and are never promoted to CBA-verified through repetition | OPS | STATIC | — |
+| CBA-S04.1 | CBA-S04 | §3.1 | Expanded TPE derivation: A = $7.5M x cap / $136.021M; crossovers A-K and 4(A-K); never round A before a crossover | DERIVED | SCEN | #1 |
+| CBA-S04.2 | CBA-S04 | §3.1 | Additional derived amounts: BAE 3.32% of cap, cash limits 5.15% of cap, EIPPA fixed $0.900M, tax-bracket width $5M x cap / $136.021M | DERIVED | SCEN | #61 |
+
+### 15.8 Index amendment — coverage, methods, and non-code dispositions (v1.1)
+
+**Every substantive obligation stated anywhere in this canon is owned by exactly one LEAF identifier.** Totals are computed mechanically from §15.5–§15.7, not counted by eye.
+
+| Measure | Count |
+|---|---:|
+| Substantive implementation obligations | **368** |
+| LEAF identifiers (the auditable universe) | **368** |
+| GROUP identifiers (navigation/rollup only) | **59** |
+| Registry nodes | **427** |
+| Top-level IDs (56 preserved + 14 added) | **70** |
+| Sub-IDs | **357** |
+| Obligations left partially indexed or unowned | **0** |
+| Acceptance scenarios | **89** |
+
+**Verification methods are carried by LEAF identifiers only.** A GROUP has no verification method of its own.
+
+| Verification method | LEAF obligations |
+|---|---:|
+| SCEN — Executable scenario | 306 |
+| LIFECYCLE — Lifecycle/state review | 32 |
+| EXTS — External-state handling | 16 |
+| STATIC — Static/configuration inspection | 13 |
+| UI — Manual UI review | 1 |
+| **Total** | **368** |
+
+**Non-code verification dispositions.** Seventeen rows of canon prose legislate the *audit and canon-maintenance process* rather than engine behavior. They mint no audit ID, are not LEAF obligations, and can never produce an Architect verdict. They are recorded here so the index is provably complete rather than silently short.
+
+| Canon § | Obligation | Disposition |
+|---|---|---|
+| §1.1 | Conflict order: signed CBA > By-Laws > NBA release > CBA 101 > secondary | Reference — defines or restates; legislates no separate obligation |
+| §1.1 | Store the article/section identifier as the durable citation key; retain printed page refs | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
+| §1.2 | Every implemented rule/finding preserves the 9-field rule record (ID, rule/scope, authority, inputs incl. asOfDate, outputs per ledger, verdict behavior, explanation, tests, version) | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
+| §1.3 | Each applicable rule is assessed across five layers: representation, calculation, enforcement, explanation, lifecycle | Reference — defines or restates; legislates no separate obligation |
+| §2 | Executive findings restate obligations legislated elsewhere in the canon | Reference — defines or restates; legislates no separate obligation |
+| §5.1 | A contract is Standard unless it is a Two-Way contract | Reference — defines or restates; legislates no separate obligation |
+| §12.1 | Recommended validation order, steps 1-10 (date, asset legality, connectivity, slots, consent, ITS/OTS, post-trade ledgers, TPE path selection, apron limits, cash/pick/Stepien checks) | Reference — defines or restates; legislates no separate obligation |
+| §15 | The register is a set of testable coverage questions, not confirmed bugs | Reference — defines or restates; legislates no separate obligation |
+| §16 | The audit must use concrete scenarios, not only unit-level rule labels | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
+| §17 | Every audited ID produces the six-field compact record (coverage, product layer, severity, evidence, authority, remediation) | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
+| §17 | Three bounded passes: deterministic correctness, Cap Manager completeness, full GM depth | Reference — defines or restates; legislates no separate obligation |
+| §17 | Findings stay attached to the product layer they affect (calculation, validation, explanation, lifecycle, data, authoring, intentional exclusion) | Reference — defines or restates; legislates no separate obligation |
+| §17 | The ten-step canon release gate must be completed before an updated canon or season parameter set governs Architect | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
+| §17 | Boundary tests one unit below, exactly at, and one unit above every monetary, count, day, and percentage boundary | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
+| §18 | Expansion rules and BRI cap-setting: consume published team count and system levels rather than reproduce league audit/BRI calculations | Reference — defines or restates; legislates no separate obligation |
+| §19.1 | The rule-family authority map must be preserved as citation metadata on every implemented rule | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
+| §19.3 | The verification-status classification is part of the canon; moving an OPS item into a primary-source category requires a cited canon revision | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
+
 ## 16. Acceptance-test library
 
 The later Architect audit should use concrete scenarios, not only unit-level rule labels.
@@ -996,6 +1609,54 @@ The later Architect audit should use concrete scenarios, not only unit-level rul
 44. Over-38 contract with and without Full Bird special treatment and a July 1 reattribution.
 45. Protected firsts with multiple fallback years that create a possible Stepien violation.
 46. **OPS regression:** three-team trade where one team only touches one other team — must fail under the configured league-operational rule despite valid salary math.
+
+### Index amendment additions (v1.1)
+
+Scenarios 1–46 are unchanged. These 43 scenarios were added because a deterministic rule family had **no scenario coverage at all**, or because a legal condition that can independently fail was exercised by nothing in the library. They are deliberately **not** one scenario per obligation: `CBA-S01`, `CBA-S02`, and `CBA-S03` are verified by static and configuration inspection rather than an executable case, and `CBA-A21` already had scenario 10.
+
+47. Five ledgers diverge for one roster: Team, Apron, Tax, ITS, and OTS all differ for the same players on the same date, including the separate player-compensation ledger.
+48. Multi-player trade legal only through a per-team component decomposition; a second trade with no legal decomposition is refused with an explanation of why none exists.
+49. Trade bonus end to end: the 15% ceiling on remaining base compensation, a once-only trigger across an initial sign-and-trade then a later trade, the guaranteed-base denominator excluding unexercised options, the 120%-of-Rookie-Scale ceiling, sender pays while the receiver carries the allocation, and a player waiver creating the six-month renegotiation restriction.
+50. Player acquired with an exception and traded inside two months; then the same player acquired on or before December 16 and traded on the day before the trade deadline and on the deadline itself.
+51. Sign-and-trade eligibility and contract shape: a player who did not finish the prior season on the sending team's roster, completion after the regular season begins, a two-season term, an unprotected Year 1, and a barred signing exception — each must fail independently.
+52. Extend-and-trade: starting salary above the greater of 120% of prior regular salary and 120% of EAPS, an over-long term, raises above 5%, and the barred end-of-contract offseason window.
+53. Cash-in-trade: separate sent and received limits exhausted independently, cash sent not netted against cash received, conditional cash charged to the Salary Cap Year of the trade, and paying cash blocked for a team landing above the Second Apron.
+54. **OPS regression:** multi-team trade whose only qualifying asset from one team is an extinguishable conditional pick, and one whose draft-rights asset fails the qualifying-prospect test — both refused under the configured league-operational rule.
+55. Pick mechanics: a conveyance combining protection and deferral; a "two years after prior conveyance" condition that would reach past the seventh future draft; and pick swaps and deferral rights represented in the pick ledger.
+56. The $250,000 allowance falls to zero when post-assignment Apron Team Salary would exceed the First Apron; and the 110% Transition TPE is available only in a 2023–24 historical simulation, never as a current fifth tier.
+57. Apron Salary derived from the nine enumerated CBA VII.2(e)(1) adjustments and computed both before and after a proposed transaction, with each adjustment independently wrong in turn.
+58. Signing a qualifying high-salary waived player during the regular season above the First Apron; and using a TPE created from a sign-and-traded contract above the Second Apron.
+59. Post-regular-season transaction evaluated under the five next-year assumptions — options exercised, ETOs not exercised, conditioned Higher Max achieved, apron levels held, no further current-year transactions — producing a hard cap in both Salary Cap Years.
+60. Minimum team salary: a team below 90% at the start of the regular season pays the difference and takes an equal Team Salary charge; its opening salary becomes a continuing in-season floor; the charge is reconciled again at year end.
+61. Derived-value recomputation: `A`, both Expanded TPE crossovers, the tax-bracket width, the BAE, and the cash limits recomputed from published inputs for a new Salary Cap Year, with no rounding before the rule-defined final step.
+62. Exception rules: two exceptions aggregated to sign one player — must fail; a Second Round Pick Exception excluded from Team Salary through July 30 but added to Apron Salary; the Rookie Scale Exception used over the cap; full exception value retained for a trade or offer sheet.
+63. Bird authority by type: Non-Bird, Early Bird, and Full Bird first-year amounts, terms, and raises; renunciation from Early Bird down to Non-Bird; and the narrow unrenouncing route after a matched offer sheet.
+64. Arenas offer sheet: the offering team carries average annual salary for room and Team Salary while the matching team uses the stated schedule, then elects averaging in the specified below-cap circumstance.
+65. Rookie and veteran extensions: the 80%–120% Rookie Scale range, conditional Higher Max language, the greater of 140% of final regular salary or 140% of EAPS, a Designated Veteran Extension carrying no Incentive Compensation, and a declined option capping the prior team's first-year offer.
+66. Over-38 applicability: a four-season contract crossing age 38 on October 1; the moratorium-birthday rule using age as of the prior June 30; and Over-38 Years beginning at the later of the fourth contract year and the first October 1 at age 38.
+67. Signing-bonus allocation across guaranteed seasons in proportion to guaranteed salary, excluding ETO years, collapsing into the first applicable year when all future years are unprotected.
+68. Bonus and incentive limits: a signing bonus above 15% of total compensation (10% in an offer sheet); total incentives above 20% and unlikely incentives above 15% of Base Compensation; deferred compensation above 25% of the season's compensation; and EIPPA used twice inside three Salary Cap Years.
+69. Options and ETOs: the June 29 5:00 p.m. ET standard deadline; an RFA-triggering option exercised on June 25 — must fail as later than "prior to June 25"; an ETO that does not shorten the fourth season; and an ETO exercised before an attempted extension.
+70. Contract-shape limits: raises measured from Year 1 rather than compounded; a bonus on a minimum contract; and a future percentage maximum adjusted on July 1 with excess reduced in the required order of signing bonus, incentive compensation, then base compensation.
+71. Ten-Day and Rest-of-Season: a Ten-Day signed before January 5; a third Ten-Day with the same team; concurrent Ten-Day capacity at 12, 13, 14, and 15 Standard players; and a Rest-of-Season contract prorated by remaining regular-season days.
+72. Two-Way: a player with more than four YOS; a fourth Salary Cap Year under a Two-Way with the same team; a Two-Way carrying an option; conversion after the final regular-season game; a signing after March 4; and $0 trade salary creating no TPE.
+73. Exhibit 10 and Exhibit 9: a seventh Exhibit 10; conversion rescinding the bonus and triggering the conversion protection amount; an Exhibit 9 with fewer than 14 other non-Exhibit-9 players; and the $15,000 injury termination fee on a qualifying Exhibit 9.
+74. Team Salary inclusion: a retired player still under contract, a pending contract required to be reported, and the reported portion of grievance exposure with later reconciliation.
+75. Minimum Exception eligibility and league subsidy eligibility evaluated as separate tests for the same player.
+76. DPE versus long-term injury exclusion: the exclusion's prerequisites (termination through waivers, the waiting period, the physician or Fitness-to-Play finding); the eligible-team test; the permanent bar on re-signing or reacquiring an excluded player; a DPE request precluding an exclusion request in the same Salary Cap Year; and a 25-game return restoring the salary.
+77. Waiver lifecycle: the 48-hour claim window with an irrevocable request, the roster spot freed at request time, claim priority by record with tie breakers, a claimant lacking an open slot or exception authority, and a player waived after March 1 barred from another team's postseason roster.
+78. Dead salary for a waived player whose contract carries an ETO year, an unexercised Team Option, and a Player Option — each treated differently.
+79. Active list at 12–15 with the temporary 11-player window, and the eight-player bench minimum, evaluated separately from the 14–15 Standard requirement.
+80. Stretch consequences: the team cannot re-sign or reacquire the player before the July 1 following the terminated contract's last season, and payment timing is elected separately from Team Salary allocation.
+81. Buyout and set-off: the reduction allocated across the dead-salary schedule, a buyout that waives set-off rights, and the re-signing restriction after a trade-and-waive and after a buyout.
+82. Roster capacity from suspension and hardship: a league suspension opening a spot after the fifth game, a team suspension after the third, and a hardship exception requiring an explicit approval record rather than an inference from roster conditions.
+83. The same hypothetical evaluated on two explicit `asOfDate` values yields two different legal results, and no rule reads an ambient "today".
+84. Qualifying offer and offer-sheet shape: standard QO terms, Maximum QO terms, Two-Way QO rules, unilateral withdrawal through July 13 versus consent plus deemed renunciation on July 14, the offer-sheet term requirement and March 1 deadline, and matching used as a sign-and-trade — must fail.
+85. Renegotiation: a contract under four seasons or inside the third anniversary; an attempt between March 1 and June 30; an attempt to lower existing salary; and a renegotiate-and-extend using the 40% drop into the extended term.
+86. Express no-trade clause requiring at least eight YOS and four YOS with the signing team, and the 30-day trade restriction after a Two-Way signing.
+87. Draft-and-stash lifecycle: non-NBA contract dates, availability notice, a new Required Tender event, and the subsequent-draft rule.
+88. External determination: a physical, a DPE medical finding, a bonus-likelihood override, a grievance award, and a hardship approval — each surfaces "assumption required" with provenance and never an unqualified PASS or FAIL.
+89. Room path: a team below the cap acquires salary up to room plus $250,000, and the room path cannot be combined simultaneously with another TPE path in the same trade.
 
 ## 17. Recommended comparison sequence
 
