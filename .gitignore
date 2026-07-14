@@ -149,7 +149,9 @@ src/serviceAccountKey.json
 data/firebaseServiceAccountKey.json
 
 # CBA reference materials (large, not code-related)
-cba/
+# Anchored: only the top-level folder. An unanchored `cba/` also swallowed
+# docs/reference/cba/, which holds the tracked Architect CBA canon.
+/cba/
 
 # AI context files that are personal
 **/BOOT_PROMPT.md
