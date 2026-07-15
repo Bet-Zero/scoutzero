@@ -14,7 +14,7 @@
 
 **What v1.1 changed (historical):** the **index only**. v1.1 added audit IDs, sub-IDs, verification-method classifications, acceptance scenarios, and cross-references; it changed no CBA rule and renumbered no existing ID or scenario. The register is a two-level tree: **GROUP** nodes are navigation anchors, and **LEAF** nodes are the 368 independently auditable obligations that form the entire audit universe (§15.6). Because the checksum of a file cannot be stated inside that file, the v1.1 checksum of record was published in `work/architect-completion/ARCHITECT_CBA_CANON_CODE_MAP.md` and `work/architect-completion/ARCHITECT_CBA_CANON_V1_1_MIGRATION.md`.
 
-**What v2.0 changes (this working draft):** substantive rule repair against the signed CBA under the approved R1–R9 plan (`work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`). R1 corrects the seven adjudicated substantive rule errors and two authority labels, and rewrites scenarios 50, 53, 57, 60, 67, 68, and 69; no ID or scenario is renumbered. R2 adds the binding v2.0 register and source-certification standard (§15.9) and the register release gates that R3–R8 must satisfy; it changes no rule, register row, scenario, ID, or source value. R1.1 closes the adjudicated residual R1 defects — the VII §5(b)(1) Unlikely-Bonus provisos stated in full, the signing/trade-earned/extension bonus-allocation scope per VII §3(b)(1)(ii)–(b)(3), MTS shortfall-payment terminology with the 2023–24-only §2(c)(7) exception, and explicit provisional markers on the A11/A18.7 authority labels pending R2.1 — and repairs the four scenarios with confirmed logic errors (50, 60, 67, 69). R2.1 **replaces the rejected R2 foundation in full** with the clean v2 registry model (§15.9, R2.1 edition): the published v1.1 register and scenarios 1–89 are frozen as historical migration inputs; active v2 obligations are new `CBA2-…` GROUP/LEAF IDs linked to history by a typed `XW2-…` crosswalk; evidence lives in a structured source-artifact/evidence-component registry; the authority taxonomy adds **INFERRED** and closes the A11/A18.7 provisional items; every active LEAF carries one primary and any number of secondary verification methods; the scenario library will be rebuilt as `CBA2-SC-…` with an `SXW2-…` crosswalk; and the release gates are retimed across R3–R6/R7/R8/R9. R2.2 **hardens that foundation** after the independent review of R2.1: historical scenario identity is pinned to the published v1.1 §16 section at `9814939c` (with its exact byte hash recorded, and the R1/R1.1 scenario variants reclassified as R7 authoring inputs only); crosswalk edge typing gains a deterministic precedence with exactly one primary relationship type per source–target pair; `no-successor` becomes a narrow, gateable disposition that can never hide an in-scope obligation; the evidence schema supports zero/one/many source artifacts and multi-component dependency chains with typed `SRC2-…` provenance (including OPS provenance without a public URL and EXT runtime-determination contracts); duplicate-candidate generation becomes mandatory and seven-generator systematic; new gates SC6/SC7 and G14/G15 close the scenario-coverage, method-record, evidence-reconciliation, and amendment-traceability holes; R7's method-reclassification authority is bounded and `METHOD`-recorded; the R3→R4→R5→R6 construction sequence is strict; `AMEND` decision records preserve draft-correction traceability; and the remaining old-ID audit guidance (§1.2, §17) and legacy §19.3 family-status ambiguity are removed. R1.2 closes an omission the independent Codex foundation review found in R1.1's extension-bonus correction: §5.9 now states the below-cap branch of VII §3(b)(3)(ii) in which the bonus is paid **no sooner than** the first day of the extended term's first Salary Cap Year — allocated under §3(b)(3)(i)'s extended-term-only protected-percentage rules with the zero-protection fallback to the extended term's first Salary Cap Year, never under ordinary §3(b)(2) allocation — keeping the three §3(b)(3) branches distinct. R2.3 corrects the five foundation execution contracts the same independent Codex foundation review ordered: every `EV2-…` evidence path now terminates in at least one typed `SRC2-…` source/provenance record — no source-free terminal component; OPS components reference an `ops-provenance` record and EXT components an `ext-contract` record, each valid without a public URL (and without an artifact hash only where no durable artifact exists) — with class-specific certification duties replacing the universal read-the-passage rule; secondary sources become discovery/corroboration aids only — secondary reporting establishes no authority class, and OPS requires qualifying first-party operational provenance; SC2 expands from historical-scenario coverage alone to the complete sixteen-check SXW2 integrity contract, rerun in full by G10 and R9; draft mutability and `AMEND` lineage extend to every live v2 population (active GROUP/LEAF rows, `XW2-…`, `SRC2-…`, `EV2-…`, active `CBA2-SC-…` scenarios and named cases, `SXW2-…`, `DR2-…`) with append-only precisely defined and G15/R9 expanded accordingly; and the three register populations are stated distinctly — the published v1.1 register at `9814939c` (the sole XW2 historical source), this branch's legacy-numbered working copy (an R1/R1.1-corrected, R2.1-annotated authoring input, not byte-identical to the published edition), and the active v2 registry — correcting the earlier preserved-unchanged wording. The authority cutoff remains **July 12, 2026**. **This draft is not accepted and must not govern Phase 2 verdicts, implementation decisions, or tests**; the v2.0 checksum will be recorded only at R8, and activation requires a new independent Reviews A–F acceptance gate (R9).
+**What v2.0 changes (this working draft):** substantive rule repair against the signed CBA under the approved R1–R9 plan (`work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`). R1 corrects the seven adjudicated substantive rule errors and two authority labels, and rewrites scenarios 50, 53, 57, 60, 67, 68, and 69; no ID or scenario is renumbered. R2 adds the binding v2.0 register and source-certification standard (§15.9) and the register release gates that R3–R8 must satisfy; it changes no rule, register row, scenario, ID, or source value. R1.1 closes the adjudicated residual R1 defects — the VII §5(b)(1) Unlikely-Bonus provisos stated in full, the signing/trade-earned/extension bonus-allocation scope per VII §3(b)(1)(ii)–(b)(3), MTS shortfall-payment terminology with the 2023–24-only §2(c)(7) exception, and explicit provisional markers on the A11/A18.7 authority labels pending R2.1 — and repairs the four scenarios with confirmed logic errors (50, 60, 67, 69). R2.1 **replaces the rejected R2 foundation in full** with the clean v2 registry model (§15.9, R2.1 edition): the published v1.1 register and scenarios 1–89 are frozen as historical migration inputs; active v2 obligations are new `CBA2-…` GROUP/LEAF IDs linked to history by a typed `XW2-…` crosswalk; evidence lives in a structured source-artifact/evidence-component registry; the authority taxonomy adds **INFERRED** and closes the A11/A18.7 provisional items; every active LEAF carries one primary and any number of secondary verification methods; the scenario library will be rebuilt as `CBA2-SC-…` with an `SXW2-…` crosswalk; and the release gates are retimed across R3–R6/R7/R8/R9. R2.2 **hardens that foundation** after the independent review of R2.1: historical scenario identity is pinned to the published v1.1 §16 section at `9814939c` (with its exact byte hash recorded, and the R1/R1.1 scenario variants reclassified as R7 authoring inputs only); crosswalk edge typing gains a deterministic precedence with exactly one primary relationship type per source–target pair; `no-successor` becomes a narrow, gateable disposition that can never hide an in-scope obligation; the evidence schema supports zero/one/many source artifacts and multi-component dependency chains with typed `SRC2-…` provenance (including OPS provenance without a public URL and EXT runtime-determination contracts); duplicate-candidate generation becomes mandatory and seven-generator systematic; new gates SC6/SC7 and G14/G15 close the scenario-coverage, method-record, evidence-reconciliation, and amendment-traceability holes; R7's method-reclassification authority is bounded and `METHOD`-recorded; the R3→R4→R5→R6 construction sequence is strict; `AMEND` decision records preserve draft-correction traceability; and the remaining old-ID audit guidance (§1.2, §17) and legacy §19.3 family-status ambiguity are removed. R1.2 closes an omission the independent Codex foundation review found in R1.1's extension-bonus correction: §5.9 now states the below-cap branch of VII §3(b)(3)(ii) in which the bonus is paid **no sooner than** the first day of the extended term's first Salary Cap Year — allocated under §3(b)(3)(i)'s extended-term-only protected-percentage rules with the zero-protection fallback to the extended term's first Salary Cap Year, never under ordinary §3(b)(2) allocation — keeping the three §3(b)(3) branches distinct. R2.3 corrects the five foundation execution contracts the same independent Codex foundation review ordered: every `EV2-…` evidence path now terminates in at least one typed `SRC2-…` source/provenance record — no source-free terminal component; OPS components reference an `ops-provenance` record and EXT components an `ext-contract` record, each valid without a public URL (and without an artifact hash only where no durable artifact exists) — with class-specific certification duties replacing the universal read-the-passage rule; secondary sources become discovery/corroboration aids only — secondary reporting establishes no authority class, and OPS requires qualifying first-party operational provenance; SC2 expands from historical-scenario coverage alone to the complete sixteen-check SXW2 integrity contract, rerun in full by G10 and R9; draft mutability and `AMEND` lineage extend to every live v2 population (active GROUP/LEAF rows, `XW2-…`, `SRC2-…`, `EV2-…`, active `CBA2-SC-…` scenarios and named cases, `SXW2-…`, `DR2-…`) with append-only precisely defined and G15/R9 expanded accordingly; and the three register populations are stated distinctly — the published v1.1 register at `9814939c` (the sole XW2 historical source), this branch's legacy-numbered working copy (an R1/R1.1-corrected, R2.1-annotated authoring input, not byte-identical to the published edition), and the active v2 registry — correcting the earlier preserved-unchanged wording. R2.4 closes the four residual foundation blockers found by the independent Codex review of R1.2/R2.3: the `SRC2-…` registry becomes a mechanically parseable base-plus-type-specific-detail record contract with pinned field grammars, per-type `—` validity, per-type timestamp/hash rules, and field-level validation enforced at U8/U9, G14, and R9; a binding transitive evidence-root compatibility model (complete dependency closure, terminal `SRC2-…` root sets, a parseable class compatibility matrix, and rejection of locally valid but transitively incompatible chains) stops OPS/EXT provenance from laundering into DERIVED/INFERRED authority and forces OPS/EXT visibility and limitation propagation to every consuming LEAF; every binding secondary-source-to-OPS promotion is removed — the §1.1 conflict order now ends at official authority, and the multi-team touch/qualifying-asset thresholds (§12.2), the seven-future-draft horizon, and the secondary-reported pick-protection/deferral processing mechanics (§13.3) are recast as **unsupported operational candidates** that cannot be registered, classified OPS, or enforced without qualifying first-party provenance or a different valid authority classification; and the AMEND child-numbering contradiction is resolved — contiguity applies at initial GROUP construction only, an `AMEND` removal/split/merge leaves a gap that must resolve through the receipts and `AMEND` chain, renumbering-to-restore-contiguity is abolished, IDs are never reused, and new children allocate above the GROUP's historical high-water mark (§15.9.2, U13, G15, R9). The authority cutoff remains **July 12, 2026**. **This draft is not accepted and must not govern Phase 2 verdicts, implementation decisions, or tests**; the v2.0 checksum will be recorded only at R8, and activation requires a new independent Reviews A–F acceptance gate (R9).
 
 > **Use rule:** Architect may rely on a rule as deterministic only when the required inputs exist and the rule is marked **CBA**, **BYL**, **NBA**, **DERIVED**, or **INFERRED** under the authority system below. A **DERIVED** item is arithmetic reproduced from a source formula; an **INFERRED** item is non-arithmetic legal or algorithmic inference supported by controlling primary-source text and must carry its locators and reasoning chain, never presented as express source language. An **OPS** item is a league-operational rule with real first-party operational provenance (§15.9.6) for which no current public primary text was located; secondary reporting never establishes it, and it must remain configurable and must not be represented as language from the CBA. An **EXT** item requires a league, physician, expert, or legal determination.
 
@@ -32,6 +32,7 @@
 | **Repair v2.0 — working draft, R2.2** | **July 15, 2026** | **R2.2 foundation hardening** (ordered after the independent Codex review of R2.1 rejected the foundation gate while accepting the clean v2 architecture in direction): historical scenario identity pinned to the published v1.1 §16 scenario section at `9814939c` (SHA-256 `5289f6b812c2d86238674461574c725e894f0bca0db4da188b276246d96706aa`, 14,390 bytes), with the R1/R1.1 corrected scenario variants reclassified as R7 authoring inputs that never redefine historical scenario numbers; deterministic XW2/SXW2 edge-typing precedence with worked examples and a duplicate-pair ban; the narrow gateable `no-successor` rule; the `EV2-…` multi-source/dependency reference grammar and the typed `SRC2-…` provenance vocabulary (`official-immutable` / `official-mutable` / `ops-provenance` / `ext-contract`); mandatory seven-generator duplicate-candidate population; new gates SC6 (SCEN coverage completeness), SC7 (R7 `METHOD` records), G14 (global evidence reconciliation), and G15 (amendment-chain integrity); `METHOD` and `AMEND` decision-record types; strict R3→R4→R5→R6 sequencing; §1.2/§17 Phase 2 verdict keying restricted to active `CBA2-…` LEAFs; §19.3 marked as legacy family-level status pending per-LEAF certification. Standards only — no register row, scenario, ID, or source value changed. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_2_FOUNDATION_HARDENING.md` |
 | **Repair v2.0 — working draft, R1.2** | **July 15, 2026** | **R1.2 extension-bonus allocation branch** (ordered after the independent Codex foundation review of R1.1/R2.1/R2.2 at commit `6aa616fd` returned REJECT/BLOCK-R3, finding that canon §5.9 and the immutable R1.1 receipt omitted one branch of signed CBA VII §3(b)(3)(ii)): §5.9's extension-bonus rule now states the three §3(b)(3) branches distinctly — at/over-cap (§3(b)(3)(i)); below-cap with the bonus paid **no sooner than** the first day of the extended term's first Salary Cap Year, allocated under §3(b)(3)(i)'s extended-term-only protected-percentage rules with the zero-protection fallback to the extended term's first Salary Cap Year and never under ordinary §3(b)(2) allocation (§3(b)(3)(ii), second sentence); and below-cap early payment with the combined-term allocation, deemed Renegotiation, and two-installment rules (§3(b)(3)(ii)(A)–(C)). No ID, register row, scenario, source value, or §15.9 standard changed; the R1.1 receipt remains immutable. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R1_2_EXTENSION_BONUS_CORRECTION.md` |
 | **Repair v2.0 — working draft, R2.3** | **July 15, 2026** | **R2.3 foundation-contract corrections** (ordered by the same independent Codex foundation review that ordered R1.2): typed evidence roots — every `EV2-…` evidence path terminates in at least one typed `SRC2-…` source/provenance record, no `EV2-…` row with both reference fields empty, OPS components referencing an `ops-provenance` record and EXT components an `ext-contract` record (each valid without a public URL, and without an artifact hash only where no durable artifact exists), class-specific certification replacing the universal read-the-passage rule, and U8/U9/G14/R9 enforcing typed termination, pairings, acyclicity, and exact Authority ⇔ EV reconciliation; the strict secondary-source policy — secondary reporting establishes no authority class, OPS requires qualifying first-party operational provenance (§15.9.6), with §1.1, §15.9, §19.1, and the repair plan swept; SC2 expanded to the complete sixteen-check SXW2 integrity contract (grammar, uniqueness, type vocabulary, pinned 1–89 sources, complete coverage, target/terminal discipline, decision-record resolution, duplicate-pair ban, deterministic precedence, narrow no-successor, parseable scope), rerun in full by G10 and R9; all-population draft mutability and `AMEND` lineage (active GROUP/LEAF, `XW2-…`, `SRC2-…`, `EV2-…`, active `CBA2-SC-…` scenarios/named cases, `SXW2-…`, `DR2-…`) with append-only precisely defined and G15/R9 expanded; and the three-register-population distinction (the published `9814939c` register as sole XW2 source; the branch's legacy-numbered working copy as authoring input only, not byte-identical to the published edition; the active v2 registry) correcting the earlier preserved-unchanged wording. Standards and status/annotation corrections only — no register row, scenario, ID, or source value changed; no concrete CBA2/XW2/SXW2/SRC2/EV2/DR2 record created. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_3_FOUNDATION_CONTRACT_CORRECTIONS.md` |
+| **Repair v2.0 — working draft, R2.4** | **July 15, 2026** | **R2.4 remaining foundation-blocker closure** (ordered after the independent Codex review of R1.2/R2.3 at commit `c2228607` returned REJECT/BLOCK-R3 while expressly passing R1.2's source law, R2.3's SC2/SXW2 integrity gate, and the historical-register population distinction): the `SRC2-…` registry restated as a type-specific, mechanically parseable contract — a shared eleven-field base table plus one pinned detail table per provenance type, a pinned field grammar for every multi-value field, `—` validity defined per provenance type, binding timestamp/hash rules (durable bytes always hashed; retrieval timestamps whenever content was retrieved; authentication timestamps for every non-public verification; an artifactless OPS record never `—` for both provenance identity and authentication), and field-level validation at U8/U9/G14/R9; a binding transitive evidence-root compatibility model — complete dependency closures and terminal root sets computed for every `EV2-…` component, a parseable class compatibility matrix, DERIVED/INFERRED barred from OPS/EXT roots, OPS/EXT visibility and limitation propagation to consuming LEAFs, and locally-valid-but-transitively-incompatible chains rejected; all remaining binding secondary-source-to-OPS promotion removed (§1.1 conflict order ends at official authority; §12/§12.2/§13/§13.3, the §15 evidence-pointer table, §17 Pass 1, §19.1, and the §19.3 continuity note recast the multi-team touch/qualifying-asset, seven-future-draft, and secondary-reported protection/deferral mechanics as unsupported operational candidates — preserved for discovery, never registrable, never OPS, never enforceable without qualifying first-party provenance); the child-ID numbering contradiction resolved (initial-construction-only contiguity; explained gaps via `AMEND` chains; no renumbering; no ID reuse; allocation above the historical high-water mark; U13/G15/R9 conformed); and the residual §1.2/§17 `source artifacts` verdict-exclusion wording updated to `source/provenance records`. Standards, source-policy, and status corrections only — no register row, scenario, ID, or source value changed; no concrete CBA2/XW2/SXW2/SRC2/EV2/DR2 record created; §5.9 and the sixteen-check SC2 contract byte-preserved. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_4_FOUNDATION_CONTRACT_CLOSURE.md` |
 
 ---
 
@@ -82,7 +83,7 @@ That distinction matters. A missing contract-authoring control is not the same a
 | **OPS** | League-operational rule with real first-party operational provenance (§15.9.6), not located in a current public primary document; secondary reporting never establishes it | Only as a configurable operational rule; show provenance and permit league-rule updates |
 | **EXT** | Requires medical, league, expert, arbitral, or legal determination | No; consume an explicit decision/assumption |
 
-**Conflict order:** signed CBA → current Constitution/By-Laws for league-governance rules → official annual NBA release → official CBA 101 explanation → secondary expert source. CBA 101 is authoritative explanatory material, not a substitute for the signed text. CBAguide is a discovery/indexing source only.
+**Conflict order:** signed CBA → current Constitution/By-Laws for league-governance rules → official annual NBA release → official CBA 101 explanation. The controlling-authority hierarchy ends with legitimate official authority. CBA 101 is authoritative explanatory material, not a substitute for the signed text. Secondary and discovery sources (CBAguide, media reports, expert summaries) sit **outside** this hierarchy entirely: they never rank in it, never resolve a conflict, and never establish any authority class (§15.9.6). CBAguide is a discovery/indexing source only.
 
 **Citation convention:** `CBA VII.6(j)(1)(iv), CBA pp. 241–42` means Article VII, Section 6(j)(1)(iv), using the page number printed in the agreement. `BYL 7.03, p. 78` means the NBA Constitution/By-Laws. Page references are supplied to make human verification repeatable; article/section identifiers should be stored as the durable key.
 
@@ -92,7 +93,7 @@ Every audit finding or implemented rule should preserve:
 
 | Field | Required content |
 |---|---|
-| Stable ID | An active v2 LEAF ID (`CBA2-…`, §15.9.2). After R9 ACCEPT, every Phase 2 verdict is keyed **only** to an active `CBA2-…` LEAF; historical `CBA-…` IDs appear only in history/crosswalk references; GROUPs, scenarios, crosswalk edges, source artifacts, evidence components, and decision records never receive compliance verdicts |
+| Stable ID | An active v2 LEAF ID (`CBA2-…`, §15.9.2). After R9 ACCEPT, every Phase 2 verdict is keyed **only** to an active `CBA2-…` LEAF; historical `CBA-…` IDs appear only in history/crosswalk references; GROUPs, scenarios, crosswalk edges, source/provenance records, evidence components, and decision records never receive compliance verdicts |
 | Rule and scope | Plain-language rule, transaction types, teams/players affected |
 | Authority | Label plus article/section/page or official release URL |
 | Inputs | Data fields and explicit `asOfDate`/Salary Cap Year |
@@ -668,13 +669,13 @@ Such a transaction can hard-cap both the current and next Salary Cap Years.
 
 ## 12. Trade Machine rules
 
-**Authority:** CBA Article VII §§3, 6(j), 7, and 8; Article XXIV; BYL §§4.01–4.05. CBAguide was used for discovery and for the **OPS** items explicitly labeled below.
+**Authority:** CBA Article VII §§3, 6(j), 7, and 8; Article XXIV; BYL §§4.01–4.05. CBAguide was used for discovery only. The items below whose only support is CBAguide's reporting are **unsupported operational candidates** (§15.9.6) — discovery candidates, not OPS, and not enforceable under this canon.
 
 ### 12.1 Recommended validation order
 
 1. Establish transaction date, Salary Cap Year, and participating teams.
 2. Validate every asset is owned, transferable, and legal on that date.
-3. Validate multi-team connectivity/touch requirements.
+3. Validate multi-team connectivity/touch requirements only if such a rule has been registered with qualifying provenance — the touch/qualifying-asset mechanics are unsupported operational candidates (§12.2, §15.9.6) and drive no verdict while unsupported.
 4. Validate roster slots at the instant of trade.
 5. Validate player consent and date/transaction restrictions.
 6. Derive ITS and OTS separately for every player/team pairing.
@@ -686,13 +687,13 @@ Such a transaction can hard-cap both the current and next Salary Cap Years.
 
 ### 12.2 Tradeable assets and multi-team touch rule
 
-**Authority status: OPS.** The current public CBA and June 2024 By-Laws establish trade compliance and procedure but do not state the detailed asset thresholds or the two-other-team “touch” test below. CBAguide reports them as league-operational rules. Architect should enforce them from a versioned league-rules configuration and label the provenance accordingly, not cite them as CBA language.
+**Authority status: unsupported operational candidate (discovery only — not OPS).** The current public CBA and June 2024 By-Laws establish trade compliance and procedure but do not state the detailed asset thresholds or the two-other-team “touch” test below, and no qualifying first-party operational provenance (§15.9.6) for them is present in this canon. CBAguide reports these mechanics; secondary reporting establishes no authority class. They are therefore **discovery candidates only**: they cannot be registered as active v2 obligations, cannot be classified OPS, cannot drive an automatic or configurable product verdict, and cannot be enforced by Architect under this canon. Registration or enforcement requires qualifying first-party operational provenance or a different valid authority classification established through the normal §15.9.4–§15.9.6 evidence process. The reported mechanics are preserved below — as candidates, not rules — so that qualifying provenance can be sought.
 
-- In a two-team trade, each team must send/receive an eligible player contract, qualifying pick, draft rights, swap, or minimum cash amount.
-- In a trade of three or more teams, each team must touch at least two other teams by sending or receiving a qualifying asset.
-- Multi-team asset definitions are stricter: extinguishable conditional picks and nominal cash may not count.
-- Draft-rights assets need a qualifying NBA prospect; recency and professional-rotation tests can create deemed status.
-- This is a graph validation problem. Salary matching alone cannot validate a multi-team trade.
+- Reported: in a two-team trade, each team must send/receive an eligible player contract, qualifying pick, draft rights, swap, or minimum cash amount.
+- Reported: in a trade of three or more teams, each team must touch at least two other teams by sending or receiving a qualifying asset.
+- Reported: multi-team asset definitions are stricter — extinguishable conditional picks and nominal cash may not count.
+- Reported: draft-rights assets need a qualifying NBA prospect, with recency and professional-rotation tests creating deemed status.
+- If qualifying provenance is ever established, this is a graph validation problem — salary matching alone cannot validate a multi-team trade.
 
 ### 12.3 Trade Salary adjustments
 
@@ -817,7 +818,7 @@ The validator needs a rule-generated `tradeEligibleOn` plus recipient/consent co
 
 ## 13. Draft picks, draft rights, and Stepien
 
-**Authority:** CBA Articles VIII and X; BYL §§7.01–7.05. The seven-future-draft limit and some protection/deferral mechanics below are **OPS** rules reported by CBAguide rather than text located in the public primary documents.
+**Authority:** CBA Articles VIII and X; BYL §§7.01–7.05. The seven-future-draft limit and the secondary-reported pick-protection/deferral processing mechanics below are **unsupported operational candidates** (§15.9.6) — reported by CBAguide, not located in the public primary documents: discovery candidates only, not OPS, not registrable, and not enforceable under this canon without qualifying first-party operational provenance or a different valid authority classification.
 
 ### 13.1 Draft rights
 
@@ -836,11 +837,10 @@ The validator needs a rule-generated `tradeEligibleOn` plus recipient/consent co
 ### 13.3 Pick trading
 
 - Future picks must identify a year and already be owned; a team cannot promise an asset it merely expects to acquire.
-- Picks can carry protections, fallback conveyances, and one-year deferral rights. Protection and deferral cannot be combined on the same conveyance.
-- **OPS:** First- and second-round picks can be traded only through the seventh future draft. Treat the horizon as a versioned league rule.
+- Picks can carry protections and fallback conveyances, and the pick ledger must represent them. **Unsupported operational candidates (§15.9.6):** the reported one-year deferral right, the reported bar on combining protection and deferral on the same conveyance, and the reported limits on conditional “two years after prior conveyance” language are secondary-reported processing mechanics — discovery candidates only, not OPS, not registrable, and never enforceable or verdict-driving under this canon without qualifying first-party operational provenance or a different valid authority classification.
+- **Unsupported operational candidate (§15.9.6):** the reported rule that first- and second-round picks can be traded only through the seventh future draft is a discovery candidate only — not OPS, not registrable as an active v2 obligation, never an automatic or configurable product verdict, and not enforceable by Architect under this canon unless qualifying first-party operational provenance or a different valid authority classification is established through the normal evidence process.
 - **BYL 7.03:** A team may not sell its first-round selection for cash or trade/exchange it if the result **may** leave the team without first-round picks in two consecutive future drafts. Another team's owned first can satisfy the possession requirement; Architect must test all possible protection branches.
 - Protections must be evaluated across all possible conveyance branches, not only the most likely outcome.
-- Conditional “two years after prior conveyance” language is limited and cannot defeat the seven-year rule.
 - Second Apron frozen picks must be treated as unavailable until unfreezing; slid picks have fixed end-of-round placement.
 
 ## 14. Calendar and lifecycle events
@@ -876,9 +876,9 @@ These are **testable coverage questions**, not confirmed bugs. They should becom
 | A01 | §4.1 |
 | A02–A11 | §§12.3–12.7; CBA VII.3 and VII.6(j) |
 | A12–A14 | §8; CBA VII.2(e) |
-| A15 | §12.2 (**OPS**) |
+| A15 | §12.2 (unsupported operational candidate — §15.9.6; not OPS) |
 | A16 | §9.4; BYL 4.05(e) |
-| A17 | §13.3; BYL 7.03 plus **OPS** horizon |
+| A17 | §13.3; BYL 7.03 plus the unsupported seven-draft-horizon candidate (§15.9.6; not OPS) |
 | A18 | §12.12; CBA VII.8(a) and VII.2(e) |
 | C01–C18 | §§5–8 and 10; authority map §19.1 |
 | R01–R10 | §§9 and 11; BYL §§5–6; CBA VII.7(d), XXVII, XXIX |
@@ -1567,7 +1567,7 @@ The register is a two-level tree, and the two node types are **not interchangeab
 | §19.1 | The rule-family authority map must be preserved as citation metadata on every implemented rule | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
 | §19.3 | The verification-status classification is part of the canon; moving an OPS item into a primary-source category requires a cited canon revision | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
 
-### 15.9 Register and source-certification standard (v2.0 — binding, R2.1 edition as hardened by R2.2 and corrected by R2.3)
+### 15.9 Register and source-certification standard (v2.0 — binding, R2.1 edition as hardened by R2.2 and corrected by R2.3 and R2.4)
 
 This standard governs the v2.0 re-registration (repair units R3–R6), the
 scenario rebuild (R7), the global reconciliation (R8), the independent
@@ -1593,7 +1593,14 @@ roots with class-specific certification, the strict secondary-source/OPS
 provenance policy, the complete SC2 SXW2 integrity contract,
 all-population draft mutability and `AMEND` lineage, and the
 three-register-population distinction) are recorded in
-`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_3_FOUNDATION_CONTRACT_CORRECTIONS.md`.
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_3_FOUNDATION_CONTRACT_CORRECTIONS.md`;
+and the R2.4 foundation-blocker closure of this section (the
+type-specific `SRC2-…` record contract with field-level validation, the
+transitive evidence-root compatibility model, the removal of every
+remaining binding secondary-source-to-OPS promotion, and the child-ID
+numbering contract replacing renumbering-to-restore-contiguity) is
+recorded in
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_4_FOUNDATION_CONTRACT_CLOSURE.md`.
 Where this section and any receipt's restatement differ, this section
 governs.
 
@@ -1628,6 +1635,14 @@ Binding boundary rules:
 3. Historical IDs, crosswalk records, source/provenance records, evidence
    rows, decision records, and scenarios are all outside active GROUP/LEAF
    counts and verdicts.
+4. Historical and legacy mentions of operational mechanics — historical
+   register rows, historical scenarios, legacy status tables, and this
+   file's working-copy sections — **never authorize active registration,
+   any authority classification (including OPS), or enforcement**. An
+   obligation enters the active v2 registry only through the
+   §15.9.4–§15.9.6 evidence process with qualifying evidence; an
+   unsupported operational candidate (§15.9.6) remains a discovery item
+   until such evidence exists.
 
 **Three register populations must never be conflated** (mirroring the
 three scenario populations of §15.9.8):
@@ -1667,8 +1682,10 @@ Grammar and roles:
   method, locator, or evidence; it reports only the distribution of its
   children's statuses, and mixed child results are never collapsed into one
   parent verdict.
-- Child numbering within a GROUP is contiguous from `.1`: **no skipped
-  numeric child IDs** within any active v2 GROUP.
+- Child numbering within a GROUP is contiguous from `.1` **at initial
+  GROUP construction only**. After an `AMEND` event, numbering follows
+  the child-ID numbering contract below: an explained gap is valid, IDs
+  are never reused, and contiguity is never restored by renumbering.
 
 Draft mutability (all live v2 populations): while the v2 draft is
 unaccepted (through R8), a later unit may correct a defective live v2
@@ -1676,9 +1693,9 @@ record only with an `AMEND` decision record (§15.9.4). This rule covers
 **every live v2 population equally**: active GROUP and LEAF records,
 `XW2-…` crosswalk edges, `SRC2-…` source/provenance records, `EV2-…`
 evidence components, active `CBA2-SC-…` scenarios and their named cases,
-`SXW2-…` scenario-crosswalk edges, and `DR2-…` decision records. If a
-correction removes or renumbers a LEAF, the performing unit renumbers
-only within the affected GROUP to restore contiguity; in every
+`SXW2-…` scenario-crosswalk edges, and `DR2-…` decision records. A
+correction never renumbers surviving sibling records and never reuses a
+removed or superseded ID (child-ID numbering contract below); in every
 correction, the performing unit updates every live crosswalk edge,
 evidence row, origin reference, method field, dependency reference,
 scenario `Exercises:` reference, and any other live reference in the
@@ -1712,6 +1729,45 @@ append-only in exactly this sense:
   `AMEND` record; an earlier receipt is never rewritten.
 - No RETIRED/ALIAS role, tombstone row, or same-namespace migration
   model may reappear in the live registers (§15.9.10).
+
+**Child-ID numbering contract (binding; resolves contiguity vs
+no-reuse):**
+
+1. Child IDs are contiguous `.1…n` only **when a GROUP is initially
+   constructed**.
+2. There is no renumbering duty and no renumbering permission: no
+   removal, split, merge, or other `AMEND` event ever renumbers
+   surviving children to restore contiguity.
+3. After an `AMEND` event, a numeric gap in a GROUP's live children is
+   valid **only** when every missing allocated ID resolves — through the
+   immutable receipts and an `AMEND` chain — to an explicit removal or
+   to one or more current successor records.
+4. An unexplained gap, or an interior gap at an ID that was never
+   allocated, remains invalid.
+5. A removed or superseded ID is never reused for any identity.
+6. A new child allocates monotonically above the **highest child ID ever
+   allocated in that GROUP**; it never fills a historical gap.
+7. Live tables carry only current records — no tombstone, RETIRED, or
+   ALIAS row (§15.9.10); earlier receipts preserve prior versions, and
+   the `AMEND` chain provides forward resolution for every missing ID.
+
+Worked numbering examples (binding; every ID is illustrative — `X` is
+not a mintable family letter and no such records exist):
+
+- `CBA2-X01` is constructed with children `.1/.2/.3`; a later unit
+  removes `.2` with an `AMEND` removal disposition → live children
+  `.1/.3`. **Valid:** the `.2` gap resolves through the `AMEND` chain to
+  an explicit removal.
+- Instead, `CBA2-X01.2` is split into two new obligations: the unit
+  mints `.4` and `.5`, removes `.2`, and the `AMEND` record names
+  `.4/.5` as successors → live children `.1/.3/.4/.5`. **Valid:** `.2`
+  resolves to its current successors.
+- A later new child in that GROUP receives `.6` — above the high-water
+  mark of `5` — never `.2`. **Valid.**
+- Live children `.1/.3` with no `AMEND` chain explaining `.2`:
+  **invalid** (unexplained gap).
+- Renaming live `.3` to `.2` to restore contiguity: **invalid** —
+  renumbering is prohibited and an allocated ID is never reused.
 
 Binding traceability rules:
 
@@ -2091,22 +2147,108 @@ certification (this section) never counts as a behavioral method
 **Shared source/provenance-record registry** (`SRC2-<NNN>`, append-only
 per the §15.9.2 definition, shared across units). `SRC2-…` is a
 **source/provenance-record registry, not only a file-artifact registry**:
-a row certifies a source or provenance record, which may but need not be
-a retrievable file artifact — an `ops-provenance` or `ext-contract`
+a record certifies a source or provenance record, which may but need not
+be a retrievable file artifact — an `ops-provenance` or `ext-contract`
 record is a real `SRC2-…` record even when no public URL or durable
-artifact exists. Schema:
+artifact exists.
 
-`Record ID | Provenance type | Source title/edition | Official URL or — | Retrieval timestamp | SHA-256 or — | Page geometry or relied-on values | Verifier/session/date | Mutable-source/archive note`
+**Type-specific record contract (binding).** Every `SRC2-…` record is
+carried as one row in the shared **base table** plus exactly one row in
+the **detail table pinned to its provenance type**. Both rows are
+mechanically parseable and joinable on Record ID, and both are
+mandatory: a record without its type-specific detail row is invalid.
+Every mandatory field lives **only** in these pinned columns — never
+solely in a prose note, a `Mutable-source/archive note`, or any other
+unstructured catch-all.
 
-Every `SRC2-…` row carries exactly one provenance type from this closed
-vocabulary:
+Base table (one row per record; all eleven fields present; `—` only
+where the per-type validity matrix below permits):
 
-| Provenance type | Meaning | Required fields |
-|---|---|---|
-| `official-immutable` | Immutable official document (e.g., the signed CBA PDF, the June 2024 By-Laws PDF) | Official URL, retrieval timestamp, artifact SHA-256, page geometry |
-| `official-mutable` | Mutable official webpage or release | Official URL, retrieval timestamp, SHA-256 of the retrieved content, the exact values relied upon; archive URL optional |
-| `ops-provenance` | Real first-party operational provenance (the qualifying-provenance rule below) that may have no official public URL | Named provenance (who/what establishes the practice), effective date, verification method, limitations, and configurability; Official URL may be `—` when no public URL exists; SHA-256 may be `—` **only** when no durable artifact exists; the absence of a public artifact never eliminates the `SRC2-…` record itself |
-| `ext-contract` | EXT/runtime determination contract — the shape of the external decision the product will consume | The external determination class, the runtime input shape, the required provenance, the scope, and the effective/expiration behavior; Official URL and SHA-256 may be `—`; no case-specific ruling need exist during canon authoring or construction |
+`Record ID | Provenance type | Source/provenance identity | Publication/effective date or — | Official URL or — | Artifact SHA-256 or — | Retrieval timestamp or — | Authentication timestamp or — | Verifier/session/date | Record limitations | Record status/version`
+
+Provenance types (closed vocabulary; exactly one per record):
+
+| Provenance type | Meaning |
+|---|---|
+| `official-immutable` | Immutable official document (e.g., the signed CBA PDF, the June 2024 By-Laws PDF) |
+| `official-mutable` | Mutable official webpage or release |
+| `ops-provenance` | Real first-party operational provenance (the qualifying-provenance rule below) that may have no official public URL |
+| `ext-contract` | EXT/runtime determination contract — the shape of the external decision the product will consume; no case-specific ruling need exist during canon authoring or construction |
+
+Type-specific detail tables (one pinned schema per provenance type;
+every field required unless marked `or —`; base-table fields are not
+repeated — the base row carries them):
+
+- `official-immutable` detail:
+  `Record ID | Source title and edition | Page geometry`
+  (with the base row's Source/provenance identity naming the same
+  document; Publication/effective date, Official URL, Retrieval
+  timestamp, and Artifact SHA-256 all **required** in the base row;
+  Authentication timestamp `—` unless separately applicable)
+- `official-mutable` detail:
+  `Record ID | Publication identity/date or season | Exact values or text relied upon | Archive/snapshot reference or —`
+  (Official URL, Retrieval timestamp, and the retrieved-content
+  SHA-256 all **required** in the base row; Authentication timestamp
+  `—` unless separately applicable)
+- `ops-provenance` detail:
+  `Record ID | Named first-party provenance identity | Authority/role of the source | Practice scope | Effective date or window | Authentication method | Configurability | Artifact identity or —`
+  (Authentication timestamp **required** in the base row; Official URL
+  `—` only when no URL exists; Artifact SHA-256 `—` only when no
+  durable artifact exists; Record limitations always required)
+- `ext-contract` detail:
+  `Record ID | External determination class | Runtime input schema | Required decision provenance | Scope | Effective/expiration behavior | Controlling source/rule reference or — | Verification/authentication method`
+  (the verification/authentication timestamp is carried in the base
+  row's Authentication timestamp field and is **required**; Official
+  URL and Artifact SHA-256 `—` only where none exists; `Controlling
+  source/rule reference` may be `—` only where the contract itself
+  defines the boundary; Record limitations always required)
+
+**Pinned field grammar (every SRC2 table):** dates are `YYYY-MM-DD`;
+effective windows are `YYYY-MM-DD/YYYY-MM-DD` or `YYYY-MM-DD/open`;
+timestamps are ISO-8601 UTC (`YYYY-MM-DDTHH:MM:SSZ`); SHA-256 values are
+64 lowercase hex characters; URLs are absolute. Within any multi-value
+field (limitations, relied-on values, practice scope, runtime input
+schema, artifact identity), elements are separated by `"; "` (a
+semicolon then a space), no element contains `;` or `|`, and an empty
+field is exactly
+`—`. ID references inside any field follow the `EV2` reference grammar
+below (`", "`-separated, ascending, no duplicates). A field that is
+required and unknown is a **failed record**, never a blank or a prose
+approximation.
+
+**`—` validity is defined per provenance type, never generically:**
+
+| Base field | `official-immutable` | `official-mutable` | `ops-provenance` | `ext-contract` |
+|---|---|---|---|---|
+| Source/provenance identity | Required | Required | Required — named first-party identity | Required — the determination-contract identity |
+| Publication/effective date | Required | Required (date or season) | Required (effective date or window, in the detail row; base may mirror or carry `—` only if the detail window governs) | `—` permitted only where the contract has no dated basis |
+| Official URL | Required | Required | `—` only when no URL exists | `—` only when no URL exists |
+| Artifact SHA-256 | Required | Required (retrieved content) | `—` only when no durable artifact exists | `—` only when no durable artifact exists |
+| Retrieval timestamp | Required | Required | Required whenever content or an artifact was retrieved; otherwise `—` | Required whenever content or an artifact was retrieved; otherwise `—` |
+| Authentication timestamp | `—` unless separately applicable | `—` unless separately applicable | **Required** | **Required** (verification/authentication) |
+| Record limitations | Required (state `none` expressly if none) | Required (state `none` expressly if none) | Required | Required |
+| Record status/version | Required | Required | Required | Required |
+
+**Timestamp and hash rules (binding):**
+
+- If durable bytes exist, their SHA-256 is mandatory — an existing
+  artifact is never recorded hashless.
+- Official URL may be `—` only when no URL exists.
+- A hash may be `—` only when no durable artifact exists.
+- A retrieval timestamp is required whenever content or an artifact was
+  retrieved.
+- An authentication timestamp is required for direct communications,
+  attestations, system access, and every other non-public verification.
+- An artifactless `ops-provenance` record can never carry `—` for both
+  its provenance-identity and its authentication fields: the named
+  first-party identity, the authentication method, and the
+  authentication timestamp are always required, artifact or no artifact.
+
+**Field-level validation (binding; enforced at U8/U9, rechecked at G14,
+independently re-run at R9).** A `SRC2-…` record **fails** if any
+required type-specific field is absent, malformed under the pinned
+grammar, or uses `—` where the per-type matrix prohibits it. A failed
+record certifies nothing, and no `EV2-…` component may reference it.
 
 Copies of the CBA PDF are never committed to the repository; the
 hash-plus-citation chain is the durable evidence.
@@ -2115,7 +2257,25 @@ hash-plus-citation chain is the durable evidence.
 discovery and corroboration aids **only**. Secondary reporting can never
 establish CBA, BYL, NBA, DERIVED, INFERRED, OPS, or EXT authority, and
 can never serve as the qualifying provenance of an `ops-provenance`
-record.
+record. Secondary and discovery sources sit outside the §1.1
+controlling-authority hierarchy and never resolve a conflict.
+
+**Unsupported operational candidates (binding).** A mechanic whose only
+support is secondary reporting is an **unsupported operational
+candidate**: a discovery item preserved in the canon's discussion
+sections so that qualifying provenance can be sought. A candidate is
+not silently deleted, but it: cannot be registered as an active v2
+obligation; cannot be classified OPS (or any other authority class);
+cannot drive an automatic or configurable product verdict; and cannot
+be enforced by Architect under this canon. Registration or enforcement
+requires qualifying first-party operational provenance or a different
+valid authority classification established through the normal
+§15.9.4–§15.9.6 evidence process. Current candidates of record: the
+multi-team touch test and detailed qualifying-asset thresholds (§12.2),
+the seven-future-draft pick-trading horizon (§13.3), and the
+secondary-reported pick-protection/deferral processing mechanics
+(§13.3). Historical or legacy mentions of these mechanics (§15.9.1
+boundary rule 4) never authorize registration or enforcement.
 
 **Qualifying OPS provenance (narrow).** An `ops-provenance` record may be
 grounded only in real first-party operational provenance, such as:
@@ -2203,6 +2363,76 @@ referencing component's authority class:
 | OPS | At least one `ops-provenance`; `official-immutable`/`official-mutable` records may corroborate |
 | EXT | At least one `ext-contract`; `official-immutable`/`official-mutable` records may bound the boundary |
 
+**Transitive evidence-root compatibility (binding).** Local pairing,
+termination, acyclicity, and Authority ⇔ EV checks are not sufficient on
+their own: without a transitive rule, authority can launder through
+dependencies — e.g., a DERIVED component depending only on an OPS-rooted
+component would pass every local check while presenting operational
+practice as derived law. For **every** `EV2-…` component, validators
+must compute the **complete transitive dependency closure** (the
+component plus every component reachable through `Dependency evidence
+component IDs`) and its **terminal `SRC2-…` root set** (every
+source/provenance record directly referenced by any component in that
+closure), then enforce all of the following:
+
+1. A **CBA** component's closure roots in the signed-CBA
+   `official-immutable` record.
+2. A **BYL** component's closure roots in the controlling By-Laws
+   `official-immutable` record.
+3. An **NBA** component's closure roots in an appropriate official
+   `official-immutable` or `official-mutable` NBA record.
+4. A **DERIVED** component remains arithmetic-only, and its controlling
+   formula and published inputs must resolve through CBA/BYL/NBA/DERIVED
+   components to suitable official roots. It may not be derived solely
+   or ultimately from OPS or EXT provenance: no `ops-provenance` or
+   `ext-contract` record may appear in its terminal root set, and an
+   OPS/EXT-derived runtime value can never hide inside a DERIVED-only
+   authority claim — arithmetic that consumes an operational or external
+   input makes that input a separate, visible OPS/EXT component on the
+   owning LEAF.
+5. An **INFERRED** component's controlling legal/algorithmic reasoning
+   must resolve through CBA/BYL/NBA and, where applicable, earlier
+   compliant DERIVED/INFERRED components. No `ops-provenance` or
+   `ext-contract` record may appear in its terminal root set: OPS
+   reporting cannot become INFERRED merely through an `EV2-…`
+   dependency, and an EXT determination cannot become express or
+   inferred law.
+6. An **OPS** component retains at least one `ops-provenance` record in
+   its terminal root set.
+7. An **EXT** component retains at least one `ext-contract` record in
+   its terminal root set.
+8. If a LEAF consumes an OPS or EXT component directly or transitively —
+   through its `EV2-…` chains or through its LEAF `Dependencies` field —
+   then: OPS or EXT remains visible in that LEAF's Authority field; a
+   corresponding `EV2-…` component of that class exists; and every
+   operational limitation, configurability requirement, external runtime
+   input, and assumption-required state propagates to the LEAF's
+   Notes/limitations and behavioral contract (an EXT-consuming verdict
+   path surfaces "assumption required", never an unqualified PASS/FAIL).
+9. No dependency edge may reduce, erase, or upgrade the authority or
+   limitation status of the component it consumes.
+
+Compatibility matrix (parseable; enforced per component over the full
+transitive closure):
+
+| Consuming EV class | Permitted direct dependency classes | Permitted terminal SRC2 provenance types | Required propagated classes/limitations | Forbidden dependency/root combinations |
+|---|---|---|---|---|
+| CBA | — (none; direct official reference only) | `official-immutable` (signed CBA) | — | Any dependency component; any `official-mutable`, `ops-provenance`, or `ext-contract` root |
+| BYL | — (none; direct official reference only) | `official-immutable` (controlling By-Laws) | — | Any dependency component; any `official-mutable`, `ops-provenance`, or `ext-contract` root |
+| NBA | — (none; direct official reference only) | `official-immutable`, `official-mutable` (official NBA records) | — | Any dependency component; any `ops-provenance` or `ext-contract` root |
+| DERIVED | CBA, BYL, NBA, DERIVED | `official-immutable`, `official-mutable` | Formula-input and rounding limitations propagate to the LEAF | Any OPS or EXT dependency; any `ops-provenance` or `ext-contract` root |
+| INFERRED | CBA, BYL, NBA, DERIVED, INFERRED | `official-immutable`, `official-mutable` | Inference-chain limitations propagate to the LEAF | Any OPS or EXT dependency; any `ops-provenance` or `ext-contract` root |
+| OPS | — (none; direct references only) | ≥1 `ops-provenance`; `official-immutable`/`official-mutable` may corroborate | OPS class, operational limitations, and configurability propagate to the LEAF | A terminal root set without an `ops-provenance` record |
+| EXT | — (none; direct references only) | ≥1 `ext-contract`; `official-immutable`/`official-mutable` may bound the boundary | EXT class, the runtime-input contract, and "assumption required" propagate to the LEAF | A terminal root set without an `ext-contract` record |
+
+A chain that passes every local check but violates this matrix — e.g., a
+DERIVED component whose only terminal root is an `ops-provenance`
+record, or an INFERRED component rooted only in an `ext-contract`
+record — **fails**: the validator rejects the component, the laundered
+class claim, and any verdict that would rely on it. U9 enforces this
+per unit, G14 recomputes it globally, and R9 independently recomputes
+every closure and terminal root set.
+
 Resolution and reconciliation (exact and bidirectional; checked at U8/U9,
 rechecked globally at G14, and independently re-run at R9):
 
@@ -2211,6 +2441,14 @@ rechecked globally at G14, and independently re-run at R9):
   in at least one typed `SRC2-…` source/provenance record; no `EV2-…`
   row has both reference fields empty; and every provenance-type ⇔
   authority-class pairing is valid.
+- Every `SRC2-…` record passes the type-specific field-level validation
+  above (no required field absent, malformed, or `—` where the per-type
+  matrix prohibits it).
+- Every `EV2-…` component's complete transitive dependency closure and
+  terminal `SRC2-…` root set satisfy the compatibility matrix above —
+  every dependency edge class-permitted, every terminal root
+  type-permitted, no authority-laundering chain, and OPS/EXT visibility
+  and limitation propagation verified at every consuming LEAF.
 - Every `EV2-…` row belongs to an existing active LEAF and appears in
   that LEAF's Evidence components field.
 - Every `EV2-…` row's authority class appears in its LEAF's Authority
@@ -2408,12 +2646,12 @@ families it touched:
 | U5 | Semantic duplicate/ownership dispositions — the mandatory §15.9.4 candidate population (all seven generators) is recorded in the receipt, and every candidate has an `OWN` record or a named cross-family deferral (both families and the expected resolving unit named); zero undispositioned in-scope candidates |
 | U6 | Tiebreak decision records — every ownership decision states the discriminating tiebreak and why |
 | U7 | Crosswalk coverage and valid targets for the historical LEAFs touched by the unit (deferrals listed explicitly) |
-| U8 | Per-LEAF evidence completeness — every authority component has a complete `EV2` row meeting its class minima and its class-specific certification duty (§15.9.6); no `EV2` row has both reference fields empty (no source-free terminal component); every OPS component references an `ops-provenance` record and every EXT component an `ext-contract` record; every provenance-type ⇔ authority-class pairing is valid; and for the unit's families the LEAF Authority fields and `EV2` classes reconcile exactly in both directions (every listed class has ≥1 `EV2` row; every `EV2` row's class is listed) |
-| U9 | Source and dependency resolution — every `SRC2`/`EV2` reference in the unit's rows parses under the §15.9.6 grammar and resolves; every evidence path terminates in at least one typed `SRC2` source/provenance record; DERIVED/INFERRED input and reasoning chains resolve exactly; `EV2` dependency chains are acyclic; no orphan or dangling references |
+| U8 | Per-LEAF evidence completeness — every authority component has a complete `EV2` row meeting its class minima and its class-specific certification duty (§15.9.6); no `EV2` row has both reference fields empty (no source-free terminal component); every OPS component references an `ops-provenance` record and every EXT component an `ext-contract` record; every provenance-type ⇔ authority-class pairing is valid; every referenced `SRC2` record passes the §15.9.6 type-specific field-level validation (base row plus its pinned detail row present and joinable; no required field absent or malformed; no `—` where the per-type matrix prohibits it; the per-type timestamp and hash rules satisfied); and for the unit's families the LEAF Authority fields and `EV2` classes reconcile exactly in both directions (every listed class has ≥1 `EV2` row; every `EV2` row's class is listed) |
+| U9 | Source and dependency resolution — every `SRC2`/`EV2` reference in the unit's rows parses under the §15.9.6 grammar and resolves; every evidence path terminates in at least one typed `SRC2` source/provenance record; DERIVED/INFERRED input and reasoning chains resolve exactly; `EV2` dependency chains are acyclic; no orphan or dangling references; and for every `EV2` component the complete transitive dependency closure and terminal `SRC2` root set are computed and validated against the §15.9.6 compatibility matrix — every dependency edge class-permitted, every terminal root type-permitted, no authority laundering (a DERIVED or INFERRED component with an `ops-provenance` or `ext-contract` root fails), OPS/EXT visibility and limitation propagation verified at every consuming LEAF, and every locally valid but transitively incompatible chain rejected |
 | U10 | Primary/secondary method validity (exactly one primary; distinct secondaries; no OPSV) |
 | U11 | No process-shaped active rows |
 | U12 | Every true-gap note has a minted, fully certified owner (`TG` records complete) |
-| U13 | No skipped numeric child IDs within each active v2 GROUP |
+| U13 | Child-ID numbering integrity (§15.9.2) — at initial GROUP construction, children are contiguous `.1…n`; after any `AMEND` event, every missing allocated child ID resolves through the immutable receipts and an `AMEND` chain to an explicit removal or one or more current successors; no unexplained or never-allocated interior gap; no reused or reassigned ID; no renumbering of surviving children; new children allocated only above the highest child ID ever allocated in the GROUP |
 | U14 | Family-level adjacent-provision sweep recorded in the receipt |
 
 Code-map gates, Phase 2 packet gates, global dependency gates, and global
@@ -2479,8 +2717,8 @@ scenario-reconciliation gates are **not** run during R3–R6.
 | G11 | Sampled semantic rechecks of merge/split decisions, scenario coverage, and source-derived obligations |
 | G12 | README status update — recording R8 completion while keeping the canon unaccepted |
 | G13 | Final v2 checksum and counts recorded in the receipt |
-| G14 | Global evidence reconciliation — the §15.9.6 resolution and bidirectional class checks pass across the whole registry: typed `SRC2` termination for every evidence path; no source-free terminal `EV2` component; class-specific certification attested for every component; valid provenance-type ⇔ authority-class pairings; acyclic `EV2` dependency chains; exact Authority ⇔ `EV2` reconciliation in both directions; zero orphan or dangling `SRC2`/`EV2` rows or references |
-| G15 | Amendment-chain integrity across every live v2 population (active GROUP/LEAF, `XW2`, `SRC2`, `EV2`, active `CBA2-SC` scenarios/named cases, `SXW2`, `DR2`) — zero stale live references to superseded IDs, versions, or decision records; no duplicate or orphan record created by any correction; every receipt-era ID/version resolves forward through its `AMEND` chain; every supersession chain terminates in exactly one current disposition or an explicit removal |
+| G14 | Global evidence reconciliation — the §15.9.6 resolution and bidirectional class checks pass across the whole registry: typed `SRC2` termination for every evidence path; no source-free terminal `EV2` component; class-specific certification attested for every component; valid provenance-type ⇔ authority-class pairings; acyclic `EV2` dependency chains; exact Authority ⇔ `EV2` reconciliation in both directions; zero orphan or dangling `SRC2`/`EV2` rows or references; type-specific field-level validation of every `SRC2` record (base plus pinned detail row, per-type `—` validity, timestamp/hash rules); and the complete transitive dependency closure and terminal root set of every `EV2` component recomputed globally against the §15.9.6 compatibility matrix — zero authority-laundering chains, with OPS/EXT visibility and limitation propagation verified at every consuming LEAF |
+| G15 | Amendment-chain integrity across every live v2 population (active GROUP/LEAF, `XW2`, `SRC2`, `EV2`, active `CBA2-SC` scenarios/named cases, `SXW2`, `DR2`) — zero stale live references to superseded IDs, versions, or decision records; no duplicate or orphan record created by any correction; every receipt-era ID/version resolves forward through its `AMEND` chain; every supersession chain terminates in exactly one current disposition or an explicit removal; and child-ID numbering integrity under the §15.9.2 contract — every numeric gap in a GROUP's live children resolves through the receipts and `AMEND` chain to an explicit removal or current successors, no unexplained or never-allocated interior gap, no reused/reassigned ID, no renumbering, and every new child above its GROUP's historical high-water mark |
 
 **R9 — independent acceptance.** The independent reviewer (who authored no
 part of v2.0) must: re-run every mechanical gate from scratch;
@@ -2493,12 +2731,23 @@ every `no-successor` disposition individually — not a sample**;
 population (§15.9.2) — zero stale live references, no duplicate or
 orphan record created by any correction, every receipt-era ID/version
 resolvable forward, every supersession chain terminating in exactly one
-current disposition or explicit removal — and re-run the exact
+current disposition or explicit removal, and child-ID numbering
+integrity under the §15.9.2 contract (every live gap resolved through
+the receipts and `AMEND` chain to an explicit removal or current
+successors; no unexplained or never-allocated interior gap; no
+reused/reassigned ID; no renumbering; every new child above its GROUP's
+historical high-water mark) — and re-run the exact
 bidirectional evidence reconciliation (G14), including typed `SRC2`
 termination for every evidence path, the no-source-free-terminal-component
 check, class-specific certification, provenance-type ⇔ authority-class
-pairing validity, and `EV2` acyclicity**; **re-run the complete SC2
-SXW2 integrity contract (§15.9.9) — never coverage alone**;
+pairing validity, `EV2` acyclicity, the type-specific field-level
+validation of every `SRC2` record (base plus pinned detail row, per-type
+`—` validity, timestamp/hash rules), and an independent recomputation of
+every `EV2` component's complete transitive dependency closure and
+terminal `SRC2` root set against the §15.9.6 compatibility matrix —
+zero authority-laundering chains, with OPS/EXT visibility and
+limitation propagation verified at every consuming LEAF**; **re-run the
+complete SC2 SXW2 integrity contract (§15.9.9) — never coverage alone**;
 runtime-sample code-map pointers; and issue an explicit **ACCEPT or
 REJECT** at a pinned clean commit. Only R9 ACCEPT closes Phase 1 or unblocks Phase 2/W1.1.
 
@@ -2642,7 +2891,7 @@ Scenarios 1–46 are unchanged. These 43 scenarios were added because a determin
 
 When this benchmark is applied to Architect, use three bounded passes.
 
-For every active v2 LEAF, the audit output should use the same compact record (verdicts are keyed only to active `CBA2-…` LEAFs per §1.2 and §15.9.1 — never to historical `CBA-…` IDs, GROUPs, scenarios, crosswalk edges, source artifacts, evidence components, or decision records):
+For every active v2 LEAF, the audit output should use the same compact record (verdicts are keyed only to active `CBA2-…` LEAFs per §1.2 and §15.9.1 — never to historical `CBA-…` IDs, GROUPs, scenarios, crosswalk edges, source/provenance records, evidence components, or decision records):
 
 | Field | Allowed/required result |
 |---|---|
@@ -2655,7 +2904,7 @@ For every active v2 LEAF, the audit output should use the same compact record (v
 
 ### Pass 1 — Deterministic correctness
 
-Audit the independent ledgers, current TPE formula, ITS/OTS adjustments, apron transaction table, hard caps, roster-slot trade check, configured **OPS** multi-team touch rule, and pick/Stepien branching. These can make an apparently legal trade illegal or vice versa.
+Audit the independent ledgers, current TPE formula, ITS/OTS adjustments, apron transaction table, hard caps, roster-slot trade check, and pick/Stepien branching. These can make an apparently legal trade illegal or vice versa. The multi-team touch/qualifying-asset mechanics remain unsupported operational candidates (§12.2, §15.9.6): they enter this pass only if first registered through the normal evidence process with qualifying provenance, and are never audited as configured rules while unsupported.
 
 ### Pass 2 — Cap Manager completeness
 
@@ -2736,7 +2985,7 @@ This category should appear in the UI as “requires external determination” o
 | Trade dates, Trade Call, disclosure, roster room, reacquisition | BYL | §§4.01–4.05, pp. 62–66 |
 | Waiver procedure, 48 hours, priority, claim trade restriction | BYL | §§5.01–5.07, pp. 66–68 |
 | Stepien consecutive-first-round rule | BYL | §7.03, p. 78 |
-| Detailed touch/assets and seven-draft horizon | OPS | Qualifying first-party operational provenance required (§15.9.6) — secondary reporting is discovery/corroboration only and establishes nothing; configure and re-confirm with league data/rulings |
+| Detailed touch/assets and seven-draft horizon | Unsupported operational candidate — no qualifying authority located | Discovery candidates only (§12.2, §13.3, §15.9.6): secondary reporting establishes nothing; not registrable, not OPS, not enforceable, and never an automatic or configurable verdict unless qualifying first-party operational provenance or a different valid authority classification is established through the normal evidence process |
 | Annual system and MLE levels | NBA | NBA Communications release for the applicable Salary Cap Year |
 | Medical, hardship, bonus appeal, grievance, circumvention findings | EXT | Express ruling/approval must be supplied as data |
 
@@ -2758,7 +3007,7 @@ This category should appear in the UI as “requires external determination” o
 
 This classification is part of the canon. A later source may move an OPS item into a primary-source category; that change requires a cited canon revision.
 
-**v2.0 status continuity (binding, R2.2).** The family-level rows above — including every "Primary-source verified" claim — are **legacy v1.0/v1.1 status claims preserved for continuity**. They are **not** active v2 per-LEAF certification: the independent v1.1 acceptance review falsified parts of the "primary-source verified" claim, and full per-LEAF certification has not yet occurred. R3–R6 replace these family-level claims family by family with `SRC2-…`/`EV2-…`-backed per-LEAF certification, updating this table's rows for their families as they complete; R8 reconciles the final status table against the completed active registry. **No family may be described as fully v2-certified until every active LEAF in that family passes U8, U9, and U14.**
+**v2.0 status continuity (binding, R2.2).** The family-level rows above — including every "Primary-source verified" claim — are **legacy v1.0/v1.1 status claims preserved for continuity**. They are **not** active v2 per-LEAF certification: the independent v1.1 acceptance review falsified parts of the "primary-source verified" claim, and full per-LEAF certification has not yet occurred. R3–R6 replace these family-level claims family by family with `SRC2-…`/`EV2-…`-backed per-LEAF certification, updating this table's rows for their families as they complete; R8 reconciles the final status table against the completed active registry. **No family may be described as fully v2-certified until every active LEAF in that family passes U8, U9, and U14.** In particular (R2.4), the legacy "OPS—configurable" family row above establishes nothing: under §15.9.5–§15.9.6 the multi-team touch rule and detailed qualifying-asset thresholds, the seven-future-draft horizon, and the secondary-reported pick-protection/deferral processing mechanics are **unsupported operational candidates** (§12.2, §13.3) — not OPS, not registrable, and not enforceable without qualifying first-party operational provenance or a different valid authority classification.
 
 ### 19.4 CBA Guide sections reviewed for discovery
 
