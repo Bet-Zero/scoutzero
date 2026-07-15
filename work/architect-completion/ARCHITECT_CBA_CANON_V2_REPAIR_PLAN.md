@@ -9,14 +9,21 @@ independently reviewed and **accepted**); **R2.1** (executed at commit
 architecture in direction but rejected R2.1 as the final foundation gate**,
 ordering bounded hardening; receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_1_REGISTER_STANDARD.md`).
-Current unit: **R2.2**, the bounded foundation-hardening unit that closes
-the identity, completeness, evidence-schema, gate, and execution-contract
-gaps the review listed — without redesigning the accepted architecture
-(receipt:
+**R2.2** executed at commit `6aa616fd` (the bounded foundation-hardening
+unit; receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_2_FOUNDATION_HARDENING.md`).
-R3–R9 have not started; **R3 remains blocked pending independent Codex
-acceptance of R2.2.** All Phase 1/Phase 2/W1.1/`main`/checksum/independence
-boundaries remain unchanged.
+The independent Codex foundation review of the combined R1.1/R2.1/R2.2
+foundation at `6aa616fd` returned **REJECT/BLOCK-R3**, finding (1) an
+omitted branch of signed CBA VII §3(b)(3)(ii) in canon §5.9 and the R1.1
+receipt, and (2) residual standards corrections, and ordered two bounded
+repair units with separate checkpoints: **R1.2** (the current unit — the
+§3(b)(3)(ii) extension-bonus branch; receipt:
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R1_2_EXTENSION_BONUS_CORRECTION.md`)
+and **R2.3** (the next separate unit — the ordered standards corrections;
+not started). R3–R9 have not started; **R3 remains blocked until R1.2 and
+R2.3 both receive another independent Codex foundation review.** All
+Phase 1/Phase 2/W1.1/`main`/checksum/independence boundaries remain
+unchanged.
 **Owner decisions encoded (2026-07-14):** Canon v1.1 is rejected as an active
 audit oracle. v1.0 and v1.1 are preserved as historical editions with their
 existing checksums; their Git history is never rewritten or removed. Canon
@@ -37,10 +44,10 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## Global rules for every repair unit
 
-1. **Separate fresh sessions.** Every repair unit — R1, R2, R1.1, R2.1,
-   R2.2, and R3–R8 — runs in a fresh session with a checkpoint commit on
-   `architect/cba-canon-v2` at the end of the unit. No unit may be
-   combined with another in one session.
+1. **Separate fresh sessions.** Every repair unit — R1, R2, R1.1, R1.2,
+   R2.1, R2.2, R2.3, and R3–R8 — runs in a fresh session with a checkpoint
+   commit on `architect/cba-canon-v2` at the end of the unit. No unit may
+   be combined with another in one session.
 2. **R9 independence.** R9 must be performed by an independent reviewer that
    did not author any part of v2.0.
 3. **No Phase 2 compliance verdicts anywhere in R1–R9.** No rule may be
@@ -189,6 +196,57 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Stop condition:** stop after the R2.2 checkpoint commit; **Codex must
   independently review the corrected foundation (R2.2) before R3 may
   begin.**
+- **Outcome:** executed at commit `6aa616fd`. The independent Codex
+  foundation review of R1.1/R2.1/R2.2 at that commit returned
+  **REJECT/BLOCK-R3** and ordered the bounded R1.2 and R2.3 units below.
+
+## R1.2 — Extension-bonus allocation branch (ordered by the independent Codex foundation review)
+
+- **Status:** the current unit, executed in its own fresh session.
+- **Ordering finding (independent Codex source-law finding):** canon §5.9
+  and the immutable R1.1 receipt omitted one branch of signed CBA VII
+  §3(b)(3)(ii): when the extending team's Team Salary is below the Salary
+  Cap and the Extension calls for the signing bonus to be paid **no sooner
+  than** the first day of the first Salary Cap Year covered by the
+  extended term, the bonus is allocated in accordance with §3(b)(3)(i)'s
+  extended-term-only proration rules — in proportion to the lack-of-skill-
+  protected percentages of Base Compensation in the Salary Cap Years
+  covered by the extended term, with the zero-protection fallback
+  allocating the entire bonus to the extended term's first Salary Cap
+  Year. The missing branch must not fall back to ordinary signing-bonus
+  allocation under §3(b)(2).
+- **Authorized files (exactly three):**
+  `docs/reference/cba/ARCHITECT_CBA_CANON.md` (the §5.9 correction plus
+  the minimal amendment/status surfaces recording R1.2), this plan (the
+  R1.2 unit and status reconciliation only), and the new receipt
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R1_2_EXTENSION_BONUS_CORRECTION.md`.
+- **Required primary authority:** the signed 2023 CBA, VII §3(b)(3)
+  (printed pp. 201–03), re-downloaded, hash-verified, and read directly in
+  the R1.2 session with the adjacent provisions needed to distinguish
+  every timing/cap-status branch (§3(b)(2); §3(b)(3)(i), (iii), (iv), (v)).
+- **Required output:** canon §5.9 states the three §3(b)(3) branches
+  distinctly — at/over-cap (§3(b)(3)(i)); below-cap with payment no sooner
+  than the extended term's first day (the previously omitted branch,
+  §3(b)(3)(ii) second sentence); below-cap early payment with the
+  deemed-Renegotiation and two-installment rules (§3(b)(3)(ii)(A)–(C)) —
+  each with its precise trigger, allocation basis, and zero-protection
+  fallback, and with the express statement that ordinary §3(b)(2)
+  allocation does not govern the corrected branch.
+- **Immutability:** the R1.1 receipt is **not edited**. The R1.2 receipt
+  corrects R1.1's completeness overclaim without rewriting historical
+  review evidence.
+- **Explicit exclusions:** no scenario text (scenario 69's missing
+  before/after-5:00-p.m. ETO discriminator stays deferred to R7); no
+  historical register row; no §15.9 foundation-standard text; no concrete
+  CBA2/XW2/SXW2/SRC2/EV2/DR2 record; no application, Phase 2, W1.1,
+  register-construction, code-map, README, test, data, or Linear work.
+- **Sequencing:** **R2.3** — the ordered standards corrections — is the
+  next separate repair unit with its own checkpoint; it is not part of
+  R1.2. **R3 remains blocked until R1.2 and R2.3 both receive another
+  independent Codex foundation review.**
+- **Stop condition:** stop and report if the signed text does not support
+  the ordered correction exactly or reveals another branch outside this
+  narrow scope.
 
 ## R3 — Re-register and source-certify the A-series
 
@@ -217,8 +275,9 @@ is a one-way dependency scheduled backwards, not a cycle).
   scenario-reconciliation gates run in-unit.
 - **Explicit exclusions:** no C/R/L/S registration; no scenario rewrites
   (R7); no edits to historical rows.
-- **Dependency:** R1, R1.1, R2.1, R2.2 (the foundation as independently
-  accepted after R2.2 review).
+- **Dependency:** R1, R1.1, R1.2, R2.1, R2.2, R2.3 (the foundation as
+  independently accepted after the post-R1.2/R2.3 Codex foundation
+  review).
 - **Stop condition:** any A-series rule that fails primary verification is
   corrected via the R1 mechanism (amendment log entry) or reclassified
   under the §15.9.5 taxonomy — never left silently.
