@@ -4,12 +4,19 @@
 Completed units: **R1** (commit `af931e90`); **R2** (commit `056b9d02` —
 its identity/migration model was subsequently **rejected on independent
 review** and is historical; see R2.1); **R1.1** (commit `1532c928` —
-independently reviewed and **accepted**). Current unit: **R2.1**, which
-replaces the rejected R2 foundation with the clean v2 registry model
-(receipt:
+independently reviewed and **accepted**); **R2.1** (executed at commit
+`05c1b28e` — the independent Codex review **accepted the clean v2
+architecture in direction but rejected R2.1 as the final foundation gate**,
+ordering bounded hardening; receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_1_REGISTER_STANDARD.md`).
-R3–R9 have not started; R3 may not begin until Codex independently reviews
-the combined R1.1/R2.1 foundation.
+Current unit: **R2.2**, the bounded foundation-hardening unit that closes
+the identity, completeness, evidence-schema, gate, and execution-contract
+gaps the review listed — without redesigning the accepted architecture
+(receipt:
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_2_FOUNDATION_HARDENING.md`).
+R3–R9 have not started; **R3 remains blocked pending independent Codex
+acceptance of R2.2.** All Phase 1/Phase 2/W1.1/`main`/checksum/independence
+boundaries remain unchanged.
 **Owner decisions encoded (2026-07-14):** Canon v1.1 is rejected as an active
 audit oracle. v1.0 and v1.1 are preserved as historical editions with their
 existing checksums; their Git history is never rewritten or removed. Canon
@@ -31,7 +38,7 @@ is a one-way dependency scheduled backwards, not a cycle).
 ## Global rules for every repair unit
 
 1. **Separate fresh sessions.** Every repair unit — R1, R2, R1.1, R2.1,
-   and R3–R8 — runs in a fresh session with a checkpoint commit on
+   R2.2, and R3–R8 — runs in a fresh session with a checkpoint commit on
    `architect/cba-canon-v2` at the end of the unit. No unit may be
    combined with another in one session.
 2. **R9 independence.** R9 must be performed by an independent reviewer that
@@ -147,6 +154,41 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Dependency:** R1, R1.1 (accepted).
 - **Stop condition:** stop after the R2.1 checkpoint commit; Codex must
   independently review the combined R1.1/R2.1 foundation before R3 begins.
+- **Outcome:** executed at commit `05c1b28e`. The independent Codex review
+  **accepted the clean v2 architecture in direction but rejected R2.1 as
+  the final foundation gate** and ordered the bounded R2.2 hardening unit
+  below.
+
+## R2.2 — Bounded foundation hardening
+
+- **Status:** closes the identity, completeness, evidence-schema, gate,
+  and execution-contract gaps listed by the independent review of R2.1.
+  The clean v2 architecture is accepted in direction and is **not**
+  redesigned.
+- **Inputs:** the R2.1 standard (canon §15.9) and receipt; the independent
+  Codex review of R2.1 and its ordered gap list.
+- **Authorized files:** `docs/reference/cba/ARCHITECT_CBA_CANON.md`
+  (standards/annotation surfaces only), this plan, and the new receipt
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_2_FOUNDATION_HARDENING.md`.
+- **Required output:** historical scenario identity pinned to the
+  published v1.1 §16 section at `9814939c` (exact byte hash recorded; the
+  R1/R1.1 scenario variants reclassified as R7 authoring inputs only);
+  deterministic XW2/SXW2 edge-typing precedence with worked examples and a
+  duplicate-pair ban; the narrow gateable `no-successor` rule; the EV2
+  multi-source/dependency reference grammar with typed SRC2 provenance
+  (`official-immutable`/`official-mutable`/`ops-provenance`/`ext-contract`);
+  mandatory seven-generator duplicate-candidate generation; gates SC6, SC7,
+  G14, G15 plus the U5/U8/U9/G3/G9/R9 updates; `METHOD` and `AMEND`
+  decision-record types; strict R3→R4→R5→R6 sequencing; §1.2/§17 verdict
+  keying restricted to active `CBA2-…` LEAFs; §19.3 marked as legacy
+  family-level status.
+- **Explicit exclusions:** no historical register or scenario text edits;
+  no CBA2/XW2/SXW2/SRC2/EV2/DR2 records; no code, code map, README, or
+  Linear changes.
+- **Dependency:** R2.1 (executed; architecture accepted in direction).
+- **Stop condition:** stop after the R2.2 checkpoint commit; **Codex must
+  independently review the corrected foundation (R2.2) before R3 may
+  begin.**
 
 ## R3 — Re-register and source-certify the A-series
 
@@ -165,13 +207,18 @@ is a one-way dependency scheduled backwards, not a cycle).
   belongs to a later unit); `SRC2-…`/`EV2-…` evidence rows for every
   authority component of every registered LEAF, each certified against the
   primary text at registration; primary/secondary methods assigned; family
-  counts recomputed mechanically.
+  counts recomputed mechanically; the mandatory §15.9.4 duplicate-candidate
+  population generated and fully dispositioned; canon §19.3's family-status
+  rows updated for the unit's families from legacy claims to per-LEAF
+  certified status (this duty applies to each of R3–R6 for its own
+  families).
 - **Validation gate:** the §15.9.9 unit-local gates U1–U14 for the A
   family. No code-map, Phase 2 packet, global-dependency, or global
   scenario-reconciliation gates run in-unit.
 - **Explicit exclusions:** no C/R/L/S registration; no scenario rewrites
   (R7); no edits to historical rows.
-- **Dependency:** R1, R1.1, R2.1 (the accepted foundation).
+- **Dependency:** R1, R1.1, R2.1, R2.2 (the foundation as independently
+  accepted after R2.2 review).
 - **Stop condition:** any A-series rule that fails primary verification is
   corrected via the R1 mechanism (amendment log entry) or reclassified
   under the §15.9.5 taxonomy — never left silently.
@@ -182,8 +229,10 @@ is a one-way dependency scheduled backwards, not a cycle).
   scoped to C01–C13.
 - **Required primary authorities (principal):** CBA VII §§2(c), 2(d), 2(e),
   4, 6; Article II; official releases.
-- **Dependency:** R1, R1.1, R2.1 (R3 not strictly required but recommended
-  order).
+- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R3** — the
+  construction sequence R3 → R4 → R5 → R6 is strict (canon §15.9.2): all
+  units extend the shared §15.10–§15.12 sections and allocate from the
+  shared XW2/SRC2/EV2/DR2 namespaces.
 - Note: this half contains the MTS (C10) and Apron (C07) rewrites from
   R1/R1.1 and the historical C07.6 bundle, whose two enumerated adjustments
   (vi) and (vii) become separate active v2 LEAFs.
@@ -193,8 +242,8 @@ is a one-way dependency scheduled backwards, not a cycle).
 - Same pattern, scoped to C14–C25.
 - **Required primary authorities (principal):** CBA Articles II §§3–12,
   VII §§3, 5, 7; VIII–IX; XI; XII; Exhibits B and C.
-- **Dependency:** R1, R1.1, R2.1, R4 (the C family is registered in plan
-  order).
+- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R4** (strict
+  sequence, canon §15.9.2).
 - Note: this half contains the incentive-cap denominator (C23), option/ETO
   shape (C24), Two-Way (C20), and Exhibit 10/9 (C21) corrections from R1.
 
@@ -210,14 +259,23 @@ is a one-way dependency scheduled backwards, not a cycle).
   2026-27 calendar (not yet officially published) and EAPS (unpublished —
   projection only); the historical L01.5 calendar bundle dispositioned per
   the R2.1 ownership rules (cross-references, not duplicate date LEAFs).
-- **Dependency:** R1, R1.1, R2.1 (after R5 in plan order).
+- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R5** (strict
+  sequence, canon §15.9.2).
 
 ## R7 — Rebuild semantic acceptance-scenario coverage
 
 - **Inputs:** the completed active v2 register (R3–R6), Adjudication §4.
-- **Authorized files:** the new active v2 scenario subsection of canon §16
-  and the register's scenario-evidence column. Historical scenarios 1–89
-  are frozen and are **not edited**.
+- **Authorized files:** the new active v2 scenario subsection of canon §16;
+  the register's scenario-evidence column; and, **for bounded method-fit
+  corrections only** (canon §15.9.8), an active LEAF's `Primary method`,
+  `Secondary methods`, `Scenario evidence`, and `Decision records` fields —
+  every such change carries a `METHOD` decision record in the R7 receipt
+  (LEAF, old method set, new method set, why the previous method was
+  dishonest, resulting evidence requirement). R7 may **not** change a
+  LEAF's requirement, authority classes, source evidence, origin, or
+  dependencies; such discoveries return to the owning R3–R6 unit.
+  Historical scenarios 1–89 (pinned at `9814939c`) are frozen and are
+  **not edited**.
 - **Required primary authorities:** the evidence chains already certified
   in R3–R6.
 - **Required output:** the active v2 scenario library **built from
@@ -225,23 +283,30 @@ is a one-way dependency scheduled backwards, not a cycle).
   or versioned-calendar input, inputs, boundary, exact expected result
   including arithmetic, controlling authority, named case/variant
   identifiers, and an `Exercises:` list of active v2 LEAFs); an `SXW2-…`
-  scenario crosswalk covering every historical scenario 1–89 (including
-  the incomplete historical scenarios 53, 57, and 68, whose replacement
-  coverage is built here); missing coverage added (exception proration,
+  scenario crosswalk covering every published historical scenario 1–89
+  (the pinned published set at `9814939c` per canon §15.9.8 — the R1/R1.1
+  corrected variants are authoring inputs, never crosswalk sources;
+  includes the incomplete historical scenarios 53, 57, and 68, whose
+  replacement coverage is built here); missing coverage added (exception proration,
   signing-bonus-as-cash, five window restrictions, circumvention/tampering
   EXT states, Bird-clock transfer and waiver reset, October 31
   rookie-option boundary, protection-increase limits, loan-interest/premium
   cases); every scenario→LEAF edge reviewed **exhaustively** by named case
   — later sampling is an additional audit, never a substitute.
-- **Validation gate:** the §15.9.9 scenario gates SC1–SC5 (ID/schema,
+- **Validation gate:** the §15.9.9 scenario gates SC1–SC7 (ID/schema,
   historical crosswalk coverage, bidirectional scenario↔LEAF
-  reconciliation, exhaustive named-case review, no cosmetic mappings).
+  reconciliation, exhaustive named-case review, no cosmetic mappings,
+  SCEN coverage completeness with no empty-set pass, and `METHOD` records
+  for every method change).
 - **Explicit exclusions:** no register content changes beyond the
-  scenario-evidence column; no tests written (that is Phase 2).
+  scenario-evidence column and the bounded `METHOD`-recorded method-fit
+  fields above; no tests written (that is Phase 2).
 - **Dependency:** R3–R6 complete.
 - **Stop condition:** a leaf with no honest scenario gets its primary
-  method reclassified (STATIC/LIFECYCLE/EXTS) rather than a cosmetic
-  mapping.
+  method reclassified (STATIC/LIFECYCLE/EXTS) via a `METHOD` decision
+  record rather than a cosmetic mapping; a discovery requiring a change to
+  requirement, authority, evidence, origin, or dependencies returns to the
+  owning R3–R6 unit instead of being fixed in R7.
 
 ## R8 — Reconcile code map, dependencies, datasets, receipts, and final checksum
 
@@ -259,10 +324,12 @@ is a one-way dependency scheduled backwards, not a cycle).
   Bird-status prerequisite extracted) so the "no unit depends on a later
   one" claim is true; stale "uncommitted / nothing pushed" language removed
   from receipts; dataset provenance table finalized; the crosswalk closed
-  (zero deferrals); README status updated while keeping the canon
-  unaccepted; v2.0 SHA-256 recorded in the receipt and code map; all counts
-  recomputed mechanically.
-- **Validation gate:** the §15.9.9 global reconciliation gates G1–G13 —
+  (zero deferrals); canon §19.3's status table finally reconciled against
+  the completed active registry (no family called fully v2-certified
+  unless every active LEAF passes U8/U9/U14); README status updated while
+  keeping the canon unaccepted; v2.0 SHA-256 recorded in the receipt and
+  code map; all counts recomputed mechanically.
+- **Validation gate:** the §15.9.9 global reconciliation gates G1–G15 —
   complete historical-LEAF crosswalk coverage; all non-terminal targets
   resolve; terminal and companion true-gap records validate; global active
   GROUP/LEAF counts with historical/support records excluded; code map and
@@ -271,10 +338,15 @@ is a one-way dependency scheduled backwards, not a cycle).
   scenario ID in any verdict column; dependency order with no later-unit
   dependency and no cycles — mechanical cycle/order checks **plus a
   semantic dependency review** (no claim that a parser proved a dependency
-  was never omitted); global ownership/atomicity reconciliation; scenario
-  reconciliation rerun; sampled semantic rechecks of merge/split decisions,
-  scenario coverage, and source-derived obligations; final v2 checksum and
-  counts; lint:md passes.
+  was never omitted); global ownership/atomicity reconciliation including
+  the rerun cross-family duplicate-candidate sweep with zero unresolved
+  candidates (G9); exhaustive semantic review of every `no-successor`
+  disposition (G3); scenario reconciliation rerun; global evidence
+  reconciliation with zero orphan `SRC2`/`EV2` references (G14);
+  amendment-chain integrity with zero stale live references to superseded
+  draft IDs or decision records (G15); sampled semantic rechecks of
+  merge/split decisions, scenario coverage, and source-derived
+  obligations; final v2 checksum and counts; lint:md passes.
 - **Explicit exclusions:** no application code changes; no Phase 2 verdicts;
   locatability only.
 - **Dependency:** R3–R7 complete.
@@ -296,8 +368,13 @@ is a one-way dependency scheduled backwards, not a cycle).
   code map/execution plan) with an explicit ACCEPT or REJECT at a pinned
   clean commit. The reviewer must re-run **every mechanical gate from
   scratch**, independently sample primary-source passages, independently
-  sample active obligation atomicity and ownership, independently sample
-  scenario truth, and runtime-sample code-map pointers.
+  sample active obligation atomicity and ownership, **independently
+  regenerate the duplicate-candidate population (all §15.9.4 generators)
+  rather than trusting the unit lists**, independently sample scenario
+  truth, **review every `no-successor` disposition individually — not a
+  sample**, **verify the `AMEND` amendment chain and re-run the exact
+  bidirectional evidence reconciliation**, and runtime-sample code-map
+  pointers.
 - **Validation gate:** ACCEPT at a pinned clean commit is the only event
   that closes Phase 1 and unblocks Phase 2/W1.1.
 - **Explicit exclusions:** the reviewer must not have authored any v2.0
