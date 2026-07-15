@@ -15,13 +15,18 @@ unit; receipt:
 The independent Codex foundation review of the combined R1.1/R2.1/R2.2
 foundation at `6aa616fd` returned **REJECT/BLOCK-R3**, finding (1) an
 omitted branch of signed CBA VII §3(b)(3)(ii) in canon §5.9 and the R1.1
-receipt, and (2) residual standards corrections, and ordered two bounded
-repair units with separate checkpoints: **R1.2** (the current unit — the
+receipt, and (2) five residual foundation-contract corrections, and
+ordered two bounded repair units with separate checkpoints: **R1.2**
+(executed at commit `07d5aa58a4ed355667293b999fb66eb48eb7c0b0` — the
 §3(b)(3)(ii) extension-bonus branch; receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R1_2_EXTENSION_BONUS_CORRECTION.md`)
-and **R2.3** (the next separate unit — the ordered standards corrections;
-not started). R3–R9 have not started; **R3 remains blocked until R1.2 and
-R2.3 both receive another independent Codex foundation review.** All
+and **R2.3** (the current unit, executed in its own fresh session on
+baseline `07d5aa58…` — the five ordered foundation-contract corrections;
+receipt:
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_3_FOUNDATION_CONTRACT_CORRECTIONS.md`).
+R2.3 is **not independently accepted**. R3–R9 have not started; **R3
+remains blocked until R1.2 and R2.3 together receive another independent
+Codex foundation review returning ACCEPT.** All
 Phase 1/Phase 2/W1.1/`main`/checksum/independence boundaries remain
 unchanged.
 **Owner decisions encoded (2026-07-14):** Canon v1.1 is rejected as an active
@@ -62,6 +67,9 @@ is a one-way dependency scheduled backwards, not a cycle).
    for non-arithmetic inference with a controlling source chain, OPS only
    with real operational provenance, or EXT) — never fill the gap with a
    secondary source, and never use an unresolved composite label.
+   Secondary sources are discovery or corroboration aids only: they
+   establish no authority class (including OPS), and OPS requires
+   qualifying first-party operational provenance (canon §15.9.6).
 5. **Checksum discipline.** v1.0 (`b8cf5d01…`) and v1.1 (`4a0760c8…`)
    checksums are historical evidence. The v2.0 checksum is recorded only in
    the receipts (a file cannot state its own hash).
@@ -202,7 +210,8 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## R1.2 — Extension-bonus allocation branch (ordered by the independent Codex foundation review)
 
-- **Status:** the current unit, executed in its own fresh session.
+- **Status:** executed at commit `07d5aa58a4ed355667293b999fb66eb48eb7c0b0`
+  in its own fresh session.
 - **Ordering finding (independent Codex source-law finding):** canon §5.9
   and the immutable R1.1 receipt omitted one branch of signed CBA VII
   §3(b)(3)(ii): when the extending team's Team Salary is below the Salary
@@ -247,6 +256,107 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Stop condition:** stop and report if the signed text does not support
   the ordered correction exactly or reveals another branch outside this
   narrow scope.
+
+## R2.3 — Foundation-contract corrections (ordered by the independent Codex foundation review)
+
+- **Status:** the current unit, executed in its own fresh session on
+  baseline `07d5aa58a4ed355667293b999fb66eb48eb7c0b0` (the R1.2
+  checkpoint). **Not independently accepted** — acceptance belongs to the
+  post-R1.2/R2.3 Codex foundation review.
+- **Ordering findings — the five independent Codex foundation blockers
+  and their correction contracts:**
+  1. **Evidence roots and class-specific certification.** The standard
+     permitted artifactless OPS/EXT evidence while requiring every
+     evidence chain to end in an artifact, and its universal
+     certification sentence required a passage read for every EV row.
+     Corrected (canon §15.9.6, U8/U9/G14/R9): every `EV2-…` evidence
+     path terminates in at least one typed `SRC2-…` source/provenance
+     record; no `EV2-…` row has both reference fields empty;
+     DERIVED/INFERRED may carry chains through dependencies that
+     terminate in `SRC2-…` records; OPS references ≥1 `ops-provenance`
+     record and EXT ≥1 `ext-contract` record (each valid without a
+     public URL, and without an artifact hash only where no durable
+     artifact exists — absence of a public artifact never eliminates the
+     record); `SRC2-…` is a source/provenance-record registry, not only
+     a file-artifact registry; class-specific certification replaces the
+     universal read-the-passage rule; the gates enforce typed
+     termination, no source-free terminal components, certification,
+     valid provenance-type ⇔ authority-class pairings, acyclic
+     dependencies, exact Authority ⇔ EV reconciliation, and zero
+     dangling or orphan records.
+  2. **Strict secondary-source policy.** Canon §15.9.6 permitted
+     secondary operational reporting to establish OPS while this plan
+     prohibited secondary sources as proof. Corrected to the stricter
+     plan policy everywhere: secondary sources are discovery/
+     corroboration aids only and establish no authority class; OPS
+     requires qualifying first-party operational provenance (an
+     authenticated league/club operational artifact; a directly
+     authenticated league/club communication; a league system record,
+     transaction ruling, or comparable first-party operational record;
+     or a recorded direct attestation with identity, authority,
+     effective date, verification method, limitations, and
+     configurability). Media reports, expert summaries, CBAguide, RealGM,
+     Spotrac, prior audits, tests, and existing implementations are never
+     sufficient. Canon §1.1, §15.9, §19.1, and this plan swept.
+  3. **Complete SXW2 integrity gate.** SC2 gated only historical-scenario
+     coverage. Corrected: SC2 is the complete sixteen-check SXW2
+     integrity contract (canon §15.9.9 — ID grammar; edge-ID uniqueness;
+     allowed type vocabulary; sources restricted to the pinned
+     `9814939c` 1–89 population; complete coverage; no out-of-population
+     source; existing active `CBA2-SC-…` target for every non-terminal
+     edge; `invalid`/`no-successor` as the only terminal types with `—`
+     targets; no non-terminal `—`; no terminal live target; resolving
+     decision records; exactly one primary relationship type per pair;
+     no duplicate pair under another type; deterministic precedence; the
+     narrow no-successor rule; parseable exact scope). G10 and R9 rerun
+     the complete contract, never coverage alone. SC1–SC7 numbering
+     kept.
+  4. **All-population AMEND coverage.** AMEND covered only defective
+     active rows while XW2/SRC2 were described as append-only with no
+     unambiguous repair path. Corrected (canon §15.9.2/§15.9.4): draft
+     mutability and `AMEND` lineage extend to active GROUP/LEAF records,
+     `XW2-…` edges, `SRC2-…` records, `EV2-…` components, active
+     `CBA2-SC-…` scenarios/named cases, `SXW2-…` edges, and `DR2-…`
+     records; append-only precisely defined (monotonic allocation, no ID
+     reuse, no reassignment of superseded/removed IDs, correctable
+     drafts, immutable receipts preserving prior versions, live tables
+     carrying only current records); same-ID content corrections vs
+     minted-ID identity changes defined; every affected live reference
+     updated in the same commit; a defective `DR2`/`AMEND` record is
+     corrected by a later `AMEND` record; G15/R9 verify amendment-chain
+     integrity across every population (zero stale live references, no
+     correction-created duplicates or orphans, forward resolvability of
+     every receipt-era ID/version, one terminal disposition per chain).
+  5. **Historical register population clarity.** A binding note falsely
+     said the branch's §15.1–§15.8 rows were preserved unchanged.
+     Corrected (canon §15 status note, §15.9.1): three register
+     populations, mirroring the scenario populations — the published
+     v1.1 register at `9814939c` (file checksum `4a0760c8…`; sole
+     historical source of every XW2 edge; meanings permanently fixed;
+     never active or verdict-bearing); the branch's legacy-numbered
+     working copy (R1/R1.1 source-law corrections plus the authorized
+     R2.1 A11/A18.7 annotations; authoring input for active v2
+     obligations only; never the XW2 source; never active or
+     verdict-bearing; redefines no published historical ID); and the
+     active v2 registry (`CBA2-…`, R3–R6; the only active,
+     verdict-bearing population after R9 acceptance). No legacy-numbered
+     row was edited — population/status wording only.
+- **Authorized files (exactly three):**
+  `docs/reference/cba/ARCHITECT_CBA_CANON.md` (standards and
+  status/annotation surfaces only), this plan (reconciliation only), and
+  the new receipt
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_3_FOUNDATION_CONTRACT_CORRECTIONS.md`.
+- **Immutability:** no earlier receipt was edited; earlier receipts
+  remain commit-scoped immutable review history.
+- **Explicit exclusions:** no concrete CBA2/XW2/SXW2/SRC2/EV2/DR2 record
+  minted; no historical register row or scenario edited; no application,
+  code-map, README, test, schema, fixture, configuration, data, or
+  Linear work; R3–R9, Phase 2, and W1.1 out of scope.
+- **Sequencing:** **R3 remains blocked** until R1.2 and R2.3 together
+  receive another independent Codex foundation review returning ACCEPT.
+- **Stop condition:** stop and report if a correction cannot be made
+  without redesigning the accepted clean-v2 architecture or editing an
+  immutable receipt.
 
 ## R3 — Re-register and source-certify the A-series
 
@@ -353,10 +463,10 @@ is a one-way dependency scheduled backwards, not a cycle).
   cases); every scenario→LEAF edge reviewed **exhaustively** by named case
   — later sampling is an additional audit, never a substitute.
 - **Validation gate:** the §15.9.9 scenario gates SC1–SC7 (ID/schema,
-  historical crosswalk coverage, bidirectional scenario↔LEAF
-  reconciliation, exhaustive named-case review, no cosmetic mappings,
-  SCEN coverage completeness with no empty-set pass, and `METHOD` records
-  for every method change).
+  the complete sixteen-check SC2 SXW2 integrity contract — never
+  coverage alone, bidirectional scenario↔LEAF reconciliation, exhaustive
+  named-case review, no cosmetic mappings, SCEN coverage completeness
+  with no empty-set pass, and `METHOD` records for every method change).
 - **Explicit exclusions:** no register content changes beyond the
   scenario-evidence column and the bounded `METHOD`-recorded method-fit
   fields above; no tests written (that is Phase 2).
@@ -400,10 +510,17 @@ is a one-way dependency scheduled backwards, not a cycle).
   was never omitted); global ownership/atomicity reconciliation including
   the rerun cross-family duplicate-candidate sweep with zero unresolved
   candidates (G9); exhaustive semantic review of every `no-successor`
-  disposition (G3); scenario reconciliation rerun; global evidence
-  reconciliation with zero orphan `SRC2`/`EV2` references (G14);
-  amendment-chain integrity with zero stale live references to superseded
-  draft IDs or decision records (G15); sampled semantic rechecks of
+  disposition (G3); scenario reconciliation rerun including the complete
+  SC2 SXW2 integrity contract (G10); global evidence reconciliation —
+  typed `SRC2` termination for every evidence path, no source-free
+  terminal `EV2` component, class-specific certification, valid
+  provenance-type ⇔ authority-class pairings, acyclic dependency chains,
+  exact Authority ⇔ EV reconciliation, zero orphan `SRC2`/`EV2`
+  references (G14); amendment-chain integrity across every live v2
+  population — zero stale live references, no correction-created
+  duplicates or orphans, forward resolvability of every receipt-era
+  ID/version, one terminal disposition per supersession chain (G15);
+  sampled semantic rechecks of
   merge/split decisions, scenario coverage, and source-derived
   obligations; final v2 checksum and counts; lint:md passes.
 - **Explicit exclusions:** no application code changes; no Phase 2 verdicts;
@@ -431,9 +548,12 @@ is a one-way dependency scheduled backwards, not a cycle).
   regenerate the duplicate-candidate population (all §15.9.4 generators)
   rather than trusting the unit lists**, independently sample scenario
   truth, **review every `no-successor` disposition individually — not a
-  sample**, **verify the `AMEND` amendment chain and re-run the exact
-  bidirectional evidence reconciliation**, and runtime-sample code-map
-  pointers.
+  sample**, **verify the `AMEND` amendment chain across every live v2
+  population and re-run the exact bidirectional evidence reconciliation
+  (including typed `SRC2` termination, the no-source-free-terminal-
+  component check, class-specific certification, and provenance-type ⇔
+  authority-class pairing validity)**, **re-run the complete SC2 SXW2
+  integrity contract**, and runtime-sample code-map pointers.
 - **Validation gate:** ACCEPT at a pinned clean commit is the only event
   that closes Phase 1 and unblocks Phase 2/W1.1.
 - **Explicit exclusions:** the reviewer must not have authored any v2.0
