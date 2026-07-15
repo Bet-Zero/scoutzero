@@ -42,8 +42,24 @@ those four blockers (executed in its own fresh session on baseline
 CBA2/XW2/SXW2/SRC2/EV2/DR2 record minted; earlier receipts immutable;
 receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_4_FOUNDATION_CONTRACT_CLOSURE.md`).
-**R2.4 is not independently accepted.** R3–R9 have not started; **R3
-remains blocked until the corrected foundation (R1.2/R2.3/R2.4)
+The independent Codex review of R2.4 at
+`e0344aacc3b60598fc625018640f0d1c31fb6024` returned **REJECT/BLOCK-R3**:
+it **passed** — and no later unit may reopen or redesign — transitive
+evidence-authority compatibility, the secondary-source/OPS policy,
+AMEND numbering, the source/provenance terminology, R1.2's source law,
+SC2/SXW2 integrity, the historical-register population separation, and
+the unit's scope and preservation, and rejected the foundation **solely**
+for two remaining SRC2 grammar defects: (1) the official-mutable
+"date or season" field permitted a season with no exact season grammar,
+and (2) the SRC2 base field `Verifier/session/date` was an unparseable
+composite. It ordered **R2.5** — a bounded grammar-only correction unit
+closing exactly those two blockers (executed in its own fresh session on
+baseline `e0344aac…`; exactly three authorized files; no concrete
+CBA2/XW2/SXW2/SRC2/EV2/DR2 record minted; earlier receipts immutable;
+receipt:
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_5_SRC2_GRAMMAR_CLOSURE.md`).
+**R2.5 is not independently accepted.** R3–R9 have not started; **R3
+remains blocked until the corrected foundation (R1.2/R2.3/R2.4/R2.5)
 receives another independent Codex foundation review returning
 ACCEPT.** Phase 1 remains open; R3–R9, Phase 2, W1.1, application work,
 code-map work, scenarios, and Linear remain out of scope for repair
@@ -70,7 +86,7 @@ is a one-way dependency scheduled backwards, not a cycle).
 ## Global rules for every repair unit
 
 1. **Separate fresh sessions.** Every repair unit — R1, R2, R1.1, R1.2,
-   R2.1, R2.2, R2.3, R2.4, and R3–R8 — runs in a fresh session with a
+   R2.1, R2.2, R2.3, R2.4, R2.5, and R3–R8 — runs in a fresh session with a
    checkpoint commit on `architect/cba-canon-v2` at the end of the unit.
    No unit may be combined with another in one session.
 2. **R9 independence.** R9 must be performed by an independent reviewer that
@@ -387,11 +403,18 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## R2.4 — Remaining foundation-blocker closure (ordered by the independent Codex review of R1.2/R2.3)
 
-- **Status:** the current unit, executed in its own fresh session on
+- **Status:** executed at commit
+  `e0344aacc3b60598fc625018640f0d1c31fb6024` in its own fresh session on
   baseline `c22286072578beed0020c7749e651a50ce566d43` (the R2.3
-  checkpoint). **Not independently accepted** — acceptance belongs to
-  the next independent Codex foundation review. R2.4 is standards,
-  source-policy, and status reconciliation only.
+  checkpoint). The independent Codex review of R2.4 at `e0344aac…`
+  returned **REJECT/BLOCK-R3**: it **passed** R2.4's transitive
+  evidence-authority compatibility model, the secondary-source/OPS
+  policy, the AMEND numbering contract, the source/provenance
+  terminology, and the unit's scope and preservation — none of which may
+  be reopened or redesigned — and rejected the foundation solely for the
+  two SRC2 grammar defects closed by R2.5 below. R2.4 itself is **not
+  independently accepted**. R2.4 was standards, source-policy, and
+  status reconciliation only.
 - **Ordering findings — the four remaining foundation blockers and
   their correction contracts:**
   1. **Type-specific, parseable SRC2 records.** The `SRC2-…` schema was
@@ -483,12 +506,89 @@ is a one-way dependency scheduled backwards, not a cycle).
   or scenario edited; no application, code-map, README, test, schema,
   fixture, configuration, data, or Linear work; R3–R9, Phase 2, and
   W1.1 out of scope.
-- **Sequencing:** **R3 remains blocked** until R1.2, R2.3, and R2.4
-  together receive another independent Codex foundation review
-  returning ACCEPT. Phase 1 remains open.
+- **Sequencing:** the independent Codex review of R2.4 returned
+  REJECT/BLOCK-R3 and ordered R2.5; **R3 remains blocked** until R1.2,
+  R2.3, R2.4, and R2.5 together receive another independent Codex
+  foundation review returning ACCEPT. Phase 1 remains open.
 - **Stop condition:** stop and report if a correction would require
   redesigning the accepted clean-v2 architecture, changing a passing
   R1.2/SC2/historical-population result, or editing an immutable
+  receipt.
+
+## R2.5 — SRC2 field-grammar closure (ordered by the independent Codex review of R2.4)
+
+- **Status:** the current unit, executed in its own fresh session on
+  baseline `e0344aacc3b60598fc625018640f0d1c31fb6024` (the R2.4
+  checkpoint). **Not independently accepted** — acceptance belongs to
+  the next independent Codex foundation review. R2.5 is a bounded
+  grammar-only correction: two SRC2 field grammars plus the minimal
+  amendment/status surfaces recording them.
+- **Ordering findings — the two remaining Codex foundation blockers
+  and their correction contracts:**
+  1. **No exact season grammar.** The official-mutable publication
+     "date or season" field permitted a season but defined no exact
+     season grammar, so a season value was not mechanically
+     validatable. Corrected (canon §15.9.6): exactly one accepted
+     machine season format, `YYYY-YY` — four ASCII digits, exactly one
+     ASCII hyphen-minus `-` (`U+002D`), then two ASCII digits that
+     must equal the last two digits of `YYYY + 1` modulo 100; no
+     spaces; en dash, em dash, slash, textual prefix, abbreviated
+     first year, four-digit second year, and arbitrary season labels
+     all invalid (`2026-27`/`1999-00` valid; `2026–27`, `2026/27`,
+     `FY26`, `26-27`, `2026-28`, `2026-2027` invalid). Source-title
+     typography may be preserved in title/identity text, but every
+     structured season field normalizes to `YYYY-YY`. The base schema,
+     `official-mutable` detail schema, per-type validity matrix, NBA
+     per-class minima, and U8/U9/G14/R9 all point to this one grammar;
+     no second season syntax exists.
+  2. **Unparseable composite verification field.** The SRC2 base field
+     `Verifier/session/date` mixed three values in one column.
+     Corrected (canon §15.9.6): the composite is abolished and split
+     into three separately required columns — `Verifier identity`
+     (`human:<slug>` or `agent:<slug>`; slug 1–64 ASCII characters,
+     starting with a lowercase letter or digit, containing only
+     lowercase letters, digits, `.`, `_`, `-`, no spaces),
+     `Verification session ID` (`session:<slug>`; slug 1–96 characters
+     under the same character rules; a receipt-scoped deterministic
+     session identifier suffices — no confidential provider-internal
+     session identifier is required), and `Verification date` (a real
+     `YYYY-MM-DD` calendar date) — growing the base table from eleven
+     to thirteen pinned fields. All three fields are mandatory for
+     every provenance type, never `—`, independently parsed and
+     validated; a nonempty field never compensates for a missing or
+     malformed one; missing or malformed verification metadata fails
+     the record, which certifies nothing. U8/U9, G14, and R9 validate
+     the three fields under the same §15.9.6 grammars.
+- **Receipt erratum (R2.4, low, nonblocking):** the immutable R2.4
+  receipt's literal sweep claimed zero `secondary expert` occurrences;
+  one valid occurrence remains in this plan's historical description
+  of the R2.4 blockers. The R2.5 receipt records the erratum: the
+  intended and correct claim is zero remaining **binding**
+  occurrences; the remaining repair-plan occurrence is classified
+  `HISTORY`, authorizes and promotes nothing, and is retained; the
+  R2.4 receipt is not edited.
+- **Authorized files (exactly three):**
+  `docs/reference/cba/ARCHITECT_CBA_CANON.md` (the two grammar
+  corrections plus the minimal amendment/status surfaces), this plan
+  (reconciliation only), and the new receipt
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_5_SRC2_GRAMMAR_CLOSURE.md`.
+- **Immutability:** no earlier receipt edited; earlier receipts remain
+  commit-scoped immutable review history.
+- **Preservation:** canon §5.9, §15.1–§15.8, scenarios 1–89, and the
+  complete sixteen-check SC2 block byte-identical to the R2.4
+  checkpoint (hashes recomputed, not copied); the transitive
+  compatibility model, secondary-source policy, AMEND numbering, and
+  historical-population distinction untouched.
+- **Explicit exclusions:** no concrete CBA2/XW2/SXW2/SRC2/EV2/DR2
+  record minted; no §15.10–§15.12 active section created; no
+  historical register row or scenario edited; no application, README,
+  code-map, test, schema, fixture, configuration, data, or Linear
+  work; R3–R9, Phase 2, and W1.1 out of scope.
+- **Sequencing:** **R3 remains blocked** until R1.2, R2.3, R2.4, and
+  R2.5 together receive another independent Codex foundation review
+  returning ACCEPT. Phase 1 remains open.
+- **Stop condition:** stop and report if a correction would require
+  redesigning a passed foundation area or editing an immutable
   receipt.
 
 ## R3 — Re-register and source-certify the A-series
@@ -518,9 +618,9 @@ is a one-way dependency scheduled backwards, not a cycle).
   scenario-reconciliation gates run in-unit.
 - **Explicit exclusions:** no C/R/L/S registration; no scenario rewrites
   (R7); no edits to historical rows.
-- **Dependency:** R1, R1.1, R1.2, R2.1, R2.2, R2.3, R2.4 (the foundation
-  as independently accepted after the post-R2.4 independent Codex
-  foundation review).
+- **Dependency:** R1, R1.1, R1.2, R2.1, R2.2, R2.3, R2.4, R2.5 (the
+  foundation as independently accepted after the post-R2.5 independent
+  Codex foundation review).
 - **Stop condition:** any A-series rule that fails primary verification is
   corrected via the R1 mechanism (amendment log entry) or reclassified
   under the §15.9.5 taxonomy — never left silently.
@@ -650,7 +750,9 @@ is a one-way dependency scheduled backwards, not a cycle).
   provenance-type ⇔ authority-class pairings, acyclic dependency chains,
   exact Authority ⇔ EV reconciliation, zero orphan `SRC2`/`EV2`
   references, type-specific field-level `SRC2` validation (base plus
-  pinned detail row, per-type `—` validity, timestamp/hash rules), and
+  pinned detail row, per-type `—` validity, timestamp/hash rules, the
+  pinned `YYYY-YY` season grammar, and the three split
+  verification-metadata fields under their §15.9.6 grammars), and
   recomputed transitive dependency closures and terminal root sets for
   every `EV2` component against the §15.9.6 compatibility matrix — zero
   authority-laundering chains, OPS/EXT limitation propagation verified
@@ -695,7 +797,9 @@ is a one-way dependency scheduled backwards, not a cycle).
   (including typed `SRC2` termination, the no-source-free-terminal-
   component check, class-specific certification, provenance-type ⇔
   authority-class pairing validity, type-specific field-level `SRC2`
-  validation, and an independent recomputation of every `EV2`
+  validation — including the pinned `YYYY-YY` season grammar and the
+  three split verification-metadata fields under their §15.9.6
+  grammars — and an independent recomputation of every `EV2`
   component's transitive dependency closure and terminal root set
   against the §15.9.6 compatibility matrix — zero authority-laundering
   chains)**, **re-run the complete SC2 SXW2
