@@ -14,7 +14,7 @@
 
 **What v1.1 changed (historical):** the **index only**. v1.1 added audit IDs, sub-IDs, verification-method classifications, acceptance scenarios, and cross-references; it changed no CBA rule and renumbered no existing ID or scenario. The register is a two-level tree: **GROUP** nodes are navigation anchors, and **LEAF** nodes are the 368 independently auditable obligations that form the entire audit universe (§15.6). Because the checksum of a file cannot be stated inside that file, the v1.1 checksum of record was published in `work/architect-completion/ARCHITECT_CBA_CANON_CODE_MAP.md` and `work/architect-completion/ARCHITECT_CBA_CANON_V1_1_MIGRATION.md`.
 
-**What v2.0 changes (this working draft):** substantive rule repair against the signed CBA under the approved R1–R9 plan (`work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`). R1 corrects the seven adjudicated substantive rule errors and two authority labels, and rewrites scenarios 50, 53, 57, 60, 67, 68, and 69; no ID or scenario is renumbered. The authority cutoff remains **July 12, 2026**. **This draft is not accepted and must not govern Phase 2 verdicts, implementation decisions, or tests**; the v2.0 checksum will be recorded only at R8, and activation requires a new independent Reviews A–F acceptance gate (R9).
+**What v2.0 changes (this working draft):** substantive rule repair against the signed CBA under the approved R1–R9 plan (`work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`). R1 corrects the seven adjudicated substantive rule errors and two authority labels, and rewrites scenarios 50, 53, 57, 60, 67, 68, and 69; no ID or scenario is renumbered. R2 adds the binding v2.0 register and source-certification standard (§15.9) and the register release gates that R3–R8 must satisfy; it changes no rule, register row, scenario, ID, or source value. The authority cutoff remains **July 12, 2026**. **This draft is not accepted and must not govern Phase 2 verdicts, implementation decisions, or tests**; the v2.0 checksum will be recorded only at R8, and activation requires a new independent Reviews A–F acceptance gate (R9).
 
 > **Use rule:** Architect may rely on a rule as deterministic only when the required inputs exist and the rule is marked **CBA**, **BYL**, **NBA**, or **DERIVED** under the authority system below. An **OPS** item is a league-operational rule for which no current public primary text was located; it must remain configurable and must not be represented as language from the CBA. An **EXT** item requires a league, physician, expert, or legal determination.
 
@@ -26,6 +26,7 @@
 | **Index amendment v1.1** | **July 14, 2026** | **Index only.** 14 new top-level IDs (A19–A21, C19–C25, S01–S04) and 357 sub-IDs, forming a 427-node register of 59 GROUP anchors and **368 auditable LEAF obligations**; a verification method for every LEAF; and acceptance scenarios 47–89. No rule, formula, value, deadline, authority label, or source interpretation changed; no existing ID or scenario renumbered |
 | Canon v1.1 rejection | July 14, 2026 | v1.1 rejected as the active audit oracle by an independent acceptance review (Codex), upheld by independent adjudication (Claude); preserved as a historical edition with checksum `4a0760c8…` — see `docs/reference/cba/README.md` |
 | **Repair v2.0 — working draft, R1** | **July 14, 2026** | **R1 substantive corrections against the signed CBA:** incentive-cap denominator to Regular Salary (II §12(a)(i); VII §5(b)(1)); signing-bonus allocation to the lack-of-skill-protected percentage of Base Compensation (VII §3(b)(2)); ETO effectiveness no earlier than the end of the fourth season (XII §2(b)); Two-Way Advance permitted and conversion beginning on July 1 (II §11(a)(v), §11(f)); Minimum Team Salary payment and Team Salary charge on their separate bases (VII §2(c)(1)–(3),(5)); §8.1 rewritten as the ten enumerated Apron Salary adjustments (VII §2(e)(1)(i)–(x)); SRPE Team Option carve-out added (XII §1(v)); A11 and A18.7 authority labels corrected to cite + DERIVED/OPS; scenarios 50, 53, 57, 60, 67, 68, 69 rewritten. No ID or scenario renumbered. **Draft only — not accepted; checksum to be recorded at R8** |
+| **Repair v2.0 — working draft, R2** | **July 14, 2026** | **R2 register and source-certification standard (§15.9):** three node roles (GROUP / LEAF / RETIRED-ALIAS), the atomicity test, canonical-ownership and deduplication rules, append-only stable-identifier migration, the per-LEAF source-locator standard for CBA/BYL/NBA/DERIVED/OPS/EXT chains, verification-method assignment and evidence minima, the register row schemas, and the mechanical + semantic register release gates that R3–R8 must satisfy. Standards only — no rule, register row, scenario, ID, source value, or code mapping changed. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_REGISTER_STANDARD.md` |
 
 ---
 
@@ -1557,6 +1558,220 @@ The register is a two-level tree, and the two node types are **not interchangeab
 | §19.1 | The rule-family authority map must be preserved as citation metadata on every implemented rule | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
 | §19.3 | The verification-status classification is part of the canon; moving an OPS item into a primary-source category requires a cited canon revision | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
 
+### 15.9 Register and source-certification standard (v2.0 — binding)
+
+This standard governs the v2.0 re-registration (repair units R3–R6), the
+scenario rebuild (R7), the reconciliation (R8), and every later register
+edition. Where it extends or conflicts with the v1.1 rules in §15.6, this
+section governs from R3 onward; §15.6 remains the historical v1.1 standard
+describing the not-yet-re-registered rows. Design rationale, representative
+worked examples, the mechanical validation procedure, and the migration
+queue are recorded in
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_REGISTER_STANDARD.md`.
+
+#### 15.9.1 Node roles
+
+The register has exactly three node roles. No other role exists; reserved
+numbers and process rows are prohibited outright.
+
+| Role | Definition | Receives |
+|---|---|---|
+| **GROUP** | Organizational parent only; owns no substantive obligation | No verdict, no locatability status, no verification method, no locator. Reports only its children's status **distribution**; mixed child results are never collapsed into one parent verdict. Must keep at least one active child or be retired |
+| **LEAF** | Exactly one independently auditable substantive obligation | One canonical owner ID; one evidence-backed Phase 2 disposition; a complete authority/source chain; an appropriate verification method; exactly one appearance in the execution map and one Phase 2 packet |
+| **RETIRED/ALIAS** | Historical identifier that no longer owns an active obligation (created by deduplication, split, re-parent, phantom removal, or process conversion) | Not an active audit unit; points to its successor owner(s); can never receive a new verdict; can never be reused for a different rule; remains searchable so old reports, scenarios, and Linear references resolve |
+
+Retirement subtypes: **MERGED** (duplicate folded into the canonical owner),
+**SPLIT** (divided into atomic successors), **RE-PARENTED** (re-registered
+under the truthful parent), **CONVERTED-TO-PROCESS** (moved to
+process/release-gate material; no successor LEAF), **PHANTOM** (the row's
+claim was false; successor is the real owner if one exists). Successors
+never inherit a retired ID's historical verdict.
+
+Role transitions: a **top-level LEAF that splits converts to a GROUP** over
+its new children (ledgered, with former role recorded). **GROUP→LEAF is
+prohibited**; a GROUP left with one active child remains a GROUP.
+
+#### 15.9.2 Atomicity
+
+Restate every candidate row as **GIVEN** facts **WHEN** trigger **THEN**
+required result. A row is one LEAF iff it has exactly one THEN and no
+realistic implementation could be correct on one part and wrong on another
+in a way an auditor would report separately (the **mixed-verdict test**).
+Binding clarifications:
+
+- A conjunctive trigger (several conditions that must all hold) feeding one
+  prohibition or outcome is **one** LEAF.
+- Separately enumerated calculations, adjustments, exceptions, deadlines,
+  lifecycle stages, or outcomes that can independently succeed or fail are
+  **separate** LEAFs; the signed text's own enumeration is the floor of
+  granularity.
+- One formula stays one LEAF only when its components cannot truthfully
+  receive mixed verdicts; separately derived inputs are their own LEAFs.
+- A rule's eligibility test, calculation, lifecycle, expiration, and
+  extinguishment are separate whenever Architect could implement them
+  differently.
+- Numeric bounds on the same quantity (minimum and maximum) are separate
+  LEAFs when each can fail independently.
+- A single clause listing same-kind elements under one trigger and one
+  consequence may remain one LEAF, but its evidence must exercise every
+  listed element.
+- A broad "supports X" statement is not atomic when X contains independently
+  enforceable conditions.
+- Testing instructions and recommended boundary percentages are process
+  material, never part of the product obligation.
+
+#### 15.9.3 Canonical ownership and deduplication
+
+- Every substantive obligation has **exactly one active LEAF owner**. All
+  other mentions — correction tables, explanatory summaries, lifecycle/state
+  ledgers, cross-cutting requirements — are cross-references to the owner,
+  never second LEAFs. No LEAF may claim a rule is unowned after an owner
+  exists. Process instructions live in §17/§15.8-class material, never in
+  the register.
+- **Owner tiebreak (deterministic, in order):** (1) the row in the
+  obligation's natural series family; (2) the row anchored where the canon
+  legislates the substance (§§5–14) over §3 correction-table, §4 summary, or
+  §§15–19 process anchors; (3) the row stating trigger and result most
+  completely with least extraneous text; (4) the lowest ID in mechanical
+  sort order. Losers are retired (MERGED).
+- **Split:** retire the old ID (SPLIT); mint each fragment as a new appended
+  child of the truthful parent with its own full source chain; the retired
+  row lists all successors. The old ID is never kept as one of its own
+  fragments.
+- **Re-parent:** retire the old ID (RE-PARENTED) and mint a new appended
+  child under the truthful parent.
+- **Phantom:** retire the row (PHANTOM); if it hid a real obligation, mint
+  that obligation a real owner with a full source chain and point the
+  retired row at it.
+- A retired ID may list several successors; historical references fan out to
+  all of them, and none inherits any prior verdict.
+- Existing IDs are never silently renumbered or repurposed.
+
+#### 15.9.4 Stable identifiers
+
+- Grammar: `CBA-<F><NN>` (F ∈ A/C/R/L/S; NN two digits) and
+  `CBA-<F><NN>.<n>` (n an unpadded positive integer). Tools sort NN and n
+  **numerically**.
+- **Append-only:** a new child takes n = 1 + the highest n ever assigned
+  under that parent (retired children keep their slots); a new top-level ID
+  takes the next NN ever assigned in its family. No reserved or skipped
+  numbers — gaps arise only from retirement. No later unit ever renumbers an
+  unaffected ID; units appending to the same parent run in plan order.
+- Every retirement, mint, and role transition is recorded in the performing
+  unit's migration ledger (old ID, subtype, successors, unit, commit) and in
+  the register (Retired-identifiers tables; Predecessor references).
+- Every count table distinguishes the three roles and satisfies:
+  registry nodes = GROUP + active LEAF + RETIRED/ALIAS. The auditable
+  universe is **active LEAF nodes only**.
+
+#### 15.9.5 Per-LEAF source locators
+
+Every active LEAF carries a durable source chain; a bare authority label
+fails the release gate. Family-level maps (§19.1) are navigation only.
+Composite authorities carry a full chain per component. Formats:
+
+| Class | Required chain |
+|---|---|
+| **CBA** | `CBA 2023 Art. <art> §<sec>(<subs>)[, Ex. <n>], p[p]. <printed page(s)>` — edition/year, article, section+subsection, exhibit where applicable, printed page or range |
+| **BYL** | `BYL June 2024 §<n.nn>, p. <printed page>` — edition/date, section/subsection, printed page |
+| **NBA** | Release/document title, publication date or season, direct official URL, relevant heading/table when useful |
+| **DERIVED** | Every controlling primary locator; the explicit derivation/formula; inputs and their sources; the rounding rule; versioned parameters; clear separation of source text from inference |
+| **OPS** | The operational rule/assumption; provenance; effective version/date; the explicit publicly-unverifiable limitation; confirmation it stays configurable and is never presented as signed-CBA text |
+| **EXT** | The external decision-maker; the required explicit state (enumerated values); provenance of the supplied state; confirmation that Architect must not guess the result |
+
+**Certification rule:** a locator is valid only if the assigning agent read
+the cited passage in the primary document in the session that assigned it —
+per LEAF, attested in the unit receipt. Assigning the locator **is** the
+per-rule verification.
+
+#### 15.9.6 Verification methods and evidence minima
+
+Methods: **SCEN** (executable rule scenario), **STATIC** (configuration,
+provenance, schema, or architecture inspection), **LIFECYCLE** (ordered
+state/event/history verification), **EXTS** (externally supplied
+determination and its provenance), **UI** (user-visible representation
+requiring rendered/manual inspection). Architecture and representation
+properties are STATIC, never SCEN. OPS-authority configurability/provenance
+obligations use STATIC with OPS evidence minima; the v1.1 OPSV label is
+deprecated and must not be assigned. If no honest scenario exists for a
+SCEN row, reclassify the method — never attach a cosmetic mapping.
+
+Minimum evidence: SCEN — a scenario meeting the contract below. STATIC —
+inspected artifact identity, the property confirmed, how inspected, and
+commit/date (plus provenance/version/configurability proof for OPS rows).
+LIFECYCLE — the ordered event sequence, asserted state after each step, and
+persistence across the sequence. EXTS — the enumerated external states,
+provenance record shape, expected behavior per state including "assumption
+required" surfacing, and confirmation no state is auto-derived. UI — the
+state to render, exactly what the user must see, and the rendered-inspection
+record.
+
+**Scenario contract:** every scenario states (1) initial input facts, (2) an
+explicit date/season, (3) the trigger or boundary, (4) the action, (5) the
+expected result, (6) the controlling locator, and (7) an explicit
+`Exercises:` list of the LEAFs it genuinely exercises. A scenario may cover
+several LEAFs only when its facts and expected results explicitly exercise
+each one; the register's Evidence column and the scenarios' `Exercises:`
+lists must reconcile bidirectionally. A syntactic `#N` link is not proof of
+coverage.
+
+#### 15.9.7 Register row schemas
+
+Active LEAF (12 fields): Stable ID; node role/status; canonical requirement
+(atomic); parent GROUP; authority classification; exact locator/provenance
+chain; verification method; scenario/evidence reference; dependency (LEAF
+IDs consumed); lifecycle/date inputs; successor/predecessor reference where
+applicable; notes/limitations. Physical layout for R3–R6: a per-family main
+table `ID | Parent | Requirement | Authority | Locator | Method | Evidence |
+Notes` plus a per-family certification-detail table keyed by ID for
+`Dependencies | Lifecycle/date inputs | Predecessor` where non-empty; both
+mechanically parseable and joinable on ID.
+
+GROUP (reduced): ID; role; title/audit question; active children; retired
+children; packet; notes. No verdict, locator, method, or evidence fields.
+
+RETIRED/ALIAS (reduced): ID; former requirement (one line); retirement
+subtype; successor(s); retired-in (unit + commit); historical-reference
+notes.
+
+#### 15.9.8 Register release gates
+
+Before any rebuilt register (or later edition) governs Phase 2, all of the
+following must pass. Mechanical gates are parser-checkable per the procedure
+in the R2 receipt; semantic gates require reviewer judgment evidenced in the
+gating receipt.
+
+**Mechanical:**
+
+| # | Gate |
+|---|---|
+| M1 | Every ID matches the grammar; no ID appears twice across the three role tables |
+| M2 | Every ID appears in exactly one role table |
+| M3 | Every child's parent exists as a GROUP; every GROUP has at least one active child |
+| M4 | No duplicate ownership: the duplicate-candidate list (adjudicated defects plus a mechanical similarity sweep) is fully resolved — every pair merged or explicitly adjudicated distinct |
+| M5 | Every active LEAF carries an atomicity disposition; zero rows flagged non-atomic remain active |
+| M6 | Every active LEAF's locator parses under its authority class's format; no label-only authority |
+| M7 | Every method is one of SCEN/STATIC/LIFECYCLE/EXTS/UI; every SCEN evidence reference resolves to an existing scenario |
+| M8 | (From R7) scenario `Exercises:` lists and the register Evidence column reconcile exactly, bidirectionally |
+| M9 | The code map and Phase 2 packets/work plan contain active LEAFs only, each exactly once |
+| M10 | Counts reconcile: nodes = GROUP + active LEAF + RETIRED, per family and in total, recomputed from the tables |
+| M11 | Every v1.1-active LEAF ID resolves to an active v2.0 LEAF or a RETIRED row with valid successors |
+| M12 | No GROUP or RETIRED ID appears in any verdict/disposition column anywhere |
+| M13 | The execution plan's dependency table has no unit depending on a later unit |
+
+**Semantic:**
+
+| # | Gate |
+|---|---|
+| S1 | Sampled merges join genuinely identical obligations; sampled splits produce genuinely independent ones — the mechanical counts are meaningful |
+| S2 | Sampled SCEN mappings genuinely exercise their LEAFs (facts and expected results test the obligation) |
+| S3 | Primary-source certification was performed directly — cited pages read at assignment, not inherited from summaries or prior reports |
+| S4 | Sampled active LEAFs re-derive as one real obligation each |
+
+Gate timing: M1–M7 and M9–M13 must pass in each R3–R6 unit receipt for the
+families that unit touched; M8 and S1–S4 must pass across the whole register
+at R8 and are re-verified independently at R9.
+
 ## 16. Acceptance-test library
 
 The later Architect audit should use concrete scenarios, not only unit-level rule labels.
@@ -1721,6 +1936,10 @@ Before an updated canon or season parameter set is allowed to govern Architect, 
 8. **Unknowns check:** ensure every OPS and EXT rule remains visibly labeled and configurable; never “promote” it to CBA-verified through repetition.
 9. **Link/citation check:** verify every primary URL and article/section key and retain printed page references for human review.
 10. **Regression run:** execute the acceptance library plus any bug-specific cases before changing the canon version used in production.
+
+For canon v2.0 and later, the register itself must additionally pass the
+register release gates in §15.9.8 before any register edition may govern
+Phase 2 execution.
 
 ## 18. Relevant rules that should not become automatic verdicts
 
