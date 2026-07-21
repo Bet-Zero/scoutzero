@@ -91,13 +91,28 @@ mechanical-closure unit (executed in its own fresh session on baseline
 CBA2/XW2/SXW2/SRC2/EV2/DR2/SM2/fragment record minted; earlier
 receipts immutable; receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_7_FOUNDATION_EXECUTABILITY_CLOSURE.md`).
+**R2.7** was executed at commit
+`3e9f913f285db578a9457ab2ce31744ca6e9c9ca`. The independent Codex
+review of the R2.7 checkpoint returned **REJECT/BLOCK-R3.1**: the shared
+`DISP`/SC2 subject model could not represent an SXW2 scenario subject,
+the source-date/fragment/`SM2` contracts remained mechanically ambiguous
+or composite, the unsupported-obligation resolution was overrideable,
+and the synthetic checker accepted invalid states. It ordered **R2.8** —
+a bounded foundation-executability repair unit (executed in its own
+fresh session on baseline `3e9f913f…`; exactly two modified files plus
+two created files — the receipt and the actual-schema validator; no
+concrete
+CBA2/XW2/SXW2/SRC2/EV2/DR2/SM2/SS2/BND/BLK/RES/fragment record minted;
+earlier receipts immutable; receipt:
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_8_FOUNDATION_EXECUTABILITY_REPAIR.md`).
 **The strict sequence is: R3 (executed; rejected) → R2.6 (executed;
-rejected) → R2.7 foundation-executability closure → independent Codex
-R2.7 review → R3.1 A-series repair → independent Codex R3.1 review →
-R4 only if R3.1 is accepted.** **R2.7 is not independently accepted —
-completing R2.7 does not accept anything**; R3 remains rejected and no
+rejected) → R2.7 (executed; rejected) → R2.8 foundation-executability
+repair → independent Codex R2.8 review → R3.1 A-series repair →
+independent Codex R3.1 review →
+R4 only if R3.1 is accepted.** **R2.8 is not independently accepted —
+completing R2.8 does not accept anything**; R3 remains rejected and no
 A-series record is accepted; R3.1 has not started and remains blocked
-pending independent Codex acceptance of the R2.7 foundation; **R4
+pending independent Codex acceptance of the R2.8 foundation; **R4
 remains blocked** until a later independent Codex R3.1 acceptance.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
@@ -797,15 +812,20 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## R2.7 — Post-R3 foundation mechanical closure (ordered by the independent Codex review of R2.6)
 
-- **Status:** the current unit, executed in its own fresh session on
-  baseline `51e60bf606f5a4ea4547e7f4e163bdcac2863d26` (the rejected
-  R2.6 checkpoint). **Not independently accepted** — acceptance
-  belongs to the next independent Codex foundation review. R2.7
-  changes the governing standard and non-active status/source-law
-  surfaces only: it repairs no committed R3 record, mints no concrete
-  v2 record (no CBA2/XW2/SXW2/SRC2/EV2/DR2/SM2/fragment record), and
-  keeps every active §15.10–§15.12 record-table row byte-identical to
-  `51e60bf6…`.
+- **Status:** executed in its own fresh session on baseline
+  `51e60bf606f5a4ea4547e7f4e163bdcac2863d26` (the rejected R2.6
+  checkpoint) and committed at `3e9f913f285db578a9457ab2ce31744ca6e9c9ca`;
+  the independent Codex review of that checkpoint returned
+  **REJECT/BLOCK-R3.1** (the shared `DISP`/SC2 subject model could not
+  represent an SXW2 scenario subject; the source-date/fragment/`SM2`
+  contracts remained mechanically ambiguous or composite; the
+  unsupported-obligation resolution was overrideable; the synthetic
+  checker accepted invalid states). **R2.7 is rejected**, superseded by
+  **R2.8** below; the R2.7 receipt is preserved as immutable review
+  history. R2.7 changed the governing standard and non-active
+  status/source-law surfaces only: it repaired no committed R3 record,
+  minted no concrete v2 record, and kept every active §15.10–§15.12
+  record-table row byte-identical to `51e60bf6…`.
 - **Ordering findings — the Codex R2.6 rejection and its correction
   contracts:**
   1. **Truthful source-date model (canon §15.9.6).** The
@@ -945,28 +965,144 @@ is a one-way dependency scheduled backwards, not a cycle).
   no R3 record repair (R3.1); no application, README, code-map, test,
   schema, fixture, configuration, data, or Linear work; R3.1, R4–R9,
   Phase 2, and W1.1 not started.
-- **Sequencing:** **R2.7 → independent Codex R2.7 review → R3.1 →
-  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R2.7
-  completion does not equal acceptance; R3 remains rejected; no
-  A-series record is accepted; Phase 1 remains open; Phase 2 and W1.1
-  remain blocked.
+- **Sequencing (superseded — R2.7 was rejected):** the intended
+  **R2.7 → independent Codex R2.7 review → R3.1** sequence did not hold;
+  the R2.7 checkpoint was independently **rejected** (REJECT/BLOCK-R3.1),
+  and the corrected sequence runs **R2.7 (rejected) → R2.8 → independent
+  Codex R2.8 review → R3.1 → independent Codex R3.1 review → R4 only if
+  R3.1 is accepted.** R3 remains rejected; no A-series record is
+  accepted; Phase 1 remains open; Phase 2 and W1.1 remain blocked.
 - **Stop condition:** stop and report if a correction would require
   editing an active §15.10–§15.12 record-table row, repairing a
   committed R3 record, editing an immutable receipt, or redesigning a
   passed foundation area.
 
-## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.7 is independently accepted)
+## R2.8 — Foundation-executability repair (ordered by the independent Codex review of R2.7)
+
+- **Status:** executed in its own fresh session on baseline
+  `3e9f913f285db578a9457ab2ce31744ca6e9c9ca` (the rejected R2.7
+  checkpoint). **Not independently accepted** — acceptance belongs to
+  the next independent Codex foundation review. R2.8 changes the
+  governing standard and non-active status surfaces only: it repairs no
+  committed R3 record, mints no concrete v2 record, and keeps every
+  active §15.10–§15.12 record-table row byte-identical to `3e9f913f…`.
+- **Ordering findings — the Codex R2.7 rejection and its correction
+  contracts:**
+  1. **Representable `DISP`/SC2 (canon §15.9.4, §15.9.8).** The single
+     LEAF-only `DISP` detail schema could not represent an SXW2 scenario
+     subject (a scenario is not a LEAF). Corrected: a **polymorphic
+     subject-class-tagged** `DISP` detail schema (`XW2-DISP`/`SXW2-DISP`)
+     with mechanically exclusive subject variants, per-subject-class
+     uniqueness keys, subject-family-mismatch rejection, and a pinned
+     **canonical scenario-fragment grammar** `scenario-<n>:F<m>` derived
+     from the §16 published scenario numbers; SC2 check 11 strengthened
+     inside the unchanged sixteen-check block.
+  2. **Source-date cardinality (canon §15.9.6).** "At most one current
+     row per (Record ID, basis)" could not represent two effective
+     dates. Corrected: a stable `<Record ID>#D<k>` date-component
+     identity plus a required `role/scope` discriminator
+     (`primary`/`scoped:<slug>`), so multiple current same-basis dates
+     with distinct roles/scopes are representable; base pair equals the
+     `primary` row; duplicate/conflicting components fail.
+  3. **Executable fragment/bundle schemas (canon §15.9.3).** The
+     composite `Current status/version` split into `Fragment
+     status`/`Fragment version`; a pinned **normalized-scope**
+     representation and algorithm added (clause/sentence scope atoms with
+     equality, non-overlap, exhaustive-coverage, and contiguity rules); a
+     fixed **`BND-…` disposition-bundle** schema replacing prose-only
+     bundle compatibility, rejecting unknown edge types, duplicate
+     members/mappings, active/terminal mixtures, and noncontiguous
+     fragment IDs.
+  4. **Fully typed `SM2` + search evidence (canon §15.9.6).** The
+     composite `Size/hash/pagination/signature` split into four fields
+     and `Current status/version` into `Search status`/`Search version`;
+     subject-class, `Result linkage`, and `Search-set ID` fields added; a
+     fixed **`SS2-…` search-set/coverage** record joins the required
+     source classes to current member `SM2-…` records with a
+     deterministic `adequate-coverage`/`inadequate-coverage` assessment
+     (`inconclusive` and inadequate coverage can never support
+     `unsupported-residual`).
+  5. **Governed blocked-finding/resolution (canon §15.9.3).** The
+     untyped "foundation amendment or adjudication decision" escape
+     replaced by **`BLK-…`** blocked-finding and **`RES-…`** resolution
+     records under a binding **independent-acceptance gate** (a maker can
+     never self-accept; construction resumes only after a current
+     `accepted` resolution with a distinct independent checker; a whole
+     valid in-scope unsupported obligation can never escape as
+     `unsupported-residual`/`no-successor`/`process-only`/`obsolete`/
+     `invalid`-for-not-located/waiver), traced through U7, G1, G3, G15,
+     `G15R`, and R9.
+  6. **Actual-schema validator.** A committed
+     `work/architect-completion/cba_canon_v2_foundation_validator.py`
+     that parses the real repository canon and §15.10–§15.12 populations,
+     extracts vocabularies from the governing canon, recognizes the
+     committed R3 population as rejected/legacy (never certifying it as
+     R3.1-conforming), validates foundation-contract integrity now,
+     stays reusable against the migrated R3.1 population, and runs all 26
+     inherited plus 15 new adversarial cases through the binding parser —
+     superseding R2.7's synthetic checker.
+  7. **Preserved valid R2.7 work.** Scope/active-record preservation,
+     the four source-date bases and metadata prohibition, the initial
+     blocked-unsupported-obligation stop, the first-party source
+     conclusion, `G15R`'s named repair-local purpose, the A18.7
+     express-vs-INFERRED analysis, the `DR2-0037/0038/0039` transition
+     inventory, the full R3.1 backlog, and phase/gate boundaries are all
+     preserved unless a dependency required a precise adjustment.
+- **First-party research this unit:** the signed CBA binary
+  re-downloaded from the committed canonical URL and hash-verified
+  (exact match `bf178ca0…`; 2,850,534 bytes; 676 PDF pages); the current
+  NBPA CBA page (`nbpa.com/cba`) searched — the 2023 NBA-NBPA CBA remains
+  current (effective 2023-07-01, through 2029-30), no newer edition
+  located; NBA official surfaces timed out to this session and are
+  recorded so. **No later governing agreement text was located in the
+  searched first-party sources** (never stated as "no later CBA edition
+  exists"); no full-text comparison of differently-produced PDFs was
+  performed this unit.
+- **Authorized files (exactly two modified, two created):**
+  `docs/reference/cba/ARCHITECT_CBA_CANON.md` (foundation standard and
+  non-active status surfaces), this plan (status, sequencing, the R2.8
+  unit, and the extended R3.1 backlog), the new receipt
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_8_FOUNDATION_EXECUTABILITY_REPAIR.md`,
+  and the new validator
+  `work/architect-completion/cba_canon_v2_foundation_validator.py`.
+- **Immutability:** no earlier receipt edited — including the rejected
+  R2.6, R3, and R2.7 receipts, which are immutable review history; their
+  incorrect or incomplete claims are superseded through the R2.8
+  receipt, never by editing them.
+- **Preservation:** every active §15.10–§15.12 record-table row
+  byte-identical to `3e9f913f…` (only the §15.10 non-record intro prose
+  and §19.3 status corrected); §5.9, historical §15.1–§15.8, and
+  scenarios 1–89 byte-preserved; the SC2 block still exactly sixteen
+  checks with only check 11 changed.
+- **Explicit exclusions:** no concrete
+  CBA2/XW2/SXW2/SRC2/EV2/DR2/SM2/SS2/BND/BLK/RES/fragment record minted,
+  changed, renumbered, or reused; no active §15.10–§15.12 record-table
+  edit; no R3 record repair (R3.1); no application, README, code-map,
+  test, schema, fixture, configuration, data, or Linear work; R3.1,
+  R4–R9, Phase 2, and W1.1 not started.
+- **Sequencing:** **R2.8 → independent Codex R2.8 review → R3.1 →
+  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R2.8
+  completion does not equal acceptance; R3 remains rejected; no A-series
+  record is accepted; Phase 1 remains open; Phase 2 and W1.1 remain
+  blocked.
+- **Stop condition:** stop and report if a correction would require
+  editing an active §15.10–§15.12 record-table row, repairing a
+  committed R3 record, editing an immutable receipt, or redesigning a
+  passed foundation area.
+
+## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.8 is independently accepted)
 
 - **Status:** not started. Blocked until the independent Codex review
-  of the R2.7 foundation returns ACCEPT (the R2.6 foundation was
-  independently rejected and does not unblock R3.1).
+  of the R2.8 foundation returns ACCEPT (the R2.6 and R2.7 foundations
+  were each independently rejected and do not unblock R3.1).
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
   carries an `AMEND` record naming the prior checkpoint
   (`07f0667d…`) and superseding disposition; new records allocate
   above each namespace's committed high-water mark; **no allocated
-  `CBA2`, `XW2`, `SRC2`, `EV2`, `DR2`, `SM2`, or fragment ID is ever
-  renumbered or reused**; every live reference updates **to the
+  `CBA2`, `XW2`, `SRC2`, `EV2`, `DR2`, `SM2`, `SS2`, `BND`, `BLK`,
+  `RES`, fragment, scenario-fragment, or `<Record ID>#D<k>`
+  date-component ID is ever renumbered or reused**; every live reference updates **to the
   current record directly** in the same commit (no live reference may
   rely on a superseded record reachable only through an `AMEND`
   chain); the immutable R3 receipt is never edited; unit-local gates
@@ -1092,6 +1228,48 @@ is a one-way dependency scheduled backwards, not a cycle).
   21. Run the R3.1-local `G15R` AMEND/current-reference repair gate
       (canon §15.9.9) across every population R3.1 touches and record
       its results in the R3.1 receipt.
+  22. Mint the terminal `DISP` records (items 12/20) as the corrected
+      **polymorphic `XW2-DISP` subject variant** of the §15.9.4 detail
+      schema — the split subject fields (`Historical source LEAF`/
+      `Historical fragment ID` populated, `Historical scenario`/
+      `Scenario fragment ID` = `—`), subject-family agreement, and the
+      `Search-set ID` field where an `unsupported-residual` applies. The
+      committed population has no `SXW2-…` edges (SXW2 is R7), so R3.1
+      mints no `SXW2-DISP` record.
+  23. Declare every historical-LEAF fragment inventory (item 16) under
+      the corrected §15.9.3 schema — split `Fragment status`/`Fragment
+      version`, pinned normalized-scope atoms (clause/sentence
+      coordinates), and one `BND-…` disposition-bundle record for every
+      fragment mapping to multiple active targets (the committed
+      A-series `split`/`merge`/`partial-overlap` bundles) — satisfying
+      contiguous fragment numbering, no active/terminal mixture, and
+      bidirectional edge ⇔ fragment ⇔ bundle reconciliation.
+  24. Migrate `SRC2-001`/`SRC2-002` (items 5/18) to the corrected
+      date-component detail table — stable `<Record ID>#D<k>` IDs and
+      `role/scope` discriminators (`primary` for each supported basis;
+      `scoped:<slug>` only where the authority expressly supplies a
+      further same-basis date) — and mint the item-17 `SM2-…` records
+      under the split binary (`Binary size bytes`/`Binary SHA-256`/
+      `Binary pagination`/`Binary signature/as-of`) and
+      `Search status`/`Search version` fields.
+  25. Bind the A18.7 re-trade residual's `SM2-…` records under a current
+      `SS2-…` search-set/coverage record reporting `adequate-coverage`
+      before recording its `unsupported-residual` `DISP`; if any required
+      source class is `inconclusive` or uncovered, the residual is not
+      `unsupported-residual` but a governed `BLK-…` blocked finding.
+  26. Record any wholly-unsupported valid in-scope A-series obligation
+      discovered in R3.1 as a governed `BLK-…` blocked-finding record
+      (with its `SS2-…`/`SM2-…` evidence and preserved-candidate anchor)
+      and clear it only through an independently `accepted` `RES-…`
+      resolution whose checker differs from the maker — never a
+      self-accepted or unstructured waiver.
+  27. Run the committed actual-schema validator
+      (`cba_canon_v2_foundation_validator.py`) against the migrated R3.1
+      population at the checkpoint, extending `G15R` (item 21) to the
+      new `BND-…`/`SS2-…`/`BLK-…`/`RES-…`/date-component/scenario-
+      fragment populations and confirming zero legacy-schema rows remain
+      (no `Publication/effective date` base header; no committed
+      `OWN`/`ATOM` terminal typing).
 - **Explicit exclusions:** no C/R/L/S registration (R4–R6); no
   scenario work (R7); no historical row or scenario edit; no
   application, code-map, README, test, or Linear work; Phase 2 and
