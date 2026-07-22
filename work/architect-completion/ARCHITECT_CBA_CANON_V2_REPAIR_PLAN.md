@@ -113,21 +113,34 @@ rows, nonexistent references, invalid acceptance, a removed repair plan,
 `scenario-90:F1`, self-acceptance) while reporting 52/52 PASS, and the
 governing schemas retained composite fields, a dual-domain scope model, a
 `BND-…` cardinality contradiction, maker-selected coverage, and
-self-acceptance paths. It ordered **R2.9** — a bounded
-foundation-validation-closure unit (executed in its own fresh session on
-baseline `8f7aec7a…`; exactly three modified files and one created
+self-acceptance paths. It ordered **R2.9**, which was executed on
+baseline `8f7aec7a…` and then **independently rejected in turn**: the
+Codex review of the R2.9 checkpoint at `5f868f2a…` returned
+**REJECT/BLOCK-R3.1** because the validator still never parsed the
+actual 47-row `DR2-…` population, validated a future R3.1 document only
+through a simulation-only fixture path, executed four of `G15R`'s nine
+declared populations, accepted a fake acceptance commit and a
+nonexistent receipt as independent acceptance, replaced the canon's
+governing vocabularies and actor aliases with hidden Python rules, and
+left binding contradictions in `DISP` terminal-base equality, `BND-…`
+member coverage, source-date component lifecycle, the impossible
+SM2 ⇔ `SRC2` byte-size equality, candidate-obligation evidence, and
+item 23 of this plan. That review ordered **R2.10** — a bounded
+foundation-validation-repair unit (executed in its own fresh session on
+baseline `5f868f2a…`; exactly three modified files and one created
 receipt; no concrete
 CBA2/XW2/SXW2/SRC2/EV2/DR2/SM2/SS2/BND/BLK/RES/fragment/date-component/scenario-fragment
 record minted; earlier receipts immutable; receipt:
-`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_9_FOUNDATION_VALIDATION_CLOSURE.md`).
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_10_FOUNDATION_VALIDATION_CLOSURE.md`).
 **The strict sequence is: R3 (executed; rejected) → R2.6 (executed;
 rejected) → R2.7 (executed; rejected) → R2.8 (executed; rejected) → R2.9
-foundation-validation closure → independent Codex R2.9 review → R3.1
+(executed; rejected) → R2.10
+foundation-validation repair → independent Codex R2.10 review → R3.1
 A-series repair → independent Codex R3.1 review →
-R4 only if R3.1 is accepted.** **R2.9 is not independently accepted —
-completing R2.9 does not accept anything**; R3 remains rejected and no
+R4 only if R3.1 is accepted.** **R2.10 is not independently accepted —
+completing R2.10 does not accept anything**; R3 remains rejected and no
 A-series record is accepted; R3.1 has not started and remains blocked
-pending independent Codex acceptance of the R2.9 foundation; **R4
+pending independent Codex acceptance of the R2.10 foundation; **R4
 remains blocked** until a later independent Codex R3.1 acceptance.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
@@ -985,8 +998,8 @@ is a one-way dependency scheduled backwards, not a cycle).
   **R2.7 → independent Codex R2.7 review → R3.1** sequence did not hold;
   the R2.7 checkpoint was independently **rejected** (REJECT/BLOCK-R3.1),
   and the corrected sequence runs **R2.7 (rejected) → R2.8 (rejected) →
-  R2.9 → independent Codex R2.9 review → R3.1 → independent Codex R3.1
-  review → R4 only if R3.1 is accepted.** R3 remains rejected; no
+  R2.9 (rejected) → R2.10 → independent Codex R2.10 review → R3.1 →
+  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R3 remains rejected; no
   A-series record is accepted; Phase 1 remains open; Phase 2 and W1.1
   remain blocked.
 - **Stop condition:** stop and report if a correction would require
@@ -1097,9 +1110,12 @@ is a one-way dependency scheduled backwards, not a cycle).
   edit; no R3 record repair (R3.1); no application, README, code-map,
   test, schema, fixture, configuration, data, or Linear work; R3.1,
   R4–R9, Phase 2, and W1.1 not started.
-- **Sequencing:** **R2.8 (executed; rejected) → R2.9 → independent
+- **Sequencing (superseded — R2.9 was rejected in turn):** the intended
+  **R2.8 (executed; rejected) → R2.9 → independent
   Codex R2.9 review → R3.1 → independent Codex R3.1 review → R4 only if
-  R3.1 is accepted.** R2.8 completion did not equal acceptance and the
+  R3.1 is accepted** sequence did not hold; the corrected sequence runs
+  **R2.9 (rejected) → R2.10 → independent Codex R2.10 review → R3.1 →
+  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R2.8 completion did not equal acceptance and the
   R2.8 checkpoint was independently rejected; R3 remains rejected; no
   A-series record is accepted; Phase 1 remains open; Phase 2 and W1.1
   remain blocked.
@@ -1158,19 +1174,105 @@ is a one-way dependency scheduled backwards, not a cycle).
   §15.10–§15.12 record-table edit; no R3 record repair (R3.1); no
   application, README, code-map, test, schema, fixture, configuration,
   data, or Linear work; R3.1, R4–R9, Phase 2, and W1.1 not started.
-- **Sequencing:** **R2.9 → independent Codex R2.9 review → R3.1 →
-  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R2.9
+- **Sequencing (superseded — R2.9 was rejected):** the intended
+  **R2.9 → independent Codex R2.9 review → R3.1 → independent Codex R3.1
+  review → R4 only if R3.1 is accepted** sequence did not hold; the
+  corrected sequence runs **R2.9 (rejected) → R2.10 → independent Codex
+  R2.10 review → R3.1 → independent Codex R3.1 review → R4 only if R3.1
+  is accepted.** R2.9 completion did not equal acceptance.
+- **Stop condition:** stop and report if a correction would require
+  editing an active §15.10–§15.12 record-table row, repairing a
+  committed R3 record, editing an immutable receipt, or expanding beyond
+  the three modified files and one new receipt.
+- **Outcome:** the independent Codex review of the R2.9 checkpoint at
+  commit `5f868f2a…` returned **REJECT/BLOCK-R3.1**. R2.9 is
+  **rejected**; it did not close the foundation-validation gate. The
+  ordered successor unit is **R2.10** below.
+
+## R2.10 — Foundation-validation repair (ordered by the independent Codex review of R2.9)
+
+- **Status:** executed on baseline `5f868f2a…`. The independent Codex
+  review of the R2.9 checkpoint returned **REJECT/BLOCK-R3.1**. Its
+  binding findings: the complete 47-row `DR2-…` population was never
+  parsed (a shaped nonexistent `DR2-9999` passed); the future-R3.1 path
+  was a separate simulation-only fixture (`SIM_R31` /
+  `validate_r31_population()`) rather than the committed-canon document
+  path, so a real migrated document could not use it; `G15R` declared
+  nine populations and executed four; `RES-…` acceptance was accepted
+  from a repeated-digit SHA and a nonexistent receipt path, with a
+  maker-controlled digest; the canon's governing vocabularies and actor
+  aliases were replaced by hidden Python allow-sets and a hardcoded
+  actor-family function; fixed population totals both false-rejected
+  valid future additions and let count-preserving substitutions pass;
+  and binding contradictions remained in `DISP` terminal-base equality,
+  `BND-…` member coverage, source-date component lifecycle, the
+  impossible SM2 ⇔ `SRC2` byte-size equality, candidate-obligation
+  evidence, and this plan's item 23.
+- **Scope (governing standard, this repair plan, the validator, and
+  non-active status surfaces only — no committed R3 record repaired):**
+  add canon §15.9.11, the binding **governed inventory** (closed
+  vocabularies, pinned schemas, cross-schema dependencies, immutable
+  ranges, pinned population sources, and the explicit
+  preservation-versus-conformance distinction) that every conforming
+  validator must parse as the sole source of truth and reconcile
+  bidirectionally with its governing clause, with hard-coded parallel
+  validator contracts prohibited; add the governed
+  **acceptance-receipt record** (§15.9.3) so `RES-…` acceptance requires
+  a resolvable commit, an existing receipt path at that commit, and a
+  parsed `ACCEPT` row matching the exact current resolution; add the
+  `SRC2-…` base **`Artifact byte size`** field (§15.9.6) that the
+  SM2 ⇔ current-`SRC2` byte-size equality requires and never had; add
+  date-component **`Component status`/`Component version`/superseding**
+  lifecycle fields (§15.9.6); add the `BND-…` **`Member subject
+  scopes`** field (§15.9.3) making combined exhaustive member coverage
+  mechanically provable; correct the `DISP` **terminal-base-equality**
+  tuple to include the subject fragment and the disposition's
+  destination fields and correct the **edge ⇔ detail agreement tuple**
+  to cite only fields both structures carry (§15.9.4); add the
+  **`candidate-obligation`** subject variant to the `SM2-…`/`SS2-…`
+  schemas with SS2 current-uniqueness and bidirectional membership
+  (§15.9.6); make `G15R` an **enumerated twelve-population gate**
+  including the complete `DR2-…` population and every dependent
+  reference and current endpoint (§15.9.9); propagate all of it through
+  the dependent gates; correct this plan's item 23 (the abolished
+  clause/sentence coordinate instruction) and item 24 (the explicit
+  SM2 ⇔ current-`SRC2` migration and reconciliation duty); and rebuild
+  the validator as **one document-tree loader, one parser set, and one
+  reconciliation engine** in which the committed baseline, every
+  adversarial mutation, and every positive control — including a
+  complete future-R3.1 migrated document and a real independent
+  acceptance in a temporary Git control repository — run through the
+  same top-level entry point over real document trees.
+- **Preservation:** every active §15.10–§15.12 record-table row
+  byte-identical to `5f868f2a…`; §5.9, historical §15.1–§15.8, and
+  scenarios 1–89 byte-preserved; the SC2 block still exactly sixteen
+  checks, unchanged by R2.10.
+- **Immutability:** no earlier receipt edited — including the rejected
+  R2.6, R3, R2.7, R2.8, and R2.9 receipts, which are immutable review
+  history. The R2.9 receipt's two defects (it enumerated three accepting
+  controls and then said "Two accepting controls", and its 402-row hash
+  description did not match its trailing-newline method) are corrected
+  **append-only in the R2.10 receipt**, never by editing it.
+- **Explicit exclusions:** no concrete
+  CBA2/XW2/SXW2/SRC2/EV2/DR2/SM2/SS2/BND/BLK/RES/fragment/date-component/scenario-fragment
+  record minted, changed, renumbered, or reused; no active
+  §15.10–§15.12 record-table edit; no R3 record repair (R3.1); no
+  application, README, code-map, test, schema, fixture, configuration,
+  data, or Linear work; R3.1, R4–R9, Phase 2, and W1.1 not started.
+- **Sequencing:** **R2.10 → independent Codex R2.10 review → R3.1 →
+  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R2.10
   completion does not equal acceptance.
 - **Stop condition:** stop and report if a correction would require
   editing an active §15.10–§15.12 record-table row, repairing a
   committed R3 record, editing an immutable receipt, or expanding beyond
   the three modified files and one new receipt.
 
-## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.9 is independently accepted)
+## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.10 is independently accepted)
 
 - **Status:** not started. Blocked until the independent Codex review
-  of the R2.9 foundation returns ACCEPT (the R2.6, R2.7, and R2.8
-  foundations were each independently rejected and do not unblock R3.1).
+  of the R2.10 foundation returns ACCEPT (the R2.6, R2.7, R2.8, and
+  R2.9 foundations were each independently rejected and do not unblock
+  R3.1).
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
   carries an `AMEND` record naming the prior checkpoint
@@ -1193,7 +1295,7 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Bounded backlog (the complete R3.1 backlog is items 1–27, and
   nothing beyond item 27): the Codex A-series findings — items 1–15 —
   plus the R2.7-derived transition duties those findings require —
-  items 16–21 — plus the R2.8/R2.9 schema-migration duties those
+  items 16–21 — plus the R2.8/R2.9/R2.10 schema-migration duties those
   transition duties require — items 22–27. (The earlier "items 1–21;
   nothing else" wording was false — it excluded the items 22–27 that
   immediately follow it — and is corrected here by R2.9.):**
@@ -1318,20 +1420,51 @@ is a one-way dependency scheduled backwards, not a cycle).
       mints no `SXW2-DISP` record.
   23. Declare every historical-LEAF fragment inventory (item 16) under
       the corrected §15.9.3 schema — split `Fragment status`/`Fragment
-      version`, pinned normalized-scope atoms (clause/sentence
-      coordinates), and one `BND-…` disposition-bundle record for every
-      fragment mapping to multiple active targets (the committed
-      A-series `split`/`merge`/`partial-overlap` bundles) — satisfying
-      contiguous fragment numbering, no active/terminal mixture, and
-      bidirectional edge ⇔ fragment ⇔ bundle reconciliation.
+      version`; normalized-scope atoms in the **sole single-coordinate
+      `span:<a>-<b>` text-span grammar** over each published v1.1 LEAF's
+      normalized Canonical requirement text at `9814939c` (the dual
+      `clause:`/`sent:` coordinate domain is **abolished** by canon
+      §15.9.3 as corrected by R2.9; the earlier "clause/sentence
+      coordinates" instruction in this item contradicted the sole span
+      domain and is corrected here by R2.10, with an exhaustive
+      `[0, L)` partition, pairwise non-overlap, and no residual); and
+      one `BND-…` disposition-bundle record for every
+      fragment mapping to **two or more** active targets (the committed
+      A-series `split`/`merge`/`partial-overlap` bundles), each bundle
+      carrying **`Member subject scopes`** — the position-aligned
+      per-member span sub-scopes whose union equals the fragment's
+      `Subject scope` exactly, with no overlap and no residual (canon
+      §15.9.3 as corrected by R2.10) — and satisfying the member
+      compatibility matrix, contiguous fragment numbering, no
+      active/terminal mixture, and bidirectional edge ⇔ fragment ⇔
+      bundle reconciliation.
   24. Migrate `SRC2-001`/`SRC2-002` (items 5/18) to the corrected
-      date-component detail table — stable `<Record ID>#D<k>` IDs and
+      date-component detail table — stable `<Record ID>#D<k>` IDs,
       `role/scope` discriminators (`primary` for each supported basis;
       `scoped:<slug>` only where the authority expressly supplies a
-      further same-basis date) — and mint the item-17 `SM2-…` records
-      under the split binary (`Binary size bytes`/`Binary SHA-256`/
+      further same-basis date), and the `Component status`/`Component
+      version`/superseding lifecycle fields with exactly one current row
+      per (Record ID, basis, role/scope), exactly one current `primary`
+      per basis, and zero live references to a superseded component
+      (canon §15.9.6 as corrected by R2.10). **Migrate every committed
+      `SRC2-…` base row to the fifteen-field base schema, populating
+      `Artifact byte size`** — `2850534` for `SRC2-001` and `422247` for
+      `SRC2-002`, and the retrieved-content byte sizes for the
+      `official-mutable` records — since the artifact hash and the
+      artifact byte size are governed together and neither may be
+      recorded without the other. **Then carry the complete
+      SM2 ⇔ current-`SRC2` reconciliation duty explicitly:** mint the
+      item-17 `SM2-…` records under the split binary fields
+      (`Binary/version identity`/`Binary size bytes`/`Binary SHA-256`/
       `Binary pagination`/`Binary signature/as-of`) and
-      `Search status`/`Search version` fields.
+      `Search status`/`Search version`, and prove for **every** current
+      artifact-bearing `SM2-…` record that its `Binary SHA-256` equals
+      the named current `SRC2-…` record's `Artifact SHA-256`, its
+      `Binary size bytes` equals that record's `Artifact byte size`, and
+      its `Binary/version identity` equals that record's
+      Source/provenance identity or Source title/edition — the
+      reconciliation U9, G14, `G15R`, G15, and R9 each re-run, and which
+      is unsatisfiable until this migration lands.
   25. Bind the A18.7 re-trade residual's `SM2-…` records under a current
       `SS2-…` search-set/coverage record reporting `adequate-coverage`
       over the deterministic required set `CBA, BYL, NBA,
@@ -1357,13 +1490,25 @@ is a one-way dependency scheduled backwards, not a cycle).
       and clear it only through an independently `accepted` `RES-…`
       resolution whose checker differs from the maker — never a
       self-accepted or unstructured waiver.
-  27. Run the committed actual-schema validator
-      (`cba_canon_v2_foundation_validator.py`) against the migrated R3.1
-      population at the checkpoint, extending `G15R` (item 21) to the
-      new `BND-…`/`SS2-…`/`BLK-…`/`RES-…`/date-component/scenario-
-      fragment populations and confirming zero legacy-schema rows remain
-      (no `Publication/effective date` base header; no committed
-      `OWN`/`ATOM` terminal typing).
+  27. Run the committed document-tree validator
+      (`cba_canon_v2_foundation_validator.py`) against the **migrated
+      R3.1 document tree** at the checkpoint, through its single
+      top-level entry point — the same loader, parsers, and
+      reconciliation engine the committed baseline uses; there is no
+      separate R3.1 validation path. Extend `G15R` (item 21) across all
+      **twelve enumerated populations** of canon §15.9.9 as corrected by
+      R2.10 (`SRC2-…` base; date components; fragment inventory;
+      `BND-…`; `SM2-…`; `SS2-…`; `DISP` detail; `BLK-…`; `RES-…`;
+      `AMEND`; the complete `DR2-…` population; and every dependent
+      reference and current endpoint), reporting each by name, and
+      confirm zero legacy-schema rows remain (no `Publication/effective
+      date` base header; no composite `Record status/version`; no
+      committed `OWN`/`ATOM` terminal typing; no `SRC2-…` base row
+      lacking `Artifact byte size`). Every committed identity from the
+      pinned R3 checkpoint `07f0667d…` must still resolve — present as a
+      current record or resolved forward through a valid `AMEND` chain
+      — and no fixed population total may be used as a conformance
+      criterion (canon §15.9.11, preservation versus conformance).
 - **Explicit exclusions:** no C/R/L/S registration (R4–R6); no
   scenario work (R7); no historical row or scenario edit; no
   application, code-map, README, test, or Linear work; Phase 2 and
@@ -1381,14 +1526,15 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Required primary authorities (principal):** CBA VII §§2(c), 2(d), 2(e),
   4, 6; Article II; official releases.
 - **Dependency:** R1, R1.1, R2.1, R2.2, the **independently accepted
-  R2.9 foundation** (the R2.6, R2.7, and R2.8 foundations were each
-  independently **rejected** and none unblocks R4; the stale
-  "independently accepted R2.7 foundation" dependency is corrected here
-  by R2.9), and **completed R3.1 with an independent Codex ACCEPT of
-  the R3.1 checkpoint** (R3 alone does not unblock R4 — it was
+  R2.10 foundation** (the R2.6, R2.7, R2.8, and R2.9 foundations were
+  each independently **rejected** and none unblocks R4; the stale
+  "independently accepted R2.7 foundation" dependency was corrected by
+  R2.9, and the stale "accepted R2.9 foundation" dependency is corrected
+  here by R2.10), and **completed R3.1 with an independent Codex ACCEPT
+  of the R3.1 checkpoint** (R3 alone does not unblock R4 — it was
   independently rejected) — the
-  construction sequence R3 → R2.6 → R2.7 → R2.8 → R2.9 → R3.1 → R4 →
-  R5 → R6 is strict (canon §15.9.2): all
+  construction sequence R3 → R2.6 → R2.7 → R2.8 → R2.9 → R2.10 → R3.1 →
+  R4 → R5 → R6 is strict (canon §15.9.2): all
   units extend the shared §15.10–§15.12 sections and allocate from the
   shared XW2/SRC2/EV2/DR2/SM2 namespaces.
 - Note: this half contains the MTS (C10) and Apron (C07) rewrites from

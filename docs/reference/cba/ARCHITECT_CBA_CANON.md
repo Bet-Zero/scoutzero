@@ -14,7 +14,7 @@
 
 **What v1.1 changed (historical):** the **index only**. v1.1 added audit IDs, sub-IDs, verification-method classifications, acceptance scenarios, and cross-references; it changed no CBA rule and renumbered no existing ID or scenario. The register is a two-level tree: **GROUP** nodes are navigation anchors, and **LEAF** nodes are the 368 independently auditable obligations that form the entire audit universe (§15.6). Because the checksum of a file cannot be stated inside that file, the v1.1 checksum of record was published in `work/architect-completion/ARCHITECT_CBA_CANON_CODE_MAP.md` and `work/architect-completion/ARCHITECT_CBA_CANON_V1_1_MIGRATION.md`.
 
-**What v2.0 changes (this working draft):** substantive rule repair against the signed CBA under the approved R1–R9 plan (`work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`). R1 corrects the seven adjudicated substantive rule errors and two authority labels, and rewrites scenarios 50, 53, 57, 60, 67, 68, and 69; no ID or scenario is renumbered. R2 adds the binding v2.0 register and source-certification standard (§15.9) and the register release gates that R3–R8 must satisfy; it changes no rule, register row, scenario, ID, or source value. R1.1 closes the adjudicated residual R1 defects — the VII §5(b)(1) Unlikely-Bonus provisos stated in full, the signing/trade-earned/extension bonus-allocation scope per VII §3(b)(1)(ii)–(b)(3), MTS shortfall-payment terminology with the 2023–24-only §2(c)(7) exception, and explicit provisional markers on the A11/A18.7 authority labels pending R2.1 — and repairs the four scenarios with confirmed logic errors (50, 60, 67, 69). R2.1 **replaces the rejected R2 foundation in full** with the clean v2 registry model (§15.9, R2.1 edition): the published v1.1 register and scenarios 1–89 are frozen as historical migration inputs; active v2 obligations are new `CBA2-…` GROUP/LEAF IDs linked to history by a typed `XW2-…` crosswalk; evidence lives in a structured source-artifact/evidence-component registry; the authority taxonomy adds **INFERRED** and closes the A11/A18.7 provisional items; every active LEAF carries one primary and any number of secondary verification methods; the scenario library will be rebuilt as `CBA2-SC-…` with an `SXW2-…` crosswalk; and the release gates are retimed across R3–R6/R7/R8/R9. R2.2 **hardens that foundation** after the independent review of R2.1: historical scenario identity is pinned to the published v1.1 §16 section at `9814939c` (with its exact byte hash recorded, and the R1/R1.1 scenario variants reclassified as R7 authoring inputs only); crosswalk edge typing gains a deterministic precedence with exactly one primary relationship type per source–target pair; `no-successor` becomes a narrow, gateable disposition that can never hide an in-scope obligation; the evidence schema supports zero/one/many source artifacts and multi-component dependency chains with typed `SRC2-…` provenance (including OPS provenance without a public URL and EXT runtime-determination contracts); duplicate-candidate generation becomes mandatory and seven-generator systematic; new gates SC6/SC7 and G14/G15 close the scenario-coverage, method-record, evidence-reconciliation, and amendment-traceability holes; R7's method-reclassification authority is bounded and `METHOD`-recorded; the R3→R4→R5→R6 construction sequence is strict; `AMEND` decision records preserve draft-correction traceability; and the remaining old-ID audit guidance (§1.2, §17) and legacy §19.3 family-status ambiguity are removed. R1.2 closes an omission the independent Codex foundation review found in R1.1's extension-bonus correction: §5.9 now states the below-cap branch of VII §3(b)(3)(ii) in which the bonus is paid **no sooner than** the first day of the extended term's first Salary Cap Year — allocated under §3(b)(3)(i)'s extended-term-only protected-percentage rules with the zero-protection fallback to the extended term's first Salary Cap Year, never under ordinary §3(b)(2) allocation — keeping the three §3(b)(3) branches distinct. R2.3 corrects the five foundation execution contracts the same independent Codex foundation review ordered: every `EV2-…` evidence path now terminates in at least one typed `SRC2-…` source/provenance record — no source-free terminal component; OPS components reference an `ops-provenance` record and EXT components an `ext-contract` record, each valid without a public URL (and without an artifact hash only where no durable artifact exists) — with class-specific certification duties replacing the universal read-the-passage rule; secondary sources become discovery/corroboration aids only — secondary reporting establishes no authority class, and OPS requires qualifying first-party operational provenance; SC2 expands from historical-scenario coverage alone to the complete sixteen-check SXW2 integrity contract, rerun in full by G10 and R9; draft mutability and `AMEND` lineage extend to every live v2 population (active GROUP/LEAF rows, `XW2-…`, `SRC2-…`, `EV2-…`, active `CBA2-SC-…` scenarios and named cases, `SXW2-…`, `DR2-…`) with append-only precisely defined and G15/R9 expanded accordingly; and the three register populations are stated distinctly — the published v1.1 register at `9814939c` (the sole XW2 historical source), this branch's legacy-numbered working copy (an R1/R1.1-corrected, R2.1-annotated authoring input, not byte-identical to the published edition), and the active v2 registry — correcting the earlier preserved-unchanged wording. R2.4 closes the four residual foundation blockers found by the independent Codex review of R1.2/R2.3: the `SRC2-…` registry becomes a mechanically parseable base-plus-type-specific-detail record contract with pinned field grammars, per-type `—` validity, per-type timestamp/hash rules, and field-level validation enforced at U8/U9, G14, and R9; a binding transitive evidence-root compatibility model (complete dependency closure, terminal `SRC2-…` root sets, a parseable class compatibility matrix, and rejection of locally valid but transitively incompatible chains) stops OPS/EXT provenance from laundering into DERIVED/INFERRED authority and forces OPS/EXT visibility and limitation propagation to every consuming LEAF; every binding secondary-source-to-OPS promotion is removed — the §1.1 conflict order now ends at official authority, and the multi-team touch/qualifying-asset thresholds (§12.2), the seven-future-draft horizon, and the secondary-reported pick-protection/deferral processing mechanics (§13.3) are recast as **unsupported operational candidates** that cannot be registered, classified OPS, or enforced without qualifying first-party provenance or a different valid authority classification; and the AMEND child-numbering contradiction is resolved — contiguity applies at initial GROUP construction only, an `AMEND` removal/split/merge leaves a gap that must resolve through the receipts and `AMEND` chain, renumbering-to-restore-contiguity is abolished, IDs are never reused, and new children allocate above the GROUP's historical high-water mark (§15.9.2, U13, G15, R9). R2.5 closes the two SRC2 grammar blockers found by the independent Codex review of R2.4: the official-mutable "date or season" alternative is pinned to exactly one machine season grammar — `YYYY-YY` (four ASCII digits, one ASCII hyphen-minus, two ASCII digits equal to the last two digits of the following year modulo 100; en dashes, slashes, prefixes, abbreviated or four-digit second years, and non-consecutive years all invalid; source-title typography may be preserved but every structured season field normalizes to `YYYY-YY`) — and the unparseable composite `Verifier/session/date` base field is split into three separately required, individually typed columns (`Verifier identity` as `human:<slug>`/`agent:<slug>`, `Verification session ID` as `session:<slug>`, `Verification date` as a real `YYYY-MM-DD` calendar date), growing the base table from eleven to thirteen pinned fields, each independently parsed and validated at U8/U9, G14, and R9 — none ever `—`, and no nonempty field compensating for a missing or malformed one. R3 — executed after the independent Codex foundation review of the corrected foundation (R1.2/R2.3/R2.4/R2.5) at commit `6d9c7576` returned **ACCEPT** for R3 construction — begins register construction: it creates §15.10 (active v2 register), §15.11 (historical crosswalk), and §15.12 (source/provenance and evidence registries) and re-registers the A family from first principles as 12 `CBA2-A…` GROUPs and 81 atomic LEAFs, each source-certified against the signed CBA, the June 2024 By-Laws, and official NBA releases through 4 typed `SRC2-…` records and 89 `EV2-…` components (no OPS or EXT component and no composite label; A11's successor carries an express CBA component plus a separate INFERRED decomposition component; A18.7's express cap-year charging rule is CBA while its re-trade attribution mechanics remain an unregistered unsupported operational candidate); records 131 typed `XW2-…` edges covering 88 of the 89 published historical A LEAFs plus one named whole-row deferral (`CBA-A01.4` → R4) and three named fragment deferrals; dispositions the historical A15/A17 OPS-labeled rows by terminal `invalid` edges (false authority claims — the reported mechanics remain preserved discovery candidates in §12.2/§13.3); corrects two A-series source-law statements in §12.7 (the trade-bonus basis is Base Compensation remaining to be earned, per CBA XXIV §2(a)(ii)–(iii); the only expressed maximum-salary reduction of a trade bonus is the Rookie Scale VIII §1(d) deemed amendment); and updates §19.3's A-family row to per-LEAF source-certified status (U8/U9/U14 passed; scenarios pending R7). No C/R/L/S active record was created; R3 is not independently accepted. The independent Codex review of the R3 checkpoint at commit `07f0667d` returned **REJECT/BLOCK-R4**: no R3 active record is accepted, the A series is **not certified**, and the R3 receipt is preserved as immutable review history. R2.6 — the ordered post-R3 foundation-closure unit — closes the three foundation-level contradictions that review exposed, **changing the governing standard only and repairing no committed R3 record**: (1) a terminal `unsupported-residual` crosswalk disposition (with a narrow nine-condition rule) for an exactly scoped, in-scope residual fragment of a compound historical obligation whose qualifying authority is not located in the searched sources — typed, preserved as a discovery candidate, individually reviewed at R8/R9, and reopenable through `AMEND` on later authority — needed because honest A18.7 treatment was otherwise impossible (the residual is in scope, so `no-successor` is barred; unregistrable without authority; prose on a `partial-overlap` edge dispositions nothing); (2) a `DISP` terminal decision-record type with a binding OWN/DISP boundary — `OWN` adjudicates competing active owners and never records a terminal no-owner disposition; every terminal edge resolves to a `DISP` record; R3's terminal dispositions carried on `OWN`/`ATOM` records are corrected by R3.1 through `AMEND` lineage, never by editing the immutable receipt; and (3) a narrow `YYYY-MM` month-precision rule for `official-immutable` publication/effective dates where the source itself states only a month (the June 2024 By-Laws cover states "JUNE 2024"; its embedded 2024-06-07 stamp is PDF creation/modification metadata and establishes no publication or effective date) — exact days stay `YYYY-MM-DD`, metadata-derived days are prohibited and fail the record, and a mandatory limitation entry records the supplied precision. The bounded R2.6 primary/first-party searches located no qualifying authority for the re-trade attribution residual and no exact-day authority for the By-Laws date in the searched sources. R2.6 kept the active §15.10–§15.12 record population byte-identical to `07f0667d`, left §12.7 unrepaired (R3.1), and started neither R3.1 nor R4. The independent Codex review of the R2.6 checkpoint at commit `51e60bf6` returned **REJECT/BLOCK-R3.1**: source-date semantics remained false, and the fragment-completeness and DISP-reconciliation gates were not mechanically closed. R2.7 — the ordered foundation-executability closure — corrects exactly that: the slash-combined publication/effective-date field is abolished in favor of a `basis:value` **source-date model** (closed basis vocabulary `publication`/`effective`/`edition`/`agreement-as-of`; an edition month such as the June 2024 By-Laws cover is recordable only as `edition:2024-06`, never as publication or effective; metadata can establish no basis's value; a fixed date-component detail table carries multiple distinct semantic dates — the signed CBA's `agreement-as-of:2023-06-28`, `effective:2023-07-01`, and `edition:2023-07` verified against the hash-matched artifact this unit — without conflation); every historical LEAF used in the crosswalk gains a declared, parseable **fragment inventory** (pinned fragment-ID grammar, closed fragment kinds separating substantive obligations from authority assertions and process instructions, exhaustive non-overlapping decomposition, exactly-once disposition, bidirectional edge ⇔ fragment reconciliation, and a fragment-scoped terminal-uniqueness key); a **`blocked-unsupported-obligation`** stop condition makes a wholly unsupported valid in-scope obligation a blocking foundation/adjudication decision rather than any terminal edge; bounded searches become parseable **`SM2-…` search-manifest records** with a closed result vocabulary that can never encode "none exists"; `DISP` gains a fixed, parseable detail schema with an edge-type ⇔ decision-type compatibility matrix and a direct-current-reference rule (no live edge may rely on a decision reachable only through an `AMEND` chain); SC2 check 11 is strengthened inside the unchanged sixteen-check block; a scoped **`G15R`** repair gate runs AMEND/current-reference integrity at the R3.1 checkpoint; the A18.7 conditional-cash application is corrected from express CBA to a separately identified INFERRED chain on every non-active surface (active rows are an R3.1 `AMEND` repair); and every status and sequencing surface now states the truthful sequence R3 rejected → R2.6 rejected → R2.7 → independent Codex R2.7 review → R3.1 → independent Codex R3.1 review → R4. The R2.7 first-party searches re-verified the signed CBA binary (exact hash match) and located **no later governing agreement text in the searched first-party sources**. The independent Codex review of the R2.7 checkpoint at commit `3e9f913f` returned **REJECT/BLOCK-R3.1**: the shared `DISP`/SC2 subject model could not represent an SXW2 scenario subject, the source-date/fragment/`SM2` contracts remained mechanically ambiguous or composite, and the unsupported-obligation resolution was overrideable. R2.8 — the ordered foundation-executability repair — closes exactly that, **changing the governing standard and non-active status surfaces only and repairing no committed R3 record**: the `DISP` detail schema becomes a **polymorphic subject-class-tagged** schema (`XW2-DISP`/`SXW2-DISP`) with a pinned canonical scenario-fragment grammar `scenario-<n>:F<m>` (§15.9.4/§15.9.8), so an SXW2 scenario disposition is representable; the source-date **date-component detail table** gains a stable `<Record ID>#D<k>` identity and a `role/scope` discriminator so multiple same-basis dates are representable (§15.9.6); the fragment schema splits `Current status/version` into separate fields, pins a normalized-scope algorithm, and adds a fixed **`BND-…` disposition-bundle** schema (§15.9.3); the `SM2-…` schema splits its composite `Size/hash/pagination/signature` and `Current status/version` fields and adds an **`SS2-…` search-set/coverage** record (§15.9.6); the untyped blocked-obligation escape becomes governed **`BLK-…`/`RES-…`** blocked-finding/resolution records under an **independent-acceptance gate** where a maker can never self-accept (§15.9.3); and a committed **actual-schema validator** that reads the real repository documents supersedes R2.7's synthetic checker. R2.9 — the ordered foundation-validation closure — closes the blockers the independent Codex review of the R2.8 checkpoint found (the committed validator accepted binding-invalid document mutations while reporting 52/52 PASS, and the schemas retained composite fields, a dual-domain scope model, a `BND-…` cardinality contradiction, maker-selected coverage, and self-acceptance paths): it splits the remaining composite base/detail fields, requires ordered effective windows and one all-explicit date-component completeness rule, replaces the dual `clause:`/`sent:` scope model with one deterministic `span:<a>-<b>` **text-span system**, resolves the `BND-…` cardinality contradiction to a **multi-target-only** rule with a member-compatibility matrix, ties scenario fragments to an **exact partition** of the governed scenario text, gives `DISP` an explicit `Normalized scope` field with an exact terminal-base-equality rule, fully types `SM2-…` with an SM2 ⇔ current-`SRC2` reconciliation and makes the `SS2-…` required classes the deterministic set `CBA, BYL, NBA, ops-provenance`, adds a **canonical-actor registry** and binds `RES-…` acceptance to the exact current resolution, types `BLK-…` with a `candidate-obligation` subject class and an XW2-only search-machinery policy, conforms every dependent gate, and replaces the rejected validator with **one real parser-and-reconciliation engine** over the actual canon and repair plan in which every Codex-demonstrated false positive is a rejecting regression; the repair plan's "items 1–21; nothing else" header, stale `accepted R2.7`/omitted-R2.8 R4 dependency, and item-25 coverage rule are corrected. Every status/sequencing surface now states the truthful sequence R3 rejected → R2.6 rejected → R2.7 rejected → R2.8 rejected → R2.9 → independent Codex R2.9 review → R3.1 → independent Codex R3.1 review → R4. **R2.9 is not independently accepted; completing R2.9 does not accept anything — R3 remains rejected, no A-series record is accepted, R3.1 remains blocked pending independent Codex acceptance of the R2.9 foundation, and R4 remains blocked until a later independent Codex R3.1 acceptance. Phase 1 remains open; Phase 2 and W1.1 remain blocked.** The authority cutoff remains **July 12, 2026**. **This draft is not accepted and must not govern Phase 2 verdicts, implementation decisions, or tests**; the v2.0 checksum will be recorded only at R8, and activation requires a new independent Reviews A–F acceptance gate (R9).
+**What v2.0 changes (this working draft):** substantive rule repair against the signed CBA under the approved R1–R9 plan (`work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`). R1 corrects the seven adjudicated substantive rule errors and two authority labels, and rewrites scenarios 50, 53, 57, 60, 67, 68, and 69; no ID or scenario is renumbered. R2 adds the binding v2.0 register and source-certification standard (§15.9) and the register release gates that R3–R8 must satisfy; it changes no rule, register row, scenario, ID, or source value. R1.1 closes the adjudicated residual R1 defects — the VII §5(b)(1) Unlikely-Bonus provisos stated in full, the signing/trade-earned/extension bonus-allocation scope per VII §3(b)(1)(ii)–(b)(3), MTS shortfall-payment terminology with the 2023–24-only §2(c)(7) exception, and explicit provisional markers on the A11/A18.7 authority labels pending R2.1 — and repairs the four scenarios with confirmed logic errors (50, 60, 67, 69). R2.1 **replaces the rejected R2 foundation in full** with the clean v2 registry model (§15.9, R2.1 edition): the published v1.1 register and scenarios 1–89 are frozen as historical migration inputs; active v2 obligations are new `CBA2-…` GROUP/LEAF IDs linked to history by a typed `XW2-…` crosswalk; evidence lives in a structured source-artifact/evidence-component registry; the authority taxonomy adds **INFERRED** and closes the A11/A18.7 provisional items; every active LEAF carries one primary and any number of secondary verification methods; the scenario library will be rebuilt as `CBA2-SC-…` with an `SXW2-…` crosswalk; and the release gates are retimed across R3–R6/R7/R8/R9. R2.2 **hardens that foundation** after the independent review of R2.1: historical scenario identity is pinned to the published v1.1 §16 section at `9814939c` (with its exact byte hash recorded, and the R1/R1.1 scenario variants reclassified as R7 authoring inputs only); crosswalk edge typing gains a deterministic precedence with exactly one primary relationship type per source–target pair; `no-successor` becomes a narrow, gateable disposition that can never hide an in-scope obligation; the evidence schema supports zero/one/many source artifacts and multi-component dependency chains with typed `SRC2-…` provenance (including OPS provenance without a public URL and EXT runtime-determination contracts); duplicate-candidate generation becomes mandatory and seven-generator systematic; new gates SC6/SC7 and G14/G15 close the scenario-coverage, method-record, evidence-reconciliation, and amendment-traceability holes; R7's method-reclassification authority is bounded and `METHOD`-recorded; the R3→R4→R5→R6 construction sequence is strict; `AMEND` decision records preserve draft-correction traceability; and the remaining old-ID audit guidance (§1.2, §17) and legacy §19.3 family-status ambiguity are removed. R1.2 closes an omission the independent Codex foundation review found in R1.1's extension-bonus correction: §5.9 now states the below-cap branch of VII §3(b)(3)(ii) in which the bonus is paid **no sooner than** the first day of the extended term's first Salary Cap Year — allocated under §3(b)(3)(i)'s extended-term-only protected-percentage rules with the zero-protection fallback to the extended term's first Salary Cap Year, never under ordinary §3(b)(2) allocation — keeping the three §3(b)(3) branches distinct. R2.3 corrects the five foundation execution contracts the same independent Codex foundation review ordered: every `EV2-…` evidence path now terminates in at least one typed `SRC2-…` source/provenance record — no source-free terminal component; OPS components reference an `ops-provenance` record and EXT components an `ext-contract` record, each valid without a public URL (and without an artifact hash only where no durable artifact exists) — with class-specific certification duties replacing the universal read-the-passage rule; secondary sources become discovery/corroboration aids only — secondary reporting establishes no authority class, and OPS requires qualifying first-party operational provenance; SC2 expands from historical-scenario coverage alone to the complete sixteen-check SXW2 integrity contract, rerun in full by G10 and R9; draft mutability and `AMEND` lineage extend to every live v2 population (active GROUP/LEAF rows, `XW2-…`, `SRC2-…`, `EV2-…`, active `CBA2-SC-…` scenarios and named cases, `SXW2-…`, `DR2-…`) with append-only precisely defined and G15/R9 expanded accordingly; and the three register populations are stated distinctly — the published v1.1 register at `9814939c` (the sole XW2 historical source), this branch's legacy-numbered working copy (an R1/R1.1-corrected, R2.1-annotated authoring input, not byte-identical to the published edition), and the active v2 registry — correcting the earlier preserved-unchanged wording. R2.4 closes the four residual foundation blockers found by the independent Codex review of R1.2/R2.3: the `SRC2-…` registry becomes a mechanically parseable base-plus-type-specific-detail record contract with pinned field grammars, per-type `—` validity, per-type timestamp/hash rules, and field-level validation enforced at U8/U9, G14, and R9; a binding transitive evidence-root compatibility model (complete dependency closure, terminal `SRC2-…` root sets, a parseable class compatibility matrix, and rejection of locally valid but transitively incompatible chains) stops OPS/EXT provenance from laundering into DERIVED/INFERRED authority and forces OPS/EXT visibility and limitation propagation to every consuming LEAF; every binding secondary-source-to-OPS promotion is removed — the §1.1 conflict order now ends at official authority, and the multi-team touch/qualifying-asset thresholds (§12.2), the seven-future-draft horizon, and the secondary-reported pick-protection/deferral processing mechanics (§13.3) are recast as **unsupported operational candidates** that cannot be registered, classified OPS, or enforced without qualifying first-party provenance or a different valid authority classification; and the AMEND child-numbering contradiction is resolved — contiguity applies at initial GROUP construction only, an `AMEND` removal/split/merge leaves a gap that must resolve through the receipts and `AMEND` chain, renumbering-to-restore-contiguity is abolished, IDs are never reused, and new children allocate above the GROUP's historical high-water mark (§15.9.2, U13, G15, R9). R2.5 closes the two SRC2 grammar blockers found by the independent Codex review of R2.4: the official-mutable "date or season" alternative is pinned to exactly one machine season grammar — `YYYY-YY` (four ASCII digits, one ASCII hyphen-minus, two ASCII digits equal to the last two digits of the following year modulo 100; en dashes, slashes, prefixes, abbreviated or four-digit second years, and non-consecutive years all invalid; source-title typography may be preserved but every structured season field normalizes to `YYYY-YY`) — and the unparseable composite `Verifier/session/date` base field is split into three separately required, individually typed columns (`Verifier identity` as `human:<slug>`/`agent:<slug>`, `Verification session ID` as `session:<slug>`, `Verification date` as a real `YYYY-MM-DD` calendar date), growing the base table from eleven to thirteen pinned fields, each independently parsed and validated at U8/U9, G14, and R9 — none ever `—`, and no nonempty field compensating for a missing or malformed one. R3 — executed after the independent Codex foundation review of the corrected foundation (R1.2/R2.3/R2.4/R2.5) at commit `6d9c7576` returned **ACCEPT** for R3 construction — begins register construction: it creates §15.10 (active v2 register), §15.11 (historical crosswalk), and §15.12 (source/provenance and evidence registries) and re-registers the A family from first principles as 12 `CBA2-A…` GROUPs and 81 atomic LEAFs, each source-certified against the signed CBA, the June 2024 By-Laws, and official NBA releases through 4 typed `SRC2-…` records and 89 `EV2-…` components (no OPS or EXT component and no composite label; A11's successor carries an express CBA component plus a separate INFERRED decomposition component; A18.7's express cap-year charging rule is CBA while its re-trade attribution mechanics remain an unregistered unsupported operational candidate); records 131 typed `XW2-…` edges covering 88 of the 89 published historical A LEAFs plus one named whole-row deferral (`CBA-A01.4` → R4) and three named fragment deferrals; dispositions the historical A15/A17 OPS-labeled rows by terminal `invalid` edges (false authority claims — the reported mechanics remain preserved discovery candidates in §12.2/§13.3); corrects two A-series source-law statements in §12.7 (the trade-bonus basis is Base Compensation remaining to be earned, per CBA XXIV §2(a)(ii)–(iii); the only expressed maximum-salary reduction of a trade bonus is the Rookie Scale VIII §1(d) deemed amendment); and updates §19.3's A-family row to per-LEAF source-certified status (U8/U9/U14 passed; scenarios pending R7). No C/R/L/S active record was created; R3 is not independently accepted. The independent Codex review of the R3 checkpoint at commit `07f0667d` returned **REJECT/BLOCK-R4**: no R3 active record is accepted, the A series is **not certified**, and the R3 receipt is preserved as immutable review history. R2.6 — the ordered post-R3 foundation-closure unit — closes the three foundation-level contradictions that review exposed, **changing the governing standard only and repairing no committed R3 record**: (1) a terminal `unsupported-residual` crosswalk disposition (with a narrow nine-condition rule) for an exactly scoped, in-scope residual fragment of a compound historical obligation whose qualifying authority is not located in the searched sources — typed, preserved as a discovery candidate, individually reviewed at R8/R9, and reopenable through `AMEND` on later authority — needed because honest A18.7 treatment was otherwise impossible (the residual is in scope, so `no-successor` is barred; unregistrable without authority; prose on a `partial-overlap` edge dispositions nothing); (2) a `DISP` terminal decision-record type with a binding OWN/DISP boundary — `OWN` adjudicates competing active owners and never records a terminal no-owner disposition; every terminal edge resolves to a `DISP` record; R3's terminal dispositions carried on `OWN`/`ATOM` records are corrected by R3.1 through `AMEND` lineage, never by editing the immutable receipt; and (3) a narrow `YYYY-MM` month-precision rule for `official-immutable` publication/effective dates where the source itself states only a month (the June 2024 By-Laws cover states "JUNE 2024"; its embedded 2024-06-07 stamp is PDF creation/modification metadata and establishes no publication or effective date) — exact days stay `YYYY-MM-DD`, metadata-derived days are prohibited and fail the record, and a mandatory limitation entry records the supplied precision. The bounded R2.6 primary/first-party searches located no qualifying authority for the re-trade attribution residual and no exact-day authority for the By-Laws date in the searched sources. R2.6 kept the active §15.10–§15.12 record population byte-identical to `07f0667d`, left §12.7 unrepaired (R3.1), and started neither R3.1 nor R4. The independent Codex review of the R2.6 checkpoint at commit `51e60bf6` returned **REJECT/BLOCK-R3.1**: source-date semantics remained false, and the fragment-completeness and DISP-reconciliation gates were not mechanically closed. R2.7 — the ordered foundation-executability closure — corrects exactly that: the slash-combined publication/effective-date field is abolished in favor of a `basis:value` **source-date model** (closed basis vocabulary `publication`/`effective`/`edition`/`agreement-as-of`; an edition month such as the June 2024 By-Laws cover is recordable only as `edition:2024-06`, never as publication or effective; metadata can establish no basis's value; a fixed date-component detail table carries multiple distinct semantic dates — the signed CBA's `agreement-as-of:2023-06-28`, `effective:2023-07-01`, and `edition:2023-07` verified against the hash-matched artifact this unit — without conflation); every historical LEAF used in the crosswalk gains a declared, parseable **fragment inventory** (pinned fragment-ID grammar, closed fragment kinds separating substantive obligations from authority assertions and process instructions, exhaustive non-overlapping decomposition, exactly-once disposition, bidirectional edge ⇔ fragment reconciliation, and a fragment-scoped terminal-uniqueness key); a **`blocked-unsupported-obligation`** stop condition makes a wholly unsupported valid in-scope obligation a blocking foundation/adjudication decision rather than any terminal edge; bounded searches become parseable **`SM2-…` search-manifest records** with a closed result vocabulary that can never encode "none exists"; `DISP` gains a fixed, parseable detail schema with an edge-type ⇔ decision-type compatibility matrix and a direct-current-reference rule (no live edge may rely on a decision reachable only through an `AMEND` chain); SC2 check 11 is strengthened inside the unchanged sixteen-check block; a scoped **`G15R`** repair gate runs AMEND/current-reference integrity at the R3.1 checkpoint; the A18.7 conditional-cash application is corrected from express CBA to a separately identified INFERRED chain on every non-active surface (active rows are an R3.1 `AMEND` repair); and every status and sequencing surface now states the truthful sequence R3 rejected → R2.6 rejected → R2.7 → independent Codex R2.7 review → R3.1 → independent Codex R3.1 review → R4. The R2.7 first-party searches re-verified the signed CBA binary (exact hash match) and located **no later governing agreement text in the searched first-party sources**. The independent Codex review of the R2.7 checkpoint at commit `3e9f913f` returned **REJECT/BLOCK-R3.1**: the shared `DISP`/SC2 subject model could not represent an SXW2 scenario subject, the source-date/fragment/`SM2` contracts remained mechanically ambiguous or composite, and the unsupported-obligation resolution was overrideable. R2.8 — the ordered foundation-executability repair — closes exactly that, **changing the governing standard and non-active status surfaces only and repairing no committed R3 record**: the `DISP` detail schema becomes a **polymorphic subject-class-tagged** schema (`XW2-DISP`/`SXW2-DISP`) with a pinned canonical scenario-fragment grammar `scenario-<n>:F<m>` (§15.9.4/§15.9.8), so an SXW2 scenario disposition is representable; the source-date **date-component detail table** gains a stable `<Record ID>#D<k>` identity and a `role/scope` discriminator so multiple same-basis dates are representable (§15.9.6); the fragment schema splits `Current status/version` into separate fields, pins a normalized-scope algorithm, and adds a fixed **`BND-…` disposition-bundle** schema (§15.9.3); the `SM2-…` schema splits its composite `Size/hash/pagination/signature` and `Current status/version` fields and adds an **`SS2-…` search-set/coverage** record (§15.9.6); the untyped blocked-obligation escape becomes governed **`BLK-…`/`RES-…`** blocked-finding/resolution records under an **independent-acceptance gate** where a maker can never self-accept (§15.9.3); and a committed **actual-schema validator** that reads the real repository documents supersedes R2.7's synthetic checker. R2.9 — the ordered foundation-validation closure — closes the blockers the independent Codex review of the R2.8 checkpoint found (the committed validator accepted binding-invalid document mutations while reporting 52/52 PASS, and the schemas retained composite fields, a dual-domain scope model, a `BND-…` cardinality contradiction, maker-selected coverage, and self-acceptance paths): it splits the remaining composite base/detail fields, requires ordered effective windows and one all-explicit date-component completeness rule, replaces the dual `clause:`/`sent:` scope model with one deterministic `span:<a>-<b>` **text-span system**, resolves the `BND-…` cardinality contradiction to a **multi-target-only** rule with a member-compatibility matrix, ties scenario fragments to an **exact partition** of the governed scenario text, gives `DISP` an explicit `Normalized scope` field with an exact terminal-base-equality rule, fully types `SM2-…` with an SM2 ⇔ current-`SRC2` reconciliation and makes the `SS2-…` required classes the deterministic set `CBA, BYL, NBA, ops-provenance`, adds a **canonical-actor registry** and binds `RES-…` acceptance to the exact current resolution, types `BLK-…` with a `candidate-obligation` subject class and an XW2-only search-machinery policy, conforms every dependent gate, and replaces the rejected validator with **one real parser-and-reconciliation engine** over the actual canon and repair plan in which every Codex-demonstrated false positive is a rejecting regression; the repair plan's "items 1–21; nothing else" header, stale `accepted R2.7`/omitted-R2.8 R4 dependency, and item-25 coverage rule are corrected. The independent Codex review of the R2.9 checkpoint at commit `5f868f2a` returned **REJECT/BLOCK-R3.1**: the validator still never parsed the actual 47-row `DR2-…` population, validated a future R3.1 document only through a simulation-only fixture path rather than the committed-canon path, executed only four of `G15R`'s declared populations, accepted a fake acceptance commit and a nonexistent receipt as independent acceptance, and replaced the canon's governing vocabularies and actor aliases with hidden Python rules, while binding contradictions remained in `DISP` terminal-base equality, `BND-…` member coverage, source-date component lifecycle, the impossible SM2 ⇔ `SRC2` byte-size equality, and candidate-obligation evidence. R2.10 — the ordered foundation-validation repair — closes exactly those, **changing the governing standard, the repair plan, and the validator only, and repairing no committed R3 record**: §15.9.11 adds the binding **governed inventory** (machine-readable closed-vocabulary, pinned-schema, cross-schema-dependency, immutable-range, and pinned-population registries that every conforming validator must parse as the sole source of truth and reconcile bidirectionally with the governing clause, with hard-coded parallel contracts prohibited) together with the explicit **preservation-versus-conformance** distinction (identity preservation is checked against the pinned R3 checkpoint commit, never against a total; schema conformance carries no fixed totals, so valid append-only additions conform); a governed **acceptance-receipt record** makes `RES-…` independent acceptance a resolvable commit plus a parsed `ACCEPT` row rather than a maker-written cell; the `SRC2-…` base schema gains the **`Artifact byte size`** field without which the SM2 ⇔ current-`SRC2` byte-size equality had no governed counterpart; the date-component detail table gains **`Component status`/`Component version`/superseding** fields so exactly-one-current and stale-reference rules are representable; `BND-…` gains **`Member subject scopes`** so combined exhaustive member coverage is mechanically provable; the `DISP` **terminal-base-equality** rule is corrected to include the subject fragment and the disposition's destination fields (so differing fragments or destinations are never equal bases) and its **edge ⇔ detail agreement tuple** is corrected to cite only fields both structures actually carry; the `SM2-…`/`SS2-…` schemas gain the **`candidate-obligation`** subject variant that makes candidate-obligation evidence representable at all; and `G15R` becomes an **enumerated twelve-population gate** including the complete `DR2-…` population and every dependent reference and current endpoint. Every status/sequencing surface now states the truthful sequence R3 rejected → R2.6 rejected → R2.7 rejected → R2.8 rejected → R2.9 rejected → R2.10 → independent Codex R2.10 review → R3.1 → independent Codex R3.1 review → R4. **R2.10 is not independently accepted; completing R2.10 does not accept anything — R3 remains rejected, no A-series record is accepted, R3.1 remains blocked pending independent Codex acceptance of the R2.10 foundation, and R4 remains blocked until a later independent Codex R3.1 acceptance. Phase 1 remains open; Phase 2 and W1.1 remain blocked.** The authority cutoff remains **July 12, 2026**. **This draft is not accepted and must not govern Phase 2 verdicts, implementation decisions, or tests**; the v2.0 checksum will be recorded only at R8, and activation requires a new independent Reviews A–F acceptance gate (R9).
 
 > **Use rule:** Architect may rely on a rule as deterministic only when the required inputs exist and the rule is marked **CBA**, **BYL**, **NBA**, **DERIVED**, or **INFERRED** under the authority system below. A **DERIVED** item is arithmetic reproduced from a source formula; an **INFERRED** item is non-arithmetic legal or algorithmic inference supported by controlling primary-source text and must carry its locators and reasoning chain, never presented as express source language. An **OPS** item is a league-operational rule with real first-party operational provenance (§15.9.6) for which no current public primary text was located; secondary reporting never establishes it, and it must remain configurable and must not be represented as language from the CBA. An **EXT** item requires a league, physician, expert, or legal determination.
 
@@ -39,6 +39,7 @@
 | **Repair v2.0 — working draft, R2.7** | **July 19, 2026** | **R2.7 foundation-executability closure** (ordered after the independent Codex review of the R2.6 checkpoint at commit `51e60bf6` returned **REJECT/BLOCK-R3.1** — source-date semantics remained false and the fragment-completeness/DISP-reconciliation gates were not mechanically closed; R2.7 changes the governing standard and non-active status/source-law surfaces only and repairs no committed R3 record): the slash-combined `Publication/effective date` base field abolished and replaced by the `basis:value` **source-date model** (§15.9.6) with the closed basis vocabulary `publication`/`effective`/`edition`/`agreement-as-of`, per-basis value grammars, `—` pairing rules, a basis-aware month-precision rule (an edition month such as `2024-06` recordable only as `edition:2024-06` — never publication or effective; metadata establishes no basis's value; exact precision never degraded), and a fixed, joinable **date-component detail table** for records with multiple distinct semantic dates (the signed CBA supports `agreement-as-of:2023-06-28`, `effective:2023-07-01`, and `edition:2023-07`, each verified against the hash-matched artifact in the R2.7 session; the committed `SRC2-001`/`SRC2-002` base rows are an R3.1 `AMEND` migration); the **historical-fragment inventory contract** (§15.9.3) with the pinned `<historical LEAF ID>:F<n>` fragment-ID grammar, closed fragment kinds (`substantive-obligation`/`authority-assertion`/`process-instruction`/`gap-assertion`), declared exhaustive pairwise non-overlapping decomposition, exactly-once disposition with split/merge bundles, bidirectional edge ⇔ fragment reconciliation, semantic exhaustiveness review, the corrected terminal-edge uniqueness key (historical source LEAF + fragment ID), and the literal nine-type XW2 vocabulary count corrected; the **`blocked-unsupported-obligation`** stop condition (§15.9.3) for a wholly unsupported valid in-scope obligation — a blocking foundation/adjudication outcome that fails U7 and stops the unit, never a terminal edge, with the express fragment-kind distinction between a false authority/enforceability claim (`invalid`) and a merely unsupported substantive mechanic (not thereby invalid); the parseable **`SM2-…` search-manifest contract** (§15.9.6) with pinned fields (exact source identity, binary/version identity, size/hash/pagination/signature, exact locator/query, method, cutoff, closed result vocabulary `qualifying-authority-located`/`no-qualifying-authority-located-in-searched-sources`/`inconclusive` that can never encode "none exists", verification metadata, status/version), required-class coverage before `unsupported-residual`, cross-class reconciliation, adequacy rules, `AMEND` supersession, and zero-orphan/current-reference rules; the fixed **`DISP` detail schema** (§15.9.4) joined to the generic `DR2` record (historical source LEAF, fragment ID, terminal edge ID and type, `SM2` references, evidence references, closed no-owner reason vocabulary, preserved-candidate anchor, limitations, reopening condition, supersession relationship, status, version), the binding **edge-type ⇔ decision-type compatibility matrix**, bidirectional subject agreement, exactly-one-current-parent and zero-orphan/zero-stale rules, and the **direct-current-reference rule** — no live edge may rely on a decision reachable only through an `AMEND` chain; SC2 check 11 strengthened inside the unchanged sixteen-check block (direct current `DISP` references, type compatibility, bidirectional agreement, zero stale/orphan records); the scoped **`G15R`** R3.1-local AMEND/current-reference repair gate (§15.9.9); the A18.7 conditional-cash application corrected on every non-active surface from express CBA to a separately identified INFERRED chain (§15.9.5, §12.12, §19.3; active-row and evidence `AMEND` is R3.1 backlog); the `DR2-0037`/`DR2-0038`/`DR2-0039` transition pinned (verified types `OWN`/`OWN`/`ATOM`; separate `DISP` records for `XW2-0006`/`XW2-0012` unless bases demonstrably identical; `ATOM` content preserved only where separately valid); and every binding status/sequencing surface corrected to the truthful sequence **R3 rejected → R2.6 rejected → R2.7 → independent Codex R2.7 review → R3.1 → independent Codex R3.1 review → R4**. First-party research this unit: the signed CBA binary re-downloaded and hash-verified (exact match `bf178ca0…`; 2,850,534 bytes; 676 PDF pages), VII §8(a), Article I §1(d), and Article XXXIX §1 read directly; **no later governing agreement text was located in the searched first-party sources** (the live official homepage links a distinct production of the same JULY 2023 agreement — `cf59d43f…`, 2,903,978 bytes, 686 PDF pages — identified in the receipt). Active §15.10–§15.12 record-table rows byte-identical; §5.9, historical §15.1–§15.8, and scenarios 1–89 byte-preserved; no concrete record minted; no ID renumbered or reused. **R2.7 is not independently accepted; R3 remains rejected; no A-series record is accepted; R3.1 and R4 remain blocked.** Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_7_FOUNDATION_EXECUTABILITY_CLOSURE.md` |
 | **Repair v2.0 — working draft, R2.8** | **July 21, 2026** | **R2.8 foundation-executability repair** (ordered after the independent Codex review of the R2.7 checkpoint at commit `3e9f913f` returned **REJECT/BLOCK-R3.1** — the `DISP`/SC2 subject model could not represent an SXW2 scenario subject, the source-date/fragment/`SM2` contracts remained mechanically ambiguous or composite, and the unsupported-obligation resolution was overrideable; R2.8 changes the governing standard and non-active status surfaces only and repairs no committed R3 record): the `DISP` detail schema made a **polymorphic subject-class-tagged** schema (`XW2-DISP`/`SXW2-DISP`) with mechanically exclusive subject variants, per-subject-class uniqueness keys, subject-family-mismatch rejection, and a pinned **canonical scenario-fragment grammar** `scenario-<n>:F<m>` derived from the §16 published scenario numbers (§15.9.4/§15.9.8); the source-date **date-component detail table** given a stable `<Record ID>#D<k>` component identity and a required `role/scope` discriminator (`primary`/`scoped:<slug>`) so multiple current same-basis dates with distinct roles/scopes are representable, replacing the one-row-per-basis rule (§15.9.6); the fragment schema's composite `Current status/version` split into `Fragment status`/`Fragment version`, a pinned **normalized-scope** representation and algorithm (clause/sentence scope atoms with equality, non-overlap, exhaustive-coverage, and contiguity rules) added, and a fixed **`BND-…` disposition-bundle** schema (bundle identity, source LEAF/fragment, member edge IDs/types/targets, subject scope, active class, status/version) replacing prose-only bundle compatibility (§15.9.3); the `SM2-…` schema's composite `Size/hash/pagination/signature` split into `Binary size bytes`/`Binary SHA-256`/`Binary pagination`/`Binary signature/as-of` and its composite `Current status/version` into `Search status`/`Search version`, subject-class and `Result linkage`/`Search-set ID` fields added, and a fixed **`SS2-…` search-set/coverage** record (required source classes joined to current member `SM2-…` records with a deterministic `adequate-coverage`/`inadequate-coverage` assessment; `inconclusive` and inadequate coverage can never support `unsupported-residual`) added (§15.9.6); the untyped "foundation amendment or adjudication decision" escape replaced by governed **`BLK-…` blocked-finding** and **`RES-…` resolution** records under a binding **independent-acceptance gate** (a maker can never self-accept; construction resumes only after a current `accepted` resolution with a checker distinct from the maker; a whole valid in-scope unsupported obligation can never escape as `unsupported-residual`/`no-successor`/`process-only`/`obsolete`/`invalid`-for-not-located/waiver — §15.9.3); every dependent gate conformed (U7, G1, G3, G15, `G15R`, R9, SC2 check 11 strengthened inside the unchanged sixteen-check block); and a committed **actual-schema validator** (`work/architect-completion/cba_canon_v2_foundation_validator.py`) that parses the real repository canon and §15.10–§15.12 populations — recognizing the committed R3 population as rejected/legacy, never certifying it as R3.1-conforming — superseding R2.7's synthetic checker and running all 26 inherited plus 15 new adversarial cases through the binding parser. First-party research this unit: the signed CBA binary re-downloaded and hash-verified (exact match `bf178ca0…`; 2,850,534 bytes; 676 PDF pages) and the current NBPA CBA page searched — **no later governing agreement text was located in the searched first-party sources** (the 2023 NBA-NBPA CBA remains current; NBA official surfaces timed out to this session and are recorded so). Active §15.10–§15.12 record-table rows byte-identical; §5.9, historical §15.1–§15.8, scenarios 1–89, and the sixteen-check SC2 block byte-preserved (only check 11 changed); no concrete `CBA2`/`XW2`/`SXW2`/`SRC2`/`EV2`/`DR2`/`SM2`/`SS2`/`BND`/`BLK`/`RES`/fragment record minted; no ID renumbered or reused. **R2.8 is not independently accepted; R3 remains rejected; no A-series record is accepted; R3.1 and R4 remain blocked.** Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_8_FOUNDATION_EXECUTABILITY_REPAIR.md` |
 | **Repair v2.0 — working draft, R2.9** | **July 21, 2026** | **R2.9 foundation-validation closure** (ordered after the independent Codex review of the R2.8 checkpoint at commit `8f7aec7a` returned **REJECT/BLOCK-R3.1** — the committed validator accepted binding-invalid document mutations while reporting 52/52 PASS, and the governing schemas retained composite fields, a dual-domain scope model, a BND cardinality contradiction, maker-selected coverage, and self-acceptance paths; R2.9 changes the governing standard and repair plan and non-active status surfaces only and repairs no committed R3 record): the base `Record status/version` and `official-mutable` `Publication identity/date or season` composites split into typed fields, effective-window endpoints required valid and ordered, and the date-component detail table given one all-explicit completeness rule (§15.9.6); the fragment normalized-scope dual `clause:`/`sent:` model replaced by one deterministic single-coordinate `span:<a>-<b>` **text-span system** with mechanical overlap/equality/coverage/contiguity, the `BND-…` cardinality contradiction resolved to a **multi-target-only** rule with an exact **member-compatibility matrix**, and the scenario-fragment inventory tied to an **exact partition** of each governed scenario's text (§15.9.3/§15.9.8) with SC2 check 16 strengthened inside the unchanged sixteen-check block; the `DISP` detail schema given an explicit `Normalized scope` field and the "demonstrably identical" reviewer judgment replaced by an exact **terminal-base-equality** rule (§15.9.4); the `SM2-…` fields fully typed with a current-record uniqueness key and an **SM2 ⇔ current-`SRC2` binary reconciliation**, and the `SS2-…` required classes made the **deterministic** set `CBA, BYL, NBA, ops-provenance` with a closed-grammar coverage assessment (§15.9.6); a **canonical-actor registry** with alias normalization (`agent:claude`/`agent:claude-code` are one actor), the `RES-…` acceptance split into typed fields **bound to the exact current resolution** (accepted version, content digest, proposed outcome), the `BLK-…` record given finding version/current and typed subject/search fields plus a `candidate-obligation` subject class, and the SXW2-blocker contradiction resolved to an **XW2-only** search-machinery policy (§15.9.3); every dependent gate conformed (U5–U9, G1, G3, G10, G14, G15, `G15R`, SC2, R8, R9); and the rejected R2.8 validator replaced by **one real parser-and-reconciliation engine** (`work/architect-completion/cba_canon_v2_foundation_validator.py`) that reads the actual canon **and** repair plan, parses every governed population at exact membership, runs every valid fixture and adversarial mutation through the same full-document path, and turns every Codex-demonstrated false positive into a rejecting regression. Repair-plan corrections: the "items 1–21; nothing else" backlog header corrected to the truthful items 1–27, the stale `accepted R2.7`/omitted-R2.8 R4 dependency and sequence corrected, and item 25 corrected so inadequate coverage never creates or clears a blocked outcome. Source-attribution correction: the R2.8 receipt's `"Is there a newer CBA? No."` NBPA attribution superseded by the bounded conclusion **"No later governing agreement text was located in the searched first-party sources"** (the signed-CBA facts — 2,850,534 bytes, 676 pages, SHA-256 `bf178ca0…`, entered into as of June 28 2023, effective July 1 2023–June 30 2030 — preserved). Active §15.10–§15.12 record-table rows byte-identical; §5.9, historical §15.1–§15.8, scenarios 1–89, and every prior receipt byte-preserved; no concrete record minted; no ID renumbered or reused. **R2.9 is not independently accepted; R3 remains rejected; no A-series record is accepted; R3.1 and R4 remain blocked.** Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_9_FOUNDATION_VALIDATION_CLOSURE.md` |
+| **Repair v2.0 — working draft, R2.10** | **July 22, 2026** | **R2.10 foundation-validation repair** (ordered after the independent Codex review of the R2.9 checkpoint at commit `5f868f2a` returned **REJECT/BLOCK-R3.1** — the validator never parsed the actual 47-row `DR2-…` population, validated a future R3.1 document only through a simulation-only fixture path instead of the committed-canon path, executed only four of `G15R`'s declared populations, accepted a fake acceptance commit and a nonexistent receipt as independent acceptance, and replaced the canon's governing vocabularies and actor aliases with hidden Python rules, while binding contradictions remained in `DISP` terminal-base equality, `BND-…` member coverage, the source-date component lifecycle, the impossible SM2 ⇔ `SRC2` byte-size equality, and candidate-obligation evidence; R2.10 changes the governing standard, the repair plan, and the validator only and repairs no committed R3 record): §15.9.11 **governed inventory** (machine-readable closed-vocabulary, pinned-schema, cross-schema-dependency, immutable-range, and pinned-population registries parsed as the sole source of truth and reconciled bidirectionally with the governing clause; hard-coded parallel validator contracts prohibited) with the explicit **preservation-versus-conformance** distinction (identity preservation checked against the pinned R3 checkpoint commit, never against a total; conformance carrying no fixed totals); the governed **acceptance-receipt record** binding `RES-…` acceptance to a resolvable commit and a parsed `ACCEPT` row; the `SRC2-…` base **`Artifact byte size`** field completing the SM2 ⇔ current-`SRC2` equality; date-component **`Component status`/`Component version`/superseding** lifecycle fields; the `BND-…` **`Member subject scopes`** field proving combined exhaustive member coverage; the corrected `DISP` **terminal-base-equality** tuple (subject fragment and destination fields included) and edge ⇔ detail agreement tuple (only fields both structures carry); the `SM2-…`/`SS2-…` **`candidate-obligation`** subject variant; and the enumerated twelve-population **`G15R`** gate including the complete `DR2-…` population. Recorded in `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_10_FOUNDATION_VALIDATION_CLOSURE.md`. **Not independently accepted.** |
 
 ---
 
@@ -1573,7 +1574,7 @@ The register is a two-level tree, and the two node types are **not interchangeab
 | §19.1 | The rule-family authority map must be preserved as citation metadata on every implemented rule | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
 | §19.3 | The verification-status classification is part of the canon; moving an OPS item into a primary-source category requires a cited canon revision | Operational verification — discharged by the §17 release gate and the Phase 2 evidence procedure |
 
-### 15.9 Register and source-certification standard (v2.0 — binding, R2.1 edition as hardened by R2.2 and corrected by R2.3, R2.4, R2.5, R2.6, R2.7, R2.8, and R2.9)
+### 15.9 Register and source-certification standard (v2.0 — binding, R2.1 edition as hardened by R2.2 and corrected by R2.3, R2.4, R2.5, R2.6, R2.7, R2.8, R2.9, and R2.10)
 
 This standard governs the v2.0 re-registration (repair units R3–R6), the
 scenario rebuild (R7), the global reconciliation (R8), the independent
@@ -1672,7 +1673,34 @@ policy; every dependent gate (U5–U9, G1, G3, G10, G14, G15, `G15R`, SC2,
 R8, R9) conformed; and the R2.8 validator replaced by one real
 parser-and-reconciliation engine over the actual canon and repair plan)
 is recorded in
-`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_9_FOUNDATION_VALIDATION_CLOSURE.md`.
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_9_FOUNDATION_VALIDATION_CLOSURE.md`;
+and the R2.10 foundation-validation repair of this section (ordered
+after the independent Codex review of the R2.9 checkpoint returned
+REJECT/BLOCK-R3.1: the complete governed inventory of §15.9.11 — the
+machine-readable closed-vocabulary, pinned-schema, schema-dependency,
+immutable-range, and pinned-population registries that every validator
+must parse as the sole source of truth and reconcile bidirectionally
+with the governing clause, abolishing parallel hidden validator
+contracts; the governed **acceptance-receipt record** grammar making
+`RES-…` independent acceptance a resolvable commit plus a parsed
+receipt rather than a maker-written cell; the base `SRC2-…`
+`Artifact byte size` field that makes the SM2 ⇔ current-`SRC2` byte-size
+equality representable at all; the date-component lifecycle fields
+(`Component status`/`Component version`/superseding relationship)
+without which exactly-one-current and stale-reference rules could not be
+expressed; the `BND-…` `Member subject scopes` field making combined
+exhaustive member coverage mechanically provable; the corrected
+`DISP` terminal-base-equality tuple — which now includes the subject
+fragment, preserved-candidate anchor, limitations, and reopening
+condition, so differing fragments or destinations can never be equal
+bases — together with the corrected edge ⇔ detail agreement tuple that
+cites only fields both structures actually carry; the
+`candidate-obligation` subject variant of the `SM2-…`/`SS2-…` schemas
+making candidate-obligation evidence representable without a historical
+LEAF the candidate expressly lacks; and the `G15R` population
+enumeration made individually executable, including `DR2-…` and every
+dependent reference and current endpoint) is recorded in
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_10_FOUNDATION_VALIDATION_CLOSURE.md`.
 Where this section and any receipt's restatement differ, this section
 governs.
 
@@ -1917,8 +1945,9 @@ Construction sequencing is **strict**, and — because the independent
 Codex review **rejected** the R3 checkpoint (no R3 active record is
 accepted) — the truthful sequence now runs through the ordered repair
 units: **R3 (executed; rejected) → R2.6 (executed; rejected) → R2.7
-(executed; rejected) → R2.8 (executed; rejected) → R2.9 → independent
-Codex R2.9 review → R3.1 → independent Codex R3.1 review →
+(executed; rejected) → R2.8 (executed; rejected) → R2.9 (executed;
+rejected) → R2.10 → independent Codex R2.10 review → R3.1 →
+independent Codex R3.1 review →
 R4 → R5 → R6**. R4 depends on an independently **accepted** R3.1
 checkpoint (never on the rejected R3 alone), R5 on completed R4, and R6
 on completed R5 — every construction unit extends the shared
@@ -1940,6 +1969,11 @@ from published v1.1 LEAF IDs to active v2 LEAF IDs. Schema:
 | Edge type | One of the nine types below |
 | Scope/relationship | The exact inventoried fragment the edge dispositions, identified by the pinned leading fragment token `[<fragment ID>]` under the fragment-inventory contract below, followed by which part of the historical obligation the edge covers, and how |
 | Decision record | The `DR2-…` record that dispositioned the edge; for a terminal edge, a **direct reference to the current `DISP` record** (§15.9.4) — never a reference that resolves only through an `AMEND` chain to a superseded record |
+
+Pinned crosswalk-edge schema string (binding; identical in content and
+order to the field table above, stated here so the register is
+mechanically joinable exactly as every other governed population is):
+`Edge ID | Historical v1.1 LEAF | Active v2 LEAF or — | Edge type | Scope/relationship | Decision record`
 
 Edge types:
 
@@ -2078,18 +2112,37 @@ dispositions exactly one inventoried fragment.
   **multi-target-only** rule stated here and enforced identically in the
   per-LEAF completeness contract, U7, G1, and R9. Bundles are a support
   population (performing unit's receipt), append-only per §15.9.2:
-  `Bundle ID | Source historical LEAF | Source fragment ID | Member edge IDs | Member edge types | Member target IDs | Subject scope | Bundle class | Bundle status | Bundle version | Superseding/current relationship or —`
+  `Bundle ID | Source historical LEAF | Source fragment ID | Member edge IDs | Member edge types | Member target IDs | Member subject scopes | Subject scope | Bundle class | Bundle status | Bundle version | Superseding/current relationship or —`
   Rules (all binding): `Bundle ID` is `BND-<NNNN>`, unique, monotonic.
   `Source historical LEAF`/`Source fragment ID` name the fragment.
   `Member edge IDs` is `", "`-separated, ascending, **no duplicate
   members**, **≥2** `XW2-…` IDs (a one-member "bundle" is malformed —
   that fragment takes a bare single-target edge instead). `Member edge
-  types` and `Member target IDs` are aligned position-for-position with
+  types`, `Member target IDs`, and `Member subject scopes` are aligned
+  position-for-position with
   `Member edge IDs`; every member edge type is drawn only from the
   **nonterminal** vocabulary (`equivalent`, `split`, `merge`,
   `partial-overlap`, `moved` — never a terminal type, never an unknown
   type), and **no duplicate (source fragment, target) mapping** appears.
   `Subject scope` equals the fragment's Normalized fragment scope.
+  **`Member subject scopes` (added R2.10; the field that makes combined
+  exhaustive coverage mechanically provable)** is a `", "`-separated
+  list carrying, for each member position, that member edge's own
+  **member-specific sub-scope** — a §15.9.3 normalized scope in the
+  single-coordinate `span:<a>-<b>` grammar naming exactly the character
+  range of the fragment that member edge carries to its target. Its
+  binding rules: every element parses under the scope-atom grammar;
+  every element's ranges lie wholly **inside** the bundle's
+  `Subject scope`; **no two members' ranges overlap**; and the
+  **union of all member ranges equals the bundle's `Subject scope`
+  exactly** (canonical merged span-set equality) — so a member set that
+  leaves any residual character of the fragment uncovered, that
+  double-covers a character, or that reaches outside the fragment
+  **fails**. The pre-R2.10 schema stated the "together carry the whole
+  fragment" duty in prose while carrying no per-member coordinate, so
+  the duty was not mechanically demonstrable; it now is. Each element
+  must also equal the member edge's own Scope/relationship fragment
+  scope, in both directions.
   `Bundle class` is `active` (a bundle is always the nonterminal,
   actively owned disposition; a terminal fragment carries a single
   terminal edge, never a bundle — **active/terminal mixing fails**).
@@ -2447,8 +2500,34 @@ status` is the closed vocabulary `proposed` | `accepted` | `superseded`;
 `Resolution version` is an integer from `1`; `Superseding/current
 relationship` is `—` or `supersedes RES-<NNNN> per AMEND DR2-<NNNN>`.
 
+**Governed acceptance-receipt record (binding; parseable; added
+R2.10 — acceptance evidence must be *resolved and read*, never
+asserted).** The pre-R2.10 gate treated the `Acceptance commit` and
+`Acceptance receipt` cells as evidence merely by being *shaped* like a
+commit SHA and a path. Nothing required the commit to exist, the path
+to exist at it, or any receipt to say anything — so a repeated-digit
+SHA and a nonexistent file cleared a block, and the digest the gate
+compared against was itself a cell the maker wrote. Acceptance is
+therefore now carried by a **separate record living in the checker's
+receipt at the acceptance commit**, outside the maker's later control.
+
+Under the pinned heading **`## Independent acceptance record`**, an
+acceptance receipt carries one parseable row per accepted resolution:
+
+`Resolution ID | Accepted RES version | Accepted content digest | Accepted proposed outcome | Maker/proposer identity | Independent checker identity | Acceptance verdict`
+
+— `Acceptance verdict` is the closed vocabulary `ACCEPT` | `REJECT`.
+Binding rules: the receipt row is **immutable evidence at its commit**,
+and the row is **located by** the resolution's `Acceptance commit` — the
+commit at which the checker recorded it — so the row carries no commit
+column of its own and cannot be replayed for a different acceptance
+without moving the commit. The digest recorded here is the digest the
+checker actually accepted, fixed at that commit and outside the maker's
+later control.
+
 **Independent-acceptance gate (binding; acceptance bound to the exact
-current resolution — corrected R2.9).**
+current resolution and to resolvable, parsed evidence — corrected
+R2.10).**
 
 1. A resolution is `accepted` **only** when **all** hold: (a) its
    `Independent checker identity` and `Maker/proposer identity`
@@ -2457,16 +2536,32 @@ current resolution — corrected R2.9).**
    slugs; `agent:claude` and `agent:claude-code`, case variants, and
    other registered aliases of one actor are the **same** actor and do
    **not** qualify, and a blank or unknown/unregistered identity fails;
-   (b) `Acceptance commit` is a full 40-hex commit SHA and `Acceptance
-   receipt` a receipt path; and (c) the acceptance is bound to **this
-   exact current resolution** — `Accepted RES version` equals the
-   record's current `Resolution version`, `Accepted content digest`
-   equals the recomputed SHA-256 of the record's current binding content,
-   and `Accepted proposed outcome` equals the record's current
+   (b) `Acceptance commit` is a full 40-hex commit SHA that **resolves
+   to a real commit in the governing repository**, `Acceptance receipt`
+   is a path that **exists at that commit**, and the blob at that path
+   **parses** and carries an `## Independent acceptance record` row for
+   this exact `Resolution ID` whose `Acceptance verdict` is `ACCEPT` and
+   whose `Accepted RES version`, `Accepted content digest`, `Accepted
+   proposed outcome`, `Maker/proposer identity`, `Independent checker
+   identity`, and `Acceptance commit` are **each string-identical** to
+   the resolution row's corresponding current values; and (c) the
+   acceptance is bound to **this exact current resolution** —
+   `Accepted RES version` equals the record's current
+   `Resolution version`, `Accepted content digest` equals the
+   **recomputed** SHA-256 of the record's current binding content, and
+   `Accepted proposed outcome` equals the record's current
    `Proposed outcome`. **A maker can never self-accept or clear its own
-   blocked finding**, and a **stale, rejected, unrelated, or superseded**
-   acceptance (mismatched accepted version, digest, or outcome, or a
-   `superseded` record) never clears a block.
+   blocked finding**, and a **nonexistent, unresolvable, blank,
+   unrelated, stale, rejected, or superseded** acceptance — an
+   unresolvable commit, a receipt path absent at that commit, a receipt
+   carrying no matching row, a `REJECT` verdict, or a mismatched
+   accepted version, digest, outcome, maker, or checker — never clears a
+   block. Because (b) reads the digest **out of an immutable receipt at
+   a pinned commit** and (c) **recomputes** the digest from the
+   resolution's current content, a maker who later changes the proposed
+   content and rewrites the matching digest into its own row breaks the
+   comparison against the receipt and fails: self-certification by
+   digest substitution is mechanically impossible.
 2. A `BLK-…` finding becomes `resolved` **only** when its `Resolution
    ID` names a **current** `accepted` resolution satisfying (1);
    otherwise it stays `open`, fails U7, and stops the unit.
@@ -2750,30 +2845,68 @@ Field grammars and `—` rules (all binding):
   fails the record.
 
 **Subject-family exclusivity, equality, and grouping (binding — exact
-joins, corrected R2.9).** Mechanical equality and bidirectional
-reconciliation are checked across the full tuple **(subject class;
-historical LEAF or scenario; fragment ID; `Normalized scope`; `No-owner
-reason` basis; terminal edge ID; terminal edge type; generic `DR2-…`
-parent; `Status`; `Version`)** — every element is a **real field** of
-the detail row and the edge's register, and the edge and the detail row
-agree on every element, in both directions (`Normalized scope` by
-canonical span-set equality, every other element by exact string
-equality). Uniqueness/grouping keys: an `XW2-DISP` terminal disposition
+joins, corrected R2.10).**
+
+**(a) Edge ⇔ detail agreement tuple (only fields both structures
+actually carry).** The pre-R2.10 wording demanded agreement across a
+tuple that included `Status` and `Version` and called every element "a
+real field of the detail row **and the edge's register**" — but the
+§15.9.3 `XW2-…` and §15.9.8 `SXW2-…` edge schemas carry no status or
+version column, so that clause ordered a join against fields that do not
+exist. The agreement tuple is therefore exactly **(subject class —
+implied by the edge's register, `XW2-…` ⇒ `XW2-DISP`, `SXW2-…` ⇒
+`SXW2-DISP`; historical LEAF or historical scenario — the edge's source;
+fragment ID — the edge's pinned leading fragment token; `Normalized
+scope` — the fragment scope named in the edge's Scope/relationship
+column; terminal edge ID; terminal edge type — the edge's Edge type;
+generic `DR2-…` parent — the edge's Decision record)**. Every element of
+that tuple **is** a real column of both the detail row and the edge row,
+and the edge and the detail row must agree on every element, in both
+directions (`Normalized scope` by canonical span-set equality, every
+other element by exact string equality). `Status` and `Version` are
+fields of the **detail row only**; the edge's obligation with respect to
+them is the separate direct-current-reference rule — the edge's Decision
+record must name a `DISP` record whose detail row is `current`, never a
+`superseded` row and never a reference resolving only through an `AMEND`
+chain.
+
+**(b) Uniqueness/grouping keys.** An `XW2-DISP` terminal disposition
 is unique per **(historical source LEAF, historical fragment ID)**; an
 `SXW2-DISP` terminal disposition is unique per **(historical scenario,
 scenario fragment ID)**; and at most one current `DISP` detail row
 exists per terminal-subject key **and** basis (no-owner reason).
-**Terminal-base equality (exact; replaces the abolished "demonstrably
-identical" reviewer judgment):** two covered detail rows have equal
-terminal bases iff they are **string-identical on (`DISP subject class`,
-`Terminal edge type`, `No-owner reason`) and canonical-span-set-equal on
-`Normalized scope`, with identical `Search-manifest IDs`, `Search-set
-ID`, and `Evidence/provenance references` sets**. One `DISP` record may
-cover multiple detail rows **only** where those rows share **one**
-subject class **and** are terminal-base-equal by that exact rule, with
-every covered edge ID listed; an `XW2-DISP` record never carries an
-`SXW2-DISP` row and vice versa (**subject-family mismatch is
-prohibited**). Otherwise distinct dispositions take distinct records.
+
+**(c) Terminal-base equality (exact; corrected R2.10; replaces the
+abolished "demonstrably identical" reviewer judgment).** Two covered
+detail rows have equal terminal bases **iff all** of the following hold:
+
+1. They are **string-identical** on `DISP subject class`,
+   `Terminal edge type`, and `No-owner reason`.
+2. They are **string-identical on the complete subject** — for
+   `XW2-DISP`, on both `Historical source LEAF` **and**
+   `Historical fragment ID`; for `SXW2-DISP`, on both
+   `Historical scenario` **and** `Scenario fragment ID`. Two rows whose
+   **fragments differ are never terminal-base-equal**, whatever else
+   they share.
+3. They are **canonical-span-set-equal** on `Normalized scope`.
+4. They carry **identical** `Search-manifest IDs`, `Search-set ID`, and
+   `Evidence/provenance references` sets.
+5. They are **string-identical** on `Preserved candidate anchor`,
+   `Limitations`, and `Reopening condition` — the fields that state the
+   disposition's destination and its exit condition. Two rows whose
+   **destinations differ are never terminal-base-equal**.
+
+The pre-R2.10 rule omitted elements 2 and 5, so it contradicted its own
+worked transition example (§15.9.4 below, which holds that `XW2-0006`
+and `XW2-0012` are **not** terminal-base-equal precisely because their
+fragments and destinations differ). Elements 2 and 5 close that
+contradiction; the rule and the example now agree mechanically. One
+`DISP` record may cover multiple detail rows **only** where those rows
+share **one** subject class **and** are terminal-base-equal by that
+exact five-part rule, with every covered edge ID listed; an `XW2-DISP`
+record never carries an `SXW2-DISP` row and vice versa
+(**subject-family mismatch is prohibited**). Otherwise distinct
+dispositions take distinct records.
 
 **Edge-type ⇔ decision-type compatibility matrix (binding):**
 
@@ -2960,10 +3093,29 @@ Every mandatory field lives **only** in these pinned columns — never
 solely in a prose note, a `Mutable-source/archive note`, or any other
 unstructured catch-all.
 
-Base table (one row per record; all fourteen fields present; `—` only
+Base table (one row per record; all fifteen fields present; `—` only
 where the per-type validity matrix below permits):
 
-`Record ID | Provenance type | Source/provenance identity | Source date (basis:value) or — | Official URL or — | Artifact SHA-256 or — | Retrieval timestamp or — | Authentication timestamp or — | Verifier identity | Verification session ID | Verification date | Record limitations | Record status | Record version`
+`Record ID | Provenance type | Source/provenance identity | Source date (basis:value) or — | Official URL or — | Artifact SHA-256 or — | Artifact byte size or — | Retrieval timestamp or — | Authentication timestamp or — | Verifier identity | Verification session ID | Verification date | Record limitations | Record status | Record version`
+
+**`Artifact byte size` (added R2.10; the field without which the
+SM2 ⇔ current-`SRC2` reconciliation was impossible).** The
+search-manifest contract below requires every current artifact-bearing
+`SM2-…` record's `Binary size bytes` to equal "that record's recorded
+byte size" — but no `SRC2-…` field carried a byte size, so the required
+equality had no governed counterpart and could not be checked at all
+(it could only be faked against a validator's private table). `Artifact
+byte size` is that counterpart: the durable artifact's size in bytes as
+an **unpadded positive integer**, `—` **only** where `Artifact SHA-256`
+is also `—` (no durable artifact exists). The two artifact fields are
+governed together: **if durable bytes exist, both the SHA-256 and the
+byte size are mandatory**, and a record carrying one while omitting the
+other is malformed and fails. Migration of the committed
+`SRC2-001`/`SRC2-002`/`SRC2-003`/`SRC2-004` base rows to the
+fifteen-field base schema is an **R3.1 `AMEND` duty** (repair-plan item
+24) — R2.10 amends no committed record, so the committed four-record
+population remains a known, backlogged legacy nonconformity exactly as
+it is for the abolished composite fields below.
 
 The former composite `Record status/version` base field is **abolished**:
 a single field mixing lifecycle status and version could not be
@@ -3060,7 +3212,34 @@ machine-parseable components):**
   roles/scopes are separately representable (the pre-R2.8
   "at most one current row per (Record ID, basis)" rule could not
   represent two effective dates):
-  `Record ID | Date component ID | Date basis | Date role/scope | Date value | Source statement locator | Limitations or —`
+  `Record ID | Date component ID | Date basis | Date role/scope | Date value | Source statement locator | Limitations or — | Component status | Component version | Superseding/current relationship or —`
+  **Component lifecycle fields (added R2.10).** Date components are an
+  `AMEND`-governed live population under §15.9.2 — the draft-mutability
+  clause names `<Record ID>#D<k>` rows expressly, and `G15R`/G15/R9 all
+  require exactly-one-current endpoints and zero stale references across
+  them — yet the pre-R2.10 schema carried **no status, version, or
+  superseding field**, so "the current component", "a superseded
+  component", and "a stale reference to a superseded component" were
+  not representable at all and could not be gated. The three fields
+  close that gap and are governed exactly like their `SRC2-…` base
+  counterparts: `Component status` is the closed vocabulary
+  `current` | `superseded` (live registers, base `Source date` pairs,
+  and every dependent reference cite **only** `current` rows);
+  `Component version` is an unpadded positive integer from `1`,
+  incremented by the `AMEND` chain; `Superseding/current relationship`
+  is `—` for a first-mint current row, otherwise
+  `supersedes <Record ID>#D<k> per AMEND DR2-<NNNN>` naming the
+  superseded component and the `AMEND` record. Binding consequences:
+  **exactly one current row per (Record ID, Date basis, Date role/scope)**
+  and **exactly one current `primary` row per (Record ID, Date basis)**;
+  every superseding relationship names an existing component of the same
+  `Record ID` and an existing current `AMEND` `DR2-…` record; every
+  supersession chain terminates in **exactly one** current component or
+  an explicit removal; and a base `Source date` pair, `official-mutable`
+  detail date/season, `SM2-…`, or any other live reference that resolves
+  to a `superseded` component **fails** (stale reference). Migration of
+  the committed records' date components to this schema is an R3.1
+  `AMEND` duty (repair-plan item 24).
   Rules (all binding): `Date component ID` is `<Record ID>#D<k>` — the
   base Record ID, one ASCII `#`, one uppercase `D`, and an unpadded
   positive integer `k` allocated contiguously from `1`, append-only per
@@ -3330,6 +3509,7 @@ maker-vs-checker comparison.
 | Source date (basis:value) | Required — a `<basis>:<value>` pair under the source-date model above (`YYYY-MM-DD` where the source states an exact day for the basis; `YYYY-MM` only under the month-precision rule; an edition identifier only as `edition:…`; never a metadata-derived value), with every further supported semantic date in the date-component detail table | Required — a `<basis>:<value>` pair (`publication:`/`effective:` dates the publication states, or `edition:YYYY-YY` under the pinned season grammar) | Required (`effective:` date or window, in the detail row; base may mirror or carry `—` only if the detail window governs) | `—` permitted only where the contract has no dated basis |
 | Official URL | Required | Required | `—` only when no URL exists | `—` only when no URL exists |
 | Artifact SHA-256 | Required | Required (retrieved content) | `—` only when no durable artifact exists | `—` only when no durable artifact exists |
+| Artifact byte size | Required (unpadded positive integer) | Required (retrieved content) | `—` only when `Artifact SHA-256` is `—` | `—` only when `Artifact SHA-256` is `—` |
 | Retrieval timestamp | Required | Required | Required whenever content or an artifact was retrieved; otherwise `—` | Required whenever content or an artifact was retrieved; otherwise `—` |
 | Authentication timestamp | `—` unless separately applicable | `—` unless separately applicable | **Required** | **Required** (verification/authentication) |
 | Verifier identity | Required (never `—`) | Required (never `—`) | Required (never `—`) | Required (never `—`) |
@@ -3341,10 +3521,13 @@ maker-vs-checker comparison.
 
 **Timestamp and hash rules (binding):**
 
-- If durable bytes exist, their SHA-256 is mandatory — an existing
-  artifact is never recorded hashless.
+- If durable bytes exist, their SHA-256 **and** their `Artifact byte
+  size` are mandatory — an existing artifact is never recorded hashless
+  or sizeless, and a record carrying one of the two artifact fields
+  while omitting the other fails.
 - Official URL may be `—` only when no URL exists.
-- A hash may be `—` only when no durable artifact exists.
+- A hash may be `—` only when no durable artifact exists; the byte size
+  may be `—` only in exactly the same case.
 - A retrieval timestamp is required whenever content or an artifact was
   retrieved.
 - An authentication timestamp is required for direct communications,
@@ -3431,20 +3614,41 @@ source) in the performing unit's receipt, append-only per §15.9.2 and
 correctable only through `AMEND` lineage. Schema (one row per record;
 every field present; `—` only where marked):
 
-`Search record ID | Subject class | Subject historical LEAF | Subject historical fragment ID | Authority/provenance class searched | Source identity | Source record ID or — | Canonical URL or authenticated provenance identifier or — | Binary/version identity or — | Binary size bytes or — | Binary SHA-256 or — | Binary pagination or — | Binary signature/as-of or — | Exact locator/query/provision | Search method | Search-set ID or — | Search cutoff timestamp | Result | Result linkage or — | Result details | Limitations or — | Verifier identity | Verification session ID | Verification date | Search status | Search version`
+`Search record ID | Subject class | Subject historical LEAF or — | Subject historical fragment ID or — | Subject candidate anchor or — | Authority/provenance class searched | Source identity | Source record ID or — | Canonical URL or authenticated provenance identifier or — | Binary/version identity or — | Binary size bytes or — | Binary SHA-256 or — | Binary pagination or — | Binary signature/as-of or — | Exact locator/query/provision | Search method | Search-set ID or — | Search cutoff timestamp | Result | Result linkage or — | Result details | Limitations or — | Verifier identity | Verification session ID | Verification date | Search status | Search version`
 
 Field rules (binding; every loosely-typed field given an exact grammar,
 the SXW2 subject removed, the current-record uniqueness key and the
-SM2 ⇔ current-SRC2 binary reconciliation added — corrected R2.9):
+SM2 ⇔ current-SRC2 binary reconciliation added — corrected R2.9; the
+`candidate-obligation` subject variant added — corrected R2.10):
 
 - `Search record ID` — `SM2-<NNNN>`, unique, monotonically allocated.
-- `Subject class` — closed vocabulary with the **single** value
-  `XW2-DISP` (SXW2 policy, §15.9.3: SM2/SS2 search machinery is
-  XW2-only; the pre-R2.9 `SXW2-DISP` value and the vestigial scenario
-  subject fields are removed).
-- `Subject historical LEAF` / `Subject historical fragment ID` —
-  always required, never `—`: the §15.9.1 published LEAF ID and the
-  §15.9.3 fragment ID the search concerns; both must resolve.
+- `Subject class` — closed vocabulary, exactly one:
+  **`XW2-DISP` | `candidate-obligation`** (never `SXW2-DISP` — SXW2
+  policy, §15.9.3: SM2/SS2 search machinery is XW2-only, and the
+  pre-R2.9 `SXW2-DISP` value and vestigial scenario subject fields stay
+  removed). **The `candidate-obligation` variant is added by R2.10 to
+  close a contradiction that made the `blocked-unsupported-obligation`
+  route unreachable:** §15.9.3 admits a `candidate-obligation` `BLK-…`
+  finding for a newly discovered in-scope obligation that has **no
+  historical LEAF**, while requiring that finding to prove an adequate
+  not-located search through `SS2-…`/`SM2-…` records — but the pre-R2.10
+  SM2/SS2 schemas required a resolving historical LEAF and fragment ID
+  in every row, which such a candidate expressly lacks. No conforming
+  evidence set could therefore be written for a candidate obligation,
+  and the blocking outcome could never be satisfied. The subject fields
+  are now **polymorphic and mechanically exclusive**, exactly as the
+  §15.9.4 `DISP` detail schema is.
+- **`XW2-DISP` subject fields:** `Subject historical LEAF` and
+  `Subject historical fragment ID` are **both required, never `—`** —
+  the §15.9.1 published LEAF ID and the §15.9.3 fragment ID the search
+  concerns, both resolving; `Subject candidate anchor` is
+  **forbidden — exactly `—`**.
+- **`candidate-obligation` subject fields:** `Subject historical LEAF`
+  and `Subject historical fragment ID` are **forbidden — each exactly
+  `—`**; `Subject candidate anchor` is **required, never `—`** — the
+  canon anchor (e.g., `§13.3`) naming the discovered obligation, and it
+  must equal the `Subject candidate anchor` of the `BLK-…` finding and
+  the `SS2-…` set the record supports.
 - `Authority/provenance class searched` — exactly one token from the
   §15.9.5 authority classes or the §15.9.6 provenance types (`CBA`,
   `BYL`, `NBA`, `DERIVED`, `INFERRED`, `OPS`, `EXT`,
@@ -3467,7 +3671,9 @@ SM2 ⇔ current-SRC2 binary reconciliation added — corrected R2.9):
 - `Binary size bytes` — the searched artifact's size as an unpadded
   positive integer (bytes); `—` only for a non-artifact source. **When
   `Source record ID` names a current artifact-bearing `SRC2-…` record,
-  this must equal that record's recorded byte size.**
+  this must equal that record's `Artifact byte size` field exactly**
+  (the §15.9.6 base field added by R2.10 — before it existed this
+  equality named no governed counterpart and was unsatisfiable).
 - `Binary SHA-256` — the searched artifact's 64-lowercase-hex SHA-256;
   `—` only for a non-artifact source. **When `Source record ID` names a
   current artifact-bearing `SRC2-…` record, this must equal that
@@ -3509,12 +3715,19 @@ SM2 ⇔ current-SRC2 binary reconciliation added — corrected R2.9):
 - `Search version` — an unpadded positive integer from `1`, incremented
   by the `AMEND` chain.
 
-**SM2 current-record uniqueness key (binding).** No two **current**
-`SM2-…` records share the tuple **(Subject historical LEAF, Subject
-historical fragment ID, Authority/provenance class searched, Source
-identity, Search cutoff timestamp)**; a duplicate current search record
-fails the unit's reconciliation. Superseded records are exempt (they
-carry prior versions in the receipts).
+**SM2 current-record uniqueness key (binding; subject-polymorphic —
+R2.10).** No two **current** `SM2-…` records share the tuple
+**(Subject class, subject identity, Authority/provenance class searched,
+Source identity, Search cutoff timestamp)**, where *subject identity* is
+**(Subject historical LEAF, Subject historical fragment ID)** for an
+`XW2-DISP` record and **(Subject candidate anchor)** for a
+`candidate-obligation` record; a duplicate current search record fails
+the unit's reconciliation. Superseded records are exempt (they carry
+prior versions in the receipts). Every current `SM2-…` record must also
+carry a `Search-set ID` naming a current `SS2-…` set that lists it as a
+member, **or** be an expressly standalone search cited by no current
+disposition; a current `SM2-…` record that is cited nowhere and belongs
+to no set is an orphan and fails.
 
 **Search-set/coverage record (`SS2-<NNNN>`; binding; parseable —
 R2.8).** Individual `SM2-…` records cannot mechanically prove that the
@@ -3523,14 +3736,36 @@ record joins the required classes and the current member `SM2-…`
 records into one deterministic adequacy assessment. Support population
 (performing unit's receipt), append-only per §15.9.2:
 
-`Search set ID | Subject class | Subject LEAF or scenario | Subject fragment ID | Required source classes | Member SM2 IDs | Coverage assessment | Adequacy result | Set status | Set version`
+`Search set ID | Subject class | Subject LEAF or — | Subject fragment ID or — | Subject candidate anchor or — | Required source classes | Member SM2 IDs | Coverage assessment | Adequacy result | Set status | Set version`
 
 Rules (all binding; required classes made deterministic and the
-coverage assessment given a closed grammar — corrected R2.9):
+coverage assessment given a closed grammar — corrected R2.9; the
+`candidate-obligation` subject variant, the current-uniqueness key, and
+the bidirectional membership rule added — corrected R2.10):
 `Search set ID` is `SS2-<NNNN>`, unique, monotonic. `Subject class` is
-the **single** value `XW2-DISP` (SXW2 policy, §15.9.3: SS2 is XW2-only).
-`Subject LEAF` and `Subject fragment ID` name the exact fragment (a
-published LEAF ID + its `:F<n>`), both resolving.
+the closed vocabulary **`XW2-DISP` | `candidate-obligation`** (never
+`SXW2-DISP` — SXW2 policy, §15.9.3: SS2 is XW2-only), and it selects the
+subject fields exactly as the `SM2-…` contract above does: for
+**`XW2-DISP`**, `Subject LEAF` and `Subject fragment ID` name the exact
+fragment (a published LEAF ID + its `:F<n>`), both resolving, and
+`Subject candidate anchor` = `—`; for **`candidate-obligation`**,
+`Subject LEAF` and `Subject fragment ID` are each exactly `—` and
+`Subject candidate anchor` is the required, resolving canon anchor.
+
+**SS2 current-record uniqueness and membership (binding — R2.10).** No
+two **current** `SS2-…` records share the tuple **(Subject class,
+subject identity)** — *subject identity* being (Subject LEAF, Subject
+fragment ID) for `XW2-DISP` and (Subject candidate anchor) for
+`candidate-obligation` — so a fragment or candidate never has two
+competing current coverage assessments. Membership is **bidirectional
+and complete**: every ID in `Member SM2 IDs` resolves to a **current**
+`SM2-…` record whose `Search-set ID` **back-references this exact set**
+and whose `Subject class` and subject identity are **identical to this
+set's**; and every current `SM2-…` record that back-references this set
+appears in `Member SM2 IDs` (no member listed that does not
+back-reference, and no back-referencing record omitted from the member
+list). A member that is `superseded`, that names a different set, or
+whose subject differs from the set's subject fails the set.
 **`Required source classes` — deterministic, not maker-selected.** It is
 **exactly** the fixed closed set **`CBA, BYL, NBA, ops-provenance`** (in
 that order) for every `unsupported-residual` subject — the four
@@ -4099,10 +4334,42 @@ claim that the full R8 global gate G15 has run. At the R3.1 checkpoint,
     actor) and whose acceptance is **bound to the exact current
     resolution** (`Accepted RES version` = current `Resolution version`,
     `Accepted content digest` = the recomputed current-content digest,
-    `Accepted proposed outcome` = current `Proposed outcome`), with a
-    full-SHA `Acceptance commit` and `Acceptance receipt`; a stale,
-    superseded, or unrelated acceptance never clears, and no `open`
+    `Accepted proposed outcome` = current `Proposed outcome`), with an
+    `Acceptance commit` that **resolves in the governing repository** and
+    an `Acceptance receipt` that **exists at that commit and parses** to
+    a matching `## Independent acceptance record` `ACCEPT` row
+    (§15.9.3); a nonexistent, unresolvable, stale, superseded,
+    `REJECT`ed, or unrelated acceptance never clears, and no `open`
     finding is treated as cleared.
+
+**`G15R` population enumeration (binding; each population individually
+executed, not merely declared — corrected R2.10).** The pre-R2.10 gate
+listed its populations in prose, and a validator could satisfy it by
+checking a subset while the rest silently disappeared. `G15R` is
+therefore an **enumerated per-population gate**: checks 1–11 above are
+run **individually and by name** against each of the following twelve
+populations, and the **absence** of any population that the migrated
+document's own state requires is itself a `G15R` failure attributed to
+that population:
+
+| # | `G15R` population | Individually required when |
+|---|---|---|
+| R1 | `SRC2-…` base rows | Always (the shared source registry exists from R3) |
+| R2 | `<Record ID>#D<k>` date-component rows | Whenever any `SRC2-…` base row carries a `Source date` pair |
+| R3 | Historical-fragment inventory rows | Whenever any `XW2-…` edge carries a leading fragment token |
+| R4 | `BND-…` disposition bundles | Whenever any fragment maps to **two or more** active targets |
+| R5 | `SM2-…` search-manifest records | Whenever any `unsupported-residual` disposition or `BLK-…` finding exists |
+| R6 | `SS2-…` search-set records | Whenever any `SM2-…` record exists or any disposition relies on coverage |
+| R7 | `DISP` detail rows | Whenever any terminal `XW2-…`/`SXW2-…` edge exists |
+| R8 | `BLK-…` blocked findings | Whenever a wholly unsupported valid in-scope obligation was found |
+| R9 | `RES-…` resolutions | Whenever any `BLK-…` finding is `resolved` |
+| R10 | `AMEND` `DR2-…` records | Whenever any committed record is superseded, removed, or re-versioned |
+| R11 | `DR2-…` decision records (complete population) | Always — every generic decision record, its type, its detail rows, and its parent/child joins |
+| R12 | Dependent references and current endpoints | Always — every `XW2`/`SXW2`/`EV2`/register/detail reference resolving to a **current** record, and exactly one current endpoint per supersession chain |
+
+Removing, emptying, or failing to migrate **any** individually required
+population above fails `G15R` **for that population by name**; a gate
+report that does not name all twelve is not a `G15R` result.
 
 G15 (R8) and R9 later rerun the global equivalents across every live
 v2 population; `G15R` neither replaces nor weakens them.
@@ -4222,6 +4489,36 @@ and **G1/G3** the `candidate-obligation` `BLK-…` subject class for a
 newly discovered in-scope obligation with no historical LEAF. **R9**
 independently re-runs all of the above.
 
+**R2.10 dependent-gate propagation (binding; the repaired contracts flow
+through every gate above).** Each R2.10 repair is enforced wherever its
+contract is checked, so no gate can pass on a state another gate would
+reject: **U7** rejects a `BND-…` bundle whose `Member subject scopes`
+do not partition its fragment exactly, and rejects a
+`candidate-obligation` `BLK-…` finding whose `SS2-…`/`SM2-…` evidence is
+not expressed in the `candidate-obligation` subject variant; **U8/U9**
+enforce the `SRC2-…` `Artifact byte size` field, the SM2 ⇔ current-`SRC2`
+byte-size **and** hash equality against that governed field (never
+against any value private to a validator), and the date-component
+lifecycle — exactly one current row per (Record ID, basis, role/scope),
+exactly one current `primary` per basis, and zero references to a
+`superseded` component; **G1/G3** apply the corrected `DISP`
+terminal-base-equality rule, so two detail rows differing in subject
+fragment, preserved-candidate anchor, limitations, or reopening
+condition can never be grouped under one `DISP` record, and apply the
+corrected edge ⇔ detail agreement tuple, which never asserts a join
+against a field the edge register does not carry; **G14** recomputes the
+same byte-size/hash equality globally; **G15/`G15R`** treat an
+`Acceptance commit` that does not resolve, an `Acceptance receipt` that
+does not exist at that commit, or a receipt with no matching
+`## Independent acceptance record` `ACCEPT` row as a **failed**
+acceptance, and `G15R` reports its twelve enumerated populations
+individually by name — including the complete `DR2-…` population and
+every dependent reference and current endpoint. Across every gate, the
+§15.9.11 governed inventory is the **only** admissible source of
+vocabularies, schema field lists, dependencies, and anchors; a gate
+result produced against a validator's private copies is not a gate
+result. **R9** independently re-runs all of the above.
+
 **R9 — independent acceptance.** The independent reviewer (who authored no
 part of v2.0) must: re-run every mechanical gate from scratch;
 independently sample primary-source passages; independently sample active
@@ -4304,9 +4601,252 @@ history):
 | Per-unit code-map and global dependency gates | Unit-local gates in R3–R6; global gates at R8 |
 | Scenarios 1–89 as the active library | Frozen historical; the active library is `CBA2-SC-…`, built by R7 |
 
+#### 15.9.11 Governed inventory — closed vocabularies, pinned schemas, dependencies, and preservation anchors (binding; machine-readable; added R2.10)
+
+**Why this subsection is binding.** Through R2.9 the governing contracts
+of §15.9 lived only in prose clauses, and the validator that had to
+enforce them carried its own parallel Python copies — hard-coded
+vocabulary allow-sets that filtered whatever the canon declared, an
+actor-family function that ignored the parsed alias table, and private
+source hash/size dictionaries standing in for governed fields. A
+parallel contract is not an implementation of a governing contract: it
+silently survives edits to the canon, so a governing field could be
+removed, a vocabulary entry changed, or a schema weakened with the
+validator none the wiser. This subsection removes the need for any such
+copy. It is the **single machine-readable inventory** of every closed
+vocabulary, every pinned schema, every cross-schema dependency, every
+immutable preservation anchor, and every pinned population source that
+§15.9 governs.
+
+**Binding use rules (all mandatory):**
+
+1. A conforming validator **parses this inventory** and uses it as the
+   **sole** source of truth for vocabularies, schema field lists,
+   dependencies, and anchors. Hard-coding any of them in validator code
+   — as an allow-set, a filter over parsed values, a fallback, or a
+   private lookup table — is **prohibited**, and a validator that does
+   so is not a conforming validator of this standard.
+2. The inventory and the governing clause **reconcile bidirectionally**,
+   by this exact mechanical procedure. Each `Anchor` cell is a code span
+   whose content contains **no backtick and no `|`**, so the anchor is
+   read by removing exactly one leading and one trailing backtick; the
+   anchor must occur **exactly once** in this file outside §15.9.11
+   (an ambiguous or unresolvable anchor is itself a defect). Then:
+   - **Vocabulary:** the *anchored window* is the 2,000 bytes beginning
+     at the anchor. Every value listed here must appear inside that
+     window as a backtick-delimited or `**`-delimited token — or, where
+     the clause pins the vocabulary as a single ordered list (the
+     deterministic `SS2-…` required set), as that whole `", "`-joined
+     token. Conversely, no governed row anywhere may carry a value of
+     this vocabulary that is absent from this inventory (closure at use
+     sites, rule 3).
+   - **Schema:** take the **first** backtick-delimited pipe-list at or
+     after the anchor, split it on `|`, strip each field, and require
+     **exact ordered equality** with the `Fields` list here (whose `;`
+     delimiter substitutes for the schema string's `|`), and require the
+     `Count` column to equal the number of fields.
+   A divergence in either direction is a **canon defect** and
+   fails validation — it is never resolved by preferring one side.
+3. **Closure at use sites.** No governed row may carry a value of an
+   inventoried vocabulary that this inventory does not list, and no
+   governed table may carry a field list that its pinned schema does not
+   declare. An unlisted value or an undeclared field fails the row.
+4. This inventory is extended or changed **only by a governed foundation
+   amendment recorded in a checkpoint receipt**, never silently.
+
+**Inventory A — closed vocabularies (exact; ordered).** Values are the
+complete membership; `Anchor` is a literal, once-occurring string of
+this canon at or before the governing declaration.
+
+| Vocabulary key | Anchor | Closed values (exact, ordered) |
+|---|---|---|
+| `date-basis` | `Closed date-basis vocabulary (exactly one per pair):` | `publication`, `effective`, `edition`, `agreement-as-of` |
+| `fragment-kind` | `Fragment kinds (closed vocabulary; exactly one per fragment):` | `substantive-obligation`, `authority-assertion`, `process-instruction`, `gap-assertion` |
+| `xw2-edge-type` | `Edge types:` | `equivalent`, `split`, `merge`, `partial-overlap`, `moved`, `process-only`, `invalid`, `no-successor`, `unsupported-residual` |
+| `xw2-terminal-edge-type` | `3. Every non-terminal edge targets an` | `process-only`, `invalid`, `no-successor`, `unsupported-residual` |
+| `sxw2-edge-type` | `**Scenario crosswalk** (` | `equivalent`, `split`, `merge`, `partial-overlap`, `moved`, `invalid`, `no-successor` |
+| `sxw2-terminal-edge-type` | `7. Every non-terminal edge targets an existing active` | `invalid`, `no-successor` |
+| `authority-class` | `The only authority classes are:` | `CBA`, `BYL`, `NBA`, `DERIVED`, `INFERRED`, `OPS`, `EXT` |
+| `provenance-type` | `Provenance types (closed vocabulary; exactly one per record):` | `official-immutable`, `official-mutable`, `ops-provenance`, `ext-contract` |
+| `dr2-type` | `**Decision-record schemas.** Decision records are parseable rows in the` | `OWN`, `ATOM`, `TG`, `MOVE`, `ORIGIN`, `METHOD`, `AMEND`, `DISP` |
+| `disp-subject-class` | `the row's one current generic parent.` | `XW2-DISP`, `SXW2-DISP` |
+| `no-owner-reason` | `one the edge type requires:` | `false-claim`, `process-material`, `out-of-scope-or-obsolete`, `authority-not-located` |
+| `search-method` | `(the exact provision inspected or the exact query run).` | `full-text-sweep`, `provision-read`, `query`, `index-scan`, `attestation-availability-check` |
+| `search-result` | `the search speaks only as` | `qualifying-authority-located`, `no-qualifying-authority-located-in-searched-sources`, `inconclusive` |
+| `sm2-subject-class` | `unique, monotonically allocated.` | `XW2-DISP`, `candidate-obligation` |
+| `ss2-subject-class` | `Search-set/coverage record (` | `XW2-DISP`, `candidate-obligation` |
+| `ss2-required-source-class` | `— deterministic, not maker-selected.**` | `CBA`, `BYL`, `NBA`, `ops-provenance` |
+| `coverage-state` | `-separated list with **exactly one token per required` | `covered`, `uncovered` |
+| `adequacy-result` | `only an inadequate member, or any member reporting` | `adequate-coverage`, `inadequate-coverage` |
+| `blk-subject-class` | `(unique, monotonic).` | `XW2-DISP`, `candidate-obligation` |
+| `blk-finding-type` | `discovered obligation.` | `blocked-unsupported-obligation` |
+| `blk-finding-status` | `is the canon anchor.` | `open`, `resolved` |
+| `res-proposed-outcome` | `Resolution record (composite acceptance field split and bound to the` | `foundation-vocabulary-or-scope-decision`, `authority-located-mint-owner`, `out-of-scope-determination` |
+| `res-resolution-status` | `value the checker accepted, or` | `proposed`, `accepted`, `superseded` |
+| `acceptance-verdict` | `Under the pinned heading` | `ACCEPT`, `REJECT` |
+| `record-status` | `status selects live rows; version drives` | `current`, `superseded` |
+| `bundle-class` | `equals the fragment's Normalized fragment scope.` | `active` |
+| `date-role-kind` | `required, non-empty discriminator: exactly` | `primary`, `scoped:<slug>` |
+| `binary-signature-state` | `— exactly one of` | `signed`, `unsigned`, `as-of:<YYYY-MM-DD>` |
+| `canonical-actor-class` | `Canonical-actor registry and alias normalization (binding — R2.9).` | `agent:claude`, `agent:codex`, `human:<slug>` |
+
+**Inventory B — pinned schemas (exact; ordered).** `Fields` lists the
+governing clause's pinned schema string with `"; "` substituted for the
+schema string's own `"|"` delimiter (no field name contains `;`), so the
+list survives this markdown table. A conforming validator resolves the
+anchor, takes the first backticked pipe-list at or after it, splits it
+on `|`, and requires **exact ordered equality** with the list here.
+
+| Schema key | Anchor | Count | Fields |
+|---|---|---:|---|
+| `SRC2-base` | `Base table (one row per record; all fifteen fields present;` | 15 | `Record ID; Provenance type; Source/provenance identity; Source date (basis:value) or —; Official URL or —; Artifact SHA-256 or —; Artifact byte size or —; Retrieval timestamp or —; Authentication timestamp or —; Verifier identity; Verification session ID; Verification date; Record limitations; Record status; Record version` |
+| `SRC2-date-component` | `Date-component detail table (fixed; joinable; stable-identity;` | 10 | `Record ID; Date component ID; Date basis; Date role/scope; Date value; Source statement locator; Limitations or —; Component status; Component version; Superseding/current relationship or —` |
+| `SRC2-detail-official-immutable` | `Type-specific detail tables (one pinned schema per provenance type;` | 3 | `Record ID; Source title and edition; Page geometry` |
+| `SRC2-detail-official-mutable` | `it hid publication` | 6 | `Record ID; Publication identity; Publication date or —; Season or —; Exact values or text relied upon; Archive/snapshot reference or —` |
+| `SRC2-detail-ops-provenance` | `never any other season syntax)` | 8 | `Record ID; Named first-party provenance identity; Authority/role of the source; Practice scope; Effective date or window; Authentication method; Configurability; Artifact identity or —` |
+| `SRC2-detail-ext-contract` | `durable artifact exists; Record limitations always required)` | 8 | `Record ID; External determination class; Runtime input schema; Required decision provenance; Scope; Effective/expiration behavior; Controlling source/rule reference or —; Verification/authentication method` |
+| `EV2-component` | `Per-LEAF authority-component evidence` | 10 | `Evidence component ID; Active v2 LEAF; Authority class; Source/provenance record IDs or —; Dependency evidence component IDs or —; Exact locator(s); Controlling passage or tight paraphrase; Passage-to-obligation mapping; Formula/inference/provenance details; Limitations/uncertainty` |
+| `SM2-record` | `Search-manifest registry (` | 27 | `Search record ID; Subject class; Subject historical LEAF or —; Subject historical fragment ID or —; Subject candidate anchor or —; Authority/provenance class searched; Source identity; Source record ID or —; Canonical URL or authenticated provenance identifier or —; Binary/version identity or —; Binary size bytes or —; Binary SHA-256 or —; Binary pagination or —; Binary signature/as-of or —; Exact locator/query/provision; Search method; Search-set ID or —; Search cutoff timestamp; Result; Result linkage or —; Result details; Limitations or —; Verifier identity; Verification session ID; Verification date; Search status; Search version` |
+| `SS2-record` | `Search-set/coverage record (` | 11 | `Search set ID; Subject class; Subject LEAF or —; Subject fragment ID or —; Subject candidate anchor or —; Required source classes; Member SM2 IDs; Coverage assessment; Adequacy result; Set status; Set version` |
+| `fragment-inventory` | `- **Fragment-inventory schema (pinned; one row per fragment, in the` | 10 | `Fragment ID; Historical parent LEAF; Fragment kind; Normalized fragment scope; Decomposition decision record; Disposition bundle ID or —; Disposition edge ID(s); Fragment status; Fragment version; Limitations or —` |
+| `BND-bundle` | `- **Disposition-bundle schema (pinned; fixed; parseable — corrected` | 12 | `Bundle ID; Source historical LEAF; Source fragment ID; Member edge IDs; Member edge types; Member target IDs; Member subject scopes; Subject scope; Bundle class; Bundle status; Bundle version; Superseding/current relationship or —` |
+| `BLK-record` | `Blocked-finding record (composite subject/search references split and` | 15 | `Blocked finding ID; Subject class; Subject historical LEAF or —; Subject fragment ID or —; Subject candidate anchor or —; Finding type; Search-set ID or —; Search-manifest IDs or —; Evidence references or —; Preserved candidate anchor; Finding status; Finding version; Resolution ID or —; Superseding/current relationship or —; Limitations` |
+| `RES-record` | `Resolution record (composite acceptance field split and bound to the` | 16 | `Resolution ID; Blocked finding ID; Proposed outcome; Resolver authority; Maker/proposer identity; Independent checker identity; Acceptance commit or —; Acceptance receipt or —; Accepted RES version or —; Accepted content digest or —; Accepted proposed outcome or —; Resolution status; Resolution version; Reopening condition; Limitations; Superseding/current relationship or —` |
+| `acceptance-receipt-record` | `Under the pinned heading` | 7 | `Resolution ID; Accepted RES version; Accepted content digest; Accepted proposed outcome; Maker/proposer identity; Independent checker identity; Acceptance verdict` |
+| `DR2-generic` | `**Decision-record schemas.** Decision records are parseable rows in the` | 8 | `DR ID; Type; Subject(s); Disposition; Test/tiebreak applied; Rationale; Resulting active LEAF(s) or —; Unit/commit` |
+| `DISP-detail` | `detail schema (binding; fixed, parseable, and polymorphic by` | 19 | `DR2 record ID; DISP subject class; Historical source LEAF or —; Historical fragment ID or —; Historical scenario or —; Scenario fragment ID or —; Normalized scope; Terminal edge ID; Terminal edge type; Search-manifest IDs or —; Search-set ID or —; Evidence/provenance references or —; No-owner reason; Preserved candidate anchor or —; Limitations; Reopening condition; Superseding/current relationship or —; Status; Version` |
+| `XW2-edge` | `Pinned crosswalk-edge schema string (binding; identical in content and` | 6 | `Edge ID; Historical v1.1 LEAF; Active v2 LEAF or —; Edge type; Scope/relationship; Decision record` |
+| `SXW2-edge` | `**Scenario crosswalk** (` | 6 | `Edge ID; Historical scenario; Active v2 scenario or —; Edge type; Scope/relationship; Decision record` |
+| `LEAF-main` | `Physical layout (binding for R3–R6): per family, a main table` | 8 | `ID; Requirement; Authority; Primary; Secondary; Evidence; Origin; Notes` |
+| `LEAF-detail` | `plus a detail table keyed by ID for` | 4 | `Scenario evidence; Dependencies; Lifecycle/date inputs; Decision records` |
+| `GROUP-index` | `uniform layout across families. GROUP rows are carried per family as` | 4 | `ID; Title/audit question; Active LEAF children; Notes` |
+
+The `XW2-…` crosswalk is additionally declared as a two-column field
+table in §15.9.3; its pinned schema string and that table's first column
+carry the same fields in the same order. The
+`LEAF-detail` physical table is that pinned four-field list **keyed by
+`ID`**, so its rendered header is `ID` followed by the four fields.
+
+**Inventory C — cross-schema dependencies (binding).** A field on the
+left is meaningless unless the field on the right exists in its own
+pinned schema. A validator enforces both directions: removing the
+counterpart while keeping the dependent field, or weakening either
+schema without migrating the other, **fails**.
+
+| Dependent schema.field | Required counterpart schema.field | Governing rule |
+|---|---|---|
+| `SM2-record.Binary size bytes or —` | `SRC2-base.Artifact byte size or —` | SM2 ⇔ current-`SRC2` byte-size equality (§15.9.6) |
+| `SM2-record.Binary SHA-256 or —` | `SRC2-base.Artifact SHA-256 or —` | SM2 ⇔ current-`SRC2` hash equality (§15.9.6) |
+| `SM2-record.Subject candidate anchor or —` | `BLK-record.Subject candidate anchor or —` | `candidate-obligation` subject variant (§15.9.6/§15.9.3) |
+| `SS2-record.Subject candidate anchor or —` | `SM2-record.Subject candidate anchor or —` | Search-set/member subject identity (§15.9.6) |
+| `SS2-record.Member SM2 IDs` | `SM2-record.Search-set ID or —` | Bidirectional set membership (§15.9.6) |
+| `DISP-detail.Normalized scope` | `fragment-inventory.Normalized fragment scope` | Joinable span-set equality (§15.9.4/§15.9.3) |
+| `DISP-detail.Search-set ID or —` | `SS2-record.Search set ID` | `unsupported-residual` coverage binding (§15.9.4) |
+| `BND-bundle.Member subject scopes` | `fragment-inventory.Normalized fragment scope` | Exhaustive member coverage of the fragment (§15.9.3) |
+| `BND-bundle.Member edge IDs` | `fragment-inventory.Disposition edge ID(s)` | Set-equality of bundle members and fragment edges (§15.9.3) |
+| `RES-record.Accepted content digest or —` | `acceptance-receipt-record.Accepted content digest` | Acceptance bound to parsed receipt evidence (§15.9.3) |
+| `RES-record.Acceptance commit or —` | `RES-record.Acceptance receipt or —` | The acceptance commit locates the receipt that carries the acceptance record (§15.9.3) |
+| `BLK-record.Resolution ID or —` | `RES-record.Resolution ID` | Resolved findings name a current resolution (§15.9.3) |
+| `SRC2-base.Source date (basis:value) or —` | `SRC2-date-component.Date value` | Base pair equals its basis's current `primary` component (§15.9.6) |
+| `SRC2-date-component.Component status` | `record-status` | Exactly one current component per (record, basis, role/scope) (§15.9.6) |
+
+**Inventory D — immutable-range preservation anchors (binding).** These
+ranges of this file are **never edited** by any repair unit. A range is
+the bytes from the first byte of the first line **beginning with** the
+`From line prefix` to the last byte before the first later line
+**beginning with** the `To line prefix`; the hash is the SHA-256 of
+exactly those bytes. A repair unit that changes any of them has violated
+its preservation boundary.
+
+| Range key | From line prefix | To line prefix | SHA-256 |
+|---|---|---|---|
+| `sec-5.9` | `### 5.9` | `## 6.` | `53c968ade8cdb2177517412ac09f2bae63ee7642cfa3b24299d2b208895fb373` |
+| `sec-15.1-15.8` | `### 15.1` | `### 15.9` | `7b3f6aaba81129dceaa8e55f6356f8bbecd3af7e1ff59b127a443fc5d7b14d97` |
+| `sec-16-scenarios` | `## 16. Acceptance-test library` | `## 17. Recommended comparison sequence` | `eb11bb122840f881204be4d3de9b8a47a680a19622677e4287227730615b311f` |
+
+**Inventory E — pinned commits (binding).** Every population is read
+from a pinned source; a validator that invents a population, or reads
+one from anywhere else, is not conforming.
+
+| Pinned commit key | Commit | Role |
+|---|---|---|
+| `published-v1.1` | `9814939c794595b988de21d8013934dc5342c8ee` | The frozen published v1.1 edition — the sole historical source of every `XW2-…`/`SXW2-…` edge, of every published LEAF's normalized Canonical requirement text, and of scenarios 1–89 (file SHA-256 `4a0760c81d7a5e95919a0373d5ff631b565d064d56b858fe3b8869ad2b6bb3f6`; §16 range 14,390 bytes, SHA-256 `5289f6b812c2d86238674461574c725e894f0bca0db4da188b276246d96706aa`) |
+| `r3-checkpoint` | `07f0667d8cc55a6b86bd4c3fabada5d9b6d7d956` | The committed R3 legacy population — the identity-preservation baseline |
+
+**Inventory F — canon-side population sections (binding).** Each
+population below is exactly the pipe-delimited rows of its pinned field
+count, whose first cell matches its ID grammar, inside the section
+running from the first line beginning with `From line prefix` to the
+first later line beginning with `To line prefix`, in this file.
+
+| Population | From line prefix | To line prefix | ID grammar (regex) |
+|---|---|---|---|
+| `GROUP-index` | `#### 15.10.1` | `#### 15.10.2` | `CBA2-[A-Z][0-9]{2}` |
+| `LEAF-main` | `#### 15.10.2` | `#### 15.10.3` | `CBA2-[A-Z][0-9]{2}\.[0-9]+` |
+| `LEAF-detail` | `#### 15.10.3` | `### 15.11` | `CBA2-[A-Z][0-9]{2}\.[0-9]+` |
+| `XW2-edge` | `### 15.11` | `### 15.12` | `XW2-[0-9]{4}` |
+| `SRC2-base` | `#### 15.12.1` | `#### 15.12.2` | `SRC2-[0-9]{3}` |
+| `SRC2-detail-official-immutable` | `#### 15.12.2` | `#### 15.12.3` | `SRC2-[0-9]{3}` |
+| `SRC2-detail-official-mutable` | `#### 15.12.3` | `#### 15.12.4` | `SRC2-[0-9]{3}` |
+| `EV2-component` | `#### 15.12.4` | `## 16.` | `EV2-[0-9]{4}` |
+| `SXW2-edge` | `### 15.13` | `## 16.` | `SXW2-[0-9]{4}` |
+
+The `LEAF-detail` and `GROUP-index` physical tables are keyed by `ID`,
+so their rendered field counts are their pinned counts (the pinned
+`LEAF-detail` list does not repeat the key). §15.13 does not exist
+before R7; a population whose section is absent is empty, which is a
+defect only where another rule requires it to be populated.
+
+**Inventory G — support populations in performing-unit receipts
+(binding).** A support population is located by its **pinned heading
+token**: its rows are exactly the pipe-delimited rows, of that
+population's pinned field count, whose first cell matches its ID
+grammar, under a markdown heading whose text contains the token, up to
+the next heading of the same or higher level, in any file under
+`work/architect-completion/`. A row of the right shape outside its
+pinned heading block is not part of the population; a row inside the
+block whose field count differs from the pinned schema **fails** the
+population.
+
+| Population | Pinned heading token | ID grammar (regex) |
+|---|---|---|
+| `DR2-generic` | `Decision records` | `DR2-[0-9]{4}` |
+| `DISP-detail` | `DISP detail rows` | `DR2-[0-9]{4}` |
+| `fragment-inventory` | `Fragment inventory` | `CBA-[A-Z][0-9]{2}(\.[0-9]+)?:F[0-9]+` |
+| `BND-bundle` | `Disposition bundles` | `BND-[0-9]{4}` |
+| `SM2-record` | `Search manifests` | `SM2-[0-9]{4}` |
+| `SS2-record` | `Search sets` | `SS2-[0-9]{4}` |
+| `BLK-record` | `Blocked findings` | `BLK-[0-9]{4}` |
+| `RES-record` | `Resolutions` | `RES-[0-9]{4}` |
+| `SRC2-date-component` | `Date components` | `SRC2-[0-9]{3}` |
+| `scenario-fragment-inventory` | `Scenario fragment inventory` | `scenario-[0-9]+:F[0-9]+` |
+| `acceptance-receipt-record` | `Independent acceptance record` | `RES-[0-9]{4}` |
+
+**Preservation versus conformance (binding; the distinction R2.10
+makes explicit).** Two different duties were previously conflated into
+one set of fixed population totals, which both false-rejected
+legitimate future additions and let count-preserving substitutions pass:
+
+- **Identity preservation** is a duty over the **committed R3 legacy
+  population**. Every ID allocated at the pinned R3 checkpoint must
+  still **resolve** in the live document — present as a current record,
+  or resolved forward through a valid `AMEND` chain to a current
+  successor or an explicit removal (§15.9.2). Renaming, renumbering,
+  reusing, substituting, dropping, or duplicating any committed ID
+  fails preservation. Preservation is checked against the **pinned R3
+  checkpoint commit**, never against a total.
+- **Schema conformance** is a duty over **whatever population is
+  present**, current and future alike: grammar, membership, references,
+  and reconciliation. It carries **no fixed totals**, so an append-only
+  addition above any namespace's current high-water mark conforms if and
+  only if it is well-formed.
+
+A fixed expected count is therefore **never** a conformance criterion,
+and identity preservation is **never** satisfied by a matching count.
+
 ### 15.10 Active v2 register (created by R3; A family)
 
-This section is the active v2 registry of §15.9.1 — the only obligation-bearing, verdict-bearing register once canon v2.0 is accepted at R9. R3 created it with the A family (critical trade correctness); R4–R6 extend it in place with the C, R, L, and S families under the §15.9.2 sequence, which now runs through the ordered repair units (R3 rejected → R2.6 rejected → R2.7 rejected → R2.8 rejected → R2.9 → independent Codex R2.9 review → R3.1 → independent Codex R3.1 review → R4 → R5 → R6). The R3 receipt asserted per-LEAF source certification of every requirement below, but the independent Codex review of the R3 checkpoint returned **REJECT/BLOCK-R4**: that certification is **not accepted**, no active A record is accepted, and the rows below are the committed live draft population pending R3.1 repair through `AMEND` lineage. Scenario evidence is populated at R7. Nothing in this section carries a Phase 2 verdict before R9 ACCEPT.
+This section is the active v2 registry of §15.9.1 — the only obligation-bearing, verdict-bearing register once canon v2.0 is accepted at R9. R3 created it with the A family (critical trade correctness); R4–R6 extend it in place with the C, R, L, and S families under the §15.9.2 sequence, which now runs through the ordered repair units (R3 rejected → R2.6 rejected → R2.7 rejected → R2.8 rejected → R2.9 rejected → R2.10 → independent Codex R2.10 review → R3.1 → independent Codex R3.1 review → R4 → R5 → R6). The R3 receipt asserted per-LEAF source certification of every requirement below, but the independent Codex review of the R3 checkpoint returned **REJECT/BLOCK-R4**: that certification is **not accepted**, no active A record is accepted, and the rows below are the committed live draft population pending R3.1 repair through `AMEND` lineage. Scenario evidence is populated at R7. Nothing in this section carries a Phase 2 verdict before R9 ACCEPT.
 
 #### 15.10.1 A family — GROUP index
 
@@ -5000,7 +5540,7 @@ This classification is part of the canon. A later source may move an OPS item in
 
 **v2.0 status continuity (binding, R2.2).** The family-level rows above — including every "Primary-source verified" claim — are **legacy v1.0/v1.1 status claims preserved for continuity**. They are **not** active v2 per-LEAF certification: the independent v1.1 acceptance review falsified parts of the "primary-source verified" claim, and full per-LEAF certification has not yet occurred. R3–R6 replace these family-level claims family by family with `SRC2-…`/`EV2-…`-backed per-LEAF certification, updating this table's rows for their families as they complete; R8 reconciles the final status table against the completed active registry. **No family may be described as fully v2-certified until every active LEAF in that family passes U8, U9, and U14.** In particular (R2.4), the legacy "OPS—configurable" family row above establishes nothing: under §15.9.5–§15.9.6 the multi-team touch rule and detailed qualifying-asset thresholds, the seven-future-draft horizon, and the secondary-reported pick-protection/deferral processing mechanics are **unsupported operational candidates** (§12.2, §13.3) — not OPS, not registrable, and not enforceable without qualifying first-party operational provenance or a different valid authority classification.
 
-**A-family v2 status (R3 executed; independently REJECTED — not certified).** The A family was constructed at the R3 checkpoint (`07f0667d`): its active register is §15.10 (12 `CBA2-A…` GROUPs; **81 active LEAFs**), and the R3 receipt asserted per-LEAF U8/U9/U14 passes. The independent Codex review of that checkpoint returned **REJECT/BLOCK-R4**: the R3-asserted certification is **not accepted**, the A family is **not source-certified**, and no active A record is accepted. The committed A-series records remain the live draft population, to be repaired by R3.1 through `AMEND` lineage (never renumbering or reusing an allocated `CBA2`/`XW2`/`SRC2`/`EV2`/`DR2`/`SM2` ID) — R3.1 remains **blocked** pending independent Codex acceptance of the R2.9 foundation (the R2.6, R2.7, and R2.8 foundations were each independently **rejected**; the sequence is R2.8 rejected → R2.9 → independent Codex R2.9 review → R3.1 → independent Codex R3.1 review → R4); the R3 receipt is preserved as immutable review history. Behavioral scenario evidence remains **pending R7**, and no A LEAF carries any Phase 2 verdict before R9 ACCEPT. Historical crosswalk as committed at R3: 131 typed `XW2-…` edges cover 88 of the 89 published A LEAFs; named deferrals: `CBA-A01.4` (whole → R4), `CBA-A01.3` (fragment → R6), `CBA-A08.1` (fragment → R4), `CBA-A17.1` (fragment → R6). Unsupported operational candidates remain unregistered discovery items with no active owner: the multi-team touch test and qualifying-asset thresholds (§12.2), the seven-future-draft horizon and the protection/deferral processing mechanics (§13.3), and the re-trade cash attribution/accounting mechanics (§12.12 — to be dispositioned by R3.1 under the `unsupported-residual`/`DISP`/`SM2` standard unless qualifying authority is located); the historical rows that asserted the first two groups as OPS obligations carry terminal `invalid` crosswalk edges (false authority claims), and none of these mechanics may be registered or enforced without qualifying first-party operational provenance or a different valid authority classification. Separately (R2.7 correction), the committed A18.7 successor rows overstate the conditional-cash application of CBA VII §8(a) as express CBA: the express text establishes only the general rule (annual paid/received limits; direct or indirect connection; no netting), and the conditional-cash trade-year application requires a separately identified INFERRED chain — an R3.1 active-row and evidence-classification `AMEND` repair (§15.9.5, §12.12). The C-, R-, L-, and S-family rows above remain legacy status claims pending R4–R6.
+**A-family v2 status (R3 executed; independently REJECTED — not certified).** The A family was constructed at the R3 checkpoint (`07f0667d`): its active register is §15.10 (12 `CBA2-A…` GROUPs; **81 active LEAFs**), and the R3 receipt asserted per-LEAF U8/U9/U14 passes. The independent Codex review of that checkpoint returned **REJECT/BLOCK-R4**: the R3-asserted certification is **not accepted**, the A family is **not source-certified**, and no active A record is accepted. The committed A-series records remain the live draft population, to be repaired by R3.1 through `AMEND` lineage (never renumbering or reusing an allocated `CBA2`/`XW2`/`SRC2`/`EV2`/`DR2`/`SM2` ID) — R3.1 remains **blocked** pending independent Codex acceptance of the R2.10 foundation (the R2.6, R2.7, R2.8, and R2.9 foundations were each independently **rejected**; the sequence is R2.9 rejected → R2.10 → independent Codex R2.10 review → R3.1 → independent Codex R3.1 review → R4); the R3 receipt is preserved as immutable review history. Behavioral scenario evidence remains **pending R7**, and no A LEAF carries any Phase 2 verdict before R9 ACCEPT. Historical crosswalk as committed at R3: 131 typed `XW2-…` edges cover 88 of the 89 published A LEAFs; named deferrals: `CBA-A01.4` (whole → R4), `CBA-A01.3` (fragment → R6), `CBA-A08.1` (fragment → R4), `CBA-A17.1` (fragment → R6). Unsupported operational candidates remain unregistered discovery items with no active owner: the multi-team touch test and qualifying-asset thresholds (§12.2), the seven-future-draft horizon and the protection/deferral processing mechanics (§13.3), and the re-trade cash attribution/accounting mechanics (§12.12 — to be dispositioned by R3.1 under the `unsupported-residual`/`DISP`/`SM2` standard unless qualifying authority is located); the historical rows that asserted the first two groups as OPS obligations carry terminal `invalid` crosswalk edges (false authority claims), and none of these mechanics may be registered or enforced without qualifying first-party operational provenance or a different valid authority classification. Separately (R2.7 correction), the committed A18.7 successor rows overstate the conditional-cash application of CBA VII §8(a) as express CBA: the express text establishes only the general rule (annual paid/received limits; direct or indirect connection; no netting), and the conditional-cash trade-year application requires a separately identified INFERRED chain — an R3.1 active-row and evidence-classification `AMEND` repair (§15.9.5, §12.12). The C-, R-, L-, and S-family rows above remain legacy status claims pending R4–R6.
 
 ### 19.4 CBA Guide sections reviewed for discovery
 
