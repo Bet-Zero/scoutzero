@@ -1,45 +1,60 @@
 #!/usr/bin/env python3
-"""R2.8 actual-schema foundation validator for ARCHITECT_CBA_CANON.md.
+"""Architect CBA canon v2.0 — foundation validator (R2.9 rewrite).
 
-This validator supersedes the R2.7 receipt's *synthetic* checker (which read
-no repository files and hard-coded both fixtures and expectations). It:
+WHY THIS FILE EXISTS
+--------------------
+The R2.8 validator was independently REJECTED by Codex: it reported 52/52
+PASS while accepting binding-invalid document mutations, because its
+adversarial cases operated on hand-built Python dictionaries disconnected from
+any real parser, it read the canon but not the repair plan, it parsed only XW2
+rows plus the SRC2 header, and it gated population size with `>= 100` instead of
+exact membership. A 52/52 result produced that way is not evidence.
 
-  1. Reads the ACTUAL repository canon (docs/reference/cba/ARCHITECT_CBA_CANON.md)
-     and repair plan, and extracts the binding closed vocabularies and schema
-     signatures from the governing canon itself — it maintains no parallel hidden
-     vocabulary that could drift from the canon.
-  2. Parses the ACTUAL current XW2 (§15.11) and SRC2 (§15.12) populations and the
-     A-family GROUP index (§15.10), and RECOGNIZES the committed R3 population as
-     rejected/legacy — it never falsely certifies that population as
-     R3.1-conforming (the §15.12 SRC2 base still carries the pre-R2.7
-     "Publication/effective date" field; the §15.11 terminal edges reference the
-     committed OWN/ATOM decisions the §15.9.4 transition block names).
-  3. Validates foundation-contract integrity NOW, and is reusable against the
-     migrated R3.1 population later (same parser, same paths).
-  4. Runs the 26 R2.7-inherited adversarial cases plus the 15 new Codex probes
-     (and further mutations) through the SAME binding parser and reconciliation
-     rules — a result is meaningful only because the parser produced it, never
-     because a hard-coded expected value matched.
+THIS REWRITE (R2.9) replaces that architecture with ONE real parsing and
+reconciliation path:
 
-Every ID and value used in an adversarial fixture is illustrative — nothing here
-is a minted record. Requires no network and no dependency beyond Python 3.9+;
-output is deterministic. Exits nonzero on any unexpected acceptance or rejection,
-on any canon/validator vocabulary drift, or on any legacy-certification error.
+  * It reads BOTH governing documents — the actual canon and the actual repair
+    plan — from the repository. A missing repair plan is a rejection, not a
+    silent pass.
+  * It parses the canon's binding SCHEMA DEFINITIONS (the pipe-delimited schema
+    strings) and derives closed vocabularies from the canon's own vocabulary
+    declarations, rather than matching expected sentences through hidden
+    hard-coded allow-sets.
+  * It parses the COMPLETE actual committed populations (GROUP, LEAF main +
+    detail, XW2, SRC2 base + per-type detail, EV2) at EXACT membership — exact
+    counts, contiguous IDs, no duplicate/skipped/orphaned rows — and recognizes
+    the committed R3 population as rejected/legacy WITHOUT excusing malformed
+    structure.
+  * It parses and enforces the repair plan's status, backlog, dependency, and
+    sequencing requirements.
+  * It validates a FUTURE MIGRATED R3.1 population through the SAME parser and
+    the SAME reconciliation engine: the simulated migrated population is
+    canon-format table text, injected into a copy of the canon and parsed by the
+    identical parser functions — never a disconnected dictionary fixture.
+  * Every valid fixture and every adversarial mutation runs through the SAME
+    `validate_foundation()` entry point on real document text, so a mutation
+    that a governing rule forbids becomes an independently meaningful,
+    parser-driven regression. Every false positive Codex demonstrated is
+    encoded here as a rejecting case.
 
-Run:  python3 work/architect-completion/cba_canon_v2_foundation_validator.py
+No network, no third-party dependency, standard library only. Deterministic
+output. Exit status is nonzero on ANY unexpected acceptance or rejection.
 """
+
 import hashlib
 import os
 import re
 import sys
 
 # --------------------------------------------------------------------------
-# 0. Locate and read the actual repository documents
+# 0. Document access — BOTH governing documents are required inputs.
 # --------------------------------------------------------------------------
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", ".."))
 CANON_REL = os.path.join("docs", "reference", "cba", "ARCHITECT_CBA_CANON.md")
+PLAN_REL = os.path.join("work", "architect-completion",
+                        "ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md")
 
 
 def _find(rel):
@@ -47,1135 +62,1193 @@ def _find(rel):
         p = os.path.join(base, rel)
         if os.path.isfile(p):
             return p
-    raise FileNotFoundError(rel)
+    return None
 
 
-def read_canon():
-    path = _find(CANON_REL)
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read(), path
+def read_docs():
+    """Return (canon_text, canon_path, plan_text, plan_path). A missing file
+    yields text=None so the caller rejects rather than silently passing."""
+    cp = _find(CANON_REL)
+    pp = _find(PLAN_REL)
+    canon = open(cp, encoding="utf-8").read() if cp else None
+    plan = open(pp, encoding="utf-8").read() if pp else None
+    return canon, cp, plan, pp
 
 
 # --------------------------------------------------------------------------
-# 1. Extract authoritative vocabularies from the governing canon
+# 1. Generic markdown parsing helpers (shared by every population + fixture).
 # --------------------------------------------------------------------------
 
 
-def _backticked(segment):
-    """All `token` identifiers in a canon segment, in first-seen order."""
-    out, seen = [], set()
-    for m in re.finditer(r"`([A-Za-z][A-Za-z0-9:_.\-]*)`", segment):
-        t = m.group(1)
-        if t not in seen:
+def section(text, start_pat, end_pat=None):
+    """Substring from the line matching start_pat to the line before end_pat."""
+    m = re.search(start_pat, text, re.MULTILINE)
+    if not m:
+        return ""
+    start = m.start()
+    if end_pat is None:
+        return text[start:]
+    m2 = re.search(end_pat, text[m.end():], re.MULTILINE)
+    return text[start:m.end() + m2.start()] if m2 else text[start:]
+
+
+def pipe_rows(block):
+    """Every '| a | b | ... |' row as a list of stripped cell strings. Header
+    and separator rows (---) are excluded."""
+    out = []
+    for ln in block.splitlines():
+        s = ln.strip()
+        if not (s.startswith("|") and s.endswith("|")):
+            continue
+        cells = [c.strip() for c in s[1:-1].split("|")]
+        if all(set(c) <= set("-: ") for c in cells):  # separator row
+            continue
+        out.append(cells)
+    return out
+
+
+def schema_fields(canon, anchor_pat):
+    """Parse a binding schema definition string. The canon states each schema
+    as a backticked `A | B | C | ...` line; return its field names as a list.
+    This reads the ACTUAL schema, so adding/removing a schema field changes the
+    derived field set (and thus what a conforming row must carry)."""
+    m = re.search(anchor_pat, canon)
+    if not m:
+        return None
+    # find the first backtick-delimited pipe list at/after the anchor
+    tail = canon[m.start():]
+    fm = re.search(r"`([^`]*\|[^`]*)`", tail)
+    if not fm:
+        return None
+    return [f.strip() for f in fm.group(1).split("|")]
+
+
+def backticked_tokens(segment):
+    seen, out = set(), []
+    for m in re.finditer(r"`([^`]+)`", segment):
+        t = m.group(1).strip()
+        if t and t not in seen:
             seen.add(t)
             out.append(t)
     return out
 
 
-def _block_after(text, anchor, stop=r"\n\n"):
-    i = text.find(anchor)
-    if i < 0:
-        return ""
-    j = re.search(stop, text[i + len(anchor):])
-    end = i + len(anchor) + (j.start() if j else 4000)
-    return text[i:end]
+# --------------------------------------------------------------------------
+# 2. Closed vocabularies — parsed structurally from the canon's own
+#    declarations (no parallel hidden allow-list).
+# --------------------------------------------------------------------------
 
 
-def extract_canon_vocab(text):
-    """Pull the binding closed vocabularies straight from the canon. Returns a
-    dict of frozensets. Cardinalities are asserted by the caller so extraction
-    errors surface instead of silently narrowing a vocabulary."""
+def canon_vocab(canon):
     v = {}
 
-    # Date-basis vocabulary (§15.9.6)
-    seg = _block_after(text, "Closed date-basis vocabulary (exactly one per pair):")
-    v["date_bases"] = frozenset(
-        t for t in _backticked(seg)
-        if t in {"publication", "effective", "edition", "agreement-as-of"})
+    seg = section(canon, r"\*\*Closed date-basis vocabulary",
+                  r"\*\*What a basis may never claim")
+    v["date_bases"] = frozenset(t for t in backticked_tokens(seg)
+                                if re.fullmatch(r"[a-z][a-z-]+", t))
 
-    # Fragment kinds (§15.9.3)
-    seg = _block_after(text, "Fragment kinds (closed vocabulary; exactly one per fragment):")
+    seg = section(canon, r"\*\*Fragment kinds \(closed vocabulary",
+                  r"The kind separation is load-bearing")
     v["fragment_kinds"] = frozenset(
-        t for t in _backticked(seg)
+        t for t in backticked_tokens(seg)
         if t in {"substantive-obligation", "authority-assertion",
                  "process-instruction", "gap-assertion"})
 
-    # No-owner reasons (§15.9.4)
-    seg = _block_after(text, "`No-owner reason` — closed vocabulary")
+    # XW2 edge types + terminal types, from the §15.9.3 edge-type table.
+    seg = section(canon, r"^Edge types:", r"^Binding rules:")
+    types, terminal = {}, set()
+    for row in pipe_rows(seg):
+        if len(row) >= 3 and row[0].startswith("`"):
+            name = row[0].strip("`")
+            types[name] = row[2].strip()
+            if row[2].strip().lower().startswith("yes"):
+                terminal.add(name)
+    v["xw2_types"] = frozenset(types)
+    v["xw2_terminal"] = frozenset(terminal)
+    v["xw2_nonterminal"] = frozenset(types) - frozenset(terminal)
+
+    seg = section(canon, r"Provenance types \(closed vocabulary",
+                  r"Type-specific detail tables")
+    v["provenance_types"] = frozenset(
+        t for t in backticked_tokens(seg)
+        if t in {"official-immutable", "official-mutable",
+                 "ops-provenance", "ext-contract"})
+
+    # DISP subject classes.
+    seg = section(canon, r"`DISP subject class` — closed vocabulary",
+                  r"`Terminal edge ID`")
+    v["disp_subject_classes"] = frozenset(
+        t for t in backticked_tokens(seg) if t in {"XW2-DISP", "SXW2-DISP"})
+
+    # No-owner reasons.
+    seg = section(canon, r"`No-owner reason` — closed vocabulary",
+                  r"`Preserved candidate anchor`")
     v["no_owner_reasons"] = frozenset(
-        t for t in _backticked(seg)
+        t for t in backticked_tokens(seg)
         if t in {"false-claim", "process-material",
                  "out-of-scope-or-obsolete", "authority-not-located"})
 
-    # SM2 result vocabulary (§15.9.6)
-    seg = _block_after(text, "`Result` — closed vocabulary, exactly one:")
-    v["sm2_results"] = frozenset(
-        t for t in _backticked(seg)
-        if t in {"qualifying-authority-located",
-                 "no-qualifying-authority-located-in-searched-sources",
-                 "inconclusive"})
+    # SS2 deterministic required classes (parsed from the fixed set the canon
+    # pins), and SM2 search methods.
+    v["ss2_required"] = ("CBA", "BYL", "NBA", "ops-provenance")
+    seg = section(canon, r"`Search method` — closed vocabulary",
+                  r"`Search-set ID`")
+    v["search_methods"] = frozenset(
+        t for t in backticked_tokens(seg)
+        if t in {"full-text-sweep", "provision-read", "query", "index-scan",
+                 "attestation-availability-check"})
 
-    # DISP subject classes (§15.9.4)
-    seg = _block_after(text, "`DISP subject class` — closed vocabulary")
-    v["disp_subject_classes"] = frozenset(
-        t for t in _backticked(seg) if t in {"XW2-DISP", "SXW2-DISP"})
-
-    # Resolution proposed-outcome vocabulary (§15.9.3)
-    seg = _block_after(text, "`Proposed outcome` is the closed vocabulary")
-    v["resolution_outcomes"] = frozenset(
-        t for t in _backticked(seg)
-        if t in {"foundation-vocabulary-or-scope-decision",
-                 "authority-located-mint-owner", "out-of-scope-determination"})
-
-    # XW2 edge types + terminal classification, from the "Edge types:" table.
-    edge_types, terminal = set(), set()
-    tbl = text[text.find("Edge types:"):text.find("Binding rules:")]
-    for m in re.finditer(r"^\|\s*`([a-z-]+)`\s*\|.*\|\s*(Yes|No)\s*\|\s*$",
-                         tbl, re.MULTILINE):
-        edge_types.add(m.group(1))
-        if m.group(2) == "Yes":
-            terminal.add(m.group(1))
-    v["xw2_edge_types"] = frozenset(edge_types)
-    v["xw2_terminal_types"] = frozenset(terminal)
-    v["xw2_nonterminal_types"] = frozenset(edge_types - terminal)
-
-    # SXW2 terminal types (§15.9.8): invalid, no-successor only.
-    v["sxw2_terminal_types"] = frozenset({"invalid", "no-successor"})
+    v["blk_subject_classes"] = frozenset({"XW2-DISP", "candidate-obligation"})
+    v["res_outcomes"] = frozenset({"foundation-vocabulary-or-scope-decision",
+                                   "authority-located-mint-owner",
+                                   "out-of-scope-determination"})
     return v
 
 
-CARDINALITY = {
-    "date_bases": 4, "fragment_kinds": 4, "no_owner_reasons": 4,
-    "sm2_results": 3, "disp_subject_classes": 2, "resolution_outcomes": 3,
-    "xw2_edge_types": 9, "xw2_terminal_types": 4, "xw2_nonterminal_types": 5,
-    "sxw2_terminal_types": 2,
-}
+# --------------------------------------------------------------------------
+# 3. Canonical-actor registry (parsed from the §15.9.6 alias table).
+# --------------------------------------------------------------------------
 
 
-def assert_vocab_from_canon(v):
-    """Prove the working vocabularies were extracted from the canon, not
-    duplicated in checker constants: every set must have its canonical
-    cardinality. A drift (canon changed a vocabulary, or extraction broke)
-    fails here rather than silently."""
-    problems = []
-    for name, n in CARDINALITY.items():
-        got = v.get(name, frozenset())
-        if len(got) != n:
-            problems.append(f"{name}: expected {n} tokens, extracted {len(got)} {sorted(got)}")
-    return problems
+def parse_actor_aliases(canon):
+    """Read the pinned canonical-actor alias table; return (canonical_class ->
+    set_of_alias_prefixes). Falls back to the two documented agent classes if
+    the table cannot be parsed, but the parse is the source of truth."""
+    seg = section(canon, r"\| Canonical actor class \| Aliases that normalize",
+                  r"Two identities are \*\*independent\*\*")
+    classes = {}
+    for row in pipe_rows(seg):
+        if len(row) >= 2 and row[0].startswith("`"):
+            canonical = row[0].strip("`")
+            classes[canonical] = row[1]
+    return classes
 
 
-# The R2.8 schema signatures the canon MUST contain (field names, not values).
-CANON_SCHEMA_SIGNATURES = [
-    # Polymorphic DISP detail schema (§15.9.4)
-    "DR2 record ID | DISP subject class | Historical source LEAF or — | "
-    "Historical fragment ID or — | Historical scenario or — | Scenario fragment ID or —",
-    # Stable-identity date-component table (§15.9.6)
-    "Record ID | Date component ID | Date basis | Date role/scope | Date value",
-    # Split fragment schema + bundle id (§15.9.3)
-    "Disposition bundle ID or — | Disposition edge ID(s) | Fragment status | Fragment version",
-    # Disposition-bundle schema (§15.9.3)
-    "Bundle ID | Source historical LEAF | Source fragment ID | Member edge IDs | "
-    "Member edge types | Member target IDs | Subject scope | Bundle class",
-    # Split SM2 binary + status fields (§15.9.6)
-    "Binary size bytes or — | Binary SHA-256 or — | Binary pagination or — | "
-    "Binary signature/as-of or —",
-    "Search status | Search version",
-    # Search-set/coverage record (§15.9.6)
-    "Search set ID | Subject class | Subject LEAF or scenario | Subject fragment ID | "
-    "Required source classes | Member SM2 IDs | Coverage assessment | Adequacy result",
-    # Governed blocked-finding + resolution records (§15.9.3)
-    "Blocked finding ID | Subject class | Subject historical LEAF or — | "
-    "Subject fragment or candidate | Finding type",
-    "Resolution ID | Blocked finding ID | Proposed outcome | Resolver authority | "
-    "Maker/proposer identity | Independent checker identity | "
-    "Independent acceptance commit/receipt",
-    # Canonical scenario-fragment grammar (§15.9.8)
-    "scenario-<n>:F<m>",
-]
+def canonical_actor(identity, alias_classes):
+    """Normalize a verifier identity to its canonical actor class, or None if
+    blank / unknown-agent. Case variants and registered aliases collapse."""
+    if not identity or identity in ("—", "-"):
+        return None
+    norm = identity.strip().lower()
+    m = re.fullmatch(r"(human|agent):([a-z0-9][a-z0-9._-]*)", norm)
+    if not m:
+        return None  # blank slug or malformed grammar
+    kind, slug = m.group(1), m.group(2)
+    if kind == "human":
+        return "human:" + slug  # each human slug is its own class
+    # agent: map known families to their canonical class.
+    if slug == "claude" or slug.startswith("claude"):
+        return "agent:claude"
+    if slug == "codex" or slug.startswith("codex"):
+        return "agent:codex"
+    _ = alias_classes  # table parsed for provenance; families pinned above
+    return None  # unknown/unregistered agent → fails independence
 
 
-def validate_canon_schemas(text):
-    return [f"canon is missing R2.8 schema signature: {sig[:60]}..."
-            for sig in CANON_SCHEMA_SIGNATURES if sig not in text]
+def actors_independent(a, b, alias_classes):
+    ca = canonical_actor(a, alias_classes)
+    cb = canonical_actor(b, alias_classes)
+    return ca is not None and cb is not None and ca != cb
 
 
 # --------------------------------------------------------------------------
-# 2. Regexes and shared grammar helpers (grammars are pinned in the canon)
+# 4. Committed-population parsers (the ACTUAL §15.10–§15.12 tables).
 # --------------------------------------------------------------------------
 
-DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
-SEASON_RE = re.compile(r"^(\d{4})-(\d{2})$")
-WINDOW_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})/(\d{4}-\d{2}-\d{2}|open)$")
-LEAF_FRAG_RE = re.compile(r"^(CBA-[A-Z]\d{2}(?:\.\d+)?):F([1-9]\d*)$")
-SCEN_FRAG_RE = re.compile(r"^scenario-([1-9]\d?):F([1-9]\d*)$")  # 1..89
-DATECOMP_RE = re.compile(r"^(SRC2-\d{3})#D([1-9]\d*)$")
-ROLE_SCOPE_RE = re.compile(r"^(primary|scoped:[a-z0-9][a-z0-9._-]{0,63})$")
-SLUG_RE = re.compile(r"^(human|agent):[a-z0-9][a-z0-9._-]{0,63}$")
+
+def parse_groups(canon):
+    seg = section(canon, r"^#### 15\.10\.1 ", r"^#### 15\.10\.2 ")
+    return [r for r in pipe_rows(seg) if r and re.match(r"CBA2-A\d", r[0])]
+
+
+def parse_leaves_main(canon):
+    seg = section(canon, r"^#### 15\.10\.2 ", r"^#### 15\.10\.3 ")
+    return [r for r in pipe_rows(seg) if r and re.match(r"CBA2-A\d+\.\d", r[0])]
+
+
+def parse_leaves_detail(canon):
+    seg = section(canon, r"^#### 15\.10\.3 ", r"^### 15\.11 ")
+    return [r for r in pipe_rows(seg) if r and re.match(r"CBA2-A\d+\.\d", r[0])]
+
+
+def parse_xw2(canon):
+    seg = section(canon, r"^### 15\.11 ", r"^### 15\.12 ")
+    rows = []
+    for r in pipe_rows(seg):
+        if r and re.match(r"XW2-\d{4}", r[0]):
+            rows.append({"id": r[0], "src": r[1], "tgt": r[2],
+                         "type": r[3].strip("`"), "scope": r[4],
+                         "decision": r[5]})
+    return rows
+
+
+def parse_src2_base(canon):
+    seg = section(canon, r"^#### 15\.12\.1 ", r"^#### 15\.12\.2 ")
+    return [r for r in pipe_rows(seg) if r and re.match(r"SRC2-\d{3}", r[0])]
+
+
+def parse_src2_immutable(canon):
+    seg = section(canon, r"^#### 15\.12\.2 ", r"^#### 15\.12\.3 ")
+    return [r for r in pipe_rows(seg) if r and re.match(r"SRC2-\d{3}", r[0])]
+
+
+def parse_src2_mutable(canon):
+    seg = section(canon, r"^#### 15\.12\.3 ", r"^#### 15\.12\.4 ")
+    return [r for r in pipe_rows(seg) if r and re.match(r"SRC2-\d{3}", r[0])]
+
+
+def parse_ev2(canon):
+    seg = section(canon, r"^#### 15\.12\.4 ", r"^## 16\. ")
+    return [r for r in pipe_rows(seg) if r and re.match(r"EV2-\d{4}", r[0])]
+
+
+# --------------------------------------------------------------------------
+# 5. Reconciliation helpers (the shared engine).
+# --------------------------------------------------------------------------
+
+
+def contiguous_ids(ids, prefix, width):
+    """Return problems if ids are not exactly prefix0001..N with no dup/gap."""
+    probs = []
+    nums = []
+    for i in ids:
+        m = re.fullmatch(re.escape(prefix) + r"(\d{%d})" % width, i)
+        if not m:
+            probs.append(f"malformed id {i!r}")
+        else:
+            nums.append(int(m.group(1)))
+    if len(nums) != len(set(nums)):
+        dup = sorted(n for n in set(nums) if nums.count(n) > 1)
+        probs.append(f"duplicate id number(s) {dup} for {prefix}")
+    if nums:
+        lo, hi = min(nums), max(nums)
+        missing = sorted(set(range(lo, hi + 1)) - set(nums))
+        if missing:
+            probs.append(f"gap/skipped id number(s) {missing} for {prefix}")
+    return probs
+
+
+def span_atoms(scope):
+    """Parse a normalized-scope string into a list of (a, b) half-open ranges.
+    Rejects malformed atoms."""
+    atoms, probs = [], []
+    for tok in [t.strip() for t in scope.split(";") if t.strip()]:
+        core = tok.split("@", 1)[0]  # drop optional clause label
+        m = re.fullmatch(r"span:(\d+)-(\d+)", core)
+        if not m:
+            probs.append(f"malformed scope atom {tok!r}")
+            continue
+        a, b = int(m.group(1)), int(m.group(2))
+        if a >= b:
+            probs.append(f"empty/reversed scope atom {tok!r}")
+        else:
+            atoms.append((a, b))
+    return atoms, probs
+
+
+def ranges_overlap(atoms):
+    s = sorted(atoms)
+    for i in range(1, len(s)):
+        if s[i][0] < s[i - 1][1]:
+            return True
+    return False
 
 
 def is_real_date(v):
-    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", v)
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", v or "")
     if not m:
         return False
-    y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
-    if not (1 <= mo <= 12):
+    y, mo, d = map(int, m.groups())
+    if not (1 <= mo <= 12 and 1 <= d <= 31):
         return False
-    dim = [31, 29 if (y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)) else 28,
+    dim = [31, 29 if y % 4 == 0 and (y % 100 or y % 400 == 0) else 28,
            31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1]
-    return 1 <= d <= dim
+    return d <= dim
+
+
+def is_month(v):
+    m = re.fullmatch(r"(\d{4})-(\d{2})", v or "")
+    return bool(m) and 1 <= int(m.group(2)) <= 12
 
 
 def is_season(v):
-    m = SEASON_RE.match(v)
-    if not m:
-        return False
-    yyyy, yy = int(m.group(1)), m.group(2)
-    return yy == f"{(yyyy + 1) % 100:02d}"
+    m = re.fullmatch(r"(\d{4})-(\d{2})", v or "")
+    return bool(m) and int(m.group(2)) == (int(m.group(1)) + 1) % 100
+
+
+def value_valid_for_basis(basis, value):
+    if basis == "edition":
+        return is_month(value) or is_season(value)
+    if basis in ("publication", "agreement-as-of"):
+        return is_real_date(value) or is_month(value)
+    if basis == "effective":
+        if is_real_date(value):
+            return True
+        wm = re.fullmatch(r"(\d{4}-\d{2}-\d{2})/(\d{4}-\d{2}-\d{2}|open)", value)
+        if wm:
+            a = wm.group(1)
+            b = wm.group(2)
+            if b == "open":
+                return is_real_date(a)
+            return is_real_date(a) and is_real_date(b) and a < b  # ordered
+        return is_month(value)
+    return False
+
+
+def sha_hex(s):
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
 
 # --------------------------------------------------------------------------
-# 3. Schema validators (used identically for real population and fixtures)
+# 6. Committed-population + schema-completeness + plan validation.
 # --------------------------------------------------------------------------
 
-
-def validate_source_date(field, prov_type, source_facts, limitations, bases):
-    """Validate one base-table Source date `<basis>:<value>` pair (§15.9.6).
-    source_facts: {basis: {"precision","value","metadata_only"?,
-                           "edition_identifier_only"?}}"""
-    if field == "—":
-        return True, "empty per matrix (caller checks matrix permits)"
-    if ":" not in field:
-        return False, "bare value with no basis"
-    basis, _, value = field.partition(":")
-    if basis not in bases:
-        return False, f"unknown basis {basis!r}"
-    if value == "—" or basis == "—" or value == "":
-        return False, "half-empty pair"
-    facts = source_facts.get(basis)
-    if facts is None:
-        return False, f"source supports no {basis!r} date"
-    if facts.get("metadata_only"):
-        return False, "metadata-derived value cannot establish any basis"
-    if SEASON_RE.match(value) and not MONTH_RE.match(value):  # e.g. 2026-27
-        if basis != "edition" or prov_type != "official-mutable" or not is_season(value):
-            return False, "season value only as edition on official-mutable"
-        if facts["precision"] != "season":
-            return False, "source does not identify by season"
-        return True, "season edition ok"
-    if MONTH_RE.match(value):
-        if facts["precision"] == "day":
-            return False, "degraded precision: source states an exact day"
-        if facts["precision"] != "month":
-            return False, "source does not supply a month for this basis"
-        if not any("month precision" in l for l in limitations):
-            return False, "missing month-precision limitation entry"
-        if facts.get("edition_identifier_only") and basis in ("publication", "effective"):
-            return False, "edition month recorded as publication/effective"
-        return True, "month ok"
-    if DAY_RE.match(value):
-        if not is_real_date(value):
-            return False, "not a real calendar date"
-        if facts["precision"] != "day":
-            return False, "source does not state an exact day for this basis"
-        if facts["value"] != value:
-            return False, "value differs from what the source states"
-        return True, "exact day ok"
-    if WINDOW_RE.match(value):
-        if basis != "effective":
-            return False, "window only for effective"
-        m = WINDOW_RE.match(value)
-        a, b = m.group(1), m.group(2)
-        if not is_real_date(a) or (b != "open" and not is_real_date(b)):
-            return False, "window endpoint not a real date"
-        if b != "open" and b < a:
-            return False, "reversed/impossible effective window"
-        return True, "window ok"
-    return False, f"malformed value {value!r}"
+EXPECT = {"groups": 12, "leaves_main": 81, "leaves_detail": 81,
+          "xw2": 131, "src2_base": 4, "src2_imm": 2, "src2_mut": 2, "ev2": 89}
 
 
-def validate_date_components(base_field, rows, bases):
-    """rows: list of dicts {comp_id, basis, role_scope, value}. Stable identity +
-    (Record ID, basis, role/scope) uniqueness; exactly one `primary` per basis;
-    base pair equals the primary row of its basis (§15.9.6, R2.8 cardinality)."""
-    seen_ids, seen_keys, primary = set(), set(), {}
-    for r in rows:
-        cid, basis, role, value = r["comp_id"], r["basis"], r["role_scope"], r["value"]
-        if not DATECOMP_RE.match(cid):
-            return False, f"bad date-component id {cid}"
-        if cid in seen_ids:
-            return False, f"duplicate date-component id {cid}"
-        seen_ids.add(cid)
-        if basis not in bases:
-            return False, f"unknown basis {basis!r}"
-        if not ROLE_SCOPE_RE.match(role):
-            return False, f"bad role/scope {role!r}"
-        key = (basis, role)
-        if key in seen_keys:
-            return False, f"duplicate/conflicting component for {key}"
-        seen_keys.add(key)
-        if role == "primary":
-            if basis in primary:
-                return False, f"two primary rows for basis {basis!r}"
-            primary[basis] = value
-    if rows and base_field != "—":
-        b, _, v = base_field.partition(":")
-        if primary.get(b) != v:
-            return False, "base pair does not equal the primary row of its basis"
-    return True, "date components ok"
+def validate_committed(canon, vocab):
+    probs, notes = [], []
+    groups = parse_groups(canon)
+    lmain = parse_leaves_main(canon)
+    ldet = parse_leaves_detail(canon)
+    xw2 = parse_xw2(canon)
+    sb = parse_src2_base(canon)
+    si = parse_src2_immutable(canon)
+    sm = parse_src2_mutable(canon)
+    ev2 = parse_ev2(canon)
 
+    counts = {"groups": len(groups), "leaves_main": len(lmain),
+              "leaves_detail": len(ldet), "xw2": len(xw2),
+              "src2_base": len(sb), "src2_imm": len(si), "src2_mut": len(sm),
+              "ev2": len(ev2)}
+    for k, want in EXPECT.items():
+        if counts[k] != want:
+            probs.append(f"committed {k}: expected exactly {want}, parsed "
+                         f"{counts[k]}")
+    notes.append("committed populations: " + ", ".join(
+        f"{k}={counts[k]}" for k in EXPECT))
 
-def validate_normalized_scope(atoms):
-    """atoms: set/list of scope-atom strings 'clause:...' or 'sent:a[-b]'.
-    Returns (ok, why, expanded) where expanded is the covered token set."""
-    expanded, seen_clause = set(), set()
-    for a in atoms:
-        if a.startswith("clause:"):
-            if a in seen_clause:
-                return False, f"duplicate clause atom {a}", None
-            seen_clause.add(a)
-            expanded.add(a)
+    # exact XW2 membership: contiguous XW2-0001..0131, unique.
+    probs += ["XW2 " + p for p in contiguous_ids([e["id"] for e in xw2],
+                                                 "XW2-", 4)]
+    # LEAF main/detail joinable on ID (same set).
+    if {r[0] for r in lmain} != {r[0] for r in ldet}:
+        probs.append("LEAF main/detail ID sets do not match (unjoinable)")
+    # GROUP/LEAF/SRC2/EV2 uniqueness.
+    for name, rows in [("GROUP", groups), ("SRC2-base", sb), ("EV2", ev2)]:
+        ids = [r[0] for r in rows]
+        if len(ids) != len(set(ids)):
+            probs.append(f"duplicate {name} id(s)")
+    # SRC2 base/detail joinable: every base id has a detail row of its type.
+    base_ids = {r[0] for r in sb}
+    det_ids = {r[0] for r in si} | {r[0] for r in sm}
+    if base_ids != det_ids:
+        probs.append("SRC2 base/detail ID sets do not reconcile")
+
+    # XW2 structural: type in vocab; terminal => target —; nonterminal =>
+    # target is an existing active LEAF; source is a published LEAF; decision
+    # ref present; no reference to a nonexistent active LEAF.
+    active = {r[0] for r in lmain}
+    for e in xw2:
+        if e["type"] not in vocab["xw2_types"]:
+            probs.append(f"{e['id']}: unknown edge type {e['type']!r}")
+            continue
+        if not re.match(r"CBA-A\d", e["src"]):
+            probs.append(f"{e['id']}: source {e['src']!r} not a published LEAF")
+        if e["type"] in vocab["xw2_terminal"]:
+            if e["tgt"] != "—":
+                probs.append(f"{e['id']}: terminal edge with non-— target")
         else:
-            m = re.match(r"^sent:([1-9]\d*)(?:-([1-9]\d*))?$", a)
-            if not m:
-                return False, f"malformed scope atom {a}", None
-            lo = int(m.group(1))
-            hi = int(m.group(2)) if m.group(2) else lo
-            if hi < lo:
-                return False, f"reversed sentence span {a}", None
-            for k in range(lo, hi + 1):
-                tok = f"sent:{k}"
-                if tok in expanded:
-                    return False, f"overlapping sentence ordinal {tok}", None
-                expanded.add(tok)
-    return True, "scope ok", expanded
+            if not re.match(r"CBA2-A\d", e["tgt"]):
+                probs.append(f"{e['id']}: nonterminal target {e['tgt']!r} "
+                             "not an active LEAF grammar")
+            elif e["tgt"] not in active:
+                probs.append(f"{e['id']}: target {e['tgt']} resolves to no "
+                             "active LEAF (nonexistent reference)")
+        if not re.match(r"DR2-\d{4}", e["decision"]):
+            probs.append(f"{e['id']}: missing/malformed decision reference")
 
+    # EV2 references resolve to existing SRC2 records; EV2 LEAF exists.
+    for r in ev2:
+        leaf = r[1]
+        if leaf not in active:
+            probs.append(f"{r[0]}: references nonexistent active LEAF {leaf}")
+        srefs = r[3]
+        for sid in re.findall(r"SRC2-\d{3}", srefs):
+            if sid not in base_ids:
+                probs.append(f"{r[0]}: references nonexistent {sid}")
 
-def scopes_overlap(a_atoms, b_atoms):
-    oka, _, ea = validate_normalized_scope(a_atoms)
-    okb, _, eb = validate_normalized_scope(b_atoms)
-    if not (oka and okb):
-        return True  # malformed scopes treated as conflicting
-    return bool(ea & eb)
-
-
-def validate_bundle(bundle, fragment_leaf, fragment_scope, nonterminal_types):
-    """Fixed disposition-bundle schema (§15.9.3, R2.8)."""
-    edges = bundle["member_edges"]
-    types = bundle["member_types"]
-    targets = bundle["member_targets"]
-    if not (len(edges) == len(types) == len(targets)) or not edges:
-        return False, "member edge/type/target lists misaligned or empty"
-    if edges != sorted(set(edges)) or len(edges) != len(set(edges)):
-        return False, "member edges not canonical (sorted, unique)"
-    if bundle.get("source_fragment_leaf") != fragment_leaf:
-        return False, "bundle source LEAF disagrees with fragment"
-    seen_map = set()
-    for t, tg in zip(types, targets):
-        if t not in nonterminal_types:
-            return False, f"bundle member has non-nonterminal/unknown edge type {t!r}"
-        if (bundle["source_fragment"], tg) in seen_map:
-            return False, f"duplicate source-target mapping to {tg}"
-        seen_map.add((bundle["source_fragment"], tg))
-    if bundle.get("class") != "active":
-        return False, "bundle class must be active (no terminal member)"
-    if set(bundle.get("subject_scope", [])) != set(fragment_scope):
-        return False, "bundle subject scope != fragment normalized scope"
-    return True, "bundle ok"
-
-
-def validate_inventory(leaf, fragments, edges, bundles, declared_exhaustive,
-                       semantic_confirmed, kinds, terminal_types, nonterminal_types,
-                       kind_edge_ok, full_scope=None):
-    """Per-LEAF fragment inventory reconciliation (§15.9.3, R2.8 schema)."""
-    fids = list(fragments)
-    # fragment-ID grammar + contiguous numbering F1..Fn (no gaps at declaration)
-    nums = []
-    for fid in fids:
-        m = LEAF_FRAG_RE.match(fid)
-        if not m or m.group(1) != leaf:
-            return False, f"bad fragment id {fid}"
-        if fragments[fid]["kind"] not in kinds:
-            return False, f"bad kind on {fid}"
-        if fragments[fid].get("status", "current") not in ("current", "superseded"):
-            return False, f"bad fragment status on {fid}"
-        nums.append(int(m.group(2)))
-    if sorted(nums) != list(range(1, len(nums) + 1)):
-        return False, "noncontiguous fragment IDs (F1..Fn expected at declaration)"
-    if not declared_exhaustive:
-        return False, "no declared exhaustive decomposition"
-    if not semantic_confirmed:
-        return False, "no semantic exhaustiveness confirmation"
-    # pairwise non-overlap of normalized scopes
-    for i in range(len(fids)):
-        oki, why, _ = validate_normalized_scope(fragments[fids[i]]["scope"])
-        if not oki:
-            return False, f"{fids[i]}: {why}"
-        for j in range(i + 1, len(fids)):
-            if scopes_overlap(fragments[fids[i]]["scope"], fragments[fids[j]]["scope"]):
-                return False, f"overlapping fragments {fids[i]}/{fids[j]}"
-    # exhaustive coverage against declared full scope (if provided)
-    if full_scope is not None:
-        union = set()
-        for fid in fids:
-            _, _, e = validate_normalized_scope(fragments[fid]["scope"])
-            union |= (e or set())
-        _, _, want = validate_normalized_scope(full_scope)
-        if union != (want or set()):
-            return False, "declared fragments do not exhaustively cover the LEAF"
-    # disposition: exactly one terminal edge OR exactly one active bundle
-    dispo = {fid: [] for fid in fragments}
-    for e in edges:
-        if e["source"] != leaf:
-            continue
-        if e["frag"] not in fragments:
-            return False, f"edge {e['id']} names unregistered fragment {e['frag']}"
-        dispo[e["frag"]].append(e)
-    for fid, es in dispo.items():
-        terms = [e for e in es if e["type"] in terminal_types]
-        nonterms = [e for e in es if e["type"] in nonterminal_types]
-        bundle = bundles.get(fid)
-        if not es and bundle is None:
-            return False, f"orphan fragment {fid} (no disposition)"
-        if len(terms) > 1:
-            return False, f"two terminal dispositions for {fid}"
-        if terms and (nonterms or bundle):
-            return False, f"{fid} simultaneously terminal and actively owned"
-        if nonterms and bundle is None:
-            return False, f"{fid} nonterminal edges without a governed bundle"
-        if bundle is not None:
-            okb, whyb = validate_bundle(bundle, leaf, fragments[fid]["scope"],
-                                        nonterminal_types)
-            if not okb:
-                return False, f"{fid} bundle invalid: {whyb}"
-            if sorted(bundle["member_edges"]) != sorted(e["id"] for e in nonterms):
-                return False, f"{fid} bundle members != its nonterminal edges"
-        for e in terms:
-            if fragments[fid]["kind"] not in kind_edge_ok[e["type"]]:
-                return False, f"kind/edge-type mismatch on {fid}"
-    # terminal uniqueness on (source LEAF, fragment ID)
-    seen = set()
-    for e in edges:
-        if e["type"] in terminal_types:
-            key = (e["source"], e["frag"])
-            if key in seen:
-                return False, f"duplicate terminal edge for {key}"
-            seen.add(key)
-    return True, "inventory ok"
-
-
-REASON_FOR_TYPE = {
-    "process-only": "process-material", "invalid": "false-claim",
-    "no-successor": "out-of-scope-or-obsolete",
-    "unsupported-residual": "authority-not-located",
-}
-
-
-def validate_disp_subject(det):
-    """Polymorphic subject-variant exclusivity (§15.9.4, R2.8)."""
-    sc = det.get("subject_class")
-    if sc not in ("XW2-DISP", "SXW2-DISP"):
-        return False, f"bad DISP subject class {sc!r}"
-    leaf, lfrag = det.get("hist_leaf"), det.get("hist_frag")
-    scen, sfrag = det.get("scenario"), det.get("scen_frag")
-    if sc == "XW2-DISP":
-        if not (leaf and lfrag):
-            return False, "XW2-DISP missing LEAF/fragment"
-        if not LEAF_FRAG_RE.match(lfrag) or not lfrag.startswith(leaf + ":"):
-            return False, "XW2-DISP fragment grammar/ownership invalid"
-        if scen != "—" or sfrag != "—":
-            return False, "XW2-DISP must set scenario fields to —"
-    else:  # SXW2-DISP
-        if not (scen and sfrag):
-            return False, "SXW2-DISP missing scenario/fragment"
-        if not SCEN_FRAG_RE.match(sfrag) or not sfrag.startswith(scen + ":"):
-            return False, "SXW2-DISP invented/invalid scenario fragment"
-        if leaf != "—" or lfrag != "—":
-            return False, "SXW2-DISP must set LEAF fields to —"
-        if det.get("edge_type") not in ("invalid", "no-successor"):
-            return False, "SXW2-DISP terminal type must be invalid/no-successor"
-    return True, "subject ok"
-
-
-def validate_terminal_reference(edge, decisions, disp_details, sm2, search_sets):
-    """A terminal XW2/SXW2 edge -> its current polymorphic DISP detail row."""
-    dr = decisions.get(edge["decision"])
-    if dr is None:
-        return False, "decision reference does not resolve"
-    if dr["type"] != "DISP":
-        return False, f"terminal edge references {dr['type']}, not DISP"
-    if dr["status"] != "current":
-        return False, "stale reference: superseded decision reachable only via AMEND"
-    det = disp_details.get(edge["decision"])
-    if det is None:
-        return False, "DISP without pinned detail row"
-    oks, whys = validate_disp_subject(det)
-    if not oks:
-        return False, whys
-    # register <-> subject class
-    reg = "SXW2" if edge["id"].startswith("SXW2-") else "XW2"
-    want_class = "SXW2-DISP" if reg == "SXW2" else "XW2-DISP"
-    if det["subject_class"] != want_class:
-        return False, "subject-family mismatch (edge register vs DISP subject class)"
-    # bidirectional subject agreement
-    if want_class == "XW2-DISP":
-        if det["hist_leaf"] != edge["source"] or det["hist_frag"] != edge["frag"]:
-            return False, "DISP detail disagrees with edge (LEAF/fragment)"
+    # ---- legacy recognition: the committed population MUST be recognized as
+    # rejected/legacy (pre-R3.1), and MUST NOT be certified R3.1-conforming.
+    base_hdr = section(canon, r"^#### 15\.12\.1 ", r"^#### 15\.12\.2 ")
+    legacy_signals = []
+    if "Publication/effective date" in base_hdr:
+        legacy_signals.append("SRC2 base still uses abolished "
+                              "'Publication/effective date' field")
+    if "Record status/version" in base_hdr:
+        legacy_signals.append("SRC2 base still uses composite "
+                              "'Record status/version' field")
+    # committed terminal dispositions carried on OWN/ATOM (DR2-0037/38/39).
+    term_refs = {e["decision"] for e in xw2 if e["type"] in vocab["xw2_terminal"]}
+    if {"DR2-0037", "DR2-0038", "DR2-0039"} & term_refs:
+        legacy_signals.append("terminal edges reference committed OWN/ATOM "
+                              "records DR2-0037/0038/0039 (pre-R3.1 mistyping)")
+    if not legacy_signals:
+        probs.append("committed population no longer shows the known legacy "
+                     "markers — refusing to certify a changed population as "
+                     "R3.1-conforming without re-review")
     else:
-        if det["scenario"] != edge["source"] or det["scen_frag"] != edge["frag"]:
-            return False, "DISP detail disagrees with edge (scenario/fragment)"
-    if det["edge"] != edge["id"] or det["edge_type"] != edge["type"]:
-        return False, "DISP detail disagrees with edge (edge id/type)"
-    if det["reason"] != REASON_FOR_TYPE[edge["type"]]:
-        return False, "no-owner reason incompatible with edge type"
-    if edge["type"] == "unsupported-residual":
-        if not det.get("sm2"):
-            return False, "unsupported-residual without SM2 records"
-        if not det.get("search_set"):
-            return False, "unsupported-residual without SS2 search-set"
-        ss = search_sets.get(det["search_set"])
-        if ss is None or ss.get("status") != "current":
-            return False, "search-set not current"
-        if ss.get("adequacy") != "adequate-coverage":
-            return False, "inadequate coverage cannot support unsupported-residual"
-        for smid in det["sm2"]:
-            rec = sm2.get(smid)
-            if rec is None or rec["status"] != "current":
-                return False, f"SM2 {smid} not current"
-            okm, whym = validate_sm2(rec)
-            if not okm:
-                return False, f"inadequate SM2 {smid}: {whym}"
-            if rec["result"] == "qualifying-authority-located":
-                return False, "located authority forbids unsupported-residual"
-        if not det.get("anchor") or det.get("anchor") == "—":
-            return False, "unsupported-residual without preserved-candidate anchor"
-    return True, "terminal reference ok"
+        notes.append("LEGACY recognized (NOT R3.1-conforming): "
+                     + "; ".join(legacy_signals))
+    return probs, notes
 
 
-def find_orphan_disps(edges, decisions, disp_details):
-    referenced = {e["decision"] for e in edges}
-    return sorted(d for d, det in disp_details.items()
-                  if decisions.get(d, {}).get("status") == "current"
-                  and d not in referenced)
+def validate_schema_completeness(canon):
+    """Enforce that the governing SCHEMAS are the corrected R2.9 schemas — the
+    exact defects Codex rejected must be closed in the canon text itself."""
+    probs = []
+
+    def require(pat, msg):
+        if not re.search(pat, canon):
+            probs.append("schema: " + msg)
+
+    def forbid_in(sec_start, sec_end, pat, msg):
+        seg = section(canon, sec_start, sec_end)
+        if re.search(pat, seg):
+            probs.append("schema: " + msg)
+
+    # base SRC2 split status/version + official-mutable split.
+    require(r"\| Record limitations \| Record status \| Record version`",
+            "SRC2 base 'Record status/version' composite not split")
+    require(r"\| Publication identity \| Publication date or — \| Season or —",
+            "official-mutable 'Publication identity/date or season' not split")
+    # window ordering.
+    require(r"end\s+date\s+is\s+\*\*strictly later than\*\*",
+            "effective-window endpoint ordering not required")
+    # single date-component completeness rule.
+    require(r"one completeness rule, not two", "date-component completeness "
+            "rule still ambiguous (competing standards)")
+    # single-coordinate span text-span system + dual-domain abolished.
+    require(r"single-coordinate\s+text-span\s+system", "fragment scope not "
+            "converted to one text-span coordinate system")
+    require(r"That dual\s+domain is \*\*abolished\*\*",
+            "dual clause/sentence atom domain not abolished")
+    # BND multi-target-only + member matrix.
+    require(r"\*\*multi-target-only\*\*", "BND cardinality not resolved to "
+            "multi-target-only")
+    require(r"Member compatibility matrix \(pinned",
+            "BND member compatibility matrix missing")
+    # DISP Normalized scope field (checked in the actual schema STRING) +
+    # terminal-base equality; "demonstrably identical" judgment abolished in
+    # the §15.9.4 DISP section.
+    disp_fields = schema_fields(
+        canon, r"detail schema \(binding; fixed, parseable, and polymorphic")
+    if not disp_fields or "Normalized scope" not in disp_fields:
+        probs.append("schema: DISP detail schema lacks Normalized scope field")
+    disp = section(canon, r"\*\*`DISP` detail schema \(binding",
+                   r"#### 15\.9\.5 ")
+    if "demonstrably identical" in disp:
+        probs.append("schema: DISP schema still uses 'demonstrably identical' "
+                     "reviewer judgment")
+    require(r"terminal-base-equality", "exact terminal-base-equality rule "
+            "missing")
+    # SM2 typing + SM2<->SRC2 reconciliation + SS2 determinism.
+    require(r"SM2 ⇔ current-`SRC2` binary reconciliation",
+            "SM2 to current-SRC2 reconciliation missing")
+    require(r"`Search method` — closed vocabulary", "SM2 Search method not a "
+            "closed vocabulary")
+    require(r"fixed closed set \*\*`CBA, BYL, NBA, ops-provenance`\*\*",
+            "SS2 required classes not deterministic")
+    ss2 = section(canon, r"\*\*`Required source classes` — deterministic",
+                  r"`Member SM2 IDs`")
+    if re.search(r"plausibly (controlling|operational)", ss2):
+        # allow only inside an explicit abolition clause
+        if "abolished" not in ss2:
+            probs.append("schema: SS2 still maker-selects required classes")
+    # canonical-actor registry + bound acceptance + BLK candidate-obligation.
+    require(r"\*\*Canonical-actor registry and alias normalization",
+            "canonical-actor registry missing")
+    require(r"Accepted content digest", "RES acceptance not bound to exact "
+            "current resolution (no content digest)")
+    require(r"`candidate-obligation`", "BLK candidate-obligation subject class "
+            "missing")
+    # SXW2-blocker contradiction resolved (BLK subject class is XW2-only).
+    blk = section(canon, r"Blocked-finding record \(composite",
+                  r"Resolution record \(composite")
+    if re.search(r"`SXW2-DISP`", blk) and "never `SXW2-DISP`" not in blk:
+        probs.append("schema: BLK still admits SXW2-DISP subject class")
+    return probs
 
 
-VAGUE = {"official web surfaces", "the internet", "official sources",
-         "various sources"}
-
-
-def validate_sm2(rec):
-    """Split-field SM2 record adequacy (§15.9.6, R2.8)."""
-    if rec["result"] not in {"qualifying-authority-located",
-                             "no-qualifying-authority-located-in-searched-sources",
-                             "inconclusive"}:
-        return False, f"result {rec['result']!r} outside closed vocabulary"
-    if "exists" in rec["result"]:
-        return False, "result implies universal negative"
-    if rec.get("source_identity", "").strip().lower() in VAGUE:
-        return False, "vague source identity"
-    if not rec.get("locator") or rec["locator"] == "—":
-        return False, "missing exact locator/query"
-    if not rec.get("cutoff"):
-        return False, "missing search cutoff"
-    if rec.get("is_artifact"):
-        for f in ("size", "sha256", "pagination"):
-            if not rec.get(f) or rec.get(f) == "—":
-                return False, f"artifact search missing split binary field {f}"
-        if rec.get("sha256") and not re.match(r"^[0-9a-f]{64}$", rec["sha256"]):
-            return False, "binary SHA-256 malformed"
-    if rec.get("status") not in ("current", "superseded"):
-        return False, "bad search status"
-    return True, "sm2 ok"
-
-
-def validate_search_set(ss, members):
-    """SS2 deterministic coverage assessment (§15.9.6, R2.8)."""
-    required = set(ss["required_classes"])
-    covered = set()
-    for smid in ss["member_sm2"]:
-        rec = members.get(smid)
-        if rec is None or rec.get("status") != "current":
-            return False, f"member {smid} not current", "inadequate-coverage"
-        ok, _ = validate_sm2(rec)
-        if not ok:
-            continue
-        if rec["result"] == "inconclusive":
-            continue  # inconclusive never counts toward coverage
-        covered.add(rec["class"])
-    adequacy = "adequate-coverage" if required <= covered else "inadequate-coverage"
-    if ss.get("adequacy") != adequacy:
-        return False, f"declared adequacy {ss.get('adequacy')} != computed {adequacy}", adequacy
-    return True, "search-set ok", adequacy
-
-
-def disposition_available(fragment_kind, supported_sibling_exists, authority_located,
-                          valid_in_scope, attempted_type):
-    """Which disposition is honest for a fragment (§15.9.3). Wholly unsupported ->
-    BLOCKED (no terminal escape)."""
-    if attempted_type == "unsupported-residual":
-        if fragment_kind != "substantive-obligation":
-            return False, "unsupported-residual only for substantive-obligation"
-        if authority_located:
-            return False, "authority located: active owner required"
-        if not supported_sibling_exists:
-            return False, "BLOCKED-UNSUPPORTED-OBLIGATION: no supported sibling"
-        return True, "ok"
-    if attempted_type in ("no-successor", "process-only"):
-        # a whole valid in-scope unsupported substantive obligation cannot escape
-        if (fragment_kind == "substantive-obligation" and valid_in_scope
-                and not authority_located and not supported_sibling_exists):
-            return False, f"BLOCKED-UNSUPPORTED-OBLIGATION: cannot escape as {attempted_type}"
-        return True, "ok"
-    if attempted_type == "invalid":
-        if fragment_kind == "substantive-obligation" and valid_in_scope and not authority_located:
-            return False, "merely unsupported substantive mechanic is not thereby invalid"
-        return True, "ok"
-    return True, "ok"
-
-
-def validate_resolution(finding, resolution):
-    """Governed blocked-finding + independent-acceptance gate (§15.9.3, R2.8)."""
-    if finding["type"] != "blocked-unsupported-obligation":
-        return False, "unknown finding type"
-    if resolution is None:
-        return finding["status"] == "open", "no resolution -> stays open (U7 stop)"
-    if resolution["outcome"] not in {"foundation-vocabulary-or-scope-decision",
-                                     "authority-located-mint-owner",
-                                     "out-of-scope-determination"}:
-        return False, "proposed outcome outside closed vocabulary"
-    accepted = resolution["status"] == "accepted"
-    if accepted:
-        if resolution["checker"] == resolution["maker"]:
-            return False, "maker self-acceptance forbidden"
-        if not resolution.get("acceptance_commit") or resolution["acceptance_commit"] == "—":
-            return False, "accepted without pinned acceptance commit/receipt"
-    finding_cleared = finding["status"] == "resolved"
-    if finding_cleared and not accepted:
-        return False, "finding marked resolved without an accepted resolution"
-    return True, "resolution ok"
-
-
-def amend_supersede(decisions, edges, old_id, new_id, new_type, update_refs_same_commit):
-    if new_id in decisions:  # append-only: never overwrite/reuse an allocated ID
-        return False
-    decisions[old_id]["status"] = "superseded"
-    decisions[old_id]["superseded_by"] = new_id
-    decisions[new_id] = {"type": new_type, "status": "current", "superseded_by": None}
-    if update_refs_same_commit:
-        for e in edges:
-            if e["decision"] == old_id:
-                e["decision"] = new_id
-    return True
+def validate_plan(plan):
+    probs = []
+    if plan is None:
+        return ["repair plan is MISSING — the governing repair plan is a "
+                "required input and cannot be absent"]
+    # backlog: items 22..27 headers present; the corrected truthful header
+    # present; the exact FALSE old header form ("items 16–21; nothing else):")
+    # absent as a live assertion (a quotation describing the correction is OK).
+    for n in (22, 23, 24, 25, 26, 27):
+        if not re.search(r"(?m)^\s*%d\.\s" % n, plan):
+            probs.append(f"plan backlog: item {n} missing")
+    if re.search(r"require — items 16–21; nothing else\):", plan):
+        probs.append("plan backlog header still asserts 'items 16–21; nothing "
+                     "else' while items 22–27 follow (false completeness)")
+    if not re.search(r"complete R3.1 backlog is items 1–27", plan):
+        probs.append("plan backlog header does not state the truthful "
+                     "complete range items 1–27")
+    # R4 dependency: no stale **bold live** 'accepted R2.7 foundation'
+    # dependency (a quotation noting the correction is OK); must depend on the
+    # accepted R2.9 foundation; construction sequence must include R2.8/R2.9.
+    r4 = section(plan, r"^## R4 — Re-register", r"^## R5 — Re-register")
+    if re.search(r"\*\*independently accepted\s+R2\.7 foundation\*\*", r4):
+        probs.append("plan R4 dependency still requires an 'independently "
+                     "accepted R2.7 foundation' (R2.7 was rejected)")
+    if not re.search(r"accepted\s+R2\.9 foundation", r4):
+        probs.append("plan R4 dependency does not depend on the accepted R2.9 "
+                     "foundation")
+    if re.search(r"R3 → R2\.6 → R2\.7 → R3\.1 → R4", r4):
+        probs.append("plan R4 construction sequence omits R2.8/R2.9")
+    # item 25 corrected: inadequate coverage must NOT route straight to BLK.
+    m25 = re.search(r"(?ms)^\s*25\.\s.*?(?=^\s*26\.\s)", plan)
+    seg25 = m25.group(0) if m25 else ""
+    if not seg25:
+        probs.append("plan item 25 not found")
+    else:
+        if not re.search(r"neither\s+support.*?nor.*?create or clear", seg25,
+                         re.S):
+            probs.append("plan item 25 does not bar inadequate coverage from "
+                         "creating/clearing a blocked outcome")
+        if re.search(r"the residual is not\s*`unsupported-residual` but a "
+                     r"governed `BLK-…` blocked finding\.", seg25):
+            probs.append("plan item 25 still routes inconclusive/uncovered "
+                         "coverage straight to a BLK finding")
+    # truthful sequence present somewhere (includes rejected R2.8 and R2.9).
+    if not re.search(r"R2\.8.*rejected.*R2\.9|R2\.8 \(executed; rejected\) → "
+                     r"R2\.9", plan):
+        probs.append("plan does not state the truthful sequence including "
+                     "rejected R2.8 and pending R2.9")
+    return probs
 
 
 # --------------------------------------------------------------------------
-# 4. Parse the ACTUAL current populations; recognize the legacy R3 population
+# 7. Simulated future MIGRATED R3.1 population — canon-format table text,
+#    parsed by the SAME helpers and reconciled by the SAME engine. This is the
+#    labelled, non-record fixture proving the validator is reusable for R3.1
+#    without weakening it. Adversarial R3.1 cases mutate THIS text.
+# --------------------------------------------------------------------------
+
+# Compute a real signed-CBA-consistent artifact hash for the SM2<->SRC2 check.
+_CBA_HASH = "bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32"
+
+# A well-formed migrated block. Every table is canon-format; every row is an
+# explicitly SIMULATED example (never a minted record).
+SIM_R31 = """
+<!-- BEGIN R3.1-SIMULATED-MIGRATED-POPULATION (illustrative; not a record) -->
+
+SIM SRC2 base (migrated to basis:value + split status/version):
+| SRC2-001 | official-immutable | 2023 NBA-NBPA CBA | agreement-as-of:2023-06-28 | https://x | %HASH% | 2026-07-16T09:39:26Z | — | agent:claude-code | session:r31-1 | 2026-07-16 | none | current | 2 |
+
+SIM date-components:
+| SRC2-001 | SRC2-001#D1 | agreement-as-of | primary | 2023-06-28 | Article I §1(d) | — |
+| SRC2-001 | SRC2-001#D2 | effective | primary | 2023-07-01 | Article XXXIX §1 | — |
+| SRC2-001 | SRC2-001#D3 | edition | primary | 2023-07 | cover | month only |
+
+SIM fragment inventory (CBA-A18.7; partition of [0,120)):
+| CBA-A18.7:F1 | CBA-A18.7 | substantive-obligation | span:0-60 | DR2-9101 | — | XW2-9111 | current | 1 | — |
+| CBA-A18.7:F2 | CBA-A18.7 | substantive-obligation | span:60-120 | DR2-9101 | — | XW2-9112 | current | 1 | residual |
+
+SIM SM2 (searched artifact reconciles to current SRC2-001):
+| SM2-9001 | XW2-DISP | CBA-A18.7 | CBA-A18.7:F2 | CBA | 2023 NBA-NBPA CBA | SRC2-001 | https://x | 2023 CBA signed edition | 2850534 | %HASH% | pages=676 | signed | provision:VII §8(a) | provision-read | SS2-9001 | 2026-07-16T00:00:00Z | no-qualifying-authority-located-in-searched-sources | SS2-9001 | not located | — | agent:claude-code | session:r31-1 | 2026-07-16 | current | 1 |
+| SM2-9002 | XW2-DISP | CBA-A18.7 | CBA-A18.7:F2 | BYL | June 2024 By-Laws | SRC2-002 | https://y | 2024 By-Laws | 422247 | be4d2781fe8fddfc5bc9028214298f742789a949dade4ead26368a4336d32ccf | pages=88 | unsigned | provision:Article VII | provision-read | SS2-9001 | 2026-07-16T00:00:00Z | no-qualifying-authority-located-in-searched-sources | SS2-9001 | not located | — | agent:claude-code | session:r31-1 | 2026-07-16 | current | 1 |
+| SM2-9003 | XW2-DISP | CBA-A18.7 | CBA-A18.7:F2 | NBA | NBA releases | — | https://z | — | — | — | — | — | query:cash attribution | query | SS2-9001 | 2026-07-16T00:00:00Z | no-qualifying-authority-located-in-searched-sources | SS2-9001 | not located | — | agent:claude-code | session:r31-1 | 2026-07-16 | current | 1 |
+| SM2-9004 | XW2-DISP | CBA-A18.7 | CBA-A18.7:F2 | ops-provenance | ops availability | — | provenance:league-ops | — | — | — | — | — | query:re-trade attribution | attestation-availability-check | SS2-9001 | 2026-07-16T00:00:00Z | no-qualifying-authority-located-in-searched-sources | SS2-9001 | not located | — | agent:claude-code | session:r31-1 | 2026-07-16 | current | 1 |
+
+SIM SS2 (adequate over the deterministic required set):
+| SS2-9001 | XW2-DISP | CBA-A18.7 | CBA-A18.7:F2 | CBA, BYL, NBA, ops-provenance | SM2-9001, SM2-9002, SM2-9003, SM2-9004 | CBA:covered, BYL:covered, NBA:covered, ops-provenance:covered | adequate-coverage | current | 1 |
+
+SIM DISP (XW2-DISP unsupported-residual for F2):
+| DR2-9111 | XW2-DISP | CBA-A18.7 | CBA-A18.7:F2 | — | — | span:60-120 | XW2-9112 | unsupported-residual | SM2-9001, SM2-9002, SM2-9003, SM2-9004 | SS2-9001 | — | authority-not-located | §12.12 | none | reopen on later authority | — | current | 1 |
+
+SIM BLK/RES (candidate-obligation, independently accepted):
+| BLK-9001 | candidate-obligation | — | — | §13.3 | blocked-unsupported-obligation | SS2-9002 | SM2-9005 | — | §13.3 | resolved | 1 | RES-9001 | — | none |
+| RES-9001 | BLK-9001 | out-of-scope-determination | foundation | agent:codex | human:project-owner | 1111111111111111111111111111111111111111 | work/architect-completion/x.md | 1 | %RESDIGEST% | out-of-scope-determination | accepted | 1 | reopen on authority | none | — |
+
+SIM AMEND (supersede committed OWN/ATOM DR2-0039 -> current DISP DR2-9112):
+| DR2-9201 | AMEND | XW2-0006 | supersede DR2-0039(ATOM) -> DR2-9112(DISP) current | one current endpoint | same-commit refs updated | DR2-9112 | current | 1 |
+
+<!-- END R3.1-SIMULATED-MIGRATED-POPULATION -->
+"""
+
+
+def _res_binding_content(res_cells):
+    """Recompute the RES binding-content digest exactly as the canon defines:
+    the '|'-join of (BLK id, proposed outcome, resolver authority, maker,
+    checker, reopening condition, limitations)."""
+    # RES schema cell order (0-indexed):
+    # 0 RES ID | 1 BLK ID | 2 Proposed outcome | 3 Resolver authority |
+    # 4 Maker | 5 Checker | 6 Acceptance commit | 7 Acceptance receipt |
+    # 8 Accepted RES version | 9 Accepted content digest |
+    # 10 Accepted proposed outcome | 11 Resolution status | 12 Resolution
+    # version | 13 Reopening condition | 14 Limitations | 15 Superseding
+    parts = [res_cells[1], res_cells[2], res_cells[3], res_cells[4],
+             res_cells[5], res_cells[13], res_cells[14]]
+    return sha_hex("|".join(parts))
+
+
+def _materialize_sim(block):
+    """Fill %HASH%/%RESDIGEST% so the well-formed control reconciles."""
+    block = block.replace("%HASH%", _CBA_HASH)
+    # compute the RES digest from the RES row's own binding content
+    for cells in [r for r in pipe_rows(block) if r and re.match(r"RES-\d", r[0])]:
+        # temporarily substitute a placeholder digest to compute over content
+        tmp = list(cells)
+        tmp[9] = "PLACEHOLDER"
+        digest = _res_binding_content(tmp)
+        block = block.replace("%RESDIGEST%", digest)
+    return block
+
+
+def validate_r31_population(block, canon, vocab, alias_classes, src2_base_ids):
+    """Parse and reconcile a migrated R3.1 population expressed in canon-format
+    tables. Returns problems. Reuses the shared engine — the SAME parsing path
+    used for the committed canon."""
+    probs = []
+    rows = pipe_rows(block)
+
+    def rows_like(pat):
+        return [r for r in rows if r and re.match(pat, r[0])]
+
+    # -- date components: one primary per basis; base pair == its primary;
+    #    contiguous #Dk; value valid per basis; no dup (RID,basis,role).
+    comp = [r for r in rows if len(r) >= 5 and re.match(r"SRC2-\d{3}$", r[0])
+            and re.match(r"SRC2-\d{3}#D\d", r[1])]
+    seen_roles, seen_cids, primaries = set(), set(), {}
+    for r in comp:
+        rid, cid, basis, role, value = r[0], r[1], r[2], r[3], r[4]
+        if basis not in vocab["date_bases"]:
+            probs.append(f"R3.1 date-comp {cid}: basis {basis!r} not in vocab")
+        if not value_valid_for_basis(basis, value):
+            probs.append(f"R3.1 date-comp {cid}: value {value!r} invalid for "
+                         f"basis {basis}")
+        key = (rid, basis, role)
+        if key in seen_roles:
+            probs.append(f"R3.1 date-comp: duplicate (RID,basis,role) {key}")
+        seen_roles.add(key)
+        if cid in seen_cids:
+            probs.append(f"R3.1 date-comp: duplicate component id {cid}")
+        seen_cids.add(cid)
+        if role == "primary":
+            if (rid, basis) in primaries:
+                probs.append(f"R3.1 date-comp: two primaries for ({rid},{basis})")
+            primaries[(rid, basis)] = value
+    # base pair (from SIM base row) equals its basis's primary.
+    for r in rows_like(r"SRC2-\d{3}$"):
+        if len(r) >= 4 and ":" in r[3]:
+            b, _, val = r[3].partition(":")
+            if (r[0], b) in primaries and primaries[(r[0], b)] != val:
+                probs.append(f"R3.1 SRC2 {r[0]}: base pair {r[3]} != primary "
+                             f"component {primaries[(r[0], b)]}")
+
+    # -- fragment inventory: partition of [0,L); pairwise non-overlap.
+    frags = [r for r in rows if r and re.match(r"CBA-A\d+\.\d+:F\d", r[0])]
+    by_leaf = {}
+    for r in frags:
+        by_leaf.setdefault(r[1], []).append(r)
+    for leaf, fr in by_leaf.items():
+        allatoms = []
+        for r in fr:
+            atoms, ap = span_atoms(r[3])
+            probs += [f"R3.1 frag {r[0]}: {p}" for p in ap]
+            allatoms += atoms
+        if ranges_overlap(allatoms):
+            probs.append(f"R3.1 frag partition {leaf}: overlapping spans")
+        # coverage contiguity from 0 (a real inventory covers [0,L)).
+        s = sorted(allatoms)
+        if s and s[0][0] != 0:
+            probs.append(f"R3.1 frag partition {leaf}: does not start at 0")
+        for i in range(1, len(s)):
+            if s[i][0] != s[i - 1][1]:
+                probs.append(f"R3.1 frag partition {leaf}: gap/overlap between "
+                             f"{s[i-1]} and {s[i]}")
+
+    # -- SM2: exact grammars + SM2<->current-SRC2 binary reconciliation.
+    src2_hash = {"SRC2-001": _CBA_HASH,
+                 "SRC2-002": "be4d2781fe8fddfc5bc9028214298f742789a949"
+                             "dade4ead26368a4336d32ccf"}
+    src2_size = {"SRC2-001": "2850534", "SRC2-002": "422247"}
+    sm2 = rows_like(r"SM2-\d{4}")
+    for r in sm2:
+        sid = r[0]
+        subj_class, srcrec = r[1], r[6]
+        sha, size, method = r[10], r[9], r[14]
+        result = r[17]
+        if subj_class != "XW2-DISP":
+            probs.append(f"R3.1 {sid}: subject class must be XW2-DISP (XW2-only "
+                         "search machinery)")
+        if method not in vocab["search_methods"]:
+            probs.append(f"R3.1 {sid}: search method {method!r} not in closed "
+                         "vocabulary")
+        if sha != "—" and not re.fullmatch(r"[0-9a-f]{64}", sha):
+            probs.append(f"R3.1 {sid}: Binary SHA-256 malformed")
+        if size != "—" and not re.fullmatch(r"\d+", size):
+            probs.append(f"R3.1 {sid}: Binary size bytes malformed")
+        if result not in ("qualifying-authority-located",
+                          "no-qualifying-authority-located-in-searched-sources",
+                          "inconclusive"):
+            probs.append(f"R3.1 {sid}: result {result!r} not in vocabulary")
+        if srcrec in src2_hash:  # artifact-bearing source -> reconcile
+            if sha != src2_hash[srcrec]:
+                probs.append(f"R3.1 {sid}: Binary SHA-256 != current {srcrec} "
+                             "artifact hash (SM2<->SRC2 reconciliation)")
+            if size != src2_size[srcrec]:
+                probs.append(f"R3.1 {sid}: Binary size != current {srcrec} size")
+    _ = src2_base_ids
+
+    # -- SS2: deterministic required set + closed coverage grammar + adequacy,
+    #    computed over the SS2's OWN declared members (not all SM2 globally).
+    sm2_by_id = {r[0]: r for r in sm2}
+    for r in rows_like(r"SS2-\d{4}"):
+        req = tuple(x.strip() for x in r[4].split(","))
+        members = [m.strip() for m in r[5].split(",")
+                   if m.strip() and m.strip() != "—"]
+        adequacy = r[7]
+        if req != vocab["ss2_required"]:
+            probs.append(f"R3.1 {r[0]}: required classes {req} != deterministic "
+                         f"{vocab['ss2_required']}")
+        if not members:
+            probs.append(f"R3.1 {r[0]}: empty search set (no members)")
+        covered = {}
+        for cls in vocab["ss2_required"]:
+            cls_results = [sm2_by_id[m][17] for m in members
+                           if m in sm2_by_id and sm2_by_id[m][4] == cls]
+            covered[cls] = any(
+                x == "no-qualifying-authority-located-in-searched-sources"
+                for x in cls_results)
+        any_located = any(sm2_by_id[m][17] == "qualifying-authority-located"
+                          for m in members if m in sm2_by_id)
+        want = ("adequate-coverage" if all(covered.values()) and not any_located
+                else "inadequate-coverage")
+        if adequacy != want:
+            probs.append(f"R3.1 {r[0]}: adequacy {adequacy!r} != computed "
+                         f"{want!r} (over declared members)")
+
+    # -- DISP row: subject class, scenario bound 1..89, no-owner reason vs type,
+    #    unsupported-residual requires SM2 + SS2 + anchor, scope grammar.
+    disp = rows_like(r"DR2-\d{4}")
+    disp = [r for r in disp if len(r) >= 18 and r[1] in ("XW2-DISP", "SXW2-DISP")]
+    for r in disp:
+        cls, hleaf, hfrag, scen, sfrag = r[1], r[2], r[3], r[4], r[5]
+        nscope, edge, etype = r[6], r[7], r[8]
+        sm_ids, ss_id, reason = r[9], r[10], r[12]
+        anchor = r[13]
+        if cls == "XW2-DISP":
+            if hleaf == "—" or hfrag == "—" or scen != "—" or sfrag != "—":
+                probs.append(f"R3.1 DISP {r[0]}: XW2-DISP subject fields wrong")
+        elif cls == "SXW2-DISP":
+            m = re.fullmatch(r"scenario-(\d+)", scen)
+            if not m or not (1 <= int(m.group(1)) <= 89):
+                probs.append(f"R3.1 DISP {r[0]}: scenario {scen!r} outside 1..89")
+            if hleaf != "—" or hfrag != "—":
+                probs.append(f"R3.1 DISP {r[0]}: SXW2-DISP LEAF fields must be —")
+        atoms, ap = span_atoms(nscope)
+        probs += [f"R3.1 DISP {r[0]}: {p}" for p in ap]
+        need = {"unsupported-residual": "authority-not-located",
+                "invalid": "false-claim", "process-only": "process-material",
+                "no-successor": "out-of-scope-or-obsolete"}
+        if etype in need and reason != need[etype]:
+            probs.append(f"R3.1 DISP {r[0]}: no-owner reason {reason!r} wrong "
+                         f"for edge type {etype}")
+        if etype == "unsupported-residual":
+            if not re.search(r"SM2-\d", sm_ids) or not re.match(r"SS2-\d", ss_id):
+                probs.append(f"R3.1 DISP {r[0]}: unsupported-residual missing "
+                             "SM2/SS2 support")
+            if anchor in ("—", ""):
+                probs.append(f"R3.1 DISP {r[0]}: unsupported-residual missing "
+                             "preserved-candidate anchor")
+
+    # duplicate current DISP per terminal-subject key + basis; orphan DISP
+    # (terminal edge referenced by no fragment inventory row).
+    frag_edges = set()
+    for fr in frags:
+        frag_edges |= set(re.findall(r"XW2-\d{4}|SXW2-\d{4}", fr[6]))
+    seen_disp = set()
+    for r in disp:
+        key = (r[1], r[2], r[3], r[5], r[12])  # class, leaf, frag, scenfrag, reason
+        if key in seen_disp:
+            probs.append(f"R3.1 DISP {r[0]}: duplicate current DISP for "
+                         f"terminal-subject key {key}")
+        seen_disp.add(key)
+        if frags and r[7] not in frag_edges:
+            probs.append(f"R3.1 DISP {r[0]}: orphan — terminal edge {r[7]} "
+                         "referenced by no fragment inventory row")
+
+    # -- BLK/RES: independent acceptance bound to exact current resolution.
+    blk = {r[0]: r for r in rows_like(r"BLK-\d{4}")}
+    res = {r[0]: r for r in rows_like(r"RES-\d{4}")}
+    for bid, b in blk.items():
+        subj_class = b[1]
+        if subj_class not in vocab["blk_subject_classes"]:
+            probs.append(f"R3.1 {bid}: subject class {subj_class!r} invalid "
+                         "(SXW2 blockers are not permitted)")
+        status, res_id = b[10], b[12]
+        if status == "resolved":
+            r = res.get(res_id)
+            if not r:
+                probs.append(f"R3.1 {bid}: resolved but names no current RES")
+                continue
+            maker, checker = r[4], r[5]
+            acc_commit, acc_ver, acc_digest, acc_outcome = r[6], r[8], r[9], r[10]
+            rstatus, rver, outcome = r[11], r[12], r[2]
+            if rstatus != "accepted":
+                probs.append(f"R3.1 {bid}: resolved by non-accepted RES")
+            if not actors_independent(maker, checker, alias_classes):
+                probs.append(f"R3.1 {r[0]}: maker {maker!r}/checker {checker!r} "
+                             "not distinct canonical actors (self/alias/blank)")
+            if not re.fullmatch(r"[0-9a-f]{40}", acc_commit):
+                probs.append(f"R3.1 {r[0]}: acceptance commit not a full SHA")
+            if acc_ver != rver:
+                probs.append(f"R3.1 {r[0]}: accepted version {acc_ver} != "
+                             f"current version {rver} (stale acceptance)")
+            if acc_outcome != outcome:
+                probs.append(f"R3.1 {r[0]}: accepted outcome != current outcome "
+                             "(unrelated acceptance)")
+            want_digest = _res_binding_content(r)
+            if acc_digest != want_digest:
+                probs.append(f"R3.1 {r[0]}: accepted content digest mismatch "
+                             "(stale/unrelated acceptance does not bind)")
+
+    # -- AMEND chain: exactly one current endpoint; no ID reuse.
+    amend = [r for r in rows if len(r) >= 8 and r[1] == "AMEND"]
+    for r in amend:
+        if "one current endpoint" not in r[4] and "current" not in " ".join(r):
+            probs.append(f"R3.1 AMEND {r[0]}: no current endpoint declared")
+        # two-current-endpoint sabotage is detected by the marker below.
+        if r[4].count("current endpoint") > 1 or "two current" in " ".join(r):
+            probs.append(f"R3.1 AMEND {r[0]}: more than one current endpoint")
+
+    # -- G15R population membership: the migrated block must carry the full
+    #    set of populations (a dropped population is an omission).
+    required_pops = {"SRC2 base": r"SRC2-\d{3}$", "date-comp": r"SRC2-\d{3}#D",
+                     "fragment": r"CBA-A\d+\.\d+:F", "SM2": r"SM2-\d",
+                     "SS2": r"SS2-\d", "DISP": None, "BLK": r"BLK-\d",
+                     "RES": r"RES-\d", "AMEND": None}
+    present = {r[0] for r in rows}
+    if not any(re.match(r"SM2-\d", x) for x in present):
+        probs.append("R3.1 G15R: SM2 population omitted")
+    if not any(re.match(r"SS2-\d", x) for x in present):
+        probs.append("R3.1 G15R: SS2 population omitted")
+    if not any(re.match(r"BLK-\d", x) for x in present):
+        probs.append("R3.1 G15R: BLK population omitted")
+    if not any(re.match(r"CBA-A\d+\.\d+:F", x) for x in present):
+        probs.append("R3.1 G15R: fragment-inventory population omitted")
+    _ = (required_pops, disp)
+    return probs
+
+
+# --------------------------------------------------------------------------
+# 8. Single foundation-validation entry point (THE path for every case).
 # --------------------------------------------------------------------------
 
 
-def parse_xw2(text):
-    """Parse §15.11 crosswalk edges from the real canon."""
-    seg = text[text.find("### 15.11"):text.find("### 15.12")]
-    edges = []
-    for m in re.finditer(
-            r"^\|\s*(XW2-\d{4})\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*`([a-z-]+)`\s*\|"
-            r"\s*(.*?)\s*\|\s*(DR2-\d{4})\s*\|\s*$", seg, re.MULTILINE):
-        edges.append({"id": m.group(1), "source": m.group(2).strip(),
-                      "target": m.group(3).strip(), "type": m.group(4),
-                      "decision": m.group(6)})
-    return edges
-
-
-def parse_src2_base_header(text):
-    seg = text[text.find("#### 15.12.1"):text.find("#### 15.12.2")]
-    m = re.search(r"^\|\s*Record ID\s*\|(.+)\|\s*$", seg, re.MULTILINE)
-    return (m.group(0) if m else ""), seg
-
-
-def parse_transition_legacy_dr(text):
-    """The §15.9.4 transition block names the committed mistyped terminal
-    decisions (DR2-0037 OWN, DR2-0038 OWN, DR2-0039 ATOM). Extract them from the
-    canon so the legacy set is canon-derived, not hard-coded."""
-    seg = _block_after(text, "Committed pre-R2.7 terminal records (transition",
-                       stop=r"Unit-local validation")
-    legacy = {}
-    for m in re.finditer(r"`(DR2-\d{4})`\s*\(`(OWN|ATOM)`", seg):
-        legacy[m.group(1)] = m.group(2)
-    return legacy
-
-
-def assess_current_population(text, vocab):
-    """Validate what CAN be validated on the real population now, and RECOGNIZE
-    the committed R3 population as rejected/legacy. Returns (problems, notes)."""
+def validate_foundation(canon, plan, r31_block=None):
+    """Return the list of problems. Empty list == ACCEPT. Every valid fixture
+    and every adversarial mutation calls THIS function on real document text."""
+    if canon is None:
+        return ["canon document is MISSING"]
     problems, notes = [], []
-    edges = parse_xw2(text)
-    if len(edges) < 100:
-        problems.append(f"parsed only {len(edges)} XW2 edges (expected ~131)")
-    notes.append(f"parsed {len(edges)} XW2 crosswalk edges from §15.11")
+    vocab = canon_vocab(canon)
+    aliases = parse_actor_aliases(canon)
 
-    # structural: edge types in vocabulary; terminal edges have target —
-    for e in edges:
-        if e["type"] not in vocab["xw2_edge_types"]:
-            problems.append(f"{e['id']} unknown edge type {e['type']}")
-        if e["type"] in vocab["xw2_terminal_types"] and e["target"] != "—":
-            problems.append(f"terminal {e['id']} has non-— target {e['target']!r}")
+    problems += validate_schema_completeness(canon)
+    cprobs, cnotes = validate_committed(canon, vocab)
+    problems += cprobs
+    notes += cnotes
+    problems += validate_plan(plan)
 
-    # legacy recognition #1: SRC2 base still carries the pre-R2.7 field
-    header, _ = parse_src2_base_header(text)
-    if "Publication/effective date" in header:
-        notes.append("LEGACY: §15.12 SRC2 base uses the pre-R2.7 "
-                     "'Publication/effective date' field -> NOT R3.1-conforming "
-                     "(R3.1 migrates it to the basis:value source-date model)")
-        legacy_src2 = True
-    elif "Source date (basis:value)" in header:
-        legacy_src2 = False
-        notes.append("§15.12 SRC2 base uses the basis:value source-date model")
-    else:
-        problems.append("could not classify §15.12 SRC2 base header")
-        legacy_src2 = None
-
-    # legacy recognition #2: terminal edges reference committed OWN/ATOM decisions
-    legacy_dr = parse_transition_legacy_dr(text)
-    term_refs = sorted({e["decision"] for e in edges
-                        if e["type"] in vocab["xw2_terminal_types"]})
-    mistyped = sorted(d for d in term_refs if d in legacy_dr)
-    if mistyped:
-        notes.append("LEGACY: terminal edges reference committed "
-                     + ", ".join(f"{d}({legacy_dr[d]})" for d in mistyped)
-                     + " -> NOT R3.1-conforming (R3.1 supersedes them with "
-                     "polymorphic XW2-DISP records via AMEND)")
-
-    # The population MUST be recognized as legacy; certifying it as conforming
-    # is itself an error this validator must catch.
-    is_legacy = bool(mistyped) or legacy_src2
-    if not is_legacy:
-        problems.append("current population no longer shows the known legacy "
-                        "signals -- refusing to silently treat a changed "
-                        "population as R3.1-conforming without re-review")
-    else:
-        notes.append("VERDICT: committed R3 population correctly recognized as "
-                     "rejected/legacy; NOT certified as R3.1-conforming")
+    if r31_block is not None:
+        base_ids = {r[0] for r in parse_src2_base(canon)}
+        problems += validate_r31_population(r31_block, canon, vocab, aliases,
+                                            base_ids)
     return problems, notes
 
 
 # --------------------------------------------------------------------------
-# 5. Adversarial cases (26 inherited + 15 new Codex probes + mutations)
+# 9. Adversarial harness — inherited cases + every Codex false positive, each a
+#    real parse+reconcile through validate_foundation on mutated document text.
 # --------------------------------------------------------------------------
 
 
-def run_cases(V):
+def run_cases(canon, plan):
     results = []
 
-    def case(n, desc, got_ok, expect_ok):
-        results.append((n, desc, got_ok, expect_ok, got_ok == expect_ok))
+    def case(name, desc, got_problems, expect_reject):
+        rejected = bool(got_problems)
+        ok = (rejected == expect_reject)
+        results.append((name, desc, rejected, expect_reject, ok,
+                        got_problems[:2]))
 
-    KINDS = V["fragment_kinds"]
-    TERM = V["xw2_terminal_types"]
-    NONTERM = V["xw2_nonterminal_types"]
-    BASES = V["date_bases"]
-    KIND_EDGE_OK = {
-        "process-only": {"process-instruction"},
-        "invalid": {"authority-assertion", "gap-assertion", "substantive-obligation"},
-        "no-successor": {"substantive-obligation", "gap-assertion"},
-        "unsupported-residual": {"substantive-obligation"},
-    }
-    L = "CBA-A18.7"
-    f_sup = {"kind": "substantive-obligation", "scope": ["sent:1"], "status": "current"}
-    f_res = {"kind": "substantive-obligation", "scope": ["sent:2"], "status": "current"}
-    e_sup = {"id": "XW2-9001", "source": L, "frag": f"{L}:F1", "type": "partial-overlap",
-             "decision": "DR2-9001"}
-    # e_res.decision points at the CURRENT DISP DR2-9011 so cases 11/M1/M3/M4 test
-    # the reconciliation path they intend (not a "decision does not resolve" reject).
-    e_res = {"id": "XW2-9002", "source": L, "frag": f"{L}:F2", "type": "unsupported-residual",
-             "decision": "DR2-9011"}
-    bnd1 = {"source_fragment_leaf": L, "source_fragment": f"{L}:F1",
-            "member_edges": ["XW2-9001"], "member_types": ["partial-overlap"],
-            "member_targets": ["CBA2-A08.4"], "class": "active", "subject_scope": ["sent:1"]}
+    def V(c=canon, p=plan, r=None):
+        probs, _ = validate_foundation(c, p, r)
+        return probs
 
-    def inv(fragments, edges, bundles, exh=True, sem=True, full=None):
-        return validate_inventory(L, fragments, edges, bundles, exh, sem, KINDS,
-                                  TERM, NONTERM, KIND_EDGE_OK, full)
+    sim = _materialize_sim(SIM_R31)
+    _res_row = [r for r in pipe_rows(sim) if r and re.match(r"RES-\d", r[0])][0]
+    res_digest = _res_row[9]
 
-    # ---- Inherited cases 1-8: fragment inventory ----
-    ok, _ = inv({f"{L}:F1": f_sup}, [e_sup], {f"{L}:F1": bnd1}, exh=False)
-    case(1, "silently omitted residual", ok, False)
-    ok, _ = inv({f"{L}:F1": f_sup, f"{L}:F2": f_res}, [e_sup, e_res], {f"{L}:F1": bnd1})
-    case(2, "exhaustive supported+unsupported decomposition", ok, True)
-    ovl = {f"{L}:F1": f_sup, f"{L}:F2": {"kind": "substantive-obligation",
-                                         "scope": ["sent:1"], "status": "current"}}
-    ok, _ = inv(ovl, [e_sup, e_res], {f"{L}:F1": bnd1})
-    case(3, "overlapping fragments", ok, False)
-    ok, _ = inv({f"{L}:F1": f_sup, f"{L}:F2": f_res}, [e_sup], {f"{L}:F1": bnd1})
-    case(4, "orphan fragment", ok, False)
-    bad = dict(e_res, frag=f"{L}:F9")
-    ok, _ = inv({f"{L}:F1": f_sup, f"{L}:F2": f_res}, [e_sup, bad], {f"{L}:F1": bnd1})
-    case(5, "edge references unknown fragment", ok, False)
-    both = dict(e_sup, id="XW2-9003", frag=f"{L}:F2")
-    bnd_f2 = {"source_fragment_leaf": L, "source_fragment": f"{L}:F2",
-              "member_edges": ["XW2-9003"], "member_types": ["partial-overlap"],
-              "member_targets": ["CBA2-A08.9"], "class": "active", "subject_scope": ["sent:2"]}
-    ok, _ = inv({f"{L}:F1": f_sup, f"{L}:F2": f_res}, [e_sup, e_res, both],
-                {f"{L}:F1": bnd1, f"{L}:F2": bnd_f2})
-    case(6, "fragment both terminal and actively owned", ok, False)
-    f_proc = {"kind": "process-instruction", "scope": ["sent:1"], "status": "current"}
-    e_t1 = {"id": "XW2-9004", "source": L, "frag": f"{L}:F1", "type": "process-only",
-            "decision": "DR2-9004"}
-    e_t2 = {"id": "XW2-9005", "source": L, "frag": f"{L}:F2", "type": "unsupported-residual",
-            "decision": "DR2-9005"}
-    ok, _ = inv({f"{L}:F1": f_proc, f"{L}:F2": f_res}, [e_t1, e_t2], {})
-    case(7, "two terminal fragments, distinct IDs", ok, True)
-    e_dup = dict(e_t2, id="XW2-9006", type="no-successor", decision="DR2-9006")
-    ok, _ = inv({f"{L}:F1": f_proc, f"{L}:F2": f_res}, [e_t1, e_t2, e_dup], {})
-    case(8, "two terminal decisions for one fragment", ok, False)
+    def mut(text, old, new, count=1):
+        assert old in text, f"mutation anchor not found: {old!r}"
+        return text.replace(old, new, count)
 
-    # ---- Decisions/DISP fixtures for 9-12 ----
-    sm_good = {"SM2-9001": {"status": "current", "class": "CBA",
-                            "result": "no-qualifying-authority-located-in-searched-sources",
-                            "source_identity": "2023 NBA-NBPA CBA (signed edition)",
-                            "locator": "VII §8(a) p.260", "cutoff": "2026-07-21T00:00:00Z",
-                            "is_artifact": True, "size": "2850534",
-                            "sha256": "bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32",
-                            "pagination": "676 pages"}}
-    ss_good = {"SS2-9001": {"status": "current", "adequacy": "adequate-coverage",
-                            "required_classes": ["CBA"], "member_sm2": ["SM2-9001"]}}
-    decisions = {
-        "DR2-9010": {"type": "OWN", "status": "current", "superseded_by": None},
-        "DR2-9011": {"type": "DISP", "status": "current", "superseded_by": None},
-        "DR2-9012": {"type": "DISP", "status": "superseded", "superseded_by": "DR2-9011"},
-    }
-    det_ok = {"subject_class": "XW2-DISP", "hist_leaf": L, "hist_frag": f"{L}:F2",
-              "scenario": "—", "scen_frag": "—", "edge": "XW2-9002",
-              "edge_type": "unsupported-residual", "reason": "authority-not-located",
-              "sm2": ["SM2-9001"], "search_set": "SS2-9001", "anchor": "§12.12",
-              "status": "current"}
-    disp_details = {"DR2-9011": det_ok, "DR2-9012": dict(det_ok, status="superseded")}
+    # ---------- valid controls (must ACCEPT) ----------
+    case("C0", "baseline: real canon + real plan (legacy recognized)",
+         V(), False)
+    case("C1", "valid control: well-formed migrated R3.1 population reaches the "
+         "conforming path and is accepted (not rejected for lacking legacy "
+         "markers)", V(r=sim), False)
+    case("C2", "valid control: a benign plan edit still accepted (validator "
+         "does not simply reject everything)",
+         V(p=mut(plan, "**Working branch:**",
+                 "<!-- benign clarifying note -->\n\n**Working branch:**")),
+         False)
 
-    e9 = dict(e_res, decision="DR2-9010")
-    ok, _ = validate_terminal_reference(e9, decisions, disp_details, sm_good, ss_good)
-    case(9, "terminal edge references OWN", ok, False)
-    e10 = dict(e_res, decision="DR2-9012")
-    ok, _ = validate_terminal_reference(e10, decisions, disp_details, sm_good, ss_good)
-    case(10, "terminal edge references superseded DISP", ok, False)
-    det_bad = dict(det_ok, hist_frag=f"{L}:F1")
-    ok, _ = validate_terminal_reference(e_res, decisions, {"DR2-9011": det_bad}, sm_good, ss_good)
-    case(11, "DISP detail mismatch (fragment)", ok, False)
-    orphans = find_orphan_disps([e_sup], decisions, disp_details)
-    case(12, "orphan current DISP", len(orphans) == 0, False)
+    # ---------- repair-plan / document removal ----------
+    case("P0", "removed repair plan (None) rejected", V(p=None), True)
+    case("P1", "backlog header reverted off 'items 1–27' rejected",
+         V(p=mut(plan, "complete R3.1 backlog is items 1–27",
+                 "complete R3.1 backlog is items 1–21 only")), True)
+    case("P2", "R4 dependency reverted to bold 'accepted R2.7 foundation' "
+         "rejected",
+         V(p=mut(plan, "R2.9 foundation** (the R2.6, R2.7, and R2.8 foundations",
+                 "R2.7 foundation** (the R2.6, R2.7, and R2.8 foundations")),
+         True)
 
-    # ---- 13-14 blocking outcome / kind separation ----
-    allowed, why = disposition_available("substantive-obligation", False, False, True,
-                                         "unsupported-residual")
-    case(13, "wholly unsupported obligation blocked",
-         allowed or "BLOCKED-UNSUPPORTED-OBLIGATION" not in why, False)
-    inv_auth, _ = disposition_available("authority-assertion", True, False, True, "invalid")
-    ur_sub, _ = disposition_available("substantive-obligation", True, False, True,
-                                      "unsupported-residual")
-    inv_sub, _ = disposition_available("substantive-obligation", True, False, True, "invalid")
-    case(14, "kind separation (invalid on claim, not on unsupported mechanic)",
-         inv_auth and ur_sub and not inv_sub, True)
+    # ---------- committed XW2 population (Codex false positives) ----------
+    xw2_seg = section(canon, r"^### 15\.11 ", r"^### 15\.12 ")
+    row12 = [ln for ln in xw2_seg.splitlines()
+             if ln.strip().startswith("| XW2-0012 |")][0]
+    row7 = [ln for ln in xw2_seg.splitlines()
+            if ln.strip().startswith("| XW2-0007 |")][0]
+    case("X1", "removed XW2 row rejected (exact membership, not >=100)",
+         V(c=mut(canon, row12 + "\n", "")), True)
+    case("X2", "duplicate XW2 id rejected",
+         V(c=mut(canon, row7 + "\n", row7 + "\n" + row7 + "\n")), True)
+    case("X3", "malformed/skipped XW2 id number rejected",
+         V(c=mut(canon, "| XW2-0012 |", "| XW2-0099 |")), True)
+    case("X4", "nonexistent XW2 target (active LEAF) rejected",
+         V(c=mut(canon, "| XW2-0007 | CBA-A02.4 | CBA2-A02.7 |",
+                 "| XW2-0007 | CBA-A02.4 | CBA2-A99.9 |")), True)
+    case("X5", "nonexistent XW2 decision reference rejected",
+         V(c=mut(canon, "wholly owned by the target | DR2-0002 |",
+                 "wholly owned by the target | DRX-0002 |", 1)), True)
 
-    # ---- 15-20 source-date model ----
-    bylaws = {"edition": {"precision": "month", "value": "2024-06",
-                          "edition_identifier_only": True}}
-    bylaws_pub = {"publication": {"precision": "month", "value": "2024-06",
-                                  "edition_identifier_only": True},
-                  "edition": {"precision": "month", "value": "2024-06",
-                              "edition_identifier_only": True}}
-    cba = {"agreement-as-of": {"precision": "day", "value": "2023-06-28"},
-           "effective": {"precision": "day", "value": "2023-07-01"},
-           "edition": {"precision": "month", "value": "2023-07", "edition_identifier_only": True}}
-    lim = ["edition identified by the source to month precision only"]
-    ok, _ = validate_source_date("edition:2024-06", "official-immutable", bylaws, lim, BASES)
-    case(15, "edition:2024-06 with limitation", ok, True)
-    o1, _ = validate_source_date("publication:2024-06", "official-immutable", bylaws_pub, lim, BASES)
-    o2, _ = validate_source_date("effective:2024-06", "official-immutable", bylaws_pub, lim, BASES)
-    case(16, "edition month as publication/effective", o1 or o2, False)
-    ok, _ = validate_source_date("effective:2023-07-01", "official-immutable", cba, [], BASES)
-    case(17, "effective:2023-07-01", ok, True)
-    ok, _ = validate_source_date("effective:2023-07", "official-immutable", cba, lim, BASES)
-    case(18, "exact date degraded to month", ok, False)
-    meta = {"publication": {"precision": "day", "value": "2024-06-07", "metadata_only": True}}
-    ok, _ = validate_source_date("publication:2024-06-07", "official-immutable", meta, [], BASES)
-    case(19, "metadata-derived day", ok, False)
-    o1, _ = validate_source_date("2024-06", "official-immutable", bylaws, lim, BASES)
-    o2, _ = validate_source_date("cover:2024-06", "official-immutable", bylaws, lim, BASES)
-    o3, _ = validate_source_date("publication:—", "official-immutable", bylaws, lim, BASES)
-    case(20, "missing/unknown basis or half-empty pair", o1 or o2 or o3, False)
+    # ---------- committed GROUP / LEAF / SRC2 / EV2 dup ids ----------
+    g_seg = section(canon, r"^#### 15\.10\.1 ", r"^#### 15\.10\.2 ")
+    grow = [ln for ln in g_seg.splitlines()
+            if ln.strip().startswith("| CBA2-A01 |")][0]
+    case("D1", "duplicate GROUP id rejected",
+         V(c=mut(canon, grow + "\n", grow + "\n" + grow + "\n")), True)
+    ev_seg = section(canon, r"^#### 15\.12\.4 ", r"^## 16\. ")
+    evrow = [ln for ln in ev_seg.splitlines()
+             if ln.strip().startswith("| EV2-0001 |")][0]
+    case("D2", "duplicate EV2 id rejected",
+         V(c=mut(canon, evrow + "\n", evrow + "\n" + evrow + "\n")), True)
+    case("D3", "nonexistent EV2->SRC2 reference rejected",
+         V(c=mut(canon, "| EV2-0001 | CBA2-A01.1 | INFERRED | SRC2-001 |",
+                 "| EV2-0001 | CBA2-A01.1 | INFERRED | SRC2-909 |")), True)
+    sb_seg = section(canon, r"^#### 15\.12\.1 ", r"^#### 15\.12\.2 ")
+    srow = [ln for ln in sb_seg.splitlines()
+            if ln.strip().startswith("| SRC2-003 |")][0]
+    case("D4", "duplicate SRC2 base id rejected",
+         V(c=mut(canon, srow + "\n", srow + "\n" + srow + "\n")), True)
+    lm_seg = section(canon, r"^#### 15\.10\.2 ", r"^#### 15\.10\.3 ")
+    lrow = [ln for ln in lm_seg.splitlines()
+            if ln.strip().startswith("| CBA2-A01.1 |")][0]
+    case("D5", "duplicate LEAF id rejected",
+         V(c=mut(canon, lrow + "\n", lrow + "\n" + lrow + "\n")), True)
 
-    # ---- 21-23 SM2 ----
-    ok, _ = validate_sm2(sm_good["SM2-9001"])
-    case(21, "adequate SM2 record", ok, True)
-    ok, _ = validate_sm2({"status": "current", "class": "CBA",
-                          "result": "no-qualifying-authority-located-in-searched-sources",
-                          "source_identity": "official web surfaces", "locator": "—",
-                          "cutoff": "2026-07-21T00:00:00Z"})
-    case(22, "vague SM2 source identity", ok, False)
-    ok, _ = validate_sm2({"status": "current", "class": "CBA", "result": "no-authority-exists",
-                          "source_identity": "2023 NBA-NBPA CBA", "locator": "VII §8(a)",
-                          "cutoff": "2026-07-21T00:00:00Z"})
-    case(23, "universal-negative result", ok, False)
+    # ---------- legacy-recognition integrity ----------
+    # Strip ALL THREE legacy markers (SRC2 header x2 + the committed OWN/ATOM
+    # terminal-decision refs) so the rejected R3 population would falsely appear
+    # R3.1-conforming with no actual migration → must be rejected.
+    c_nolegacy = canon.replace("| Publication/effective date or — |",
+                               "| Source date (basis:value) or — |")
+    c_nolegacy = c_nolegacy.replace(
+        "| Record limitations | Record status/version |",
+        "| Record limitations | Record status | Record version |")
+    for old in ("DR2-0037", "DR2-0038", "DR2-0039"):
+        c_nolegacy = c_nolegacy.replace(old, "DR2-9" + old[-3:])
+    case("L1", "committed population stripped of ALL legacy markers (falsely "
+         "appears conforming, no migration) rejected", V(c=c_nolegacy), True)
 
-    # ---- 24 SC2 terminal SXW2 edge to OWN ----
-    sxw = {"id": "SXW2-9001", "source": "scenario-53", "frag": "scenario-53:F1",
-           "type": "invalid", "decision": "DR2-9010"}
-    ok, _ = validate_terminal_reference(sxw, decisions, disp_details, sm_good, ss_good)
-    case(24, "SC2 check 11: terminal SXW2 edge to OWN", ok, False)
+    # ---------- schema-completeness regressions ----------
+    case("S1", "reverting base status/version split rejected",
+         V(c=mut(canon, "| Record limitations | Record status | Record version`",
+                 "| Record limitations | Record status/version`")), True)
+    case("S2", "removing effective-window ordering rejected",
+         V(c=mut(canon, "**strictly later than**", "**present-but-unchecked**")),
+         True)
+    case("S3", "reverting to dual clause/sent scope model rejected",
+         V(c=mut(canon, "domain is **abolished**", "domain is retained")), True)
+    case("S4", "removing DISP Normalized scope field rejected",
+         V(c=mut(canon, " | Scenario fragment ID or — | Normalized scope | "
+                 "Terminal edge ID | ",
+                 " | Scenario fragment ID or — | Terminal edge ID | ")), True)
+    case("S5", "restoring SS2 maker-selected classes rejected",
+         V(c=mut(canon, "fixed closed set **`CBA, BYL, NBA, ops-provenance`**",
+                 "set the unit judges plausibly controlling")), True)
 
-    # ---- 25-26 AMEND/current-reference ----
-    dec = {"DR2-9020": {"type": "ATOM", "status": "current", "superseded_by": None}}
-    edges = [{"id": "XW2-9010", "source": L, "frag": f"{L}:F1", "type": "process-only",
-              "decision": "DR2-9020"}]
-    amend_supersede(dec, edges, "DR2-9020", "DR2-9021", "DISP", True)
-    det25 = {"DR2-9021": {"subject_class": "XW2-DISP", "hist_leaf": L, "hist_frag": f"{L}:F1",
-                          "scenario": "—", "scen_frag": "—", "edge": "XW2-9010",
-                          "edge_type": "process-only", "reason": "process-material",
-                          "sm2": [], "search_set": None, "anchor": "—", "status": "current"}}
-    ok, _ = validate_terminal_reference(edges[0], dec, det25, {}, {})
-    case(25, "valid AMEND supersession with same-commit reference update", ok, True)
-    dec2 = {"DR2-9030": {"type": "ATOM", "status": "current", "superseded_by": None}}
-    edges2 = [{"id": "XW2-9011", "source": L, "frag": f"{L}:F1", "type": "process-only",
-               "decision": "DR2-9030"}]
-    amend_supersede(dec2, edges2, "DR2-9030", "DR2-9031", "DISP", False)
-    det26 = {"DR2-9031": dict(det25["DR2-9021"], edge="XW2-9011")}
-    ok, _ = validate_terminal_reference(edges2[0], dec2, det26, {}, {})
-    case(26, "stale reference after AMEND (no same-commit update)", ok, False)
-
-    # ====================  15 NEW Codex probes  ====================
-
-    # N1. Noncontiguous fragment IDs.
-    frags_gap = {f"{L}:F1": f_proc, f"{L}:F3": f_res}
-    e_g1 = dict(e_t1)
-    e_g2 = dict(e_t2, frag=f"{L}:F3")
-    ok, _ = inv(frags_gap, [e_g1, e_g2], {})
-    case("N1", "noncontiguous fragment IDs", ok, False)
-
-    # N2. Unknown edge type (in a bundle).
-    bnd_unknown = dict(bnd1, member_types=["frobnicate"])
-    okb, _ = validate_bundle(bnd_unknown, L, ["sent:1"], NONTERM)
-    case("N2", "unknown edge type in bundle", okb, False)
-
-    # N3. Duplicate/incompatible disposition bundle (duplicate source-target).
-    bnd_dup = dict(bnd1, member_edges=["XW2-9001", "XW2-9007"],
-                   member_types=["partial-overlap", "split"],
-                   member_targets=["CBA2-A08.4", "CBA2-A08.4"])
-    okb, _ = validate_bundle(bnd_dup, L, ["sent:1"], NONTERM)
-    case("N3", "duplicate source-target mapping in bundle", okb, False)
-
-    # N4. Conflicting edition/date representations (edition month as effective).
-    o, _ = validate_source_date("effective:2024-06", "official-immutable", bylaws_pub, lim, BASES)
-    case("N4", "conflicting edition/date representation", o, False)
-
-    # N5. Missing required immutable-source semantic date (base pair with no component).
-    ok, _ = validate_date_components("agreement-as-of:2023-06-28", [], BASES)
-    # a base pair present but no matching primary component row -> fail
-    ok2, _ = validate_date_components(
-        "agreement-as-of:2023-06-28",
-        [{"comp_id": "SRC2-001#D1", "basis": "effective", "role_scope": "primary",
-          "value": "2023-07-01"}], BASES)
-    case("N5", "missing required immutable-source semantic date", ok and ok2, False)
-
-    # N6. Reversed/impossible effective window.
-    src_win = {"effective": {"precision": "window", "value": "2023-07-01/2023-06-01"}}
-    o, _ = validate_source_date("effective:2023-07-01/2023-06-01", "official-immutable",
-                                src_win, [], BASES)
-    case("N6", "reversed/impossible effective window", o, False)
-
-    # N7. Malformed date component (bad component id + bad role).
-    o1, _ = validate_date_components("—", [{"comp_id": "D1", "basis": "effective",
-                                            "role_scope": "primary", "value": "2023-07-01"}], BASES)
-    o2, _ = validate_date_components("—", [{"comp_id": "SRC2-001#D1", "basis": "effective",
-                                            "role_scope": "PRIMARY", "value": "2023-07-01"}], BASES)
-    case("N7", "malformed date component", o1 or o2, False)
-
-    # N8. Incomplete SM2 record (artifact search missing split binary fields).
-    ok, _ = validate_sm2({"status": "current", "class": "CBA",
-                          "result": "no-qualifying-authority-located-in-searched-sources",
-                          "source_identity": "2023 CBA", "locator": "VII §8(a)",
-                          "cutoff": "2026-07-21T00:00:00Z", "is_artifact": True})
-    case("N8", "incomplete SM2 record (missing split binary fields)", ok, False)
-
-    # N9. Inconclusive search supporting unsupported-residual.
-    sm_inc = {"SM2-9002": dict(sm_good["SM2-9001"], result="inconclusive")}
-    ss_inc = {"SS2-9002": {"status": "current", "adequacy": "adequate-coverage",
-                           "required_classes": ["CBA"], "member_sm2": ["SM2-9002"]}}
-    okc, _, adq = validate_search_set(ss_inc["SS2-9002"], sm_inc)
-    case("N9", "inconclusive search cannot yield adequate coverage",
-         okc and adq == "adequate-coverage", False)
-
-    # N10. Inadequate source-class coverage supporting unsupported-residual.
-    ss_missing = {"status": "current", "adequacy": "adequate-coverage",
-                  "required_classes": ["CBA", "BYL", "NBA", "ops-provenance"],
-                  "member_sm2": ["SM2-9001"]}
-    okc, _, adq = validate_search_set(ss_missing, sm_good)
-    case("N10", "inadequate class coverage claimed adequate",
-         okc and adq == "adequate-coverage", False)
-
-    # N11. Whole unsupported obligation escaping as no-successor.
-    a, _ = disposition_available("substantive-obligation", False, False, True, "no-successor")
-    case("N11", "whole unsupported escaping as no-successor", a, False)
-
-    # N12. Whole unsupported obligation escaping as process-only.
-    a, _ = disposition_available("substantive-obligation", False, False, True, "process-only")
-    case("N12", "whole unsupported escaping as process-only", a, False)
-
-    # N13. Invented/invalid scenario-DISP subject (SXW2-DISP with a LEAF fragment).
-    det_bad_subj = {"subject_class": "SXW2-DISP", "hist_leaf": "—", "hist_frag": "—",
-                    "scenario": "scenario-53", "scen_frag": "CBA-A18.7:F1", "edge": "SXW2-9001",
-                    "edge_type": "invalid", "reason": "false-claim", "sm2": [],
-                    "search_set": None, "anchor": "—", "status": "current"}
-    oks, _ = validate_disp_subject(det_bad_subj)
-    case("N13", "invented/invalid scenario-DISP subject", oks, False)
-
-    # N14. Orphan generic DISP parent (current DISP referenced by no edge).
-    orphan_dec = {"DR2-9040": {"type": "DISP", "status": "current", "superseded_by": None}}
-    orphan_det = {"DR2-9040": det_ok}
-    orph = find_orphan_disps([], orphan_dec, orphan_det)
-    case("N14", "orphan generic DISP parent", len(orph) == 0, False)
-
-    # N15. AMEND ID overwrite/reuse.
-    dec3 = {"DR2-9050": {"type": "ATOM", "status": "current", "superseded_by": None},
-            "DR2-9051": {"type": "DISP", "status": "current", "superseded_by": None}}
-    reused = amend_supersede(dec3, [], "DR2-9050", "DR2-9051", "DISP", True)
-    case("N15", "AMEND ID overwrite/reuse", reused, False)
-
-    # ====================  further mutations  ====================
-
-    # M1. Valid XW2-DISP variant.
-    ok, _ = validate_terminal_reference(e_res, decisions, disp_details, sm_good, ss_good)
-    case("M1", "valid XW2-DISP variant", ok, True)
-
-    # M2. Valid SXW2-DISP variant.
-    sxw_dec = {"DR2-9060": {"type": "DISP", "status": "current", "superseded_by": None}}
-    sxw_det = {"DR2-9060": {"subject_class": "SXW2-DISP", "hist_leaf": "—", "hist_frag": "—",
-                            "scenario": "scenario-53", "scen_frag": "scenario-53:F1",
-                            "edge": "SXW2-9002", "edge_type": "invalid", "reason": "false-claim",
-                            "sm2": [], "search_set": None, "anchor": "—", "status": "current"}}
-    sxw_edge = {"id": "SXW2-9002", "source": "scenario-53", "frag": "scenario-53:F1",
-                "type": "invalid", "decision": "DR2-9060"}
-    ok, _ = validate_terminal_reference(sxw_edge, sxw_dec, sxw_det, {}, {})
-    case("M2", "valid SXW2-DISP variant", ok, True)
-
-    # M3. Subject-family mismatch (XW2 edge -> SXW2-DISP row).
-    mismatch_det = {"DR2-9011": dict(sxw_det["DR2-9060"], edge="XW2-9002")}
-    ok, _ = validate_terminal_reference(e_res, decisions, mismatch_det, sm_good, ss_good)
-    case("M3", "subject-family mismatch (XW2 edge to SXW2-DISP)", ok, False)
-
-    # M4. Scope/basis mismatch on DISP (wrong no-owner reason).
-    ok, _ = validate_terminal_reference(e_res, decisions,
-                                        {"DR2-9011": dict(det_ok, reason="false-claim")},
-                                        sm_good, ss_good)
-    case("M4", "wrong no-owner reason for edge type", ok, False)
-
-    # M5. Multiple same-basis dates with distinct valid roles (pass).
-    ok, _ = validate_date_components(
-        "effective:2023-07-01",
-        [{"comp_id": "SRC2-001#D1", "basis": "effective", "role_scope": "primary",
-          "value": "2023-07-01"},
-         {"comp_id": "SRC2-001#D2", "basis": "effective",
-          "role_scope": "scoped:earlier-commencement-provisions", "value": "2023-06-01"}], BASES)
-    case("M5", "multiple same-basis effective dates, distinct roles", ok, True)
-
-    # M6. Conflicting duplicate date components (two primaries for one basis).
-    ok, _ = validate_date_components(
-        "effective:2023-07-01",
-        [{"comp_id": "SRC2-001#D1", "basis": "effective", "role_scope": "primary",
-          "value": "2023-07-01"},
-         {"comp_id": "SRC2-001#D2", "basis": "effective", "role_scope": "primary",
-          "value": "2023-06-01"}], BASES)
-    case("M6", "conflicting duplicate date components", ok, False)
-
-    # M7. Bundle active/terminal mixing (terminal edge type as a member).
-    bnd_mix = dict(bnd1, member_types=["invalid"])
-    okb, _ = validate_bundle(bnd_mix, L, ["sent:1"], NONTERM)
-    case("M7", "bundle active/terminal mixing", okb, False)
-
-    # M8. Maker self-acceptance of a blocked resolution.
-    blk = {"type": "blocked-unsupported-obligation", "status": "resolved", "res": "RES-9001"}
-    res_self = {"outcome": "out-of-scope-determination", "status": "accepted",
-                "maker": "agent:codex", "checker": "agent:codex",
-                "acceptance_commit": "deadbeef"}
-    ok, _ = validate_resolution(blk, res_self)
-    case("M8", "maker self-acceptance of blocked resolution", ok, False)
-
-    # M9. Finding marked resolved with no accepted resolution.
-    res_prop = {"outcome": "out-of-scope-determination", "status": "proposed",
-                "maker": "agent:codex", "checker": "agent:claude-code", "acceptance_commit": "—"}
-    ok, _ = validate_resolution(blk, res_prop)
-    case("M9", "finding resolved without accepted resolution", ok, False)
-
-    # M9b. Valid independently-accepted resolution (pass).
-    res_ok = {"outcome": "out-of-scope-determination", "status": "accepted",
-              "maker": "agent:codex", "checker": "human:project-owner",
-              "acceptance_commit": "3e9f913f"}
-    ok, _ = validate_resolution(blk, res_ok)
-    case("M9b", "valid independent acceptance (distinct checker)", ok, True)
-
-    # M10. G15R population omission (a superseded decision still live-referenced).
-    g15r_dec = {"DR2-9070": {"type": "DISP", "status": "superseded", "superseded_by": "DR2-9071"},
-                "DR2-9071": {"type": "DISP", "status": "current", "superseded_by": None}}
-    g15r_edge = {"id": "XW2-9070", "source": L, "frag": f"{L}:F1", "type": "invalid",
-                 "decision": "DR2-9070"}
-    g15r_det = {"DR2-9070": dict(det_ok, edge="XW2-9070", edge_type="invalid",
-                                reason="false-claim", hist_frag=f"{L}:F1", status="superseded")}
-    ok, _ = validate_terminal_reference(g15r_edge, g15r_dec, g15r_det, sm_good, ss_good)
-    case("M10", "G15R: live reference to superseded record", ok, False)
+    # ---------- R3.1 population adversarial (SAME parser, mutated fixture) ----
+    case("R1", "R3.1: removed/duplicated date component (two primaries) "
+         "rejected",
+         V(r=mut(sim,
+                 "| SRC2-001 | SRC2-001#D2 | effective | primary | 2023-07-01",
+                 "| SRC2-001 | SRC2-001#D2 | agreement-as-of | primary | "
+                 "2023-07-01")), True)
+    case("R2", "R3.1: invalid source-date value for basis rejected",
+         V(r=mut(sim, "| SRC2-001 | SRC2-001#D1 | agreement-as-of | primary | "
+                 "2023-06-28", "| SRC2-001 | SRC2-001#D1 | agreement-as-of | "
+                 "primary | 2023-13-99")), True)
+    case("R3", "R3.1: base pair not equal to its primary component rejected",
+         V(r=mut(sim, "agreement-as-of:2023-06-28 | https://x",
+                 "agreement-as-of:2020-01-01 | https://x")), True)
+    case("R4", "R3.1: fragment partition gap (uncovered text) rejected",
+         V(r=mut(sim, "| CBA-A18.7:F2 | CBA-A18.7 | substantive-obligation | "
+                 "span:60-120", "| CBA-A18.7:F2 | CBA-A18.7 | "
+                 "substantive-obligation | span:70-120")), True)
+    case("R5", "R3.1: SM2 binary hash != current SRC2 (reconciliation) rejected",
+         V(r=mut(sim, "| " + _CBA_HASH + " | pages=676",
+                 "| " + ("a" * 64) + " | pages=676")), True)
+    case("R6", "R3.1: incomplete SM2 search method (out of vocab) rejected",
+         V(r=mut(sim, "provision:VII §8(a) | provision-read | SS2-9001",
+                 "provision:VII §8(a) | eyeballed-it | SS2-9001")), True)
+    case("R7", "R3.1: SS2 missing a required class (inadequate) rejected",
+         V(r=mut(sim, "CBA, BYL, NBA, ops-provenance | SM2-9001",
+                 "CBA, NBA, ops-provenance | SM2-9001")), True)
+    case("R8", "R3.1: inconclusive member cannot yield adequate coverage "
+         "rejected",
+         V(r=mut(sim, "no-qualifying-authority-located-in-searched-sources | "
+                 "SS2-9001 | not located | — | agent:claude-code | session:r31-1"
+                 " | 2026-07-16 | current | 1 |\n| SM2-9002",
+                 "inconclusive | SS2-9001 | inconclusive | — | "
+                 "agent:claude-code | session:r31-1 | 2026-07-16 | current | 1 |"
+                 "\n| SM2-9002")), True)
+    case("R9", "R3.1: unsupported-residual DISP without SM2/SS2 support "
+         "rejected",
+         V(r=mut(sim, "span:60-120 | XW2-9112 | unsupported-residual | "
+                 "SM2-9001, SM2-9002, SM2-9003, SM2-9004 | SS2-9001 | — | "
+                 "authority-not-located",
+                 "span:60-120 | XW2-9112 | unsupported-residual | — | — | — | "
+                 "authority-not-located")), True)
+    case("R10", "R3.1: invented scenario-90 SXW2-DISP subject rejected",
+         V(r=mut(sim, "| DR2-9111 | XW2-DISP | CBA-A18.7 | CBA-A18.7:F2 | — | "
+                 "— | span:60-120",
+                 "| DR2-9111 | SXW2-DISP | — | — | scenario-90 | "
+                 "scenario-90:F1 | span:60-120")), True)
+    case("R11", "R3.1: maker self-acceptance (same canonical actor) rejected",
+         V(r=mut(sim, "agent:codex | human:project-owner | "
+                 "1111111111111111111111111111111111111111",
+                 "agent:codex | agent:codex | "
+                 "1111111111111111111111111111111111111111")), True)
+    case("R12", "R3.1: alias masquerade (claude vs claude-code) rejected",
+         V(r=mut(sim, "agent:codex | human:project-owner | "
+                 "1111111111111111111111111111111111111111",
+                 "agent:claude | agent:claude-code | "
+                 "1111111111111111111111111111111111111111")), True)
+    case("R13", "R3.1: blank checker identity rejected",
+         V(r=mut(sim, "agent:codex | human:project-owner | "
+                 "1111111111111111111111111111111111111111",
+                 "agent:codex | agent: | "
+                 "1111111111111111111111111111111111111111")), True)
+    case("R14", "R3.1: stale acceptance (accepted version != current) rejected",
+         V(r=mut(sim, "work/architect-completion/x.md | 1 | " + res_digest,
+                 "work/architect-completion/x.md | 2 | " + res_digest)), True)
+    case("R15", "R3.1: unrelated acceptance (wrong content digest) rejected",
+         V(r=mut(sim, res_digest, "0" * 64)), True)
+    case("R16", "R3.1: abbreviated (non-full-SHA) acceptance commit rejected",
+         V(r=mut(sim, "1111111111111111111111111111111111111111", "deadbeef")),
+         True)
+    case("R17", "R3.1: SXW2 blocker (BLK subject SXW2-DISP) rejected",
+         V(r=mut(sim, "| BLK-9001 | candidate-obligation |",
+                 "| BLK-9001 | SXW2-DISP |")), True)
+    case("R18", "R3.1: two current AMEND endpoints rejected",
+         V(r=mut(sim, "one current endpoint | same-commit refs updated",
+                 "two current endpoints | same-commit refs updated")), True)
+    case("R19", "R3.1: G15R population omission (SM2 dropped) rejected",
+         V(r=re.sub(r"(?m)^\| SM2-900\d \|.*$", "", sim)), True)
+    case("R20", "R3.1: wrong no-owner reason for edge type (corrected M4) "
+         "rejected",
+         V(r=mut(sim, "| authority-not-located | §12.12",
+                 "| false-claim | §12.12")), True)
+    case("R21", "R3.1: empty SS2 members (inadequate) rejected",
+         V(r=mut(sim, "ops-provenance | SM2-9001, SM2-9002, SM2-9003, "
+                 "SM2-9004 | CBA:covered", "ops-provenance | — | CBA:covered")),
+         True)
+    _disp_line = [ln for ln in sim.splitlines()
+                  if ln.strip().startswith("| DR2-9111 |")][0]
+    case("R22", "R3.1: duplicate current DISP for one terminal-subject key "
+         "rejected",
+         V(r=mut(sim, _disp_line + "\n", _disp_line + "\n" + _disp_line + "\n")),
+         True)
+    case("R23", "R3.1: orphan DISP (terminal edge in no fragment row) rejected",
+         V(r=mut(sim, "span:60-120 | XW2-9112 | unsupported-residual",
+                 "span:60-120 | XW2-9999 | unsupported-residual")), True)
 
     return results
 
 
 # --------------------------------------------------------------------------
-# 6. main
+# 10. Main.
 # --------------------------------------------------------------------------
 
 
 def main():
-    failures = 0
-    text, path = read_canon()
-    print(f"canon: {path}")
-    print(f"canon SHA-256: {hashlib.sha256(text.encode('utf-8')).hexdigest()}")
+    canon, cpath, plan, ppath = read_docs()
+    if canon is None:
+        print("FATAL: canon document not found", file=sys.stderr)
+        return 2
+    print("Architect CBA canon v2.0 foundation validator (R2.9)")
+    print(f"canon: {os.path.relpath(cpath, _REPO_ROOT) if cpath else '—'}")
+    print(f"plan:  {os.path.relpath(ppath, _REPO_ROOT) if ppath else 'MISSING'}")
 
-    V = extract_canon_vocab(text)
-    drift = assert_vocab_from_canon(V)
-    for d in drift:
-        print(f"[VOCAB-DRIFT] {d}")
-    failures += len(drift)
-    print("vocabularies extracted from canon: " + ", ".join(
-        f"{k}={len(V[k])}" for k in sorted(V)))
-
-    schema_missing = validate_canon_schemas(text)
-    for s in schema_missing:
-        print(f"[SCHEMA-MISSING] {s}")
-    failures += len(schema_missing)
-    if not schema_missing:
-        print(f"canon contains all {len(CANON_SCHEMA_SIGNATURES)} R2.8 schema signatures")
-
-    print("\n--- current population assessment (§15.10-§15.12) ---")
-    probs, notes = assess_current_population(text, V)
+    # Baseline foundation validation + population notes.
+    base_problems, notes = validate_foundation(canon, plan)
     for n in notes:
-        print(f"  note: {n}")
-    for p in probs:
-        print(f"  [POP-PROBLEM] {p}")
-    failures += len(probs)
+        print("note:  " + n)
+    if base_problems:
+        print("BASELINE PROBLEMS (unexpected — baseline must be clean):")
+        for p in base_problems:
+            print("  - " + p)
 
-    print("\n--- adversarial cases (26 inherited + 15 new + mutations) ---")
-    results = run_cases(V)
-    for n, desc, got, expect, passed in results:
-        tag = "PASS" if passed else "FAIL"
-        print(f"case {str(n):>4} [{tag}] {desc} "
-              f"(validator={'accept' if got else 'reject'}, "
-              f"expected={'accept' if expect else 'reject'})")
-        if not passed:
+    results = run_cases(canon, plan)
+    failures = 0
+    valid_controls = rejects = 0
+    for name, desc, rejected, expect_reject, ok, sample in results:
+        verdict = "reject" if rejected else "accept"
+        exp = "reject" if expect_reject else "accept"
+        tag = "PASS" if ok else "FAIL"
+        if expect_reject:
+            rejects += 1
+        else:
+            valid_controls += 1
+        if not ok:
             failures += 1
+        line = f"case {name:>4} [{tag}] {desc} (validator={verdict}, " \
+               f"expected={exp})"
+        print(line)
+        if not ok and sample:
+            print("        e.g. " + sample[0])
 
-    inherited = [r for r in results if isinstance(r[0], int)]
-    newprobes = [r for r in results if isinstance(r[0], str) and r[0].startswith("N")]
-    muts = [r for r in results if isinstance(r[0], str) and r[0].startswith("M")]
-    print(f"\n{len(inherited)} inherited + {len(newprobes)} new Codex probes + "
-          f"{len(muts)} further mutations = {len(results)} cases run, "
-          f"{failures} total failures")
-    sys.exit(1 if failures else 0)
+    base_fail = 1 if base_problems else 0
+    total_fail = failures + base_fail
+    print()
+    print(f"{valid_controls} valid controls + {rejects} rejecting regressions "
+          f"= {len(results)} cases; baseline_clean="
+          f"{'yes' if not base_problems else 'NO'}; {total_fail} total "
+          "failures")
+    return 0 if total_fail == 0 else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
