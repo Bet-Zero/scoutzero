@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Architect CBA canon v2.0 — balanced foundation validator (R2.12).
+"""Architect CBA canon v2.0 — governed-location foundation validator (R2.13).
 
 WHY THIS FILE EXISTS
 --------------------
@@ -23,8 +23,8 @@ architectural, not cosmetic:
   * Fixed population totals (`EXPECT`) simultaneously false-rejected valid
     append-only additions and admitted count-preserving substitutions.
 
-R2.12 BALANCED AUTHORITY
-------------------------
+R2.13 GOVERNED LOCATION CLOSURE
+-------------------------------
 One document-tree loader, one parser set, one reconciliation engine, one
 top-level entry point:
 
@@ -506,6 +506,61 @@ def parse_canon_population(canon, inv, key):
     return header, rows, probs
 
 
+def check_canon_population_locations(canon, inv):
+    """Reject governed-ID pipe rows outside Inventory F's declared ranges.
+
+    Inventory F is the only population list. A row may match more than one
+    population grammar (all SRC2 base/detail populations intentionally share
+    one), so location admission is the union of every matching declaration's
+    interval. The normal per-range parsers still enforce the exact schema and
+    base-type/detail-location reconciliation inside that union.
+    """
+    lines = canon.splitlines()
+    declarations = []
+    for population, (start_prefix, end_prefix, id_pattern) in sorted(
+            inv.sections.items()):
+        matcher = re.compile(r"^(?:%s)$" % id_pattern)
+        start = next((i for i, line in enumerate(lines)
+                      if line.startswith(start_prefix)), None)
+        end = None
+        if start is not None:
+            end = next((i for i in range(start + 1, len(lines))
+                        if lines[i].startswith(end_prefix)), len(lines))
+        declarations.append({
+            "population": population,
+            "start_prefix": start_prefix,
+            "end_prefix": end_prefix,
+            "matcher": matcher,
+            "start": start,
+            "end": end,
+        })
+
+    problems = []
+    for line_index, line in enumerate(lines):
+        stripped = line.strip()
+        if not (stripped.startswith("|") and stripped.endswith("|")
+                and len(stripped) > 1):
+            continue
+        first = stripped[1:-1].split("|", 1)[0].strip()
+        record_id = unspan(first)
+        matching = [d for d in declarations
+                    if d["matcher"].fullmatch(record_id)]
+        if not matching:
+            continue
+        if any(d["start"] is not None
+               and d["start"] <= line_index < d["end"] for d in matching):
+            continue
+        permitted = "; ".join(
+            "%s [%s -> %s]" % (
+                d["population"], d["start_prefix"], d["end_prefix"])
+            for d in matching)
+        problems.append(
+            "governed location %s: pipe row at canon line %d is outside "
+            "every matching Inventory F range; permitted population/range(s): "
+            "%s" % (record_id, line_index + 1, permitted))
+    return problems
+
+
 def parse_receipt_population(tree, inv, key):
     """Rows of a receipt-side support population, per Inventory G."""
     if key not in inv.headings:
@@ -775,11 +830,11 @@ def check_plan(plan):
     if re.search(r"\*\*independently accepted\s+R2\.[789] foundation\*\*", r4):
         probs.append("plan R4 dependency still requires an accepted R2.7/R2.8/"
                      "R2.9 foundation (each was independently rejected)")
-    if not re.search(r"independently accepted\s*\n?\s*R2\.12 balanced "
+    if not re.search(r"independently accepted\s*\n?\s*R2\.13 "
                      r"foundation", r4):
         probs.append("plan R4 dependency does not require the independently "
-                     "accepted R2.12 balanced foundation")
-    if not re.search(r"R2\.12 . checker .\s*\n?\s*R3\.1 . checker . R4 . "
+                     "accepted R2.13 foundation")
+    if not re.search(r"R2\.13 . checker .\s*\n?\s*R3\.1 . checker . R4 . "
                      r"checker . R5 . checker . R6", r4):
         probs.append("plan R4 construction sequence omits a maker/checker "
                      "checkpoint between sequential construction units")
@@ -831,18 +886,18 @@ def check_plan(plan):
         probs.append("plan R3.1 status is not parseable (neither 'not started' "
                      "nor 'executed')")
 
-    r212 = plan_section(plan, "## R2.12 ", "## R3.1 ")
-    for phrase in ("Authorized files (exact)", "Bounded correction order",
+    r213 = plan_section(plan, "## R2.13 ", "## R3.1 ")
+    for phrase in ("Authorized files (exact)", "Generic location algorithm",
                    "Validator gate", "Preservation",
                    "Explicit exclusions"):
-        if phrase not in r212:
-            probs.append("plan R2.12 omits required balanced-foundation "
+        if phrase not in r213:
+            probs.append("plan R2.13 omits required governed-location "
                          "control %r" % phrase)
-    if not re.search(r"R2\.11 rejected . R2\.12 maker checkpoint .\s*"
-                     r"independent R2\.12 checker ACCEPT . R3\.1 maker "
+    if not re.search(r"R2\.12 rejected . R2\.13 maker checkpoint .\s*"
+                     r"independent R2\.13 checker ACCEPT . R3\.1 maker "
                      r"checkpoint .\s*independent R3\.1 checker ACCEPT",
-                     r212):
-        probs.append("plan R2.12/R3.1 maker-checker sequence is incomplete")
+                     r213):
+        probs.append("plan R2.13/R3.1 maker-checker sequence is incomplete")
 
     r5 = plan_section(plan, "## R5 ", "## R6 ")
     r6 = plan_section(plan, "## R6 ", "## R7 ")
@@ -3693,6 +3748,7 @@ def validate_tree(tree):
         return problems, notes
     problems += reconcile_inventory(tree.canon, inv)
     problems += check_immutable_ranges(tree.canon, inv)
+    problems += check_canon_population_locations(tree.canon, inv)
     problems += check_plan(tree.plan)
     migration = parse_migration_state(tree.plan)
 
@@ -3946,7 +4002,7 @@ def acceptance_receipt_text(accepted_checkpoint):
         "# Control independent acceptance receipt\n\n"
         "This receipt is the checker-side evidence a `RES-…` resolution's\n"
         "`Accepted checkpoint commit` resolves to. It is a control artifact "
-        "of the\nR2.12 validator, not a governed record of any repair unit.\n\n"
+        "of the\nR2.13 validator, not a governed record of any repair unit.\n\n"
         "## Independent acceptance record\n\n"
         "| Resolution ID | Accepted RES version | Accepted content digest | "
         "Accepted proposed outcome | Maker/proposer identity | "
@@ -4152,7 +4208,7 @@ def build_r31_document(repo, published, inv):
     plan = plan.replace(
         status.group(0),
         "- **Status:** executed (R3.1 control tree) after an independent "
-        "R2.12 checker ACCEPT.",
+        "R2.13 checker ACCEPT.",
         1)
 
     receipt = _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows,
@@ -4357,7 +4413,7 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
     }
     out = ["# R3.1 A-series repair (control document tree)",
            "",
-           "This document exists only inside the R2.12 validator's temporary "
+           "This document exists only inside the R2.13 validator's temporary "
            "control repository. It is the complete migrated R3.1 support "
            "population, written as real receipt tables and validated through "
            "the same top-level entry point as the committed baseline. It "
@@ -5466,7 +5522,7 @@ def _cases_g15r_omissions(H, mrcpt):
 
 
 def run_cases(repo):
-    """Bounded R2.12 default controls.
+    """Bounded R2.13 default controls.
 
     These controls exercise every newly corrected mechanical boundary without
     replaying the historical exhaustive mutation library. Use --extended for
@@ -5505,7 +5561,7 @@ def run_cases(repo):
             ACCEPT_RECEIPT_REL: checker,
         })
 
-    H.run("C0", "committed R2.12 baseline document tree", H.docs(), False)
+    H.run("C0", "committed R2.13 baseline document tree", H.docs(), False)
     H.run("C1", "complete future-R3.1 migrated document tree through the "
           "same top-level validator", H.docs(migrated=True), False)
 
@@ -5594,6 +5650,38 @@ def run_cases(repo):
     H.run("C4", "valid populated OPS-provenance and EXT-contract records in "
           "their governed canon locations",
           H.docs(migrated=True, **{C: ops_ext}), False)
+
+    # Whole-canon Inventory-F location closure. These exact-width duplicates
+    # sit outside every matching governed interval, so downstream population
+    # parsers intentionally cannot see them; the generic audit must.
+    registry_heading = (
+        "### 15.12 Source/provenance and evidence registries (created by R3)")
+
+    def before_registry(text, row):
+        return mut(text, registry_heading, row + "\n\n" + registry_heading)
+
+    misplaced_ops = before_registry(ops_ext, ops_row)
+    H.run("O1", "exact-width OPS-provenance detail row is displaced before "
+          "the Inventory F SRC2 intervals",
+          H.docs(migrated=True, **{C: misplaced_ops}), True,
+          "governed location SRC2-005: pipe row")
+    misplaced_ext = before_registry(ops_ext, ext_row)
+    H.run("O2", "exact-width EXT-contract detail row is displaced before "
+          "the Inventory F SRC2 intervals",
+          H.docs(migrated=True, **{C: misplaced_ext}), True,
+          "governed location SRC2-006: pipe row")
+    ev_location_row = row_line(mcanon, "| EV2-0001 |")
+    misplaced_ev = before_registry(mcanon, ev_location_row)
+    H.run("O3", "exact-width EV2 component row is displaced before its "
+          "Inventory F interval",
+          H.docs(migrated=True, **{C: misplaced_ev}), True,
+          "governed location EV2-0001: pipe row")
+    sxw_location_row = row_line(mcanon, "| SXW2-0001 |")
+    misplaced_sxw = before_registry(mcanon, sxw_location_row)
+    H.run("O4", "exact-width SXW2 edge row is displaced before its Inventory "
+          "F interval",
+          H.docs(migrated=True, **{C: misplaced_sxw}), True,
+          "governed location SXW2-0001: pipe row")
 
     bnd_inventory = row_line(canon, "| `BND-bundle` |")
     bad_inventory = replace_cell(canon, bnd_inventory, 2, "13")
@@ -5914,7 +6002,8 @@ def main():
         print("usage: %s [--extended]" % os.path.basename(__file__),
               file=sys.stderr)
         return 2
-    print("Architect CBA canon v2.0 balanced foundation validator (R2.12)")
+    print("Architect CBA canon v2.0 governed-location foundation validator "
+          "(R2.13)")
     print("control mode: %s" % ("extended diagnostic" if extended
                                 else "bounded default"))
     print("canon: %s" % CANON_REL.replace(os.sep, "/"))

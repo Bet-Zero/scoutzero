@@ -142,14 +142,21 @@ were not all enforced; the BND contract was not representable for
 SXW2; OPS/EXT/SXW2 populations lacked governed real locations; and live
 R8/R9 language crossed the Phase 1 boundary. That review ordered the
 bounded R2.12 correction below.
+R2.12 was executed at
+`68db497240b22a997d472f67a62929358b81cc1e`, but its independent review
+returned **REJECT/BLOCK-R3.1** because governed-ID pipe rows placed
+outside every matching Inventory F range were silently ignored. That
+single bounded mechanical finding ordered the R2.13 governed-location
+closure below; R2.12 and its receipt remain immutable rejected history.
 **The strict sequence is: R3 (executed; rejected) → R2.6 (executed;
 rejected) → R2.7 (executed; rejected) → R2.8 (executed; rejected) → R2.9
 (executed; rejected) → R2.10 (executed; rejected) → R2.11 (executed;
-rejected) → R2.12 maker checkpoint → independent R2.12 checker ACCEPT →
-R3.1 maker checkpoint → independent R3.1 checker ACCEPT → R4.**
-Completion of R2.12 does not
+rejected) → R2.12 (executed; rejected) → R2.13 maker checkpoint →
+independent R2.13 checker ACCEPT → R3.1 maker checkpoint → independent
+R3.1 checker ACCEPT → R4.**
+Completion of R2.13 does not
 accept anything; R3 remains rejected and no A-series record is accepted.
-R3.1 remains blocked pending independent acceptance of R2.12, and R4
+R3.1 remains blocked pending independent acceptance of R2.13, and R4
 remains blocked until later independent R3.1 acceptance.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
@@ -181,7 +188,7 @@ is a one-way dependency scheduled backwards, not a cycle).
 ## Global rules for every repair unit
 
 1. **Separate fresh sessions.** Every repair unit — R1, R2, R1.1, R1.2,
-   R2.1, R2.2, R2.3, R2.4, R2.5, R2.6–R2.12, R3, R3.1, and R4–R8 — runs in a
+   R2.1, R2.2, R2.3, R2.4, R2.5, R2.6–R2.13, R3, R3.1, and R4–R8 — runs in a
    fresh session with a
    checkpoint commit on `architect/cba-canon-v2` at the end of the unit.
    No unit may be combined with another in one session.
@@ -1335,10 +1342,12 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## R2.12 — Balanced-foundation closure (ordered by the independent review of R2.11)
 
-- **Status:** maker correction complete and checkpoint prepared on baseline
-  `86e64f33…`, pending independent checker review. R2.11 remains independently
-  rejected. R2.12 is not independently accepted, accepts no active record, and
-  does not authorize R3.1.
+- **Status:** executed at checkpoint
+  `68db497240b22a997d472f67a62929358b81cc1e` on baseline `86e64f33…`;
+  independently **REJECTED/BLOCK-R3.1**. The checker found one bounded
+  mechanical defect: governed-ID pipe rows outside Inventory F ranges were
+  silently ignored. R2.12 and its receipt are immutable rejected history;
+  R2.12 accepts no active record and does not authorize R3.1.
 - **Authorized files (exact):**
   `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
@@ -1399,18 +1408,61 @@ is a one-way dependency scheduled backwards, not a cycle).
   registration or scenario construction; no README, code-map,
   application, runtime, application test/schema/fixture/configuration,
   data, Linear, Phase 2, or W1.1 work.
-- **Sequencing:** **R2.11 rejected → R2.12 maker checkpoint →
-  independent R2.12 checker ACCEPT → R3.1 maker checkpoint →
-  independent R3.1 checker ACCEPT → R4.** Maker completion alone
-  accepts nothing.
+- **Outcome/sequencing:** the independent R2.12 checker returned
+  **REJECT/BLOCK-R3.1**. The controlling sequence is now **R2.12 rejected →
+  R2.13 maker checkpoint → independent R2.13 checker ACCEPT → R3.1 maker
+  checkpoint → independent R3.1 checker ACCEPT → R4.**
 - **Stop condition:** stop if a correction would edit a protected active
   row or prior receipt, mint a concrete governed record, touch an
   unauthorized file, or cross into R3.1/Phase 2/application work.
 
-## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.12 is independently accepted)
+## R2.13 — Governed-location closure (ordered by the independent review of R2.12)
+
+- **Status:** maker correction complete and checkpoint evidence prepared on
+  baseline `68db4972…`; independent checker review remains pending. R2.12
+  remains independently rejected.
+  R2.13 is not independently accepted, accepts no active record, and does not
+  authorize R3.1.
+- **Authorized files (exact):**
+  `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
+  `work/architect-completion/cba_canon_v2_foundation_validator.py`; and the new
+  maker receipt
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_13_GOVERNED_LOCATION_CLOSURE.md`.
+  Every prior receipt, especially R2.12, is immutable.
+- **Generic location algorithm:** parse every canon-side population, range,
+  and ID regex from Inventory F. Scan every pipe row in the entire canon. If
+  its first cell matches any Inventory F ID grammar, require its physical line
+  to fall within the union of all matching declared intervals; otherwise
+  reject with the displaced ID and every permitted population/range. Identical
+  or overlapping grammars, including all five SRC2 base/detail entries, use
+  union admission. Existing per-range header, width, base-type/detail-location,
+  and reference reconciliation remains authoritative inside that union, so
+  equal-width OPS and EXT details remain distinguishable without a schema
+  change.
+- **Validator gate:** the committed baseline, complete migrated SXW2/EV2 tree,
+  and populated valid OPS/EXT tree must accept. Four exact-width displaced-row
+  controls must reject on the new location diagnostic: OPS-provenance detail,
+  EXT-contract detail, EV2 component, and SXW2 edge. Run the bounded default
+  twice with bytecode disabled, compare complete output bytes, and keep each
+  run below four minutes.
+- **Preservation:** active §15.10–§15.12 record-table rows, §5.9, historical
+  §15.1–§15.8, scenarios 1–89, the exact sixteen-check SC2 list, every
+  committed record identity, and every prior receipt remain unchanged. R2.13
+  mints no concrete governed record.
+- **Explicit exclusions:** no R3.1 repair or active-row edit; no C/R/L/S
+  registration or scenario construction; no README, code-map, application,
+  runtime, application test/schema/fixture/configuration, data, Linear, main,
+  Phase 2, or W1.1 work.
+- **Sequencing:** **R2.12 rejected → R2.13 maker checkpoint → independent R2.13 checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT → R4.** Maker completion alone accepts nothing.
+- **Stop condition:** stop if a correction would edit a protected active row
+  or prior receipt, require a schema change, mint a concrete governed record,
+  touch an unauthorized file, or cross into R3.1/Phase 2/application work.
+
+## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.13 is independently accepted)
 
 - **Status:** not started. Blocked until the independent checker review
-  of the R2.12 balanced foundation returns ACCEPT (R2.6–R2.11 were
+  of the R2.13 foundation returns ACCEPT (R2.6–R2.12 were
   independently rejected and do not unblock R3.1).
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
@@ -1690,11 +1742,11 @@ is a one-way dependency scheduled backwards, not a cycle).
   deferrals, and amendment preservation. Only an explicit ACCEPT in the
   named checker report unblocks R5.
 - **Dependency:** R1, R1.1, R2.1, R2.2, the **independently accepted
-  R2.12 balanced foundation** (R2.6–R2.11 were independently rejected
+  R2.13 foundation** (R2.6–R2.12 were independently rejected
   and none unblocks R4), and **completed R3.1 with an independent checker ACCEPT
   of the R3.1 checkpoint** (R3 alone does not unblock R4 — it was
   independently rejected) — the
-  construction sequence R3 → R2.6–R2.11 rejected → R2.12 → checker →
+  construction sequence R3 → R2.6–R2.12 rejected → R2.13 → checker →
   R3.1 → checker → R4 → checker → R5 → checker → R6 is strict
   (canon §15.9.2): all
   units extend the shared §15.10–§15.12 sections and allocate from the
