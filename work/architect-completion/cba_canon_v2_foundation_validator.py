@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Architect CBA canon v2.0 — governed-location foundation validator (R2.13).
+"""Architect CBA canon v2.0 — ID-normalization foundation validator (R2.14).
 
 WHY THIS FILE EXISTS
 --------------------
@@ -23,8 +23,8 @@ architectural, not cosmetic:
   * Fixed population totals (`EXPECT`) simultaneously false-rejected valid
     append-only additions and admitted count-preserving substitutions.
 
-R2.13 GOVERNED LOCATION CLOSURE
--------------------------------
+R2.14 ID NORMALIZATION AND STATUS CLOSURE
+-----------------------------------------
 One document-tree loader, one parser set, one reconciliation engine, one
 top-level entry point:
 
@@ -40,6 +40,10 @@ top-level entry point:
     inventory) and reconciled bidirectionally with its governing clause. This
     module contains no vocabulary allow-set, no schema field list, no actor
     family table, and no source hash/size table of its own.
+  * One balanced-backtick record-ID normalizer is shared by normal population
+    parsing and the whole-canon Inventory-F location audit. Plain IDs and valid
+    one-or-more-backtick Markdown code spans therefore receive identical
+    membership and location treatment; no population-specific ID list exists.
   * Preservation and conformance are separate duties. Preservation resolves
     every identity committed at the pinned R3 checkpoint COMMIT (loaded through
     the same `Tree` loader at that ref) — so renames, substitutions, drops,
@@ -168,6 +172,20 @@ def unspan(cell):
     if len(c) >= 2 and c.startswith("`") and c.endswith("`"):
         return c[1:-1]
     return c
+
+
+def normalize_record_id_cell(cell):
+    """Return a governed record ID from a plain or balanced code-span cell.
+
+    A Markdown record-ID cell may be plain or wrapped by an equal, nonempty
+    run of backticks. The record body itself cannot contain a backtick under
+    any governed ID grammar. Malformed or unbalanced fencing is left intact,
+    so it cannot be silently normalized into a valid ID.
+    """
+    value = (cell or "").strip()
+    match = re.fullmatch(
+        r"(?P<fence>`+)(?P<record>[^`\r\n]+)(?P=fence)", value)
+    return match.group("record") if match else value
 
 
 def sha_hex(s):
@@ -496,7 +514,7 @@ def parse_canon_population(canon, inv, key):
     want = len(header) if header else len(inv.schema.get(key, []))
     rows, probs = [], []
     for r in pipe_rows(seg):
-        if not r or not re.fullmatch(idre, r[0].strip("`")):
+        if not r or not re.fullmatch(idre, normalize_record_id_cell(r[0])):
             continue
         if len(r) != want:
             probs.append("%s %s: row has %d fields, the table header declares "
@@ -542,7 +560,7 @@ def check_canon_population_locations(canon, inv):
                 and len(stripped) > 1):
             continue
         first = stripped[1:-1].split("|", 1)[0].strip()
-        record_id = unspan(first)
+        record_id = normalize_record_id_cell(first)
         matching = [d for d in declarations
                     if d["matcher"].fullmatch(record_id)]
         if not matching:
@@ -577,7 +595,8 @@ def parse_receipt_population(tree, inv, key):
             header = h
         want = len(h) if h else len(inv.schema.get(key, []))
         for r in pipe_rows(blk):
-            if not r or not re.fullmatch(idre, r[0].strip("`")):
+            if not r or not re.fullmatch(
+                    idre, normalize_record_id_cell(r[0])):
                 continue
             if len(r) != want:
                 probs.append("%s %s (%s): row has %d fields, the table header "
@@ -830,11 +849,11 @@ def check_plan(plan):
     if re.search(r"\*\*independently accepted\s+R2\.[789] foundation\*\*", r4):
         probs.append("plan R4 dependency still requires an accepted R2.7/R2.8/"
                      "R2.9 foundation (each was independently rejected)")
-    if not re.search(r"independently accepted\s*\n?\s*R2\.13 "
+    if not re.search(r"independently accepted\s*\n?\s*R2\.14 "
                      r"foundation", r4):
         probs.append("plan R4 dependency does not require the independently "
-                     "accepted R2.13 foundation")
-    if not re.search(r"R2\.13 . checker .\s*\n?\s*R3\.1 . checker . R4 . "
+                     "accepted R2.14 foundation")
+    if not re.search(r"R2\.14 . checker .\s*\n?\s*R3\.1 . checker . R4 . "
                      r"checker . R5 . checker . R6", r4):
         probs.append("plan R4 construction sequence omits a maker/checker "
                      "checkpoint between sequential construction units")
@@ -886,18 +905,42 @@ def check_plan(plan):
         probs.append("plan R3.1 status is not parseable (neither 'not started' "
                      "nor 'executed')")
 
-    r213 = plan_section(plan, "## R2.13 ", "## R3.1 ")
-    for phrase in ("Authorized files (exact)", "Generic location algorithm",
-                   "Validator gate", "Preservation",
+    r213 = plan_section(plan, "## R2.13 ", "## R2.14 ")
+    if ("818a5d03accbebfec810521a49ef9554ca4f79fa" not in r213
+            or not re.search(r"independently \*\*REJECTED/BLOCK-R3\.1\*\*",
+                             r213)):
+        probs.append("plan does not preserve the exact rejected R2.13 "
+                     "checkpoint and independent verdict")
+
+    r214 = plan_section(plan, "## R2.14 ", "## R3.1 ")
+    for phrase in ("Authorized files (exact)", "Shared ID normalizer",
+                   "Validator gate", "Truthful status", "Preservation",
                    "Explicit exclusions"):
-        if phrase not in r213:
-            probs.append("plan R2.13 omits required governed-location "
+        if phrase not in r214:
+            probs.append("plan R2.14 omits required ID-normalization/status "
                          "control %r" % phrase)
-    if not re.search(r"R2\.12 rejected . R2\.13 maker checkpoint .\s*"
-                     r"independent R2\.13 checker ACCEPT . R3\.1 maker "
+    if not re.search(r"R2\.13 rejected . R2\.14 maker checkpoint .\s*"
+                     r"independent R2\.14 checker ACCEPT . R3\.1 maker "
                      r"checkpoint .\s*independent R3\.1 checker ACCEPT",
-                     r213):
-        probs.append("plan R2.13/R3.1 maker-checker sequence is incomplete")
+                     r214):
+        probs.append("plan R2.14/R3.1 maker-checker sequence is incomplete")
+
+    stale_current = re.search(
+        r"(?is)\b(?:current|controlling)\s+sequence(?:\s+is(?:\s+now)?)?"
+        r".{0,500}\b(?P<stale_current>R2\.(?:12|13)) maker checkpoint\b"
+        r".{0,250}\bindependent R2\.(?:12|13) checker ACCEPT\b", plan)
+    stale_block = re.search(
+        r"(?is)\bR3\.1 remains blocked\b.{0,180}"
+        r"\bindependent (?P<stale_block>R2\.(?:12|13))\b"
+        r".{0,100}\bACCEPT\b", plan)
+    if stale_current or stale_block:
+        stale_version = (
+            stale_current.group("stale_current") if stale_current
+            else stale_block.group("stale_block"))
+        probs.append(
+            "plan status: stale live %s current/controlling route remains; "
+            "R2.12 and R2.13 are rejected and R3.1 requires independent "
+            "R2.14 ACCEPT" % stale_version)
 
     r5 = plan_section(plan, "## R5 ", "## R6 ")
     r6 = plan_section(plan, "## R6 ", "## R7 ")
@@ -982,7 +1025,8 @@ class Ctx(object):
         return row[i] if i < len(row) else None
 
     def ids(self, key):
-        return [r[0].strip("`") for r in self.pop.get(key, [])]
+        return [normalize_record_id_cell(r[0])
+                for r in self.pop.get(key, [])]
 
     def vocab(self, key):
         return self.inv.vocab.get(key, [])
@@ -2907,12 +2951,12 @@ def parse_acceptance_records(text, ctx):
     want = len(ctx.inv.schema.get("acceptance-receipt-record", []))
     out = {}
     for r in pipe_rows(heading_block(text, token)):
-        if not r or not re.fullmatch(idre, r[0].strip("`")):
+        if not r or not re.fullmatch(idre, normalize_record_id_cell(r[0])):
             continue
         if len(r) != want:
             continue
         fields = ctx.inv.schema["acceptance-receipt-record"]
-        rid = r[0].strip("`")
+        rid = normalize_record_id_cell(r[0])
         out.setdefault(rid, []).append(
             dict(zip(fields, [c.strip() for c in r])))
     return out
@@ -2931,9 +2975,9 @@ def parse_proposal_records(text, ctx):
                      "the exact governed header, found %d" % len(headers))
     out = {}
     for r in rows:
-        if not r or not re.fullmatch(idre, r[0].strip("`")):
+        if not r or not re.fullmatch(idre, normalize_record_id_cell(r[0])):
             continue
-        rid = r[0].strip("`")
+        rid = normalize_record_id_cell(r[0])
         if len(r) != len(fields):
             probs.append("proposal receipt: RES %s row width %d != governed "
                          "%d" % (rid, len(r), len(fields)))
@@ -4002,7 +4046,7 @@ def acceptance_receipt_text(accepted_checkpoint):
         "# Control independent acceptance receipt\n\n"
         "This receipt is the checker-side evidence a `RES-…` resolution's\n"
         "`Accepted checkpoint commit` resolves to. It is a control artifact "
-        "of the\nR2.13 validator, not a governed record of any repair unit.\n\n"
+        "of the\nR2.14 validator, not a governed record of any repair unit.\n\n"
         "## Independent acceptance record\n\n"
         "| Resolution ID | Accepted RES version | Accepted content digest | "
         "Accepted proposed outcome | Maker/proposer identity | "
@@ -4208,7 +4252,7 @@ def build_r31_document(repo, published, inv):
     plan = plan.replace(
         status.group(0),
         "- **Status:** executed (R3.1 control tree) after an independent "
-        "R2.13 checker ACCEPT.",
+        "R2.14 checker ACCEPT.",
         1)
 
     receipt = _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows,
@@ -4413,7 +4457,7 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
     }
     out = ["# R3.1 A-series repair (control document tree)",
            "",
-           "This document exists only inside the R2.13 validator's temporary "
+           "This document exists only inside the R2.14 validator's temporary "
            "control repository. It is the complete migrated R3.1 support "
            "population, written as real receipt tables and validated through "
            "the same top-level entry point as the committed baseline. It "
@@ -5522,7 +5566,7 @@ def _cases_g15r_omissions(H, mrcpt):
 
 
 def run_cases(repo):
-    """Bounded R2.13 default controls.
+    """Bounded R2.14 default controls.
 
     These controls exercise every newly corrected mechanical boundary without
     replaying the historical exhaustive mutation library. Use --extended for
@@ -5561,7 +5605,7 @@ def run_cases(repo):
             ACCEPT_RECEIPT_REL: checker,
         })
 
-    H.run("C0", "committed R2.13 baseline document tree", H.docs(), False)
+    H.run("C0", "committed R2.14 baseline document tree", H.docs(), False)
     H.run("C1", "complete future-R3.1 migrated document tree through the "
           "same top-level validator", H.docs(migrated=True), False)
 
@@ -5660,6 +5704,11 @@ def run_cases(repo):
     def before_registry(text, row):
         return mut(text, registry_heading, row + "\n\n" + registry_heading)
 
+    def refence_id(row, fence):
+        cells = [c.strip() for c in row.strip()[1:-1].split("|")]
+        cells[0] = (fence + normalize_record_id_cell(cells[0]) + fence)
+        return "| " + " | ".join(cells) + " |"
+
     misplaced_ops = before_registry(ops_ext, ops_row)
     H.run("O1", "exact-width OPS-provenance detail row is displaced before "
           "the Inventory F SRC2 intervals",
@@ -5682,6 +5731,64 @@ def run_cases(repo):
           "F interval",
           H.docs(migrated=True, **{C: misplaced_sxw}), True,
           "governed location SXW2-0001: pipe row")
+
+    # R2.14 closes the normalization split demonstrated by the independent
+    # R2.13 checker. Balanced multi-backtick Markdown code spans must take the
+    # same location path as plain IDs for every governed grammar.
+    multi_ops = before_registry(ops_ext, refence_id(ops_row, "``"))
+    H.run("N1", "multi-backtick OPS-provenance detail row is displaced before "
+          "the Inventory F SRC2 intervals",
+          H.docs(migrated=True, **{C: multi_ops}), True,
+          "governed location SRC2-005: pipe row")
+    multi_ext = before_registry(ops_ext, refence_id(ext_row, "``"))
+    H.run("N2", "multi-backtick EXT-contract detail row is displaced before "
+          "the Inventory F SRC2 intervals",
+          H.docs(migrated=True, **{C: multi_ext}), True,
+          "governed location SRC2-006: pipe row")
+    multi_ev = before_registry(
+        mcanon, refence_id(ev_location_row, "``"))
+    H.run("N3", "multi-backtick EV2 component row is displaced before its "
+          "Inventory F interval",
+          H.docs(migrated=True, **{C: multi_ev}), True,
+          "governed location EV2-0001: pipe row")
+    multi_sxw = before_registry(
+        mcanon, refence_id(sxw_location_row, "``"))
+    H.run("N4", "multi-backtick SXW2 edge row is displaced before its "
+          "Inventory F interval",
+          H.docs(migrated=True, **{C: multi_sxw}), True,
+          "governed location SXW2-0001: pipe row")
+
+    # A synthetic Inventory-F declaration proves the generic audit derives
+    # both grammar and range dynamically rather than from a Python list.
+    inv_f_last = row_line(
+        mcanon, "| `SXW2-edge` | `#### 16.v2.2 Scenario crosswalk` |")
+    synthetic = mut(
+        mcanon, inv_f_last + "\n",
+        inv_f_last + "\n"
+        + "| `synthetic-location-control` | `#### 15.12.6` | `## 16.` | "
+          "`ZZ2-[0-9]{4}` |\n")
+    synthetic = before_registry(
+        synthetic, "| ``ZZ2-0001`` | synthetic location control |")
+    H.run("N5", "multi-backtick ID governed only by a synthetic Inventory-F "
+          "declaration is displaced outside its declared interval",
+          H.docs(migrated=True, **{C: synthetic}), True,
+          "governed location ZZ2-0001: pipe row")
+
+    stale_plan = mut(
+        base[P], "## R2.14 ",
+        "Current sequence is **R2.12 maker checkpoint → independent R2.12 "
+        "checker ACCEPT → R3.1 maker checkpoint**.\n\n## R2.14 ")
+    H.run("N6", "repair plan reintroduces a stale live R2.12-current route",
+          H.docs(**{P: stale_plan}), True,
+          "stale live R2.12 current/controlling route")
+
+    stale_r213_plan = mut(
+        base[P], "## R2.14 ",
+        "Controlling sequence is now **R2.13 maker checkpoint → independent "
+        "R2.13 checker ACCEPT → R3.1 maker checkpoint**.\n\n## R2.14 ")
+    H.run("N7", "repair plan reintroduces a stale live R2.13-current route",
+          H.docs(**{P: stale_r213_plan}), True,
+          "stale live R2.13 current/controlling route")
 
     bnd_inventory = row_line(canon, "| `BND-bundle` |")
     bad_inventory = replace_cell(canon, bnd_inventory, 2, "13")
@@ -6002,8 +6109,8 @@ def main():
         print("usage: %s [--extended]" % os.path.basename(__file__),
               file=sys.stderr)
         return 2
-    print("Architect CBA canon v2.0 governed-location foundation validator "
-          "(R2.13)")
+    print("Architect CBA canon v2.0 ID-normalization foundation validator "
+          "(R2.14)")
     print("control mode: %s" % ("extended diagnostic" if extended
                                 else "bounded default"))
     print("canon: %s" % CANON_REL.replace(os.sep, "/"))

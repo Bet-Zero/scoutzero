@@ -148,15 +148,24 @@ returned **REJECT/BLOCK-R3.1** because governed-ID pipe rows placed
 outside every matching Inventory F range were silently ignored. That
 single bounded mechanical finding ordered the R2.13 governed-location
 closure below; R2.12 and its receipt remain immutable rejected history.
+R2.13 was executed at
+`818a5d03accbebfec810521a49ef9554ca4f79fa`, but its independent review
+returned **REJECT/BLOCK-R3.1** for two bounded defects: normal canon
+population parsing stripped arbitrary backtick runs while the whole-canon
+location audit removed only one pair, so displaced multi-backtick governed
+IDs could evade the audit; and five live historical-plan mirrors still named
+R2.12 ACCEPT as the current route. That review ordered the R2.14
+ID-normalization and truthful-status closure below. R2.13 and its receipt are
+immutable rejected history.
 **The strict sequence is: R3 (executed; rejected) → R2.6 (executed;
 rejected) → R2.7 (executed; rejected) → R2.8 (executed; rejected) → R2.9
 (executed; rejected) → R2.10 (executed; rejected) → R2.11 (executed;
-rejected) → R2.12 (executed; rejected) → R2.13 maker checkpoint →
-independent R2.13 checker ACCEPT → R3.1 maker checkpoint → independent
-R3.1 checker ACCEPT → R4.**
-Completion of R2.13 does not
+rejected) → R2.12 (executed; rejected) → R2.13 (executed; rejected) →
+R2.14 maker checkpoint → independent R2.14 checker ACCEPT → R3.1 maker
+checkpoint → independent R3.1 checker ACCEPT → R4.**
+Completion of R2.14 does not
 accept anything; R3 remains rejected and no A-series record is accepted.
-R3.1 remains blocked pending independent acceptance of R2.13, and R4
+R3.1 remains blocked pending independent acceptance of R2.14, and R4
 remains blocked until later independent R3.1 acceptance.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
@@ -188,7 +197,7 @@ is a one-way dependency scheduled backwards, not a cycle).
 ## Global rules for every repair unit
 
 1. **Separate fresh sessions.** Every repair unit — R1, R2, R1.1, R1.2,
-   R2.1, R2.2, R2.3, R2.4, R2.5, R2.6–R2.13, R3, R3.1, and R4–R8 — runs in a
+   R2.1, R2.2, R2.3, R2.4, R2.5, R2.6–R2.14, R3, R3.1, and R4–R8 — runs in a
    fresh session with a
    checkpoint commit on `architect/cba-canon-v2` at the end of the unit.
    No unit may be combined with another in one session.
@@ -740,7 +749,7 @@ is a one-way dependency scheduled backwards, not a cycle).
   is **not certified**. The R3 receipt is immutable review history; the
   committed records remain the live draft population and are repaired
   by **R3.1** through `AMEND` lineage (below) after independent Codex
-  acceptance of the **R2.12 balanced foundation**. R2.6–R2.11 were
+  acceptance of the **R2.14 foundation**. R2.6–R2.13 were
   each independently rejected and do not unblock R3.1; their surviving
   A-series findings form the bounded R3.1 backlog below.
 
@@ -1011,12 +1020,12 @@ is a one-way dependency scheduled backwards, not a cycle).
   schema, fixture, configuration, data, or Linear work; R3.1, R4–R9,
   Phase 2, and W1.1 not started.
 - **Sequencing (superseded — R2.7 and its later foundation successors
-  through R2.10 were rejected):** the intended
+  through R2.13 were rejected):** the intended
   **R2.7 → independent Codex R2.7 review → R3.1** sequence did not hold;
   the R2.7 checkpoint was independently **rejected** (REJECT/BLOCK-R3.1),
-  and R2.8, R2.9, R2.10, and R2.11 were rejected in turn. The current
-  sequence is **R2.7–R2.11 rejected → R2.12 maker checkpoint →
-  independent R2.12 checker ACCEPT → R3.1 maker checkpoint →
+  and R2.8–R2.13 were rejected in turn. The current
+  sequence is **R2.7–R2.13 rejected → R2.14 maker checkpoint →
+  independent R2.14 checker ACCEPT → R3.1 maker checkpoint →
   independent R3.1 checker ACCEPT → R4.** R3 remains rejected; no A-series record is accepted;
   Phase 1 remains open; Phase 2 and W1.1 remain blocked.
 - **Stop condition:** stop and report if a correction would require
@@ -1127,11 +1136,11 @@ is a one-way dependency scheduled backwards, not a cycle).
   edit; no R3 record repair (R3.1); no application, README, code-map,
   test, schema, fixture, configuration, data, or Linear work; R3.1,
   R4–R9, Phase 2, and W1.1 not started.
-- **Sequencing (superseded — R2.8–R2.10 were rejected in turn):** the intended
+- **Sequencing (superseded — R2.8–R2.13 were rejected in turn):** the intended
   **R2.8 (executed; rejected) → R2.9 → independent
   Codex R2.9 review → R3.1 → independent Codex R3.1 review → R4 only if
   R3.1 is accepted** sequence did not hold. The current sequence is
-  **R2.8–R2.11 rejected → R2.12 maker checkpoint → independent R2.12
+  **R2.8–R2.13 rejected → R2.14 maker checkpoint → independent R2.14
   checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker
   ACCEPT → R4.** R2.8 completion did not equal acceptance; R3 remains
   rejected; no A-series record is accepted; Phase 1 remains open;
@@ -1191,11 +1200,11 @@ is a one-way dependency scheduled backwards, not a cycle).
   §15.10–§15.12 record-table edit; no R3 record repair (R3.1); no
   application, README, code-map, test, schema, fixture, configuration,
   data, or Linear work; R3.1, R4–R9, Phase 2, and W1.1 not started.
-- **Sequencing (superseded — R2.9 and R2.10 were rejected):** the intended
+- **Sequencing (superseded — R2.9–R2.13 were rejected):** the intended
   **R2.9 → independent Codex R2.9 review → R3.1 → independent Codex R3.1
   review → R4 only if R3.1 is accepted** sequence did not hold. The
-  current sequence is **R2.9–R2.11 rejected → R2.12 maker checkpoint →
-  independent R2.12 checker ACCEPT → R3.1 maker checkpoint →
+  current sequence is **R2.9–R2.13 rejected → R2.14 maker checkpoint →
+  independent R2.14 checker ACCEPT → R3.1 maker checkpoint →
   independent R3.1 checker ACCEPT → R4.** R2.9 completion did not equal
   acceptance.
 - **Stop condition:** stop and report if a correction would require
@@ -1277,10 +1286,10 @@ is a one-way dependency scheduled backwards, not a cycle).
   §15.10–§15.12 record-table edit; no R3 record repair (R3.1); no
   application, README, code-map, test, schema, fixture, configuration,
   data, or Linear work; R3.1, R4–R9, Phase 2, and W1.1 not started.
-- **Sequencing (superseded — R2.10 was rejected):** the intended
+- **Sequencing (superseded — R2.10–R2.13 were rejected):** the intended
   **R2.10 → independent Codex R2.10 review → R3.1** sequence did not
-  hold. The current sequence is **R2.10–R2.11 rejected → R2.12 maker
-  checkpoint → independent R2.12 checker ACCEPT → R3.1 maker
+  hold. The current sequence is **R2.10–R2.13 rejected → R2.14 maker
+  checkpoint → independent R2.14 checker ACCEPT → R3.1 maker
   checkpoint → independent R3.1 checker ACCEPT → R4.**
 - **Outcome:** the independent R2.10 review returned
   **REJECT/BLOCK-R3.1**. R2.10 remains immutable rejected history and
@@ -1333,10 +1342,11 @@ is a one-way dependency scheduled backwards, not a cycle).
   runtime, test, schema, fixture, configuration, data, Linear, Phase 2,
   or W1.1 work.
 - **Outcome/sequencing:** the independent R2.11 checker returned
-  **REJECT/BLOCK-R3.1**. The controlling sequence is now **R2.11
-  rejected → R2.12 maker checkpoint → independent R2.12 checker ACCEPT
+  **REJECT/BLOCK-R3.1**. R2.12 and R2.13 were rejected in turn. The
+  controlling sequence is now **R2.11–R2.13 rejected → R2.14 maker
+  checkpoint → independent R2.14 checker ACCEPT
   → R3.1 maker checkpoint → independent R3.1 checker ACCEPT.**
-  R3.1 remains blocked until the independent R2.12 result is ACCEPT.
+  R3.1 remains blocked until the independent R2.14 result is ACCEPT.
 - **Stop condition:** stop if the correction would edit a protected active
   row, an immutable prior receipt, or a Phase 2/application surface.
 
@@ -1409,27 +1419,32 @@ is a one-way dependency scheduled backwards, not a cycle).
   application, runtime, application test/schema/fixture/configuration,
   data, Linear, Phase 2, or W1.1 work.
 - **Outcome/sequencing:** the independent R2.12 checker returned
-  **REJECT/BLOCK-R3.1**. The controlling sequence is now **R2.12 rejected →
-  R2.13 maker checkpoint → independent R2.13 checker ACCEPT → R3.1 maker
-  checkpoint → independent R3.1 checker ACCEPT → R4.**
+  **REJECT/BLOCK-R3.1** and ordered R2.13. R2.13 was then independently
+  rejected. The controlling sequence is now **R2.12–R2.13 rejected → R2.14
+  maker checkpoint → independent R2.14 checker ACCEPT → R3.1 maker checkpoint
+  → independent R3.1 checker ACCEPT → R4.**
 - **Stop condition:** stop if a correction would edit a protected active
   row or prior receipt, mint a concrete governed record, touch an
   unauthorized file, or cross into R3.1/Phase 2/application work.
 
 ## R2.13 — Governed-location closure (ordered by the independent review of R2.12)
 
-- **Status:** maker correction complete and checkpoint evidence prepared on
-  baseline `68db4972…`; independent checker review remains pending. R2.12
-  remains independently rejected.
-  R2.13 is not independently accepted, accepts no active record, and does not
-  authorize R3.1.
+- **Status:** executed at checkpoint
+  `818a5d03accbebfec810521a49ef9554ca4f79fa` on baseline `68db4972…`;
+  independently **REJECTED/BLOCK-R3.1**. The checker found two bounded
+  defects: inconsistent governed-ID normalization allowed valid
+  multi-backtick Markdown IDs to evade the whole-canon location audit, and
+  five live historical-plan mirrors still called R2.12 ACCEPT the current
+  route. R2.13 and its receipt are immutable rejected history. R2.13 accepts
+  no active record and does not authorize R3.1.
 - **Authorized files (exact):**
   `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
   `work/architect-completion/cba_canon_v2_foundation_validator.py`; and the new
   maker receipt
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_13_GOVERNED_LOCATION_CLOSURE.md`.
-  Every prior receipt, especially R2.12, is immutable.
+  Every prior receipt is immutable; after execution, the R2.13 receipt is
+  immutable too.
 - **Generic location algorithm:** parse every canon-side population, range,
   and ID regex from Inventory F. Scan every pipe row in the entire canon. If
   its first cell matches any Inventory F ID grammar, require its physical line
@@ -1454,15 +1469,76 @@ is a one-way dependency scheduled backwards, not a cycle).
   registration or scenario construction; no README, code-map, application,
   runtime, application test/schema/fixture/configuration, data, Linear, main,
   Phase 2, or W1.1 work.
-- **Sequencing:** **R2.12 rejected → R2.13 maker checkpoint → independent R2.13 checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT → R4.** Maker completion alone accepts nothing.
+- **Sequencing:** the independent R2.13 checker returned
+  **REJECT/BLOCK-R3.1**. The controlling sequence is now **R2.13 rejected →
+  R2.14 maker checkpoint → independent R2.14 checker ACCEPT → R3.1 maker
+  checkpoint → independent R3.1 checker ACCEPT → R4.**
 - **Stop condition:** stop if a correction would edit a protected active row
   or prior receipt, require a schema change, mint a concrete governed record,
   touch an unauthorized file, or cross into R3.1/Phase 2/application work.
 
-## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.13 is independently accepted)
+## R2.14 — ID-normalization and truthful-status closure (ordered by the independent review of R2.13)
+
+- **Status:** maker correction complete and checkpoint evidence prepared on
+  the rejected R2.13 checkpoint
+  `818a5d03accbebfec810521a49ef9554ca4f79fa`; independent checker review
+  remains pending. R2.14 is not independently accepted, accepts no active
+  record, and does not authorize R3.1.
+- **Authorized files (exact):**
+  `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
+  `work/architect-completion/cba_canon_v2_foundation_validator.py`; and the new
+  maker receipt
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_14_ID_NORMALIZATION_STATUS_CLOSURE.md`.
+  Every prior receipt, especially R2.13, is immutable.
+- **Checker findings:** close exactly two blockers. First, normal canon
+  population membership and whole-canon Inventory-F location detection must
+  normalize governed record-ID cells identically, including valid
+  multi-backtick Markdown code spans. Second, every live status and sequence
+  surface must state that R2.13 was rejected and R3.1 waits for independent
+  R2.14 acceptance.
+- **Shared ID normalizer:** one deterministic helper accepts a plain record ID
+  or removes one balanced Markdown fence made from an equal nonempty run of
+  backticks. It leaves malformed or unbalanced fencing intact so no malformed
+  cell becomes a valid ID. Normal canon population membership, the
+  whole-canon Inventory-F audit, equivalent receipt-population membership, and
+  direct acceptance/proposal membership paths use that helper. Inventory F
+  remains the only canon-side population/range/grammar authority; no
+  hard-coded population list is added.
+- **Validator gate:** retain valid baseline, complete migrated-document, and
+  equal-width overlapping OPS/EXT positives; retain the four plain displaced
+  OPS/EXT/EV2/SXW2 controls; add four exact-width displaced multi-backtick
+  counterparts; add a synthetic Inventory-F-only grammar/range control proving
+  generic behavior; and add distinct rejecting plan controls for stale live
+  R2.12-current and R2.13-current language. The same route check rejects
+  either obsolete checkpoint as the prerequisite in a live R3.1 blocking
+  condition. Every control uses the same top-level document-tree path. Run
+  the bounded default twice with bytecode disabled, compare complete output
+  bytes, and keep each run below four minutes.
+- **Truthful status:** search the complete canon and plan. Preserve historical
+  facts, rule-origin labels, and immutable receipts, but no live
+  current/controlling route may call R2.12 or R2.13 ACCEPT. The operative
+  sequence is R2.6–R2.13 rejected → R2.14 maker checkpoint → independent
+  R2.14 checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker
+  ACCEPT → R4.
+- **Preservation:** active §15.10–§15.12 record-table rows, §5.9, historical
+  §15.1–§15.8, scenarios 1–89, the exact sixteen-check SC2 list, every
+  committed record identity, and every prior receipt remain unchanged. R2.14
+  mints no concrete governed record.
+- **Explicit exclusions:** no R3.1 repair or active-row edit; no C/R/L/S
+  registration or scenario construction; no README, code-map, application,
+  runtime, application test/schema/fixture/configuration, data, Firestore,
+  Linear, main, Phase 2, or W1.1 work.
+- **Sequencing:** **R2.13 rejected → R2.14 maker checkpoint → independent R2.14 checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT → R4.** Maker completion alone accepts nothing.
+- **Stop condition:** stop if a correction would edit a protected active row
+  or prior receipt, add a parallel population/grammar contract, mint a
+  concrete governed record, touch an unauthorized file, or cross into
+  R3.1/Phase 2/application work.
+
+## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.14 is independently accepted)
 
 - **Status:** not started. Blocked until the independent checker review
-  of the R2.13 foundation returns ACCEPT (R2.6–R2.12 were
+  of the R2.14 foundation returns ACCEPT (R2.6–R2.13 were
   independently rejected and do not unblock R3.1).
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
@@ -1742,11 +1818,11 @@ is a one-way dependency scheduled backwards, not a cycle).
   deferrals, and amendment preservation. Only an explicit ACCEPT in the
   named checker report unblocks R5.
 - **Dependency:** R1, R1.1, R2.1, R2.2, the **independently accepted
-  R2.13 foundation** (R2.6–R2.12 were independently rejected
+  R2.14 foundation** (R2.6–R2.13 were independently rejected
   and none unblocks R4), and **completed R3.1 with an independent checker ACCEPT
   of the R3.1 checkpoint** (R3 alone does not unblock R4 — it was
   independently rejected) — the
-  construction sequence R3 → R2.6–R2.12 rejected → R2.13 → checker →
+  construction sequence R3 → R2.6–R2.13 rejected → R2.14 → checker →
   R3.1 → checker → R4 → checker → R5 → checker → R6 is strict
   (canon §15.9.2): all
   units extend the shared §15.10–§15.12 sections and allocate from the
