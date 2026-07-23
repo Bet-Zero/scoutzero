@@ -1556,7 +1556,7 @@ is a one-way dependency scheduled backwards, not a cycle).
   `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
   `work/architect-completion/cba_canon_v2_foundation_validator.py`; and
-  `work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R3_1_COMPATIBILITY_CHECKPOINT.md`.
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_COMPATIBILITY_CHECKPOINT.md`.
   Every earlier receipt and every active §15.10–§15.12 row remains
   immutable.
 - **Compatibility corrections:** admit governed LEAF/XW2/EV2 gaps only when
@@ -1565,17 +1565,25 @@ is a one-way dependency scheduled backwards, not a cycle).
   GROUP child declarations and reverse-detect silent same-ID governed-row
   changes; permit versionless same-ID `revise` as `—` → `—` while retaining
   exact numeric one-step lineage for versioned populations including SRC2;
-  resolve every AMEND prior only in its exact named Inventory F/G population,
-  with CBA2-SC deferred until a governed parser declaration exists; derive
+  resolve every AMEND prior only in its exact named Inventory F/G population
+  and require non-revise consumption of a pinned R3 identity to name the
+  exact pinned R3 checkpoint; join every terminal claimed current version to
+  the live logical record; keep compatibility acceptance state consistent
+  with R3.1 execution; keep CBA2-SC deferred until a governed parser
+  declaration exists; derive
   top-level historical LEAF text only from the exact published §15.7 table;
   add the eleven-field fragment authority qualifier contract; and add the
   narrow governed cross-family `deferred` XW2 shape that a named R4–R6 unit
-  must later replace through `AMEND`.
+  must later replace through `AMEND`, whose single edge span equals its
+  fragment span and which can never be a bundle member.
 - **Validator controls:** accepting and rejecting controls cover a real LEAF
   split, XW2/EV2 replacement gaps, ID reuse/filling, wrong exact GROUP
   declarations, versionless XW2 and versioned SRC2 revisions, missing or
-  wrong-population AMEND rows, exact top-level fragment length, the A15.1 OPS
-  qualifier, and valid/malformed/DISP/R8-surviving deferred edges. Every
+  wrong-population AMEND rows, wrong pinned-R3 consumption checkpoints,
+  claimed/live version mismatches, contradictory post-R3.1 compatibility
+  status, exact top-level fragment length, the A15.1 OPS qualifier,
+  single-edge span mismatch, deferred bundle membership, and
+  valid/malformed/DISP/R8-surviving deferred edges. Every
   control uses the same top-level document-tree validator.
 - **Preservation:** no active §15.10–§15.12 row, historical §15.1–§15.8 row,
   scenario, committed record identity, or prior receipt is edited,

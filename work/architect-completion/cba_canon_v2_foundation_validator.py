@@ -919,6 +919,19 @@ def plan_section(plan, start, end):
     return seg or ""
 
 
+def replace_plan_section_status(plan, start, end, status):
+    """Replace one governed plan section's parseable Status field."""
+    seg = plan_section(plan, start, end)
+    match = re.search(
+        r"(?m)^- \*\*Status:\*\*\s*(.*(?:\n(?!- \*\*).*)*)", seg)
+    if not seg or not match:
+        raise AssertionError("plan section %r has no parseable Status field"
+                             % start)
+    replacement = "- **Status:** " + status
+    revised = seg[:match.start()] + replacement + seg[match.end():]
+    return plan.replace(seg, revised, 1)
+
+
 def parse_migration_state(plan):
     """'pre-R3.1' while the plan states R3.1 has not started; 'post-R3.1' once
     it states R3.1 executed. This governed switch replaces the R2.9
@@ -1073,22 +1086,50 @@ def check_plan(plan):
         probs.append("plan R2.14/compatibility/R3.1 live maker-checker "
                      "sequence is incomplete")
 
+    migration = parse_migration_state(plan)
     compat = plan_section(
         plan,
         "## One-time pre-R3.1 foundation-compatibility checkpoint",
         "## R3.1 ")
     compat_flat = re.sub(r"\s+", " ", compat)
     for phrase in (
-            "pending independent compatibility checker review and not "
-            "accepted",
             "not an R2.x unit and not substantive R3.1 migration",
             "Every earlier receipt and every active §15.10–§15.12 row remains "
             "immutable",
-            "R3.1 is the next construction unit only after an independent "
-            "compatibility checker returns ACCEPT"):
+            "ARCHITECT_CBA_CANON_V2_R3_1_COMPATIBILITY_CHECKPOINT.md"):
         if phrase not in compat_flat:
             probs.append("plan compatibility checkpoint omits required live "
                          "status/route control %r" % phrase)
+    if migration == "pre-R3.1":
+        for phrase in (
+                "pending independent compatibility checker review and not "
+                "accepted",
+                "R3.1 is the next construction unit only after an independent "
+                "compatibility checker returns ACCEPT"):
+            if phrase not in compat_flat:
+                probs.append(
+                    "pre-R3.1 plan compatibility checkpoint omits required "
+                    "pending status/route control %r" % phrase)
+    elif migration == "post-R3.1":
+        if ("independently **ACCEPTED** before R3.1 execution"
+                not in compat_flat
+                or "R3.1 proceeded only after an independent compatibility "
+                   "checker returned ACCEPT" not in compat_flat):
+            probs.append(
+                "post-R3.1 plan does not record independent compatibility-"
+                "checkpoint ACCEPT before R3.1 execution")
+        if ("pending independent compatibility checker review" in compat_flat
+                or "not accepted" in compat_flat):
+            probs.append(
+                "post-R3.1 plan leaves the compatibility checkpoint pending/"
+                "not accepted even though R3.1 is executed")
+        r31_flat = re.sub(r"\s+", " ", r31)
+        if ("executed" not in r31_flat
+                or "after an independent compatibility checker ACCEPT of the "
+                   "one-time compatibility checkpoint" not in r31_flat):
+            probs.append(
+                "post-R3.1 plan does not bind R3.1 execution to the prior "
+                "independent compatibility-checkpoint ACCEPT")
 
     stale_current = re.search(
         r"(?is)\b(?:current|controlling)\s+sequence(?:\s+is(?:\s+now)?)?"
@@ -2603,6 +2644,17 @@ def check_fragments(ctx, edges, dr2, published, migration):
                                     "disposition bundle (multi-target-only "
                                     "rule)" % fid)
         elif len(nonterminal_edges) == 1:
+            edge = nonterminal_edges[0]
+            edge_atoms, edge_problems = edge_scope_atoms(edge)
+            ctx.problems += [
+                "fragment %s single-target edge %s: %s"
+                % (fid, edge["id"], problem)
+                for problem in edge_problems]
+            if not spans_equal(edge_atoms, f["atoms"]):
+                ctx.problems.append(
+                    "fragment %s: single-target nonterminal edge %s scope is "
+                    "not span-set-equal to the fragment's Normalized fragment "
+                    "scope" % (fid, edge["id"]))
             if f["bundle"] != DASH:
                 ctx.problems.append("fragment %s: single-target nonterminal "
                                     "fragment carries a bundle (multi-target-"
@@ -2666,6 +2718,7 @@ def check_bundles(ctx, frags, edges, dr2):
             parent = leaf
             nonterminal = set(ctx.vocab("xw2-edge-type")) - set(
                 ctx.vocab("xw2-terminal-edge-type"))
+            nonterminal.discard("deferred")
         else:
             if scen == DASH or leaf != DASH or not sfrag.startswith(scen + ":F"):
                 ctx.problems.append("BND %s: SXW2-BND requires a scenario/"
@@ -2699,7 +2752,12 @@ def check_bundles(ctx, frags, edges, dr2):
             ctx.problems.append("BND %s: duplicate (source fragment, target) "
                                 "mapping" % bid)
         for t in mtypes:
-            if t not in nonterminal:
+            if subject_class == "XW2-BND" and t == "deferred":
+                ctx.problems.append(
+                    "BND %s: deferred edge may never appear as a bundle "
+                    "member; it is an unbundled temporary single-fragment "
+                    "shape" % bid)
+            elif t not in nonterminal:
                 ctx.problems.append("BND %s: member edge type %r is not a "
                                     "nonterminal type (active/terminal mixing "
                                     "fails)" % (bid, t))
@@ -2762,6 +2820,10 @@ def check_bundles(ctx, frags, edges, dr2):
                 ctx.problems.append("BND %s: member %d declared type %r != the "
                                     "edge's own type %r"
                                     % (bid, i + 1, mtypes[i], e["type"]))
+            if register == "XW2" and e.get("deferred"):
+                ctx.problems.append(
+                    "BND %s: deferred edge %s may never be a bundle member"
+                    % (bid, e["id"]))
             if e["tgt"] != mtargets[i]:
                 ctx.problems.append("BND %s: member %d declared target %r != "
                                     "the edge's own target %r"
@@ -3917,6 +3979,15 @@ def check_amend(ctx, dr2):
             prior_snapshot and prior_snapshot["versioned"])
         current_is_versioned = bool(
             current_snapshots.get(population, {}).get("versioned"))
+        pinned = ctx.inv.commits.get("r3-checkpoint")
+        if action != "revise" and checkpoint != pinned:
+            pinned_snapshot = cached_population_snapshot(
+                ctx, population, baseline=True)
+            if prior in pinned_snapshot["records"]:
+                ctx.problems.append(
+                    "AMEND detail %s: protected pinned-R3 %s identity %s is "
+                    "consumed by %s and must name the exact r3-checkpoint %s"
+                    % (aid, population, prior, action, pinned))
         if prior_is_versioned:
             recorded_prior = prior_snapshot["versions"].get(prior)
             if recorded_prior != prior_ver:
@@ -3971,6 +4042,31 @@ def check_amend(ctx, dr2):
             lineage_edges.setdefault(key, []).extend(
                 (population, cid) for cid in currents)
             resolved_forward.add((population, prior))
+
+    # Join each terminal versioned endpoint to the exact live logical record.
+    # A version that is the prior endpoint of a later same-ID revise is an
+    # intermediate checkpoint state, not the current terminal endpoint.
+    revised_from = {
+        (detail["population"], detail["prior"], detail["prior_version"])
+        for detail in parsed_details
+        if detail["action"] == "revise"}
+    for detail in parsed_details:
+        population = detail["population"]
+        snapshot = current_snapshots.get(population, {})
+        if not snapshot.get("versioned") or \
+                len(detail["current_versions"]) != len(detail["currents"]):
+            continue
+        for cid, claimed_version in zip(
+                detail["currents"], detail["current_versions"]):
+            if (population, cid, claimed_version) in revised_from:
+                continue
+            recorded_current = snapshot["versions"].get(cid)
+            if recorded_current != claimed_version:
+                ctx.problems.append(
+                    "AMEND detail %s: terminal current %s identity %s records "
+                    "version %s, not claimed current version %s"
+                    % (detail["amend"], population, cid,
+                       recorded_current or "none", claimed_version))
 
     # Cross-row cycles are checked on population-qualified identities. A
     # same-ID `revise` is version lineage and is deliberately excluded above.
@@ -4865,16 +4961,26 @@ def build_r31_document(repo, published, inv):
     canon = _rewrite_xw2(canon, inv, edge_scope, edge_dec)
     canon = _add_sxw2_section(canon, sxw2_rows)
 
-    r31 = plan_section(plan, "## R3.1 ", "## R4 ")
-    status = re.search(r"(?m)^- \*\*Status:\*\*\s*(.*(?:\n(?!- \*\*).*)*)",
-                       r31)
-    if not status:
-        raise AssertionError("R3.1 status block is absent")
-    plan = plan.replace(
-        status.group(0),
-        "- **Status:** executed (R3.1 control tree) after an independent "
-        "R2.14 checker ACCEPT.",
-        1)
+    plan = replace_plan_section_status(
+        plan,
+        "## One-time pre-R3.1 foundation-compatibility checkpoint",
+        "## R3.1 ",
+        "independently **ACCEPTED** before R3.1 execution (R3.1 control "
+        "tree). This remains a one-time compatibility checkpoint, not an "
+        "R2.x unit and not substantive R3.1 migration.")
+    plan = re.sub(
+        r"R3\.1 is the next construction unit only after an independent\s+"
+        r"compatibility checker returns ACCEPT\.",
+        "R3.1 proceeded only after an independent compatibility checker "
+        "returned ACCEPT.",
+        plan,
+        count=1)
+    plan = replace_plan_section_status(
+        plan,
+        "## R3.1 ",
+        "## R4 ",
+        "executed (R3.1 control tree) after an independent compatibility "
+        "checker ACCEPT of the one-time compatibility checkpoint.")
 
     receipt = _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows,
                            sfrag_rows, amend_rows)
@@ -6240,6 +6346,17 @@ def run_cases(repo):
     H.run("C0", "committed R2.14 baseline document tree", H.docs(), False)
     H.run("C1", "complete future-R3.1 migrated document tree through the "
           "same top-level validator", H.docs(migrated=True), False)
+    contradictory_plan = replace_plan_section_status(
+        mplan,
+        "## One-time pre-R3.1 foundation-compatibility checkpoint",
+        "## R3.1 ",
+        "maker correction complete; **pending independent compatibility "
+        "checker review and not accepted**. This is a one-time compatibility "
+        "checkpoint, not an R2.x unit and not substantive R3.1 migration.")
+    H.run("P10", "post-R3.1 plan leaves its prerequisite compatibility "
+          "checkpoint pending and not accepted",
+          H.docs(migrated=True, **{P: contradictory_plan}), True,
+          "leaves the compatibility checkpoint pending/not accepted")
 
     # Semantic source truth belongs to the checker: a structurally valid
     # locator is not rejected by software merely because of a keyword.
@@ -6403,6 +6520,15 @@ def run_cases(repo):
     H.run("C7", "real logical LEAF split plus governed XW2/EV2 replacement "
           "gaps, high-water successors, and exact GROUP declaration",
           split_docs, False)
+    ev_split_row = split_amend[-1]
+    wrong_pinned_checkpoint = ev_split_row.replace(repo.r3, repo.maker)
+    H.run("A20", "a pinned-R3 EV2 identity is consumed by non-revise lineage "
+          "through a later checkpoint",
+          H.docs(**{
+              C: split_canon,
+              R31_RECEIPT_REL: mut(
+                  split_receipt, ev_split_row, wrong_pinned_checkpoint),
+          }), True, "must name the exact r3-checkpoint")
 
     H.run("A9", "unexplained current XW2 gap with no AMEND lineage",
           H.docs(**{C: mut(canon, xw100 + "\n", "")}), True,
@@ -6450,6 +6576,12 @@ def run_cases(repo):
               C: src2_v2_canon,
               R: src2_v2_receipt,
           }), False)
+    H.run("A21", "AMEND claims SRC2 version 1 to 2 while the live logical "
+          "record remains version 1",
+          H.docs(migrated=True, **{
+              C: mut(src2_v2_canon, src1_v2, src1),
+              R: src2_v2_receipt,
+          }), True, "records version 1, not claimed current version 2")
 
     # The published parser must use the actual §15.7 LEAF register, never the
     # earlier hierarchy marker row whose prose happens to begin with CBA-A04.
@@ -6548,6 +6680,77 @@ def run_cases(repo):
     H.run("C11", "governed cross-family deferred edge has target —, exact "
           "families/resolving unit, one unbundled fragment, and direct OWN",
           deferred_docs, False)
+    deferred_short_xw = deferred_xw.replace(
+        deferred_span, "span:0-1", 1)
+    H.run("A18", "single deferred edge carries only a proper subset of its "
+          "inventoried fragment span",
+          H.docs(migrated=True, **{
+              C: mut(deferred_canon, deferred_xw, deferred_short_xw),
+              R: deferred_receipt,
+          }), True, "single-target nonterminal edge XW2-0132 scope is not "
+                    "span-set-equal")
+
+    # A deferred edge is never one member of a mixed multi-target bundle.
+    # This control is otherwise a complete two-member fragment partition.
+    bundle_split = max(1, _published.leaf_len[deferred_leaf] // 2)
+    bundle_deferred_span = "span:0-%d" % bundle_split
+    bundle_target_span = "span:%d-%d" % (
+        bundle_split, _published.leaf_len[deferred_leaf])
+    candidate_xw = next(
+        line for line in mcanon.splitlines()
+        if line.startswith("| XW2-")
+        and line.strip()[1:-1].split("|")[2].strip() != DASH
+        and line.strip()[1:-1].split("|")[3].strip(" `")
+        in ("split", "merge", "partial-overlap"))
+    candidate_cells = [
+        cell.strip() for cell in candidate_xw.strip()[1:-1].split("|")]
+    bundle_target = candidate_cells[2].strip("`")
+    bundle_decision = candidate_cells[5].strip("`")
+    bundle_deferred_xw = deferred_xw.replace(
+        deferred_span, bundle_deferred_span, 1)
+    bundle_target_xw = (
+        "| XW2-0133 | %s | %s | `partial-overlap` | [%s] %s — "
+        "mixed deferred-bundle prohibition control | %s |"
+        % (deferred_leaf, bundle_target, deferred_fid, bundle_target_span,
+           bundle_decision))
+    bundle_canon = mut(
+        deferred_canon, deferred_xw,
+        bundle_deferred_xw + "\n" + bundle_target_xw)
+    target_leaf_row = row_line(bundle_canon, "| %s |" % bundle_target)
+    target_origin = [
+        cell.strip()
+        for cell in target_leaf_row.strip()[1:-1].split("|")][6]
+    bundle_canon = mut(
+        bundle_canon, target_leaf_row,
+        replace_cell(
+            target_leaf_row, target_leaf_row, 6,
+            target_origin + ", XW2-0133"))
+    bnd_rows = [
+        line for line in mrcpt.splitlines()
+        if re.match(r"^\| BND-(\d{4}) \|", line)]
+    bundle_id = "BND-%04d" % (
+        max(int(re.match(r"^\| BND-(\d{4})", line).group(1))
+            for line in bnd_rows) + 1)
+    bundle_fragment = deferred_fragment.replace(
+        "| — | XW2-0132 |",
+        "| %s | XW2-0132, XW2-0133 |" % bundle_id)
+    bundle_row = (
+        "| %s | XW2-BND | %s | — | %s | XW2-0132, XW2-0133 | "
+        "deferred, partial-overlap | —, %s | %s, %s | %s | active | "
+        "current | 1 | — |"
+        % (bundle_id, deferred_leaf, deferred_fid, bundle_target,
+           bundle_deferred_span, bundle_target_span, deferred_span))
+    bundle_receipt = mut(
+        deferred_receipt, deferred_fragment, bundle_fragment)
+    bundle_receipt = mut(
+        bundle_receipt, bnd_rows[-1] + "\n",
+        bnd_rows[-1] + "\n" + bundle_row + "\n")
+    H.run("A19", "a deferred edge is admitted as one member of a mixed "
+          "multi-target bundle",
+          H.docs(migrated=True, **{
+              C: bundle_canon,
+              R: bundle_receipt,
+          }), True, "deferred edge may never appear as a bundle member")
     H.run("A15", "deferred edge omits its exact source/target-family and "
           "resolving-unit metadata",
           H.docs(migrated=True, **{
