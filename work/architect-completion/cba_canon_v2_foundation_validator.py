@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Architect CBA canon v2.0 — foundation validator (R2.10 rewrite).
+"""Architect CBA canon v2.0 — balanced foundation validator (R2.11).
 
 WHY THIS FILE EXISTS
 --------------------
@@ -23,8 +23,8 @@ architectural, not cosmetic:
   * Fixed population totals (`EXPECT`) simultaneously false-rejected valid
     append-only additions and admitted count-preserving substitutions.
 
-THIS REWRITE (R2.10)
---------------------
+R2.11 BALANCED AUTHORITY
+------------------------
 One document-tree loader, one parser set, one reconciliation engine, one
 top-level entry point:
 
@@ -48,17 +48,17 @@ top-level entry point:
     high-water marks pass.
   * `RES-…` acceptance resolves the acceptance commit in the tree's repository,
     requires the receipt path to exist at that commit, parses the blob, and
-    requires a matching `## Independent acceptance record` `ACCEPT` row. The
-    positive acceptance control uses a genuinely resolvable commit in a
-    complete temporary Git control repository, exercised through the same path.
+    requires exactly one structurally matching acceptance row, including its
+    own commit. This proves content binding, not actual intellectual
+    independence; the independent checker judges authorship and separation.
   * Normalized text lengths are DERIVED from the pinned published v1.1 edition
     at its pinned commit, so a nonexistent scenario, an out-of-range span
     endpoint, and a non-partitioning fragment inventory are all detectable.
 
 No network, no third-party dependency, standard library only. Deterministic
-output. Exit status is nonzero on ANY unexpected acceptance or rejection, on
-any control whose rejection carries the wrong diagnostic, or on a dirty
-baseline.
+output. The default bounded controls are the mechanical acceptance gate;
+`--extended` runs the historical diagnostic library. Neither mode claims to
+prove source truth, semantic completeness, or legal persuasiveness.
 """
 
 import hashlib
@@ -453,79 +453,6 @@ def reconcile_inventory(canon, inv):
 
 
 # --------------------------------------------------------------------------
-# 5. Canonical-actor registry — parsed from the governed alias table.
-# --------------------------------------------------------------------------
-
-
-def parse_actor_registry(canon, inv):
-    """(classes, problems). classes maps a canonical class to a list of alias
-    patterns, parsed from the pinned 15.9.6 alias table and reconciled with
-    the inventory's `canonical-actor-class` vocabulary."""
-    probs = []
-    anc = inv.vocab_anchor.get("canonical-actor-class")
-    classes = {}
-    if not anc:
-        return classes, ["canonical-actor registry anchor missing from the "
-                         "governed inventory"]
-    tbl = table_after(canon, anc)
-    for row in pipe_rows(tbl):
-        if len(row) < 2 or not row[0].startswith("`"):
-            continue
-        classes[unspan(row[0])] = [unspan(a) for a in row[1].split(", ")]
-    if not classes:
-        return classes, ["canonical-actor alias table is missing or "
-                         "unparseable"]
-    declared = set(inv.vocab.get("canonical-actor-class", []))
-    if declared != set(classes):
-        probs.append("canonical-actor registry: alias-table classes %s do not "
-                     "match the governed inventory %s (registry/inventory "
-                     "divergence)"
-                     % (sorted(classes), sorted(declared)))
-    return classes, probs
-
-
-def canonical_actor(identity, classes):
-    """Normalize an actor identity to its canonical class using ONLY the parsed
-    governed alias table. Returns None for blank, malformed, or unregistered."""
-    if identity is None:
-        return None
-    ident = identity.strip().strip("`")
-    if not ident or ident in (DASH, "-"):
-        return None
-    import unicodedata
-    norm = unicodedata.normalize("NFC", ident).lower()
-    if not re.fullmatch(r"(human|agent):[a-z0-9][a-z0-9._-]{0,63}", norm):
-        return None
-    kind, slug = norm.split(":", 1)
-    for cls, aliases in sorted(classes.items()):
-        for alias in aliases:
-            a = alias.strip().lower()
-            m = re.fullmatch(r"(human|agent):<slug>", a)
-            if m:
-                if kind == m.group(1):
-                    return "%s:%s" % (kind, slug)
-                continue
-            if a == "itself (identity)":
-                if cls.endswith("<slug>") and kind == cls.split(":", 1)[0]:
-                    return "%s:%s" % (kind, slug)
-                continue
-            m = re.fullmatch(r"(agent|human):([a-z0-9._-]+)-<any suffix>", a)
-            if m:
-                if kind == m.group(1) and (slug == m.group(2)
-                                           or slug.startswith(m.group(2) + "-")):
-                    return cls
-                continue
-            if norm == a:
-                return cls
-    return None
-
-
-def actors_independent(a, b, classes):
-    ca, cb = canonical_actor(a, classes), canonical_actor(b, classes)
-    return ca is not None and cb is not None and ca != cb
-
-
-# --------------------------------------------------------------------------
 # 6. Population parsing — inventory-driven, one code path for every source.
 # --------------------------------------------------------------------------
 
@@ -676,6 +603,35 @@ def spans_overlap(atoms):
     return False
 
 
+def edge_scope_atoms(edge):
+    """The normalized span set embedded after an edge's leading fragment."""
+    cell = re.sub(r"^\[[^\]]*\]\s*", "", edge.get("scope", "")).strip()
+    m = re.search(r"span:\d+-\d+(?:@[^\s;|]*)?(?:;\s*span:\d+-\d+"
+                  r"(?:@[^\s;|]*)?)*", cell)
+    if not m:
+        return [], ["edge %s carries no parseable span scope" % edge["id"]]
+    return span_atoms(m.group(0))
+
+
+def exact_ref_list(cell, pattern, label, allow_dash=True):
+    """Parse an exact ', '-separated reference list with no prose."""
+    raw = (cell or "").strip().strip("`")
+    if allow_dash and raw == DASH:
+        return [], []
+    if not raw:
+        return [], ["%s: blank reference field" % label]
+    refs = raw.split(", ")
+    probs = []
+    if any(not re.fullmatch(pattern, r) for r in refs):
+        probs.append("%s: field is not an exact comma-separated reference "
+                     "list: %r" % (label, raw))
+    if len(refs) != len(set(refs)):
+        probs.append("%s: duplicate reference(s)" % label)
+    if refs != sorted(refs):
+        probs.append("%s: references are not ascending" % label)
+    return refs, probs
+
+
 def partition_problems(atoms, length, label):
     """The union must equal exactly [0, length) with no overlap."""
     probs = []
@@ -790,11 +746,14 @@ def check_plan(plan):
     if re.search(r"\*\*independently accepted\s+R2\.[789] foundation\*\*", r4):
         probs.append("plan R4 dependency still requires an accepted R2.7/R2.8/"
                      "R2.9 foundation (each was independently rejected)")
-    if not re.search(r"accepted\s*\n?\s*R2\.10 foundation", r4):
-        probs.append("plan R4 dependency does not depend on the accepted R2.10 "
-                     "foundation")
-    if not re.search(r"R2\.8 . R2\.9 . R2\.10 . R3\.1 .\s*\n?\s*R4", r4):
-        probs.append("plan R4 construction sequence omits R2.9/R2.10")
+    if not re.search(r"independently accepted\s*\n?\s*R2\.11 balanced "
+                     r"foundation", r4):
+        probs.append("plan R4 dependency does not require the independently "
+                     "accepted R2.11 balanced foundation")
+    if not re.search(r"R2\.11 . checker .\s*\n?\s*R3\.1 . checker . R4 . "
+                     r"checker . R5 . checker . R6", r4):
+        probs.append("plan R4 construction sequence omits a maker/checker "
+                     "checkpoint between sequential construction units")
 
     m25 = re.search(r"(?ms)^\s*25\.\s.*?(?=^\s*26\.\s)", r31)
     seg25 = m25.group(0) if m25 else ""
@@ -842,6 +801,45 @@ def check_plan(plan):
     if parse_migration_state(plan) == "unknown":
         probs.append("plan R3.1 status is not parseable (neither 'not started' "
                      "nor 'executed')")
+
+    r211 = plan_section(plan, "## R2.11 ", "## R3.1 ")
+    for phrase in ("Frozen authority", "Complete R2.10-finding classification",
+                   "Mechanical checkpoint", "Bounded validator",
+                   "Explicit exclusions"):
+        if phrase not in r211:
+            probs.append("plan R2.11 omits required balanced-certification "
+                         "control %r" % phrase)
+    if not re.search(r"R2\.11 maker checkpoint . independent R2\.11 checker\s+"
+                     r"ACCEPT . R3\.1 maker checkpoint . independent R3\.1 "
+                     r"checker ACCEPT", r211):
+        probs.append("plan R2.11/R3.1 maker-checker sequence is incomplete")
+
+    r5 = plan_section(plan, "## R5 ", "## R6 ")
+    r6 = plan_section(plan, "## R6 ", "## R7 ")
+    r7 = plan_section(plan, "## R7 ", "## R8 ")
+    r8 = plan_section(plan, "## R8 ", "## R9 ")
+    r9 = plan_section(plan, "## R9 ", "## Standing prohibitions")
+    if not re.search(r"completed R4 with an\s+independent checker ACCEPT", r5):
+        probs.append("plan R5 does not require independent R4 acceptance")
+    if not re.search(r"completed R5 with an\s+independent checker ACCEPT", r6):
+        probs.append("plan R6 does not require independent R5 acceptance")
+    if not re.search(r"R3\.1 and R4.R6 each complete with an independent\s+"
+                     r"checker ACCEPT", r7):
+        probs.append("plan R7 dependency does not require independent checker "
+                     "acceptance of R3.1 and R4-R6")
+    if not re.search(r"R7 complete with an independent checker ACCEPT", r8):
+        probs.append("plan R8 does not depend on an independently accepted R7")
+    forbidden_r8 = ("README edit", "code-map edit", "runtime inspection",
+                    "Phase 2 packet")
+    if any(x not in r8 for x in forbidden_r8):
+        probs.append("plan R8 does not explicitly exclude README/code-map/"
+                     "runtime/Phase-2 expansion")
+    if not re.search(r"pinned, clean \*\*topic-branch\s+checkpoint", r9):
+        probs.append("plan R9 input is not a pinned clean topic-branch "
+                     "checkpoint")
+    if not re.search(r"R9\s+ACCEPT plus owner acceptance", r9):
+        probs.append("plan R9 does not require both reviewer and owner "
+                     "acceptance to close Phase 1")
     return probs
 
 
@@ -867,7 +865,8 @@ class Ctx(object):
             self.problems += probs
             self.header[k] = h
             self.pop[k] = rows
-        for k in ("DR2-generic", "DISP-detail", "fragment-inventory",
+        for k in ("DR2-generic", "AMEND-detail", "DISP-detail",
+                  "fragment-inventory",
                   "BND-bundle", "SM2-record", "SS2-record", "BLK-record",
                   "RES-record", "SRC2-date-component",
                   "scenario-fragment-inventory"):
@@ -919,6 +918,29 @@ def vocab_check(ctx, vkey, value, label):
                             % (label, v, vkey))
         return False
     return True
+
+
+def check_headers(ctx, migration):
+    """Exact rendered-header conformance for every present population.
+
+    The two committed R3 legacy headers are explicitly backlogged until
+    R3.1; every other populated table must already match its governed schema.
+    """
+    legacy = {"SRC2-base", "SRC2-detail-official-mutable"}
+    for key in sorted(ctx.pop):
+        rows = ctx.pop.get(key, [])
+        header = ctx.header.get(key)
+        if not rows and header is None:
+            continue
+        if migration == "pre-R3.1" and key in legacy:
+            continue
+        conforms = ctx.header_conforms(key)
+        if header is None and rows:
+            ctx.problems.append("header %s: populated table has no parseable "
+                                "header" % key)
+        elif conforms is False:
+            ctx.problems.append("header %s: rendered header does not exactly "
+                                "match the pinned schema" % key)
 
 
 # --------------------------------------------------------------------------
@@ -1140,8 +1162,9 @@ def check_scenario_fragments(ctx, sxw2_edges, dr2, published):
     frags, by_scen = {}, {}
     for r in rows:
         fid = r[0].strip("`")
-        g = lambda f: (ctx.f("fragment-inventory", r, f) or "").strip()
-        parent = g("Historical parent LEAF").strip("`")
+        g = lambda f: (ctx.f("scenario-fragment-inventory", r, f)
+                       or "").strip()
+        parent = g("Historical scenario").strip("`")
         kind = g("Fragment kind").strip("`")
         scope = g("Normalized fragment scope")
         decomp = g("Decomposition decision record").strip("`")
@@ -1179,6 +1202,7 @@ def check_scenario_fragments(ctx, sxw2_edges, dr2, published):
             ctx.problems.append("scenario fragment %s: single-edge fragment "
                                 "carries a bundle (multi-target-only rule)"
                                 % fid)
+        terminal_count = 0
         for eid in eids:
             e = edge_by_id.get(eid)
             if e is None:
@@ -1188,10 +1212,33 @@ def check_scenario_fragments(ctx, sxw2_edges, dr2, published):
                 ctx.problems.append("scenario fragment %s: edge %s names "
                                     "fragment %s (bidirectional mismatch)"
                                     % (fid, eid, e["frag"]))
+            elif e["terminal"]:
+                terminal_count += 1
         if not eids:
             ctx.problems.append("scenario fragment %s: orphan fragment (no "
                                 "disposition)" % fid)
-        rec = {"id": fid, "scen": parent, "atoms": atoms, "status": status}
+        elif terminal_count and terminal_count != len(eids):
+            ctx.problems.append("scenario fragment %s: mixes terminal and "
+                                "nonterminal dispositions" % fid)
+        elif terminal_count:
+            if terminal_count != 1 or bundle != DASH:
+                ctx.problems.append("scenario fragment %s: terminal shape "
+                                    "requires one edge and no bundle" % fid)
+        elif len(eids) == 1 and bundle != DASH:
+            ctx.problems.append("scenario fragment %s: single-target shape "
+                                "must not carry a bundle" % fid)
+        elif len(eids) >= 2 and bundle == DASH:
+            ctx.problems.append("scenario fragment %s: multi-target shape "
+                                "requires an SXW2-BND bundle" % fid)
+        ver = g("Fragment version").strip("`")
+        if not re.fullmatch(r"[1-9]\d*", ver):
+            ctx.problems.append("scenario fragment %s: Fragment version %r "
+                                "is not an unpadded positive integer"
+                                % (fid, ver))
+        rec = {"id": fid, "scen": parent, "leaf": parent,
+               "parent": parent, "register": "SXW2", "atoms": atoms,
+               "scope": scope, "status": status, "kind": kind,
+               "bundle": bundle, "edges": eids, "ver": ver}
         frags[fid] = rec
         by_scen.setdefault(parent, []).append(rec)
     for scen, fl in sorted(by_scen.items()):
@@ -1301,6 +1348,30 @@ def check_src2_ev2(ctx, active_leaves, migration):
     ctx.problems += contiguous_from_one(
         [int(i.split("-")[1]) for i in ev_ids
          if re.fullmatch(r"EV2-\d{4}", i)], "EV2")
+
+    # Parse the canon's declared compatibility matrix rather than maintaining
+    # a second vocabulary table in code.
+    matrix = {}
+    mt = table_after(ctx.tree.canon, "Compatibility matrix (parseable;")
+    classes = set(ctx.vocab("authority-class"))
+    ptypes = set(ctx.vocab("provenance-type"))
+    for row in pipe_rows(mt):
+        cls = row[0].strip().strip("`") if row else ""
+        if len(row) != 5 or cls not in classes:
+            continue
+        matrix[cls] = {
+            "deps": set(re.findall(r"\b(?:%s)\b" % "|".join(
+                re.escape(x) for x in sorted(classes, key=len, reverse=True)),
+                row[1])),
+            "roots": set(re.findall(r"\b(?:%s)\b" % "|".join(
+                re.escape(x) for x in sorted(ptypes, key=len, reverse=True)),
+                row[2])),
+        }
+    if set(matrix) != classes:
+        ctx.problems.append("EV2 compatibility matrix: declared classes do "
+                            "not exactly match the authority vocabulary")
+
+    ev = {}
     for r in ev2:
         eid = r[0].strip("`")
         leaf = (ctx.f("EV2-component", r, "Active v2 LEAF") or "").strip("`")
@@ -1309,20 +1380,107 @@ def check_src2_ev2(ctx, active_leaves, migration):
         if leaf not in active_leaves:
             ctx.problems.append("EV2 %s: references nonexistent active LEAF %s"
                                 % (eid, leaf))
-        srefs = ctx.f("EV2-component", r, "Source/provenance record IDs or —")
-        drefs = ctx.f("EV2-component", r,
-                      "Dependency evidence component IDs or —")
-        if (srefs or "").strip() == DASH and (drefs or "").strip() == DASH:
+        srefs, sp = exact_ref_list(
+            ctx.f("EV2-component", r, "Source/provenance record IDs or —"),
+            r"SRC2-\d{3}", "EV2 %s source references" % eid)
+        drefs, dp = exact_ref_list(
+            ctx.f("EV2-component", r,
+                  "Dependency evidence component IDs or —"),
+            r"EV2-\d{4}", "EV2 %s dependency references" % eid)
+        ctx.problems += sp + dp
+        if not srefs and not drefs:
             ctx.problems.append("EV2 %s: both reference fields are empty "
                                 "(source-free terminal component)" % eid)
-        for sid in re.findall(r"SRC2-\d{3}", srefs or ""):
+        for sid in srefs:
             if sid not in src2:
                 ctx.problems.append("EV2 %s: references nonexistent %s"
                                     % (eid, sid))
-        for did in re.findall(r"EV2-\d{4}", drefs or ""):
-            if did not in set(ev_ids):
+        ev[eid] = {"id": eid, "leaf": leaf, "class": cls,
+                   "sources": srefs, "deps": drefs}
+    for eid, rec in sorted(ev.items()):
+        for did in rec["deps"]:
+            if did not in ev:
                 ctx.problems.append("EV2 %s: references nonexistent %s"
                                     % (eid, did))
+
+    # Acyclic full closure and terminal provenance-root matrix.
+    state, memo = {}, {}
+
+    def roots(eid, stack):
+        if eid in memo:
+            return memo[eid]
+        if state.get(eid) == 1:
+            ctx.problems.append("EV2 dependency cycle: %s -> %s"
+                                % (" -> ".join(stack), eid))
+            return set()
+        state[eid] = 1
+        rec = ev[eid]
+        out = set(rec["sources"])
+        allowed_deps = matrix.get(rec["class"], {}).get("deps", set())
+        for did in rec["deps"]:
+            if did not in ev:
+                continue
+            dclass = ev[did]["class"]
+            if dclass not in allowed_deps:
+                ctx.problems.append("EV2 %s: dependency %s class %s is not "
+                                    "permitted for consuming class %s"
+                                    % (eid, did, dclass, rec["class"]))
+            out.update(roots(did, stack + [eid]))
+        state[eid] = 2
+        memo[eid] = out
+        return out
+
+    for eid, rec in sorted(ev.items()):
+        rset = roots(eid, [])
+        if not rset:
+            ctx.problems.append("EV2 %s: complete dependency closure has no "
+                                "terminal SRC2 root" % eid)
+            continue
+        got_types = {src2[s]["type"] for s in rset if s in src2}
+        allowed = matrix.get(rec["class"], {}).get("roots", set())
+        bad = sorted(got_types - allowed)
+        if bad:
+            ctx.problems.append("EV2 %s: terminal provenance root type(s) %s "
+                                "are forbidden for class %s"
+                                % (eid, bad, rec["class"]))
+        required = {"OPS": "ops-provenance", "EXT": "ext-contract"}.get(
+            rec["class"])
+        if required and required not in got_types:
+            ctx.problems.append("EV2 %s: class %s has no required %s terminal "
+                                "root" % (eid, rec["class"], required))
+
+    # Exact bidirectional LEAF <-> EV2 membership and authority classes.
+    listed = {}
+    for r in ctx.pop["LEAF-main"]:
+        lid = r[0].strip("`")
+        erefs, ep = exact_ref_list(ctx.f("LEAF-main", r, "Evidence"),
+                                   r"EV2-\d{4}",
+                                   "LEAF %s Evidence" % lid,
+                                   allow_dash=False)
+        ctx.problems += ep
+        listed[lid] = set(erefs)
+        auths = {x.strip().strip("`") for x in
+                 (ctx.f("LEAF-main", r, "Authority") or "").split(",")}
+        for eid in erefs:
+            if eid not in ev:
+                ctx.problems.append("LEAF %s: Evidence references nonexistent "
+                                    "%s" % (lid, eid))
+            elif ev[eid]["leaf"] != lid:
+                ctx.problems.append("LEAF %s: Evidence %s belongs to %s"
+                                    % (lid, eid, ev[eid]["leaf"]))
+            elif ev[eid]["class"] not in auths:
+                ctx.problems.append("LEAF %s: EV2 %s class %s is absent from "
+                                    "the LEAF Authority field"
+                                    % (lid, eid, ev[eid]["class"]))
+        ev_classes = {ev[e]["class"] for e in erefs if e in ev}
+        if auths != ev_classes:
+            ctx.problems.append("LEAF %s: Authority classes %s do not exactly "
+                                "match its EV2 classes %s"
+                                % (lid, sorted(auths), sorted(ev_classes)))
+    for eid, rec in sorted(ev.items()):
+        if eid not in listed.get(rec["leaf"], set()):
+            ctx.problems.append("EV2 %s: absent from owning LEAF %s Evidence "
+                                "field" % (eid, rec["leaf"]))
     return src2
 
 
@@ -1352,11 +1510,31 @@ def check_dr2(ctx, edges, active_leaves, migration):
         nums.append(int(m.group(1)))
         dtype = (ctx.f("DR2-generic", r, "Type") or "").strip("`")
         vocab_check(ctx, "dr2-type", dtype, "DR2 %s type" % did)
+        fields = {f: (ctx.f("DR2-generic", r, f) or "").strip()
+                  for f in ctx.inv.schema.get("DR2-generic", [])}
+        for fname, value in fields.items():
+            if not value or (value.strip("`") == DASH and
+                             fname != "Resulting active LEAF(s) or —"):
+                ctx.problems.append("DR2 %s: required field %s is blank/dash"
+                                    % (did, fname))
+        unit = fields.get("Unit/commit", "").strip("`")
+        if not re.fullmatch(r"R\d+(?:\.\d+)? / (?:[0-9a-f]{40}|this "
+                            r"checkpoint|temporary (?:tree|control))", unit):
+            ctx.problems.append("DR2 %s: Unit/commit %r does not match the "
+                                "governed <R-unit> / <commit reference> grammar"
+                                % (did, unit))
+        result = fields.get("Resulting active LEAF(s) or —", "").strip("`")
+        if result != DASH and not re.search(
+                r"CBA2-[ACRLS][0-9]{2}\.[0-9]+", result):
+            ctx.problems.append("DR2 %s: result is neither the explicit dash "
+                                "nor an active LEAF reference" % did)
+        if dtype in ("DISP", "AMEND") and result != DASH:
+            ctx.problems.append("DR2 %s: %s records must carry result — in the "
+                                "active-LEAF result field" % (did, dtype))
         dr2[did] = {"id": did, "type": dtype,
-                    "subjects": ctx.f("DR2-generic", r, "Subject(s)") or "",
-                    "disposition": ctx.f("DR2-generic", r, "Disposition") or "",
-                    "result": ctx.f("DR2-generic", r,
-                                    "Resulting active LEAF(s) or —") or ""}
+                    "subjects": fields.get("Subject(s)", ""),
+                    "disposition": fields.get("Disposition", ""),
+                    "result": result, "row": r}
     ctx.problems += contiguous_from_one(sorted(nums), "DR2")
 
     # every DR2 result reference resolves to an existing active LEAF
@@ -1365,6 +1543,26 @@ def check_dr2(ctx, edges, active_leaves, migration):
             if lid not in active_leaves:
                 ctx.problems.append("DR2 %s: resulting LEAF %s does not exist"
                                     % (did, lid))
+        body = " ".join(d["row"])
+        resolvers = {
+            "XW2": set(ctx.ids("XW2-edge")),
+            "SXW2": set(ctx.ids("SXW2-edge")),
+            "SRC2": set(ctx.ids("SRC2-base")),
+            "EV2": set(ctx.ids("EV2-component")),
+            "BND": set(ctx.ids("BND-bundle")),
+            "SM2": set(ctx.ids("SM2-record")),
+            "SS2": set(ctx.ids("SS2-record")),
+            "BLK": set(ctx.ids("BLK-record")),
+            "RES": set(ctx.ids("RES-record")),
+        }
+        for prefix, known in resolvers.items():
+            width = {"XW2": 4, "SXW2": 4, "SRC2": 3, "EV2": 4,
+                     "BND": 4, "SM2": 4, "SS2": 4, "BLK": 4,
+                     "RES": 4}[prefix]
+            for ref in re.findall(r"%s-\d{%d}" % (prefix, width), body):
+                if ref not in known:
+                    ctx.problems.append("DR2 %s: record reference %s does not "
+                                        "resolve" % (did, ref))
 
     # every register decision reference resolves to an existing DR2 record
     for e in edges:
@@ -1570,18 +1768,17 @@ def check_disp(ctx, edges, dr2, published, sm2_ids, ss2_ids, migration):
                     ctx.problems.append("DISP %s: edge %s names decision %s, "
                                         "not this record (bidirectional "
                                         "disagreement)" % (did, edge, e["dec"]))
-                escope = re.sub(r"^\[[^\]]*\]\s*", "", e["scope"]).strip()
-                em = re.search(r"(span:\d+-\d+(?:@[^\s;|]*)?(?:;\s*span:\d+-\d+"
-                               r"(?:@[^\s;|]*)?)*)", escope)
-                if em:
-                    eatoms, _ = span_atoms(em.group(1))
-                    if not spans_equal(eatoms, atoms):
-                        ctx.problems.append("DISP %s: Normalized scope is not "
-                                            "span-set-equal to the edge's own "
-                                            "fragment scope" % did)
-                elif migration == "post-R3.1":
-                    ctx.problems.append("DISP %s: edge %s carries no parseable "
-                                        "span scope to join against" % (did, edge))
+        # The normalized-scope join is identical for XW2 and SXW2. R2.10
+        # accidentally placed it only inside the XW2 branch.
+        if e is not None:
+            eatoms, ep = edge_scope_atoms(e)
+            if ep and migration == "post-R3.1":
+                ctx.problems += ["DISP %s: %s" % (did, p) for p in ep]
+            elif eatoms and not spans_equal(eatoms, atoms):
+                ctx.problems.append("DISP %s: Normalized scope is not "
+                                    "span-set-equal to the %s edge's own "
+                                    "fragment scope" % (did, e.get(
+                                        "register", "XW2")))
         if status == "current":
             if subject_key in seen_key:
                 ctx.problems.append("DISP %s: duplicate current disposition for "
@@ -1701,7 +1898,8 @@ def check_fragments(ctx, edges, dr2, published, migration):
                                 % fid)
         rec = {"id": fid, "leaf": parent, "kind": kind, "scope": scope,
                "atoms": atoms, "bundle": bundle, "edges": eids,
-               "status": status, "ver": ver}
+               "status": status, "ver": ver, "parent": parent,
+               "register": "XW2"}
         frags[fid] = rec
         by_leaf.setdefault(parent, []).append(rec)
 
@@ -1813,14 +2011,14 @@ def check_fragments(ctx, edges, dr2, published, migration):
 def check_bundles(ctx, frags, edges, dr2):
     rows = ctx.pop["BND-bundle"]
     edge_by_id = {e["id"]: e for e in edges}
-    nonterminal = set(ctx.vocab("xw2-edge-type")) - set(
-        ctx.vocab("xw2-terminal-edge-type"))
     sole_owner = {"equivalent", "moved"}
     seen = set()
     for r in rows:
         bid = r[0].strip("`")
         g = lambda f: (ctx.f("BND-bundle", r, f) or "").strip()
-        leaf = g("Source historical LEAF").strip("`")
+        subject_class = g("BND subject class").strip("`")
+        leaf = g("Source historical LEAF or —").strip("`")
+        scen = g("Historical scenario or —").strip("`")
         sfrag = g("Source fragment ID").strip("`")
         mids = [x.strip().strip("`") for x in g("Member edge IDs").split(",")
                 if x.strip()]
@@ -1838,6 +2036,27 @@ def check_bundles(ctx, frags, edges, dr2):
             ctx.problems.append("BND %s: duplicate bundle id" % bid)
             continue
         seen.add(bid)
+        if not vocab_check(ctx, "bundle-subject-class", subject_class,
+                           "BND %s subject class" % bid):
+            continue
+        if subject_class == "XW2-BND":
+            if leaf == DASH or scen != DASH or not sfrag.startswith(leaf + ":F"):
+                ctx.problems.append("BND %s: XW2-BND requires a LEAF/fragment "
+                                    "subject and forbids Historical scenario"
+                                    % bid)
+            register = "XW2"
+            parent = leaf
+            nonterminal = set(ctx.vocab("xw2-edge-type")) - set(
+                ctx.vocab("xw2-terminal-edge-type"))
+        else:
+            if scen == DASH or leaf != DASH or not sfrag.startswith(scen + ":F"):
+                ctx.problems.append("BND %s: SXW2-BND requires a scenario/"
+                                    "fragment subject and forbids Source "
+                                    "historical LEAF" % bid)
+            register = "SXW2"
+            parent = scen
+            nonterminal = set(ctx.vocab("sxw2-edge-type")) - set(
+                ctx.vocab("sxw2-terminal-edge-type"))
         vocab_check(ctx, "bundle-class", bclass, "BND %s class" % bid)
         vocab_check(ctx, "record-status", status, "BND %s status" % bid)
         if not re.fullmatch(r"[1-9]\d*", ver):
@@ -1876,9 +2095,11 @@ def check_bundles(ctx, frags, edges, dr2):
             ctx.problems.append("BND %s: source fragment %s resolves to no "
                                 "inventoried fragment" % (bid, sfrag))
         else:
-            if f["leaf"] != leaf:
-                ctx.problems.append("BND %s: source LEAF %s does not own "
-                                    "fragment %s" % (bid, leaf, sfrag))
+            if f.get("parent", f.get("leaf")) != parent or \
+                    f.get("register") != register:
+                ctx.problems.append("BND %s: %s subject %s does not own "
+                                    "fragment %s" % (bid, register, parent,
+                                                      sfrag))
             if f["bundle"] != bid:
                 ctx.problems.append("BND %s: fragment %s does not back-reference "
                                     "this bundle (orphan bundle)" % (bid, sfrag))
@@ -1907,9 +2128,13 @@ def check_bundles(ctx, frags, edges, dr2):
                                         "scope" % (bid, i + 1, a, b))
             e = edge_by_id.get(mids[i]) if i < len(mids) else None
             if e is None:
-                ctx.problems.append("BND %s: member edge %s resolves to no XW2 "
-                                    "edge" % (bid, mids[i]))
+                ctx.problems.append("BND %s: member edge %s resolves to no "
+                                    "%s edge" % (bid, mids[i], register))
                 continue
+            ereg = e.get("register", "XW2")
+            if ereg != register:
+                ctx.problems.append("BND %s: member edge %s belongs to %s, "
+                                    "not %s" % (bid, e["id"], ereg, register))
             if e["frag"] and e["frag"] != sfrag:
                 ctx.problems.append("BND %s: member edge %s names fragment %s, "
                                     "not the bundle's source fragment %s "
@@ -1923,6 +2148,14 @@ def check_bundles(ctx, frags, edges, dr2):
                 ctx.problems.append("BND %s: member %d declared target %r != "
                                     "the edge's own target %r"
                                     % (bid, i + 1, mtargets[i], e["tgt"]))
+            eatoms, ep = edge_scope_atoms(e)
+            ctx.problems += ["BND %s member %d: %s" % (bid, i + 1, p)
+                             for p in ep]
+            if eatoms and not spans_equal(ats, eatoms):
+                ctx.problems.append("BND %s: member %d subject scope is not "
+                                    "span-set-equal to member edge %s's own "
+                                    "scope (positional scope join)"
+                                    % (bid, i + 1, e["id"]))
         if spans_overlap(member_atoms):
             ctx.problems.append("BND %s: member sub-scopes overlap (a character "
                                 "is carried twice)" % bid)
@@ -1978,21 +2211,10 @@ def check_date_components(ctx, src2, dr2, migration):
             ctx.problems.append("date component %s: value %r is invalid for "
                                 "basis %s" % (cid, value, basis))
         if is_month(value) and not is_season(value):
-            if basis in ("publication", "effective") and re.search(
-                    r"cover|edition", locator or "", re.I):
-                ctx.problems.append("date component %s: a cover/edition month "
-                                    "may support only basis 'edition', never "
-                                    "%s (false basis)" % (cid, basis))
             if not re.search(r"month precision", lim or "", re.I):
                 ctx.problems.append("date component %s: month-precision value "
                                     "carries no mandatory month-precision "
                                     "limitation entry" % cid)
-        if re.search(r"metadata|PDF creation|creation/modification",
-                     locator or "", re.I):
-            ctx.problems.append("date component %s: value is derived from "
-                                "artifact metadata, which establishes no "
-                                "basis's value (fabricated semantic claim)"
-                                % cid)
         if sup != DASH:
             m = re.fullmatch(r"supersedes (\S+#D[0-9]+) per AMEND (DR2-\d{4})",
                              sup)
@@ -2380,7 +2602,9 @@ def parse_acceptance_records(text, ctx):
         if len(r) != want:
             continue
         fields = ctx.inv.schema["acceptance-receipt-record"]
-        out[r[0].strip("`")] = dict(zip(fields, [c.strip() for c in r]))
+        rid = r[0].strip("`")
+        out.setdefault(rid, []).append(
+            dict(zip(fields, [c.strip() for c in r])))
     return out
 
 
@@ -2393,7 +2617,7 @@ def res_binding_digest(ctx, row):
     return sha_hex("|".join((p or "").strip() for p in parts))
 
 
-def check_blk_res(ctx, actors, sm2, ss2, frags):
+def check_blk_res(ctx, sm2, ss2, frags):
     blk_rows = ctx.pop["BLK-record"]
     res_rows = ctx.pop["RES-record"]
     repo = ctx.tree.repo or ctx.tree.root
@@ -2408,7 +2632,8 @@ def check_blk_res(ctx, actors, sm2, ss2, frags):
         outcome = g("Proposed outcome").strip("`")
         maker = g("Maker/proposer identity").strip("`")
         checker = g("Independent checker identity").strip("`")
-        commit = g("Acceptance commit or —").strip("`")
+        checkpoint = g("Accepted checkpoint commit or —").strip("`")
+        receipt_commit = g("Acceptance receipt commit or —").strip("`")
         receipt = g("Acceptance receipt or —").strip("`")
         acc_ver = g("Accepted RES version or —").strip("`")
         acc_dig = g("Accepted content digest or —").strip("`")
@@ -2424,7 +2649,9 @@ def check_blk_res(ctx, actors, sm2, ss2, frags):
                                 "unpadded positive integer" % (rid, ver))
         res[rid] = {"id": rid, "row": r, "blk": g("Blocked finding ID"),
                     "outcome": outcome, "maker": maker, "checker": checker,
-                    "commit": commit, "receipt": receipt, "acc_ver": acc_ver,
+                    "checkpoint": checkpoint,
+                    "receipt_commit": receipt_commit, "receipt": receipt,
+                    "acc_ver": acc_ver,
                     "acc_dig": acc_dig, "acc_out": acc_out, "status": status,
                     "ver": ver, "accepted": False}
 
@@ -2432,23 +2659,33 @@ def check_blk_res(ctx, actors, sm2, ss2, frags):
         if R["status"] != "accepted":
             continue
         ok = True
-        if not actors_independent(R["maker"], R["checker"], actors):
-            ctx.problems.append("RES %s: maker %r and checker %r do not resolve "
-                                "to distinct canonical actor identities "
-                                "(self-acceptance, alias/case masquerade, or a "
-                                "blank/unregistered actor)"
-                                % (rid, R["maker"], R["checker"]))
+        actor_re = r"(?:human|agent):[a-z0-9][a-z0-9._-]{0,63}"
+        if not re.fullmatch(actor_re, R["maker"]):
+            ctx.problems.append("RES %s: Maker/proposer identity %r is not a "
+                                "grammar-valid recorded actor" % (rid,
+                                                                  R["maker"]))
             ok = False
-        if not re.fullmatch(r"[0-9a-f]{40}", R["commit"]):
-            ctx.problems.append("RES %s: Acceptance commit %r is not a full "
-                                "40-hex commit SHA" % (rid, R["commit"]))
+        if not re.fullmatch(actor_re, R["checker"]):
+            ctx.problems.append("RES %s: Independent checker identity %r is "
+                                "not a grammar-valid recorded actor"
+                                % (rid, R["checker"]))
             ok = False
-        elif not git_commit_exists(repo, R["commit"]):
-            ctx.problems.append("RES %s: Acceptance commit %s does not resolve "
-                                "to a real commit in the governing repository "
-                                "(fabricated acceptance evidence)"
-                                % (rid, R["commit"]))
+        if R["maker"] == R["checker"]:
+            ctx.problems.append("RES %s: maker and checker fields are "
+                                "string-identical (structural separation "
+                                "assertion fails)" % rid)
             ok = False
+        for label, key in (("Accepted checkpoint commit", "checkpoint"),
+                           ("Acceptance receipt commit", "receipt_commit")):
+            if not re.fullmatch(r"[0-9a-f]{40}", R[key]):
+                ctx.problems.append("RES %s: %s %r is not a full 40-hex "
+                                    "commit SHA" % (rid, label, R[key]))
+                ok = False
+            elif not git_commit_exists(repo, R[key]):
+                ctx.problems.append("RES %s: %s %s does not resolve to a real "
+                                    "commit in the governing repository"
+                                    % (rid, label, R[key]))
+                ok = False
         if R["acc_ver"] != R["ver"]:
             ctx.problems.append("RES %s: Accepted RES version %r != current "
                                 "Resolution version %r (stale acceptance)"
@@ -2467,32 +2704,41 @@ def check_blk_res(ctx, actors, sm2, ss2, frags):
                                 "after acceptance)" % rid)
             ok = False
         blob = None
-        if re.fullmatch(r"[0-9a-f]{40}", R["commit"]) and \
-                git_commit_exists(repo, R["commit"]):
+        if re.fullmatch(r"[0-9a-f]{40}", R["receipt_commit"]) and \
+                git_commit_exists(repo, R["receipt_commit"]):
             if R["receipt"] in ("", DASH):
                 ctx.problems.append("RES %s: accepted resolution carries no "
                                     "Acceptance receipt path" % rid)
                 ok = False
             else:
-                b = git_blob(repo, R["commit"], R["receipt"])
+                b = git_blob(repo, R["receipt_commit"], R["receipt"])
                 if b is None:
                     ctx.problems.append("RES %s: Acceptance receipt %r does not "
-                                        "exist at acceptance commit %s "
+                                        "exist at receipt commit %s "
                                         "(unresolvable acceptance evidence)"
-                                        % (rid, R["receipt"], R["commit"][:12]))
+                                        % (rid, R["receipt"],
+                                           R["receipt_commit"][:12]))
                     ok = False
                 else:
                     blob = b.decode("utf-8", "replace")
         if blob is not None:
             recs = parse_acceptance_records(blob, ctx)
-            row = recs.get(rid)
-            if row is None:
+            matches = recs.get(rid, [])
+            if not matches:
                 ctx.problems.append("RES %s: the acceptance receipt at %s "
                                     "carries no Independent acceptance record "
                                     "row for this resolution (blank or "
-                                    "unrelated receipt)" % (rid, R["commit"][:12]))
+                                    "unrelated receipt)"
+                                    % (rid, R["receipt_commit"][:12]))
+                ok = False
+            elif len(matches) != 1:
+                ctx.problems.append("RES %s: the acceptance receipt carries "
+                                    "%d rows for this resolution; exactly one "
+                                    "is required (duplicates never overwrite)"
+                                    % (rid, len(matches)))
                 ok = False
             else:
+                row = matches[0]
                 verdict = row.get("Acceptance verdict", "").strip("`")
                 if verdict != "ACCEPT":
                     ctx.problems.append("RES %s: the acceptance receipt records "
@@ -2503,7 +2749,8 @@ def check_blk_res(ctx, actors, sm2, ss2, frags):
                          ("Accepted content digest", R["acc_dig"]),
                          ("Accepted proposed outcome", R["acc_out"]),
                          ("Maker/proposer identity", R["maker"]),
-                         ("Independent checker identity", R["checker"]))
+                         ("Independent checker identity", R["checker"]),
+                         ("Accepted checkpoint commit", R["checkpoint"]))
                 for fname, mine in pairs:
                     theirs = (row.get(fname) or "").strip().strip("`")
                     if theirs != mine:
@@ -2625,6 +2872,152 @@ def check_amend(ctx, dr2):
     """Real AMEND lineage: no reuse, exactly one current endpoint per chain,
     every superseding relationship resolving, and no stale live reference."""
     amend_ids = {d for d, v in dr2.items() if v["type"] == "AMEND"}
+    detail_rows = ctx.pop.get("AMEND-detail", [])
+    detail_by_parent, prior_seen, checkpoint_cache = {}, set(), {}
+    lineage_edges = {}
+    current_population = {
+        "GROUP": set(ctx.ids("GROUP-index")),
+        "LEAF": set(ctx.ids("LEAF-main")),
+        "XW2": set(ctx.ids("XW2-edge")),
+        "SRC2": set(ctx.ids("SRC2-base")),
+        "SRC2-date-component": set(ctx.ids("SRC2-date-component")),
+        "EV2": set(ctx.ids("EV2-component")),
+        "CBA2-SC": set(),
+        "SXW2": set(ctx.ids("SXW2-edge")),
+        "DR2": set(ctx.ids("DR2-generic")),
+        "DISP": set(ctx.ids("DISP-detail")),
+        "fragment": set(ctx.ids("fragment-inventory")),
+        "scenario-fragment": set(ctx.ids("scenario-fragment-inventory")),
+        "BND": set(ctx.ids("BND-bundle")),
+        "SM2": set(ctx.ids("SM2-record")),
+        "SS2": set(ctx.ids("SS2-record")),
+        "BLK": set(ctx.ids("BLK-record")),
+        "RES": set(ctx.ids("RES-record")),
+    }
+    resolved_forward = set()
+    for r in detail_rows:
+        aid = r[0].strip("`")
+        g = lambda f: (ctx.f("AMEND-detail", r, f) or "").strip()
+        population = g("Population").strip("`")
+        prior = g("Prior record ID").strip("`")
+        prior_ver = g("Prior version or —").strip("`")
+        checkpoint = g("Prior checkpoint commit").strip("`")
+        action = g("Action").strip("`")
+        current_raw = g("Current record ID(s) or —").strip("`")
+        current_ver_raw = g("Current version(s) or —").strip("`")
+        reason = g("Reason")
+        if aid not in amend_ids:
+            ctx.problems.append("AMEND detail %s: parent is not a current "
+                                "generic AMEND decision record" % aid)
+        detail_by_parent.setdefault(aid, []).append(r)
+        if not vocab_check(ctx, "amend-population", population,
+                           "AMEND detail %s population" % aid):
+            continue
+        vocab_check(ctx, "amend-action", action,
+                    "AMEND detail %s action" % aid)
+        key = (population, prior)
+        if key in prior_seen:
+            ctx.problems.append("AMEND detail %s: duplicate prior-lineage row "
+                                "for %s %s" % (aid, population, prior))
+        prior_seen.add(key)
+        if not prior or prior == DASH:
+            ctx.problems.append("AMEND detail %s: Prior record ID is blank/dash"
+                                % aid)
+        if prior_ver != DASH and not re.fullmatch(r"[1-9]\d*", prior_ver):
+            ctx.problems.append("AMEND detail %s: Prior version %r is neither "
+                                "— nor an unpadded positive integer"
+                                % (aid, prior_ver))
+        if not re.fullmatch(r"[0-9a-f]{40}", checkpoint) or not \
+                git_commit_exists(ctx.tree.repo or ctx.tree.root, checkpoint):
+            ctx.problems.append("AMEND detail %s: Prior checkpoint commit %r "
+                                "does not resolve to a full Git commit"
+                                % (aid, checkpoint))
+        else:
+            if checkpoint not in checkpoint_cache:
+                old = Tree(ctx.tree.repo or ctx.tree.root, ref=checkpoint)
+                checkpoint_cache[checkpoint] = "\n".join(
+                    [old.canon or "", old.plan or "", old.receipt_text()])
+            if not re.search(r"(?<![A-Za-z0-9_.:#-])%s(?![A-Za-z0-9_.:#-])"
+                             % re.escape(prior),
+                             checkpoint_cache[checkpoint]):
+                ctx.problems.append("AMEND detail %s: prior identity %s does "
+                                    "not resolve at checkpoint %s"
+                                    % (aid, prior, checkpoint[:12]))
+        currents = [] if current_raw == DASH else current_raw.split(", ")
+        if action == "remove":
+            if currents or current_ver_raw != DASH:
+                ctx.problems.append("AMEND detail %s: remove requires — for "
+                                    "both current identity and version" % aid)
+        elif not currents:
+            ctx.problems.append("AMEND detail %s: action %s requires a direct "
+                                "current identity" % (aid, action))
+        if action == "split" and len(currents) < 2:
+            ctx.problems.append("AMEND detail %s: split requires at least two "
+                                "current identities" % aid)
+        if action != "split" and len(currents) > 1:
+            ctx.problems.append("AMEND detail %s: only split may branch to "
+                                "multiple current identities" % aid)
+        if action == "revise" and currents != [prior]:
+            ctx.problems.append("AMEND detail %s: revise must retain exactly "
+                                "the prior stable identity" % aid)
+        if action != "revise" and prior in currents:
+            ctx.problems.append("AMEND detail %s: lineage cycles to/reuses its "
+                                "prior identity %s" % (aid, prior))
+        if len(currents) != len(set(currents)):
+            ctx.problems.append("AMEND detail %s: duplicate current identities"
+                                % aid)
+        known = current_population.get(population, set())
+        for cid in currents:
+            if cid not in known:
+                ctx.problems.append("AMEND detail %s: current %s identity %s "
+                                    "does not resolve directly"
+                                    % (aid, population, cid))
+        if current_ver_raw != DASH:
+            versions = current_ver_raw.split(", ")
+            if len(versions) != len(currents) or any(
+                    not re.fullmatch(r"[1-9]\d*", v) for v in versions):
+                ctx.problems.append("AMEND detail %s: current versions do not "
+                                    "align with current identities" % aid)
+            if prior_ver != DASH and any(int(v) <= int(prior_ver)
+                                         for v in versions
+                                         if re.fullmatch(r"[1-9]\d*", v)):
+                ctx.problems.append("AMEND detail %s: current version does not "
+                                    "advance beyond prior version" % aid)
+        elif action == "revise":
+            ctx.problems.append("AMEND detail %s: revise requires explicit "
+                                "prior and current versions" % aid)
+        if not reason or reason == DASH:
+            ctx.problems.append("AMEND detail %s: Reason is blank/dash" % aid)
+        if action != "revise":
+            lineage_edges.setdefault(key, []).extend(
+                (population, cid) for cid in currents)
+        resolved_forward.add(prior)
+
+    # Cross-row cycles are checked on population-qualified identities. A
+    # same-ID `revise` is version lineage and is deliberately excluded above.
+    visit = {}
+
+    def walk(node, stack):
+        if visit.get(node) == 1:
+            ctx.problems.append("AMEND detail lineage cycle: %s -> %s"
+                                % (" -> ".join("%s:%s" % x for x in stack),
+                                   "%s:%s" % node))
+            return
+        if visit.get(node) == 2:
+            return
+        visit[node] = 1
+        for nxt in lineage_edges.get(node, []):
+            walk(nxt, stack + [node])
+        visit[node] = 2
+
+    for node in sorted(lineage_edges):
+        walk(node, [])
+    if parse_migration_state(ctx.tree.plan) == "post-R3.1":
+        for aid in sorted(amend_ids):
+            if not detail_by_parent.get(aid):
+                ctx.problems.append("AMEND %s: generic record has no structured "
+                                    "AMEND detail row" % aid)
+    ctx.amend_resolved = resolved_forward
     for key, supfield, statusfield, idre in SUPERSEDE_FIELDS:
         rows = ctx.pop.get(key, [])
         if not rows:
@@ -2727,21 +3120,13 @@ def check_preservation(ctx):
     if bprobs or not binv.sections:
         binv = ctx.inv  # the checkpoint predates 15.9.11; read it with today's
     bctx = Ctx(base, binv)
-    resolved_forward = set()
+    resolved_forward = set(getattr(ctx, "amend_resolved", set()))
     for key, _f, _s, idre in SUPERSEDE_FIELDS:
         for r in ctx.pop.get(key, []):
             sup = (ctx.f(key, r, _f) or "").strip()
             m = re.match(r"supersedes (\S+) per AMEND", sup)
             if m:
                 resolved_forward.add(m.group(1))
-    for d in ctx.pop.get("DR2-generic", []):
-        if (ctx.f("DR2-generic", d, "Type") or "").strip("`") == "AMEND":
-            body = " ".join(d)
-            for tok in re.findall(
-                    r"(?:CBA2-[ACRLS][0-9]{2}(?:\.[0-9]+)?|XW2-[0-9]{4}|"
-                    r"SRC2-[0-9]{3}|EV2-[0-9]{4}|DR2-[0-9]{4})", body):
-                resolved_forward.add(tok)
-
     for key in PRESERVED_POPULATIONS:
         if key == "DR2-generic":
             _h, brows, _ = parse_receipt_population(base, binv, key)
@@ -2764,46 +3149,53 @@ def check_preservation(ctx):
 
 
 # --------------------------------------------------------------------------
-# 21. G15R — the enumerated twelve-population repair gate.
+# 21. G15R — actual touched/required-population repair gate.
 # --------------------------------------------------------------------------
 
 
 def check_g15r(ctx, migration, need):
-    """Each population is checked INDIVIDUALLY BY NAME. A population the
-    document's own state requires, but which is absent or empty, fails G15R
-    for that population."""
+    """Report and enforce only populations actually touched or triggered.
+
+    DR2 is universal. Post-R3.1 migration also triggers SRC2, fragments,
+    dispositions, AMEND, and structured AMEND details. Other support
+    populations trigger from their governed dependency or their presence.
+    """
     rows = []
-    order = (("R1", "SRC2-base", True),
-             ("R2", "SRC2-date-component", need["date"]),
-             ("R3", "fragment-inventory", need["frag"]),
-             ("R4", "BND-bundle", need["bnd"]),
-             ("R5", "SM2-record", need["sm2"]),
-             ("R6", "SS2-record", need["ss2"]),
-             ("R7", "DISP-detail", need["disp"]),
-             ("R8", "BLK-record", need["blk"]),
-             ("R9", "RES-record", need["res"]),
-             ("R10", "DR2-AMEND", need["amend"]),
-             ("R11", "DR2-generic", True),
-             ("R12", "dependent-references", True))
-    for tag, pop, required in order:
+    post = migration == "post-R3.1"
+    order = (("SRC2-base", post),
+             ("SRC2-date-component", need["date"]),
+             ("fragment-inventory", need["frag"]),
+             ("scenario-fragment-inventory",
+              bool(ctx.pop.get("SXW2-edge"))),
+             ("BND-bundle", need["bnd"]),
+             ("SM2-record", need["sm2"]),
+             ("SS2-record", need["ss2"]),
+             ("DISP-detail", need["disp"]),
+             ("BLK-record", bool(ctx.pop.get("BLK-record"))),
+             ("RES-record", need["res"] or bool(ctx.pop.get("RES-record"))),
+             ("DR2-AMEND", need["amend"]),
+             ("AMEND-detail", need["amend"]),
+             ("DR2-generic", True))
+    for pop, required in order:
+        triggered = required or bool(ctx.pop.get(pop, []))
+        if not triggered:
+            continue
         if pop == "DR2-AMEND":
             present = any((ctx.f("DR2-generic", r, "Type") or "").strip("`")
                           == "AMEND" for r in ctx.pop.get("DR2-generic", []))
             count = sum(1 for r in ctx.pop.get("DR2-generic", [])
                         if (ctx.f("DR2-generic", r, "Type") or "").strip("`")
                         == "AMEND")
-        elif pop == "dependent-references":
-            present, count = True, len(ctx.pop.get("XW2-edge", []))
         else:
             count = len(ctx.pop.get(pop, []))
             present = count > 0
         state = "present(%d)" % count if present else "ABSENT"
         if required and not present:
-            ctx.problems.append("G15R/%s %s: required population is absent or "
-                                "empty in a state that requires it" % (tag, pop))
+            ctx.problems.append("G15R/%s: triggered population is absent or "
+                                "empty in a state that requires it" % pop)
             state = "FAIL(absent)"
-        rows.append("%s %s=%s" % (tag, pop, state))
-    ctx.notes.append("G15R enumerated populations: " + "; ".join(rows))
+        rows.append("%s=%s" % (pop, state))
+    ctx.notes.append("G15R triggered populations: " + "; ".join(rows))
 
 
 # --------------------------------------------------------------------------
@@ -2826,14 +3218,13 @@ def validate_tree(tree):
         return problems, notes
     problems += reconcile_inventory(tree.canon, inv)
     problems += check_immutable_ranges(tree.canon, inv)
-    actors, ap = parse_actor_registry(tree.canon, inv)
-    problems += ap
     problems += check_plan(tree.plan)
     migration = parse_migration_state(tree.plan)
 
     ctx = Ctx(tree, inv)
     ctx.problems += problems
     ctx.notes += notes
+    check_headers(ctx, migration)
 
     published = Published(tree.repo or tree.root,
                           inv.commits.get("published-v1.1"))
@@ -2850,12 +3241,14 @@ def validate_tree(tree):
     edges += sxw2_edges
     src2 = check_src2_ev2(ctx, active, migration)
     dr2 = check_dr2(ctx, edges, active, migration)
-    check_scenario_fragments(ctx, sxw2_edges, dr2, published)
+    scenario_frags = check_scenario_fragments(
+        ctx, sxw2_edges, dr2, published)
     frags = check_fragments(ctx, [e for e in edges
                                   if e.get("register") != "SXW2"],
                             dr2, published, migration)
-    check_bundles(ctx, frags, [e for e in edges
-                               if e.get("register") != "SXW2"], dr2)
+    all_frags = dict(frags)
+    all_frags.update(scenario_frags)
+    check_bundles(ctx, all_frags, edges, dr2)
     comps, primaries = check_date_components(ctx, src2, dr2, migration)
     sm2_ids = {r[0].strip("`") for r in ctx.pop["SM2-record"]}
     ss2_ids = {r[0].strip("`") for r in ctx.pop["SS2-record"]}
@@ -2866,7 +3259,7 @@ def validate_tree(tree):
                    for r in ctx.pop["BLK-record"]}
     blk_anchors.discard(DASH)
     sm2, ss2 = check_sm2_ss2(ctx, src2, frags, details, blk_anchors)
-    check_blk_res(ctx, actors, sm2, ss2, frags)
+    check_blk_res(ctx, sm2, ss2, frags)
     check_amend(ctx, dr2)
 
     pprobs, pnotes = check_preservation(ctx)
@@ -3015,9 +3408,10 @@ class ControlRepo(object):
         self.head = self._commit("live documents")
 
         # (4) the checker's independent acceptance receipt, at its own commit
-        self._write(ACCEPT_RECEIPT_REL, acceptance_receipt_text())
+        receipt_text = acceptance_receipt_text(self.head)
+        self._write(ACCEPT_RECEIPT_REL, receipt_text)
         self.accept = self._commit("independent acceptance receipt")
-        self.live[ACCEPT_RECEIPT_REL] = acceptance_receipt_text()
+        self.live[ACCEPT_RECEIPT_REL] = receipt_text
 
     # -- file helpers
     def _abs(self, rel):
@@ -3069,19 +3463,21 @@ class ControlRepo(object):
         shutil.rmtree(self.dir, ignore_errors=True)
 
 
-def acceptance_receipt_text():
+def acceptance_receipt_text(accepted_checkpoint):
     return (
         "# Control independent acceptance receipt\n\n"
         "This receipt is the checker-side evidence a `RES-…` resolution's\n"
-        "`Acceptance commit` resolves to. It is a control artifact of the\n"
-        "R2.10 validator, not a governed record of any repair unit.\n\n"
+        "`Accepted checkpoint commit` resolves to. It is a control artifact "
+        "of the\nR2.11 validator, not a governed record of any repair unit.\n\n"
         "## Independent acceptance record\n\n"
         "| Resolution ID | Accepted RES version | Accepted content digest | "
         "Accepted proposed outcome | Maker/proposer identity | "
-        "Independent checker identity | Acceptance verdict |\n"
-        "|---|---|---|---|---|---|---|\n"
-        "| %s | 1 | %s | %s | %s | %s | ACCEPT |\n"
-        % (RES_ID, RES_DIGEST, RES_OUTCOME, RES_MAKER, RES_CHECKER))
+        "Independent checker identity | Accepted checkpoint commit | "
+        "Acceptance verdict |\n"
+        "|---|---|---|---|---|---|---|---|\n"
+        "| %s | 1 | %s | %s | %s | %s | %s | ACCEPT |\n"
+        % (RES_ID, RES_DIGEST, RES_OUTCOME, RES_MAKER, RES_CHECKER,
+           accepted_checkpoint))
 
 
 # --------------------------------------------------------------------------
@@ -3119,7 +3515,9 @@ def build_r31_document(repo, published, inv):
                            []).append(r)
 
     frag_rows, bnd_rows, edge_scope, edge_dec = [], [], {}, {}
+    bundle_member_scope = {}
     disp_rows, dr2_rows = [], []
+    amend_successors = {}
     next_dr2 = max(int(i.split("-")[1]) for i in
                    [r[0] for r in xrows] or ["XW2-0000"]) and 48
     decomp = "DR2-%04d" % next_dr2
@@ -3156,26 +3554,33 @@ def build_r31_document(repo, published, inv):
                 mb = _bounds(b - a, len(grp))
                 mscopes, mtypes, mtargets = [], [], []
                 for mi, r in enumerate(sorted(grp, key=lambda x: x[0])):
-                    mscopes.append("span:%d-%d" % (a + mb[mi], a + mb[mi + 1]))
+                    member_scope = "span:%d-%d" % (a + mb[mi],
+                                                    a + mb[mi + 1])
+                    mscopes.append(member_scope)
+                    bundle_member_scope[r[0]] = member_scope
                     mtypes.append(r[hdr_i["Edge type"]].strip("`"))
                     mtargets.append(r[hdr_i["Active v2 LEAF or —"]].strip("`"))
                 bnd_rows.append(
-                    "| %s | %s | %s | %s | %s | %s | %s | %s | active | "
-                    "current | 1 | %s |"
-                    % (bundle, leaf, fid, ", ".join(eids), ", ".join(mtypes),
-                       ", ".join(mtargets), ", ".join(mscopes), span, DASH))
+                    "| %s | XW2-BND | %s | %s | %s | %s | %s | %s | %s | "
+                    "%s | active | current | 1 | %s |"
+                    % (bundle, leaf, DASH, fid, ", ".join(eids),
+                       ", ".join(mtypes), ", ".join(mtargets),
+                       ", ".join(mscopes), span, DASH))
             frag_rows.append(
                 "| %s | %s | %s | %s | %s | %s | %s | current | 1 | none |"
                 % (fid, leaf, kind, span, decomp, bundle, ", ".join(eids)))
             for r in grp:
                 eid = r[0]
                 edge_scope[eid] = "[%s] %s — %s" % (
-                    fid, span, r[hdr_i["Scope/relationship"]])
+                    fid, bundle_member_scope.get(eid, span),
+                    r[hdr_i["Scope/relationship"]])
                 etype = r[hdr_i["Edge type"]].strip("`")
                 if etype in terminal:
+                    prior_did = r[hdr_i["Decision record"]].strip("`")
                     did = "DR2-%04d" % next_dr2
                     next_dr2 += 1
                     edge_dec[eid] = did
+                    amend_successors.setdefault(prior_did, []).append(did)
                     reason = {"invalid": "false-claim",
                               "process-only": "process-material",
                               "no-successor": "out-of-scope-or-obsolete",
@@ -3193,8 +3598,8 @@ def build_r31_document(repo, published, inv):
                         "| %s | `DISP` | %s terminal %s disposition of %s | "
                         "No active owner selected | Terminal disposition per "
                         "canon 15.9.4 | Migrated from the committed "
-                        "OWN/ATOM typing through AMEND lineage | %s | R3.1 "
-                        "control / temporary tree |"
+                        "OWN/ATOM typing through AMEND lineage | %s | R3.1 / "
+                        "temporary tree |"
                         % (did, leaf, etype, fid, DASH))
 
     dr2_rows.insert(0,
@@ -3203,7 +3608,7 @@ def build_r31_document(repo, published, inv):
                     "fragment inventories | Enumeration floor over the "
                     "normalized requirement text | Every historical source LEAF "
                     "is partitioned into fragments whose spans cover exactly "
-                    "[0,L) | %s | R3.1 control / temporary tree |"
+                    "[0,L) | %s | R3.1 / temporary tree |"
                     % (decomp, DASH))
 
     # -- SXW2 control population (genuine, partition-exact)
@@ -3234,8 +3639,8 @@ def build_r31_document(repo, published, inv):
         dr2_rows.append(
             "| %s | `DISP` | %s terminal %s scenario disposition of %s | "
             "No active scenario owner selected | Terminal scenario disposition "
-            "per canon 15.9.8 | Control scenario disposition | %s | R3.1 "
-            "control / temporary tree |" % (did, sname, etype, fid, DASH))
+            "per canon 15.9.8 | Control scenario disposition | %s | R3.1 / "
+            "temporary tree |" % (did, sname, etype, fid, DASH))
 
     amend = "DR2-%04d" % next_dr2
     next_dr2 += 1
@@ -3245,7 +3650,16 @@ def build_r31_document(repo, published, inv):
         "every live terminal-edge reference updated in the same commit | "
         "AMEND lineage per canon 15.9.2 | The committed OWN/ATOM terminal "
         "typing is retroactively mistyped and is superseded, never renumbered "
-        "or reused | %s | R3.1 control / temporary tree |" % (amend, DASH))
+        "or reused | %s | R3.1 / temporary tree |" % (amend, DASH))
+
+    amend_rows = []
+    for prior, currents in sorted(amend_successors.items()):
+        action = "split" if len(currents) > 1 else "replace"
+        amend_rows.append(
+            "| %s | DR2 | %s | %s | %s | %s | %s | %s | %s |"
+            % (amend, prior, DASH, repo.r3, action, ", ".join(currents),
+               DASH, "terminal disposition retyped through current DISP "
+                     "records"))
 
     # -- rewrite the canon: SRC2 tables, XW2 rows, and the SXW2 section
     canon = _rewrite_src2(canon, inv)
@@ -3253,14 +3667,15 @@ def build_r31_document(repo, published, inv):
     canon = _add_sxw2_section(canon, sxw2_rows)
 
     plan = plan.replace(
-        "- **Status:** not started. Blocked until the independent Codex review\n"
-        "  of the R2.10 foundation returns ACCEPT",
-        "- **Status:** executed (R3.1 control tree). Blocked until the "
-        "independent Codex review\n  of the R2.10 foundation returns ACCEPT",
+        "- **Status:** not started. Blocked until the independent checker "
+        "review\n  of the R2.11 balanced foundation returns ACCEPT (R2.6–R2.10 "
+        "were\n  independently rejected and do not unblock R3.1).",
+        "- **Status:** executed (R3.1 control tree) after an independent "
+        "R2.11 checker ACCEPT.",
         1)
 
     receipt = _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows,
-                           sfrag_rows)
+                           sfrag_rows, amend_rows)
     return canon, plan, receipt
 
 
@@ -3394,7 +3809,8 @@ def _add_sxw2_section(canon, sxw2_rows):
     return "".join(lines)
 
 
-def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows):
+def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
+                 amend_rows):
     sm2 = [
         "| SM2-0001 | candidate-obligation | %s | %s | §13.3 | CBA | 2023 "
         "NBA-NBPA Collective Bargaining Agreement (signed agreement, 2023 "
@@ -3444,8 +3860,9 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows):
            "blocked-unsupported-obligation | SS2-0001 | SM2-0001, SM2-0002, "
            "SM2-0003, SM2-0004 | %s | §13.3 | resolved | 1 | %s | %s | none |"
            % (RES_BLK, DASH, DASH, DASH, RES_ID, DASH)]
-    res = ["| %s | %s | %s | %s | %s | %s | @ACCEPT_COMMIT@ | %s | 1 | %s | "
-           "%s | accepted | 1 | %s | %s | %s |"
+    res = ["| %s | %s | %s | %s | %s | %s | @CHECKPOINT_COMMIT@ | "
+           "@RECEIPT_COMMIT@ | %s | 1 | %s | %s | accepted | 1 | %s | %s | "
+           "%s |"
            % (RES_ID, RES_BLK, RES_OUTCOME, RES_AUTHORITY, RES_MAKER,
               RES_CHECKER, ACCEPT_RECEIPT_REL.replace(os.sep, "/"),
               RES_DIGEST, RES_OUTCOME, RES_REOPEN, RES_LIMITS, DASH)]
@@ -3461,7 +3878,7 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows):
     }
     out = ["# R3.1 A-series repair (control document tree)",
            "",
-           "This document exists only inside the R2.10 validator's temporary "
+           "This document exists only inside the R2.11 validator's temporary "
            "control repository. It is the complete migrated R3.1 support "
            "population, written as real receipt tables and validated through "
            "the same top-level entry point as the committed baseline. It "
@@ -3477,6 +3894,12 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows):
         out.append("")
 
     sec("Decision records", inv_fields["Decision records"], dr2_rows)
+    sec("AMEND detail rows", ["AMEND record ID", "Population",
+                               "Prior record ID", "Prior version or " + DASH,
+                               "Prior checkpoint commit", "Action",
+                               "Current record ID(s) or " + DASH,
+                               "Current version(s) or " + DASH, "Reason"],
+        amend_rows)
     sec("DISP detail rows", ["DR2 record ID", "DISP subject class",
                              "Historical source LEAF or " + DASH,
                              "Historical fragment ID or " + DASH,
@@ -3497,8 +3920,18 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows):
                 "Disposition bundle ID or " + DASH, "Disposition edge ID(s)",
                 "Fragment status", "Fragment version", "Limitations or " + DASH]
     sec("Fragment inventory", frag_hdr, frag_rows)
-    sec("Scenario fragment inventory", frag_hdr, sfrag_rows)
-    sec("Disposition bundles", ["Bundle ID", "Source historical LEAF",
+    sec("Scenario fragment inventory", ["Scenario fragment ID",
+                                         "Historical scenario",
+                                         "Fragment kind",
+                                         "Normalized fragment scope",
+                                         "Decomposition decision record",
+                                         "Disposition bundle ID or " + DASH,
+                                         "Disposition edge ID(s)",
+                                         "Fragment status", "Fragment version",
+                                         "Limitations or " + DASH], sfrag_rows)
+    sec("Disposition bundles", ["Bundle ID", "BND subject class",
+                                "Source historical LEAF or " + DASH,
+                                "Historical scenario or " + DASH,
                                 "Source fragment ID", "Member edge IDs",
                                 "Member edge types", "Member target IDs",
                                 "Member subject scopes", "Subject scope",
@@ -3548,7 +3981,8 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows):
                         "Proposed outcome", "Resolver authority",
                         "Maker/proposer identity",
                         "Independent checker identity",
-                        "Acceptance commit or " + DASH,
+                        "Accepted checkpoint commit or " + DASH,
+                        "Acceptance receipt commit or " + DASH,
                         "Acceptance receipt or " + DASH,
                         "Accepted RES version or " + DASH,
                         "Accepted content digest or " + DASH,
@@ -3631,7 +4065,8 @@ def build_bases(repo):
     inv, _ = parse_inventory(base[CANON_REL])
     published = Published(repo.dir, inv.commits["published-v1.1"])
     canon, plan, receipt = build_r31_document(repo, published, inv)
-    receipt = receipt.replace("@ACCEPT_COMMIT@", repo.accept)
+    receipt = receipt.replace("@CHECKPOINT_COMMIT@", repo.head)
+    receipt = receipt.replace("@RECEIPT_COMMIT@", repo.accept)
     r31 = dict(base)
     r31[CANON_REL] = canon
     r31[PLAN_REL] = plan
@@ -3644,7 +4079,7 @@ R3_RECEIPT_REL = os.path.join(
     "ARCHITECT_CBA_CANON_V2_R3_A_SERIES_CERTIFICATION.md")
 
 
-def run_cases(repo):
+def run_extended_cases(repo):
     base, r31, inv, published = build_bases(repo)
     H = Harness(repo, base, r31)
     C, P, R = CANON_REL, PLAN_REL, R31_RECEIPT_REL
@@ -4487,6 +4922,224 @@ def _cases_g15r_omissions(H, mrcpt):
               % label, docs, True, diag)
 
 
+def run_cases(repo):
+    """Bounded R2.11 default controls.
+
+    These controls exercise every newly corrected mechanical boundary without
+    replaying the historical exhaustive mutation library. Use --extended for
+    that diagnostic-only library.
+    """
+    base, r31, _inv, _published = build_bases(repo)
+    H = Harness(repo, base, r31)
+    C, P, R = CANON_REL, PLAN_REL, R31_RECEIPT_REL
+    canon, mcanon, mrcpt = base[C], r31[C], r31[R]
+
+    def replace_cell(text, row, index, value):
+        cells = [c.strip() for c in row.strip()[1:-1].split("|")]
+        cells[index] = value
+        return mut(text, row, "| " + " | ".join(cells) + " |")
+
+    H.run("C0", "committed R2.11 baseline document tree", H.docs(), False)
+    H.run("C1", "complete future-R3.1 migrated document tree through the "
+          "same top-level validator", H.docs(migrated=True), False)
+
+    # Semantic source truth belongs to the checker: a structurally valid
+    # locator is not rejected by software merely because of a keyword.
+    date_row = row_line(mrcpt, "| SRC2-001 | SRC2-001#D3 |")
+    date_meta = replace_cell(mrcpt, date_row, 5,
+                             "artifact metadata candidate for checker review")
+    H.run("C2", "structurally valid source-date row remains software-valid "
+          "when source-truth judgment is left to the checker",
+          H.docs(migrated=True, **{R: date_meta}), False)
+
+    # A valid future append-only construction above every current high-water
+    # mark must conform. This proves preservation is identity-based rather
+    # than a fixed-total freeze.
+    lmain_line = [ln for ln in
+                  line_range(canon, "#### 15.10.2",
+                             "#### 15.10.3").splitlines()
+                  if ln.strip().startswith("| CBA2-A12.5 |")][0]
+    ldet_line = [ln for ln in
+                 line_range(canon, "#### 15.10.3",
+                            "### 15.11").splitlines()
+                 if ln.strip().startswith("| CBA2-A12.5 |")][0]
+    grow = row_line(canon, "| CBA2-A12 |")
+    xw_last = row_line(canon, "| XW2-0131 |")
+    ev_last = row_line(canon, "| EV2-0089 |")
+    future = canon
+    future = mut(
+        future, grow + "\n", grow + "\n"
+        + "| CBA2-A13 | Future GROUP appended above the high-water mark | "
+          "`CBA2-A13.1` (1) | GROUP anchor; no obligation, verdict, method, "
+          "locator, or evidence |\n")
+    future = mut(
+        future, lmain_line + "\n", lmain_line + "\n"
+        + "| CBA2-A13.1 | Future appended obligation above the high-water "
+          "mark | CBA | SCEN | — | EV2-0090 | new | Appended by a future "
+          "construction unit. |\n")
+    future = mut(
+        future, ldet_line + "\n", ldet_line + "\n"
+        + "| CBA2-A13.1 | pending R7 | — | Transaction date | DR2-0047 |\n")
+    future = mut(
+        future, xw_last + "\n", xw_last + "\n"
+        + "| XW2-0132 | CBA-A21 | CBA2-A13.1 | `equivalent` | Whole "
+          "obligation appended above the high-water mark | DR2-0047 |\n")
+    future = mut(
+        future, ev_last + "\n", ev_last + "\n"
+        + "| EV2-0090 | CBA2-A13.1 | CBA | SRC2-001 | — | CBA VII "
+          "§6(j)(1)(i), p. 240 | Appended controlling passage | Maps the "
+          "appended obligation | — | — |\n")
+    H.run("C3", "valid future append-only GROUP/LEAF/XW2/EV2 additions above "
+          "the current high-water marks", H.docs(**{C: future}), False)
+
+    bnd_inventory = row_line(canon, "| `BND-bundle` |")
+    bad_inventory = replace_cell(canon, bnd_inventory, 2, "13")
+    H.run("I1", "governed schema count diverges from its field list",
+          H.docs(**{C: bad_inventory}), True, "Count 13 != 14")
+
+    xw12 = row_line(canon, "| XW2-0012 |")
+    H.run("P1", "a committed XW2 identity is silently deleted",
+          H.docs(**{C: mut(canon, xw12 + "\n", "")}), True,
+          "preservation")
+
+    bad_scenario_header = mut(
+        mrcpt, "| Scenario fragment ID | Historical scenario | Fragment kind |",
+        "| Fragment ID | Historical scenario | Fragment kind |")
+    H.run("H1", "scenario-fragment table reuses the historical-LEAF header",
+          H.docs(migrated=True, **{R: bad_scenario_header}), True,
+          "header scenario-fragment-inventory")
+
+    dr_row = row_line(mrcpt, "| DR2-0048 |")
+    bad_dr = replace_cell(mrcpt, dr_row, 2, DASH)
+    H.run("D1", "a required DR2 field is dash",
+          H.docs(migrated=True, **{R: bad_dr}), True, "required field Subject")
+    bad_unit = mut(mrcpt, "R3.1 / temporary tree",
+                   "R3.1 control / temporary tree", 1)
+    H.run("D2", "DR2 Unit/commit violates the governed grammar",
+          H.docs(migrated=True, **{R: bad_unit}), True, "Unit/commit")
+
+    bnd_row = row_line(mrcpt, "| BND-0001 |")
+    bnd_cells = [c.strip() for c in bnd_row.strip()[1:-1].split("|")]
+    scopes = bnd_cells[8].split(", ")
+    scopes[0] = bnd_cells[9]
+    bad_bnd = replace_cell(mrcpt, bnd_row, 8, ", ".join(scopes))
+    H.run("B1", "BND member scope does not match its positional edge scope",
+          H.docs(migrated=True, **{R: bad_bnd}), True,
+          "positional scope join")
+    sx_bnd_cells = [c.strip() for c in
+                    bnd_row.strip()[1:-1].split("|")]
+    sx_bnd_cells[1] = "SXW2-BND"
+    sx_bnd_cells[2] = DASH
+    sx_bnd_cells[3] = "scenario-1"
+    sx_bnd_cells[4] = "scenario-1:F1"
+    bad_sx_bnd = mut(mrcpt, bnd_row,
+                     "| " + " | ".join(sx_bnd_cells) + " |")
+    H.run("B2", "an SXW2-BND variant reuses XW2 member edges",
+          H.docs(migrated=True, **{R: bad_sx_bnd}), True,
+          "belongs to XW2, not SXW2")
+
+    sxdisp = next(ln for ln in mrcpt.splitlines()
+                  if ln.startswith("| DR2-") and " | SXW2-DISP | " in ln)
+    sx_cells = [c.strip() for c in sxdisp.strip()[1:-1].split("|")]
+    sm = re.fullmatch(r"span:(\d+)-(\d+)", sx_cells[6])
+    bad_sx_scope = "span:%d-%s" % (int(sm.group(1)) + 1, sm.group(2))
+    bad_sxdisp = replace_cell(mrcpt, sxdisp, 6, bad_sx_scope)
+    H.run("S1", "SXW2 DISP scope disagrees with its scenario edge",
+          H.docs(migrated=True, **{R: bad_sxdisp}), True,
+          "SXW2 edge's own fragment scope")
+
+    ev_row = row_line(mcanon, "| EV2-0001 |")
+    ev_cycle = replace_cell(mcanon, ev_row, 4, "EV2-0001")
+    H.run("E1", "EV2 dependency graph contains a self-cycle",
+          H.docs(migrated=True, **{C: ev_cycle}), True,
+          "EV2 dependency cycle")
+    ev_ops = replace_cell(mcanon, ev_row, 2, "OPS")
+    H.run("E2", "OPS evidence closure has no required ops-provenance root",
+          H.docs(migrated=True, **{C: ev_ops}), True,
+          "no required ops-provenance terminal root")
+
+    amend_row = next(ln for ln in mrcpt.splitlines()
+                     if ln.startswith("| DR2-") and " | DR2 | DR2-" in ln)
+    bad_amend = replace_cell(mrcpt, amend_row, 6, "DR2-9999")
+    H.run("A1", "AMEND detail points to a nonexistent current identity",
+          H.docs(migrated=True, **{R: bad_amend}), True,
+          "does not resolve directly")
+    no_amend_detail = re.sub(r"(?m)^\| DR2-\d{4} \| DR2 \| DR2-.*\n?", "",
+                             mrcpt)
+    H.run("A2", "post-R3.1 AMEND detail population is absent",
+          H.docs(migrated=True, **{R: no_amend_detail}), True,
+          "G15R/AMEND-detail")
+    missing_prior = replace_cell(mrcpt, amend_row, 2, "DR2-9999")
+    H.run("A3", "AMEND detail prior identity is absent at its checkpoint",
+          H.docs(migrated=True, **{R: missing_prior}), True,
+          "prior identity DR2-9999 does not resolve at checkpoint")
+    cycle_cells = [c.strip() for c in
+                   amend_row.strip()[1:-1].split("|")]
+    cycle_cells[5] = "replace"
+    cycle_cells[6] = cycle_cells[2]
+    cycle_amend = mut(mrcpt, amend_row,
+                      "| " + " | ".join(cycle_cells) + " |")
+    H.run("A4", "AMEND detail cycles to and reuses its prior identity",
+          H.docs(migrated=True, **{R: cycle_amend}), True,
+          "lineage cycles to/reuses its prior identity")
+    branch_amend = replace_cell(mrcpt, amend_row, 5, "replace")
+    H.run("A5", "a non-split AMEND action branches to multiple identities",
+          H.docs(migrated=True, **{R: branch_amend}), True,
+          "only split may branch")
+    missing_checkpoint = replace_cell(mrcpt, amend_row, 4, "1" * 40)
+    H.run("A6", "AMEND detail prior checkpoint does not resolve",
+          H.docs(migrated=True, **{R: missing_checkpoint}), True,
+          "does not resolve to a full Git commit")
+
+    no_dates = re.sub(
+        r"(?m)^\| SRC2-00\d \| SRC2-00\d#D\d \|.*\n?", "", mrcpt)
+    H.run("T1", "post-R3.1 source-date component population is absent",
+          H.docs(migrated=True, **{R: no_dates}), True,
+          "G15R/SRC2-date-component")
+
+    # Duplicate receipt rows must never overwrite one another. Materialize a
+    # real later checker-receipt commit so the exact Git/blob path is exercised.
+    accept_text = repo.live[ACCEPT_RECEIPT_REL]
+    accept_row = row_line(accept_text, "| RES-0001 |")
+    duplicate_text = mut(accept_text, accept_row + "\n",
+                         accept_row + "\n" + accept_row + "\n")
+    repo.restore()
+    repo._write(ACCEPT_RECEIPT_REL, duplicate_text)
+    duplicate_commit = repo._commit("duplicate acceptance control")
+    repo.restore()
+    res_row = row_line(mrcpt, "| RES-0001 |")
+    duplicate_res = replace_cell(mrcpt, res_row, 7, duplicate_commit)
+    H.run("R1", "acceptance receipt contains duplicate rows for one RES",
+          H.docs(migrated=True, **{R: duplicate_res}), True,
+          "exactly one is required")
+    missing_commit_res = replace_cell(mrcpt, res_row, 7, "1" * 40)
+    H.run("R2", "acceptance receipt commit is shaped but nonexistent",
+          H.docs(migrated=True, **{R: missing_commit_res}), True,
+          "does not resolve to a real commit")
+    mismatch_text = mut(
+        accept_text, "| agent:claude-code | agent:codex |",
+        "| agent:other-maker | agent:codex |", 1)
+    repo.restore()
+    repo._write(ACCEPT_RECEIPT_REL, mismatch_text)
+    mismatch_commit = repo._commit("mismatched acceptance control")
+    repo.restore()
+    mismatch_res = replace_cell(mrcpt, res_row, 7, mismatch_commit)
+    H.run("R3", "acceptance receipt maker field mismatches the exact RES",
+          H.docs(migrated=True, **{R: mismatch_res}), True,
+          "receipt Maker/proposer identity")
+
+    no_scenario = re.sub(r"(?m)^\| scenario-\d+:F\d+ \|.*\n?", "", mrcpt)
+    H.run("G1", "triggered scenario-fragment population is omitted",
+          H.docs(migrated=True, **{R: no_scenario}), True,
+          "G15R/scenario-fragment-inventory")
+
+    H.run("SELFTEST", "negative self-test (wrong expectation injected)",
+          H.docs(), True)
+    st = H.results.pop()
+    H.self_test_ok = not st["ok"]
+    return H.results, H.self_test_ok
+
+
 # --------------------------------------------------------------------------
 # 26. Main.
 # --------------------------------------------------------------------------
@@ -4499,7 +5152,15 @@ def main():
     if tree.canon is None:
         print("FATAL: canon document not found", file=sys.stderr)
         return 2
-    print("Architect CBA canon v2.0 foundation validator (R2.10)")
+    extended = "--extended" in sys.argv[1:]
+    unknown = [a for a in sys.argv[1:] if a != "--extended"]
+    if unknown:
+        print("usage: %s [--extended]" % os.path.basename(__file__),
+              file=sys.stderr)
+        return 2
+    print("Architect CBA canon v2.0 balanced foundation validator (R2.11)")
+    print("control mode: %s" % ("extended diagnostic" if extended
+                                else "bounded default"))
     print("canon: %s" % CANON_REL.replace(os.sep, "/"))
     print("plan:  %s" % (PLAN_REL.replace(os.sep, "/")
                          if tree.plan is not None else "MISSING"))
@@ -4518,7 +5179,8 @@ def main():
     failures = 0
     try:
         repo = ControlRepo(root)
-        results, self_test_ok = run_cases(repo)
+        results, self_test_ok = (run_extended_cases(repo) if extended
+                                 else run_cases(repo))
     finally:
         if repo is not None:
             repo.cleanup()

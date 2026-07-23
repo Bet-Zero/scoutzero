@@ -132,16 +132,16 @@ receipt; no concrete
 CBA2/XW2/SXW2/SRC2/EV2/DR2/SM2/SS2/BND/BLK/RES/fragment/date-component/scenario-fragment
 record minted; earlier receipts immutable; receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_10_FOUNDATION_VALIDATION_CLOSURE.md`).
+The independent review of R2.10 also returned **REJECT/BLOCK-R3.1** and
+ordered the balanced R2.11 correction below.
 **The strict sequence is: R3 (executed; rejected) → R2.6 (executed;
 rejected) → R2.7 (executed; rejected) → R2.8 (executed; rejected) → R2.9
-(executed; rejected) → R2.10
-foundation-validation repair → independent Codex R2.10 review → R3.1
-A-series repair → independent Codex R3.1 review →
-R4 only if R3.1 is accepted.** **R2.10 is not independently accepted —
-completing R2.10 does not accept anything**; R3 remains rejected and no
-A-series record is accepted; R3.1 has not started and remains blocked
-pending independent Codex acceptance of the R2.10 foundation; **R4
-remains blocked** until a later independent Codex R3.1 acceptance.
+(executed; rejected) → R2.10 (executed; rejected) → R2.11 maker
+checkpoint → independent R2.11 checker ACCEPT → R3.1 maker checkpoint →
+independent R3.1 checker ACCEPT → R4.** Completion of R2.11 does not
+accept anything; R3 remains rejected and no A-series record is accepted.
+R3.1 remains blocked pending independent acceptance of R2.11, and R4
+remains blocked until later independent R3.1 acceptance.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
 code-map work, scenarios, and Linear remain out of scope for repair
@@ -724,9 +724,9 @@ is a one-way dependency scheduled backwards, not a cycle).
   is **not certified**. The R3 receipt is immutable review history; the
   committed records remain the live draft population and are repaired
   by **R3.1** through `AMEND` lineage (below) after independent Codex
-  acceptance of the **R2.6** foundation closure. The review's three
-  foundation-level contradictions were closed by R2.6; its A-series
-  findings form the bounded R3.1 backlog (below).
+  acceptance of the **R2.11 balanced foundation**. R2.6–R2.10 were
+  each independently rejected and do not unblock R3.1; their surviving
+  A-series findings form the bounded R3.1 backlog below.
 
 ## R2.6 — Post-R3 foundation closure (ordered by the independent Codex review of R3)
 
@@ -994,14 +994,15 @@ is a one-way dependency scheduled backwards, not a cycle).
   no R3 record repair (R3.1); no application, README, code-map, test,
   schema, fixture, configuration, data, or Linear work; R3.1, R4–R9,
   Phase 2, and W1.1 not started.
-- **Sequencing (superseded — R2.7 was rejected):** the intended
+- **Sequencing (superseded — R2.7 and its later foundation successors
+  through R2.10 were rejected):** the intended
   **R2.7 → independent Codex R2.7 review → R3.1** sequence did not hold;
   the R2.7 checkpoint was independently **rejected** (REJECT/BLOCK-R3.1),
-  and the corrected sequence runs **R2.7 (rejected) → R2.8 (rejected) →
-  R2.9 (rejected) → R2.10 → independent Codex R2.10 review → R3.1 →
-  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R3 remains rejected; no
-  A-series record is accepted; Phase 1 remains open; Phase 2 and W1.1
-  remain blocked.
+  and R2.8, R2.9, and R2.10 were rejected in turn. The current sequence
+  is **R2.7–R2.10 rejected → R2.11 maker checkpoint → independent R2.11
+  checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker
+  ACCEPT → R4.** R3 remains rejected; no A-series record is accepted;
+  Phase 1 remains open; Phase 2 and W1.1 remain blocked.
 - **Stop condition:** stop and report if a correction would require
   editing an active §15.10–§15.12 record-table row, repairing a
   committed R3 record, editing an immutable receipt, or redesigning a
@@ -1110,15 +1111,15 @@ is a one-way dependency scheduled backwards, not a cycle).
   edit; no R3 record repair (R3.1); no application, README, code-map,
   test, schema, fixture, configuration, data, or Linear work; R3.1,
   R4–R9, Phase 2, and W1.1 not started.
-- **Sequencing (superseded — R2.9 was rejected in turn):** the intended
+- **Sequencing (superseded — R2.8–R2.10 were rejected in turn):** the intended
   **R2.8 (executed; rejected) → R2.9 → independent
   Codex R2.9 review → R3.1 → independent Codex R3.1 review → R4 only if
-  R3.1 is accepted** sequence did not hold; the corrected sequence runs
-  **R2.9 (rejected) → R2.10 → independent Codex R2.10 review → R3.1 →
-  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R2.8 completion did not equal acceptance and the
-  R2.8 checkpoint was independently rejected; R3 remains rejected; no
-  A-series record is accepted; Phase 1 remains open; Phase 2 and W1.1
-  remain blocked.
+  R3.1 is accepted** sequence did not hold. The current sequence is
+  **R2.8–R2.10 rejected → R2.11 maker checkpoint → independent R2.11
+  checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker
+  ACCEPT → R4.** R2.8 completion did not equal acceptance; R3 remains
+  rejected; no A-series record is accepted; Phase 1 remains open;
+  Phase 2 and W1.1 remain blocked.
 - **Stop condition:** stop and report if a correction would require
   editing an active §15.10–§15.12 record-table row, repairing a
   committed R3 record, editing an immutable receipt, or redesigning a
@@ -1174,12 +1175,13 @@ is a one-way dependency scheduled backwards, not a cycle).
   §15.10–§15.12 record-table edit; no R3 record repair (R3.1); no
   application, README, code-map, test, schema, fixture, configuration,
   data, or Linear work; R3.1, R4–R9, Phase 2, and W1.1 not started.
-- **Sequencing (superseded — R2.9 was rejected):** the intended
+- **Sequencing (superseded — R2.9 and R2.10 were rejected):** the intended
   **R2.9 → independent Codex R2.9 review → R3.1 → independent Codex R3.1
-  review → R4 only if R3.1 is accepted** sequence did not hold; the
-  corrected sequence runs **R2.9 (rejected) → R2.10 → independent Codex
-  R2.10 review → R3.1 → independent Codex R3.1 review → R4 only if R3.1
-  is accepted.** R2.9 completion did not equal acceptance.
+  review → R4 only if R3.1 is accepted** sequence did not hold. The
+  current sequence is **R2.9–R2.10 rejected → R2.11 maker checkpoint →
+  independent R2.11 checker ACCEPT → R3.1 maker checkpoint →
+  independent R3.1 checker ACCEPT → R4.** R2.9 completion did not equal
+  acceptance.
 - **Stop condition:** stop and report if a correction would require
   editing an active §15.10–§15.12 record-table row, repairing a
   committed R3 record, editing an immutable receipt, or expanding beyond
@@ -1259,20 +1261,71 @@ is a one-way dependency scheduled backwards, not a cycle).
   §15.10–§15.12 record-table edit; no R3 record repair (R3.1); no
   application, README, code-map, test, schema, fixture, configuration,
   data, or Linear work; R3.1, R4–R9, Phase 2, and W1.1 not started.
-- **Sequencing:** **R2.10 → independent Codex R2.10 review → R3.1 →
-  independent Codex R3.1 review → R4 only if R3.1 is accepted.** R2.10
-  completion does not equal acceptance.
+- **Sequencing (superseded — R2.10 was rejected):** the intended
+  **R2.10 → independent Codex R2.10 review → R3.1** sequence did not
+  hold. The current sequence is **R2.10 rejected → R2.11 maker
+  checkpoint → independent R2.11 checker ACCEPT → R3.1 maker
+  checkpoint → independent R3.1 checker ACCEPT → R4.**
+- **Outcome:** the independent R2.10 review returned
+  **REJECT/BLOCK-R3.1**. R2.10 remains immutable rejected history and
+  does not unblock R3.1.
 - **Stop condition:** stop and report if a correction would require
   editing an active §15.10–§15.12 record-table row, repairing a
   committed R3 record, editing an immutable receipt, or expanding beyond
   the three modified files and one new receipt.
 
-## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.10 is independently accepted)
+## R2.11 — Balanced foundation certification (ordered by the independent review of R2.10)
 
-- **Status:** not started. Blocked until the independent Codex review
-  of the R2.10 foundation returns ACCEPT (the R2.6, R2.7, R2.8, and
-  R2.9 foundations were each independently rejected and do not unblock
-  R3.1).
+- **Status:** maker checkpoint complete on baseline `d29f4b35…`,
+  pending an independent checker review.
+  The independent review of R2.10 returned **REJECT/BLOCK-R3.1**. R2.10
+  remains rejected; completion of this maker unit is not acceptance.
+- **Frozen authority:** canon §15.9.12 is the controlling balanced
+  division. The validator owns deterministic IDs, schemas/headers,
+  vocabularies, typed references/joins, lineage, source identities and
+  locators, evidence graph structure, and preservation/no-silent-deletion
+  mechanics. The independent checker owns NBA/CBA truth, actual source
+  support, reasonableness, evidence adequacy, substantive completeness,
+  and actual maker/checker separation. Software does not prove identity,
+  intellectual independence, semantic perfection, universal
+  completeness, legal persuasiveness, source truth, or the nonexistence
+  of authority outside recorded searches.
+- **Complete R2.10-finding classification:** the acceptance-receipt,
+  G15R, governed-inventory, DR2, AMEND, scenario-fragment, BND, SXW2
+  DISP, EV2-root, source-date, R2.8 crosswalk, and sequencing/boundary
+  findings are each classified as mechanical, checker-judged, or retired
+  in canon §15.9.12 and the R2.11 receipt. No finding remains
+  unclassified.
+- **Mechanical checkpoint:** repair the acceptance schema/commit join and
+  duplicate-row handling; require DR2 fields/header/references/result/unit
+  grammar; add distinct scenario-fragment and polymorphic XW2/SXW2 BND
+  schemas with positional member-scope joins; apply DISP scope equality to
+  both registers; compute rooted acyclic EV2 closures under the class
+  matrix; enforce header conformance; replace free-prose AMEND inference
+  with structured cross-population AMEND detail; and simplify G15R to
+  actual triggered populations and controls.
+- **Bounded validator:** the deterministic default controls must complete
+  in under four minutes. Historical exhaustive mutation libraries may run
+  only as an explicitly optional diagnostic mode; a fixed pass count is
+  not certification evidence.
+- **Preservation:** every active §15.10–§15.12 table row remains
+  byte-identical; §5.9, historical §15.1–§15.8, scenarios 1–89, the
+  sixteen-check SC2 list, and every prior receipt remain unchanged.
+- **Explicit exclusions:** no R3 repair, active-row edit, C/R/L/S
+  registration, scenario construction, README, code-map, application,
+  runtime, test, schema, fixture, configuration, data, Linear, Phase 2,
+  or W1.1 work.
+- **Sequencing:** **R2.11 maker checkpoint → independent R2.11 checker
+  ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT.**
+  R3.1 remains blocked until the independent R2.11 result is ACCEPT.
+- **Stop condition:** stop if the correction would edit a protected active
+  row, an immutable prior receipt, or a Phase 2/application surface.
+
+## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.11 is independently accepted)
+
+- **Status:** not started. Blocked until the independent checker review
+  of the R2.11 balanced foundation returns ACCEPT (R2.6–R2.10 were
+  independently rejected and do not unblock R3.1).
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
   carries an `AMEND` record naming the prior checkpoint
@@ -1495,13 +1548,13 @@ is a one-way dependency scheduled backwards, not a cycle).
       R3.1 document tree** at the checkpoint, through its single
       top-level entry point — the same loader, parsers, and
       reconciliation engine the committed baseline uses; there is no
-      separate R3.1 validation path. Extend `G15R` (item 21) across all
-      **twelve enumerated populations** of canon §15.9.9 as corrected by
-      R2.10 (`SRC2-…` base; date components; fragment inventory;
-      `BND-…`; `SM2-…`; `SS2-…`; `DISP` detail; `BLK-…`; `RES-…`;
-      `AMEND`; the complete `DR2-…` population; and every dependent
-      reference and current endpoint), reporting each by name, and
-      confirm zero legacy-schema rows remain (no `Publication/effective
+      separate R3.1 validation path. Run the simplified R2.11 `G15R`
+      report (item 21) across every population actually touched or
+      required by the migrated document, naming each population and the
+      schema/header, lineage, direct-reference, and population-specific
+      controls executed. `DR2` and `AMEND-detail` are required; optional
+      populations are required only when their trigger exists. Confirm
+      zero legacy-schema rows remain (no `Publication/effective
       date` base header; no composite `Record status/version`; no
       committed `OWN`/`ATOM` terminal typing; no `SRC2-…` base row
       lacking `Artifact byte size`). Every committed identity from the
@@ -1526,15 +1579,13 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Required primary authorities (principal):** CBA VII §§2(c), 2(d), 2(e),
   4, 6; Article II; official releases.
 - **Dependency:** R1, R1.1, R2.1, R2.2, the **independently accepted
-  R2.10 foundation** (the R2.6, R2.7, R2.8, and R2.9 foundations were
-  each independently **rejected** and none unblocks R4; the stale
-  "independently accepted R2.7 foundation" dependency was corrected by
-  R2.9, and the stale "accepted R2.9 foundation" dependency is corrected
-  here by R2.10), and **completed R3.1 with an independent Codex ACCEPT
+  R2.11 balanced foundation** (R2.6–R2.10 were independently rejected
+  and none unblocks R4), and **completed R3.1 with an independent checker ACCEPT
   of the R3.1 checkpoint** (R3 alone does not unblock R4 — it was
   independently rejected) — the
-  construction sequence R3 → R2.6 → R2.7 → R2.8 → R2.9 → R2.10 → R3.1 →
-  R4 → R5 → R6 is strict (canon §15.9.2): all
+  construction sequence R3 → R2.6–R2.10 rejected → R2.11 → checker →
+  R3.1 → checker → R4 → checker → R5 → checker → R6 is strict
+  (canon §15.9.2): all
   units extend the shared §15.10–§15.12 sections and allocate from the
   shared XW2/SRC2/EV2/DR2/SM2 namespaces.
 - Note: this half contains the MTS (C10) and Apron (C07) rewrites from
@@ -1546,8 +1597,8 @@ is a one-way dependency scheduled backwards, not a cycle).
 - Same pattern, scoped to C14–C25.
 - **Required primary authorities (principal):** CBA Articles II §§3–12,
   VII §§3, 5, 7; VIII–IX; XI; XII; Exhibits B and C.
-- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R4** (strict
-  sequence, canon §15.9.2).
+- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R4 with an
+  independent checker ACCEPT** (strict sequence, canon §15.9.2).
 - Note: this half contains the incentive-cap denominator (C23), option/ETO
   shape (C24), Two-Way (C20), and Exhibit 10/9 (C21) corrections from R1.
 
@@ -1563,8 +1614,8 @@ is a one-way dependency scheduled backwards, not a cycle).
   2026-27 calendar (not yet officially published) and EAPS (unpublished —
   projection only); the historical L01.5 calendar bundle dispositioned per
   the R2.1 ownership rules (cross-references, not duplicate date LEAFs).
-- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R5** (strict
-  sequence, canon §15.9.2).
+- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R5 with an
+  independent checker ACCEPT** (strict sequence, canon §15.9.2).
 
 ## R7 — Rebuild semantic acceptance-scenario coverage
 
@@ -1605,86 +1656,45 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Explicit exclusions:** no register content changes beyond the
   scenario-evidence column and the bounded `METHOD`-recorded method-fit
   fields above; no tests written (that is Phase 2).
-- **Dependency:** R3–R6 complete.
+- **Dependency:** R3.1 and R4–R6 each complete with an independent
+  checker ACCEPT. R7 is a maker unit and receives its own independent
+  checker review before R8 begins.
 - **Stop condition:** a leaf with no honest scenario gets its primary
   method reclassified (STATIC/LIFECYCLE/EXTS) via a `METHOD` decision
   record rather than a cosmetic mapping; a discovery requiring a change to
   requirement, authority, evidence, origin, or dependencies returns to the
   owning R3–R6 unit instead of being fixed in R7.
 
-## R8 — Reconcile code map, dependencies, datasets, receipts, and final checksum
+## R8 — Global canon/register reconciliation and final checksum
 
-- **Inputs:** v2.0 register and scenarios (R3–R7), Adjudication §7–§8.
-- **Authorized files:**
-  `work/architect-completion/ARCHITECT_CBA_CANON_CODE_MAP.md` (superseding
-  edition), migration/amendment receipt for v2.0,
-  `docs/reference/cba/README.md` (status update only).
-- **Required primary authorities:** none new; repository inspection.
-- **Required output:** code map remapped to the active v2 register (active
-  `CBA2-…` LEAFs only); the successors of historical A04/A05/A07 pointed to
-  the operative sites (`tradeMachine/utils/matchingValues.ts`
-  BYC/poison-pill/kicker code); the successors of historical C22.1–.3
-  re-marked NO SITE or pointed to real sites; W4.1/W4.2 reordered (or the
-  Bird-status prerequisite extracted) so the "no unit depends on a later
-  one" claim is true; stale "uncommitted / nothing pushed" language removed
-  from receipts; dataset provenance table finalized; the crosswalk closed
-  (zero deferrals); canon §19.3's status table finally reconciled against
-  the completed active registry (no family called fully v2-certified
-  unless every active LEAF passes U8/U9/U14); README status updated while
-  keeping the canon unaccepted; v2.0 SHA-256 recorded in the receipt and
-  code map; all counts recomputed mechanically.
-- **Validation gate:** the §15.9.9 global reconciliation gates G1–G15 —
-  complete historical-LEAF crosswalk coverage; all non-terminal targets
-  resolve; terminal and companion true-gap records validate; global active
-  GROUP/LEAF counts with historical/support records excluded; code map and
-  Phase 2 packets contain active v2 LEAFs only, each exactly once where the
-  contract requires it; no historical ID, GROUP, crosswalk edge, or
-  scenario ID in any verdict column; dependency order with no later-unit
-  dependency and no cycles — mechanical cycle/order checks **plus a
-  semantic dependency review** (no claim that a parser proved a dependency
-  was never omitted); global ownership/atomicity reconciliation including
-  the rerun cross-family duplicate-candidate sweep with zero unresolved
-  candidates (G9); exhaustive semantic review of every `no-successor`
-  disposition and individual review of every `unsupported-residual`
-  disposition (including its required `SM2-…` search records), with
-  every terminal edge carrying a direct reference to a current,
-  correctly typed `DISP` record with its pinned detail row, complete
-  fragment-inventory reconciliation, and zero unresolved
-  `blocked-unsupported-obligation` findings (G1/G3); scenario
-  reconciliation rerun including the complete
-  SC2 SXW2 integrity contract (G10); global evidence reconciliation —
-  typed `SRC2` termination for every evidence path, no source-free
-  terminal `EV2` component, class-specific certification, valid
-  provenance-type ⇔ authority-class pairings, acyclic dependency chains,
-  exact Authority ⇔ EV reconciliation, zero orphan `SRC2`/`EV2`
-  references, type-specific field-level `SRC2` validation (base plus
-  pinned detail row, per-type `—` validity, timestamp/hash rules, the
-  pinned `YYYY-YY` season grammar, the `basis:value` source-date model
-  with its basis-aware month-precision rule and reconciled
-  date-component detail table, and the three split
-  verification-metadata fields under their §15.9.6 grammars), and
-  recomputed transitive dependency closures and terminal root sets for
-  every `EV2` component against the §15.9.6 compatibility matrix — zero
-  authority-laundering chains, OPS/EXT limitation propagation verified
-  (G14); amendment-chain integrity across every live v2
-  population — zero stale live references, no correction-created
-  duplicates or orphans, forward resolvability of every receipt-era
-  ID/version, one terminal disposition per supersession chain, and
-  §15.9.2 child-ID numbering integrity — explained gaps only, no ID
-  reuse, no renumbering, high-water-mark allocation (G15);
-  sampled semantic rechecks of
-  merge/split decisions, scenario coverage, and source-derived
-  obligations; final v2 checksum and counts; lint:md passes.
-- **Explicit exclusions:** no application code changes; no Phase 2 verdicts;
-  locatability only.
-- **Dependency:** R3–R7 complete.
-- **Stop condition:** any mapping that cannot be honestly classified stays
-  NO SITE — never a plausible-looking pointer.
+- **Inputs:** independently accepted R3.1 and R4–R7 checkpoints.
+- **Authorized files:** canon, repair plan, and the R8
+  reconciliation/checksum receipt only.
+- **Required output:** close every register/scenario deferral; recompute
+  GROUP/LEAF/support counts; run G1–G15 under the balanced division;
+  reconcile all current crosswalk, fragment/bundle, decision, evidence,
+  search, blocked-resolution, scenario, and AMEND-detail structures;
+  record semantic checker findings separately from parser output; and
+  record the final v2.0 checksum at a clean maker checkpoint.
+- **Balanced gate:** mechanical controls cover deterministic structure,
+  rooted acyclic EV2 graphs, direct current references, and preservation.
+  The independent R8 checker reviews source support, semantic
+  ownership/atomicity/coverage, evidence adequacy, amendment content
+  preservation, and substantive completeness before R9 begins.
+- **Explicit exclusions:** no README edit, code-map edit, application or
+  runtime inspection/change, runtime pointer sampling, Phase 2 packet,
+  application test, data/configuration change, or Phase 2 verdict. Those
+  surfaces are outside Phase 1 and may be planned only after acceptance.
+- **Dependency:** R7 complete with an independent checker ACCEPT.
+- **Sequencing:** R8 maker checkpoint → independent R8 checker ACCEPT →
+  R9. R9 may not begin on maker completion alone.
+- **Stop condition:** any unresolved structural or substantive finding
+  returns to the owning R-unit; it is never hidden by a checksum.
 
 ## R9 — Independent acceptance Reviews A–F
 
-- **Inputs:** the completed v2.0 package merged to a pinned clean commit
-  (merge to `main` only with owner approval).
+- **Inputs:** the completed v2.0 package at a pinned, clean **topic-branch
+  checkpoint**. R9 does not require or authorize a merge to `main`.
 - **Authorized files:** none (read-only review); reviewer writes its own
   report artifact.
 - **Required primary authorities:** same controlling set; the reviewer must
@@ -1693,7 +1703,7 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Required output:** Reviews A–F (repository/provenance; amendment
   lineage v1.1→v2.0; registry completeness/uniqueness/atomicity; scenario
   coverage; primary-source integrity including per-LEAF evidence sampling;
-  code map/execution plan) with an explicit ACCEPT or REJECT at a pinned
+  downstream execution readiness) with an explicit ACCEPT or REJECT at a pinned
   clean commit. The reviewer must re-run **every mechanical gate from
   scratch**, independently sample primary-source passages, independently
   sample active obligation atomicity and ownership, **independently
@@ -1722,13 +1732,15 @@ is a one-way dependency scheduled backwards, not a cycle).
   grammars — and an independent recomputation of every `EV2`
   component's transitive dependency closure and terminal root set
   against the §15.9.6 compatibility matrix — zero authority-laundering
-  chains)**, **re-run the complete SC2 SXW2
-  integrity contract**, and runtime-sample code-map pointers.
-- **Validation gate:** ACCEPT at a pinned clean commit is the only event
-  that closes Phase 1 and unblocks Phase 2/W1.1.
+  chains)**, and **re-run the complete SC2 SXW2 integrity contract**.
+- **Validation gate:** R9 ACCEPT at the pinned clean topic-branch commit
+  is necessary but not sufficient to unblock Phase 2/W1.1. The owner must
+  explicitly accept the completed Phase 1 package after R9. Only **R9
+  ACCEPT plus owner acceptance** closes Phase 1 and unblocks Phase 2.
 - **Explicit exclusions:** the reviewer must not have authored any v2.0
   content; no fixes during review.
-- **Dependency:** R1–R8 complete and checkpoint-committed.
+- **Dependency:** R1–R8 complete, checkpoint-committed, and R8
+  independently accepted.
 - **Stop condition:** on REJECT, findings return to the appropriate R-unit;
   Phase 2 and W1.1 remain blocked.
 
