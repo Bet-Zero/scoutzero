@@ -8,10 +8,13 @@
 
 **Maker role:** delegated Codex maker (`/root/compatibility_maker`)
 
+**Independent checker role:** read-only Codex checker
+(`/root/validation_scout`)
+
 **Parent adjudicator:** root Codex agent
 
-**Status:** corrective maker pass complete after the initial independent
-checker REJECT; pending independent checker re-review and not accepted
+**Status:** independently **ACCEPTED** at corrective checkpoint
+`c3a00637249444190a02a844fe104137ac78da5e`; frozen before R3.1 construction
 
 ## Decision
 
@@ -135,10 +138,33 @@ false positive, and preserves the rejected checkpoint as Git history.
   `aad4a4bdd41945f7ac5b26a9415292baaf5ed9a39f36bd531ab1c0593abbdf18`.
 - `git diff --check` passes.
 
-## Checker handoff
+## Independent checker verdict
 
-The checker must review the corrective descendant checkpoint read-only, rerun
-the default validator, inspect the binding plan/validator/receipt diff and the
-preserved canon, verify the protected ranges and active tables, and return an
-explicit ACCEPT or REJECT with line-specific findings. Until ACCEPT, R3.1
-remains blocked and R4 remains unstarted.
+The independent read-only checker returned **ACCEPT** on exact corrective
+checkpoint `c3a00637249444190a02a844fe104137ac78da5e`.
+
+- The checker reran the bounded default validator in 118.16 seconds: 12
+  accepting controls plus 86 rejecting regressions, 98 total,
+  `baseline_clean=yes`, effective negative self-test, and zero failures.
+- Python compilation, targeted Markdown lint, documentation guardrails, and
+  commit-range `git diff --check` passed.
+- All six initial rejection findings were directly re-probed and closed.
+- The 402 protected active rows retained SHA-256
+  `75b5b86b…9816d`; the SC2 block retained 3,314 bytes and SHA-256
+  `8bf229f5…5eea`; §5.9, §§15.1–15.8, scenarios 1–89, and prior receipts
+  remained unchanged from the accepted foundation baseline.
+- The worktree and topic refs were clean and synced at the accepted commit;
+  both main refs remained `69f8f6b6`.
+
+This compatibility checkpoint is now frozen accepted history. R3.1 is
+unblocked and is the next construction unit; R4 remains blocked until an
+independent R3.1 checker returns ACCEPT.
+
+## Acceptance recording validation
+
+The live status transition adds no substantive repair. The bounded validator
+ran twice against the accepted/unblocked, not-started tree: 13 accepting
+controls plus 87 rejecting regressions, 100 total, `baseline_clean=yes`,
+effective negative self-test, and zero failures. The complete 15,351-byte
+outputs were byte-identical with SHA-256
+`b6717bda20a0476abe9879eab6a74f6b5ff2112492e7f527547f953ff735bcf1`.

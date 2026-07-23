@@ -1101,15 +1101,37 @@ def check_plan(plan):
             probs.append("plan compatibility checkpoint omits required live "
                          "status/route control %r" % phrase)
     if migration == "pre-R3.1":
-        for phrase in (
-                "pending independent compatibility checker review and not "
-                "accepted",
-                "R3.1 is the next construction unit only after an independent "
-                "compatibility checker returns ACCEPT"):
-            if phrase not in compat_flat:
+        pending = (
+            "pending independent compatibility checker review and not "
+            "accepted" in compat_flat)
+        accepted = (
+            "independently **ACCEPTED** before R3.1 construction"
+            in compat_flat)
+        r31_flat = re.sub(r"\s+", " ", r31)
+        if pending == accepted:
+            probs.append(
+                "pre-R3.1 plan must record exactly one compatibility state: "
+                "pending/not accepted or independently ACCEPTED")
+        elif pending:
+            if ("R3.1 is the next construction unit only after an independent "
+                    "compatibility checker returns ACCEPT" not in compat_flat
+                    or "R3.1 remains blocked until the independent checker "
+                       "review" not in r31_flat):
                 probs.append(
-                    "pre-R3.1 plan compatibility checkpoint omits required "
-                    "pending status/route control %r" % phrase)
+                    "pending pre-R3.1 compatibility state does not keep R3.1 "
+                    "blocked on an independent checker ACCEPT")
+        elif accepted:
+            if ("independent compatibility checker returned ACCEPT on "
+                    "corrective checkpoint" not in compat_flat
+                    or "R3.1 is now unblocked and is the next construction "
+                       "unit" not in compat_flat
+                    or "not started" not in r31_flat
+                    or "R3.1 is unblocked and is the next construction unit"
+                       not in r31_flat):
+                probs.append(
+                    "accepted pre-R3.1 compatibility state does not record "
+                    "the checker ACCEPT and truthful unblocked/not-started "
+                    "R3.1 route")
     elif migration == "post-R3.1":
         if ("independently **ACCEPTED** before R3.1 execution"
                 not in compat_flat
@@ -4969,8 +4991,11 @@ def build_r31_document(repo, published, inv):
         "tree). This remains a one-time compatibility checkpoint, not an "
         "R2.x unit and not substantive R3.1 migration.")
     plan = re.sub(
-        r"R3\.1 is the next construction unit only after an independent\s+"
-        r"compatibility checker returns ACCEPT\.",
+        r"(?:R3\.1 is the next construction unit only after an independent\s+"
+        r"compatibility checker returns ACCEPT|The independent compatibility "
+        r"checker returned ACCEPT on\s+corrective checkpoint "
+        r"`?[0-9a-f]{40}`?;\s+"
+        r"R3\.1 is\s+now unblocked and is the next construction unit)\.",
         "R3.1 proceeded only after an independent compatibility checker "
         "returned ACCEPT.",
         plan,
@@ -6303,7 +6328,8 @@ def run_cases(repo):
     base, r31, inv, _published = build_bases(repo)
     H = Harness(repo, base, r31)
     C, P, R = CANON_REL, PLAN_REL, R31_RECEIPT_REL
-    canon, mcanon, mplan, mrcpt = base[C], r31[C], r31[P], r31[R]
+    canon, plan = base[C], base[P]
+    mcanon, mplan, mrcpt = r31[C], r31[P], r31[R]
 
     def replace_cell(text, row, index, value):
         cells = [c.strip() for c in row.strip()[1:-1].split("|")]
@@ -6344,6 +6370,44 @@ def run_cases(repo):
             + _table(inv.schema["AMEND-detail"], amend_rows))
 
     H.run("C0", "committed R2.14 baseline document tree", H.docs(), False)
+    pending_plan = replace_plan_section_status(
+        plan,
+        "## One-time pre-R3.1 foundation-compatibility checkpoint",
+        "## R3.1 ",
+        "maker correction complete; **pending independent compatibility "
+        "checker review and not accepted**. This is a one-time compatibility "
+        "checkpoint, not an R2.x unit and not substantive R3.1 migration.")
+    pending_plan = re.sub(
+        r"The independent compatibility checker returned ACCEPT on\s+"
+        r"corrective checkpoint `?[0-9a-f]{40}`?;\s+R3\.1 is\s+now "
+        r"unblocked and is the next construction unit\.",
+        "R3.1 is the next construction unit only after an independent "
+        "compatibility checker returns ACCEPT.",
+        pending_plan,
+        count=1)
+    pending_plan = replace_plan_section_status(
+        pending_plan,
+        "## R3.1 ",
+        "## R4 ",
+        "not started. R2.14 is accepted as settled by the current goal "
+        "authority; R3.1 remains blocked until the independent checker "
+        "review of the one-time compatibility checkpoint returns ACCEPT "
+        "(R2.6–R2.13 were independently rejected and do not unblock R3.1).")
+    H.run("C12", "pre-R3.1 compatibility checkpoint may remain pending while "
+          "R3.1 truthfully remains blocked",
+          H.docs(**{P: pending_plan}), False)
+    accepted_but_blocked = re.sub(
+        r"R3\.1 is\s+now unblocked and is the next construction unit",
+        "R3.1 remains blocked pending another compatibility checker ACCEPT",
+        plan,
+        count=1)
+    if accepted_but_blocked == plan:
+        raise AssertionError(
+            "accepted pre-R3.1 route control anchor is absent")
+    H.run("P11", "accepted pre-R3.1 compatibility status still describes "
+          "R3.1 as blocked",
+          H.docs(**{P: accepted_but_blocked}), True,
+          "accepted pre-R3.1 compatibility state")
     H.run("C1", "complete future-R3.1 migrated document tree through the "
           "same top-level validator", H.docs(migrated=True), False)
     contradictory_plan = replace_plan_section_status(

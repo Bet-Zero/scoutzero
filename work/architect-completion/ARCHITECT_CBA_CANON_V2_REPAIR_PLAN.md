@@ -164,8 +164,10 @@ the immutable R2.14 maker receipt. The strict live sequence is now: R3
 under the current goal authority) → one-time pre-R3.1
 foundation-compatibility maker checkpoint → independent compatibility
 checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT →
-R4. R3.1 remains blocked pending independent acceptance of the compatibility
-checkpoint, and R4 remains blocked until later independent R3.1 acceptance.
+R4. The independent compatibility checker accepted corrective checkpoint
+`c3a00637249444190a02a844fe104137ac78da5e`; R3.1 is now unblocked and is
+the next construction unit, while R4 remains blocked until later independent
+R3.1 acceptance.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
 code-map work, scenarios, and Linear remain out of scope for repair
@@ -1543,15 +1545,17 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## One-time pre-R3.1 foundation-compatibility checkpoint (goal-authorized)
 
-- **Status:** maker correction complete; **pending independent compatibility
-  checker review and not accepted**. This is a one-time compatibility
-  checkpoint, not an R2.x unit and not substantive R3.1 migration.
+- **Status:** independently **ACCEPTED** before R3.1 construction at
+  corrective checkpoint `c3a00637249444190a02a844fe104137ac78da5e`. This is
+  a one-time compatibility checkpoint, not an R2.x unit and not substantive
+  R3.1 migration.
 - **Authority and route:** the current goal objective authority settles R2.14
   as accepted without editing its historical maker receipt. This checkpoint
   closes only contradictions that would otherwise make the approved R3.1
   repair unrepresentable or make its validator reject valid governed
-  lineage. R3.1 is the next construction unit only after an independent
-  compatibility checker returns ACCEPT.
+  lineage. The independent compatibility checker returned ACCEPT on
+  corrective checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; R3.1 is
+  now unblocked and is the next construction unit.
 - **Authorized files (exact):**
   `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
@@ -1599,9 +1603,10 @@ is a one-way dependency scheduled backwards, not a cycle).
 ## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until the one-time compatibility checkpoint is independently accepted)
 
 - **Status:** not started. R2.14 is accepted as settled by the current goal
-  authority; R3.1 remains blocked until the independent checker review of the
-  one-time compatibility checkpoint returns ACCEPT (R2.6–R2.13 were
-  independently rejected and do not unblock R3.1).
+  authority, and the independent compatibility checker accepted corrective
+  checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; R3.1 is unblocked
+  and is the next construction unit (R2.6–R2.13 were independently rejected
+  and unblock nothing).
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
   carries an `AMEND` record naming the prior checkpoint
