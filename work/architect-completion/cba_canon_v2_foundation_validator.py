@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Architect CBA canon v2.0 — balanced foundation validator (R2.11).
+"""Architect CBA canon v2.0 — balanced foundation validator (R2.12).
 
 WHY THIS FILE EXISTS
 --------------------
@@ -23,7 +23,7 @@ architectural, not cosmetic:
   * Fixed population totals (`EXPECT`) simultaneously false-rejected valid
     append-only additions and admitted count-preserving substitutions.
 
-R2.11 BALANCED AUTHORITY
+R2.12 BALANCED AUTHORITY
 ------------------------
 One document-tree loader, one parser set, one reconciliation engine, one
 top-level entry point:
@@ -46,11 +46,13 @@ top-level entry point:
     duplicates, and shifted ranges fail even when counts match. Conformance
     carries no fixed totals — so valid append-only additions above today's
     high-water marks pass.
-  * `RES-…` acceptance resolves the acceptance commit in the tree's repository,
-    requires the receipt path to exist at that commit, parses the blob, and
-    requires exactly one structurally matching acceptance row, including its
-    own commit. This proves content binding, not actual intellectual
-    independence; the independent checker judges authorship and separation.
+  * `RES-…` acceptance resolves the maker checkpoint and requires that commit
+    to contain exactly one matching proposed/unaccepted RES row at the row's
+    governed proposal path. It then resolves a later descendant checker-receipt
+    commit, parses exactly one matching ACCEPT row, and binds both blobs to the
+    same ID/version/outcome/digest/actor/backlink content. This proves recorded
+    content and Git chronology, not actual intellectual independence; the
+    independent checker judges authorship and separation.
   * Normalized text lengths are DERIVED from the pinned published v1.1 edition
     at its pinned commit, so a nonexistent scenario, an out-of-range span
     endpoint, and a non-partitioning fragment inventory are all detectable.
@@ -222,6 +224,15 @@ def git_repo_root(path):
 
 def git_commit_exists(root, sha):
     return _git(root, "cat-file", "-e", sha + "^{commit}") is not None
+
+
+def git_is_strict_ancestor(root, older, newer):
+    """True only when both refs resolve and older is an ancestor of a
+    different newer commit."""
+    if older == newer or not git_commit_exists(root, older) or \
+            not git_commit_exists(root, newer):
+        return False
+    return _git(root, "merge-base", "--is-ancestor", older, newer) is not None
 
 
 def git_blob(root, sha, relpath):
@@ -627,7 +638,10 @@ def exact_ref_list(cell, pattern, label, allow_dash=True):
                      "list: %r" % (label, raw))
     if len(refs) != len(set(refs)):
         probs.append("%s: duplicate reference(s)" % label)
-    if refs != sorted(refs):
+    natural = lambda value: [
+        int(part) if part.isdigit() else part
+        for part in re.split(r"(\d+)", value)]
+    if refs != sorted(refs, key=natural):
         probs.append("%s: references are not ascending" % label)
     return refs, probs
 
@@ -702,6 +716,21 @@ def value_valid_for_basis(basis, value):
     return False
 
 
+def is_utc_timestamp(v):
+    m = re.fullmatch(
+        r"(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})Z", v or "")
+    return bool(m) and is_real_date(m.group(1)) and \
+        0 <= int(m.group(2)) <= 23 and 0 <= int(m.group(3)) <= 59 and \
+        0 <= int(m.group(4)) <= 59
+
+
+def is_absolute_http_url(v):
+    value = (v or "").strip().strip("`")
+    if value.startswith("<") and value.endswith(">"):
+        value = value[1:-1]
+    return bool(re.fullmatch(r"https?://[^\s<>]+", value))
+
+
 # --------------------------------------------------------------------------
 # 10. Governing repair-plan facts.
 # --------------------------------------------------------------------------
@@ -746,11 +775,11 @@ def check_plan(plan):
     if re.search(r"\*\*independently accepted\s+R2\.[789] foundation\*\*", r4):
         probs.append("plan R4 dependency still requires an accepted R2.7/R2.8/"
                      "R2.9 foundation (each was independently rejected)")
-    if not re.search(r"independently accepted\s*\n?\s*R2\.11 balanced "
+    if not re.search(r"independently accepted\s*\n?\s*R2\.12 balanced "
                      r"foundation", r4):
         probs.append("plan R4 dependency does not require the independently "
-                     "accepted R2.11 balanced foundation")
-    if not re.search(r"R2\.11 . checker .\s*\n?\s*R3\.1 . checker . R4 . "
+                     "accepted R2.12 balanced foundation")
+    if not re.search(r"R2\.12 . checker .\s*\n?\s*R3\.1 . checker . R4 . "
                      r"checker . R5 . checker . R6", r4):
         probs.append("plan R4 construction sequence omits a maker/checker "
                      "checkpoint between sequential construction units")
@@ -802,17 +831,18 @@ def check_plan(plan):
         probs.append("plan R3.1 status is not parseable (neither 'not started' "
                      "nor 'executed')")
 
-    r211 = plan_section(plan, "## R2.11 ", "## R3.1 ")
-    for phrase in ("Frozen authority", "Complete R2.10-finding classification",
-                   "Mechanical checkpoint", "Bounded validator",
+    r212 = plan_section(plan, "## R2.12 ", "## R3.1 ")
+    for phrase in ("Authorized files (exact)", "Bounded correction order",
+                   "Validator gate", "Preservation",
                    "Explicit exclusions"):
-        if phrase not in r211:
-            probs.append("plan R2.11 omits required balanced-certification "
+        if phrase not in r212:
+            probs.append("plan R2.12 omits required balanced-foundation "
                          "control %r" % phrase)
-    if not re.search(r"R2\.11 maker checkpoint . independent R2\.11 checker\s+"
-                     r"ACCEPT . R3\.1 maker checkpoint . independent R3\.1 "
-                     r"checker ACCEPT", r211):
-        probs.append("plan R2.11/R3.1 maker-checker sequence is incomplete")
+    if not re.search(r"R2\.11 rejected . R2\.12 maker checkpoint .\s*"
+                     r"independent R2\.12 checker ACCEPT . R3\.1 maker "
+                     r"checkpoint .\s*independent R3\.1 checker ACCEPT",
+                     r212):
+        probs.append("plan R2.12/R3.1 maker-checker sequence is incomplete")
 
     r5 = plan_section(plan, "## R5 ", "## R6 ")
     r6 = plan_section(plan, "## R6 ", "## R7 ")
@@ -840,6 +870,8 @@ def check_plan(plan):
     if not re.search(r"R9\s+ACCEPT plus owner acceptance", r9):
         probs.append("plan R9 does not require both reviewer and owner "
                      "acceptance to close Phase 1")
+    if "ARCHITECT_CBA_CANON_V2_R9_INDEPENDENT_ACCEPTANCE.md" not in r9:
+        probs.append("plan R9 does not name its sole authorized report path")
     return probs
 
 
@@ -859,8 +891,9 @@ class Ctx(object):
 
         for k in ("GROUP-index", "LEAF-main", "LEAF-detail", "XW2-edge",
                   "SRC2-base", "SRC2-detail-official-immutable",
-                  "SRC2-detail-official-mutable", "EV2-component",
-                  "SXW2-edge"):
+                  "SRC2-detail-official-mutable",
+                  "SRC2-detail-ops-provenance",
+                  "SRC2-detail-ext-contract", "EV2-component", "SXW2-edge"):
             h, rows, probs = parse_canon_population(tree.canon, inv, k)
             self.problems += probs
             self.header[k] = h
@@ -1011,6 +1044,33 @@ def check_group_leaf(ctx):
     for g, nums in sorted(by_group.items()):
         ctx.problems += contiguous_from_one(sorted(nums),
                                             "LEAF children of %s" % g)
+    # The GROUP row's declared range/count is a mechanical assertion, not
+    # decoration. It must describe the actual active children exactly.
+    for r in groups:
+        gid = r[0].strip("`")
+        declared = (ctx.f("GROUP-index", r, "Active LEAF children")
+                    or "").strip().replace("`", "")
+        refs = re.findall(r"CBA2-[ACRLS]\d{2}\.\d+", declared)
+        cm = re.search(r"\(([1-9]\d*)\)\s*$", declared)
+        actual = sorted(by_group.get(gid, []))
+        if not refs or not cm:
+            ctx.problems.append("GROUP %s: Active LEAF children %r lacks a "
+                                "parseable declared range/list and count"
+                                % (gid, declared))
+            continue
+        if any(ref.split(".")[0] != gid for ref in refs):
+            ctx.problems.append("GROUP %s: declared child range/list names a "
+                                "different GROUP" % gid)
+        declared_count = int(cm.group(1))
+        if declared_count != len(actual):
+            ctx.problems.append("GROUP %s: declared child count %d != actual "
+                                "active child count %d"
+                                % (gid, declared_count, len(actual)))
+        bounds = [int(ref.rsplit(".", 1)[1]) for ref in refs]
+        if actual and (min(bounds) != min(actual) or max(bounds) != max(actual)):
+            ctx.problems.append("GROUP %s: declared child range/list bounds "
+                                "%s do not match actual bounds %d–%d"
+                                % (gid, bounds, min(actual), max(actual)))
     return set(mids)
 
 
@@ -1270,11 +1330,26 @@ def check_src2_ev2(ctx, active_leaves, migration):
     base = ctx.pop["SRC2-base"]
     imm = ctx.pop["SRC2-detail-official-immutable"]
     mut = ctx.pop["SRC2-detail-official-mutable"]
+    ops = ctx.pop["SRC2-detail-ops-provenance"]
+    ext = ctx.pop["SRC2-detail-ext-contract"]
     ev2 = ctx.pop["EV2-component"]
     base_ids = [r[0].strip("`") for r in base]
     if len(base_ids) != len(set(base_ids)):
         ctx.problems.append("SRC2 base: duplicate record id(s)")
-    det_ids = [r[0].strip("`") for r in imm] + [r[0].strip("`") for r in mut]
+    for rid in base_ids:
+        if not re.fullmatch(r"SRC2-\d{3}", rid):
+            ctx.problems.append("SRC2 base: malformed record id %r" % rid)
+    ctx.problems += contiguous_from_one(
+        [int(rid.split("-")[1]) for rid in base_ids
+         if re.fullmatch(r"SRC2-\d{3}", rid)], "SRC2")
+    details = {
+        "official-immutable": ("SRC2-detail-official-immutable", imm),
+        "official-mutable": ("SRC2-detail-official-mutable", mut),
+        "ops-provenance": ("SRC2-detail-ops-provenance", ops),
+        "ext-contract": ("SRC2-detail-ext-contract", ext),
+    }
+    det_ids = [r[0].strip("`") for _ptype, (_key, rows) in details.items()
+               for r in rows]
     if len(det_ids) != len(set(det_ids)):
         ctx.problems.append("SRC2 detail: duplicate record id(s)")
     if set(base_ids) != set(det_ids):
@@ -1290,16 +1365,43 @@ def check_src2_ev2(ctx, active_leaves, migration):
                     % rid)
         rec = {"id": rid, "type": ptype}
         if migration == "post-R3.1":
-            for fname, vkey in (("Record status", "record-status"),):
-                vocab_check(ctx, vkey, ctx.f("SRC2-base", r, fname),
-                            "SRC2 %s %s" % (rid, fname))
-            ver = (ctx.f("SRC2-base", r, "Record version") or "").strip("`")
+            val = lambda f: (ctx.f("SRC2-base", r, f)
+                             or "").strip().strip("`")
+            identity = val("Source/provenance identity")
+            sd = val("Source date (basis:value) or —")
+            url = val("Official URL or —")
+            sha = val("Artifact SHA-256 or —")
+            size = val("Artifact byte size or —")
+            retrieval = val("Retrieval timestamp or —")
+            auth = val("Authentication timestamp or —")
+            verifier = val("Verifier identity")
+            session = val("Verification session ID")
+            vdate = val("Verification date")
+            limits = val("Record limitations")
+            status = val("Record status")
+            ver = val("Record version")
+            vocab_check(ctx, "record-status", status,
+                        "SRC2 %s Record status" % rid)
             if not re.fullmatch(r"[1-9]\d*", ver):
                 ctx.problems.append("SRC2 %s: Record version %r is not an "
                                     "unpadded positive integer" % (rid, ver))
-            sha = (ctx.f("SRC2-base", r, "Artifact SHA-256 or —") or "").strip("`")
-            size = (ctx.f("SRC2-base", r,
-                          "Artifact byte size or —") or "").strip("`")
+            if not identity or identity == DASH:
+                ctx.problems.append("SRC2 %s: Source/provenance identity is "
+                                    "required and never —" % rid)
+            if not re.fullmatch(
+                    r"(?:human|agent):[a-z0-9][a-z0-9._-]{0,63}", verifier):
+                ctx.problems.append("SRC2 %s: Verifier identity %r is "
+                                    "malformed" % (rid, verifier))
+            if not re.fullmatch(
+                    r"session:[a-z0-9][a-z0-9._-]{0,95}", session):
+                ctx.problems.append("SRC2 %s: Verification session ID %r is "
+                                    "malformed" % (rid, session))
+            if not is_real_date(vdate):
+                ctx.problems.append("SRC2 %s: Verification date %r is not a "
+                                    "real YYYY-MM-DD date" % (rid, vdate))
+            if not limits or limits == DASH:
+                ctx.problems.append("SRC2 %s: Record limitations is required "
+                                    "(state none expressly)" % rid)
             if sha != DASH and not re.fullmatch(r"[0-9a-f]{64}", sha):
                 ctx.problems.append("SRC2 %s: Artifact SHA-256 is malformed"
                                     % rid)
@@ -1311,10 +1413,38 @@ def check_src2_ev2(ctx, active_leaves, migration):
             if size != DASH and not re.fullmatch(r"[1-9]\d*", size):
                 ctx.problems.append("SRC2 %s: Artifact byte size %r is not an "
                                     "unpadded positive integer" % (rid, size))
-            sd = (ctx.f("SRC2-base", r, "Source date (basis:value) or —")
-                  or "").strip("`")
+            official = ptype in ("official-immutable", "official-mutable")
+            if official and (url == DASH or not is_absolute_http_url(url)):
+                ctx.problems.append("SRC2 %s: %s requires an absolute "
+                                    "Official URL" % (rid, ptype))
+            elif url != DASH and not is_absolute_http_url(url):
+                ctx.problems.append("SRC2 %s: Official URL %r is not absolute"
+                                    % (rid, url))
+            if official and (sha == DASH or size == DASH):
+                ctx.problems.append("SRC2 %s: %s requires artifact hash and "
+                                    "byte size" % (rid, ptype))
+            if official and not is_utc_timestamp(retrieval):
+                ctx.problems.append("SRC2 %s: %s requires a valid UTC "
+                                    "Retrieval timestamp" % (rid, ptype))
+            elif retrieval != DASH and not is_utc_timestamp(retrieval):
+                ctx.problems.append("SRC2 %s: Retrieval timestamp %r is "
+                                    "malformed" % (rid, retrieval))
+            if ptype in ("ops-provenance", "ext-contract"):
+                if not is_utc_timestamp(auth):
+                    ctx.problems.append("SRC2 %s: %s requires a valid UTC "
+                                        "Authentication timestamp"
+                                        % (rid, ptype))
+                if sha != DASH and not is_utc_timestamp(retrieval):
+                    ctx.problems.append("SRC2 %s: artifact-bearing %s requires "
+                                        "a Retrieval timestamp" % (rid, ptype))
+            elif auth != DASH and not is_utc_timestamp(auth):
+                ctx.problems.append("SRC2 %s: Authentication timestamp %r is "
+                                    "malformed" % (rid, auth))
+            if official and sd == DASH:
+                ctx.problems.append("SRC2 %s: %s requires a Source date pair"
+                                    % (rid, ptype))
             if sd != DASH:
-                if ":" not in sd:
+                if sd.count(":") != 1:
                     ctx.problems.append("SRC2 %s: Source date %r is not a "
                                         "<basis>:<value> pair" % (rid, sd))
                 else:
@@ -1325,18 +1455,85 @@ def check_src2_ev2(ctx, active_leaves, migration):
                             ctx.problems.append("SRC2 %s: source-date value %r "
                                                 "is invalid for basis %s"
                                                 % (rid, v, b))
+                        if ptype == "official-mutable" and b == "edition" and \
+                                not is_season(v):
+                            ctx.problems.append("SRC2 %s: official-mutable "
+                                                "edition value %r is not a "
+                                                "YYYY-YY season" % (rid, v))
+                        if ptype == "official-immutable" and is_season(v):
+                            ctx.problems.append("SRC2 %s: official-immutable "
+                                                "Source date may not use a "
+                                                "season value" % rid)
                     rec["date"] = (b, v)
             rec["sha"] = sha
             rec["size"] = size
+            rec["status"] = status
+            rec["ver"] = ver
         src2[rid] = rec
-    for r in imm:
-        rid = r[0].strip("`")
-        src2.setdefault(rid, {}).setdefault("identity", ctx.f(
-            "SRC2-detail-official-immutable", r, "Source title and edition"))
-    for r in mut:
-        rid = r[0].strip("`")
-        src2.setdefault(rid, {}).setdefault("identity", ctx.f(
-            "SRC2-detail-official-mutable", r, "Publication identity"))
+    identity_field = {
+        "official-immutable": "Source title and edition",
+        "official-mutable": "Publication identity",
+        "ops-provenance": "Named first-party provenance identity",
+        "ext-contract": "External determination class",
+    }
+    optional_detail = {
+        "official-immutable": set(),
+        "official-mutable": {"Publication date or —", "Season or —",
+                             "Archive/snapshot reference or —"},
+        "ops-provenance": {"Artifact identity or —"},
+        "ext-contract": {"Controlling source/rule reference or —"},
+    }
+    for expected, (key, rows) in details.items():
+        for r in rows:
+            rid = r[0].strip("`")
+            ident = ctx.f(key, r, identity_field[expected])
+            src2.setdefault(rid, {}).setdefault("identity", ident)
+            if migration != "post-R3.1":
+                continue
+            if rid in src2 and src2[rid].get("type") != expected:
+                ctx.problems.append("SRC2 %s: detail row is in %s, but base "
+                                    "Provenance type is %s"
+                                    % (rid, key, src2[rid].get("type")))
+            for field in ctx.inv.schema.get(key, [])[1:]:
+                value = (ctx.f(key, r, field) or "").strip().strip("`")
+                if (not value or value == DASH) and \
+                        field not in optional_detail[expected]:
+                    ctx.problems.append("SRC2 %s: required %s detail field %s "
+                                        "is blank/dash" % (rid, expected, field))
+            if expected == "official-mutable":
+                pub = (ctx.f(key, r, "Publication date or —")
+                       or "").strip().strip("`")
+                season = (ctx.f(key, r, "Season or —")
+                          or "").strip().strip("`")
+                populated = int(pub != DASH) + int(season != DASH)
+                if populated != 1:
+                    ctx.problems.append("SRC2 %s: official-mutable detail "
+                                        "requires exactly one Publication "
+                                        "date or Season" % rid)
+                if pub != DASH and not (is_real_date(pub) or is_month(pub)):
+                    ctx.problems.append("SRC2 %s: Publication date %r is "
+                                        "malformed" % (rid, pub))
+                if season != DASH and not is_season(season):
+                    ctx.problems.append("SRC2 %s: Season %r is not valid "
+                                        "YYYY-YY" % (rid, season))
+                want = ("publication", pub) if pub != DASH else \
+                    ("edition", season)
+                if src2.get(rid, {}).get("date") != want:
+                    ctx.problems.append("SRC2 %s: official-mutable detail "
+                                        "date/season does not equal the base "
+                                        "Source date primary pair" % rid)
+            elif expected == "ops-provenance":
+                effective = (ctx.f(key, r, "Effective date or window")
+                             or "").strip().strip("`")
+                if not value_valid_for_basis("effective", effective):
+                    ctx.problems.append("SRC2 %s: ops-provenance Effective "
+                                        "date/window %r is malformed"
+                                        % (rid, effective))
+                base_date = src2.get(rid, {}).get("date")
+                if base_date and base_date != ("effective", effective):
+                    ctx.problems.append("SRC2 %s: ops-provenance base Source "
+                                        "date does not mirror its governed "
+                                        "detail effective date/window" % rid)
     for r in base:
         rid = r[0].strip("`")
         src2.setdefault(rid, {})["base_identity"] = ctx.f(
@@ -1380,6 +1577,14 @@ def check_src2_ev2(ctx, active_leaves, migration):
         if leaf not in active_leaves:
             ctx.problems.append("EV2 %s: references nonexistent active LEAF %s"
                                 % (eid, leaf))
+        for field in ("Exact locator(s)",
+                      "Controlling passage or tight paraphrase",
+                      "Passage-to-obligation mapping"):
+            value = (ctx.f("EV2-component", r, field)
+                     or "").strip().strip("`")
+            if not value or value == DASH:
+                ctx.problems.append("EV2 %s: required field %s is blank/dash"
+                                    % (eid, field))
         srefs, sp = exact_ref_list(
             ctx.f("EV2-component", r, "Source/provenance record IDs or —"),
             r"SRC2-\d{3}", "EV2 %s source references" % eid)
@@ -1578,6 +1783,56 @@ def check_dr2(ctx, edges, active_leaves, migration):
                 ctx.problems.append("LEAF %s: decision reference %s resolves to "
                                     "no DR2 record" % (lid, ref))
     return dr2
+
+
+def check_leaf_references(ctx, edges, dr2, active_leaves):
+    """Resolve the two LEAF reference surfaces R2.11 left unchecked."""
+    xedges = {e["id"]: e for e in edges
+              if e.get("register", "XW2") == "XW2"}
+    origins = {}
+    for r in ctx.pop["LEAF-main"]:
+        lid = r[0].strip("`")
+        raw = (ctx.f("LEAF-main", r, "Origin") or "").strip()
+        nm = re.fullmatch(r"new \((DR2-\d{4})\)", raw.strip("`"))
+        if nm:
+            did = nm.group(1)
+            if did not in dr2:
+                ctx.problems.append("LEAF %s: new Origin decision %s does not "
+                                    "resolve" % (lid, did))
+            origins[lid] = set()
+            continue
+        refs, rp = exact_ref_list(raw, r"XW2-\d{4}",
+                                  "LEAF %s Origin" % lid,
+                                  allow_dash=False)
+        ctx.problems += rp
+        origins[lid] = set(refs)
+        for eid in refs:
+            edge = xedges.get(eid)
+            if edge is None:
+                ctx.problems.append("LEAF %s: Origin references nonexistent "
+                                    "%s" % (lid, eid))
+            elif edge["terminal"] or edge["tgt"] != lid:
+                ctx.problems.append("LEAF %s: Origin %s does not target this "
+                                    "active LEAF" % (lid, eid))
+
+    for eid, edge in sorted(xedges.items()):
+        if edge["terminal"]:
+            continue
+        if eid not in origins.get(edge["tgt"], set()):
+            ctx.problems.append("XW2 %s: nonterminal target %s does not "
+                                "back-reference the edge in its Origin field"
+                                % (eid, edge["tgt"]))
+
+    for r in ctx.pop["LEAF-detail"]:
+        lid = r[0].strip("`")
+        refs, rp = exact_ref_list(
+            ctx.f("LEAF-detail", r, "Dependencies"),
+            r"CBA2-[ACRLS]\d{2}\.\d+", "LEAF %s Dependencies" % lid)
+        ctx.problems += rp
+        for dep in refs:
+            if dep not in active_leaves:
+                ctx.problems.append("LEAF %s: dependency %s does not resolve "
+                                    "to an active LEAF" % (lid, dep))
 
 
 def check_disp(ctx, edges, dr2, published, sm2_ids, ss2_ids, migration):
@@ -2608,12 +2863,37 @@ def parse_acceptance_records(text, ctx):
     return out
 
 
+def parse_proposal_records(text, ctx):
+    """Parse the exact governed RES table from one proposal-receipt blob."""
+    token, idre = ctx.inv.headings.get("RES-record",
+                                       ("Resolutions", r"RES-[0-9]{4}"))
+    fields = ctx.inv.schema.get("RES-record", [])
+    rows = pipe_rows(heading_block(text, token))
+    probs = []
+    headers = [r for r in rows if r == fields]
+    if len(headers) != 1:
+        probs.append("proposal receipt: expected exactly one RES table with "
+                     "the exact governed header, found %d" % len(headers))
+    out = {}
+    for r in rows:
+        if not r or not re.fullmatch(idre, r[0].strip("`")):
+            continue
+        rid = r[0].strip("`")
+        if len(r) != len(fields):
+            probs.append("proposal receipt: RES %s row width %d != governed "
+                         "%d" % (rid, len(r), len(fields)))
+            continue
+        out.setdefault(rid, []).append(
+            dict(zip(fields, [c.strip() for c in r])))
+    return out, probs
+
+
 def res_binding_digest(ctx, row):
     """SHA-256 of the canon's pinned '|'-joined RES binding content."""
     parts = [ctx.f("RES-record", row, f) for f in (
         "Blocked finding ID", "Proposed outcome", "Resolver authority",
         "Maker/proposer identity", "Independent checker identity",
-        "Reopening condition", "Limitations")]
+        "Proposal receipt path", "Reopening condition", "Limitations")]
     return sha_hex("|".join((p or "").strip() for p in parts))
 
 
@@ -2632,6 +2912,7 @@ def check_blk_res(ctx, sm2, ss2, frags):
         outcome = g("Proposed outcome").strip("`")
         maker = g("Maker/proposer identity").strip("`")
         checker = g("Independent checker identity").strip("`")
+        proposal = g("Proposal receipt path").strip("`")
         checkpoint = g("Accepted checkpoint commit or —").strip("`")
         receipt_commit = g("Acceptance receipt commit or —").strip("`")
         receipt = g("Acceptance receipt or —").strip("`")
@@ -2649,6 +2930,7 @@ def check_blk_res(ctx, sm2, ss2, frags):
                                 "unpadded positive integer" % (rid, ver))
         res[rid] = {"id": rid, "row": r, "blk": g("Blocked finding ID"),
                     "outcome": outcome, "maker": maker, "checker": checker,
+                    "proposal": proposal,
                     "checkpoint": checkpoint,
                     "receipt_commit": receipt_commit, "receipt": receipt,
                     "acc_ver": acc_ver,
@@ -2656,6 +2938,13 @@ def check_blk_res(ctx, sm2, ss2, frags):
                     "ver": ver, "accepted": False}
 
     for rid, R in sorted(res.items()):
+        acceptance_values = (R["checkpoint"], R["receipt_commit"],
+                             R["receipt"], R["acc_ver"], R["acc_dig"],
+                             R["acc_out"])
+        if R["status"] == "proposed" and any(
+                value != DASH for value in acceptance_values):
+            ctx.problems.append("RES %s: proposed row must carry — in every "
+                                "later acceptance field" % rid)
         if R["status"] != "accepted":
             continue
         ok = True
@@ -2686,6 +2975,84 @@ def check_blk_res(ctx, sm2, ss2, frags):
                                     "commit in the governing repository"
                                     % (rid, label, R[key]))
                 ok = False
+        if re.fullmatch(r"[0-9a-f]{40}", R["checkpoint"]) and \
+                re.fullmatch(r"[0-9a-f]{40}", R["receipt_commit"]) and \
+                git_commit_exists(repo, R["checkpoint"]) and \
+                git_commit_exists(repo, R["receipt_commit"]) and \
+                not git_is_strict_ancestor(repo, R["checkpoint"],
+                                           R["receipt_commit"]):
+            ctx.problems.append("RES %s: acceptance-receipt commit is not a "
+                                "strict descendant of the maker proposal "
+                                "checkpoint (retroactive or unordered "
+                                "acceptance)" % rid)
+            ok = False
+
+        proposal_blob = None
+        proposal_path = R["proposal"].replace("\\", "/")
+        normalized = os.path.normpath(proposal_path).replace(os.sep, "/")
+        if R["proposal"] in ("", DASH) or proposal_path != normalized or \
+                proposal_path.startswith("../") or \
+                not proposal_path.startswith("work/architect-completion/") or \
+                not proposal_path.endswith(".md"):
+            ctx.problems.append("RES %s: Proposal receipt path %r is not a "
+                                "normalized repository-relative markdown path "
+                                "under work/architect-completion" %
+                                (rid, R["proposal"]))
+            ok = False
+        elif re.fullmatch(r"[0-9a-f]{40}", R["checkpoint"]) and \
+                git_commit_exists(repo, R["checkpoint"]):
+            b = git_blob(repo, R["checkpoint"], proposal_path)
+            if b is None:
+                ctx.problems.append("RES %s: Proposal receipt path %r does not "
+                                    "exist at maker checkpoint %s"
+                                    % (rid, proposal_path,
+                                       R["checkpoint"][:12]))
+                ok = False
+            else:
+                proposal_blob = b.decode("utf-8", "replace")
+        if proposal_blob is not None:
+            proposed, pp = parse_proposal_records(proposal_blob, ctx)
+            ctx.problems += ["RES %s: %s" % (rid, p) for p in pp]
+            matches = proposed.get(rid, [])
+            if len(matches) != 1:
+                ctx.problems.append("RES %s: maker checkpoint proposal "
+                                    "contains %d matching rows; exactly one is "
+                                    "required" % (rid, len(matches)))
+                ok = False
+            else:
+                prow = matches[0]
+                if prow.get("Resolution status", "").strip("`") != "proposed":
+                    ctx.problems.append("RES %s: maker checkpoint row is not "
+                                        "proposed/unaccepted" % rid)
+                    ok = False
+                later = ("Accepted checkpoint commit or —",
+                         "Acceptance receipt commit or —",
+                         "Acceptance receipt or —",
+                         "Accepted RES version or —",
+                         "Accepted content digest or —",
+                         "Accepted proposed outcome or —")
+                for field in later:
+                    if (prow.get(field) or "").strip("`") != DASH:
+                        ctx.problems.append("RES %s: maker checkpoint proposal "
+                                            "already populates %s"
+                                            % (rid, field))
+                        ok = False
+                same = ("Resolution ID", "Blocked finding ID",
+                        "Proposed outcome", "Resolver authority",
+                        "Maker/proposer identity",
+                        "Independent checker identity",
+                        "Proposal receipt path", "Resolution version",
+                        "Reopening condition", "Limitations",
+                        "Superseding/current relationship or —")
+                current = dict(zip(ctx.inv.schema["RES-record"], R["row"]))
+                for field in same:
+                    mine = (current.get(field) or "").strip().strip("`")
+                    theirs = (prow.get(field) or "").strip().strip("`")
+                    if mine != theirs:
+                        ctx.problems.append("RES %s: maker checkpoint proposal "
+                                            "%s %r != current row %r"
+                                            % (rid, field, theirs, mine))
+                        ok = False
         if R["acc_ver"] != R["ver"]:
             ctx.problems.append("RES %s: Accepted RES version %r != current "
                                 "Resolution version %r (stale acceptance)"
@@ -2867,6 +3234,18 @@ SUPERSEDE_FIELDS = (
      r"RES-\d{4}"),
 )
 
+VERSION_LINEAGE_SUPPORT = (
+    ("fragment", "fragment-inventory", "Fragment version"),
+    ("scenario-fragment", "scenario-fragment-inventory", "Fragment version"),
+    ("BND", "BND-bundle", "Bundle version"),
+    ("SM2", "SM2-record", "Search version"),
+    ("SS2", "SS2-record", "Set version"),
+)
+VERSION_LINEAGE_BY_POPULATION = {
+    population: (key, field)
+    for population, key, field in VERSION_LINEAGE_SUPPORT
+}
+
 
 def check_amend(ctx, dr2):
     """Real AMEND lineage: no reuse, exactly one current endpoint per chain,
@@ -2874,6 +3253,7 @@ def check_amend(ctx, dr2):
     amend_ids = {d for d, v in dr2.items() if v["type"] == "AMEND"}
     detail_rows = ctx.pop.get("AMEND-detail", [])
     detail_by_parent, prior_seen, checkpoint_cache = {}, set(), {}
+    checkpoint_tree_cache, checkpoint_population_cache = {}, {}
     lineage_edges = {}
     current_population = {
         "GROUP": set(ctx.ids("GROUP-index")),
@@ -2935,6 +3315,7 @@ def check_amend(ctx, dr2):
         else:
             if checkpoint not in checkpoint_cache:
                 old = Tree(ctx.tree.repo or ctx.tree.root, ref=checkpoint)
+                checkpoint_tree_cache[checkpoint] = old
                 checkpoint_cache[checkpoint] = "\n".join(
                     [old.canon or "", old.plan or "", old.receipt_text()])
             if not re.search(r"(?<![A-Za-z0-9_.:#-])%s(?![A-Za-z0-9_.:#-])"
@@ -2983,9 +3364,66 @@ def check_amend(ctx, dr2):
                                          if re.fullmatch(r"[1-9]\d*", v)):
                 ctx.problems.append("AMEND detail %s: current version does not "
                                     "advance beyond prior version" % aid)
+            if action == "revise" and re.fullmatch(r"[1-9]\d*", prior_ver) \
+                    and len(versions) == 1 and \
+                    re.fullmatch(r"[1-9]\d*", versions[0]) and \
+                    int(versions[0]) != int(prior_ver) + 1:
+                ctx.problems.append("AMEND detail %s: same-identity revise "
+                                    "must advance exactly one version"
+                                    % aid)
         elif action == "revise":
             ctx.problems.append("AMEND detail %s: revise requires explicit "
                                 "prior and current versions" % aid)
+        if action == "revise" and prior_ver == DASH:
+            ctx.problems.append("AMEND detail %s: revise requires an explicit "
+                                "prior version" % aid)
+        if action == "revise" and population in \
+                VERSION_LINEAGE_BY_POPULATION and \
+                re.fullmatch(r"[0-9a-f]{40}", checkpoint) and \
+                git_commit_exists(ctx.tree.repo or ctx.tree.root, checkpoint):
+            cache_key = (checkpoint, population)
+            if cache_key not in checkpoint_population_cache:
+                old = checkpoint_tree_cache.get(checkpoint)
+                if old is None:
+                    old = Tree(ctx.tree.repo or ctx.tree.root, ref=checkpoint)
+                    checkpoint_tree_cache[checkpoint] = old
+                pop_key, version_field = \
+                    VERSION_LINEAGE_BY_POPULATION[population]
+                header, old_rows, parse_problems = \
+                    parse_receipt_population(old, ctx.inv, pop_key)
+                versions = {}
+                if header and version_field in header:
+                    version_index = header.index(version_field)
+                    for old_row in old_rows:
+                        old_id = old_row[0].strip("`")
+                        old_version = old_row[version_index].strip("`")
+                        versions.setdefault(old_id, []).append(old_version)
+                checkpoint_population_cache[cache_key] = (
+                    pop_key, header, parse_problems, versions)
+            pop_key, header, parse_problems, versions = \
+                checkpoint_population_cache[cache_key]
+            for problem in parse_problems:
+                ctx.problems.append(
+                    "AMEND detail %s: prior-checkpoint %s parse failed: %s"
+                    % (aid, pop_key, problem))
+            if header != ctx.inv.schema.get(pop_key):
+                ctx.problems.append(
+                    "AMEND detail %s: prior checkpoint %s does not carry the "
+                    "exact governed %s header" % (aid, checkpoint[:12],
+                                                  pop_key))
+            matches = versions.get(prior, [])
+            if len(matches) != 1:
+                ctx.problems.append(
+                    "AMEND detail %s: prior %s identity %s resolves %d times "
+                    "in the exact governed population at checkpoint %s"
+                    % (aid, population, prior, len(matches),
+                       checkpoint[:12]))
+            elif re.fullmatch(r"[1-9]\d*", prior_ver) and \
+                    matches[0] != prior_ver:
+                ctx.problems.append(
+                    "AMEND detail %s: prior checkpoint records version %s, "
+                    "not claimed prior version %s for %s %s"
+                    % (aid, matches[0], prior_ver, population, prior))
         if not reason or reason == DASH:
             ctx.problems.append("AMEND detail %s: Reason is blank/dash" % aid)
         if action != "revise":
@@ -3085,6 +3523,43 @@ def check_amend(ctx, dr2):
                                 "decision record %s (stale live reference; "
                                 "every live reference must point directly at "
                                 "the current record)" % (eid, dec))
+
+
+def check_version_lineage(ctx):
+    """Every version above 1 needs the exact structured same-ID revise that
+    explains the immediate one-step transition."""
+    details = ctx.pop.get("AMEND-detail", [])
+    revise = {}
+    for r in details:
+        g = lambda f: (ctx.f("AMEND-detail", r, f)
+                       or "").strip().strip("`")
+        if g("Action") != "revise":
+            continue
+        key = (g("Population"), g("Prior record ID"))
+        revise.setdefault(key, []).append({
+            "prior": g("Prior version or —"),
+            "current_ids": g("Current record ID(s) or —"),
+            "current_versions": g("Current version(s) or —"),
+        })
+
+    for population, key, field in VERSION_LINEAGE_SUPPORT:
+        for r in ctx.pop.get(key, []):
+            rid = r[0].strip("`")
+            version = (ctx.f(key, r, field) or "").strip().strip("`")
+            if not re.fullmatch(r"[1-9]\d*", version) or version == "1":
+                continue
+            expected_prior = str(int(version) - 1)
+            matches = [
+                d for d in revise.get((population, rid), [])
+                if d["prior"] == expected_prior
+                and d["current_ids"] == rid
+                and d["current_versions"] == version
+            ]
+            if len(matches) != 1:
+                ctx.problems.append(
+                    "%s %s: version %s requires exactly one same-identity "
+                    "AMEND revise from immediate version %s; found %d"
+                    % (population, rid, version, expected_prior, len(matches)))
 
 
 # --------------------------------------------------------------------------
@@ -3241,6 +3716,7 @@ def validate_tree(tree):
     edges += sxw2_edges
     src2 = check_src2_ev2(ctx, active, migration)
     dr2 = check_dr2(ctx, edges, active, migration)
+    check_leaf_references(ctx, edges, dr2, active)
     scenario_frags = check_scenario_fragments(
         ctx, sxw2_edges, dr2, published)
     frags = check_fragments(ctx, [e for e in edges
@@ -3261,6 +3737,7 @@ def validate_tree(tree):
     sm2, ss2 = check_sm2_ss2(ctx, src2, frags, details, blk_anchors)
     check_blk_res(ctx, sm2, ss2, frags)
     check_amend(ctx, dr2)
+    check_version_lineage(ctx)
 
     pprobs, pnotes = check_preservation(ctx)
     ctx.problems += pprobs
@@ -3346,6 +3823,7 @@ ACCEPT_RECEIPT_REL = os.path.join(
 R31_RECEIPT_REL = os.path.join(
     "work", "architect-completion",
     "ARCHITECT_CBA_CANON_V2_R3_1_A_SERIES_REPAIR.md")
+PROPOSAL_RECEIPT_REL = R31_RECEIPT_REL
 
 RES_ID = "RES-0001"
 RES_BLK = "BLK-0001"
@@ -3356,7 +3834,9 @@ RES_CHECKER = "agent:codex"
 RES_REOPEN = "reopen on qualifying first-party operational provenance"
 RES_LIMITS = "none"
 RES_DIGEST = sha_hex("|".join([RES_BLK, RES_OUTCOME, RES_AUTHORITY, RES_MAKER,
-                               RES_CHECKER, RES_REOPEN, RES_LIMITS]))
+                               RES_CHECKER,
+                               PROPOSAL_RECEIPT_REL.replace(os.sep, "/"),
+                               RES_REOPEN, RES_LIMITS]))
 
 
 def _run(cwd, *args):
@@ -3368,8 +3848,9 @@ def _run(cwd, *args):
 
 class ControlRepo(object):
     """A real temporary Git repository holding: the pinned published v1.1
-    edition, the pinned R3 checkpoint, the live documents, and an independent
-    acceptance receipt at its own commit."""
+    edition, the pinned R3 checkpoint, and the live documents. `build_bases`
+    later adds a maker checkpoint containing the exact proposed RES row and a
+    strict descendant checker-receipt commit."""
 
     def __init__(self, src_root):
         self.src = os.path.abspath(src_root)
@@ -3406,12 +3887,9 @@ class ControlRepo(object):
             self.live[rel] = txt
         self.restore()
         self.head = self._commit("live documents")
-
-        # (4) the checker's independent acceptance receipt, at its own commit
-        receipt_text = acceptance_receipt_text(self.head)
-        self._write(ACCEPT_RECEIPT_REL, receipt_text)
-        self.accept = self._commit("independent acceptance receipt")
-        self.live[ACCEPT_RECEIPT_REL] = receipt_text
+        self.maker = None
+        self.accept = None
+        self._bases = None
 
     # -- file helpers
     def _abs(self, rel):
@@ -3468,7 +3946,7 @@ def acceptance_receipt_text(accepted_checkpoint):
         "# Control independent acceptance receipt\n\n"
         "This receipt is the checker-side evidence a `RES-…` resolution's\n"
         "`Accepted checkpoint commit` resolves to. It is a control artifact "
-        "of the\nR2.11 validator, not a governed record of any repair unit.\n\n"
+        "of the\nR2.12 validator, not a governed record of any repair unit.\n\n"
         "## Independent acceptance record\n\n"
         "| Resolution ID | Accepted RES version | Accepted content digest | "
         "Accepted proposed outcome | Maker/proposer identity | "
@@ -3666,12 +4144,15 @@ def build_r31_document(repo, published, inv):
     canon = _rewrite_xw2(canon, inv, edge_scope, edge_dec)
     canon = _add_sxw2_section(canon, sxw2_rows)
 
+    r31 = plan_section(plan, "## R3.1 ", "## R4 ")
+    status = re.search(r"(?m)^- \*\*Status:\*\*\s*(.*(?:\n(?!- \*\*).*)*)",
+                       r31)
+    if not status:
+        raise AssertionError("R3.1 status block is absent")
     plan = plan.replace(
-        "- **Status:** not started. Blocked until the independent checker "
-        "review\n  of the R2.11 balanced foundation returns ACCEPT (R2.6–R2.10 "
-        "were\n  independently rejected and do not unblock R3.1).",
+        status.group(0),
         "- **Status:** executed (R3.1 control tree) after an independent "
-        "R2.11 checker ACCEPT.",
+        "R2.12 checker ACCEPT.",
         1)
 
     receipt = _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows,
@@ -3794,19 +4275,17 @@ def _rewrite_xw2(canon, inv, edge_scope, edge_dec):
 
 
 def _add_sxw2_section(canon, sxw2_rows):
-    block = ("### 15.13 Scenario crosswalk (R3.1 control population)\n\n"
+    block = ("#### 16.v2.2 Scenario crosswalk\n\n"
              "Typed edges from the pinned published historical scenarios to "
              "active v2 scenarios, per canon 15.9.8.\n\n"
              + _table(["Edge ID", "Historical scenario",
                        "Active v2 scenario or " + DASH, "Edge type",
                        "Scope/relationship", "Decision record"], sxw2_rows)
              + "\n")
-    lines = canon.splitlines(keepends=True)
-    for i, ln in enumerate(lines):
-        if ln.startswith("## 16. Acceptance-test library"):
-            lines.insert(i, block)
-            break
-    return "".join(lines)
+    seg = line_range(canon, "#### 16.v2.2 Scenario crosswalk", "## 17.")
+    if seg is None:
+        raise AssertionError("governed 16.v2.2 SXW2 location is absent")
+    return canon.replace(seg, block, 1)
 
 
 def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
@@ -3860,12 +4339,12 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
            "blocked-unsupported-obligation | SS2-0001 | SM2-0001, SM2-0002, "
            "SM2-0003, SM2-0004 | %s | §13.3 | resolved | 1 | %s | %s | none |"
            % (RES_BLK, DASH, DASH, DASH, RES_ID, DASH)]
-    res = ["| %s | %s | %s | %s | %s | %s | @CHECKPOINT_COMMIT@ | "
-           "@RECEIPT_COMMIT@ | %s | 1 | %s | %s | accepted | 1 | %s | %s | "
-           "%s |"
+    res = ["| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | "
+           "%s | %s | proposed | 1 | %s | %s | %s |"
            % (RES_ID, RES_BLK, RES_OUTCOME, RES_AUTHORITY, RES_MAKER,
-              RES_CHECKER, ACCEPT_RECEIPT_REL.replace(os.sep, "/"),
-              RES_DIGEST, RES_OUTCOME, RES_REOPEN, RES_LIMITS, DASH)]
+              RES_CHECKER, PROPOSAL_RECEIPT_REL.replace(os.sep, "/"),
+              DASH, DASH, DASH, DASH, DASH, DASH, RES_REOPEN, RES_LIMITS,
+              DASH)]
     dates = ["| %s | %s#D%d | %s | %s | %s | %s | %s | current | 1 | %s |"
              % (r, r, k, b, role, v, loc, lim, DASH)
              for (r, k, b, role, v, loc, lim) in DATE_COMPONENTS]
@@ -3878,7 +4357,7 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
     }
     out = ["# R3.1 A-series repair (control document tree)",
            "",
-           "This document exists only inside the R2.11 validator's temporary "
+           "This document exists only inside the R2.12 validator's temporary "
            "control repository. It is the complete migrated R3.1 support "
            "population, written as real receipt tables and validated through "
            "the same top-level entry point as the committed baseline. It "
@@ -3981,6 +4460,7 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
                         "Proposed outcome", "Resolver authority",
                         "Maker/proposer identity",
                         "Independent checker identity",
+                        "Proposal receipt path",
                         "Accepted checkpoint commit or " + DASH,
                         "Acceptance receipt commit or " + DASH,
                         "Acceptance receipt or " + DASH,
@@ -3997,6 +4477,41 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
                             "Superseding/current relationship or " + DASH],
         dates)
     return "\n".join(out) + "\n"
+
+
+def _accept_proposed_resolution(receipt, inv, maker_commit, receipt_commit):
+    """Return the current accepted-state receipt derived from the exact
+    proposed row that was committed at `maker_commit`. The proposal blob
+    itself remains immutable in Git."""
+    fields = inv.schema["RES-record"]
+    lines = receipt.splitlines(keepends=True)
+    found = 0
+    for i, line in enumerate(lines):
+        if not line.strip().startswith("| %s |" % RES_ID):
+            continue
+        cells = [c.strip() for c in line.strip()[1:-1].split("|")]
+        if len(cells) != len(fields):
+            raise AssertionError("proposed RES control row has wrong width")
+        row = dict(zip(fields, cells))
+        if row["Resolution status"] != "proposed":
+            raise AssertionError("maker checkpoint RES row is not proposed")
+        updates = {
+            "Accepted checkpoint commit or —": maker_commit,
+            "Acceptance receipt commit or —": receipt_commit,
+            "Acceptance receipt or —":
+                ACCEPT_RECEIPT_REL.replace(os.sep, "/"),
+            "Accepted RES version or —": "1",
+            "Accepted content digest or —": RES_DIGEST,
+            "Accepted proposed outcome or —": RES_OUTCOME,
+            "Resolution status": "accepted",
+        }
+        for field, value in updates.items():
+            cells[fields.index(field)] = value
+        lines[i] = "| " + " | ".join(cells) + " |\n"
+        found += 1
+    if found != 1:
+        raise AssertionError("expected exactly one proposed RES control row")
+    return "".join(lines)
 
 
 # --------------------------------------------------------------------------
@@ -4060,18 +4575,46 @@ class Harness(object):
 
 
 def build_bases(repo):
-    """The two complete document sets every case starts from."""
+    """Build the committed baseline and accepted migrated control tree.
+
+    Chronology is intentional and observable:
+      1. commit the complete migrated tree with the exact RES row proposed;
+      2. commit the independent acceptance receipt as a strict descendant;
+      3. expose the later accepted row only as the current document state.
+    """
+    if repo._bases is not None:
+        return repo._bases
     base = dict(repo.live)
     inv, _ = parse_inventory(base[CANON_REL])
     published = Published(repo.dir, inv.commits["published-v1.1"])
-    canon, plan, receipt = build_r31_document(repo, published, inv)
-    receipt = receipt.replace("@CHECKPOINT_COMMIT@", repo.head)
-    receipt = receipt.replace("@RECEIPT_COMMIT@", repo.accept)
+    canon, plan, proposal = build_r31_document(repo, published, inv)
+
+    proposal_docs = dict(base)
+    proposal_docs[CANON_REL] = canon
+    proposal_docs[PLAN_REL] = plan
+    proposal_docs[R31_RECEIPT_REL] = proposal
+    repo.restore()
+    for rel, txt in sorted(proposal_docs.items()):
+        repo._write(rel, txt)
+    repo.maker = repo._commit("R3.1 control maker proposal checkpoint")
+
+    checker_receipt = acceptance_receipt_text(repo.maker)
+    repo._write(ACCEPT_RECEIPT_REL, checker_receipt)
+    repo.accept = repo._commit("independent acceptance receipt")
+    if not git_is_strict_ancestor(repo.dir, repo.maker, repo.accept):
+        raise AssertionError("checker receipt is not a strict descendant of "
+                             "the maker proposal checkpoint")
+
+    accepted = _accept_proposed_resolution(
+        proposal, inv, repo.maker, repo.accept)
+    repo.live[ACCEPT_RECEIPT_REL] = checker_receipt
+    base[ACCEPT_RECEIPT_REL] = checker_receipt
     r31 = dict(base)
     r31[CANON_REL] = canon
     r31[PLAN_REL] = plan
-    r31[R31_RECEIPT_REL] = receipt
-    return base, r31, inv, published
+    r31[R31_RECEIPT_REL] = accepted
+    repo._bases = (base, r31, inv, published)
+    return repo._bases
 
 
 R3_RECEIPT_REL = os.path.join(
@@ -4121,7 +4664,7 @@ def run_extended_cases(repo):
                    "verdict, method, locator, or evidence |\n")
     future = mut(future, lmain_line + "\n", lmain_line + "\n"
                  + "| CBA2-A13.1 | Future appended obligation above the "
-                   "high-water mark | CBA | SCEN | — | EV2-0090 | new | "
+                   "high-water mark | CBA | SCEN | — | EV2-0090 | XW2-0132 | "
                    "Appended by a future construction unit. |\n")
     future = mut(future, ldet_line + "\n", ldet_line + "\n"
                  + "| CBA2-A13.1 | pending R7 | — | Transaction date | "
@@ -4923,13 +5466,13 @@ def _cases_g15r_omissions(H, mrcpt):
 
 
 def run_cases(repo):
-    """Bounded R2.11 default controls.
+    """Bounded R2.12 default controls.
 
     These controls exercise every newly corrected mechanical boundary without
     replaying the historical exhaustive mutation library. Use --extended for
     that diagnostic-only library.
     """
-    base, r31, _inv, _published = build_bases(repo)
+    base, r31, inv, _published = build_bases(repo)
     H = Harness(repo, base, r31)
     C, P, R = CANON_REL, PLAN_REL, R31_RECEIPT_REL
     canon, mcanon, mrcpt = base[C], r31[C], r31[R]
@@ -4939,7 +5482,30 @@ def run_cases(repo):
         cells[index] = value
         return mut(text, row, "| " + " | ".join(cells) + " |")
 
-    H.run("C0", "committed R2.11 baseline document tree", H.docs(), False)
+    proposal = git_blob(repo.dir, repo.maker, R31_RECEIPT_REL).decode("utf-8")
+
+    def acceptance_history(checkpoint_proposal, receipt_mutator=None):
+        """Create a real variant maker checkpoint and strict descendant
+        checker receipt; return the later current accepted document set."""
+        repo.restore()
+        repo.remove(ACCEPT_RECEIPT_REL)
+        for rel, txt in sorted(r31.items()):
+            if rel not in (R31_RECEIPT_REL, ACCEPT_RECEIPT_REL):
+                repo._write(rel, txt)
+        repo._write(R31_RECEIPT_REL, checkpoint_proposal)
+        maker = repo._commit("variant maker proposal checkpoint")
+        checker = acceptance_receipt_text(maker)
+        if receipt_mutator:
+            checker = receipt_mutator(checker)
+        repo._write(ACCEPT_RECEIPT_REL, checker)
+        accepted = repo._commit("variant independent acceptance receipt")
+        current = _accept_proposed_resolution(proposal, inv, maker, accepted)
+        return H.docs(migrated=True, **{
+            R31_RECEIPT_REL: current,
+            ACCEPT_RECEIPT_REL: checker,
+        })
+
+    H.run("C0", "committed R2.12 baseline document tree", H.docs(), False)
     H.run("C1", "complete future-R3.1 migrated document tree through the "
           "same top-level validator", H.docs(migrated=True), False)
 
@@ -4975,7 +5541,7 @@ def run_cases(repo):
     future = mut(
         future, lmain_line + "\n", lmain_line + "\n"
         + "| CBA2-A13.1 | Future appended obligation above the high-water "
-          "mark | CBA | SCEN | — | EV2-0090 | new | Appended by a future "
+          "mark | CBA | SCEN | — | EV2-0090 | XW2-0132 | Appended by a future "
           "construction unit. |\n")
     future = mut(
         future, ldet_line + "\n", ldet_line + "\n"
@@ -4992,6 +5558,43 @@ def run_cases(repo):
     H.run("C3", "valid future append-only GROUP/LEAF/XW2/EV2 additions above "
           "the current high-water marks", H.docs(**{C: future}), False)
 
+    # Valid populated OPS/EXT locations prove those governed sections are
+    # real parser inputs rather than prose-only inventory entries.
+    src4 = row_line(mcanon, "| SRC2-004 |")
+    ops_base = ("| SRC2-005 | `ops-provenance` | League operations roster "
+                "system | — | — | — | — | — | 2026-07-22T01:00:00Z | "
+                "`agent:codex` | `session:r31-control` | 2026-07-22 | "
+                "authenticated first-party statement; no durable artifact | "
+                "current | 1 |")
+    ext_base = ("| SRC2-006 | `ext-contract` | Medical determination input "
+                "contract | — | — | — | — | — | 2026-07-22T01:05:00Z | "
+                "`agent:codex` | `session:r31-control` | 2026-07-22 | "
+                "runtime external determination required | current | 1 |")
+    ops_row = ("| SRC2-005 | League operations roster system | league "
+               "operations administrator | pick-processing practice | "
+               "2026-07-01/open | authenticated system access | configurable "
+               "by league operation | — |")
+    ext_row = ("| SRC2-006 | medical determination | player-id; "
+               "examination-date | licensed physician identity; signed "
+               "determination | roster availability | effective on "
+               "authenticated decision; expires when superseded | CBA Article "
+               "VII | authenticated signed decision |")
+    ops_ext = mut(mcanon, src4 + "\n",
+                  src4 + "\n" + ops_base + "\n" + ext_base + "\n")
+    ops_seg = line_range(ops_ext, "#### 15.12.4", "#### 15.12.5")
+    ops_ext = ops_ext.replace(
+        ops_seg, ops_seg.rstrip() + "\n\n"
+        + _table(inv.schema["SRC2-detail-ops-provenance"], [ops_row]) + "\n",
+        1)
+    ext_seg = line_range(ops_ext, "#### 15.12.5", "#### 15.12.6")
+    ops_ext = ops_ext.replace(
+        ext_seg, ext_seg.rstrip() + "\n\n"
+        + _table(inv.schema["SRC2-detail-ext-contract"], [ext_row]) + "\n",
+        1)
+    H.run("C4", "valid populated OPS-provenance and EXT-contract records in "
+          "their governed canon locations",
+          H.docs(migrated=True, **{C: ops_ext}), False)
+
     bnd_inventory = row_line(canon, "| `BND-bundle` |")
     bad_inventory = replace_cell(canon, bnd_inventory, 2, "13")
     H.run("I1", "governed schema count diverges from its field list",
@@ -5001,6 +5604,78 @@ def run_cases(repo):
     H.run("P1", "a committed XW2 identity is silently deleted",
           H.docs(**{C: mut(canon, xw12 + "\n", "")}), True,
           "preservation")
+
+    bad_group = replace_cell(canon, grow, 2, "`CBA2-A12.1`–`CBA2-A12.5` (4)")
+    H.run("L1", "GROUP declared child count differs from actual children",
+          H.docs(**{C: bad_group}), True, "declared child count")
+    origin_row = row_line(canon, "| CBA2-A02.2 |")
+    bad_origin = replace_cell(canon, origin_row, 6, "XW2-9999")
+    H.run("L2", "LEAF Origin references a nonexistent XW2 edge",
+          H.docs(**{C: bad_origin}), True, "Origin references nonexistent")
+    detail_seg = line_range(canon, "#### 15.10.3", "### 15.11")
+    dep_row = next(
+        ln for ln in detail_seg.splitlines()
+        if ln.startswith("| CBA2-")
+        and len([c.strip() for c in ln.strip()[1:-1].split("|")]) > 2
+        and [c.strip() for c in ln.strip()[1:-1].split("|")][2] != DASH)
+    bad_dep = replace_cell(canon, dep_row, 2, "CBA2-A99.1")
+    H.run("L3", "LEAF dependency references a nonexistent active LEAF",
+          H.docs(**{C: bad_dep}), True, "does not resolve to an active LEAF")
+
+    # SRC2 base and type-detail minima: one focused mutation per mechanically
+    # required field class that R2.11 omitted.
+    src1 = row_line(mcanon, "| SRC2-001 |")
+    src3 = row_line(mcanon, "| SRC2-003 |")
+    src_base_cases = (
+        ("F1", 2, DASH, "Source/provenance identity"),
+        ("F2", 3, DASH, "requires a Source date pair"),
+        ("F3", 4, DASH, "requires an absolute Official URL"),
+        ("F4", 5, DASH, "requires artifact hash and byte size"),
+        ("F5", 6, DASH, "requires artifact hash and byte size"),
+        ("F6", 7, DASH, "requires a valid UTC Retrieval timestamp"),
+        ("F7", 9, "agent:UPPER", "Verifier identity"),
+        ("F8", 10, "bad-session", "Verification session ID"),
+        ("F9", 11, "2026-02-30", "Verification date"),
+        ("F10", 12, DASH, "Record limitations"),
+        ("F11", 13, "live", "governed record-status vocabulary"),
+        ("F12", 14, "0", "Record version"),
+    )
+    for name, index, value, diagnostic in src_base_cases:
+        H.run(name, "SRC2 required base field/grammar mutation at column %d"
+              % index,
+              H.docs(migrated=True,
+                     **{C: replace_cell(mcanon, src1, index, value)}),
+              True, diagnostic)
+    mut_seg = line_range(mcanon, "#### 15.12.3", "#### 15.12.4")
+    mut_detail = next(ln for ln in mut_seg.splitlines()
+                      if ln.startswith("| SRC2-003 |"))
+    for name, index, diagnostic in (
+            ("F13", 1, "Publication identity"),
+            ("F14", 2, "exactly one Publication date or Season"),
+            ("F15", 4, "Exact values or text relied upon")):
+        H.run(name, "official-mutable required detail field %d is dash" % index,
+              H.docs(migrated=True,
+                     **{C: replace_cell(mcanon, mut_detail, index, DASH)}),
+              True, diagnostic)
+    imm_seg = line_range(mcanon, "#### 15.12.2", "#### 15.12.3")
+    imm_detail = next(ln for ln in imm_seg.splitlines()
+                      if ln.startswith("| SRC2-001 |"))
+    H.run("F16", "official-immutable Page geometry is dash",
+          H.docs(migrated=True,
+                 **{C: replace_cell(mcanon, imm_detail, 2, DASH)}),
+          True, "Page geometry")
+    H.run("F17", "OPS-provenance Authentication timestamp is dash",
+          H.docs(migrated=True,
+                 **{C: replace_cell(ops_ext, ops_base, 8, DASH)}),
+          True, "requires a valid UTC Authentication timestamp")
+    H.run("F18", "OPS-provenance Authority/role detail is dash",
+          H.docs(migrated=True,
+                 **{C: replace_cell(ops_ext, ops_row, 2, DASH)}),
+          True, "Authority/role of the source")
+    H.run("F19", "EXT-contract Runtime input schema detail is dash",
+          H.docs(migrated=True,
+                 **{C: replace_cell(ops_ext, ext_row, 2, DASH)}),
+          True, "Runtime input schema")
 
     bad_scenario_header = mut(
         mrcpt, "| Scenario fragment ID | Historical scenario | Fragment kind |",
@@ -5057,6 +5732,18 @@ def run_cases(repo):
     H.run("E2", "OPS evidence closure has no required ops-provenance root",
           H.docs(migrated=True, **{C: ev_ops}), True,
           "no required ops-provenance terminal root")
+    for name, index, field in (
+            ("E3", 5, "Exact locator(s)"),
+            ("E4", 6, "Controlling passage or tight paraphrase"),
+            ("E5", 7, "Passage-to-obligation mapping")):
+        H.run(name, "EV2 required %s is dash" % field,
+              H.docs(migrated=True,
+                     **{C: replace_cell(mcanon, ev_row, index, DASH)}),
+              True, "required field %s" % field)
+    H.run("E6", "EV2 source reference does not resolve",
+          H.docs(migrated=True,
+                 **{C: replace_cell(mcanon, ev_row, 3, "SRC2-999")}),
+          True, "references nonexistent SRC2-999")
 
     amend_row = next(ln for ln in mrcpt.splitlines()
                      if ln.startswith("| DR2-") and " | DR2 | DR2-" in ln)
@@ -5097,35 +5784,104 @@ def run_cases(repo):
           H.docs(migrated=True, **{R: no_dates}), True,
           "G15R/SRC2-date-component")
 
-    # Duplicate receipt rows must never overwrite one another. Materialize a
-    # real later checker-receipt commit so the exact Git/blob path is exercised.
-    accept_text = repo.live[ACCEPT_RECEIPT_REL]
-    accept_row = row_line(accept_text, "| RES-0001 |")
-    duplicate_text = mut(accept_text, accept_row + "\n",
-                         accept_row + "\n" + accept_row + "\n")
-    repo.restore()
-    repo._write(ACCEPT_RECEIPT_REL, duplicate_text)
-    duplicate_commit = repo._commit("duplicate acceptance control")
-    repo.restore()
+    fragment_row = next(ln for ln in mrcpt.splitlines()
+                        if re.match(r"^\| CBA-[A-Z]\d{2}(?:\.\d+)?:F\d+ \|",
+                                    ln))
+    scenario_row = next(ln for ln in mrcpt.splitlines()
+                        if re.match(r"^\| scenario-\d+:F\d+ \|", ln))
+    sm2_row = row_line(mrcpt, "| SM2-0001 |")
+    ss2_row = row_line(mrcpt, "| SS2-0001 |")
+    amend_id = amend_row.split("|")[1].strip().strip("`")
+    fragment_id = fragment_row.split("|")[1].strip().strip("`")
+    valid_revise = (
+        "| %s | fragment | %s | 1 | %s | revise | %s | 2 | "
+        "legitimate same-identity one-step version control |"
+        % (amend_id, fragment_id, repo.maker, fragment_id))
+    valid_version2 = replace_cell(mrcpt, fragment_row, 8, "2")
+    valid_version2 = mut(
+        valid_version2, amend_row + "\n",
+        amend_row + "\n" + valid_revise + "\n")
+    H.run("C5", "legitimate fragment version 1 to 2 same-ID revise resolves "
+          "the exact version 1 row at its pinned prior checkpoint",
+          H.docs(migrated=True, **{R: valid_version2}), False)
+
+    for name, row, index, population in (
+            ("V1", fragment_row, 8, "fragment"),
+            ("V2", scenario_row, 8, "scenario-fragment"),
+            ("V3", bnd_row, 12, "BND"),
+            ("V4", sm2_row, 26, "SM2"),
+            ("V5", ss2_row, 10, "SS2")):
+        H.run(name, "%s version jumps from 1 to 2 without a same-ID AMEND "
+              "revise" % population,
+              H.docs(migrated=True,
+                     **{R: replace_cell(mrcpt, row, index, "2")}),
+              True, "%s %s: version 2 requires exactly one" %
+              (population, row.split("|")[1].strip()))
+
+    fabricated_revise = (
+        "| %s | fragment | %s | 8 | %s | revise | %s | 9 | "
+        "fabricated prior-version control |"
+        % (amend_id, fragment_id, repo.maker, fragment_id))
+    fabricated_version9 = replace_cell(mrcpt, fragment_row, 8, "9")
+    fabricated_version9 = mut(
+        fabricated_version9, amend_row + "\n",
+        amend_row + "\n" + fabricated_revise + "\n")
+    H.run("V6", "same-ID revise claims version 8 to 9 while the pinned prior "
+          "checkpoint contains version 1",
+          H.docs(migrated=True, **{R: fabricated_version9}), True,
+          "prior checkpoint records version 1, not claimed prior version 8")
+
     res_row = row_line(mrcpt, "| RES-0001 |")
-    duplicate_res = replace_cell(mrcpt, res_row, 7, duplicate_commit)
+    # Exact proposal-at-maker-checkpoint chronology. Each history helper
+    # creates a real maker commit followed by a strict descendant receipt.
+    no_proposal = mut(proposal, row_line(proposal, "| RES-0001 |") + "\n", "")
+    H.run("Q1", "maker checkpoint does not contain the proposed RES row",
+          acceptance_history(no_proposal), True,
+          "proposal contains 0 matching rows")
+    proposal_row = row_line(proposal, "| RES-0001 |")
+    duplicate_proposal = mut(
+        proposal, proposal_row + "\n",
+        proposal_row + "\n" + proposal_row + "\n")
+    H.run("Q2", "maker checkpoint contains duplicate proposed RES rows",
+          acceptance_history(duplicate_proposal), True,
+          "proposal contains 2 matching rows")
+    mismatch_proposal = mut(
+        proposal, RES_AUTHORITY, "different maker-proposed authority", 1)
+    H.run("Q3", "maker checkpoint proposal content differs from the accepted "
+          "current RES row", acceptance_history(mismatch_proposal), True,
+          "maker checkpoint proposal Resolver authority")
+    H.run("Q4", "maker checkpoint already carries an accepted rather than "
+          "proposed RES row", acceptance_history(mrcpt), True,
+          "maker checkpoint row is not proposed/unaccepted")
+    wrong_path = replace_cell(mrcpt, res_row, 6,
+                              PLAN_REL.replace(os.sep, "/"))
+    H.run("Q5", "current RES row points to the wrong maker proposal path",
+          H.docs(migrated=True, **{R: wrong_path}), True,
+          "maker checkpoint proposal contains 0 matching rows")
+    same_commit = replace_cell(mrcpt, res_row, 7, repo.accept)
+    H.run("Q6", "checker receipt is not later than the maker checkpoint",
+          H.docs(migrated=True, **{R: same_commit}), True,
+          "not a strict descendant")
+
+    # Duplicate checker-receipt rows must never overwrite one another.
+    def duplicate_receipt(text):
+        row = row_line(text, "| RES-0001 |")
+        return mut(text, row + "\n", row + "\n" + row + "\n")
+
     H.run("R1", "acceptance receipt contains duplicate rows for one RES",
-          H.docs(migrated=True, **{R: duplicate_res}), True,
+          acceptance_history(proposal, duplicate_receipt), True,
           "exactly one is required")
-    missing_commit_res = replace_cell(mrcpt, res_row, 7, "1" * 40)
+    missing_commit_res = replace_cell(mrcpt, res_row, 8, "1" * 40)
     H.run("R2", "acceptance receipt commit is shaped but nonexistent",
           H.docs(migrated=True, **{R: missing_commit_res}), True,
           "does not resolve to a real commit")
-    mismatch_text = mut(
-        accept_text, "| agent:claude-code | agent:codex |",
-        "| agent:other-maker | agent:codex |", 1)
-    repo.restore()
-    repo._write(ACCEPT_RECEIPT_REL, mismatch_text)
-    mismatch_commit = repo._commit("mismatched acceptance control")
-    repo.restore()
-    mismatch_res = replace_cell(mrcpt, res_row, 7, mismatch_commit)
+
+    def mismatch_receipt(text):
+        return mut(text, "| agent:claude-code | agent:codex |",
+                   "| agent:other-maker | agent:codex |", 1)
+
     H.run("R3", "acceptance receipt maker field mismatches the exact RES",
-          H.docs(migrated=True, **{R: mismatch_res}), True,
+          acceptance_history(proposal, mismatch_receipt), True,
           "receipt Maker/proposer identity")
 
     no_scenario = re.sub(r"(?m)^\| scenario-\d+:F\d+ \|.*\n?", "", mrcpt)
@@ -5158,7 +5914,7 @@ def main():
         print("usage: %s [--extended]" % os.path.basename(__file__),
               file=sys.stderr)
         return 2
-    print("Architect CBA canon v2.0 balanced foundation validator (R2.11)")
+    print("Architect CBA canon v2.0 balanced foundation validator (R2.12)")
     print("control mode: %s" % ("extended diagnostic" if extended
                                 else "bounded default"))
     print("canon: %s" % CANON_REL.replace(os.sep, "/"))
