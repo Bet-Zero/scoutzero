@@ -220,9 +220,25 @@ def contiguous_from_one(nums, label):
     return probs
 
 
+def duplicate_numbers(nums, label):
+    """Duplicate-only half of ``contiguous_from_one``.
+
+    LEAF, XW2, and EV2 current registers may acquire governed gaps after an
+    AMEND split/replacement/removal.  Their historical allocation continuity
+    is therefore checked later against the pinned checkpoint plus structured
+    lineage; duplicates remain an immediate current-register error.
+    """
+    dup = sorted(n for n in set(nums) if nums.count(n) > 1)
+    return (["%s: duplicate id number(s) %s" % (label, dup)] if dup else [])
+
+
 # --------------------------------------------------------------------------
 # 2. Git access (real commit / blob resolution — no simulation).
 # --------------------------------------------------------------------------
+
+_GIT_COMMIT_EXISTS_CACHE = {}
+_GIT_BLOB_CACHE = {}
+_TREE_REF_CACHE = {}
 
 
 def _git(root, *args):
@@ -241,7 +257,11 @@ def git_repo_root(path):
 
 
 def git_commit_exists(root, sha):
-    return _git(root, "cat-file", "-e", sha + "^{commit}") is not None
+    key = (os.path.abspath(root), sha)
+    if key not in _GIT_COMMIT_EXISTS_CACHE:
+        _GIT_COMMIT_EXISTS_CACHE[key] = \
+            _git(root, "cat-file", "-e", sha + "^{commit}") is not None
+    return _GIT_COMMIT_EXISTS_CACHE[key]
 
 
 def git_is_strict_ancestor(root, older, newer):
@@ -255,7 +275,11 @@ def git_is_strict_ancestor(root, older, newer):
 
 def git_blob(root, sha, relpath):
     """Bytes of relpath at commit sha, or None if either does not exist."""
-    return _git(root, "show", "%s:%s" % (sha, relpath.replace(os.sep, "/")))
+    key = (os.path.abspath(root), sha, relpath.replace(os.sep, "/"))
+    if key not in _GIT_BLOB_CACHE:
+        _GIT_BLOB_CACHE[key] = _git(
+            root, "show", "%s:%s" % (sha, key[2]))
+    return _GIT_BLOB_CACHE[key]
 
 
 # --------------------------------------------------------------------------
@@ -277,6 +301,13 @@ class Tree(object):
         self.root = os.path.abspath(root)
         self.ref = ref
         self.repo = git_repo_root(self.root)
+        cache_key = ((self.repo or self.root), ref)
+        if ref and cache_key in _TREE_REF_CACHE:
+            cached = _TREE_REF_CACHE[cache_key]
+            self.canon = cached["canon"]
+            self.plan = cached["plan"]
+            self.receipts = dict(cached["receipts"])
+            return
         self.canon = self._read(CANON_REL)
         self.plan = self._read(PLAN_REL)
         self.receipts = {}
@@ -284,6 +315,12 @@ class Tree(object):
             txt = self._read(rel)
             if txt is not None:
                 self.receipts[rel] = txt
+        if ref:
+            _TREE_REF_CACHE[cache_key] = {
+                "canon": self.canon,
+                "plan": self.plan,
+                "receipts": dict(self.receipts),
+            }
 
     def _read(self, rel):
         if self.ref:
@@ -524,6 +561,56 @@ def parse_canon_population(canon, inv, key):
     return header, rows, probs
 
 
+def parse_canon_population_by_exact_header(canon, inv, key):
+    """Historical-table fallback for checkpoints predating Inventory F.
+
+    The fallback is still population-scoped: it admits rows only from a
+    Markdown table whose rendered header exactly equals the currently pinned
+    schema and whose first cells match this population's Inventory-F grammar.
+    It never searches arbitrary prose or arbitrary pipe rows for shaped IDs.
+    """
+    expected = inv.schema.get(key)
+    declaration = inv.sections.get(key)
+    if not expected or not declaration:
+        return None, [], []
+    matcher = re.compile(r"^(?:%s)$" % declaration[2])
+    lines = (canon or "").splitlines()
+    matching_tables = []
+
+    def cells_of(line):
+        stripped = line.strip()
+        if not (stripped.startswith("|") and stripped.endswith("|")):
+            return None
+        return [cell.strip() for cell in stripped[1:-1].split("|")]
+
+    for index, line in enumerate(lines[:-1]):
+        cells = cells_of(line)
+        if cells != expected:
+            continue
+        delimiter = cells_of(lines[index + 1])
+        if delimiter is None or len(delimiter) != len(expected) or not all(
+                re.fullmatch(r":?-{3,}:?", cell) for cell in delimiter):
+            continue
+        rows = []
+        cursor = index + 2
+        while cursor < len(lines):
+            row = cells_of(lines[cursor])
+            if row is None:
+                break
+            if len(row) == len(expected) and matcher.fullmatch(
+                    normalize_record_id_cell(row[0])):
+                rows.append([cell.strip() for cell in row])
+            cursor += 1
+        if rows:
+            matching_tables.append(rows)
+    if len(matching_tables) > 1:
+        return expected, [], [
+            "%s: exact pinned header resolves to %d populated historical "
+            "tables" % (key, len(matching_tables))]
+    return (expected, matching_tables[0], []) if matching_tables \
+        else (expected, [], [])
+
+
 def check_canon_population_locations(canon, inv):
     """Reject governed-ID pipe rows outside Inventory F's declared ranges.
 
@@ -619,6 +706,7 @@ class Published(object):
     def __init__(self, repo, sha):
         self.ok = False
         self.leaf_len = {}
+        self.leaf_authority = {}
         self.scenario_len = {}
         if not repo or not sha or not git_commit_exists(repo, sha):
             return
@@ -626,17 +714,33 @@ class Published(object):
         if b is None:
             return
         txt = b.decode("utf-8")
-        for row in pipe_rows(txt):
-            if len(row) >= 4 and re.fullmatch(
-                    r"CBA-[A-Z][0-9]{2}(\.[0-9]+)?", row[0]):
-                self.leaf_len.setdefault(row[0], len(normalize_text(row[3])))
+        # Resolve historical requirement text only from the exact v1.1 LEAF
+        # register.  The same top-level IDs also occur in the hierarchy table,
+        # whose fourth cell is the marker "*(top-level leaf)*"; a whole-file
+        # setdefault scan would mistake that marker for the governed condition.
+        leaf_register = line_range(
+            txt, "### 15.7 Index amendment — LEAF register (v1.1)",
+            "### 15.8 Index amendment — coverage, methods, and non-code "
+            "dispositions (v1.1)")
+        duplicate_leaves = set()
+        if leaf_register:
+            for row in pipe_rows(leaf_register):
+                if len(row) != 7 or not re.fullmatch(
+                        r"CBA-[A-Z][0-9]{2}(?:\.[0-9]+)?", row[0]):
+                    continue
+                if row[0] in self.leaf_len:
+                    duplicate_leaves.add(row[0])
+                    continue
+                self.leaf_len[row[0]] = len(normalize_text(row[3]))
+                self.leaf_authority[row[0]] = normalize_text(row[4])
         seg = line_range(txt, "## 16. Acceptance-test library",
                          "## 17. Recommended comparison sequence")
         if seg:
             for m in re.finditer(r"(?m)^(\d+)\.\s+(.*)$", seg):
                 self.scenario_len[int(m.group(1))] = len(
                     normalize_text(m.group(2)))
-        self.ok = bool(self.leaf_len) and len(self.scenario_len) == 89
+        self.ok = (bool(self.leaf_len) and not duplicate_leaves
+                   and len(self.scenario_len) == 89)
 
 
 # --------------------------------------------------------------------------
@@ -829,6 +933,16 @@ def parse_migration_state(plan):
     return "unknown"
 
 
+def r8_has_started(plan):
+    """The live plan must expose R8 execution before its zero-deferral gate."""
+    seg = plan_section(plan, "## R8 ", "## R9 ")
+    match = re.search(
+        r"(?m)^- \*\*Status:\*\*\s*(.*(?:\n(?!- \*\*).*)*)", seg)
+    status = match.group(1) if match else ""
+    return bool(re.search(r"\b(?:executed|complete|in progress|started)\b",
+                          status, re.I))
+
+
 def check_plan(plan):
     probs = []
     if plan is None:
@@ -846,15 +960,20 @@ def check_plan(plan):
                      "range items 1-27")
 
     r4 = plan_section(plan, "## R4 ", "## R5 ")
+    r4_flat = re.sub(r"\s+", " ", r4)
     if re.search(r"\*\*independently accepted\s+R2\.[789] foundation\*\*", r4):
         probs.append("plan R4 dependency still requires an accepted R2.7/R2.8/"
                      "R2.9 foundation (each was independently rejected)")
-    if not re.search(r"independently accepted\s*\n?\s*R2\.14 "
-                     r"foundation", r4):
-        probs.append("plan R4 dependency does not require the independently "
-                     "accepted R2.14 foundation")
-    if not re.search(r"R2\.14 . checker .\s*\n?\s*R3\.1 . checker . R4 . "
-                     r"checker . R5 . checker . R6", r4):
+    if ("R2.14 foundation accepted under current goal authority"
+            not in r4_flat
+            or "independently accepted pre-R3.1 compatibility checkpoint"
+            not in r4_flat):
+        probs.append("plan R4 dependency does not require both the goal-"
+                     "accepted R2.14 foundation and independently accepted "
+                     "pre-R3.1 compatibility checkpoint")
+    if not re.search(
+            r"R2\.14 accepted . compatibility checkpoint . checker . R3\.1 "
+            r". checker . R4 . checker . R5 . checker . R6", r4_flat):
         probs.append("plan R4 construction sequence omits a maker/checker "
                      "checkpoint between sequential construction units")
 
@@ -884,6 +1003,29 @@ def check_plan(plan):
         if "Member subject scopes" not in seg23:
             probs.append("plan item 23 does not carry the BND member "
                          "sub-scope coverage duty")
+        if "Historical authority qualifier or —" not in seg23:
+            probs.append("plan item 23 does not carry the historical-fragment "
+                         "authority qualifier migration duty")
+        if "`deferred`" not in seg23 or "resolving-unit" not in seg23:
+            probs.append("plan item 23 does not carry the governed cross-"
+                         "family deferred-edge migration duty")
+
+    m14 = re.search(r"(?ms)^\s*14\.\s.*?(?=^\s*15\.\s)", r31)
+    seg14 = m14.group(0) if m14 else ""
+    if not seg14:
+        probs.append("plan item 14 not found")
+    else:
+        required_item14 = (
+            "underlying governed GROUP/LEAF/SRC2/EV2/DR2 records",
+            "untyped live canon/plan status prose",
+            "immutable receipt assertions",
+            "never fabricate an `AMEND` row for free prose",
+        )
+        if any(phrase not in re.sub(r"\s+", " ", seg14)
+               for phrase in required_item14):
+            probs.append("plan item 14 does not distinguish governed-record "
+                         "AMEND lineage from direct live-prose correction and "
+                         "immutable-receipt contradiction")
 
     m24 = re.search(r"(?ms)^\s*24\.\s.*?(?=^\s*25\.\s)", r31)
     seg24 = m24.group(0) if m24 else ""
@@ -919,11 +1061,34 @@ def check_plan(plan):
         if phrase not in r214:
             probs.append("plan R2.14 omits required ID-normalization/status "
                          "control %r" % phrase)
-    if not re.search(r"R2\.13 rejected . R2\.14 maker checkpoint .\s*"
-                     r"independent R2\.14 checker ACCEPT . R3\.1 maker "
-                     r"checkpoint .\s*independent R3\.1 checker ACCEPT",
-                     r214):
-        probs.append("plan R2.14/R3.1 maker-checker sequence is incomplete")
+    r214_flat = re.sub(r"\s+", " ", r214)
+    if ("accepted as settled by the current goal objective authority"
+            not in r214_flat
+            or not re.search(
+                r"R2\.14 accepted under current goal authority . "
+                r"(?:one-time pre-R3\.1 foundation-)?compatibility maker "
+                r"checkpoint . independent compatibility checker ACCEPT . "
+                r"R3\.1 maker checkpoint . independent R3\.1 checker ACCEPT",
+                r214_flat)):
+        probs.append("plan R2.14/compatibility/R3.1 live maker-checker "
+                     "sequence is incomplete")
+
+    compat = plan_section(
+        plan,
+        "## One-time pre-R3.1 foundation-compatibility checkpoint",
+        "## R3.1 ")
+    compat_flat = re.sub(r"\s+", " ", compat)
+    for phrase in (
+            "pending independent compatibility checker review and not "
+            "accepted",
+            "not an R2.x unit and not substantive R3.1 migration",
+            "Every earlier receipt and every active §15.10–§15.12 row remains "
+            "immutable",
+            "R3.1 is the next construction unit only after an independent "
+            "compatibility checker returns ACCEPT"):
+        if phrase not in compat_flat:
+            probs.append("plan compatibility checkpoint omits required live "
+                         "status/route control %r" % phrase)
 
     stale_current = re.search(
         r"(?is)\b(?:current|controlling)\s+sequence(?:\s+is(?:\s+now)?)?"
@@ -940,7 +1105,7 @@ def check_plan(plan):
         probs.append(
             "plan status: stale live %s current/controlling route remains; "
             "R2.12 and R2.13 are rejected and R3.1 requires independent "
-            "R2.14 ACCEPT" % stale_version)
+            "compatibility-checkpoint ACCEPT" % stale_version)
 
     r5 = plan_section(plan, "## R5 ", "## R6 ")
     r6 = plan_section(plan, "## R6 ", "## R7 ")
@@ -1132,7 +1297,8 @@ def check_group_leaf(ctx):
         if parent not in set(gids):
             ctx.problems.append("LEAF %s: parent GROUP %s does not exist"
                                 % (lid, parent))
-    # child-ID contiguity at construction, per GROUP
+    # Current child IDs may have governed AMEND gaps.  Historical allocation
+    # continuity and no-reuse are checked after structured lineage is parsed.
     by_group = {}
     for lid in mids:
         p, _, n = lid.partition(".")
@@ -1141,23 +1307,45 @@ def check_group_leaf(ctx):
         except ValueError:
             ctx.problems.append("LEAF %s: child number is not an integer" % lid)
     for g, nums in sorted(by_group.items()):
-        ctx.problems += contiguous_from_one(sorted(nums),
-                                            "LEAF children of %s" % g)
+        ctx.problems += duplicate_numbers(
+            sorted(nums), "LEAF children of %s" % g)
     # The GROUP row's declared range/count is a mechanical assertion, not
     # decoration. It must describe the actual active children exactly.
     for r in groups:
         gid = r[0].strip("`")
         declared = (ctx.f("GROUP-index", r, "Active LEAF children")
                     or "").strip().replace("`", "")
-        refs = re.findall(r"CBA2-[ACRLS]\d{2}\.\d+", declared)
         cm = re.search(r"\(([1-9]\d*)\)\s*$", declared)
         actual = sorted(by_group.get(gid, []))
-        if not refs or not cm:
+        body = re.sub(r"\s*\([1-9]\d*\)\s*$", "", declared).strip()
+        declared_ids = []
+        parseable = bool(body and cm)
+        for part in [p.strip() for p in body.split(",") if p.strip()]:
+            match = re.fullmatch(
+                r"(CBA2-[ACRLS]\d{2}\.\d+)"
+                r"(?:\s*[–-]\s*(CBA2-[ACRLS]\d{2}\.\d+))?", part)
+            if not match:
+                parseable = False
+                continue
+            first, last = match.group(1), match.group(2)
+            first_parent, first_number = first.rsplit(".", 1)
+            if last is None:
+                declared_ids.append(first)
+                continue
+            last_parent, last_number = last.rsplit(".", 1)
+            if first_parent != last_parent or int(first_number) > int(
+                    last_number):
+                parseable = False
+                continue
+            declared_ids.extend(
+                "%s.%d" % (first_parent, number)
+                for number in range(int(first_number), int(last_number) + 1))
+        if not parseable or not declared_ids:
             ctx.problems.append("GROUP %s: Active LEAF children %r lacks a "
                                 "parseable declared range/list and count"
                                 % (gid, declared))
             continue
-        if any(ref.split(".")[0] != gid for ref in refs):
+        if any(ref.split(".")[0] != gid for ref in declared_ids):
             ctx.problems.append("GROUP %s: declared child range/list names a "
                                 "different GROUP" % gid)
         declared_count = int(cm.group(1))
@@ -1165,11 +1353,17 @@ def check_group_leaf(ctx):
             ctx.problems.append("GROUP %s: declared child count %d != actual "
                                 "active child count %d"
                                 % (gid, declared_count, len(actual)))
-        bounds = [int(ref.rsplit(".", 1)[1]) for ref in refs]
-        if actual and (min(bounds) != min(actual) or max(bounds) != max(actual)):
-            ctx.problems.append("GROUP %s: declared child range/list bounds "
-                                "%s do not match actual bounds %d–%d"
-                                % (gid, bounds, min(actual), max(actual)))
+        declared_numbers = [
+            int(ref.rsplit(".", 1)[1]) for ref in declared_ids
+            if ref.split(".")[0] == gid]
+        if len(declared_numbers) != len(set(declared_numbers)):
+            ctx.problems.append("GROUP %s: declared child range/list overlaps "
+                                "or repeats an identity" % gid)
+        if set(declared_numbers) != set(actual):
+            ctx.problems.append(
+                "GROUP %s: declared child identity set %s does not exactly "
+                "match actual active child identity set %s"
+                % (gid, sorted(set(declared_numbers)), actual))
     return set(mids)
 
 
@@ -1183,7 +1377,7 @@ def check_xw2(ctx, published, active_leaves, migration):
             nums.append(int(m.group(1)))
         else:
             ctx.problems.append("XW2: malformed edge id %r" % i)
-    ctx.problems += contiguous_from_one(nums, "XW2")
+    ctx.problems += duplicate_numbers(nums, "XW2")
 
     terminal = set(ctx.vocab("xw2-terminal-edge-type"))
     pairs, term_keys = {}, {}
@@ -1200,10 +1394,40 @@ def check_xw2(ctx, published, active_leaves, migration):
         if published.ok and src not in published.leaf_len:
             ctx.problems.append("XW2 %s: source %s is not a published v1.1 LEAF "
                                 "in the pinned population" % (eid, src))
+        deferred = etype == "deferred"
         if etype in terminal:
             if tgt != DASH:
                 ctx.problems.append("XW2 %s: terminal edge carries a non-dash "
                                     "target %r" % (eid, tgt))
+        elif deferred:
+            if tgt != DASH:
+                ctx.problems.append(
+                    "XW2 %s: deferred nonterminal edge must carry target —"
+                    % eid)
+            deferral = re.search(
+                r"families:([ACRLS]),([ACRLS]); "
+                r"resolving-unit:(R[4-6])\s*$", scope or "")
+            if not deferral:
+                ctx.problems.append(
+                    "XW2 %s: deferred scope must end with exact distinct "
+                    "source/target families and resolving-unit:R4|R5|R6"
+                    % eid)
+            else:
+                source_family, target_family, _unit = deferral.groups()
+                source_match = re.fullmatch(
+                    r"CBA-([ACRLS])\d{2}(?:\.\d+)?", src)
+                if source_family == target_family:
+                    ctx.problems.append(
+                        "XW2 %s: deferred source and target families must be "
+                        "distinct" % eid)
+                if source_match and source_family != source_match.group(1):
+                    ctx.problems.append(
+                        "XW2 %s: deferred source family %s does not match "
+                        "historical source %s" % (eid, source_family, src))
+            if r8_has_started(ctx.tree.plan):
+                ctx.problems.append(
+                    "XW2 %s: deferred edge survives into R8, whose G1 gate "
+                    "requires zero current deferrals" % eid)
         else:
             if not re.fullmatch(r"CBA2-[ACRLS][0-9]{2}\.[0-9]+", tgt):
                 ctx.problems.append("XW2 %s: nonterminal target %r is not an "
@@ -1242,7 +1466,8 @@ def check_xw2(ctx, published, active_leaves, migration):
             term_keys[k] = eid
         parsed.append({"id": eid, "src": src, "tgt": tgt, "type": etype,
                        "scope": scope or "", "dec": dec, "frag": frag,
-                       "terminal": etype in terminal})
+                       "terminal": etype in terminal,
+                       "deferred": deferred})
     return parsed
 
 
@@ -1641,7 +1866,7 @@ def check_src2_ev2(ctx, active_leaves, migration):
     ev_ids = [r[0].strip("`") for r in ev2]
     if len(ev_ids) != len(set(ev_ids)):
         ctx.problems.append("EV2: duplicate component id(s)")
-    ctx.problems += contiguous_from_one(
+    ctx.problems += duplicate_numbers(
         [int(i.split("-")[1]) for i in ev_ids
          if re.fullmatch(r"EV2-\d{4}", i)], "EV2")
 
@@ -1841,12 +2066,17 @@ def check_dr2(ctx, edges, active_leaves, migration):
                     "result": result, "row": r}
     ctx.problems += contiguous_from_one(sorted(nums), "DR2")
 
-    # every DR2 result reference resolves to an existing active LEAF
+    # A generic DR2 row may be an immutable historical receipt row.  Its
+    # formerly-current record references therefore resolve either directly
+    # now or through structured AMEND lineage.  Collect the latter cases here
+    # and decide them only after the AMEND population has been parsed.
+    pending_amended_refs = []
     for did, d in sorted(dr2.items()):
         for lid in re.findall(r"CBA2-[ACRLS][0-9]{2}\.[0-9]+", d["result"]):
             if lid not in active_leaves:
-                ctx.problems.append("DR2 %s: resulting LEAF %s does not exist"
-                                    % (did, lid))
+                pending_amended_refs.append((
+                    "LEAF", lid,
+                    "DR2 %s: resulting LEAF %s does not exist" % (did, lid)))
         body = " ".join(d["row"])
         resolvers = {
             "XW2": set(ctx.ids("XW2-edge")),
@@ -1865,8 +2095,11 @@ def check_dr2(ctx, edges, active_leaves, migration):
                      "RES": 4}[prefix]
             for ref in re.findall(r"%s-\d{%d}" % (prefix, width), body):
                 if ref not in known:
-                    ctx.problems.append("DR2 %s: record reference %s does not "
-                                        "resolve" % (did, ref))
+                    pending_amended_refs.append((
+                        prefix, ref,
+                        "DR2 %s: record reference %s does not resolve"
+                        % (did, ref)))
+    ctx.pending_amended_dr2_references = pending_amended_refs
 
     # every register decision reference resolves to an existing DR2 record
     for e in edges:
@@ -1874,6 +2107,15 @@ def check_dr2(ctx, edges, active_leaves, migration):
             ctx.problems.append("XW2 %s: decision reference %s resolves to no "
                                 "DR2 record (nonexistent decision)"
                                 % (e["id"], e["dec"]))
+        elif e.get("deferred") and dr2[e["dec"]]["type"] != "OWN":
+            ctx.problems.append(
+                "XW2 %s: deferred edge must directly reference one current "
+                "OWN decision, not %s"
+                % (e["id"], dr2[e["dec"]]["type"]))
+        elif e.get("deferred") and dr2[e["dec"]]["result"] != DASH:
+            ctx.problems.append(
+                "XW2 %s: deferred OWN decision must carry result — while no "
+                "active target exists" % e["id"])
     for r in ctx.pop["LEAF-detail"]:
         lid = r[0].strip("`")
         cell = ctx.f("LEAF-detail", r, "Decision records") or ""
@@ -1915,7 +2157,7 @@ def check_leaf_references(ctx, edges, dr2, active_leaves):
                                     "active LEAF" % (lid, eid))
 
     for eid, edge in sorted(xedges.items()):
-        if edge["terminal"]:
+        if edge["terminal"] or edge.get("deferred"):
             continue
         if eid not in origins.get(edge["tgt"], set()):
             ctx.problems.append("XW2 %s: nonterminal target %s does not "
@@ -2220,6 +2462,8 @@ def check_fragments(ctx, edges, dr2, published, migration):
         g = lambda f: (ctx.f("fragment-inventory", r, f) or "").strip()
         parent = g("Historical parent LEAF").strip("`")
         kind = g("Fragment kind").strip("`")
+        authority_qualifier = g(
+            "Historical authority qualifier or —").strip("`")
         scope = g("Normalized fragment scope")
         decomp = g("Decomposition decision record").strip("`")
         bundle = g("Disposition bundle ID or —").strip("`")
@@ -2234,6 +2478,24 @@ def check_fragments(ctx, edges, dr2, published, migration):
                                 "declared parent LEAF %s" % (fid, parent))
         vocab_check(ctx, "fragment-kind", kind, "fragment %s kind" % fid)
         vocab_check(ctx, "record-status", status, "fragment %s status" % fid)
+        if kind == "authority-assertion":
+            pinned = published.leaf_authority.get(parent) \
+                if published.ok else None
+            if not authority_qualifier or authority_qualifier == DASH:
+                ctx.problems.append(
+                    "fragment %s: authority-assertion requires the exact "
+                    "pinned Historical authority qualifier" % fid)
+            elif pinned is not None and \
+                    normalize_text(authority_qualifier) != pinned:
+                ctx.problems.append(
+                    "fragment %s: Historical authority qualifier %r does not "
+                    "equal pinned published Authority cell %r"
+                    % (fid, authority_qualifier, pinned))
+        elif authority_qualifier != DASH:
+            ctx.problems.append(
+                "fragment %s: non-authority fragment kind %s requires "
+                "Historical authority qualifier —"
+                % (fid, kind))
         if not re.fullmatch(r"[1-9]\d*", ver):
             ctx.problems.append("fragment %s: Fragment version %r is not an "
                                 "unpadded positive integer" % (fid, ver))
@@ -2250,7 +2512,8 @@ def check_fragments(ctx, edges, dr2, published, migration):
         if len(eids) != len(set(eids)):
             ctx.problems.append("fragment %s: duplicate disposition edge id(s)"
                                 % fid)
-        rec = {"id": fid, "leaf": parent, "kind": kind, "scope": scope,
+        rec = {"id": fid, "leaf": parent, "kind": kind,
+               "authority_qualifier": authority_qualifier, "scope": scope,
                "atoms": atoms, "bundle": bundle, "edges": eids,
                "status": status, "ver": ver, "parent": parent,
                "register": "XW2"}
@@ -2315,7 +2578,8 @@ def check_fragments(ctx, edges, dr2, published, migration):
             for g in siblings:
                 for geid in g["edges"]:
                     ge = edge_by_id.get(geid)
-                    if ge is not None and not ge["terminal"]:
+                    if ge is not None and not ge["terminal"] and \
+                            not ge.get("deferred"):
                         supported = True
             if not supported:
                 ctx.problems.append(
@@ -3334,16 +3598,201 @@ SUPERSEDE_FIELDS = (
 )
 
 VERSION_LINEAGE_SUPPORT = (
+    ("SRC2", "SRC2-base", "Record version"),
+    ("SRC2-date-component", "SRC2-date-component", "Component version"),
+    ("DISP", "DISP-detail", "Version"),
     ("fragment", "fragment-inventory", "Fragment version"),
     ("scenario-fragment", "scenario-fragment-inventory", "Fragment version"),
     ("BND", "BND-bundle", "Bundle version"),
     ("SM2", "SM2-record", "Search version"),
     ("SS2", "SS2-record", "Set version"),
+    ("BLK", "BLK-record", "Finding version"),
+    ("RES", "RES-record", "Resolution version"),
 )
 VERSION_LINEAGE_BY_POPULATION = {
     population: (key, field)
     for population, key, field in VERSION_LINEAGE_SUPPORT
 }
+
+# A population is a logical governed identity, not merely one rendered table.
+# LEAF spans its main and detail rows; SRC2 spans its base and the one applicable
+# provenance-detail row.  CBA2-SC is deliberately not guessed from prose: no
+# machine-readable population declaration exists yet, so an attempted AMEND is
+# mechanically deferred/rejected until the governing inventory adds one.
+AMEND_POPULATION_KEYS = {
+    "GROUP": ("GROUP-index",),
+    "LEAF": ("LEAF-main", "LEAF-detail"),
+    "XW2": ("XW2-edge",),
+    "SRC2": ("SRC2-base", "SRC2-detail-official-immutable",
+             "SRC2-detail-official-mutable",
+             "SRC2-detail-ops-provenance", "SRC2-detail-ext-contract"),
+    "SRC2-date-component": ("SRC2-date-component",),
+    "EV2": ("EV2-component",),
+    "CBA2-SC": None,
+    "SXW2": ("SXW2-edge",),
+    "DR2": ("DR2-generic",),
+    "DISP": ("DISP-detail",),
+    "fragment": ("fragment-inventory",),
+    "scenario-fragment": ("scenario-fragment-inventory",),
+    "BND": ("BND-bundle",),
+    "SM2": ("SM2-record",),
+    "SS2": ("SS2-record",),
+    "BLK": ("BLK-record",),
+    "RES": ("RES-record",),
+}
+
+CANON_POPULATION_KEYS = {
+    "GROUP-index", "LEAF-main", "LEAF-detail", "XW2-edge", "SRC2-base",
+    "SRC2-detail-official-immutable", "SRC2-detail-official-mutable",
+    "SRC2-detail-ops-provenance", "SRC2-detail-ext-contract",
+    "EV2-component", "SXW2-edge",
+}
+
+
+def governed_population_snapshot(tree, inv, population, ctx=None):
+    """Return exact logical records for one named AMEND population.
+
+    The lookup is scoped to Inventory F/G population tables.  It never searches
+    canon, plan, or receipt prose for a shaped identifier.  A record value is a
+    tuple of its governed table components, so LEAF and SRC2 changes are
+    detected coherently while still requiring one population-level AMEND row.
+    """
+    keys = AMEND_POPULATION_KEYS.get(population)
+    if keys is None:
+        return {
+            "records": {},
+            "versions": {},
+            "versioned": False,
+            "problems": [
+                "population %s has no governed parser declaration; exact "
+                "lineage is deferred and cannot be admitted mechanically"
+                % population],
+        }
+
+    checkpoint_inv = None
+    if ctx is None:
+        checkpoint_inv, checkpoint_problems = parse_inventory(tree.canon)
+        if checkpoint_problems:
+            checkpoint_inv = None
+
+    components, headers, problems = {}, {}, []
+    for key in keys:
+        if ctx is not None:
+            header = ctx.header.get(key)
+            rows = ctx.pop.get(key, [])
+            parse_problems = []
+        else:
+            # Historical checkpoints may carry an earlier partial Inventory
+            # F/G. Prefer their own exact declaration when this population is
+            # declared there; otherwise use today's governed declaration to
+            # parse the historical table. Both paths remain table/range scoped
+            # and never fall back to a whole-file prose search.
+            if key in CANON_POPULATION_KEYS:
+                declared_at_checkpoint = (
+                    checkpoint_inv is not None
+                    and key in checkpoint_inv.sections)
+            else:
+                declared_at_checkpoint = (
+                    checkpoint_inv is not None
+                    and key in checkpoint_inv.headings)
+            use_inv = checkpoint_inv if declared_at_checkpoint else inv
+            if key in CANON_POPULATION_KEYS:
+                header, rows, parse_problems = parse_canon_population(
+                    tree.canon, use_inv, key)
+            else:
+                header, rows, parse_problems = parse_receipt_population(
+                    tree, use_inv, key)
+            if not rows and use_inv is not inv:
+                if key in CANON_POPULATION_KEYS:
+                    fallback_header, fallback_rows, fallback_problems = \
+                        parse_canon_population(tree.canon, inv, key)
+                else:
+                    fallback_header, fallback_rows, fallback_problems = \
+                        parse_receipt_population(tree, inv, key)
+                if fallback_rows:
+                    header, rows, parse_problems = (
+                        fallback_header, fallback_rows, fallback_problems)
+            if not rows and key in CANON_POPULATION_KEYS:
+                fallback_header, fallback_rows, fallback_problems = \
+                    parse_canon_population_by_exact_header(
+                        tree.canon, inv, key)
+                if fallback_rows:
+                    header, rows, parse_problems = (
+                        fallback_header, fallback_rows, fallback_problems)
+        headers[key] = header
+        problems.extend("%s: %s" % (key, p) for p in parse_problems)
+        seen_in_key = set()
+        for row in rows:
+            rid = normalize_record_id_cell(row[0])
+            if rid in seen_in_key:
+                problems.append("%s: identity %s resolves more than once"
+                                % (key, rid))
+            seen_in_key.add(rid)
+            normalized = [cell.strip() for cell in row]
+            normalized[0] = rid
+            components.setdefault(rid, []).append(
+                (key, tuple(normalized)))
+
+    records = {
+        rid: tuple(sorted(parts, key=lambda item: item[0]))
+        for rid, parts in components.items()
+    }
+    versions = {}
+    version_spec = VERSION_LINEAGE_BY_POPULATION.get(population)
+    versioned = False
+    if version_spec:
+        version_key, version_field = version_spec
+        header = headers.get(version_key)
+        versioned = bool(header and version_field in header)
+        if versioned:
+            index = header.index(version_field)
+            for rid, parts in records.items():
+                matches = [
+                    row[index] for key, row in parts
+                    if key == version_key and index < len(row)]
+                if len(matches) == 1:
+                    versions[rid] = matches[0].strip().strip("`")
+                else:
+                    problems.append(
+                        "%s: identity %s resolves %d version-bearing rows"
+                        % (population, rid, len(matches)))
+    return {
+        "records": records,
+        "versions": versions,
+        "versioned": versioned,
+        "problems": problems,
+    }
+
+
+def pinned_baseline_tree(ctx):
+    """Load the pinned R3 tree once per top-level validation."""
+    if not hasattr(ctx, "_pinned_baseline_tree"):
+        sha = ctx.inv.commits.get("r3-checkpoint")
+        repo = ctx.tree.repo or ctx.tree.root
+        ctx._pinned_baseline_tree = (
+            Tree(ctx.tree.root, ref=sha)
+            if sha and git_commit_exists(repo, sha) else None)
+    return ctx._pinned_baseline_tree
+
+
+def cached_population_snapshot(ctx, population, baseline=False):
+    """Reuse logical population parses within one validation pass."""
+    attr = ("_baseline_population_snapshots" if baseline
+            else "_current_population_snapshots")
+    cache = getattr(ctx, attr, None)
+    if cache is None:
+        cache = {}
+        setattr(ctx, attr, cache)
+    if population not in cache:
+        tree = pinned_baseline_tree(ctx) if baseline else ctx.tree
+        cache[population] = (
+            governed_population_snapshot(
+                tree, ctx.inv, population, ctx=None if baseline else ctx)
+            if tree is not None else {
+                "records": {}, "versions": {}, "versioned": False,
+                "problems": ["pinned R3 tree does not resolve"],
+            })
+    return cache[population]
 
 
 def check_amend(ctx, dr2):
@@ -3351,29 +3800,19 @@ def check_amend(ctx, dr2):
     every superseding relationship resolving, and no stale live reference."""
     amend_ids = {d for d, v in dr2.items() if v["type"] == "AMEND"}
     detail_rows = ctx.pop.get("AMEND-detail", [])
-    detail_by_parent, prior_seen, checkpoint_cache = {}, set(), {}
+    detail_by_parent, prior_seen = {}, set()
     checkpoint_tree_cache, checkpoint_population_cache = {}, {}
     lineage_edges = {}
+    current_snapshots = {
+        population: cached_population_snapshot(ctx, population)
+        for population in AMEND_POPULATION_KEYS
+    }
     current_population = {
-        "GROUP": set(ctx.ids("GROUP-index")),
-        "LEAF": set(ctx.ids("LEAF-main")),
-        "XW2": set(ctx.ids("XW2-edge")),
-        "SRC2": set(ctx.ids("SRC2-base")),
-        "SRC2-date-component": set(ctx.ids("SRC2-date-component")),
-        "EV2": set(ctx.ids("EV2-component")),
-        "CBA2-SC": set(),
-        "SXW2": set(ctx.ids("SXW2-edge")),
-        "DR2": set(ctx.ids("DR2-generic")),
-        "DISP": set(ctx.ids("DISP-detail")),
-        "fragment": set(ctx.ids("fragment-inventory")),
-        "scenario-fragment": set(ctx.ids("scenario-fragment-inventory")),
-        "BND": set(ctx.ids("BND-bundle")),
-        "SM2": set(ctx.ids("SM2-record")),
-        "SS2": set(ctx.ids("SS2-record")),
-        "BLK": set(ctx.ids("BLK-record")),
-        "RES": set(ctx.ids("RES-record")),
+        population: set(snapshot["records"])
+        for population, snapshot in current_snapshots.items()
     }
     resolved_forward = set()
+    parsed_details = []
     for r in detail_rows:
         aid = r[0].strip("`")
         g = lambda f: (ctx.f("AMEND-detail", r, f) or "").strip()
@@ -3395,10 +3834,15 @@ def check_amend(ctx, dr2):
         vocab_check(ctx, "amend-action", action,
                     "AMEND detail %s action" % aid)
         key = (population, prior)
-        if key in prior_seen:
+        # Sequential same-ID revisions are distinguished by exact checkpoint
+        # and prior version.  A non-revise lineage may consume an identity only
+        # once.
+        seen_key = ((population, prior, prior_ver, checkpoint)
+                    if action == "revise" else key)
+        if seen_key in prior_seen:
             ctx.problems.append("AMEND detail %s: duplicate prior-lineage row "
                                 "for %s %s" % (aid, population, prior))
-        prior_seen.add(key)
+        prior_seen.add(seen_key)
         if not prior or prior == DASH:
             ctx.problems.append("AMEND detail %s: Prior record ID is blank/dash"
                                 % aid)
@@ -3411,18 +3855,28 @@ def check_amend(ctx, dr2):
             ctx.problems.append("AMEND detail %s: Prior checkpoint commit %r "
                                 "does not resolve to a full Git commit"
                                 % (aid, checkpoint))
+            prior_snapshot = None
         else:
-            if checkpoint not in checkpoint_cache:
-                old = Tree(ctx.tree.repo or ctx.tree.root, ref=checkpoint)
-                checkpoint_tree_cache[checkpoint] = old
-                checkpoint_cache[checkpoint] = "\n".join(
-                    [old.canon or "", old.plan or "", old.receipt_text()])
-            if not re.search(r"(?<![A-Za-z0-9_.:#-])%s(?![A-Za-z0-9_.:#-])"
-                             % re.escape(prior),
-                             checkpoint_cache[checkpoint]):
-                ctx.problems.append("AMEND detail %s: prior identity %s does "
-                                    "not resolve at checkpoint %s"
-                                    % (aid, prior, checkpoint[:12]))
+            if checkpoint not in checkpoint_tree_cache:
+                pinned = ctx.inv.commits.get("r3-checkpoint")
+                checkpoint_tree_cache[checkpoint] = (
+                    pinned_baseline_tree(ctx) if checkpoint == pinned
+                    else Tree(ctx.tree.repo or ctx.tree.root, ref=checkpoint))
+            cache_key = (checkpoint, population)
+            if cache_key not in checkpoint_population_cache:
+                checkpoint_population_cache[cache_key] = \
+                    governed_population_snapshot(
+                        checkpoint_tree_cache[checkpoint], ctx.inv, population)
+            prior_snapshot = checkpoint_population_cache[cache_key]
+            for problem in prior_snapshot["problems"]:
+                ctx.problems.append(
+                    "AMEND detail %s: prior-checkpoint %s parse failed: %s"
+                    % (aid, population, problem))
+            if prior not in prior_snapshot["records"]:
+                ctx.problems.append(
+                    "AMEND detail %s: prior %s identity %s resolves 0 times "
+                    "in the exact governed population at checkpoint %s"
+                    % (aid, population, prior, checkpoint[:12]))
         currents = [] if current_raw == DASH else current_raw.split(", ")
         if action == "remove":
             if currents or current_ver_raw != DASH:
@@ -3452,83 +3906,71 @@ def check_amend(ctx, dr2):
                 ctx.problems.append("AMEND detail %s: current %s identity %s "
                                     "does not resolve directly"
                                     % (aid, population, cid))
-        if current_ver_raw != DASH:
-            versions = current_ver_raw.split(", ")
-            if len(versions) != len(currents) or any(
-                    not re.fullmatch(r"[1-9]\d*", v) for v in versions):
-                ctx.problems.append("AMEND detail %s: current versions do not "
-                                    "align with current identities" % aid)
-            if prior_ver != DASH and any(int(v) <= int(prior_ver)
-                                         for v in versions
-                                         if re.fullmatch(r"[1-9]\d*", v)):
-                ctx.problems.append("AMEND detail %s: current version does not "
-                                    "advance beyond prior version" % aid)
-            if action == "revise" and re.fullmatch(r"[1-9]\d*", prior_ver) \
-                    and len(versions) == 1 and \
-                    re.fullmatch(r"[1-9]\d*", versions[0]) and \
-                    int(versions[0]) != int(prior_ver) + 1:
-                ctx.problems.append("AMEND detail %s: same-identity revise "
-                                    "must advance exactly one version"
-                                    % aid)
-        elif action == "revise":
-            ctx.problems.append("AMEND detail %s: revise requires explicit "
-                                "prior and current versions" % aid)
-        if action == "revise" and prior_ver == DASH:
-            ctx.problems.append("AMEND detail %s: revise requires an explicit "
-                                "prior version" % aid)
-        if action == "revise" and population in \
-                VERSION_LINEAGE_BY_POPULATION and \
-                re.fullmatch(r"[0-9a-f]{40}", checkpoint) and \
-                git_commit_exists(ctx.tree.repo or ctx.tree.root, checkpoint):
-            cache_key = (checkpoint, population)
-            if cache_key not in checkpoint_population_cache:
-                old = checkpoint_tree_cache.get(checkpoint)
-                if old is None:
-                    old = Tree(ctx.tree.repo or ctx.tree.root, ref=checkpoint)
-                    checkpoint_tree_cache[checkpoint] = old
-                pop_key, version_field = \
-                    VERSION_LINEAGE_BY_POPULATION[population]
-                header, old_rows, parse_problems = \
-                    parse_receipt_population(old, ctx.inv, pop_key)
-                versions = {}
-                if header and version_field in header:
-                    version_index = header.index(version_field)
-                    for old_row in old_rows:
-                        old_id = old_row[0].strip("`")
-                        old_version = old_row[version_index].strip("`")
-                        versions.setdefault(old_id, []).append(old_version)
-                checkpoint_population_cache[cache_key] = (
-                    pop_key, header, parse_problems, versions)
-            pop_key, header, parse_problems, versions = \
-                checkpoint_population_cache[cache_key]
-            for problem in parse_problems:
-                ctx.problems.append(
-                    "AMEND detail %s: prior-checkpoint %s parse failed: %s"
-                    % (aid, pop_key, problem))
-            if header != ctx.inv.schema.get(pop_key):
-                ctx.problems.append(
-                    "AMEND detail %s: prior checkpoint %s does not carry the "
-                    "exact governed %s header" % (aid, checkpoint[:12],
-                                                  pop_key))
-            matches = versions.get(prior, [])
-            if len(matches) != 1:
-                ctx.problems.append(
-                    "AMEND detail %s: prior %s identity %s resolves %d times "
-                    "in the exact governed population at checkpoint %s"
-                    % (aid, population, prior, len(matches),
-                       checkpoint[:12]))
-            elif re.fullmatch(r"[1-9]\d*", prior_ver) and \
-                    matches[0] != prior_ver:
+        versions = ([] if current_ver_raw == DASH
+                    else current_ver_raw.split(", "))
+        if versions and (len(versions) != len(currents) or any(
+                not re.fullmatch(r"[1-9]\d*", v) for v in versions)):
+            ctx.problems.append("AMEND detail %s: current versions do not "
+                                "align with current identities" % aid)
+
+        prior_is_versioned = bool(
+            prior_snapshot and prior_snapshot["versioned"])
+        current_is_versioned = bool(
+            current_snapshots.get(population, {}).get("versioned"))
+        if prior_is_versioned:
+            recorded_prior = prior_snapshot["versions"].get(prior)
+            if recorded_prior != prior_ver:
                 ctx.problems.append(
                     "AMEND detail %s: prior checkpoint records version %s, "
                     "not claimed prior version %s for %s %s"
-                    % (aid, matches[0], prior_ver, population, prior))
+                    % (aid, recorded_prior or "none", prior_ver,
+                       population, prior))
+        elif prior_ver != DASH:
+            ctx.problems.append(
+                "AMEND detail %s: prior %s population is versionless at "
+                "checkpoint %s, so Prior version must be —"
+                % (aid, population, checkpoint[:12]))
+
+        if action == "revise":
+            if prior_is_versioned:
+                if len(versions) != 1 or \
+                        not re.fullmatch(r"[1-9]\d*", prior_ver) or \
+                        int(versions[0]) != int(prior_ver) + 1:
+                    ctx.problems.append(
+                        "AMEND detail %s: same-identity revise must advance "
+                        "exactly one numeric version" % aid)
+            elif current_is_versioned:
+                if prior_ver != DASH or versions != ["1"]:
+                    ctx.problems.append(
+                        "AMEND detail %s: first versioned revision from a "
+                        "versionless checkpoint requires — -> version 1"
+                        % aid)
+            elif prior_ver != DASH or current_ver_raw != DASH:
+                ctx.problems.append(
+                    "AMEND detail %s: versionless same-identity revise "
+                    "requires — for both prior and current versions" % aid)
+        elif current_is_versioned and currents:
+            if len(versions) != len(currents) or any(v != "1"
+                                                    for v in versions):
+                ctx.problems.append(
+                    "AMEND detail %s: new versioned replacement/split/merge "
+                    "identities must begin at version 1" % aid)
+        elif current_ver_raw != DASH:
+            ctx.problems.append(
+                "AMEND detail %s: versionless %s lineage requires — for "
+                "current versions" % (aid, population))
         if not reason or reason == DASH:
             ctx.problems.append("AMEND detail %s: Reason is blank/dash" % aid)
+        parsed_details.append({
+            "amend": aid, "population": population, "prior": prior,
+            "prior_version": prior_ver, "checkpoint": checkpoint,
+            "action": action, "currents": currents,
+            "current_versions": versions, "reason": reason,
+        })
         if action != "revise":
             lineage_edges.setdefault(key, []).extend(
                 (population, cid) for cid in currents)
-        resolved_forward.add(prior)
+            resolved_forward.add((population, prior))
 
     # Cross-row cycles are checked on population-qualified identities. A
     # same-ID `revise` is version lineage and is deliberately excluded above.
@@ -3555,6 +3997,7 @@ def check_amend(ctx, dr2):
                 ctx.problems.append("AMEND %s: generic record has no structured "
                                     "AMEND detail row" % aid)
     ctx.amend_resolved = resolved_forward
+    ctx.amend_details = parsed_details
     for key, supfield, statusfield, idre in SUPERSEDE_FIELDS:
         rows = ctx.pop.get(key, [])
         if not rows:
@@ -3661,6 +4104,20 @@ def check_version_lineage(ctx):
                     % (population, rid, version, expected_prior, len(matches)))
 
 
+def check_amended_dr2_references(ctx):
+    """Resolve immutable historical DR2 narrative references after AMEND.
+
+    Live register references still resolve directly in their own validators.
+    This exception is only for a generic DR2 receipt row whose once-current
+    LEAF/register identity has been consumed by structured non-revise lineage.
+    """
+    resolved = set(getattr(ctx, "amend_resolved", set()))
+    for population, rid, diagnostic in getattr(
+            ctx, "pending_amended_dr2_references", []):
+        if (population, rid) not in resolved:
+            ctx.problems.append(diagnostic)
+
+
 # --------------------------------------------------------------------------
 # 20. Identity preservation against the pinned R3 checkpoint COMMIT.
 #     (Separate from conformance: no fixed totals anywhere.)
@@ -3670,6 +4127,17 @@ PRESERVED_POPULATIONS = ("GROUP-index", "LEAF-main", "LEAF-detail", "XW2-edge",
                          "SRC2-base", "SRC2-detail-official-immutable",
                          "SRC2-detail-official-mutable", "EV2-component",
                          "DR2-generic")
+PRESERVED_AMEND_POPULATION = {
+    "GROUP-index": "GROUP",
+    "LEAF-main": "LEAF",
+    "LEAF-detail": "LEAF",
+    "XW2-edge": "XW2",
+    "SRC2-base": "SRC2",
+    "SRC2-detail-official-immutable": "SRC2",
+    "SRC2-detail-official-mutable": "SRC2",
+    "EV2-component": "EV2",
+    "DR2-generic": "DR2",
+}
 
 
 def check_preservation(ctx):
@@ -3686,7 +4154,10 @@ def check_preservation(ctx):
         return (["preservation: pinned R3 checkpoint %s does not resolve in the "
                  "governing repository - identity preservation cannot be "
                  "verified" % sha[:12]], notes)
-    base = Tree(ctx.tree.root, ref=sha)
+    base = pinned_baseline_tree(ctx)
+    if base is None:
+        return (["preservation: pinned R3 checkpoint tree is unavailable"],
+                notes)
     if base.canon is None:
         return (["preservation: the canon does not exist at the pinned R3 "
                  "checkpoint %s" % sha[:12]], notes)
@@ -3695,12 +4166,6 @@ def check_preservation(ctx):
         binv = ctx.inv  # the checkpoint predates 15.9.11; read it with today's
     bctx = Ctx(base, binv)
     resolved_forward = set(getattr(ctx, "amend_resolved", set()))
-    for key, _f, _s, idre in SUPERSEDE_FIELDS:
-        for r in ctx.pop.get(key, []):
-            sup = (ctx.f(key, r, _f) or "").strip()
-            m = re.match(r"supersedes (\S+) per AMEND", sup)
-            if m:
-                resolved_forward.add(m.group(1))
     for key in PRESERVED_POPULATIONS:
         if key == "DR2-generic":
             _h, brows, _ = parse_receipt_population(base, binv, key)
@@ -3710,8 +4175,10 @@ def check_preservation(ctx):
         live_ids = set(ctx.ids(key))
         if not base_ids:
             continue
+        population = PRESERVED_AMEND_POPULATION[key]
         missing = [i for i in base_ids
-                   if i not in live_ids and i not in resolved_forward]
+                   if i not in live_ids
+                   and (population, i) not in resolved_forward]
         if missing:
             probs.append("preservation %s: %d committed identity/identities no "
                          "longer resolve and are not AMEND-resolved forward "
@@ -3720,6 +4187,136 @@ def check_preservation(ctx):
         notes.append("preservation %s: %d committed identities, %d live"
                      % (key, len(base_ids), len(live_ids)))
     return probs, notes
+
+
+BASELINE_LOGICAL_POPULATIONS = (
+    "GROUP", "LEAF", "XW2", "SRC2", "EV2", "DR2")
+
+
+def check_baseline_row_amendments(ctx):
+    """Every same-ID pinned-R3 row change needs one direct structured revise.
+
+    This is the reverse half of AMEND validation: it detects silent mutations
+    even when no AMEND row happens to exist.  Composite LEAF/SRC2 records are
+    compared once as logical identities.
+    """
+    sha = ctx.inv.commits.get("r3-checkpoint")
+    repo = ctx.tree.repo or ctx.tree.root
+    if not sha or not git_commit_exists(repo, sha):
+        return
+    baseline = pinned_baseline_tree(ctx)
+    if baseline is None:
+        return
+    details = getattr(ctx, "amend_details", [])
+    for population in BASELINE_LOGICAL_POPULATIONS:
+        old = cached_population_snapshot(ctx, population, baseline=True)
+        current = cached_population_snapshot(ctx, population)
+        for problem in old["problems"]:
+            ctx.problems.append(
+                "baseline %s population parse failed: %s"
+                % (population, problem))
+        for rid in sorted(set(old["records"]) & set(current["records"])):
+            if old["records"][rid] == current["records"][rid]:
+                continue
+            matches = [
+                detail for detail in details
+                if detail["population"] == population
+                and detail["prior"] == rid
+                and detail["checkpoint"] == sha
+                and detail["action"] == "revise"
+                and detail["currents"] == [rid]
+            ]
+            if len(matches) != 1:
+                ctx.problems.append(
+                    "baseline %s %s: same-ID governed row changed from pinned "
+                    "R3 checkpoint without exactly one direct AMEND revise "
+                    "(found %d)" % (population, rid, len(matches)))
+
+
+def _allocated_number(identity, population):
+    if population == "LEAF":
+        match = re.fullmatch(r"(CBA2-[ACRLS]\d{2})\.(\d+)", identity)
+        return ((match.group(1), int(match.group(2))) if match else None)
+    width = {"XW2": 4, "EV2": 4}[population]
+    match = re.fullmatch(r"%s-(\d{%d})" % (population, width), identity)
+    return ((population, int(match.group(1))) if match else None)
+
+
+def check_amended_allocation_continuity(ctx):
+    """Admit current gaps only when historical allocation remains complete.
+
+    Allocated identity history is the pinned R3 register plus every structured
+    AMEND prior/current identity and every live identity.  The union may never
+    skip a number; a missing live identity must resolve through a non-revise
+    AMEND; and a consumed prior identity may never reappear live.
+    """
+    sha = ctx.inv.commits.get("r3-checkpoint")
+    repo = ctx.tree.repo or ctx.tree.root
+    if not sha or not git_commit_exists(repo, sha):
+        return
+    baseline = pinned_baseline_tree(ctx)
+    if baseline is None:
+        return
+    details = getattr(ctx, "amend_details", [])
+    resolved = set(getattr(ctx, "amend_resolved", set()))
+    for population in ("LEAF", "XW2", "EV2"):
+        old = cached_population_snapshot(ctx, population, baseline=True)
+        current = cached_population_snapshot(ctx, population)
+        old_ids = set(old["records"])
+        current_ids = set(current["records"])
+        allocated = set(old_ids) | set(current_ids)
+        for detail in details:
+            if detail["population"] != population:
+                continue
+            allocated.add(detail["prior"])
+            allocated.update(detail["currents"])
+
+        by_family = {}
+        malformed = []
+        for rid in allocated:
+            parsed = _allocated_number(rid, population)
+            if parsed is None:
+                malformed.append(rid)
+                continue
+            family, number = parsed
+            by_family.setdefault(family, set()).add(number)
+        if malformed:
+            ctx.problems.append(
+                "%s allocation history: malformed identity/identities %s"
+                % (population, sorted(malformed)))
+        for family, numbers in sorted(by_family.items()):
+            ctx.problems += contiguous_from_one(
+                sorted(numbers), "%s allocated identity history" % family)
+
+        base_high_water = {}
+        for rid in old_ids:
+            parsed = _allocated_number(rid, population)
+            if parsed:
+                family, number = parsed
+                base_high_water[family] = max(
+                    number, base_high_water.get(family, 0))
+        for rid in sorted(current_ids - old_ids):
+            parsed = _allocated_number(rid, population)
+            if not parsed:
+                continue
+            family, number = parsed
+            if number <= base_high_water.get(family, 0):
+                ctx.problems.append(
+                    "%s %s: fills/reuses an identity at or below the pinned "
+                    "historical high-water %d"
+                    % (population, rid, base_high_water[family]))
+
+        for rid in sorted(allocated - current_ids):
+            if (population, rid) not in resolved:
+                ctx.problems.append(
+                    "%s %s: previously allocated identity is absent from the "
+                    "current register without governed AMEND lineage"
+                    % (population, rid))
+        for rid in sorted(current_ids):
+            if (population, rid) in resolved:
+                ctx.problems.append(
+                    "%s %s: a non-revise AMEND consumed this identity, but it "
+                    "was reused in the current register" % (population, rid))
 
 
 # --------------------------------------------------------------------------
@@ -3837,7 +4434,10 @@ def validate_tree(tree):
     sm2, ss2 = check_sm2_ss2(ctx, src2, frags, details, blk_anchors)
     check_blk_res(ctx, sm2, ss2, frags)
     check_amend(ctx, dr2)
+    check_amended_dr2_references(ctx)
     check_version_lineage(ctx)
+    check_baseline_row_amendments(ctx)
+    check_amended_allocation_continuity(ctx)
 
     pprobs, pnotes = check_preservation(ctx)
     ctx.problems += pprobs
@@ -4126,6 +4726,8 @@ def build_r31_document(repo, published, inv):
                                   "substantive-obligation") for r in grp}
             kind = ("substantive-obligation" if len(kinds) > 1
                     else list(kinds)[0])
+            qualifier = (published.leaf_authority.get(leaf, DASH)
+                         if kind == "authority-assertion" else DASH)
             bundle = DASH
             if len(grp) >= 2:
                 bundle = "BND-%04d" % (len(bnd_rows) + 1)
@@ -4145,8 +4747,10 @@ def build_r31_document(repo, published, inv):
                        ", ".join(mtypes), ", ".join(mtargets),
                        ", ".join(mscopes), span, DASH))
             frag_rows.append(
-                "| %s | %s | %s | %s | %s | %s | %s | current | 1 | none |"
-                % (fid, leaf, kind, span, decomp, bundle, ", ".join(eids)))
+                "| %s | %s | %s | %s | %s | %s | %s | %s | current | 1 | "
+                "none |"
+                % (fid, leaf, kind, qualifier, span, decomp, bundle,
+                   ", ".join(eids)))
             for r in grp:
                 eid = r[0]
                 edge_scope[eid] = "[%s] %s — %s" % (
@@ -4238,6 +4842,23 @@ def build_r31_document(repo, published, inv):
             % (amend, prior, DASH, repo.r3, action, ", ".join(currents),
                DASH, "terminal disposition retyped through current DISP "
                      "records"))
+
+    # Every committed XW2 row receives a governed same-ID revision because the
+    # fragment migration rewrites its normalized scope (and terminal rows also
+    # receive a current DISP decision reference).  The four legacy SRC2 logical
+    # records likewise receive one coherent base+detail schema-onboarding
+    # revision from a versionless checkpoint to version 1.
+    for row in xrows:
+        eid = normalize_record_id_cell(row[0])
+        amend_rows.append(
+            "| %s | XW2 | %s | %s | %s | revise | %s | %s | "
+            "fragment-scoped R3.1 crosswalk revision |"
+            % (amend, eid, DASH, repo.r3, eid, DASH))
+    for rid, *_rest in SRC2_BASE_ROWS:
+        amend_rows.append(
+            "| %s | SRC2 | %s | %s | %s | revise | %s | 1 | "
+            "legacy SRC2 base+detail schema migrated coherently to version 1 |"
+            % (amend, rid, DASH, repo.r3, rid))
 
     # -- rewrite the canon: SRC2 tables, XW2 rows, and the SXW2 section
     canon = _rewrite_src2(canon, inv)
@@ -4495,6 +5116,7 @@ def _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows, sfrag_rows,
                              "Superseding/current relationship or " + DASH,
                              "Status", "Version"], disp_rows)
     frag_hdr = ["Fragment ID", "Historical parent LEAF", "Fragment kind",
+                "Historical authority qualifier or " + DASH,
                 "Normalized fragment scope", "Decomposition decision record",
                 "Disposition bundle ID or " + DASH, "Disposition edge ID(s)",
                 "Fragment status", "Fragment version", "Limitations or " + DASH]
@@ -5575,7 +6197,7 @@ def run_cases(repo):
     base, r31, inv, _published = build_bases(repo)
     H = Harness(repo, base, r31)
     C, P, R = CANON_REL, PLAN_REL, R31_RECEIPT_REL
-    canon, mcanon, mrcpt = base[C], r31[C], r31[R]
+    canon, mcanon, mplan, mrcpt = base[C], r31[C], r31[P], r31[R]
 
     def replace_cell(text, row, index, value):
         cells = [c.strip() for c in row.strip()[1:-1].split("|")]
@@ -5604,6 +6226,16 @@ def run_cases(repo):
             R31_RECEIPT_REL: current,
             ACCEPT_RECEIPT_REL: checker,
         })
+
+    def compatibility_receipt(dr_rows, amend_rows):
+        return (
+            "# Foundation compatibility control receipt\n\n"
+            "This file exists only in the validator's temporary control "
+            "repository.\n\n"
+            "## Decision records\n\n"
+            + _table(inv.schema["DR2-generic"], dr_rows)
+            + "\n## AMEND detail rows\n\n"
+            + _table(inv.schema["AMEND-detail"], amend_rows))
 
     H.run("C0", "committed R2.14 baseline document tree", H.docs(), False)
     H.run("C1", "complete future-R3.1 migrated document tree through the "
@@ -5657,6 +6289,290 @@ def run_cases(repo):
           "appended obligation | — | — |\n")
     H.run("C3", "valid future append-only GROUP/LEAF/XW2/EV2 additions above "
           "the current high-water marks", H.docs(**{C: future}), False)
+
+    # Compatibility checkpoint: reverse AMEND detection, governed gaps, and
+    # exact logical-population lineage.
+    xw1 = row_line(canon, "| XW2-0001 |")
+    xw1_revised = replace_cell(
+        canon, xw1, 4, "Versionless same-ID clarification control")
+    compat_dr = [
+        "| DR2-0048 | `AMEND` | Versionless governed-row control | "
+        "Same stable identity revised | Structured AMEND reverse check | "
+        "Control-only clarification | — | R3.1 / temporary control |"
+    ]
+    compat_amend = [
+        "| DR2-0048 | XW2 | XW2-0001 | — | %s | revise | XW2-0001 | "
+        "— | versionless same-ID revision control |" % repo.r3
+    ]
+    versionless_receipt = compatibility_receipt(compat_dr, compat_amend)
+    H.run("C6", "same-ID versionless XW2 revision with one exact direct AMEND "
+          "row", H.docs(**{C: xw1_revised,
+                           R31_RECEIPT_REL: versionless_receipt}), False)
+    H.run("A7", "silent same-ID governed-row mutation without AMEND",
+          H.docs(**{C: xw1_revised}), True,
+          "same-ID governed row changed")
+
+    wrong_population = compatibility_receipt(
+        compat_dr,
+        ["| DR2-0048 | EV2 | CBA2-A12.5 | — | %s | replace | EV2-0001 | "
+         "— | prose-shaped wrong-population prior control |" % repo.r3])
+    H.run("A8", "AMEND prior appears elsewhere in checkpoint prose but not in "
+          "the exact named governed population",
+          H.docs(**{R31_RECEIPT_REL: wrong_population}), True,
+          "resolves 0 times in the exact governed population")
+
+    a12_group = row_line(canon, "| CBA2-A12 |")
+    a12_main = next(
+        line for line in line_range(
+            canon, "#### 15.10.2", "#### 15.10.3").splitlines()
+        if line.startswith("| CBA2-A12.5 |"))
+    a12_detail = next(
+        line for line in line_range(
+            canon, "#### 15.10.3", "### 15.11").splitlines()
+        if line.startswith("| CBA2-A12.5 |"))
+    ev89 = row_line(canon, "| EV2-0089 |")
+    xw100 = row_line(canon, "| XW2-0100 |")
+    split_canon = replace_cell(
+        canon, a12_group, 2,
+        "`CBA2-A12.1`–`CBA2-A12.4`, `CBA2-A12.6`–`CBA2-A12.7` (6)")
+    split_canon = mut(
+        split_canon, a12_main + "\n",
+        "| CBA2-A12.6 | Unfreeze timing control obligation | CBA | "
+        "LIFECYCLE | SCEN | EV2-0090 | XW2-0132 | Compatibility split "
+        "control. |\n"
+        "| CBA2-A12.7 | No-penalty control obligation | CBA | LIFECYCLE | "
+        "SCEN | EV2-0091 | XW2-0133 | Compatibility split control. |\n")
+    split_canon = mut(
+        split_canon, a12_detail + "\n",
+        "| CBA2-A12.6 | pending R7 | CBA2-A12.4 | Four-year Second Apron "
+        "history | DR2-0048, DR2-0049 |\n"
+        "| CBA2-A12.7 | pending R7 | CBA2-A12.4 | Four-year Second Apron "
+        "history | DR2-0048, DR2-0049 |\n")
+
+    ev_cells = [cell.strip() for cell in ev89.strip()[1:-1].split("|")]
+    ev90 = list(ev_cells)
+    ev90[0], ev90[1] = "EV2-0090", "CBA2-A12.6"
+    ev90[7] = "Maps the timing branch of the split control"
+    ev91 = list(ev_cells)
+    ev91[0], ev91[1] = "EV2-0091", "CBA2-A12.7"
+    ev91[7] = "Maps the no-penalty branch of the split control"
+    split_canon = mut(
+        split_canon, ev89 + "\n",
+        "| " + " | ".join(ev90) + " |\n"
+        "| " + " | ".join(ev91) + " |\n")
+
+    xw_cells = [cell.strip() for cell in xw100.strip()[1:-1].split("|")]
+    xw132 = list(xw_cells)
+    xw132[0], xw132[2], xw132[3], xw132[4], xw132[5] = (
+        "XW2-0132", "CBA2-A12.6", "`split`",
+        "Compatibility split branch one", "DR2-0049")
+    xw133 = list(xw_cells)
+    xw133[0], xw133[2], xw133[3], xw133[4], xw133[5] = (
+        "XW2-0133", "CBA2-A12.7", "`split`",
+        "Compatibility split branch two", "DR2-0049")
+    split_canon = mut(
+        split_canon, xw100 + "\n",
+        "| " + " | ".join(xw132) + " |\n"
+        "| " + " | ".join(xw133) + " |\n")
+
+    split_dr = [
+        "| DR2-0048 | `AMEND` | Governed LEAF/XW2/EV2 split control | "
+        "Prior identities split through append-only successors | AMEND "
+        "identity rules | Tests gaps without renumbering or reuse | — | "
+        "R3.1 / temporary control |",
+        "| DR2-0049 | `OWN` | Compatibility split successor ownership | "
+        "Two current branches selected | Natural-family ownership control | "
+        "Control-only owners for structural validation | CBA2-A12.6, "
+        "CBA2-A12.7 | R3.1 / temporary control |",
+    ]
+    split_amend = [
+        "| DR2-0048 | GROUP | CBA2-A12 | — | %s | revise | CBA2-A12 | — | "
+        "declared child set revised for governed gap |" % repo.r3,
+        "| DR2-0048 | LEAF | CBA2-A12.5 | — | %s | split | CBA2-A12.6, "
+        "CBA2-A12.7 | — | real logical LEAF split control |" % repo.r3,
+        "| DR2-0048 | XW2 | XW2-0100 | — | %s | split | XW2-0132, "
+        "XW2-0133 | — | crosswalk replacement gap control |" % repo.r3,
+        "| DR2-0048 | EV2 | EV2-0089 | — | %s | split | EV2-0090, "
+        "EV2-0091 | — | evidence replacement gap control |" % repo.r3,
+    ]
+    split_receipt = compatibility_receipt(split_dr, split_amend)
+    split_docs = H.docs(**{
+        C: split_canon,
+        R31_RECEIPT_REL: split_receipt,
+    })
+    H.run("C7", "real logical LEAF split plus governed XW2/EV2 replacement "
+          "gaps, high-water successors, and exact GROUP declaration",
+          split_docs, False)
+
+    H.run("A9", "unexplained current XW2 gap with no AMEND lineage",
+          H.docs(**{C: mut(canon, xw100 + "\n", "")}), True,
+          "absent from the current register without governed AMEND lineage")
+    reused_canon = mut(
+        split_canon, "| " + " | ".join(xw132) + " |\n",
+        xw100 + "\n| " + " | ".join(xw132) + " |\n")
+    H.run("A10", "consumed XW2 identity is filled/reused in the current "
+          "register", H.docs(**{C: reused_canon,
+                                R31_RECEIPT_REL: split_receipt}), True,
+          "was reused in the current register")
+    bad_declared_group = replace_cell(
+        split_canon,
+        row_line(split_canon, "| CBA2-A12 |"), 2,
+        "`CBA2-A12.1`–`CBA2-A12.5`, `CBA2-A12.7` (6)")
+    H.run("A11", "GROUP declaration has correct count/bounds but wrong exact "
+          "child identity set",
+          H.docs(**{C: bad_declared_group,
+                    R31_RECEIPT_REL: split_receipt}), True,
+          "does not exactly match actual active child identity set")
+
+    # Versioned populations retain exact one-step arithmetic even though
+    # versionless governed registers may revise in place with — -> —.
+    src1 = row_line(mcanon, "| SRC2-001 |")
+    src1_cells = [cell.strip() for cell in src1.strip()[1:-1].split("|")]
+    src1_cells[12] = "second-step version-lineage compatibility control"
+    src1_cells[14] = "2"
+    src1_v2 = "| " + " | ".join(src1_cells) + " |"
+    src2_v2_canon = mut(mcanon, src1, src1_v2)
+    src2_amend_anchor = [
+        line for line in mrcpt.splitlines()
+        if re.match(r"^\| DR2-\d{4} \| SRC2 \| SRC2-004 \|", line)
+    ][0]
+    amend_parent = src2_amend_anchor.split("|")[1].strip()
+    src2_v2_amend = (
+        "| %s | SRC2 | SRC2-001 | 1 | %s | revise | SRC2-001 | 2 | "
+        "versioned same-ID SRC2 revision advances exactly one version |"
+        % (amend_parent, repo.maker))
+    src2_v2_receipt = mut(
+        mrcpt, src2_amend_anchor + "\n",
+        src2_amend_anchor + "\n" + src2_v2_amend + "\n")
+    H.run("C8", "versioned same-ID SRC2 revision resolves the exact version-1 "
+          "logical record and advances to version 2",
+          H.docs(migrated=True, **{
+              C: src2_v2_canon,
+              R: src2_v2_receipt,
+          }), False)
+
+    # The published parser must use the actual §15.7 LEAF register, never the
+    # earlier hierarchy marker row whose prose happens to begin with CBA-A04.
+    a04_fragment = next(
+        line for line in mrcpt.splitlines()
+        if line.startswith("| CBA-A04:F1 |"))
+    expected_a04_scope = "span:0-%d" % _published.leaf_len["CBA-A04"]
+    if expected_a04_scope not in a04_fragment:
+        raise AssertionError(
+            "top-level CBA-A04 control fragment did not use the §15.7 "
+            "published requirement length")
+    H.run("C9", "top-level CBA-A04 fragment partitions the exact normalized "
+          "§15.7 requirement rather than the hierarchy marker",
+          H.docs(migrated=True), False)
+    marker_length_fragment = replace_cell(
+        mrcpt, a04_fragment, 4, "span:0-18")
+    H.run("A12", "top-level CBA-A04 fragment reuses the 18-character "
+          "hierarchy-marker length",
+          H.docs(migrated=True, **{R: marker_length_fragment}), True,
+          "fragment partition of CBA-A04")
+
+    # An authority-assertion fragment pins the normalized published Authority
+    # cell. The qualifier narrows only the authority/enforceability claim.
+    a151_fragment = next(
+        line for line in mrcpt.splitlines()
+        if line.startswith("| CBA-A15.1:F1 |"))
+    a151_cells = [
+        cell.strip() for cell in a151_fragment.strip()[1:-1].split("|")]
+    if a151_cells[2] != "authority-assertion" or a151_cells[3] != "OPS":
+        raise AssertionError(
+            "CBA-A15.1 control fragment did not retain its pinned OPS "
+            "authority qualifier")
+    H.run("C10", "CBA-A15.1 authority-assertion fragment carries the exact "
+          "normalized published OPS qualifier",
+          H.docs(migrated=True), False)
+    H.run("A13", "CBA-A15.1 authority-assertion omits its historical "
+          "authority qualifier",
+          H.docs(migrated=True, **{
+              R: replace_cell(mrcpt, a151_fragment, 3, DASH),
+          }), True, "requires the exact pinned Historical authority qualifier")
+    H.run("A14", "CBA-A15.1 authority-assertion carries the wrong historical "
+          "authority qualifier",
+          H.docs(migrated=True, **{
+              R: replace_cell(mrcpt, a151_fragment, 3, "CBA"),
+          }), True, "does not equal pinned published Authority cell")
+
+    # A governed cross-family deferral is a temporary nonterminal shape: one
+    # fragment, no bundle, direct current OWN, exact family/unit metadata, and
+    # no survival into R8.
+    deferred_leaf = "CBA-C01.1"
+    deferred_fid = deferred_leaf + ":F1"
+    deferred_span = "span:0-%d" % _published.leaf_len[deferred_leaf]
+    generic_rows = [
+        line for line in mrcpt.splitlines()
+        if re.match(
+            r"^\| DR2-(\d{4}) \| "
+            r"`(?:ORIGIN|OWN|ATOM|METHOD|DISP|AMEND)` \|", line)
+    ]
+    if not generic_rows:
+        raise AssertionError("migrated control has no generic DR2 rows")
+    deferred_decision = "DR2-%04d" % (
+        max(int(re.match(r"^\| DR2-(\d{4})", line).group(1))
+            for line in generic_rows) + 1)
+    deferred_dr = (
+        "| %s | `OWN` | Cross-family C-to-R deferral control | "
+        "Prospective owner intentionally deferred to the R family | "
+        "Natural-family tiebreak plus exact resolving-unit metadata | "
+        "R6 must mint the target owner and AMEND this edge out | — | "
+        "R3.1 / temporary control |" % deferred_decision)
+    deferred_xw = (
+        "| XW2-0132 | %s | — | `deferred` | [%s] %s — "
+        "families:C,R; resolving-unit:R6 | %s |"
+        % (deferred_leaf, deferred_fid, deferred_span, deferred_decision))
+    decomp_decision = a04_fragment.strip()[1:-1].split("|")[5].strip()
+    deferred_fragment = (
+        "| %s | %s | substantive-obligation | — | %s | %s | — | "
+        "XW2-0132 | current | 1 | temporary cross-family deferral control |"
+        % (deferred_fid, deferred_leaf, deferred_span, decomp_decision))
+    xw_anchor = row_line(mcanon, "| XW2-0131 |")
+    fragment_anchor = [
+        line for line in mrcpt.splitlines()
+        if re.match(r"^\| CBA-[ACRLS]\d{2}(?:\.\d+)?:F\d+ \|", line)
+    ][-1]
+    deferred_canon = mut(
+        mcanon, xw_anchor + "\n", xw_anchor + "\n" + deferred_xw + "\n")
+    deferred_receipt = mut(
+        mrcpt, generic_rows[-1] + "\n",
+        generic_rows[-1] + "\n" + deferred_dr + "\n")
+    deferred_receipt = mut(
+        deferred_receipt, fragment_anchor + "\n",
+        fragment_anchor + "\n" + deferred_fragment + "\n")
+    deferred_docs = H.docs(migrated=True, **{
+        C: deferred_canon,
+        R: deferred_receipt,
+    })
+    H.run("C11", "governed cross-family deferred edge has target —, exact "
+          "families/resolving unit, one unbundled fragment, and direct OWN",
+          deferred_docs, False)
+    H.run("A15", "deferred edge omits its exact source/target-family and "
+          "resolving-unit metadata",
+          H.docs(migrated=True, **{
+              C: mut(deferred_canon,
+                     " — families:C,R; resolving-unit:R6", ""),
+              R: deferred_receipt,
+          }), True, "deferred scope must end")
+    H.run("A16", "deferred edge points to a DISP rather than a direct current "
+          "OWN decision",
+          H.docs(migrated=True, **{
+              C: deferred_canon,
+              R: mut(deferred_receipt, deferred_dr,
+                     deferred_dr.replace("| `OWN` |", "| `DISP` |")),
+          }), True, "deferred edge must directly reference")
+    r8_started_plan = mut(
+        mplan,
+        "## R8 — Global canon/register reconciliation and final checksum\n",
+        "## R8 — Global canon/register reconciliation and final checksum\n\n"
+        "- **Status:** in progress (deferred-edge survival control).\n")
+    H.run("A17", "a current deferred edge survives after R8 has started",
+          H.docs(migrated=True, **{
+              C: deferred_canon,
+              P: r8_started_plan,
+              R: deferred_receipt,
+          }), True, "deferred edge survives into R8")
 
     # Valid populated OPS/EXT locations prove those governed sections are
     # real parser inputs rather than prose-only inventory entries.
@@ -5946,15 +6862,19 @@ def run_cases(repo):
     H.run("A1", "AMEND detail points to a nonexistent current identity",
           H.docs(migrated=True, **{R: bad_amend}), True,
           "does not resolve directly")
-    no_amend_detail = re.sub(r"(?m)^\| DR2-\d{4} \| DR2 \| DR2-.*\n?", "",
-                             mrcpt)
+    amend_population_pattern = "|".join(
+        re.escape(population) for population in sorted(
+            AMEND_POPULATION_KEYS, key=len, reverse=True))
+    no_amend_detail = re.sub(
+        r"(?m)^\| DR2-\d{4} \| (?:%s) \|.*\n?"
+        % amend_population_pattern, "", mrcpt)
     H.run("A2", "post-R3.1 AMEND detail population is absent",
           H.docs(migrated=True, **{R: no_amend_detail}), True,
           "G15R/AMEND-detail")
     missing_prior = replace_cell(mrcpt, amend_row, 2, "DR2-9999")
     H.run("A3", "AMEND detail prior identity is absent at its checkpoint",
           H.docs(migrated=True, **{R: missing_prior}), True,
-          "prior identity DR2-9999 does not resolve at checkpoint")
+          "prior DR2 identity DR2-9999 resolves 0 times")
     cycle_cells = [c.strip() for c in
                    amend_row.strip()[1:-1].split("|")]
     cycle_cells[5] = "replace"
@@ -5992,7 +6912,7 @@ def run_cases(repo):
         "| %s | fragment | %s | 1 | %s | revise | %s | 2 | "
         "legitimate same-identity one-step version control |"
         % (amend_id, fragment_id, repo.maker, fragment_id))
-    valid_version2 = replace_cell(mrcpt, fragment_row, 8, "2")
+    valid_version2 = replace_cell(mrcpt, fragment_row, 9, "2")
     valid_version2 = mut(
         valid_version2, amend_row + "\n",
         amend_row + "\n" + valid_revise + "\n")
@@ -6001,7 +6921,7 @@ def run_cases(repo):
           H.docs(migrated=True, **{R: valid_version2}), False)
 
     for name, row, index, population in (
-            ("V1", fragment_row, 8, "fragment"),
+            ("V1", fragment_row, 9, "fragment"),
             ("V2", scenario_row, 8, "scenario-fragment"),
             ("V3", bnd_row, 12, "BND"),
             ("V4", sm2_row, 26, "SM2"),
@@ -6017,7 +6937,7 @@ def run_cases(repo):
         "| %s | fragment | %s | 8 | %s | revise | %s | 9 | "
         "fabricated prior-version control |"
         % (amend_id, fragment_id, repo.maker, fragment_id))
-    fabricated_version9 = replace_cell(mrcpt, fragment_row, 8, "9")
+    fabricated_version9 = replace_cell(mrcpt, fragment_row, 9, "9")
     fabricated_version9 = mut(
         fabricated_version9, amend_row + "\n",
         amend_row + "\n" + fabricated_revise + "\n")

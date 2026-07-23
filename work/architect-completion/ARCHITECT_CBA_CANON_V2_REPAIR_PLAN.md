@@ -157,16 +157,15 @@ IDs could evade the audit; and five live historical-plan mirrors still named
 R2.12 ACCEPT as the current route. That review ordered the R2.14
 ID-normalization and truthful-status closure below. R2.13 and its receipt are
 immutable rejected history.
-**The strict sequence is: R3 (executed; rejected) → R2.6 (executed;
-rejected) → R2.7 (executed; rejected) → R2.8 (executed; rejected) → R2.9
-(executed; rejected) → R2.10 (executed; rejected) → R2.11 (executed;
-rejected) → R2.12 (executed; rejected) → R2.13 (executed; rejected) →
-R2.14 maker checkpoint → independent R2.14 checker ACCEPT → R3.1 maker
-checkpoint → independent R3.1 checker ACCEPT → R4.**
-Completion of R2.14 does not
-accept anything; R3 remains rejected and no A-series record is accepted.
-R3.1 remains blocked pending independent acceptance of R2.14, and R4
-remains blocked until later independent R3.1 acceptance.
+**The current goal authority settles the R2.14 foundation as accepted.**
+That settlement does not accept R3 or any A-series record and does not alter
+the immutable R2.14 maker receipt. The strict live sequence is now: R3
+(executed; rejected) → R2.6–R2.13 (executed; rejected) → R2.14 (accepted
+under the current goal authority) → one-time pre-R3.1
+foundation-compatibility maker checkpoint → independent compatibility
+checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT →
+R4. R3.1 remains blocked pending independent acceptance of the compatibility
+checkpoint, and R4 remains blocked until later independent R3.1 acceptance.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
 code-map work, scenarios, and Linear remain out of scope for repair
@@ -1481,9 +1480,11 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 - **Status:** maker correction complete and checkpoint evidence prepared on
   the rejected R2.13 checkpoint
-  `818a5d03accbebfec810521a49ef9554ca4f79fa`; independent checker review
-  remains pending. R2.14 is not independently accepted, accepts no active
-  record, and does not authorize R3.1.
+  `818a5d03accbebfec810521a49ef9554ca4f79fa`. The R2.14 foundation is
+  **accepted as settled by the current goal objective authority**; its maker
+  receipt remains immutable historical evidence. That settlement accepts no
+  active record and authorizes only the one-time compatibility checkpoint
+  below, not R3.1 itself.
 - **Authorized files (exact):**
   `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
@@ -1518,9 +1519,10 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Truthful status:** search the complete canon and plan. Preserve historical
   facts, rule-origin labels, and immutable receipts, but no live
   current/controlling route may call R2.12 or R2.13 ACCEPT. The operative
-  sequence is R2.6–R2.13 rejected → R2.14 maker checkpoint → independent
-  R2.14 checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker
-  ACCEPT → R4.
+  sequence is R2.6–R2.13 rejected → R2.14 accepted under current goal
+  authority → one-time pre-R3.1 foundation-compatibility maker checkpoint →
+  independent compatibility checker ACCEPT → R3.1 maker checkpoint →
+  independent R3.1 checker ACCEPT → R4.
 - **Preservation:** active §15.10–§15.12 record-table rows, §5.9, historical
   §15.1–§15.8, scenarios 1–89, the exact sixteen-check SC2 list, every
   committed record identity, and every prior receipt remain unchanged. R2.14
@@ -1529,16 +1531,68 @@ is a one-way dependency scheduled backwards, not a cycle).
   registration or scenario construction; no README, code-map, application,
   runtime, application test/schema/fixture/configuration, data, Firestore,
   Linear, main, Phase 2, or W1.1 work.
-- **Sequencing:** **R2.13 rejected → R2.14 maker checkpoint → independent R2.14 checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT → R4.** Maker completion alone accepts nothing.
+- **Sequencing:** **R2.13 rejected → R2.14 accepted under current goal
+  authority → one-time pre-R3.1 foundation-compatibility maker checkpoint →
+  independent compatibility checker ACCEPT → R3.1 maker checkpoint →
+  independent R3.1 checker ACCEPT → R4.** Compatibility maker completion
+  alone accepts nothing.
 - **Stop condition:** stop if a correction would edit a protected active row
   or prior receipt, add a parallel population/grammar contract, mint a
   concrete governed record, touch an unauthorized file, or cross into
   R3.1/Phase 2/application work.
 
-## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until R2.14 is independently accepted)
+## One-time pre-R3.1 foundation-compatibility checkpoint (goal-authorized)
 
-- **Status:** not started. Blocked until the independent checker review
-  of the R2.14 foundation returns ACCEPT (R2.6–R2.13 were
+- **Status:** maker correction complete; **pending independent compatibility
+  checker review and not accepted**. This is a one-time compatibility
+  checkpoint, not an R2.x unit and not substantive R3.1 migration.
+- **Authority and route:** the current goal objective authority settles R2.14
+  as accepted without editing its historical maker receipt. This checkpoint
+  closes only contradictions that would otherwise make the approved R3.1
+  repair unrepresentable or make its validator reject valid governed
+  lineage. R3.1 is the next construction unit only after an independent
+  compatibility checker returns ACCEPT.
+- **Authorized files (exact):**
+  `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
+  `work/architect-completion/cba_canon_v2_foundation_validator.py`; and
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R3_1_COMPATIBILITY_CHECKPOINT.md`.
+  Every earlier receipt and every active §15.10–§15.12 row remains
+  immutable.
+- **Compatibility corrections:** admit governed LEAF/XW2/EV2 gaps only when
+  exact structured `AMEND` lineage consumes the historical identity and
+  allocates successors above the historical high-water mark; require exact
+  GROUP child declarations and reverse-detect silent same-ID governed-row
+  changes; permit versionless same-ID `revise` as `—` → `—` while retaining
+  exact numeric one-step lineage for versioned populations including SRC2;
+  resolve every AMEND prior only in its exact named Inventory F/G population,
+  with CBA2-SC deferred until a governed parser declaration exists; derive
+  top-level historical LEAF text only from the exact published §15.7 table;
+  add the eleven-field fragment authority qualifier contract; and add the
+  narrow governed cross-family `deferred` XW2 shape that a named R4–R6 unit
+  must later replace through `AMEND`.
+- **Validator controls:** accepting and rejecting controls cover a real LEAF
+  split, XW2/EV2 replacement gaps, ID reuse/filling, wrong exact GROUP
+  declarations, versionless XW2 and versioned SRC2 revisions, missing or
+  wrong-population AMEND rows, exact top-level fragment length, the A15.1 OPS
+  qualifier, and valid/malformed/DISP/R8-surviving deferred edges. Every
+  control uses the same top-level document-tree validator.
+- **Preservation:** no active §15.10–§15.12 row, historical §15.1–§15.8 row,
+  scenario, committed record identity, or prior receipt is edited,
+  renumbered, reused, or accepted by this checkpoint.
+- **Explicit exclusions:** no A-series source-law correction, active-row
+  migration, concrete governed record, scenario construction, C/R/L/S work,
+  README, code map, application, runtime, test fixture, data, Firestore,
+  Linear, main, Phase 2, or W1.1 work.
+- **Sequencing:** **R2.14 accepted under current goal authority →
+  compatibility maker checkpoint → independent compatibility checker ACCEPT
+  → R3.1 maker checkpoint → independent R3.1 checker ACCEPT → R4.**
+
+## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until the one-time compatibility checkpoint is independently accepted)
+
+- **Status:** not started. R2.14 is accepted as settled by the current goal
+  authority; R3.1 remains blocked until the independent checker review of the
+  one-time compatibility checkpoint returns ACCEPT (R2.6–R2.13 were
   independently rejected and do not unblock R3.1).
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
@@ -1639,9 +1693,13 @@ is a one-way dependency scheduled backwards, not a cycle).
       committed §15.11 table records XW2-0086–0090 and
       XW2-0095/0096/0100; supersede the erroneous claims in the R3.1
       receipt — never by editing the R3 receipt).
-  14. Supersede every premature U1–U14/source-certified/
-      A-family-complete claim in the canon and status surfaces through
-      proper `AMEND` lineage.
+  14. Correct every premature U1–U14/source-certified/A-family-complete
+      claim without inventing a status-claim population. Supersede the
+      **underlying governed GROUP/LEAF/SRC2/EV2/DR2 records** through exact
+      population-scoped `AMEND` lineage. Correct untyped live canon/plan
+      status prose directly, and explicitly contradict/supersede immutable
+      receipt assertions in the new R3.1 receipt; never edit a prior receipt
+      and never fabricate an `AMEND` row for free prose.
   15. Normalize the changed header hard break so the complete repair
       range passes `git diff --check`.
   16. Declare the §15.9.3 fragment inventory for every historical LEAF
@@ -1695,6 +1753,17 @@ is a one-way dependency scheduled backwards, not a cycle).
       coordinates" instruction in this item contradicted the sole span
       domain and is corrected here by R2.10, with an exhaustive
       `[0, L)` partition, pairwise non-overlap, and no residual); and
+      the exact `Historical authority qualifier or —` from the pinned
+      published Authority cell on every `authority-assertion` fragment
+      (`—` for every other kind), without adding a second coordinate
+      domain — a full requirement span plus qualifier `OPS` invalidates
+      only the qualifying-authority/enforceability claim and preserves
+      the reported mechanic as a discovery candidate; a single governed
+      nonterminal `deferred` edge (target `—`, no bundle, direct current
+      non-`DISP` ownership decision) where the honest owner belongs to a
+      later construction family, with both distinct families and exact
+      `resolving-unit:R4|R5|R6` in the pinned scope grammar and mandatory
+      later `AMEND` exit before R8; and
       one `BND-…` disposition-bundle record for every
       fragment mapping to **two or more** active targets (the committed
       A-series `split`/`merge`/`partial-overlap` bundles), each bundle
@@ -1817,13 +1886,14 @@ is a one-way dependency scheduled backwards, not a cycle).
   support, atomicity, ownership, fragment coverage, evidence adequacy,
   deferrals, and amendment preservation. Only an explicit ACCEPT in the
   named checker report unblocks R5.
-- **Dependency:** R1, R1.1, R2.1, R2.2, the **independently accepted
-  R2.14 foundation** (R2.6–R2.13 were independently rejected
-  and none unblocks R4), and **completed R3.1 with an independent checker ACCEPT
+- **Dependency:** R1, R1.1, R2.1, R2.2, the **R2.14 foundation accepted under
+  current goal authority**, an **independently accepted pre-R3.1
+  compatibility checkpoint** (R2.6–R2.13 were independently rejected and
+  none unblocks R4), and **completed R3.1 with an independent checker ACCEPT
   of the R3.1 checkpoint** (R3 alone does not unblock R4 — it was
-  independently rejected) — the
-  construction sequence R3 → R2.6–R2.13 rejected → R2.14 → checker →
-  R3.1 → checker → R4 → checker → R5 → checker → R6 is strict
+  independently rejected) — the construction sequence R3 → R2.6–R2.13
+  rejected → R2.14 accepted → compatibility checkpoint → checker → R3.1 →
+  checker → R4 → checker → R5 → checker → R6 is strict
   (canon §15.9.2): all
   units extend the shared §15.10–§15.12 sections and allocate from the
   shared XW2/SRC2/EV2/DR2/SM2 namespaces.
