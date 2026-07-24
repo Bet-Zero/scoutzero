@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Architect CBA canon v2.0 — same-family deferral compatibility validator.
+"""Architect CBA canon v2.0 — R3.1 A-series document-tree validator.
 
 WHY THIS FILE EXISTS
 --------------------
@@ -283,6 +283,20 @@ def git_is_strict_ancestor(root, older, newer):
             not git_commit_exists(root, newer):
         return False
     return _git(root, "merge-base", "--is-ancestor", older, newer) is not None
+
+
+def git_is_ancestor(root, older, newer):
+    """True when both refs resolve and older is an ancestor of or equal to
+    newer. A working tree may truthfully pin its current HEAD as the clean
+    pre-mutation control tree until the migration changes are committed."""
+    if not git_commit_exists(root, older) or not git_commit_exists(root, newer):
+        return False
+    return _git(root, "merge-base", "--is-ancestor", older, newer) is not None
+
+
+def git_head(root):
+    out = _git(root, "rev-parse", "HEAD")
+    return out.decode().strip() if out else None
 
 
 def git_blob(root, sha, relpath):
@@ -958,6 +972,79 @@ def parse_migration_state(plan):
     return "unknown"
 
 
+CONTROL_TREE_FIELD = "Accepted-status control tree"
+
+
+def parse_accepted_status_control_tree(plan):
+    """Return the compatibility section's sole full-SHA control-tree field.
+
+    ``None`` means the field is absent, duplicated, or not an exact
+    forty-character lowercase commit ID.
+    """
+    compat = plan_section(
+        plan,
+        "## One-time pre-R3.1 foundation-compatibility checkpoint",
+        "## R3.1 ")
+    rows = re.findall(
+        r"(?m)^- \*\*%s:\*\*\s*`([^`]+)`" % re.escape(CONTROL_TREE_FIELD),
+        compat)
+    if len(rows) != 1 or not re.fullmatch(r"[0-9a-f]{40}", rows[0]):
+        return None
+    return rows[0]
+
+
+def set_accepted_status_control_tree(plan, commit):
+    """Set or add the governed control-tree pointer in a synthetic plan."""
+    line = "- **%s:** `%s`." % (CONTROL_TREE_FIELD, commit)
+    pattern = (
+        r"(?m)^- \*\*%s:\*\*\s*`[^`]+`\.[^\n]*(?:\n"
+        r"  (?!- \*\*).*)*" % re.escape(CONTROL_TREE_FIELD))
+    if re.search(pattern, plan or ""):
+        return re.sub(pattern, line, plan, count=1)
+    compat = plan_section(
+        plan,
+        "## One-time pre-R3.1 foundation-compatibility checkpoint",
+        "## R3.1 ")
+    status = re.search(r"(?m)^- \*\*Status:\*\*.*$", compat)
+    if not compat or not status:
+        raise AssertionError(
+            "compatibility section has no Status anchor for control pointer")
+    revised = (compat[:status.end()] + "\n" + line
+               + compat[status.end():])
+    return plan.replace(compat, revised, 1)
+
+
+def check_accepted_status_control_tree(tree):
+    """Require a resolvable governed pre-R3.1 control-tree ancestor."""
+    compat = plan_section(
+        tree.plan,
+        "## One-time pre-R3.1 foundation-compatibility checkpoint",
+        "## R3.1 ")
+    raw = re.findall(
+        r"(?m)^- \*\*%s:\*\*\s*`([^`]+)`" % re.escape(CONTROL_TREE_FIELD),
+        compat)
+    if len(raw) != 1:
+        return [
+            "plan accepted-status control tree: expected exactly one governed "
+            "full-commit field, found %d" % len(raw)]
+    commit = raw[0]
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        return [
+            "plan accepted-status control tree: %r is not an exact "
+            "forty-character lowercase commit ID" % commit]
+    repo = tree.repo or tree.root
+    if not git_commit_exists(repo, commit):
+        return [
+            "plan accepted-status control tree: commit %s does not resolve"
+            % commit]
+    current = tree.ref or git_head(repo)
+    if not current or not git_is_ancestor(repo, commit, current):
+        return [
+            "plan accepted-status control tree: commit %s is not an ancestor "
+            "of the validated tree" % commit]
+    return []
+
+
 def r8_has_started(plan):
     """The live plan must expose R8 execution before its zero-deferral gate."""
     seg = plan_section(plan, "## R8 ", "## R9 ")
@@ -1258,11 +1345,129 @@ def check_canon_live_status(canon, plan):
     """Reject stale live route claims in pending and accepted states.
 
     Historical checkpoint prose remains immutable. This is limited to the
-    canon's live amendment field, current pre-R3.1 status, edition summaries,
+    canon's live amendment field, current migration status, edition summaries,
     §15.9 live foundation-status mirror, and §19.3 current-family status.
     """
     probs = []
-    if parse_migration_state(plan) != "pre-R3.1":
+    migration = parse_migration_state(plan)
+    if migration == "post-R3.1":
+        amendment = re.search(
+            r"(?m)^\*\*Amendment date:\*\*\s*([^\\\n]+)", canon)
+        if not amendment or amendment.group(1).strip() != "July 24, 2026":
+            probs.append(
+                "canon live post-R3.1 status: maker execution requires the "
+                "July 24, 2026 amendment date")
+
+        top = line_range(
+            canon,
+            "**Current R3.1 maker status "
+            "(supersedes the R2.13 sequencing sentence above):**",
+            "> **Use rule:**")
+        top_flat = re.sub(r"\s+", " ", top)
+        top_required = (
+            "d6101f82b40f5c1e8c45c8be090e9b4743daefe5",
+            "/root/validation_scout",
+            "The R3.1 maker checkpoint has executed after both independently "
+            "accepted compatibility checkpoints",
+            "pending an independent R3.1 checker ACCEPT",
+            "R4 remains blocked until that ACCEPT",
+        )
+        if (not top
+                or any(x not in top_flat for x in top_required)
+                or "R3.1 remains not started" in top_flat
+                or "R3.1 is now unblocked and is the next construction unit "
+                   "but remains not started" in top_flat):
+            probs.append(
+                "canon live post-R3.1 status: top maker mirror omits executed/"
+                "pending-checker R3.1 or blocked R4, or retains a stale "
+                "not-started route")
+
+        first_edition_row = next(
+            (line for line in canon.splitlines()
+             if line.startswith(
+                 "| **Repair v2.0 — working draft, pre-R3.1 "
+                 "compatibility** |")),
+            "")
+        same_edition_row = next(
+            (line for line in canon.splitlines()
+             if line.startswith(
+                 "| **Repair v2.0 — working draft, same-family deferral "
+                 "compatibility** |")),
+            "")
+        edition_route = (
+            "R3.1 maker checkpoint has executed and is pending an independent "
+            "R3.1 checker ACCEPT; no A-series record is accepted, and R4 "
+            "remains blocked until that ACCEPT.")
+        if (not first_edition_row or not same_edition_row
+                or edition_route not in first_edition_row
+                or edition_route not in same_edition_row
+                or "R3.1 remains not started" in first_edition_row
+                or "R3.1 remains not started" in same_edition_row
+                or "but remains not started" in first_edition_row
+                or "but remains not started" in same_edition_row):
+            probs.append(
+                "canon live post-R3.1 status: compatibility edition mirrors "
+                "must record maker execution, pending checker, no accepted "
+                "A-series record, and blocked R4")
+
+        r31_edition_row = next(
+            (line for line in canon.splitlines()
+             if line.startswith(
+                 "| **Repair v2.0 — working draft, R3.1** |")),
+            "")
+        if (not r31_edition_row
+                or "| **July 24, 2026** |" not in r31_edition_row
+                or "Maker executed" not in r31_edition_row
+                or "pending independent R3.1 checker" not in r31_edition_row
+                or "R4 and Phase 2 remain blocked" not in r31_edition_row):
+            probs.append(
+                "canon live post-R3.1 status: R3.1 edition row must use "
+                "July 24, 2026 and record maker execution, pending checker, "
+                "and blocked R4/Phase 2")
+
+        foundation_status = line_range(
+            canon,
+            "The R2.10–R2.13 review findings are classified exhaustively "
+            "below.",
+            "| Foundation review finding | Balanced disposition |")
+        foundation_flat = re.sub(r"\s+", " ", foundation_status)
+        foundation_required = (
+            "d6101f82",
+            "/root/validation_scout",
+            "Neither compatibility acceptance nor maker execution accepts an "
+            "active A-series record",
+            "The R3.1 maker checkpoint has executed and is pending an "
+            "independent R3.1 checker ACCEPT",
+            "R4 remains blocked until that ACCEPT",
+        )
+        if (not foundation_status
+                or any(x not in foundation_flat
+                       for x in foundation_required)
+                or "R3.1 remains not started" in foundation_flat):
+            probs.append(
+                "canon live post-R3.1 status: §15.9 foundation mirror omits "
+                "maker execution/pending checker/no accepted A-series record/"
+                "blocked R4, or retains a stale not-started route")
+
+        family_status = line_range(
+            canon,
+            "**A-family v2 status (R3.1 maker executed; independent checker "
+            "pending — not accepted).**",
+            "### 19.4 CBA Guide sections reviewed for discovery")
+        family_flat = re.sub(r"\s+", " ", family_status)
+        if (not family_status
+                or "R3.1 maker executed" not in family_flat
+                or "no A-family record is an accepted audit oracle"
+                   not in family_flat
+                or "R4 remains blocked pending an independent R3.1 checker "
+                   "ACCEPT" not in family_flat
+                or "R3.1 remains not started" in family_flat):
+            probs.append(
+                "canon §19.3 live post-R3.1 status omits maker execution, "
+                "pending checker/no accepted A-series record, or blocked R4")
+        return probs
+
+    if migration != "pre-R3.1":
         return probs
     same_compat = plan_section(
         plan,
@@ -1727,6 +1932,19 @@ def check_xw2(ctx, published, active_leaves, migration):
             ctx.problems.append("XW2 %s: no pinned leading fragment token in "
                                 "Scope/relationship (fragment-inventory "
                                 "contract)" % eid)
+        if migration == "post-R3.1":
+            fragment_tokens = re.findall(r"\[([^\]]+)\]", scope or "")
+            span_tokens = re.findall(
+                r"(?<![A-Za-z0-9_-])span:\d+-\d+(?:@[^\s;|]*)?",
+                scope or "")
+            if len(fragment_tokens) != 1:
+                ctx.problems.append(
+                    "XW2 %s: Scope/relationship must carry exactly one "
+                    "leading fragment token" % eid)
+            if len(span_tokens) != 1:
+                ctx.problems.append(
+                    "XW2 %s: Scope/relationship must carry exactly one "
+                    "normalized span" % eid)
         if etype in terminal:
             k = (src, frag)
             if k in term_keys:
@@ -2525,6 +2743,16 @@ def check_dr2(ctx, edges, active_leaves, migration):
             if ref not in dr2:
                 ctx.problems.append("LEAF %s: decision reference %s resolves to "
                                     "no DR2 record" % (lid, ref))
+            elif (int(ref.rsplit("-", 1)[1]) >= 59
+                  and dr2[ref]["type"] in ("ATOM", "ORIGIN")):
+                results = set(re.findall(
+                    r"CBA2-[ACRLS][0-9]{2}\.[0-9]+",
+                    dr2[ref]["result"]))
+                if lid not in results:
+                    ctx.problems.append(
+                        "LEAF %s: %s %s does not name this LEAF in its "
+                        "Resulting active LEAF(s) field"
+                        % (lid, dr2[ref]["type"], ref))
     return dr2
 
 
@@ -4873,6 +5101,7 @@ def validate_tree(tree):
     problems += check_canon_population_locations(tree.canon, inv)
     problems += check_plan(tree.plan)
     problems += check_canon_live_status(tree.canon, tree.plan)
+    problems += check_accepted_status_control_tree(tree)
     migration = parse_migration_state(tree.plan)
 
     ctx = Ctx(tree, inv)
@@ -5034,10 +5263,10 @@ class ControlRepo(object):
     later adds a maker checkpoint containing the exact proposed RES row and a
     strict descendant checker-receipt commit."""
 
-    def __init__(self, src_root):
+    def __init__(self, src_root, source_ref):
         self.src = os.path.abspath(src_root)
         self.dir = tempfile.mkdtemp(prefix="cba-canon-control-")
-        src_tree = Tree(self.src)
+        src_tree = Tree(self.src, ref=source_ref)
         inv, _ = parse_inventory(src_tree.canon)
         self.src_inv = inv
         v11 = inv.commits["published-v1.1"]
@@ -5061,14 +5290,24 @@ class ControlRepo(object):
             self._write(rel, txt)
         self.r3 = self._commit("R3 checkpoint")
 
-        # (3) the live documents, repinned onto this repository's commits
+        # (3) the accepted pre-R3.1 status tree, repinned onto this
+        # repository's commits. The historical source commit predates the
+        # control-pointer field, so first commit its equivalent document tree,
+        # then point the synthetic live plan to that strict ancestor.
         self._clear()
-        self.live = {CANON_REL: self._repin(src_tree.canon, v11, r3),
-                     PLAN_REL: src_tree.plan}
+        seed = {CANON_REL: self._repin(src_tree.canon, v11, r3),
+                PLAN_REL: src_tree.plan}
         for rel, txt in sorted(src_tree.receipts.items()):
-            self.live[rel] = txt
+            seed[rel] = txt
+        for rel, txt in sorted(seed.items()):
+            self._write(rel, txt)
+        self.control = self._commit("accepted pre-R3.1 status control tree")
+
+        self.live = dict(seed)
+        self.live[PLAN_REL] = set_accepted_status_control_tree(
+            self.live[PLAN_REL], self.control)
         self.restore()
-        self.head = self._commit("live documents")
+        self.head = self._commit("live documents with control-tree pointer")
         self.maker = None
         self.accept = None
         self._bases = None
@@ -5156,6 +5395,84 @@ KIND_FOR = {"process-only": "process-instruction",
             "invalid": "authority-assertion"}
 
 
+def _hydrate_post_r31_status(canon, live_canon):
+    """Copy only the current live status surfaces into a control-tree canon.
+
+    The accepted control ancestor intentionally predates both the same-family
+    checkpoint and R3.1 execution. The synthetic migrated tree must preserve
+    that historical population while carrying the same truthful live route as
+    the document being validated.
+    """
+    def exact_line(text, prefix):
+        return next((ln for ln in text.splitlines()
+                     if ln.startswith(prefix)), "")
+
+    old_amendment = exact_line(canon, "**Amendment date:**")
+    live_amendment = exact_line(live_canon, "**Amendment date:**")
+    if not old_amendment or not live_amendment:
+        raise AssertionError("post-R3.1 amendment status is absent")
+    canon = canon.replace(old_amendment, live_amendment, 1)
+
+    old_top = line_range(
+        canon,
+        "**Current pre-R3.1 status "
+        "(supersedes the R2.13 sequencing sentence above):**",
+        "> **Use rule:**")
+    live_top = line_range(
+        live_canon,
+        "**Current R3.1 maker status "
+        "(supersedes the R2.13 sequencing sentence above):**",
+        "> **Use rule:**")
+    if not old_top or not live_top:
+        raise AssertionError("post-R3.1 top status mirror is absent")
+    canon = canon.replace(old_top, live_top, 1)
+
+    edition_prefixes = (
+        "| **Repair v2.0 — working draft, pre-R3.1 compatibility** |",
+        "| **Repair v2.0 — working draft, same-family deferral "
+        "compatibility** |",
+        "| **Repair v2.0 — working draft, R3.1** |",
+    )
+    prior_live_row = ""
+    for prefix in edition_prefixes:
+        live_row = exact_line(live_canon, prefix)
+        old_row = exact_line(canon, prefix)
+        if not live_row:
+            raise AssertionError("post-R3.1 edition status row is absent")
+        if old_row:
+            canon = canon.replace(old_row, live_row, 1)
+        elif prior_live_row and prior_live_row in canon:
+            canon = canon.replace(
+                prior_live_row, prior_live_row + "\n" + live_row, 1)
+        else:
+            raise AssertionError(
+                "post-R3.1 edition status insertion anchor is absent")
+        prior_live_row = live_row
+
+    foundation_start = (
+        "The R2.10–R2.13 review findings are classified exhaustively below.")
+    foundation_end = "| Foundation review finding | Balanced disposition |"
+    old_foundation = line_range(canon, foundation_start, foundation_end)
+    live_foundation = line_range(
+        live_canon, foundation_start, foundation_end)
+    if not old_foundation or not live_foundation:
+        raise AssertionError("post-R3.1 §15.9 status mirror is absent")
+    canon = canon.replace(old_foundation, live_foundation, 1)
+
+    old_family_start = (
+        "**A-family v2 status (R3 executed; independently REJECTED — not "
+        "certified).**")
+    live_family_start = (
+        "**A-family v2 status (R3.1 maker executed; independent checker "
+        "pending — not accepted).**")
+    family_end = "### 19.4 CBA Guide sections reviewed for discovery"
+    old_family = line_range(canon, old_family_start, family_end)
+    live_family = line_range(live_canon, live_family_start, family_end)
+    if not old_family or not live_family:
+        raise AssertionError("post-R3.1 §19.3 status mirror is absent")
+    return canon.replace(old_family, live_family, 1)
+
+
 def _bounds(length, n):
     return [round(i * length / float(n)) for i in range(n + 1)]
 
@@ -5164,7 +5481,23 @@ def build_r31_document(repo, published, inv):
     """Return (canon_text, plan_text, receipt_text) for a complete migrated
     R3.1 document tree built from the live documents."""
     canon = repo.live[CANON_REL]
-    plan = repo.live[PLAN_REL]
+    source_live_canon = Tree(repo.src).canon
+    if source_live_canon is None:
+        raise AssertionError("live post-R3.1 canon is not resolvable")
+    canon = _hydrate_post_r31_status(canon, source_live_canon)
+    # The reusable accepted-status tree predates the later independently
+    # accepted same-family compatibility contract. Construct the future R3.1
+    # plan from the exact accepted status descendant so its R4 dependency,
+    # sequencing, and item-23 join requirements are present, then repin the
+    # accepted-control pointer to this temporary repository.
+    accepted_status_commit = \
+        "41096c8f3a8277e56ad38f98482520176a551521"
+    accepted_plan_blob = git_blob(repo.src, accepted_status_commit, PLAN_REL)
+    if not accepted_plan_blob:
+        raise AssertionError(
+            "accepted same-family status plan is not resolvable")
+    plan = set_accepted_status_control_tree(
+        accepted_plan_blob.decode("utf-8"), repo.control)
     _h, xrows, _p = parse_canon_population(canon, inv, "XW2-edge")
     hdr_i = {f: i for i, f in enumerate(inv.schema["XW2-edge"])}
     terminal = set(inv.vocab["xw2-terminal-edge-type"])
@@ -5364,6 +5697,35 @@ def build_r31_document(repo, published, inv):
         "returned ACCEPT.",
         plan,
         count=1)
+    # The reusable accepted-status control tree predates the separately
+    # owner-authorized same-family compatibility checkpoint. Rehydrate that
+    # checkpoint's governed plan section from its exact accepted maker tree
+    # before constructing the synthetic post-R3.1 document. This is a real
+    # committed input, not a parallel hard-coded status fixture.
+    same_family_checkpoint = \
+        "d6101f82b40f5c1e8c45c8be090e9b4743daefe5"
+    if not plan_section(
+            plan,
+            "## Owner-authorized same-family deferral compatibility "
+            "checkpoint",
+            "## R3.1 "):
+        same_plan_blob = git_blob(repo.src, same_family_checkpoint, PLAN_REL)
+        if not same_plan_blob:
+            raise AssertionError(
+                "accepted same-family compatibility plan is not resolvable")
+        same_plan = same_plan_blob.decode("utf-8")
+        same_section = plan_section(
+            same_plan,
+            "## Owner-authorized same-family deferral compatibility "
+            "checkpoint",
+            "## R3.1 ")
+        if not same_section:
+            raise AssertionError(
+                "accepted same-family compatibility plan section is absent")
+        r31_heading = next(
+            line for line in plan.splitlines(keepends=True)
+            if line.startswith("## R3.1 "))
+        plan = plan.replace(r31_heading, same_section + r31_heading, 1)
     plan = replace_plan_section_status(
         plan,
         "## Owner-authorized same-family deferral compatibility checkpoint",
@@ -5815,6 +6177,33 @@ def build_bases(repo):
     if repo._bases is not None:
         return repo._bases
     base = dict(repo.live)
+    # The accepted-status control commit intentionally remains the clean
+    # ancestor immediately before substantive R3.1 mutation. The separately
+    # accepted same-family compatibility checkpoint is a later standards-only
+    # descendant, so hydrate that exact accepted status tree as the reusable
+    # baseline while keeping the ancestor pointer repinned to this temporary
+    # repository.
+    accepted_status_commit = \
+        "41096c8f3a8277e56ad38f98482520176a551521"
+    accepted_canon_blob = git_blob(
+        repo.src, accepted_status_commit, CANON_REL)
+    accepted_plan_blob = git_blob(repo.src, accepted_status_commit, PLAN_REL)
+    same_receipt_rel = os.path.join(
+        RECEIPT_DIR,
+        "ARCHITECT_CBA_CANON_V2_R3_1_SAME_FAMILY_DEFERRAL_COMPATIBILITY.md")
+    accepted_same_receipt_blob = git_blob(
+        repo.src, accepted_status_commit, same_receipt_rel)
+    if not all((accepted_canon_blob, accepted_plan_blob,
+                accepted_same_receipt_blob)):
+        raise AssertionError(
+            "accepted same-family status baseline is not fully resolvable")
+    base[CANON_REL] = repo._repin(
+        accepted_canon_blob.decode("utf-8"),
+        repo.src_inv.commits["published-v1.1"],
+        repo.src_inv.commits["r3-checkpoint"])
+    base[PLAN_REL] = set_accepted_status_control_tree(
+        accepted_plan_blob.decode("utf-8"), repo.control)
+    base[same_receipt_rel] = accepted_same_receipt_blob.decode("utf-8")
     inv, _ = parse_inventory(base[CANON_REL])
     published = Published(repo.dir, inv.commits["published-v1.1"])
     canon, plan, proposal = build_r31_document(repo, published, inv)
@@ -6696,7 +7085,7 @@ def _cases_g15r_omissions(H, mrcpt):
 
 
 def run_cases(repo):
-    """Bounded same-family deferral compatibility controls.
+    """Bounded R3.1 A-series document-tree controls.
 
     These controls exercise every newly corrected mechanical boundary without
     replaying the historical exhaustive mutation library. Use --extended for
@@ -6728,6 +7117,26 @@ def run_cases(repo):
         P: pending_plan,
         same_receipt_rel: pending_receipt,
     }
+    accepted_status_commit = \
+        "41096c8f3a8277e56ad38f98482520176a551521"
+    accepted_canon_blob = git_blob(repo.src, accepted_status_commit, C)
+    accepted_plan_blob = git_blob(repo.src, accepted_status_commit, P)
+    accepted_same_receipt_blob = git_blob(
+        repo.src, accepted_status_commit, same_receipt_rel)
+    if not all((accepted_canon_blob, accepted_plan_blob,
+                accepted_same_receipt_blob)):
+        raise AssertionError(
+            "exact accepted same-family status tree is not fully resolvable")
+    accepted_canon = repo._repin(
+        accepted_canon_blob.decode("utf-8"),
+        repo.src_inv.commits["published-v1.1"],
+        repo.src_inv.commits["r3-checkpoint"])
+    accepted_docs = {
+        C: accepted_canon,
+        P: set_accepted_status_control_tree(
+            accepted_plan_blob.decode("utf-8"), repo.control),
+        same_receipt_rel: accepted_same_receipt_blob.decode("utf-8"),
+    }
 
     def replace_cell(text, row, index, value):
         cells = [c.strip() for c in row.strip()[1:-1].split("|")]
@@ -6735,6 +7144,69 @@ def run_cases(repo):
         return mut(text, row, "| " + " | ".join(cells) + " |")
 
     proposal = git_blob(repo.dir, repo.maker, R31_RECEIPT_REL).decode("utf-8")
+
+    # Live R3.1 regression controls added with the final source/ownership
+    # repair. Every XW scope has exactly one fragment token and one normalized
+    # span, and a post-R3.1 ATOM/ORIGIN reference on a LEAF detail row must
+    # name that same LEAF in the decision's Result field.
+    xw_scope_row = next(
+        line for line in mcanon.splitlines()
+        if line.startswith("| XW2-") and "[CBA-" in line
+        and "span:" in line)
+    xw_scope_cells = [
+        cell.strip() for cell in xw_scope_row.strip()[1:-1].split("|")]
+    xw_scope = xw_scope_cells[4]
+    fragment_span = re.match(
+        r"(\[[^\]]+\]\s+span:\d+-\d+(?:@[^\s;|]*)?)", xw_scope)
+    if not fragment_span:
+        raise AssertionError("live R3.1 XW scope control row is malformed")
+    doubled_scope_row = replace_cell(
+        mcanon, xw_scope_row, 4,
+        fragment_span.group(1) + " " + xw_scope)
+    H.run(
+        "R31-XW-SCOPE",
+        "post-R3.1 XW scope repeats its fragment token and normalized span",
+        H.docs(migrated=True, **{C: doubled_scope_row}),
+        True,
+        "must carry exactly one leading fragment token")
+
+    generic_control_rows = [
+        line for line in mrcpt.splitlines()
+        if re.match(
+            r"^\| DR2-\d{4} \| "
+            r"`(?:ORIGIN|OWN|ATOM|METHOD|DISP|AMEND)` \|", line)]
+    atom_control_id = "DR2-%04d" % (
+        max(int(re.match(r"^\| DR2-(\d{4})", line).group(1))
+            for line in generic_control_rows) + 1)
+    atom_control_leaf = "CBA2-A01.1"
+    atom_control_row = (
+        "| %s | `ATOM` | %s | Temporary atomic join control | "
+        "One-owner result test | Control row for LEAF-detail reconciliation "
+        "| %s | R3.1 / temporary control |"
+        % (atom_control_id, atom_control_leaf, atom_control_leaf))
+    dr_join_receipt = mut(
+        mrcpt, generic_control_rows[-1] + "\n",
+        generic_control_rows[-1] + "\n" + atom_control_row + "\n")
+    leaf_detail_row = next(
+        line for line in mcanon.splitlines()
+        if line.startswith("| CBA2-") and " | pending R7 |" in line
+        and line.strip()[1:-1].split("|")[0].strip()
+        != atom_control_leaf)
+    leaf_detail_cells = [
+        cell.strip() for cell in leaf_detail_row.strip()[1:-1].split("|")]
+    wrong_leaf_detail = replace_cell(
+        mcanon, leaf_detail_row, 4,
+        leaf_detail_cells[4] + ", " + atom_control_id)
+    H.run(
+        "R31-DR-JOIN",
+        "post-R3.1 LEAF detail cites an ATOM decision whose Result names a "
+        "different LEAF",
+        H.docs(migrated=True, **{
+            C: wrong_leaf_detail,
+            R: dr_join_receipt,
+        }),
+        True,
+        "does not name this LEAF in its Resulting active LEAF")
 
     def acceptance_history(checkpoint_proposal, receipt_mutator=None):
         """Create a real variant maker checkpoint and strict descendant
@@ -6767,10 +7239,11 @@ def run_cases(repo):
             + "\n## AMEND detail rows\n\n"
             + _table(inv.schema["AMEND-detail"], amend_rows))
 
-    H.run("C0", "committed R2.14 baseline document tree", H.docs(), False)
+    H.run("C0", "accepted compatibility baseline document tree",
+          H.docs(**accepted_docs), False)
     H.run("C12", "both compatibility checkpoints are independently accepted; "
-          "R3.1 is unblocked/next but not started and R4 remains blocked",
-          H.docs(), False)
+          "R3.1 maker is pending checker and R4 remains blocked",
+          H.docs(**accepted_docs), False)
     stale_top = mut(
         pending_canon,
         "The owner-authorized same-family\n"
@@ -6806,14 +7279,14 @@ def run_cases(repo):
         "**Current pre-R3.1 status "
         "(supersedes the R2.13 sequencing sentence above):**")
     stale_accepted_top = mut(
-        canon,
-        line_range(canon, status_start, "> **Use rule:**"),
+        accepted_canon,
+        line_range(accepted_canon, status_start, "> **Use rule:**"),
         line_range(pending_canon, status_start, "> **Use rule:**"))
     H.run("P15", "accepted same-family checkpoint retains the prior pending "
           "top-level canon route",
-          H.docs(**{C: stale_accepted_top}), True,
+          H.docs(**dict(accepted_docs, **{C: stale_accepted_top})), True,
           "canon live accepted status: top pre-R3.1 mirror")
-    stale_accepted_editions = canon
+    stale_accepted_editions = accepted_canon
     for prefix in (
             "| **Repair v2.0 — working draft, pre-R3.1 compatibility** |",
             "| **Repair v2.0 — working draft, same-family deferral "
@@ -6828,33 +7301,43 @@ def run_cases(repo):
             stale_accepted_editions, live_row, pending_row)
     H.run("P16", "accepted same-family checkpoint leaves both compatibility "
           "edition rows at the prior pending route",
-          H.docs(**{C: stale_accepted_editions}), True,
+          H.docs(**dict(accepted_docs, **{C: stale_accepted_editions})), True,
           "both compatibility edition rows")
     foundation_start = (
         "The R2.10–R2.13 review findings are classified exhaustively below.")
     foundation_end = "| Foundation review finding | Balanced disposition |"
     stale_accepted_foundation = mut(
-        canon,
-        line_range(canon, foundation_start, foundation_end),
+        accepted_canon,
+        line_range(accepted_canon, foundation_start, foundation_end),
         line_range(pending_canon, foundation_start, foundation_end))
     H.run("P17", "accepted same-family checkpoint leaves the §15.9 live "
           "foundation mirror pending",
-          H.docs(**{C: stale_accepted_foundation}), True,
+          H.docs(**dict(accepted_docs, **{C: stale_accepted_foundation})),
+          True,
           "§15.9 foundation mirror")
     family_start = (
         "**A-family v2 status (R3 executed; independently REJECTED — not "
         "certified).**")
     family_end = "### 19.4 CBA Guide sections reviewed for discovery"
     stale_accepted_family = mut(
-        canon,
-        line_range(canon, family_start, family_end),
+        accepted_canon,
+        line_range(accepted_canon, family_start, family_end),
         line_range(pending_canon, family_start, family_end))
     H.run("P18", "accepted same-family checkpoint leaves §19.3 at the prior "
           "pending sequence",
-          H.docs(**{C: stale_accepted_family}), True,
+          H.docs(**dict(accepted_docs, **{C: stale_accepted_family})), True,
           "canon §19.3 live accepted status")
+    control_line = "- **%s:** `%s`." % (
+        CONTROL_TREE_FIELD, repo.control)
+    H.run("C13", "accepted-status control-tree pointer is absent",
+          H.docs(**{P: mut(plan, control_line + "\n", "")}), True,
+          "plan accepted-status control tree")
+    H.run("C14", "accepted-status control-tree pointer is shaped but does not "
+          "resolve to a commit",
+          H.docs(**{P: mut(plan, repo.control, "f" * 40)}), True,
+          "does not resolve")
     accepted_but_blocked = replace_plan_section_status(
-        plan,
+        accepted_docs[P],
         "## Owner-authorized same-family deferral compatibility checkpoint",
         "## R3.1 ",
         "independently **ACCEPTED** before R3.1 construction, but R3.1 "
@@ -6862,10 +7345,47 @@ def run_cases(repo):
         "unit and not substantive R3.1 migration.")
     H.run("P11", "accepted same-family compatibility status still describes "
           "R3.1 as blocked",
-          H.docs(**{P: accepted_but_blocked}), True,
+          H.docs(**dict(accepted_docs, **{P: accepted_but_blocked})), True,
           "accepted same-family compatibility state")
     H.run("C1", "complete future-R3.1 migrated document tree through the "
           "same top-level validator", H.docs(migrated=True), False)
+    stale_post_top = mut(
+        mcanon,
+        "The R3.1 maker checkpoint has executed after both independently",
+        "R3.1 remains not started despite both independently")
+    H.run("P19", "post-R3.1 top mirror retains a stale not-started route",
+          H.docs(migrated=True, **{C: stale_post_top}), True,
+          "top maker mirror omits executed/pending-checker R3.1")
+    stale_post_edition = mut(
+        mcanon,
+        "R3.1 maker checkpoint has executed and is pending an independent "
+        "R3.1 checker ACCEPT; no A-series record is accepted, and R4 remains "
+        "blocked until that ACCEPT.",
+        "R3.1 remains not started; no A-series record is accepted, and R4 "
+        "remains blocked until an independent R3.1 checker ACCEPT.")
+    H.run("P20", "post-R3.1 compatibility edition mirror retains a stale "
+          "not-started route",
+          H.docs(migrated=True, **{C: stale_post_edition}), True,
+          "compatibility edition mirrors must record maker execution")
+    stale_post_foundation = mut(
+        mcanon,
+        "The R3.1 maker checkpoint\n"
+        "has executed and is pending an independent R3.1 checker ACCEPT; R4 "
+        "remains\n"
+        "blocked until that ACCEPT.",
+        "R3.1 remains not started, and R4 remains blocked until an independent "
+        "R3.1 checker ACCEPT.")
+    H.run("P21", "post-R3.1 §15.9 foundation mirror retains a stale "
+          "not-started route",
+          H.docs(migrated=True, **{C: stale_post_foundation}), True,
+          "§15.9 foundation mirror omits maker execution")
+    stale_post_date = mut(
+        mcanon,
+        "| **Repair v2.0 — working draft, R3.1** | **July 24, 2026** |",
+        "| **Repair v2.0 — working draft, R3.1** | **July 23, 2026** |")
+    H.run("P22", "post-R3.1 edition row retains the pre-execution date",
+          H.docs(migrated=True, **{C: stale_post_date}), True,
+          "R3.1 edition row must use July 24, 2026")
     contradictory_plan = replace_plan_section_status(
         mplan,
         "## One-time pre-R3.1 foundation-compatibility checkpoint",
@@ -7116,15 +7636,18 @@ def run_cases(repo):
 
     # The published parser must use the actual §15.7 LEAF register, never the
     # earlier hierarchy marker row whose prose happens to begin with CBA-A04.
-    a04_fragment = next(
+    a04_fragments = [
         line for line in mrcpt.splitlines()
-        if line.startswith("| CBA-A04:F1 |"))
-    expected_a04_scope = "span:0-%d" % _published.leaf_len["CBA-A04"]
-    if expected_a04_scope not in a04_fragment:
+        if re.match(r"^\| CBA-A04:F\d+ \|", line)
+    ]
+    a04_fragment = a04_fragments[0]
+    if not a04_fragments or "span:0-" not in a04_fragments[0] or not any(
+            ("-%d" % _published.leaf_len["CBA-A04"]) in line
+            for line in a04_fragments):
         raise AssertionError(
-            "top-level CBA-A04 control fragment did not use the §15.7 "
-            "published requirement length")
-    H.run("C9", "top-level CBA-A04 fragment partitions the exact normalized "
+            "top-level CBA-A04 control fragments did not use the §15.7 "
+            "published requirement boundaries")
+    H.run("C9", "top-level CBA-A04 fragments partition the exact normalized "
           "§15.7 requirement rather than the hierarchy marker",
           H.docs(migrated=True), False)
     marker_length_fragment = replace_cell(
@@ -7935,8 +8458,7 @@ def main():
         print("usage: %s [--extended]" % os.path.basename(__file__),
               file=sys.stderr)
         return 2
-    print("Architect CBA canon v2.0 same-family deferral compatibility "
-          "validator")
+    print("Architect CBA canon v2.0 R3.1 A-series document-tree validator")
     print("control mode: %s" % ("extended diagnostic" if extended
                                 else "bounded default"))
     print("canon: %s" % CANON_REL.replace(os.sep, "/"))
@@ -7953,10 +8475,22 @@ def main():
         for p in base_problems:
             print("  - " + p)
 
+    control_ref = parse_accepted_status_control_tree(tree.plan)
+    current_ref = tree.ref or git_head(tree.repo or tree.root)
+    if (not control_ref
+            or not git_commit_exists(tree.repo or tree.root, control_ref)
+            or not current_ref
+            or not git_is_ancestor(
+                tree.repo or tree.root, control_ref, current_ref)):
+        print("CONTROL HARNESS NOT RUN: the governed accepted-status control-"
+              "tree pointer is absent, invalid, unresolved, or not an "
+              "ancestor.")
+        return 1
+
     repo = None
     failures = 0
     try:
-        repo = ControlRepo(root)
+        repo = ControlRepo(root, control_ref)
         results, self_test_ok = (run_extended_cases(repo) if extended
                                  else run_cases(repo))
     finally:

@@ -176,8 +176,9 @@ history. The bounded truthful-status correction was committed at
 `d6101f82b40f5c1e8c45c8be090e9b4743daefe5`, and the separate checker
 `/root/validation_scout` independently **ACCEPTED** that exact corrective
 checkpoint. The compatibility contract and protected records were not
-reopened. R3.1 is now unblocked and is the next construction unit but remains
-not started. R4 remains blocked until an independent R3.1 checker ACCEPT.
+reopened. R3.1 proceeded only after both compatibility ACCEPTs; its maker
+execution is now complete and pending independent R3.1 checker acceptance.
+R4 remains blocked until an independent R3.1 checker ACCEPT.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
 code-map work, scenarios, and Linear remain out of scope for repair
@@ -1555,17 +1556,18 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## One-time pre-R3.1 foundation-compatibility checkpoint (goal-authorized)
 
-- **Status:** independently **ACCEPTED** before R3.1 construction at
-  corrective checkpoint `c3a00637249444190a02a844fe104137ac78da5e`. This is
-  a one-time compatibility checkpoint, not an R2.x unit and not substantive
-  R3.1 migration.
+- **Status:** independently **ACCEPTED** before R3.1 execution. This remains a one-time compatibility checkpoint, not an R2.x unit and not substantive R3.1 migration.
+- **Accepted-status control tree:** `51adb6d1acd614fafe5b0fadab54b3dd469408ad`.
+  This is the clean governed document tree after the independent compatibility
+  ACCEPT and immediately before R3.1 mutation. The validator must resolve this
+  full commit as an ancestor of the current tree before using it as the source
+  for reusable pre-R3.1 synthetic controls; it is distinct from compatibility
+  maker checkpoint `c3a00637249444190a02a844fe104137ac78da5e`.
 - **Authority and route:** the current goal objective authority settles R2.14
   as accepted without editing its historical maker receipt. This checkpoint
   closes only contradictions that would otherwise make the approved R3.1
   repair unrepresentable or make its validator reject valid governed
-  lineage. The independent compatibility checker returned ACCEPT on
-  corrective checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; R3.1 is
-  now unblocked and is the next construction unit.
+  lineage. R3.1 proceeded only after an independent compatibility checker returned ACCEPT.
 - **Authorized files (exact):**
   `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
@@ -1595,8 +1597,9 @@ is a one-way dependency scheduled backwards, not a cycle).
   declarations, versionless XW2 and versioned SRC2 revisions, missing or
   wrong-population AMEND rows, wrong pinned-R3 consumption checkpoints,
   claimed/live version mismatches, contradictory post-R3.1 compatibility
-  status, exact top-level fragment length, the A15.1 OPS qualifier,
-  single-edge span mismatch, deferred bundle membership, and
+  status, a missing/unresolved accepted-status control-tree pointer, exact
+  top-level fragment length, the A15.1 OPS qualifier, single-edge span
+  mismatch, deferred bundle membership, and
   valid/malformed/DISP/R8-surviving deferred edges. Every
   control uses the same top-level document-tree validator.
 - **Preservation:** no active §15.10–§15.12 row, historical §15.1–§15.8 row,
@@ -1614,7 +1617,7 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## Owner-authorized same-family deferral compatibility checkpoint
 
-- **Status:** independently **ACCEPTED** before R3.1 construction at exact
+- **Status:** independently **ACCEPTED** before R3.1 execution at exact
   corrective checkpoint
   `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by
   `/root/validation_scout`. The independent checker rejected exact checkpoint
@@ -1623,9 +1626,9 @@ is a one-way dependency scheduled backwards, not a cycle).
   protected records remain unchanged, and that rejection remains immutable
   history. This is a second, narrowly
   owner-authorized compatibility checkpoint, not an R2.x unit and not
-  substantive R3.1 migration. R3.1 is now unblocked and is the next
-  construction unit but remains not started. R4 remains blocked until an
-  independent R3.1 checker ACCEPT.
+  substantive R3.1 migration. R3.1 proceeded only after an independent
+  same-family compatibility checker returned ACCEPT. R4 remains blocked
+  until an independent R3.1 checker ACCEPT.
 - **Owner authorization:** the owner explicitly authorized the additional
   narrow same-family deferral correction on July 24, 2026. The authorization
   changes only this compatibility contract; it does not accept any R3/R3.1
@@ -1678,17 +1681,14 @@ is a one-way dependency scheduled backwards, not a cycle).
   compatibility checker ACCEPT → R3.1 maker checkpoint → independent R3.1
   checker ACCEPT → R4. Maker completion alone accepts nothing.
 
-## R3.1 — A-series repair through AMEND lineage (next construction unit; not started)
+## R3.1 — A-series repair through AMEND lineage
 
-- **Status:** not started. R2.14 is accepted as settled by the current goal
-  authority, and the independent compatibility checker accepted corrective
-  checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; the owner-authorized
-  same-family compatibility checkpoint was independently accepted at exact
-  corrective checkpoint `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by
-  `/root/validation_scout`. R3.1 is unblocked and is the next construction
-  unit, but it remains not started (R2.6–R2.13 were independently rejected and
-  unblock nothing). R4 remains blocked until an independent checker accepts
-  the completed R3.1 checkpoint.
+- **Status:** executed (R3.1 maker checkpoint) after an independent
+  compatibility checker ACCEPT of the one-time compatibility checkpoint and
+  an independent same-family compatibility checker ACCEPT. Pending
+  independent R3.1 checker acceptance; R2.6–R2.13 remain rejected and unblock
+  nothing. R4 remains blocked until an independent checker accepts the
+  completed R3.1 checkpoint.
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
   carries an `AMEND` record naming the prior checkpoint
@@ -1957,8 +1957,8 @@ is a one-way dependency scheduled backwards, not a cycle).
   scenario work (R7); no historical row or scenario edit; no
   application, code-map, README, test, or Linear work; Phase 2 and
   W1.1 blocked.
-- **Sequencing:** after R3.1's checkpoint, an independent Codex review
-  of R3.1 must return ACCEPT before R4 begins.
+- **Execution result:** all 27 bounded backlog items were applied in the R3.1 maker tree. The current A-family population is 12 GROUPs and 151 LEAFs; the receipt records U1–U14 and the repair-local G15R populations. This maker result is not independent acceptance.
+- **Sequencing:** an independent Codex review of R3.1 must return ACCEPT before R4 begins.
 - **Stop condition:** stop and report if a repair cannot be expressed
   through `AMEND` lineage without renumbering or reusing an allocated
   ID, or would require editing an immutable receipt.
