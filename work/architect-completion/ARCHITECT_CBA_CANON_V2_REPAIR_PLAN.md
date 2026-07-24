@@ -163,11 +163,13 @@ the immutable R2.14 maker receipt. The strict live sequence is now: R3
 (executed; rejected) → R2.6–R2.13 (executed; rejected) → R2.14 (accepted
 under the current goal authority) → one-time pre-R3.1
 foundation-compatibility maker checkpoint → independent compatibility
-checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT →
-R4. The independent compatibility checker accepted corrective checkpoint
-`c3a00637249444190a02a844fe104137ac78da5e`; R3.1 is now unblocked and is
-the next construction unit, while R4 remains blocked until later independent
-R3.1 acceptance.
+checker ACCEPT → owner-authorized same-family deferral compatibility maker
+checkpoint → independent same-family compatibility checker ACCEPT → R3.1
+maker checkpoint → independent R3.1 checker ACCEPT → R4. The independent
+checker accepted the first compatibility checkpoint at
+`c3a00637249444190a02a844fe104137ac78da5e`; the owner-authorized
+same-family compatibility maker correction is complete but pending its
+separate independent checker. R3.1 and R4 therefore remain blocked.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
 code-map work, scenarios, and Linear remain out of scope for repair
@@ -1598,15 +1600,76 @@ is a one-way dependency scheduled backwards, not a cycle).
   Linear, main, Phase 2, or W1.1 work.
 - **Sequencing:** **R2.14 accepted under current goal authority →
   compatibility maker checkpoint → independent compatibility checker ACCEPT
-  → R3.1 maker checkpoint → independent R3.1 checker ACCEPT → R4.**
+  → owner-authorized same-family deferral compatibility maker checkpoint →
+  independent same-family compatibility checker ACCEPT → R3.1 maker
+  checkpoint → independent R3.1 checker ACCEPT → R4.**
 
-## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until the one-time compatibility checkpoint is independently accepted)
+## Owner-authorized same-family deferral compatibility checkpoint
+
+- **Status:** maker correction complete; **pending independent same-family
+  compatibility checker review and not accepted**. This is a second, narrowly
+  owner-authorized compatibility checkpoint, not an R2.x unit and not
+  substantive R3.1 migration. R3.1 remains blocked.
+- **Owner authorization:** the owner explicitly authorized the additional
+  narrow same-family deferral correction on July 24, 2026. The authorization
+  changes only this compatibility contract; it does not accept any R3/R3.1
+  record, begin R4, or waive an independent checker.
+- **Authorized files (exact):**
+  `docs/reference/cba/ARCHITECT_CBA_CANON.md`;
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`;
+  `work/architect-completion/cba_canon_v2_foundation_validator.py`; and the new
+  maker receipt
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_SAME_FAMILY_DEFERRAL_COMPATIBILITY.md`.
+  Every earlier receipt and every active §15.10–§15.12 row remains immutable.
+- **Compatibility correction:** retain distinct-family deferral as the
+  ordinary rule. Permit identical source/target family tokens only when the
+  current earlier unit must inventory the historical LEAF because a different
+  sibling fragment has a current nonterminal, non-`deferred` edge to an
+  existing active target in another family; the deferred fragment's honest
+  natural owner remains in the source family and is assigned to the exact
+  later construction unit (`C01`–`C13` → R4, `C14`–`C25` → R5,
+  `R`/`L`/`S` → R6); and no active target exists for the deferred fragment.
+  The current `OWN` decision's `Test/tiebreak applied` field must equal
+  `same-family-sibling:<XW2-edge>-><active-v2-LEAF>;
+  natural-family:<family>; resolving-unit:R<n>`. Mechanical validation proves
+  those identifier/family/unit joins; the independent checker judges whether
+  the sibling truly forced current inventory and whether natural ownership is
+  semantically honest.
+- **Unchanged safeguards:** target `—`; exactly one leading fragment and one
+  normalized span; one unbundled fragment; direct current non-`DISP` `OWN`
+  with result `—`; mandatory later `AMEND` exit when the owner is minted; and
+  zero current deferrals when R8 begins. Ordinary same-family, same-unit,
+  target-bearing, wrong-unit, source-family-mismatched, and
+  sibling-family-mismatched deferrals remain invalid.
+- **Intended later use, not minted here:** R3.1 may inventory
+  `CBA-C13.8:F1` as `families:C,C; resolving-unit:R4` only if its other
+  fragment supplies the required current cross-family sibling edge and the
+  direct `OWN` decision records the exact mechanical join. This checkpoint
+  mints no `XW2`, fragment, `DR2`, active LEAF, or other governed record.
+- **Validator controls:** retain every distinct-family positive and rejection.
+  Add a valid migrated-tree C/C sibling control plus rejecting cases for no
+  qualifying sibling, wrong resolving unit, source/sibling family mismatch,
+  and an already existing active target for the deferred fragment. Every case
+  runs through the same top-level document-tree validator; keyword matching
+  does not purport to prove natural-owner truth.
+- **Preservation and exclusions:** preserve §5.9, historical §15.1–§15.8,
+  active §15.10–§15.12, scenarios 1–89, the exact SC2 list, every concrete
+  governed record, every identity, and every prior receipt. No substantive
+  R3.1 record repair, R4 work, application/runtime/test/build/typecheck/data/
+  Firestore/Linear/main/Phase-2/W1.1 work, or graph-output update is allowed.
+- **Sequencing:** first compatibility checkpoint independently accepted →
+  this same-family compatibility maker checkpoint → independent same-family
+  compatibility checker ACCEPT → R3.1 maker checkpoint → independent R3.1
+  checker ACCEPT → R4. Maker completion alone accepts nothing.
+
+## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until the same-family deferral compatibility checkpoint is independently accepted)
 
 - **Status:** not started. R2.14 is accepted as settled by the current goal
   authority, and the independent compatibility checker accepted corrective
-  checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; R3.1 is unblocked
-  and is the next construction unit (R2.6–R2.13 were independently rejected
-  and unblock nothing).
+  checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; the owner-authorized
+  same-family compatibility maker checkpoint is complete but pending a
+  separate independent checker ACCEPT. R3.1 remains blocked and not started
+  (R2.6–R2.13 were independently rejected and unblock nothing).
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
   carries an `AMEND` record naming the prior checkpoint
@@ -1774,9 +1837,16 @@ is a one-way dependency scheduled backwards, not a cycle).
       the reported mechanic as a discovery candidate; a single governed
       nonterminal `deferred` edge (target `—`, no bundle, direct current
       non-`DISP` ownership decision) where the honest owner belongs to a
-      later construction family, with both distinct families and exact
+      named later R4–R6 construction unit, with both families and exact
       `resolving-unit:R4|R5|R6` in the pinned scope grammar and mandatory
-      later `AMEND` exit before R8; and
+      later `AMEND` exit before R8 — family tokens are ordinarily distinct;
+      identical tokens are allowed only under §15.9.3's sole same-family
+      sibling exception, including the exact
+      `same-family-sibling:<XW2-edge>-><active-v2-LEAF>;
+      natural-family:<family>; resolving-unit:R<n>` value in the current
+      `OWN` decision's `Test/tiebreak applied` field, a
+      different-fragment cross-family active-target join, the correct
+      later-unit map, and no existing target for the deferred fragment; and
       one `BND-…` disposition-bundle record for every
       fragment mapping to **two or more** active targets (the committed
       A-series `split`/`merge`/`partial-overlap` bundles), each bundle
@@ -1902,11 +1972,14 @@ is a one-way dependency scheduled backwards, not a cycle).
 - **Dependency:** R1, R1.1, R2.1, R2.2, the **R2.14 foundation accepted under
   current goal authority**, an **independently accepted pre-R3.1
   compatibility checkpoint** (R2.6–R2.13 were independently rejected and
-  none unblocks R4), and **completed R3.1 with an independent checker ACCEPT
-  of the R3.1 checkpoint** (R3 alone does not unblock R4 — it was
+  none unblocks R4), an **independently accepted owner-authorized same-family
+  deferral compatibility checkpoint**, and **completed R3.1 with an
+  independent checker ACCEPT of the R3.1 checkpoint** (R3 alone does not
+  unblock R4 — it was
   independently rejected) — the construction sequence R3 → R2.6–R2.13
-  rejected → R2.14 accepted → compatibility checkpoint → checker → R3.1 →
-  checker → R4 → checker → R5 → checker → R6 is strict
+  rejected → R2.14 accepted → compatibility checkpoint → checker →
+  same-family compatibility checkpoint → checker → R3.1 → checker → R4 →
+  checker → R5 → checker → R6 is strict
   (canon §15.9.2): all
   units extend the shared §15.10–§15.12 sections and allocate from the
   shared XW2/SRC2/EV2/DR2/SM2 namespaces.

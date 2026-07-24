@@ -63,6 +63,7 @@ open; Phase 2 and W1.1 remain blocked.
 | **Repair v2.0 — working draft, R2.13** | **July 23, 2026** | **R2.13 governed-location closure** (ordered by the independent R2.12 rejection): adds one generic whole-canon audit derived dynamically from Inventory F. Every pipe row whose first cell matches any governed ID grammar must lie inside the union of all matching declared intervals; identical or overlapping grammars, including the SRC2 base/detail grammars, use union admission, while existing per-range schema/type/detail reconciliation remains binding. Positive baseline/migrated/OPS/EXT controls and displaced OPS, EXT, EV2, and SXW2 regressions run through the same top-level validator. Active §15.10–§15.12 rows and every prior receipt remain unchanged; no R3 record is repaired. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_13_GOVERNED_LOCATION_CLOSURE.md`. **Executed at `818a5d03accbebfec810521a49ef9554ca4f79fa`; independently REJECTED/BLOCK-R3.1 because inconsistent record-ID normalization let valid multi-backtick Markdown IDs evade location detection and five live plan mirrors still named R2.12 ACCEPT as current. Immutable rejected history.** |
 | **Repair v2.0 — working draft, R2.14** | **July 23, 2026** | **R2.14 ID-normalization and truthful-status closure** (ordered by the independent R2.13 rejection): one shared deterministic record-ID cell normalizer is used by ordinary population membership and the whole-canon Inventory F audit, accepting plain IDs and equal nonempty balanced backtick fences while leaving malformed fencing invalid; plain and multi-backtick displaced OPS, EXT, EV2, and SXW2 controls, a synthetic Inventory-F-only control, and a stale-plan-route control execute through the same top-level validator; every live status surface records R2.13 rejected and R3.1 blocked pending R2.14 acceptance. Active §15.10–§15.12 rows and every prior receipt remain unchanged; no R3 record is repaired. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R2_14_ID_NORMALIZATION_STATUS_CLOSURE.md`. **Accepted as settled by the current goal objective authority; the maker receipt remains immutable historical evidence and no R3 record is thereby accepted.** |
 | **Repair v2.0 — working draft, pre-R3.1 compatibility** | **July 23, 2026** | **One-time foundation-compatibility checkpoint** (goal-authorized; not an R2.x unit): closes the blocking mismatch between the accepted standard and R3.1 execution by enforcing exact population-scoped AMEND lineage, same-ID change traceability, canon-valid high-water/gap behavior, exact historical LEAF extraction, the narrow governed later-family `deferred` XW2 shape, and the pinned historical-authority qualifier for `authority-assertion` fragments. It changes no active §15.10–§15.12 row and begins no substantive R3.1 migration. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_COMPATIBILITY_CHECKPOINT.md`. **Independently ACCEPTED at corrective checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; R3.1 is unblocked but not started.** |
+| **Repair v2.0 — working draft, same-family deferral compatibility** | **July 24, 2026** | **Narrow XW2 same-family deferral compatibility checkpoint** (owner-authorized; not an R2.x unit): permits identical source/target family tokens only when an earlier construction unit must inventory a historical LEAF because a different sibling fragment already maps to an active target in another family, while the remaining fragment's honest natural-family owner will be minted by the specifically named later R4–R6 unit and no target yet exists. All ordinary same-family/same-unit deferrals remain forbidden; the existing target-`—`, one-fragment, no-bundle, direct-current-`OWN`, mandatory-`AMEND`, and zero-at-R8 safeguards remain binding. No concrete edge or active record is minted. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_SAME_FAMILY_DEFERRAL_COMPATIBILITY.md`. **Maker complete; pending independent checker review and not accepted. R3.1 remains blocked.** |
 
 ---
 
@@ -2051,7 +2052,7 @@ Edge types:
 | `merge` | The historical LEAF's whole obligation maps to one active target that also absorbs the same obligation from at least one other historical owner (a duplicate LEAF or a named bundle fragment) | No |
 | `partial-overlap` | Neither the whole historical source nor the whole active target is semantically equivalent: genuinely overlapping fragments, or compound split/merge shapes not faithfully represented by `split` or `merge` alone; the scope column states exactly which part and how | No |
 | `moved` | One historical LEAF maps wholly to one active LEAF (absorbed from no other historical owner), but its active family or parent changes | No |
-| `deferred` | Temporary nonterminal disposition for one inventoried fragment whose honest active owner belongs to a later R3–R6 construction family: target `—` only until the named resolving unit mints the owner; Scope/relationship names the source and target families plus exact resolving R-unit under the grammar below; the decision is a direct current nonterminal ownership decision, never `DISP` | No |
+| `deferred` | Temporary nonterminal disposition for one inventoried fragment whose honest active owner will be minted by a named later R4–R6 construction unit: target `—` only until that unit mints the owner; Scope/relationship names the source and target families plus exact resolving R-unit under the grammar below (normally distinct families, with the sole governed same-family sibling exception below); the decision is a direct current nonterminal ownership decision, never `DISP` | No |
 | `process-only` | The historical row was process/instruction material; destination noted in scope | Yes |
 | `invalid` | The historical row's claim was false (e.g., a false gap assertion); scope explains | Yes |
 | `no-successor` | The historical statement is valid as history but carries no active v2 owner under the narrow no-successor rule below | Yes |
@@ -2088,18 +2089,47 @@ Binding rules:
 `deferred` edge is valid only when all of the following hold:
 
 1. The inventoried fragment is in scope and has an honest prospective owner
-   in a **later** R3–R6 construction family, so the current unit cannot yet
-   name an active target. This is not failed research, a terminal
-   no-owner disposition, or permission to defer a same-unit obligation.
+   that a specifically named **later** R4–R6 construction unit must mint, so
+   the current unit cannot yet name an active target. This is not failed
+   research, a terminal no-owner disposition, or permission to defer a
+   same-unit obligation.
 2. `Active v2 LEAF or —` is exactly `—` while deferred. The edge is
    nonterminal: it never carries a `DISP` record or `DISP` detail row.
 3. After the leading fragment token and exact normalized span,
    `Scope/relationship` contains exactly
    `families:<source-family>,<target-family>; resolving-unit:R<n>`, where
-   each family is one of `A`, `C`, `R`, `L`, `S`, the two families are
-   distinct, the source family equals the published historical LEAF's
-   family, and `R<n>` is the exact later resolving construction unit
-   (`R4`, `R5`, or `R6`).
+   each family is one of `A`, `C`, `R`, `L`, `S`, the source family equals
+   the published historical LEAF's family, and `R<n>` is the exact later
+   resolving construction unit (`R4`, `R5`, or `R6`). The two family tokens
+   are distinct except for this sole exception: they may be identical only
+   when **all** of the following are true:
+   - the current earlier construction unit must inventory this historical
+     LEAF because a different current sibling fragment maps through a
+     nonterminal, non-`deferred` edge to an existing active target whose
+     family differs from the historical source family;
+   - the deferred fragment's honest natural owner belongs to the historical
+     source family and will be minted by the specifically named later unit
+     (`C01`–`C13` by R4, `C14`–`C25` by R5, and `R`/`L`/`S` by R6);
+   - no active target for the deferred fragment exists yet; if it exists and
+     can be named, the ordinary target-bearing edge is required; and
+   - the direct current ownership decision identifies the qualifying sibling,
+     the cross-family active target, the natural-family ownership conclusion,
+     and the named later unit.
+   For a same-family edge, that decision's `Test/tiebreak applied` field is
+   exactly one structural join token in this grammar:
+   `same-family-sibling:<XW2-edge>-><active-v2-LEAF>;
+   natural-family:<family>; resolving-unit:R<n>`. The named edge must be the
+   qualifying different-fragment sibling, its named active target must equal
+   the edge's target and differ in family from the historical source, the
+   natural-family token must equal the source family, and the unit must equal
+   both the edge's unit and the construction map above. This field proves only
+   the mechanical join; whether the sibling forced current inventory and the
+   deferred fragment truthfully has that natural owner remain
+   independent-checker semantic judgments.
+   Identical tokens without that qualifying sibling, with the wrong later
+   unit, with a source-family or sibling-target-family mismatch, or for an
+   obligation owned by the current unit are invalid. This exception does not
+   permit ordinary same-family or same-unit deferral.
 4. `Decision record` directly references one current nonterminal ownership
    decision (normally `OWN`) whose result is `—` while the target does not
    yet exist; it never references `DISP`.
@@ -2388,10 +2418,12 @@ one predictable representation:
      sibling** whose qualifying authority is not located matches **no
      terminal test**: it triggers the blocking outcome below and stops
      the unit.
-  2. A fragment whose honest prospective owner belongs to a named later
-     R3–R6 construction family and satisfies every deferred-edge rule above
-     is `deferred`; it remains nonterminal, carries target `—`, and must be
-     revised/replaced when that resolving unit mints the owner.
+  2. A fragment whose honest prospective owner will be minted by a named
+     later R4–R6 construction unit and satisfies every deferred-edge rule
+     above is `deferred`; this includes the sole governed same-family sibling
+     exception and no other same-family case. It remains nonterminal, carries
+     target `—`, and must be revised/replaced when that resolving unit mints
+     the owner.
   3. The whole obligation is owned by exactly one active LEAF, and the
      target absorbs it from no other historical owner: `equivalent` when
      the active family and parent do not substantively re-home it;
@@ -2885,9 +2917,10 @@ remains semantic. Every candidate receives an `OWN` disposition — or a
 `DISP` disposition where its honest resolution is terminal (OWN/DISP
 boundary below). The unit
 receipt records the candidate population per generator and demonstrates
-**zero undispositioned in-scope candidates**. A cross-family candidate may
-be deferred only with both families and the expected resolving unit named
-in the receipt. G9 reruns a global cross-family candidate sweep and
+**zero undispositioned in-scope candidates**. A candidate may be deferred
+only with both families and the expected resolving unit named in the
+receipt; identical family tokens additionally require the complete
+same-family sibling exception in §15.9.3. G9 reruns a global cross-family candidate sweep and
 requires zero unresolved candidates; R9 independently regenerates the
 candidate population rather than trusting the unit lists.
 
@@ -2912,7 +2945,7 @@ sound, and whether ownership is correct are independent-checker duties.
 
 | Type | Used for | Required content |
 |---|---|---|
-| `OWN` | Duplicate ownership among candidate active owners — an active owner is always selected (or a named cross-family deferral recorded); `OWN` never records a terminal no-owner disposition (that is `DISP`) | The full candidate set; the owner selected; which tiebreak discriminated and why; the crosswalk edges recorded for the non-owners |
+| `OWN` | Duplicate ownership among candidate active owners — an active owner is always selected (or a named governed deferral recorded under §15.9.3, including only its sole same-family sibling exception); `OWN` never records a terminal no-owner disposition (that is `DISP`) | The full candidate set; the owner selected or prospective natural owner; which tiebreak discriminated and why; the crosswalk edges recorded for the non-owners; for the same-family exception, `Test/tiebreak applied` is exactly `same-family-sibling:<XW2-edge>-><active-v2-LEAF>; natural-family:<family>; resolving-unit:R<n>` and the checker separately judges the semantic inventory/natural-owner claims |
 | `ATOM` | Atomicity keep/split | The GIVEN/WHEN/THEN restatement; for a split, the fragment list; for the homogeneous-list exception, the explicit justification and the all-element evidence pointer |
 | `TG` | True gaps | The historical gap note; the real obligation exposed; the minted LEAF; its certification evidence |
 | `MOVE` | Re-parenting/movement | The historical home; the active family/parent chosen; the family-test rationale; the `moved` crosswalk edge |
@@ -3157,7 +3190,7 @@ dispositions take distinct records.
 **OWN/DISP boundary (binding).** `OWN` adjudicates which active LEAF
 owns an obligation: its required content — the full candidate set, the
 selected owner, and the discriminating tiebreak — is meaningful only
-when an active owner (or a named cross-family deferral) results. `DISP`
+when an active owner (or a named governed deferral under §15.9.3) results. `DISP`
 records the opposite outcome: a terminal disposition that intentionally
 selects no active owner. From R2.6 forward, **every terminal crosswalk
 edge carries a direct reference to a current `DISP` record with its
@@ -4470,9 +4503,9 @@ families it touched:
 | U2 | Fixed roles and valid GROUP parents |
 | U3 | Family active counts, recomputed mechanically |
 | U4 | Semantic atomicity dispositions — every registered LEAF has an `ATOM` record (or is covered by one) |
-| U5 | Semantic duplicate/ownership dispositions — the mandatory §15.9.4 candidate population (all seven generators) is recorded in the receipt, and every candidate has an `OWN` record, a `DISP` record with its pinned detail row (only where the candidate's honest disposition is terminal — §15.9.4 OWN/DISP boundary and compatibility matrix), or a named cross-family deferral (both families and the expected resolving unit named); zero undispositioned in-scope candidates |
+| U5 | Semantic duplicate/ownership dispositions — the mandatory §15.9.4 candidate population (all seven generators) is recorded in the receipt, and every candidate has an `OWN` record, a `DISP` record with its pinned detail row (only where the candidate's honest disposition is terminal — §15.9.4 OWN/DISP boundary and compatibility matrix), or a named governed deferral (both families and the expected resolving unit named); identical family tokens pass only under §15.9.3's sole same-family sibling exception, with the qualifying sibling edge/active target, honest natural-family owner, and exact later unit recorded; zero undispositioned in-scope candidates |
 | U6 | Tiebreak decision records — every ownership decision states the discriminating tiebreak and why |
-| U7 | Crosswalk coverage and valid targets for the historical LEAFs touched by the unit; any cross-family deferral is a governed nonterminal `deferred` edge naming both distinct families and the exact later resolving R-unit, with target `—`, one direct current non-`DISP` ownership decision, one fragment, no bundle, and mandatory later `AMEND` exit (§15.9.3) — prose-only deferrals fail; fragment-inventory reconciliation for every historical LEAF the unit used as an `XW2-…` source (declared exhaustive decomposition over normalized scope atoms; pairwise non-overlap over the single-coordinate `span:<a>-<b>` text-span domain; exact pinned Authority-cell qualifier for `authority-assertion` fragments and `—` for every other kind; no silent residual; exactly-once disposition in exactly one of the three mutually exclusive shapes (one terminal edge; one single-target nonterminal edge, including `deferred`; or one **multi-target-only** governed `BND-…` bundle of **≥2** target-bearing member nonterminal edges satisfying the member-compatibility matrix and equal as a set to the fragment's edge IDs); bidirectional edge ⇔ fragment ⇔ bundle resolution; zero orphan fragments; zero edges naming an unregistered fragment; kind ⇔ edge-type compatibility; the recorded semantic exhaustiveness review); terminal-edge discipline — every terminal edge (`process-only`/`invalid`/`no-successor`/`unsupported-residual`) has target `—`, is unique per historical source LEAF + fragment ID, and carries a **direct reference to a current, correctly typed `DISP` record with its pinned `XW2-DISP` detail row** (§15.9.4 compatibility matrix; correct subject class; never a reference resolving only through an `AMEND` chain); every `unsupported-residual` edge satisfies the narrow §15.9.3 rule (exact residual-fragment scope with a supported sibling fragment on the same historical LEAF, the required current `SM2-…` search records bound by a current `SS2-…` search-set reporting `adequate-coverage`, and the preserved-candidate anchor); and zero terminal edges for wholly unsupported valid in-scope obligations — any such obligation is a governed `BLK-…` `blocked-unsupported-obligation` finding (subject class `XW2-DISP` or `candidate-obligation`, never `SXW2-DISP`) that **fails this gate and stops the unit** until an independently `accepted` `RES-…` resolution — a checker identity that is grammar-valid, nonblank, and string-distinct from the maker identity, with actual independence checker-judged (§15.9.12) — is bound to the exact current resolution (accepted version, content digest, proposed outcome, proposal-at-checkpoint, and later descendant acceptance receipt all matching) and recorded (§15.9.3) |
+| U7 | Crosswalk coverage and valid targets for the historical LEAFs touched by the unit; any deferral is a governed nonterminal `deferred` edge naming both families and the exact later resolving R-unit, with target `—`, one direct current non-`DISP` ownership decision, one fragment, no bundle, and mandatory later `AMEND` exit (§15.9.3) — family tokens are ordinarily distinct; identical tokens require the sole same-family sibling exception, including a different current sibling fragment mapped to an existing active target in another family, the honest natural-family owner assigned to the exact later R4–R6 unit, no existing target for the deferred fragment, and no same-unit deferral; prose-only deferrals fail; fragment-inventory reconciliation for every historical LEAF the unit used as an `XW2-…` source (declared exhaustive decomposition over normalized scope atoms; pairwise non-overlap over the single-coordinate `span:<a>-<b>` text-span domain; exact pinned Authority-cell qualifier for `authority-assertion` fragments and `—` for every other kind; no silent residual; exactly-once disposition in exactly one of the three mutually exclusive shapes (one terminal edge; one single-target nonterminal edge, including `deferred`; or one **multi-target-only** governed `BND-…` bundle of **≥2** target-bearing member nonterminal edges satisfying the member-compatibility matrix and equal as a set to the fragment's edge IDs); bidirectional edge ⇔ fragment ⇔ bundle resolution; zero orphan fragments; zero edges naming an unregistered fragment; kind ⇔ edge-type compatibility; the recorded semantic exhaustiveness review); terminal-edge discipline — every terminal edge (`process-only`/`invalid`/`no-successor`/`unsupported-residual`) has target `—`, is unique per historical source LEAF + fragment ID, and carries a **direct reference to a current, correctly typed `DISP` record with its pinned `XW2-DISP` detail row** (§15.9.4 compatibility matrix; correct subject class; never a reference resolving only through an `AMEND` chain); every `unsupported-residual` edge satisfies the narrow §15.9.3 rule (exact residual-fragment scope with a supported sibling fragment on the same historical LEAF, the required current `SM2-…` search records bound by a current `SS2-…` search-set reporting `adequate-coverage`, and the preserved-candidate anchor); and zero terminal edges for wholly unsupported valid in-scope obligations — any such obligation is a governed `BLK-…` `blocked-unsupported-obligation` finding (subject class `XW2-DISP` or `candidate-obligation`, never `SXW2-DISP`) that **fails this gate and stops the unit** until an independently `accepted` `RES-…` resolution — a checker identity that is grammar-valid, nonblank, and string-distinct from the maker identity, with actual independence checker-judged (§15.9.12) — is bound to the exact current resolution (accepted version, content digest, proposed outcome, proposal-at-checkpoint, and later descendant acceptance receipt all matching) and recorded (§15.9.3) |
 | U8 | Per-LEAF evidence completeness — every authority component has a complete `EV2` row meeting its class minima and its class-specific certification duty (§15.9.6); no `EV2` row has both reference fields empty (no source-free terminal component); every OPS component references an `ops-provenance` record and every EXT component an `ext-contract` record; every provenance-type ⇔ authority-class pairing is valid; every referenced `SRC2` record passes the §15.9.6 type-specific field-level validation (base row plus its pinned detail row present and joinable; no required field absent or malformed; no `—` where the per-type matrix prohibits it; the per-type timestamp and hash rules satisfied; every structured season value valid under the pinned `YYYY-YY` season grammar; every Source date valid under the §15.9.6 source-date model (a parseable `<basis>:<value>` pair from the closed basis vocabulary, per-basis value grammars, no edition identifier recorded as publication/effective, no metadata-derived value, no degraded precision, the basis-aware month-precision rule with its required limitation entry, and the date-component detail table reconciled — stable `<Record ID>#D<k>` component identity, at most one current row per (Record ID, basis, role/scope), exactly one `primary` per basis, base pair equal to that basis's `primary` row, no duplicate/conflicting component); the three split verification-metadata fields — `Verifier identity`, `Verification session ID`, `Verification date` — each present, never `—`, and independently valid under their §15.9.6 grammars); and for the unit's families the LEAF Authority fields and `EV2` classes reconcile exactly in both directions (every listed class has ≥1 `EV2` row; every `EV2` row's class is listed) |
 | U9 | Source and dependency resolution — every `SRC2`/`EV2` reference in the unit's rows parses under the §15.9.6 grammar (the same pinned field grammars U8 validates, including the `YYYY-YY` season grammar, the `basis:value` source-date model with its basis-aware month-precision rule and date-component detail table, and the three split verification-metadata grammars) and resolves; every `SM2-…` reference in the unit's `DISP` detail rows and findings resolves to a current, adequate search record under the §15.9.6 search-manifest contract (the exact per-field SM2 grammars, the SM2 current-record uniqueness key, and the **SM2 ⇔ current-`SRC2` binary reconciliation** — every current searched-artifact `SM2-…` record's `Binary SHA-256`/`Binary size bytes`/`Binary/version identity` equal to the current `SRC2-…` record it names; and the `SS2-…` deterministic required-class set `CBA, BYL, NBA, ops-provenance` with its closed-grammar coverage assessment); every evidence path terminates in at least one typed `SRC2` source/provenance record; DERIVED/INFERRED input and reasoning chains resolve exactly; `EV2` dependency chains are acyclic; no orphan or dangling references; and for every `EV2` component the complete transitive dependency closure and terminal `SRC2` root set are computed and validated against the §15.9.6 compatibility matrix — every dependency edge class-permitted, every terminal root type-permitted, no authority laundering (a DERIVED or INFERRED component with an `ops-provenance` or `ext-contract` root fails), OPS/EXT visibility and limitation propagation verified at every consuming LEAF, and every locally valid but transitively incompatible chain rejected |
 | U10 | Primary/secondary method validity (exactly one primary; distinct secondaries; no OPSV) |

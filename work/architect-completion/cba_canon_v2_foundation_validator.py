@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Architect CBA canon v2.0 — ID-normalization foundation validator (R2.14).
+"""Architect CBA canon v2.0 — same-family deferral compatibility validator.
 
 WHY THIS FILE EXISTS
 --------------------
@@ -65,6 +65,18 @@ No network, no third-party dependency, standard library only. Deterministic
 output. The default bounded controls are the mechanical acceptance gate;
 `--extended` runs the historical diagnostic library. Neither mode claims to
 prove source truth, semantic completeness, or legal persuasiveness.
+
+OWNER-AUTHORIZED SAME-FAMILY DEFERRAL COMPATIBILITY
+----------------------------------------------------
+The ordinary `deferred` shape still names distinct source/target families.
+The sole identical-family exception is mechanical only: a different sibling
+fragment must already map to an existing active target in another family, the
+source family must map to the named later R4-R6 construction unit, no active
+target may exist for the deferred fragment, and the current OWN decision must
+carry the canon-pinned sibling/target/family/unit join in its
+`Test/tiebreak applied` field. The validator proves those joins. It does not
+pretend that a token proves the semantic natural-owner judgment; the
+independent checker remains responsible for that judgment.
 """
 
 import hashlib
@@ -980,13 +992,16 @@ def check_plan(plan):
     if ("R2.14 foundation accepted under current goal authority"
             not in r4_flat
             or "independently accepted pre-R3.1 compatibility checkpoint"
-            not in r4_flat):
+            not in r4_flat
+            or "independently accepted owner-authorized same-family "
+               "deferral compatibility checkpoint" not in r4_flat):
         probs.append("plan R4 dependency does not require both the goal-"
-                     "accepted R2.14 foundation and independently accepted "
-                     "pre-R3.1 compatibility checkpoint")
+                     "accepted R2.14 foundation and both independently "
+                     "accepted compatibility checkpoints")
     if not re.search(
-            r"R2\.14 accepted . compatibility checkpoint . checker . R3\.1 "
-            r". checker . R4 . checker . R5 . checker . R6", r4_flat):
+            r"R2\.14 accepted . compatibility checkpoint . checker . "
+            r"same-family compatibility checkpoint . checker . R3\.1 . "
+            r"checker . R4 . checker . R5 . checker . R6", r4_flat):
         probs.append("plan R4 construction sequence omits a maker/checker "
                      "checkpoint between sequential construction units")
 
@@ -1020,8 +1035,13 @@ def check_plan(plan):
             probs.append("plan item 23 does not carry the historical-fragment "
                          "authority qualifier migration duty")
         if "`deferred`" not in seg23 or "resolving-unit" not in seg23:
-            probs.append("plan item 23 does not carry the governed cross-"
-                         "family deferred-edge migration duty")
+            probs.append("plan item 23 does not carry the governed "
+                         "deferred-edge migration duty")
+        if ("same-family-sibling:<XW2-edge>-><active-v2-LEAF>"
+                not in seg23
+                or "`Test/tiebreak applied` field" not in seg23):
+            probs.append("plan item 23 does not pin the same-family sibling "
+                         "join to the current OWN Test/tiebreak applied field")
 
     m14 = re.search(r"(?ms)^\s*14\.\s.*?(?=^\s*15\.\s)", r31)
     seg14 = m14.group(0) if m14 else ""
@@ -1081,7 +1101,10 @@ def check_plan(plan):
                 r"R2\.14 accepted under current goal authority . "
                 r"(?:one-time pre-R3\.1 foundation-)?compatibility maker "
                 r"checkpoint . independent compatibility checker ACCEPT . "
-                r"R3\.1 maker checkpoint . independent R3\.1 checker ACCEPT",
+                r"owner-authorized same-family deferral compatibility maker "
+                r"checkpoint . independent same-family compatibility checker "
+                r"ACCEPT . R3\.1 maker checkpoint . independent R3\.1 "
+                r"checker ACCEPT",
                 r214_flat)):
         probs.append("plan R2.14/compatibility/R3.1 live maker-checker "
                      "sequence is incomplete")
@@ -1090,7 +1113,7 @@ def check_plan(plan):
     compat = plan_section(
         plan,
         "## One-time pre-R3.1 foundation-compatibility checkpoint",
-        "## R3.1 ")
+        "## Owner-authorized same-family deferral compatibility checkpoint")
     compat_flat = re.sub(r"\s+", " ", compat)
     for phrase in (
             "not an R2.x unit and not substantive R3.1 migration",
@@ -1100,38 +1123,56 @@ def check_plan(plan):
         if phrase not in compat_flat:
             probs.append("plan compatibility checkpoint omits required live "
                          "status/route control %r" % phrase)
+    same_compat = plan_section(
+        plan,
+        "## Owner-authorized same-family deferral compatibility checkpoint",
+        "## R3.1 ")
+    same_flat = re.sub(r"\s+", " ", same_compat)
+    for phrase in (
+            "not an R2.x unit and not substantive R3.1 migration",
+            "ARCHITECT_CBA_CANON_V2_R3_1_SAME_FAMILY_DEFERRAL_COMPATIBILITY.md",
+            "same-family-sibling:<XW2-edge>-><active-v2-LEAF>",
+            "`Test/tiebreak applied` field",
+            "Mechanical validation proves",
+            "independent checker judges"):
+        if phrase not in same_flat:
+            probs.append("plan same-family compatibility checkpoint omits "
+                         "required contract %r" % phrase)
     if migration == "pre-R3.1":
-        pending = (
-            "pending independent compatibility checker review and not "
-            "accepted" in compat_flat)
-        accepted = (
+        accepted = "independently **ACCEPTED** before R3.1 construction" \
+            in compat_flat
+        same_pending = (
+            "pending independent same-family compatibility checker review "
+            "and not accepted" in same_flat)
+        same_accepted = (
             "independently **ACCEPTED** before R3.1 construction"
-            in compat_flat)
+            in same_flat)
         r31_flat = re.sub(r"\s+", " ", r31)
-        if pending == accepted:
+        if not accepted:
             probs.append(
-                "pre-R3.1 plan must record exactly one compatibility state: "
-                "pending/not accepted or independently ACCEPTED")
-        elif pending:
-            if ("R3.1 is the next construction unit only after an independent "
-                    "compatibility checker returns ACCEPT" not in compat_flat
-                    or "R3.1 remains blocked until the independent checker "
-                       "review" not in r31_flat):
+                "pre-R3.1 plan does not preserve independent acceptance of "
+                "the first compatibility checkpoint")
+        if same_pending == same_accepted:
+            probs.append(
+                "pre-R3.1 plan must record exactly one same-family "
+                "compatibility state: pending/not accepted or independently "
+                "ACCEPTED")
+        elif same_pending:
+            if ("R3.1 remains blocked" not in same_flat
+                    or "R3.1 remains blocked and not started" not in r31_flat):
                 probs.append(
-                    "pending pre-R3.1 compatibility state does not keep R3.1 "
-                    "blocked on an independent checker ACCEPT")
-        elif accepted:
-            if ("independent compatibility checker returned ACCEPT on "
-                    "corrective checkpoint" not in compat_flat
-                    or "R3.1 is now unblocked and is the next construction "
-                       "unit" not in compat_flat
+                    "pending same-family compatibility state does not keep "
+                    "R3.1 blocked on an independent checker ACCEPT")
+        elif same_accepted:
+            if ("R3.1 is now unblocked and is the next construction unit"
+                    not in same_flat
                     or "not started" not in r31_flat
                     or "R3.1 is unblocked and is the next construction unit"
                        not in r31_flat):
                 probs.append(
-                    "accepted pre-R3.1 compatibility state does not record "
-                    "the checker ACCEPT and truthful unblocked/not-started "
-                    "R3.1 route")
+                    "accepted same-family compatibility state does not "
+                    "record the checker ACCEPT and truthful unblocked/"
+                    "not-started R3.1 route")
     elif migration == "post-R3.1":
         if ("independently **ACCEPTED** before R3.1 execution"
                 not in compat_flat
@@ -1140,18 +1181,30 @@ def check_plan(plan):
             probs.append(
                 "post-R3.1 plan does not record independent compatibility-"
                 "checkpoint ACCEPT before R3.1 execution")
-        if ("pending independent compatibility checker review" in compat_flat
-                or "not accepted" in compat_flat):
+        if ("independently **ACCEPTED** before R3.1 execution"
+                not in same_flat
+                or "R3.1 proceeded only after an independent same-family "
+                   "compatibility checker returned ACCEPT" not in same_flat):
             probs.append(
-                "post-R3.1 plan leaves the compatibility checkpoint pending/"
+                "post-R3.1 plan does not record independent same-family "
+                "compatibility-checkpoint ACCEPT before R3.1 execution")
+        if ("pending independent compatibility checker review" in compat_flat
+                or "not accepted" in compat_flat
+                or "pending independent same-family compatibility checker "
+                   "review" in same_flat
+                or "not accepted" in same_flat):
+            probs.append(
+                "post-R3.1 plan leaves a compatibility checkpoint pending/"
                 "not accepted even though R3.1 is executed")
         r31_flat = re.sub(r"\s+", " ", r31)
         if ("executed" not in r31_flat
                 or "after an independent compatibility checker ACCEPT of the "
-                   "one-time compatibility checkpoint" not in r31_flat):
+                   "one-time compatibility checkpoint" not in r31_flat
+                or "independent same-family compatibility checker ACCEPT"
+                   not in r31_flat):
             probs.append(
                 "post-R3.1 plan does not bind R3.1 execution to the prior "
-                "independent compatibility-checkpoint ACCEPT")
+                "independent compatibility-checkpoint ACCEPTs")
 
     stale_current = re.search(
         r"(?is)\b(?:current|controlling)\s+sequence(?:\s+is(?:\s+now)?)?"
@@ -1458,6 +1511,7 @@ def check_xw2(ctx, published, active_leaves, migration):
             ctx.problems.append("XW2 %s: source %s is not a published v1.1 LEAF "
                                 "in the pinned population" % (eid, src))
         deferred = etype == "deferred"
+        deferral = None
         if etype in terminal:
             if tgt != DASH:
                 ctx.problems.append("XW2 %s: terminal edge carries a non-dash "
@@ -1472,17 +1526,13 @@ def check_xw2(ctx, published, active_leaves, migration):
                 r"resolving-unit:(R[4-6])\s*$", scope or "")
             if not deferral:
                 ctx.problems.append(
-                    "XW2 %s: deferred scope must end with exact distinct "
+                    "XW2 %s: deferred scope must end with exact "
                     "source/target families and resolving-unit:R4|R5|R6"
                     % eid)
             else:
                 source_family, target_family, _unit = deferral.groups()
                 source_match = re.fullmatch(
                     r"CBA-([ACRLS])\d{2}(?:\.\d+)?", src)
-                if source_family == target_family:
-                    ctx.problems.append(
-                        "XW2 %s: deferred source and target families must be "
-                        "distinct" % eid)
                 if source_match and source_family != source_match.group(1):
                     ctx.problems.append(
                         "XW2 %s: deferred source family %s does not match "
@@ -1530,7 +1580,90 @@ def check_xw2(ctx, published, active_leaves, migration):
         parsed.append({"id": eid, "src": src, "tgt": tgt, "type": etype,
                        "scope": scope or "", "dec": dec, "frag": frag,
                        "terminal": etype in terminal,
-                       "deferred": deferred})
+                       "deferred": deferred,
+                       "deferral": deferral.groups() if deferral else None})
+
+    # The sole same-family exception is a join over existing governed
+    # structures, not a semantic keyword test. The checker still decides
+    # whether the natural-owner conclusion itself is honest.
+    for edge in parsed:
+        if not edge["deferred"]:
+            continue
+        fragment_tokens = re.findall(r"\[([^\]]+)\]", edge["scope"])
+        span_tokens = re.findall(
+            r"(?<![A-Za-z0-9_-])span:\d+-\d+(?:@[^\s;|]*)?",
+            edge["scope"])
+        if len(fragment_tokens) != 1:
+            ctx.problems.append(
+                "XW2 %s: deferred edge must carry exactly one leading "
+                "fragment token" % edge["id"])
+        if len(span_tokens) != 1:
+            ctx.problems.append(
+                "XW2 %s: deferred edge must carry exactly one normalized "
+                "span" % edge["id"])
+        if not edge["deferral"]:
+            continue
+        source_family, target_family, unit = edge["deferral"]
+        if source_family != target_family:
+            continue
+        source = re.fullmatch(
+            r"CBA-([ACRLS])(\d{2})(?:\.\d+)?", edge["src"])
+        expected_unit = None
+        if source:
+            family, number = source.group(1), int(source.group(2))
+            if family == "C" and 1 <= number <= 13:
+                expected_unit = "R4"
+            elif family == "C" and 14 <= number <= 25:
+                expected_unit = "R5"
+            elif family in ("R", "L", "S"):
+                expected_unit = "R6"
+        edge["same_family"] = True
+        edge["same_family_expected_unit"] = expected_unit
+        if expected_unit is None:
+            ctx.problems.append(
+                "XW2 %s: same-family deferral source %s has no governed "
+                "later-unit mapping (ordinary same-family deferral is "
+                "forbidden)" % (edge["id"], edge["src"]))
+        elif unit != expected_unit:
+            ctx.problems.append(
+                "XW2 %s: same-family deferral resolving unit %s does not "
+                "match the governed source-family map %s"
+                % (edge["id"], unit, expected_unit))
+
+        existing_targets = [
+            other for other in parsed
+            if other["id"] != edge["id"]
+            and other["src"] == edge["src"]
+            and other["frag"] == edge["frag"]
+            and not other["terminal"] and not other["deferred"]
+            and other["tgt"] in active_leaves]
+        if existing_targets:
+            ctx.problems.append(
+                "XW2 %s: same-family deferred fragment already has active "
+                "target edge(s) %s; the ordinary target-bearing edge is "
+                "required" % (edge["id"], ", ".join(
+                    sorted(other["id"] for other in existing_targets))))
+
+        qualifying = []
+        for other in parsed:
+            if other["id"] == edge["id"] or other["src"] != edge["src"]:
+                continue
+            if not edge["frag"] or not other["frag"] \
+                    or other["frag"] == edge["frag"]:
+                continue
+            if other["terminal"] or other["deferred"] \
+                    or other["tgt"] not in active_leaves:
+                continue
+            target = re.fullmatch(
+                r"CBA2-([ACRLS])\d{2}\.\d+", other["tgt"])
+            if target and target.group(1) != source_family:
+                qualifying.append((other["id"], other["tgt"]))
+        edge["same_family_siblings"] = qualifying
+        if not qualifying:
+            ctx.problems.append(
+                "XW2 %s: same-family deferral has no qualifying different-"
+                "fragment sibling edge to an existing cross-family active "
+                "target" % edge["id"])
     return parsed
 
 
@@ -2126,7 +2259,8 @@ def check_dr2(ctx, edges, active_leaves, migration):
         dr2[did] = {"id": did, "type": dtype,
                     "subjects": fields.get("Subject(s)", ""),
                     "disposition": fields.get("Disposition", ""),
-                    "result": result, "row": r}
+                    "test": fields.get("Test/tiebreak applied", "").strip("`"),
+                    "unit": unit, "result": result, "row": r}
     ctx.problems += contiguous_from_one(sorted(nums), "DR2")
 
     # A generic DR2 row may be an immutable historical receipt row.  Its
@@ -2179,6 +2313,54 @@ def check_dr2(ctx, edges, active_leaves, migration):
             ctx.problems.append(
                 "XW2 %s: deferred OWN decision must carry result — while no "
                 "active target exists" % e["id"])
+        elif e.get("same_family"):
+            decision = dr2[e["dec"]]
+            join = re.fullmatch(
+                r"same-family-sibling:(XW2-\d{4})->"
+                r"(CBA2-[ACRLS]\d{2}\.\d+); "
+                r"natural-family:([ACRLS]); resolving-unit:(R[4-6])",
+                decision["test"])
+            if not join:
+                ctx.problems.append(
+                    "XW2 %s: same-family deferred OWN Test/tiebreak applied "
+                    "field must equal the canon-pinned structural join token"
+                    % e["id"])
+            else:
+                sibling_id, sibling_target, natural_family, unit = \
+                    join.groups()
+                e["same_family_join"] = (sibling_id, sibling_target)
+                if (sibling_id, sibling_target) not in \
+                        e.get("same_family_siblings", []):
+                    ctx.problems.append(
+                        "XW2 %s: same-family OWN structural join "
+                        "%s->%s does not resolve to a qualifying different-"
+                        "fragment cross-family sibling"
+                        % (e["id"], sibling_id, sibling_target))
+                source_family = e["deferral"][0]
+                if natural_family != source_family:
+                    ctx.problems.append(
+                        "XW2 %s: same-family OWN natural-family %s does not "
+                        "equal historical source family %s"
+                        % (e["id"], natural_family, source_family))
+                if unit != e["deferral"][2] or \
+                        unit != e.get("same_family_expected_unit"):
+                    ctx.problems.append(
+                        "XW2 %s: same-family OWN resolving unit %s does not "
+                        "join both the edge and governed later-unit map"
+                        % (e["id"], unit))
+            current_unit = re.match(r"R(\d+)(?:\.(\d+))? /", decision["unit"])
+            later_unit = re.fullmatch(
+                r"R(\d+)", e.get("same_family_expected_unit") or "")
+            if current_unit and later_unit:
+                current_key = (int(current_unit.group(1)),
+                               int(current_unit.group(2) or 0))
+                later_key = (int(later_unit.group(1)), 0)
+                if current_key >= later_key:
+                    ctx.problems.append(
+                        "XW2 %s: same-family deferral is a same-unit or "
+                        "non-later-unit deferral (%s -> %s)"
+                        % (e["id"], decision["unit"].split(" /", 1)[0],
+                           e.get("same_family_expected_unit")))
     for r in ctx.pop["LEAF-detail"]:
         lid = r[0].strip("`")
         cell = ctx.f("LEAF-detail", r, "Decision records") or ""
@@ -2582,6 +2764,30 @@ def check_fragments(ctx, edges, dr2, published, migration):
                "register": "XW2"}
         frags[fid] = rec
         by_leaf.setdefault(parent, []).append(rec)
+
+    # A same-family exception may qualify only through current fragments.
+    # Edge-level checks establish the sibling/target/family join; this
+    # fragment-level pass closes the lifecycle side of that same join.
+    for edge in edges:
+        if not edge.get("same_family"):
+            continue
+        deferred_fragment = frags.get(edge.get("frag"))
+        if deferred_fragment is not None \
+                and deferred_fragment["status"] != "current":
+            ctx.problems.append(
+                "XW2 %s: same-family deferred fragment %s is not current"
+                % (edge["id"], edge.get("frag")))
+        sibling_id, _target = edge.get("same_family_join", (None, None))
+        sibling = edge_by_id.get(sibling_id)
+        sibling_fragment = frags.get(
+            sibling.get("frag")) if sibling is not None else None
+        if sibling is not None and (
+                sibling_fragment is None
+                or sibling_fragment["status"] != "current"):
+            ctx.problems.append(
+                "XW2 %s: qualifying same-family sibling edge %s does not "
+                "resolve to a current sibling fragment"
+                % (edge["id"], sibling_id))
 
     for leaf, fl in sorted(by_leaf.items()):
         nums = []
@@ -4986,7 +5192,7 @@ def build_r31_document(repo, published, inv):
     plan = replace_plan_section_status(
         plan,
         "## One-time pre-R3.1 foundation-compatibility checkpoint",
-        "## R3.1 ",
+        "## Owner-authorized same-family deferral compatibility checkpoint",
         "independently **ACCEPTED** before R3.1 execution (R3.1 control "
         "tree). This remains a one-time compatibility checkpoint, not an "
         "R2.x unit and not substantive R3.1 migration.")
@@ -5002,10 +5208,23 @@ def build_r31_document(repo, published, inv):
         count=1)
     plan = replace_plan_section_status(
         plan,
+        "## Owner-authorized same-family deferral compatibility checkpoint",
+        "## R3.1 ",
+        "independently **ACCEPTED** before R3.1 execution (R3.1 control "
+        "tree). This remains a narrowly owner-authorized compatibility "
+        "checkpoint, not an R2.x unit and not substantive R3.1 migration.")
+    plan = plan.replace(
+        "Maker completion alone accepts nothing.",
+        "R3.1 proceeded only after an independent same-family compatibility "
+        "checker returned ACCEPT.",
+        1)
+    plan = replace_plan_section_status(
+        plan,
         "## R3.1 ",
         "## R4 ",
         "executed (R3.1 control tree) after an independent compatibility "
-        "checker ACCEPT of the one-time compatibility checkpoint.")
+        "checker ACCEPT of the one-time compatibility checkpoint and an "
+        "independent same-family compatibility checker ACCEPT.")
 
     receipt = _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows,
                            sfrag_rows, amend_rows)
@@ -6319,7 +6538,7 @@ def _cases_g15r_omissions(H, mrcpt):
 
 
 def run_cases(repo):
-    """Bounded R2.14 default controls.
+    """Bounded same-family deferral compatibility controls.
 
     These controls exercise every newly corrected mechanical boundary without
     replaying the historical exhaustive mutation library. Use --extended for
@@ -6370,57 +6589,44 @@ def run_cases(repo):
             + _table(inv.schema["AMEND-detail"], amend_rows))
 
     H.run("C0", "committed R2.14 baseline document tree", H.docs(), False)
-    pending_plan = replace_plan_section_status(
+    H.run("C12", "first compatibility checkpoint is accepted while the "
+          "owner-authorized same-family checkpoint remains pending and "
+          "truthfully blocks R3.1", H.docs(), False)
+    accepted_but_blocked = replace_plan_section_status(
         plan,
-        "## One-time pre-R3.1 foundation-compatibility checkpoint",
+        "## Owner-authorized same-family deferral compatibility checkpoint",
         "## R3.1 ",
-        "maker correction complete; **pending independent compatibility "
-        "checker review and not accepted**. This is a one-time compatibility "
-        "checkpoint, not an R2.x unit and not substantive R3.1 migration.")
-    pending_plan = re.sub(
-        r"The independent compatibility checker returned ACCEPT on\s+"
-        r"corrective checkpoint `?[0-9a-f]{40}`?;\s+R3\.1 is\s+now "
-        r"unblocked and is the next construction unit\.",
-        "R3.1 is the next construction unit only after an independent "
-        "compatibility checker returns ACCEPT.",
-        pending_plan,
-        count=1)
-    pending_plan = replace_plan_section_status(
-        pending_plan,
-        "## R3.1 ",
-        "## R4 ",
-        "not started. R2.14 is accepted as settled by the current goal "
-        "authority; R3.1 remains blocked until the independent checker "
-        "review of the one-time compatibility checkpoint returns ACCEPT "
-        "(R2.6–R2.13 were independently rejected and do not unblock R3.1).")
-    H.run("C12", "pre-R3.1 compatibility checkpoint may remain pending while "
-          "R3.1 truthfully remains blocked",
-          H.docs(**{P: pending_plan}), False)
-    accepted_but_blocked = re.sub(
-        r"R3\.1 is\s+now unblocked and is the next construction unit",
-        "R3.1 remains blocked pending another compatibility checker ACCEPT",
-        plan,
-        count=1)
-    if accepted_but_blocked == plan:
-        raise AssertionError(
-            "accepted pre-R3.1 route control anchor is absent")
-    H.run("P11", "accepted pre-R3.1 compatibility status still describes "
+        "independently **ACCEPTED** before R3.1 construction, but R3.1 "
+        "remains blocked (contradictory route control). This is not an R2.x "
+        "unit and not substantive R3.1 migration.")
+    H.run("P11", "accepted same-family compatibility status still describes "
           "R3.1 as blocked",
           H.docs(**{P: accepted_but_blocked}), True,
-          "accepted pre-R3.1 compatibility state")
+          "accepted same-family compatibility state")
     H.run("C1", "complete future-R3.1 migrated document tree through the "
           "same top-level validator", H.docs(migrated=True), False)
     contradictory_plan = replace_plan_section_status(
         mplan,
         "## One-time pre-R3.1 foundation-compatibility checkpoint",
-        "## R3.1 ",
+        "## Owner-authorized same-family deferral compatibility checkpoint",
         "maker correction complete; **pending independent compatibility "
         "checker review and not accepted**. This is a one-time compatibility "
         "checkpoint, not an R2.x unit and not substantive R3.1 migration.")
     H.run("P10", "post-R3.1 plan leaves its prerequisite compatibility "
           "checkpoint pending and not accepted",
           H.docs(migrated=True, **{P: contradictory_plan}), True,
-          "leaves the compatibility checkpoint pending/not accepted")
+          "leaves a compatibility checkpoint pending/not accepted")
+    same_pending_post = replace_plan_section_status(
+        mplan,
+        "## Owner-authorized same-family deferral compatibility checkpoint",
+        "## R3.1 ",
+        "maker correction complete; **pending independent same-family "
+        "compatibility checker review and not accepted**. This is not an "
+        "R2.x unit and not substantive R3.1 migration.")
+    H.run("P12", "post-R3.1 plan leaves the same-family compatibility "
+          "checkpoint pending and not accepted",
+          H.docs(migrated=True, **{P: same_pending_post}), True,
+          "leaves a compatibility checkpoint pending/not accepted")
 
     # Semantic source truth belongs to the checker: a structurally valid
     # locator is not rejected by software merely because of a keyword.
@@ -6840,6 +7046,178 @@ def run_cases(repo):
               P: r8_started_plan,
               R: deferred_receipt,
           }), True, "deferred edge survives into R8")
+
+    # Sole owner-authorized same-family exception: C13 maps to R4, a
+    # different sibling fragment has an existing cross-family A target, and
+    # the OWN Test/tiebreak field carries the exact structural join. These
+    # controls do not attempt to prove the semantic natural-owner conclusion.
+    same_leaf = "CBA-C13.8"
+    same_length = _published.leaf_len[same_leaf]
+    same_split = max(1, same_length // 2)
+    same_f1 = same_leaf + ":F1"
+    same_f2 = same_leaf + ":F2"
+    same_span1 = "span:0-%d" % same_split
+    same_span2 = "span:%d-%d" % (same_split, same_length)
+    same_deferred_decision = deferred_decision
+    same_sibling_decision = "DR2-%04d" % (
+        int(deferred_decision.split("-")[1]) + 1)
+    same_amend_decision = "DR2-%04d" % (
+        int(deferred_decision.split("-")[1]) + 2)
+    same_target = bundle_target
+    same_join = (
+        "same-family-sibling:XW2-0133->%s; natural-family:C; "
+        "resolving-unit:R4" % same_target)
+    same_deferred_dr = (
+        "| %s | `OWN` | %s | Deferred pending C-family owner | %s | "
+        "R4 must mint the natural C owner and replace this edge through "
+        "AMEND | — | R3.1 / temporary control |"
+        % (same_deferred_decision, same_f1, same_join))
+    same_sibling_dr = (
+        "| %s | `OWN` | %s | Existing cross-family sibling owner selected | "
+        "Current active-target ownership join | The different sibling "
+        "fragment maps to the existing A-family target | %s | "
+        "R3.1 / temporary control |"
+        % (same_sibling_decision, same_f2, same_target))
+    same_amend_dr = (
+        "| %s | `AMEND` | %s | Current Origin field revised to include the "
+        "new sibling edge | Same-ID governed-row lineage | Direct current "
+        "back-reference added without identity reuse | — | "
+        "R3.1 / temporary control |"
+        % (same_amend_decision, same_target))
+    same_deferred_xw = (
+        "| XW2-0132 | %s | — | `deferred` | [%s] %s — "
+        "families:C,C; resolving-unit:R4 | %s |"
+        % (same_leaf, same_f1, same_span1, same_deferred_decision))
+    same_sibling_xw = (
+        "| XW2-0133 | %s | %s | `partial-overlap` | [%s] %s — "
+        "current cross-family sibling control | %s |"
+        % (same_leaf, same_target, same_f2, same_span2,
+           same_sibling_decision))
+    same_fragment1 = (
+        "| %s | %s | substantive-obligation | — | %s | %s | — | "
+        "XW2-0132 | current | 1 | same-family deferred control |"
+        % (same_f1, same_leaf, same_span1, decomp_decision))
+    same_fragment2 = (
+        "| %s | %s | substantive-obligation | — | %s | %s | — | "
+        "XW2-0133 | current | 1 | qualifying cross-family sibling control |"
+        % (same_f2, same_leaf, same_span2, decomp_decision))
+    same_canon = mut(
+        mcanon, xw_anchor + "\n",
+        xw_anchor + "\n" + same_deferred_xw + "\n"
+        + same_sibling_xw + "\n")
+    same_target_row = row_line(same_canon, "| %s |" % same_target)
+    same_target_origin = [
+        cell.strip()
+        for cell in same_target_row.strip()[1:-1].split("|")][6]
+    same_canon = mut(
+        same_canon, same_target_row,
+        replace_cell(
+            same_target_row, same_target_row, 6,
+            same_target_origin + ", XW2-0133"))
+    same_receipt = mut(
+        mrcpt, generic_rows[-1] + "\n",
+        generic_rows[-1] + "\n" + same_deferred_dr + "\n"
+        + same_sibling_dr + "\n" + same_amend_dr + "\n")
+    amend_control_rows = [
+        line for line in mrcpt.splitlines()
+        if re.match(
+            r"^\| DR2-\d{4} \| "
+            r"(?:GROUP|LEAF|XW2|SXW2|SRC2|EV2|DR2|BND|SM2|SS2|BLK|RES|"
+            r"fragment|scenario-fragment|SRC2-date-component) \|",
+            line)
+    ]
+    if not amend_control_rows:
+        raise AssertionError("migrated control has no AMEND detail rows")
+    same_amend_detail = (
+        "| %s | LEAF | %s | — | %s | revise | %s | — | "
+        "same-family sibling Origin back-reference revision |"
+        % (same_amend_decision, same_target, repo.r3, same_target))
+    same_receipt = mut(
+        same_receipt, amend_control_rows[-1] + "\n",
+        amend_control_rows[-1] + "\n" + same_amend_detail + "\n")
+    same_receipt = mut(
+        same_receipt, fragment_anchor + "\n",
+        fragment_anchor + "\n" + same_fragment1 + "\n"
+        + same_fragment2 + "\n")
+    same_docs = H.docs(migrated=True, **{
+        C: same_canon,
+        R: same_receipt,
+    })
+    H.run("C13", "owner-authorized C/C deferred edge has a different "
+          "fragment sibling joined to an existing A-family active target, "
+          "the exact R4 map, no F1 target, and a pinned OWN structural join",
+          same_docs, False)
+
+    no_sibling_deferred_xw = same_deferred_xw.replace(
+        same_span1, "span:0-%d" % same_length, 1)
+    no_sibling_fragment = same_fragment1.replace(
+        same_span1, "span:0-%d" % same_length, 1)
+    no_sibling_canon = mut(
+        same_canon, same_sibling_xw + "\n", "")
+    no_sibling_canon = mut(
+        no_sibling_canon, same_deferred_xw, no_sibling_deferred_xw)
+    no_sibling_target_row = row_line(
+        no_sibling_canon, "| %s |" % same_target)
+    no_sibling_canon = mut(
+        no_sibling_canon, no_sibling_target_row,
+        no_sibling_target_row.replace(", XW2-0133", ""))
+    no_sibling_receipt = mut(
+        same_receipt, same_fragment2 + "\n", "")
+    no_sibling_receipt = mut(
+        no_sibling_receipt, same_fragment1, no_sibling_fragment)
+    H.run("A22", "same-family deferral has no qualifying different-fragment "
+          "cross-family sibling",
+          H.docs(migrated=True, **{
+              C: no_sibling_canon,
+              R: no_sibling_receipt,
+          }), True, "has no qualifying different-fragment sibling edge")
+
+    wrong_unit_canon = same_canon.replace(
+        "families:C,C; resolving-unit:R4",
+        "families:C,C; resolving-unit:R5", 1)
+    wrong_unit_receipt = same_receipt.replace(
+        "natural-family:C; resolving-unit:R4",
+        "natural-family:C; resolving-unit:R5", 1)
+    H.run("A23", "C13 same-family deferral names R5 instead of its governed "
+          "R4 construction unit",
+          H.docs(migrated=True, **{
+              C: wrong_unit_canon,
+              R: wrong_unit_receipt,
+          }), True, "does not match the governed source-family map R4")
+
+    source_mismatch_canon = same_canon.replace(
+        "families:C,C; resolving-unit:R4",
+        "families:R,R; resolving-unit:R4", 1)
+    source_mismatch_receipt = same_receipt.replace(
+        "natural-family:C; resolving-unit:R4",
+        "natural-family:R; resolving-unit:R4", 1)
+    H.run("A24", "same-family deferral's declared source family mismatches "
+          "the historical source and sibling-family join",
+          H.docs(migrated=True, **{
+              C: source_mismatch_canon,
+              R: source_mismatch_receipt,
+          }), True, "deferred source family R does not match historical "
+                    "source")
+
+    existing_target_xw = same_sibling_xw.replace(
+        "[%s] %s" % (same_f2, same_span2),
+        "[%s] %s" % (same_f1, same_span1), 1)
+    existing_target_canon = mut(
+        same_canon, same_sibling_xw, existing_target_xw)
+    H.run("A25", "same-family deferred fragment already has a current active "
+          "target-bearing edge",
+          H.docs(migrated=True, **{
+              C: existing_target_canon,
+              R: same_receipt,
+          }), True, "same-family deferred fragment already has active target")
+    stale_sibling_fragment = same_fragment2.replace(
+        "| current | 1 |", "| superseded | 1 |", 1)
+    H.run("A26", "same-family join names a sibling edge whose fragment is no "
+          "longer current",
+          H.docs(migrated=True, **{
+              C: same_canon,
+              R: mut(same_receipt, same_fragment2, stale_sibling_fragment),
+          }), True, "does not resolve to a current sibling fragment")
 
     # Valid populated OPS/EXT locations prove those governed sections are
     # real parser inputs rather than prose-only inventory entries.
@@ -7296,8 +7674,8 @@ def main():
         print("usage: %s [--extended]" % os.path.basename(__file__),
               file=sys.stderr)
         return 2
-    print("Architect CBA canon v2.0 ID-normalization foundation validator "
-          "(R2.14)")
+    print("Architect CBA canon v2.0 same-family deferral compatibility "
+          "validator")
     print("control mode: %s" % ("extended diagnostic" if extended
                                 else "bounded default"))
     print("canon: %s" % CANON_REL.replace(os.sep, "/"))
