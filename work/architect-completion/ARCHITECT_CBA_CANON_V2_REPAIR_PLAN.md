@@ -167,14 +167,17 @@ checker ACCEPT → owner-authorized same-family deferral compatibility maker
 checkpoint → independent same-family compatibility checker ACCEPT → R3.1
 maker checkpoint → independent R3.1 checker ACCEPT → R4. The independent
 checker accepted the first compatibility checkpoint at
-`c3a00637249444190a02a844fe104137ac78da5e`; the owner-authorized
-same-family compatibility maker correction is complete but pending its
-separate independent checker. The checker rejected exact checkpoint
+`c3a00637249444190a02a844fe104137ac78da5e`. The checker rejected the first
+owner-authorized same-family maker checkpoint, exact commit
 `726456e35f4f876242499b0ab654bc032d7fd635` only because the canon's live top
 status, edition-row summary, §19.3 sequence, and amendment date did not yet
-mirror that pending checkpoint. The bounded truthful-status correction is
-complete and pending an independent recheck; the compatibility contract and
-protected records were not reopened. R3.1 and R4 therefore remain blocked.
+mirror that pending checkpoint; `726456e3…` remains preserved rejected
+history. The bounded truthful-status correction was committed at
+`d6101f82b40f5c1e8c45c8be090e9b4743daefe5`, and the separate checker
+`/root/validation_scout` independently **ACCEPTED** that exact corrective
+checkpoint. The compatibility contract and protected records were not
+reopened. R3.1 is now unblocked and is the next construction unit but remains
+not started. R4 remains blocked until an independent R3.1 checker ACCEPT.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
 code-map work, scenarios, and Linear remain out of scope for repair
@@ -1611,14 +1614,18 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## Owner-authorized same-family deferral compatibility checkpoint
 
-- **Status:** truthful-status maker correction complete; **pending independent
-  same-family compatibility checker review and not accepted**. The independent
-  checker rejected exact checkpoint
+- **Status:** independently **ACCEPTED** before R3.1 construction at exact
+  corrective checkpoint
+  `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by
+  `/root/validation_scout`. The independent checker rejected exact checkpoint
   `726456e35f4f876242499b0ab654bc032d7fd635` only for stale live canon status
   mirrors and the live amendment date; the compatibility contract and
-  protected records remain unchanged. This is a second, narrowly
+  protected records remain unchanged, and that rejection remains immutable
+  history. This is a second, narrowly
   owner-authorized compatibility checkpoint, not an R2.x unit and not
-  substantive R3.1 migration. R3.1 remains blocked.
+  substantive R3.1 migration. R3.1 is now unblocked and is the next
+  construction unit but remains not started. R4 remains blocked until an
+  independent R3.1 checker ACCEPT.
 - **Owner authorization:** the owner explicitly authorized the additional
   narrow same-family deferral correction on July 24, 2026. The authorization
   changes only this compatibility contract; it does not accept any R3/R3.1
@@ -1671,14 +1678,17 @@ is a one-way dependency scheduled backwards, not a cycle).
   compatibility checker ACCEPT → R3.1 maker checkpoint → independent R3.1
   checker ACCEPT → R4. Maker completion alone accepts nothing.
 
-## R3.1 — A-series repair through AMEND lineage (ordered by the independent Codex review of R3; blocked until the same-family deferral compatibility checkpoint is independently accepted)
+## R3.1 — A-series repair through AMEND lineage (next construction unit; not started)
 
 - **Status:** not started. R2.14 is accepted as settled by the current goal
   authority, and the independent compatibility checker accepted corrective
   checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; the owner-authorized
-  same-family compatibility maker checkpoint is complete but pending a
-  separate independent checker ACCEPT. R3.1 remains blocked and not started
-  (R2.6–R2.13 were independently rejected and unblock nothing).
+  same-family compatibility checkpoint was independently accepted at exact
+  corrective checkpoint `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by
+  `/root/validation_scout`. R3.1 is unblocked and is the next construction
+  unit, but it remains not started (R2.6–R2.13 were independently rejected and
+  unblock nothing). R4 remains blocked until an independent checker accepts
+  the completed R3.1 checkpoint.
 - **Binding execution rules:** R3.1 repairs the committed R3 records
   **through `AMEND` lineage only** (§15.9.2/§15.9.4): every correction
   carries an `AMEND` record naming the prior checkpoint

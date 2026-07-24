@@ -16,8 +16,11 @@
 
 **Parent adjudicator:** root Codex agent
 
-**Status:** truthful-status maker correction complete; **pending independent
-checker re-review and not accepted**. R3.1 remains blocked.
+**Status:** independently **ACCEPTED** at exact corrective checkpoint
+`d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by
+`/root/validation_scout`. R3.1 is now unblocked and is the next construction
+unit but remains not started. R4 remains blocked until an independent R3.1
+checker ACCEPT.
 
 ## Owner authorization
 
@@ -41,8 +44,15 @@ contract, its mechanical joins, or any protected population.
 
 Those live mirrors now identify the first compatibility checkpoint as
 accepted, this owner-authorized same-family checkpoint as pending independent
-checker acceptance, and R3.1 as blocked and not started. This corrected maker
-state is pending a fresh independent checker re-review and accepts nothing.
+checker acceptance, and R3.1 as blocked and not started. That corrected maker
+state was committed at
+`d6101f82b40f5c1e8c45c8be090e9b4743daefe5`.
+
+The separate read-only checker `/root/validation_scout` then independently
+returned **ACCEPT** for that exact corrective checkpoint. The acceptance
+unblocks R3.1 as the next construction unit but does not start or accept R3.1,
+accept any R3/A-series record, or unblock R4. The earlier `726456e3…`
+rejection remains preserved review history.
 
 ## Blocking contradiction closed
 
@@ -111,10 +121,14 @@ The same top-level document-tree validator now also runs:
 
 Two additional live-status regressions reject a pending same-family checkpoint
 paired with either a stale top-level “R3.1 unblocked” claim or a §19.3 current
-sequence that omits the same-family maker/checker gate.
+sequence that omits the same-family maker/checker gate. Those P13/P14 controls
+now run against a coherent pending document tree pinned to exact checkpoint
+`d6101f82…`, rather than the accepted live plan.
 
-The bounded control population is 14 accepting controls plus 95 rejecting
-regressions, 109 total. The negative self-test remains effective.
+Four accepted-state regressions separately restore stale pending text in the
+top status, both compatibility edition rows, the §15.9 live foundation mirror,
+and §19.3. The bounded control population is 14 accepting controls plus 99
+rejecting regressions, 113 total. The negative self-test remains effective.
 
 ## Preservation and scope
 
@@ -134,10 +148,10 @@ regressions, 109 total. The negative self-test remains effective.
 - Direct validation of the live document tree reports zero problems.
 - The complete bounded validator runs twice through the same top-level
   document-tree path with this receipt present. Both runs report 14 accepting
-  controls plus 95 rejecting regressions, 109 total,
+  controls plus 99 rejecting regressions, 113 total,
   `baseline_clean=yes`, an effective negative self-test, and zero failures.
-  The 129-line, 16,956-byte outputs are byte-identical with SHA-256
-  `9482b6f291a75a04e9f0ad010d483376a2ea24a8b127d703aed0301314f3cea6`.
+  The 133-line, 17,572-byte outputs are byte-identical with SHA-256
+  `383656c9fe4c3f24ffb24e24e7a2fb676f35ee4e556787ef3283dbcda4dd4b89`.
 - Targeted Markdown lint passes for the live repair plan and this receipt.
   Canon-only lint retains exactly the established 74 `MD029` findings in the
   byte-preserved §16 scenario list, with no new rule class or count.
@@ -163,7 +177,8 @@ regressions, 109 total. The negative self-test remains effective.
 
 ## Sequence
 
-First compatibility checkpoint independently accepted → this same-family
-compatibility maker checkpoint → independent same-family compatibility
-checker ACCEPT → R3.1 maker checkpoint → independent R3.1 checker ACCEPT →
-R4. Maker completion alone accepts nothing.
+First compatibility checkpoint independently accepted → same-family
+compatibility independently accepted at `d6101f82…` by
+`/root/validation_scout` → R3.1 maker checkpoint (next; not started) →
+independent R3.1 checker ACCEPT → R4. R4 remains blocked until that R3.1
+acceptance.

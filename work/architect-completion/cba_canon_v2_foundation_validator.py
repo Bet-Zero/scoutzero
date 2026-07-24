@@ -1255,11 +1255,11 @@ def check_plan(plan):
 
 
 def check_canon_live_status(canon, plan):
-    """Reject stale live route claims while same-family review is pending.
+    """Reject stale live route claims in pending and accepted states.
 
     Historical checkpoint prose remains immutable. This is limited to the
-    canon's live amendment field, current pre-R3.1 status, edition summary,
-    and §19.3 current-family status.
+    canon's live amendment field, current pre-R3.1 status, edition summaries,
+    §15.9 live foundation-status mirror, and §19.3 current-family status.
     """
     probs = []
     if parse_migration_state(plan) != "pre-R3.1":
@@ -1269,8 +1269,12 @@ def check_canon_live_status(canon, plan):
         "## Owner-authorized same-family deferral compatibility checkpoint",
         "## R3.1 ")
     same_flat = re.sub(r"\s+", " ", same_compat)
-    if ("pending independent same-family compatibility checker review "
-            "and not accepted" not in same_flat):
+    pending = (
+        "pending independent same-family compatibility checker review "
+        "and not accepted" in same_flat)
+    accepted = (
+        "independently **ACCEPTED** before R3.1 construction" in same_flat)
+    if pending == accepted:
         return probs
 
     amendment = re.search(
@@ -1286,31 +1290,25 @@ def check_canon_live_status(canon, plan):
         "(supersedes the R2.13 sequencing sentence above):**",
         "> **Use rule:**")
     top_flat = re.sub(r"\s+", " ", top)
-    if (not top
-            or "owner-authorized same-family deferral compatibility "
-               "checkpoint is pending independent checker acceptance"
-               not in top_flat
-            or "R3.1 remains blocked and not started" not in top_flat
-            or re.search(r"\bR3\.1 is unblocked\b", top_flat)):
-        probs.append(
-            "canon live status: pending same-family compatibility checkpoint "
-            "is paired with a stale top-level R3.1 unblocked/current-route "
-            "claim")
-
-    edition_row = next(
+    first_edition_row = next(
         (line for line in canon.splitlines()
          if line.startswith(
              "| **Repair v2.0 — working draft, pre-R3.1 compatibility** |")),
         "")
-    edition_flat = re.sub(r"\s+", " ", edition_row)
-    if (not edition_row
-            or "same-family compatibility checkpoint is pending independent "
-               "checker acceptance" not in edition_flat
-            or "R3.1 remains blocked and not started" not in edition_flat
-            or re.search(r"\bR3\.1 is unblocked\b", edition_flat)):
-        probs.append(
-            "canon live status: pre-R3.1 compatibility edition row does not "
-            "mirror the pending same-family checkpoint and blocked R3.1")
+    first_edition_flat = re.sub(r"\s+", " ", first_edition_row)
+    same_edition_row = next(
+        (line for line in canon.splitlines()
+         if line.startswith(
+             "| **Repair v2.0 — working draft, same-family deferral "
+             "compatibility** |")),
+        "")
+    same_edition_flat = re.sub(r"\s+", " ", same_edition_row)
+
+    foundation_status = line_range(
+        canon,
+        "The R2.10–R2.13 review findings are classified exhaustively below.",
+        "| Foundation review finding | Balanced disposition |")
+    foundation_flat = re.sub(r"\s+", " ", foundation_status)
 
     family_status = line_range(
         canon,
@@ -1318,18 +1316,98 @@ def check_canon_live_status(canon, plan):
         "certified).**",
         "### 19.4 CBA Guide sections reviewed for discovery")
     family_flat = re.sub(r"\s+", " ", family_status)
-    if (not family_status
-            or "owner-authorized same-family compatibility checkpoint is "
-               "now pending independent checker acceptance" not in family_flat
-            or "R3.1 remains blocked and not started" not in family_flat
-            or "same-family compatibility maker checkpoint → independent "
-               "same-family compatibility checker ACCEPT → R3.1 maker "
-               "checkpoint" not in family_flat
-            or re.search(r"\bR3\.1 is unblocked\b", family_flat)):
-        probs.append(
-            "canon §19.3 live status: pending same-family compatibility "
-            "checkpoint is paired with a stale R3.1 unblocked/current-"
-            "sequence claim")
+
+    if pending:
+        if (not top
+                or "owner-authorized same-family deferral compatibility "
+                   "checkpoint is pending independent checker acceptance"
+                   not in top_flat
+                or "R3.1 remains blocked and not started" not in top_flat
+                or re.search(r"\bR3\.1 is unblocked\b", top_flat)):
+            probs.append(
+                "canon live status: pending same-family compatibility "
+                "checkpoint is paired with a stale top-level R3.1 unblocked/"
+                "current-route claim")
+        if (not first_edition_row
+                or "same-family compatibility checkpoint is pending "
+                   "independent checker acceptance" not in first_edition_flat
+                or "R3.1 remains blocked and not started"
+                   not in first_edition_flat
+                or re.search(r"\bR3\.1 is unblocked\b", first_edition_flat)):
+            probs.append(
+                "canon live status: pre-R3.1 compatibility edition row does "
+                "not mirror the pending same-family checkpoint and blocked "
+                "R3.1")
+        if (not family_status
+                or "owner-authorized same-family compatibility checkpoint is "
+                   "now pending independent checker acceptance"
+                   not in family_flat
+                or "R3.1 remains blocked and not started" not in family_flat
+                or "same-family compatibility maker checkpoint → independent "
+                   "same-family compatibility checker ACCEPT → R3.1 maker "
+                   "checkpoint" not in family_flat
+                or re.search(r"\bR3\.1 is unblocked\b", family_flat)):
+            probs.append(
+                "canon §19.3 live status: pending same-family compatibility "
+                "checkpoint is paired with a stale R3.1 unblocked/current-"
+                "sequence claim")
+    elif accepted:
+        accept_sha = "d6101f82b40f5c1e8c45c8be090e9b4743daefe5"
+        if (not top
+                or accept_sha not in top_flat
+                or "/root/validation_scout" not in top_flat
+                or "R3.1 is now unblocked and is the next construction unit "
+                   "but remains not started" not in top_flat
+                or "R4 remains blocked until an independent R3.1 checker "
+                   "ACCEPT" not in top_flat
+                or "pending independent checker acceptance" in top_flat
+                or "R3.1 remains blocked" in top_flat):
+            probs.append(
+                "canon live accepted status: top pre-R3.1 mirror omits the "
+                "exact same-family ACCEPT, unblocked/not-started R3.1, or "
+                "blocked R4")
+        edition_required = (
+            accept_sha,
+            "/root/validation_scout",
+            "R3.1 is now unblocked and is the next construction unit but "
+            "remains not started",
+            "R4 remains blocked until an independent R3.1 checker ACCEPT",
+        )
+        if (not first_edition_row or not same_edition_row
+                or any(x not in first_edition_flat for x in edition_required)
+                or any(x not in same_edition_flat for x in edition_required)
+                or "pending independent checker" in first_edition_flat
+                or "pending independent checker" in same_edition_flat):
+            probs.append(
+                "canon live accepted status: both compatibility edition rows "
+                "must mirror the exact same-family ACCEPT and current R3.1/R4 "
+                "route")
+        if (not foundation_status
+                or "d6101f82" not in foundation_flat
+                or "/root/validation_scout" not in foundation_flat
+                or "unblock R3.1 as the next construction unit"
+                   not in foundation_flat
+                or "R3.1 remains not started" not in foundation_flat
+                or "R4 remains blocked until an independent R3.1 checker "
+                   "ACCEPT" not in foundation_flat
+                or "remains pending independent review" in foundation_flat):
+            probs.append(
+                "canon live accepted status: §15.9 foundation mirror omits "
+                "the same-family ACCEPT or current R3.1/R4 route")
+        if (not family_status
+                or accept_sha not in family_flat
+                or "/root/validation_scout" not in family_flat
+                or "R3.1 is now unblocked and is the next construction unit "
+                   "but remains not started" not in family_flat
+                or "same-family compatibility checkpoint independently "
+                   "accepted → R3.1 maker checkpoint" not in family_flat
+                or "R4 remains blocked until that independent R3.1 checker "
+                   "ACCEPT" not in family_flat
+                or "pending independent checker acceptance" in family_flat
+                or "R3.1 remains blocked" in family_flat):
+            probs.append(
+                "canon §19.3 live accepted status: current sequence omits the "
+                "same-family ACCEPT or truthful R3.1/R4 route")
     return probs
 
 
@@ -6629,6 +6707,27 @@ def run_cases(repo):
     C, P, R = CANON_REL, PLAN_REL, R31_RECEIPT_REL
     canon, plan = base[C], base[P]
     mcanon, mplan, mrcpt = r31[C], r31[P], r31[R]
+    same_receipt_rel = os.path.join(
+        RECEIPT_DIR,
+        "ARCHITECT_CBA_CANON_V2_R3_1_SAME_FAMILY_DEFERRAL_COMPATIBILITY.md")
+    accepted_checkpoint = "d6101f82b40f5c1e8c45c8be090e9b4743daefe5"
+    pending_canon_blob = git_blob(repo.src, accepted_checkpoint, C)
+    pending_plan_blob = git_blob(repo.src, accepted_checkpoint, P)
+    pending_receipt_blob = git_blob(
+        repo.src, accepted_checkpoint, same_receipt_rel)
+    if not all((pending_canon_blob, pending_plan_blob, pending_receipt_blob)):
+        raise AssertionError(
+            "exact accepted same-family checkpoint is not fully resolvable")
+    pending_canon = repo._repin(
+        pending_canon_blob.decode("utf-8"),
+        inv.commits["published-v1.1"], inv.commits["r3-checkpoint"])
+    pending_plan = pending_plan_blob.decode("utf-8")
+    pending_receipt = pending_receipt_blob.decode("utf-8")
+    pending_docs = {
+        C: pending_canon,
+        P: pending_plan,
+        same_receipt_rel: pending_receipt,
+    }
 
     def replace_cell(text, row, index, value):
         cells = [c.strip() for c in row.strip()[1:-1].split("|")]
@@ -6669,11 +6768,11 @@ def run_cases(repo):
             + _table(inv.schema["AMEND-detail"], amend_rows))
 
     H.run("C0", "committed R2.14 baseline document tree", H.docs(), False)
-    H.run("C12", "first compatibility checkpoint is accepted while the "
-          "owner-authorized same-family checkpoint remains pending and "
-          "truthfully blocks R3.1", H.docs(), False)
+    H.run("C12", "both compatibility checkpoints are independently accepted; "
+          "R3.1 is unblocked/next but not started and R4 remains blocked",
+          H.docs(), False)
     stale_top = mut(
-        canon,
+        pending_canon,
         "The owner-authorized same-family\n"
         "deferral compatibility checkpoint is pending independent checker "
         "acceptance.\n"
@@ -6684,10 +6783,10 @@ def run_cases(repo):
         "unblocked but not started.")
     H.run("P13", "pending same-family compatibility review is paired with a "
           "stale top-level canon claim that R3.1 is unblocked",
-          H.docs(**{C: stale_top}), True,
+          H.docs(**dict(pending_docs, **{C: stale_top})), True,
           "stale top-level R3.1 unblocked/current-route claim")
     stale_family = mut(
-        canon,
+        pending_canon,
         "the owner-authorized same-family compatibility checkpoint is now "
         "pending independent checker acceptance, so R3.1 remains blocked and "
         "not started",
@@ -6701,8 +6800,59 @@ def run_cases(repo):
         "checkpoint")
     H.run("P14", "pending same-family compatibility review is omitted from "
           "the canon §19.3 current sequence while R3.1 is called unblocked",
-          H.docs(**{C: stale_family}), True,
+          H.docs(**dict(pending_docs, **{C: stale_family})), True,
           "canon §19.3 live status")
+    status_start = (
+        "**Current pre-R3.1 status "
+        "(supersedes the R2.13 sequencing sentence above):**")
+    stale_accepted_top = mut(
+        canon,
+        line_range(canon, status_start, "> **Use rule:**"),
+        line_range(pending_canon, status_start, "> **Use rule:**"))
+    H.run("P15", "accepted same-family checkpoint retains the prior pending "
+          "top-level canon route",
+          H.docs(**{C: stale_accepted_top}), True,
+          "canon live accepted status: top pre-R3.1 mirror")
+    stale_accepted_editions = canon
+    for prefix in (
+            "| **Repair v2.0 — working draft, pre-R3.1 compatibility** |",
+            "| **Repair v2.0 — working draft, same-family deferral "
+            "compatibility** |"):
+        live_row = next(
+            line for line in stale_accepted_editions.splitlines()
+            if line.startswith(prefix))
+        pending_row = next(
+            line for line in pending_canon.splitlines()
+            if line.startswith(prefix))
+        stale_accepted_editions = mut(
+            stale_accepted_editions, live_row, pending_row)
+    H.run("P16", "accepted same-family checkpoint leaves both compatibility "
+          "edition rows at the prior pending route",
+          H.docs(**{C: stale_accepted_editions}), True,
+          "both compatibility edition rows")
+    foundation_start = (
+        "The R2.10–R2.13 review findings are classified exhaustively below.")
+    foundation_end = "| Foundation review finding | Balanced disposition |"
+    stale_accepted_foundation = mut(
+        canon,
+        line_range(canon, foundation_start, foundation_end),
+        line_range(pending_canon, foundation_start, foundation_end))
+    H.run("P17", "accepted same-family checkpoint leaves the §15.9 live "
+          "foundation mirror pending",
+          H.docs(**{C: stale_accepted_foundation}), True,
+          "§15.9 foundation mirror")
+    family_start = (
+        "**A-family v2 status (R3 executed; independently REJECTED — not "
+        "certified).**")
+    family_end = "### 19.4 CBA Guide sections reviewed for discovery"
+    stale_accepted_family = mut(
+        canon,
+        line_range(canon, family_start, family_end),
+        line_range(pending_canon, family_start, family_end))
+    H.run("P18", "accepted same-family checkpoint leaves §19.3 at the prior "
+          "pending sequence",
+          H.docs(**{C: stale_accepted_family}), True,
+          "canon §19.3 live accepted status")
     accepted_but_blocked = replace_plan_section_status(
         plan,
         "## Owner-authorized same-family deferral compatibility checkpoint",
