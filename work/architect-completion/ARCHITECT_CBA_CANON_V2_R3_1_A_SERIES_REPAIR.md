@@ -2,7 +2,7 @@
 
 ## Status
 
-R3.1 maker execution is complete after the independent compatibility checker ACCEPT of the one-time compatibility checkpoint and the independent owner-authorized same-family compatibility checker ACCEPT. The 151-LEAF A-family tree is pending an independent R3.1 checker; this receipt does not claim that checker ACCEPT, R9 acceptance, or Phase 2 authority.
+R3.1 was independently **ACCEPTED** by `/root/validation_scout` at exact maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`, after the independent compatibility checker ACCEPT of the one-time compatibility checkpoint and the independent owner-authorized same-family compatibility checker ACCEPT. The accepted checkpoint contains the 151-LEAF A-family tree. R4 is unblocked but remains not started; Phase 1 continues. This receipt does not claim R9 acceptance, final canon activation, or Phase 2 authority.
 
 The immutable R3 receipt remains historical. Its premature U1–U14, source-certified, and A-family-complete assertions are superseded by the current governed records and AMEND lineage below. Its incorrect terminal edge citations are corrected here against the committed XW2 identities.
 
@@ -624,6 +624,12 @@ The same entry point validated the live post-R3.1 tree first, then resolved the 
 
 U1–U14 were rerun for the A family at the maker checkpoint. Semantic exhaustiveness was reviewed against every pinned published v1.1 normalized requirement: each declared fragment inventory covers exactly [0,L), without overlap or residual, and each edge/bundle points bidirectionally to that inventory. G15R is repair-local and is not the R8 global G15 gate.
 
+## Independent review
+
+`/root/validation_scout` performed a read-only independent semantic and mechanical review of exact maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4` relative to accepted same-family status baseline `41096c8f3a8277e56ad38f98482520176a551521` and returned **ACCEPT**. The checker reviewed all 27 bounded items; found the A04, A10, A07/A08/A12/A17 source semantics clean; found the XW/deferred/DISP/search treatment, C11.9/A01.4/C13.8 joins, all 19 DR2-0059–DR2-0077 decisions, AMEND/G15R, live status, and no-R4 boundary clean; and changed no file.
+
+Checker evidence: the direct document tree reported zero problems; the bounded validator passed 121/121 twice (166.01 seconds and 94.65 seconds); Python compilation and targeted Markdown lint passed; canon-only lint retained only the established 74 MD029 findings; documentation guardrails, project validation, and `git diff --check` passed; and the protected bytes and all older receipts remained unchanged.
+
 ## Boundary
 
-No C/R/L/S family registration, scenario work, R4+, Phase 2, runtime code, tests, configuration, data, Firestore, README, code-map, graph output, or Linear work was performed. R4 remains blocked pending independent R3.1 checker ACCEPT.
+No C/R/L/S family registration, scenario work, R4+, Phase 2, runtime code, tests, configuration, data, Firestore, README, code-map, graph output, or Linear work was performed. R3.1 is independently accepted. R4 is unblocked but remains not started; Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance.

@@ -965,10 +965,11 @@ def parse_migration_state(plan):
     seg = plan_section(plan, "## R3.1 ", "## R4 ")
     m = re.search(r"(?m)^- \*\*Status:\*\*\s*(.*(?:\n(?!- \*\*).*)*)", seg)
     status = m.group(1) if m else ""
-    if re.search(r"not started", status, re.I):
-        return "pre-R3.1"
-    if re.search(r"executed", status, re.I):
+    if (re.search(r"independently\s+\*\*ACCEPTED\*\*", status, re.I)
+            or re.search(r"executed", status, re.I)):
         return "post-R3.1"
+    if re.search(r"R3\.1.{0,120}not started", status, re.I | re.S):
+        return "pre-R3.1"
     return "unknown"
 
 
@@ -1284,7 +1285,13 @@ def check_plan(plan):
                 "post-R3.1 plan leaves a compatibility checkpoint pending/"
                 "not accepted even though R3.1 is executed")
         r31_flat = re.sub(r"\s+", " ", r31)
-        if ("executed" not in r31_flat
+        r31_done = (
+            "executed" in r31_flat
+            or ("independently **ACCEPTED** by `/root/validation_scout`"
+                in r31_flat
+                and "9239c1d3dc595538beb048c77788cd2c453240a4"
+                in r31_flat))
+        if (not r31_done
                 or "after an independent compatibility checker ACCEPT of the "
                    "one-time compatibility checkpoint" not in r31_flat
                 or "independent same-family compatibility checker ACCEPT"
@@ -1346,17 +1353,157 @@ def check_canon_live_status(canon, plan):
 
     Historical checkpoint prose remains immutable. This is limited to the
     canon's live amendment field, current migration status, edition summaries,
-    §15.9 live foundation-status mirror, and §19.3 current-family status.
+    §15.9 foundation-status mirror, §15.10 register status, and §19.3
+    current-family status.
     """
     probs = []
     migration = parse_migration_state(plan)
     if migration == "post-R3.1":
+        r31_plan = plan_section(plan, "## R3.1 ", "## R4 ")
+        r31_plan_flat = re.sub(r"\s+", " ", r31_plan)
+        accepted_checkpoint = \
+            "9239c1d3dc595538beb048c77788cd2c453240a4"
+        r31_accepted = (
+            "independently **ACCEPTED** by `/root/validation_scout`"
+            in r31_plan_flat
+            and accepted_checkpoint in r31_plan_flat)
         amendment = re.search(
             r"(?m)^\*\*Amendment date:\*\*\s*([^\\\n]+)", canon)
         if not amendment or amendment.group(1).strip() != "July 24, 2026":
             probs.append(
                 "canon live post-R3.1 status: maker execution requires the "
                 "July 24, 2026 amendment date")
+
+        if r31_accepted:
+            top = line_range(
+                canon,
+                "**Current R3.1 accepted status "
+                "(supersedes the R2.13 sequencing sentence above):**",
+                "> **Use rule:**") or ""
+            top_flat = re.sub(r"\s+", " ", top)
+            accepted_required = (
+                accepted_checkpoint,
+                "/root/validation_scout",
+                "R3.1 was independently **ACCEPTED**",
+                "R4 is unblocked as the next construction unit but remains "
+                "not started",
+                "Phase 1 continues",
+                "Phase 2 and W1.1 remain blocked pending R9 ACCEPT plus owner "
+                "acceptance",
+            )
+            if (not top
+                    or any(x not in top_flat for x in accepted_required)
+                    or "pending an independent R3.1 checker" in top_flat
+                    or "R4 remains blocked" in top_flat):
+                probs.append(
+                    "canon live accepted R3.1 status: top mirror omits the "
+                    "exact ACCEPT, unblocked/not-started R4, continuing Phase "
+                    "1, or blocked Phase 2/W1.1")
+
+            first_edition_row = next(
+                (line for line in canon.splitlines()
+                 if line.startswith(
+                     "| **Repair v2.0 — working draft, pre-R3.1 "
+                     "compatibility** |")),
+                "")
+            same_edition_row = next(
+                (line for line in canon.splitlines()
+                 if line.startswith(
+                     "| **Repair v2.0 — working draft, same-family deferral "
+                     "compatibility** |")),
+                "")
+            r31_edition_row = next(
+                (line for line in canon.splitlines()
+                 if line.startswith(
+                     "| **Repair v2.0 — working draft, R3.1** |")),
+                "")
+            for row_name, row in (
+                    ("pre-R3.1 compatibility", first_edition_row),
+                    ("same-family compatibility", same_edition_row),
+                    ("R3.1", r31_edition_row)):
+                if (not row
+                        or accepted_checkpoint not in row
+                        or "/root/validation_scout" not in row
+                        or (row_name != "R3.1"
+                            and "R3.1 was independently ACCEPTED" not in row)
+                        or (row_name == "R3.1"
+                            and "Independently ACCEPTED by" not in row)
+                        or "R4 is unblocked but not started" not in row
+                        or "Phase 1 continues" not in row
+                        or "Phase 2/W1.1 remain blocked pending R9 ACCEPT plus "
+                           "owner acceptance" not in row
+                        or "pending independent R3.1 checker" in row
+                        or "R4 remains blocked" in row):
+                    probs.append(
+                        "canon live accepted R3.1 status: %s edition mirror "
+                        "omits the exact ACCEPT/current R4/Phase route"
+                        % row_name)
+            if (not r31_edition_row
+                    or "| **July 24, 2026** |" not in r31_edition_row):
+                probs.append(
+                    "canon live accepted R3.1 status: R3.1 edition row must "
+                    "retain July 24, 2026")
+
+            foundation_status = line_range(
+                canon,
+                "The R2.10–R2.13 review findings are classified exhaustively "
+                "below.",
+                "| Foundation review finding | Balanced disposition |") or ""
+            foundation_flat = re.sub(r"\s+", " ", foundation_status)
+            if (not foundation_status
+                    or any(x not in foundation_flat
+                           for x in accepted_required[0:3])
+                    or "R4 is unblocked but remains not started"
+                       not in foundation_flat
+                    or "Phase 1 continues" not in foundation_flat
+                    or "Phase 2/W1.1 remain blocked pending R9 ACCEPT plus "
+                       "owner acceptance" not in foundation_flat
+                    or "pending an independent R3.1 checker"
+                       in foundation_flat
+                    or "R4 remains blocked" in foundation_flat):
+                probs.append(
+                    "canon live accepted R3.1 status: §15.9 foundation mirror "
+                    "omits the exact ACCEPT/current R4/Phase route")
+
+            register_status = line_range(
+                canon,
+                "This section is the active v2 registry of §15.9.1.",
+                "#### 15.10.1 A family — GROUP index") or ""
+            register_flat = re.sub(r"\s+", " ", register_status)
+            if (not register_status
+                    or accepted_checkpoint not in register_flat
+                    or "/root/validation_scout" not in register_flat
+                    or "independently **ACCEPTED**" not in register_flat
+                    or "R4 is unblocked but remains not started"
+                       not in register_flat
+                    or "Phase 1 continues" not in register_flat
+                    or "nothing here carries a Phase 2 verdict before R9 "
+                       "ACCEPT plus owner acceptance" not in register_flat):
+                probs.append(
+                    "canon live accepted R3.1 status: §15.10 register mirror "
+                    "omits the exact ACCEPT/current R4/Phase route")
+
+            family_status = line_range(
+                canon,
+                "**A-family v2 status (R3.1 independently ACCEPTED; R4 "
+                "unblocked but not started).**",
+                "### 19.4 CBA Guide sections reviewed for discovery") or ""
+            family_flat = re.sub(r"\s+", " ", family_status)
+            if (not family_status
+                    or accepted_checkpoint not in family_flat
+                    or "/root/validation_scout" not in family_flat
+                    or "independently **ACCEPTED**" not in family_flat
+                    or "R4 is unblocked but remains not started"
+                       not in family_flat
+                    or "Phase 1 continues" not in family_flat
+                    or "no Phase 2 verdict exists before R9 ACCEPT plus owner "
+                       "acceptance" not in family_flat
+                    or "pending an independent R3.1 checker" in family_flat
+                    or "R4 remains blocked" in family_flat):
+                probs.append(
+                    "canon §19.3 live accepted R3.1 status omits the exact "
+                    "ACCEPT/current R4/Phase route")
+            return probs
 
         top = line_range(
             canon,
@@ -5420,7 +5567,7 @@ def _hydrate_post_r31_status(canon, live_canon):
         "> **Use rule:**")
     live_top = line_range(
         live_canon,
-        "**Current R3.1 maker status "
+        "**Current R3.1 accepted status "
         "(supersedes the R2.13 sequencing sentence above):**",
         "> **Use rule:**")
     if not old_top or not live_top:
@@ -5459,12 +5606,20 @@ def _hydrate_post_r31_status(canon, live_canon):
         raise AssertionError("post-R3.1 §15.9 status mirror is absent")
     canon = canon.replace(old_foundation, live_foundation, 1)
 
+    register_start = "### 15.10 Active v2 register (created by R3; A family)"
+    register_end = "#### 15.10.1 A family — GROUP index"
+    old_register = line_range(canon, register_start, register_end)
+    live_register = line_range(live_canon, register_start, register_end)
+    if not old_register or not live_register:
+        raise AssertionError("post-R3.1 §15.10 status mirror is absent")
+    canon = canon.replace(old_register, live_register, 1)
+
     old_family_start = (
         "**A-family v2 status (R3 executed; independently REJECTED — not "
         "certified).**")
     live_family_start = (
-        "**A-family v2 status (R3.1 maker executed; independent checker "
-        "pending — not accepted).**")
+        "**A-family v2 status (R3.1 independently ACCEPTED; R4 unblocked but "
+        "not started).**")
     family_end = "### 19.4 CBA Guide sections reviewed for discovery"
     old_family = line_range(canon, old_family_start, family_end)
     live_family = line_range(live_canon, live_family_start, family_end)
@@ -5742,9 +5897,11 @@ def build_r31_document(repo, published, inv):
         plan,
         "## R3.1 ",
         "## R4 ",
-        "executed (R3.1 control tree) after an independent compatibility "
-        "checker ACCEPT of the one-time compatibility checkpoint and an "
-        "independent same-family compatibility checker ACCEPT.")
+        "independently **ACCEPTED** by `/root/validation_scout` at exact maker "
+        "checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`, after an "
+        "independent compatibility checker ACCEPT of the one-time "
+        "compatibility checkpoint and an independent same-family "
+        "compatibility checker ACCEPT.")
 
     receipt = _r31_receipt(dr2_rows, disp_rows, frag_rows, bnd_rows,
                            sfrag_rows, amend_rows)
@@ -7351,41 +7508,78 @@ def run_cases(repo):
           "same top-level validator", H.docs(migrated=True), False)
     stale_post_top = mut(
         mcanon,
-        "The R3.1 maker checkpoint has executed after both independently",
-        "R3.1 remains not started despite both independently")
-    H.run("P19", "post-R3.1 top mirror retains a stale not-started route",
+        "**Current R3.1 accepted status "
+        "(supersedes the R2.13 sequencing sentence above):**",
+        "**Current R3.1 maker status "
+        "(supersedes the R2.13 sequencing sentence above):**")
+    H.run("P19", "accepted R3.1 top mirror retains the stale maker-pending "
+          "heading",
           H.docs(migrated=True, **{C: stale_post_top}), True,
-          "top maker mirror omits executed/pending-checker R3.1")
+          "top mirror omits the exact ACCEPT")
+    first_post_edition = row_line(
+        mcanon,
+        "| **Repair v2.0 — working draft, pre-R3.1 compatibility** |")
     stale_post_edition = mut(
         mcanon,
-        "R3.1 maker checkpoint has executed and is pending an independent "
-        "R3.1 checker ACCEPT; no A-series record is accepted, and R4 remains "
-        "blocked until that ACCEPT.",
-        "R3.1 remains not started; no A-series record is accepted, and R4 "
-        "remains blocked until an independent R3.1 checker ACCEPT.")
-    H.run("P20", "post-R3.1 compatibility edition mirror retains a stale "
-          "not-started route",
+        first_post_edition,
+        first_post_edition.replace(
+            "R3.1 was independently ACCEPTED",
+            "R3.1 maker is pending independent checker acceptance"))
+    H.run("P20", "accepted R3.1 compatibility edition mirror retains a stale "
+          "maker-pending route",
           H.docs(migrated=True, **{C: stale_post_edition}), True,
-          "compatibility edition mirrors must record maker execution")
+          "pre-R3.1 compatibility edition mirror omits the exact ACCEPT")
+    foundation_start = (
+        "The R2.10–R2.13 review findings are classified exhaustively below.")
+    foundation_end = "| Foundation review finding | Balanced disposition |"
+    accepted_foundation = line_range(
+        mcanon, foundation_start, foundation_end)
     stale_post_foundation = mut(
         mcanon,
-        "The R3.1 maker checkpoint\n"
-        "has executed and is pending an independent R3.1 checker ACCEPT; R4 "
-        "remains\n"
-        "blocked until that ACCEPT.",
-        "R3.1 remains not started, and R4 remains blocked until an independent "
-        "R3.1 checker ACCEPT.")
-    H.run("P21", "post-R3.1 §15.9 foundation mirror retains a stale "
-          "not-started route",
+        accepted_foundation,
+        accepted_foundation.replace(
+            "R3.1 was independently **ACCEPTED**",
+            "R3.1 maker remains pending independent checker acceptance"))
+    H.run("P21", "accepted R3.1 §15.9 foundation mirror retains a stale "
+          "maker-pending route",
           H.docs(migrated=True, **{C: stale_post_foundation}), True,
-          "§15.9 foundation mirror omits maker execution")
+          "§15.9 foundation mirror omits the exact ACCEPT")
     stale_post_date = mut(
         mcanon,
         "| **Repair v2.0 — working draft, R3.1** | **July 24, 2026** |",
         "| **Repair v2.0 — working draft, R3.1** | **July 23, 2026** |")
-    H.run("P22", "post-R3.1 edition row retains the pre-execution date",
+    H.run("P22", "accepted R3.1 edition row retains the pre-execution date",
           H.docs(migrated=True, **{C: stale_post_date}), True,
-          "R3.1 edition row must use July 24, 2026")
+          "R3.1 edition row must retain July 24, 2026")
+    register_start = (
+        "This section is the active v2 registry of §15.9.1.")
+    register_end = "#### 15.10.1 A family — GROUP index"
+    accepted_register = line_range(mcanon, register_start, register_end)
+    stale_post_register = mut(
+        mcanon,
+        accepted_register,
+        accepted_register.replace(
+            "was independently **ACCEPTED**",
+            "remains pending independent checker acceptance"))
+    H.run("P23", "accepted R3.1 §15.10 register mirror retains a stale "
+          "maker-pending route",
+          H.docs(migrated=True, **{C: stale_post_register}), True,
+          "§15.10 register mirror omits the exact ACCEPT")
+    family_start = (
+        "**A-family v2 status (R3.1 independently ACCEPTED; R4 unblocked but "
+        "not started).**")
+    family_end = "### 19.4 CBA Guide sections reviewed for discovery"
+    accepted_family = line_range(mcanon, family_start, family_end)
+    stale_post_family = mut(
+        mcanon,
+        accepted_family,
+        accepted_family.replace(
+            "was independently **ACCEPTED**",
+            "remains pending independent checker acceptance"))
+    H.run("P24", "accepted R3.1 §19.3 family mirror retains a stale "
+          "maker-pending route",
+          H.docs(migrated=True, **{C: stale_post_family}), True,
+          "§19.3 live accepted R3.1 status omits the exact ACCEPT")
     contradictory_plan = replace_plan_section_status(
         mplan,
         "## One-time pre-R3.1 foundation-compatibility checkpoint",
