@@ -169,7 +169,12 @@ maker checkpoint → independent R3.1 checker ACCEPT → R4. The independent
 checker accepted the first compatibility checkpoint at
 `c3a00637249444190a02a844fe104137ac78da5e`; the owner-authorized
 same-family compatibility maker correction is complete but pending its
-separate independent checker. R3.1 and R4 therefore remain blocked.
+separate independent checker. The checker rejected exact checkpoint
+`726456e35f4f876242499b0ab654bc032d7fd635` only because the canon's live top
+status, edition-row summary, §19.3 sequence, and amendment date did not yet
+mirror that pending checkpoint. The bounded truthful-status correction is
+complete and pending an independent recheck; the compatibility contract and
+protected records were not reopened. R3.1 and R4 therefore remain blocked.
 Phase 1 remains open;
 Phase 2, W1.1, and all application changes remain blocked; R4–R9,
 code-map work, scenarios, and Linear remain out of scope for repair
@@ -1606,8 +1611,12 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## Owner-authorized same-family deferral compatibility checkpoint
 
-- **Status:** maker correction complete; **pending independent same-family
-  compatibility checker review and not accepted**. This is a second, narrowly
+- **Status:** truthful-status maker correction complete; **pending independent
+  same-family compatibility checker review and not accepted**. The independent
+  checker rejected exact checkpoint
+  `726456e35f4f876242499b0ab654bc032d7fd635` only for stale live canon status
+  mirrors and the live amendment date; the compatibility contract and
+  protected records remain unchanged. This is a second, narrowly
   owner-authorized compatibility checkpoint, not an R2.x unit and not
   substantive R3.1 migration. R3.1 remains blocked.
 - **Owner authorization:** the owner explicitly authorized the additional

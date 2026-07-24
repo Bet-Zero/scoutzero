@@ -16,8 +16,8 @@
 
 **Parent adjudicator:** root Codex agent
 
-**Status:** maker correction complete; **pending independent checker review
-and not accepted**. R3.1 remains blocked.
+**Status:** truthful-status maker correction complete; **pending independent
+checker re-review and not accepted**. R3.1 remains blocked.
 
 ## Owner authorization
 
@@ -28,6 +28,21 @@ The owner explicitly authorized this additional checkpoint with:
 That authorization is limited to the compatibility contract below. It does
 not accept R3 or R3.1, begin R4, waive a separate checker, or reopen any other
 foundation question.
+
+## Independent checker review history
+
+The independent checker rejected exact maker checkpoint
+`726456e35f4f876242499b0ab654bc032d7fd635`. The rejection was limited to
+truthful live status: the canon's top pre-R3.1 paragraph and edition-row
+summary still called R3.1 unblocked, §19.3 omitted the pending same-family
+checkpoint from its current sequence, and the live amendment date remained
+July 23. The checker did not reject or reopen the same-family compatibility
+contract, its mechanical joins, or any protected population.
+
+Those live mirrors now identify the first compatibility checkpoint as
+accepted, this owner-authorized same-family checkpoint as pending independent
+checker acceptance, and R3.1 as blocked and not started. This corrected maker
+state is pending a fresh independent checker re-review and accepts nothing.
 
 ## Blocking contradiction closed
 
@@ -94,8 +109,12 @@ The same top-level document-tree validator now also runs:
 5. a rejection where the deferred fragment already has an active target; and
 6. a rejection where the named sibling fragment is no longer current.
 
-The bounded control population is 14 accepting controls plus 93 rejecting
-regressions, 107 total. The negative self-test remains effective.
+Two additional live-status regressions reject a pending same-family checkpoint
+paired with either a stale top-level “R3.1 unblocked” claim or a §19.3 current
+sequence that omits the same-family maker/checker gate.
+
+The bounded control population is 14 accepting controls plus 95 rejecting
+regressions, 109 total. The negative self-test remains effective.
 
 ## Preservation and scope
 
@@ -115,10 +134,10 @@ regressions, 107 total. The negative self-test remains effective.
 - Direct validation of the live document tree reports zero problems.
 - The complete bounded validator runs twice through the same top-level
   document-tree path with this receipt present. Both runs report 14 accepting
-  controls plus 93 rejecting regressions, 107 total,
+  controls plus 95 rejecting regressions, 109 total,
   `baseline_clean=yes`, an effective negative self-test, and zero failures.
-  The 127-line, 16,577-byte outputs are byte-identical with SHA-256
-  `5a3fd7078d91a7b401853d91b6aa3664390d3255849d37e04dd300632c8de0ad`.
+  The 129-line, 16,956-byte outputs are byte-identical with SHA-256
+  `9482b6f291a75a04e9f0ad010d483376a2ea24a8b127d703aed0301314f3cea6`.
 - Targeted Markdown lint passes for the live repair plan and this receipt.
   Canon-only lint retains exactly the established 74 `MD029` findings in the
   byte-preserved §16 scenario list, with no new rule class or count.

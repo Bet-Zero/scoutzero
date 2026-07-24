@@ -1254,6 +1254,85 @@ def check_plan(plan):
     return probs
 
 
+def check_canon_live_status(canon, plan):
+    """Reject stale live route claims while same-family review is pending.
+
+    Historical checkpoint prose remains immutable. This is limited to the
+    canon's live amendment field, current pre-R3.1 status, edition summary,
+    and §19.3 current-family status.
+    """
+    probs = []
+    if parse_migration_state(plan) != "pre-R3.1":
+        return probs
+    same_compat = plan_section(
+        plan,
+        "## Owner-authorized same-family deferral compatibility checkpoint",
+        "## R3.1 ")
+    same_flat = re.sub(r"\s+", " ", same_compat)
+    if ("pending independent same-family compatibility checker review "
+            "and not accepted" not in same_flat):
+        return probs
+
+    amendment = re.search(
+        r"(?m)^\*\*Amendment date:\*\*\s*([^\\\n]+)", canon)
+    if not amendment or amendment.group(1).strip() != "July 24, 2026":
+        probs.append(
+            "canon live status: pending same-family compatibility checkpoint "
+            "requires the July 24, 2026 amendment date")
+
+    top = line_range(
+        canon,
+        "**Current pre-R3.1 status "
+        "(supersedes the R2.13 sequencing sentence above):**",
+        "> **Use rule:**")
+    top_flat = re.sub(r"\s+", " ", top)
+    if (not top
+            or "owner-authorized same-family deferral compatibility "
+               "checkpoint is pending independent checker acceptance"
+               not in top_flat
+            or "R3.1 remains blocked and not started" not in top_flat
+            or re.search(r"\bR3\.1 is unblocked\b", top_flat)):
+        probs.append(
+            "canon live status: pending same-family compatibility checkpoint "
+            "is paired with a stale top-level R3.1 unblocked/current-route "
+            "claim")
+
+    edition_row = next(
+        (line for line in canon.splitlines()
+         if line.startswith(
+             "| **Repair v2.0 — working draft, pre-R3.1 compatibility** |")),
+        "")
+    edition_flat = re.sub(r"\s+", " ", edition_row)
+    if (not edition_row
+            or "same-family compatibility checkpoint is pending independent "
+               "checker acceptance" not in edition_flat
+            or "R3.1 remains blocked and not started" not in edition_flat
+            or re.search(r"\bR3\.1 is unblocked\b", edition_flat)):
+        probs.append(
+            "canon live status: pre-R3.1 compatibility edition row does not "
+            "mirror the pending same-family checkpoint and blocked R3.1")
+
+    family_status = line_range(
+        canon,
+        "**A-family v2 status (R3 executed; independently REJECTED — not "
+        "certified).**",
+        "### 19.4 CBA Guide sections reviewed for discovery")
+    family_flat = re.sub(r"\s+", " ", family_status)
+    if (not family_status
+            or "owner-authorized same-family compatibility checkpoint is "
+               "now pending independent checker acceptance" not in family_flat
+            or "R3.1 remains blocked and not started" not in family_flat
+            or "same-family compatibility maker checkpoint → independent "
+               "same-family compatibility checker ACCEPT → R3.1 maker "
+               "checkpoint" not in family_flat
+            or re.search(r"\bR3\.1 is unblocked\b", family_flat)):
+        probs.append(
+            "canon §19.3 live status: pending same-family compatibility "
+            "checkpoint is paired with a stale R3.1 unblocked/current-"
+            "sequence claim")
+    return probs
+
+
 # --------------------------------------------------------------------------
 # 11. The reconciliation context: every population, parsed once.
 # --------------------------------------------------------------------------
@@ -4715,6 +4794,7 @@ def validate_tree(tree):
     problems += check_immutable_ranges(tree.canon, inv)
     problems += check_canon_population_locations(tree.canon, inv)
     problems += check_plan(tree.plan)
+    problems += check_canon_live_status(tree.canon, tree.plan)
     migration = parse_migration_state(tree.plan)
 
     ctx = Ctx(tree, inv)
@@ -6592,6 +6672,37 @@ def run_cases(repo):
     H.run("C12", "first compatibility checkpoint is accepted while the "
           "owner-authorized same-family checkpoint remains pending and "
           "truthfully blocks R3.1", H.docs(), False)
+    stale_top = mut(
+        canon,
+        "The owner-authorized same-family\n"
+        "deferral compatibility checkpoint is pending independent checker "
+        "acceptance.\n"
+        "R3 remains rejected, no A-series record is accepted, and R3.1 "
+        "remains blocked\n"
+        "and not started.",
+        "R3 remains rejected, no A-series record is accepted, and R3.1 is "
+        "unblocked but not started.")
+    H.run("P13", "pending same-family compatibility review is paired with a "
+          "stale top-level canon claim that R3.1 is unblocked",
+          H.docs(**{C: stale_top}), True,
+          "stale top-level R3.1 unblocked/current-route claim")
+    stale_family = mut(
+        canon,
+        "the owner-authorized same-family compatibility checkpoint is now "
+        "pending independent checker acceptance, so R3.1 remains blocked and "
+        "not started",
+        "R3.1 is unblocked but not started")
+    stale_family = mut(
+        stale_family,
+        "first compatibility checkpoint independently accepted → same-family "
+        "compatibility maker checkpoint → independent same-family "
+        "compatibility checker ACCEPT → R3.1 maker checkpoint",
+        "compatibility checkpoint independently accepted → R3.1 maker "
+        "checkpoint")
+    H.run("P14", "pending same-family compatibility review is omitted from "
+          "the canon §19.3 current sequence while R3.1 is called unblocked",
+          H.docs(**{C: stale_family}), True,
+          "canon §19.3 live status")
     accepted_but_blocked = replace_plan_section_status(
         plan,
         "## Owner-authorized same-family deferral compatibility checkpoint",
