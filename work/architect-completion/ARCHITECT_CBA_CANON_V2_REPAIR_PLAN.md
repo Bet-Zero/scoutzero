@@ -184,9 +184,11 @@ C01–C13, and exact maker checkpoint
 **ACCEPTED** by `/root/r4_checker` at checker commit
 `30808340f28edd334222a5cdd9de4dbdc809f32f`; commit
 `4200ce326215962df545d44710e9f0146be37d80` synchronized that accepted
-status. R5 is unblocked by R4 but remains unstarted and may not begin until
-the post-R4 process revision below is complete. Phase 1 continues; Phase 2,
-W1.1, all application changes, and Linear changes remain unauthorized
+status. The post-R4 process revision completed at
+`f77d167e2f849ac1c4f33de3494252d4999ba46c`; the R5 maker has now
+source-certified C14–C25, with independent R5 review still pending. R6
+remains blocked and unstarted. Phase 1 continues; Phase 2, W1.1, all
+application changes, and Linear changes remain unauthorized
 pending the revised R9 independent acceptance plus explicit owner
 acceptance. R3.1 used `AMEND` lineage and did not renumber or reuse
 an allocated `CBA2`, `XW2`, `SXW2`, `SRC2`, `EV2`, `DR2`, `SM2`, `SS2`,
@@ -2050,7 +2052,8 @@ components with staged aggregate routes. Room MLE pre-use eligibility and
 its post-use exception bar are distinct current lifecycle owners. The exact
 historical post-waiver reimbursement-extinction fragment is preserved as a
 searched `unsupported-residual`; separately supported waived-contract Team
-Salary remains active. R5 is unblocked but remains unstarted. Phase 1
+Salary remains active. R5 maker construction is now complete and awaits its
+independent source checker; R6 remains blocked and unstarted. Phase 1
 continues; Phase 2 and application work remain unstarted.
 
 ## Post-R4 process revision — governing future-work contract
@@ -2073,10 +2076,11 @@ rule.
   `4fc3ed90cb108b155e24670eaf2d5942f6a2479b` is independently accepted at
   checker commit `30808340f28edd334222a5cdd9de4dbdc809f32f`, with final status
   synchronized at `4200ce326215962df545d44710e9f0146be37d80`.
-- R5 and all later units remain unstarted. **R5 may not begin until the
-  commit containing this process revision is pushed to
-  `architect/cba-canon-v2` and the local branch is clean and synchronized
-  with its remote.**
+- The process-revision gate was satisfied at
+  `f77d167e2f849ac1c4f33de3494252d4999ba46c`. R5 maker construction is
+  complete at the checkpoint recorded below; independent R5 review and every
+  later unit remain unstarted. R6 may not begin before a commit-specific R5
+  checker ACCEPT.
 - Phase 2, the Architect comparison, application inspection or fixes, W1.1,
   `main`, and Linear remain unauthorized throughout this plan.
 
@@ -2184,6 +2188,20 @@ completion.
   unchanged in meaning.
 - **Exclusions:** no R/L/S registration, scenario construction, Architect
   comparison, application work, Phase 2, Linear, or `main`.
+
+**R5 execution status — maker complete; independent checker pending.** The
+maker registered 12 C14–C25 GROUPs, 250 active LEAFs, 250 qualifying
+signed-CBA evidence components (`EV2-0280`–`EV2-0529`), 78 new historical
+edges (`XW2-0279`–`XW2-0356`), and seven decisions
+(`DR2-0117`–`DR2-0123`). Accepted `XW2-0154` plus the R5 edges disposition
+all 79 published C14–C25 rows. Three historical drafting/input statements are
+truthfully `process-only`; the actual January 5 and March 4 rules have direct
+owners. No substantive item remains unsupported, ambiguous, or unavailable.
+No schema, taxonomy, ID grammar, registry model, validator, proof system, or
+lineage system changed. Receipt:
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_CERTIFICATION.md`.
+R5 is not accepted until the separately authorized checker reviews the exact
+maker commit. R6 and all later work remain unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 
