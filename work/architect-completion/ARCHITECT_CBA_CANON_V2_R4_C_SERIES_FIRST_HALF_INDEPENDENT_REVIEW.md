@@ -443,3 +443,156 @@ maker files, preserve both rejected checkpoints through forward AMEND
 lineage, rerun the scoped R4 gates, and commit and synchronize a new exact
 maker checkpoint. This cycle does not accept R4. R5 remains blocked and
 unstarted, and Phase 2 and application work remain unstarted.
+
+## Review cycle 3 — forward-lineage maker checkpoint
+
+### Cycle 3 verdict
+
+**ACCEPT**
+
+Exact maker checkpoint accepted:
+`4fc3ed90cb108b155e24670eaf2d5942f6a2479b`
+
+Prior checker checkpoint:
+`69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4`
+
+Checker: independent role `/root/r4_checker`
+
+Review date: `2026-07-26`
+
+The exact maker checkpoint resolves every cycle 2 residual through governed
+forward lineage and preserves the source repairs accepted in that cycle.
+R4 is accepted. R5 is unblocked but remains unstarted. Phase 2, W1.1,
+application comparison, and application implementation remain unstarted.
+
+### Cycle 3 state and preservation
+
+At review start, the worktree was clean and local `HEAD` and
+`origin/architect/cba-canon-v2` both resolved to the exact maker checkpoint.
+The maker commit is a direct descendant of the cycle 2 checker checkpoint and
+changes only the three authorized maker files:
+
+- `docs/reference/cba/ARCHITECT_CBA_CANON.md`
+- `work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md`
+- `work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md`
+
+The cycle 1 and cycle 2 receipt text was unchanged between checker commit
+`69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4` and the exact maker checkpoint.
+Local and remote `main` remained at
+`69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`. The retained recovery stash
+remained present and untouched:
+
+`stash@{0}: On cba-canon-v2: codex-r31-in-progress-before-authorized-same-family-compat-20260723`
+
+The repository graph's `built_at_commit` matched the exact maker checkpoint.
+The required graph query returned application-code matches rather than the
+documentation records under review, so it was not treated as source-law
+evidence. No graph output was edited.
+
+### Independent source replay
+
+The checker freshly retrieved the official signed 2023 NBA–NBPA CBA artifact:
+676 PDF pages, 2,850,534 bytes, SHA-256
+`bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`.
+The official NBPA CBA publication page and the signed artifact's controlling
+passages were independently re-read.
+
+All five original source groups remain correctly repaired:
+
+- `CBA2-C09.1` and `EV2-0205` use Article VII §2(d)(1)(ii)'s five-million-
+  dollar current-Cap-over-2023-24-Cap Tax Bracket Amount formula; the 3.50
+  and 4.75 figures remain separate tax rates.
+- `CBA2-C10.1`–`CBA2-C10.11` preserve the distinct §2(a)(4)(i) and
+  §2(c)(1)–(6) amount, Salary bases, threshold, charge, restoration, initial
+  and additional payments, Team deadline, and NBA distribution deadline.
+  The §2(c)(3) charge uses the lesser underlying Salary base, while §2(c)(4)
+  independently imposes the next-day restoration duty.
+- The C13 Minimum, NTMLE, TMLE, Room MLE, and BAE method, term, amount,
+  annual-change, transition, proration, and frequency components remain
+  direct atomic owners. Aggregate route rows remain `INFERRED` and depend on
+  those owners.
+- The Minimum, NTMLE, and BAE rows do not infer waiver-claim authority from
+  §§6(i), 6(e), or 6(d), and the NTMLE, Room MLE, and BAE assignment
+  transitions correctly preserve the pre-2024-25 bar.
+- `EV2-0204` cites only Article VII §2(d)(1)(i)(E) for the qualifying
+  NBA-suspension Tax Team Salary adjustment; no unrelated Article II locator
+  or ordinary Team Salary reduction remains.
+
+### Cycle 2 residuals resolved
+
+The cycle 2 residual requirements are fully closed:
+
+1. `CBA2-C13.30` and `EV2-0269` now own only Article VII §6(g)(1)'s pre-use
+   eligibility predicate. New direct owner `CBA2-C13.40` and source component
+   `EV2-0279` separately own §6(g)(3)'s post-use lifecycle bar.
+2. `CBA2-C13.12`, `EV2-0250`, and `XW2-0268` are a staged complete-use
+   aggregate over both direct lifecycle owners. Their text and dependencies
+   expressly preserve the independently enforceable pre-use and post-use
+   results rather than merging them.
+3. `DR2-0113` is now a truthful R4 `ATOM` decision separating the §2(c)(3)
+   charge from the §2(c)(4) restoration duty, not an R7-only `METHOD`
+   decision. `DR2-0115` records the prior identity and repair.
+4. The `DR2-0111` AMEND reasons for `EV2-0204` and `EV2-0217` now accurately
+   identify the suspension Tax Team Salary adjustment and next-day MTS
+   restoration duty. `DR2-0115` preserves the repair lineage from the second
+   rejected checkpoint.
+
+The `DR2-0115` detail rows cover every same-ID governed revision introduced by
+this checkpoint: the C13 GROUP, affected LEAFs, `XW2-0268`, the two affected
+evidence components, and the revised decision records. `DR2-0116` truthfully
+registers the new `CBA2-C13.40` / `EV2-0279` origin. All direct references,
+counts, high-water marks, and current statuses reconcile. No new blocking
+source, atomicity, ownership, evidence, fragment, disposition, or lineage
+finding was identified.
+
+### Cycle 3 mechanical results
+
+The committed complete-document validator passed its baseline, all 14
+accepting controls, and all 109 rejecting controls. Its negative self-test
+failed as intended and it reported zero failures:
+
+| Population | Result |
+|---|---:|
+| GROUP | 25 |
+| Active LEAF main/detail | 271 / 271 |
+| XW2 | 273 |
+| EV2 | 279 |
+| DR2 | 116 |
+| Fragment inventory | 263 |
+| AMEND detail | 298 |
+| BND | 10 inherited |
+| DISP detail | 17 |
+| Search records / sets | 9 `SM2` / 2 `SS2` |
+
+### Cycle 3 validation actually run
+
+- `python3 work/architect-completion/cba_canon_v2_foundation_validator.py`
+  — PASS; 123 controls and zero failures.
+- `git diff --check 69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4..4fc3ed90cb108b155e24670eaf2d5942f6a2479b`
+  — PASS.
+- `git diff --exit-code 69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4..4fc3ed90cb108b155e24670eaf2d5942f6a2479b -- work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_INDEPENDENT_REVIEW.md`
+  — PASS; cycles 1 and 2 were preserved.
+- `npm run docs:guardrails` — PASS.
+- `npm run validate:project` — PASS.
+- `npm run test:diff -- --files docs/reference/cba/ARCHITECT_CBA_CANON.md work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md --reporter=dot`
+  — PASS, FAST support-file tier, 12 files and 57 tests.
+- `npx markdownlint work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md`
+  — PASS.
+- `npx markdownlint work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_INDEPENDENT_REVIEW.md`
+  — PASS after appending cycle 3.
+- `git diff --check` — PASS after appending cycle 3.
+
+The repository-wide `npm run lint:md` was not repeated because cycle 1
+established its findings as pre-existing and the scoped files are clean.
+Build, typecheck, application suites, and the full suite were intentionally
+skipped because this is a documentation-only independent review and the full
+suite is prohibited. `graphify update .` was intentionally skipped because
+the graph was current at the exact maker checkpoint and graph output is
+outside R4.
+
+### Cycle 3 acceptance boundary
+
+This ACCEPT applies only to exact maker checkpoint
+`4fc3ed90cb108b155e24670eaf2d5942f6a2479b` and completes the independent R4
+gate. It does not start R5, Phase 2, W1.1, application comparison, application
+implementation, scenario construction, or any C14+ / R / L / S registration.
