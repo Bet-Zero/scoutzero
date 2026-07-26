@@ -249,3 +249,197 @@ files, preserve prior identities through the governed AMEND structures, run
 the proportionate R4 gates, and commit and push a new clean maker checkpoint.
 A separate checker review of that exact new maker commit is required. This
 receipt does not accept R4 and does not unblock R5.
+
+## Review cycle 2 — repaired maker checkpoint
+
+### Cycle 2 verdict
+
+**REJECT / BLOCK-R5**
+
+Exact repaired maker checkpoint reviewed:
+`3f4cbe4a05c660bac897b577880110bf8dd241c6`
+
+Prior checker checkpoint:
+`3880ea3f2baf022b7fa0477b34d4238721afad33`
+
+Checker: independent role `/root/r4_checker`
+
+Review date: `2026-07-26`
+
+The repaired maker checkpoint correctly resolves the substantive C09 and C10
+source errors, removes the unsupported waiver-claim methods, preserves the
+assignment transitions, and fixes the EV2-0204 source locator. It is not yet
+acceptable because one C13 rule still joins independently implementable
+lifecycle results and three current decision/AMEND records misstate their
+governed role or repair. R5 remains blocked and unstarted. Phase 2, W1.1,
+application comparison, and application implementation remain blocked and
+unstarted.
+
+### Cycle 2 state and preservation
+
+At review start, the worktree was clean and local `HEAD`,
+`architect/cba-canon-v2`, and `origin/architect/cba-canon-v2` all resolved to
+the exact repaired maker checkpoint. The first rejection receipt was
+unchanged between checker commit `3880ea3f` and the repaired maker checkpoint.
+The repaired maker commit changes only the three authorized maker files.
+
+The prior checker rejection and both checker commits are ancestors of the
+repaired maker checkpoint. Local and remote `main` remained at
+`69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`. The retained recovery stash
+remained present and untouched:
+
+`stash@{0}: On cba-canon-v2: codex-r31-in-progress-before-authorized-same-family-compat-20260723`
+
+The repository graph was current at the repaired maker commit. Its query
+result did not supply source-law evidence and was not used as a substitute
+for the signed CBA. No graph output was edited by the checker.
+
+### Source repairs that pass cycle 2
+
+The checker independently re-read the signed 2023 NBA–NBPA CBA artifact
+identified in cycle 1 and verified these repairs:
+
+- `CBA2-C09.1` and `EV2-0205` now use the Article VII §2(d)(1)(ii)
+  formula: five million dollars multiplied by the current Salary Cap and
+  divided by the 2023-24 Salary Cap. The 3.50 and 4.75 values remain
+  correctly separated as tax rates.
+- `CBA2-C10.1`–`CBA2-C10.11` now distinguish the annual MTS amount,
+  current MTS Cap Hold Team Salary, fixed first-day MTS Payment Team Salary,
+  MTS Threshold, charge, next-day restoration, initial payment, year-end
+  additional payment, Team-to-NBA deadline, and NBA-to-Team distribution
+  deadline.
+- The charge in `CBA2-C10.5` now uses Minimum Team Salary minus the lesser
+  underlying MTS Cap Hold Team Salary base, correctly producing the greater
+  shortfall.
+- `CBA2-C10.6`, `XW2-0231`, and `DR2-0108` now preserve Article VII
+  §2(c)(4)'s express duty to restore MTS Cap Hold Team Salary by the end of
+  the immediately following day. The current active/evidence rows no longer
+  invent a general charge-removal rule.
+- `CBA2-C10.7` and `XW2-0227` now use the fixed first-Regular-Season-day
+  payment base. `CBA2-C10.9` and `XW2-0233` now own the separate
+  §2(c)(5) year-end additional payment without unsupported BRI/tax claims.
+- `CBA2-C10.10` and `CBA2-C10.11` correctly split the two ten-business-day
+  deadlines in §2(c)(6).
+- `EV2-0212`–`EV2-0218`, `EV2-0220`, and `EV2-0221` now use the relevant
+  §2(a)(4)(i) and §2(c)(1)–(6) locators and support the current C10 text.
+- `CBA2-C13.8` and `CBA2-C13.13` no longer treat waiver claims as authorized
+  by §§6(e) and 6(d). The new direct owners preserve the signed rule that
+  NTMLE, Room MLE, and BAE assignment acquisition was unavailable before
+  2024-25.
+- The Minimum, NTMLE, TMLE, Room, and BAE term, amount, annual-change,
+  method, transition, proration, and frequency components are now mostly
+  separated into direct source-law owners, while aggregate route rows are
+  expressly `INFERRED`.
+- `EV2-0204` now cites only Article VII §2(d)(1)(i)(E), printed page 180,
+  for the NBA-suspension Tax Team Salary adjustment. The unrelated Article
+  II §11 locator is gone.
+
+### Remaining blocking defects
+
+#### 1. CBA2-C13.30 still has two independently auditable results
+
+`CBA2-C13.30` combines:
+
+1. Article VII §6(g)(1)'s pre-use eligibility predicate: the below-cap /
+   not-entitled state plus no prior BAE, NTMLE, or TMLE use; and
+2. Article VII §6(g)(3)'s post-use lifecycle consequence: Room MLE use bars
+   those three exceptions for the remainder of the Salary Cap Year.
+
+An implementation can correctly decide whether Room MLE is available and
+still fail to impose the later bar. The signed agreement enumerates these in
+separate subsections. Canon §15.9.4 expressly requires separate lifecycle
+stages and outcomes when Architect can implement them differently.
+`EV2-0269` and `DR2-0112` repeat the unsupported one-result classification.
+
+Repair this through forward AMEND lineage with separate current owners and
+source components. Reconcile `CBA2-C13.12` and its aggregate evidence so a
+post-use consequence is not presented as part of the pre-use eligibility
+predicate. Any aggregate NTMLE, TMLE, Room, or BAE route that claims a
+complete use verdict must either depend on the canonical mutual-exclusivity
+owner or be narrowed to the exact contract-shape/method result it actually
+evaluates. Update affected crosswalk ownership, decisions, evidence, receipt,
+status, and counts.
+
+#### 2. DR2-0113 uses the R7-only METHOD type for an R4 lineage repair
+
+Canon §15.9.4 reserves `METHOD` for R7 verification-method-fit corrections
+and requires the old and new primary/secondary method sets, the reason the
+prior method assignment was dishonest, and the resulting evidence
+requirement. `DR2-0113` is instead an R4 record about revising a terminal
+C10 disposition into supported ownership. It supplies none of the required
+METHOD content.
+
+Replace or revise this record through governed AMEND lineage using a decision
+type valid for its actual R4 function, and update every current reference.
+The existing `DR2-0111` AMEND and corrected `DR2-0108` ownership may be used
+as the truthful lineage basis; a mislabeled METHOD record may not remain
+current.
+
+#### 3. Two DR2-0111 AMEND reasons are substantively false
+
+The current AMEND detail is part of the governed lineage and must truthfully
+identify the repair:
+
+- The `EV2-0204` row says it now cites the direct “tax-bracket provision.”
+  `EV2-0204` concerns the NBA-suspension Tax Team Salary adjustment in
+  §2(d)(1)(i)(E), not the Tax Bracket Amount.
+- The `EV2-0217` row says it restores “next-day charge-removal evidence.”
+  The signed source and corrected evidence establish next-day restoration
+  and expressly create no general charge-removal rule.
+
+Correct both reasons through the next checkpoint's forward AMEND lineage.
+The first should identify the direct suspension tax-adjustment provision;
+the second should identify the next-day MTS restoration duty.
+
+### Cycle 2 mechanical results
+
+The committed complete-document validator passed its baseline, all 14
+accepting controls, and all 109 rejecting controls. Its negative self-test
+failed as intended and it reported zero failures:
+
+| Population | Result |
+|---|---:|
+| GROUP | 25 |
+| Active LEAF main/detail | 270 / 270 |
+| XW2 | 273 |
+| EV2 | 278 |
+| DR2 | 114 |
+| Fragment inventory | 263 |
+| AMEND detail | 288 |
+| BND | 10 inherited |
+| DISP detail | 17 |
+| Search records / sets | 9 `SM2` / 2 `SS2` |
+
+Those results establish structural conformance, not the semantic atomicity or
+decision-type truth at issue above.
+
+### Cycle 2 validation actually run
+
+- `python3 work/architect-completion/cba_canon_v2_foundation_validator.py`
+  — PASS; 123 controls and zero failures.
+- `git diff --check 3880ea3f2baf022b7fa0477b34d4238721afad33..3f4cbe4a05c660bac897b577880110bf8dd241c6`
+  — PASS.
+- `git diff --exit-code 3880ea3f2baf022b7fa0477b34d4238721afad33..3f4cbe4a05c660bac897b577880110bf8dd241c6 -- work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_INDEPENDENT_REVIEW.md`
+  — PASS; the first rejection receipt was preserved.
+- `npm run docs:guardrails` — PASS.
+- `npm run validate:project` — PASS.
+- `npm run test:diff -- --files docs/reference/cba/ARCHITECT_CBA_CANON.md work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md --reporter=dot`
+  — PASS, FAST support-file tier, 12 files and 57 tests.
+- `npx markdownlint work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md`
+  — PASS.
+
+`npm run lint:md` was not repeated because cycle 1 already established its
+repository-wide findings as pre-existing and the repaired maker's scoped
+Markdown files pass. Build, typecheck, application suites, and the full suite
+were intentionally skipped because this is a documentation-only review and
+the full suite is prohibited. `graphify update .` was intentionally skipped
+because the graph was already current at the exact maker commit and graph
+output is outside R4.
+
+### Cycle 2 required next checkpoint
+
+The maker must repair the three remaining defect groups within the authorized
+maker files, preserve both rejected checkpoints through forward AMEND
+lineage, rerun the scoped R4 gates, and commit and synchronize a new exact
+maker checkpoint. This cycle does not accept R4. R5 remains blocked and
+unstarted, and Phase 2 and application work remain unstarted.
