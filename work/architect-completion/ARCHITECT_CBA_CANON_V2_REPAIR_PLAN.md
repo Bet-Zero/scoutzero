@@ -178,12 +178,17 @@ history. The bounded truthful-status correction was committed at
 checkpoint. The compatibility contract and protected records were not
 reopened. R3.1 proceeded only after both compatibility ACCEPTs and was
 independently **ACCEPTED** by `/root/validation_scout` at exact maker
-checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`. R4 is unblocked as
-the next construction unit but remains not started. Phase 1 continues;
-Phase 2, W1.1, and all application changes remain blocked pending R9 ACCEPT
-plus owner acceptance. R5–R9, code-map work, scenarios, and Linear remain out
-of scope for this accepted-status recording. R3.1 used `AMEND` lineage and
-did not renumber or reuse
+checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`. R4 then registered
+C01–C13, and exact maker checkpoint
+`4fc3ed90cb108b155e24670eaf2d5942f6a2479b` was independently
+**ACCEPTED** by `/root/r4_checker` at checker commit
+`30808340f28edd334222a5cdd9de4dbdc809f32f`; commit
+`4200ce326215962df545d44710e9f0146be37d80` synchronized that accepted
+status. R5 is unblocked by R4 but remains unstarted and may not begin until
+the post-R4 process revision below is complete. Phase 1 continues; Phase 2,
+W1.1, all application changes, and Linear changes remain unauthorized
+pending the revised R9 independent acceptance plus explicit owner
+acceptance. R3.1 used `AMEND` lineage and did not renumber or reuse
 an allocated `CBA2`, `XW2`, `SXW2`, `SRC2`, `EV2`, `DR2`, `SM2`, `SS2`,
 `BND`, `BLK`, `RES`, fragment, scenario-fragment, or `<Record ID>#D<k>`
 date-component ID. All
@@ -194,8 +199,9 @@ audit oracle. v1.0 and v1.1 are preserved as historical editions with their
 existing checksums; their Git history is never rewritten or removed. Canon
 v2.0 is required because substantive rule corrections are necessary. Full
 per-LEAF primary-source certification is required. Phase 1 remains open.
-Phase 2 and W1.1 remain blocked until v2.0 passes a new independent
-Reviews A–F acceptance gate.
+Phase 2 and W1.1 remain blocked until v2.0 passes the independent
+whole-canon R9 acceptance gate defined by the post-R4 revision below and
+receives explicit owner acceptance.
 
 **Working branch:** `architect/cba-canon-v2` (owner-authorized long-running
 repair branch). Incomplete v2.0 work must not appear on `main`.
@@ -209,11 +215,10 @@ is a one-way dependency scheduled backwards, not a cycle).
 
 ## Global rules for every repair unit
 
-1. **Separate fresh sessions.** Every repair unit — R1, R2, R1.1, R1.2,
-   R2.1, R2.2, R2.3, R2.4, R2.5, R2.6–R2.14, R3, R3.1, and R4–R8 — runs in a
-   fresh session with a
-   checkpoint commit on `architect/cba-canon-v2` at the end of the unit.
-   No unit may be combined with another in one session.
+1. **Bounded execution contexts.** Completed R1–R4 session and checkpoint
+   history remains unchanged. Future R5–R9 work follows the fresh, bounded
+   Goal contract in the post-R4 revision below; no obsolete assignment or
+   pre-compaction context may substitute for the exact durable checkpoint.
 2. **R9 independence.** R9 must be performed by an independent reviewer that
    did not author any part of v2.0.
 3. **No Phase 2 compliance verdicts anywhere in R1–R9.** No rule may be
@@ -234,9 +239,11 @@ is a one-way dependency scheduled backwards, not a cycle).
 5. **Checksum discipline.** v1.0 (`b8cf5d01…`) and v1.1 (`4a0760c8…`)
    checksums are historical evidence. The v2.0 checksum is recorded only in
    the receipts (a file cannot state its own hash).
-6. **Docs validation** (`npm run lint:md`, and `npm run docs:guardrails`
-   when routing/standards are touched) at every checkpoint. No app tests —
-   these are documentation-only changes.
+6. **Proportionate validation.** Run Markdown lint on touched files,
+   documentation guardrails when applicable, and the stage-specific
+   mechanical checks defined below. Do not replay accepted foundation checks
+   unless the current change can affect them. No app tests — Phase 1 remains
+   documentation-only.
 
 ---
 
@@ -2046,213 +2053,304 @@ searched `unsupported-residual`; separately supported waived-contract Team
 Salary remains active. R5 is unblocked but remains unstarted. Phase 1
 continues; Phase 2 and application work remain unstarted.
 
-## R5 — Re-register and source-certify the C-series, second half (C14–C25)
+## Post-R4 process revision — governing future-work contract
 
-- **Authorized maker files:** canon; this repair plan; and the new maker
+This process-only revision supersedes the future-work mechanics previously
+specified for R5–R9. It does not alter the completed R1–R4 history or any NBA
+rule.
+
+### Accepted baseline and process gate
+
+- R1 is completed history, and R1.1 was independently accepted. R2.14 is
+  settled as accepted by the goal authority recorded above; its maker
+  receipt remains maker evidence and does **not** claim formal independent
+  R2.14 acceptance.
+- The pre-R3.1 foundation-compatibility and same-family compatibility
+  checkpoints were independently accepted at their recorded commits.
+- R3.1's A-series maker checkpoint
+  `9239c1d3dc595538beb048c77788cd2c453240a4` is independently accepted.
+- R4's C01–C13 maker checkpoint
+  `4fc3ed90cb108b155e24670eaf2d5942f6a2479b` is independently accepted at
+  checker commit `30808340f28edd334222a5cdd9de4dbdc809f32f`, with final status
+  synchronized at `4200ce326215962df545d44710e9f0146be37d80`.
+- R5 and all later units remain unstarted. **R5 may not begin until the
+  commit containing this process revision is pushed to
+  `architect/cba-canon-v2` and the local branch is clean and synchronized
+  with its remote.**
+- Phase 2, the Architect comparison, application inspection or fixes, W1.1,
+  `main`, and Linear remain unauthorized throughout this plan.
+
+### Frozen foundation and lean execution rules
+
+1. **Freeze infrastructure.** The schema, authority taxonomy, ID grammars,
+   and committed validator at the accepted post-R4 baseline are frozen. No
+   expansion, replacement, parallel registry, or new proof system is allowed
+   unless a specific rule-accuracy defect demonstrates that the existing
+   foundation cannot truthfully represent or validate the rule. The repair
+   note must identify that concrete defect before any bounded infrastructure
+   change is considered.
+2. **Preserve rule quality.** Relevant NBA rules and exceptions remain in
+   scope in full. Every substantive active rule needs qualifying
+   primary-source support, or the truthful non-express classification and
+   source/provenance chain required by the frozen taxonomy. Stable IDs,
+   atomic separation sufficient for one Architect verdict, dependency
+   closure, and no ID reuse or renumbering remain mandatory.
+3. **Keep traceability direct.** Git preserves every rejected working
+   checkpoint. Its exact commit plus concise findings and repair notes are
+   sufficient rejected-draft history. Existing `AMEND` structures remain
+   available where the frozen contract or a change to accepted material
+   requires them; no additional draft-lineage or fragment-certification
+   system may be added.
+4. **Crosswalk for comparison value.** Each published historical rule must
+   resolve to its current rule ID or a truthful terminal disposition. Split a
+   historical rule into fragments only when it contains materially distinct
+   obligations or dispositions. Do not create finer fragments merely to
+   document drafting history.
+5. **Target mechanics.** A maker runs the frozen controls that exercise the
+   populations and references changed by that unit, plus one integration
+   check needed to prove the committed document still loads and reconciles.
+   Do not repeatedly replay already accepted foundation controls. A checker
+   may rely on the maker's exact-commit mechanical receipt unless a changed
+   field, inconsistent result, or review finding makes a targeted rerun
+   necessary.
+6. **Source-first independent review.** R5 and R6 each retain a separate
+   maker and independent checker Goal. The checker independently reads the
+   signed CBA and other qualifying primary sources; validator compliance and
+   the maker receipt are aids, not proof of rule accuracy or completeness.
+7. **Focused repair.** A checker rejection identifies affected rules,
+   sources, mappings, and downstream dependencies. Repair and re-review are
+   limited to that affected scope plus demonstrated impacts. A full-unit
+   restart occurs only when the finding undermines the unit's overall source
+   basis or completeness.
+8. **Concise records.** Each future receipt records the input and output
+   commits, scope, primary sources, material findings, validation actually
+   run, and explicit status. Do not create a separate certification package
+   or duplicate accepted evidence in prose.
+9. **Fresh bounded Goals.** Create one fresh future Goal for each maker,
+   checker, focused repair, final reconciliation, or owner-gate preparation.
+   Each Goal names its exact input checkpoint, authorized outputs, acceptance
+   condition, and stop boundary. Close it before creating the next Goal. If
+   context is compacted or an assignment becomes stale, restart from the
+   durable checkpoint and receipt rather than carrying inferred state
+   forward.
+
+### Minimal remaining Phase 1 sequence
+
+1. R5 maker → independent R5 source checker → focused repair/re-review if
+   needed.
+2. R6 maker → independent R6 source checker → focused repair/re-review if
+   needed.
+3. R7 comparison-critical scenarios.
+4. R8 final maker reconciliation and checksum.
+5. R9 single independent whole-canon acceptance.
+6. Explicit owner acceptance of the completed Phase 1 package.
+
+No stage authorizes the following stage until its own acceptance condition is
+met. Neither R9 ACCEPT nor owner acceptance may be inferred from maker
+completion.
+
+## R5 — Source-certify C14–C25
+
+- **Dependency:** this process revision is committed and pushed from the
+  accepted R4 status baseline, and the branch is clean and synchronized.
+- **Authorized maker files:** canon, this plan, and the concise R5 maker
   receipt
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_CERTIFICATION.md`.
-  The independent checker reads the pinned maker checkpoint and may
-  create only
+  The independent checker may add only
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_INDEPENDENT_REVIEW.md`.
-- **Inputs/output:** extend the shared governed populations with C14–C25
-  and their complete active rows, historical-fragment crosswalk,
-  source/evidence, decision, fragment/bundle, search,
-  blocked-resolution, and AMEND structures. Allocate above every shared
-  namespace high-water mark and preserve all earlier identities.
-- **Required primary authorities (principal):** CBA Articles II §§3–12,
-  VII §§3, 5, 7; VIII–IX; XI; XII; Exhibits B and C.
-- **Maker gate:** run U1–U14 for C14–C25, applicable actual-population
-  `G15R`, and the full-document validator; record mechanical and
-  semantic/source-support results separately.
-- **Independent checker gate:** at the pinned clean maker checkpoint,
-  rerun those mechanical gates and independently review source support,
-  atomicity, ownership, fragment coverage, evidence adequacy,
-  cross-half reconciliation, deferrals, and AMEND preservation. Only an
-  explicit ACCEPT in the named checker report unblocks R6.
-- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R4 with an
-  independent checker ACCEPT** (strict sequence, canon §15.9.2).
-- **Explicit exclusions:** no R/L/S or scenario construction; no
-  historical row/scenario or prior-receipt edit; no README, code-map,
-  application, runtime, Phase 2 packet/verdict, data, or Linear work.
-- **Stop condition:** stop on an unresolved structural/substantive
-  blocker, ID reuse/renumbering, or repair that cannot be represented
-  through current records plus AMEND lineage. Do not start R6 before
-  checker ACCEPT.
-- Note: this half contains the incentive-cap denominator (C23), option/ETO
-  shape (C24), Two-Way (C20), and Exhibit 10/9 (C21) corrections from R1.
+- **Scope:** register the complete relevant C14–C25 rules and exceptions,
+  including every correction already identified for that family. Extend the
+  frozen shared populations above their high-water marks, maintain stable
+  atomic rule IDs and dependencies, and map each published historical
+  C14–C25 rule to its current owner or truthful disposition.
+- **Primary authorities:** the signed CBA and other qualifying primary
+  sources required by the rules in scope. Secondary material may help locate
+  an issue but cannot certify one.
+- **Maker acceptance standard:** every substantive rule and exception in the
+  C14–C25 coverage checklist has a qualifying evidence chain; each rule is
+  atomic enough for an individual Architect verdict; dependencies and
+  historical mappings reconcile; no source, scope, or disposition blocker
+  remains; and targeted frozen mechanical checks pass at a clean pushed
+  checkpoint.
+- **Independent checker standard:** at that exact maker commit, independently
+  compare the complete C14–C25 coverage checklist and its substantive rules
+  to the primary sources. Review exceptions, atomicity, evidence adequacy,
+  current ownership, cross-half dependencies, and old-to-current mapping.
+  Record an explicit commit-specific ACCEPT or focused REJECT. Only ACCEPT
+  unblocks R6.
+- **Repair path:** repair only the cited rules, evidence, mappings, and
+  demonstrated dependents, then have the independent checker re-review that
+  scope and confirm unaffected material remains byte-identical or otherwise
+  unchanged in meaning.
+- **Exclusions:** no R/L/S registration, scenario construction, Architect
+  comparison, application work, Phase 2, Linear, or `main`.
 
-## R6 — Re-register and source-certify the R, L, and S series
+## R6 — Source-certify the remaining R, L, and S families
 
-- **Authorized maker files:** canon; this repair plan; and the new maker
+- **Dependency:** an exact R5 maker checkpoint has an independent
+  commit-specific ACCEPT.
+- **Authorized maker files:** canon, this plan, and the concise R6 maker
   receipt
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_R6_R_L_S_SERIES_CERTIFICATION.md`.
-  The independent checker reads the pinned maker checkpoint and may
-  create only
+  The independent checker may add only
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_R6_R_L_S_SERIES_INDEPENDENT_REVIEW.md`.
-- **Inputs/output:** extend the shared governed populations with
-  R01–R10, L01–L10, and S01–S04 and their complete active rows,
-  historical-fragment crosswalk, source/evidence, decision,
-  fragment/bundle, search, blocked-resolution, dataset-provenance, and
-  AMEND structures. Allocate above every shared namespace high-water
-  mark and preserve all earlier identities.
-- **Required primary authorities (principal):** CBA Articles VII §7(d), XXVII,
-  XXIX; BYL §§5–6; XII §4; official releases and schedule publications;
-  CBA Exhibits B/C chains (Art. I §1(jj), §1(iii)/(hhh)) for the S-series
-  dataset obligations.
-- **Required output additions:** S-series carries the dataset provenance
-  table (official / derived / projected / unavailable) including the
-  2026-27 calendar (not yet officially published) and EAPS (unpublished —
-  projection only); the historical L01.5 calendar bundle dispositioned per
-  the R2.1 ownership rules (cross-references, not duplicate date LEAFs).
-- **Maker gate:** run U1–U14 for R/L/S, applicable actual-population
-  `G15R`, cross-family dependency reconciliation, and the full-document
-  validator; record mechanical and semantic/source-support results
-  separately.
-- **Independent checker gate:** at the pinned clean maker checkpoint,
-  rerun those mechanical gates and independently review source support,
-  atomicity, ownership, fragment coverage, evidence and
-  dataset-provenance adequacy, cross-family dependencies, deferrals, and
-  AMEND preservation. Only an explicit ACCEPT in the named checker
-  report completes register construction and permits R7.
-- **Dependency:** R1, R1.1, R2.1, R2.2, and **completed R5 with an
-  independent checker ACCEPT** (strict sequence, canon §15.9.2).
-- **Explicit exclusions:** no scenario construction (R7); no historical
-  row/scenario or prior-receipt edit; no README, code-map, application,
-  runtime, Phase 2 packet/verdict, data mutation, or Linear work.
-- **Stop condition:** stop on any unresolved structural/substantive or
-  provenance blocker, ID reuse/renumbering, or repair that cannot be
-  represented through current records plus AMEND lineage. Do not start
-  R7 before checker ACCEPT.
+- **Scope:** register all relevant R-, L-, and S-family rules and exceptions,
+  including calendar, waiver, roster, rights, lifecycle, and dataset
+  provenance obligations. Official, derived, projected, and unavailable
+  values must remain distinguishable. Extend only the frozen populations,
+  preserve accepted identities, and resolve each published historical rule
+  to a current owner or truthful disposition.
+- **Primary authorities:** the signed CBA, June 2024 NBA Constitution and
+  By-Laws, and qualifying official releases, schedules, and first-party
+  provenance required by the rules in scope.
+- **Maker acceptance standard:** the complete R/L/S coverage checklist is
+  represented without reducing rule scope; each substantive rule has a
+  qualifying evidence chain or truthful frozen-taxonomy treatment; atomic
+  rule ownership, cross-family dependencies, historical mapping, and
+  dataset provenance reconcile; no blocker remains; and targeted frozen
+  mechanical checks pass at a clean pushed checkpoint.
+- **Independent checker standard:** at the exact maker commit, independently
+  compare the entire R/L/S scope to the qualifying primary sources, with
+  particular attention to exceptions, dates and lifecycle state,
+  official-versus-projected values, missing first-party provenance,
+  atomicity, dependency edges, and old-to-current mapping. Record an
+  explicit commit-specific ACCEPT or focused REJECT. Only ACCEPT completes
+  rule-register construction and permits R7.
+- **Repair path:** use the same affected-scope repair and re-review rule as
+  R5. Do not restart accepted R5 or unaffected R6 material without a
+  demonstrated source or dependency impact.
+- **Exclusions:** no scenario construction, Architect comparison,
+  application work, Phase 2, Linear, or `main`.
 
-## R7 — Rebuild semantic acceptance-scenario coverage
+## R7 — Build only comparison-critical scenarios
 
-- **Inputs:** the completed active v2 register (R3–R6), Adjudication §4.
-- **Authorized files:** the new active v2 scenario subsection of canon §16;
-  the register's scenario-evidence column; and, **for bounded method-fit
-  corrections only** (canon §15.9.8), an active LEAF's `Primary method`,
-  `Secondary methods`, `Scenario evidence`, and `Decision records` fields —
-  every such change carries a `METHOD` decision record in the R7 receipt
-  (LEAF, old method set, new method set, why the previous method was
-  dishonest, resulting evidence requirement). R7 may **not** change a
-  LEAF's requirement, authority classes, source evidence, origin, or
-  dependencies; such discoveries return to the owning R3–R6 unit.
-  Historical scenarios 1–89 (pinned at `9814939c`) are frozen and are
-  **not edited**.
-- **Required primary authorities:** the evidence chains already certified
-  in R3–R6.
-- **Required output:** the active v2 scenario library **built from
-  scratch** as `CBA2-SC-…` per the §15.9.8 contract (explicit season/date
-  or versioned-calendar input, inputs, boundary, exact expected result
-  including arithmetic, controlling authority, named case/variant
-  identifiers, and an `Exercises:` list of active v2 LEAFs); an `SXW2-…`
-  scenario crosswalk covering every published historical scenario 1–89
-  (the pinned published set at `9814939c` per canon §15.9.8 — the R1/R1.1
-  corrected variants are authoring inputs, never crosswalk sources;
-  includes the incomplete historical scenarios 53, 57, and 68, whose
-  replacement coverage is built here); missing coverage added (exception proration,
-  signing-bonus-as-cash, five window restrictions, circumvention/tampering
-  EXT states, Bird-clock transfer and waiver reset, October 31
-  rookie-option boundary, protection-increase limits, loan-interest/premium
-  cases); every scenario→LEAF edge reviewed **exhaustively** by named case
-  — later sampling is an additional audit, never a substitute.
-- **Validation gate:** the §15.9.9 scenario gates SC1–SC7 (ID/schema,
-  the complete sixteen-check SC2 SXW2 integrity contract — never
-  coverage alone, bidirectional scenario↔LEAF reconciliation, exhaustive
-  named-case review, no cosmetic mappings, SCEN coverage completeness
-  with no empty-set pass, and `METHOD` records for every method change).
-- **Explicit exclusions:** no register content changes beyond the
-  scenario-evidence column and the bounded `METHOD`-recorded method-fit
-  fields above; no tests written (that is Phase 2).
-- **Dependency:** R3.1 and R4–R6 each complete with an independent
-  checker ACCEPT. R7 is a maker unit and receives its own independent
-  checker review before R8 begins.
-- **Stop condition:** a leaf with no honest scenario gets its primary
-  method reclassified (STATIC/LIFECYCLE/EXTS) via a `METHOD` decision
-  record rather than a cosmetic mapping; a discovery requiring a change to
-  requirement, authority, evidence, origin, or dependencies returns to the
-  owning R3–R6 unit instead of being fixed in R7.
+- **Dependency:** R3.1, R4, R5, and R6 each have an independent
+  commit-specific ACCEPT for their rule content.
+- **Authorized files:** the active v2 scenario surfaces in the canon, their
+  existing rule references, this plan, and one concise R7 receipt. Rule
+  requirements, authority classes, sources, origins, and dependencies are
+  not R7 authoring surfaces.
+- **Scope:** add only scenarios materially needed to expose meaningful
+  rule interactions or boundaries, support the later Architect comparison,
+  or later test confirmed application behavior. Prioritize cross-family
+  interactions, time and season boundaries, thresholds, state transitions,
+  exception collisions, and external or projected inputs where a single-rule
+  static check is insufficient.
+- **Historical scenarios:** scenarios 1–89 remain preserved in Git. Do not
+  rebuild or migrate every historical scenario solely for procedural
+  completeness. Create an old-scenario mapping only when a historical case is
+  retained, replaced, or materially informs a comparison-critical current
+  case.
+- **Acceptance standard:** each retained scenario has exact inputs, boundary,
+  expected result, controlling evidence chain, and active rule IDs; mappings
+  are substantive rather than cosmetic; targeted frozen scenario checks
+  pass; and the R7 receipt explains why each scenario materially contributes
+  to interaction coverage or comparison readiness.
+- **Rule defects found by scenarios:** stop scenario authoring and return the
+  defect to its owning accepted rule unit. Repair and independently re-review
+  the affected source-certified material before resuming R7. Do not mask a
+  rule defect with a scenario or method label.
+- **Review boundary:** R7 has no duplicative standalone independent
+  acceptance pass. The single final R9 reviewer independently judges
+  scenario truth and sufficiency as part of whole-canon acceptance.
+- **Exclusions:** no application inspection, comparison verdict, application
+  test, Phase 2, Linear, or `main`.
 
-## R8 — Global canon/register reconciliation and final checksum
+## R8 — Final maker reconciliation and checksum
 
-- **Inputs:** independently accepted R3.1 and R4–R7 checkpoints.
-- **Authorized files:** canon, repair plan, and the R8
-  reconciliation/checksum receipt only.
-- **Required output:** close every register/scenario deferral; recompute
-  GROUP/LEAF/support counts; run G1–G15 under the balanced division;
-  reconcile all current crosswalk, fragment/bundle, decision, evidence,
-  search, blocked-resolution, scenario, and AMEND-detail structures;
-  record semantic checker findings separately from parser output; and
-  record the final v2.0 checksum at a clean maker checkpoint.
-- **Balanced gate:** mechanical controls cover deterministic structure,
-  rooted acyclic EV2 graphs, direct current references, and preservation.
-  The independent R8 checker reviews source support, semantic
-  ownership/atomicity/coverage, evidence adequacy, amendment content
-  preservation, and substantive completeness before R9 begins.
-- **Explicit exclusions:** no README edit, code-map edit, application or
-  runtime inspection/change, runtime pointer sampling, Phase 2 packet,
-  application test, data/configuration change, or Phase 2 verdict. Those
-  surfaces are outside Phase 1 and may be planned only after acceptance.
-- **Dependency:** R7 complete with an independent checker ACCEPT.
-- **Sequencing:** R8 maker checkpoint → independent R8 checker ACCEPT →
-  R9. R9 may not begin on maker completion alone.
-- **Stop condition:** any unresolved structural or substantive finding
-  returns to the owning R-unit; it is never hidden by a checksum.
+- **Dependency:** accepted R3.1/R4/R5/R6 rule checkpoints and a completed R7
+  scenario checkpoint.
+- **Authorized files:** canon, this plan, and one concise R8
+  reconciliation/checksum receipt.
+- **Scope:** reconcile the complete relevant-rule coverage checklist,
+  active rule IDs, old-rule-to-current-rule mapping, source/evidence chains,
+  dependencies, deferrals and terminal dispositions, scenario references,
+  counts, and the final v2 checksum. No new review framework or registry may
+  be introduced.
+- **Acceptance standard:** no unresolved substantive, source, mapping,
+  dependency, or scenario blocker remains; the frozen full-document validator
+  passes once against the final candidate; any directly relevant targeted
+  controls and documentation checks pass; and the exact clean pushed
+  checkpoint plus checksum are recorded for R9.
+- **Finding handling:** repair the affected owning stage. Any change to
+  source-certified R5/R6 content requires focused independent re-review;
+  changes to accepted R3.1/R4 content follow the same commit-specific
+  source-review protection. Then rerun only impacted checks and the one final
+  integration pass.
+- **Collapsed review:** there is no separate independent R8 checker. R8
+  prepares the single final candidate; R9 supplies the independent
+  whole-canon review. This removes the former duplicate R8/R9 audit without
+  removing final independent acceptance.
+- **Exclusions:** no README or code-map expansion, Architect comparison,
+  application inspection or change, runtime sampling, Phase 2 packet or
+  verdict, data/configuration change, Linear, or `main`.
 
-## R9 — Independent acceptance Reviews A–F
+## R9 — Single independent whole-canon acceptance
 
-- **Inputs:** the completed v2.0 package at a pinned, clean **topic-branch
-  checkpoint**. R9 does not require or authorize a merge to `main`.
-- **Authorized files:** the completed Phase 1 source tree is read-only.
-  The reviewer's sole authorized write is the new report artifact
-  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R9_INDEPENDENT_ACCEPTANCE.md`;
-  no canon, plan, receipt, README, code-map, application, runtime, test,
-  configuration, or data file may change during R9.
-- **Required primary authorities:** same controlling set; the reviewer must
-  perform its own primary-source comparison, not reuse R3–R6 receipts as
-  proof.
-- **Required output:** Reviews A–F (repository/provenance; amendment
-  lineage v1.1→v2.0; registry completeness/uniqueness/atomicity; scenario
-  coverage; primary-source integrity including per-LEAF evidence sampling;
-  downstream execution readiness) with an explicit ACCEPT or REJECT at a pinned
-  clean commit. The reviewer must re-run **every mechanical gate from
-  scratch**, independently sample primary-source passages, independently
-  sample active obligation atomicity and ownership, **independently
-  regenerate the duplicate-candidate population (all §15.9.4 generators)
-  rather than trusting the unit lists**, independently sample scenario
-  truth, **review every `no-successor` disposition and every
-  `unsupported-residual` disposition individually — not a
-  sample — re-run the §15.9.6 search-manifest reconciliation behind
-  every `unsupported-residual` disposition, independently re-verify
-  every historical LEAF's fragment-inventory reconciliation (§15.9.3),
-  and verify that every terminal edge carries a direct reference to a
-  current, correctly typed `DISP` record with its pinned detail row on
-  the historical source LEAF + fragment ID uniqueness key — zero
-  references resolving only through `AMEND` chains**, **verify the
-  `AMEND` amendment chain across every live v2
-  population — including §15.9.2 child-ID numbering integrity (explained
-  gaps only, no ID reuse, no renumbering, high-water-mark allocation) —
-  and re-run the exact bidirectional evidence reconciliation
-  (including typed `SRC2` termination, the no-source-free-terminal-
-  component check, class-specific certification, provenance-type ⇔
-  authority-class pairing validity, type-specific field-level `SRC2`
-  validation — including the pinned `YYYY-YY` season grammar, the
-  `basis:value` source-date model with its basis-aware month-precision
-  rule and reconciled date-component detail table, and the
-  three split verification-metadata fields under their §15.9.6
-  grammars — and an independent recomputation of every `EV2`
-  component's transitive dependency closure and terminal root set
-  against the §15.9.6 compatibility matrix — zero authority-laundering
-  chains)**, and **re-run the complete SC2 SXW2 integrity contract**.
-- **Validation gate:** R9 ACCEPT at the pinned clean topic-branch commit
-  is necessary but not sufficient to unblock Phase 2/W1.1. The owner must
-  explicitly accept the completed Phase 1 package after R9. Only **R9
-  ACCEPT plus owner acceptance** closes Phase 1 and unblocks Phase 2.
-- **Explicit exclusions:** the reviewer must not have authored any v2.0
-  content; no fixes during review.
-- **Dependency:** R1–R8 complete, checkpoint-committed, and R8
-  independently accepted.
-- **Stop condition:** on REJECT, findings return to the appropriate R-unit;
-  Phase 2 and W1.1 remain blocked.
+- **Inputs:** the exact clean, pushed R8 topic-branch checkpoint and checksum.
+  R9 does not require or authorize a merge to `main`.
+- **Independence and writes:** the reviewer must not have authored v2 rule or
+  scenario content. The Phase 1 source tree is read-only during review; the
+  sole write is the concise report
+  `work/architect-completion/ARCHITECT_CBA_CANON_V2_R9_INDEPENDENT_ACCEPTANCE.md`.
+- **Source-first scope:** independently assess the complete canon against the
+  signed CBA and other qualifying primary sources. Confirm that the relevant
+  rule-and-exception coverage checklist is complete, each substantive rule
+  has a qualifying source chain or truthful non-express treatment, and no
+  receipt or validator result is being used as a substitute for source
+  support. This is a whole-canon review, not a sample and not a claim that
+  primary-source review will be quick.
+- **Consistency scope:** confirm stable and atomic active rule IDs,
+  dependency and evidence closure, source quality, truthful unsupported
+  items, complete old-rule-to-current-rule mapping, material scenario truth
+  and sufficiency, and consistency across the independently accepted unit
+  checkpoints.
+- **Mechanical scope:** run the frozen full-document validator at the pinned
+  final checkpoint and only the targeted additional checks needed to
+  investigate a discrepancy. Do not replay every historical foundation
+  control or create a new mechanical proof package.
+- **Verdict:** write one concise explicit ACCEPT or REJECT tied to the exact
+  commit and checksum. A REJECT names affected material and demonstrated
+  impacts. After focused repair, re-review the changed material and its
+  dependencies; do not automatically restart the entire review unless the
+  finding calls global completeness or the canon's source basis into
+  question.
+- **Owner gate:** R9 ACCEPT is necessary but not sufficient. Present one
+  concise owner-facing Phase 1 summary with the accepted checkpoint, coverage
+  and source status, material limitations or unsupported items, scenario
+  scope, and validation result. Only explicit owner acceptance closes Phase
+  1 and can authorize a separately scoped Phase 2. Until then, the Architect
+  comparison, application fixes, W1.1, Linear changes, and Phase 2 remain
+  blocked.
+
+### Correctness protections retained
+
+- Full relevant NBA-rule and exception coverage with qualifying
+  primary-source support.
+- Stable atomic rule IDs, governed dependencies, and truthful unsupported
+  states suitable for individual Architect verdicts.
+- Separate maker/checker source review for R5 and R6 at exact commits.
+- Git preservation plus a direct old-rule-to-current-rule mapping.
+- One final whole-canon completeness, consistency, scenario, and
+  source-certification review by an independent reviewer.
+- One explicit owner-acceptance gate and strict separation of canon,
+  Architect comparison, and later application repair.
+
+### Redundant overhead removed or reduced
+
+- No further schema, taxonomy, validator, registry, or proof-system expansion
+  without a demonstrated rule-accuracy need.
+- No extra lineage system or large certification package for rejected
+  working drafts.
+- No automatic replay of accepted foundation checks or checker duplication of
+  maker mechanics.
+- No wholesale restart after a localized finding.
+- No fragment splitting beyond distinct obligations or dispositions.
+- No migration of every historical scenario without comparison value.
+- No standalone independent R7 pass and no overlapping independent R8 review
+  before R9.
+- Concise receipts and fresh bounded Goals replace long-running assignments
+  and context-dependent handoffs.
 
 ---
 
@@ -2262,5 +2360,5 @@ continues; Phase 2 and application work remain unstarted.
   configuration/data changes under this plan.
 - No edits to the published v1.1 canon on `main` (its checksum is evidence);
   all v2.0 drafting happens on `architect/cba-canon-v2`.
-- No Linear status/priority/assignment changes from repair sessions;
-  comments only, with commit hashes and validation actually run.
+- No Linear status, priority, assignment, or comment changes from Phase 1
+  repair sessions unless the owner separately authorizes them.
