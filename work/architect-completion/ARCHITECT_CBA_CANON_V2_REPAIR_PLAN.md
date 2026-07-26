@@ -2020,26 +2020,30 @@ is a one-way dependency scheduled backwards, not a cycle).
   R1/R1.1 and the historical C07.6 bundle, whose two enumerated adjustments
   (vi) and (vii) become separate active v2 LEAFs.
 
-**R4 execution status — rejected checkpoint repaired; repeat independent
+**R4 execution status — two rejected checkpoints repaired; repeat independent
 review pending.** The first maker checkpoint
 `2fc11880025c917dc765fd2f18e5e3697c5661f2` was independently rejected at
-checker commit `3880ea3f2baf022b7fa0477b34d4238721afad33` and remains immutable
-history. The repaired maker working tree uses `DR2-0111`–`DR2-0114` forward
-lineage and extends the shared register with 13 C-family GROUPs and 119
-C01–C13 LEAFs, XW2 through `XW2-0278`, EV2 through `EV2-0278`, DR2 through
-`DR2-0114`, SM2 through `SM2-0009`, and SS2 through `SS2-0002`; R4 adds no
-BND above the existing `BND-0010` high-water mark. The R4-designated A08.1,
-A01.4, and C13.8 deferrals exit through `DR2-0102` AMEND lineage. The C07.6
-adjustments (vi) and (vii) are separate owners; C09 uses the signed Tax
-Bracket Amount scaling base; C10 separates charge, restoration, initial and
-additional payments, Team payment, and NBA distribution; and exception
-contract shapes use direct atomic source components with single-result
-aggregate routes. The exact historical post-waiver reimbursement-extinction
-fragment is preserved as a searched `unsupported-residual`; separately
-supported waived-contract Team Salary remains active. This repaired status is
-a maker claim only until the named checker report explicitly ACCEPTs the exact
-clean repair checkpoint. R5 remains blocked and unstarted; Phase 2 and
-application work remain unstarted.
+checker commit `3880ea3f2baf022b7fa0477b34d4238721afad33`; the second maker
+checkpoint `3f4cbe4a05c660bac897b577880110bf8dd241c6` was independently
+rejected at checker commit `69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4`.
+Both remain immutable history. The current maker working tree uses
+`DR2-0111` and `DR2-0115` forward lineage and extends the shared register with
+13 C-family GROUPs and 120 C01–C13 LEAFs, XW2 through `XW2-0278`, EV2 through
+`EV2-0279`, DR2 through `DR2-0116`, SM2 through `SM2-0009`, and SS2 through
+`SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The
+R4-designated A08.1, A01.4, and C13.8 deferrals exit through `DR2-0102` AMEND
+lineage. The C07.6 adjustments (vi) and (vii) are separate owners; C09 uses
+the signed Tax Bracket Amount scaling base; C10 separates charge,
+restoration, initial and additional payments, Team payment, and NBA
+distribution; and exception contract shapes use direct atomic source
+components with staged aggregate routes. Room MLE pre-use eligibility and
+its post-use exception bar are distinct current lifecycle owners. The exact
+historical post-waiver reimbursement-extinction fragment is preserved as a
+searched `unsupported-residual`; separately supported waived-contract Team
+Salary remains active. This repaired status is a maker claim only until the
+named checker report explicitly ACCEPTs the exact clean repair checkpoint.
+R5 remains blocked and unstarted; Phase 2 and application work remain
+unstarted.
 
 ## R5 — Re-register and source-certify the C-series, second half (C14–C25)
 

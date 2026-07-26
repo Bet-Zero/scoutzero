@@ -5272,7 +5272,7 @@ acceptance.
 | CBA2-C10 | Minimum Team Salary — Are the amount, three adjusted bases, payment, charge, restoration, audit timing, and distribution consequences kept distinct? | `CBA2-C10.1`–`CBA2-C10.11` (11) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 | CBA2-C11 | Long-term injury exclusion — Are application timing, medical findings, return-to-salary, applicant limits, and reacquisition bars applied independently? | `CBA2-C11.1`–`CBA2-C11.8` (8) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 | CBA2-C12 | Disabled Player Exception — Are eligibility, application, amount, method, term, expiry, medical process, and availability applied separately? | `CBA2-C12.1`–`CBA2-C12.9` (9) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
-| CBA2-C13 | Salary-cap exceptions — Are availability, combination, proration, method, contract shape, and Team Salary effects enforced per exception? | `CBA2-C13.1`–`CBA2-C13.39` (39) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C13 | Salary-cap exceptions — Are availability, combination, proration, method, contract shape, and Team Salary effects enforced per exception? | `CBA2-C13.1`–`CBA2-C13.40` (40) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 
 #### 15.10.2 A family — active LEAF register (main table)
 
@@ -5520,7 +5520,7 @@ acceptance.
 | CBA2-C13.9 | NTMLE contract-shape eligibility: the independently owned amount/divisibility, term, and annual-change requirements in CBA2-C13.37–C13.39 must each pass | INFERRED | SCEN | — | EV2-0247 | XW2-0265 | One aggregate contract-shape verdict over separate source-law owners. |
 | CBA2-C13.10 | TMLE amount use: the Taxpayer Mid-Level Salary Exception may be divided among one or more signed players, subject to its annual amount | CBA | SCEN | — | EV2-0248 | new (DR2-0101) | Amount-use owner only. |
 | CBA2-C13.11 | TMLE signed-contract eligibility: the independently owned amount/divisibility, signing-only method, maximum term, and annual-change requirements in CBA2-C13.10 and CBA2-C13.24–C13.26 must each pass | INFERRED | SCEN | — | EV2-0249 | XW2-0155 | One aggregate signing-contract verdict; apron consequences remain A05-owned. |
-| CBA2-C13.12 | Room MLE use eligibility: the independently owned method/transition, term, annual-change, and availability requirements in CBA2-C13.27–C13.30 must each pass | INFERRED | SCEN | LIFECYCLE | EV2-0250 | XW2-0268 | One aggregate Room MLE verdict over separate source-law owners. |
+| CBA2-C13.12 | Room MLE complete-use compliance: method/transition, term, annual-change, and pre-use eligibility in CBA2-C13.27–C13.30 must pass before use, and a completed use must apply the separate post-use bar in CBA2-C13.40 | INFERRED | SCEN | LIFECYCLE | EV2-0250 | XW2-0268 | One staged aggregate compliance verdict; the direct pre-use predicate and post-use consequence remain separate owners. |
 | CBA2-C13.13 | BAE method eligibility: the Bi-annual Exception authorizes signing and, beginning in 2024-25, acquisition by assignment; a waiver claim alone is not authorized by VII §6(d) | CBA | SCEN | LIFECYCLE | EV2-0251 | XW2-0269 | One date-conditioned method verdict; apron transaction consequences are A05-owned. |
 | CBA2-C13.14 | BAE contract/use eligibility: the independently owned amount/divisibility, term, annual-change, and consecutive-year requirements in CBA2-C13.31–C13.34 must each pass | INFERRED | SCEN | LIFECYCLE | EV2-0252 | XW2-0270 | One aggregate use verdict over separate source-law owners. |
 | CBA2-C13.15 | Second Round Pick Exception structure: a qualifying second-round Contract uses one of the prescribed two-plus-Option or three-plus-Option structures and the signed minimum-based Salary schedule | CBA | SCEN | — | EV2-0253 | XW2-0273 | Contract structure only. |
@@ -5538,7 +5538,7 @@ acceptance.
 | CBA2-C13.27 | Room MLE methods and assignment transition: the exception may sign or acquire by assignment one or more Player Contracts, but assignment acquisition was unavailable before 2024-25 | CBA | SCEN | LIFECYCLE | EV2-0266 | new (DR2-0114) | One date-conditioned method verdict. |
 | CBA2-C13.28 | Room MLE term limit: each signed Contract or assigned Contract's remaining term may not exceed three Seasons | CBA | SCEN | — | EV2-0267 | new (DR2-0114) | Term result only. |
 | CBA2-C13.29 | Room MLE annual changes: a Player Contract signed with the exception may use annual Salary and Unlikely-Bonus increases or decreases only as allowed by VII §5(a)(1) | CBA | SCEN | — | EV2-0268 | new (DR2-0114) | Annual-change result only. |
-| CBA2-C13.30 | Room MLE availability: the Team must satisfy VII §6(g)'s below-cap/not-entitled and no-prior-BAE/NTMLE/TMLE predicates, and Room MLE use bars those three exceptions for the rest of that Salary Cap Year | CBA | LIFECYCLE | SCEN | EV2-0269 | new (DR2-0114) | One mutual-exclusivity availability verdict. |
+| CBA2-C13.30 | Room MLE pre-use eligibility: when the Team proposes to use the exception, its Team Salary must be below the Salary Cap such that it is not entitled to the BAE, NTMLE, or TMLE, and it must not already have used any of those three exceptions in the same Salary Cap Year | CBA | LIFECYCLE | SCEN | EV2-0269 | new (DR2-0114) | Pre-use predicate only; CBA2-C13.40 owns the post-use consequence. |
 | CBA2-C13.31 | BAE amount/divisibility: one or more Contracts may share the Bi-annual Exception, with aggregate first-year Salary and Unlikely Bonuses within its annual amount | CBA | SCEN | — | EV2-0270 | new (DR2-0114) | Aggregate-amount result only. |
 | CBA2-C13.32 | BAE term limit: each signed Contract or assigned Contract's remaining term may not exceed two Seasons | CBA | SCEN | — | EV2-0271 | new (DR2-0114) | Term result only. |
 | CBA2-C13.33 | BAE annual changes: a two-Season Contract signed with the BAE may change second-year Salary and Unlikely Bonuses only as allowed by VII §5(a)(1) | CBA | SCEN | — | EV2-0272 | new (DR2-0114) | Annual-change result only. |
@@ -5548,6 +5548,7 @@ acceptance.
 | CBA2-C13.37 | NTMLE amount/divisibility: one or more Contracts may share the NTMLE, with aggregate first-year Salary and Unlikely Bonuses within its annual amount | CBA | SCEN | — | EV2-0276 | new (DR2-0114) | Aggregate-amount result only. |
 | CBA2-C13.38 | NTMLE term limit: each signed Contract or assigned Contract's remaining term may not exceed four Seasons | CBA | SCEN | — | EV2-0277 | new (DR2-0114) | Term result only. |
 | CBA2-C13.39 | NTMLE annual changes: a Player Contract signed with the NTMLE may use annual Salary and Unlikely-Bonus increases or decreases only as allowed by VII §5(a)(1) | CBA | SCEN | — | EV2-0278 | new (DR2-0114) | Annual-change result only. |
+| CBA2-C13.40 | Room MLE post-use bar: once a Team uses the Room MLE during a Salary Cap Year, it may not use the BAE, NTMLE, or TMLE at any later time in that Salary Cap Year | CBA | LIFECYCLE | SCEN | EV2-0279 | new (DR2-0116) | Post-use lifecycle consequence only; CBA2-C13.30 owns pre-use eligibility. |
 
 #### 15.10.3 A family — active LEAF register (detail table)
 
@@ -5760,7 +5761,7 @@ acceptance.
 | CBA2-C10.2 | pending R7 | — | Audit-report Team Salary inputs | DR2-0099, DR2-0111 |
 | CBA2-C10.3 | pending R7 | CBA2-C10.2 | First-Regular-Season-day base; §4(h), §3(e), and §4(b) adjustments | DR2-0099, DR2-0111 |
 | CBA2-C10.4 | pending R7 | — | Start-of-Regular-Season inputs | DR2-0099 |
-| CBA2-C10.5 | pending R7 | CBA2-C10.1, CBA2-C10.2 | Current/start MTS Cap Hold Team Salary; first Regular Season day; Salary Cap Year end | DR2-0099, DR2-0111 |
+| CBA2-C10.5 | pending R7 | CBA2-C10.1, CBA2-C10.2 | Current/start MTS Cap Hold Team Salary; first Regular Season day; Salary Cap Year end | DR2-0099, DR2-0111, DR2-0113 |
 | CBA2-C10.6 | pending R7 | CBA2-C10.2, CBA2-C10.4 | Regular Season date; decrease below threshold; following-day deadline | DR2-0099, DR2-0108, DR2-0111, DR2-0113 |
 | CBA2-C10.7 | pending R7 | CBA2-C10.1, CBA2-C10.3 | Fixed MTS Payment Team Salary base | DR2-0099, DR2-0111 |
 | CBA2-C10.8 | pending R7 | CBA2-C10.7 | Salary Cap Year; tax owed; distribution eligibility | DR2-0099 |
@@ -5795,7 +5796,7 @@ acceptance.
 | CBA2-C13.9 | pending R7 | CBA2-C13.37, CBA2-C13.38, CBA2-C13.39 | Contract amounts, term, and annual changes | DR2-0099, DR2-0111, DR2-0112 |
 | CBA2-C13.10 | pending R7 | — | Signing method; TMLE availability | DR2-0099 |
 | CBA2-C13.11 | pending R7 | CBA2-C13.10, CBA2-C13.24, CBA2-C13.25, CBA2-C13.26 | TMLE Contract amounts, method, term, and annual changes | DR2-0099, DR2-0111, DR2-0112 |
-| CBA2-C13.12 | pending R7 | CBA2-C13.27, CBA2-C13.28, CBA2-C13.29, CBA2-C13.30 | Team room, method, Contract, and exception-use state | DR2-0099, DR2-0111, DR2-0112 |
+| CBA2-C13.12 | pending R7 | CBA2-C13.27, CBA2-C13.28, CBA2-C13.29, CBA2-C13.30, CBA2-C13.40 | Team room, method, Contract, pre-use eligibility, and post-use state | DR2-0099, DR2-0111, DR2-0112, DR2-0115 |
 | CBA2-C13.13 | pending R7 | — | Transaction method; Salary Cap Year | DR2-0099, DR2-0111, DR2-0112 |
 | CBA2-C13.14 | pending R7 | CBA2-C13.13, CBA2-C13.31, CBA2-C13.32, CBA2-C13.33, CBA2-C13.34 | BAE amounts, term, annual changes, and prior-year use | DR2-0099, DR2-0111, DR2-0112 |
 | CBA2-C13.15 | pending R7 | — | Pick round; Contract structure; minimum scale | DR2-0099 |
@@ -5813,7 +5814,7 @@ acceptance.
 | CBA2-C13.27 | pending R7 | — | Transaction method; Salary Cap Year | DR2-0112, DR2-0114 |
 | CBA2-C13.28 | pending R7 | CBA2-C13.27 | Signed/assigned Contract term | DR2-0112, DR2-0114 |
 | CBA2-C13.29 | pending R7 | CBA2-C13.27 | First-Season Salary/Unlikely Bonuses; later-year amounts | DR2-0112, DR2-0114 |
-| CBA2-C13.30 | pending R7 | — | Team Salary/Room; prior/current exception use | DR2-0112, DR2-0114 |
+| CBA2-C13.30 | pending R7 | — | Team Salary/Room; prior BAE/NTMLE/TMLE use | DR2-0112, DR2-0114, DR2-0115 |
 | CBA2-C13.31 | pending R7 | CBA2-C13.13 | First-year aggregate Salary/Unlikely Bonuses; annual BAE amount | DR2-0112, DR2-0114 |
 | CBA2-C13.32 | pending R7 | CBA2-C13.13 | Signed/assigned Contract term | DR2-0112, DR2-0114 |
 | CBA2-C13.33 | pending R7 | CBA2-C13.13 | First-Season Salary/Unlikely Bonuses; second-year amounts | DR2-0112, DR2-0114 |
@@ -5823,6 +5824,7 @@ acceptance.
 | CBA2-C13.37 | pending R7 | CBA2-C13.35 | First-year aggregate Salary/Unlikely Bonuses; annual NTMLE amount | DR2-0112, DR2-0114 |
 | CBA2-C13.38 | pending R7 | CBA2-C13.35 | Signed/assigned Contract term | DR2-0112, DR2-0114 |
 | CBA2-C13.39 | pending R7 | CBA2-C13.35 | First-Season Salary/Unlikely Bonuses; later-year amounts | DR2-0112, DR2-0114 |
+| CBA2-C13.40 | pending R7 | — | Room MLE use date; later exception use | DR2-0112, DR2-0116 |
 
 ### 15.11 Historical crosswalk (created by R3; A family)
 
@@ -6092,7 +6094,7 @@ Typed edges from published v1.1 LEAFs (meanings fixed at commit `9814939c`, file
 | XW2-0265 | CBA-C13.7 | CBA2-C13.9 | `split` | [CBA-C13.7:F2] span:43-84 — aggregate NTMLE contract-shape verdict over atomic amount/divisibility, term, and annual-change owners | DR2-0100 |
 | XW2-0266 | CBA-C13.7 | CBA2-A05.4 | `split` | [CBA-C13.7:F3] span:84-120 — NTMLE First-Apron transaction component | DR2-0100 |
 | XW2-0267 | CBA-C13.7 | CBA2-A05.2 | `split` | [CBA-C13.7:F4] span:120-186 — resulting First-Apron hard-cap component | DR2-0100 |
-| XW2-0268 | CBA-C13.9 | CBA2-C13.12 | `partial-overlap` | [CBA-C13.9:F1] span:0-84 — aggregate Room MLE use verdict over atomic method/transition, term, annual-change, and availability owners | DR2-0100 |
+| XW2-0268 | CBA-C13.9 | CBA2-C13.12 | `partial-overlap` | [CBA-C13.9:F1] span:0-84 — staged complete-use verdict over atomic method/transition, term, annual-change, pre-use eligibility, and post-use bar owners | DR2-0100 |
 | XW2-0269 | CBA-C13.10 | CBA2-C13.13 | `partial-overlap` | [CBA-C13.10:F1] span:0-23 — corrected BAE method verdict: signing and post-transition assignment; waiver claim is not authorized | DR2-0100 |
 | XW2-0270 | CBA-C13.10 | CBA2-C13.14 | `split` | [CBA-C13.10:F2] span:23-98 — aggregate BAE contract/use verdict over atomic amount/divisibility, term, annual-change, and consecutive-year owners | DR2-0100 |
 | XW2-0271 | CBA-C13.10 | CBA2-A05.3 | `split` | [CBA-C13.10:F3] span:98-122 — BAE First-Apron transaction component | DR2-0100 |
@@ -6406,7 +6408,7 @@ input contract.
 | EV2-0247 | CBA2-C13.9 | INFERRED | SRC2-001 | EV2-0276, EV2-0277, EV2-0278 | CBA VII §6(e)(1)-(4), pp. 236-37 | Separate provisions control aggregate amount, term, and annual changes | Their conjunction yields one NTMLE contract-shape verdict | Inference from the three direct contract components | Atomic owners control |
 | EV2-0248 | CBA2-C13.10 | CBA | SRC2-001 | — | CBA VII §6(f), pp. 237-38 | The TMLE amount may be divided among one or more signed players | Supplies amount use | — | — |
 | EV2-0249 | CBA2-C13.11 | INFERRED | SRC2-001 | EV2-0248, EV2-0263, EV2-0264, EV2-0265 | CBA VII §6(f)(1)-(3), pp. 237-38 | Separate provisions control amount/divisibility, signing method, term, and annual changes | Their conjunction yields one TMLE signed-contract verdict | Inference from the four direct signing-contract components | A05 owns apron consequences; atomic owners control |
-| EV2-0250 | CBA2-C13.12 | INFERRED | SRC2-001 | EV2-0266, EV2-0267, EV2-0268, EV2-0269 | CBA VII §6(g)(1)-(4), pp. 238-39 | Separate provisions control Room MLE method/transition, term, annual changes, and availability | Their conjunction yields one Room MLE use verdict | Inference from the four direct Room MLE components | Atomic owners control |
+| EV2-0250 | CBA2-C13.12 | INFERRED | SRC2-001 | EV2-0266, EV2-0267, EV2-0268, EV2-0269, EV2-0279 | CBA VII §6(g)(1)-(4), pp. 238-39 | Separate provisions control Room MLE method/transition, term, annual changes, pre-use eligibility, and the post-use bar | Their staged closure yields one complete-use compliance verdict | Inference over five direct owners without merging their lifecycle results | Atomic owners control |
 | EV2-0251 | CBA2-C13.13 | CBA | SRC2-001 | — | CBA VII §6(d)(1), p. 235 | BAE authorizes signing and assignment acquisition, with assignment barred before 2024-25 | Supplies the date-conditioned method verdict | — | No waiver-claim authority |
 | EV2-0252 | CBA2-C13.14 | INFERRED | SRC2-001 | EV2-0251, EV2-0270, EV2-0271, EV2-0272, EV2-0273 | CBA VII §6(d)(1)-(4), pp. 235-36 | Separate provisions control method, amount/divisibility, term, annual changes, and consecutive-year use | Their conjunction yields one BAE contract/use verdict | Inference from the five direct BAE components | Atomic owners control |
 | EV2-0253 | CBA2-C13.15 | CBA | SRC2-001 | — | CBA II §6, pp. 33-35; VII §6(k), pp. 246-47 | SRPE Contracts use the prescribed two-plus-Option or three-plus-Option minimum-based structures | Supplies contract structures | — | — |
@@ -6425,7 +6427,7 @@ input contract.
 | EV2-0266 | CBA2-C13.27 | CBA | SRC2-001 | — | CBA VII §6(g)(1), pp. 238-39 | Room MLE use permits signing and assignment acquisition, but assignment was barred before 2024-25 | Supplies date-conditioned method rule | — | — |
 | EV2-0267 | CBA2-C13.28 | CBA | SRC2-001 | — | CBA VII §6(g)(2), p. 239 | Signed or assigned Room MLE Contracts may have no more than three Seasons remaining | Supplies term limit | — | — |
 | EV2-0268 | CBA2-C13.29 | CBA | SRC2-001 | — | CBA VII §§5(a)(1), 6(g)(4), pp. 226-27, 239 | Room MLE signings may use annual Salary and Unlikely-Bonus changes only under §5(a)(1) | Supplies annual-change rule | — | — |
-| EV2-0269 | CBA2-C13.30 | CBA | SRC2-001 | — | CBA VII §6(g)(1), (3), pp. 238-39 | Room MLE requires the stated below-cap/no-prior-use predicates and its use bars BAE, NTMLE, and TMLE for the rest of the year | Supplies mutual-exclusivity availability | — | — |
+| EV2-0269 | CBA2-C13.30 | CBA | SRC2-001 | — | CBA VII §6(g)(1), pp. 238-39 | Before Room MLE use, the Team must be below the Cap such that it is not entitled to BAE/NTMLE/TMLE and must not already have used any of them that year | Supplies the pre-use eligibility predicate | — | Post-use bar is EV2-0279 |
 | EV2-0270 | CBA2-C13.31 | CBA | SRC2-001 | — | CBA VII §6(d)(1), p. 235 | One or more Contracts may share BAE first-year Salary and Unlikely Bonuses within the annual aggregate amount | Supplies amount/divisibility | — | — |
 | EV2-0271 | CBA2-C13.32 | CBA | SRC2-001 | — | CBA VII §6(d)(2), p. 235 | Each signed or assigned BAE Contract may have no more than two Seasons remaining | Supplies term limit | — | — |
 | EV2-0272 | CBA2-C13.33 | CBA | SRC2-001 | — | CBA VII §§5(a)(1), 6(d)(4), pp. 226-27, 236 | A two-Season BAE signing may change second-year Salary and Unlikely Bonuses only under §5(a)(1) | Supplies annual-change rule | — | — |
@@ -6435,6 +6437,7 @@ input contract.
 | EV2-0276 | CBA2-C13.37 | CBA | SRC2-001 | — | CBA VII §6(e)(1), p. 236 | One or more Contracts may share NTMLE first-year Salary and Unlikely Bonuses within the annual aggregate amount | Supplies amount/divisibility | — | — |
 | EV2-0277 | CBA2-C13.38 | CBA | SRC2-001 | — | CBA VII §6(e)(2), p. 236 | Each signed or assigned NTMLE Contract may have no more than four Seasons remaining | Supplies term limit | — | — |
 | EV2-0278 | CBA2-C13.39 | CBA | SRC2-001 | — | CBA VII §§5(a)(1), 6(e)(4), pp. 226-27, 236 | NTMLE-signed Contracts may use annual Salary and Unlikely-Bonus increases or decreases only under §5(a)(1) | Supplies annual-change rule | — | — |
+| EV2-0279 | CBA2-C13.40 | CBA | SRC2-001 | — | CBA VII §6(g)(3), p. 239 | Once a Team uses the Room MLE, it is prohibited from using BAE, NTMLE, or TMLE at all later times in that Salary Cap Year | Supplies the post-use lifecycle bar | — | Pre-use eligibility is EV2-0269 |
 
 ## 16. Acceptance-test library
 
@@ -6686,7 +6689,7 @@ This classification is part of the canon. A later source may move an OPS item in
 
 **A-family v2 status (R3.1 independently ACCEPTED; R4 unblocked but not started).** The rejected R3 checkpoint remains immutable history. R3.1 repaired its governed A-series records through AMEND lineage after the first compatibility checkpoint was independently accepted at `c3a00637` and the owner-authorized same-family compatibility checkpoint was independently accepted at `d6101f82`. The exact R3.1 maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4` was independently **ACCEPTED** by `/root/validation_scout`. It contains 12 GROUPs and **151 active A LEAFs**. The express VII §8(a) cash-year rule and the INFERRED conditional-cash application remain separate; the later re-trade residual remains preserved under its current searched `unsupported-residual` DISP. At that acceptance point, R4 is unblocked but remains not started. This is Phase 1 construction acceptance, not final activation; no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance.
 
-**C01–C13 v2 status (R4 repaired maker construction; repeat independent review pending).** The first R4 maker checkpoint was independently rejected and remains immutable history. Forward lineage in `DR2-0111`–`DR2-0114` repairs the five checker findings without altering that checkpoint. The repaired maker result adds 13 GROUPs and **119 active C LEAFs**, extending the shared namespaces through `XW2-0278`, `EV2-0278`, `DR2-0114`, `SM2-0009`, and `SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The R4-designated A08.1, A01.4, and C13.8 deferrals exit through current `DR2-0102` AMEND lineage. The C07.6 enumerated adjustments are separate; the C09 Tax Bracket Amount uses the signed 2023-24 scaling base; C10 separates charge, restoration, initial/additional payment, Team payment, and NBA distribution results; and the Minimum, NTMLE, TMLE, Room, and BAE aggregate routes depend on direct atomic contract components. The post-waiver reimbursement-extinction fragment is preserved as a searched `unsupported-residual`; the independently supported waived-contract Team Salary owner remains active. This remains a maker claim until the named checker explicitly ACCEPTs the exact clean repair checkpoint. R5 is blocked and unstarted, behavioral scenarios remain pending R7, Phase 1 continues, and no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance. C14–C25 and the R-, L-, and S-family rows remain legacy status claims pending R5–R6.
+**C01–C13 v2 status (R4 forward-lineage repair; third independent review pending).** The first R4 maker checkpoint and the second repaired maker checkpoint were independently rejected and remain immutable history. Forward lineage in `DR2-0111` and `DR2-0115` repairs their governed findings without altering either checkpoint. The current maker result adds 13 GROUPs and **120 active C LEAFs**, extending the shared namespaces through `XW2-0278`, `EV2-0279`, `DR2-0116`, `SM2-0009`, and `SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The R4-designated A08.1, A01.4, and C13.8 deferrals exit through current `DR2-0102` AMEND lineage. The C07.6 enumerated adjustments are separate; the C09 Tax Bracket Amount uses the signed 2023-24 scaling base; C10 separates charge, restoration, initial/additional payment, Team payment, and NBA distribution results; and the Minimum, NTMLE, TMLE, Room, and BAE aggregate routes depend on direct atomic contract components. Room MLE pre-use eligibility and its post-use exception bar are now distinct lifecycle owners. The post-waiver reimbursement-extinction fragment is preserved as a searched `unsupported-residual`; the independently supported waived-contract Team Salary owner remains active. This remains a maker claim until the named checker explicitly ACCEPTs the exact clean repair checkpoint. R5 is blocked and unstarted, behavioral scenarios remain pending R7, Phase 1 continues, and no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance. C14–C25 and the R-, L-, and S-family rows remain legacy status claims pending R5–R6.
 
 ### 19.4 CBA Guide sections reviewed for discovery
 

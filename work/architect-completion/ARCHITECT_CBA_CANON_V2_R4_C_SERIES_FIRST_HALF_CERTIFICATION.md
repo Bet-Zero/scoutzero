@@ -5,18 +5,23 @@
 The first R4 maker checkpoint
 `2fc11880025c917dc765fd2f18e5e3697c5661f2` was independently
 **REJECTED / BLOCK-R5** at checker commit
-`3880ea3f2baf022b7fa0477b34d4238721afad33`. The five governed repair groups
-are now applied in this working tree and are pending independent review of a
-new exact clean maker checkpoint. The repaired result adds 13 C-family GROUPs
-and 119 active C01–C13 LEAFs to the shared register.
+`3880ea3f2baf022b7fa0477b34d4238721afad33`. The second maker checkpoint
+`3f4cbe4a05c660bac897b577880110bf8dd241c6` repaired four source groups but
+was independently **REJECTED / BLOCK-R5** at checker commit
+`69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4` for one residual Room MLE
+atomicity defect and three decision/lineage labels. Those bounded residuals
+are now repaired through forward lineage and are pending review of a new
+exact clean maker checkpoint. The current result adds 13 C-family GROUPs and
+120 active C01–C13 LEAFs to the shared register.
 R5 remains blocked and unstarted. This receipt does not claim R9 acceptance,
 final canon activation, or Phase 2 authority.
 
 The exact R3.1 maker checkpoint
 `9239c1d3dc595538beb048c77788cd2c453240a4` remains independently accepted.
 R4 changes no prior receipt. It uses `DR2-0102` AMEND lineage to exit the
-three R4-designated deferrals and `DR2-0111` forward lineage to repair the
-rejected maker checkpoint.
+three R4-designated deferrals, `DR2-0111` forward lineage to repair the first
+rejected maker checkpoint, and `DR2-0115` forward lineage to repair the
+second.
 
 ## Source verification
 
@@ -58,7 +63,7 @@ normalized requirement exactly over `[0,L)`.
 | Tax | finalization base, adjustments, repeater predicate, rate tables, transition years, and arithmetic are separate | CBA2-C08.1–C09.7 |
 | Minimum Team Salary | annual amount, three adjusted concepts, charge, next-day restoration, initial/additional payments, sharing consequence, audit timing, and distribution are separate | CBA2-C10.1–C10.11 |
 | Injury mechanisms | long-term exclusion and DPE are separate; durable DPE state/extinguishment representation remains expressly deferred to R6 | CBA2-C11.1–C12.9; XW2-0235, XW2-0239, XW2-0255 |
-| Exceptions | combination/selection, proration, Minimum, NTMLE, TMLE, Room, BAE, SRPE, Rookie, and method/signing routing are separate; mixed exception rules resolve to one aggregate verdict over atomic source-law owners | CBA2-C13.1–C13.39 |
+| Exceptions | combination/selection, proration, Minimum, NTMLE, TMLE, Room, BAE, SRPE, Rookie, and method/signing routing are separate; mixed exception rules resolve through staged aggregate verdicts over atomic source-law owners | CBA2-C13.1–C13.40 |
 
 ## Atomicity evidence
 
@@ -77,7 +82,7 @@ shares authority, method, lifecycle, and result.
 | C10 MTS | GIVEN fixed first-day and year-end inputs, WHEN current Cap Hold Team Salary changes, THEN only the charge/restoration results can change; WHEN the fixed payment base or year-end responsible total changes, only the applicable payment changes | split CBA2-C10.2–C10.11 |
 | C11/C12 | GIVEN one injured player, WHEN exclusion versus DPE facts change, THEN distinct exception, Salary, timing, and medical-contract results change | separate C11 and C12 owners |
 | C13 proration exceptions | GIVEN January 10, WHEN exception type or protected-use branch changes, THEN the same reduction/non-reduction result changes | retain homogeneous lists at CBA2-C13.4–C13.5 |
-| C13 contract shapes | GIVEN one exception, WHEN method, amount, term, annual-change, assignment-transition, or frequency facts change, THEN one atomic component changes and its aggregate eligibility verdict recomputes | direct component owners CBA2-C13.21–C13.39 plus single-result aggregate route owners; apron consequences remain A05 |
+| C13 contract shapes | GIVEN one exception, WHEN method, amount, term, annual-change, assignment-transition, pre-use eligibility, post-use lifecycle, or frequency facts change, THEN one direct component changes and any aggregate compliance verdict recomputes | direct component owners CBA2-C13.21–C13.40 plus staged aggregate route owners; Room MLE pre-use and post-use results are separate; apron consequences remain A05 |
 
 ## Decision records
 
@@ -95,10 +100,12 @@ shares authority, method, lifecycle, and result.
 | DR2-0108 | `OWN` | CBA-C10.4:F2, XW2-0231 | Restore the historical next-day restoration duty to its direct current owner | Exact VII §2(c)(4) source comparison | The signed text expressly requires increasing MTS Cap Hold Team Salary to at least the MTS Threshold by the end of the immediately following day | CBA2-C10.6 | R4 / this checkpoint |
 | DR2-0109 | `DISP` | CBA-C13.1:F1, XW2-0256 | Process-only ledger-field prescription | Legal-obligation versus implementation-record test | Underlying amounts, methods, dates, and apron consequences have active legal owners; a specific application ledger schema is not source law | — | R4 / this checkpoint |
 | DR2-0110 | `OWN` | CBA-C11.2:F1, CBA-C11.2:F5, CBA-C11.9:F2, CBA-C12.2:F6 | Preserve exact R6 DPE-state deferrals | Natural-family and durable-state tiebreak | Persisted DPE state/extinguishment belongs to R6; every R4 historical fragment otherwise has a current owner or terminal disposition | — | R4 / this checkpoint |
-| DR2-0111 | `AMEND` | Rejected R4 maker checkpoint `2fc11880025c917dc765fd2f18e5e3697c5661f2` | Repair the checker-rejected source, atomicity, method, timing, and ownership records through forward lineage | Exact prior-checkpoint identity plus structured cross-population amendment | The rejected checkpoint remains immutable while every changed current record has explicit lineage | — | R4 / this checkpoint |
-| DR2-0112 | `ATOM` | Corrected MTS timing and C13 exception-shape routes | Register direct atomic components and retain only single-result aggregate eligibility/use verdicts | GIVEN/WHEN/THEN result test plus dependency closure | Each direct component has one source result; each aggregate route produces one eligibility/use verdict from those components | CBA2-C10.11, CBA2-C13.6, CBA2-C13.8, CBA2-C13.9, CBA2-C13.11, CBA2-C13.12, CBA2-C13.13, CBA2-C13.14, CBA2-C13.21, CBA2-C13.22, CBA2-C13.23, CBA2-C13.24, CBA2-C13.25, CBA2-C13.26, CBA2-C13.27, CBA2-C13.28, CBA2-C13.29, CBA2-C13.30, CBA2-C13.31, CBA2-C13.32, CBA2-C13.33, CBA2-C13.34, CBA2-C13.35, CBA2-C13.36, CBA2-C13.37, CBA2-C13.38, CBA2-C13.39 | R4 / this checkpoint |
-| DR2-0113 | `METHOD` | Rejected C10 restoration classification | Use same-ID DR2/XW2 revision plus DISP removal rather than a new replacement edge | Immutable rejected-checkpoint lineage and stable historical-edge identity | The repair retains XW2-0231 and DR2-0108 as current corrected identities while removing only the disproved terminal disposition detail | CBA2-C10.6 | R4 / this checkpoint |
+| DR2-0111 | `AMEND` | First rejected R4 maker checkpoint `2fc11880025c917dc765fd2f18e5e3697c5661f2` | Repair the checker-rejected source, atomicity, timing, ownership, and governed lineage records through forward amendment | Exact prior-checkpoint identity plus structured cross-population amendment | The first rejected checkpoint remains immutable while every changed current record has explicit, truthfully labeled lineage | — | R4 / this checkpoint |
+| DR2-0112 | `ATOM` | Corrected MTS timing and C13 exception-shape routes | Register direct atomic components and retain only single-result or explicitly staged aggregate eligibility/use verdicts | GIVEN/WHEN/THEN result test plus dependency closure | Each direct component has one source result; aggregate routes depend on those direct owners without merging their independently enforceable results | CBA2-C10.11, CBA2-C13.6, CBA2-C13.8, CBA2-C13.9, CBA2-C13.11, CBA2-C13.12, CBA2-C13.13, CBA2-C13.14, CBA2-C13.21, CBA2-C13.22, CBA2-C13.23, CBA2-C13.24, CBA2-C13.25, CBA2-C13.26, CBA2-C13.27, CBA2-C13.28, CBA2-C13.29, CBA2-C13.30, CBA2-C13.31, CBA2-C13.32, CBA2-C13.33, CBA2-C13.34, CBA2-C13.35, CBA2-C13.36, CBA2-C13.37, CBA2-C13.38, CBA2-C13.39, CBA2-C13.40 | R4 / this checkpoint |
+| DR2-0113 | `ATOM` | CBA2-C10.5, CBA2-C10.6 | Keep the in-season MTS charge and next-day restoration duty as separate current results | Change one underlying Team Salary base versus one qualifying decrease-and-deadline fact | VII §2(c)(3) determines the charge amount while §2(c)(4) independently imposes the restoration duty | CBA2-C10.5, CBA2-C10.6 | R4 / this checkpoint |
 | DR2-0114 | `ORIGIN` | New source-located R4 repair components | Register only direct current authority components absent from the rejected maker checkpoint | True-gap/new-source-component test | EV2-0259–EV2-0278 directly support the new timing and exception-shape components without hiding historical fragments | CBA2-C10.11, CBA2-C13.21, CBA2-C13.22, CBA2-C13.23, CBA2-C13.24, CBA2-C13.25, CBA2-C13.26, CBA2-C13.27, CBA2-C13.28, CBA2-C13.29, CBA2-C13.30, CBA2-C13.31, CBA2-C13.32, CBA2-C13.33, CBA2-C13.34, CBA2-C13.35, CBA2-C13.36, CBA2-C13.37, CBA2-C13.38, CBA2-C13.39 | R4 / this checkpoint |
+| DR2-0115 | `AMEND` | Second rejected R4 maker checkpoint `3f4cbe4a05c660bac897b577880110bf8dd241c6` | Split Room MLE pre-use/post-use results and correct the remaining decision/lineage labels | Exact prior-checkpoint identity plus structured cross-population amendment | The second rejected checkpoint remains immutable while its three bounded residual groups resolve to current truthful records | — | R4 / this checkpoint |
+| DR2-0116 | `ORIGIN` | CBA2-C13.40, EV2-0279 | Register the direct Room MLE post-use lifecycle consequence absent from the second maker checkpoint | True-gap/new-source-component test | VII §6(g)(3) directly supplies a separately implementable post-use bar without changing the §6(g)(1) pre-use owner | CBA2-C13.40 | R4 / this checkpoint |
 
 ## AMEND detail rows
 
@@ -139,13 +146,13 @@ shares authority, method, lifecycle, and result.
 | DR2-0111 | XW2 | XW2-0268 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0268 | — | Preserve its single aggregate Room MLE owner over atomic dependencies |
 | DR2-0111 | XW2 | XW2-0269 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0269 | — | Correct the BAE method transition and exclude unsupported waiver claims |
 | DR2-0111 | XW2 | XW2-0270 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0270 | — | Preserve its single aggregate BAE contract/use owner over atomic dependencies |
-| DR2-0111 | EV2 | EV2-0204 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0204 | — | Remove the unrelated Article II locator and cite the direct tax-bracket provision |
+| DR2-0111 | EV2 | EV2-0204 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0204 | — | Remove the unrelated Article II locator and cite the direct suspension Tax Team Salary adjustment provision |
 | DR2-0111 | EV2 | EV2-0205 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0205 | — | Align the tax arithmetic evidence with the corrected bracket base |
 | DR2-0111 | EV2 | EV2-0212 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0212 | — | Correct the annual MTS locator |
 | DR2-0111 | EV2 | EV2-0213 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0213 | — | Correct the current MTS Cap Hold Team Salary evidence |
 | DR2-0111 | EV2 | EV2-0214 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0214 | — | Correct the fixed first-day MTS Payment Team Salary evidence |
 | DR2-0111 | EV2 | EV2-0216 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0216 | — | Correct the in-season charge formula evidence |
-| DR2-0111 | EV2 | EV2-0217 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0217 | — | Restore the next-day charge-removal evidence |
+| DR2-0111 | EV2 | EV2-0217 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0217 | — | Restore the next-day MTS Cap Hold Team Salary restoration duty and expressly exclude a general charge-removal rule |
 | DR2-0111 | EV2 | EV2-0218 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0218 | — | Correct the initial-payment base evidence |
 | DR2-0111 | EV2 | EV2-0220 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0220 | — | Correct the year-end additional-payment evidence |
 | DR2-0111 | EV2 | EV2-0221 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0221 | — | Separate the Team payment deadline from NBA distribution |
@@ -161,6 +168,16 @@ shares authority, method, lifecycle, and result.
 | DR2-0111 | DR2 | DR2-0104 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | DR2-0104 | — | Remove CBA2-C13.6 from the homogeneous-list exception decision |
 | DR2-0111 | DR2 | DR2-0108 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | DR2-0108 | — | Revise the false terminal decision into the supported restoration owner |
 | DR2-0111 | DISP | DR2-0108 | 1 | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | remove | — | — | Signed VII §2(c)(4) proves the next-day restoration duty |
+| DR2-0115 | GROUP | CBA2-C13 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | CBA2-C13 | — | Extend the group for the separately implementable Room MLE post-use bar |
+| DR2-0115 | LEAF | CBA2-C10.5 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | CBA2-C10.5 | — | Cite the corrected ATOM decision that separates the §2(c)(3) charge from the §2(c)(4) restoration duty |
+| DR2-0115 | LEAF | CBA2-C13.12 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | CBA2-C13.12 | — | Make the aggregate complete-use verdict depend on distinct pre-use and post-use owners without merging them |
+| DR2-0115 | LEAF | CBA2-C13.30 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | CBA2-C13.30 | — | Narrow the existing owner to §6(g)(1) pre-use eligibility; the new CBA2-C13.40 separately owns the §6(g)(3) post-use consequence |
+| DR2-0115 | XW2 | XW2-0268 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | XW2-0268 | — | Reconcile the historical complete-use fragment to the staged aggregate over both direct lifecycle owners |
+| DR2-0115 | EV2 | EV2-0250 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | EV2-0250 | — | Add the separate post-use evidence dependency to the staged complete-use inference |
+| DR2-0115 | EV2 | EV2-0269 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | EV2-0269 | — | Narrow the existing evidence to §6(g)(1) pre-use eligibility; new EV2-0279 separately supplies §6(g)(3) post-use evidence |
+| DR2-0115 | DR2 | DR2-0111 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | DR2-0111 | — | Correct the governed EV2-0204 and EV2-0217 amendment reasons and identify the first rejected checkpoint precisely |
+| DR2-0115 | DR2 | DR2-0112 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | DR2-0112 | — | Add the distinct Room MLE post-use owner to the atomic dependency closure |
+| DR2-0115 | DR2 | DR2-0113 | — | 3f4cbe4a05c660bac897b577880110bf8dd241c6 | revise | DR2-0113 | — | Replace the R7-only METHOD label with the truthful R4 ATOM decision separating charge and restoration |
 
 ## DISP detail rows
 
@@ -334,13 +351,13 @@ scoped documentation commands run.
 | U1 | Every pinned C01–C13 historical requirement is covered by the union of this receipt and the existing C11.9/C13.8 inventory; no whole unsupported valid in-scope obligation escapes. |
 | U2 | Every active C obligation passed the independent trigger/result atomicity test, cites the closed homogeneous-list exception in DR2-0104, or is a single-result aggregate route over direct atomic dependencies under DR2-0112. |
 | U3 | Every active LEAF names only a qualifying authority class and an `EV2` component whose source chain supports that exact result. |
-| U4 | `EV2-0160`–`EV2-0278` cover every active C LEAF exactly once at the main authority-component level; dependencies are explicit. |
+| U4 | `EV2-0160`–`EV2-0279` cover every active C LEAF exactly once at the main authority-component level; dependencies are explicit. |
 | U5 | New/revised XW2 edges and fragment rows reconcile bidirectionally; the two pre-existing homogeneous deferred fragments each resolve through one revised edge to one current owner, so R4 adds no BND record. |
-| U6 | Source-located gaps use DR2-0101 or DR2-0114 and do not replace or conceal an omitted historical fragment. |
+| U6 | Source-located gaps use DR2-0101, DR2-0114, or DR2-0116 and do not replace or conceal an omitted historical fragment. |
 | U7 | No wholly unsupported valid C01–C13 obligation was found; BLK/RES remain correctly absent. The supported sibling CBA2-C05.4 permits the exact unsupported C05.4 residual to terminate through DISP. |
 | U8 | No source date was invented. R4 reuses the governed source/date components and records the search cutoff only as verification metadata. |
-| U9 | Every current direct reference resolves to one current record; the three R4 deferrals exit through DR2-0102 AMEND lineage and the rejected R4 checkpoint is repaired through DR2-0111. |
-| U10 | New IDs allocate strictly above the shared high-water marks: XW2 through 0278, EV2 through 0278, DR2 through 0114, SM2 through 0009, and SS2 through 0002; R4 adds no BND above the existing BND-0010 high-water mark. |
+| U9 | Every current direct reference resolves to one current record; the three R4 deferrals exit through DR2-0102 AMEND lineage and the two rejected R4 maker checkpoints are repaired through DR2-0111 and DR2-0115. |
+| U10 | New IDs allocate strictly above the shared high-water marks: XW2 through 0278, EV2 through 0279, DR2 through 0116, SM2 through 0009, and SS2 through 0002; R4 adds no BND above the existing BND-0010 high-water mark. |
 | U11 | Historical rows and all prior receipts remain byte-untouched; only current canon structures, this receipt, and the repair-plan status are maker-authorized. |
 | U12 | No secondary explainer, remembered practice, or unauthenticated CDN response is registered as authority. |
 | U13 | Remaining deferrals identify exact fragments, natural families, and R5/R6 resolving units; no R4-designated deferral remains. |
@@ -357,8 +374,8 @@ untriggered.
 
 - `git diff --check` — PASS.
 - `python3 work/architect-completion/cba_canon_v2_foundation_validator.py` —
-  PASS: 25 GROUPs, 270 LEAF-main rows, 270 LEAF-detail rows, 273 XW2 edges,
-  278 EV2 components, 114 DR2 records, 263 fragment rows, 288 AMEND-detail
+  PASS: 25 GROUPs, 271 LEAF-main rows, 271 LEAF-detail rows, 273 XW2 edges,
+  279 EV2 components, 116 DR2 records, 263 fragment rows, 298 AMEND-detail
   rows, 10 inherited BND rows, 17 DISP-detail rows, 9 SM2 rows, and 2 SS2
   rows; all 14 accepting controls and 109 rejecting regression controls
   passed, the baseline was clean, the negative self-test failed as intended,
@@ -377,16 +394,18 @@ untriggered.
 - The repository-wide `npm run lint:md` was run for the first maker
   checkpoint and reported only pre-existing findings in unrelated architect
   audit/code-map files and the canon's preserved numbered scenario blocks.
-  Those canon MD029 findings reproduced against the pre-R4 canon. The repair
-  does not touch those scenario blocks; the scoped maker Markdown command
-  above is clean.
+  Those canon MD029 findings reproduced against the pre-R4 canon. The current
+  repair does not touch those scenario blocks; the scoped maker Markdown
+  command above is clean.
 
 ## Independent review
 
 The first maker checkpoint was independently **REJECTED / BLOCK-R5** at
-checker commit `3880ea3f2baf022b7fa0477b34d4238721afad33`; that history remains
-in the checker receipt. The same checker must now review the exact clean
-repair checkpoint and append its new cycle only to
+checker commit `3880ea3f2baf022b7fa0477b34d4238721afad33`; the second was
+independently **REJECTED / BLOCK-R5** at checker commit
+`69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4`. Both histories remain in the
+checker receipt. The same checker must now review the exact clean
+forward-lineage checkpoint and append its new cycle only to
 `ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_INDEPENDENT_REVIEW.md`.
 Only an explicit **ACCEPT** of that exact checkpoint unblocks R5.
 
