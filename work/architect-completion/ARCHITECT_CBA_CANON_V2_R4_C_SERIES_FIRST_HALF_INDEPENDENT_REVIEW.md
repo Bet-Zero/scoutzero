@@ -12,8 +12,10 @@ independently testable requirements. R4 remains in progress. R5, Phase 2,
 W1.1, application comparison, and application implementation remain blocked
 and unstarted.
 
-Checker: independent role `/root/r4_checker`  
-Review date: `2026-07-26`  
+Checker: independent role `/root/r4_checker`
+
+Review date: `2026-07-26`
+
 Maker base accepted before R4:
 `9239c1d3dc595538beb048c77788cd2c453240a4`
 
