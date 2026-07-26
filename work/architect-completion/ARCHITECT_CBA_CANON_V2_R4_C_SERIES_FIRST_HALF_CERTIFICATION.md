@@ -2,16 +2,21 @@
 
 ## Status
 
-R4 maker construction is complete in this working tree and is pending
-independent review of the exact clean maker checkpoint. The governed result
-adds 13 C-family GROUPs and 99 active C01–C13 LEAFs to the shared register.
+The first R4 maker checkpoint
+`2fc11880025c917dc765fd2f18e5e3697c5661f2` was independently
+**REJECTED / BLOCK-R5** at checker commit
+`3880ea3f2baf022b7fa0477b34d4238721afad33`. The five governed repair groups
+are now applied in this working tree and are pending independent review of a
+new exact clean maker checkpoint. The repaired result adds 13 C-family GROUPs
+and 119 active C01–C13 LEAFs to the shared register.
 R5 remains blocked and unstarted. This receipt does not claim R9 acceptance,
 final canon activation, or Phase 2 authority.
 
 The exact R3.1 maker checkpoint
 `9239c1d3dc595538beb048c77788cd2c453240a4` remains independently accepted.
-R4 changes no prior receipt and uses AMEND lineage to exit the three
-R4-designated deferrals.
+R4 changes no prior receipt. It uses `DR2-0102` AMEND lineage to exit the
+three R4-designated deferrals and `DR2-0111` forward lineage to repair the
+rejected maker checkpoint.
 
 ## Source verification
 
@@ -51,9 +56,9 @@ normalized requirement exactly over `[0,L)`.
 | Minimum reimbursement | contract eligibility, ledger amount, benefits-fund payment, waived-contract Salary, and exception/reimbursement independence are separate | CBA2-C05.1–C05.5 |
 | Apron Team Salary | baseline plus all ten enumerated adjustments; historical C07.6 becomes distinct (vi) and (vii) owners | CBA2-C07.1–C07.11; XW2-0202–XW2-0203 |
 | Tax | finalization base, adjustments, repeater predicate, rate tables, transition years, and arithmetic are separate | CBA2-C08.1–C09.7 |
-| Minimum Team Salary | threshold, three adjusted concepts, charge, restoration, payment, sharing consequence, accounting, and distribution are separate | CBA2-C10.1–C10.10 |
+| Minimum Team Salary | annual amount, three adjusted concepts, charge, next-day restoration, initial/additional payments, sharing consequence, audit timing, and distribution are separate | CBA2-C10.1–C10.11 |
 | Injury mechanisms | long-term exclusion and DPE are separate; durable DPE state/extinguishment representation remains expressly deferred to R6 | CBA2-C11.1–C12.9; XW2-0235, XW2-0239, XW2-0255 |
-| Exceptions | combination/selection, proration, Minimum, NTMLE, TMLE, Room, BAE, SRPE, Rookie, and method/signing routing are separate | CBA2-C13.1–C13.20 |
+| Exceptions | combination/selection, proration, Minimum, NTMLE, TMLE, Room, BAE, SRPE, Rookie, and method/signing routing are separate; mixed exception rules resolve to one aggregate verdict over atomic source-law owners | CBA2-C13.1–C13.39 |
 
 ## Atomicity evidence
 
@@ -69,10 +74,10 @@ shares authority, method, lifecycle, and result.
 | C07.6 historical bundle | GIVEN fixed Team Salary, WHEN an unsigned-pick hold changes versus a Required Tender changes, THEN subtraction (vi) and addition (vii) change independently | split CBA2-C07.7 and CBA2-C07.8 |
 | C08 adjustments | GIVEN the last-game baseline, WHEN one bonus/trade/grievance/minimum/suspension fact changes, THEN only its tax adjustment changes | split CBA2-C08.2–C08.8 |
 | C09 rates | GIVEN one taxpayer status and bracket, WHEN repeater status changes, THEN the applicable table changes without changing bracket size | split CBA2-C09.1–C09.7 |
-| C10 MTS | GIVEN fixed season-start and final ledgers, WHEN current Cap Hold Team Salary changes, THEN the charge changes without changing the final payment; WHEN final Payment Team Salary changes, the inverse is true | split CBA2-C10.2–C10.10 |
+| C10 MTS | GIVEN fixed first-day and year-end inputs, WHEN current Cap Hold Team Salary changes, THEN only the charge/restoration results can change; WHEN the fixed payment base or year-end responsible total changes, only the applicable payment changes | split CBA2-C10.2–C10.11 |
 | C11/C12 | GIVEN one injured player, WHEN exclusion versus DPE facts change, THEN distinct exception, Salary, timing, and medical-contract results change | separate C11 and C12 owners |
 | C13 proration exceptions | GIVEN January 10, WHEN exception type or protected-use branch changes, THEN the same reduction/non-reduction result changes | retain homogeneous lists at CBA2-C13.4–C13.5 |
-| C13 contract shapes | GIVEN one exception, WHEN method, term, raise, apron, or frequency fact changes, THEN results change independently | split method/shape/apron owners; apron consequences remain A05 |
+| C13 contract shapes | GIVEN one exception, WHEN method, amount, term, annual-change, assignment-transition, or frequency facts change, THEN one atomic component changes and its aggregate eligibility verdict recomputes | direct component owners CBA2-C13.21–C13.39 plus single-result aggregate route owners; apron consequences remain A05 |
 
 ## Decision records
 
@@ -83,13 +88,17 @@ shares authority, method, lifecycle, and result.
 | DR2-0101 | `ORIGIN` | Source-located C01–C13 obligations without an exact published predecessor | Register only direct current authority components | True-gap/new-source-component test | Each new obligation is directly supported by EV2-0160–EV2-0258 and is not used to hide an omitted historical fragment | CBA2-C01.1, CBA2-C01.2, CBA2-C01.3, CBA2-C01.4, CBA2-C01.5, CBA2-C01.6, CBA2-C01.7, CBA2-C01.8, CBA2-C01.9, CBA2-C02.1, CBA2-C02.2, CBA2-C02.3, CBA2-C02.4, CBA2-C03.1, CBA2-C03.2, CBA2-C04.1, CBA2-C04.2, CBA2-C04.3, CBA2-C05.1, CBA2-C05.2, CBA2-C05.3, CBA2-C05.4, CBA2-C05.5, CBA2-C06.1, CBA2-C06.2, CBA2-C06.3, CBA2-C07.1, CBA2-C07.2, CBA2-C07.3, CBA2-C07.4, CBA2-C07.5, CBA2-C07.6, CBA2-C07.7, CBA2-C07.8, CBA2-C07.9, CBA2-C07.10, CBA2-C07.11, CBA2-C08.1, CBA2-C08.2, CBA2-C08.3, CBA2-C08.4, CBA2-C08.5, CBA2-C08.6, CBA2-C08.7, CBA2-C08.8, CBA2-C09.1, CBA2-C09.2, CBA2-C09.3, CBA2-C09.4, CBA2-C09.5, CBA2-C09.6, CBA2-C09.7, CBA2-C10.1, CBA2-C10.2, CBA2-C10.3, CBA2-C10.4, CBA2-C10.5, CBA2-C10.6, CBA2-C10.7, CBA2-C10.8, CBA2-C10.9, CBA2-C10.10, CBA2-C11.1, CBA2-C11.2, CBA2-C11.3, CBA2-C11.4, CBA2-C11.5, CBA2-C11.6, CBA2-C11.7, CBA2-C11.8, CBA2-C12.1, CBA2-C12.2, CBA2-C12.3, CBA2-C12.4, CBA2-C12.5, CBA2-C12.6, CBA2-C12.7, CBA2-C12.8, CBA2-C12.9, CBA2-C13.1, CBA2-C13.2, CBA2-C13.3, CBA2-C13.4, CBA2-C13.5, CBA2-C13.6, CBA2-C13.7, CBA2-C13.8, CBA2-C13.9, CBA2-C13.10, CBA2-C13.11, CBA2-C13.12, CBA2-C13.13, CBA2-C13.14, CBA2-C13.15, CBA2-C13.16, CBA2-C13.17, CBA2-C13.18, CBA2-C13.19, CBA2-C13.20 | R4 / this checkpoint |
 | DR2-0102 | `AMEND` | XW2-0147, XW2-0151, XW2-0155, DR2-0095 | Exit the three R4-designated deferrals through forward lineage | Resolving-unit and exact-fragment reconciliation | R4 now supplies Team Salary, Minimum Exception, and TMLE natural owners without changing prior receipts | — | R4 / this checkpoint |
 | DR2-0103 | `TG` | CBA2-C13.20 | Register the source-located UFA signing-route inventory without pulling R5 Bird mechanics into R4 | True-gap versus deferred-historical-fragment test | The historical C13.14 route has a bounded R4 routing owner while detailed Bird rules remain R5 | CBA2-C13.20 | R4 / this checkpoint |
-| DR2-0104 | `ATOM` | CBA2-C01.4, CBA2-C01.7, CBA2-C03.1, CBA2-C09.2, CBA2-C09.4, CBA2-C13.4, CBA2-C13.5, CBA2-C13.6, CBA2-C13.18 | Retain closed homogeneous-list/calculation exceptions | Common authority/method/lifecycle/result test | Each list member changes the same one calculation or verdict and hides no sibling outcome | CBA2-C01.4, CBA2-C01.7, CBA2-C03.1, CBA2-C09.2, CBA2-C09.4, CBA2-C13.4, CBA2-C13.5, CBA2-C13.6, CBA2-C13.18 | R4 / this checkpoint |
+| DR2-0104 | `ATOM` | CBA2-C01.4, CBA2-C01.7, CBA2-C03.1, CBA2-C09.2, CBA2-C09.4, CBA2-C13.4, CBA2-C13.5, CBA2-C13.18 | Retain closed homogeneous-list/calculation exceptions | Common authority/method/lifecycle/result test | Each list member changes the same one calculation or verdict and hides no sibling outcome | CBA2-C01.4, CBA2-C01.7, CBA2-C03.1, CBA2-C09.2, CBA2-C09.4, CBA2-C13.4, CBA2-C13.5, CBA2-C13.18 | R4 / this checkpoint |
 | DR2-0105 | `DISP` | CBA-C02.2:F3, XW2-0181 | Terminal invalid second-round Required-Tender/Apron claim | Exact VII §2(e)(1)(vii) round comparison | The signed adjustment applies to an outstanding Required Tender to a First Round Pick | — | R4 / this checkpoint |
 | DR2-0106 | `DISP` | CBA-C05.4:F1, XW2-0191 | Unsupported residual after adequate bounded search | Exact-fragment no-owner test after CBA/BYL/NBA/ops-provenance coverage | No qualifying authority states that the reimbursement component disappears upon waiver | — | R4 / this checkpoint |
 | DR2-0107 | `DISP` | CBA-C10.3:F2, XW2-0228 | Terminal false equality claim | Compare distinct §2(c)(2), (4), and (5) adjusted bases | The in-season charge is not necessarily equal to the year-end payment | — | R4 / this checkpoint |
-| DR2-0108 | `DISP` | CBA-C10.4:F2, XW2-0231 | Terminal false prompt-correction duty | Compare historical paraphrase to §2(c)(2) charge/restoration rule | The CBA applies a charge and restoration event; it does not command prompt roster correction | — | R4 / this checkpoint |
+| DR2-0108 | `OWN` | CBA-C10.4:F2, XW2-0231 | Restore the historical next-day restoration duty to its direct current owner | Exact VII §2(c)(4) source comparison | The signed text expressly requires increasing MTS Cap Hold Team Salary to at least the MTS Threshold by the end of the immediately following day | CBA2-C10.6 | R4 / this checkpoint |
 | DR2-0109 | `DISP` | CBA-C13.1:F1, XW2-0256 | Process-only ledger-field prescription | Legal-obligation versus implementation-record test | Underlying amounts, methods, dates, and apron consequences have active legal owners; a specific application ledger schema is not source law | — | R4 / this checkpoint |
 | DR2-0110 | `OWN` | CBA-C11.2:F1, CBA-C11.2:F5, CBA-C11.9:F2, CBA-C12.2:F6 | Preserve exact R6 DPE-state deferrals | Natural-family and durable-state tiebreak | Persisted DPE state/extinguishment belongs to R6; every R4 historical fragment otherwise has a current owner or terminal disposition | — | R4 / this checkpoint |
+| DR2-0111 | `AMEND` | Rejected R4 maker checkpoint `2fc11880025c917dc765fd2f18e5e3697c5661f2` | Repair the checker-rejected source, atomicity, method, timing, and ownership records through forward lineage | Exact prior-checkpoint identity plus structured cross-population amendment | The rejected checkpoint remains immutable while every changed current record has explicit lineage | — | R4 / this checkpoint |
+| DR2-0112 | `ATOM` | Corrected MTS timing and C13 exception-shape routes | Register direct atomic components and retain only single-result aggregate eligibility/use verdicts | GIVEN/WHEN/THEN result test plus dependency closure | Each direct component has one source result; each aggregate route produces one eligibility/use verdict from those components | CBA2-C10.11, CBA2-C13.6, CBA2-C13.8, CBA2-C13.9, CBA2-C13.11, CBA2-C13.12, CBA2-C13.13, CBA2-C13.14, CBA2-C13.21, CBA2-C13.22, CBA2-C13.23, CBA2-C13.24, CBA2-C13.25, CBA2-C13.26, CBA2-C13.27, CBA2-C13.28, CBA2-C13.29, CBA2-C13.30, CBA2-C13.31, CBA2-C13.32, CBA2-C13.33, CBA2-C13.34, CBA2-C13.35, CBA2-C13.36, CBA2-C13.37, CBA2-C13.38, CBA2-C13.39 | R4 / this checkpoint |
+| DR2-0113 | `METHOD` | Rejected C10 restoration classification | Use same-ID DR2/XW2 revision plus DISP removal rather than a new replacement edge | Immutable rejected-checkpoint lineage and stable historical-edge identity | The repair retains XW2-0231 and DR2-0108 as current corrected identities while removing only the disproved terminal disposition detail | CBA2-C10.6 | R4 / this checkpoint |
+| DR2-0114 | `ORIGIN` | New source-located R4 repair components | Register only direct current authority components absent from the rejected maker checkpoint | True-gap/new-source-component test | EV2-0259–EV2-0278 directly support the new timing and exception-shape components without hiding historical fragments | CBA2-C10.11, CBA2-C13.21, CBA2-C13.22, CBA2-C13.23, CBA2-C13.24, CBA2-C13.25, CBA2-C13.26, CBA2-C13.27, CBA2-C13.28, CBA2-C13.29, CBA2-C13.30, CBA2-C13.31, CBA2-C13.32, CBA2-C13.33, CBA2-C13.34, CBA2-C13.35, CBA2-C13.36, CBA2-C13.37, CBA2-C13.38, CBA2-C13.39 | R4 / this checkpoint |
 
 ## AMEND detail rows
 
@@ -101,6 +110,57 @@ shares authority, method, lifecycle, and result.
 | DR2-0102 | XW2 | XW2-0151 | — | 9239c1d3dc595538beb048c77788cd2c453240a4 | revise | XW2-0151 | — | Exit R4 Team Salary roster-inclusion deferral with the signed all-under-Contract owner |
 | DR2-0102 | XW2 | XW2-0155 | — | 9239c1d3dc595538beb048c77788cd2c453240a4 | revise | XW2-0155 | — | Exit the R4 TMLE deferral by resolving the already-inventoried homogeneous signing-contract fragment to CBA2-C13.11 |
 | DR2-0102 | DR2 | DR2-0095 | — | 9239c1d3dc595538beb048c77788cd2c453240a4 | replace | DR2-0102 | — | Supersede the R4-deferred same-family ownership decision with resolved forward lineage |
+| DR2-0111 | GROUP | CBA2-C10 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10 | — | Extend the MTS group for the separate NBA distribution deadline owner |
+| DR2-0111 | GROUP | CBA2-C13 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13 | — | Extend exception shapes with direct atomic source components |
+| DR2-0111 | LEAF | CBA2-C09.1 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C09.1 | — | Correct the Tax Bracket Amount scaling formula to its signed 2023-24 base |
+| DR2-0111 | LEAF | CBA2-C10.1 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10.1 | — | Correct the annual MTS amount rule and locator |
+| DR2-0111 | LEAF | CBA2-C10.2 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10.2 | — | Correct the current MTS Cap Hold Team Salary base |
+| DR2-0111 | LEAF | CBA2-C10.3 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10.3 | — | Correct the fixed first-day MTS Payment Team Salary base |
+| DR2-0111 | LEAF | CBA2-C10.5 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10.5 | — | Correct the charge to the greater shortfall produced by the lesser comparison base |
+| DR2-0111 | LEAF | CBA2-C10.6 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10.6 | — | Restore the signed next-day duty to increase MTS Cap Hold Team Salary after a qualifying decrease below the threshold |
+| DR2-0111 | LEAF | CBA2-C10.7 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10.7 | — | Base the initial payment on fixed first-day MTS Payment Team Salary |
+| DR2-0111 | LEAF | CBA2-C10.9 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10.9 | — | Limit the additional payment to the signed year-end incentive-adjusted amount |
+| DR2-0111 | LEAF | CBA2-C10.10 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C10.10 | — | Limit this owner to the Team payment deadline after the Governing Audit Report |
+| DR2-0111 | LEAF | CBA2-C13.6 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13.6 | — | Route one Minimum Exception eligibility verdict through three atomic dependencies |
+| DR2-0111 | LEAF | CBA2-C13.7 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13.7 | — | Remove unsupported waiver-claim authority from the Minimum Exception method |
+| DR2-0111 | LEAF | CBA2-C13.8 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13.8 | — | Route one NTMLE method verdict and exclude unsupported waiver claims |
+| DR2-0111 | LEAF | CBA2-C13.9 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13.9 | — | Route one NTMLE contract-shape verdict through atomic dependencies |
+| DR2-0111 | LEAF | CBA2-C13.11 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13.11 | — | Route one TMLE signed-contract verdict through atomic dependencies |
+| DR2-0111 | LEAF | CBA2-C13.12 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13.12 | — | Route one Room MLE use verdict through atomic dependencies |
+| DR2-0111 | LEAF | CBA2-C13.13 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13.13 | — | Correct BAE acquisition transition and remove unsupported waiver claims |
+| DR2-0111 | LEAF | CBA2-C13.14 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | CBA2-C13.14 | — | Route one BAE contract/use verdict through atomic dependencies |
+| DR2-0111 | XW2 | XW2-0147 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0147 | — | Preserve its single aggregate Minimum eligibility owner over atomic dependencies |
+| DR2-0111 | XW2 | XW2-0155 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0155 | — | Preserve its single aggregate TMLE owner over atomic dependencies |
+| DR2-0111 | XW2 | XW2-0227 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0227 | — | Correct the fixed first-day initial-payment owner |
+| DR2-0111 | XW2 | XW2-0231 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0231 | — | Restore equivalent ownership by the signed next-day restoration rule |
+| DR2-0111 | XW2 | XW2-0233 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0233 | — | Correct the year-end additional-payment owner |
+| DR2-0111 | XW2 | XW2-0264 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0264 | — | Correct the NTMLE method route and exclude unsupported waiver claims |
+| DR2-0111 | XW2 | XW2-0265 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0265 | — | Preserve its single aggregate NTMLE shape owner over atomic dependencies |
+| DR2-0111 | XW2 | XW2-0268 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0268 | — | Preserve its single aggregate Room MLE owner over atomic dependencies |
+| DR2-0111 | XW2 | XW2-0269 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0269 | — | Correct the BAE method transition and exclude unsupported waiver claims |
+| DR2-0111 | XW2 | XW2-0270 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | XW2-0270 | — | Preserve its single aggregate BAE contract/use owner over atomic dependencies |
+| DR2-0111 | EV2 | EV2-0204 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0204 | — | Remove the unrelated Article II locator and cite the direct tax-bracket provision |
+| DR2-0111 | EV2 | EV2-0205 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0205 | — | Align the tax arithmetic evidence with the corrected bracket base |
+| DR2-0111 | EV2 | EV2-0212 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0212 | — | Correct the annual MTS locator |
+| DR2-0111 | EV2 | EV2-0213 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0213 | — | Correct the current MTS Cap Hold Team Salary evidence |
+| DR2-0111 | EV2 | EV2-0214 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0214 | — | Correct the fixed first-day MTS Payment Team Salary evidence |
+| DR2-0111 | EV2 | EV2-0216 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0216 | — | Correct the in-season charge formula evidence |
+| DR2-0111 | EV2 | EV2-0217 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0217 | — | Restore the next-day charge-removal evidence |
+| DR2-0111 | EV2 | EV2-0218 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0218 | — | Correct the initial-payment base evidence |
+| DR2-0111 | EV2 | EV2-0220 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0220 | — | Correct the year-end additional-payment evidence |
+| DR2-0111 | EV2 | EV2-0221 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0221 | — | Separate the Team payment deadline from NBA distribution |
+| DR2-0111 | EV2 | EV2-0244 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0244 | — | Make Minimum eligibility an explicit inference over atomic components |
+| DR2-0111 | EV2 | EV2-0245 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0245 | — | Remove unsupported Minimum waiver-claim authority |
+| DR2-0111 | EV2 | EV2-0246 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0246 | — | Make NTMLE method eligibility an inference over direct routes |
+| DR2-0111 | EV2 | EV2-0247 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0247 | — | Make NTMLE contract shape an inference over atomic components |
+| DR2-0111 | EV2 | EV2-0249 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0249 | — | Make TMLE signed-contract eligibility an inference over atomic components |
+| DR2-0111 | EV2 | EV2-0250 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0250 | — | Make Room MLE use eligibility an inference over atomic components |
+| DR2-0111 | EV2 | EV2-0251 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0251 | — | Correct BAE method transition and remove unsupported waiver claims |
+| DR2-0111 | EV2 | EV2-0252 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0252 | — | Make BAE contract/use eligibility an inference over atomic components |
+| DR2-0111 | EV2 | EV2-0257 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | EV2-0257 | — | Limit method separation to routes granted by each exception |
+| DR2-0111 | DR2 | DR2-0104 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | DR2-0104 | — | Remove CBA2-C13.6 from the homogeneous-list exception decision |
+| DR2-0111 | DR2 | DR2-0108 | — | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | revise | DR2-0108 | — | Revise the false terminal decision into the supported restoration owner |
+| DR2-0111 | DISP | DR2-0108 | 1 | 2fc11880025c917dc765fd2f18e5e3697c5661f2 | remove | — | — | Signed VII §2(c)(4) proves the next-day restoration duty |
 
 ## DISP detail rows
 
@@ -109,7 +169,6 @@ shares authority, method, lifecycle, and result.
 | DR2-0105 | XW2-DISP | CBA-C02.2 | CBA-C02.2:F3 | — | — | span:82-134 | XW2-0181 | invalid | — | — | SRC2-001 | false-claim | §6.2 | First-round Required Tender adjustment remains owned by CBA2-C07.8; no second-round equivalent is asserted | Reopen on qualifying signed authority expressly supplying the second-round link | — | current | 1 |
 | DR2-0106 | XW2-DISP | CBA-C05.4 | CBA-C05.4:F1 | — | — | span:0-67 | XW2-0191 | unsupported-residual | SM2-0006, SM2-0007, SM2-0008, SM2-0009 | SS2-0002 | SRC2-001, SRC2-002 | authority-not-located | §6.4 | No claim is made beyond the exact inventoried reimbursement-extinction fragment; waived-contract Salary is separately owned | Reopen on qualifying current authority or a later canon edition | — | current | 1 |
 | DR2-0107 | XW2-DISP | CBA-C10.3 | CBA-C10.3:F2 | — | — | span:78-116 | XW2-0228 | invalid | — | — | SRC2-001 | false-claim | §8.7 | Charge/payment equality is rejected; distinct active bases and results remain | Reopen on a governing amendment that expressly makes the bases and amounts equal | — | current | 1 |
-| DR2-0108 | XW2-DISP | CBA-C10.4 | CBA-C10.4:F2 | — | — | span:57-100 | XW2-0231 | invalid | — | — | SRC2-001 | false-claim | §8.7 | No prompt-correction command is enforced; signed charge/restoration behavior remains | Reopen on governing text creating that duty | — | current | 1 |
 | DR2-0109 | XW2-DISP | CBA-C13.1 | CBA-C13.1:F1 | — | — | span:0-108 | XW2-0256 | process-only | — | — | SRC2-001 | process-material | §4.1 | No application-specific ledger schema becomes source law | Reopen only if the canon separately adopts implementation architecture outside the legal register | — | current | 1 |
 
 ## Fragment inventory
@@ -273,15 +332,15 @@ scoped documentation commands run.
 | Gate | Maker judgment |
 |---|---|
 | U1 | Every pinned C01–C13 historical requirement is covered by the union of this receipt and the existing C11.9/C13.8 inventory; no whole unsupported valid in-scope obligation escapes. |
-| U2 | Every active C obligation passed the independent trigger/result atomicity test or cites the closed homogeneous-list exception in DR2-0104. |
+| U2 | Every active C obligation passed the independent trigger/result atomicity test, cites the closed homogeneous-list exception in DR2-0104, or is a single-result aggregate route over direct atomic dependencies under DR2-0112. |
 | U3 | Every active LEAF names only a qualifying authority class and an `EV2` component whose source chain supports that exact result. |
-| U4 | `EV2-0160`–`EV2-0258` cover every active C LEAF exactly once at the main authority-component level; dependencies are explicit. |
+| U4 | `EV2-0160`–`EV2-0278` cover every active C LEAF exactly once at the main authority-component level; dependencies are explicit. |
 | U5 | New/revised XW2 edges and fragment rows reconcile bidirectionally; the two pre-existing homogeneous deferred fragments each resolve through one revised edge to one current owner, so R4 adds no BND record. |
-| U6 | Source-located gaps use DR2-0101 and do not replace or conceal an omitted historical fragment. |
+| U6 | Source-located gaps use DR2-0101 or DR2-0114 and do not replace or conceal an omitted historical fragment. |
 | U7 | No wholly unsupported valid C01–C13 obligation was found; BLK/RES remain correctly absent. The supported sibling CBA2-C05.4 permits the exact unsupported C05.4 residual to terminate through DISP. |
 | U8 | No source date was invented. R4 reuses the governed source/date components and records the search cutoff only as verification metadata. |
-| U9 | Every current direct reference resolves to one current record; the three R4 deferrals exit through DR2-0102 AMEND lineage. |
-| U10 | New IDs allocate strictly above the shared high-water marks: XW2 through 0278, EV2 through 0258, DR2 through 0110, SM2 through 0009, and SS2 through 0002; R4 adds no BND above the existing BND-0010 high-water mark. |
+| U9 | Every current direct reference resolves to one current record; the three R4 deferrals exit through DR2-0102 AMEND lineage and the rejected R4 checkpoint is repaired through DR2-0111. |
+| U10 | New IDs allocate strictly above the shared high-water marks: XW2 through 0278, EV2 through 0278, DR2 through 0114, SM2 through 0009, and SS2 through 0002; R4 adds no BND above the existing BND-0010 high-water mark. |
 | U11 | Historical rows and all prior receipts remain byte-untouched; only current canon structures, this receipt, and the repair-plan status are maker-authorized. |
 | U12 | No secondary explainer, remembered practice, or unauthenticated CDN response is registered as authority. |
 | U13 | Remaining deferrals identify exact fragments, natural families, and R5/R6 resolving units; no R4-designated deferral remains. |
@@ -298,9 +357,9 @@ untriggered.
 
 - `git diff --check` — PASS.
 - `python3 work/architect-completion/cba_canon_v2_foundation_validator.py` —
-  PASS: 25 GROUPs, 250 LEAF-main rows, 250 LEAF-detail rows, 273 XW2 edges,
-  258 EV2 components, 110 DR2 records, 263 fragment rows, 237 AMEND-detail
-  rows, 10 inherited BND rows, 18 DISP-detail rows, 9 SM2 rows, and 2 SS2
+  PASS: 25 GROUPs, 270 LEAF-main rows, 270 LEAF-detail rows, 273 XW2 edges,
+  278 EV2 components, 114 DR2 records, 263 fragment rows, 288 AMEND-detail
+  rows, 10 inherited BND rows, 17 DISP-detail rows, 9 SM2 rows, and 2 SS2
   rows; all 14 accepting controls and 109 rejecting regression controls
   passed, the baseline was clean, the negative self-test failed as intended,
   and total failures were zero.
@@ -315,20 +374,21 @@ untriggered.
   work/architect-completion/ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md
   work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md`
   — PASS.
-- `npm run lint:md` — repository-wide command ran and reported only
-  pre-existing findings in unrelated architect audit/code-map files and the
-  canon's preserved numbered scenario blocks. The canon's MD029 findings
-  reproduce against `HEAD` via
-  `git show HEAD:docs/reference/cba/ARCHITECT_CBA_CANON.md | npx markdownlint
-  --stdin`; R4 did not alter those scenario blocks. No R4-local Markdown
-  finding remains.
+- The repository-wide `npm run lint:md` was run for the first maker
+  checkpoint and reported only pre-existing findings in unrelated architect
+  audit/code-map files and the canon's preserved numbered scenario blocks.
+  Those canon MD029 findings reproduced against the pre-R4 canon. The repair
+  does not touch those scenario blocks; the scoped maker Markdown command
+  above is clean.
 
 ## Independent review
 
-Pending. The checker must review the exact clean maker checkpoint and create
-only
+The first maker checkpoint was independently **REJECTED / BLOCK-R5** at
+checker commit `3880ea3f2baf022b7fa0477b34d4238721afad33`; that history remains
+in the checker receipt. The same checker must now review the exact clean
+repair checkpoint and append its new cycle only to
 `ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_INDEPENDENT_REVIEW.md`.
-Only an explicit **ACCEPT** unblocks R5.
+Only an explicit **ACCEPT** of that exact checkpoint unblocks R5.
 
 ## Boundary
 

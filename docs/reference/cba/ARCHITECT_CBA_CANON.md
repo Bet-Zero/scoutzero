@@ -5269,10 +5269,10 @@ acceptance.
 | CBA2-C07 | Apron Team Salary ledger — Are all ten VII §2(e)(1) adjustments applied separately to Team Salary? | `CBA2-C07.1`–`CBA2-C07.11` (11) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 | CBA2-C08 | Tax Team Salary ledger — Are the last-game base and each VII §2(d)(1)(i) adjustment computed separately? | `CBA2-C08.1`–`CBA2-C08.8` (8) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 | CBA2-C09 | Tax rates and brackets — Are standard/repeater status, bracket sizing, transition years, and progressive tax computed from VII §2(d)? | `CBA2-C09.1`–`CBA2-C09.7` (7) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
-| CBA2-C10 | Minimum Team Salary — Are the threshold, three adjusted bases, payment, charge, restoration, and distribution consequences kept distinct? | `CBA2-C10.1`–`CBA2-C10.10` (10) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C10 | Minimum Team Salary — Are the amount, three adjusted bases, payment, charge, restoration, audit timing, and distribution consequences kept distinct? | `CBA2-C10.1`–`CBA2-C10.11` (11) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 | CBA2-C11 | Long-term injury exclusion — Are application timing, medical findings, return-to-salary, applicant limits, and reacquisition bars applied independently? | `CBA2-C11.1`–`CBA2-C11.8` (8) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 | CBA2-C12 | Disabled Player Exception — Are eligibility, application, amount, method, term, expiry, medical process, and availability applied separately? | `CBA2-C12.1`–`CBA2-C12.9` (9) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
-| CBA2-C13 | Salary-cap exceptions — Are availability, combination, proration, method, contract shape, and Team Salary effects enforced per exception? | `CBA2-C13.1`–`CBA2-C13.20` (20) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C13 | Salary-cap exceptions — Are availability, combination, proration, method, contract shape, and Team Salary effects enforced per exception? | `CBA2-C13.1`–`CBA2-C13.39` (39) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 
 #### 15.10.2 A family — active LEAF register (main table)
 
@@ -5474,23 +5474,24 @@ acceptance.
 | CBA2-C08.6 | Tax grievance adjustment: apply the specified final grievance amount after the baseline instant | CBA | LIFECYCLE | EXT | EV2-0202 | XW2-0214 | External grievance outcome only. |
 | CBA2-C08.7 | Tax zero/one-YOS uplift: add the difference between the two-YOS minimum and the applicable zero- or one-YOS minimum for each qualifying free-agent Standard Contract | CBA | SCEN | — | EV2-0203 | XW2-0215 | Tax counterpart to CBA2-C07.3. |
 | CBA2-C08.8 | Tax suspension reduction: subtract 50% of compensation forfeited for a qualifying suspension imposed by the NBA | CBA | SCEN | — | EV2-0204 | XW2-0209, XW2-0217 | No general Team Salary reduction is inferred. |
-| CBA2-C09.1 | Tax bracket amount: the tax bracket amount is 3.5% of the Salary Cap in 2025-26 and 4.75% of the Salary Cap in each later Salary Cap Year | CBA | STATIC | — | EV2-0205 | new (DR2-0101) | Historical 2023-24/2024-25 treatment is CBA2-C09.6. |
+| CBA2-C09.1 | Tax Bracket Amount: for a Salary Cap Year, the amount equals $5 million multiplied by the Salary Cap for that year and divided by the Salary Cap for 2023-24 | CBA | STATIC | — | EV2-0205 | new (DR2-0101) | Bracket width only; the 3.5-for-$1 and 4.75-for-$1 figures are rates in CBA2-C09.2, not bracket amounts. |
 | CBA2-C09.2 | Standard tax rates: beginning in 2025-26, the first four bracket rates for a non-repeater taxpayer are 1.00, 1.25, 3.50, and 4.75 dollars per tax dollar | CBA | SCEN | — | EV2-0206 | XW2-0220 | Closed four-bracket rate table. |
 | CBA2-C09.3 | Repeater status: a current taxpayer is a repeater when it was a taxpayer in at least three of the four immediately preceding Salary Cap Years | CBA | LIFECYCLE | SCEN | EV2-0207 | XW2-0218 | Status predicate only. |
 | CBA2-C09.4 | Repeater tax rates: beginning in 2025-26, the first four bracket rates for a repeater taxpayer are 3.00, 3.25, 5.50, and 6.75 dollars per tax dollar | CBA | SCEN | — | EV2-0208 | XW2-0221 | Closed four-bracket rate table. |
 | CBA2-C09.5 | Additional tax brackets: each bracket beyond the fourth increases the applicable preceding bracket rate by $0.50 | CBA | SCEN | — | EV2-0209 | XW2-0222 | Applies independently to standard and repeater schedules. |
 | CBA2-C09.6 | Tax transition years: 2023-24 and 2024-25 use the legacy bracket amount and tax-rate rules expressly preserved by VII §2(d) rather than the 2025-26 schedule | CBA | STATIC | — | EV2-0210 | XW2-0223 | Historical simulation only. |
 | CBA2-C09.7 | Progressive tax calculation: tax equals the sum of each fully traversed bracket plus the partial amount in the final bracket at that bracket's applicable rate | DERIVED | SCEN | — | EV2-0211 | XW2-0219, XW2-0224 | Arithmetic expansion of VII §2(d)'s bracket schedule; no new legal rate. |
-| CBA2-C10.1 | Minimum Team Salary threshold: the Minimum Team Salary is 90% of the Salary Cap | CBA | STATIC | — | EV2-0212 | XW2-0226 | Threshold percentage only. |
-| CBA2-C10.2 | MTS Cap Hold Team Salary: calculate the in-season charge base from Team Salary with the express VII §2(c)(4) adjustments | CBA | SCEN | — | EV2-0213 | new (DR2-0101) | Distinct adjusted base; never substitute MTS Payment Team Salary. |
-| CBA2-C10.3 | MTS Payment Team Salary: calculate the year-end payment base from Team Salary with the express VII §2(c)(5) adjustments | CBA | SCEN | — | EV2-0214 | new (DR2-0101) | Distinct adjusted base; never substitute the in-season base. |
+| CBA2-C10.1 | Minimum Team Salary amount: the Minimum Team Salary for a Salary Cap Year is 90% of the Salary Cap for that year | CBA | STATIC | — | EV2-0212 | XW2-0226 | Amount percentage only; CBA2-C10.4 separately owns the team-specific MTS Threshold. |
+| CBA2-C10.2 | MTS Cap Hold Team Salary: calculate Team Salary in the same manner the Accountants calculate Team Salary for Total Salaries and Benefits in the Audit Report | CBA | SCEN | — | EV2-0213 | new (DR2-0101) | Defined §2(c)(1)(i) base; never substitute MTS Payment Team Salary. |
+| CBA2-C10.3 | MTS Payment Team Salary: take MTS Cap Hold Team Salary at the start of the first Regular Season day, add §4(h)-excluded Salary, subtract §3(e)-included Salary, and add §4(b)-excluded Salary for the Salary Cap Year | CBA | SCEN | — | EV2-0214 | new (DR2-0101) | Fixed §2(c)(1)(ii) payment base; it is not a year-end base. |
 | CBA2-C10.4 | MTS Threshold: determine the CBA's start-of-Regular-Season threshold from the separate MTS Threshold Team Salary calculation | CBA | LIFECYCLE | SCEN | EV2-0215 | XW2-0230 | Threshold baseline only; it does not order a prompt roster correction. |
-| CBA2-C10.5 | In-season MTS charge: when current MTS Cap Hold Team Salary is below the MTS Threshold, Team Salary includes the lesser of the current shortfall and the start-of-Regular-Season shortfall | CBA | LIFECYCLE | SCEN | EV2-0216 | XW2-0225, XW2-0232 | This charge is not asserted equal to the later MTS payment. |
-| CBA2-C10.6 | In-season charge restoration: a charge under CBA2-C10.5 is removed on the day after MTS Cap Hold Team Salary again equals or exceeds the MTS Threshold | CBA | LIFECYCLE | SCEN | EV2-0217 | new (DR2-0101) | Express restoration timing; no “prompt correction” duty is added. |
-| CBA2-C10.7 | Year-end MTS payment: when final MTS Payment Team Salary is below the Minimum Team Salary, the Team pays the NBA the difference | CBA | LIFECYCLE | SCEN | EV2-0218 | XW2-0227 | Payment recipient is the NBA, not the players. |
+| CBA2-C10.5 | MTS Team Salary charge: from the start of the first Regular Season day through the end of the Salary Cap Year, Team Salary includes the amount by which the Minimum Team Salary exceeds the lesser of current MTS Cap Hold Team Salary and its value at the start of that first day | CBA | LIFECYCLE | SCEN | EV2-0216 | XW2-0225, XW2-0232 | The lesser underlying Salary base produces the greater shortfall; this charge is distinct from both payments. |
+| CBA2-C10.6 | Next-day MTS restoration duty: if MTS Cap Hold Team Salary decreases below the MTS Threshold on a Regular Season day, the Team must increase it to at least the threshold by the end of the immediately following day | CBA | LIFECYCLE | SCEN | EV2-0217 | XW2-0231 | Express §2(c)(4) duty; it is not an unconditional removal of the CBA2-C10.5 charge. |
+| CBA2-C10.7 | Initial MTS shortfall payment: when MTS Payment Team Salary is below the Minimum Team Salary, the Team must pay the NBA the difference | CBA | SCEN | — | EV2-0218 | XW2-0227 | Uses the fixed CBA2-C10.3 base and is distinct from the year-end additional payment. |
 | CBA2-C10.8 | MTS tax-distribution consequence: an MTS-payment Team is ineligible for the non-taxpayer distribution under VII §2(d)(4); for 2023-24 only, a non-tax-owing MTS-payment Team instead received 50% of its otherwise applicable share | CBA | LIFECYCLE | SCEN | EV2-0219 | XW2-0229 | Closed current rule plus express one-year transition exception. |
-| CBA2-C10.9 | Year-end MTS accounting: the payment and Team Salary charge are applied for final BRI/tax calculations and incentive-likelihood adjustment as specified by VII §2(c)(3) | CBA | LIFECYCLE | SCEN | EV2-0220 | XW2-0233 | Accounting consequences only. |
-| CBA2-C10.10 | MTS payment distribution: within ten business days after the final MTS payment determination, the NBA distributes the collected amount in equal shares to all Teams | CBA | LIFECYCLE | — | EV2-0221 | new (DR2-0101) | Team distribution only; no player payment is created. |
+| CBA2-C10.9 | Year-end additional MTS payment: if the Minimum Team Salary exceeds the Team's financially responsible total MTS Cap Hold Team Salaries, adjusted for actually earned and unearned Incentive Compensation as §2(c)(5) specifies, plus its CBA2-C10.7 payment, the Team pays the NBA that excess | CBA | LIFECYCLE | SCEN | EV2-0220 | XW2-0233 | Exact additional-payment result; no unsupported BRI or tax-accounting claim is added. |
+| CBA2-C10.10 | MTS team-payment timing: each payment due under CBA2-C10.7 or CBA2-C10.9 must be made to the NBA no later than ten business days after completion of the Governing Audit Report for the Salary Cap Year | CBA | LIFECYCLE | — | EV2-0221 | new (DR2-0101) | Team-to-NBA deadline only. |
+| CBA2-C10.11 | MTS distribution timing: the NBA must distribute payments received under CBA2-C10.10 equally to each Team within ten business days after receipt | CBA | LIFECYCLE | — | EV2-0259 | new (DR2-0114) | NBA-to-Team deadline and equal-recipient result only. |
 | CBA2-C11.1 | Long-term-exclusion termination prerequisite: the career-ending player's Contract must be terminated through the NBA waiver procedure before Salary may be excluded under VII §4(h) | CBA | LIFECYCLE | SCEN | EV2-0222 | XW2-0242 | Termination prerequisite only. |
 | CBA2-C11.2 | Long-term-exclusion application timing: the Team may apply only after the applicable first-anniversary/sixty-day waiting rule and never before the first anniversary of the first Regular Season game on the roster under the Contract | CBA | LIFECYCLE | SCEN | EV2-0223 | XW2-0243 | Closed timing rule with its fewer-than-ten-games branch. |
 | CBA2-C11.3 | Career-ending medical finding: exclusion requires the VII §4(h)(2) finding by a jointly selected physician or agreed Fitness-to-Play Panel under one of the express career-ending/elevated-risk standards | CBA | EXTS | — | EV2-0224 | XW2-0244 | Medical merits are external; the canon owns only the required finding contract. |
@@ -5513,21 +5514,40 @@ acceptance.
 | CBA2-C13.3 | January 10 proration: beginning January 10, each unused exception governed by VII §6(n)(4) is reduced daily by its January 10 unused amount divided by Regular Season days | CBA | LIFECYCLE | SCEN | EV2-0241 | XW2-0259 | Trade-deadline and offer-sheet preservation branches are CBA2-C13.5. |
 | CBA2-C13.4 | Non-prorating exceptions: the TPE, Minimum Player Salary Exception, and DPE do not take the general January 10 daily reduction | CBA | LIFECYCLE | SCEN | EV2-0242 | XW2-0261 | Closed homogeneous exception list. |
 | CBA2-C13.5 | Full-value preservation: the January 10 daily reduction does not apply while using the applicable exception from January 10 through the trade deadline or to match an Offer Sheet | CBA | LIFECYCLE | SCEN | EV2-0243 | XW2-0262 | Two express uses producing the same non-reduction result. |
-| CBA2-C13.6 | Minimum Player Salary Exception contract rule: a Standard Contract signed under VII §6(i) may cover no more than two Seasons, must provide the applicable Minimum Player Salary without ordinary bonuses, and, if signed during the Regular Season, prorates from the first covered day over total Regular Season days | CBA | LIFECYCLE | SCEN | EV2-0244 | XW2-0147, XW2-0260 | One closed Contract result with shape and its required signed-date proration; trade-bonus and Article IV §6(h) reimbursement remain separate. |
-| CBA2-C13.7 | Minimum Player Salary Exception acquisition authority: a Team may use VII §6(i) for a permitted assignment acquisition or waiver claim within the signed amount/term rules | CBA | SCEN | — | EV2-0245 | new (DR2-0101) | Method-specific source component separate from the signing Contract rule. |
-| CBA2-C13.8 | NTMLE methods: the Non-Taxpayer Mid-Level Salary Exception may be used for the signing, assignment acquisition, waiver claim, or Offer Sheet match permitted by VII §6(e) | CBA | SCEN | — | EV2-0246 | XW2-0264 | Apron transaction restrictions are A05-owned. |
-| CBA2-C13.9 | NTMLE contract shape: a Contract signed with the NTMLE may cover up to four Seasons and use annual increases or decreases of up to 5% of first-Season Regular Salary | CBA | SCEN | — | EV2-0247 | XW2-0265 | Contract shape only. |
+| CBA2-C13.6 | Minimum Player Salary Exception contract eligibility: a signed or acquired Contract qualifies only when its independently owned term, compensation, and applicable Regular Season proration requirements in CBA2-C13.21–C13.23 all pass | INFERRED | SCEN | LIFECYCLE | EV2-0244 | XW2-0147, XW2-0260 | One aggregate eligibility verdict over three separately testable source-law owners; trade-bonus and Article IV §6(h) reimbursement remain separate. |
+| CBA2-C13.7 | Minimum Player Salary Exception acquisition authority: a Team may use VII §6(i) to acquire a Contract by assignment within the signed amount/term rules; a waiver claim alone is not authorized by that provision | CBA | SCEN | — | EV2-0245 | new (DR2-0101) | One corrected acquisition-method verdict separate from contract eligibility. |
+| CBA2-C13.8 | NTMLE method-route eligibility: a transaction method qualifies only through the signing/assignment route in CBA2-C13.35 or the narrow Offer Sheet match route in CBA2-C13.36; a waiver claim alone is not authorized by VII §6(e) | INFERRED | SCEN | LIFECYCLE | EV2-0246 | XW2-0264 | One method-eligibility verdict; First-Apron transaction restrictions remain A05-owned. |
+| CBA2-C13.9 | NTMLE contract-shape eligibility: the independently owned amount/divisibility, term, and annual-change requirements in CBA2-C13.37–C13.39 must each pass | INFERRED | SCEN | — | EV2-0247 | XW2-0265 | One aggregate contract-shape verdict over separate source-law owners. |
 | CBA2-C13.10 | TMLE amount use: the Taxpayer Mid-Level Salary Exception may be divided among one or more signed players, subject to its annual amount | CBA | SCEN | — | EV2-0248 | new (DR2-0101) | Amount-use owner only. |
-| CBA2-C13.11 | TMLE signing/contract rule: the TMLE is signing-only and divisible, and each Contract signed with it may cover up to two Seasons with annual changes up to 5% of first-Season Regular Salary | CBA | SCEN | — | EV2-0249 | XW2-0155 | One closed signing-contract result resolving the committed homogeneous R4 fragment; apron consequences remain A05-owned. |
-| CBA2-C13.12 | Room MLE shape/exclusivity: the Mid-Level Salary Exception for Room Teams supplies its signed term/raise authority and is unavailable to a Team that used the NTMLE, TMLE, or BAE for that Salary Cap Year | CBA | SCEN | — | EV2-0250 | XW2-0268 | One room-team exception identity and its mutually exclusive availability predicate. |
-| CBA2-C13.13 | BAE method: the Bi-annual Exception may be used for a permitted signing, assignment acquisition, or waiver claim and may be divided among players | CBA | SCEN | — | EV2-0251 | XW2-0269 | Method only; apron transaction consequences are A05-owned. |
-| CBA2-C13.14 | BAE shape/frequency: a Contract signed with the BAE may cover up to two Seasons with 5% changes, and a Team may not use the BAE in consecutive Salary Cap Years | CBA | LIFECYCLE | SCEN | EV2-0252 | XW2-0270 | Contract shape plus the exception's defining use-frequency predicate. |
+| CBA2-C13.11 | TMLE signed-contract eligibility: the independently owned amount/divisibility, signing-only method, maximum term, and annual-change requirements in CBA2-C13.10 and CBA2-C13.24–C13.26 must each pass | INFERRED | SCEN | — | EV2-0249 | XW2-0155 | One aggregate signing-contract verdict; apron consequences remain A05-owned. |
+| CBA2-C13.12 | Room MLE use eligibility: the independently owned method/transition, term, annual-change, and availability requirements in CBA2-C13.27–C13.30 must each pass | INFERRED | SCEN | LIFECYCLE | EV2-0250 | XW2-0268 | One aggregate Room MLE verdict over separate source-law owners. |
+| CBA2-C13.13 | BAE method eligibility: the Bi-annual Exception authorizes signing and, beginning in 2024-25, acquisition by assignment; a waiver claim alone is not authorized by VII §6(d) | CBA | SCEN | LIFECYCLE | EV2-0251 | XW2-0269 | One date-conditioned method verdict; apron transaction consequences are A05-owned. |
+| CBA2-C13.14 | BAE contract/use eligibility: the independently owned amount/divisibility, term, annual-change, and consecutive-year requirements in CBA2-C13.31–C13.34 must each pass | INFERRED | SCEN | LIFECYCLE | EV2-0252 | XW2-0270 | One aggregate use verdict over separate source-law owners. |
 | CBA2-C13.15 | Second Round Pick Exception structure: a qualifying second-round Contract uses one of the prescribed two-plus-Option or three-plus-Option structures and the signed minimum-based Salary schedule | CBA | SCEN | — | EV2-0253 | XW2-0273 | Contract structure only. |
 | CBA2-C13.16 | SRPE temporary Team Salary exclusion: from July 1 through July 30, a Contract signed with the Second Round Pick Exception is excluded from Team Salary until July 31 | CBA | LIFECYCLE | SCEN | EV2-0254 | XW2-0274 | Apron Team Salary adds the amount through CBA2-C07.10. |
 | CBA2-C13.17 | Rookie Scale Exception: a Team may sign its own First Round Pick to a Rookie Scale Contract notwithstanding that the Team is over the Salary Cap | CBA | SCEN | — | EV2-0255 | XW2-0276 | Signing authority only; Rookie Scale contract rules are R5. |
 | CBA2-C13.18 | Second-round signing paths: a Second Round Pick must be signed through the Second Round Pick Exception, Minimum Player Salary Exception, a Two-Way Contract, Room, or another independently available signed mechanism | CBA | SCEN | — | EV2-0256 | XW2-0278 | Routing constraint only; it does not create a new exception. |
 | CBA2-C13.19 | Method-specific exception use: an exception authorizes only the signing, assignment acquisition, waiver claim, Offer Sheet match, or other method expressly stated for that exception; availability of one method cannot be transferred from another exception | INFERRED | SCEN | — | EV2-0257 | XW2-0263 | Inference from the distinct VII §6(c)–(j) grants; specific method owners remain controlling. |
 | CBA2-C13.20 | UFA signing-route inventory: a UFA signing must use Room, an applicable exception, the prior Team's independently available Veteran Free Agent Exception, or a valid sign-and-trade path | CBA | SCEN | — | EV2-0258 | XW2-0277 | Routing result only; R5 owns the detailed Bird-right and free-agent signing mechanics. |
+| CBA2-C13.21 | Minimum Exception term limit: a Contract signed or acquired by assignment under VII §6(i) may not exceed two Seasons | CBA | SCEN | — | EV2-0260 | new (DR2-0114) | Term result only. |
+| CBA2-C13.22 | Minimum Exception compensation: each covered Season must provide the player's applicable Minimum Player Salary with no bonuses of any kind | CBA | SCEN | — | EV2-0261 | new (DR2-0114) | Salary/bonus result only. |
+| CBA2-C13.23 | Minimum Exception Regular Season proration: for a qualifying Contract signed during the Regular Season, the applicable Minimum Player Salary is reduced pro rata from the signing date over total Regular Season days | CBA | LIFECYCLE | SCEN | EV2-0262 | new (DR2-0114) | Conditional date-proration result only. |
+| CBA2-C13.24 | TMLE method: the Taxpayer Mid-Level Salary Exception may be used only to sign one or more Player Contracts | CBA | SCEN | — | EV2-0263 | new (DR2-0114) | Signing method only. |
+| CBA2-C13.25 | TMLE term limit: each Player Contract signed with the TMLE may not exceed two Seasons | CBA | SCEN | — | EV2-0264 | new (DR2-0114) | Term result only. |
+| CBA2-C13.26 | TMLE annual changes: a Player Contract signed with the TMLE may use annual Salary and Unlikely-Bonus increases or decreases only as allowed by VII §5(a)(1) | CBA | SCEN | — | EV2-0265 | new (DR2-0114) | Annual-change result only. |
+| CBA2-C13.27 | Room MLE methods and assignment transition: the exception may sign or acquire by assignment one or more Player Contracts, but assignment acquisition was unavailable before 2024-25 | CBA | SCEN | LIFECYCLE | EV2-0266 | new (DR2-0114) | One date-conditioned method verdict. |
+| CBA2-C13.28 | Room MLE term limit: each signed Contract or assigned Contract's remaining term may not exceed three Seasons | CBA | SCEN | — | EV2-0267 | new (DR2-0114) | Term result only. |
+| CBA2-C13.29 | Room MLE annual changes: a Player Contract signed with the exception may use annual Salary and Unlikely-Bonus increases or decreases only as allowed by VII §5(a)(1) | CBA | SCEN | — | EV2-0268 | new (DR2-0114) | Annual-change result only. |
+| CBA2-C13.30 | Room MLE availability: the Team must satisfy VII §6(g)'s below-cap/not-entitled and no-prior-BAE/NTMLE/TMLE predicates, and Room MLE use bars those three exceptions for the rest of that Salary Cap Year | CBA | LIFECYCLE | SCEN | EV2-0269 | new (DR2-0114) | One mutual-exclusivity availability verdict. |
+| CBA2-C13.31 | BAE amount/divisibility: one or more Contracts may share the Bi-annual Exception, with aggregate first-year Salary and Unlikely Bonuses within its annual amount | CBA | SCEN | — | EV2-0270 | new (DR2-0114) | Aggregate-amount result only. |
+| CBA2-C13.32 | BAE term limit: each signed Contract or assigned Contract's remaining term may not exceed two Seasons | CBA | SCEN | — | EV2-0271 | new (DR2-0114) | Term result only. |
+| CBA2-C13.33 | BAE annual changes: a two-Season Contract signed with the BAE may change second-year Salary and Unlikely Bonuses only as allowed by VII §5(a)(1) | CBA | SCEN | — | EV2-0272 | new (DR2-0114) | Annual-change result only. |
+| CBA2-C13.34 | BAE consecutive-year bar: a Team may not use any portion of the Bi-annual Exception in two consecutive Salary Cap Years | CBA | LIFECYCLE | SCEN | EV2-0273 | new (DR2-0114) | Use-frequency result only. |
+| CBA2-C13.35 | NTMLE signing/assignment route: the exception may sign or acquire by assignment one or more Player Contracts, but assignment acquisition was unavailable before 2024-25 | CBA | SCEN | LIFECYCLE | EV2-0274 | new (DR2-0114) | One date-conditioned ordinary method verdict. |
+| CBA2-C13.36 | NTMLE Offer Sheet match: notwithstanding ordinary Room MLE exclusivity, a prior Team may use the NTMLE to match the qualifying one- or two-YOS Veteran Free Agent Offer Sheet described in VII §6(e)(5) | CBA | SCEN | — | EV2-0275 | new (DR2-0114) | Narrow match route only. |
+| CBA2-C13.37 | NTMLE amount/divisibility: one or more Contracts may share the NTMLE, with aggregate first-year Salary and Unlikely Bonuses within its annual amount | CBA | SCEN | — | EV2-0276 | new (DR2-0114) | Aggregate-amount result only. |
+| CBA2-C13.38 | NTMLE term limit: each signed Contract or assigned Contract's remaining term may not exceed four Seasons | CBA | SCEN | — | EV2-0277 | new (DR2-0114) | Term result only. |
+| CBA2-C13.39 | NTMLE annual changes: a Player Contract signed with the NTMLE may use annual Salary and Unlikely-Bonus increases or decreases only as allowed by VII §5(a)(1) | CBA | SCEN | — | EV2-0278 | new (DR2-0114) | Annual-change result only. |
 
 #### 15.10.3 A family — active LEAF register (detail table)
 
@@ -5729,23 +5749,24 @@ acceptance.
 | CBA2-C08.6 | pending R7 | — | Final grievance input | DR2-0099 |
 | CBA2-C08.7 | pending R7 | CBA2-C05.1 | YOS; applicable minimums; qualifying contracts | DR2-0099 |
 | CBA2-C08.8 | pending R7 | — | Suspension authority and forfeited compensation | DR2-0099 |
-| CBA2-C09.1 | pending R7 | — | Salary Cap Year; Salary Cap | DR2-0099 |
+| CBA2-C09.1 | pending R7 | — | Salary Cap Year; current and 2023-24 Salary Caps | DR2-0099, DR2-0111 |
 | CBA2-C09.2 | pending R7 | CBA2-C09.1 | Tax Team Salary excess; bracket schedule | DR2-0099, DR2-0104 |
 | CBA2-C09.3 | pending R7 | — | Current/prior-five-year taxpayer history | DR2-0099 |
 | CBA2-C09.4 | pending R7 | CBA2-C09.1, CBA2-C09.3 | Tax Team Salary excess; bracket schedule | DR2-0099, DR2-0104 |
 | CBA2-C09.5 | pending R7 | CBA2-C09.2, CBA2-C09.4 | Bracket index | DR2-0099 |
 | CBA2-C09.6 | pending R7 | — | Salary Cap Year | DR2-0099 |
 | CBA2-C09.7 | pending R7 | CBA2-C09.1, CBA2-C09.2, CBA2-C09.4, CBA2-C09.5 | Tax Team Salary; Tax Level; status | DR2-0099 |
-| CBA2-C10.1 | pending R7 | — | Salary Cap Year; Salary Cap | DR2-0099 |
-| CBA2-C10.2 | pending R7 | — | Current/start Team Salary adjustments | DR2-0099 |
-| CBA2-C10.3 | pending R7 | — | Final Team Salary adjustments | DR2-0099 |
+| CBA2-C10.1 | pending R7 | — | Salary Cap Year; Salary Cap | DR2-0099, DR2-0111 |
+| CBA2-C10.2 | pending R7 | — | Audit-report Team Salary inputs | DR2-0099, DR2-0111 |
+| CBA2-C10.3 | pending R7 | CBA2-C10.2 | First-Regular-Season-day base; §4(h), §3(e), and §4(b) adjustments | DR2-0099, DR2-0111 |
 | CBA2-C10.4 | pending R7 | — | Start-of-Regular-Season inputs | DR2-0099 |
-| CBA2-C10.5 | pending R7 | CBA2-C10.2, CBA2-C10.4 | Current date/base and start shortfall | DR2-0099 |
-| CBA2-C10.6 | pending R7 | CBA2-C10.2, CBA2-C10.4, CBA2-C10.5 | Threshold restoration date | DR2-0099 |
-| CBA2-C10.7 | pending R7 | CBA2-C10.1, CBA2-C10.3 | Year-end final base | DR2-0099 |
+| CBA2-C10.5 | pending R7 | CBA2-C10.1, CBA2-C10.2 | Current/start MTS Cap Hold Team Salary; first Regular Season day; Salary Cap Year end | DR2-0099, DR2-0111 |
+| CBA2-C10.6 | pending R7 | CBA2-C10.2, CBA2-C10.4 | Regular Season date; decrease below threshold; following-day deadline | DR2-0099, DR2-0108, DR2-0111, DR2-0113 |
+| CBA2-C10.7 | pending R7 | CBA2-C10.1, CBA2-C10.3 | Fixed MTS Payment Team Salary base | DR2-0099, DR2-0111 |
 | CBA2-C10.8 | pending R7 | CBA2-C10.7 | Salary Cap Year; tax owed; distribution eligibility | DR2-0099 |
-| CBA2-C10.9 | pending R7 | CBA2-C10.5, CBA2-C10.7 | Final BRI/tax and incentive inputs | DR2-0099 |
-| CBA2-C10.10 | pending R7 | CBA2-C10.7 | Final determination date; Team count | DR2-0099 |
+| CBA2-C10.9 | pending R7 | CBA2-C10.2, CBA2-C10.7 | Year-end financially responsible Salary total; earned/unearned incentives; initial payment | DR2-0099, DR2-0111 |
+| CBA2-C10.10 | pending R7 | CBA2-C10.7, CBA2-C10.9 | Governing Audit Report completion date | DR2-0099, DR2-0111 |
+| CBA2-C10.11 | pending R7 | CBA2-C10.10 | NBA receipt date; Team count | DR2-0112, DR2-0114 |
 | CBA2-C11.1 | pending R7 | — | Waiver termination | DR2-0099 |
 | CBA2-C11.2 | pending R7 | CBA2-C11.1 | Game history; roster/Contract dates | DR2-0099 |
 | CBA2-C11.3 | pending R7 | CBA2-C11.1, CBA2-C11.2 | External medical finding | DR2-0099 |
@@ -5768,21 +5789,40 @@ acceptance.
 | CBA2-C13.3 | pending R7 | — | January 10; Regular Season days; unused amount | DR2-0099 |
 | CBA2-C13.4 | pending R7 | — | Exception type; date | DR2-0099, DR2-0104 |
 | CBA2-C13.5 | pending R7 | CBA2-C13.3 | Trade deadline/Offer Sheet use | DR2-0099, DR2-0104 |
-| CBA2-C13.6 | pending R7 | — | Contract term; minimum scale; bonuses; signing date; Regular Season days | DR2-0099, DR2-0104 |
-| CBA2-C13.7 | pending R7 | CBA2-C13.6 | Acquisition method; Salary/term | DR2-0099 |
-| CBA2-C13.8 | pending R7 | — | Transaction method; NTMLE availability | DR2-0099 |
-| CBA2-C13.9 | pending R7 | CBA2-C13.8 | Contract term; first-Season Regular Salary | DR2-0099 |
+| CBA2-C13.6 | pending R7 | CBA2-C13.21, CBA2-C13.22, CBA2-C13.23 | Signed/acquired Contract; signing date | DR2-0099, DR2-0111, DR2-0112 |
+| CBA2-C13.7 | pending R7 | CBA2-C13.6 | Acquisition method; Salary/term | DR2-0099, DR2-0111 |
+| CBA2-C13.8 | pending R7 | CBA2-C13.35, CBA2-C13.36 | Transaction method; Salary Cap Year; Offer Sheet facts | DR2-0099, DR2-0111, DR2-0112 |
+| CBA2-C13.9 | pending R7 | CBA2-C13.37, CBA2-C13.38, CBA2-C13.39 | Contract amounts, term, and annual changes | DR2-0099, DR2-0111, DR2-0112 |
 | CBA2-C13.10 | pending R7 | — | Signing method; TMLE availability | DR2-0099 |
-| CBA2-C13.11 | pending R7 | CBA2-C13.10 | Contract term; first-Season Regular Salary | DR2-0099 |
-| CBA2-C13.12 | pending R7 | — | Team room/exception-use state | DR2-0099 |
-| CBA2-C13.13 | pending R7 | — | Transaction method; BAE availability | DR2-0099 |
-| CBA2-C13.14 | pending R7 | CBA2-C13.13 | Prior-year BAE use; Contract shape | DR2-0099 |
+| CBA2-C13.11 | pending R7 | CBA2-C13.10, CBA2-C13.24, CBA2-C13.25, CBA2-C13.26 | TMLE Contract amounts, method, term, and annual changes | DR2-0099, DR2-0111, DR2-0112 |
+| CBA2-C13.12 | pending R7 | CBA2-C13.27, CBA2-C13.28, CBA2-C13.29, CBA2-C13.30 | Team room, method, Contract, and exception-use state | DR2-0099, DR2-0111, DR2-0112 |
+| CBA2-C13.13 | pending R7 | — | Transaction method; Salary Cap Year | DR2-0099, DR2-0111, DR2-0112 |
+| CBA2-C13.14 | pending R7 | CBA2-C13.13, CBA2-C13.31, CBA2-C13.32, CBA2-C13.33, CBA2-C13.34 | BAE amounts, term, annual changes, and prior-year use | DR2-0099, DR2-0111, DR2-0112 |
 | CBA2-C13.15 | pending R7 | — | Pick round; Contract structure; minimum scale | DR2-0099 |
 | CBA2-C13.16 | pending R7 | CBA2-C13.15 | Signing date; July 31 | DR2-0099 |
 | CBA2-C13.17 | pending R7 | CBA2-C02.1 | First-round rights; Rookie Scale Contract | DR2-0099 |
 | CBA2-C13.18 | pending R7 | CBA2-C02.4 | Second-round rights; available signing mechanism | DR2-0099, DR2-0104 |
 | CBA2-C13.19 | pending R7 | CBA2-C13.1, CBA2-C13.2 | Exception identity; proposed transaction method | DR2-0099 |
 | CBA2-C13.20 | pending R7 | CBA2-A07.1, CBA2-C01.2 | UFA status; prior Team; Room/exception/sign-and-trade availability | DR2-0099 |
+| CBA2-C13.21 | pending R7 | — | Signing/acquisition method; Contract term | DR2-0112, DR2-0114 |
+| CBA2-C13.22 | pending R7 | — | Applicable minimums; bonuses; covered Seasons | DR2-0112, DR2-0114 |
+| CBA2-C13.23 | pending R7 | — | Signing date; Regular Season days; applicable minimum | DR2-0112, DR2-0114 |
+| CBA2-C13.24 | pending R7 | — | Transaction method; TMLE availability | DR2-0112, DR2-0114 |
+| CBA2-C13.25 | pending R7 | CBA2-C13.24 | Contract term | DR2-0112, DR2-0114 |
+| CBA2-C13.26 | pending R7 | CBA2-C13.24 | First-Season Salary/Unlikely Bonuses; later-year amounts | DR2-0112, DR2-0114 |
+| CBA2-C13.27 | pending R7 | — | Transaction method; Salary Cap Year | DR2-0112, DR2-0114 |
+| CBA2-C13.28 | pending R7 | CBA2-C13.27 | Signed/assigned Contract term | DR2-0112, DR2-0114 |
+| CBA2-C13.29 | pending R7 | CBA2-C13.27 | First-Season Salary/Unlikely Bonuses; later-year amounts | DR2-0112, DR2-0114 |
+| CBA2-C13.30 | pending R7 | — | Team Salary/Room; prior/current exception use | DR2-0112, DR2-0114 |
+| CBA2-C13.31 | pending R7 | CBA2-C13.13 | First-year aggregate Salary/Unlikely Bonuses; annual BAE amount | DR2-0112, DR2-0114 |
+| CBA2-C13.32 | pending R7 | CBA2-C13.13 | Signed/assigned Contract term | DR2-0112, DR2-0114 |
+| CBA2-C13.33 | pending R7 | CBA2-C13.13 | First-Season Salary/Unlikely Bonuses; second-year amounts | DR2-0112, DR2-0114 |
+| CBA2-C13.34 | pending R7 | — | Current and prior Salary Cap Year BAE use | DR2-0112, DR2-0114 |
+| CBA2-C13.35 | pending R7 | — | Transaction method; Salary Cap Year | DR2-0112, DR2-0114 |
+| CBA2-C13.36 | pending R7 | — | Prior Team; player YOS; Offer Sheet state | DR2-0112, DR2-0114 |
+| CBA2-C13.37 | pending R7 | CBA2-C13.35 | First-year aggregate Salary/Unlikely Bonuses; annual NTMLE amount | DR2-0112, DR2-0114 |
+| CBA2-C13.38 | pending R7 | CBA2-C13.35 | Signed/assigned Contract term | DR2-0112, DR2-0114 |
+| CBA2-C13.39 | pending R7 | CBA2-C13.35 | First-Season Salary/Unlikely Bonuses; later-year amounts | DR2-0112, DR2-0114 |
 
 ### 15.11 Historical crosswalk (created by R3; A family)
 
@@ -5931,7 +5971,7 @@ Typed edges from published v1.1 LEAFs (meanings fixed at commit `9814939c`, file
 | XW2-0144 | CBA-A18.7 | CBA2-A08.7 | `split` | [CBA-A18.7:F1] span:0-108 — conditional-cash trade-year component | DR2-0083 |
 | XW2-0145 | CBA-A18.7 | — | `unsupported-residual` | [CBA-A18.7:F2] span:108-173 — later re-trade attribution/accounting residual preserved at §12.12 | DR2-0058 |
 | XW2-0146 | CBA-A17.2 | CBA2-A12.6 | `partial-overlap` | [CBA-A17.2:F1] span:0-34 — future-pick identification component; current Trade Call disclosure owner is broader and separately source-certified | DR2-0083 |
-| XW2-0147 | CBA-A08.1 | CBA2-C13.6 | `partial-overlap` | [CBA-A08.1:F1] span:0-115 — Minimum Player Salary Exception signing Contract shape and Regular Season proration; the committed homogeneous R4 fragment exits deferral through DR2-0102 | DR2-0102 |
+| XW2-0147 | CBA-A08.1 | CBA2-C13.6 | `partial-overlap` | [CBA-A08.1:F1] span:0-115 — Minimum Exception aggregate contract-eligibility route; atomic term, compensation, and proration owners are CBA2-C13.21–C13.23 | DR2-0102 |
 | XW2-0148 | CBA-A17.1 | — | `deferred` | [CBA-A17.1:F1] span:0-72 — pick-ledger representation; families:A,L; resolving-unit:R6 | DR2-0092 |
 | XW2-0149 | CBA-A17.1 | — | `deferred` | [CBA-A17.1:F3] span:79-92 — deferral and conveyance-dependency representation; families:A,L; resolving-unit:R6 | DR2-0092 |
 | XW2-0150 | CBA-A01.3 | — | `deferred` | [CBA-A01.3:F2] span:88-121 — explicit-date lifecycle representation; families:A,L; resolving-unit:R6 | DR2-0092 |
@@ -5939,7 +5979,7 @@ Typed edges from published v1.1 LEAFs (meanings fixed at commit `9814939c`, file
 | XW2-0152 | CBA-C11.9 | CBA2-A02.13 | `partial-overlap` | [CBA-C11.9:F1] span:0-166 — disabled-player no-TPE and replacement-player nonattachment components combined in the current owner | DR2-0092 |
 | XW2-0153 | CBA-C11.9 | — | `deferred` | [CBA-C11.9:F2] span:166-247 — DPE-extinction lifecycle; families:C,L; resolving-unit:R6 | DR2-0092 |
 | XW2-0154 | CBA-C20.7 | CBA2-A02.14 | `moved` | [CBA-C20.7:F1] span:0-63 — Two-Way trade-salary/TPE exclusion re-homed into critical correctness | DR2-0092 |
-| XW2-0155 | CBA-C13.8 | CBA2-C13.11 | `equivalent` | [CBA-C13.8:F1] span:0-61 — TMLE signing-only, divisibility, term, and raise Contract rule; R4 deferral exit through DR2-0102 | DR2-0102 |
+| XW2-0155 | CBA-C13.8 | CBA2-C13.11 | `partial-overlap` | [CBA-C13.8:F1] span:0-61 — TMLE aggregate signed-contract eligibility route; atomic amount, method, term, and annual-change owners are CBA2-C13.10 and CBA2-C13.24–C13.26 | DR2-0102 |
 | XW2-0156 | CBA-C13.8 | CBA2-A05.13 | `partial-overlap` | [CBA-C13.8:F2] span:84-98 — TMLE row-K/Second-Apron component | DR2-0092 |
 | XW2-0157 | CBA-C13.8 | CBA2-A05.1 | `partial-overlap` | [CBA-C13.8:F2] span:61-84 — post-transaction apron-test component | DR2-0092 |
 | XW2-0158 | CBA-C13.8 | CBA2-A05.2 | `split` | [CBA-C13.8:F3] span:98-134 — Second Apron hard-cap component | DR2-0092 |
@@ -6011,13 +6051,13 @@ Typed edges from published v1.1 LEAFs (meanings fixed at commit `9814939c`, file
 | XW2-0224 | CBA-C09.2 | CBA2-C09.7 | `equivalent` | [CBA-C09.2:F1] span:0-74 — full-prior-bracket plus partial-final-bracket arithmetic | DR2-0100 |
 | XW2-0225 | CBA-C10.1 | CBA2-C10.5 | `partial-overlap` | [CBA-C10.1:F1] span:0-55 — in-season Minimum Team Salary charge inclusion | DR2-0100 |
 | XW2-0226 | CBA-C10.2 | CBA2-C10.1 | `partial-overlap` | [CBA-C10.2:F1] span:0-80 — 90% Minimum Team Salary; the current owner keeps adjusted bases separate | DR2-0100 |
-| XW2-0227 | CBA-C10.3 | CBA2-C10.7 | `partial-overlap` | [CBA-C10.3:F1] span:0-78 — MTS shortfall payment component, corrected to the signed year-end MTS Payment Team Salary base and NBA recipient | DR2-0100 |
+| XW2-0227 | CBA-C10.3 | CBA2-C10.7 | `partial-overlap` | [CBA-C10.3:F1] span:0-78 — initial MTS shortfall payment using the fixed first-Regular-Season-day MTS Payment Team Salary base and NBA recipient | DR2-0100 |
 | XW2-0228 | CBA-C10.3 | — | `invalid` | [CBA-C10.3:F2] span:78-116 — false assertion that the Team Salary charge equals the MTS payment | DR2-0107 |
 | XW2-0229 | CBA-C10.3 | CBA2-C10.8 | `split` | [CBA-C10.3:F3] span:116-155 — tax-distribution ineligibility component | DR2-0100 |
 | XW2-0230 | CBA-C10.4 | CBA2-C10.4 | `partial-overlap` | [CBA-C10.4:F1] span:0-57 — start-of-Regular-Season MTS Threshold component; current owner replaces “opening salary” shorthand with the signed adjusted base | DR2-0100 |
-| XW2-0231 | CBA-C10.4 | — | `invalid` | [CBA-C10.4:F2] span:57-100 — false prompt-correction duty; the signed rule applies and later removes a Team Salary charge | DR2-0108 |
+| XW2-0231 | CBA-C10.4 | CBA2-C10.6 | `equivalent` | [CBA-C10.4:F2] span:57-100 — express next-day restoration duty when MTS Cap Hold Team Salary decreases below the MTS Threshold | DR2-0108 |
 | XW2-0232 | CBA-C10.5 | CBA2-C10.5 | `split` | [CBA-C10.5:F1] span:0-29 — persistent in-season charge component | DR2-0100 |
-| XW2-0233 | CBA-C10.5 | CBA2-C10.9 | `split` | [CBA-C10.5:F2] span:29-68 — year-end accounting/reconciliation component | DR2-0100 |
+| XW2-0233 | CBA-C10.5 | CBA2-C10.9 | `split` | [CBA-C10.5:F2] span:29-68 — year-end additional-payment component under §2(c)(5), without unsupported BRI/tax claims | DR2-0100 |
 | XW2-0234 | CBA-C11.1 | CBA2-A02.13 | `partial-overlap` | [CBA-C11.1:F1] span:0-82 — disabled-player attachment and replacement-player nonattachment, retained in the A02.13 transaction owner | DR2-0100 |
 | XW2-0235 | CBA-C11.2 | — | `deferred` | [CBA-C11.2:F1] span:0-10 — persisted DPE state representation; families:C,L; resolving-unit:R6 | DR2-0110 |
 | XW2-0236 | CBA-C11.2 | CBA2-C12.8 | `split` | [CBA-C11.2:F2] span:10-28 — DPE medical-decision component | DR2-0100 |
@@ -6048,13 +6088,13 @@ Typed edges from published v1.1 LEAFs (meanings fixed at commit `9814939c`, file
 | XW2-0261 | CBA-C13.4 | CBA2-C13.4 | `split` | [CBA-C13.4:F3] span:114-140 — DPE/TPE non-proration component | DR2-0100 |
 | XW2-0262 | CBA-C13.5 | CBA2-C13.5 | `equivalent` | [CBA-C13.5:F1] span:0-90 — full-value trade/Offer-Sheet preservation | DR2-0100 |
 | XW2-0263 | CBA-C13.6 | CBA2-C13.19 | `equivalent` | [CBA-C13.6:F1] span:0-100 — method-specific exception use | DR2-0100 |
-| XW2-0264 | CBA-C13.7 | CBA2-C13.8 | `split` | [CBA-C13.7:F1] span:0-43 — NTMLE method component | DR2-0100 |
-| XW2-0265 | CBA-C13.7 | CBA2-C13.9 | `split` | [CBA-C13.7:F2] span:43-84 — NTMLE term/raise component | DR2-0100 |
+| XW2-0264 | CBA-C13.7 | CBA2-C13.8 | `partial-overlap` | [CBA-C13.7:F1] span:0-43 — corrected NTMLE method-route verdict: signing and post-transition assignment plus the narrow Offer Sheet match; waiver claim is not authorized | DR2-0100 |
+| XW2-0265 | CBA-C13.7 | CBA2-C13.9 | `split` | [CBA-C13.7:F2] span:43-84 — aggregate NTMLE contract-shape verdict over atomic amount/divisibility, term, and annual-change owners | DR2-0100 |
 | XW2-0266 | CBA-C13.7 | CBA2-A05.4 | `split` | [CBA-C13.7:F3] span:84-120 — NTMLE First-Apron transaction component | DR2-0100 |
 | XW2-0267 | CBA-C13.7 | CBA2-A05.2 | `split` | [CBA-C13.7:F4] span:120-186 — resulting First-Apron hard-cap component | DR2-0100 |
-| XW2-0268 | CBA-C13.9 | CBA2-C13.12 | `equivalent` | [CBA-C13.9:F1] span:0-84 — Room MLE contract shape and mutual exclusivity | DR2-0100 |
-| XW2-0269 | CBA-C13.10 | CBA2-C13.13 | `split` | [CBA-C13.10:F1] span:0-23 — BAE method component | DR2-0100 |
-| XW2-0270 | CBA-C13.10 | CBA2-C13.14 | `split` | [CBA-C13.10:F2] span:23-98 — BAE shape/consecutive-use component | DR2-0100 |
+| XW2-0268 | CBA-C13.9 | CBA2-C13.12 | `partial-overlap` | [CBA-C13.9:F1] span:0-84 — aggregate Room MLE use verdict over atomic method/transition, term, annual-change, and availability owners | DR2-0100 |
+| XW2-0269 | CBA-C13.10 | CBA2-C13.13 | `partial-overlap` | [CBA-C13.10:F1] span:0-23 — corrected BAE method verdict: signing and post-transition assignment; waiver claim is not authorized | DR2-0100 |
+| XW2-0270 | CBA-C13.10 | CBA2-C13.14 | `split` | [CBA-C13.10:F2] span:23-98 — aggregate BAE contract/use verdict over atomic amount/divisibility, term, annual-change, and consecutive-year owners | DR2-0100 |
 | XW2-0271 | CBA-C13.10 | CBA2-A05.3 | `split` | [CBA-C13.10:F3] span:98-122 — BAE First-Apron transaction component | DR2-0100 |
 | XW2-0272 | CBA-C13.10 | CBA2-A05.2 | `split` | [CBA-C13.10:F4] span:122-134 — First-Apron hard-cap component | DR2-0100 |
 | XW2-0273 | CBA-C13.11 | CBA2-C13.15 | `equivalent` | [CBA-C13.11:F1] span:0-97 — prescribed SRPE Contract structures | DR2-0100 |
@@ -6320,24 +6360,24 @@ input contract.
 | EV2-0201 | CBA2-C08.5 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | The stated trade-bonus allocation event adjusts Tax Team Salary | Supplies trade-bonus adjustment | — | A04 owns bonus calculation |
 | EV2-0202 | CBA2-C08.6 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | The specified final grievance amount adjusts Tax Team Salary | Supplies grievance adjustment | — | External outcome input |
 | EV2-0203 | CBA2-C08.7 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | Add the zero/one-YOS to two-YOS minimum difference for qualifying contracts | Supplies minimum uplift | — | — |
-| EV2-0204 | CBA2-C08.8 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82; II §11, pp. 48-50 | Subtract 50% of compensation forfeited for a qualifying NBA suspension | Supplies suspension adjustment | — | No ordinary Team Salary reduction inferred |
-| EV2-0205 | CBA2-C09.1 | CBA | SRC2-001 | — | CBA VII §2(d)(2), pp. 182-86 | Bracket amount is 3.5% of Cap in 2025-26 and 4.75% thereafter | Supplies bracket size | — | — |
+| EV2-0204 | CBA2-C08.8 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i)(E), p. 180 | Tax Team Salary applies the specified 50% adjustment for compensation forfeited under a qualifying NBA suspension | Supplies the suspension adjustment only | — | No Article II locator and no ordinary Team Salary reduction inferred |
+| EV2-0205 | CBA2-C09.1 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(ii), p. 181 | Tax Bracket Amount equals $5 million times the current Salary Cap divided by the 2023-24 Salary Cap | Supplies bracket width | — | Tax rates remain separate |
 | EV2-0206 | CBA2-C09.2 | CBA | SRC2-001 | — | CBA VII §2(d)(2)(i), pp. 182-84 | Current standard first-four rates are 1.00/1.25/3.50/4.75 | Supplies standard rate table | — | Beginning 2025-26 |
 | EV2-0207 | CBA2-C09.3 | CBA | SRC2-001 | — | CBA VII §2(d)(2)(ii), pp. 184-85 | Repeater status requires current tax and tax in at least three of four preceding years | Supplies repeater predicate | — | — |
 | EV2-0208 | CBA2-C09.4 | CBA | SRC2-001 | — | CBA VII §2(d)(2)(ii), pp. 184-85 | Current repeater first-four rates are 3.00/3.25/5.50/6.75 | Supplies repeater rate table | — | Beginning 2025-26 |
 | EV2-0209 | CBA2-C09.5 | CBA | SRC2-001 | — | CBA VII §2(d)(2), pp. 182-85 | Each bracket after the fourth increases by 0.50 | Supplies additional-bracket rule | — | — |
 | EV2-0210 | CBA2-C09.6 | CBA | SRC2-001 | — | CBA VII §2(d)(2), pp. 182-86 | 2023-24 and 2024-25 retain the expressly stated legacy schedules | Supplies transition-year branch | — | Historical simulation only |
 | EV2-0211 | CBA2-C09.7 | DERIVED | SRC2-001 | EV2-0205, EV2-0206, EV2-0208, EV2-0209 | CBA VII §2(d)(2), pp. 182-85 | The bracket schedule applies each rate only to dollars within its bracket | Expands the progressive sum into full prior brackets plus the partial last bracket | Pure arithmetic; no new rate | — |
-| EV2-0212 | CBA2-C10.1 | CBA | SRC2-001 | — | CBA VII §2(c)(1), p. 176 | Minimum Team Salary is 90% of the Salary Cap | Supplies threshold percentage | — | — |
-| EV2-0213 | CBA2-C10.2 | CBA | SRC2-001 | — | CBA VII §2(c)(4), pp. 177-78 | MTS Cap Hold Team Salary applies its own stated adjustments | Supplies in-season adjusted base | — | Distinct from MTS Payment Team Salary |
-| EV2-0214 | CBA2-C10.3 | CBA | SRC2-001 | — | CBA VII §2(c)(5), p. 178 | MTS Payment Team Salary applies its own stated adjustments | Supplies year-end adjusted base | — | Distinct from the charge base |
+| EV2-0212 | CBA2-C10.1 | CBA | SRC2-001 | — | CBA VII §2(a)(4)(i), p. 169 | Minimum Team Salary equals 90% of the Salary Cap | Supplies the annual amount percentage | — | MTS Threshold is separately defined |
+| EV2-0213 | CBA2-C10.2 | CBA | SRC2-001 | — | CBA VII §2(c)(1)(i), pp. 176-77 | MTS Cap Hold Team Salary uses the Accountants' Total Salaries and Benefits Team Salary method | Supplies the defined audit-method base | — | Distinct from MTS Payment Team Salary |
+| EV2-0214 | CBA2-C10.3 | CBA | SRC2-001 | — | CBA VII §2(c)(1)(ii), p. 177 | MTS Payment Team Salary uses first-Regular-Season-day MTS Cap Hold Team Salary plus the three express adjustments | Supplies the fixed payment base | — | Not a year-end base |
 | EV2-0215 | CBA2-C10.4 | CBA | SRC2-001 | — | CBA VII §2(c)(1)-(2), pp. 176-77 | The in-season threshold derives from the start-of-Regular-Season adjusted computation | Supplies MTS Threshold baseline | — | No roster-correction command |
-| EV2-0216 | CBA2-C10.5 | CBA | SRC2-001 | — | CBA VII §2(c)(2), pp. 176-77 | The charge is the lesser of current and season-start shortfalls | Supplies in-season charge formula | — | Need not equal final payment |
-| EV2-0217 | CBA2-C10.6 | CBA | SRC2-001 | — | CBA VII §2(c)(2), p. 177 | The charge is removed the day after the adjusted base again reaches the threshold | Supplies restoration timing | — | — |
-| EV2-0218 | CBA2-C10.7 | CBA | SRC2-001 | — | CBA VII §2(c)(1), (3), pp. 176-78 | A final MTS Payment Team pays the NBA the year-end shortfall | Supplies payer, recipient, and amount | — | Not a player distribution |
+| EV2-0216 | CBA2-C10.5 | CBA | SRC2-001 | — | CBA VII §2(c)(3), p. 178 | Team Salary includes Minimum Team Salary minus the lesser of current and first-day MTS Cap Hold Team Salary throughout the stated period | Supplies the charge formula and lifecycle | — | Lesser Salary base means greater shortfall |
+| EV2-0217 | CBA2-C10.6 | CBA | SRC2-001 | — | CBA VII §2(c)(4), p. 178 | A Regular Season decrease below MTS Threshold must be restored to at least the threshold by the end of the next day | Supplies the restoration trigger, result, and deadline | — | Creates no general charge-removal rule |
+| EV2-0218 | CBA2-C10.7 | CBA | SRC2-001 | — | CBA VII §2(c)(2)(i), pp. 177-78 | A Team below the Minimum Team Salary on its fixed MTS Payment Team Salary base pays the NBA the difference | Supplies payer, recipient, and initial amount | — | Not a year-end base or player distribution |
 | EV2-0219 | CBA2-C10.8 | CBA | SRC2-001 | — | CBA VII §2(c)(2), (7), pp. 176-79 | An MTS-payment Team loses the normal non-taxpayer share, with a 2023-24-only half-share branch | Supplies distribution consequence | — | 2023-24 branch is historical only |
-| EV2-0220 | CBA2-C10.9 | CBA | SRC2-001 | — | CBA VII §2(c)(3), pp. 177-78 | The final payment/charge enters the stated BRI, tax, and incentive-likelihood accounting | Supplies year-end accounting | — | — |
-| EV2-0221 | CBA2-C10.10 | CBA | SRC2-001 | — | CBA VII §2(c)(6), p. 178 | Within ten business days, collected MTS payments are distributed equally to Teams | Supplies distribution recipient/timing | — | — |
+| EV2-0220 | CBA2-C10.9 | CBA | SRC2-001 | — | CBA VII §2(c)(5), p. 178 | At year-end the Team pays the excess of Minimum Team Salary over financially responsible adjusted MTS Cap Hold Team Salaries plus the initial payment | Supplies the additional-payment formula and incentive adjustments | — | No BRI or tax claim |
+| EV2-0221 | CBA2-C10.10 | CBA | SRC2-001 | — | CBA VII §2(c)(6), pp. 178-79 | Each §2(c)(2)(i) or §2(c)(5) payment is due to the NBA within ten business days after completion of the Governing Audit Report | Supplies the Team payment deadline | — | NBA redistribution is CBA2-C10.11 |
 | EV2-0222 | CBA2-C11.1 | CBA | SRC2-001 | — | CBA VII §4(h), p. 222 | The Contract must be terminated through waivers before the career-ending Salary exclusion | Supplies termination prerequisite | — | — |
 | EV2-0223 | CBA2-C11.2 | CBA | SRC2-001 | — | CBA VII §4(h)(1), pp. 222-23 | The signed first-anniversary, fewer-than-ten-games, sixty-day, and first-roster-game timing rules govern application | Supplies application timing | — | — |
 | EV2-0224 | CBA2-C11.3 | CBA | SRC2-001 | — | CBA VII §4(h)(2), p. 223 | A jointly selected physician or agreed Panel must make one of the stated career-ending/elevated-risk findings | Supplies required external finding | — | Does not decide medical merits |
@@ -6360,21 +6400,41 @@ input contract.
 | EV2-0241 | CBA2-C13.3 | CBA | SRC2-001 | — | CBA VII §6(n)(4), p. 249 | Beginning January 10, covered unused exceptions reduce daily by unused amount divided by season days | Supplies daily reduction | — | — |
 | EV2-0242 | CBA2-C13.4 | CBA | SRC2-001 | — | CBA VII §6(n)(4), p. 249 | TPE, Minimum Exception, and DPE are excluded from the general daily reduction | Supplies homogeneous non-prorating list | — | — |
 | EV2-0243 | CBA2-C13.5 | CBA | SRC2-001 | — | CBA VII §6(n)(4)(i)-(ii), p. 249 | Covered trade-deadline use and Offer Sheet matching preserve full value | Supplies non-reduction branches | — | — |
-| EV2-0244 | CBA2-C13.6 | CBA | SRC2-001 | — | CBA I §1(kk), pp. 7-8; VII §6(i), pp. 239-40 | Minimum Exception signing covers at most two Seasons at minimum Salary without ordinary bonuses, and a Regular Season signing prorates by covered days over season days | Supplies the closed signing Contract result | — | Trade-bonus and reimbursement branches are separate |
-| EV2-0245 | CBA2-C13.7 | CBA | SRC2-001 | — | CBA VII §6(i), pp. 239-40 | The Minimum Player Salary Exception authorizes the permitted acquisition/claim branches within its amount and term rules | Supplies acquisition authority | — | — |
-| EV2-0246 | CBA2-C13.8 | CBA | SRC2-001 | — | CBA VII §6(e), pp. 236-37 | The NTMLE authorizes the stated signing/acquisition/claim/match methods | Supplies method set | — | A05 owns apron transaction limits |
-| EV2-0247 | CBA2-C13.9 | CBA | SRC2-001 | — | CBA VII §6(e), pp. 236-37 | NTMLE signing covers up to four Seasons with 5% changes | Supplies contract shape | — | — |
+| EV2-0244 | CBA2-C13.6 | INFERRED | SRC2-001 | EV2-0260, EV2-0261, EV2-0262 | CBA I §1(kk), pp. 7-8; VII §6(i), p. 240 | The three source rules independently control term, compensation, and Regular Season proration | Their conjunction yields one Minimum Exception contract-eligibility verdict | Inference from the three direct eligibility components | Aggregate routing only; atomic owners control |
+| EV2-0245 | CBA2-C13.7 | CBA | SRC2-001 | — | CBA VII §6(i), p. 240 | The Minimum Player Salary Exception authorizes acquisition by assignment within its amount and term rules | Supplies assignment-acquisition authority | — | No waiver-claim authority |
+| EV2-0246 | CBA2-C13.8 | INFERRED | SRC2-001 | EV2-0274, EV2-0275 | CBA VII §6(e)(1), (5), pp. 236-37 | The signed text supplies ordinary signing/assignment and a narrow Offer Sheet match, but no waiver-claim method | Their alternatives yield one method-route eligibility verdict | Inference from the two direct route components and the closed source list | A05 owns apron limits; waiver claim excluded |
+| EV2-0247 | CBA2-C13.9 | INFERRED | SRC2-001 | EV2-0276, EV2-0277, EV2-0278 | CBA VII §6(e)(1)-(4), pp. 236-37 | Separate provisions control aggregate amount, term, and annual changes | Their conjunction yields one NTMLE contract-shape verdict | Inference from the three direct contract components | Atomic owners control |
 | EV2-0248 | CBA2-C13.10 | CBA | SRC2-001 | — | CBA VII §6(f), pp. 237-38 | The TMLE amount may be divided among one or more signed players | Supplies amount use | — | — |
-| EV2-0249 | CBA2-C13.11 | CBA | SRC2-001 | — | CBA VII §6(f), pp. 237-38 | TMLE is signing-only and divisible; each signing covers up to two Seasons with 5% changes | Supplies the closed signing/Contract result | — | A05 owns apron consequences |
-| EV2-0250 | CBA2-C13.12 | CBA | SRC2-001 | — | CBA VII §6(g), pp. 238-39 | The Room MLE has its stated shape and is mutually exclusive with NTMLE, TMLE, and BAE use | Supplies identity/exclusivity | — | — |
-| EV2-0251 | CBA2-C13.13 | CBA | SRC2-001 | — | CBA VII §6(d), pp. 235-36 | BAE authorizes the stated signing/acquisition/claim methods and is divisible | Supplies BAE method | — | — |
-| EV2-0252 | CBA2-C13.14 | CBA | SRC2-001 | — | CBA VII §6(d), pp. 235-36 | BAE signings cover up to two Seasons with 5% changes and BAE is unavailable in consecutive years | Supplies shape/frequency | — | — |
+| EV2-0249 | CBA2-C13.11 | INFERRED | SRC2-001 | EV2-0248, EV2-0263, EV2-0264, EV2-0265 | CBA VII §6(f)(1)-(3), pp. 237-38 | Separate provisions control amount/divisibility, signing method, term, and annual changes | Their conjunction yields one TMLE signed-contract verdict | Inference from the four direct signing-contract components | A05 owns apron consequences; atomic owners control |
+| EV2-0250 | CBA2-C13.12 | INFERRED | SRC2-001 | EV2-0266, EV2-0267, EV2-0268, EV2-0269 | CBA VII §6(g)(1)-(4), pp. 238-39 | Separate provisions control Room MLE method/transition, term, annual changes, and availability | Their conjunction yields one Room MLE use verdict | Inference from the four direct Room MLE components | Atomic owners control |
+| EV2-0251 | CBA2-C13.13 | CBA | SRC2-001 | — | CBA VII §6(d)(1), p. 235 | BAE authorizes signing and assignment acquisition, with assignment barred before 2024-25 | Supplies the date-conditioned method verdict | — | No waiver-claim authority |
+| EV2-0252 | CBA2-C13.14 | INFERRED | SRC2-001 | EV2-0251, EV2-0270, EV2-0271, EV2-0272, EV2-0273 | CBA VII §6(d)(1)-(4), pp. 235-36 | Separate provisions control method, amount/divisibility, term, annual changes, and consecutive-year use | Their conjunction yields one BAE contract/use verdict | Inference from the five direct BAE components | Atomic owners control |
 | EV2-0253 | CBA2-C13.15 | CBA | SRC2-001 | — | CBA II §6, pp. 33-35; VII §6(k), pp. 246-47 | SRPE Contracts use the prescribed two-plus-Option or three-plus-Option minimum-based structures | Supplies contract structures | — | — |
 | EV2-0254 | CBA2-C13.16 | CBA | SRC2-001 | — | CBA VII §4(l), p. 225 | July 1–30 SRPE signings are excluded from Team Salary until July 31 | Supplies temporary exclusion | — | Apron add-back is CBA2-C07.10 |
 | EV2-0255 | CBA2-C13.17 | CBA | SRC2-001 | — | CBA VII §6(h), p. 239 | A Team may sign its own First Round Pick to a Rookie Scale Contract over the Cap | Supplies signing authority | — | Contract-shape rules are R5 |
 | EV2-0256 | CBA2-C13.18 | CBA | SRC2-001 | — | CBA II §6, pp. 33-35; VII §6(h)-(i), pp. 239-40 | Second-round signing requires an independently available signed mechanism | Supplies route constraint | — | Does not create a new exception |
-| EV2-0257 | CBA2-C13.19 | INFERRED | SRC2-001 | EV2-0230, EV2-0244, EV2-0246, EV2-0248, EV2-0251 | CBA VII §6(c)-(j), pp. 232-46 | Each exception grant states its own allowed transaction methods | Distinct grants prohibit transferring method authority between exceptions | Inference from express method-specific grants | Specific owners control |
+| EV2-0257 | CBA2-C13.19 | INFERRED | SRC2-001 | EV2-0230, EV2-0245, EV2-0251, EV2-0263, EV2-0266, EV2-0274 | CBA VII §6(c)-(j), pp. 232-46 | Each exception grant states its own allowed transaction methods | Distinct grants prohibit transferring method authority between exceptions | Inference from express method-specific grants | Specific owners control; no waiver method transfers |
 | EV2-0258 | CBA2-C13.20 | CBA | SRC2-001 | — | CBA VII §6(b), pp. 231-32; VII §8(e)(1), p. 262 | A UFA signing requires Room, an applicable exception, the prior Team's applicable Veteran Free Agent Exception, or the sign-and-trade route | Supplies the route inventory | — | Detailed Bird mechanics are R5 |
+| EV2-0259 | CBA2-C10.11 | CBA | SRC2-001 | — | CBA VII §2(c)(6), pp. 178-79 | The NBA distributes received MTS payments equally to each Team within ten business days after receipt | Supplies NBA recipient and deadline | — | Team payment deadline is CBA2-C10.10 |
+| EV2-0260 | CBA2-C13.21 | CBA | SRC2-001 | — | CBA VII §6(i), p. 240 | A Contract signed or acquired under the Minimum Exception may not exceed two Seasons | Supplies term limit | — | — |
+| EV2-0261 | CBA2-C13.22 | CBA | SRC2-001 | — | CBA VII §6(i), p. 240 | Each covered Season provides the applicable Minimum Player Salary with no bonuses of any kind | Supplies compensation rule | — | — |
+| EV2-0262 | CBA2-C13.23 | CBA | SRC2-001 | — | CBA I §1(kk), pp. 7-8 | A Minimum Player Salary Contract signed during the Regular Season is reduced pro rata from signing date over Regular Season days | Supplies conditional proration | — | — |
+| EV2-0263 | CBA2-C13.24 | CBA | SRC2-001 | — | CBA VII §6(f)(1), p. 237 | TMLE use is to sign one or more Player Contracts | Supplies signing-only method | — | — |
+| EV2-0264 | CBA2-C13.25 | CBA | SRC2-001 | — | CBA VII §6(f)(1), p. 237 | Each TMLE-signed Contract may not exceed two Seasons | Supplies term limit | — | — |
+| EV2-0265 | CBA2-C13.26 | CBA | SRC2-001 | — | CBA VII §§5(a)(1), 6(f)(3), pp. 226-27, 238 | TMLE-signed Contracts may use annual Salary and Unlikely-Bonus changes only under §5(a)(1) | Supplies annual-change rule | — | — |
+| EV2-0266 | CBA2-C13.27 | CBA | SRC2-001 | — | CBA VII §6(g)(1), pp. 238-39 | Room MLE use permits signing and assignment acquisition, but assignment was barred before 2024-25 | Supplies date-conditioned method rule | — | — |
+| EV2-0267 | CBA2-C13.28 | CBA | SRC2-001 | — | CBA VII §6(g)(2), p. 239 | Signed or assigned Room MLE Contracts may have no more than three Seasons remaining | Supplies term limit | — | — |
+| EV2-0268 | CBA2-C13.29 | CBA | SRC2-001 | — | CBA VII §§5(a)(1), 6(g)(4), pp. 226-27, 239 | Room MLE signings may use annual Salary and Unlikely-Bonus changes only under §5(a)(1) | Supplies annual-change rule | — | — |
+| EV2-0269 | CBA2-C13.30 | CBA | SRC2-001 | — | CBA VII §6(g)(1), (3), pp. 238-39 | Room MLE requires the stated below-cap/no-prior-use predicates and its use bars BAE, NTMLE, and TMLE for the rest of the year | Supplies mutual-exclusivity availability | — | — |
+| EV2-0270 | CBA2-C13.31 | CBA | SRC2-001 | — | CBA VII §6(d)(1), p. 235 | One or more Contracts may share BAE first-year Salary and Unlikely Bonuses within the annual aggregate amount | Supplies amount/divisibility | — | — |
+| EV2-0271 | CBA2-C13.32 | CBA | SRC2-001 | — | CBA VII §6(d)(2), p. 235 | Each signed or assigned BAE Contract may have no more than two Seasons remaining | Supplies term limit | — | — |
+| EV2-0272 | CBA2-C13.33 | CBA | SRC2-001 | — | CBA VII §§5(a)(1), 6(d)(4), pp. 226-27, 236 | A two-Season BAE signing may change second-year Salary and Unlikely Bonuses only under §5(a)(1) | Supplies annual-change rule | — | — |
+| EV2-0273 | CBA2-C13.34 | CBA | SRC2-001 | — | CBA VII §6(d)(3), p. 235 | No portion of the BAE may be used in consecutive Salary Cap Years | Supplies frequency bar | — | — |
+| EV2-0274 | CBA2-C13.35 | CBA | SRC2-001 | — | CBA VII §6(e)(1), p. 236 | NTMLE use permits signing and assignment acquisition, but assignment was barred before 2024-25 | Supplies date-conditioned ordinary method rule | — | — |
+| EV2-0275 | CBA2-C13.36 | CBA | SRC2-001 | — | CBA VII §6(e)(5), p. 237 | A prior Team may use the NTMLE for the specified one- or two-YOS Veteran Free Agent Offer Sheet match | Supplies narrow match route | — | — |
+| EV2-0276 | CBA2-C13.37 | CBA | SRC2-001 | — | CBA VII §6(e)(1), p. 236 | One or more Contracts may share NTMLE first-year Salary and Unlikely Bonuses within the annual aggregate amount | Supplies amount/divisibility | — | — |
+| EV2-0277 | CBA2-C13.38 | CBA | SRC2-001 | — | CBA VII §6(e)(2), p. 236 | Each signed or assigned NTMLE Contract may have no more than four Seasons remaining | Supplies term limit | — | — |
+| EV2-0278 | CBA2-C13.39 | CBA | SRC2-001 | — | CBA VII §§5(a)(1), 6(e)(4), pp. 226-27, 236 | NTMLE-signed Contracts may use annual Salary and Unlikely-Bonus increases or decreases only under §5(a)(1) | Supplies annual-change rule | — | — |
 
 ## 16. Acceptance-test library
 
@@ -6626,7 +6686,7 @@ This classification is part of the canon. A later source may move an OPS item in
 
 **A-family v2 status (R3.1 independently ACCEPTED; R4 unblocked but not started).** The rejected R3 checkpoint remains immutable history. R3.1 repaired its governed A-series records through AMEND lineage after the first compatibility checkpoint was independently accepted at `c3a00637` and the owner-authorized same-family compatibility checkpoint was independently accepted at `d6101f82`. The exact R3.1 maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4` was independently **ACCEPTED** by `/root/validation_scout`. It contains 12 GROUPs and **151 active A LEAFs**. The express VII §8(a) cash-year rule and the INFERRED conditional-cash application remain separate; the later re-trade residual remains preserved under its current searched `unsupported-residual` DISP. At that acceptance point, R4 is unblocked but remains not started. This is Phase 1 construction acceptance, not final activation; no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance.
 
-**C01–C13 v2 status (R4 maker complete; independent review pending).** R4 adds 13 GROUPs and **99 active C LEAFs**, extending the shared namespaces through `XW2-0278`, `EV2-0258`, `DR2-0110`, `SM2-0009`, and `SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The R4-designated A08.1, A01.4, and C13.8 deferrals exit through current `DR2-0102` AMEND lineage. The C07.6 enumerated adjustments are separate, and the C10 charge, payment, and sharing results use their distinct signed bases. The post-waiver reimbursement-extinction fragment is preserved as a searched `unsupported-residual`; the independently supported waived-contract Team Salary owner remains active. This is a maker claim until the named checker explicitly ACCEPTs the exact clean checkpoint. R5 is blocked and unstarted, behavioral scenarios remain pending R7, Phase 1 continues, and no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance. C14–C25 and the R-, L-, and S-family rows remain legacy status claims pending R5–R6.
+**C01–C13 v2 status (R4 repaired maker construction; repeat independent review pending).** The first R4 maker checkpoint was independently rejected and remains immutable history. Forward lineage in `DR2-0111`–`DR2-0114` repairs the five checker findings without altering that checkpoint. The repaired maker result adds 13 GROUPs and **119 active C LEAFs**, extending the shared namespaces through `XW2-0278`, `EV2-0278`, `DR2-0114`, `SM2-0009`, and `SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The R4-designated A08.1, A01.4, and C13.8 deferrals exit through current `DR2-0102` AMEND lineage. The C07.6 enumerated adjustments are separate; the C09 Tax Bracket Amount uses the signed 2023-24 scaling base; C10 separates charge, restoration, initial/additional payment, Team payment, and NBA distribution results; and the Minimum, NTMLE, TMLE, Room, and BAE aggregate routes depend on direct atomic contract components. The post-waiver reimbursement-extinction fragment is preserved as a searched `unsupported-residual`; the independently supported waived-contract Team Salary owner remains active. This remains a maker claim until the named checker explicitly ACCEPTs the exact clean repair checkpoint. R5 is blocked and unstarted, behavioral scenarios remain pending R7, Phase 1 continues, and no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance. C14–C25 and the R-, L-, and S-family rows remain legacy status claims pending R5–R6.
 
 ### 19.4 CBA Guide sections reviewed for discovery
 
