@@ -2020,6 +2020,22 @@ is a one-way dependency scheduled backwards, not a cycle).
   R1/R1.1 and the historical C07.6 bundle, whose two enumerated adjustments
   (vi) and (vii) become separate active v2 LEAFs.
 
+**R4 execution status — maker construction complete; independent review
+pending.** The maker working tree extends the shared register with 13 C-family
+GROUPs and 99 C01–C13 LEAFs, XW2 through `XW2-0278`, EV2 through
+`EV2-0258`, DR2 through `DR2-0110`, SM2 through `SM2-0009`, and SS2 through
+`SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The
+R4-designated A08.1, A01.4, and
+C13.8 deferrals exit through `DR2-0102` AMEND lineage. The C07.6 adjustments
+(vi) and (vii) are separate owners, and C10's in-season charge, year-end
+payment, and distribution consequences use separate signed bases/results.
+The exact historical post-waiver reimbursement-extinction fragment is
+preserved as a searched `unsupported-residual`; separately supported waived-
+contract Team Salary remains active. This status is a maker claim only until
+the named checker report explicitly ACCEPTs the exact clean maker checkpoint.
+R5 remains blocked and unstarted; Phase 2 and application work remain
+unstarted.
+
 ## R5 — Re-register and source-certify the C-series, second half (C14–C25)
 
 - **Authorized maker files:** canon; this repair plan; and the new maker

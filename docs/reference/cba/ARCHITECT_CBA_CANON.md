@@ -36,9 +36,12 @@ corrective checkpoint `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by
 checkpoint remains unaccepted. R3.1 was independently **ACCEPTED** by
 `/root/validation_scout` at exact maker checkpoint
 `9239c1d3dc595538beb048c77788cd2c453240a4`. The accepted R3.1 checkpoint
-contains 151 active A-series LEAFs. R4 is unblocked as the next construction
-unit but remains not started. Phase 1 continues; Phase 2 and W1.1 remain
-blocked pending R9 ACCEPT plus owner acceptance.
+contains 151 active A-series LEAFs. At that acceptance point, R4 is unblocked
+as the next construction unit but remains not started. R4 maker construction
+has since added the C01–C13 governed populations and is pending
+exact-checkpoint independent review; R5 is blocked and unstarted. Phase 1
+continues; Phase 2 and W1.1 remain blocked pending R9 ACCEPT plus owner
+acceptance.
 
 > **Use rule:** Architect may rely on a rule as deterministic only when the required inputs exist and the rule is marked **CBA**, **BYL**, **NBA**, **DERIVED**, or **INFERRED** under the authority system below. A **DERIVED** item is arithmetic reproduced from a source formula; an **INFERRED** item is non-arithmetic legal or algorithmic inference supported by controlling primary-source text and must carry its locators and reasoning chain, never presented as express source language. An **OPS** item is a league-operational rule with real first-party operational provenance (§15.9.6) for which no current public primary text was located; secondary reporting never establishes it, and it must remain configurable and must not be represented as language from the CBA. An **EXT** item requires a league, physician, expert, or legal determination.
 
@@ -72,6 +75,7 @@ blocked pending R9 ACCEPT plus owner acceptance.
 | **Repair v2.0 — working draft, pre-R3.1 compatibility** | **July 23, 2026** | **One-time foundation-compatibility checkpoint** (goal-authorized; not an R2.x unit): closes the blocking mismatch between the accepted standard and R3.1 execution by enforcing exact population-scoped AMEND lineage, same-ID change traceability, canon-valid high-water/gap behavior, exact historical LEAF extraction, the narrow governed later-family `deferred` XW2 shape, and the pinned historical-authority qualifier for `authority-assertion` fragments. It changes no active §15.10–§15.12 row and begins no substantive R3.1 migration. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_COMPATIBILITY_CHECKPOINT.md`. **Independently ACCEPTED at corrective checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; the later owner-authorized same-family compatibility checkpoint was independently ACCEPTED at exact corrective checkpoint `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by `/root/validation_scout`. R3.1 was independently ACCEPTED by `/root/validation_scout` at exact maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`; R4 is unblocked but not started, Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance.** |
 | **Repair v2.0 — working draft, same-family deferral compatibility** | **July 24, 2026** | **Narrow XW2 same-family deferral compatibility checkpoint** (owner-authorized; not an R2.x unit): permits identical source/target family tokens only when an earlier construction unit must inventory a historical LEAF because a different sibling fragment already maps to an active target in another family, while the remaining fragment's honest natural-family owner will be minted by the specifically named later R4–R6 unit and no target yet exists. All ordinary same-family/same-unit deferrals remain forbidden; the existing target-`—`, one-fragment, no-bundle, direct-current-`OWN`, mandatory-`AMEND`, and zero-at-R8 safeguards remain binding. No concrete edge or active record is minted. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_SAME_FAMILY_DEFERRAL_COMPATIBILITY.md`. **Independently ACCEPTED at exact corrective checkpoint `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by `/root/validation_scout`. R3.1 was independently ACCEPTED by `/root/validation_scout` at exact maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`; R4 is unblocked but not started, Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance.** |
 | **Repair v2.0 — working draft, R3.1** | **July 24, 2026** | **A-series repair through AMEND lineage:** expands the active A family from 81 to 151 atomic LEAFs; repairs trade bonus, trade salary, cash, extension, sign-and-trade, and pick obligations; migrates every historical edge to exact fragment scope; adds the required bundles, terminal DISP records, adequate A18.7 search set, source-date components, and current SRC2 capture facts. Independently ACCEPTED by `/root/validation_scout` at exact maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`; R4 is unblocked but not started, Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_A_SERIES_REPAIR.md`. |
+| **Repair v2.0 — working draft, R4 maker** | **July 25, 2026** | **C-series first-half construction, pending independent review:** adds 13 GROUPs and 98 atomic C01–C13 LEAFs; closes the A08.1, A01.4, and C13.8 R4 deferrals through AMEND lineage; splits C07.6 adjustments (vi)/(vii); separates the MTS charge, payment, and distribution bases/results; and preserves the exact unsupported post-waiver reimbursement-extinction residual through adequate bounded search. R5 is blocked and unstarted until the named checker explicitly ACCEPTs the exact clean maker checkpoint. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md`. |
 
 ---
 
@@ -5190,9 +5194,11 @@ same-family compatibility checkpoint was independently accepted at
 `d6101f82` by `/root/validation_scout`. Neither compatibility acceptance alone
 accepted an active A-series record. R3.1 was independently **ACCEPTED** by
 `/root/validation_scout` at exact maker checkpoint
-`9239c1d3dc595538beb048c77788cd2c453240a4`. R4 is unblocked but remains not
-started; Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT
-plus owner acceptance. "Mechanical"
+`9239c1d3dc595538beb048c77788cd2c453240a4`. At that acceptance point,
+R4 is unblocked but remains not started. R4 maker construction has since
+added the C01–C13 governed populations and is pending exact-checkpoint
+independent review. R5 is blocked and unstarted; Phase 1 continues, and Phase
+2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance. "Mechanical"
 means a rejecting validator control; "checker" means a required
 independent-review judgment; "retired" means the earlier formal-proof
 claim is no longer part of acceptance.
@@ -5226,7 +5232,17 @@ fixed count of passing controls is never itself proof of completeness.
 
 ### 15.10 Active v2 register (created by R3; A family)
 
-This section is the active v2 registry of §15.9.1. R3.1 repaired the A family through governed AMEND lineage after both compatibility checkpoints were independently accepted. The 12-GROUP, 151-LEAF A-family checkpoint at `9239c1d3dc595538beb048c77788cd2c453240a4` was independently **ACCEPTED** by `/root/validation_scout`. That is Phase 1 construction acceptance, not final canon activation: R4 is unblocked but remains not started, scenario evidence remains pending R7, Phase 1 continues, and nothing here carries a Phase 2 verdict before R9 ACCEPT plus owner acceptance.
+This section is the active v2 registry of §15.9.1. R3.1 repaired the A
+family through governed AMEND lineage after both compatibility checkpoints
+were independently accepted. The 12-GROUP, 151-LEAF A-family checkpoint at
+`9239c1d3dc595538beb048c77788cd2c453240a4` was independently **ACCEPTED**
+by `/root/validation_scout`. At that acceptance point, R4 is unblocked but
+remains not started. R4 has since extended the same governed populations with
+the C01–C13 Cap Manager half; its maker construction remains pending
+exact-checkpoint independent review. This is Phase 1 construction, not final
+canon activation: scenario evidence remains pending R7, Phase 1 continues,
+and nothing here carries a Phase 2 verdict before R9 ACCEPT plus owner
+acceptance.
 
 #### 15.10.1 A family — GROUP index
 
@@ -5244,6 +5260,19 @@ This section is the active v2 registry of §15.9.1. R3.1 repaired the A family t
 | CBA2-A10 | Extension-and-trade — Are the VII §8(e)(2) mechanism, window, term, salary, raise, ordinary-extension eligibility, and six-month restrictions enforced? | `CBA2-A10.1`–`CBA2-A10.30` (30) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 | CBA2-A11 | Per-team component decomposition — Is each team's side of a multi-player transaction evaluated separately with legal component-trade decomposition? | `CBA2-A11.1` (1) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 | CBA2-A12 | Pick-trading legality — Are pick-conveyance validity, the Stepien rule, the Second Apron frozen-pick rules, and Trade Call/Memorandum disclosure consequences enforced? | `CBA2-A12.1`–`CBA2-A12.9` (9) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C01 | Team Salary and Free Agent Amounts — Are roster salary, free-agent holds, multipliers, bounds, and RFA/unrenounce branches computed from the signed definitions? | `CBA2-C01.1`–`CBA2-C01.9` (9) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C02 | Unsigned first-round-pick amounts — Is the 120% Rookie Scale Amount included and removed/restored only on the signed lifecycle events? | `CBA2-C02.1`–`CBA2-C02.4` (4) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C03 | Incomplete-roster charges — Are the offseason count, twelve-player threshold, and zero-YOS charge applied only in the signed window? | `CBA2-C03.1`–`CBA2-C03.2` (2) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C04 | Exception amounts in Team Salary — Are available exception amounts included, reduced, and removed under VII §6(n)? | `CBA2-C04.1`–`CBA2-C04.3` (3) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C05 | Minimum-contract reimbursement — Are contract eligibility, Team Salary treatment, League reimbursement, and dead-salary treatment kept distinct? | `CBA2-C05.1`–`CBA2-C05.5` (5) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C06 | Performance-bonus classification — Are Likely and Unlikely Bonuses classified and included in the correct salary ledger? | `CBA2-C06.1`–`CBA2-C06.3` (3) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C07 | Apron Team Salary ledger — Are all ten VII §2(e)(1) adjustments applied separately to Team Salary? | `CBA2-C07.1`–`CBA2-C07.11` (11) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C08 | Tax Team Salary ledger — Are the last-game base and each VII §2(d)(1)(i) adjustment computed separately? | `CBA2-C08.1`–`CBA2-C08.8` (8) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C09 | Tax rates and brackets — Are standard/repeater status, bracket sizing, transition years, and progressive tax computed from VII §2(d)? | `CBA2-C09.1`–`CBA2-C09.7` (7) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C10 | Minimum Team Salary — Are the threshold, three adjusted bases, payment, charge, restoration, and distribution consequences kept distinct? | `CBA2-C10.1`–`CBA2-C10.10` (10) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C11 | Long-term injury exclusion — Are application timing, medical findings, return-to-salary, applicant limits, and reacquisition bars applied independently? | `CBA2-C11.1`–`CBA2-C11.8` (8) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C12 | Disabled Player Exception — Are eligibility, application, amount, method, term, expiry, medical process, and availability applied separately? | `CBA2-C12.1`–`CBA2-C12.9` (9) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
+| CBA2-C13 | Salary-cap exceptions — Are availability, combination, proration, method, contract shape, and Team Salary effects enforced per exception? | `CBA2-C13.1`–`CBA2-C13.20` (20) | GROUP anchor; no obligation, verdict, method, locator, or evidence |
 
 #### 15.10.2 A family — active LEAF register (main table)
 
@@ -5262,7 +5291,7 @@ This section is the active v2 registry of §15.9.1. R3.1 repaired the A family t
 | CBA2-A02.10 | Room-path exclusivity: a Team that acquires players under VII §6(j)(1)(v) or with room under the Salary Cap may not simultaneously acquire any player under VII §6(j)(1)(i)-(iv) | CBA | SCEN | — | EV2-0014 | XW2-0044 | — |
 | CBA2-A02.11 | Below-cap election: in lieu of the room path, a Team with a Team Salary below the Salary Cap may conduct a trade in accordance with VII §6(j)(1)(iii)-(iv), notwithstanding VII §6(n) | CBA | SCEN | — | EV2-0015 | new (DR2-0043) | The (iii) alternative is 2023-24-only via CBA2-A02.6. |
 | CBA2-A02.12 | $250,000 allowance zeroing: if a Team's post-assignment Apron Team Salary would exceed the First Apron Level, the $250,000 allowance referenced in each of VII §6(j)(1)(i)-(v) is reduced to $0 | CBA | SCEN | — | EV2-0016 | XW2-0005, XW2-0014 | Uses post-assignment Apron Team Salary (VII §2(e)(1)), never post-trade Team Salary; the Apron Team Salary computation itself is C-family (registered by R4). |
-| CBA2-A02.13 | DPE-disabled-player exclusion: no Traded Player Exception arises from trading a player during a Salary Cap Year if the Team previously used (or simultaneously uses) a Disabled Player Exception in respect of that player during that Salary Cap Year | CBA | SCEN | LIFECYCLE | EV2-0017 | XW2-0152 | Attaches to the disabled player only, never automatically to the DPE replacement player. |
+| CBA2-A02.13 | DPE-disabled-player exclusion: no Traded Player Exception arises from trading a player during a Salary Cap Year if the Team previously used (or simultaneously uses) a Disabled Player Exception in respect of that player during that Salary Cap Year | CBA | SCEN | LIFECYCLE | EV2-0017 | XW2-0152, XW2-0234 | Attaches to the disabled player only, never automatically to the DPE replacement player. |
 | CBA2-A02.14 | Two-Way exclusion: the VII §6(j) Traded Player Exception rules do not apply to Two-Way Players — no Traded Player Exception arises from trading a Two-Way Player, and Two-Way Contracts are excluded from Traded Player and Replacement Player calculations | CBA | SCEN | — | EV2-0018 | XW2-0154 | Two-Way contract shape/eligibility rules remain C-family (historical C20; R5). |
 | CBA2-A03.1 | Non-guaranteed reduction (general): for TPE calculation, a Traded Player's Salary is deemed reduced by the player's unearned Base Compensation that, at the time of the trade, is not fully protected for lack of skill and injury or illness (or may become not fully protected due to Exhibit 2 conditions or limitations) | CBA | SCEN | — | EV2-0019 | XW2-0015, XW2-0016, XW2-0017 | Governs the pre-trade/outgoing side of every VII §6(j) calculation from July 1 through January 7, subject to CBA2-A03.2 and CBA2-A03.3. |
 | CBA2-A03.2 | In-season deeming window: for assignments occurring from January 8 through the last day of the Regular Season, a Traded Player's Base Compensation for that Season is deemed fully protected for lack of skill and injury or illness | CBA | SCEN | — | EV2-0020 | XW2-0018 | — |
@@ -5321,10 +5350,10 @@ This section is the active v2 registry of §15.9.1. R3.1 repaired the A family t
 | CBA2-A04.37 | Applicable-bonus second-installment amount: under CBA2-A04.25, the second installment equals the portion allocated to Salary Cap Years covered by the extended term | CBA | SCEN | — | EV2-0140 | new (DR2-0094) | Second-installment amount only. |
 | CBA2-A04.38 | Deemed-amendment payment reduction: when an Article II §7(c) deemed amendment reduces the allocations relevant to a VII §3(b)(3)(iv) trade-bonus installment, the required payment is reduced to the sum of the resulting amended allocation amounts | CBA | SCEN | — | EV2-0141 | new (DR2-0094) | Payment-reduction result only; it does not alter the independently owned deadlines. |
 | CBA2-A04.39 | Dollar trade-bonus form: Exhibit 4 may state a specified dollar trade bonus capped by a specified percentage of the Base Compensation basis in CBA2-A04.16 | CBA | SCEN | — | EV2-0142 | XW2-0162, XW2-0165 | Dollar form only; the 15% ceiling remains CBA2-A04.1. |
-| CBA2-A05.1 | Apron restriction test: a Team may not engage in a Transaction Restrictions Table transaction if, immediately following the transaction, its Apron Team Salary for the Salary Cap Year would exceed the row's Applicable Apron Level | CBA | SCEN | — | EV2-0038 | XW2-0041, XW2-0062, XW2-0064, XW2-0066, XW2-0068, XW2-0070, XW2-0072, XW2-0074, XW2-0076, XW2-0078, XW2-0104, XW2-0157 | Uses post-transaction Apron Team Salary (VII §2(e)(1)); the Apron Team Salary computation is C-family (R4). Threshold status alone is never the test. |
-| CBA2-A05.2 | Apron hard cap: a Team that engages in a Transaction Restrictions Table transaction may not, for the remainder of that Salary Cap Year, have an Apron Team Salary exceeding the row's Applicable Apron Level | CBA | LIFECYCLE | SCEN | EV2-0039 | XW2-0010, XW2-0042, XW2-0080, XW2-0081, XW2-0158 | The hard cap persists as team state and constrains later transactions. |
-| CBA2-A05.3 | Row A: signing or acquiring a player using the Bi-annual Exception carries an Applicable Apron Level of the First Apron Level | CBA | SCEN | — | EV2-0040 | XW2-0061 | — |
-| CBA2-A05.4 | Row B: signing or acquiring a player using the Non-Taxpayer Mid-Level Salary Exception carries an Applicable Apron Level of the First Apron Level | CBA | SCEN | — | EV2-0041 | XW2-0063 | — |
+| CBA2-A05.1 | Apron restriction test: a Team may not engage in a Transaction Restrictions Table transaction if, immediately following the transaction, its Apron Team Salary for the Salary Cap Year would exceed the row's Applicable Apron Level | CBA | SCEN | — | EV2-0038 | XW2-0041, XW2-0062, XW2-0064, XW2-0066, XW2-0068, XW2-0070, XW2-0072, XW2-0074, XW2-0076, XW2-0078, XW2-0104, XW2-0157, XW2-0207 | Uses post-transaction Apron Team Salary (VII §2(e)(1)); the Apron Team Salary computation is C-family (R4). Threshold status alone is never the test. |
+| CBA2-A05.2 | Apron hard cap: a Team that engages in a Transaction Restrictions Table transaction may not, for the remainder of that Salary Cap Year, have an Apron Team Salary exceeding the row's Applicable Apron Level | CBA | LIFECYCLE | SCEN | EV2-0039 | XW2-0010, XW2-0042, XW2-0080, XW2-0081, XW2-0158, XW2-0267, XW2-0272 | The hard cap persists as team state and constrains later transactions. |
+| CBA2-A05.3 | Row A: signing or acquiring a player using the Bi-annual Exception carries an Applicable Apron Level of the First Apron Level | CBA | SCEN | — | EV2-0040 | XW2-0061, XW2-0271 | — |
+| CBA2-A05.4 | Row B: signing or acquiring a player using the Non-Taxpayer Mid-Level Salary Exception carries an Applicable Apron Level of the First Apron Level | CBA | SCEN | — | EV2-0041 | XW2-0063, XW2-0266 | — |
 | CBA2-A05.5 | Row C: acquiring a player pursuant to a Contract entered into under VII §8(e)(1) (sign-and-trade) carries an Applicable Apron Level of the First Apron Level | CBA | SCEN | — | EV2-0042 | XW2-0065, XW2-0079 | Applies to the acquiring team; the sign-and-trade validity conditions are CBA2-A07. |
 | CBA2-A05.6 | Row D: signing, during the Regular Season, a player whose prior Contract was terminated during that Regular Season and provided for a Salary greater than that year's Non-Taxpayer Mid-Level Salary Exception amount carries an Applicable Apron Level of the First Apron Level | CBA | SCEN | — | EV2-0043 | XW2-0067 | — |
 | CBA2-A05.7 | Row E: acquiring a player using an Expanded Traded Player Exception carries an Applicable Apron Level of the First Apron Level | CBA | SCEN | — | EV2-0044 | XW2-0009, XW2-0069 | — |
@@ -5400,6 +5429,105 @@ This section is the active v2 registry of §15.9.1. R3.1 repaired the A family t
 | CBA2-A12.7 | No Draft Pick Penalty after unfreeze: a frozen first-round pick released under VII §2(f)(2)(ii)(B) is not subject to a Draft Pick Penalty | CBA | LIFECYCLE | SCEN | EV2-0112 | XW2-0161 | Express no-penalty result; distinct from unfreeze timing. |
 | CBA2-A12.8 | Trade Memorandum draft-choice record: every term and condition concerning a draft choice conveyed in a trade must be included in the Trade Memorandum | BYL | LIFECYCLE | SCEN | EV2-0158 | new (DR2-0094) | Trade Memorandum duty only. |
 | CBA2-A12.9 | Undisclosed draft-choice term unenforceability: a draft-choice term or condition that the parties do not disclose to the Association Office during the Trade Call is unenforceable | BYL | LIFECYCLE | SCEN | EV2-0159 | new (DR2-0094) | BYL 4.02(a) consequence only; the separate Trade Memorandum recording and dispute-control duties are CBA2-A12.8. |
+| CBA2-C01.1 | Under-contract Salary inclusion: Team Salary includes the aggregate Salaries of all players then under Contract to the Team, subject to the express VII §4 adjustments | CBA | STATIC | — | EV2-0160 | XW2-0151, XW2-0208, XW2-0241 | Owns the baseline under-contract component only; Free Agent Amounts and other holds are separate owners. |
+| CBA2-C01.2 | Veteran-free-agent inclusion: Team Salary includes the applicable Free Agent Amount for each Veteran Free Agent who last played for the Team and remains unrenounced and unsigned | CBA | LIFECYCLE | SCEN | EV2-0161 | XW2-0167, XW2-0171 | Ends only on a signed-text removal event; the amount calculation is CBA2-C01.3–C01.7. |
+| CBA2-C01.3 | QVFA calculation base: the ordinary Qualifying Veteran Free Agent Amount starts from the player's prior Regular Salary plus the prior-year signing-bonus allocation and Performance Bonuses actually earned | CBA | SCEN | — | EV2-0162 | XW2-0172 | Calculation inputs only; percentage, minimum, and maximum limits are separate. |
+| CBA2-C01.4 | QVFA multiplier table: subject to the applicable minimum and maximum, a Rookie Scale fourth-year free agent uses 300% below EAPS or 250% at/above EAPS; another QVFA uses 190% below EAPS or 150% at/above EAPS; an Early QVFA uses 130%; and a Non-QVFA uses 120% | CBA | SCEN | — | EV2-0163 | XW2-0173 | Closed homogeneous percentage table from VII §4(d); no lifecycle result is combined. |
+| CBA2-C01.5 | Prior-Minimum FA amount: a Veteran Free Agent whose prior Contract was a one-Season Minimum Player Salary Contract has a Free Agent Amount equal to the Minimum Player Salary then applicable to that player, capped at the two-YOS minimum | CBA | SCEN | — | EV2-0164 | new (DR2-0101) | Amount rule only; League reimbursement eligibility is CBA2-C05. |
+| CBA2-C01.6 | Free Agent Amount bounds: the calculated Free Agent Amount may not be less than the player's applicable Minimum Player Salary or greater than his applicable Maximum Annual Salary | CBA | SCEN | — | EV2-0165 | new (DR2-0101) | Floor and ceiling are the two bounds on the same calculation result. |
+| CBA2-C01.7 | RFA amount: a Restricted Free Agent's Team Salary amount is the greatest of his applicable Free Agent Amount, outstanding Qualifying Offer or Maximum Qualifying Offer amount, and First Refusal Exercise Notice amount, as applicable | CBA | SCEN | LIFECYCLE | EV2-0166 | XW2-0174 | The notice branch includes the signed bonus treatment; no matching-process behavior is owned here. |
+| CBA2-C01.8 | Veteran-free-agent removal: the applicable Free Agent Amount ceases to be included when the player signs, the Team renounces him, or another signed-text event ends the Team's applicable free-agent treatment | CBA | LIFECYCLE | SCEN | EV2-0167 | new (DR2-0101) | Removal-event owner only; renunciation consequences beyond Team Salary are R5. |
+| CBA2-C01.9 | Matched-offer-sheet unrenounce: a Team that renounced player(s) solely to create Room for an Offer Sheet that was matched may rescind the renunciation(s) within two business days, subject to the two VII §4(g)(1) Team Salary ceilings | CBA | LIFECYCLE | SCEN | EV2-0168 | XW2-0175 | Narrow restoration route; it does not create a general unrenounce power. |
+| CBA2-C02.1 | First-round-pick amount: upon selection, Team Salary includes 120% of the applicable Rookie Scale Amount for each unsigned First Round Pick | CBA | LIFECYCLE | SCEN | EV2-0169 | XW2-0168, XW2-0176, XW2-0179 | Amount and selection trigger only. |
+| CBA2-C02.2 | First-round-pick removal: the CBA2-C02.1 amount is removed when the player signs or when the Team loses or renounces the player's exclusive negotiating rights under the signed rules | CBA | LIFECYCLE | SCEN | EV2-0170 | XW2-0177 | Signed-text removal events only. |
+| CBA2-C02.3 | First-round temporary exclusion and return: the amount may be temporarily excluded under VII §4(e)'s non-NBA/withdrawal procedure and is restored when the signed return condition occurs | CBA | LIFECYCLE | SCEN | EV2-0171 | XW2-0178 | One reversible lifecycle branch; no second-round rule is implied. |
+| CBA2-C02.4 | Second-round distinction: an unsigned Second Round Pick is not included in Team Salary through the 120%-of-Rookie-Scale rule applicable to unsigned First Round Picks | CBA | STATIC | — | EV2-0172 | XW2-0180 | Does not deny separate Required Tender, exception, or Apron rules where expressly stated. |
+| CBA2-C03.1 | Incomplete-roster count: solely for VII §4(f), count under-contract players included in Team Salary, Veteran Free Agents included in Team Salary, players given Offer Sheets, and unsigned First Round Picks included in Team Salary | CBA | SCEN | — | EV2-0173 | XW2-0182 | Closed homogeneous count-input list. |
+| CBA2-C03.2 | Incomplete-roster charge: from July 1 through the day before the Regular Season, if the CBA2-C03.1 count is below twelve, Team Salary includes one zero-YOS Minimum Player Salary for each missing player | CBA | LIFECYCLE | SCEN | EV2-0174 | XW2-0169, XW2-0183 | The express window prevents carrying this offseason charge into the Regular Season. |
+| CBA2-C04.1 | Exception availability threshold: a Team may use the DPE, BAE, NTMLE, TMLE, or TPE only if Team Salary is at or above the Salary Cap or below it by less than the available exception amount, subject to the specific exception's other conditions | CBA | SCEN | — | EV2-0175 | XW2-0185 | Availability predicate only. |
+| CBA2-C04.2 | Exception amount in Team Salary: when CBA2-C04.1 is satisfied, Team Salary includes the exception amount or unused portion while the exception remains available | CBA | LIFECYCLE | SCEN | EV2-0176 | XW2-0170, XW2-0184 | Team Salary hold only; Apron Team Salary separately subtracts it under CBA2-C07.9. |
+| CBA2-C04.3 | Exception-hold removal: the CBA2-C04.2 amount is reduced by use and removed when fully used or when the Team no longer is entitled to the exception | CBA | LIFECYCLE | SCEN | EV2-0177 | XW2-0257 | Owns the Team Salary hold lifecycle, not each exception's substantive availability. |
+| CBA2-C05.1 | Minimum-reimbursement contract eligibility: the League reimbursement rule applies to a one-Season Contract, including a Ten-Day or Rest-of-Season Contract, that provides the applicable Minimum Player Salary and satisfies Article IV §6(h) | CBA | SCEN | — | EV2-0178 | XW2-0187 | Contract eligibility is distinct from use of the Minimum Player Salary Exception. |
+| CBA2-C05.2 | Minimum-reimbursement Team Salary amount: for a CBA2-C05.1 Contract with a player credited with three or more YOS, Team Salary, Apron Team Salary, and Tax Team Salary use the two-YOS Minimum Player Salary amount | CBA | SCEN | — | EV2-0179 | XW2-0186, XW2-0188, XW2-0190 | Ledger amount only; reimbursement payer is CBA2-C05.3. |
+| CBA2-C05.3 | Minimum-reimbursement payment: for a CBA2-C05.1 Contract with a player credited with three or more YOS, the League's benefits fund reimburses the Team for Salary above the two-YOS minimum | CBA | STATIC | — | EV2-0180 | XW2-0189 | Payment component only; the player remains owed his contractual Salary. |
+| CBA2-C05.4 | Waived-contract Team Salary: after a Player Contract is terminated through waivers, Team Salary includes the protected Base Compensation and other amounts that Article II §3 and VII §4 attribute to the waived Contract | CBA | LIFECYCLE | SCEN | EV2-0181 | XW2-0192 | No claim is made that a separate reimbursement component automatically disappears on waiver. |
+| CBA2-C05.5 | Minimum-exception/reimbursement independence: eligibility to sign or acquire a player with the Minimum Player Salary Exception and eligibility for League reimbursement are separate signed tests | INFERRED | SCEN | — | EV2-0182 | XW2-0193 | Inference from distinct VII §6(i) and IV §6(h) predicates; no equivalence is allowed. |
+| CBA2-C06.1 | Likely Bonus Salary inclusion: a Performance Bonus classified as likely under VII §3(d) is included in Salary | CBA | SCEN | — | EV2-0183 | XW2-0194 | Classification and Salary result only. |
+| CBA2-C06.2 | Unlikely Bonus Team Salary exclusion: a Performance Bonus classified as unlikely is excluded from Salary and ordinary Team Salary unless another express rule adds it | CBA | SCEN | — | EV2-0184 | XW2-0195 | Apron and other express add-backs are separate. |
+| CBA2-C06.3 | Unlikely Bonus express-use rule: where the CBA tests Salary plus Unlikely Bonuses, including specified maximum, room, exception, or Apron computations, the full named amount must be included in that test | CBA | SCEN | — | EV2-0185 | XW2-0196 | A routing rule for express “Salary plus Unlikely Bonuses” tests, not a generic Team Salary inclusion. |
+| CBA2-C07.1 | Apron Team Salary baseline: calculate Apron Team Salary from Team Salary and then apply each of the ten independent VII §2(e)(1) adjustments | CBA | STATIC | — | EV2-0186 | new (DR2-0101) | Baseline/sequence owner only; transaction permission is A-family. |
+| CBA2-C07.2 | Apron adjustment (i): add Performance Bonuses excluded from Salary | CBA | SCEN | — | EV2-0187 | XW2-0197 | One enumerated adjustment. |
+| CBA2-C07.3 | Apron adjustment (ii): add the difference between the two-YOS minimum and the applicable zero- or one-YOS minimum for each qualifying free-agent Standard Contract | CBA | SCEN | — | EV2-0188 | XW2-0198 | One enumerated adjustment. |
+| CBA2-C07.4 | Apron adjustment (iii): add the specified grievance exposure included by reference to VII §4(a)(1)(iii) | CBA | SCEN | EXT | EV2-0189 | XW2-0199 | The external grievance outcome is an input; no grievance merits are decided here. |
+| CBA2-C07.5 | Apron adjustment (iv): subtract Free Agent Amounts included in Team Salary | CBA | SCEN | — | EV2-0190 | XW2-0200 | One enumerated adjustment. |
+| CBA2-C07.6 | Apron adjustment (v): for a Restricted Free Agent, add the greater of the outstanding Qualifying/Maximum Qualifying Offer amount and the First Refusal Exercise Notice amount, with the specified bonus treatment | CBA | SCEN | LIFECYCLE | EV2-0191 | XW2-0201 | One enumerated adjustment. |
+| CBA2-C07.7 | Apron adjustment (vi): subtract the Team Salary amounts for unsigned First Round Picks included under VII §4(a)(4) | CBA | SCEN | — | EV2-0192 | XW2-0202 | Kept separate from adjustment (vii), correcting historical C07.6. |
+| CBA2-C07.8 | Apron adjustment (vii): add the amount of each outstanding Required Tender to a First Round Pick | CBA | SCEN | LIFECYCLE | EV2-0193 | XW2-0203 | First Round Picks only; no second-round Required Tender claim is made. |
+| CBA2-C07.9 | Apron adjustment (viii): subtract exception amounts included in Team Salary under VII §§4(a)(7) and 6(n)(2) | CBA | SCEN | — | EV2-0194 | XW2-0204 | One enumerated adjustment. |
+| CBA2-C07.10 | Apron adjustment (ix): add Second Round Pick Exception Contract amounts temporarily excluded from Team Salary under VII §4(l) | CBA | SCEN | LIFECYCLE | EV2-0195 | XW2-0205, XW2-0275 | One enumerated adjustment. |
+| CBA2-C07.11 | Apron adjustment (x): subtract incomplete-roster charges included in Team Salary under VII §4(f) | CBA | SCEN | — | EV2-0196 | XW2-0206 | One enumerated adjustment. |
+| CBA2-C08.1 | Tax Team Salary baseline: begin with Team Salary as of the start of the Team's last Regular Season game and apply the later VII §2(d)(1)(i) adjustments | CBA | LIFECYCLE | SCEN | EV2-0197 | XW2-0210, XW2-0211 | Baseline/finalization owner only. |
+| CBA2-C08.2 | Tax adjustment for later contract events: include the signed Tax Team Salary effect of a Contract signed, waived, or revised after the baseline instant | CBA | LIFECYCLE | SCEN | EV2-0198 | new (DR2-0101) | One adjustment class; exact contract amounts remain governed by their contract rules. |
+| CBA2-C08.3 | Tax Likely Bonus adjustment: subtract Likely Bonuses that were not earned | CBA | SCEN | — | EV2-0199 | XW2-0216 | Independent subtraction. |
+| CBA2-C08.4 | Tax Unlikely Bonus adjustment: add Unlikely Bonuses that were earned | CBA | SCEN | — | EV2-0200 | XW2-0212 | Independent addition. |
+| CBA2-C08.5 | Tax trade-bonus adjustment: apply the signed post-baseline trade-bonus allocation adjustment | CBA | LIFECYCLE | SCEN | EV2-0201 | XW2-0213 | Trade-bonus amount and allocation are A04-owned dependencies. |
+| CBA2-C08.6 | Tax grievance adjustment: apply the specified final grievance amount after the baseline instant | CBA | LIFECYCLE | EXT | EV2-0202 | XW2-0214 | External grievance outcome only. |
+| CBA2-C08.7 | Tax zero/one-YOS uplift: add the difference between the two-YOS minimum and the applicable zero- or one-YOS minimum for each qualifying free-agent Standard Contract | CBA | SCEN | — | EV2-0203 | XW2-0215 | Tax counterpart to CBA2-C07.3. |
+| CBA2-C08.8 | Tax suspension reduction: subtract 50% of compensation forfeited for a qualifying suspension imposed by the NBA | CBA | SCEN | — | EV2-0204 | XW2-0209, XW2-0217 | No general Team Salary reduction is inferred. |
+| CBA2-C09.1 | Tax bracket amount: the tax bracket amount is 3.5% of the Salary Cap in 2025-26 and 4.75% of the Salary Cap in each later Salary Cap Year | CBA | STATIC | — | EV2-0205 | new (DR2-0101) | Historical 2023-24/2024-25 treatment is CBA2-C09.6. |
+| CBA2-C09.2 | Standard tax rates: beginning in 2025-26, the first four bracket rates for a non-repeater taxpayer are 1.00, 1.25, 3.50, and 4.75 dollars per tax dollar | CBA | SCEN | — | EV2-0206 | XW2-0220 | Closed four-bracket rate table. |
+| CBA2-C09.3 | Repeater status: a current taxpayer is a repeater when it was a taxpayer in at least three of the four immediately preceding Salary Cap Years | CBA | LIFECYCLE | SCEN | EV2-0207 | XW2-0218 | Status predicate only. |
+| CBA2-C09.4 | Repeater tax rates: beginning in 2025-26, the first four bracket rates for a repeater taxpayer are 3.00, 3.25, 5.50, and 6.75 dollars per tax dollar | CBA | SCEN | — | EV2-0208 | XW2-0221 | Closed four-bracket rate table. |
+| CBA2-C09.5 | Additional tax brackets: each bracket beyond the fourth increases the applicable preceding bracket rate by $0.50 | CBA | SCEN | — | EV2-0209 | XW2-0222 | Applies independently to standard and repeater schedules. |
+| CBA2-C09.6 | Tax transition years: 2023-24 and 2024-25 use the legacy bracket amount and tax-rate rules expressly preserved by VII §2(d) rather than the 2025-26 schedule | CBA | STATIC | — | EV2-0210 | XW2-0223 | Historical simulation only. |
+| CBA2-C09.7 | Progressive tax calculation: tax equals the sum of each fully traversed bracket plus the partial amount in the final bracket at that bracket's applicable rate | DERIVED | SCEN | — | EV2-0211 | XW2-0219, XW2-0224 | Arithmetic expansion of VII §2(d)'s bracket schedule; no new legal rate. |
+| CBA2-C10.1 | Minimum Team Salary threshold: the Minimum Team Salary is 90% of the Salary Cap | CBA | STATIC | — | EV2-0212 | XW2-0226 | Threshold percentage only. |
+| CBA2-C10.2 | MTS Cap Hold Team Salary: calculate the in-season charge base from Team Salary with the express VII §2(c)(4) adjustments | CBA | SCEN | — | EV2-0213 | new (DR2-0101) | Distinct adjusted base; never substitute MTS Payment Team Salary. |
+| CBA2-C10.3 | MTS Payment Team Salary: calculate the year-end payment base from Team Salary with the express VII §2(c)(5) adjustments | CBA | SCEN | — | EV2-0214 | new (DR2-0101) | Distinct adjusted base; never substitute the in-season base. |
+| CBA2-C10.4 | MTS Threshold: determine the CBA's start-of-Regular-Season threshold from the separate MTS Threshold Team Salary calculation | CBA | LIFECYCLE | SCEN | EV2-0215 | XW2-0230 | Threshold baseline only; it does not order a prompt roster correction. |
+| CBA2-C10.5 | In-season MTS charge: when current MTS Cap Hold Team Salary is below the MTS Threshold, Team Salary includes the lesser of the current shortfall and the start-of-Regular-Season shortfall | CBA | LIFECYCLE | SCEN | EV2-0216 | XW2-0225, XW2-0232 | This charge is not asserted equal to the later MTS payment. |
+| CBA2-C10.6 | In-season charge restoration: a charge under CBA2-C10.5 is removed on the day after MTS Cap Hold Team Salary again equals or exceeds the MTS Threshold | CBA | LIFECYCLE | SCEN | EV2-0217 | new (DR2-0101) | Express restoration timing; no “prompt correction” duty is added. |
+| CBA2-C10.7 | Year-end MTS payment: when final MTS Payment Team Salary is below the Minimum Team Salary, the Team pays the NBA the difference | CBA | LIFECYCLE | SCEN | EV2-0218 | XW2-0227 | Payment recipient is the NBA, not the players. |
+| CBA2-C10.8 | MTS tax-distribution consequence: an MTS-payment Team is ineligible for the non-taxpayer distribution under VII §2(d)(4); for 2023-24 only, a non-tax-owing MTS-payment Team instead received 50% of its otherwise applicable share | CBA | LIFECYCLE | SCEN | EV2-0219 | XW2-0229 | Closed current rule plus express one-year transition exception. |
+| CBA2-C10.9 | Year-end MTS accounting: the payment and Team Salary charge are applied for final BRI/tax calculations and incentive-likelihood adjustment as specified by VII §2(c)(3) | CBA | LIFECYCLE | SCEN | EV2-0220 | XW2-0233 | Accounting consequences only. |
+| CBA2-C10.10 | MTS payment distribution: within ten business days after the final MTS payment determination, the NBA distributes the collected amount in equal shares to all Teams | CBA | LIFECYCLE | — | EV2-0221 | new (DR2-0101) | Team distribution only; no player payment is created. |
+| CBA2-C11.1 | Long-term-exclusion termination prerequisite: the career-ending player's Contract must be terminated through the NBA waiver procedure before Salary may be excluded under VII §4(h) | CBA | LIFECYCLE | SCEN | EV2-0222 | XW2-0242 | Termination prerequisite only. |
+| CBA2-C11.2 | Long-term-exclusion application timing: the Team may apply only after the applicable first-anniversary/sixty-day waiting rule and never before the first anniversary of the first Regular Season game on the roster under the Contract | CBA | LIFECYCLE | SCEN | EV2-0223 | XW2-0243 | Closed timing rule with its fewer-than-ten-games branch. |
+| CBA2-C11.3 | Career-ending medical finding: exclusion requires the VII §4(h)(2) finding by a jointly selected physician or agreed Fitness-to-Play Panel under one of the express career-ending/elevated-risk standards | CBA | EXTS | — | EV2-0224 | XW2-0244 | Medical merits are external; the canon owns only the required finding contract. |
+| CBA2-C11.4 | Twenty-five-game restoration: except for the elevated-risk branch, playing in 25 NBA Regular Season, Play-In, and playoff games in a Season restores the excluded Salary for that and later Salary Cap Years, with the express retroactivity rule | CBA | LIFECYCLE | SCEN | EV2-0225 | XW2-0248 | One restoration trigger/result. |
+| CBA2-C11.5 | Long-term-exclusion reapplication: after Salary returns under CBA2-C11.4, the Team may reapply for remaining Salary Cap Years under the same VII §4(h) rules and waiting periods | CBA | LIFECYCLE | SCEN | EV2-0226 | new (DR2-0101) | Reapplication only. |
+| CBA2-C11.6 | Long-term-exclusion applicant: only the Team holding the Contract when the condition became known or reasonably should have become known may apply, and only during the Contract term | CBA | LIFECYCLE | SCEN | EV2-0227 | XW2-0245 | Applicant and contract-term restrictions form one eligibility predicate. |
+| CBA2-C11.7 | Long-term-exclusion reacquisition bar: a Team granted the exclusion may never re-sign or reacquire that player | CBA | LIFECYCLE | SCEN | EV2-0228 | XW2-0246 | Permanent consequence of a granted application. |
+| CBA2-C11.8 | DPE-request preclusion: a Team that requests a DPE for a player, whether granted or denied, may not seek the long-term Salary exclusion for that player in the same Salary Cap Year | CBA | LIFECYCLE | SCEN | EV2-0229 | XW2-0247 | Same-year cross-mechanism bar only. |
+| CBA2-C12.1 | DPE replacement scope: a Team granted a Disabled Player Exception may sign or acquire one Replacement Player for the Disabled Player | CBA | SCEN | — | EV2-0230 | XW2-0238, XW2-0240 | One replacement only. |
+| CBA2-C12.2 | DPE application window: an application for a Salary Cap Year may be made from July 1 through January 15 of that Salary Cap Year | CBA | LIFECYCLE | SCEN | EV2-0231 | XW2-0253 | Application timing only. |
+| CBA2-C12.3 | DPE monetary limit: the applicable DPE amount is the lesser of 50% of the Disabled Player's Salary for the current Salary Cap Year and the NTMLE amount for that year | CBA | SCEN | — | EV2-0232 | XW2-0237, XW2-0250 | Common amount ceiling; method-specific term rules are separate. |
+| CBA2-C12.4 | DPE signing term: a Replacement Player signed with the DPE must receive a one-Season Contract, with Salary plus Unlikely Bonuses within CBA2-C12.3 | CBA | SCEN | — | EV2-0233 | XW2-0251 | Signing branch only. |
+| CBA2-C12.5 | DPE acquisition/claim term: a Replacement Player acquired by assignment or waiver claim must have only one Season remaining, subject to the applicable VII §6(c)(1)(iii)–(iv) amount | CBA | SCEN | — | EV2-0234 | XW2-0252 | Acquisition/claim term branch only. |
+| CBA2-C12.6 | DPE medical test: a Disabling Injury or Illness makes it substantially more likely than not that the player will be unable to play through the following June 15 | CBA | EXTS | — | EV2-0235 | XW2-0249 | Corrects the historical inverse paraphrase; medical merits are external. |
+| CBA2-C12.7 | DPE expiry: a granted Disabled Player Exception expires on the following March 10 | CBA | LIFECYCLE | — | EV2-0236 | XW2-0254 | Expiry only. |
+| CBA2-C12.8 | DPE medical procedure: the NBA-designated physician makes the initial determination and a disputed determination proceeds immediately to the neutral physician under VII §6(c)(4) | CBA | EXTS | — | EV2-0237 | XW2-0236 | External decision contract only. |
+| CBA2-C12.9 | DPE team/roster eligibility: the exception is available only to the Team holding the Contract when the disabling condition became known or reasonably should have become known, during that Contract's term, while the player remains on the roster through grant | CBA | LIFECYCLE | SCEN | EV2-0238 | new (DR2-0101) | Closed availability predicate. |
+| CBA2-C13.1 | Exception combination bar: different Salary Cap Exceptions may not be combined to sign or acquire one player for aggregate Salary and Unlikely Bonuses above the amount permitted by any one exception | CBA | SCEN | — | EV2-0239 | XW2-0258 | One no-combination result. |
+| CBA2-C13.2 | Exception selection: when more than one exception is available, the Team may choose which single exception to use for the signing or acquisition | CBA | SCEN | — | EV2-0240 | new (DR2-0101) | Choice rule only. |
+| CBA2-C13.3 | January 10 proration: beginning January 10, each unused exception governed by VII §6(n)(4) is reduced daily by its January 10 unused amount divided by Regular Season days | CBA | LIFECYCLE | SCEN | EV2-0241 | XW2-0259 | Trade-deadline and offer-sheet preservation branches are CBA2-C13.5. |
+| CBA2-C13.4 | Non-prorating exceptions: the TPE, Minimum Player Salary Exception, and DPE do not take the general January 10 daily reduction | CBA | LIFECYCLE | SCEN | EV2-0242 | XW2-0261 | Closed homogeneous exception list. |
+| CBA2-C13.5 | Full-value preservation: the January 10 daily reduction does not apply while using the applicable exception from January 10 through the trade deadline or to match an Offer Sheet | CBA | LIFECYCLE | SCEN | EV2-0243 | XW2-0262 | Two express uses producing the same non-reduction result. |
+| CBA2-C13.6 | Minimum Player Salary Exception contract rule: a Standard Contract signed under VII §6(i) may cover no more than two Seasons, must provide the applicable Minimum Player Salary without ordinary bonuses, and, if signed during the Regular Season, prorates from the first covered day over total Regular Season days | CBA | LIFECYCLE | SCEN | EV2-0244 | XW2-0147, XW2-0260 | One closed Contract result with shape and its required signed-date proration; trade-bonus and Article IV §6(h) reimbursement remain separate. |
+| CBA2-C13.7 | Minimum Player Salary Exception acquisition authority: a Team may use VII §6(i) for a permitted assignment acquisition or waiver claim within the signed amount/term rules | CBA | SCEN | — | EV2-0245 | new (DR2-0101) | Method-specific source component separate from the signing Contract rule. |
+| CBA2-C13.8 | NTMLE methods: the Non-Taxpayer Mid-Level Salary Exception may be used for the signing, assignment acquisition, waiver claim, or Offer Sheet match permitted by VII §6(e) | CBA | SCEN | — | EV2-0246 | XW2-0264 | Apron transaction restrictions are A05-owned. |
+| CBA2-C13.9 | NTMLE contract shape: a Contract signed with the NTMLE may cover up to four Seasons and use annual increases or decreases of up to 5% of first-Season Regular Salary | CBA | SCEN | — | EV2-0247 | XW2-0265 | Contract shape only. |
+| CBA2-C13.10 | TMLE amount use: the Taxpayer Mid-Level Salary Exception may be divided among one or more signed players, subject to its annual amount | CBA | SCEN | — | EV2-0248 | new (DR2-0101) | Amount-use owner only. |
+| CBA2-C13.11 | TMLE signing/contract rule: the TMLE is signing-only and divisible, and each Contract signed with it may cover up to two Seasons with annual changes up to 5% of first-Season Regular Salary | CBA | SCEN | — | EV2-0249 | XW2-0155 | One closed signing-contract result resolving the committed homogeneous R4 fragment; apron consequences remain A05-owned. |
+| CBA2-C13.12 | Room MLE shape/exclusivity: the Mid-Level Salary Exception for Room Teams supplies its signed term/raise authority and is unavailable to a Team that used the NTMLE, TMLE, or BAE for that Salary Cap Year | CBA | SCEN | — | EV2-0250 | XW2-0268 | One room-team exception identity and its mutually exclusive availability predicate. |
+| CBA2-C13.13 | BAE method: the Bi-annual Exception may be used for a permitted signing, assignment acquisition, or waiver claim and may be divided among players | CBA | SCEN | — | EV2-0251 | XW2-0269 | Method only; apron transaction consequences are A05-owned. |
+| CBA2-C13.14 | BAE shape/frequency: a Contract signed with the BAE may cover up to two Seasons with 5% changes, and a Team may not use the BAE in consecutive Salary Cap Years | CBA | LIFECYCLE | SCEN | EV2-0252 | XW2-0270 | Contract shape plus the exception's defining use-frequency predicate. |
+| CBA2-C13.15 | Second Round Pick Exception structure: a qualifying second-round Contract uses one of the prescribed two-plus-Option or three-plus-Option structures and the signed minimum-based Salary schedule | CBA | SCEN | — | EV2-0253 | XW2-0273 | Contract structure only. |
+| CBA2-C13.16 | SRPE temporary Team Salary exclusion: from July 1 through July 30, a Contract signed with the Second Round Pick Exception is excluded from Team Salary until July 31 | CBA | LIFECYCLE | SCEN | EV2-0254 | XW2-0274 | Apron Team Salary adds the amount through CBA2-C07.10. |
+| CBA2-C13.17 | Rookie Scale Exception: a Team may sign its own First Round Pick to a Rookie Scale Contract notwithstanding that the Team is over the Salary Cap | CBA | SCEN | — | EV2-0255 | XW2-0276 | Signing authority only; Rookie Scale contract rules are R5. |
+| CBA2-C13.18 | Second-round signing paths: a Second Round Pick must be signed through the Second Round Pick Exception, Minimum Player Salary Exception, a Two-Way Contract, Room, or another independently available signed mechanism | CBA | SCEN | — | EV2-0256 | XW2-0278 | Routing constraint only; it does not create a new exception. |
+| CBA2-C13.19 | Method-specific exception use: an exception authorizes only the signing, assignment acquisition, waiver claim, Offer Sheet match, or other method expressly stated for that exception; availability of one method cannot be transferred from another exception | INFERRED | SCEN | — | EV2-0257 | XW2-0263 | Inference from the distinct VII §6(c)–(j) grants; specific method owners remain controlling. |
+| CBA2-C13.20 | UFA signing-route inventory: a UFA signing must use Room, an applicable exception, the prior Team's independently available Veteran Free Agent Exception, or a valid sign-and-trade path | CBA | SCEN | — | EV2-0258 | XW2-0277 | Routing result only; R5 owns the detailed Bird-right and free-agent signing mechanics. |
 
 #### 15.10.3 A family — active LEAF register (detail table)
 
@@ -5556,6 +5684,105 @@ This section is the active v2 registry of §15.9.1. R3.1 repaired the A family t
 | CBA2-A12.7 | pending R7 | CBA2-A12.5 | Four-year Second Apron history; unfreeze event | DR2-0081 |
 | CBA2-A12.8 | pending R7 | CBA2-A12.6 | Trade Call terms; Trade Memorandum contents | DR2-0094 |
 | CBA2-A12.9 | pending R7 | CBA2-A12.6 | Trade Call disclosures; challenged transaction term | DR2-0094 |
+| CBA2-C01.1 | pending R7 | — | Salary Cap Year; Contract roster | DR2-0099 |
+| CBA2-C01.2 | pending R7 | CBA2-C01.8 | Salary Cap Year; prior-Team/free-agent state | DR2-0099 |
+| CBA2-C01.3 | pending R7 | — | Prior Regular Salary; signing-bonus allocation; earned bonus data | DR2-0099 |
+| CBA2-C01.4 | pending R7 | CBA2-C01.3, CBA2-C01.6 | Player category; EAPS; prior Salary | DR2-0099, DR2-0104 |
+| CBA2-C01.5 | pending R7 | CBA2-C01.6 | Prior Contract; current minimum scale; YOS | DR2-0099 |
+| CBA2-C01.6 | pending R7 | — | Applicable minimum and maximum | DR2-0099 |
+| CBA2-C01.7 | pending R7 | CBA2-C01.2 | RFA status; QO/Maximum QO/FREN state | DR2-0099, DR2-0104 |
+| CBA2-C01.8 | pending R7 | — | Signing/renunciation/free-agent lifecycle | DR2-0099 |
+| CBA2-C01.9 | pending R7 | CBA2-C01.2 | Offer Sheet match/physical date; renunciation set; Team Salary before/after | DR2-0099 |
+| CBA2-C02.1 | pending R7 | — | Draft selection; Rookie Scale Amount | DR2-0099 |
+| CBA2-C02.2 | pending R7 | CBA2-C02.1 | Signing/rights lifecycle | DR2-0099 |
+| CBA2-C02.3 | pending R7 | CBA2-C02.1 | Non-NBA/withdrawal and return state | DR2-0099 |
+| CBA2-C02.4 | pending R7 | — | Draft round; signing state | DR2-0099 |
+| CBA2-C03.1 | pending R7 | CBA2-C01.1, CBA2-C01.2, CBA2-C02.1 | Offseason roster/hold state | DR2-0099, DR2-0104 |
+| CBA2-C03.2 | pending R7 | CBA2-C03.1 | Date; count; zero-YOS minimum | DR2-0099 |
+| CBA2-C04.1 | pending R7 | — | Team Salary; Salary Cap; available exception amount | DR2-0099 |
+| CBA2-C04.2 | pending R7 | CBA2-C04.1 | Exception amount and use state | DR2-0099 |
+| CBA2-C04.3 | pending R7 | CBA2-C04.2 | Exception use/availability lifecycle | DR2-0099 |
+| CBA2-C05.1 | pending R7 | — | Contract type/term; YOS; minimum scale | DR2-0099 |
+| CBA2-C05.2 | pending R7 | CBA2-C05.1 | YOS; two-YOS minimum; contract Salary | DR2-0099 |
+| CBA2-C05.3 | pending R7 | CBA2-C05.1 | Contract Salary; two-YOS minimum | DR2-0099 |
+| CBA2-C05.4 | pending R7 | — | Waiver termination; protection/allocation state | DR2-0099 |
+| CBA2-C05.5 | pending R7 | CBA2-C05.1, CBA2-C13.6 | Exception and reimbursement predicates | DR2-0099 |
+| CBA2-C06.1 | pending R7 | — | Bonus classification facts | DR2-0099 |
+| CBA2-C06.2 | pending R7 | — | Bonus classification facts | DR2-0099 |
+| CBA2-C06.3 | pending R7 | CBA2-C06.2 | Governing calculation; bonus amount | DR2-0099 |
+| CBA2-C07.1 | pending R7 | CBA2-C01.1 | Transaction/as-of date; Team Salary | DR2-0099 |
+| CBA2-C07.2 | pending R7 | CBA2-C06.2 | Excluded Performance Bonuses | DR2-0099 |
+| CBA2-C07.3 | pending R7 | CBA2-C05.1 | YOS; applicable minimums; qualifying contracts | DR2-0099 |
+| CBA2-C07.4 | pending R7 | — | Grievance exposure input | DR2-0099 |
+| CBA2-C07.5 | pending R7 | CBA2-C01.2 | Free Agent Amounts | DR2-0099 |
+| CBA2-C07.6 | pending R7 | CBA2-C01.7 | RFA offer/notice state | DR2-0099 |
+| CBA2-C07.7 | pending R7 | CBA2-C02.1 | Unsigned first-round amounts | DR2-0099 |
+| CBA2-C07.8 | pending R7 | — | Outstanding Required Tenders to First Round Picks | DR2-0099 |
+| CBA2-C07.9 | pending R7 | CBA2-C04.2 | Included exception amounts | DR2-0099 |
+| CBA2-C07.10 | pending R7 | CBA2-C13.16 | SRPE Contract and date | DR2-0099 |
+| CBA2-C07.11 | pending R7 | CBA2-C03.2 | Incomplete-roster charges | DR2-0099 |
+| CBA2-C08.1 | pending R7 | CBA2-C01.1 | Last Regular Season game instant | DR2-0099 |
+| CBA2-C08.2 | pending R7 | CBA2-C08.1 | Post-baseline Contract events | DR2-0099 |
+| CBA2-C08.3 | pending R7 | CBA2-C06.1 | Earned/not-earned Likely Bonuses | DR2-0099 |
+| CBA2-C08.4 | pending R7 | CBA2-C06.2 | Earned Unlikely Bonuses | DR2-0099 |
+| CBA2-C08.5 | pending R7 | CBA2-A04.3 | Post-baseline trade-bonus events | DR2-0099 |
+| CBA2-C08.6 | pending R7 | — | Final grievance input | DR2-0099 |
+| CBA2-C08.7 | pending R7 | CBA2-C05.1 | YOS; applicable minimums; qualifying contracts | DR2-0099 |
+| CBA2-C08.8 | pending R7 | — | Suspension authority and forfeited compensation | DR2-0099 |
+| CBA2-C09.1 | pending R7 | — | Salary Cap Year; Salary Cap | DR2-0099 |
+| CBA2-C09.2 | pending R7 | CBA2-C09.1 | Tax Team Salary excess; bracket schedule | DR2-0099, DR2-0104 |
+| CBA2-C09.3 | pending R7 | — | Current/prior-five-year taxpayer history | DR2-0099 |
+| CBA2-C09.4 | pending R7 | CBA2-C09.1, CBA2-C09.3 | Tax Team Salary excess; bracket schedule | DR2-0099, DR2-0104 |
+| CBA2-C09.5 | pending R7 | CBA2-C09.2, CBA2-C09.4 | Bracket index | DR2-0099 |
+| CBA2-C09.6 | pending R7 | — | Salary Cap Year | DR2-0099 |
+| CBA2-C09.7 | pending R7 | CBA2-C09.1, CBA2-C09.2, CBA2-C09.4, CBA2-C09.5 | Tax Team Salary; Tax Level; status | DR2-0099 |
+| CBA2-C10.1 | pending R7 | — | Salary Cap Year; Salary Cap | DR2-0099 |
+| CBA2-C10.2 | pending R7 | — | Current/start Team Salary adjustments | DR2-0099 |
+| CBA2-C10.3 | pending R7 | — | Final Team Salary adjustments | DR2-0099 |
+| CBA2-C10.4 | pending R7 | — | Start-of-Regular-Season inputs | DR2-0099 |
+| CBA2-C10.5 | pending R7 | CBA2-C10.2, CBA2-C10.4 | Current date/base and start shortfall | DR2-0099 |
+| CBA2-C10.6 | pending R7 | CBA2-C10.2, CBA2-C10.4, CBA2-C10.5 | Threshold restoration date | DR2-0099 |
+| CBA2-C10.7 | pending R7 | CBA2-C10.1, CBA2-C10.3 | Year-end final base | DR2-0099 |
+| CBA2-C10.8 | pending R7 | CBA2-C10.7 | Salary Cap Year; tax owed; distribution eligibility | DR2-0099 |
+| CBA2-C10.9 | pending R7 | CBA2-C10.5, CBA2-C10.7 | Final BRI/tax and incentive inputs | DR2-0099 |
+| CBA2-C10.10 | pending R7 | CBA2-C10.7 | Final determination date; Team count | DR2-0099 |
+| CBA2-C11.1 | pending R7 | — | Waiver termination | DR2-0099 |
+| CBA2-C11.2 | pending R7 | CBA2-C11.1 | Game history; roster/Contract dates | DR2-0099 |
+| CBA2-C11.3 | pending R7 | CBA2-C11.1, CBA2-C11.2 | External medical finding | DR2-0099 |
+| CBA2-C11.4 | pending R7 | CBA2-C11.3 | Game count; elevated-risk finding; game type/date | DR2-0099 |
+| CBA2-C11.5 | pending R7 | CBA2-C11.2, CBA2-C11.4 | Remaining Contract term; waiting dates | DR2-0099 |
+| CBA2-C11.6 | pending R7 | — | Knowledge date; Contract holder/term | DR2-0099 |
+| CBA2-C11.7 | pending R7 | CBA2-C11.3 | Granted-exclusion history | DR2-0099 |
+| CBA2-C11.8 | pending R7 | — | DPE request and Salary Cap Year | DR2-0099 |
+| CBA2-C12.1 | pending R7 | — | Disabled-player/replacement state | DR2-0099 |
+| CBA2-C12.2 | pending R7 | — | Application date; Salary Cap Year | DR2-0099 |
+| CBA2-C12.3 | pending R7 | — | Disabled Player Salary; NTMLE amount | DR2-0099 |
+| CBA2-C12.4 | pending R7 | CBA2-C12.3 | Signing Contract term/amounts | DR2-0099 |
+| CBA2-C12.5 | pending R7 | CBA2-C12.3 | Acquisition method; remaining term | DR2-0099 |
+| CBA2-C12.6 | pending R7 | — | External medical finding; following June 15 | DR2-0099 |
+| CBA2-C12.7 | pending R7 | — | Grant date; following March 10 | DR2-0099 |
+| CBA2-C12.8 | pending R7 | CBA2-C12.6 | Initial/disputed medical determination | DR2-0099 |
+| CBA2-C12.9 | pending R7 | — | Knowledge date; Contract/team/roster state | DR2-0099 |
+| CBA2-C13.1 | pending R7 | — | Available exceptions; player transaction | DR2-0099 |
+| CBA2-C13.2 | pending R7 | CBA2-C13.1 | Available exception inventory | DR2-0099 |
+| CBA2-C13.3 | pending R7 | — | January 10; Regular Season days; unused amount | DR2-0099 |
+| CBA2-C13.4 | pending R7 | — | Exception type; date | DR2-0099, DR2-0104 |
+| CBA2-C13.5 | pending R7 | CBA2-C13.3 | Trade deadline/Offer Sheet use | DR2-0099, DR2-0104 |
+| CBA2-C13.6 | pending R7 | — | Contract term; minimum scale; bonuses; signing date; Regular Season days | DR2-0099, DR2-0104 |
+| CBA2-C13.7 | pending R7 | CBA2-C13.6 | Acquisition method; Salary/term | DR2-0099 |
+| CBA2-C13.8 | pending R7 | — | Transaction method; NTMLE availability | DR2-0099 |
+| CBA2-C13.9 | pending R7 | CBA2-C13.8 | Contract term; first-Season Regular Salary | DR2-0099 |
+| CBA2-C13.10 | pending R7 | — | Signing method; TMLE availability | DR2-0099 |
+| CBA2-C13.11 | pending R7 | CBA2-C13.10 | Contract term; first-Season Regular Salary | DR2-0099 |
+| CBA2-C13.12 | pending R7 | — | Team room/exception-use state | DR2-0099 |
+| CBA2-C13.13 | pending R7 | — | Transaction method; BAE availability | DR2-0099 |
+| CBA2-C13.14 | pending R7 | CBA2-C13.13 | Prior-year BAE use; Contract shape | DR2-0099 |
+| CBA2-C13.15 | pending R7 | — | Pick round; Contract structure; minimum scale | DR2-0099 |
+| CBA2-C13.16 | pending R7 | CBA2-C13.15 | Signing date; July 31 | DR2-0099 |
+| CBA2-C13.17 | pending R7 | CBA2-C02.1 | First-round rights; Rookie Scale Contract | DR2-0099 |
+| CBA2-C13.18 | pending R7 | CBA2-C02.4 | Second-round rights; available signing mechanism | DR2-0099, DR2-0104 |
+| CBA2-C13.19 | pending R7 | CBA2-C13.1, CBA2-C13.2 | Exception identity; proposed transaction method | DR2-0099 |
+| CBA2-C13.20 | pending R7 | CBA2-A07.1, CBA2-C01.2 | UFA status; prior Team; Room/exception/sign-and-trade availability | DR2-0099 |
 
 ### 15.11 Historical crosswalk (created by R3; A family)
 
@@ -5704,15 +5931,15 @@ Typed edges from published v1.1 LEAFs (meanings fixed at commit `9814939c`, file
 | XW2-0144 | CBA-A18.7 | CBA2-A08.7 | `split` | [CBA-A18.7:F1] span:0-108 — conditional-cash trade-year component | DR2-0083 |
 | XW2-0145 | CBA-A18.7 | — | `unsupported-residual` | [CBA-A18.7:F2] span:108-173 — later re-trade attribution/accounting residual preserved at §12.12 | DR2-0058 |
 | XW2-0146 | CBA-A17.2 | CBA2-A12.6 | `partial-overlap` | [CBA-A17.2:F1] span:0-34 — future-pick identification component; current Trade Call disclosure owner is broader and separately source-certified | DR2-0083 |
-| XW2-0147 | CBA-A08.1 | — | `deferred` | [CBA-A08.1:F1] span:0-115 — Minimum Contract shape and proration; families:A,C; resolving-unit:R4 | DR2-0092 |
+| XW2-0147 | CBA-A08.1 | CBA2-C13.6 | `partial-overlap` | [CBA-A08.1:F1] span:0-115 — Minimum Player Salary Exception signing Contract shape and Regular Season proration; the committed homogeneous R4 fragment exits deferral through DR2-0102 | DR2-0102 |
 | XW2-0148 | CBA-A17.1 | — | `deferred` | [CBA-A17.1:F1] span:0-72 — pick-ledger representation; families:A,L; resolving-unit:R6 | DR2-0092 |
 | XW2-0149 | CBA-A17.1 | — | `deferred` | [CBA-A17.1:F3] span:79-92 — deferral and conveyance-dependency representation; families:A,L; resolving-unit:R6 | DR2-0092 |
 | XW2-0150 | CBA-A01.3 | — | `deferred` | [CBA-A01.3:F2] span:88-121 — explicit-date lifecycle representation; families:A,L; resolving-unit:R6 | DR2-0092 |
-| XW2-0151 | CBA-A01.4 | — | `deferred` | [CBA-A01.4:F1] span:0-54 — Team Salary roster-inclusion owner; families:A,C; resolving-unit:R4 | DR2-0092 |
+| XW2-0151 | CBA-A01.4 | CBA2-C01.1 | `partial-overlap` | [CBA-A01.4:F1] span:0-54 — Team Salary under-contract Salary inclusion, corrected from the historical active-roster shorthand to the signed all-under-Contract rule; R4 deferral exit through DR2-0102 | DR2-0102 |
 | XW2-0152 | CBA-C11.9 | CBA2-A02.13 | `partial-overlap` | [CBA-C11.9:F1] span:0-166 — disabled-player no-TPE and replacement-player nonattachment components combined in the current owner | DR2-0092 |
 | XW2-0153 | CBA-C11.9 | — | `deferred` | [CBA-C11.9:F2] span:166-247 — DPE-extinction lifecycle; families:C,L; resolving-unit:R6 | DR2-0092 |
 | XW2-0154 | CBA-C20.7 | CBA2-A02.14 | `moved` | [CBA-C20.7:F1] span:0-63 — Two-Way trade-salary/TPE exclusion re-homed into critical correctness | DR2-0092 |
-| XW2-0155 | CBA-C13.8 | — | `deferred` | [CBA-C13.8:F1] span:0-61 — TMLE contract shape and signing mechanics; families:C,C; resolving-unit:R4 | DR2-0095 |
+| XW2-0155 | CBA-C13.8 | CBA2-C13.11 | `equivalent` | [CBA-C13.8:F1] span:0-61 — TMLE signing-only, divisibility, term, and raise Contract rule; R4 deferral exit through DR2-0102 | DR2-0102 |
 | XW2-0156 | CBA-C13.8 | CBA2-A05.13 | `partial-overlap` | [CBA-C13.8:F2] span:84-98 — TMLE row-K/Second-Apron component | DR2-0092 |
 | XW2-0157 | CBA-C13.8 | CBA2-A05.1 | `partial-overlap` | [CBA-C13.8:F2] span:61-84 — post-transaction apron-test component | DR2-0092 |
 | XW2-0158 | CBA-C13.8 | CBA2-A05.2 | `split` | [CBA-C13.8:F3] span:98-134 — Second Apron hard-cap component | DR2-0092 |
@@ -5724,15 +5951,128 @@ Typed edges from published v1.1 LEAFs (meanings fixed at commit `9814939c`, file
 | XW2-0164 | CBA-A07.4 | CBA2-A04.16 | `split` | [CBA-A07.4:F1] span:26-58 — remaining-Base-Compensation basis component | DR2-0083 |
 | XW2-0165 | CBA-A07.4 | CBA2-A04.39 | `split` | [CBA-A07.4:F2] span:58-75 — fixed/dollar-form component | DR2-0083 |
 | XW2-0166 | CBA-A07.4 | — | `invalid` | [CBA-A07.4:F3] span:93-118 — false lesser-of-two-form assertion; XXIV §2(a)(iii)(A) permits percentage or dollar forms, not a third lesser-of form | DR2-0097 |
+| XW2-0167 | CBA-C01.1 | CBA2-C01.2 | `split` | [CBA-C01.1:F1] span:0-32 — free-agent amount inclusion component | DR2-0100 |
+| XW2-0168 | CBA-C01.1 | CBA2-C02.1 | `split` | [CBA-C01.1:F2] span:32-50 — unsigned first-round-pick amount component | DR2-0100 |
+| XW2-0169 | CBA-C01.1 | CBA2-C03.2 | `split` | [CBA-C01.1:F3] span:50-63 — incomplete-roster amount component | DR2-0100 |
+| XW2-0170 | CBA-C01.1 | CBA2-C04.2 | `split` | [CBA-C01.1:F4] span:63-97 — available-exception amount component | DR2-0100 |
+| XW2-0171 | CBA-C01.2 | CBA2-C01.2 | `partial-overlap` | [CBA-C01.2:F1] span:0-109 — Free Agent Amount inclusion preserves the prior Team's over-cap free-agent mechanism; the current owner states the signed ledger result without the historical architecture shorthand | DR2-0100 |
+| XW2-0172 | CBA-C01.3 | CBA2-C01.3 | `partial-overlap` | [CBA-C01.3:F1] span:0-149 — calculation-input component; minimum/maximum bounds are separately source-certified in CBA2-C01.6 | DR2-0100 |
+| XW2-0173 | CBA-C01.4 | CBA2-C01.4 | `partial-overlap` | [CBA-C01.4:F1] span:0-224 — closed multiplier table; the prior-Minimum branch is separately source-certified in CBA2-C01.5 | DR2-0100 |
+| XW2-0174 | CBA-C01.5 | CBA2-C01.7 | `partial-overlap` | [CBA-C01.5:F1] span:0-101 — RFA greatest-of amount; current owner uses the signed First Refusal Exercise Notice terminology | DR2-0100 |
+| XW2-0175 | CBA-C01.6 | CBA2-C01.9 | `equivalent` | [CBA-C01.6:F1] span:0-145 — matched-Offer-Sheet unrenounce route, two-business-day window, and Team Salary ceilings | DR2-0100 |
+| XW2-0176 | CBA-C02.1 | CBA2-C02.1 | `split` | [CBA-C02.1:F1] span:0-89 — 120%-of-Rookie-Scale amount and selection trigger | DR2-0100 |
+| XW2-0177 | CBA-C02.1 | CBA2-C02.2 | `split` | [CBA-C02.1:F2] span:89-162 — signed removal-event component | DR2-0100 |
+| XW2-0178 | CBA-C02.1 | CBA2-C02.3 | `split` | [CBA-C02.1:F3] span:162-183 — restoration component | DR2-0100 |
+| XW2-0179 | CBA-C02.2 | CBA2-C02.1 | `split` | [CBA-C02.2:F1] span:0-37 — first-round cap-amount component | DR2-0100 |
+| XW2-0180 | CBA-C02.2 | CBA2-C02.4 | `split` | [CBA-C02.2:F2] span:37-82 — second-round picks do not use the same 120%-of-Rookie-Scale Team Salary amount | DR2-0100 |
+| XW2-0181 | CBA-C02.2 | — | `invalid` | [CBA-C02.2:F3] span:82-134 — the historical second-round Required-Tender/Apron linkage is not the signed first-round-only adjustment (vii) | DR2-0105 |
+| XW2-0182 | CBA-C03.1 | CBA2-C03.1 | `equivalent` | [CBA-C03.1:F1] span:0-120 — closed incomplete-roster count inputs | DR2-0100 |
+| XW2-0183 | CBA-C03.2 | CBA2-C03.2 | `equivalent` | [CBA-C03.2:F1] span:0-171 — offseason window, twelve-player threshold, and per-slot zero-YOS charge | DR2-0100 |
+| XW2-0184 | CBA-C04.1 | CBA2-C04.2 | `partial-overlap` | [CBA-C04.1:F1] span:0-171 — exception amount/unused-balance inclusion and lifecycle; threshold and removal are separately source-certified | DR2-0100 |
+| XW2-0185 | CBA-C04.2 | CBA2-C04.1 | `equivalent` | [CBA-C04.2:F1] span:0-132 — VII §6(n)(1) Team Salary/exception-amount availability threshold | DR2-0100 |
+| XW2-0186 | CBA-C05.1 | CBA2-C05.2 | `partial-overlap` | [CBA-C05.1:F1] span:0-90 — architecture instruction resolved to the nonzero two-YOS Team Salary component | DR2-0100 |
+| XW2-0187 | CBA-C05.2 | CBA2-C05.1 | `split` | [CBA-C05.2:F1] span:0-72 — qualifying one-Season/Ten-Day/Rest-of-Season contract component | DR2-0100 |
+| XW2-0188 | CBA-C05.2 | CBA2-C05.2 | `split` | [CBA-C05.2:F2] span:72-154 — two-YOS ledger amount for players above two YOS | DR2-0100 |
+| XW2-0189 | CBA-C05.2 | CBA2-C05.3 | `split` | [CBA-C05.2:F3] span:154-193 — benefits-fund reimbursement component | DR2-0100 |
+| XW2-0190 | CBA-C05.3 | CBA2-C05.2 | `partial-overlap` | [CBA-C05.3:F1] span:0-62 — below-three-YOS contracts use actual applicable minimum rather than the reimbursement reduction | DR2-0100 |
+| XW2-0191 | CBA-C05.4 | — | `unsupported-residual` | [CBA-C05.4:F1] span:0-67 — exact claim that the subsidy disappears after waiver; no qualifying authority located after adequate bounded search | DR2-0106 |
+| XW2-0192 | CBA-C05.4 | CBA2-C05.4 | `split` | [CBA-C05.4:F2] span:67-111 — waived-contract Base Compensation/protection component, corrected to the signed Article II/VII attribution rule | DR2-0100 |
+| XW2-0193 | CBA-C05.5 | CBA2-C05.5 | `equivalent` | [CBA-C05.5:F1] span:0-79 — Minimum Exception and reimbursement predicates are independent | DR2-0100 |
+| XW2-0194 | CBA-C06 | CBA2-C06.1 | `split` | [CBA-C06:F1] span:0-31 — Likely Bonus Salary inclusion | DR2-0100 |
+| XW2-0195 | CBA-C06 | CBA2-C06.2 | `split` | [CBA-C06:F2] span:31-78 — Unlikely Bonus ordinary Team Salary exclusion | DR2-0100 |
+| XW2-0196 | CBA-C06 | CBA2-C06.3 | `split` | [CBA-C06:F3] span:78-143 — express Apron/maximum/room add-back tests | DR2-0100 |
+| XW2-0197 | CBA-C07.1 | CBA2-C07.2 | `equivalent` | [CBA-C07.1:F1] span:0-100 — adjustment (i) | DR2-0100 |
+| XW2-0198 | CBA-C07.2 | CBA2-C07.3 | `equivalent` | [CBA-C07.2:F1] span:0-97 — adjustment (ii) | DR2-0100 |
+| XW2-0199 | CBA-C07.3 | CBA2-C07.4 | `equivalent` | [CBA-C07.3:F1] span:0-80 — adjustment (iii) | DR2-0100 |
+| XW2-0200 | CBA-C07.4 | CBA2-C07.5 | `equivalent` | [CBA-C07.4:F1] span:0-41 — adjustment (iv) | DR2-0100 |
+| XW2-0201 | CBA-C07.5 | CBA2-C07.6 | `equivalent` | [CBA-C07.5:F1] span:0-164 — adjustment (v) | DR2-0100 |
+| XW2-0202 | CBA-C07.6 | CBA2-C07.7 | `split` | [CBA-C07.6:F1] span:0-56 — adjustment (vi), unsigned-first-round-pick subtraction | DR2-0100 |
+| XW2-0203 | CBA-C07.6 | CBA2-C07.8 | `split` | [CBA-C07.6:F2] span:56-114 — adjustment (vii), first-round Required Tender addition | DR2-0100 |
+| XW2-0204 | CBA-C07.7 | CBA2-C07.9 | `equivalent` | [CBA-C07.7:F1] span:0-96 — adjustment (viii) | DR2-0100 |
+| XW2-0205 | CBA-C07.8 | CBA2-C07.10 | `equivalent` | [CBA-C07.8:F1] span:0-91 — adjustment (ix) | DR2-0100 |
+| XW2-0206 | CBA-C07.9 | CBA2-C07.11 | `equivalent` | [CBA-C07.9:F1] span:0-46 — adjustment (x) | DR2-0100 |
+| XW2-0207 | CBA-C07.10 | CBA2-A05.1 | `moved` | [CBA-C07.10:F1] span:0-74 — proposed-transaction before/after Apron test remains transaction-permission substance in A05 | DR2-0100 |
+| XW2-0208 | CBA-C08.1 | CBA2-C01.1 | `split` | [CBA-C08.1:F1] span:0-49 — ordinary Team Salary remains based on contractual Salary notwithstanding suspension | DR2-0100 |
+| XW2-0209 | CBA-C08.1 | CBA2-C08.8 | `split` | [CBA-C08.1:F2] span:49-131 — qualifying NBA-suspension 50% Tax Team Salary reduction | DR2-0100 |
+| XW2-0210 | CBA-C08.2 | CBA2-C08.1 | `partial-overlap` | [CBA-C08.2:F1] span:0-91 — last-Regular-Season-game baseline and post-baseline adjustment process | DR2-0100 |
+| XW2-0211 | CBA-C08.3 | CBA2-C08.1 | `split` | [CBA-C08.3:F1] span:0-36 — ordinary Team Salary baseline component | DR2-0100 |
+| XW2-0212 | CBA-C08.3 | CBA2-C08.4 | `split` | [CBA-C08.3:F2] span:36-61 — earned-Unlikely-Bonus addition | DR2-0100 |
+| XW2-0213 | CBA-C08.3 | CBA2-C08.5 | `split` | [CBA-C08.3:F3] span:61-83 — trade-bonus adjustment | DR2-0100 |
+| XW2-0214 | CBA-C08.3 | CBA2-C08.6 | `split` | [CBA-C08.3:F4] span:83-110 — grievance adjustment | DR2-0100 |
+| XW2-0215 | CBA-C08.3 | CBA2-C08.7 | `split` | [CBA-C08.3:F5] span:110-132 — zero/one-YOS uplift | DR2-0100 |
+| XW2-0216 | CBA-C08.4 | CBA2-C08.3 | `split` | [CBA-C08.4:F1] span:0-44 — unearned-Likely-Bonus subtraction | DR2-0100 |
+| XW2-0217 | CBA-C08.4 | CBA2-C08.8 | `split` | [CBA-C08.4:F2] span:44-113 — qualifying suspension reduction | DR2-0100 |
+| XW2-0218 | CBA-C08.5 | CBA2-C09.3 | `equivalent` | [CBA-C08.5:F1] span:0-141 — current taxpayer plus three-of-four preceding years repeater predicate | DR2-0100 |
+| XW2-0219 | CBA-C09.1 | CBA2-C09.7 | `split` | [CBA-C09.1:F1] span:0-44 — progressive bracket computation component | DR2-0100 |
+| XW2-0220 | CBA-C09.1 | CBA2-C09.2 | `split` | [CBA-C09.1:F2] span:44-100 — 2025-26 standard first-four rates | DR2-0100 |
+| XW2-0221 | CBA-C09.1 | CBA2-C09.4 | `split` | [CBA-C09.1:F3] span:100-134 — 2025-26 repeater first-four rates | DR2-0100 |
+| XW2-0222 | CBA-C09.1 | CBA2-C09.5 | `split` | [CBA-C09.1:F4] span:134-164 — additional-bracket increment | DR2-0100 |
+| XW2-0223 | CBA-C09.1 | CBA2-C09.6 | `split` | [CBA-C09.1:F5] span:164-204 — 2023-24/2024-25 transition years | DR2-0100 |
+| XW2-0224 | CBA-C09.2 | CBA2-C09.7 | `equivalent` | [CBA-C09.2:F1] span:0-74 — full-prior-bracket plus partial-final-bracket arithmetic | DR2-0100 |
+| XW2-0225 | CBA-C10.1 | CBA2-C10.5 | `partial-overlap` | [CBA-C10.1:F1] span:0-55 — in-season Minimum Team Salary charge inclusion | DR2-0100 |
+| XW2-0226 | CBA-C10.2 | CBA2-C10.1 | `partial-overlap` | [CBA-C10.2:F1] span:0-80 — 90% Minimum Team Salary; the current owner keeps adjusted bases separate | DR2-0100 |
+| XW2-0227 | CBA-C10.3 | CBA2-C10.7 | `partial-overlap` | [CBA-C10.3:F1] span:0-78 — MTS shortfall payment component, corrected to the signed year-end MTS Payment Team Salary base and NBA recipient | DR2-0100 |
+| XW2-0228 | CBA-C10.3 | — | `invalid` | [CBA-C10.3:F2] span:78-116 — false assertion that the Team Salary charge equals the MTS payment | DR2-0107 |
+| XW2-0229 | CBA-C10.3 | CBA2-C10.8 | `split` | [CBA-C10.3:F3] span:116-155 — tax-distribution ineligibility component | DR2-0100 |
+| XW2-0230 | CBA-C10.4 | CBA2-C10.4 | `partial-overlap` | [CBA-C10.4:F1] span:0-57 — start-of-Regular-Season MTS Threshold component; current owner replaces “opening salary” shorthand with the signed adjusted base | DR2-0100 |
+| XW2-0231 | CBA-C10.4 | — | `invalid` | [CBA-C10.4:F2] span:57-100 — false prompt-correction duty; the signed rule applies and later removes a Team Salary charge | DR2-0108 |
+| XW2-0232 | CBA-C10.5 | CBA2-C10.5 | `split` | [CBA-C10.5:F1] span:0-29 — persistent in-season charge component | DR2-0100 |
+| XW2-0233 | CBA-C10.5 | CBA2-C10.9 | `split` | [CBA-C10.5:F2] span:29-68 — year-end accounting/reconciliation component | DR2-0100 |
+| XW2-0234 | CBA-C11.1 | CBA2-A02.13 | `partial-overlap` | [CBA-C11.1:F1] span:0-82 — disabled-player attachment and replacement-player nonattachment, retained in the A02.13 transaction owner | DR2-0100 |
+| XW2-0235 | CBA-C11.2 | — | `deferred` | [CBA-C11.2:F1] span:0-10 — persisted DPE state representation; families:C,L; resolving-unit:R6 | DR2-0110 |
+| XW2-0236 | CBA-C11.2 | CBA2-C12.8 | `split` | [CBA-C11.2:F2] span:10-28 — DPE medical-decision component | DR2-0100 |
+| XW2-0237 | CBA-C11.2 | CBA2-C12.3 | `split` | [CBA-C11.2:F3] span:28-36 — DPE amount component | DR2-0100 |
+| XW2-0238 | CBA-C11.2 | CBA2-C12.1 | `split` | [CBA-C11.2:F4] span:36-41 — DPE use component | DR2-0100 |
+| XW2-0239 | CBA-C11.2 | — | `deferred` | [CBA-C11.2:F5] span:41-60 — persisted DPE extinguishment representation; families:C,L; resolving-unit:R6 | DR2-0110 |
+| XW2-0240 | CBA-C11.3 | CBA2-C12.1 | `split` | [CBA-C11.3:F1] span:0-64 — one-replacement exception component | DR2-0100 |
+| XW2-0241 | CBA-C11.3 | CBA2-C01.1 | `split` | [CBA-C11.3:F2] span:64-112 — Disabled Player Salary remains included while the Contract remains in force | DR2-0100 |
+| XW2-0242 | CBA-C11.4 | CBA2-C11.1 | `split` | [CBA-C11.4:F1] span:0-86 — waiver-termination prerequisite | DR2-0100 |
+| XW2-0243 | CBA-C11.4 | CBA2-C11.2 | `split` | [CBA-C11.4:F2] span:86-110 — waiting-period component | DR2-0100 |
+| XW2-0244 | CBA-C11.4 | CBA2-C11.3 | `split` | [CBA-C11.4:F3] span:110-168 — jointly selected physician/Fitness-to-Play finding component | DR2-0100 |
+| XW2-0245 | CBA-C11.5 | CBA2-C11.6 | `equivalent` | [CBA-C11.5:F1] span:0-118 — applicant-Team knowledge-time restriction | DR2-0100 |
+| XW2-0246 | CBA-C11.6 | CBA2-C11.7 | `equivalent` | [CBA-C11.6:F1] span:0-67 — permanent re-sign/reacquisition bar | DR2-0100 |
+| XW2-0247 | CBA-C11.7 | CBA2-C11.8 | `equivalent` | [CBA-C11.7:F1] span:0-117 — same-year DPE-request/exclusion preclusion | DR2-0100 |
+| XW2-0248 | CBA-C11.8 | CBA2-C11.4 | `partial-overlap` | [CBA-C11.8:F1] span:0-184 — 25-game restoration with the current owner's express elevated-risk and timing branches | DR2-0100 |
+| XW2-0249 | CBA-C12.1 | CBA2-C12.6 | `equivalent` | [CBA-C12.1:F1] span:0-93 — correct through-following-June-15 medical test | DR2-0100 |
+| XW2-0250 | CBA-C12.2 | CBA2-C12.3 | `split` | [CBA-C12.2:F1] span:0-64 — DPE common monetary limit | DR2-0100 |
+| XW2-0251 | CBA-C12.2 | CBA2-C12.4 | `split` | [CBA-C12.2:F2] span:64-76 — one-Season signing term | DR2-0100 |
+| XW2-0252 | CBA-C12.2 | CBA2-C12.5 | `split` | [CBA-C12.2:F3] span:76-103 — one-Season-remaining acquisition/claim term | DR2-0100 |
+| XW2-0253 | CBA-C12.2 | CBA2-C12.2 | `split` | [CBA-C12.2:F4] span:103-136 — July 1–January 15 application window | DR2-0100 |
+| XW2-0254 | CBA-C12.2 | CBA2-C12.7 | `split` | [CBA-C12.2:F5] span:136-154 — March 10 expiry | DR2-0100 |
+| XW2-0255 | CBA-C12.2 | — | `deferred` | [CBA-C12.2:F6] span:154-222 — persisted pre-use return/trade extinguishment lifecycle; families:C,L; resolving-unit:R6 | DR2-0110 |
+| XW2-0256 | CBA-C13.1 | — | `process-only` | [CBA-C13.1:F1] span:0-108 — application-ledger field prescription; the underlying legal amounts, methods, dates, and apron consequences have their own active owners | DR2-0109 |
+| XW2-0257 | CBA-C13.2 | CBA2-C04.3 | `partial-overlap` | [CBA-C13.2:F1] span:0-66 — exception-use/removal lifecycle; exception-specific creation and expiry remain with their signed owners | DR2-0100 |
+| XW2-0258 | CBA-C13.3 | CBA2-C13.1 | `equivalent` | [CBA-C13.3:F1] span:0-81 — no-combination rule | DR2-0100 |
+| XW2-0259 | CBA-C13.4 | CBA2-C13.3 | `split` | [CBA-C13.4:F1] span:0-60 — January 10 daily-reduction rule | DR2-0100 |
+| XW2-0260 | CBA-C13.4 | CBA2-C13.6 | `split` | [CBA-C13.4:F2] span:60-114 — Minimum Exception season-start proration | DR2-0100 |
+| XW2-0261 | CBA-C13.4 | CBA2-C13.4 | `split` | [CBA-C13.4:F3] span:114-140 — DPE/TPE non-proration component | DR2-0100 |
+| XW2-0262 | CBA-C13.5 | CBA2-C13.5 | `equivalent` | [CBA-C13.5:F1] span:0-90 — full-value trade/Offer-Sheet preservation | DR2-0100 |
+| XW2-0263 | CBA-C13.6 | CBA2-C13.19 | `equivalent` | [CBA-C13.6:F1] span:0-100 — method-specific exception use | DR2-0100 |
+| XW2-0264 | CBA-C13.7 | CBA2-C13.8 | `split` | [CBA-C13.7:F1] span:0-43 — NTMLE method component | DR2-0100 |
+| XW2-0265 | CBA-C13.7 | CBA2-C13.9 | `split` | [CBA-C13.7:F2] span:43-84 — NTMLE term/raise component | DR2-0100 |
+| XW2-0266 | CBA-C13.7 | CBA2-A05.4 | `split` | [CBA-C13.7:F3] span:84-120 — NTMLE First-Apron transaction component | DR2-0100 |
+| XW2-0267 | CBA-C13.7 | CBA2-A05.2 | `split` | [CBA-C13.7:F4] span:120-186 — resulting First-Apron hard-cap component | DR2-0100 |
+| XW2-0268 | CBA-C13.9 | CBA2-C13.12 | `equivalent` | [CBA-C13.9:F1] span:0-84 — Room MLE contract shape and mutual exclusivity | DR2-0100 |
+| XW2-0269 | CBA-C13.10 | CBA2-C13.13 | `split` | [CBA-C13.10:F1] span:0-23 — BAE method component | DR2-0100 |
+| XW2-0270 | CBA-C13.10 | CBA2-C13.14 | `split` | [CBA-C13.10:F2] span:23-98 — BAE shape/consecutive-use component | DR2-0100 |
+| XW2-0271 | CBA-C13.10 | CBA2-A05.3 | `split` | [CBA-C13.10:F3] span:98-122 — BAE First-Apron transaction component | DR2-0100 |
+| XW2-0272 | CBA-C13.10 | CBA2-A05.2 | `split` | [CBA-C13.10:F4] span:122-134 — First-Apron hard-cap component | DR2-0100 |
+| XW2-0273 | CBA-C13.11 | CBA2-C13.15 | `equivalent` | [CBA-C13.11:F1] span:0-97 — prescribed SRPE Contract structures | DR2-0100 |
+| XW2-0274 | CBA-C13.12 | CBA2-C13.16 | `split` | [CBA-C13.12:F1] span:0-71 — temporary Team Salary exclusion | DR2-0100 |
+| XW2-0275 | CBA-C13.12 | CBA2-C07.10 | `split` | [CBA-C13.12:F2] span:71-96 — Apron Team Salary add-back | DR2-0100 |
+| XW2-0276 | CBA-C13.13 | CBA2-C13.17 | `equivalent` | [CBA-C13.13:F1] span:0-109 — Rookie Scale Exception over-cap signing authority | DR2-0100 |
+| XW2-0277 | CBA-C13.14 | CBA2-C13.20 | `equivalent` | [CBA-C13.14:F1] span:0-106 — UFA signing-route inventory; detailed Bird-right mechanics remain R5 without deferring this R4 historical fragment | DR2-0100 |
+| XW2-0278 | CBA-C13.15 | CBA2-C13.18 | `equivalent` | [CBA-C13.15:F1] span:0-135 — second-round signing-path routing | DR2-0100 |
 
-**R3 crosswalk deferrals (named per §15.9.3 rule 8; R8 requires zero remaining):**
+**Current crosswalk deferrals (named per §15.9.3 rule 8; R8 requires zero remaining):**
 
 | Historical source | Scope deferred | Families | Resolving unit | Basis |
 |---|---|---|---|---|
-| CBA-A01.4 (whole) | Team Salary composition (salaries of players on the roster) | A ↔ C | R4 | The obligation is Cap Manager substance (Team Salary composition, VII §4(a)(1)); its active owner and this row's crosswalk edge belong to the C-series construction |
 | CBA-A01.3 (fragment) | explicit-date/season evaluation context | A ↔ L | R6 | Duplicates the historical CBA-L01.1 obligation (explicit asOfDate/calendar evaluation); the L-family owner and this fragment's edge belong to R6 |
-| CBA-A08.1 (fragment) | Minimum Exception contract shape and proration (≤2 Seasons, minimum salary, no bonuses; proration from season start) | A ↔ C | R4 | Exception shape/proration is Cap Manager substance (historical C13 area); the C-family owner and this fragment's edge belong to R4 |
 | CBA-A17.1 (fragment) | pick-ledger representation (ownership, swaps, protections, fallback conveyances, deferral state, conveyance dependencies, slide/penalty state) | A ↔ L | R6 | Persistent pick-state representation is lifecycle substance (historical L05/L09 area); the L-family owner and this fragment's edge belong to R6 |
+| CBA-C11.2 (fragments) | persisted DPE state and extinguishment representation | C ↔ L | R6 | R4 owns the governing DPE rules; durable event/state representation remains Lifecycle-family construction |
+| CBA-C11.9 (fragment) | pre-use DPE return/trade extinguishment representation | C ↔ L | R6 | XW2-0153 remains the accepted exact same-family deferral from R3.1 |
+| CBA-C12.2 (fragment) | pre-use DPE return/trade extinguishment representation | C ↔ L | R6 | Same persistent lifecycle owner as the CBA-C11.2/C11.9 fragments |
 
 ### 15.12 Source/provenance and evidence registries (created by R3)
 
@@ -5936,6 +6276,105 @@ input contract.
 | EV2-0157 | CBA2-A10.30 | CBA | SRC2-001 | — | CBA VII §7(a)(2)(iii), p. 251 | The Team and player may amend simultaneously for the Option action and the otherwise-permitted Extension | Supplies the simultaneous-action permission | — | — |
 | EV2-0158 | CBA2-A12.8 | BYL | SRC2-002 | — | NBA By-Laws §4.02(b), pp. 63-64 | All Assignment Transaction terms and conditions must be stated in detail in the Trade Memorandum, which governs a later dispute | Supplies the Trade Memorandum recording and control duties | — | — |
 | EV2-0159 | CBA2-A12.9 | BYL | SRC2-002 | — | NBA By-Laws §4.02(a), p. 63 | Any Assignment Transaction term or condition not disclosed to the Association Office on the Trade Call is unenforceable | Supplies the nondisclosure consequence | — | — |
+| EV2-0160 | CBA2-C01.1 | CBA | SRC2-001 | — | CBA VII §4(a)(1), pp. 211-12 | Team Salary includes the aggregate Salaries of all players then under Contract, subject to the enumerated adjustments | Supplies the under-contract baseline | — | Does not itself enumerate later hold categories |
+| EV2-0161 | CBA2-C01.2 | CBA | SRC2-001 | — | CBA VII §4(a)(2), (d), pp. 212, 216-18 | Team Salary includes each applicable Veteran Free Agent Amount until a signed removal event | Supplies the free-agent inclusion lifecycle | — | — |
+| EV2-0162 | CBA2-C01.3 | CBA | SRC2-001 | — | CBA VII §4(d)(1), pp. 216-17 | The ordinary QVFA calculation uses prior Regular Salary, signing-bonus allocation, and earned Performance Bonuses | Supplies the calculation inputs | — | — |
+| EV2-0163 | CBA2-C01.4 | CBA | SRC2-001 | — | CBA VII §4(d)(1)-(3), pp. 216-18 | The signed table states 300/250, 190/150, 130, and 120 percent branches by free-agent category and EAPS relation | Supplies the closed multiplier table | — | Subject to separate minimum/maximum bounds |
+| EV2-0164 | CBA2-C01.5 | CBA | SRC2-001 | — | CBA VII §4(d)(4), p. 218 | A prior one-Season Minimum Contract produces the current applicable minimum, no higher than the two-YOS minimum | Supplies the Prior-Minimum FA amount | — | — |
+| EV2-0165 | CBA2-C01.6 | CBA | SRC2-001 | — | CBA VII §4(d), pp. 216-18 | The applicable Free Agent Amount is bounded by the player's Minimum Player Salary and Maximum Annual Salary | Supplies the floor and ceiling | — | — |
+| EV2-0166 | CBA2-C01.7 | CBA | SRC2-001 | — | CBA VII §4(a)(2), (d), pp. 212, 216-18 | The RFA amount uses the greatest applicable FA/QO/Maximum-QO/FREN branch | Supplies the RFA greatest-of calculation | — | Offer Sheet matching procedure is outside this owner |
+| EV2-0167 | CBA2-C01.8 | CBA | SRC2-001 | — | CBA VII §4(a)(2), (g), pp. 212, 221-22 | Signing, renunciation, and the other stated lifecycle events end the applicable Veteran Free Agent Amount | Supplies removal events | — | R5 owns Bird-right consequences |
+| EV2-0168 | CBA2-C01.9 | CBA | SRC2-001 | — | CBA VII §4(g)(1), pp. 221-22 | A renunciation made solely for a later-matched Offer Sheet may be rescinded within two business days subject to two Team Salary limits | Supplies the narrow unrenounce route | — | — |
+| EV2-0169 | CBA2-C02.1 | CBA | SRC2-001 | — | CBA VII §4(a)(4), (e), pp. 212, 218-20 | Upon selection, an unsigned First Round Pick is included at 120% of the Rookie Scale Amount | Supplies amount and trigger | — | — |
+| EV2-0170 | CBA2-C02.2 | CBA | SRC2-001 | — | CBA VII §4(e), pp. 218-20 | Signing or loss/renunciation of the covered first-round rights removes the amount | Supplies removal events | — | — |
+| EV2-0171 | CBA2-C02.3 | CBA | SRC2-001 | — | CBA VII §4(e), pp. 218-20 | The stated non-NBA/withdrawal procedure temporarily removes and later restores the unsigned-pick amount | Supplies reversible lifecycle | — | — |
+| EV2-0172 | CBA2-C02.4 | CBA | SRC2-001 | — | CBA VII §4(a)(4), (e), pp. 212, 218-20 | The 120%-of-Rookie-Scale Team Salary rule is expressly limited to unsigned First Round Picks | Supplies the second-round distinction | — | Other express second-round rules remain possible |
+| EV2-0173 | CBA2-C03.1 | CBA | SRC2-001 | — | CBA VII §4(f)(2), p. 221 | The incomplete-roster count names under-contract players, included Veteran FAs, Offer Sheet recipients, and included unsigned First Round Picks | Supplies the closed count-input set | — | — |
+| EV2-0174 | CBA2-C03.2 | CBA | SRC2-001 | — | CBA VII §4(f)(1), pp. 220-21 | During the stated offseason window, each count below twelve adds one zero-YOS minimum | Supplies window, threshold, and amount | — | No in-season continuation |
+| EV2-0175 | CBA2-C04.1 | CBA | SRC2-001 | — | CBA VII §6(n)(1), pp. 247-48 | The named exceptions are available only at/above the Cap or when room is less than the exception | Supplies the threshold predicate | — | Specific exception conditions also apply |
+| EV2-0176 | CBA2-C04.2 | CBA | SRC2-001 | — | CBA VII §6(n)(2), p. 248 | Team Salary includes an available exception amount or unused portion | Supplies the Team Salary hold | — | — |
+| EV2-0177 | CBA2-C04.3 | CBA | SRC2-001 | — | CBA VII §6(n)(2), p. 248 | Use reduces the included amount; loss of entitlement removes it | Supplies hold lifecycle | — | — |
+| EV2-0178 | CBA2-C05.1 | CBA | SRC2-001 | — | CBA IV §6(h), p. 101; VII §3(f), pp. 209-10 | The reimbursement rule covers qualifying one-Season, Ten-Day, and Rest-of-Season Minimum contracts | Supplies contract eligibility | — | Minimum Exception use is a separate test |
+| EV2-0179 | CBA2-C05.2 | CBA | SRC2-001 | — | CBA VII §3(f), pp. 209-10 | For a qualifying player above two YOS, the stated salary ledgers use the two-YOS minimum | Supplies the ledger amount | — | Contract Salary is not reduced |
+| EV2-0180 | CBA2-C05.3 | CBA | SRC2-001 | — | CBA IV §6(h), p. 101 | The benefits fund reimburses Salary above the two-YOS minimum on a qualifying contract | Supplies payer and reimbursed component | — | — |
+| EV2-0181 | CBA2-C05.4 | CBA | SRC2-001 | — | CBA II §3(d), pp. 25-27; VII §4(a)(1), pp. 211-12 | Protected Base Compensation and other attributed amounts remain Team Salary after waiver termination as provided by the signed rules | Supplies waived-contract Team Salary | — | No signed reimbursement-extinction rule was located |
+| EV2-0182 | CBA2-C05.5 | INFERRED | SRC2-001 | EV2-0178, EV2-0244 | CBA IV §6(h), p. 101; VII §6(i), pp. 246-47 | Reimbursement and Minimum Exception use arise under different provisions with different predicates | Distinct predicates prohibit treating eligibility as equivalent | Inference from separate express grants | — |
+| EV2-0183 | CBA2-C06.1 | CBA | SRC2-001 | — | CBA VII §3(d)(1), pp. 206-07 | A Performance Bonus classified as likely is included in Salary | Supplies likely-bonus result | — | — |
+| EV2-0184 | CBA2-C06.2 | CBA | SRC2-001 | — | CBA I §1(lll), p. 9; VII §3(d), pp. 206-08 | Unlikely Bonuses are excluded from Salary absent an express add-back | Supplies ordinary exclusion | — | — |
+| EV2-0185 | CBA2-C06.3 | CBA | SRC2-001 | — | CBA VII §§2(e), 4(d), 6, pp. 186-88, 216-18, 231-49 | Multiple signed tests expressly use Salary plus Unlikely Bonuses or add excluded bonuses | Supplies express-use routing | — | Applies only where the governing rule says so |
+| EV2-0186 | CBA2-C07.1 | CBA | SRC2-001 | — | CBA VII §2(e)(1), pp. 186-88 | Apron Team Salary starts from Team Salary and applies ten stated adjustments | Supplies baseline and adjustment sequence | — | A05 owns transaction permission |
+| EV2-0187 | CBA2-C07.2 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(i), p. 186 | Add Performance Bonuses excluded from Salary | Supplies adjustment (i) | — | — |
+| EV2-0188 | CBA2-C07.3 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(ii), p. 186 | Add the zero/one-YOS to two-YOS minimum difference for qualifying contracts | Supplies adjustment (ii) | — | — |
+| EV2-0189 | CBA2-C07.4 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(iii), p. 186; VII §4(a)(1)(iii), p. 212 | Add the referenced grievance exposure | Supplies adjustment (iii) | — | Grievance merits are external |
+| EV2-0190 | CBA2-C07.5 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(iv), p. 186 | Subtract included Free Agent Amounts | Supplies adjustment (iv) | — | — |
+| EV2-0191 | CBA2-C07.6 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(v), pp. 186-87 | Add the greater applicable QO/Maximum-QO/FREN amount for an RFA | Supplies adjustment (v) | — | — |
+| EV2-0192 | CBA2-C07.7 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(vi), p. 187 | Subtract unsigned First Round Pick amounts included under §4(a)(4) | Supplies adjustment (vi) | — | — |
+| EV2-0193 | CBA2-C07.8 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(vii), p. 187 | Add outstanding Required Tenders to First Round Picks | Supplies adjustment (vii) | — | First-round only |
+| EV2-0194 | CBA2-C07.9 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(viii), p. 187 | Subtract included exception amounts | Supplies adjustment (viii) | — | — |
+| EV2-0195 | CBA2-C07.10 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(ix), p. 187; VII §4(l), p. 225 | Add temporarily excluded SRPE Contract amounts | Supplies adjustment (ix) | — | — |
+| EV2-0196 | CBA2-C07.11 | CBA | SRC2-001 | — | CBA VII §2(e)(1)(x), p. 187 | Subtract incomplete-roster charges | Supplies adjustment (x) | — | — |
+| EV2-0197 | CBA2-C08.1 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | Tax Team Salary begins with Team Salary at the start of the last Regular Season game | Supplies finalization baseline | — | Later express adjustments still apply |
+| EV2-0198 | CBA2-C08.2 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | The signed post-baseline Contract events adjust Tax Team Salary | Supplies later-contract event class | — | Amount follows the applicable Contract rule |
+| EV2-0199 | CBA2-C08.3 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | Likely Bonuses not earned are subtracted | Supplies one tax adjustment | — | — |
+| EV2-0200 | CBA2-C08.4 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | Unlikely Bonuses earned are added | Supplies one tax adjustment | — | — |
+| EV2-0201 | CBA2-C08.5 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | The stated trade-bonus allocation event adjusts Tax Team Salary | Supplies trade-bonus adjustment | — | A04 owns bonus calculation |
+| EV2-0202 | CBA2-C08.6 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | The specified final grievance amount adjusts Tax Team Salary | Supplies grievance adjustment | — | External outcome input |
+| EV2-0203 | CBA2-C08.7 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82 | Add the zero/one-YOS to two-YOS minimum difference for qualifying contracts | Supplies minimum uplift | — | — |
+| EV2-0204 | CBA2-C08.8 | CBA | SRC2-001 | — | CBA VII §2(d)(1)(i), pp. 179-82; II §11, pp. 48-50 | Subtract 50% of compensation forfeited for a qualifying NBA suspension | Supplies suspension adjustment | — | No ordinary Team Salary reduction inferred |
+| EV2-0205 | CBA2-C09.1 | CBA | SRC2-001 | — | CBA VII §2(d)(2), pp. 182-86 | Bracket amount is 3.5% of Cap in 2025-26 and 4.75% thereafter | Supplies bracket size | — | — |
+| EV2-0206 | CBA2-C09.2 | CBA | SRC2-001 | — | CBA VII §2(d)(2)(i), pp. 182-84 | Current standard first-four rates are 1.00/1.25/3.50/4.75 | Supplies standard rate table | — | Beginning 2025-26 |
+| EV2-0207 | CBA2-C09.3 | CBA | SRC2-001 | — | CBA VII §2(d)(2)(ii), pp. 184-85 | Repeater status requires current tax and tax in at least three of four preceding years | Supplies repeater predicate | — | — |
+| EV2-0208 | CBA2-C09.4 | CBA | SRC2-001 | — | CBA VII §2(d)(2)(ii), pp. 184-85 | Current repeater first-four rates are 3.00/3.25/5.50/6.75 | Supplies repeater rate table | — | Beginning 2025-26 |
+| EV2-0209 | CBA2-C09.5 | CBA | SRC2-001 | — | CBA VII §2(d)(2), pp. 182-85 | Each bracket after the fourth increases by 0.50 | Supplies additional-bracket rule | — | — |
+| EV2-0210 | CBA2-C09.6 | CBA | SRC2-001 | — | CBA VII §2(d)(2), pp. 182-86 | 2023-24 and 2024-25 retain the expressly stated legacy schedules | Supplies transition-year branch | — | Historical simulation only |
+| EV2-0211 | CBA2-C09.7 | DERIVED | SRC2-001 | EV2-0205, EV2-0206, EV2-0208, EV2-0209 | CBA VII §2(d)(2), pp. 182-85 | The bracket schedule applies each rate only to dollars within its bracket | Expands the progressive sum into full prior brackets plus the partial last bracket | Pure arithmetic; no new rate | — |
+| EV2-0212 | CBA2-C10.1 | CBA | SRC2-001 | — | CBA VII §2(c)(1), p. 176 | Minimum Team Salary is 90% of the Salary Cap | Supplies threshold percentage | — | — |
+| EV2-0213 | CBA2-C10.2 | CBA | SRC2-001 | — | CBA VII §2(c)(4), pp. 177-78 | MTS Cap Hold Team Salary applies its own stated adjustments | Supplies in-season adjusted base | — | Distinct from MTS Payment Team Salary |
+| EV2-0214 | CBA2-C10.3 | CBA | SRC2-001 | — | CBA VII §2(c)(5), p. 178 | MTS Payment Team Salary applies its own stated adjustments | Supplies year-end adjusted base | — | Distinct from the charge base |
+| EV2-0215 | CBA2-C10.4 | CBA | SRC2-001 | — | CBA VII §2(c)(1)-(2), pp. 176-77 | The in-season threshold derives from the start-of-Regular-Season adjusted computation | Supplies MTS Threshold baseline | — | No roster-correction command |
+| EV2-0216 | CBA2-C10.5 | CBA | SRC2-001 | — | CBA VII §2(c)(2), pp. 176-77 | The charge is the lesser of current and season-start shortfalls | Supplies in-season charge formula | — | Need not equal final payment |
+| EV2-0217 | CBA2-C10.6 | CBA | SRC2-001 | — | CBA VII §2(c)(2), p. 177 | The charge is removed the day after the adjusted base again reaches the threshold | Supplies restoration timing | — | — |
+| EV2-0218 | CBA2-C10.7 | CBA | SRC2-001 | — | CBA VII §2(c)(1), (3), pp. 176-78 | A final MTS Payment Team pays the NBA the year-end shortfall | Supplies payer, recipient, and amount | — | Not a player distribution |
+| EV2-0219 | CBA2-C10.8 | CBA | SRC2-001 | — | CBA VII §2(c)(2), (7), pp. 176-79 | An MTS-payment Team loses the normal non-taxpayer share, with a 2023-24-only half-share branch | Supplies distribution consequence | — | 2023-24 branch is historical only |
+| EV2-0220 | CBA2-C10.9 | CBA | SRC2-001 | — | CBA VII §2(c)(3), pp. 177-78 | The final payment/charge enters the stated BRI, tax, and incentive-likelihood accounting | Supplies year-end accounting | — | — |
+| EV2-0221 | CBA2-C10.10 | CBA | SRC2-001 | — | CBA VII §2(c)(6), p. 178 | Within ten business days, collected MTS payments are distributed equally to Teams | Supplies distribution recipient/timing | — | — |
+| EV2-0222 | CBA2-C11.1 | CBA | SRC2-001 | — | CBA VII §4(h), p. 222 | The Contract must be terminated through waivers before the career-ending Salary exclusion | Supplies termination prerequisite | — | — |
+| EV2-0223 | CBA2-C11.2 | CBA | SRC2-001 | — | CBA VII §4(h)(1), pp. 222-23 | The signed first-anniversary, fewer-than-ten-games, sixty-day, and first-roster-game timing rules govern application | Supplies application timing | — | — |
+| EV2-0224 | CBA2-C11.3 | CBA | SRC2-001 | — | CBA VII §4(h)(2), p. 223 | A jointly selected physician or agreed Panel must make one of the stated career-ending/elevated-risk findings | Supplies required external finding | — | Does not decide medical merits |
+| EV2-0225 | CBA2-C11.4 | CBA | SRC2-001 | — | CBA VII §4(h)(3), pp. 223-24 | Twenty-five covered games restore excluded Salary, subject to elevated-risk and retroactivity branches | Supplies restoration rule | — | — |
+| EV2-0226 | CBA2-C11.5 | CBA | SRC2-001 | — | CBA VII §4(h)(3), pp. 223-24 | After restoration, the Team may reapply under the same rules and waiting periods | Supplies reapplication | — | — |
+| EV2-0227 | CBA2-C11.6 | CBA | SRC2-001 | — | CBA VII §4(h)(5), p. 224 | Only the knowledge-time Contract Team may apply, and only during the Contract term | Supplies applicant predicate | — | — |
+| EV2-0228 | CBA2-C11.7 | CBA | SRC2-001 | — | CBA VII §4(h)(6)(i), p. 224 | A granted Team may never re-sign or reacquire the player | Supplies permanent bar | — | — |
+| EV2-0229 | CBA2-C11.8 | CBA | SRC2-001 | — | CBA VII §4(h)(6)(ii), p. 224 | A DPE request, granted or denied, precludes same-year long-term exclusion | Supplies cross-mechanism preclusion | — | — |
+| EV2-0230 | CBA2-C12.1 | CBA | SRC2-001 | — | CBA VII §6(c)(1), p. 232 | The DPE permits one Replacement Player | Supplies replacement scope | — | — |
+| EV2-0231 | CBA2-C12.2 | CBA | SRC2-001 | — | CBA VII §6(c)(1)(i), pp. 232-33 | Application may be made July 1 through January 15 | Supplies application window | — | — |
+| EV2-0232 | CBA2-C12.3 | CBA | SRC2-001 | — | CBA VII §6(c)(1)(ii)-(iv), pp. 233-34 | The common ceiling is the lesser of 50% of Disabled Player Salary and NTMLE | Supplies monetary limit | — | Claim branch includes its express allowance |
+| EV2-0233 | CBA2-C12.4 | CBA | SRC2-001 | — | CBA VII §6(c)(1)(ii), p. 233 | A DPE signing Contract is for one Season and fits the amount ceiling | Supplies signing term | — | — |
+| EV2-0234 | CBA2-C12.5 | CBA | SRC2-001 | — | CBA VII §6(c)(1)(iii)-(iv), pp. 233-34 | An acquired/claimed Replacement Player has only one Season remaining | Supplies acquisition/claim term | — | — |
+| EV2-0235 | CBA2-C12.6 | CBA | SRC2-001 | — | CBA VII §6(c)(2), p. 233 | Disabling means substantially more likely than not unable to play through the following June 15 | Supplies medical standard | — | Medical merits are external |
+| EV2-0236 | CBA2-C12.7 | CBA | SRC2-001 | — | CBA VII §6(c)(3), p. 233 | The granted exception expires the following March 10 | Supplies expiry | — | — |
+| EV2-0237 | CBA2-C12.8 | CBA | SRC2-001 | — | CBA VII §6(c)(4), pp. 233-34 | NBA physician decides initially; a dispute goes immediately to the neutral physician | Supplies external decision process | — | — |
+| EV2-0238 | CBA2-C12.9 | CBA | SRC2-001 | — | CBA VII §6(c)(7), p. 234 | Only the knowledge-time Contract Team, during the Contract term and with continuous roster status through grant, may receive the DPE | Supplies availability predicate | — | — |
+| EV2-0239 | CBA2-C13.1 | CBA | SRC2-001 | — | CBA VII §6(m), p. 247 | Different exceptions cannot be combined for one player above any one exception's allowance | Supplies no-combination rule | — | — |
+| EV2-0240 | CBA2-C13.2 | CBA | SRC2-001 | — | CBA VII §6(m), p. 247 | When multiple exceptions are available, the Team chooses which one to use | Supplies selection rule | — | — |
+| EV2-0241 | CBA2-C13.3 | CBA | SRC2-001 | — | CBA VII §6(n)(4), p. 249 | Beginning January 10, covered unused exceptions reduce daily by unused amount divided by season days | Supplies daily reduction | — | — |
+| EV2-0242 | CBA2-C13.4 | CBA | SRC2-001 | — | CBA VII §6(n)(4), p. 249 | TPE, Minimum Exception, and DPE are excluded from the general daily reduction | Supplies homogeneous non-prorating list | — | — |
+| EV2-0243 | CBA2-C13.5 | CBA | SRC2-001 | — | CBA VII §6(n)(4)(i)-(ii), p. 249 | Covered trade-deadline use and Offer Sheet matching preserve full value | Supplies non-reduction branches | — | — |
+| EV2-0244 | CBA2-C13.6 | CBA | SRC2-001 | — | CBA I §1(kk), pp. 7-8; VII §6(i), pp. 239-40 | Minimum Exception signing covers at most two Seasons at minimum Salary without ordinary bonuses, and a Regular Season signing prorates by covered days over season days | Supplies the closed signing Contract result | — | Trade-bonus and reimbursement branches are separate |
+| EV2-0245 | CBA2-C13.7 | CBA | SRC2-001 | — | CBA VII §6(i), pp. 239-40 | The Minimum Player Salary Exception authorizes the permitted acquisition/claim branches within its amount and term rules | Supplies acquisition authority | — | — |
+| EV2-0246 | CBA2-C13.8 | CBA | SRC2-001 | — | CBA VII §6(e), pp. 236-37 | The NTMLE authorizes the stated signing/acquisition/claim/match methods | Supplies method set | — | A05 owns apron transaction limits |
+| EV2-0247 | CBA2-C13.9 | CBA | SRC2-001 | — | CBA VII §6(e), pp. 236-37 | NTMLE signing covers up to four Seasons with 5% changes | Supplies contract shape | — | — |
+| EV2-0248 | CBA2-C13.10 | CBA | SRC2-001 | — | CBA VII §6(f), pp. 237-38 | The TMLE amount may be divided among one or more signed players | Supplies amount use | — | — |
+| EV2-0249 | CBA2-C13.11 | CBA | SRC2-001 | — | CBA VII §6(f), pp. 237-38 | TMLE is signing-only and divisible; each signing covers up to two Seasons with 5% changes | Supplies the closed signing/Contract result | — | A05 owns apron consequences |
+| EV2-0250 | CBA2-C13.12 | CBA | SRC2-001 | — | CBA VII §6(g), pp. 238-39 | The Room MLE has its stated shape and is mutually exclusive with NTMLE, TMLE, and BAE use | Supplies identity/exclusivity | — | — |
+| EV2-0251 | CBA2-C13.13 | CBA | SRC2-001 | — | CBA VII §6(d), pp. 235-36 | BAE authorizes the stated signing/acquisition/claim methods and is divisible | Supplies BAE method | — | — |
+| EV2-0252 | CBA2-C13.14 | CBA | SRC2-001 | — | CBA VII §6(d), pp. 235-36 | BAE signings cover up to two Seasons with 5% changes and BAE is unavailable in consecutive years | Supplies shape/frequency | — | — |
+| EV2-0253 | CBA2-C13.15 | CBA | SRC2-001 | — | CBA II §6, pp. 33-35; VII §6(k), pp. 246-47 | SRPE Contracts use the prescribed two-plus-Option or three-plus-Option minimum-based structures | Supplies contract structures | — | — |
+| EV2-0254 | CBA2-C13.16 | CBA | SRC2-001 | — | CBA VII §4(l), p. 225 | July 1–30 SRPE signings are excluded from Team Salary until July 31 | Supplies temporary exclusion | — | Apron add-back is CBA2-C07.10 |
+| EV2-0255 | CBA2-C13.17 | CBA | SRC2-001 | — | CBA VII §6(h), p. 239 | A Team may sign its own First Round Pick to a Rookie Scale Contract over the Cap | Supplies signing authority | — | Contract-shape rules are R5 |
+| EV2-0256 | CBA2-C13.18 | CBA | SRC2-001 | — | CBA II §6, pp. 33-35; VII §6(h)-(i), pp. 239-40 | Second-round signing requires an independently available signed mechanism | Supplies route constraint | — | Does not create a new exception |
+| EV2-0257 | CBA2-C13.19 | INFERRED | SRC2-001 | EV2-0230, EV2-0244, EV2-0246, EV2-0248, EV2-0251 | CBA VII §6(c)-(j), pp. 232-46 | Each exception grant states its own allowed transaction methods | Distinct grants prohibit transferring method authority between exceptions | Inference from express method-specific grants | Specific owners control |
+| EV2-0258 | CBA2-C13.20 | CBA | SRC2-001 | — | CBA VII §6(b), pp. 231-32; VII §8(e)(1), p. 262 | A UFA signing requires Room, an applicable exception, the prior Team's applicable Veteran Free Agent Exception, or the sign-and-trade route | Supplies the route inventory | — | Detailed Bird mechanics are R5 |
 
 ## 16. Acceptance-test library
 
@@ -6185,7 +6624,9 @@ This classification is part of the canon. A later source may move an OPS item in
 
 **v2.0 status continuity (binding, R2.2).** The family-level rows above — including every "Primary-source verified" claim — are **legacy v1.0/v1.1 status claims preserved for continuity**. They are **not** active v2 per-LEAF certification: the independent v1.1 acceptance review falsified parts of the "primary-source verified" claim, and full per-LEAF certification has not yet occurred. R3–R6 replace these family-level claims family by family with `SRC2-…`/`EV2-…`-backed per-LEAF certification, updating this table's rows for their families as they complete; R8 reconciles the final status table against the completed active registry. **No family may be described as fully v2-certified until every active LEAF in that family passes U8, U9, and U14.** In particular (R2.4), the legacy "OPS—configurable" family row above establishes nothing: under §15.9.5–§15.9.6 the multi-team touch rule and detailed qualifying-asset thresholds, the seven-future-draft horizon, and the secondary-reported pick-protection/deferral processing mechanics are **unsupported operational candidates** (§12.2, §13.3) — not OPS, not registrable, and not enforceable without qualifying first-party operational provenance or a different valid authority classification.
 
-**A-family v2 status (R3.1 independently ACCEPTED; R4 unblocked but not started).** The rejected R3 checkpoint remains immutable history. R3.1 repaired its governed A-series records through AMEND lineage after the first compatibility checkpoint was independently accepted at `c3a00637` and the owner-authorized same-family compatibility checkpoint was independently accepted at `d6101f82`. The exact R3.1 maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4` was independently **ACCEPTED** by `/root/validation_scout`. It contains 12 GROUPs, **151 active A LEAFs**, XW2 through `XW2-0166`, EV2 through `EV2-0159`, and the required fragment, bundle, DISP, SM2, SS2, SRC2 date-component, DR2, and AMEND support populations. This acceptance certifies the R3.1 A-series construction checkpoint; it is not final canon activation or a Phase 2 verdict. R4 is unblocked but remains not started, Phase 1 continues, behavioral scenarios remain pending R7, and no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance. The express VII §8(a) cash-year rule and the INFERRED conditional-cash application are separate; the later re-trade residual is preserved at §12.12 under the current `unsupported-residual` DISP and adequate bounded search. Unsupported multi-team/pick-processing candidates remain unregistered and unenforceable. The C-, R-, L-, and S-family rows remain legacy status claims pending R4–R6.
+**A-family v2 status (R3.1 independently ACCEPTED; R4 unblocked but not started).** The rejected R3 checkpoint remains immutable history. R3.1 repaired its governed A-series records through AMEND lineage after the first compatibility checkpoint was independently accepted at `c3a00637` and the owner-authorized same-family compatibility checkpoint was independently accepted at `d6101f82`. The exact R3.1 maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4` was independently **ACCEPTED** by `/root/validation_scout`. It contains 12 GROUPs and **151 active A LEAFs**. The express VII §8(a) cash-year rule and the INFERRED conditional-cash application remain separate; the later re-trade residual remains preserved under its current searched `unsupported-residual` DISP. At that acceptance point, R4 is unblocked but remains not started. This is Phase 1 construction acceptance, not final activation; no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance.
+
+**C01–C13 v2 status (R4 maker complete; independent review pending).** R4 adds 13 GROUPs and **99 active C LEAFs**, extending the shared namespaces through `XW2-0278`, `EV2-0258`, `DR2-0110`, `SM2-0009`, and `SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The R4-designated A08.1, A01.4, and C13.8 deferrals exit through current `DR2-0102` AMEND lineage. The C07.6 enumerated adjustments are separate, and the C10 charge, payment, and sharing results use their distinct signed bases. The post-waiver reimbursement-extinction fragment is preserved as a searched `unsupported-residual`; the independently supported waived-contract Team Salary owner remains active. This is a maker claim until the named checker explicitly ACCEPTs the exact clean checkpoint. R5 is blocked and unstarted, behavioral scenarios remain pending R7, Phase 1 continues, and no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance. C14–C25 and the R-, L-, and S-family rows remain legacy status claims pending R5–R6.
 
 ### 19.4 CBA Guide sections reviewed for discovery
 
