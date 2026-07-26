@@ -10,11 +10,13 @@ The first R4 maker checkpoint
 was independently **REJECTED / BLOCK-R5** at checker commit
 `69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4` for one residual Room MLE
 atomicity defect and three decision/lineage labels. Those bounded residuals
-are now repaired through forward lineage and are pending review of a new
-exact clean maker checkpoint. The current result adds 13 C-family GROUPs and
-120 active C01–C13 LEAFs to the shared register.
-R5 remains blocked and unstarted. This receipt does not claim R9 acceptance,
-final canon activation, or Phase 2 authority.
+were repaired through forward lineage. Exact maker checkpoint
+`4fc3ed90cb108b155e24670eaf2d5942f6a2479b` was independently **ACCEPTED**
+by `/root/r4_checker` at checker commit
+`30808340f28edd334222a5cdd9de4dbdc809f32f`. The accepted result adds 13
+C-family GROUPs and 120 active C01–C13 LEAFs to the shared register. R5 is
+unblocked but unstarted. This receipt does not claim R9 acceptance, final
+canon activation, or Phase 2 authority.
 
 The exact R3.1 maker checkpoint
 `9239c1d3dc595538beb048c77788cd2c453240a4` remains independently accepted.
@@ -404,15 +406,15 @@ The first maker checkpoint was independently **REJECTED / BLOCK-R5** at
 checker commit `3880ea3f2baf022b7fa0477b34d4238721afad33`; the second was
 independently **REJECTED / BLOCK-R5** at checker commit
 `69610fa15094cf8c9f8493d7ef64bc9bb8b1b7b4`. Both histories remain in the
-checker receipt. The same checker must now review the exact clean
-forward-lineage checkpoint and append its new cycle only to
-`ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_INDEPENDENT_REVIEW.md`.
-Only an explicit **ACCEPT** of that exact checkpoint unblocks R5.
+checker receipt. Cycle 3 independently **ACCEPTED** exact maker checkpoint
+`4fc3ed90cb108b155e24670eaf2d5942f6a2479b` at checker commit
+`30808340f28edd334222a5cdd9de4dbdc809f32f`. R4 is complete and R5 is
+unblocked but unstarted.
 
 ## Boundary
 
 No C14–C25, R/L/S family registration, scenario construction, R5+, Phase 2,
 runtime application, test, configuration, data, Firestore, README, code-map,
 graph-output, Linear, or main-branch work was performed. The retained recovery
-stash was not read, applied, dropped, or altered. R5 remains blocked and
-unstarted pending independent R4 ACCEPT.
+stash was not read, applied, dropped, or altered. R5 is unblocked but
+unstarted; Phase 2 and application work remain unstarted.

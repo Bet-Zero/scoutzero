@@ -37,11 +37,13 @@ checkpoint remains unaccepted. R3.1 was independently **ACCEPTED** by
 `/root/validation_scout` at exact maker checkpoint
 `9239c1d3dc595538beb048c77788cd2c453240a4`. The accepted R3.1 checkpoint
 contains 151 active A-series LEAFs. At that acceptance point, R4 is unblocked
-as the next construction unit but remains not started. R4 maker construction
-has since added the C01–C13 governed populations and is pending
-exact-checkpoint independent review; R5 is blocked and unstarted. Phase 1
-continues; Phase 2 and W1.1 remain blocked pending R9 ACCEPT plus owner
-acceptance.
+as the next construction unit but remains not started. R4 has since added the
+C01–C13 governed populations; exact maker checkpoint
+`4fc3ed90cb108b155e24670eaf2d5942f6a2479b` was independently **ACCEPTED**
+by `/root/r4_checker` at checker commit
+`30808340f28edd334222a5cdd9de4dbdc809f32f`. R5 is unblocked but unstarted.
+Phase 1 continues; Phase 2 and W1.1 remain blocked pending R9 ACCEPT plus
+owner acceptance.
 
 > **Use rule:** Architect may rely on a rule as deterministic only when the required inputs exist and the rule is marked **CBA**, **BYL**, **NBA**, **DERIVED**, or **INFERRED** under the authority system below. A **DERIVED** item is arithmetic reproduced from a source formula; an **INFERRED** item is non-arithmetic legal or algorithmic inference supported by controlling primary-source text and must carry its locators and reasoning chain, never presented as express source language. An **OPS** item is a league-operational rule with real first-party operational provenance (§15.9.6) for which no current public primary text was located; secondary reporting never establishes it, and it must remain configurable and must not be represented as language from the CBA. An **EXT** item requires a league, physician, expert, or legal determination.
 
@@ -75,7 +77,7 @@ acceptance.
 | **Repair v2.0 — working draft, pre-R3.1 compatibility** | **July 23, 2026** | **One-time foundation-compatibility checkpoint** (goal-authorized; not an R2.x unit): closes the blocking mismatch between the accepted standard and R3.1 execution by enforcing exact population-scoped AMEND lineage, same-ID change traceability, canon-valid high-water/gap behavior, exact historical LEAF extraction, the narrow governed later-family `deferred` XW2 shape, and the pinned historical-authority qualifier for `authority-assertion` fragments. It changes no active §15.10–§15.12 row and begins no substantive R3.1 migration. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_COMPATIBILITY_CHECKPOINT.md`. **Independently ACCEPTED at corrective checkpoint `c3a00637249444190a02a844fe104137ac78da5e`; the later owner-authorized same-family compatibility checkpoint was independently ACCEPTED at exact corrective checkpoint `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by `/root/validation_scout`. R3.1 was independently ACCEPTED by `/root/validation_scout` at exact maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`; R4 is unblocked but not started, Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance.** |
 | **Repair v2.0 — working draft, same-family deferral compatibility** | **July 24, 2026** | **Narrow XW2 same-family deferral compatibility checkpoint** (owner-authorized; not an R2.x unit): permits identical source/target family tokens only when an earlier construction unit must inventory a historical LEAF because a different sibling fragment already maps to an active target in another family, while the remaining fragment's honest natural-family owner will be minted by the specifically named later R4–R6 unit and no target yet exists. All ordinary same-family/same-unit deferrals remain forbidden; the existing target-`—`, one-fragment, no-bundle, direct-current-`OWN`, mandatory-`AMEND`, and zero-at-R8 safeguards remain binding. No concrete edge or active record is minted. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_SAME_FAMILY_DEFERRAL_COMPATIBILITY.md`. **Independently ACCEPTED at exact corrective checkpoint `d6101f82b40f5c1e8c45c8be090e9b4743daefe5` by `/root/validation_scout`. R3.1 was independently ACCEPTED by `/root/validation_scout` at exact maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`; R4 is unblocked but not started, Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance.** |
 | **Repair v2.0 — working draft, R3.1** | **July 24, 2026** | **A-series repair through AMEND lineage:** expands the active A family from 81 to 151 atomic LEAFs; repairs trade bonus, trade salary, cash, extension, sign-and-trade, and pick obligations; migrates every historical edge to exact fragment scope; adds the required bundles, terminal DISP records, adequate A18.7 search set, source-date components, and current SRC2 capture facts. Independently ACCEPTED by `/root/validation_scout` at exact maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4`; R4 is unblocked but not started, Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R3_1_A_SERIES_REPAIR.md`. |
-| **Repair v2.0 — working draft, R4 maker** | **July 25, 2026** | **C-series first-half construction, pending independent review:** adds 13 GROUPs and 98 atomic C01–C13 LEAFs; closes the A08.1, A01.4, and C13.8 R4 deferrals through AMEND lineage; splits C07.6 adjustments (vi)/(vii); separates the MTS charge, payment, and distribution bases/results; and preserves the exact unsupported post-waiver reimbursement-extinction residual through adequate bounded search. R5 is blocked and unstarted until the named checker explicitly ACCEPTs the exact clean maker checkpoint. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md`. |
+| **Repair v2.0 — working draft, R4** | **July 25, 2026** | **C-series first-half construction through forward AMEND lineage:** adds 13 GROUPs and 120 atomic C01–C13 LEAFs; closes the A08.1, A01.4, and C13.8 R4 deferrals; separates the Tax Bracket Amount, MTS charge/payment/distribution, exception contract components, and Room MLE pre-use/post-use lifecycle results; and preserves the exact unsupported post-waiver reimbursement-extinction residual through adequate bounded search. The first two maker checkpoints remain immutable rejected history. Exact maker checkpoint `4fc3ed90cb108b155e24670eaf2d5942f6a2479b` was independently **ACCEPTED** by `/root/r4_checker` at checker commit `30808340f28edd334222a5cdd9de4dbdc809f32f`. R5 is unblocked but unstarted; Phase 1 continues, and Phase 2/application work remains unstarted. Receipt: `work/architect-completion/ARCHITECT_CBA_CANON_V2_R4_C_SERIES_FIRST_HALF_CERTIFICATION.md`. |
 
 ---
 
@@ -5194,11 +5196,14 @@ same-family compatibility checkpoint was independently accepted at
 `d6101f82` by `/root/validation_scout`. Neither compatibility acceptance alone
 accepted an active A-series record. R3.1 was independently **ACCEPTED** by
 `/root/validation_scout` at exact maker checkpoint
-`9239c1d3dc595538beb048c77788cd2c453240a4`. At that acceptance point,
-R4 is unblocked but remains not started. R4 maker construction has since
-added the C01–C13 governed populations and is pending exact-checkpoint
-independent review. R5 is blocked and unstarted; Phase 1 continues, and Phase
-2/W1.1 remain blocked pending R9 ACCEPT plus owner acceptance. "Mechanical"
+`9239c1d3dc595538beb048c77788cd2c453240a4`. At that acceptance point, R4 is
+unblocked but remains not started. R4 has since added the C01–C13 governed
+populations and exact maker checkpoint
+`4fc3ed90cb108b155e24670eaf2d5942f6a2479b` was independently **ACCEPTED**
+by `/root/r4_checker` at checker commit
+`30808340f28edd334222a5cdd9de4dbdc809f32f`. R5 is unblocked but unstarted;
+Phase 1 continues, and Phase 2/W1.1 remain blocked pending R9 ACCEPT plus
+owner acceptance. "Mechanical"
 means a rejecting validator control; "checker" means a required
 independent-review judgment; "retired" means the earlier formal-proof
 claim is no longer part of acceptance.
@@ -5238,11 +5243,13 @@ were independently accepted. The 12-GROUP, 151-LEAF A-family checkpoint at
 `9239c1d3dc595538beb048c77788cd2c453240a4` was independently **ACCEPTED**
 by `/root/validation_scout`. At that acceptance point, R4 is unblocked but
 remains not started. R4 has since extended the same governed populations with
-the C01–C13 Cap Manager half; its maker construction remains pending
-exact-checkpoint independent review. This is Phase 1 construction, not final
-canon activation: scenario evidence remains pending R7, Phase 1 continues,
-and nothing here carries a Phase 2 verdict before R9 ACCEPT plus owner
-acceptance.
+the C01–C13 Cap Manager half; exact maker checkpoint
+`4fc3ed90cb108b155e24670eaf2d5942f6a2479b` was independently **ACCEPTED**
+by `/root/r4_checker` at checker commit
+`30808340f28edd334222a5cdd9de4dbdc809f32f`. R5 is unblocked but unstarted.
+This is Phase 1 construction, not final canon activation: scenario evidence
+remains pending R7, Phase 1 continues, and nothing here carries a Phase 2
+verdict before R9 ACCEPT plus owner acceptance.
 
 #### 15.10.1 A family — GROUP index
 
@@ -6689,7 +6696,7 @@ This classification is part of the canon. A later source may move an OPS item in
 
 **A-family v2 status (R3.1 independently ACCEPTED; R4 unblocked but not started).** The rejected R3 checkpoint remains immutable history. R3.1 repaired its governed A-series records through AMEND lineage after the first compatibility checkpoint was independently accepted at `c3a00637` and the owner-authorized same-family compatibility checkpoint was independently accepted at `d6101f82`. The exact R3.1 maker checkpoint `9239c1d3dc595538beb048c77788cd2c453240a4` was independently **ACCEPTED** by `/root/validation_scout`. It contains 12 GROUPs and **151 active A LEAFs**. The express VII §8(a) cash-year rule and the INFERRED conditional-cash application remain separate; the later re-trade residual remains preserved under its current searched `unsupported-residual` DISP. At that acceptance point, R4 is unblocked but remains not started. This is Phase 1 construction acceptance, not final activation; no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance.
 
-**C01–C13 v2 status (R4 forward-lineage repair; third independent review pending).** The first R4 maker checkpoint and the second repaired maker checkpoint were independently rejected and remain immutable history. Forward lineage in `DR2-0111` and `DR2-0115` repairs their governed findings without altering either checkpoint. The current maker result adds 13 GROUPs and **120 active C LEAFs**, extending the shared namespaces through `XW2-0278`, `EV2-0279`, `DR2-0116`, `SM2-0009`, and `SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The R4-designated A08.1, A01.4, and C13.8 deferrals exit through current `DR2-0102` AMEND lineage. The C07.6 enumerated adjustments are separate; the C09 Tax Bracket Amount uses the signed 2023-24 scaling base; C10 separates charge, restoration, initial/additional payment, Team payment, and NBA distribution results; and the Minimum, NTMLE, TMLE, Room, and BAE aggregate routes depend on direct atomic contract components. Room MLE pre-use eligibility and its post-use exception bar are now distinct lifecycle owners. The post-waiver reimbursement-extinction fragment is preserved as a searched `unsupported-residual`; the independently supported waived-contract Team Salary owner remains active. This remains a maker claim until the named checker explicitly ACCEPTs the exact clean repair checkpoint. R5 is blocked and unstarted, behavioral scenarios remain pending R7, Phase 1 continues, and no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance. C14–C25 and the R-, L-, and S-family rows remain legacy status claims pending R5–R6.
+**C01–C13 v2 status (R4 independently ACCEPTED; R5 unblocked but unstarted).** The first R4 maker checkpoint and the second repaired maker checkpoint were independently rejected and remain immutable history. Forward lineage in `DR2-0111` and `DR2-0115` repairs their governed findings without altering either checkpoint. Exact maker checkpoint `4fc3ed90cb108b155e24670eaf2d5942f6a2479b` was independently **ACCEPTED** by `/root/r4_checker` at checker commit `30808340f28edd334222a5cdd9de4dbdc809f32f`. The accepted R4 result adds 13 GROUPs and **120 active C LEAFs**, extending the shared namespaces through `XW2-0278`, `EV2-0279`, `DR2-0116`, `SM2-0009`, and `SS2-0002`; R4 adds no BND above the existing `BND-0010` high-water mark. The R4-designated A08.1, A01.4, and C13.8 deferrals exit through current `DR2-0102` AMEND lineage. The C07.6 enumerated adjustments are separate; the C09 Tax Bracket Amount uses the signed 2023-24 scaling base; C10 separates charge, restoration, initial/additional payment, Team payment, and NBA distribution results; and the Minimum, NTMLE, TMLE, Room, and BAE aggregate routes depend on direct atomic contract components. Room MLE pre-use eligibility and its post-use exception bar are distinct lifecycle owners. The post-waiver reimbursement-extinction fragment is preserved as a searched `unsupported-residual`; the independently supported waived-contract Team Salary owner remains active. R5 is unblocked but unstarted, behavioral scenarios remain pending R7, Phase 1 continues, and no Phase 2 verdict exists before R9 ACCEPT plus owner acceptance. C14–C25 and the R-, L-, and S-family rows remain legacy status claims pending R5–R6.
 
 ### 19.4 CBA Guide sections reviewed for discovery
 
