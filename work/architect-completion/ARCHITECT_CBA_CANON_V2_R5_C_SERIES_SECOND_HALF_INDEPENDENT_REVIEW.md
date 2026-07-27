@@ -619,3 +619,357 @@ material.
 
 This review does not modify canon content, does not accept R5, and does not
 authorize or start R6.
+
+## Focused-repair re-review of `f92f4de887a72af9e0d8803e79917983eec4475b`
+
+Date: 2026-07-27
+
+Checker scope: independent, source-level re-review of only the focused R5
+repair committed at
+`f92f4de887a72af9e0d8803e79917983eec4475b`, relative to rejected maker
+checkpoint `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` and original checker
+rejection `a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f`. Stable `main` remains
+`69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`.
+
+The original rejection above is preserved as the immutable review of
+`c11285aa9811b45a0e0f9b7f6493c3a73e12181f`. This section is a separate
+commit-specific verdict; it neither rewrites nor supersedes that historical
+record.
+
+### Verdict: FOCUSED REJECT
+
+The repair is mechanically complete at its claimed population, and the C17
+and C18 rejection groups now reconcile to the controlling source. R5 remains
+blocked because ten of the twelve rejection groups retain at least one
+materially false, incomplete, unsupported, or non-executable result. The
+remaining defects are bounded below. They are sufficient to reject the exact
+repair commit without reopening unrelated accepted canon.
+
+| Rejection group | Re-review result | Bounded result |
+| --- | --- | --- |
+| C14 | FOCUSED REJECT | Both rescission branches remain incomplete or misstated; one preserved evidence row still cites the false Bird-definition locators. |
+| C15 | FOCUSED REJECT | The NBA relay owner names the wrong notice, and the second-year owner still collapses the three ordinary annual-change bases. |
+| C16 | FOCUSED REJECT | The 140%-of-EAPS detail row omits an input, and the two special bonus owners change ten current-Team Seasons into ten YOS. |
+| C17 | ACCEPTED IN RE-REVIEW | The moratorium signing deadline and recurring equal-share allocation are now stated and sourced. |
+| C18 | ACCEPTED IN RE-REVIEW | The repaired Extension-bonus allocation, installments, and deemed-amendment results now match Article VII §3(b). |
+| C19 | FOCUSED REJECT | The Ten-Day termination owner retains the rejected accrued-through-termination formula. |
+| C20 | FOCUSED REJECT | The protection branch uses the wrong triggering event, and two excess-protection restrictions use the wrong time period. |
+| C21 | FOCUSED REJECT | Exhibit 10 interruption, acquisition, notice, payment, and Designating Team results remain false or incomplete; the Summer payment owner is also incomplete. |
+| C22 | FOCUSED REJECT | The protection exception is narrowed to a performance standard, which the signed rule does not require. |
+| C23 | FOCUSED REJECT | The life-insurance result still omits its executable prerequisites and lacks the locator that supports Salary exclusion. |
+| C24 | FOCUSED REJECT | The repair retains an unsupported earlier-deadline prohibition and changes “last game” into “last Regular Season game.” |
+| C25 | FOCUSED REJECT | The grievance owner invents an NBA relay, the delay owner adds a false year-crossing predicate, and the rescission owner uses the wrong Room measure. |
+
+### Residual finding 1 — C14 rescission is still not executable
+
+Affected owners and evidence: `CBA2-C14.27`, `CBA2-C14.28`,
+`CBA2-C14.29`, `EV2-0287`, `EV2-0532`–`EV2-0534`, and `XW2-0280`.
+
+Controlling source: Article I §1(t), (rr), and (yy), printed pages 3 and 6–7;
+Article VII §4(g)(1), printed pages 221–222.
+
+Article VII §4(g)(1)(i) applies when Team Salary was at or below the Salary
+Cap at the time of renunciation. `CBA2-C14.27` states only the
+post-rescission comparison and its detail row has no renunciation-time Team
+Salary input. Section 4(g)(1)(ii) applies only when Team Salary was above the
+Salary Cap at renunciation and permits no more post-rescission excess than
+the pre-renunciation excess. `CBA2-C14.28` incorrectly includes a Team
+exactly at the Cap in that branch and replaces the signed comparison with
+“the amount permitted by the signed above-cap test.” Its detail row likewise
+does not own both Team Salary measurements.
+
+The staged owner therefore cannot apply the two mutually exclusive tests.
+Separately, preserved `EV2-0287` still cites Article I §1(r), (aaa), and
+(ggg), the same false definition locators rejected above, rather than §1(t),
+(rr), and (yy).
+
+### Residual finding 2 — C15 retains a notice mismatch and a collapsed formula
+
+Affected owners and evidence: `CBA2-C15.4`, `CBA2-C15.12`,
+`CBA2-C15.13`, `EV2-0307`, `EV2-0315`, `EV2-0535`, and `XW2-0289`.
+
+Controlling source: Article XI §5(d)(i) and (iii), printed pages 323–324;
+Article VII §5(a)(1), printed pages 226–227.
+
+The NBA copies the ROFR Team's written averaging-election statement to the
+Players Association. `CBA2-C15.13` instead conditions the relay on receipt of
+a “qualifying rights-retention notice,” so the main owner does not match its
+own evidence or the signed triggering document.
+
+`CBA2-C15.4` also continues to test second-year “Salary plus Unlikely
+Bonuses” against five percent of first-year Regular Salary. Article XI
+incorporates Article VII §5(a)(1), which separately tests Salary excluding
+Incentive Compensation, Regular Salary, and each bonus against its own
+first-year base. `EV2-0307` says only that the ordinary five-percent rule
+applies and does not support the collapsed main-row formula.
+
+### Residual finding 3 — C16 special-extension predicates and inputs remain wrong
+
+Affected owners and evidence: `CBA2-C16.25`, `CBA2-C16.37`,
+`CBA2-C16.46`, `CBA2-C16.47`, `EV2-0340`, `EV2-0352`, and
+`EV2-0544`–`EV2-0545`.
+
+Controlling source: Article VII §7(a)(3)(i) and §7(a)(4), printed pages
+251–254.
+
+`CBA2-C16.25` now states the required subtraction of first-year extended
+Incentive Compensation from the 140%-of-EAPS branch, but its detail inputs
+remain “Final Regular Salary; EAPS; maximum.” The omitted Incentive
+Compensation input makes the repaired formula non-executable.
+
+The special 107.5% route requires at least ten Seasons played for the current
+Team. `CBA2-C16.44` and `CBA2-C16.45` state that predicate correctly, but
+`CBA2-C16.46` and `CBA2-C16.47` rename it a “special ten-YOS route.” Their
+detail rows have neither the current-Team-Seasons input nor a dependency on
+`CBA2-C16.44`; a player with ten YOS but fewer than ten Seasons for the
+current Team would therefore satisfy the two bonus owners incorrectly.
+
+### C17 and C18 repair acceptance
+
+The C17 repair now states both signed moratorium predicates and the recurring
+July 1 aggregation and equal-share attribution over the current and next two
+or fewer Salary Cap Years. `CBA2-C17.3`, `CBA2-C17.8`, `CBA2-C17.9`,
+`EV2-0355`, `EV2-0360`, `EV2-0361`, `XW2-0305`, `XW2-0307`, and
+`XW2-0309` pass this bounded re-review against Article VII §3(a)(2)(iii) and
+(vii), printed pages 199–200.
+
+The C18 repair now separates at-or-above-Cap Extension-bonus payment timing
+from allocation, states the complete early-paid below-Cap allocation and
+two allocation-derived installments, supplies both retained trade-bonus
+payment deadlines, and owns the deemed-amendment payment reduction.
+`CBA2-C18.5`, `CBA2-C18.8`, `CBA2-C18.10`, `CBA2-C18.12`,
+`CBA2-C18.14`–`CBA2-C18.16`, their evidence, the C18 aggregate, and
+`XW2-0311` pass this bounded re-review against Article VII §3(b), printed
+pages 200–205.
+
+### Residual finding 4 — C19 still changes the Ten-Day termination payment
+
+Affected owners and evidence: `CBA2-C19.10`, `CBA2-C19.18`,
+`EV2-0384`, `EV2-0392`, and `XW2-0312`.
+
+Controlling source: Article II §9(f), printed page 49.
+
+The signed result is that the Team pays only the sums set forth in Exhibit 1A.
+`CBA2-C19.10` still adds that those sums must be “expressly accrued under
+Exhibit 1A through the effective termination.” That is the same unsupported
+accrual formula rejected above. `EV2-0384` states the narrower and correct
+source result, leaving evidence and owner in conflict.
+
+### Residual finding 5 — C20 uses the wrong protection event and duration
+
+Affected owners and evidence: `CBA2-C20.25`, `CBA2-C20.26`,
+`CBA2-C20.28`, `CBA2-C20.34`, `EV2-0396`, `EV2-0418`,
+`EV2-0419`, `EV2-0421`, and `EV2-0554`.
+
+Controlling source: Article II §11(c)(i)–(iii), printed pages 53–54; Article
+VII §4(j), printed page 225.
+
+Article II §11(c)(i) uses the date the Two-Way Contract is signed. The 50%
+limit applies only if that Contract is signed after the first Regular Season
+day. `CBA2-C20.25`, its detail input, and `EV2-0418` instead use the date
+protection was agreed, which is a different event.
+
+When assignment or termination invokes §11(c)(iii), the affiliate-play and
+same-Team Two-Way bars apply “during such Salary Cap Year.”
+`CBA2-C20.26` and `CBA2-C20.34` replace that exact period with an undefined
+“protected period” or “excess-protection period,” which can extend the bars
+beyond the signed year. `EV2-0396` also locates the Two-Way Salary exclusion
+on printed page 226 even though Article VII §4(j) is on printed page 225.
+
+### Residual finding 6 — C21 retains multiple false Exhibit 10 results
+
+Affected owners and evidence: `CBA2-C21.10`, `CBA2-C21.12`,
+`CBA2-C21.13`, `CBA2-C21.18`, `CBA2-C21.20`, `CBA2-C21.24`,
+`CBA2-C21.34`, `CBA2-C21.37`–`CBA2-C21.39`, `EV2-0431`,
+`EV2-0433`, `EV2-0434`, `EV2-0439`, `EV2-0441`, `EV2-0445`,
+and `EV2-0556`, `EV2-0559`–`EV2-0561`.
+
+Controlling source: Article II §3(s), printed pages 21–23; Article VII §4(i),
+printed page 225; Uniform Player Contract Exhibit 10, Exhibit A printed
+pages A-44–A-45.
+
+The Exhibit 10 service interruption is permitted when the NBA Team signs the
+player to one or more Contracts and the player timely returns to that Team's
+affiliate to complete the outstanding service. `CBA2-C21.12` invents a
+48-hour return deadline, while `CBA2-C21.13` fails to distinguish a Contract
+with that NBA Team from a contract with another professional team.
+
+The deemed bonus applies when a Team with an affiliate acquires by assignment
+an Exhibit 10 Contract containing a Conversion Protection Amount but no
+Exhibit 10 Bonus. `CBA2-C21.18` changes that predicate to acquisition of a
+“converted” Contract.
+
+The returning-rights notice is written notice to the player, with a copy to
+the Players Association, stating that the Returning Rights Team's affiliate
+holds the designation right. `CBA2-C21.20` instead requires notice to the
+Returning Rights Team. The linked fine owner cannot cure the wrong recipient.
+
+Under the alternative payment paragraph, the Designating Team pays when the
+signed designation, prior-Contract, and service predicates hold.
+`CBA2-C21.37` instead says a Team without an affiliate makes the alternative
+payment. No owner states Exhibit 10's separate requirement that a qualifying
+bonus be paid within thirty days after the criteria are satisfied.
+
+Finally, the Summer Contract exceptions include Paragraph 3(b)
+Compensation and a disability-insurance policy, along with per diem, lodging,
+and transportation. `CBA2-C21.39` omits the policy and replaces the signed
+categories with “expense” and “participation payments.” `EV2-0560` also
+locates the combined Exhibit 9/10 voiding result in Article II §11(h), while
+the result appears in Article II §3(s), printed page 23.
+
+### Residual finding 7 — C22 narrows the protection exception
+
+Affected owners and evidence: `CBA2-C22.1`, `CBA2-C22.2`,
+`CBA2-C22.11`, `EV2-0446`, `EV2-0447`, `EV2-0456`, and `XW2-0337`.
+
+Controlling source: Article II §4(i), printed pages 28–29.
+
+The general comparison uses the percentage of unearned protected Base
+Compensation in any prior Season. `CBA2-C22.1` omits “unearned” from both
+the owner and its detail inputs. The exception permits a higher future
+percentage when it is conditional and the condition cannot be satisfied
+until the prior Season is complete. `CBA2-C22.2` changes “condition” to
+“performance standard,” even though the signed example is a future roster
+date rather than a performance standard. The repair therefore remains both
+broader in its comparison base and narrower in its exception than the signed
+rule.
+
+### Residual finding 8 — C23 still does not own life-insurance prerequisites
+
+Affected owners and evidence: `CBA2-C23.15`, `CBA2-C23.17`,
+`EV2-0471`, `EV2-0473`, and `XW2-0342`, `XW2-0343`,
+`XW2-0345`, `XW2-0346`.
+
+Controlling source: Article II §4(j)(ii), printed pages 29–30; Article VII
+§3(g), printed page 210.
+
+Changing “disability” to “life” corrects the insurance type, but
+`CBA2-C23.15` still hides every eligibility, coverage, and premium cap behind
+“the signed policy and payment conditions.” Its only inputs are policy,
+premium, and reimbursement. It cannot apply the Minimum-contract exclusions,
+the unearned protected and unprotected Base Compensation measures, the
+$85 million coverage calculation, the Option-Year exclusion, or the
+ten-year preferred-rate premium cap stated in Article II §4(j)(ii).
+
+`EV2-0471` cites only Article II §4(j)(ii), which permits and limits the
+reimbursement. The Salary-exclusion result claimed by the owner is separately
+established by Article VII §3(g), but that locator is absent from the direct
+evidence component. The special-compensation aggregate therefore still lacks
+an executable and directly supported life-insurance result.
+
+### Residual finding 9 — C24 keeps unsupported and over-narrow deadlines
+
+Affected owners and evidence: `CBA2-C24.8`, `CBA2-C24.16`,
+`CBA2-C24.20`, `EV2-0481`, `EV2-0489`, `EV2-0572`,
+`XW2-0349`, and `XW2-0353`.
+
+Controlling source: Article XII §2(a) and §4, printed pages 337–338.
+
+Article XII §4 supplies the June 29 at 5 p.m. Eastern deadline; it does not
+prohibit a Contract from stating an earlier exercise deadline.
+`CBA2-C24.8` retains that unsupported prohibition even though
+`EV2-0481` expressly says no earlier Contract deadline is inferred.
+
+For Player Option alternative B, the Option may not be exercisable before the
+day after the Team's last game of the Season. `CBA2-C24.20` changes that to
+the last Regular Season game, which can move the exercise floor forward while
+the Team is still playing postseason games. Its evidence states the correct
+and broader “last game” boundary.
+
+### Residual finding 10 — C25 still changes grievance and rescission duties
+
+Affected owners and evidence: `CBA2-C25.10`–`CBA2-C25.14`,
+`EV2-0500`, `EV2-0501`, `EV2-0527`, `EV2-0528`, `EV2-0575`,
+and `XW2-0354`, `XW2-0356`.
+
+Controlling source: Article VII §4(a)(1)(iii)(D), printed page 215; Article
+XIII §5(b)(ii), printed pages 345–346.
+
+The settlement duty is for the Team to notify the NBA immediately by email
+and provide the terms. `CBA2-C25.10` adds that “the NBA supplies the required
+Players Association notice,” a relay not stated by the controlling passage
+or `EV2-0500`.
+
+Any Team delay or attempted delay undertaken to create or increase Room or to
+reduce or defer tax constitutes an Article XIII violation.
+`CBA2-C25.11` adds a requirement that an agreement purposefully delay the
+resolution beyond the related Salary Cap Year, excluding prohibited conduct
+that succeeds before that boundary.
+
+Finally, Article XIII §5(b)(ii) rescinds the challenged transaction when the
+amount required to be included in Team Salary exceeds the Team's Room.
+`CBA2-C25.14` instead compares the amount with “Room created by the
+transaction,” a measure the source does not define.
+
+### Mechanical population and preservation results
+
+The focused repair's claimed bookkeeping is independently confirmed:
+
+- 12 R5 GROUPs and 296 R5 active LEAF-main owners, each with one matching
+  LEAF-detail row;
+- 296 joined evidence components, contiguous from `EV2-0280` through
+  `EV2-0575`;
+- 78 R5 historical edges, contiguous from `XW2-0279` through `XW2-0356`,
+  plus accepted `XW2-0154`, for all 79 published C14–C25 dispositions;
+- seven R5 decision records, `DR2-0117` through `DR2-0123`;
+- exactly 46 new active owners relative to the rejected maker checkpoint; and
+- exactly 185 unaffected pre-repair R5 LEAF-main owner rows byte-for-byte
+  identical between `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` and
+  `f92f4de887a72af9e0d8803e79917983eec4475b`.
+
+These passing mechanical and preservation results do not cure the source
+findings above.
+
+### Source control and scope preservation
+
+The official signed 2023 NBA–NBPA CBA was independently reacquired from the
+canonical `SRC2-001` URL. It is 2,850,534 bytes and hashes to the controlling
+SHA-256
+`bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`.
+All twelve original rejection groups were reopened against their controlling
+printed provisions. No outside article, media, summary, search snippet, or
+secondary rules source was used to decide the verdict.
+
+Only this commit-specific section was added to the existing independent-review
+file. Canon, plan, maker receipt, validator, application source, tests,
+configuration, data, graph output, Linear, `main`, and every R6 surface remain
+unchanged. No application inspection, build, or scenario execution was
+required or performed.
+
+### Validation actually run for this re-review
+
+- Exact local, tracking, and fetched-remote branch comparison before writing —
+  PASS at `f92f4de887a72af9e0d8803e79917983eec4475b`.
+- Signed-CBA byte count and SHA-256 — PASS at 2,850,534 bytes and
+  `bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`.
+- Independent C14–C25 owner, detail, evidence, decision, crosswalk, addition,
+  and preservation parse — PASS at the populations stated above.
+- Original-review prefix comparison against
+  `a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f` — PASS byte-for-byte.
+- Canon blob comparison against
+  `f92f4de887a72af9e0d8803e79917983eec4475b` — PASS at Git blob
+  `9876c493a632b87f54384c1d62e3e70d1f593d82`.
+- `python3
+  work/architect-completion/cba_canon_v2_foundation_validator.py` — all 123
+  controls PASS; process exit 1 only because the same seven inherited
+  simplified-plan versus validator wording diagnostics leave
+  `baseline_clean=NO`.
+- Targeted `markdownlint` on this review file — PASS.
+- `npm run docs:guardrails` — PASS.
+- `npm run validate:project` — PASS.
+- `git diff --check` and final one-file scope check — PASS.
+
+Application builds, application tests, `npm run test:diff`, typecheck, schema
+commands, ESLint, and the full suite were intentionally skipped because this
+is a one-file documentation-only source review and the task forbids
+application/scenario work. The repository-wide `npm run lint:md` script does
+not include `work/`; targeted Markdown lint covered the authorized file
+instead. `graphify update .` was skipped because graph output is outside the
+one-file authorization.
+
+### Required next checkpoint
+
+The exact repair commit is not accepted. Any further work remains a bounded R5
+maker repair of the owners, details, evidence, aggregates, and mappings named
+in this section, followed by another independent commit-specific re-review.
+This focused rejection does not authorize or start R6.
