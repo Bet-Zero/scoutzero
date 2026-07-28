@@ -9,7 +9,7 @@ this maker receipt.
 
 Independent review pending; R6 is not accepted.
 
-R5 prerequisite: exact repair checkpoint `5b29995b4442eb834eb2ff5dd58d9977158f4479` was independently
+R5 prerequisite: exact repair checkpoint `5b29995b13664a15c1376a05074808c7eb552c4c` was independently
 **ACCEPTED** at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 therefore began from the
 accepted checker HEAD without reopening accepted A/C content.
 

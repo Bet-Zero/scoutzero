@@ -2062,7 +2062,7 @@ components with staged aggregate routes. Room MLE pre-use eligibility and
 its post-use exception bar are distinct current lifecycle owners. The exact
 historical post-waiver reimbursement-extinction fragment is preserved as a
 searched `unsupported-residual`; separately supported waived-contract Team
-Salary remains active. R5 exact repair checkpoint `5b29995b4442eb834eb2ff5dd58d9977158f4479` was
+Salary remains active. R5 exact repair checkpoint `5b29995b13664a15c1376a05074808c7eb552c4c` was
 independently **ACCEPTED** at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 maker
 construction is complete and awaits its separate commit-specific independent
 review. Phase 1 continues; R7, Phase 2, and application work remain unstarted.
@@ -2235,7 +2235,7 @@ service-history, and team-history inputs, and changes no ID or population
 count.
 Receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_CERTIFICATION.md`.
-The final closure repair at `5b29995b4442eb834eb2ff5dd58d9977158f4479` was independently **ACCEPTED**
+The final closure repair at `5b29995b13664a15c1376a05074808c7eb552c4c` was independently **ACCEPTED**
 at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 began from that accepted checkpoint;
 its maker construction is complete, its independent review remains pending,
 and R7 and all later work remain unstarted.
