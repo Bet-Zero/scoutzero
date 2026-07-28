@@ -1167,3 +1167,136 @@ Only this independent-review file is amended. Canon, plan, maker receipt,
 validator, application source, tests, configuration, data, Graphify output,
 Linear, Phase 2, `main`, and every R6 surface remain unchanged. R6 remains
 unstarted.
+
+## Final single-finding re-review of `5b29995b13664a15c1376a05074808c7eb552c4c`
+
+Date: 2026-07-27
+
+Checker: independent role `/root`
+
+Prior checker commit:
+`522170cdc3fc6c2bbf185070bd7212fefdb1b86c`
+
+Stable `main`:
+`69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`
+
+Before this checker wrote, the complete independent-review file was
+byte-identical at SHA-256
+`b17da93129f6877dcc3b1ff47b1ae2a11adfdcb2210583c44b76adbfb7bb4395`.
+After two fresh remote fetches, the local and remote topic branch remained
+synchronized at the exact closure-repair commit, local and remote `main`
+remained synchronized at the stable commit above, the worktree was clean, and
+no R6 file or work existed.
+
+This section is the commit-specific final re-review of only
+`CBA-C14.2:F1` → `XW2-0280` → `CBA2-C14.29`. It preserves every earlier
+review section and does not reopen C15–C25, previously accepted C17/C18, or
+any other accepted R5 result.
+
+### Verdict: ACCEPT
+
+Commit `5b29995b13664a15c1376a05074808c7eb552c4c` is independently
+accepted. It fully closes the sole remaining C14 historical-routing finding
+without changing the mapping, direct owner, direct evidence, any ID, or any
+population count.
+
+The signed CBA makes the two time horizons distinct. Article VII §4(g)(1)
+eliminates the player's current Qualifying, Early Qualifying, or
+Non-Qualifying Veteran Free Agent status, restricts the immediate
+post-renunciation signing routes, and states the bounded rescission route.
+Article I §1(t), (rr), and (yy) classifies a later free agency from the
+applicable preceding service and permitted team-change history. The repaired
+`INFERRED` aggregate now truthfully carries both the immediate consequences
+and the already-owned later Bird-history result. It does not imply that the
+player retains the renounced current status or signing authority.
+
+There is no remaining R5 finding. R5 is complete. R6 is unblocked but remains
+unstarted.
+
+### Owner, dependency, mapping, and evidence results
+
+- `CBA2-C14.29` now states status elimination, restricted signing routes,
+  rescission timing, the mutually exclusive Team Salary branches, and that
+  renunciation does not rewrite the service and team-change history used for
+  a later Bird classification: **PASS**.
+- The `CBA2-C14.29` detail row now depends on `CBA2-C14.8` and exposes
+  later signing, service history, team-change history, and later Bird
+  classification in addition to the immediate-renunciation inputs:
+  **PASS**.
+- `EV2-0534` now includes `EV2-0287`, cites Article I §1(t), (rr), and
+  (yy), printed pages 3 and 6–7, together with Article VII §4(g)(1), printed
+  pages 221–222, and accurately describes the complete staged result:
+  **PASS**.
+- The evidence chain
+  `EV2-0534` → `EV2-0287` →
+  `EV2-0281` / `EV2-0282` / `EV2-0283` is complete and acyclic. The lower
+  components separately own the Qualifying, Early Qualifying, and
+  Non-Qualifying classification definitions: **PASS**.
+- `XW2-0280` remains byte-identical and continues to route the complete
+  `CBA-C14.2:F1` historical statement through `CBA2-C14.29`; the repaired
+  aggregate and its dependencies now make that whole-fragment claim
+  truthful: **PASS**.
+- `CBA2-C14.8`, its detail row, `EV2-0287`, and
+  `EV2-0281`–`EV2-0283` remain byte-identical to the prior checker commit:
+  **PASS**.
+
+No new overstatement, missing condition, source mismatch, or dependency error
+was introduced.
+
+### Preservation and population results
+
+The complete canon comparison from
+`522170cdc3fc6c2bbf185070bd7212fefdb1b86c` to
+`5b29995b13664a15c1376a05074808c7eb552c4c` changes exactly three
+record rows:
+
+- `CBA2-C14.29` main row;
+- `CBA2-C14.29` detail row; and
+- `EV2-0534`.
+
+Every other canon line is byte-identical across the two commits, including
+`XW2-0280`, `CBA2-C14.8`, `EV2-0287`, and the direct definition evidence.
+The complete comparison reports 7,745 unchanged canon lines and no addition,
+deletion, renumbering, or mapping change.
+
+The final R5 population and continuity checks pass:
+
+- 12 GROUPs, `CBA2-C14` through `CBA2-C25`;
+- 297 active LEAF-main owners and 297 matching LEAF-detail rows, with
+  continuous owner IDs within every family;
+- 297 evidence components, continuous from `EV2-0280` through `EV2-0576`;
+- 79 historical dispositions: continuous `XW2-0279` through `XW2-0356`
+  plus accepted `XW2-0154`; and
+- seven decisions, continuous from `DR2-0117` through `DR2-0123`.
+
+### Validation actually run for this final re-review
+
+- Two fresh fetches plus local/tracking/remote topic and `main` comparisons —
+  **PASS** at the exact commits above with zero divergence.
+- Signed-CBA identity and source-page review — **PASS**: 676 PDF pages,
+  SHA-256
+  `bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`;
+  Article I §1(t), (rr), and (yy), printed pages 3 and 6–7, and Article VII
+  §4(g)(1), printed pages 221–222, were independently read.
+- Complete repair diff, governing R5 plan, R5 maker receipt, and complete
+  prior independent-review file — **PASS**.
+- Targeted owner, detail, mapping, and evidence-chain proofs — **PASS**.
+- Full other-canon preservation comparison — **PASS**.
+- R5 population and ID-continuity checks — **PASS** at the counts above.
+- Frozen 123-control integration check — all 14 accepting controls and 109
+  rejecting regressions behaved as expected, and the negative self-test
+  failed as intended. Process exit `1` remains attributable only to the same
+  seven inherited plan-wording diagnostics; no repair-local diagnostic
+  appeared.
+- Targeted Markdown lint on this review file — **PASS**.
+- `npm run docs:guardrails` — **PASS**.
+- `npm run validate:project` — **PASS**.
+- `git diff --check` and final one-file scope confirmation — **PASS**.
+
+Application tests, builds, typecheck, schema commands, ESLint, the full suite,
+the optional extended validator, and Graphify regeneration were intentionally
+skipped because this final checker Goal expressly prohibits them. The
+optional validator's stale anchor was not repaired.
+
+This checker changed only this independent-review file. Canon content is
+unchanged by the checker. R6 is unblocked but remains unstarted.
