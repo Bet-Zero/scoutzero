@@ -973,3 +973,197 @@ The exact repair commit is not accepted. Any further work remains a bounded R5
 maker repair of the owners, details, evidence, aggregates, and mappings named
 in this section, followed by another independent commit-specific re-review.
 This focused rejection does not authorize or start R6.
+
+## Second-maker-repair re-review of `ed87937010b607a3572fb301e8d238d8ef632b32`
+
+Date: 2026-07-27
+
+Checker: independent role `/root`
+
+Stable `main`:
+`69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`
+
+This section is the commit-specific independent re-review of only the bounded
+second maker repair, relative to focused-repair re-rejection
+`789097549ec67921a0f762d98048ca9b186366de`. The two earlier review sections
+above remain unchanged. Before this amendment, the complete review file was
+byte-identical to the re-rejection checkpoint at SHA-256
+`0435942f832eeedf0bb40a39288c36e82066aa86eb94b4e51c7f2b9c6b84e67a`.
+
+### Verdict: FOCUSED REJECT
+
+The exact second maker-repair commit
+`ed87937010b607a3572fb301e8d238d8ef632b32` is not independently accepted.
+The repaired direct owners, detail inputs, and evidence close the ten residual
+source-law defects, but one affected C14 historical mapping still does not
+route its complete published meaning through the named current aggregate.
+Nine residual groups pass; the bounded C14 dependency/mapping defect below is
+material under the frozen R5 acceptance standard.
+
+R5 remains incomplete. R6 remains blocked and unstarted. Because this is a
+second material repair rejection, the R5 process must pause for reassessment;
+this review neither recommends nor authorizes a third similar repair cycle.
+
+### Residual-group results
+
+- **C14 — FOCUSED REJECT.** The rescission branches, Cap predicates, Team
+  Salary inputs, evidence locators, and direct source results are corrected.
+  `XW2-0280` still fails complete historical routing.
+- **C15 — ACCEPTED IN THIS RE-REVIEW.** The NBA relay uses the ROFR Team's
+  written averaging-election statement, and the owner, detail, evidence, and
+  aggregate state all three separate five-percent annual-change bases.
+- **C16 — ACCEPTED IN THIS RE-REVIEW.** The 140%-of-EAPS branch carries
+  first-year extended Incentive Compensation, and the special bonus owners
+  depend on the current-Team-Seasons predicate.
+- **C19 — ACCEPTED IN THIS RE-REVIEW.** The Ten-Day termination result is
+  limited to sums set forth in Exhibit 1A, with matching inputs and evidence.
+- **C20 — ACCEPTED IN THIS RE-REVIEW.** Contract signing is the protection
+  trigger, and both excess-protection restrictions use the exact applicable
+  Salary Cap Year.
+- **C21 — ACCEPTED IN THIS RE-REVIEW.** The interruption, other-team,
+  assignment, notice, Designating Team, combined Exhibit 9/10, and Summer
+  Contract results match the signed provisions. New `CBA2-C21.43` /
+  `EV2-0576` atomically owns the thirty-day Exhibit 10 payment deadline and is
+  joined to `CBA2-C21.24` through both owner and evidence dependencies.
+- **C22 — ACCEPTED IN THIS RE-REVIEW.** The unearned-compensation comparison
+  and the condition-based exception are executable and correctly sourced.
+- **C23 — ACCEPTED IN THIS RE-REVIEW.** The life-insurance owner and detail
+  expose the Minimum-contract exclusions, election, coverage formula,
+  Option-Year exclusion, $85 million branch, preferred-rate cap, and Salary
+  exclusion, with both controlling locators.
+- **C24 — ACCEPTED IN THIS RE-REVIEW.** The owner states only the signed June
+  29 deadline, and alternative B uses the Team's last game of the Season.
+- **C25 — ACCEPTED IN THIS RE-REVIEW.** The Team's NBA notice, prohibited
+  delay-or-attempt test, and required-amount-versus-Team-Room rescission test
+  now match the source and their executable detail inputs.
+
+### Remaining finding — C14 whole-fragment routing is incomplete
+
+Affected IDs:
+
+- historical fragment `CBA-C14.2:F1`;
+- mapping `XW2-0280`;
+- aggregate owner and detail `CBA2-C14.29`;
+- aggregate evidence `EV2-0534`; and
+- omitted current component `CBA2-C14.8` / `EV2-0287`.
+
+Controlling source: Article I §1(t), (rr), and (yy), printed pages 3 and 6–7;
+Article VII §4(g)(1), printed pages 221–222.
+
+What remains wrong: published `CBA-C14.2` contains both the immediate
+renunciation consequences and the proposition that later re-signing may
+continue the underlying Bird service/team-history clock. Its sole fragment,
+`CBA-C14.2:F1`, covers the complete normalized statement. `XW2-0280` says
+that whole fragment is routed through `CBA2-C14.29` and its atomic
+dependencies. The aggregate detail, however, depends only on
+`CBA2-C14.5` and `CBA2-C14.25`–`.28`; `EV2-0534` likewise depends only on
+`EV2-0284` and `EV2-0530`–`EV2-0533`. Those records correctly own status
+elimination, restricted signing routes, rescission timing, and the two Team
+Salary tests, but none owns the later Bird-history result. That result exists
+only in `CBA2-C14.8` / `EV2-0287`, whose corrected definition locators are
+not connected to the target aggregate or mapping.
+
+Required correction: make the complete historical statement resolve
+truthfully. Under the frozen model, that requires either connecting
+`CBA2-C14.8` / `EV2-0287` to the aggregate dependency and evidence chain
+with aggregate text that exposes the Bird-history result, or dispositioning
+that distinct historical meaning through exact fragment/mapping treatment.
+The mapping may not continue to claim whole-fragment coverage while omitting
+the only current owner of that meaning.
+
+Demonstrated dependency impact: the defect is confined to the C14 historical
+route through `CBA2-C14.29` / `EV2-0534` and `XW2-0280`. The corrected
+direct rescission owners `CBA2-C14.27`–`.28`, their detail rows, and
+`EV2-0532`–`EV2-0533` pass. No dependency impact was demonstrated for C15,
+C16, or C19–C25.
+
+Exact scope requiring any later re-review: `CBA-C14.2:F1`, `XW2-0280`,
+`CBA2-C14.8`, `CBA2-C14.29`, their detail rows, `EV2-0287`,
+`EV2-0534`, and the unchanged direct dependencies
+`CBA2-C14.5`, `CBA2-C14.25`–`.28` / `EV2-0284`,
+`EV2-0530`–`EV2-0533` only as needed to confirm the aggregate remains
+truthful. The nine passing residual groups and accepted C17/C18 population do
+not require source re-review absent a new demonstrated dependency impact.
+
+### Source provisions and affected scope reviewed
+
+The checker independently reacquired `SRC2-001`, confirmed 2,850,534 bytes,
+676 PDF pages, and SHA-256
+`bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`,
+and directly read:
+
+- Article I §1(t), (rr), and (yy), printed pages 3 and 6–7, and Article VII
+  §4(g)(1), printed pages 221–222, for C14;
+- Article XI §5(d)(i), (iii), printed pages 323–324, and Article VII
+  §5(a)(1), printed pages 226–227, for C15;
+- Article VII §7(a)(3)(i), (4), printed pages 251–254, for C16;
+- Article II §9(f), printed page 49, for C19;
+- Article II §11(c)(i)–(iii), printed pages 53–54, and Article VII §4(j),
+  printed page 225, for C20;
+- Article II §3(s), printed pages 21–23, Article VII §4(i), printed page 225,
+  and Uniform Player Contract Exhibit 10, Exhibit A pages A-44–A-45, for C21;
+- Article II §4(i), printed pages 28–29, for C22;
+- Article II §4(j)(ii), printed pages 29–30, and Article VII §3(g), printed
+  page 210, for C23;
+- Article XII §2(a), §4, printed pages 337–338, for C24; and
+- Article VII §4(a)(1)(iii)(D), printed page 215, and Article XIII
+  §5(b)(ii), printed pages 345–346, for C25.
+
+Every changed or newly added owner, detail row, evidence component,
+dependency, affected aggregate, and affected mapping named by the ten
+residual findings was compared to those provisions. The maker's closure table
+and validator output were used only as orientation and mechanical support.
+
+### Preservation and population reconciliation
+
+- C17 and C18 owner, detail, evidence, and mapping rows are byte-identical to
+  the accepted re-review population: PASS across 82 scoped rows.
+- All 257 unaffected R5 owner/detail pairs are byte-identical to
+  `789097549ec67921a0f762d98048ca9b186366de`: PASS.
+- The only second-repair additions are `CBA2-C21.43` and `EV2-0576`: PASS.
+  No `XW2` or `DR2` ID was added.
+- The three `process-only` dispositions remain unchanged and truthful:
+  `XW2-0310` for the C17.7 input checklist, `XW2-0317` for the C19.6
+  missing-owner note, and `XW2-0325` for the C20.9 missing-owner note. The
+  January 5 and March 4 rules remain directly owned by `CBA2-C19.1` /
+  `EV2-0375` and `CBA2-C20.17` / `EV2-0410`.
+- Final R5 population: 12 GROUPs; 297 active LEAF-main owners and 297 matching
+  LEAF-detail rows; 297 evidence components, contiguous from `EV2-0280`
+  through `EV2-0576`; 78 R5 historical edges, contiguous from `XW2-0279`
+  through `XW2-0356`, plus accepted `XW2-0154`, covering all 79 published
+  rows; and seven decisions, `DR2-0117`–`DR2-0123`.
+
+These mechanical counts pass, but they do not cure the C14 semantic
+dependency/mapping defect.
+
+### Validation actually run for this re-review
+
+- Fresh remote fetch and local/tracking/remote checks — PASS: topic branch
+  synchronized at exact repair commit `ed87937010b607a3572fb301e8d238d8ef632b32`;
+  local and remote `main` remained at
+  `69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`; worktree clean before writing;
+  no later R5 review or R6 work present.
+- Complete `7890975…` to `ed87937…` maker diff and complete governing plan,
+  maker receipt, and prior review read — PASS.
+- Signed-CBA size, page count, and SHA-256 — PASS at the values above.
+- Targeted owner/detail/evidence/dependency/mapping, population, addition, and
+  preservation checks — mechanically PASS at the populations above; semantic
+  C14 mapping check produced the focused finding.
+- Frozen full-document integration check — all 14 accepting and 109 rejecting
+  controls behaved as expected, and the negative self-test failed as intended.
+  Process exit `1` was caused only by the same seven inherited plan-wording
+  diagnostics; no repair-local mechanical diagnostic appeared.
+- Targeted Markdown lint on this review file — PASS.
+- `npm run docs:guardrails` — PASS.
+- `npm run validate:project` — PASS.
+- `git diff --check` and final one-file scope confirmation — PASS.
+
+Application builds, application tests, `npm run test:diff`, typecheck, schema
+commands, ESLint, the full suite, and the optional extended validator were
+intentionally skipped because the goal prohibits them. Graphify output was
+not updated because it is outside the one-file authorization.
+
+Only this independent-review file is amended. Canon, plan, maker receipt,
+validator, application source, tests, configuration, data, Graphify output,
+Linear, Phase 2, `main`, and every R6 surface remain unchanged. R6 remains
+unstarted.
