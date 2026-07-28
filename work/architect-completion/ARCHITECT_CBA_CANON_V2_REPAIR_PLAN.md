@@ -191,8 +191,12 @@ checkpoint `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` was independently
 `a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f`. Its first focused repair
 at `f92f4de887a72af9e0d8803e79917983eec4475b` was independently
 re-rejected at `789097549ec67921a0f762d98048ca9b186366de`. The bounded second
-maker repair of the ten residual C14–C16 and C19–C25 findings is complete and
-awaits independent re-review. R6 remains blocked and unstarted. Phase 1
+maker repair of the ten residual C14–C16 and C19–C25 findings was independently
+focused-rejected at checker commit
+`522170cdc3fc6c2bbf185070bd7212fefdb1b86c` on the sole remaining C14
+historical-routing defect. One C14 mapping/dependency closure repair is
+complete and awaits a final single-finding independent re-review. R6 remains
+blocked and unstarted. Phase 1
 continues; Phase 2, W1.1, all
 application changes, and Linear changes remain unauthorized
 pending the revised R9 independent acceptance plus explicit owner
@@ -2198,7 +2202,9 @@ completion.
   comparison, application work, Phase 2, Linear, or `main`.
 
 **R5 execution status — original maker rejected; first focused repair
-re-rejected; second maker repair complete; independent re-review pending.**
+re-rejected; second maker repair focused-rejected; single C14
+mapping/dependency closure repair complete; final single-finding independent
+re-review pending.**
 Exact maker checkpoint
 `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` was independently rejected
 at `a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f` across twelve C14–C25
@@ -2206,7 +2212,8 @@ rejection groups. The first focused repair at
 `f92f4de887a72af9e0d8803e79917983eec4475b` was independently
 re-rejected at `789097549ec67921a0f762d98048ca9b186366de` with ten residual
 findings; C17 and C18 were accepted in that re-review. The bounded second
-maker repair retains 12 GROUPs and now contains 297 active LEAFs, 297
+maker repair at `ed87937010b607a3572fb301e8d238d8ef632b32` retained 12
+GROUPs and 297 active LEAFs, 297
 qualifying signed-CBA evidence components (`EV2-0280`–`EV2-0576`), 78
 historical edges
 (`XW2-0279`–`XW2-0356`), and seven decisions
@@ -2219,11 +2226,20 @@ published C14–C25 rows. The three historical drafting/input statements
 remain truthfully `process-only`; the actual January 5 and March 4 rules
 retain direct owners. C17, C18, and all unaffected R5 owner rows are
 preserved. No schema, taxonomy, ID grammar, registry model, validator, proof
-system, or lineage system changed.
+system, or lineage system changed. That repair was independently
+focused-rejected at checker commit
+`522170cdc3fc6c2bbf185070bd7212fefdb1b86c` solely because
+`XW2-0280`'s whole-fragment route through `CBA2-C14.29` omitted the
+already-correct `CBA2-C14.8` / `EV2-0287` later Bird-history result. The
+single C14 mapping/dependency closure repair adds those existing records to
+the aggregate owner/detail and evidence chains, exposes the later-signing,
+service-history, and team-history inputs, and changes no ID or population
+count.
 Receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_CERTIFICATION.md`.
-R5 is not accepted until the separately authorized checker re-reviews the
-exact second maker-repair commit. R6 and all later work remain unstarted.
+R5 is not accepted until the separately authorized checker performs the final
+single-finding re-review of the exact closure-repair commit. R6 and all later
+work remain unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 

@@ -244,3 +244,19 @@ infrastructure change.
   occurred.
 
 R5 awaits independent re-review. R6 remains blocked and unstarted.
+
+## C14 historical-routing closure addendum
+
+The bounded second maker repair at
+`ed87937010b607a3572fb301e8d238d8ef632b32` was independently
+focused-rejected at checker commit
+`522170cdc3fc6c2bbf185070bd7212fefdb1b86c` solely because
+`XW2-0280`'s whole-fragment route through `CBA2-C14.29` omitted the
+already-correct later Bird-history result in `CBA2-C14.8` / `EV2-0287`.
+This closure repair adds those existing owner and evidence components to the
+`CBA2-C14.29` / `EV2-0534` dependency chains and exposes the later-signing,
+service-history, and team-history inputs. The mapping, all IDs, and all
+population counts remain unchanged.
+
+Closure-repair commit: **pending this checkpoint commit**. R5 awaits a final
+single-finding independent re-review. R6 remains blocked and unstarted.
