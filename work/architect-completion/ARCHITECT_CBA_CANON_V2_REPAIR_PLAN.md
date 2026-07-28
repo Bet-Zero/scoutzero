@@ -204,10 +204,10 @@ R6 original maker checkpoint
 correction `f480e0a8ec6a262bdc87d31bb5f231758f3c64c7` were independently
 **FOCUSED REJECTED / BLOCK-R7** at checker commit
 `5921cc57f88abebdbddd3c242d38072f41d95ba7`. The bounded seven-finding
-maker repair is now in progress on the same branch and may touch only the
-canon, this plan, and the R6 maker receipt. It awaits a new clean pushed
-checkpoint and focused independent re-review; R6 is not accepted and R7
-remains blocked. Phase 1 continues; Phase 2, W1.1, all
+maker repair is complete at exact maker checkpoint
+`8800aa168add5b0356786b15478880b893ef5e36`, changed only the canon, plan,
+and R6 maker receipt, and awaits focused independent re-review; R6 is not
+accepted and R7 remains blocked. Phase 1 continues; Phase 2, W1.1, all
 application changes, and Linear changes remain unauthorized
 pending the revised R9 independent acceptance plus explicit owner
 acceptance. R3.1 used `AMEND` lineage and did not renumber or reuse
@@ -2078,8 +2078,10 @@ Salary remains active. R5 exact repair checkpoint
 `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6’s original maker and
 provenance-only correction were focused rejected at checker commit
 `5921cc57f88abebdbddd3c242d38072f41d95ba7`; the bounded seven-finding
-maker repair now awaits a new exact-checkpoint focused independent re-review.
-Phase 1 continues; R7, Phase 2, and application work remain unstarted.
+maker repair is complete at exact maker checkpoint
+`8800aa168add5b0356786b15478880b893ef5e36` and awaits focused independent
+re-review. Phase 1 continues; R7, Phase 2, and application work remain
+unstarted.
 
 ## Post-R4 process revision — governing future-work contract
 
@@ -2107,7 +2109,9 @@ rule.
   at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`.
   R6's original maker/provenance pair was focused rejected at checker commit
   `5921cc57f88abebdbddd3c242d38072f41d95ba7`; its bounded seven-finding
-  maker repair awaits a new exact-checkpoint focused independent re-review.
+  maker repair is complete at exact maker checkpoint
+  `8800aa168add5b0356786b15478880b893ef5e36` and awaits focused independent
+  re-review.
 - Phase 2, the Architect comparison, application inspection or fixes, W1.1,
   `main`, and Linear remain unauthorized throughout this plan.
 
@@ -2255,8 +2259,9 @@ was independently **ACCEPTED** at checker commit
 `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 began from that accepted
 checkpoint. Its original maker/provenance-correction pair was focused
 rejected at checker commit `5921cc57`; its seven-finding focused maker repair
-now awaits a new pushed checkpoint and independent re-review. R7 and all
-later work remain unstarted.
+is complete at exact maker checkpoint
+`8800aa168add5b0356786b15478880b893ef5e36` and awaits independent re-review.
+R7 and all later work remain unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 
