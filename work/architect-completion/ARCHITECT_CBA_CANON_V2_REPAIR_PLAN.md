@@ -194,10 +194,20 @@ re-rejected at `789097549ec67921a0f762d98048ca9b186366de`. The bounded second
 maker repair of the ten residual C14–C16 and C19–C25 findings was independently
 focused-rejected at checker commit
 `522170cdc3fc6c2bbf185070bd7212fefdb1b86c` on the sole remaining C14
-historical-routing defect. One C14 mapping/dependency closure repair is
-complete and awaits a final single-finding independent re-review. R6 remains
-blocked and unstarted. Phase 1
-continues; Phase 2, W1.1, all
+historical-routing defect. That final R5 closure was independently
+**ACCEPTED** at exact maker checkpoint
+`5b29995b13664a15c1376a05074808c7eb552c4c` by checker commit
+`b58a5bc54a829dd426c3345f7a60734d80a943b4`.
+
+R6 original maker checkpoint
+`64eacaf532b08301560d25bd32c7076aaef3821e` and its provenance-only
+correction `f480e0a8ec6a262bdc87d31bb5f231758f3c64c7` were independently
+**FOCUSED REJECTED / BLOCK-R7** at checker commit
+`5921cc57f88abebdbddd3c242d38072f41d95ba7`. The bounded seven-finding
+maker repair is now in progress on the same branch and may touch only the
+canon, this plan, and the R6 maker receipt. It awaits a new clean pushed
+checkpoint and focused independent re-review; R6 is not accepted and R7
+remains blocked. Phase 1 continues; Phase 2, W1.1, all
 application changes, and Linear changes remain unauthorized
 pending the revised R9 independent acceptance plus explicit owner
 acceptance. R3.1 used `AMEND` lineage and did not renumber or reuse
@@ -2039,8 +2049,8 @@ is a one-way dependency scheduled backwards, not a cycle).
   R1/R1.1 and the historical C07.6 bundle, whose two enumerated adjustments
   (vi) and (vii) become separate active v2 LEAFs.
 
-**R4 execution status — independently ACCEPTED; R5 unblocked but
-unstarted.** The first maker checkpoint
+**R4 execution status — independently ACCEPTED; R5 independently ACCEPTED;
+R6 focused repair awaiting re-review.** The first maker checkpoint
 `2fc11880025c917dc765fd2f18e5e3697c5661f2` was independently rejected at
 checker commit `3880ea3f2baf022b7fa0477b34d4238721afad33`; the second maker
 checkpoint `3f4cbe4a05c660bac897b577880110bf8dd241c6` was independently
@@ -2062,10 +2072,14 @@ components with staged aggregate routes. Room MLE pre-use eligibility and
 its post-use exception bar are distinct current lifecycle owners. The exact
 historical post-waiver reimbursement-extinction fragment is preserved as a
 searched `unsupported-residual`; separately supported waived-contract Team
-Salary remains active. R5 exact repair checkpoint `5b29995b13664a15c1376a05074808c7eb552c4c` was
-independently **ACCEPTED** at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 maker
-construction is complete and awaits its separate commit-specific independent
-review. Phase 1 continues; R7, Phase 2, and application work remain unstarted.
+Salary remains active. R5 exact repair checkpoint
+`5b29995b13664a15c1376a05074808c7eb552c4c` was independently
+**ACCEPTED** at checker commit
+`b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6’s original maker and
+provenance-only correction were focused rejected at checker commit
+`5921cc57f88abebdbddd3c242d38072f41d95ba7`; the bounded seven-finding
+maker repair now awaits a new exact-checkpoint focused independent re-review.
+Phase 1 continues; R7, Phase 2, and application work remain unstarted.
 
 ## Post-R4 process revision — governing future-work contract
 
@@ -2088,11 +2102,12 @@ rule.
   checker commit `30808340f28edd334222a5cdd9de4dbdc809f32f`, with final status
   synchronized at `4200ce326215962df545d44710e9f0146be37d80`.
 - The process-revision gate was satisfied at
-  `f77d167e2f849ac1c4f33de3494252d4999ba46c`. R5 maker construction,
-  its first focused repair, and the bounded second maker repair are complete
-  at the checkpoints recorded below; another independent R5 re-review and
-  every later unit remain unstarted. R6 may not begin before a
-  commit-specific R5 checker ACCEPT.
+  `f77d167e2f849ac1c4f33de3494252d4999ba46c`. R5's final closure repair
+  `5b29995b13664a15c1376a05074808c7eb552c4c` was independently accepted
+  at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`.
+  R6's original maker/provenance pair was focused rejected at checker commit
+  `5921cc57f88abebdbddd3c242d38072f41d95ba7`; its bounded seven-finding
+  maker repair awaits a new exact-checkpoint focused independent re-review.
 - Phase 2, the Architect comparison, application inspection or fixes, W1.1,
   `main`, and Linear remain unauthorized throughout this plan.
 
@@ -2202,7 +2217,7 @@ completion.
   comparison, application work, Phase 2, Linear, or `main`.
 
 **R5 execution status — exact closure repair independently ACCEPTED; R6
-unblocked and constructed at a maker-only checkpoint.**
+focused repair awaiting independent re-review.**
 Exact maker checkpoint
 `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` was independently rejected
 at `a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f` across twelve C14–C25
@@ -2235,10 +2250,13 @@ service-history, and team-history inputs, and changes no ID or population
 count.
 Receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_CERTIFICATION.md`.
-The final closure repair at `5b29995b13664a15c1376a05074808c7eb552c4c` was independently **ACCEPTED**
-at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 began from that accepted checkpoint;
-its maker construction is complete, its independent review remains pending,
-and R7 and all later work remain unstarted.
+The final closure repair at `5b29995b13664a15c1376a05074808c7eb552c4c`
+was independently **ACCEPTED** at checker commit
+`b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 began from that accepted
+checkpoint. Its original maker/provenance-correction pair was focused
+rejected at checker commit `5921cc57`; its seven-finding focused maker repair
+now awaits a new pushed checkpoint and independent re-review. R7 and all
+later work remain unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 
@@ -2277,13 +2295,33 @@ and R7 and all later work remain unstarted.
 - **Exclusions:** no scenario construction, Architect comparison,
   application work, Phase 2, Linear, or `main`.
 
-**R6 execution status — maker construction complete; independent source
-review pending.** This maker checkpoint registers 24 GROUPs and
-241 active R/L/S LEAFs (90/124/27),
-extends `XW2` through `XW2-0489`, `SRC2` through `SRC2-006`,
-`EV2` through `EV2-0817`, and `DR2` through
-`DR2-0133`, and resolves all five R6 deferral areas through current
-`DR2-0124` AMEND lineage. The concise maker receipt is
+**R6 execution status — focused maker repair awaiting independent
+re-review.** The original maker checkpoint
+`64eacaf532b08301560d25bd32c7076aaef3821e`, provenance-only correction
+`f480e0a8ec6a262bdc87d31bb5f231758f3c64c7`, and checker rejection
+`5921cc57f88abebdbddd3c242d38072f41d95ba7` are preserved. The repair:
+
+1. replaces `XW2-0357`–`XW2-0489` generic whole-row partial overlaps with
+   exact material and truthful typed relationships, adds only the required
+   split/terminal edges through `XW2-0499`, and preserves
+   `XW2-0160`/`XW2-0161`;
+2. restores accepted A17.1:F3 to exact “slid status” and dispositions
+   A17.1:F1 separately;
+3. roots freeze/penalty in CBA VII §2(f) and Stepien in By-Laws §7.03 while
+   keeping unsupported protection/deferral processing non-enforceable;
+4. replaces all 241 generic lifecycle cells, adds the demonstrated and
+   discovered dependencies, and requires an acyclic full dependency audit;
+5. repairs `EV2-0579`, `EV2-0604`, `EV2-0605`, and `EV2-0669` to their exact
+   source provisions;
+6. separates the two certified 2025-26 Regular Season endpoints from the
+   unsupported season-specific trade-deadline fragment; and
+7. gives every demonstrated broad historical successor either a distinct
+   staged output or one direct verdict owner.
+
+The active population remains 24 GROUPs and 241 R/L/S LEAFs (90/124/27),
+with `SRC2` through `SRC2-006`, `EV2` through `EV2-0817`, `XW2` through
+`XW2-0499`, `DR2` through `DR2-0137`, `SM2` through `SM2-0017`, and `SS2`
+through `SS2-0004`; `BND-0010` is unchanged. The concise maker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R6_R_L_S_SERIES_CERTIFICATION.md`.
 R6 is not accepted until a separate checker records an exact-commit ACCEPT;
 R7, application, Phase 2, Linear, and `main` remain untouched.
