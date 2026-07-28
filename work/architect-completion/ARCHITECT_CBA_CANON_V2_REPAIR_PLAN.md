@@ -188,10 +188,12 @@ status. The post-R4 process revision completed at
 `f77d167e2f849ac1c4f33de3494252d4999ba46c`. The original R5 maker
 checkpoint `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` was independently
 **REJECTED** at review checkpoint
-`a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f`. Its bounded focused repair
-of all twelve cited C14–C25 rejection groups is complete and awaits
-independent re-review. R6 remains blocked and unstarted. Phase 1 continues;
-Phase 2, W1.1, all
+`a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f`. Its first focused repair
+at `f92f4de887a72af9e0d8803e79917983eec4475b` was independently
+re-rejected at `789097549ec67921a0f762d98048ca9b186366de`. The bounded second
+maker repair of the ten residual C14–C16 and C19–C25 findings is complete and
+awaits independent re-review. R6 remains blocked and unstarted. Phase 1
+continues; Phase 2, W1.1, all
 application changes, and Linear changes remain unauthorized
 pending the revised R9 independent acceptance plus explicit owner
 acceptance. R3.1 used `AMEND` lineage and did not renumber or reuse
@@ -2057,9 +2059,9 @@ its post-use exception bar are distinct current lifecycle owners. The exact
 historical post-waiver reimbursement-extinction fragment is preserved as a
 searched `unsupported-residual`; separately supported waived-contract Team
 Salary remains active. The original R5 maker was independently rejected; its
-bounded focused maker repair is complete and awaits independent re-review.
-R6 remains blocked and unstarted. Phase 1 continues; Phase 2 and application
-work remain unstarted.
+first focused repair was independently re-rejected; the bounded second maker
+repair is complete and awaits independent re-review. R6 remains blocked and
+unstarted. Phase 1 continues; Phase 2 and application work remain unstarted.
 
 ## Post-R4 process revision — governing future-work contract
 
@@ -2082,10 +2084,11 @@ rule.
   checker commit `30808340f28edd334222a5cdd9de4dbdc809f32f`, with final status
   synchronized at `4200ce326215962df545d44710e9f0146be37d80`.
 - The process-revision gate was satisfied at
-  `f77d167e2f849ac1c4f33de3494252d4999ba46c`. R5 maker construction is
-  complete at the checkpoint recorded below; independent R5 review and every
-  later unit remain unstarted. R6 may not begin before a commit-specific R5
-  checker ACCEPT.
+  `f77d167e2f849ac1c4f33de3494252d4999ba46c`. R5 maker construction,
+  its first focused repair, and the bounded second maker repair are complete
+  at the checkpoints recorded below; another independent R5 re-review and
+  every later unit remain unstarted. R6 may not begin before a
+  commit-specific R5 checker ACCEPT.
 - Phase 2, the Architect comparison, application inspection or fixes, W1.1,
   `main`, and Linear remain unauthorized throughout this plan.
 
@@ -2194,26 +2197,33 @@ completion.
 - **Exclusions:** no R/L/S registration, scenario construction, Architect
   comparison, application work, Phase 2, Linear, or `main`.
 
-**R5 execution status — original maker rejected; focused maker repair
-complete; independent re-review pending.** Exact maker checkpoint
+**R5 execution status — original maker rejected; first focused repair
+re-rejected; second maker repair complete; independent re-review pending.**
+Exact maker checkpoint
 `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` was independently rejected
 at `a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f` across twelve C14–C25
-rejection groups. The bounded repair retains 12 GROUPs and now contains 296
-active LEAFs, 296 qualifying signed-CBA evidence components
-(`EV2-0280`–`EV2-0575`), 78 historical edges
+rejection groups. The first focused repair at
+`f92f4de887a72af9e0d8803e79917983eec4475b` was independently
+re-rejected at `789097549ec67921a0f762d98048ca9b186366de` with ten residual
+findings; C17 and C18 were accepted in that re-review. The bounded second
+maker repair retains 12 GROUPs and now contains 297 active LEAFs, 297
+qualifying signed-CBA evidence components (`EV2-0280`–`EV2-0576`), 78
+historical edges
 (`XW2-0279`–`XW2-0356`), and seven decisions
-(`DR2-0117`–`DR2-0123`). It adds 46 atomic or explicitly staged owners,
-repairs their affected dependencies and evidence, and retargets `XW2-0280`
-to `CBA2-C14.29` and `XW2-0324` to `CBA2-C16.50`. Accepted `XW2-0154`
-plus the R5 edges disposition all 79 published C14–C25 rows. The three
-historical drafting/input statements remain truthfully `process-only`; the
-actual January 5 and March 4 rules retain direct owners. No substantive item
-remains unsupported, ambiguous, or unavailable. No schema, taxonomy, ID
-grammar, registry model, validator, proof system, or lineage system changed.
+(`DR2-0117`–`DR2-0123`). Relative to the rejected original maker it
+contains 47 additional atomic or explicitly staged owners, including the
+single second-repair addition `CBA2-C21.43` / `EV2-0576`; the two earlier
+retargets remain `XW2-0280` to `CBA2-C14.29` and `XW2-0324` to
+`CBA2-C16.50`. Accepted `XW2-0154` plus the R5 edges disposition all 79
+published C14–C25 rows. The three historical drafting/input statements
+remain truthfully `process-only`; the actual January 5 and March 4 rules
+retain direct owners. C17, C18, and all unaffected R5 owner rows are
+preserved. No schema, taxonomy, ID grammar, registry model, validator, proof
+system, or lineage system changed.
 Receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_CERTIFICATION.md`.
 R5 is not accepted until the separately authorized checker re-reviews the
-exact focused-repair commit. R6 and all later work remain unstarted.
+exact second maker-repair commit. R6 and all later work remain unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 
