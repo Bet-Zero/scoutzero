@@ -2062,10 +2062,10 @@ components with staged aggregate routes. Room MLE pre-use eligibility and
 its post-use exception bar are distinct current lifecycle owners. The exact
 historical post-waiver reimbursement-extinction fragment is preserved as a
 searched `unsupported-residual`; separately supported waived-contract Team
-Salary remains active. The original R5 maker was independently rejected; its
-first focused repair was independently re-rejected; the bounded second maker
-repair is complete and awaits independent re-review. R6 remains blocked and
-unstarted. Phase 1 continues; Phase 2 and application work remain unstarted.
+Salary remains active. R5 exact repair checkpoint `5b29995b4442eb834eb2ff5dd58d9977158f4479` was
+independently **ACCEPTED** at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 maker
+construction is complete and awaits its separate commit-specific independent
+review. Phase 1 continues; R7, Phase 2, and application work remain unstarted.
 
 ## Post-R4 process revision — governing future-work contract
 
@@ -2201,10 +2201,8 @@ completion.
 - **Exclusions:** no R/L/S registration, scenario construction, Architect
   comparison, application work, Phase 2, Linear, or `main`.
 
-**R5 execution status — original maker rejected; first focused repair
-re-rejected; second maker repair focused-rejected; single C14
-mapping/dependency closure repair complete; final single-finding independent
-re-review pending.**
+**R5 execution status — exact closure repair independently ACCEPTED; R6
+unblocked and constructed at a maker-only checkpoint.**
 Exact maker checkpoint
 `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` was independently rejected
 at `a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f` across twelve C14–C25
@@ -2237,9 +2235,10 @@ service-history, and team-history inputs, and changes no ID or population
 count.
 Receipt:
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_CERTIFICATION.md`.
-R5 is not accepted until the separately authorized checker performs the final
-single-finding re-review of the exact closure-repair commit. R6 and all later
-work remain unstarted.
+The final closure repair at `5b29995b4442eb834eb2ff5dd58d9977158f4479` was independently **ACCEPTED**
+at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 began from that accepted checkpoint;
+its maker construction is complete, its independent review remains pending,
+and R7 and all later work remain unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 
@@ -2277,6 +2276,17 @@ work remain unstarted.
   demonstrated source or dependency impact.
 - **Exclusions:** no scenario construction, Architect comparison,
   application work, Phase 2, Linear, or `main`.
+
+**R6 execution status — maker construction complete; independent source
+review pending.** This maker checkpoint registers 24 GROUPs and
+241 active R/L/S LEAFs (90/124/27),
+extends `XW2` through `XW2-0489`, `SRC2` through `SRC2-006`,
+`EV2` through `EV2-0817`, and `DR2` through
+`DR2-0133`, and resolves all five R6 deferral areas through current
+`DR2-0124` AMEND lineage. The concise maker receipt is
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R6_R_L_S_SERIES_CERTIFICATION.md`.
+R6 is not accepted until a separate checker records an exact-commit ACCEPT;
+R7, application, Phase 2, Linear, and `main` remain untouched.
 
 ## R7 — Build only comparison-critical scenarios
 
