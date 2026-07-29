@@ -2259,9 +2259,13 @@ was independently **ACCEPTED** at checker commit
 `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 began from that accepted
 checkpoint. Its original maker/provenance-correction pair was focused
 rejected at checker commit `5921cc57`; its seven-finding focused maker repair
-is complete at exact maker checkpoint
-`8800aa168add5b0356786b15478880b893ef5e36` and awaits independent re-review.
-R7 and all later work remain unstarted.
+was committed at exact maker checkpoint
+`8800aa168add5b0356786b15478880b893ef5e36`, followed by status-only plan
+checkpoint `8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751`. Focused checker commit
+`7cc8350aceb447178a280c18635a6a5c16fd9005` confirmed findings 1, 2, 3, and
+6 but rejected findings 4, 5, and 7. The bounded second focused maker repair
+is complete at this checkpoint and awaits independent re-review. R7 and all
+later work remain unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 
@@ -2300,33 +2304,40 @@ R7 and all later work remain unstarted.
 - **Exclusions:** no scenario construction, Architect comparison,
   application work, Phase 2, Linear, or `main`.
 
-**R6 execution status — focused maker repair awaiting independent
+**R6 execution status — second focused maker repair awaiting independent
 re-review.** The original maker checkpoint
 `64eacaf532b08301560d25bd32c7076aaef3821e`, provenance-only correction
-`f480e0a8ec6a262bdc87d31bb5f231758f3c64c7`, and checker rejection
-`5921cc57f88abebdbddd3c242d38072f41d95ba7` are preserved. The repair:
+`f480e0a8ec6a262bdc87d31bb5f231758f3c64c7`, original checker rejection
+`5921cc57f88abebdbddd3c242d38072f41d95ba7`, first focused repair
+`8800aa168add5b0356786b15478880b893ef5e36`, status-only correction
+`8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751`, and focused checker rejection
+`7cc8350aceb447178a280c18635a6a5c16fd9005` are preserved.
 
-1. replaces `XW2-0357`–`XW2-0489` generic whole-row partial overlaps with
-   exact material and truthful typed relationships, adds only the required
-   split/terminal edges through `XW2-0499`, and preserves
-   `XW2-0160`/`XW2-0161`;
-2. restores accepted A17.1:F3 to exact “slid status” and dispositions
-   A17.1:F1 separately;
-3. roots freeze/penalty in CBA VII §2(f) and Stepien in By-Laws §7.03 while
-   keeping unsupported protection/deferral processing non-enforceable;
-4. replaces all 241 generic lifecycle cells, adds the demonstrated and
-   discovered dependencies, and requires an acyclic full dependency audit;
-5. repairs `EV2-0579`, `EV2-0604`, `EV2-0605`, and `EV2-0669` to their exact
-   source provisions;
-6. separates the two certified 2025-26 Regular Season endpoints from the
-   unsupported season-specific trade-deadline fragment; and
-7. gives every demonstrated broad historical successor either a distinct
-   staged output or one direct verdict owner.
+The second repair preserves focused findings 1, 2, 3, and 6 and resolves only
+the remaining findings:
 
-The active population remains 24 GROUPs and 241 R/L/S LEAFs (90/124/27),
-with `SRC2` through `SRC2-006`, `EV2` through `EV2-0817`, `XW2` through
-`XW2-0499`, `DR2` through `DR2-0137`, `SM2` through `SM2-0017`, and `SS2`
-through `SS2-0004`; `BND-0010` is unchanged. The concise maker receipt is
+1. **Finding 7 / ownership first:** `DR2-0138`/`DR2-0139` retire 27
+   redundant R/L/S identities and their 27 paired evidence identities
+   without reuse or renumbering, retarget 15 affected historical edges, and
+   retain aggregate, persistence, readiness, and audit rows only where their
+   output is materially distinct and explicitly depends on direct owners.
+   Accepted `A02.8`, `A12.4`, `A12.5`, and `A12.7` remain unchanged.
+2. **Finding 4 / exact input population:** the rejected 175-cell population
+   is accounted exactly as 152 active detail rows rewritten with field-level
+   inputs/windows plus 23 governed retirements. The duplicate audit also
+   retires four already-specialized rows, producing 214 active one-to-one
+   LEAF/main/detail/evidence identities. All demonstrated and discovered
+   semantic dependencies are reconciled and the graph is acyclic.
+3. **Finding 5 / source root:** `CBA2-R01.3`/`EV2-0579` now cite CBA Article
+   VII §4(c), printed page 217, for assignee-Team Salary inclusion. By-Laws
+   §§5.03–5.06 remain separate authority for waiver request, claim, priority,
+   and acquisition-of-rights mechanics.
+
+The active population is 24 GROUPs and 214 R/L/S LEAFs (85/102/27), with
+`SRC2` through `SRC2-006`, stable `EV2` allocation through `EV2-0817`
+(including 27 retired identities preserved through AMEND lineage), `XW2`
+through `XW2-0499`, `DR2` through `DR2-0139`, `SM2` through `SM2-0017`, and
+`SS2` through `SS2-0004`; `BND-0010` is unchanged. The concise maker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R6_R_L_S_SERIES_CERTIFICATION.md`.
 R6 is not accepted until a separate checker records an exact-commit ACCEPT;
 R7, application, Phase 2, Linear, and `main` remain untouched.

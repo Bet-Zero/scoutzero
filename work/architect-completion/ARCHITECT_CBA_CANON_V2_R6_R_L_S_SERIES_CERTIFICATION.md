@@ -3,19 +3,22 @@
 ## Status
 
 The original R6 maker checkpoint
-`64eacaf532b08301560d25bd32c7076aaef3821e` was followed by the
-provenance-only SHA correction at
-`f480e0a8ec6a262bdc87d31bb5f231758f3c64c7`. Independent checker commit
-`5921cc57f88abebdbddd3c242d38072f41d95ba7` then returned
-**FOCUSED REJECT / BLOCK-R7** with seven bounded repair findings.
+`64eacaf532b08301560d25bd32c7076aaef3821e`, provenance-only correction
+`f480e0a8ec6a262bdc87d31bb5f231758f3c64c7`, and original checker rejection
+`5921cc57f88abebdbddd3c242d38072f41d95ba7` remain preserved. The first
+focused maker repair was committed at
+`8800aa16b82e32b968def2471525252857725fe8`, followed by the status-only plan
+correction at `8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751`. Focused checker commit
+`7cc8350aceb447178a280c18635a6a5c16fd9005` rejected that checkpoint on
+findings 4, 5, and 7 while confirming that findings 1, 2, 3, and 6 passed.
 
-This receipt now describes the focused maker repair of those seven findings:
-exact historical fragment mappings; the accepted A17.1:F3 meaning; L09
-authority and non-enforcement boundaries; all 241 lifecycle-input contracts
-and their semantic dependencies; the five cited evidence-chain corrections;
-the schedule/trade-deadline split; and the historical-successor ownership
-audit. The repaired checkpoint awaits a new commit-specific focused
-independent re-review.
+This receipt now describes the second focused maker repair. It preserves the
+accepted exact-fragment, A17.1, L09 authority, and schedule/deadline work;
+replaces the exact 175-cell checker population with 152 field-level active
+input contracts plus 23 governed retirements; repairs the semantic dependency
+graph; corrects `R01.3`/`EV2-0579` to CBA VII §4(c); and resolves every
+checker-listed duplicate-owner set through sole direct ownership or a
+materially distinct staged/persistence output.
 
 R6 is not accepted. R7, application work, Phase 2, Linear, Graphify, and
 `main` remain blocked and unstarted.
@@ -40,37 +43,38 @@ accepted checker HEAD without reopening accepted A/C content.
 ## Coverage
 
 The frozen v1.1 R/L/S inventory contains 24 GROUP families and 134 historical
-LEAF obligations: 47 R, 72 L, and 15 S. R6 registers 90 R, 124 L, and 27 S
-active LEAFs (241 total). The focused repair carries 143 exact current
+LEAF obligations: 47 R, 72 L, and 15 S. R6 now registers 85 R, 102 L, and 27
+S active LEAFs (214 total). The second focused repair carries 143 exact current
 fragments/edges in `XW2-0357`–`XW2-0499`; the accepted
 `XW2-0160`/`XW2-0161` split continues to disposition historical
 `CBA-L08.5`. The resulting historical R/L/S population is 145 current
-fragments and 145 exactly-once edges: 51 R, 73 L, and 21 S. Evidence remains
-one authority component per active LEAF, `EV2-0577`–`EV2-0817`.
+fragments and 145 exactly-once edges: 51 R, 73 L, and 21 S. There is one
+authority component per active LEAF: 214 active components within the stable
+`EV2-0577`–`EV2-0817` allocation, with retired IDs preserved as AMEND lineage.
 
 | GROUP | Active LEAFs | Historical successors | New source components | Active range |
 |---|---:|---:|---:|---|
 | CBA2-R01 | 18 | 11 | 7 | CBA2-R01.1–CBA2-R01.18 |
-| CBA2-R02 | 9 | 7 | 2 | CBA2-R02.1–CBA2-R02.9 |
+| CBA2-R02 | 8 | 6 | 2 | CBA2-R02.1–CBA2-R02.9 except retired R02.3 |
 | CBA2-R03 | 2 | 1 | 1 | CBA2-R03.1–CBA2-R03.2 |
-| CBA2-R04 | 9 | 6 | 3 | CBA2-R04.1–CBA2-R04.9 |
+| CBA2-R04 | 7 | 6 | 1 | CBA2-R04.1–CBA2-R04.9 except retired R04.6 and R04.8 |
 | CBA2-R05 | 10 | 5 | 5 | CBA2-R05.1–CBA2-R05.10 |
-| CBA2-R06 | 16 | 8 | 8 | CBA2-R06.1–CBA2-R06.16 |
+| CBA2-R06 | 16 | 10 | 6 | CBA2-R06.1–CBA2-R06.16 |
 | CBA2-R07 | 3 | 1 | 2 | CBA2-R07.1–CBA2-R07.3 |
-| CBA2-R08 | 8 | 5 | 3 | CBA2-R08.1–CBA2-R08.8 |
-| CBA2-R09 | 3 | 2 | 1 | CBA2-R09.1–CBA2-R09.3 |
+| CBA2-R08 | 7 | 5 | 2 | CBA2-R08.1–CBA2-R08.7; retired R08.8 |
+| CBA2-R09 | 2 | 1 | 1 | CBA2-R09.2–CBA2-R09.3; retired R09.1 |
 | CBA2-R10 | 12 | 4 | 8 | CBA2-R10.1–CBA2-R10.12 |
-| CBA2-L01 | 9 | 5 | 4 | CBA2-L01.1–CBA2-L01.9 |
-| CBA2-L02 | 14 | 8 | 6 | CBA2-L02.1–CBA2-L02.14 |
-| CBA2-L03 | 23 | 15 | 8 | CBA2-L03.1–CBA2-L03.23 |
-| CBA2-L04 | 24 | 17 | 7 | CBA2-L04.1–CBA2-L04.24 |
+| CBA2-L01 | 8 | 5 | 3 | CBA2-L01.1–CBA2-L01.9 except retired L01.6 |
+| CBA2-L02 | 12 | 8 | 4 | CBA2-L02.1–CBA2-L02.14 except retired L02.8 and L02.11 |
+| CBA2-L03 | 14 | 12 | 2 | CBA2-L03.1–CBA2-L03.23 with retired IDs preserved in lineage |
+| CBA2-L04 | 18 | 17 | 1 | CBA2-L04.1–CBA2-L04.24 with retired IDs preserved in lineage |
 | CBA2-L05 | 18 | 7 | 11 | CBA2-L05.1–CBA2-L05.18 |
-| CBA2-L06 | 8 | 3 | 5 | CBA2-L06.1–CBA2-L06.8 |
+| CBA2-L06 | 7 | 5 | 2 | CBA2-L06.1–CBA2-L06.7; retired L06.8 |
 | CBA2-L07 | 3 | 1 | 2 | CBA2-L07.1–CBA2-L07.3 |
-| CBA2-L08 | 9 | 7 | 2 | CBA2-L08.1–CBA2-L08.9 |
-| CBA2-L09 | 6 | 1 | 5 | CBA2-L09.1–CBA2-L09.6 |
+| CBA2-L08 | 7 | 5 | 2 | CBA2-L08.1–CBA2-L08.8 except retired L08.6; retired L08.9 |
+| CBA2-L09 | 5 | 1 | 4 | CBA2-L09.1–CBA2-L09.6 except retired L09.5 |
 | CBA2-L10 | 10 | 9 | 1 | CBA2-L10.1–CBA2-L10.10 |
-| CBA2-S01 | 9 | 9 | 0 | CBA2-S01.1–CBA2-S01.9 |
+| CBA2-S01 | 9 | 8 | 1 | CBA2-S01.1–CBA2-S01.9 |
 | CBA2-S02 | 6 | 4 | 2 | CBA2-S02.1–CBA2-S02.6 |
 | CBA2-S03 | 5 | 3 | 2 | CBA2-S03.1–CBA2-S03.5 |
 | CBA2-S04 | 7 | 5 | 2 | CBA2-S04.1–CBA2-S04.7 |
@@ -107,8 +111,11 @@ complete tables, provenance, indexed formulas, and persistent state.
   Team Salary treatment. Article VII §6(l) is not used.
 - Article II §15, printed pages 65–66, supplies the Moratorium prohibition
   and its closed signed exception set. Article II §14 is not used.
-- Article VII §4(a), printed pages 211–212, supplies Team Salary inclusion
-  for assigned Contracts in `EV2-0579`.
+- Article VII §4(c), printed page 217, directly supplies assignee-Team Salary
+  inclusion for assigned Contracts in `EV2-0579`. By-Laws §§5.03–5.06,
+  printed pages 67–68, separately govern waiver request, claim, priority, and
+  acquisition-of-rights mechanics; those propositions are not collapsed into
+  the CBA component.
 - EIPPA is season-dependent under its signed table/indexing source and is not
   a permanent $0.900 million value.
 - `SRC2-005` certifies only the 2025-26 Regular Season endpoints. The
@@ -135,26 +142,101 @@ L owners reference accepted A/C direct owners as dependencies where needed.
 
 ## Atomicity and duplicate ownership
 
-The seven required duplicate-candidate generators were re-applied to the
-known queue, normalized text, shared locators, correction/substantive anchors,
-lifecycle summaries, cross-family pairs, and source-review findings. The
-full note-bearing historical-successor population was audited, not sampled.
+The seven duplicate-candidate generators were re-applied to the known queue,
+normalized text, shared locators, correction/substantive anchors, lifecycle
+summaries, cross-family pairs, and source-review findings. The audit covered
+the full note-bearing historical-successor population. `DR2-0139` applies the
+frozen natural-family, exact-fragment, atomic-verdict, completeness, and
+stable-ID tiebreak in that order.
 
-The demonstrated overlaps now have one verdict owner:
+The second focused repair retires 27 redundant LEAF identities and their 27
+evidence identities without reuse or renumbering:
 
-- `R01.6` stages waiver-period/request/claim results while the historical
-  request-irrevocability fragment belongs to `R01.12`;
-- `R06.2`–`.6` are distinct staged compliance outputs; direct bounds,
-  end-of-day accrual, and clocks belong to `R06.7`–`.12` and `.14`;
-- `S01.2` is a table-readiness output; the two tables belong to `S01.7` and
-  `.8`; and
-- `S04.2` is an indexed-value readiness output; the four values belong to
-  `S04.3`–`.6`.
+- R: `R02.3`, `R04.6`, `R04.8`, `R08.8`, and `R09.1`;
+- L: `L01.6`, `L02.8`, `L02.11`, `L03.3`, `L03.5`, `L03.9`, `L03.11`,
+  `L03.12`, `L03.19`, `L03.21`, `L03.22`, `L03.23`, `L04.7`, `L04.8`,
+  `L04.9`, `L04.15`, `L04.16`, `L04.17`, `L06.8`, `L08.6`, `L08.9`, and
+  `L09.5`; and
+- evidence: `EV2-0597`, `EV2-0611`, `EV2-0613`, `EV2-0651`, `EV2-0652`,
+  `EV2-0672`, `EV2-0683`, `EV2-0686`, `EV2-0692`, `EV2-0694`, `EV2-0698`,
+  `EV2-0700`, `EV2-0701`, `EV2-0708`, `EV2-0710`, `EV2-0711`, `EV2-0712`,
+  `EV2-0719`, `EV2-0720`, `EV2-0721`, `EV2-0727`, `EV2-0728`, `EV2-0729`,
+  `EV2-0762`, `EV2-0771`, `EV2-0774`, and `EV2-0779`.
 
-Every other audited mapped row either owns the stated atomic output or a
-distinct event-tagged/staged output with explicit dependencies. The six
-compound fragment inventories use exact, exhaustive, non-overlapping spans.
+The current ownership outcomes are:
+
+- waiver-list removal belongs to `R01.4`; financial responsibility belongs
+  to `R01.11`; `R01.6` remains a staged waiver-period/request/claim result
+  over its direct owners;
+- the greater-of dead-salary result belongs to `R02.6`, allocation belongs to
+  `R02.9`, protection inclusion belongs to `R02.5`, and exclusions belong to
+  `R02.8`;
+- Team Salary stretch formula, timing branches, and payment separation belong
+  to `R04.1`, `R04.2`, and `R04.7`; buyout reduction/release, allocation,
+  set-off branches, and reacquisition belong to `R05.1`, `R05.6`,
+  `R05.3`/`.7`–`.9`, and `R05.5`;
+- Two-Way full-Season maximum, proration, Under-Fifteen maximum/accrual, and
+  staged ledger belong to `R08.3`, `R08.6`, `R08.4`/`.7`, and `R08.5`;
+  the offseason 21-player maximum belongs to `R06.13`, while `R09.3` owns
+  only its applicability window;
+- the 2025-26 schedule endpoints belong to `S01.6`; physical-condition state
+  belongs to `L10.2`; the signed extension/renegotiation and free-agent trade
+  bars belong to `L03.6`, `L03.7`, `L03.17`, and `L03.18`;
+- matched-Offer-Sheet restrictions belong to `L04.23`; Qualifying Offer,
+  Offer Sheet, and Exercise Notice propositions belong separately to
+  `L04.18`–`.24`; the trade-and-waive reacquisition bar belongs to `R05.5`;
+- `L06.2` owns the distinct commit manifest over direct state owners;
+  accepted `A12.4`, `A12.5`, and `A12.7` remain the direct freeze/unfreeze
+  owners, while `L08.3`, `L08.4`, `L09.1`, `L09.3`, and `L09.4` own only
+  distinct persistence, reporting, aggregation, availability, and status
+  outputs; and
+- `S04.1` owns provenance reconciliation around accepted `A02.8`, while
+  `S04.7` audits accepted `A02.8` and the direct `S04.3`–`.6` values.
+
+Every surviving aggregate, persistence, readiness, or audit row names its
+direct dependencies and produces a materially distinct result. The six
+compound fragment inventories remain exact, exhaustive, and non-overlapping.
 No unresolved duplicate candidate or same-family deferral remains.
+
+## Exact 175-cell lifecycle-input accounting
+
+At checker HEAD, 94 rejected detail cells used the generic “exact as-of”
+template and 81 used the generic “ordered event timestamps” template. The
+following 152 identities remain active and now state rule-specific fields,
+dates, windows, amounts, counters, statuses, and source/version inputs. Suffix
+lists are exact within each displayed family.
+
+| Family | Rewritten active suffixes |
+|---|---|
+| `CBA2-R01` | `.3`, `.4`, `.5`, `.8`, `.9`, `.10`, `.11`, `.13`, `.14`, `.15`, `.16`, `.17`, `.18` |
+| `CBA2-R02` | `.1`, `.2`, `.4`, `.5`, `.6`, `.7`, `.8`, `.9` |
+| `CBA2-R03` | `.1`, `.2` |
+| `CBA2-R04` | `.1`, `.2`, `.3`, `.4`, `.5`, `.7`, `.9` |
+| `CBA2-R05` | `.1`, `.2`, `.3`, `.4`, `.5`, `.6`, `.7`, `.8`, `.9`, `.10` |
+| `CBA2-R06` | `.1`, `.13`, `.15`, `.16` |
+| `CBA2-R07` | `.1`, `.2`, `.3` |
+| `CBA2-R08` | `.1`, `.2`, `.3`, `.4`, `.5`, `.6`, `.7` |
+| `CBA2-R09` | `.2`, `.3` |
+| `CBA2-R10` | `.1`, `.3`, `.5`, `.6`, `.8`, `.11`, `.12` |
+| `CBA2-L01` | `.1`, `.2`, `.3`, `.4`, `.5`, `.7`, `.8` |
+| `CBA2-L02` | `.1`, `.2`, `.3`, `.4`, `.5`, `.6`, `.7`, `.9`, `.10`, `.12`, `.13`, `.14` |
+| `CBA2-L03` | `.1`, `.2`, `.4`, `.6`, `.7`, `.8`, `.10`, `.13`, `.14`, `.15`, `.16`, `.17`, `.18`, `.20` |
+| `CBA2-L04` | `.1`, `.2`, `.3`, `.4`, `.5`, `.6`, `.10`, `.11`, `.12`, `.13`, `.14`, `.18`, `.19`, `.20`, `.21`, `.22`, `.23`, `.24` |
+| `CBA2-L05` | `.1`, `.2`, `.3`, `.4`, `.5`, `.6`, `.7`, `.8`, `.9`, `.10`, `.11`, `.12`, `.13`, `.14`, `.15`, `.16`, `.17`, `.18` |
+| `CBA2-L06` | `.1`, `.2`, `.3`, `.4`, `.5`, `.6`, `.7` |
+| `CBA2-L07` | `.1`, `.2`, `.3` |
+| `CBA2-L08` | `.1`, `.2`, `.3`, `.4`, `.5`, `.7`, `.8` |
+| `CBA2-S03` | `.4`, `.5` |
+| `CBA2-S04` | `.7` |
+
+The remaining 23 identities in the exact rejected-template population are
+retired: `R02.3`, `R04.6`, `R04.8`, `R08.8`, `R09.1`, `L02.8`, `L02.11`,
+`L03.5`, `L03.9`, `L03.11`, `L03.12`, `L03.19`, `L03.21`, `L03.23`,
+`L04.7`, `L04.8`, `L04.9`, `L04.15`, `L04.16`, `L04.17`, `L06.8`,
+`L08.6`, and `L08.9`. Thus the rejected population reconciles exactly:
+`152 + 23 = 175`. The duplicate-owner audit additionally retires four rows
+whose first repair already had specialized cells: `L01.6`, `L03.3`,
+`L03.22`, and `L09.5`.
 
 ## Decision records
 
@@ -174,6 +256,8 @@ No unresolved duplicate candidate or same-family deferral remains.
 | DR2-0135 | `DISP` | CBA-A17.1:F1 / XW2-0148 | Preserve the operational protection/conveyance residual as unsupported and non-enforceable | Frozen unsupported-residual rule, SS2-0003 adequate class coverage, and exact terminal-base equality | No qualifying first-party protection-order, alternative-asset, deferral, or conveyance-processing authority was located; direct CBA freeze/penalty and direct By-Laws Stepien rules remain separately active | — | R6 / this checkpoint |
 | DR2-0136 | `DISP` | CBA-S01.6:F2 / XW2-0495 | Preserve the season-specific trade-deadline input as unsupported and unavailable | Frozen unsupported-residual rule, SS2-0004 adequate class coverage, and exact terminal-base equality | SRC2-005 certifies only the 2025-26 Regular Season opening and closing dates; it contains no trade-deadline fact and none is inferred | — | R6 / this checkpoint |
 | DR2-0137 | `ATOM` | CBA-R01.6, CBA-R06.3, CBA-R06.4, CBA-R06.6, CBA-S01.2, CBA-S01.6, CBA-S04.2 historical fragment inventories | Supersede each rejected whole-row F1 and allocate exhaustive current fragments above its local high-water mark | Exact normalized character spans, exhaustive non-overlap, independently verdict-bearing output, and exactly-once edge disposition | The seven compound rows become seventeen current fragments and ten additional edges without changing any published historical text | CBA2-R01.6, CBA2-R01.12, CBA2-R06.3, CBA2-R06.6, CBA2-R06.7, CBA2-R06.10, CBA2-R06.11, CBA2-R06.14, CBA2-S01.2, CBA2-S01.6, CBA2-S01.7, CBA2-S01.8, CBA2-S04.2, CBA2-S04.3, CBA2-S04.4, CBA2-S04.5, CBA2-S04.6 | R6 / this checkpoint |
+| DR2-0138 | `AMEND` | Second focused repair of the R/L/S LEAF, detail, EV2, XW2, dependency, origin, decision, and receipt records rejected at checker commit 7cc8350a | Replace rejected generic input contracts, stale dependency joins, wrong-source evidence, and redundant active identities through forward current lineage | Exact 175-cell population, checker-named semantic joins and duplicate sets, stable identity, no reuse or renumbering, and exact current-endpoint reconciliation | Rewrites 152 active detail contracts, retires 23 rejected-template owners plus four additional specialized duplicate owners and all 27 paired EV2 records, retargets 15 historical edges, preserves all accepted A/C anchors, and corrects EV2-0579 to CBA VII §4(c) while leaving By-Laws waiver mechanics separate | — | R6 / this checkpoint |
+| DR2-0139 | `OWN` | All duplicate-owner sets named in focused finding 7 plus semantic duplicates discovered while repairing their dependency and historical joins | Retain one direct verdict owner; retain an aggregate, persistence, readiness, or audit row only for a materially distinct staged result with explicit direct dependencies | Natural family, exact normalized fragment, source authority, independently changeable verdict, completeness, then stable-ID tiebreak | The active R/L/S registry is 214 one-to-one LEAF/main/detail/evidence identities; accepted A02.8, A12.4, A12.5, and A12.7 remain direct owners; no retired identity remains a dependency, evidence subject, origin target, or crosswalk target | CBA2-R01.4, CBA2-R01.11, CBA2-R02.6, CBA2-R02.9, CBA2-R04.1, CBA2-R04.2, CBA2-R04.7, CBA2-R05.1, CBA2-R05.3, CBA2-R05.5, CBA2-R05.6, CBA2-R06.13, CBA2-R08.3, CBA2-R08.4, CBA2-R08.5, CBA2-R08.6, CBA2-R08.7, CBA2-R09.3, CBA2-L02.6, CBA2-L02.14, CBA2-L03.6, CBA2-L03.7, CBA2-L03.17, CBA2-L03.18, CBA2-L04.18, CBA2-L04.19, CBA2-L04.20, CBA2-L04.22, CBA2-L04.23, CBA2-L04.24, CBA2-L06.2, CBA2-L08.3, CBA2-L08.4, CBA2-L09.1, CBA2-L09.2, CBA2-L09.3, CBA2-L09.4, CBA2-L10.2, CBA2-S01.6, CBA2-S04.1, CBA2-S04.7 | R6 / this checkpoint |
 
 ## AMEND detail rows
 
@@ -195,6 +279,296 @@ No unresolved duplicate candidate or same-family deferral remains.
 | DR2-0134 | fragment | CBA-S01.2:F1 | 1 | f480e0a8ec6a262bdc87d31bb5f231758f3c64c7 | split | CBA-S01.2:F2, CBA-S01.2:F3, CBA-S01.2:F4 | 1, 1, 1 | Split the Minimum Salary table, Rookie Scale table, and shared no-inference constraint at exact normalized spans 32 and 56. |
 | DR2-0134 | fragment | CBA-S01.6:F1 | 1 | f480e0a8ec6a262bdc87d31bb5f231758f3c64c7 | split | CBA-S01.6:F2, CBA-S01.6:F3 | 1, 1 | Split the unsupported trade-deadline input from the supported game-calendar fragment at exact normalized span 37. |
 | DR2-0134 | fragment | CBA-S04.2:F1 | 1 | f480e0a8ec6a262bdc87d31bb5f231758f3c64c7 | split | CBA-S04.2:F2, CBA-S04.2:F3, CBA-S04.2:F4, CBA-S04.2:F5 | 1, 1, 1, 1 | Split BAE, cash-limit, EIPPA, and Tax Bracket Amount material at exact normalized spans 44, 70, and 91. |
+| DR2-0138 | EV2 | EV2-0579 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0579 | — | Replace CBA VII §4(a)(1) with direct assignment authority CBA VII §4(c), printed page 217; retain By-Laws §§5.03–5.06 only for separate waiver mechanics. |
+| DR2-0138 | EV2 | EV2-0578 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0578 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0580 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0580 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0583 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0583 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0603 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0603 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0617 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0617 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0634 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0634 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0641 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0641 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0647 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0647 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0648 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0648 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0654 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0654 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0657 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0657 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0658 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0658 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0671 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0671 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0680 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0680 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0682 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0682 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0699 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0699 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0713 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0713 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0737 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0737 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0741 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0741 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0742 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0742 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0743 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0743 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0756 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0756 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0758 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0758 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0768 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0768 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0769 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0769 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0770 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0770 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0775 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0775 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0777 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0777 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0778 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0778 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0791 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0791 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0794 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0794 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0807 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0807 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0811 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0811 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | EV2 | EV2-0817 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | EV2-0817 | — | Record the same-ID evidence dependency, authority, or mapping reconciliation required by the second focused repair. |
+| DR2-0138 | GROUP | CBA2-R02 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02 | — | Declare the exact eight active children after governed retirement of R02.3. |
+| DR2-0138 | GROUP | CBA2-R04 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R04 | — | Declare the exact seven active children after governed retirement of R04.6 and R04.8. |
+| DR2-0138 | GROUP | CBA2-R08 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R08 | — | Declare the exact seven active children after governed retirement of R08.8. |
+| DR2-0138 | GROUP | CBA2-R09 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R09 | — | Declare the exact two active children after governed retirement of R09.1. |
+| DR2-0138 | GROUP | CBA2-L01 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01 | — | Declare the exact eight active children after governed retirement of L01.6. |
+| DR2-0138 | GROUP | CBA2-L02 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02 | — | Declare the exact twelve active children after governed retirement of L02.8 and L02.11. |
+| DR2-0138 | GROUP | CBA2-L03 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03 | — | Declare the exact fourteen active children after nine governed retirements. |
+| DR2-0138 | GROUP | CBA2-L04 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04 | — | Declare the exact eighteen active children after six governed retirements. |
+| DR2-0138 | GROUP | CBA2-L06 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L06 | — | Declare the exact seven active children after governed retirement of L06.8. |
+| DR2-0138 | GROUP | CBA2-L08 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L08 | — | Declare the exact seven active children after governed retirement of L08.6 and L08.9. |
+| DR2-0138 | GROUP | CBA2-L09 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L09 | — | Declare the exact five active children after governed retirement of L09.5. |
+| DR2-0138 | LEAF | CBA2-L01.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L01.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L01.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L01.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L01.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L01.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L01.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01.8 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.10 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.10 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.12 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.12 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.13 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.13 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.14 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.14 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L02.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L02.9 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.10 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.10 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.13 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.13 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.14 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.14 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.15 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.15 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.16 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.16 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.17 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.17 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.18 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.18 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.20 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.20 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L03.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L03.8 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.10 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.10 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.11 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.11 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.12 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.12 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.13 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.13 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.14 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.14 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.18 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.18 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.19 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.19 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.20 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.20 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.21 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.21 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.22 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.22 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.23 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.23 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.24 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.24 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L04.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L04.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.10 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.10 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.11 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.11 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.12 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.12 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.13 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.13 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.14 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.14 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.15 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.15 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.16 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.16 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.17 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.17 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.18 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.18 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.8 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L05.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L05.9 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L06.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L06.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L06.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L06.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L06.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L06.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L06.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L06.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L06.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L06.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L06.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L06.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L06.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L06.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L07.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L07.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L07.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L07.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L07.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L07.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L08.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L08.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L08.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L08.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L08.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L08.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L08.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L08.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L08.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L08.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L08.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L08.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L08.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L08.8 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.10 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.10 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.11 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.11 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.13 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.13 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.14 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.14 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.15 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.15 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.16 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.16 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.17 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.17 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.18 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.18 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.8 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R01.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.9 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R02.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R02.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R02.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R02.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R02.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R02.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R02.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02.8 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R02.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R02.9 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R03.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R03.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R03.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R03.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R04.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R04.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R04.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R04.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R04.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R04.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R04.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R04.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R04.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R04.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R04.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R04.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R04.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R04.9 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.10 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.10 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.8 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R05.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R05.9 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R06.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R06.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R06.13 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R06.13 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R06.15 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R06.15 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R06.16 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R06.16 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R07.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R07.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R07.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R07.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R07.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R07.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R08.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R08.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R08.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R08.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R08.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R08.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R08.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R08.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R08.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R08.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R08.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R08.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R08.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R08.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R09.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R09.2 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R09.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R09.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R10.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R10.1 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R10.11 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R10.11 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R10.12 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R10.12 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R10.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R10.3 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R10.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R10.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R10.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R10.6 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-R10.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R10.8 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-S03.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S03.4 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-S03.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S03.5 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-S04.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S04.7 | — | Replace the rejected generic lifecycle template with this identity’s explicit field-level input/window contract and reconcile its current dependencies. |
+| DR2-0138 | LEAF | CBA2-L01.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L01.9 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-L09.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L09.1 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-L09.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L09.3 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-L09.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L09.4 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-L10.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-L10.2 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-R01.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R01.2 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-R06.10 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R06.10 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-R10.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-R10.4 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S01.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S01.1 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S01.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S01.3 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S01.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S01.4 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S01.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S01.5 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S01.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S01.9 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S02.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S02.1 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S02.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S02.2 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S02.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S02.3 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S02.4 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S02.4 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S02.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S02.5 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S02.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S02.6 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S03.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S03.1 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S03.2 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S03.2 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S03.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S03.3 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-S04.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | CBA2-S04.1 | — | Record the same-ID semantic dependency, authority, or ownership revision required beyond the exact generic-template population. |
+| DR2-0138 | LEAF | CBA2-R02.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-R02.6 | — | Greater-of current-year dead salary has one direct owner. |
+| DR2-0138 | LEAF | CBA2-R04.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-R04.7 | — | Payment-versus-Team-Salary election separation has one direct owner. |
+| DR2-0138 | LEAF | CBA2-R04.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-R04.2 | — | Team Salary stretch timing branches have one direct owner. |
+| DR2-0138 | LEAF | CBA2-R08.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-R08.5 | — | The distinct player/team counter snapshot remains staged once over direct owners. |
+| DR2-0138 | LEAF | CBA2-R09.1 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-R06.13 | — | The offseason aggregate maximum of twenty-one has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L01.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-S01.6 | — | The versioned 2025-26 Regular Season endpoints have one direct owner. |
+| DR2-0138 | LEAF | CBA2-L02.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L02.14 | — | The signed simultaneous-renegotiation-and-extension drop limit has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L02.11 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L02.6 | — | The March 1 through June 30 Renegotiation bar has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L03.3 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L10.2 | — | Authenticated transaction-physical state has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L03.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.23 | — | Matched-Offer-Sheet amendment and trade restrictions have one direct owner. |
+| DR2-0138 | LEAF | CBA2-L03.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.23 | — | Matched-Offer-Sheet consent/recipient restrictions have one direct owner. |
+| DR2-0138 | LEAF | CBA2-L03.11 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L03.17 | — | The ordinary later-of-three-months-or-December-15 trade bar has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L03.12 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L03.18 | — | The specified Bird-rights later-of-three-months-or-January-15 bar has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L03.19 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | split | CBA2-L03.6, CBA2-L03.7 | — | Separate Extension and Renegotiation six-month trade bars remain direct owners. |
+| DR2-0138 | LEAF | CBA2-L03.21 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.23 | — | Matched-Offer-Sheet one-year consent and offering-Team restrictions have one direct owner. |
+| DR2-0138 | LEAF | CBA2-L03.22 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L10.2 | — | Pending physical-condition state has one authenticated-record owner. |
+| DR2-0138 | LEAF | CBA2-L03.23 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-R05.5 | — | The trade-and-waive reacquisition bar has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L04.7 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.18 | — | Timely Qualifying Offer preservation has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L04.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.19 | — | Qualifying Offer delivery/open-window timing has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L04.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.20 | — | Qualifying Offer withdrawal and renunciation timing has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L04.15 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.24 | — | Offer Sheet last-date and duration rules have one direct owner. |
+| DR2-0138 | LEAF | CBA2-L04.16 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.22 | — | Exercise Notice receipt-time and Moratorium deadlines have one direct owner. |
+| DR2-0138 | LEAF | CBA2-L04.17 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L04.23 | — | The matched-Offer-Sheet sign-and-trade bar has one direct owner. |
+| DR2-0138 | LEAF | CBA2-L06.8 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L06.2 | — | The distinct transaction commit manifest owns atomic completeness over direct state owners. |
+| DR2-0138 | LEAF | CBA2-L08.6 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-A12.4 | — | The frozen-pick identification/trading bar remains with its accepted direct owner. |
+| DR2-0138 | LEAF | CBA2-L08.9 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | split | CBA2-A12.5, CBA2-A12.7 | — | Accepted direct owners retain unfreeze timing and the no-penalty consequence. |
+| DR2-0138 | LEAF | CBA2-L09.5 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | CBA2-L09.2 | — | The unsupported protection/deferral-processing boundary has one direct owner. |
+| DR2-0138 | EV2 | EV2-0597 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0600 | — | Authority follows the sole CBA2-R02.6 owner. |
+| DR2-0138 | EV2 | EV2-0611 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0612 | — | Authority follows the sole CBA2-R04.7 owner. |
+| DR2-0138 | EV2 | EV2-0613 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0607 | — | Authority follows the sole CBA2-R04.2 owner. |
+| DR2-0138 | EV2 | EV2-0651 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0648 | — | Authority follows the staged CBA2-R08.5 counter snapshot. |
+| DR2-0138 | EV2 | EV2-0652 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0637 | — | Authority follows the sole CBA2-R06.13 owner. |
+| DR2-0138 | EV2 | EV2-0672 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0796 | — | Authority follows the sole CBA2-S01.6 schedule owner. |
+| DR2-0138 | EV2 | EV2-0683 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0689 | — | Authority follows the sole CBA2-L02.14 owner. |
+| DR2-0138 | EV2 | EV2-0686 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0681 | — | Authority follows the sole CBA2-L02.6 owner. |
+| DR2-0138 | EV2 | EV2-0692 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0782 | — | Authority follows the sole CBA2-L10.2 physical-state owner. |
+| DR2-0138 | EV2 | EV2-0694 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0735 | — | Authority follows the sole CBA2-L04.23 owner. |
+| DR2-0138 | EV2 | EV2-0698 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0735 | — | Authority follows the sole CBA2-L04.23 owner. |
+| DR2-0138 | EV2 | EV2-0700 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0706 | — | Authority follows the sole CBA2-L03.17 owner. |
+| DR2-0138 | EV2 | EV2-0701 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0707 | — | Authority follows the sole CBA2-L03.18 owner. |
+| DR2-0138 | EV2 | EV2-0708 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | split | EV2-0695, EV2-0696 | — | Authorities follow separate Extension and Renegotiation direct owners. |
+| DR2-0138 | EV2 | EV2-0710 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0735 | — | Authority follows the sole CBA2-L04.23 owner. |
+| DR2-0138 | EV2 | EV2-0711 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0782 | — | Authority follows the sole CBA2-L10.2 physical-state owner. |
+| DR2-0138 | EV2 | EV2-0712 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0619 | — | Authority follows the sole CBA2-R05.5 owner. |
+| DR2-0138 | EV2 | EV2-0719 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0730 | — | Authority follows the sole CBA2-L04.18 owner. |
+| DR2-0138 | EV2 | EV2-0720 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0731 | — | Authority follows the sole CBA2-L04.19 owner. |
+| DR2-0138 | EV2 | EV2-0721 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0732 | — | Authority follows the sole CBA2-L04.20 owner. |
+| DR2-0138 | EV2 | EV2-0727 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0736 | — | Authority follows the sole CBA2-L04.24 owner. |
+| DR2-0138 | EV2 | EV2-0728 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0734 | — | Authority follows the sole CBA2-L04.22 owner. |
+| DR2-0138 | EV2 | EV2-0729 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0735 | — | Authority follows the sole CBA2-L04.23 owner. |
+| DR2-0138 | EV2 | EV2-0762 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0756 | — | Authority follows the distinct CBA2-L06.2 commit-manifest owner. |
+| DR2-0138 | EV2 | EV2-0771 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0088 | — | Authority remains with accepted CBA2-A12.4. |
+| DR2-0138 | EV2 | EV2-0774 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | split | EV2-0089, EV2-0112 | — | Authorities remain with accepted CBA2-A12.5 and CBA2-A12.7. |
+| DR2-0138 | EV2 | EV2-0779 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | merge | EV2-0776 | — | Authority follows the sole CBA2-L09.2 boundary owner. |
+| DR2-0138 | XW2 | XW2-0369 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0369 | — | Retarget CBA-R02.3 from retired CBA2-R02.3 to sole owner CBA2-R02.6. |
+| DR2-0138 | XW2 | XW2-0380 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0380 | — | Retarget CBA-R04.6 from retired CBA2-R04.6 to sole owner CBA2-R04.7. |
+| DR2-0138 | XW2 | XW2-0398 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0398 | — | Retarget CBA-R09.1 from retired CBA2-R09.1 to sole owner CBA2-R06.13. |
+| DR2-0138 | XW2 | XW2-0416 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0416 | — | Retarget CBA-L02.8 from retired CBA2-L02.8 to sole owner CBA2-L02.14. |
+| DR2-0138 | XW2 | XW2-0419 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0419 | — | Retarget CBA-L03.3 from retired CBA2-L03.3 to sole owner CBA2-L10.2. |
+| DR2-0138 | XW2 | XW2-0421 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0421 | — | Retarget CBA-L03.5 from retired CBA2-L03.5 to sole owner CBA2-L04.23. |
+| DR2-0138 | XW2 | XW2-0425 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0425 | — | Retarget CBA-L03.9 from retired CBA2-L03.9 to sole owner CBA2-L04.23. |
+| DR2-0138 | XW2 | XW2-0427 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0427 | — | Retarget CBA-L03.11 from retired CBA2-L03.11 to sole owner CBA2-L03.17. |
+| DR2-0138 | XW2 | XW2-0428 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0428 | — | Retarget CBA-L03.12 from retired CBA2-L03.12 to sole owner CBA2-L03.18. |
+| DR2-0138 | XW2 | XW2-0438 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0438 | — | Retarget CBA-L04.7 from retired CBA2-L04.7 to sole owner CBA2-L04.18. |
+| DR2-0138 | XW2 | XW2-0439 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0439 | — | Retarget CBA-L04.8 from retired CBA2-L04.8 to sole owner CBA2-L04.19. |
+| DR2-0138 | XW2 | XW2-0440 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0440 | — | Retarget CBA-L04.9 from retired CBA2-L04.9 to sole owner CBA2-L04.20. |
+| DR2-0138 | XW2 | XW2-0446 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0446 | — | Retarget CBA-L04.15 from retired CBA2-L04.15 to sole owner CBA2-L04.24. |
+| DR2-0138 | XW2 | XW2-0447 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0447 | — | Retarget CBA-L04.16 from retired CBA2-L04.16 to sole owner CBA2-L04.22. |
+| DR2-0138 | XW2 | XW2-0448 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0448 | — | Retarget CBA-L04.17 from retired CBA2-L04.17 to sole owner CBA2-L04.23. |
 
 ## Fragment inventory
 
@@ -402,12 +776,12 @@ scenario, app, data, Graphify, Linear, Phase 2, R7, or independent-review
 work. The two required terminal dispositions extend only the frozen
 search-manifest/search-set populations through `SM2-0017`/`SS2-0004`.
 
-- Exact-span/join/dependency audit — PASS: 134 published R/L/S rows; 241
-  matching LEAF-main, LEAF-detail, and evidence rows (90 R, 124 L, 27 S);
-  73 active dependency edges; 143 contiguous R6 crosswalk edges; 143 current
-  fragments exhaustively covering 133 R6-routed historical rows; exact quote,
-  span, fragment/edge reciprocity, Origin backlink, source token, and
-  dependency reconciliation; zero dependency cycles.
+- Exact-span/join/dependency audit — PASS: 134 published R/L/S rows; 214
+  matching LEAF-main, LEAF-detail, and evidence rows (85 R, 102 L, 27 S);
+  154 active R/L/S dependency edges; 143 contiguous R6 crosswalk edges; 143
+  current fragments exhaustively covering 133 R6-routed historical rows;
+  exact quote, span, fragment/edge reciprocity, Origin backlink, source token,
+  and dependency reconciliation; zero missing targets and zero cycles.
 - Historical reconciliation and preservation — PASS: all 47 R, 72 L, and 15
   S published rows resolve through 145 exact current fragments/edges,
   including the preserved accepted `CBA-L08.5` pair. All 568 accepted A/C
@@ -425,13 +799,12 @@ search-manifest/search-set populations through `SM2-0017`/`SS2-0004`.
   self-test fails as intended. The command exits 1 solely because the same
   seven inherited post-R4 future-plan wording diagnostics keep its legacy
   `baseline_clean` summary false; it reports no R6-local diagnostic.
-- `npm run lint:md` — nonzero on unrelated existing repository findings plus
-  the canon's 74 inherited MD029 scenario-number findings. Direct touched-file
-  lint passes for the plan and receipt; the canon reproduces exactly 74 MD029
-  findings against the checker-HEAD count, with no R6-added Markdown finding.
+- `npm run lint:md` — expected nonzero: 127 findings, comprising the canon's
+  exact 74 inherited MD029 scenario-number findings and 53 unrelated existing
+  repository findings. Direct touched-file lint adds no finding in the plan
+  or receipt and no R6-added canon finding.
 - `npm run docs:guardrails` — PASS.
-- `npm run validate:project` — initial sandboxed run could not create the
-  temporary `tsx` IPC socket (`EPERM`); approved unsandboxed rerun — PASS.
+- `npm run validate:project` — PASS.
 - `git diff --check` — PASS.
 - Scope confirmation — exactly the canon, governing plan, and this maker
   receipt are changed; no independent-review file, scenario, source code,
