@@ -2219,8 +2219,10 @@ completion.
 
 ## R5 — Source-certify C14–C25
 
-- **Dependency:** this process revision is committed and pushed from the
-  accepted R4 status baseline, and the branch is clean and synchronized.
+- **Dependency:** R4 was independently accepted at its exact checker
+  checkpoint before R5 began. This process revision is committed and pushed
+  from that accepted R4 status baseline, and the branch is clean and
+  synchronized.
 - **Authorized maker files:** canon, this plan, and the concise R5 maker
   receipt
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_R5_C_SERIES_SECOND_HALF_CERTIFICATION.md`.
@@ -2310,8 +2312,8 @@ blocked and unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 
-- **Dependency:** an exact R5 maker checkpoint has an independent
-  commit-specific ACCEPT.
+- **Dependency:** R5 was independently accepted at an exact commit-specific
+  checker checkpoint before R6 began.
 - **Authorized maker files:** canon, this plan, and the concise R6 maker
   receipt
   `work/architect-completion/ARCHITECT_CBA_CANON_V2_R6_R_L_S_SERIES_CERTIFICATION.md`.
@@ -2437,10 +2439,24 @@ governed R7 contract, with the concise maker receipt at
 R8 is unblocked but unstarted. Phase 1 remains open; Phase 2 and owner acceptance
 remain blocked through R9.
 
+**Bounded pre-R8 validator-route alignment — complete in this checkpoint.**
+The plan-route checks now follow the approved R5–R9 contract recorded here:
+independently accepted R4–R6 prerequisites remain required, completed R7
+unblocks R8 without a standalone R7 checker, R8 remains a maker
+reconciliation/checksum unit, and R9 remains the single independent
+whole-canon review, including scenario truth and sufficiency. The alignment
+changes no Canon, rule, evidence, scenario, lineage, or historical receipt
+content; it does not independently accept this validator change. Its concise
+receipt is
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R8_VALIDATOR_ROUTE_ALIGNMENT.md`.
+R7 remains complete, R8 remains unstarted, and Phase 2, W1.1, application
+work, Linear, and `main` remain blocked.
+
 ## R8 — Final maker reconciliation and checksum
 
 - **Dependency:** accepted R3.1/R4/R5/R6 rule checkpoints and a completed R7
-  scenario checkpoint.
+  scenario checkpoint. R7 maker completion is required before R8; no
+  standalone R7 checker or overlapping R8 checker is required or authorized.
 - **Authorized files:** canon, this plan, and one concise R8
   reconciliation/checksum receipt.
 - **Scope:** reconcile the complete relevant-rule coverage checklist,
@@ -2462,14 +2478,15 @@ remain blocked through R9.
   prepares the single final candidate; R9 supplies the independent
   whole-canon review. This removes the former duplicate R8/R9 audit without
   removing final independent acceptance.
-- **Exclusions:** no README or code-map expansion, Architect comparison,
-  application inspection or change, runtime sampling, Phase 2 packet or
-  verdict, data/configuration change, Linear, or `main`.
+- **Exclusions:** no README edit or expansion; no code-map edit or expansion;
+  no application or runtime inspection or change; no Phase 2 packet, work, or
+  verdict; and no Architect comparison, data/configuration change, Linear, or
+  `main`.
 
 ## R9 — Single independent whole-canon acceptance
 
-- **Inputs:** the exact clean, pushed R8 topic-branch checkpoint and checksum.
-  R9 does not require or authorize a merge to `main`.
+- **Inputs:** the pinned exact, clean, pushed R8 topic-branch checkpoint and
+  checksum. R9 does not require or authorize a merge to `main`.
 - **Independence and writes:** the reviewer must not have authored v2 rule or
   scenario content. The Phase 1 source tree is read-only during review; the
   sole write is the concise report
@@ -2500,9 +2517,10 @@ remain blocked through R9.
   concise owner-facing Phase 1 summary with the accepted checkpoint, coverage
   and source status, material limitations or unsupported items, scenario
   scope, and validation result. Only explicit owner acceptance closes Phase
-  1 and can authorize a separately scoped Phase 2. Until then, the Architect
-  comparison, application fixes, W1.1, Linear changes, and Phase 2 remain
-  blocked.
+  1 after R9 ACCEPT and can authorize a separately scoped Phase 2. Both R9
+  ACCEPT and explicit owner acceptance are required. Until then, the
+  Architect comparison, application fixes, W1.1, Linear changes, and Phase 2
+  remain blocked.
 
 ### Correctness protections retained
 

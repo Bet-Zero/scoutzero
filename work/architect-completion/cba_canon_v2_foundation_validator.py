@@ -1056,6 +1056,123 @@ def r8_has_started(plan):
                           status, re.I))
 
 
+def plan_route_field(section, *labels):
+    """Return one named R5-R9 route field without depending on its prose."""
+    for label in labels:
+        match = re.search(
+            r"(?ms)^- \*\*(%s):\*\*\s*(.*?)"
+            r"(?=^- \*\*|^\*\*|^#{2,6} |\Z)" % re.escape(label),
+            section)
+        if match:
+            return match.group(2).strip()
+    return ""
+
+
+def replace_plan_route_field(plan, start, end, label, replacement):
+    """Replace one named route field for a bounded negative control."""
+    section = plan_section(plan, start, end)
+    match = re.search(
+        r"(?ms)^- \*\*(%s):\*\*\s*(.*?)"
+        r"(?=^- \*\*|^\*\*|^#{2,6} |\Z)" % re.escape(label),
+        section)
+    if not section or not match:
+        raise AssertionError(
+            "plan section %r has no parseable %s route field"
+            % (start, label))
+    revised = (
+        section[:match.start()]
+        + "- **%s:** %s\n" % (match.group(1), replacement.strip())
+        + section[match.end():])
+    return plan.replace(section, revised, 1)
+
+
+def route_text(value):
+    """Normalize Markdown decoration and wrapping for semantic route checks."""
+    return re.sub(r"\s+", " ", re.sub(r"[`*_]+", "", value or "")).lower()
+
+
+def route_names_unit(value, unit):
+    """Recognize a named unit, including the governed R4-R6 shorthand."""
+    text = route_text(value)
+    token = unit.lower()
+    if re.search(r"\b%s\b" % re.escape(token), text):
+        return True
+    return token == "r5" and bool(
+        re.search(r"\br4\s*[–—-]\s*r6\b", text))
+
+
+def route_has_independent_acceptance(value, *units):
+    """A prerequisite names every unit and independent ACCEPT/acceptance."""
+    text = route_text(value)
+    return (
+        all(route_names_unit(text, unit) for unit in units)
+        and "independent" in text
+        and bool(re.search(r"\baccept(?:ed|ance)?\b", text))
+        and not re.search(
+            r"\b(?:without|omit(?:s|ted)?|not require[ds]?)\b.{0,80}"
+            r"\bindependent\b.{0,50}\baccept", text))
+
+
+def route_has_completed_unit(value, unit):
+    """A dependency positively requires a completed unit."""
+    text = route_text(value)
+    if not route_names_unit(text, unit):
+        return False
+    if re.search(
+            r"\b(?:without|omit(?:s|ted)?|not require[ds]?|need not)\b"
+            r".{0,80}\b%s\b.{0,50}\bcomplet" % re.escape(unit.lower()),
+            text):
+        return False
+    if re.search(r"\b%s\b.{0,40}\b(?:incomplete|still in progress)\b"
+                 % re.escape(unit.lower()), text):
+        return False
+    return bool(re.search(r"\b%s\b.{0,60}\bcomplet(?:e|ed|ion)\b"
+                          % re.escape(unit.lower()), text)
+                or re.search(r"\bcomplet(?:e|ed|ion)\b.{0,60}\b%s\b"
+                             % re.escape(unit.lower()), text))
+
+
+def route_has_standalone_r7_exclusion(value):
+    """The current route must expressly bar a separate R7 acceptance pass."""
+    text = route_text(value)
+    return (
+        route_names_unit(text, "r7")
+        and "standalone" in text
+        and "independent" in text
+        and bool(re.search(r"\b(?:accept|checker|review|pass)", text))
+        and bool(re.search(
+            r"\b(?:no|without|not required|not authorized)\b.{0,100}"
+            r"\bstandalone\b", text)))
+
+
+def route_affirmatively_requires_standalone_r7(section):
+    """Reject a positive standalone-R7-checker route, but not its exclusion."""
+    blocks = re.split(r"\n\n+|(?=^- \*\*)", section, flags=re.M)
+    for block in blocks:
+        text = route_text(block)
+        if not route_names_unit(text, "r7"):
+            continue
+        if re.search(
+                r"\b(?:no|without|not required|not authorized)\b.{0,100}"
+                r"\bstandalone\b", text):
+            continue
+        if re.search(r"\bindependently accepted r7\b", text):
+            return True
+        if ("independent" in text
+                and re.search(r"\b(?:checker|acceptance|review)\b", text)
+                and re.search(
+                    r"\b(?:must|require[ds]?|receives?|before r8)\b", text)):
+            return True
+    return False
+
+
+def current_r7_r9_route(r7):
+    """True only for the approved completed-R7/no-standalone-checker route."""
+    return bool(re.search(
+        r"\br7 execution status\b.{0,100}\bcomplete\b",
+        route_text(r7)))
+
+
 def check_plan(plan):
     probs = []
     if plan is None:
@@ -1322,25 +1439,98 @@ def check_plan(plan):
     r7 = plan_section(plan, "## R7 ", "## R8 ")
     r8 = plan_section(plan, "## R8 ", "## R9 ")
     r9 = plan_section(plan, "## R9 ", "## Standing prohibitions")
-    if not re.search(r"completed R4 with an\s+independent checker ACCEPT", r5):
+    r5_dependency = plan_route_field(r5, "Dependency")
+    r6_dependency = plan_route_field(r6, "Dependency")
+    r7_dependency = plan_route_field(r7, "Dependency")
+    r8_dependency = plan_route_field(r8, "Dependency")
+    r8_exclusions = plan_route_field(r8, "Exclusions",
+                                     "Explicit exclusions")
+    r9_inputs = plan_route_field(r9, "Inputs")
+    r9_gate = plan_route_field(r9, "Owner gate", "Validation gate")
+    revised_route = current_r7_r9_route(r7)
+
+    if not route_has_independent_acceptance(r5_dependency, "r4"):
         probs.append("plan R5 does not require independent R4 acceptance")
-    if not re.search(r"completed R5 with an\s+independent checker ACCEPT", r6):
+    if not route_has_independent_acceptance(r6_dependency, "r5"):
         probs.append("plan R6 does not require independent R5 acceptance")
-    if not re.search(r"R3\.1 and R4.R6 each complete with an independent\s+"
-                     r"checker ACCEPT", r7):
+    if not route_has_independent_acceptance(
+            r7_dependency, "r3.1", "r4", "r5", "r6"):
         probs.append("plan R7 dependency does not require independent checker "
                      "acceptance of R3.1 and R4-R6")
-    if not re.search(r"R7 complete with an independent checker ACCEPT", r8):
-        probs.append("plan R8 does not depend on an independently accepted R7")
-    forbidden_r8 = ("README edit", "code-map edit", "runtime inspection",
-                    "Phase 2 packet")
-    if any(x not in r8 for x in forbidden_r8):
+    if revised_route:
+        if not route_has_completed_unit(r8_dependency, "r7"):
+            probs.append(
+                "plan R8 does not require completed R7 before maker "
+                "reconciliation")
+        r7_review = plan_route_field(r7, "Review boundary")
+        if (not route_has_standalone_r7_exclusion(r7_review)
+                or route_affirmatively_requires_standalone_r7(r7 + r8)):
+            probs.append(
+                "plan current R7-R9 route does not exclude a standalone R7 "
+                "checker")
+        r9_consistency = plan_route_field(r9, "Consistency scope")
+        consistency_text = route_text(r9_consistency)
+        if (not re.search(r"\bscenario", consistency_text)
+                or not re.search(r"\btruth\b", consistency_text)
+                or not re.search(r"\bsufficien", consistency_text)
+                or "independent" not in route_text(r9)):
+            probs.append(
+                "plan R9 does not independently review scenario truth and "
+                "sufficiency")
+    elif not route_has_independent_acceptance(r8_dependency, "r7"):
+        probs.append(
+            "historical plan R8 does not preserve independently accepted R7")
+
+    exclusion_text = route_text(r8_exclusions)
+    r8_exclusion_concepts = (
+        ("README", r"\breadme\b"),
+        ("code-map", r"\bcode[- ]map\b"),
+        ("application inspection", r"\bapplication\b"),
+        ("runtime inspection", r"\bruntime\b"),
+        ("Phase 2", r"\bphase\s*2\b"),
+    )
+    if (not r8_exclusions
+            or any(not re.search(pattern, exclusion_text)
+                   for _label, pattern in r8_exclusion_concepts)):
         probs.append("plan R8 does not explicitly exclude README/code-map/"
                      "runtime/Phase-2 expansion")
-    if not re.search(r"pinned, clean \*\*topic-branch\s+checkpoint", r9):
+
+    input_text = route_text(r9_inputs)
+    pinned_clean_topic = (
+        bool(re.search(r"\b(?:pinned|exact)\b", input_text))
+        and "clean" in input_text
+        and bool(re.search(r"\btopic[- ]branch\b", input_text))
+        and "checkpoint" in input_text
+        and not re.search(
+            r"\b(?:unpinned|dirty|non[- ]topic|local[- ]only|unpushed)\b",
+            input_text))
+    if revised_route:
+        pinned_clean_topic = (
+            pinned_clean_topic
+            and route_names_unit(input_text, "r8")
+            and "pushed" in input_text
+            and "checksum" in input_text)
+    if not pinned_clean_topic:
         probs.append("plan R9 input is not a pinned clean topic-branch "
                      "checkpoint")
-    if not re.search(r"R9\s+ACCEPT plus owner acceptance", r9):
+
+    gate_text = route_text(r9_gate)
+    joint_gate = (
+        route_names_unit(gate_text, "r9")
+        and bool(re.search(r"\baccept\b", gate_text))
+        and "owner acceptance" in gate_text
+        and "explicit" in gate_text
+        and bool(re.search(r"\bphase\s*1\b", gate_text))
+        and bool(re.search(r"\bclose[sd]?\b", gate_text))
+        and bool(re.search(
+            r"\b(?:both|plus)\b|"
+            r"\br9\b.{0,40}\baccept\b.{0,80}\band\b.{0,40}"
+            r"\bowner acceptance\b",
+            gate_text))
+        and not re.search(
+            r"\b(?:alone|either|optional|not required|without)\b",
+            gate_text))
+    if not joint_gate:
         probs.append("plan R9 does not require both reviewer and owner "
                      "acceptance to close Phase 1")
     if "ARCHITECT_CBA_CANON_V2_R9_INDEPENDENT_ACCEPTANCE.md" not in r9:
@@ -7602,6 +7792,158 @@ def run_cases(repo):
           "checkpoint pending and not accepted",
           H.docs(migrated=True, **{P: same_pending_post}), True,
           "leaves a compatibility checkpoint pending/not accepted")
+
+    # Current R5-R9 route controls use the live plan while retaining the
+    # accepted-status control-tree pointer inside this temporary repository.
+    # They prove the completed-R7 route without inventing a standalone R7
+    # checker and leave every canon/parser/source/scenario control untouched.
+    current_plan = Tree(repo.src).plan
+    if current_plan is None:
+        raise AssertionError("live plan is not resolvable for route controls")
+    route_plan = set_accepted_status_control_tree(current_plan, repo.control)
+
+    def route_variant(start, end, label, replacement):
+        return replace_plan_route_field(
+            route_plan, start, end, label, replacement)
+
+    H.run(
+        "RT0",
+        "current R5-R9 route: independently accepted prerequisites, "
+        "completed R7, maker-only R8, independent whole-canon R9, and the "
+        "two-part Phase 1 close gate",
+        H.docs(migrated=True, **{P: route_plan}),
+        False)
+    H.run(
+        "RT1",
+        "current R5 route omits independent R4 acceptance before R5",
+        H.docs(migrated=True, **{
+            P: route_variant(
+                "## R5 ", "## R6 ", "Dependency",
+                "R5 may begin after the R4 maker checkpoint.")
+        }),
+        True,
+        "plan R5 does not require independent R4 acceptance")
+    H.run(
+        "RT2",
+        "current R6 route omits independent R5 acceptance before R6",
+        H.docs(migrated=True, **{
+            P: route_variant(
+                "## R6 ", "## R7 ", "Dependency",
+                "R6 may begin after the R5 maker checkpoint.")
+        }),
+        True,
+        "plan R6 does not require independent R5 acceptance")
+    H.run(
+        "RT3",
+        "current R7 route omits accepted R3.1/R4/R5/R6 prerequisites",
+        H.docs(migrated=True, **{
+            P: route_variant(
+                "## R7 ", "## R8 ", "Dependency",
+                "R7 requires only the completed R6 maker checkpoint.")
+        }),
+        True,
+        "plan R7 dependency does not require independent checker acceptance")
+    H.run(
+        "RT4",
+        "current R8 route permits maker reconciliation while R7 is still in "
+        "progress",
+        H.docs(migrated=True, **{
+            P: route_variant(
+                "## R8 ", "## R9 ", "Dependency",
+                "Accepted R3.1/R4/R5/R6 rule checkpoints; R8 may begin while "
+                "R7 is still in progress.")
+        }),
+        True,
+        "plan R8 does not require completed R7")
+    H.run(
+        "RT5",
+        "current route reintroduces a standalone R7 checker before R8",
+        H.docs(migrated=True, **{
+            P: route_variant(
+                "## R7 ", "## R8 ", "Review boundary",
+                "R7 receives its own standalone independent checker, whose "
+                "ACCEPT is required before R8.")
+        }),
+        True,
+        "does not exclude a standalone R7 checker")
+    H.run(
+        "RT6",
+        "current R9 consistency scope removes independent scenario truth and "
+        "sufficiency review",
+        H.docs(migrated=True, **{
+            P: route_variant(
+                "## R9 ", "## Standing prohibitions", "Consistency scope",
+                "Confirm stable and atomic active rule IDs, dependency and "
+                "evidence closure, source quality, truthful unsupported "
+                "items, complete old-rule-to-current-rule mapping, and "
+                "consistency across accepted unit checkpoints.")
+        }),
+        True,
+        "does not independently review scenario truth and sufficiency")
+
+    r8_route = plan_section(route_plan, "## R8 ", "## R9 ")
+    r8_exclusions = plan_route_field(r8_route, "Exclusions")
+    for case_name, concept, old, new in (
+            ("RT7A", "README", "README", "documentation-index"),
+            ("RT7B", "code-map", "code-map", "repository-map"),
+            ("RT7C", "application inspection", "application", "product"),
+            ("RT7D", "runtime inspection", "runtime", "execution"),
+            ("RT7E", "Phase 2", "Phase 2", "later-phase")):
+        H.run(
+            case_name,
+            "current R8 exclusions omit %s" % concept,
+            H.docs(migrated=True, **{
+                P: route_variant(
+                    "## R8 ", "## R9 ", "Exclusions",
+                    mut(r8_exclusions, old, new))
+            }),
+            True,
+            "plan R8 does not explicitly exclude README/code-map/runtime/"
+            "Phase-2 expansion")
+
+    r9_route = plan_section(
+        route_plan, "## R9 ", "## Standing prohibitions")
+    r9_inputs = plan_route_field(r9_route, "Inputs")
+    for case_name, state, old, new in (
+            ("RT8A", "unpinned", "pinned exact", "unpinned"),
+            ("RT8B", "dirty", "clean", "dirty"),
+            ("RT8C", "unpushed", "pushed", "unpushed"),
+            ("RT8D", "non-topic branch", "topic-branch", "non-topic branch"),
+            ("RT8E", "checksum-free", " and\n  checksum", "")):
+        H.run(
+            case_name,
+            "current R9 input permits a %s candidate" % state,
+            H.docs(migrated=True, **{
+                P: route_variant(
+                    "## R9 ", "## Standing prohibitions", "Inputs",
+                    mut(r9_inputs, old, new))
+            }),
+            True,
+            "plan R9 input is not a pinned clean topic-branch checkpoint")
+
+    H.run(
+        "RT9A",
+        "current route allows R9 ACCEPT alone to close Phase 1",
+        H.docs(migrated=True, **{
+            P: route_variant(
+                "## R9 ", "## Standing prohibitions", "Owner gate",
+                "R9 ACCEPT alone closes Phase 1; explicit owner acceptance "
+                "is optional.")
+        }),
+        True,
+        "does not require both reviewer and owner acceptance")
+    H.run(
+        "RT9B",
+        "current route allows explicit owner acceptance alone to close "
+        "Phase 1",
+        H.docs(migrated=True, **{
+            P: route_variant(
+                "## R9 ", "## Standing prohibitions", "Owner gate",
+                "Explicit owner acceptance alone closes Phase 1; R9 ACCEPT "
+                "is optional.")
+        }),
+        True,
+        "does not require both reviewer and owner acceptance")
 
     # Semantic source truth belongs to the checker: a structurally valid
     # locator is not rejected by software merely because of a keyword.
