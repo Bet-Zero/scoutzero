@@ -1086,6 +1086,121 @@ def replace_plan_route_field(plan, start, end, label, replacement):
     return plan.replace(section, revised, 1)
 
 
+def remove_plan_route_field(plan, start, end, label):
+    """Remove one named current-route field for a bounded drift control."""
+    section = plan_section(plan, start, end)
+    match = re.search(
+        r"(?ms)^- \*\*(%s):\*\*\s*(.*?)"
+        r"(?=^- \*\*|^\*\*|^#{2,6} |\Z)" % re.escape(label),
+        section)
+    if not section or not match:
+        raise AssertionError(
+            "plan section %r has no parseable %s route field"
+            % (start, label))
+    revised = section[:match.start()] + section[match.end():]
+    return plan.replace(section, revised, 1)
+
+
+def normalize_route_contract_field(value):
+    """Normalize only Markdown decoration, whitespace, and line wrapping."""
+    return re.sub(
+        r"\s+", " ", re.sub(r"[`*_]+", "", value or "")).strip()
+
+
+# Completed-R7 current route: these nine normalized values are a controlled
+# contract through Phase 1 closure. Any intentional change requires a
+# coordinated plan/validator update and independent review.
+CURRENT_ROUTE_CONTRACT = (
+    (
+        "R5 Dependency", "## R5 ", "## R6 ", "Dependency",
+        "R4 was independently accepted at its exact checker checkpoint "
+        "before R5 began. This process revision is committed and pushed from "
+        "that accepted R4 status baseline, and the branch is clean and "
+        "synchronized.",
+        "plan R5 does not require independent R4 acceptance",
+    ),
+    (
+        "R6 Dependency", "## R6 ", "## R7 ", "Dependency",
+        "R5 was independently accepted at an exact commit-specific checker "
+        "checkpoint before R6 began.",
+        "plan R6 does not require independent R5 acceptance",
+    ),
+    (
+        "R7 Dependency", "## R7 ", "## R8 ", "Dependency",
+        "R3.1, R4, R5, and R6 each have an independent commit-specific "
+        "ACCEPT for their rule content.",
+        "plan R7 dependency does not require independent checker acceptance "
+        "of R3.1 and R4-R6",
+    ),
+    (
+        "R7 Review boundary", "## R7 ", "## R8 ", "Review boundary",
+        "R7 has no duplicative standalone independent acceptance pass. The "
+        "single final R9 reviewer independently judges scenario truth and "
+        "sufficiency as part of whole-canon acceptance.",
+        "plan current R7-R9 route does not exclude a standalone R7 checker",
+    ),
+    (
+        "R8 Dependency", "## R8 ", "## R9 ", "Dependency",
+        "accepted R3.1/R4/R5/R6 rule checkpoints and a completed R7 scenario "
+        "checkpoint. R7 maker completion is required before R8; no "
+        "standalone R7 checker or overlapping R8 checker is required or "
+        "authorized.",
+        "plan R8 does not require completed R7 before maker reconciliation",
+    ),
+    (
+        "R8 Exclusions", "## R8 ", "## R9 ", "Exclusions",
+        "no README edit or expansion; no code-map edit or expansion; no "
+        "application or runtime inspection or change; no Phase 2 packet, "
+        "work, or verdict; and no Architect comparison, data/configuration "
+        "change, Linear, or main.",
+        "plan R8 does not explicitly exclude README/code-map/runtime/Phase-2 "
+        "expansion",
+    ),
+    (
+        "R9 Inputs", "## R9 ", "## Standing prohibitions", "Inputs",
+        "the pinned exact, clean, pushed R8 topic-branch checkpoint and "
+        "checksum. R9 does not require or authorize a merge to main.",
+        "plan R9 input is not a pinned clean topic-branch checkpoint",
+    ),
+    (
+        "R9 Consistency scope", "## R9 ", "## Standing prohibitions",
+        "Consistency scope",
+        "confirm stable and atomic active rule IDs, dependency and evidence "
+        "closure, source quality, truthful unsupported items, complete "
+        "old-rule-to-current-rule mapping, material scenario truth and "
+        "sufficiency, and consistency across the independently accepted unit "
+        "checkpoints.",
+        "plan R9 does not independently review scenario truth and sufficiency",
+    ),
+    (
+        "R9 Owner gate", "## R9 ", "## Standing prohibitions", "Owner gate",
+        "R9 ACCEPT is necessary but not sufficient. Present one concise "
+        "owner-facing Phase 1 summary with the accepted checkpoint, coverage "
+        "and source status, material limitations or unsupported items, "
+        "scenario scope, and validation result. Only explicit owner "
+        "acceptance closes Phase 1 after R9 ACCEPT and can authorize a "
+        "separately scoped Phase 2. Both R9 ACCEPT and explicit owner "
+        "acceptance are required. Until then, the Architect comparison, "
+        "application fixes, W1.1, Linear changes, and Phase 2 remain blocked.",
+        "plan R9 does not require both reviewer and owner acceptance to close "
+        "Phase 1",
+    ),
+)
+
+
+def current_route_contract_hash():
+    """Hash the ordered names and approved normalized route-field values."""
+    payload = "\n".join(
+        "%s\n%s" % (name, expected)
+        for name, _start, _end, _label, expected, _diagnostic
+        in CURRENT_ROUTE_CONTRACT)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+CURRENT_ROUTE_CONTRACT_SHA256 = \
+    "b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1"
+
+
 def route_text(value):
     """Normalize Markdown decoration and wrapping for semantic route checks."""
     return re.sub(r"\s+", " ", re.sub(r"[`*_]+", "", value or "")).lower()
@@ -1674,59 +1789,67 @@ def check_plan(plan):
     r6_dependency = plan_route_field(r6, "Dependency")
     r7_dependency = plan_route_field(r7, "Dependency")
     r8_dependency = plan_route_field(r8, "Dependency")
-    r8_exclusions = plan_route_field(r8, "Exclusions",
-                                     "Explicit exclusions")
-    r9_inputs = plan_route_field(r9, "Inputs")
-    r9_gate = plan_route_field(r9, "Owner gate", "Validation gate")
     revised_route = current_r7_r9_route(r7)
 
-    if not route_has_independent_acceptance(r5_dependency, "r5", "r4"):
-        probs.append("plan R5 does not require independent R4 acceptance")
-    if not route_has_independent_acceptance(r6_dependency, "r6", "r5"):
-        probs.append("plan R6 does not require independent R5 acceptance")
-    if not route_has_independent_acceptance(
-            r7_dependency, "r7", "r3.1", "r4", "r5", "r6"):
-        probs.append("plan R7 dependency does not require independent checker "
-                     "acceptance of R3.1 and R4-R6")
     if revised_route:
-        if not route_has_completed_unit(r8_dependency, "r7", "r8"):
+        if current_route_contract_hash() != CURRENT_ROUTE_CONTRACT_SHA256:
             probs.append(
-                "plan R8 does not require completed R7 before maker "
-                "reconciliation")
-        r7_review = plan_route_field(r7, "Review boundary")
-        if (not route_has_standalone_r7_exclusion(r7_review)
-                or route_affirmatively_requires_standalone_r7(r7 + r8)):
+                "validator current-route contract hash does not match its "
+                "recorded deterministic value")
+        sections = {
+            ("## R5 ", "## R6 "): r5,
+            ("## R6 ", "## R7 "): r6,
+            ("## R7 ", "## R8 "): r7,
+            ("## R8 ", "## R9 "): r8,
+            ("## R9 ", "## Standing prohibitions"): r9,
+        }
+        for (_name, start, end, label, expected,
+             diagnostic) in CURRENT_ROUTE_CONTRACT:
+            actual = plan_route_field(sections[(start, end)], label)
+            if normalize_route_contract_field(actual) != expected:
+                probs.append(diagnostic)
+    else:
+        # Historical accepted-status control trees retain their original
+        # semantic maker/checker validation model.
+        if not route_has_independent_acceptance(
+                r5_dependency, "r5", "r4"):
+            probs.append("plan R5 does not require independent R4 acceptance")
+        if not route_has_independent_acceptance(
+                r6_dependency, "r6", "r5"):
+            probs.append("plan R6 does not require independent R5 acceptance")
+        if not route_has_independent_acceptance(
+                r7_dependency, "r7", "r3.1", "r4", "r5", "r6"):
             probs.append(
-                "plan current R7-R9 route does not exclude a standalone R7 "
-                "checker")
-        r9_consistency = plan_route_field(r9, "Consistency scope")
-        if not route_has_independent_scenario_review(r9, r9_consistency):
+                "plan R7 dependency does not require independent checker "
+                "acceptance of R3.1 and R4-R6")
+        if not route_has_independent_acceptance(
+                r8_dependency, "r8", "r7"):
             probs.append(
-                "plan R9 does not independently review scenario truth and "
-                "sufficiency")
-    elif not route_has_independent_acceptance(
-            r8_dependency, "r8", "r7"):
-        probs.append(
-            "historical plan R8 does not preserve independently accepted R7")
+                "historical plan R8 does not preserve independently accepted "
+                "R7")
 
-    r8_exclusion_concepts = (
-        ("README", r"\breadme\b"),
-        ("code-map", r"\bcode[- ]map\b"),
-        ("application inspection", r"\bapplication\b"),
-        ("runtime inspection", r"\bruntime\b"),
-        ("Phase 2", r"\bphase\s*2\b"),
-    )
-    if not route_field_excludes(r8_exclusions, r8_exclusion_concepts):
-        probs.append("plan R8 does not explicitly exclude README/code-map/"
-                     "runtime/Phase-2 expansion")
+        r8_exclusions = plan_route_field(
+            r8, "Exclusions", "Explicit exclusions")
+        r8_exclusion_concepts = (
+            ("README", r"\breadme\b"),
+            ("code-map", r"\bcode[- ]map\b"),
+            ("application inspection", r"\bapplication\b"),
+            ("runtime inspection", r"\bruntime\b"),
+            ("Phase 2", r"\bphase\s*2\b"),
+        )
+        if not route_field_excludes(r8_exclusions, r8_exclusion_concepts):
+            probs.append("plan R8 does not explicitly exclude README/code-map/"
+                         "runtime/Phase-2 expansion")
 
-    if not route_has_required_r9_candidate(r9_inputs, revised_route):
-        probs.append("plan R9 input is not a pinned clean topic-branch "
-                     "checkpoint")
+        r9_inputs = plan_route_field(r9, "Inputs")
+        if not route_has_required_r9_candidate(r9_inputs, False):
+            probs.append("plan R9 input is not a pinned clean topic-branch "
+                         "checkpoint")
 
-    if not route_has_joint_owner_gate(r9_gate):
-        probs.append("plan R9 does not require both reviewer and owner "
-                     "acceptance to close Phase 1")
+        r9_gate = plan_route_field(r9, "Owner gate", "Validation gate")
+        if not route_has_joint_owner_gate(r9_gate):
+            probs.append("plan R9 does not require both reviewer and owner "
+                         "acceptance to close Phase 1")
     if "ARCHITECT_CBA_CANON_V2_R9_INDEPENDENT_ACCEPTANCE.md" not in r9:
         probs.append("plan R9 does not name its sole authorized report path")
     return probs
@@ -8000,6 +8123,9 @@ def run_cases(repo):
         return replace_plan_route_field(
             route_plan, start, end, label, replacement)
 
+    def route_omitted(start, end, label):
+        return remove_plan_route_field(route_plan, start, end, label)
+
     H.run(
         "RT0",
         "current R5-R9 route: independently accepted prerequisites, "
@@ -8139,68 +8265,78 @@ def run_cases(repo):
         True,
         "does not require both reviewer and owner acceptance")
 
-    # Equivalent truthful phrasing must remain valid. These controls exercise
-    # the governed propositions without copying the live plan's sentences.
-    for name, desc, start, end, label, replacement in (
+    # The former current-route paraphrase acceptances are deliberately
+    # superseded one-for-one by deterministic drift rejections. The nine
+    # approved fields are controlled values through Phase 1 closure.
+    for name, desc, start, end, label, replacement, diagnostic in (
             (
-                "RP-A1", "R5 prerequisite uses recorded independent "
-                "acceptance wording",
+                "RP-A1", "R5 nouns appear without the frozen prerequisite "
+                "chronology",
                 "## R5 ", "## R6 ", "Dependency",
-                "Before R5 construction, R4 received an independent "
-                "commit-specific acceptance; the branch is clean and "
-                "synchronized."),
+                "R4 received independent acceptance. R5 construction exists.",
+                "plan R5 does not require independent R4 acceptance"),
             (
-                "RP-A2", "R6 prerequisite uses follows-recorded-acceptance "
-                "wording",
+                "RP-A2", "R6 nouns appear without the frozen prerequisite "
+                "chronology",
                 "## R6 ", "## R7 ", "Dependency",
-                "R6 construction follows the independent acceptance "
-                "recorded for R5."),
+                "R5 received independent acceptance. R6 construction exists.",
+                "plan R6 does not require independent R5 acceptance"),
             (
-                "RP-A3", "R7 prerequisites use an inclusive R4-R6 range",
+                "RP-A3", "R7 nouns appear without the frozen prerequisite "
+                "chronology",
                 "## R7 ", "## R8 ", "Dependency",
-                "Independent acceptance was recorded for R3.1 and for every "
-                "unit from R4–R6 before R7 construction."),
+                "R3.1, R4, R5, and R6 received independent acceptance. R7 "
+                "construction exists.",
+                "plan R7 dependency does not require independent checker "
+                "acceptance"),
             (
-                "RP-A4", "R8 prerequisite uses recorded R7 completion",
+                "RP-A4", "R8 nouns appear without the frozen completion "
+                "chronology",
                 "## R8 ", "## R9 ", "Dependency",
-                "R8 starts only after the accepted R3.1/R4/R5/R6 "
-                "checkpoints and recorded completion of R7."),
+                "R7 is complete. R8 reconciliation exists.",
+                "plan R8 does not require completed R7"),
             (
-                "RP-A5", "R7 review boundary prohibits a standalone checker",
+                "RP-A5", "standalone R7 checker is conditionally allowed",
                 "## R7 ", "## R8 ", "Review boundary",
-                "A standalone independent R7 checker is prohibited; R9 "
-                "alone performs the independent scenario review."),
+                "A standalone independent R7 checker is unauthorized in "
+                "principle, but may occur.",
+                "does not exclude a standalone R7 checker"),
             (
-                "RP-A6", "R9 independently assesses scenario accuracy and "
-                "adequacy",
+                "RP-A6", "maker is named as the scenario reviewer",
                 "## R9 ", "## Standing prohibitions", "Consistency scope",
-                "Independently assess scenario accuracy and adequacy "
-                "alongside accepted-unit consistency."),
+                "Scenario truth and sufficiency are independently reviewed "
+                "by the maker.",
+                "does not independently review scenario truth and "
+                "sufficiency"),
             (
-                "RP-A7", "R8 exclusions use prohibited/outside/forbidden "
-                "wording",
+                "RP-A7", "R8 prohibitions are contradicted by a second "
+                "allowance clause",
                 "## R8 ", "## R9 ", "Exclusions",
                 "README and code-map edits are prohibited; application and "
-                "runtime inspection are outside this unit; Phase 2 work is "
-                "forbidden."),
+                "runtime inspection are prohibited; Phase 2 work is "
+                "prohibited, but any of these may still occur.",
+                "does not explicitly exclude README/code-map/runtime/Phase-2 "
+                "expansion"),
             (
-                "RP-A8", "R9 candidate uses synchronized commit and digest "
-                "wording",
+                "RP-A8", "R9 candidate state is conditional on practicality",
                 "## R9 ", "## Standing prohibitions", "Inputs",
-                "R9 must use a pinned clean R8 topic-branch commit "
-                "synchronized with origin and carrying a recorded digest."),
+                "Use the exact pinned clean pushed R8 topic-branch checkpoint "
+                "and checksum if practical.",
+                "plan R9 input is not a pinned clean topic-branch checkpoint"),
             (
-                "RP-A9", "Phase 1 close gate uses both-and-necessary wording",
+                "RP-A9", "both closure gates are only encouraged",
                 "## R9 ", "## Standing prohibitions", "Owner gate",
-                "Both R9 ACCEPT and explicit owner acceptance are necessary "
-                "before Phase 1 can close.")):
+                "Both R9 ACCEPT and explicit owner acceptance are encouraged "
+                "before Phase 1 closes.",
+                "does not require both reviewer and owner acceptance")):
         H.run(
             name,
-            "polarity-aware paraphrase: %s" % desc,
+            "deterministic route drift: %s" % desc,
             H.docs(migrated=True, **{
                 P: route_variant(start, end, label, replacement)
             }),
-            False)
+            True,
+            diagnostic)
 
     # Direct polarity inversions must reject through the route diagnostic for
     # the proposition they negate, even when all required nouns are present.
@@ -8321,62 +8457,118 @@ def run_cases(repo):
             True,
             diagnostic)
 
-    # Semantic-order controls extend the same governed propositions. Positive
-    # cases prove chronology/ownership flexibility; rejecting cases exercise
-    # weakening, reversal, contradiction, and reviewer transfer.
-    for name, desc, start, end, label, replacement in (
+    # The second nine former paraphrase acceptances complete the one-for-one
+    # migration and cover the remaining reproduced drift plus ordering,
+    # weakening, contradiction, punctuation/case, truncation, and extra text.
+    for name, desc, start, end, label, replacement, diagnostic in (
             (
-                "SO-A1", "R5 starts only after independent R4 acceptance",
-                "## R5 ", "## R6 ", "Dependency",
-                "R5 starts only after independent acceptance of R4 is "
-                "recorded."),
+                "SO-A1", "independent scenario review is merely suggested",
+                "## R9 ", "## Standing prohibitions", "Consistency scope",
+                "Independent scenario truth and sufficiency review is "
+                "suggested.",
+                "does not independently review scenario truth and "
+                "sufficiency"),
             (
-                "SO-A2", "R6 follows independent R5 acceptance",
+                "SO-A2", "approved R6 dependency words are reordered",
                 "## R6 ", "## R7 ", "Dependency",
-                "R6 follows the independent acceptance of R5."),
+                "Before R6 began, R5 was independently accepted at an exact "
+                "commit-specific checker checkpoint.",
+                "plan R6 does not require independent R5 acceptance"),
             (
-                "SO-A3", "R7 starts only after every accepted prerequisite",
+                "SO-A3", "approved R7 prerequisite is weakened by advice",
                 "## R7 ", "## R8 ", "Dependency",
-                "R7 construction starts only after independent acceptance of "
-                "R3.1, R4, R5, and R6."),
+                "R3.1, R4, R5, and R6 each have an independent "
+                "commit-specific ACCEPT for their rule content; this is "
+                "recommended.",
+                "plan R7 dependency does not require independent checker "
+                "acceptance"),
             (
-                "SO-A4", "R8 starts only after recorded R7 completion",
+                "SO-A4", "R8 completion duty is contradicted in a second "
+                "clause",
                 "## R8 ", "## R9 ", "Dependency",
-                "R8 starts only after recorded R7 completion."),
+                "R7 is complete, but R8 may begin without completed R7.",
+                "plan R8 does not require completed R7"),
             (
-                "SO-A5", "a standalone independent R7 checker is unauthorized",
+                "SO-A5", "truthful standalone-checker paraphrase is "
+                "unauthorized drift",
                 "## R7 ", "## R8 ", "Review boundary",
                 "A standalone independent R7 checker is unauthorized; R9 "
-                "performs the independent scenario review."),
+                "performs the independent scenario review.",
+                "does not exclude a standalone R7 checker"),
             (
-                "SO-A6", "R9's independent reviewer assesses scenarios",
+                "SO-A6", "approved scenario scope changes punctuation",
                 "## R9 ", "## Standing prohibitions", "Consistency scope",
-                "R9's independent reviewer assesses scenario accuracy and "
-                "adequacy."),
+                "confirm stable and atomic active rule IDs; dependency and "
+                "evidence closure, source quality, truthful unsupported "
+                "items, complete old-rule-to-current-rule mapping, material "
+                "scenario truth and sufficiency, and consistency across the "
+                "independently accepted unit checkpoints.",
+                "does not independently review scenario truth and "
+                "sufficiency"),
             (
-                "SO-A7", "R8 surfaces are forbidden, outside R8, or "
-                "prohibited",
+                "SO-A7", "approved R8 exclusion changes letter case",
                 "## R8 ", "## R9 ", "Exclusions",
-                "README and code-map edits are forbidden; application and "
-                "runtime inspection are outside R8; Phase 2 work is "
-                "prohibited."),
+                "No README edit or expansion; no code-map edit or expansion; "
+                "no application or runtime inspection or change; no Phase 2 "
+                "packet, work, or verdict; and no Architect comparison, "
+                "data/configuration change, Linear, or main.",
+                "does not explicitly exclude README/code-map/runtime/Phase-2 "
+                "expansion"),
             (
-                "SO-A8", "R9 candidate must carry every required state",
+                "SO-A8", "approved R9 input is truncated",
                 "## R9 ", "## Standing prohibitions", "Inputs",
-                "The R9 candidate must be an exact pinned, clean, pushed R8 "
-                "topic-branch checkpoint carrying a checksum."),
+                "the pinned exact, clean, pushed R8 topic-branch checkpoint "
+                "and checksum.",
+                "plan R9 input is not a pinned clean topic-branch checkpoint"),
             (
-                "SO-A9", "both closure gates are required and necessary",
+                "SO-A9", "approved owner gate gains an extra route clause",
                 "## R9 ", "## Standing prohibitions", "Owner gate",
-                "Both R9 ACCEPT and explicit owner acceptance are required "
-                "and necessary before Phase 1 closes.")):
+                "R9 ACCEPT is necessary but not sufficient. Both R9 ACCEPT "
+                "and explicit owner acceptance are required before Phase 1 "
+                "closes.",
+                "does not require both reviewer and owner acceptance")):
         H.run(
             name,
-            "semantic-order paraphrase: %s" % desc,
+            "deterministic route drift: %s" % desc,
             H.docs(migrated=True, **{
                 P: route_variant(start, end, label, replacement)
             }),
-            False)
+            True,
+            diagnostic)
+
+    # Each controlled field independently rejects omission.
+    for index, (name, start, end, label, _expected,
+                diagnostic) in enumerate(CURRENT_ROUTE_CONTRACT, 1):
+        H.run(
+            "DC-O%d" % index,
+            "current-route field omitted: %s" % name,
+            H.docs(migrated=True, **{
+                P: route_omitted(start, end, label)
+            }),
+            True,
+            diagnostic)
+
+    # Normalization is intentionally limited but real: Markdown decoration,
+    # whitespace, and line wrapping may vary without changing the contract.
+    markdown_plan = route_plan
+    wrapped_plan = route_plan
+    for (_name, start, end, label, expected,
+         _diagnostic) in CURRENT_ROUTE_CONTRACT:
+        markdown_plan = replace_plan_route_field(
+            markdown_plan, start, end, label, "**%s**" % expected)
+        wrapped_plan = replace_plan_route_field(
+            wrapped_plan, start, end, label,
+            expected.replace(" ", "\n  ", 1))
+    H.run(
+        "DC-A1",
+        "current-route contract accepts Markdown-decoration-only changes",
+        H.docs(migrated=True, **{P: markdown_plan}),
+        False)
+    H.run(
+        "DC-A2",
+        "current-route contract accepts whitespace and line-wrap changes",
+        H.docs(migrated=True, **{P: wrapped_plan}),
+        False)
 
     for name, desc, start, end, label, replacement, diagnostic in (
             (

@@ -2452,6 +2452,13 @@ receipt is
 R7 remains complete, R8 remains unstarted, and Phase 2, W1.1, application
 work, Linear, and `main` remain blocked.
 
+**Frozen current-route contract.** Through Phase 1 closure, the nine R5–R9
+route fields listed in the alignment receipt are frozen at their approved
+normalized values under SHA-256
+`b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1`.
+Any intentional route change must update this plan and the validator together
+and receive independent review.
+
 ## R8 — Final maker reconciliation and checksum
 
 - **Dependency:** accepted R3.1/R4/R5/R6 rule checkpoints and a completed R7

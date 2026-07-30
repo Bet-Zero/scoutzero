@@ -1,7 +1,7 @@
 # Architect CBA Canon v2 Pre-R8 Validator-Route Alignment
 
-**Status:** bounded maker alignment plus focused polarity and semantic-order
-corrections complete; not independently accepted.
+**Status:** bounded maker alignment plus focused polarity, semantic-order, and
+deterministic-contract corrections complete; not independently accepted.
 
 ## Boundary and starting checkpoint
 
@@ -229,3 +229,174 @@ Validation is recorded against the final two-file worktree before commit:
 - `npm run validate:project`: passed;
 - `git diff --check`: passed; and
 - exact final scope: the validator and this receipt only.
+
+## Final deterministic-contract correction
+
+This final maker correction began from the clean, synchronized, unaccepted
+checkpoint `06e8b219797dba4ccc257ad2341387d8899ed93d`, whose direct parent
+is `d29fff1f6ee31579219def2e01c6614b0a7d31c8`. Stable `main` remained
+`69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`.
+
+The verified starting blobs were:
+
+- Canon: `5e8a57c3f90c3033cec80516d51a859d108f484d`
+- R7 receipt: `a411aba2d56fbdf3fc55c2b5fc750c9705aca0d9`
+- Repair plan: `32ddbe1b033741066f50076b202214cfc4916e43`
+- Validator: `535bfb4a838f33ea4925dcdf22ab3f8c8892ef43`
+- This receipt: `332810445ab9e48dfa56eb6a4095bc0787a1ad58`
+
+The current plan returned zero `check_plan` problems, but the same real path
+also returned zero problems for all ten remaining design-defect mutations:
+
+| Case | Frozen field | Before | After |
+| --- | --- | --- | --- |
+| 1 | R5 Dependency | zero problems | R5 independent-R4 diagnostic |
+| 2 | R6 Dependency | zero problems | R6 independent-R5 diagnostic |
+| 3 | R7 Dependency | zero problems | R7 prerequisite diagnostic |
+| 4 | R8 Dependency | zero problems | R8 completed-R7 diagnostic |
+| 5 | R9 Consistency scope | zero problems | R9 independent-scenario diagnostic |
+| 6 | R9 Consistency scope | zero problems | R9 independent-scenario diagnostic |
+| 7 | R9 Owner gate | zero problems | R9 reviewer-plus-owner diagnostic |
+| 8 | R8 Exclusions | zero problems | R8 exclusions diagnostic |
+| 9 | R9 Inputs | zero problems | R9 pinned-candidate diagnostic |
+| 10 | R7 Review boundary | zero problems | R7 standalone-checker diagnostic |
+
+Each after-result consists of exactly one directly relevant route diagnostic.
+The permissive semantic matchers were therefore superseded for the
+completed-R7 current route: recognizing vocabulary cannot make a controlled
+contract deterministic. The historical accepted-status control-tree path
+retains its existing semantic maker/checker validation model and pointer.
+
+### Frozen current-route values
+
+Normalization removes only Markdown decoration and collapses whitespace and
+line wrapping. It does not normalize wording, punctuation, case, ordering,
+added clauses, or omitted clauses. The approved normalized values are:
+
+1. **R5 Dependency**
+
+   > R4 was independently accepted at its exact checker checkpoint before R5
+   > began. This process revision is committed and pushed from that accepted
+   > R4 status baseline, and the branch is clean and synchronized.
+
+2. **R6 Dependency**
+
+   > R5 was independently accepted at an exact commit-specific checker
+   > checkpoint before R6 began.
+
+3. **R7 Dependency**
+
+   > R3.1, R4, R5, and R6 each have an independent commit-specific ACCEPT for
+   > their rule content.
+
+4. **R7 Review boundary**
+
+   > R7 has no duplicative standalone independent acceptance pass. The single
+   > final R9 reviewer independently judges scenario truth and sufficiency as
+   > part of whole-canon acceptance.
+
+5. **R8 Dependency**
+
+   > accepted R3.1/R4/R5/R6 rule checkpoints and a completed R7 scenario
+   > checkpoint. R7 maker completion is required before R8; no standalone R7
+   > checker or overlapping R8 checker is required or authorized.
+
+6. **R8 Exclusions**
+
+   > no README edit or expansion; no code-map edit or expansion; no
+   > application or runtime inspection or change; no Phase 2 packet, work, or
+   > verdict; and no Architect comparison, data/configuration change, Linear,
+   > or main.
+
+7. **R9 Inputs**
+
+   > the pinned exact, clean, pushed R8 topic-branch checkpoint and checksum.
+   > R9 does not require or authorize a merge to main.
+
+8. **R9 Consistency scope**
+
+   > confirm stable and atomic active rule IDs, dependency and evidence
+   > closure, source quality, truthful unsupported items, complete
+   > old-rule-to-current-rule mapping, material scenario truth and
+   > sufficiency, and consistency across the independently accepted unit
+   > checkpoints.
+
+9. **R9 Owner gate**
+
+   > R9 ACCEPT is necessary but not sufficient. Present one concise
+   > owner-facing Phase 1 summary with the accepted checkpoint, coverage and
+   > source status, material limitations or unsupported items, scenario scope,
+   > and validation result. Only explicit owner acceptance closes Phase 1
+   > after R9 ACCEPT and can authorize a separately scoped Phase 2. Both R9
+   > ACCEPT and explicit owner acceptance are required. Until then, the
+   > Architect comparison, application fixes, W1.1, Linear changes, and Phase
+   > 2 remain blocked.
+
+The validator hashes the ordered field name plus normalized value pairs. The
+deterministic SHA-256 contract hash is
+`b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1`.
+The plan records the same hash and states that these fields remain frozen
+through Phase 1 closure. Any intentional route change must update the plan
+and validator together and receive independent review.
+
+### Control migration and preservation
+
+Of the preceding 202 controls, 184 remain unchanged: 15 accepting and 169
+rejecting. The 18 current-route paraphrase acceptances were explicitly
+superseded one-for-one, retaining their IDs as deterministic rejecting
+controls:
+
+- `RP-A1`–`RP-A4` cover reproduced cases 1–4;
+- `RP-A5` covers reproduced case 10;
+- `RP-A6`–`RP-A9` cover reproduced cases 5 and 7–9;
+- `SO-A1` covers reproduced case 6; and
+- `SO-A2`–`SO-A9` cover changed ordering, weakened duty, a contradictory
+  second clause, unauthorized paraphrase, punctuation drift, case drift,
+  truncation, and added route text.
+
+Nine new `DC-O1`–`DC-O9` rejecting controls omit each frozen field
+individually. Two new `DC-A1`–`DC-A2` accepting controls prove that
+Markdown-decoration-only and whitespace/line-wrap-only differences remain
+valid. The final population is 213 controls: 17 accepting and 196 rejecting.
+All controls pass, every rejection matches its intended diagnostic, and the
+deliberate wrong-expectation self-test still fails.
+
+The plan change adds only the concise frozen-contract statement; none of the
+nine approved field values changed. The validator change is confined to the
+central current-route contract, normalization and hash, current-route
+equality checks, and directly related controls. All parsers, registry rules,
+Canon/source/evidence/scenario/lineage logic, preservation anchors,
+non-route controls, and the historical accepted-status control-tree logic and
+pointer remain unchanged.
+
+No Canon, R7 receipt, prior receipt, checker record, rule, source, evidence,
+scenario, or lineage content changed. R7 remains complete at
+`e59d0dcc0ef2bf794920805c9fc3d549342e376c`; R8 remains unstarted. Phase 2,
+W1.1, application work, Linear, Graphify, and `main` remain blocked and
+untouched.
+
+## Final deterministic-contract validation
+
+Validation is recorded against the final three-file worktree before commit:
+
+- exact starting repository, branch, checkpoint, parent, stable `main`,
+  upstream synchronization, cleanliness, and all five starting blobs:
+  matched;
+- real-path before/after probes: all ten zero-problem false accepts reproduced
+  before correction and each rejected afterward by exactly one directly
+  relevant route diagnostic;
+- current plan: zero baseline diagnostics;
+- deterministic contract hash: matched the plan, validator, and receipt;
+- bounded development run: 213 of 213 controls correct, zero baseline
+  problems, and negative self-test successful;
+- control accounting: 184 retained unchanged, 18 paraphrase acceptances
+  superseded one-for-one, and 11 new controls;
+- targeted validator diff review: non-route logic unchanged;
+- two complete final bounded validator runs: byte-identical output, 213 of
+  213 controls correct, zero baseline problems, and negative self-test
+  successful;
+- targeted Markdown lint for the plan and this receipt: passed;
+- `npm run docs:guardrails`: passed;
+- `npm run validate:project`: passed;
+- `git diff --check`: passed; and
+- exact final scope: the repair plan, validator, and this receipt only.
