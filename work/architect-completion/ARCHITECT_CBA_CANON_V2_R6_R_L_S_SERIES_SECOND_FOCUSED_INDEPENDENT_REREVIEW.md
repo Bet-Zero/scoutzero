@@ -55,11 +55,11 @@ The protected blobs are exact:
 
 | Protected artifact | SHA-1 |
 |---|---|
-| Canon | `e730b40e81bd503eaa0e7fbb4f6138fa3b149204` |
-| Repair plan | `5b6da67eb2e9d7454817f31d220df24eb5919b20` |
-| Final maker receipt | `60583f69c42f0cd65d304626252096bd5b60eb80` |
-| Focused checker receipt | `74c67dc26a57a36badbe7b9d2f4b56f2717352af` |
-| Original checker receipt | `392bcc7a545c645ff291856368f86fd03f6e2ed4` |
+| Canon | `e730b40e143f8c47dd21949d6437621bc36b36e7` |
+| Repair plan | `5b6da67efb3558338ac7b677bdc116eb16bd8c69` |
+| Final maker receipt | `60583f6925ed5eff40ff1537af9a44c82511486a` |
+| Focused checker receipt | `74c67dc2acf61966a91e849e2900bdd311b8b319` |
+| Original checker receipt | `392bcc7af3357b26ea559380ea3ad9b419b469aa` |
 
 The correction at the reviewed checkpoint changes only the maker receipt's
 mistyped first-repair SHA to the exact direct parent
