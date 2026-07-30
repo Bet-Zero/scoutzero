@@ -20,8 +20,18 @@ graph; corrects `R01.3`/`EV2-0579` to CBA VII §4(c); and resolves every
 checker-listed duplicate-owner set through sole direct ownership or a
 materially distinct staged/persistence output.
 
-R6 is not accepted. R7, application work, Phase 2, Linear, Graphify, and
-`main` remain blocked and unstarted.
+The final checker record at
+`cbb847dbef844dc0b43d7cb46b25659353fb42e0`, corrected only for
+checkpoint/blob provenance through
+`67f6545dec5bf36020a968553701106fee2e9258`, returned **FOCUSED REJECT /
+BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. This receipt now also records
+the bounded `DR2-0140` maker correction to that ledger's direct dependencies,
+field-level inputs, evidence join, locator, mapping, inference, and
+limitations.
+
+R6 is not accepted pending one final independent exact-commit re-review. R7,
+application work, Phase 2, Linear, Graphify, and `main` remain blocked and
+unstarted.
 
 R5 prerequisite: exact repair checkpoint `5b29995b13664a15c1376a05074808c7eb552c4c` was independently
 **ACCEPTED** at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 therefore began from the
@@ -99,6 +109,10 @@ complete tables, provenance, indexed formulas, and persistent state.
   §2(a)/§2(c); the twelve-or-thirteen permission and its two clocks are
   §2(b)(i), while §2(b)'s final sentence separately owns end-of-day accrual.
   Article XXIX §1 supplies the total-player Active List and bench bounds.
+- The `CBA2-R07.1` shortage-band ledger consumes only the ordinary
+  combined-list band, qualifying-day result, combined-list clock, Active-list
+  clock, and effective Article XXIX §5(a) adjustment. It does not consume the
+  game-bench-floor or ordinary Two-Way-maximum verdict.
 - A Draft Pick Penalty applies to the Team's final first-round pick under
   VII §2(f); it is not represented as a generic slide of whichever pick was
   first frozen.
@@ -258,6 +272,7 @@ whose first repair already had specialized cells: `L01.6`, `L03.3`,
 | DR2-0137 | `ATOM` | CBA-R01.6, CBA-R06.3, CBA-R06.4, CBA-R06.6, CBA-S01.2, CBA-S01.6, CBA-S04.2 historical fragment inventories | Supersede each rejected whole-row F1 and allocate exhaustive current fragments above its local high-water mark | Exact normalized character spans, exhaustive non-overlap, independently verdict-bearing output, and exactly-once edge disposition | The seven compound rows become seventeen current fragments and ten additional edges without changing any published historical text | CBA2-R01.6, CBA2-R01.12, CBA2-R06.3, CBA2-R06.6, CBA2-R06.7, CBA2-R06.10, CBA2-R06.11, CBA2-R06.14, CBA2-S01.2, CBA2-S01.6, CBA2-S01.7, CBA2-S01.8, CBA2-S04.2, CBA2-S04.3, CBA2-S04.4, CBA2-S04.5, CBA2-S04.6 | R6 / this checkpoint |
 | DR2-0138 | `AMEND` | Second focused repair of the R/L/S LEAF, detail, EV2, XW2, dependency, origin, decision, and receipt records rejected at checker commit 7cc8350a | Replace rejected generic input contracts, stale dependency joins, wrong-source evidence, and redundant active identities through forward current lineage | Exact 175-cell population, checker-named semantic joins and duplicate sets, stable identity, no reuse or renumbering, and exact current-endpoint reconciliation | Rewrites 152 active detail contracts, retires 23 rejected-template owners plus four additional specialized duplicate owners and all 27 paired EV2 records, retargets 15 historical edges, preserves all accepted A/C anchors, and corrects EV2-0579 to CBA VII §4(c) while leaving By-Laws waiver mechanics separate | — | R6 / this checkpoint |
 | DR2-0139 | `OWN` | All duplicate-owner sets named in focused finding 7 plus semantic duplicates discovered while repairing their dependency and historical joins | Retain one direct verdict owner; retain an aggregate, persistence, readiness, or audit row only for a materially distinct staged result with explicit direct dependencies | Natural family, exact normalized fragment, source authority, independently changeable verdict, completeness, then stable-ID tiebreak | The active R/L/S registry is 214 one-to-one LEAF/main/detail/evidence identities; accepted A02.8, A12.4, A12.5, and A12.7 remain direct owners; no retired identity remains a dependency, evidence subject, origin target, or crosswalk target | CBA2-R01.4, CBA2-R01.11, CBA2-R02.6, CBA2-R02.9, CBA2-R04.1, CBA2-R04.2, CBA2-R04.7, CBA2-R05.1, CBA2-R05.3, CBA2-R05.5, CBA2-R05.6, CBA2-R06.13, CBA2-R08.3, CBA2-R08.4, CBA2-R08.5, CBA2-R08.6, CBA2-R08.7, CBA2-R09.3, CBA2-L02.6, CBA2-L02.14, CBA2-L03.6, CBA2-L03.7, CBA2-L03.17, CBA2-L03.18, CBA2-L04.18, CBA2-L04.19, CBA2-L04.20, CBA2-L04.22, CBA2-L04.23, CBA2-L04.24, CBA2-L06.2, CBA2-L08.3, CBA2-L08.4, CBA2-L09.1, CBA2-L09.2, CBA2-L09.3, CBA2-L09.4, CBA2-L10.2, CBA2-S01.6, CBA2-S04.1, CBA2-S04.7 | R6 / this checkpoint |
+| DR2-0140 | `AMEND` | Final bounded repair of the `CBA2-R07.1` detail and `EV2-0641` evidence records rejected at final checker checkpoint `67f6545dec5bf36020a968553701106fee2e9258` | Replace the unrelated game-bench and ordinary Two-Way-maximum joins with the direct Article XXIX §5(a) shortage-band adjustment and reconcile exact lifecycle inputs and evidence provenance | Exact checker finding, direct semantic consumption, matching LEAF/evidence dependency sets, stable identity, and no unrelated governed change | `CBA2-R07.1` now consumes only `CBA2-R06.8`, `CBA2-R06.9`, `CBA2-R06.10`, `CBA2-R06.11`, and `CBA2-R06.15`; `EV2-0641` consumes the five matching evidence results and covers Article XXIX §1, §2(a)–(c), and §5(a), printed pages 429–431 | — | R6 / this checkpoint |
 
 ## AMEND detail rows
 
@@ -569,6 +584,8 @@ whose first repair already had specialized cells: `L01.6`, `L03.3`,
 | DR2-0138 | XW2 | XW2-0446 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0446 | — | Retarget CBA-L04.15 from retired CBA2-L04.15 to sole owner CBA2-L04.24. |
 | DR2-0138 | XW2 | XW2-0447 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0447 | — | Retarget CBA-L04.16 from retired CBA2-L04.16 to sole owner CBA2-L04.22. |
 | DR2-0138 | XW2 | XW2-0448 | — | 7cc8350aceb447178a280c18635a6a5c16fd9005 | revise | XW2-0448 | — | Retarget CBA-L04.17 from retired CBA2-L04.17 to sole owner CBA2-L04.23. |
+| DR2-0140 | LEAF | CBA2-R07.1 | — | 67f6545dec5bf36020a968553701106fee2e9258 | revise | CBA2-R07.1 | — | Replace the unrelated game-bench and ordinary Two-Way-maximum detail joins with the direct Article XXIX §5(a) shortage-band adjustment, and make every consumed result ID/version explicit without changing the main requirement or identity. |
+| DR2-0140 | EV2 | EV2-0641 | — | 67f6545dec5bf36020a968553701106fee2e9258 | revise | EV2-0641 | — | Replace the two unrelated evidence joins with EV2-0639 and reconcile the locator, controlling passage, mapping, inference, and limitations to Article XXIX §1, §2(a)–(c), and §5(a), printed pages 429–431. |
 
 ## Fragment inventory
 
@@ -778,10 +795,12 @@ search-manifest/search-set populations through `SM2-0017`/`SS2-0004`.
 
 - Exact-span/join/dependency audit — PASS: 134 published R/L/S rows; 214
   matching LEAF-main, LEAF-detail, and evidence rows (85 R, 102 L, 27 S);
-  154 active R/L/S dependency edges; 143 contiguous R6 crosswalk edges; 143
+  153 active R/L/S dependency edges; 143 contiguous R6 crosswalk edges; 143
   current fragments exhaustively covering 133 R6-routed historical rows;
   exact quote, span, fragment/edge reciprocity, Origin backlink, source token,
-  and dependency reconciliation; zero missing targets and zero cycles.
+  and dependency reconciliation; every dependency has an active target,
+  matching evidence join, correct direction, and actual semantic consumption;
+  zero missing targets and zero cycles.
 - Historical reconciliation and preservation — PASS: all 47 R, 72 L, and 15
   S published rows resolve through 145 exact current fragments/edges,
   including the preserved accepted `CBA-L08.5` pair. All 568 accepted A/C
@@ -811,5 +830,5 @@ search-manifest/search-set populations through `SM2-0017`/`SS2-0004`.
   schema, fixture, app test, build, typecheck, Graphify output, data, Linear,
   `main`, R7, or Phase 2 work was created or run.
 
-R6 remains maker-only and awaits independent source review at the exact pushed
-checkpoint.
+R6 remains unaccepted pending one final independent review of the exact pushed
+maker checkpoint. The final checker rejection remains immutable history.

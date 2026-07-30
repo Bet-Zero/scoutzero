@@ -208,11 +208,16 @@ correction `f480e0a8ec6a262bdc87d31bb5f231758f3c64c7` were independently
 `8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751` were then focused rejected at
 `7cc8350aceb447178a280c18635a6a5c16fd9005`: findings 1, 2, 3, and 6 passed,
 while findings 4, 5, and 7 were rejected. Their substantive second focused
-maker repair is complete at
-`e65542247e05f67184783bc74fcfff081a986b27`. This direct child changes only
-status/provenance wording; the resulting final branch head awaits fresh
-independent exact-commit re-review. R6 is not accepted, and R7 and later work
-remain blocked and unstarted. Phase 1 continues; Phase 2, W1.1, all
+maker repair is preserved at
+`e65542247e05f67184783bc74fcfff081a986b27`, with status/provenance
+corrections through `b4712114cbbadd3ed67b7cc82f8fb7bdc741e3f8`. The final
+checker record at `cbb847dbef844dc0b43d7cb46b25659353fb42e0`, corrected only
+for checkpoint/blob provenance through
+`67f6545dec5bf36020a968553701106fee2e9258`, returned **FOCUSED REJECT /
+BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. This bounded `DR2-0140`
+maker repair corrects only that finding. R6 remains unaccepted pending one
+final independent exact-commit re-review, and R7 and later work remain
+blocked and unstarted. Phase 1 continues; Phase 2, W1.1, all
 application changes, and Linear changes remain unauthorized
 pending the revised R9 independent acceptance plus explicit owner
 acceptance. R3.1 used `AMEND` lineage and did not renumber or reuse
@@ -2055,7 +2060,7 @@ is a one-way dependency scheduled backwards, not a cycle).
   (vi) and (vii) become separate active v2 LEAFs.
 
 **R4 execution status — independently ACCEPTED; R5 independently ACCEPTED;
-R6 second focused repair complete; final status head awaiting re-review.** The
+R6 final bounded maker repair awaiting independent re-review.** The
 first maker checkpoint
 `2fc11880025c917dc765fd2f18e5e3697c5661f2` was independently rejected at
 checker commit `3880ea3f2baf022b7fa0477b34d4238721afad33`; the second maker
@@ -2088,11 +2093,16 @@ provenance-only correction were focused rejected at checker commit
 `8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751` were focused rejected at
 `7cc8350aceb447178a280c18635a6a5c16fd9005`: findings 1, 2, 3, and 6 passed,
 while findings 4, 5, and 7 were rejected. The substantive second focused
-repair is complete at `e65542247e05f67184783bc74fcfff081a986b27`; this
-direct child changes status/provenance wording only. The resulting final
-branch head awaits fresh independent exact-commit re-review. R6 is not
-accepted; Phase 1 continues, and R7, later work, Phase 2, and application work
-remain blocked and unstarted.
+repair is preserved at `e65542247e05f67184783bc74fcfff081a986b27`, with
+status/provenance corrections through
+`b4712114cbbadd3ed67b7cc82f8fb7bdc741e3f8`. The final checker record at
+`cbb847dbef844dc0b43d7cb46b25659353fb42e0`, corrected only for
+checkpoint/blob provenance through
+`67f6545dec5bf36020a968553701106fee2e9258`, returned **FOCUSED REJECT /
+BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. This bounded `DR2-0140`
+maker repair corrects only that finding. R6 remains unaccepted pending one
+final independent exact-commit re-review; Phase 1 continues, and R7, later
+work, Phase 2, and application work remain blocked and unstarted.
 
 ## Post-R4 process revision — governing future-work contract
 
@@ -2124,10 +2134,16 @@ rule.
   `8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751` were focused rejected at
   `7cc8350aceb447178a280c18635a6a5c16fd9005`: findings 1, 2, 3, and 6 passed,
   while findings 4, 5, and 7 were rejected. The substantive second focused
-  repair is complete at `e65542247e05f67184783bc74fcfff081a986b27`; this
-  direct child changes status/provenance wording only. The resulting final
-  branch head awaits fresh independent exact-commit re-review. R6 is not
-  accepted, and R7 and later work remain blocked and unstarted.
+  repair is preserved at `e65542247e05f67184783bc74fcfff081a986b27`, with
+  status/provenance corrections through
+  `b4712114cbbadd3ed67b7cc82f8fb7bdc741e3f8`. The final checker record at
+  `cbb847dbef844dc0b43d7cb46b25659353fb42e0`, corrected only for
+  checkpoint/blob provenance through
+  `67f6545dec5bf36020a968553701106fee2e9258`, returned **FOCUSED REJECT /
+  BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. This bounded `DR2-0140`
+  maker repair corrects only that finding. R6 remains unaccepted pending one
+  final independent exact-commit re-review, and R7 and later work remain
+  blocked and unstarted.
 - Phase 2, the Architect comparison, application inspection or fixes, W1.1,
   `main`, and Linear remain unauthorized throughout this plan.
 
@@ -2237,7 +2253,7 @@ completion.
   comparison, application work, Phase 2, Linear, or `main`.
 
 **R5 execution status — exact closure repair independently ACCEPTED; R6
-second focused repair complete; final status head awaiting re-review.**
+final bounded maker repair awaiting independent re-review.**
 Exact maker checkpoint
 `c11285aa9811b45a0e0f9b7f6493c3a73e12181f` was independently rejected
 at `a1be249ce9c0ee9e1bcf54e0d511e2648ce3496f` across twelve C14–C25
@@ -2280,11 +2296,16 @@ was committed at exact maker checkpoint
 checkpoint `8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751`. Focused checker commit
 `7cc8350aceb447178a280c18635a6a5c16fd9005` confirmed findings 1, 2, 3, and
 6 but rejected findings 4, 5, and 7. The bounded second focused maker repair
-is complete at exact substantive checkpoint
-`e65542247e05f67184783bc74fcfff081a986b27`. This direct child changes only
-status/provenance wording; the resulting final branch head awaits fresh
-independent exact-commit re-review. R6 is not accepted, and R7 and all later
-work remain blocked and unstarted.
+is preserved at exact substantive checkpoint
+`e65542247e05f67184783bc74fcfff081a986b27`, with status/provenance
+corrections through `b4712114cbbadd3ed67b7cc82f8fb7bdc741e3f8`. The final
+checker record at `cbb847dbef844dc0b43d7cb46b25659353fb42e0`, corrected only
+for checkpoint/blob provenance through
+`67f6545dec5bf36020a968553701106fee2e9258`, returned **FOCUSED REJECT /
+BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. This bounded `DR2-0140`
+maker repair corrects only that finding. R6 remains unaccepted pending one
+final independent exact-commit re-review, and R7 and all later work remain
+blocked and unstarted.
 
 ## R6 — Source-certify the remaining R, L, and S families
 
@@ -2323,8 +2344,8 @@ work remain blocked and unstarted.
 - **Exclusions:** no scenario construction, Architect comparison,
   application work, Phase 2, Linear, or `main`.
 
-**R6 execution status — substantive second focused maker repair complete;
-final status head awaiting independent re-review.** The original maker checkpoint
+**R6 execution status — final bounded maker repair awaiting independent
+re-review.** The original maker checkpoint
 `64eacaf532b08301560d25bd32c7076aaef3821e`, provenance-only correction
 `f480e0a8ec6a262bdc87d31bb5f231758f3c64c7`, original checker rejection
 `5921cc57f88abebdbddd3c242d38072f41d95ba7`, first focused repair
@@ -2332,11 +2353,16 @@ final status head awaiting independent re-review.** The original maker checkpoin
 `8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751`, and focused checker rejection
 `7cc8350aceb447178a280c18635a6a5c16fd9005` are preserved. That focused
 checker passed findings 1, 2, 3, and 6 and rejected findings 4, 5, and 7. The
-substantive second focused maker repair is complete at
-`e65542247e05f67184783bc74fcfff081a986b27`; this direct child changes only
-status/provenance wording. The resulting final branch head awaits fresh
-independent exact-commit re-review. R6 is not accepted, and R7 and later work
-remain blocked and unstarted.
+substantive second focused maker repair is preserved at
+`e65542247e05f67184783bc74fcfff081a986b27`, with status/provenance
+corrections through `b4712114cbbadd3ed67b7cc82f8fb7bdc741e3f8`. The final
+checker record at `cbb847dbef844dc0b43d7cb46b25659353fb42e0`, corrected only
+for checkpoint/blob provenance through
+`67f6545dec5bf36020a968553701106fee2e9258`, returned **FOCUSED REJECT /
+BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. This bounded `DR2-0140`
+maker repair corrects only that finding. R6 remains unaccepted pending one
+final independent exact-commit re-review, and R7 and later work remain
+blocked and unstarted.
 
 The second repair preserves focused findings 1, 2, 3, and 6 and resolves only
 the remaining findings:
@@ -2361,8 +2387,10 @@ the remaining findings:
 The active population is 24 GROUPs and 214 R/L/S LEAFs (85/102/27), with
 `SRC2` through `SRC2-006`, stable `EV2` allocation through `EV2-0817`
 (including 27 retired identities preserved through AMEND lineage), `XW2`
-through `XW2-0499`, `DR2` through `DR2-0139`, `SM2` through `SM2-0017`, and
-`SS2` through `SS2-0004`; `BND-0010` is unchanged. The concise maker receipt is
+through `XW2-0499`, `DR2` through `DR2-0140`, `SM2` through `SM2-0017`, and
+`SS2` through `SS2-0004`; `BND-0010` is unchanged. The 153 current
+dependency edges have active targets, matching evidence joins, correct
+direction, actual semantic consumption, and zero cycles. The concise maker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R6_R_L_S_SERIES_CERTIFICATION.md`.
 R6 is not accepted until a separate checker records an exact-commit ACCEPT;
 R7, application, Phase 2, Linear, and `main` remain untouched.
