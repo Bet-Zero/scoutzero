@@ -1091,6 +1091,19 @@ def route_text(value):
     return re.sub(r"\s+", " ", re.sub(r"[`*_]+", "", value or "")).lower()
 
 
+def route_has_obligation_weakener(value):
+    """Detect controlled wording that makes a governed route duty optional."""
+    text = route_text(value)
+    return bool(re.search(
+        r"\bnot (?:necessary|mandatory|essential|a prerequisite|required)\b"
+        r"|\bnot (?:prohibited|forbidden|excluded)\b"
+        r"|\b(?:recommended|advisory|preferred)\b"
+        r"|\b(?:may|can|need(?:s)? to)\s+"
+        r"(?:omit|skip|ignore|disregard)\b"
+        r"|\b(?:may|can)\s+(?:begin|start|proceed)\b.{0,100}\bwithout\b",
+        text))
+
+
 def route_names_unit(value, unit):
     """Recognize a named unit, including the governed R4-R6 shorthand."""
     text = route_text(value)
@@ -1101,7 +1114,28 @@ def route_names_unit(value, unit):
         re.search(r"\br4\s*[–—-]\s*r6\b", text))
 
 
-def route_has_independent_acceptance(value, *units):
+def route_reverses_acceptance_order(value, downstream, *units):
+    """Detect acceptance after construction, or construction before it."""
+    text = route_text(value)
+    later = re.escape(downstream.lower())
+    for unit in units:
+        earlier = re.escape(unit.lower())
+        if re.search(
+                r"\b%s\b.{0,120}\baccept\w*\b.{0,60}\bafter\b"
+                r".{0,60}\b%s\b.{0,50}\b(?:began|started|construction)\b"
+                % (earlier, later),
+                text):
+            return True
+        if re.search(
+                r"\b%s\b.{0,60}\b(?:begin|start|proceed)\w*\b.{0,60}"
+                r"\b(?:before|prior to)\b.{0,100}\baccept\w*\b.{0,60}"
+                r"\b%s\b" % (later, earlier),
+                text):
+            return True
+    return False
+
+
+def route_has_independent_acceptance(value, downstream, *units):
     """A prerequisite affirmatively requires independent acceptance."""
     text = route_text(value)
     inverted = re.search(
@@ -1116,14 +1150,37 @@ def route_has_independent_acceptance(value, *units):
         all(route_names_unit(text, unit) for unit in units)
         and "independent" in text
         and bool(re.search(r"\baccept(?:ed|ance)?\b", text))
-        and not inverted)
+        and not inverted
+        and not route_has_obligation_weakener(text)
+        and not route_reverses_acceptance_order(text, downstream, *units))
 
 
-def route_has_completed_unit(value, unit):
+def route_reverses_completion_order(value, unit, downstream):
+    """Detect completion after downstream start, or downstream start first."""
+    text = route_text(value)
+    earlier = re.escape(unit.lower())
+    later = re.escape(downstream.lower())
+    return bool(re.search(
+        r"\b%s\b.{0,60}\bcomplet\w*\b.{0,60}\bafter\b.{0,60}"
+        r"\b%s\b.{0,50}\b(?:began|started)\b" % (earlier, later),
+        text)
+        or re.search(
+            r"\b%s\b.{0,60}\b(?:begin|start|proceed)\w*\b.{0,60}"
+            r"\b(?:before|prior to)\b.{0,100}"
+            r"(?:\b%s\b.{0,50}\bcomplet\w*|"
+            r"\bcompletion\b.{0,50}\b%s\b)"
+            % (later, earlier, earlier),
+            text))
+
+
+def route_has_completed_unit(value, unit, downstream):
     """A dependency positively requires a completed unit."""
     text = route_text(value)
     token = re.escape(unit.lower())
     if not route_names_unit(text, unit):
+        return False
+    if (route_has_obligation_weakener(text)
+            or route_reverses_completion_order(text, unit, downstream)):
         return False
     if re.search(
             r"\b%s\b.{0,50}\b(?:is|was|remains)?\s*not\s+complet"
@@ -1159,7 +1216,8 @@ def route_has_standalone_r7_exclusion(value):
             r"\b(?:no|without)\b.{0,100}\bstandalone\b", text))
         or bool(re.search(
             r"\bstandalone\b.{0,100}"
-            r"\b(?:prohibited|forbidden|barred|not authorized|not required)\b",
+            r"\b(?:prohibited|forbidden|barred|unauthorized|not authorized|"
+            r"not required)\b",
             text))
         or bool(re.search(
             r"\b(?:prohibit(?:s|ed)?|forbid(?:s|den)?|bar(?:s|red)?)\b"
@@ -1170,7 +1228,8 @@ def route_has_standalone_r7_exclusion(value):
         and "independent" in text
         and bool(re.search(r"\b(?:accept|checker|review|pass)", text))
         and prohibited
-        and not inverted)
+        and not inverted
+        and not route_has_obligation_weakener(text))
 
 
 def route_affirmatively_requires_standalone_r7(section):
@@ -1184,8 +1243,8 @@ def route_affirmatively_requires_standalone_r7(section):
                 r"\b(?:no|without|not required|not authorized)\b.{0,100}"
                 r"\bstandalone\b"
                 r"|\bstandalone\b.{0,100}"
-                r"\b(?:prohibited|forbidden|barred|not authorized|"
-                r"not required)\b",
+                r"\b(?:prohibited|forbidden|barred|unauthorized|"
+                r"not authorized|not required)\b",
                 text):
             continue
         if re.search(r"\bindependently accepted r7\b", text):
@@ -1210,6 +1269,22 @@ def route_has_independent_scenario_review(r9, scope):
         r"|\b(?:need not|may omit|may skip)\b.{0,80}"
         r"\b(?:review|assess|verify|confirm|judge)",
         text)
+    wrong_owner = re.search(
+        r"\bmaker\b.{0,80}\b(?:review|assess|verify|confirm|judge)\w*\b"
+        r"|\b(?:non-independent|not independent|maker-only)\b.{0,80}"
+        r"\b(?:review|assessment|verification)\b",
+        text)
+    explicit_independent = re.search(
+        r"\bindependent\w*\b.{0,80}"
+        r"\b(?:review|assess|verify|confirm|judge)\w*\b"
+        r"|\b(?:review|assess|verify|confirm|judge)\w*\b.{0,80}"
+        r"\bindependent\w*\b",
+        text)
+    inherited_independent_reviewer = (
+        bool(re.match(
+            r"(?:review|assess|verify|confirm|judge)\w*\b", text))
+        and bool(re.search(
+            r"\br9\b.{0,100}\bindependent\b", route_text(r9))))
     return (
         bool(re.search(r"\bscenario", text))
         and bool(re.search(r"\b(?:truth|accuracy|correctness)\b", text))
@@ -1217,14 +1292,16 @@ def route_has_independent_scenario_review(r9, scope):
             r"\b(?:sufficien\w*|adequacy|coverage completeness)\b", text))
         and bool(re.search(
             r"\b(?:review|assess|verify|confirm|judge)\w*\b", text))
-        and "independent" in route_text(r9)
-        and not inverted)
+        and bool(explicit_independent or inherited_independent_reviewer)
+        and not inverted
+        and not wrong_owner
+        and not route_has_obligation_weakener(text))
 
 
 def route_field_excludes(value, concepts):
     """Require clause-level prohibitions for each governed R8 exclusion."""
     text = route_text(value)
-    if re.search(
+    if route_has_obligation_weakener(text) or re.search(
             r"\bno\b.{0,100}\b(?:ban|prohibition|exclusion)\b.{0,30}"
             r"\b(?:applies?|exists?|required)\b"
             r"|\b(?:exclusion|ban|prohibition)\w*\b.{0,40}"
@@ -1261,7 +1338,7 @@ def route_field_excludes(value, concepts):
 def route_has_required_r9_candidate(value, final_candidate):
     """Require affirmative candidate state, rejecting optional inversions."""
     text = route_text(value)
-    if re.search(
+    if route_has_obligation_weakener(text) or re.search(
             r"\b(?:unpinned|dirty|non[- ]topic|local[- ]only|unpushed|"
             r"checksum[- ]free)\b"
             r"|\b(?:need not|optional|not required|not mandatory|"
@@ -1316,7 +1393,8 @@ def route_has_joint_owner_gate(value):
         and bool(re.search(r"\bphase\s*1\b", text))
         and bool(re.search(r"\bclose[sd]?\b", text))
         and bool(conjunction)
-        and not inverted)
+        and not inverted
+        and not route_has_obligation_weakener(text))
 
 
 def current_r7_r9_route(r7):
@@ -1602,16 +1680,16 @@ def check_plan(plan):
     r9_gate = plan_route_field(r9, "Owner gate", "Validation gate")
     revised_route = current_r7_r9_route(r7)
 
-    if not route_has_independent_acceptance(r5_dependency, "r4"):
+    if not route_has_independent_acceptance(r5_dependency, "r5", "r4"):
         probs.append("plan R5 does not require independent R4 acceptance")
-    if not route_has_independent_acceptance(r6_dependency, "r5"):
+    if not route_has_independent_acceptance(r6_dependency, "r6", "r5"):
         probs.append("plan R6 does not require independent R5 acceptance")
     if not route_has_independent_acceptance(
-            r7_dependency, "r3.1", "r4", "r5", "r6"):
+            r7_dependency, "r7", "r3.1", "r4", "r5", "r6"):
         probs.append("plan R7 dependency does not require independent checker "
                      "acceptance of R3.1 and R4-R6")
     if revised_route:
-        if not route_has_completed_unit(r8_dependency, "r7"):
+        if not route_has_completed_unit(r8_dependency, "r7", "r8"):
             probs.append(
                 "plan R8 does not require completed R7 before maker "
                 "reconciliation")
@@ -1626,7 +1704,8 @@ def check_plan(plan):
             probs.append(
                 "plan R9 does not independently review scenario truth and "
                 "sufficiency")
-    elif not route_has_independent_acceptance(r8_dependency, "r7"):
+    elif not route_has_independent_acceptance(
+            r8_dependency, "r8", "r7"):
         probs.append(
             "historical plan R8 does not preserve independently accepted R7")
 
@@ -8236,6 +8315,217 @@ def run_cases(repo):
         H.run(
             name,
             "polarity inversion: %s" % desc,
+            H.docs(migrated=True, **{
+                P: route_variant(start, end, label, replacement)
+            }),
+            True,
+            diagnostic)
+
+    # Semantic-order controls extend the same governed propositions. Positive
+    # cases prove chronology/ownership flexibility; rejecting cases exercise
+    # weakening, reversal, contradiction, and reviewer transfer.
+    for name, desc, start, end, label, replacement in (
+            (
+                "SO-A1", "R5 starts only after independent R4 acceptance",
+                "## R5 ", "## R6 ", "Dependency",
+                "R5 starts only after independent acceptance of R4 is "
+                "recorded."),
+            (
+                "SO-A2", "R6 follows independent R5 acceptance",
+                "## R6 ", "## R7 ", "Dependency",
+                "R6 follows the independent acceptance of R5."),
+            (
+                "SO-A3", "R7 starts only after every accepted prerequisite",
+                "## R7 ", "## R8 ", "Dependency",
+                "R7 construction starts only after independent acceptance of "
+                "R3.1, R4, R5, and R6."),
+            (
+                "SO-A4", "R8 starts only after recorded R7 completion",
+                "## R8 ", "## R9 ", "Dependency",
+                "R8 starts only after recorded R7 completion."),
+            (
+                "SO-A5", "a standalone independent R7 checker is unauthorized",
+                "## R7 ", "## R8 ", "Review boundary",
+                "A standalone independent R7 checker is unauthorized; R9 "
+                "performs the independent scenario review."),
+            (
+                "SO-A6", "R9's independent reviewer assesses scenarios",
+                "## R9 ", "## Standing prohibitions", "Consistency scope",
+                "R9's independent reviewer assesses scenario accuracy and "
+                "adequacy."),
+            (
+                "SO-A7", "R8 surfaces are forbidden, outside R8, or "
+                "prohibited",
+                "## R8 ", "## R9 ", "Exclusions",
+                "README and code-map edits are forbidden; application and "
+                "runtime inspection are outside R8; Phase 2 work is "
+                "prohibited."),
+            (
+                "SO-A8", "R9 candidate must carry every required state",
+                "## R9 ", "## Standing prohibitions", "Inputs",
+                "The R9 candidate must be an exact pinned, clean, pushed R8 "
+                "topic-branch checkpoint carrying a checksum."),
+            (
+                "SO-A9", "both closure gates are required and necessary",
+                "## R9 ", "## Standing prohibitions", "Owner gate",
+                "Both R9 ACCEPT and explicit owner acceptance are required "
+                "and necessary before Phase 1 closes.")):
+        H.run(
+            name,
+            "semantic-order paraphrase: %s" % desc,
+            H.docs(migrated=True, **{
+                P: route_variant(start, end, label, replacement)
+            }),
+            False)
+
+    for name, desc, start, end, label, replacement, diagnostic in (
+            (
+                "SO-R1", "R4 acceptance is not necessary before R5",
+                "## R5 ", "## R6 ", "Dependency",
+                "Independent acceptance of R4 is not necessary before R5 "
+                "begins.",
+                "plan R5 does not require independent R4 acceptance"),
+            (
+                "SO-R2", "R7 completion is not mandatory before R8",
+                "## R8 ", "## R9 ", "Dependency",
+                "R7 completion is not mandatory before R8 begins.",
+                "plan R8 does not require completed R7"),
+            (
+                "SO-R3", "standalone R7 checker is not prohibited",
+                "## R7 ", "## R8 ", "Review boundary",
+                "A standalone independent R7 checker is not prohibited.",
+                "does not exclude a standalone R7 checker"),
+            (
+                "SO-R4", "independent R9 scenario review is not mandatory",
+                "## R9 ", "## Standing prohibitions", "Consistency scope",
+                "Independent scenario truth and sufficiency review is not "
+                "mandatory.",
+                "does not independently review scenario truth and "
+                "sufficiency"),
+            (
+                "SO-R5", "R8 surface prohibitions are negated",
+                "## R8 ", "## R9 ", "Exclusions",
+                "README and code-map edits, application and runtime "
+                "inspection, and Phase 2 work are not prohibited.",
+                "does not explicitly exclude README/code-map/runtime/Phase-2 "
+                "expansion"),
+            (
+                "SO-R6", "R9 candidate attributes are not necessary",
+                "## R9 ", "## Standing prohibitions", "Inputs",
+                "Use the exact pinned clean pushed R8 topic-branch checkpoint "
+                "and checksum, but those attributes are not necessary.",
+                "plan R9 input is not a pinned clean topic-branch checkpoint"),
+            (
+                "SO-R7", "both Phase 1 gates are not necessary",
+                "## R9 ", "## Standing prohibitions", "Owner gate",
+                "Both R9 ACCEPT and explicit owner acceptance are not "
+                "necessary to close Phase 1.",
+                "does not require both reviewer and owner acceptance"),
+            (
+                "SO-R8", "R4 acceptance occurs after R5 begins",
+                "## R5 ", "## R6 ", "Dependency",
+                "R4 was independently accepted after R5 began.",
+                "plan R5 does not require independent R4 acceptance"),
+            (
+                "SO-R9", "R5 acceptance occurs after R6 begins",
+                "## R6 ", "## R7 ", "Dependency",
+                "R5 was independently accepted after R6 began.",
+                "plan R6 does not require independent R5 acceptance"),
+            (
+                "SO-R10", "R7 prerequisites are accepted after R7 begins",
+                "## R7 ", "## R8 ", "Dependency",
+                "R3.1, R4, R5, and R6 were independently accepted after R7 "
+                "began.",
+                "plan R7 dependency does not require independent checker "
+                "acceptance"),
+            (
+                "SO-R11", "R7 completes after R8 begins",
+                "## R8 ", "## R9 ", "Dependency",
+                "R7 completed after R8 began.",
+                "plan R8 does not require completed R7"),
+            (
+                "SO-R12", "R5 begins prior to independent R4 acceptance",
+                "## R5 ", "## R6 ", "Dependency",
+                "R5 may begin prior to independent acceptance of R4.",
+                "plan R5 does not require independent R4 acceptance"),
+            (
+                "SO-R13", "R8 begins before R7 completion",
+                "## R8 ", "## R9 ", "Dependency",
+                "R8 may begin before R7 completion.",
+                "plan R8 does not require completed R7"),
+            (
+                "SO-R14", "the maker owns scenario review",
+                "## R9 ", "## Standing prohibitions", "Consistency scope",
+                "The maker reviews scenario truth and sufficiency.",
+                "does not independently review scenario truth and "
+                "sufficiency"),
+            (
+                "SO-R15", "scenario review is expressly non-independent",
+                "## R9 ", "## Standing prohibitions", "Consistency scope",
+                "Scenario truth and sufficiency receive a non-independent "
+                "review.",
+                "does not independently review scenario truth and "
+                "sufficiency"),
+            (
+                "SO-R16", "R4 acceptance is advisory and not essential",
+                "## R5 ", "## R6 ", "Dependency",
+                "Independent acceptance of R4 is advisory and not essential "
+                "before R5 begins.",
+                "plan R5 does not require independent R4 acceptance"),
+            (
+                "SO-R17", "R7 completion is preferred, not a prerequisite",
+                "## R8 ", "## R9 ", "Dependency",
+                "R7 completion is preferred and not a prerequisite for R8.",
+                "plan R8 does not require completed R7"),
+            (
+                "SO-R18", "independent R9 review is merely recommended",
+                "## R9 ", "## Standing prohibitions", "Consistency scope",
+                "Independent scenario truth and sufficiency review is merely "
+                "recommended.",
+                "does not independently review scenario truth and "
+                "sufficiency"),
+            (
+                "SO-R19", "R8 may ignore its named exclusions",
+                "## R8 ", "## R9 ", "Exclusions",
+                "README and code-map edits, application and runtime "
+                "inspection, and Phase 2 work are prohibited, but R8 may "
+                "ignore those exclusions.",
+                "does not explicitly exclude README/code-map/runtime/Phase-2 "
+                "expansion"),
+            (
+                "SO-R20", "R9 may omit required candidate state",
+                "## R9 ", "## Standing prohibitions", "Inputs",
+                "Use the exact pinned clean pushed R8 topic-branch checkpoint "
+                "and checksum, but R9 may omit those required states.",
+                "plan R9 input is not a pinned clean topic-branch checkpoint"),
+            (
+                "SO-R21", "both Phase 1 gates are preferred advisory steps",
+                "## R9 ", "## Standing prohibitions", "Owner gate",
+                "Both R9 ACCEPT and explicit owner acceptance are preferred "
+                "advisory steps before Phase 1 closes.",
+                "does not require both reviewer and owner acceptance"),
+            (
+                "SO-R22", "R9 can skip the required checksum",
+                "## R9 ", "## Standing prohibitions", "Inputs",
+                "Use the exact pinned clean pushed R8 topic-branch checkpoint "
+                "and checksum, but R9 can skip the checksum.",
+                "plan R9 input is not a pinned clean topic-branch checkpoint"),
+            (
+                "SO-R23", "R8 can disregard its surface prohibitions",
+                "## R8 ", "## R9 ", "Exclusions",
+                "README and code-map edits, application and runtime "
+                "inspection, and Phase 2 work are prohibited, but R8 can "
+                "disregard those prohibitions.",
+                "does not explicitly exclude README/code-map/runtime/Phase-2 "
+                "expansion"),
+            (
+                "SO-R24", "R5 can omit independent R4 acceptance",
+                "## R5 ", "## R6 ", "Dependency",
+                "R5 can omit independent acceptance of R4 before beginning.",
+                "plan R5 does not require independent R4 acceptance")):
+        H.run(
+            name,
+            "semantic-order regression: %s" % desc,
             H.docs(migrated=True, **{
                 P: route_variant(start, end, label, replacement)
             }),

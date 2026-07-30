@@ -1,7 +1,7 @@
 # Architect CBA Canon v2 Pre-R8 Validator-Route Alignment
 
-**Status:** bounded maker alignment and focused polarity correction complete;
-not independently accepted.
+**Status:** bounded maker alignment plus focused polarity and semantic-order
+corrections complete; not independently accepted.
 
 ## Boundary and starting checkpoint
 
@@ -128,6 +128,65 @@ accepting and 145 rejecting. Every rejection matches its intended diagnostic,
 and the deliberate wrong-expectation self-test still fails, proving the
 harness is not acceptance-rigged.
 
+## Focused semantic-order correction
+
+This follow-up began from the clean, synchronized, unaccepted maker checkpoint
+`d29fff1f6ee31579219def2e01c6614b0a7d31c8` with these verified blobs:
+
+- Canon: `5e8a57c3f90c3033cec80516d51a859d108f484d`
+- R7 receipt: `a411aba2d56fbdf3fc55c2b5fc750c9705aca0d9`
+- Repair plan: `32ddbe1b033741066f50076b202214cfc4916e43`
+- Validator: `097001f107a07ff44b49836b2f7d322d7974535b`
+- This receipt: `a8497c751bcfd0e4fffe26979f9addc586df99a5`
+
+The real `check_plan` path still returned zero problems for every one of these
+controlled semantic-order inversions:
+
+1. Independent R4 acceptance was not necessary before R5.
+2. R7 completion was not mandatory before R8.
+3. A standalone independent R7 checker was not prohibited.
+4. Independent scenario truth and sufficiency review was not mandatory.
+5. Every governed R8 surface was not prohibited.
+6. All required R9 candidate attributes were not necessary.
+7. Both Phase 1 close gates were not necessary.
+8. R4 was independently accepted after R5 began.
+9. R5 was independently accepted after R6 began.
+10. R3.1 and R4–R6 were independently accepted after R7 began.
+11. R7 completed after R8 began.
+12. R5 could begin before independent R4 acceptance.
+13. R8 could begin before R7 completion.
+14. The maker reviewed scenario truth and sufficiency.
+15. Scenario truth and sufficiency received a non-independent review.
+
+These false accepts shared three bounded causes: obligation nouns could still
+be weakened by necessity/advisory wording; prerequisite and downstream nouns
+could appear in reverse chronological order; and scenario-review nouns could
+transfer ownership away from the independent R9 reviewer.
+
+The focused correction adds:
+
+- one shared controlled-vocabulary weakener guard for non-mandatory,
+  advisory, preferred, omitted, skipped, ignored, or disregarded duties;
+- small prerequisite-order checks that reject acceptance or completion after
+  downstream construction and downstream construction before the
+  prerequisite; and
+- consistency-scope ownership checks that require the independent R9 reviewer
+  explicitly or through the section's governed reviewer role, while rejecting
+  maker-only and expressly non-independent review.
+
+The implementation remains proposition-aware rather than sentence-specific.
+Nine new accepting controls exercise `follows`, `starts only after`,
+`unauthorized`, independent-reviewer, forbidden/outside/prohibited, mandatory
+candidate-state, and required/necessary gate wording. Twenty-four new
+rejecting controls cover the 15 reproduced cases plus `not essential`, `not a
+prerequisite`, recommended/advisory/preferred duties, and omit/skip/ignore/
+disregard forms. All previous 169 controls remain present and passing.
+
+The expanded population is 202 controls: 33 accepting and 169 rejecting.
+Every negative control matches its directly relevant route diagnostic, the
+current plan has zero baseline diagnostics, and the deliberate
+wrong-expectation self-test still fails.
+
 ## Preservation
 
 No Canon, rule, source, evidence, scenario, lineage, prior receipt, checker
@@ -154,10 +213,15 @@ Validation is recorded against the final two-file worktree before commit:
 - focused before/after probes through `check_plan`: all stated false accepts
   reproduced before correction and rejected afterward on the relevant
   diagnostic;
-- corrected bounded validator development run: 169 of 169 controls correct,
+- preceding polarity-corrected validator run: 169 of 169 controls correct,
+  zero baseline problems, negative self-test successful;
+- semantic-order before/after probes through `check_plan`: all 15 false
+  accepts reproduced before correction and rejected afterward on the relevant
+  diagnostic;
+- corrected bounded validator development run: 202 of 202 controls correct,
   zero baseline problems, negative self-test successful;
 - targeted validator diff review: non-route logic unchanged;
-- two complete final bounded validator runs: identical output, 169 of 169
+- two complete final bounded validator runs: identical output, 202 of 202
   controls correct, zero baseline problems, and negative self-test
   successful;
 - targeted Markdown lint for this receipt: passed;
