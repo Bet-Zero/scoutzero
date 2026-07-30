@@ -7,7 +7,7 @@ The original R6 maker checkpoint
 `f480e0a8ec6a262bdc87d31bb5f231758f3c64c7`, and original checker rejection
 `5921cc57f88abebdbddd3c242d38072f41d95ba7` remain preserved. The first
 focused maker repair was committed at
-`8800aa16b82e32b968def2471525252857725fe8`, followed by the status-only plan
+`8800aa168add5b0356786b15478880b893ef5e36`, followed by the status-only plan
 correction at `8f04df0d2dfb38ae9b4a6bb47039c015d3f4e751`. Focused checker commit
 `7cc8350aceb447178a280c18635a6a5c16fd9005` rejected that checkpoint on
 findings 4, 5, and 7 while confirming that findings 1, 2, 3, and 6 passed.
