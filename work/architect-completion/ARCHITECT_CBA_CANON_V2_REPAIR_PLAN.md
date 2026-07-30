@@ -214,18 +214,19 @@ corrections through `b4712114cbbadd3ed67b7cc82f8fb7bdc741e3f8`. The final
 checker record at `cbb847dbef844dc0b43d7cb46b25659353fb42e0`, corrected only
 for checkpoint/blob provenance through
 `67f6545dec5bf36020a968553701106fee2e9258`, returned **FOCUSED REJECT /
-BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. This bounded `DR2-0140`
-maker repair corrects only that finding. R6 remains unaccepted pending one
-final independent exact-commit re-review, and R7 and later work remain
-blocked and unstarted. Phase 1 continues; Phase 2, W1.1, all
-application changes, and Linear changes remain unauthorized
-pending the revised R9 independent acceptance plus explicit owner
-acceptance. R3.1 used `AMEND` lineage and did not renumber or reuse
-an allocated `CBA2`, `XW2`, `SXW2`, `SRC2`, `EV2`, `DR2`, `SM2`, `SS2`,
-`BND`, `BLK`, `RES`, fragment, scenario-fragment, or `<Record ID>#D<k>`
-date-component ID. All
-Phase 1/Phase 2/W1.1/`main`/checksum/independence boundaries remain
-unchanged.
+BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. The bounded `DR2-0140`
+maker repair corrected only that finding and produced final maker checkpoint
+`8bd95b311075f17fa88b17c06b06fbbb07d1b4fb`. A separate checker independently
+**ACCEPTED** that exact maker checkpoint at
+`802ae2cf795edd1e2dbc29f6ae4bd4b134ab3777`, completing R6 and unblocking R7.
+This R7 checkpoint completes the active scenario library and historical scenario
+crosswalk. R8 is unblocked but unstarted. Phase 1 remains open; Phase 2, W1.1,
+all application work, Linear changes, owner acceptance, and `main` remain blocked
+through R9 independent acceptance plus explicit owner acceptance. R3.1 used
+`AMEND` lineage and did not renumber or reuse an allocated `CBA2`, `XW2`,
+`SXW2`, `SRC2`, `EV2`, `DR2`, `SM2`, `SS2`, `BND`, `BLK`, `RES`, fragment,
+scenario-fragment, or `<Record ID>#D<k>` date-component ID. All
+Phase 1/Phase 2/W1.1/`main`/checksum/independence boundaries remain unchanged.
 **Owner decisions encoded (2026-07-14):** Canon v1.1 is rejected as an active
 audit oracle. v1.0 and v1.1 are preserved as historical editions with their
 existing checksums; their Git history is never rewritten or removed. Canon
@@ -2344,8 +2345,7 @@ blocked and unstarted.
 - **Exclusions:** no scenario construction, Architect comparison,
   application work, Phase 2, Linear, or `main`.
 
-**R6 execution status — final bounded maker repair awaiting independent
-re-review.** The original maker checkpoint
+**R6 execution status — independently accepted.** The original maker checkpoint
 `64eacaf532b08301560d25bd32c7076aaef3821e`, provenance-only correction
 `f480e0a8ec6a262bdc87d31bb5f231758f3c64c7`, original checker rejection
 `5921cc57f88abebdbddd3c242d38072f41d95ba7`, first focused repair
@@ -2359,10 +2359,12 @@ corrections through `b4712114cbbadd3ed67b7cc82f8fb7bdc741e3f8`. The final
 checker record at `cbb847dbef844dc0b43d7cb46b25659353fb42e0`, corrected only
 for checkpoint/blob provenance through
 `67f6545dec5bf36020a968553701106fee2e9258`, returned **FOCUSED REJECT /
-BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. This bounded `DR2-0140`
-maker repair corrects only that finding. R6 remains unaccepted pending one
-final independent exact-commit re-review, and R7 and later work remain
-blocked and unstarted.
+BLOCK-R7** solely on `CBA2-R07.1` / `EV2-0641`. The bounded `DR2-0140`
+maker repair corrected only that finding and produced final maker checkpoint
+`8bd95b311075f17fa88b17c06b06fbbb07d1b4fb`, which was independently
+**ACCEPTED** at checker commit
+`802ae2cf795edd1e2dbc29f6ae4bd4b134ab3777`. R6 is complete and R7 was
+authorized from that exact clean, synchronized checkpoint.
 
 The second repair preserves focused findings 1, 2, 3, and 6 and resolves only
 the remaining findings:
@@ -2392,8 +2394,7 @@ through `XW2-0499`, `DR2` through `DR2-0140`, `SM2` through `SM2-0017`, and
 dependency edges have active targets, matching evidence joins, correct
 direction, actual semantic consumption, and zero cycles. The concise maker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R6_R_L_S_SERIES_CERTIFICATION.md`.
-R6 is not accepted until a separate checker records an exact-commit ACCEPT;
-R7, application, Phase 2, Linear, and `main` remain untouched.
+R6 is accepted at checker commit `802ae2cf795edd1e2dbc29f6ae4bd4b134ab3777`. R7 proceeds without application, Phase 2, Linear, or `main` work.
 
 ## R7 — Build only comparison-critical scenarios
 
@@ -2428,6 +2429,13 @@ R7, application, Phase 2, Linear, and `main` remain untouched.
   scenario truth and sufficiency as part of whole-canon acceptance.
 - **Exclusions:** no application inspection, comparison verdict, application
   test, Phase 2, Linear, or `main`.
+
+**R7 execution status — complete in this checkpoint.** The canon now contains the
+complete active scenario library and historical scenario crosswalk required by the
+governed R7 contract, with the concise maker receipt at
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R7_SCENARIO_CONSTRUCTION.md`.
+R8 is unblocked but unstarted. Phase 1 remains open; Phase 2 and owner acceptance
+remain blocked through R9.
 
 ## R8 — Final maker reconciliation and checksum
 
