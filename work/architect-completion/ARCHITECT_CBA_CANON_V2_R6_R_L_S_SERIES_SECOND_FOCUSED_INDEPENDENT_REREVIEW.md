@@ -47,7 +47,7 @@ The review began from a clean branch synchronized with its remote after
   accepted R5 maker/checker, and stable-main ancestry all resolve in the
   required order.
 - Local and remote `main` both remained at
-  `69f8f6b7710527c60cb2a429e95af6953c87e0f7`.
+  `69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`.
 - No R7, application, runtime, data, Phase 2, Linear, Graphify, or `main`
   work exists in the reviewed checkpoint range.
 
@@ -380,4 +380,4 @@ This receipt records no maker repair and changes no canon rule.
 - application/runtime/data: untouched
 - Linear and Graphify: untouched
 - `main`: untouched at
-  `69f8f6b7710527c60cb2a429e95af6953c87e0f7`
+  `69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`
