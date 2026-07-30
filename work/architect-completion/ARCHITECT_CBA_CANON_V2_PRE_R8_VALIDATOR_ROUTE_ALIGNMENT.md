@@ -1,6 +1,7 @@
 # Architect CBA Canon v2 Pre-R8 Validator-Route Alignment
 
-**Status:** bounded maker alignment complete; not independently accepted.
+**Status:** bounded maker alignment and focused polarity correction complete;
+not independently accepted.
 
 ## Boundary and starting checkpoint
 
@@ -63,15 +64,69 @@ scenario scope, and two-part owner gate semantically. The historical
 accepted-status control-tree route remains validated under its historical
 maker/checker model; its pointer and chronology are unchanged.
 
-One positive current-route control and 18 focused rejecting controls were
-added. They reject omission of each accepted prerequisite; incomplete R7;
-standalone R7 review; missing independent R9 scenario review; each R8
-exclusion independently; unpinned, dirty, unpushed, non-topic-branch, or
-checksum-free R9 candidates; and either one-sided Phase 1 close gate. The
-corrected population is 142 controls: 15 accepting and 127 rejecting. Every
-control passes on its expected result and every rejecting route control
-matches its intended diagnostic. The deliberate wrong-expectation self-test
-still fails, proving the harness is not acceptance-rigged.
+The preceding unaccepted maker checkpoint
+`ce1533d5a73b3f2aa65270c43f0cacfbfc917382` added one positive current-route
+control and 18 focused rejecting controls. They reject omission of each
+accepted prerequisite; incomplete R7; standalone R7 review; missing
+independent R9 scenario review; each R8 exclusion independently; unpinned,
+dirty, unpushed, non-topic-branch, or checksum-free R9 candidates; and either
+one-sided Phase 1 close gate. That checkpoint's population was 142 controls:
+15 accepting and 127 rejecting. It remained a maker checkpoint and was not
+independently accepted.
+
+## Focused polarity correction
+
+This follow-up began from the clean, synchronized
+`ce1533d5a73b3f2aa65270c43f0cacfbfc917382` checkpoint with these verified
+blobs:
+
+- Canon: `5e8a57c3f90c3033cec80516d51a859d108f484d`
+- R7 receipt: `a411aba2d56fbdf3fc55c2b5fc750c9705aca0d9`
+- Repair plan: `32ddbe1b033741066f50076b202214cfc4916e43`
+- Validator: `a16639409f61c54f3607b19cb872f48a2ace192d`
+- This receipt: `8bfba5a4d110372e397e00731b869d77ddd6753d`
+
+The real `check_plan` path had zero problems for the current plan but also
+false-accepted each of these direct polarity inversions with zero problems:
+
+1. R4 was not independently accepted before R5.
+2. R7 was not complete, but R8 could begin.
+3. No standalone-R7-checker ban applied and R7 received that checker.
+4. Scenario truth and sufficiency were not reviewed.
+5. Every governed R8 excluded surface was allowed.
+6. The R9 candidate need not be clean or pushed.
+7. R9 ACCEPT or explicit owner acceptance could close Phase 1.
+
+The same path also false-accepted direct non-acceptance of R5 before R6,
+direct non-acceptance of all R3.1/R4/R5/R6 prerequisites before R7, and
+optional checksum, clean, pushed, or topic-branch state for the R9 candidate.
+The narrower "begin without independent acceptance" R6/R7 forms and the
+"either gate is sufficient" form already rejected before this repair and
+remain protected.
+
+After correction, every named inversion produces only its directly relevant
+route diagnostic. The R5–R9 helpers now:
+
+- reject negated, optional, omitted, or contradictory independent acceptance;
+- require affirmative R7 completion before R8;
+- recognize a real standalone-R7-checker prohibition and separately reject an
+  affirmative standalone-checker clause;
+- require affirmative independent assessment of scenario truth/accuracy and
+  sufficiency/adequacy;
+- require a clause-level prohibition for every R8 excluded surface and reject
+  allowance inversions;
+- require affirmative pinned/exact, clean, pushed/remote-synchronized,
+  topic-branch, checkpoint/commit, and checksum/digest candidate state; and
+- require a both-and conjunction for R9 ACCEPT plus explicit owner acceptance,
+  rejecting `or`, `either`, optionality, and one-sided sufficiency.
+
+Nine accepting paraphrase controls prove those checks are not tied to the
+current plan's exact sentences. Eighteen rejecting polarity controls cover the
+governed propositions and contradiction forms. All existing 142 controls
+remain present and passing. The final population is 169 controls: 24
+accepting and 145 rejecting. Every rejection matches its intended diagnostic,
+and the deliberate wrong-expectation self-test still fails, proving the
+harness is not acceptance-rigged.
 
 ## Preservation
 
@@ -88,20 +143,25 @@ W1.1, application work, Linear, and `main` remain blocked and untouched.
 
 ## Validation
 
-Validation is recorded against the final three-file worktree before commit:
+Validation is recorded against the final two-file worktree before commit:
 
 - exact starting checkpoint, parent, `main`, synchronization, cleanliness,
-  and four starting blobs: matched;
+  and required starting blobs: matched;
 - baseline bounded validator: exactly seven route diagnostics, all 123
   controls correct, and negative self-test successful;
-- corrected bounded validator development run: 142 of 142 controls correct,
+- preceding bounded validator maker run: 142 of 142 controls correct, zero
+  baseline problems, negative self-test successful;
+- focused before/after probes through `check_plan`: all stated false accepts
+  reproduced before correction and rejected afterward on the relevant
+  diagnostic;
+- corrected bounded validator development run: 169 of 169 controls correct,
   zero baseline problems, negative self-test successful;
 - targeted validator diff review: non-route logic unchanged;
-- two complete final bounded validator runs: identical output, 142 of 142
+- two complete final bounded validator runs: identical output, 169 of 169
   controls correct, zero baseline problems, and negative self-test
   successful;
-- targeted Markdown lint for this receipt and the repair plan: passed;
+- targeted Markdown lint for this receipt: passed;
 - `npm run docs:guardrails`: passed;
 - `npm run validate:project`: passed;
 - `git diff --check`: passed; and
-- exact final scope: the repair plan, validator, and this receipt only.
+- exact final scope: the validator and this receipt only.
