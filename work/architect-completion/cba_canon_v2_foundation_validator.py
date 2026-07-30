@@ -316,6 +316,20 @@ CANON_REL = os.path.join("docs", "reference", "cba", "ARCHITECT_CBA_CANON.md")
 PLAN_REL = os.path.join("work", "architect-completion",
                         "ARCHITECT_CBA_CANON_V2_REPAIR_PLAN.md")
 RECEIPT_DIR = os.path.join("work", "architect-completion")
+CURRENT_ROUTE_CONTEXT_START = \
+    "e59d0dcc0ef2bf794920805c9fc3d549342e376c"
+ROUTE_CONTEXT_CURRENT = "completed-r7-current"
+ROUTE_CONTEXT_HISTORICAL = "historical-accepted-status"
+
+
+def trusted_plan_route_context(repo, ref=None):
+    """Select route validation from Git chronology, never plan wording."""
+    current = ref or (git_head(repo) if repo else None)
+    if (repo and current
+            and git_commit_exists(repo, CURRENT_ROUTE_CONTEXT_START)
+            and git_is_ancestor(repo, CURRENT_ROUTE_CONTEXT_START, current)):
+        return ROUTE_CONTEXT_CURRENT
+    return ROUTE_CONTEXT_HISTORICAL
 
 
 class Tree(object):
@@ -323,10 +337,18 @@ class Tree(object):
     performing-unit receipt, loaded from a working directory or from a pinned
     git commit of the same repository."""
 
-    def __init__(self, root, ref=None):
+    def __init__(self, root, ref=None, plan_route_context=None):
         self.root = os.path.abspath(root)
         self.ref = ref
         self.repo = git_repo_root(self.root)
+        self.plan_route_context = (
+            plan_route_context
+            if plan_route_context is not None
+            else trusted_plan_route_context(self.repo, ref))
+        if self.plan_route_context not in (
+                ROUTE_CONTEXT_CURRENT, ROUTE_CONTEXT_HISTORICAL):
+            raise ValueError("invalid plan route validation context %r"
+                             % self.plan_route_context)
         cache_key = ((self.repo or self.root), ref)
         if ref and cache_key in _TREE_REF_CACHE:
             cached = _TREE_REF_CACHE[cache_key]
@@ -1059,13 +1081,21 @@ def r8_has_started(plan):
 def plan_route_field(section, *labels):
     """Return one named R5-R9 route field without depending on its prose."""
     for label in labels:
-        match = re.search(
+        values = plan_route_field_values(section, label)
+        if values:
+            return values[0]
+    return ""
+
+
+def plan_route_field_values(section, label):
+    """Return every occurrence of one controlled route-field label."""
+    return [
+        match.group(2).strip()
+        for match in re.finditer(
             r"(?ms)^- \*\*(%s):\*\*\s*(.*?)"
             r"(?=^- \*\*|^\*\*|^#{2,6} |\Z)" % re.escape(label),
             section)
-        if match:
-            return match.group(2).strip()
-    return ""
+    ]
 
 
 def replace_plan_route_field(plan, start, end, label, replacement):
@@ -1199,6 +1229,20 @@ def current_route_contract_hash():
 
 CURRENT_ROUTE_CONTRACT_SHA256 = \
     "b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1"
+CURRENT_ROUTE_DECLARATION_VERSION = "CBA-CANON-V2-R5-R9/1"
+CURRENT_ROUTE_DECLARATION_STATE = "frozen-through-phase-1-closure"
+CURRENT_ROUTE_DECLARATION_LABEL = \
+    "**Frozen current-route contract declaration:**"
+
+
+def current_route_declaration_values(plan):
+    """Parse the sole machine-shaped current-route declaration."""
+    match = re.search(
+        r"(?ms)^\*\*Frozen current-route contract declaration:\*\*\s*"
+        r"version\s+`([^`]+)`;\s*state\s+`([^`]+)`;\s*"
+        r"SHA-256\s+`([0-9a-f]{64})`\.\s*(?=\n\n|\Z)",
+        plan or "")
+    return match.groups() if match else None
 
 
 def route_text(value):
@@ -1519,11 +1563,14 @@ def current_r7_r9_route(r7):
         route_text(r7)))
 
 
-def check_plan(plan):
+def check_plan(plan, route_context):
     probs = []
     if plan is None:
         return ["repair plan is MISSING - the governing repair plan is a "
                 "required input and cannot be absent"]
+    if route_context not in (
+            ROUTE_CONTEXT_CURRENT, ROUTE_CONTEXT_HISTORICAL):
+        return ["plan route validation context is not explicit or trusted"]
     r31 = plan_section(plan, "## R3.1 ", "## R4 ")
     for n in range(1, 28):
         if not re.search(r"(?m)^\s*%d\.\s" % n, r31):
@@ -1789,25 +1836,67 @@ def check_plan(plan):
     r6_dependency = plan_route_field(r6, "Dependency")
     r7_dependency = plan_route_field(r7, "Dependency")
     r8_dependency = plan_route_field(r8, "Dependency")
-    revised_route = current_r7_r9_route(r7)
+    revised_route = route_context == ROUTE_CONTEXT_CURRENT
 
     if revised_route:
         if current_route_contract_hash() != CURRENT_ROUTE_CONTRACT_SHA256:
             probs.append(
                 "validator current-route contract hash does not match its "
                 "recorded deterministic value")
-        sections = {
-            ("## R5 ", "## R6 "): r5,
-            ("## R6 ", "## R7 "): r6,
-            ("## R7 ", "## R8 "): r7,
-            ("## R8 ", "## R9 "): r8,
-            ("## R9 ", "## Standing prohibitions"): r9,
+        section_counts = {
+            unit: len(re.findall(
+                r"(?m)^## %s(?:\s|$)" % re.escape(unit), plan))
+            for unit in ("R5", "R6", "R7", "R8", "R9")
         }
-        for (_name, start, end, label, expected,
-             diagnostic) in CURRENT_ROUTE_CONTRACT:
-            actual = plan_route_field(sections[(start, end)], label)
-            if normalize_route_contract_field(actual) != expected:
-                probs.append(diagnostic)
+        for unit, count in section_counts.items():
+            if count != 1:
+                probs.append(
+                    "plan current route must contain exactly one %s section "
+                    "heading" % unit)
+
+        declaration_count = len(re.findall(
+            r"(?m)^\*\*Frozen current-route contract declaration:\*\*",
+            plan))
+        if declaration_count != 1:
+            probs.append(
+                "plan current-route contract declaration must appear exactly "
+                "once")
+        else:
+            declaration = current_route_declaration_values(plan)
+            if declaration is None:
+                probs.append(
+                    "plan current-route contract declaration does not match "
+                    "the required version/state/hash structure")
+            else:
+                version, state, contract_hash = declaration
+                if (version != CURRENT_ROUTE_DECLARATION_VERSION
+                        or state != CURRENT_ROUTE_DECLARATION_STATE):
+                    probs.append(
+                        "plan current-route contract declaration has the "
+                        "wrong version or frozen state")
+                if contract_hash != CURRENT_ROUTE_CONTRACT_SHA256:
+                    probs.append(
+                        "plan current-route contract declaration hash does "
+                        "not match the frozen contract")
+
+        if all(count == 1 for count in section_counts.values()):
+            sections = {
+                ("## R5 ", "## R6 "): r5,
+                ("## R6 ", "## R7 "): r6,
+                ("## R7 ", "## R8 "): r7,
+                ("## R8 ", "## R9 "): r8,
+                ("## R9 ", "## Standing prohibitions"): r9,
+            }
+            for (name, start, end, label, expected,
+                 diagnostic) in CURRENT_ROUTE_CONTRACT:
+                values = plan_route_field_values(
+                    sections[(start, end)], label)
+                if len(values) != 1:
+                    probs.append(
+                        "plan current-route field %s must appear exactly once"
+                        % name)
+                elif normalize_route_contract_field(values[0]) != expected:
+                    probs.append(diagnostic)
     else:
         # Historical accepted-status control trees retain their original
         # semantic maker/checker validation model.
@@ -5753,7 +5842,7 @@ def validate_tree(tree):
     problems += reconcile_inventory(tree.canon, inv)
     problems += check_immutable_ranges(tree.canon, inv)
     problems += check_canon_population_locations(tree.canon, inv)
-    problems += check_plan(tree.plan)
+    problems += check_plan(tree.plan, tree.plan_route_context)
     problems += check_canon_live_status(tree.canon, tree.plan)
     problems += check_accepted_status_control_tree(tree)
     migration = parse_migration_state(tree.plan)
@@ -6009,8 +6098,9 @@ class ControlRepo(object):
         if os.path.isfile(p):
             os.remove(p)
 
-    def tree(self):
-        return Tree(self.dir)
+    def tree(self, plan_route_context=None):
+        return Tree(
+            self.dir, plan_route_context=plan_route_context)
 
     def cleanup(self):
         shutil.rmtree(self.dir, ignore_errors=True)
@@ -6799,6 +6889,7 @@ class Harness(object):
         self.base = base
         self.r31 = r31
         self.results = []
+        self.plan_route_context = None
 
     def run(self, name, desc, docs, expect_reject, diagnostic=None,
             drop=()):
@@ -6810,7 +6901,8 @@ class Harness(object):
                 self.repo.remove(rel)
             else:
                 self.repo._write(rel, txt)
-        problems, _notes = validate_tree(self.repo.tree())
+        problems, _notes = validate_tree(
+            self.repo.tree(self.plan_route_context))
         rejected = bool(problems)
         ok = (rejected == expect_reject)
         diag_ok = True
@@ -8114,6 +8206,7 @@ def run_cases(repo):
     # accepted-status control-tree pointer inside this temporary repository.
     # They prove the completed-R7 route without inventing a standalone R7
     # checker and leave every canon/parser/source/scenario control untouched.
+    H.plan_route_context = ROUTE_CONTEXT_CURRENT
     current_plan = Tree(repo.src).plan
     if current_plan is None:
         raise AssertionError("live plan is not resolvable for route controls")
@@ -8125,6 +8218,49 @@ def run_cases(repo):
 
     def route_omitted(start, end, label):
         return remove_plan_route_field(route_plan, start, end, label)
+
+    def route_duplicated(start, end, label, contradiction):
+        section = plan_section(route_plan, start, end)
+        approved = plan_route_field(section, label)
+        needle = "- **%s:** %s" % (label, approved)
+        position = section.index(needle) + len(needle)
+        revised = (
+            section[:position]
+            + "\n- **%s:** %s" % (label, contradiction)
+            + section[position:])
+        return route_plan.replace(section, revised, 1)
+
+    def route_section_duplicated(unit):
+        match = re.search(
+            r"(?m)^## %s[^\n]*$" % re.escape(unit), route_plan)
+        if not match:
+            raise AssertionError("current plan has no %s heading" % unit)
+        duplicate = "\n\n## %s — duplicate structural control" % unit
+        return (
+            route_plan[:match.end()] + duplicate
+            + route_plan[match.end():])
+
+    declaration_match = re.search(
+        r"(?ms)^\*\*Frozen current-route contract declaration:\*\*"
+        r".*?(?=\n\n)", route_plan)
+    if not declaration_match:
+        raise AssertionError(
+            "current plan has no parseable route contract declaration")
+    route_declaration = declaration_match.group(0)
+
+    def mode_downgrade(status_replacement, weaken_following=False):
+        revised = mut(
+            route_plan,
+            "R7 execution status — complete in this checkpoint",
+            status_replacement)
+        if weaken_following:
+            revised = mut(
+                revised,
+                "The canon now contains the\ncomplete active scenario",
+                "The canon now contains the\nprovisional active scenario")
+        return replace_plan_route_field(
+            revised, "## R8 ", "## R9 ", "Dependency",
+            "R7 was independently accepted before R8 began.")
 
     H.run(
         "RT0",
@@ -8538,7 +8674,7 @@ def run_cases(repo):
 
     # Each controlled field independently rejects omission.
     for index, (name, start, end, label, _expected,
-                diagnostic) in enumerate(CURRENT_ROUTE_CONTRACT, 1):
+                _diagnostic) in enumerate(CURRENT_ROUTE_CONTRACT, 1):
         H.run(
             "DC-O%d" % index,
             "current-route field omitted: %s" % name,
@@ -8546,7 +8682,7 @@ def run_cases(repo):
                 P: route_omitted(start, end, label)
             }),
             True,
-            diagnostic)
+            "plan current-route field %s must appear exactly once" % name)
 
     # Normalization is intentionally limited but real: Markdown decoration,
     # whitespace, and line wrapping may vary without changing the contract.
@@ -8723,6 +8859,173 @@ def run_cases(repo):
             }),
             True,
             diagnostic)
+
+    # Structural integrity controls protect the cardinality and validation
+    # context around the frozen values, not just the values themselves.
+    duplicate_fields = (
+        (
+            "R5 Dependency", "## R5 ", "## R6 ", "Dependency",
+            "R5 may begin without accepted R4."),
+        (
+            "R6 Dependency", "## R6 ", "## R7 ", "Dependency",
+            "R6 may begin without accepted R5."),
+        (
+            "R7 Dependency", "## R7 ", "## R8 ", "Dependency",
+            "R7 may begin without accepted prerequisites."),
+        (
+            "R7 Review boundary", "## R7 ", "## R8 ",
+            "Review boundary",
+            "R7 requires a standalone independent checker."),
+        (
+            "R8 Dependency", "## R8 ", "## R9 ", "Dependency",
+            "R8 may begin before R7 completion."),
+        (
+            "R8 Exclusions", "## R8 ", "## R9 ", "Exclusions",
+            "Application inspection and Phase 2 work are allowed."),
+        (
+            "R9 Inputs", "## R9 ", "## Standing prohibitions", "Inputs",
+            "R9 may review a dirty local draft."),
+        (
+            "R9 Consistency scope", "## R9 ",
+            "## Standing prohibitions", "Consistency scope",
+            "Scenario truth need not receive independent review."),
+        (
+            "R9 Owner gate", "## R9 ", "## Standing prohibitions",
+            "Owner gate", "R9 ACCEPT alone may close Phase 1."),
+    )
+    for index, (name, start, end, label,
+                contradiction) in enumerate(duplicate_fields, 1):
+        H.run(
+            "SI-D%d" % index,
+            "duplicate controlled field rejects: %s" % name,
+            H.docs(migrated=True, **{
+                P: route_duplicated(
+                    start, end, label, contradiction)
+            }),
+            True,
+            "plan current-route field %s must appear exactly once" % name)
+
+    for index, unit in enumerate(("R5", "R6", "R7", "R8", "R9"), 1):
+        H.run(
+            "SI-S%d" % index,
+            "duplicate current-route section heading rejects: %s" % unit,
+            H.docs(migrated=True, **{
+                P: route_section_duplicated(unit)
+            }),
+            True,
+            "plan current route must contain exactly one %s section heading"
+            % unit)
+
+    wrong_hash_plan = mut(
+        route_plan, CURRENT_ROUTE_CONTRACT_SHA256, "0" * 64)
+    H.run(
+        "SI-C1",
+        "current-route contract declaration has the wrong hash",
+        H.docs(migrated=True, **{P: wrong_hash_plan}),
+        True,
+        "declaration hash does not match the frozen contract")
+    H.run(
+        "SI-C2",
+        "current-route contract declaration is missing",
+        H.docs(migrated=True, **{
+            P: route_plan.replace(route_declaration, "", 1)
+        }),
+        True,
+        "declaration must appear exactly once")
+    H.run(
+        "SI-C3",
+        "current-route contract declaration is renamed",
+        H.docs(migrated=True, **{
+            P: mut(
+                route_plan, CURRENT_ROUTE_DECLARATION_LABEL,
+                "**Renamed current-route contract declaration:**")
+        }),
+        True,
+        "declaration must appear exactly once")
+    conflicting_declaration = (
+        route_declaration
+        .replace(CURRENT_ROUTE_CONTRACT_SHA256, "f" * 64)
+        .replace(
+            CURRENT_ROUTE_DECLARATION_STATE,
+            "optional-before-phase-1-closure"))
+    H.run(
+        "SI-C4",
+        "current-route contract declaration is duplicated with conflict",
+        H.docs(migrated=True, **{
+            P: route_plan.replace(
+                route_declaration,
+                route_declaration + "\n\n" + conflicting_declaration,
+                1)
+        }),
+        True,
+        "declaration must appear exactly once")
+    H.run(
+        "SI-C5",
+        "current-route contract declaration weakens its frozen state",
+        H.docs(migrated=True, **{
+            P: mut(
+                route_plan, CURRENT_ROUTE_DECLARATION_STATE,
+                "recommended-through-phase-1-closure")
+        }),
+        True,
+        "declaration has the wrong version or frozen state")
+
+    for name, desc, status, weaken_following in (
+            (
+                "SI-M1",
+                "renamed R7 status cannot downgrade current validation",
+                "R7 execution result — complete in this checkpoint",
+                False),
+            (
+                "SI-M2",
+                "removed R7 status cannot downgrade current validation",
+                "R7 checkpoint record",
+                False),
+            (
+                "SI-M3",
+                "weakened R7 status cannot downgrade current validation",
+                "R7 execution status — provisional in this checkpoint",
+                True)):
+        H.run(
+            name,
+            desc,
+            H.docs(migrated=True, **{
+                P: mode_downgrade(status, weaken_following)
+            }),
+            True,
+            "plan R8 does not require completed R7")
+
+    r8_status_addition = route_plan.replace(
+        "\n## R9 — Single independent whole-canon acceptance",
+        "\n**R8 status note — unstarted.** Later reconciliation status may "
+        "be recorded outside the frozen fields.\n\n"
+        "## R9 — Single independent whole-canon acceptance",
+        1)
+    H.run(
+        "SI-A1",
+        "ordinary non-contract R8 status prose remains addable",
+        H.docs(migrated=True, **{P: r8_status_addition}),
+        False)
+    r9_receipt_addition = route_plan.replace(
+        "\n## Standing prohibitions until explicit approval",
+        "\n**R9 receipt-routing note.** Later receipt status may be recorded "
+        "outside the frozen fields.\n\n"
+        "## Standing prohibitions until explicit approval",
+        1)
+    H.run(
+        "SI-A2",
+        "ordinary non-contract R9 receipt prose remains addable",
+        H.docs(migrated=True, **{P: r9_receipt_addition}),
+        False)
+
+    H.plan_route_context = None
+
+    H.run(
+        "SI-A3",
+        "genuine historical accepted-status tree retains historical route "
+        "validation",
+        H.docs(**accepted_docs),
+        False)
 
     # Semantic source truth belongs to the checker: a structurally valid
     # locator is not rejected by software merely because of a keyword.

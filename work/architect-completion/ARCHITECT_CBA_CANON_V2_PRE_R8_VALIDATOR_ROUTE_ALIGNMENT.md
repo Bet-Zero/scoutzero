@@ -1,7 +1,8 @@
 # Architect CBA Canon v2 Pre-R8 Validator-Route Alignment
 
-**Status:** bounded maker alignment plus focused polarity, semantic-order, and
-deterministic-contract corrections complete; not independently accepted.
+**Status:** bounded maker alignment plus focused polarity, semantic-order,
+deterministic-contract, and structural-integrity corrections complete; not
+independently accepted.
 
 ## Boundary and starting checkpoint
 
@@ -395,6 +396,153 @@ Validation is recorded against the final three-file worktree before commit:
 - two complete final bounded validator runs: byte-identical output, 213 of
   213 controls correct, zero baseline problems, and negative self-test
   successful;
+- targeted Markdown lint for the plan and this receipt: passed;
+- `npm run docs:guardrails`: passed;
+- `npm run validate:project`: passed;
+- `git diff --check`: passed; and
+- exact final scope: the repair plan, validator, and this receipt only.
+
+## Structural-integrity correction
+
+This correction began from the clean, synchronized, unaccepted maker
+checkpoint `070ac670d4842fa25676c4b4fb61463955a67cb4`, whose direct parent
+is `06e8b219797dba4ccc257ad2341387d8899ed93d`. Stable `main` remained
+`69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`.
+
+The verified starting blobs and bounded result were:
+
+- Canon: `5e8a57c3f90c3033cec80516d51a859d108f484d`
+- R7 receipt: `a411aba2d56fbdf3fc55c2b5fc750c9705aca0d9`
+- Repair plan: `f5debd1ab77b838999c81ff2dc153b062ef2c2e7`
+- Validator: `725c02ef27e6352301752e70bdab400fbba6c33d`
+- This receipt: `70839c28d1af9b65a32caa7d766e1e0057ee5152`
+- Contract SHA-256:
+  `b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1`
+- Bounded validator: 213 controls, 17 accepting and 196 rejecting, zero
+  baseline diagnostics, successful negative self-test, and output SHA-256
+  `c5f5dba51d8e49ac8dcc4b44df5f70f11006684923e206f8de02707528def81a`
+
+### Reproduced structural false accepts
+
+The actual starting `check_plan` path returned zero problems for each
+structural mutation:
+
+| Mutation | Before | After |
+| --- | --- | --- |
+| Duplicate R5 Dependency | zero problems | exact-one R5 Dependency diagnostic |
+| Duplicate R6 Dependency | zero problems | exact-one R6 Dependency diagnostic |
+| Duplicate R7 Dependency | zero problems | exact-one R7 Dependency diagnostic |
+| Duplicate R7 Review boundary | zero problems | exact-one R7 Review-boundary diagnostic |
+| Duplicate R8 Dependency | zero problems | exact-one R8 Dependency diagnostic |
+| Duplicate R8 Exclusions | zero problems | exact-one R8 Exclusions diagnostic |
+| Duplicate R9 Inputs | zero problems | exact-one R9 Inputs diagnostic |
+| Duplicate R9 Consistency scope | zero problems | exact-one R9 Consistency-scope diagnostic |
+| Duplicate R9 Owner gate | zero problems | exact-one R9 Owner-gate diagnostic |
+| Duplicate R5 section heading | zero problems | exact-one R5-section diagnostic |
+| Duplicate R6 section heading | zero problems | exact-one R6-section diagnostic |
+| Duplicate R7 section heading | zero problems | exact-one R7-section diagnostic |
+| Duplicate R8 section heading | zero problems | exact-one R8-section diagnostic |
+| Duplicate R9 section heading | zero problems | exact-one R9-section diagnostic |
+| Renamed R7 status plus historical R8 wording | zero problems | frozen R8 Dependency diagnostic |
+| Removed R7 status plus historical R8 wording | zero problems | frozen R8 Dependency diagnostic |
+| Weakened R7 status plus historical R8 wording | zero problems | frozen R8 Dependency diagnostic |
+| Wrong declaration hash | zero problems | declaration-hash diagnostic |
+| Missing declaration | zero problems | exact-one declaration diagnostic |
+| Renamed declaration | zero problems | exact-one declaration diagnostic |
+| Conflicting duplicate declaration | zero problems | exact-one declaration diagnostic |
+| Weakened declaration state | zero problems | declaration-state diagnostic |
+
+Each after-result is one directly relevant structural or frozen-field
+diagnostic. The three root causes were:
+
+1. the route-field parser returned only the first matching label and did not
+   expose duplicates;
+2. current-versus-historical validation was selected through mutable English
+   in the R7 status paragraph; and
+3. the frozen-contract statement and hash were informative prose rather than
+   a validated structural declaration.
+
+### Structural contract
+
+The plan now carries exactly one machine-shaped declaration:
+
+- version: `CBA-CANON-V2-R5-R9/1`
+- state: `frozen-through-phase-1-closure`
+- SHA-256:
+  `b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1`
+
+The validator requires exactly one R5, R6, R7, R8, and R9 section heading;
+exactly one occurrence of every controlled field in its authorized section;
+and exactly one declaration with that version, state, and hash. Cardinality
+is established before value comparison, so an exact first copy cannot hide a
+contradictory second copy.
+
+Current-versus-historical selection no longer reads plan prose. The live
+validator derives current context from trusted Git chronology beginning at
+the completed R7 checkpoint
+`e59d0dcc0ef2bf794920805c9fc3d549342e376c`. The complete control harness
+passes the same explicit current context outside the mutated document.
+Genuine historical accepted-status trees retain their historical context and
+unchanged semantic maker/checker checks.
+
+The nine approved normalized field values and their ordered hash algorithm
+are unchanged. Only the declaration around them changed. Markdown decoration,
+whitespace, and line wrapping remain the sole permitted normalizations.
+Ordinary non-contract R8 status and R9 receipt prose remains addable outside
+the controlled fields.
+
+### Expanded controls
+
+All preceding 213 controls remain present with their intent preserved. Of
+those, 204 are unchanged control definitions; the nine existing field-
+omission controls retain their mutations and rejecting intent but now expect
+the more precise exact-one-field diagnostic.
+
+Twenty-five controls were added:
+
+- nine duplicate-field rejections;
+- five duplicate-section-heading rejections;
+- five missing, renamed, duplicated, weakened-state, or wrong-hash
+  declaration rejections;
+- three current-mode downgrade rejections with historical-looking R8
+  wording;
+- two acceptances for ordinary non-contract R8/R9 status or receipt prose;
+  and
+- one acceptance proving a genuine historical accepted-status tree remains
+  on its historical path.
+
+The two prior Markdown/whitespace normalization acceptances remain present.
+The final population is 238 controls: 20 accepting and 218 rejecting. Every
+control passes, every rejection matches its intended diagnostic, the current
+plan has zero baseline diagnostics, and the deliberate wrong-expectation
+self-test still fails.
+
+No Canon, R7 receipt, prior receipt, checker record, rule, scenario, source,
+evidence, lineage, parser outside the bounded plan-route surface,
+preservation anchor, or non-route control changed. R7 remains complete at
+`e59d0dcc0ef2bf794920805c9fc3d549342e376c`. R8 remains unstarted. The
+cumulative pre-R8 alignment remains maker work pending independent review.
+Phase 2, W1.1, application work, Linear, Graphify, and `main` remain blocked
+and untouched.
+
+## Structural-integrity validation
+
+Validation is recorded against the final three-file worktree before commit:
+
+- exact repository, branch, starting checkpoint, parent, completed-R7
+  checkpoint, stable `main`, upstream synchronization, cleanliness, five
+  starting blobs, contract hash, and starting bounded output: matched;
+- before/after structural probes: all stated false accepts reproduced and
+  each rejected after correction through its directly relevant diagnostic;
+- Python compilation: passed;
+- independently recomputed nine-field contract hash: matched;
+- current plan: zero baseline diagnostics;
+- expanded development run: 238 of 238 controls correct, 20 accepting and
+  218 rejecting, negative self-test successful;
+- current/historical route-selection probes: passed;
+- targeted historical and non-route preservation review: unchanged;
+- two complete final bounded runs: byte-identical output, 238 of 238 controls
+  correct, zero baseline diagnostics, and negative self-test successful;
 - targeted Markdown lint for the plan and this receipt: passed;
 - `npm run docs:guardrails`: passed;
 - `npm run validate:project`: passed;
