@@ -86,6 +86,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from functools import lru_cache
 
 # --------------------------------------------------------------------------
 # 1. Generic markdown/text helpers (shared by every parser).
@@ -94,9 +95,14 @@ import tempfile
 DASH = "—"  # em dash: the canon's "empty permitted field" value
 
 
+@lru_cache(maxsize=4096)
 def line_range(text, start_prefix, end_prefix):
     """Bytes/chars from the first line beginning with start_prefix to the last
-    character before the first later line beginning with end_prefix."""
+    character before the first later line beginning with end_prefix.
+
+    The key contains the exact text and both boundaries. Reuse therefore
+    cannot confuse same-path, same-size, or restored document states.
+    """
     lines = text.splitlines(keepends=True)
     start = None
     pos = 0
@@ -116,19 +122,25 @@ def line_range(text, start_prefix, end_prefix):
     return text[offs[start]:]
 
 
-def pipe_rows(block):
-    """Every '| a | b | ... |' row as a list of stripped cells (header and
-    separator rows excluded)."""
+@lru_cache(maxsize=4096)
+def _pipe_rows(block):
+    """Immutable exact-content cache behind :func:`pipe_rows`."""
     out = []
     for ln in block.splitlines():
         s = ln.strip()
         if not (s.startswith("|") and s.endswith("|") and len(s) > 1):
             continue
-        cells = [c.strip() for c in s[1:-1].split("|")]
+        cells = tuple(c.strip() for c in s[1:-1].split("|"))
         if all(set(c) <= set("-: ") for c in cells):
             continue
         out.append(cells)
-    return out
+    return tuple(out)
+
+
+def pipe_rows(block):
+    """Every '| a | b | ... |' row as a list of stripped cells (header and
+    separator rows excluded)."""
+    return [list(row) for row in _pipe_rows(block)]
 
 
 def table_after(text, anchor):
@@ -148,9 +160,13 @@ def table_after(text, anchor):
     return "\n".join(rows)
 
 
+@lru_cache(maxsize=8192)
 def heading_block(text, token):
     """Every markdown heading whose text contains `token`, through the next
-    heading of the same or higher level. Returns the concatenated blocks."""
+    heading of the same or higher level. Returns the concatenated blocks.
+
+    This parser is pure; exact text plus token is the complete input.
+    """
     lines = text.splitlines()
     out, i = [], 0
     while i < len(lines):
@@ -427,8 +443,13 @@ class Inventory(object):
         self.headings = {}     # population -> (token, idre)
 
 
+@lru_cache(maxsize=256)
 def parse_inventory(canon):
-    """Parse canon §15.9.11. Returns (Inventory, problems)."""
+    """Parse canon §15.9.11. Returns (Inventory, problems).
+
+    The result is read-only after construction. Exact Canon content is the
+    complete cache key, so equal paths or byte sizes never imply reuse.
+    """
     probs = []
     inv = Inventory()
     if canon is None or INV_A not in canon:
@@ -582,6 +603,30 @@ def _table_header(block):
     return None
 
 
+@lru_cache(maxsize=1024)
+def _parse_canon_population(canon, key, frm, to, idre, schema):
+    """Immutable exact-input result for one Canon population."""
+    seg = line_range(canon, frm, to)
+    if seg is None:
+        return None, (), ()
+    parsed_header = _table_header(seg)
+    header = tuple(parsed_header) if parsed_header is not None else None
+    want = len(header) if header else len(schema)
+    rows, probs = [], []
+    for row in pipe_rows(seg):
+        if not row or not re.fullmatch(
+                idre, normalize_record_id_cell(row[0])):
+            continue
+        if len(row) != want:
+            probs.append(
+                "%s %s: row has %d fields, the table header declares "
+                "%d (malformed row)"
+                % (key, row[0], len(row), want))
+            continue
+        rows.append(tuple(cell.strip() for cell in row))
+    return header, tuple(rows), tuple(probs)
+
+
 def parse_canon_population(canon, inv, key):
     """Rows of a canon-side population, per Inventory F. Returns
     (header, rows, problems). Rows are taken at the RENDERED header's arity so
@@ -592,21 +637,13 @@ def parse_canon_population(canon, inv, key):
         return None, [], ["inventory F carries no section for population %r"
                           % key]
     frm, to, idre = inv.sections[key]
-    seg = line_range(canon, frm, to)
-    if seg is None:
-        return None, [], []
-    header = _table_header(seg)
-    want = len(header) if header else len(inv.schema.get(key, []))
-    rows, probs = [], []
-    for r in pipe_rows(seg):
-        if not r or not re.fullmatch(idre, normalize_record_id_cell(r[0])):
-            continue
-        if len(r) != want:
-            probs.append("%s %s: row has %d fields, the table header declares "
-                         "%d (malformed row)" % (key, r[0], len(r), want))
-            continue
-        rows.append([c.strip() for c in r])
-    return header, rows, probs
+    header, rows, probs = _parse_canon_population(
+        canon, key, frm, to, idre, tuple(inv.schema.get(key, [])))
+    return (
+        list(header) if header is not None else None,
+        [list(row) for row in rows],
+        list(probs),
+    )
 
 
 def parse_canon_population_by_exact_header(canon, inv, key):
@@ -714,6 +751,30 @@ def check_canon_population_locations(canon, inv):
     return problems
 
 
+@lru_cache(maxsize=16384)
+def _parse_receipt_document(text, basename, token, idre, schema, key):
+    """Immutable parse of one population from exact receipt content."""
+    block = heading_block(text, token)
+    if not block:
+        return None, (), ()
+    parsed_header = _table_header(block)
+    header = tuple(parsed_header) if parsed_header is not None else None
+    want = len(header) if header else len(schema)
+    rows, probs = [], []
+    for row in pipe_rows(block):
+        if not row or not re.fullmatch(
+                idre, normalize_record_id_cell(row[0])):
+            continue
+        if len(row) != want:
+            probs.append(
+                "%s %s (%s): row has %d fields, the table header "
+                "declares %d (malformed row)"
+                % (key, row[0], basename, len(row), want))
+            continue
+        rows.append(tuple(cell.strip() for cell in row))
+    return header, tuple(rows), tuple(probs)
+
+
 def parse_receipt_population(tree, inv, key):
     """Rows of a receipt-side support population, per Inventory G."""
     if key not in inv.headings:
@@ -722,23 +783,14 @@ def parse_receipt_population(tree, inv, key):
     token, idre = inv.headings[key]
     header, rows, probs = None, [], []
     for path in sorted(tree.receipts):
-        blk = heading_block(tree.receipts[path], token)
-        if not blk:
-            continue
-        h = _table_header(blk)
+        cached_header, cached_rows, cached_problems = _parse_receipt_document(
+            tree.receipts[path], os.path.basename(path), token, idre,
+            tuple(inv.schema.get(key, [])), key)
+        h = list(cached_header) if cached_header is not None else None
         if h and header is None:
             header = h
-        want = len(h) if h else len(inv.schema.get(key, []))
-        for r in pipe_rows(blk):
-            if not r or not re.fullmatch(
-                    idre, normalize_record_id_cell(r[0])):
-                continue
-            if len(r) != want:
-                probs.append("%s %s (%s): row has %d fields, the table header "
-                             "declares %d (malformed row)"
-                             % (key, r[0], os.path.basename(path), len(r), want))
-                continue
-            rows.append([c.strip() for c in r])
+        rows.extend(list(row) for row in cached_rows)
+        probs.extend(cached_problems)
     return header, rows, probs
 
 
@@ -5616,7 +5668,6 @@ def check_preservation(ctx):
     binv, bprobs = parse_inventory(base.canon)
     if bprobs or not binv.sections:
         binv = ctx.inv  # the checkpoint predates 15.9.11; read it with today's
-    bctx = Ctx(base, binv)
     resolved_forward = set(getattr(ctx, "amend_resolved", set()))
     for key in PRESERVED_POPULATIONS:
         if key == "DR2-generic":

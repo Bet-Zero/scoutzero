@@ -402,6 +402,81 @@ Validation is recorded against the final three-file worktree before commit:
 - `git diff --check`: passed; and
 - exact final scope: the repair plan, validator, and this receipt only.
 
+## Performance-only timeout correction
+
+**Status:** bounded maker performance correction complete; the cumulative
+pre-R8 validator-route alignment remains pending independent review.
+
+The fresh independent checker rejected exact maker checkpoint
+`8cf19568e03fde17b9041abcedf04053c6b4e436` solely because one bounded default
+execution did not complete within the mandatory four-minute ceiling under
+either Python 3.13.2 or system Python 3.9.6. The checker made no repository
+change and did not start R8.
+
+### Profile and bounded optimization
+
+A 60-second standard-library `cProfile` run exercised the unchanged default
+`main()` and `validate_tree()` path. It reached 22 controls and recorded
+60,580,787 calls. The dominant cumulative costs were repeated parsing of
+content-identical document text: receipt-population parsing and
+`heading_block` scanning (20.296 and 19.532 seconds), `line_range` scanning
+(11.432 seconds), reconciliation-context construction (23.802 seconds), and
+preservation work (9.850 seconds). The pre-change bounded run exceeded 240
+seconds under both interpreters.
+
+The validator now reuses only pure parse results keyed by the exact input
+content plus every parser-specific token, boundary, schema, grammar, label,
+and diagnostic-path basename that can affect the result. Cached table rows
+and diagnostics are immutable; public parsers return fresh lists. Bounded
+least-recently-used limits avoid unbounded retention. Preservation also no
+longer constructs one unused full baseline reconciliation context.
+
+No validation stage, route, control, diagnostic, Git check, document-tree
+materialization, or production entry point was removed, skipped, reordered,
+or made optional. Execution remains standard-library-only and requires no
+warm prior process or machine-specific state.
+
+### Cache-integrity probes
+
+A fresh temporary probe outside the maker control definitions passed under
+both Python 3.13.2 and Python 3.9.6. It proved:
+
+- a same-size receipt-content mutation remains visible after the original
+  content is cached;
+- back-to-back `A → B → A` states return the correct result each time;
+- file removal produces an empty population and restoration restores the
+  original result;
+- identical relative paths in different repositories and distinct Git refs
+  remain separated;
+- current, historical, and invalid explicit route contexts remain distinct
+  and invalid context fails closed; and
+- duplicate controlled fields and duplicate sections still reject through
+  their directly relevant diagnostics.
+
+The temporary probe and its repositories were not committed.
+
+### Runtime and preservation result
+
+Post-correction development measurements from fresh processes were:
+
+| Interpreter | Before | After | Result |
+| --- | ---: | ---: | --- |
+| Python 3.13.2 | >240 s; stopped | 143.685 s | PASS |
+| Python 3.9.6 | >240 s; stopped | 162.277 s | PASS |
+
+Both completed runs retained exactly 238 controls in their original order:
+20 accepting and 218 rejecting, every intended diagnostic matched, the
+baseline had zero diagnostics, and the negative self-test succeeded. Their
+output bytes were identical to the pre-correction expected output with
+SHA-256
+`1a386c0d54ff38ab4caafe91f4994924fd3273c4cfabafe283eadcdb0ce378f0`.
+
+The repair plan, frozen contract and its nine route values, Canon, R7 scenario
+receipt, route selection, and every non-route validator behavior remain
+unchanged. R7 remains complete, R8 remains blocked and unstarted, and the
+cumulative alignment remains unaccepted maker work. Phase 2, W1.1,
+application work, Linear, Graphify, and `main` remain untouched.
+
 ## Structural-integrity correction
 
 This correction began from the clean, synchronized, unaccepted maker
