@@ -220,7 +220,8 @@ maker repair corrected only that finding and produced final maker checkpoint
 **ACCEPTED** that exact maker checkpoint at
 `802ae2cf795edd1e2dbc29f6ae4bd4b134ab3777`, completing R6 and unblocking R7.
 This R7 checkpoint completes the active scenario library and historical scenario
-crosswalk. R8 is unblocked but unstarted. Phase 1 remains open; Phase 2, W1.1,
+crosswalk. R8 maker reconciliation is complete in this checkpoint; R9 remains
+unstarted. Phase 1 remains open; Phase 2, W1.1,
 all application work, Linear changes, owner acceptance, and `main` remain blocked
 through R9 independent acceptance plus explicit owner acceptance. R3.1 used
 `AMEND` lineage and did not renumber or reuse an allocated `CBA2`, `XW2`,
@@ -2436,8 +2437,9 @@ R6 is accepted at checker commit `802ae2cf795edd1e2dbc29f6ae4bd4b134ab3777`. R7 
 complete active scenario library and historical scenario crosswalk required by the
 governed R7 contract, with the concise maker receipt at
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_R7_SCENARIO_CONSTRUCTION.md`.
-R8 is unblocked but unstarted. Phase 1 remains open; Phase 2 and owner acceptance
-remain blocked through R9.
+R8 maker reconciliation is complete in this checkpoint. Phase 1 remains open;
+Phase 2 and owner acceptance remain blocked through R9 independent acceptance
+plus explicit owner acceptance.
 
 **Bounded pre-R8 validator-route alignment — independently ACCEPTED.**
 The plan-route checks now follow the approved R5–R9 contract recorded here:
@@ -2452,8 +2454,9 @@ Its concise maker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R8_VALIDATOR_ROUTE_ALIGNMENT.md`.
 The independent checker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R8_VALIDATOR_ROUTE_ALIGNMENT_INDEPENDENT_REVIEW.md`.
-R7 remains complete, R8 remains unstarted, and Phase 2, W1.1, application
-work, Linear, and `main` remain blocked.
+R7 remains complete. R8 maker reconciliation is complete in this checkpoint;
+R9 remains unstarted, and Phase 2, W1.1, application work, Linear, and `main`
+remain blocked.
 
 **Frozen current-route contract declaration:** version
 `CBA-CANON-V2-R5-R9/1`; state `frozen-through-phase-1-closure`; SHA-256
@@ -2466,6 +2469,8 @@ and receive independent review.
 
 ## R8 — Final maker reconciliation and checksum
 
+- **Status:** complete in this maker checkpoint; the Canon remains an
+  unaccepted working draft and R9 remains unstarted.
 - **Dependency:** accepted R3.1/R4/R5/R6 rule checkpoints and a completed R7
   scenario checkpoint. R7 maker completion is required before R8; no
   standalone R7 checker or overlapping R8 checker is required or authorized.
@@ -2494,6 +2499,16 @@ and receive independent review.
   no application or runtime inspection or change; no Phase 2 packet, work, or
   verdict; and no Architect comparison, data/configuration change, Linear, or
   `main`.
+
+**R8 execution status — maker reconciliation complete; R9 not started.** The
+global G1–G15 populations, joins, terminal dispositions, scenario references,
+and governed counts reconcile without a substantive blocker. No accepted
+R3.1, R4, R5, or R6 source-certified material changed, so no focused
+independent re-review was triggered. The final Canon checksum, validation
+evidence, and R9 handoff boundary are recorded in
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R8_RECONCILIATION_CHECKSUM.md`.
+The Canon remains unaccepted until R9 independently ACCEPTS the exact pushed
+R8 checkpoint and the owner then explicitly accepts Phase 1.
 
 ## R9 — Single independent whole-canon acceptance
 
