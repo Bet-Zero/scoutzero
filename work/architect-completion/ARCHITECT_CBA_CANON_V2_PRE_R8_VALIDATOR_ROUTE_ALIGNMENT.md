@@ -623,3 +623,71 @@ Validation is recorded against the final three-file worktree before commit:
 - `npm run validate:project`: passed;
 - `git diff --check`: passed; and
 - exact final scope: the repair plan, validator, and this receipt only.
+
+## Cache-isolation correction after independent rejection
+
+The independent checker rejected maker checkpoint
+`a1e70bb3978dc098bedb63aa15552eb7659b515c` after reproducing a mutable
+cache leak in `parse_inventory()`. Its first and second calls returned the
+same `Inventory` and diagnostics objects, so clearing the first schema and
+appending `INDEPENDENT-CACHE-POISON` changed the next result from 23 schemas
+to zero and exposed the poison diagnostic. The checker changed nothing, R8
+remained blocked and unstarted, and this bounded maker correction began from
+that exact clean, synchronized checkpoint.
+
+The root cause was an `lru_cache` directly on the public parser even though
+its return contained dictionaries, lists, and nested field/value lists. The
+private cache now retains only an insertion-order-preserving immutable tuple
+snapshot and immutable diagnostics tuple, keyed by exact Canon content. The
+public `parse_inventory()` rebuilds a fresh `Inventory`, every mutable field
+container, every nested vocabulary/schema list, and a fresh diagnostics list
+on every call. A silent one-time cache-isolation self-check now executes
+through the production `validate_tree()` path in every fresh validator
+process; it deliberately mutates every public inventory field and diagnostics
+before confirming that warm-cache results remain pristine.
+
+Every other cache added in `a1e70bb3978dc098bedb63aa15552eb7659b515c`
+was audited. `line_range()` and `heading_block()` return only immutable strings
+or `None`; `_pipe_rows()` caches tuples of string tuples and `pipe_rows()`
+rebuilds lists; `_parse_canon_population()` and `_parse_receipt_document()`
+cache only tuple-based headers, rows, and diagnostics, with fresh lists rebuilt
+at their public boundaries. Direct mutation probes reproduced no additional
+leak, so no other cache changed.
+
+Python 3.13.2 and system Python 3.9.6 independently proved distinct top-level
+objects; distinct containers for `vocab`, `vocab_anchor`, `schema`,
+`schema_anchor`, `deps`, `ranges`, `commits`, `sections`, and `headings`;
+distinct nested lists for all 32 vocabulary and 23 schema entries; isolation
+after append, clear, replacement, and rebinding of diagnostics; pristine
+warm-cache validation; same-size-content distinction; pristine `A → B → A`
+reuse; and stable current/historical validation in both call orders. Full
+`validate_tree()` results were identical before and after deliberate mutation
+of previously returned parse values. The checker's exact reproduction now
+reports:
+
+```text
+same_inventory_object=False
+same_problems_object=False
+schema_before=23
+schema_after=23
+poison_visible=False
+```
+
+Compilation passed under both interpreters. Two cold fresh-process runs under
+each interpreter completed in 169.71 and 139.04 seconds on Python 3.13.2 and
+196.01 and 172.17 seconds on Python 3.9.6. Every run remained below four
+minutes; both uncontended runs remained below three minutes. All four outputs
+were byte-identical at 34,640 bytes with unchanged SHA-256
+`1a386c0d54ff38ab4caafe91f4994924fd3273c4cfabafe283eadcdb0ce378f0`.
+Each retained the exact ordered 238 controls, 20 accepting and 218 rejecting,
+zero baseline diagnostics, the successful negative self-test, and the silent
+successful isolation self-check. An independent nine-field recomputation
+retained frozen-contract SHA-256
+`b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1`.
+
+This correction changes only the validator and this maker receipt. It changes
+no frozen route value, contract declaration, repair plan, Canon, R7 receipt,
+earlier receipt, validation behavior, control order, or report bytes. The
+pre-R8 alignment remains maker work pending a fresh independent review. R8,
+Phase 2, W1.1, application work, Linear, Graphify, and `main` remain unstarted,
+blocked, and untouched.

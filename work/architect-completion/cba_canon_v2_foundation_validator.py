@@ -443,13 +443,8 @@ class Inventory(object):
         self.headings = {}     # population -> (token, idre)
 
 
-@lru_cache(maxsize=256)
-def parse_inventory(canon):
-    """Parse canon §15.9.11. Returns (Inventory, problems).
-
-    The result is read-only after construction. Exact Canon content is the
-    complete cache key, so equal paths or byte sizes never imply reuse.
-    """
+def _build_inventory(canon):
+    """Parse canon §15.9.11 into one private mutable working result."""
     probs = []
     inv = Inventory()
     if canon is None or INV_A not in canon:
@@ -516,6 +511,101 @@ def parse_inventory(canon):
         probs.append("governed inventory C dependencies is empty or "
                      "unparseable")
     return inv, probs
+
+
+def _freeze_inventory(inv):
+    """Return an insertion-order-preserving immutable inventory snapshot."""
+    return (
+        tuple((key, tuple(values)) for key, values in inv.vocab.items()),
+        tuple(inv.vocab_anchor.items()),
+        tuple((key, tuple(fields)) for key, fields in inv.schema.items()),
+        tuple(inv.schema_anchor.items()),
+        tuple(inv.deps),
+        tuple(inv.ranges.items()),
+        tuple(inv.commits.items()),
+        tuple(inv.sections.items()),
+        tuple(inv.headings.items()),
+    )
+
+
+def _thaw_inventory(state):
+    """Rebuild a public Inventory with fresh mutable containers throughout."""
+    inv = Inventory()
+    inv.vocab = dict((key, list(values)) for key, values in state[0])
+    inv.vocab_anchor = dict(state[1])
+    inv.schema = dict((key, list(fields)) for key, fields in state[2])
+    inv.schema_anchor = dict(state[3])
+    inv.deps = list(state[4])
+    inv.ranges = dict(state[5])
+    inv.commits = dict(state[6])
+    inv.sections = dict(state[7])
+    inv.headings = dict(state[8])
+    return inv
+
+
+@lru_cache(maxsize=256)
+def _parse_inventory_state(canon):
+    """Cache only immutable parse values, keyed by exact Canon content."""
+    inv, probs = _build_inventory(canon)
+    return _freeze_inventory(inv), tuple(probs)
+
+
+def parse_inventory(canon):
+    """Return fresh mutable inventory and diagnostic values for each call."""
+    state, probs = _parse_inventory_state(canon)
+    return _thaw_inventory(state), list(probs)
+
+
+# Preserve the useful cache inspection/reset surface without caching the public
+# mutable return values themselves.
+parse_inventory.cache_clear = _parse_inventory_state.cache_clear
+parse_inventory.cache_info = _parse_inventory_state.cache_info
+
+
+_INVENTORY_CACHE_ISOLATION_VERIFIED = False
+
+
+def _inventory_cache_isolation_self_check(canon):
+    """Prove a warm cache cannot expose or retain caller mutation."""
+    first, first_problems = parse_inventory(canon)
+    second, second_problems = parse_inventory(canon)
+    expected_state = _freeze_inventory(second)
+    expected_problems = tuple(second_problems)
+
+    if first is second or first_problems is second_problems:
+        return False
+    for field in ("vocab", "vocab_anchor", "schema", "schema_anchor",
+                  "deps", "ranges", "commits", "sections", "headings"):
+        if getattr(first, field) is getattr(second, field):
+            return False
+    for field in ("vocab", "schema"):
+        left, right = getattr(first, field), getattr(second, field)
+        if any(left[key] is right[key] for key in left if key in right):
+            return False
+
+    if first.vocab:
+        next(iter(first.vocab.values())).append("CACHE-ISOLATION-POISON")
+    first.vocab.clear()
+    first.vocab_anchor.clear()
+    if first.schema:
+        next(iter(first.schema.values())).append("CACHE-ISOLATION-POISON")
+    first.schema.clear()
+    first.schema_anchor.clear()
+    first.deps.append(("CACHE", "ISOLATION", "POISON"))
+    first.deps.clear()
+    first.ranges.clear()
+    first.commits.clear()
+    first.sections.clear()
+    first.headings.clear()
+    first_problems.append("CACHE-ISOLATION-POISON")
+    first_problems.clear()
+    first_problems[:] = ["CACHE-ISOLATION-REPLACEMENT"]
+
+    third, third_problems = parse_inventory(canon)
+    return (_freeze_inventory(second) == expected_state and
+            tuple(second_problems) == expected_problems and
+            _freeze_inventory(third) == expected_state and
+            tuple(third_problems) == expected_problems)
 
 
 def reconcile_inventory(canon, inv):
@@ -5882,10 +5972,15 @@ def validate_tree(tree):
     An empty problem list is ACCEPT. Every case in this module - the committed
     baseline, every adversarial mutation, every positive control, and the
     complete future-R3.1 migrated document - calls exactly this function."""
+    global _INVENTORY_CACHE_ISOLATION_VERIFIED
     problems, notes = [], []
     if tree.canon is None:
         return ["canon document is MISSING - the governing standard is a "
                 "required input and cannot be absent"], notes
+    if not _INVENTORY_CACHE_ISOLATION_VERIFIED:
+        if not _inventory_cache_isolation_self_check(tree.canon):
+            return ["inventory cache isolation self-check failed"], notes
+        _INVENTORY_CACHE_ISOLATION_VERIFIED = True
     inv, ip = parse_inventory(tree.canon)
     problems += ip
     if ip:
