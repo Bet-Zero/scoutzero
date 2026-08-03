@@ -2439,16 +2439,19 @@ governed R7 contract, with the concise maker receipt at
 R8 is unblocked but unstarted. Phase 1 remains open; Phase 2 and owner acceptance
 remain blocked through R9.
 
-**Bounded pre-R8 validator-route alignment — complete in this checkpoint.**
+**Bounded pre-R8 validator-route alignment — independently ACCEPTED.**
 The plan-route checks now follow the approved R5–R9 contract recorded here:
 independently accepted R4–R6 prerequisites remain required, completed R7
 unblocks R8 without a standalone R7 checker, R8 remains a maker
 reconciliation/checksum unit, and R9 remains the single independent
 whole-canon review, including scenario truth and sufficiency. The alignment
 changes no Canon, rule, evidence, scenario, lineage, or historical receipt
-content; it does not independently accept this validator change. Its concise
-receipt is
+content. The complete cumulative maker alignment through exact checkpoint
+`4e49d799b9e0d3a482ce824c1c5298dea0dc6750` is independently accepted.
+Its concise maker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R8_VALIDATOR_ROUTE_ALIGNMENT.md`.
+The independent checker receipt is
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R8_VALIDATOR_ROUTE_ALIGNMENT_INDEPENDENT_REVIEW.md`.
 R7 remains complete, R8 remains unstarted, and Phase 2, W1.1, application
 work, Linear, and `main` remain blocked.
 
