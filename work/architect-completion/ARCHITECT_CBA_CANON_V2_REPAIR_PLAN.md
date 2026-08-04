@@ -2549,29 +2549,41 @@ R8 checkpoint and the owner then explicitly accepts Phase 1.
   Architect comparison, application fixes, W1.1, Linear changes, and Phase 2
   remain blocked.
 
-**Latest R9/R6 focused-repair status — maker repair complete in this
+**Latest R9/R6 focused-repair status — second bounded maker correction in this
 checkpoint; focused independent re-review and targeted R7 repair pending.**
 R9 independently rejected exact R8 checkpoint
-`16920362f75b97bb34a01a1b317f40244a5e91cc`; the rejection is preserved at
-`5acedb1b024973adab43ab9957f7bed23a42390f`. The first ordered focused repair
-now supplies verified printed-page locators for all 105 cited direct evidence
-records, corrects the three false Article XXII §11(i) locators, preserves the
-accepted R01/EV2 identities through same-ID AMEND revision, and adds the
-atomic eligibility, amount, payment, Team Salary, trade, and Subsequent Waiver
-owners through `CBA2-R01.45` / `EV2-0844`. The current governed population is
-61 GROUPs, 809 active LEAFs, 817 EV2 records, 267 generic decisions, and 747
-AMEND details; the R/L/S subset is 241 LEAFs (112/102/27) with 222 dependency
-edges. The frozen 238-control validator passes the repaired document tree.
+`16920362f75b97bb34a01a1b317f40244a5e91cc`; the rejection remains preserved
+at `5acedb1b024973adab43ab9957f7bed23a42390f`. The first ordered focused
+repair at `1d33b699f56a961ca080ee7a03c55b194df26252` preserved the 105
+printed-page fixes, corrected `EV2-0591`–`EV2-0593`, and added the Article
+XXII §11(g)–(i) owners through `CBA2-R01.45` / `EV2-0844`. Focused independent
+review rejected only nine proposition-level evidence records, the
+submission-versus-award Room graph, and the missing per-claim validity result
+consumed by winner selection.
+
+This second correction narrows, reclassifies, or completes exactly those nine
+evidence records; corrects `CBA2-R01.28`–`.29` to submission-time below-Cap and
+actual-Room results; and adds `CBA2-R01.46`–`.51` / `EV2-0845`–`EV2-0850` for
+candidate allocation, qualifying creatable Room, trade-dependent Room
+exclusion, combined submission Room sufficiency, award-time creation, and
+explicit per-claim validity. `CBA2-R01.16` now consumes validity before
+highest-bid selection, and every demonstrated payment, Team Salary, trade,
+Subsequent Waiver, and succession consequence is downstream from a selected
+PASS claim. The current governed population is 61 GROUPs, 815 active LEAFs,
+823 EV2 records, 270 generic decisions, and 784 AMEND details; the R/L/S
+subset is 247 LEAFs (118/102/27) with 245 dependency edges and no cycle. The
+concise receipt is
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R9_R6_SECOND_FOCUSED_REPAIR.md`.
 
 This latest status supersedes the earlier R7/R8 completion claims only for the
-current candidate: their old checkpoints remain preserved history, but the
-R7 library is incomplete for the repaired R01 owners and the rejected R8
-reconciliation no longer describes the current populations. The focused
-receipt records the exact `CBA2-SC-065(i)`–`CBA2-SC-065(k)` recheck and new
-boundary/interaction cases required before R8 may be reconciled again. No R7
-scenario, R9 rejection record, frozen route field, validator, prior receipt,
-application surface, Linear record, Graphify output, or `main` content changed
-in this repair. The Canon remains unaccepted; this checkpoint must be pushed
+current candidate: their checkpoints remain preserved history, but the R7
+library is incomplete for the corrected rule population and the rejected R8
+reconciliation no longer describes current populations. The active R7
+scenario section remains byte-identical to `1d33b699`; the second focused
+receipt records the exact deferred `CBA2-SC-065`, `066`, `072`, `076`, and
+`077` work. No R7 scenario, R9 rejection record, frozen route field, validator,
+prior receipt, application surface, Linear record, Graphify output, or `main`
+content changed. The Canon remains unaccepted; this checkpoint must be pushed
 and independently re-reviewed before the next bounded step.
 
 ### Correctness protections retained
