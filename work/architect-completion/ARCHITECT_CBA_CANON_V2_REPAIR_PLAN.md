@@ -2549,7 +2549,7 @@ R8 checkpoint and the owner then explicitly accepts Phase 1.
   Architect comparison, application fixes, W1.1, Linear changes, and Phase 2
   remain blocked.
 
-**Latest R9/R6 focused-repair status — second bounded maker correction in this
+**Latest R9/R6 focused-repair status — third bounded maker correction in this
 checkpoint; focused independent re-review and targeted R7 repair pending.**
 R9 independently rejected exact R8 checkpoint
 `16920362f75b97bb34a01a1b317f40244a5e91cc`; the rejection remains preserved
@@ -2561,30 +2561,44 @@ review rejected only nine proposition-level evidence records, the
 submission-versus-award Room graph, and the missing per-claim validity result
 consumed by winner selection.
 
-This second correction narrows, reclassifies, or completes exactly those nine
-evidence records; corrects `CBA2-R01.28`–`.29` to submission-time below-Cap and
-actual-Room results; and adds `CBA2-R01.46`–`.51` / `EV2-0845`–`EV2-0850` for
-candidate allocation, qualifying creatable Room, trade-dependent Room
-exclusion, combined submission Room sufficiency, award-time creation, and
-explicit per-claim validity. `CBA2-R01.16` now consumes validity before
-highest-bid selection, and every demonstrated payment, Team Salary, trade,
-Subsequent Waiver, and succession consequence is downstream from a selected
-PASS claim. The current governed population is 61 GROUPs, 815 active LEAFs,
-823 EV2 records, 270 generic decisions, and 784 AMEND details; the R/L/S
-subset is 247 LEAFs (118/102/27) with 245 dependency edges and no cycle. The
-concise receipt is
-`work/architect-completion/ARCHITECT_CBA_CANON_V2_R9_R6_SECOND_FOCUSED_REPAIR.md`.
+The second correction at `4e07a86e917bded5f1bc686bf6e8f2b9a3ee7386`
+preserves those fixes, including `CBA2-R01.46`–`.51` / `EV2-0845`–`EV2-0850`
+and all nine semantic probes. This third correction amends only three
+same-identity chains. `CBA2-R02.1` / `EV2-0595` now applies Article XXVII
+§5(a)–(b) to the distinct Article II §4(k) protected-Compensation payment
+stretch and Article VII §7(d)(6) Team Salary re-attribution branches, with
+set-off calculated by the affected original Contract Salary Cap Year.
+`CBA2-R02.4` / `EV2-0598` now applies §5(b) to allocate each original-year
+set-off across the corresponding re-attributed Team Salary years and uses
+§5(a) only for the allocation method incorporated by §5(b).
+`CBA2-L03.15` / `EV2-0704` now uses CBA Article I §1(mm), printed page 6, for
+the Moratorium Period definition imported by By-Laws §4.01(a), and is no
+longer classified as a BYL-only chain.
+
+The second focused-repair receipt remains immutable history, but its statement
+that Article II §15 is the defined Moratorium provision is explicitly
+retracted and superseded. Article I §1(mm) supplies the definition; Article II
+§15 governs a separate Moratorium-period employment-agreement subject, and
+Article VII §9 is not authority for this Assignment Transaction rule. The
+current governed population remains 61 GROUPs, 815 active LEAFs, and 823 EV2
+records; the R/L/S subset remains 247 LEAFs (118/102/27) with 245 dependency
+edges and no cycle. One new AMEND decision and six same-identity detail rows
+advance the mechanical totals to 271 generic decisions and 790 AMEND details.
+The concise receipt is
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R9_R6_THIRD_FOCUSED_REPAIR.md`.
 
 This latest status supersedes the earlier R7/R8 completion claims only for the
 current candidate: their checkpoints remain preserved history, but the R7
 library is incomplete for the corrected rule population and the rejected R8
 reconciliation no longer describes current populations. The active R7
-scenario section remains byte-identical to `1d33b699`; the second focused
-receipt records the exact deferred `CBA2-SC-065`, `066`, `072`, `076`, and
-`077` work. No R7 scenario, R9 rejection record, frozen route field, validator,
-prior receipt, application surface, Linear record, Graphify output, or `main`
-content changed. The Canon remains unaccepted; this checkpoint must be pushed
-and independently re-reviewed before the next bounded step.
+scenario section remains byte-identical to `4e07a86e`. In addition to the
+already recorded deferred work, this correction records but does not perform
+the five downstream checks at `CBA2-SC-066(a)`, `CBA2-SC-066(c)`,
+`CBA2-SC-066(h32)`, `CBA2-SC-066(h78)`, and `CBA2-SC-076(h)`. No R7 scenario,
+XW2/SXW2 mapping, crosswalk, outcome, R9 rejection record, frozen route field,
+validator, prior receipt, application surface, Linear record, Graphify output,
+or `main` content changed. The Canon remains unaccepted; this checkpoint must
+be pushed and independently re-reviewed before the next bounded step.
 
 ### Correctness protections retained
 
