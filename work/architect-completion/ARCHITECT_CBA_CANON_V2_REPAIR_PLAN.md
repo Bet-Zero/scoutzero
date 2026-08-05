@@ -2549,8 +2549,8 @@ R8 checkpoint and the owner then explicitly accepts Phase 1.
   Architect comparison, application fixes, W1.1, Linear changes, and Phase 2
   remain blocked.
 
-**Latest R9/R6 focused-repair status — third bounded maker correction in this
-checkpoint; focused independent re-review and targeted R7 repair pending.**
+**Latest R9/R6 focused-repair status — third bounded maker correction
+independently accepted; targeted R7 repair unblocked but unstarted.**
 R9 independently rejected exact R8 checkpoint
 `16920362f75b97bb34a01a1b317f40244a5e91cc`; the rejection remains preserved
 at `5acedb1b024973adab43ab9957f7bed23a42390f`. The first ordered focused
@@ -2597,8 +2597,14 @@ the five downstream checks at `CBA2-SC-066(a)`, `CBA2-SC-066(c)`,
 `CBA2-SC-066(h32)`, `CBA2-SC-066(h78)`, and `CBA2-SC-076(h)`. No R7 scenario,
 XW2/SXW2 mapping, crosswalk, outcome, R9 rejection record, frozen route field,
 validator, prior receipt, application surface, Linear record, Graphify output,
-or `main` content changed. The Canon remains unaccepted; this checkpoint must
-be pushed and independently re-reviewed before the next bounded step.
+or `main` content changed. Independent focused review of exact corrected R6
+checkpoint `e464d76959455fca18b6900ee405e45aa46ccf76` returned **ACCEPT**;
+the review record is
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R9_R6_THIRD_FOCUSED_REPAIR_INDEPENDENT_REVIEW.md`.
+The post-R9 corrected R6 material is accepted. The separately authorized
+targeted R7 repair is now unblocked but remains unstarted. The Canon remains
+unaccepted; R8, renewed R9, owner acceptance, Phase 2, W1.1, application work,
+Linear, Graphify, and `main` remain blocked.
 
 ### Correctness protections retained
 
