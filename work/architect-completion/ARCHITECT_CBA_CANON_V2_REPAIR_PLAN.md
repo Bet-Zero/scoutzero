@@ -225,8 +225,9 @@ checker commit `ab8451a4dac4a5d4d385bfdd420610d722bb5d19`. The bounded targeted
 R7 maker repair now completes the accumulated active scenario scope at 82
 top-level scenarios, 728 named cases, 955 bidirectional exercise edges, and
 complete coverage of 661 SCEN-designated LEAFs. The rejected historical R8
-checkpoint remains unchanged; repaired-candidate R8 and renewed R9 are
-unstarted. Phase 1 remains open; Phase 2, W1.1, all application work, Linear
+checkpoint remains unchanged; repaired-candidate R8 maker reconciliation is
+complete in this checkpoint and renewed R9 remains unstarted. Phase 1 remains
+open; Phase 2, W1.1, all application work, Linear
 changes, owner acceptance, and `main` remain blocked through R9 independent
 acceptance plus explicit owner acceptance. R3.1 used
 `AMEND` lineage and did not renumber or reuse an allocated `CBA2`, `XW2`,
@@ -2457,9 +2458,10 @@ and imposed a 15-minute hard limit, the unchanged validator then ran once in a
 fresh sequential process and passed in 165.14 seconds. This exceptional run
 does not establish or claim compliance with the ordinary under-four-minute
 performance requirement.
-This is not independent acceptance. Repaired-candidate R8 is unstarted; Phase
-1 remains open, and Phase 2 and owner acceptance remain blocked through R9
-independent acceptance plus explicit owner acceptance.
+This R7 unit is not independent acceptance. Repaired-candidate R8 is now
+maker-complete in its own bounded checkpoint; Phase 1 remains open, and Phase
+2 and owner acceptance remain blocked through R9 independent acceptance plus
+explicit owner acceptance.
 
 **Bounded pre-R8 validator-route alignment — independently ACCEPTED.**
 The plan-route checks now follow the approved R5–R9 contract recorded here:
@@ -2475,8 +2477,9 @@ Its concise maker receipt is
 The independent checker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R8_VALIDATOR_ROUTE_ALIGNMENT_INDEPENDENT_REVIEW.md`.
 The targeted post-R9 R7 maker repair is complete. The prior R8 checkpoint is
-historical and rejected; repaired-candidate R8 and renewed R9 remain unstarted,
-and Phase 2, W1.1, application work, Linear, and `main` remain blocked.
+historical and rejected; repaired-candidate R8 maker reconciliation is complete
+in this checkpoint, renewed R9 remains unstarted, and Phase 2, W1.1,
+application work, Linear, and `main` remain blocked.
 
 **Frozen current-route contract declaration:** version
 `CBA-CANON-V2-R5-R9/1`; state `frozen-through-phase-1-closure`; SHA-256
@@ -2520,14 +2523,26 @@ and receive independent review.
   verdict; and no Architect comparison, data/configuration change, Linear, or
   `main`.
 
-**R8 execution status — historical checkpoint rejected; repaired-candidate R8
-not started.** The prior R8 maker receipt and checksum remain unchanged as
-historical evidence for the checkpoint rejected by R9. The corrected R6
-population is independently accepted and the accumulated targeted R7 repair is
-maker-complete, but no R8 reconciliation or checksum has been produced for this
-repaired candidate. The Canon remains unaccepted until a later R8 candidate is
-independently accepted at renewed R9 and the owner then explicitly accepts
-Phase 1.
+**R8 execution status — repaired-candidate maker reconciliation complete;
+renewed R9 not started.** The prior R8 maker receipt and checksum remain
+unchanged as historical evidence for the checkpoint rejected by R9 and are not
+current proof. The repaired candidate reconciles 61 GROUPs, 815 active LEAFs,
+823 EV2 components, 494 XW2 edges, 82 active scenarios, 728 named cases, 955
+bidirectional exercise edges, 89 historical scenario fragments and SXW2
+dispositions, 272 generic decisions, and 822 structured AMEND details. All
+G1–G15 gates pass without a substantive, source, mapping, dependency,
+scenario, lineage, or terminal-disposition blocker. No accepted source/rule/
+evidence/scenario content changed. The initial final-candidate validator run
+reached the ordinary four-minute ceiling while executing `P1` and produced no
+verdict; that attempt remains truthful history in the repaired-candidate
+receipt. The owner subsequently authorized exactly one additional unchanged
+validator execution with a 15-minute hard ceiling. For that execution only,
+the exact required correctness PASS within 15 minutes is sufficient; no
+under-four-minute performance-compliance claim is made. The checksum, timeout
+history, owner exception, and commit-conditional validation record are in
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_R9_R8_RECONCILIATION_CHECKSUM.md`.
+The Canon remains unaccepted until renewed R9 independently ACCEPTS the exact
+pushed R8 checkpoint and the owner then explicitly accepts Phase 1.
 
 ## R9 — Single independent whole-canon acceptance
 
@@ -2569,7 +2584,8 @@ Phase 1.
   remain blocked.
 
 **Latest post-R9 status — corrected R6 independently accepted; targeted R7
-maker repair complete; repaired-candidate R8 unstarted.**
+maker repair and repaired-candidate R8 maker reconciliation complete; renewed
+R9 unstarted.**
 R9 independently rejected exact R8 checkpoint
 `16920362f75b97bb34a01a1b317f40244a5e91cc`; the rejection remains preserved
 at `5acedb1b024973adab43ab9957f7bed23a42390f`. The first ordered focused
@@ -2625,8 +2641,9 @@ and Assignment Transaction windows, and Article X/Article XI rights-state
 separation. No XW2/SXW2 target, historical scenario/fragment, R9 rejection
 record, frozen route field, validator, prior receipt, application surface,
 Linear record, Graphify output, or `main` content changed. The Canon remains
-unaccepted; repaired-candidate R8, renewed R9, owner acceptance, Phase 2, W1.1,
-application work, Linear, Graphify, and `main` remain blocked and unstarted.
+unaccepted; repaired-candidate R8 maker reconciliation is complete in this
+checkpoint, while renewed R9, owner acceptance, Phase 2, W1.1, application
+work, Linear, Graphify, and `main` remain blocked and unstarted.
 
 ### Correctness protections retained
 
