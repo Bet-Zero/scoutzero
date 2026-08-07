@@ -2773,9 +2773,7 @@
           "tests/trade/secondApronBoundary.test.ts",
           "tests/trade/signAndTrade_completeness.test.ts"
         ],
-        "negative_search": [
-          "CBA2-A05.3: Hard-cap state and some first/second-apron validations exist, but the trigger helper recognizes only NTMLE, BAE, and S&T first-apron events. It does not implement the Transaction Restrictions Table rows D-K, the complete TMLE cross-bar, transaction-specific post-state Apron Team Salary, or the post-Regular-Season dual-year assumptions/hard cap."
-        ],
+        "negative_search": [],
         "inspection_notes": [
           "CBA2-A05.1: Hard-cap state and some first/second-apron validations exist, but the trigger helper recognizes only NTMLE, BAE, and S&T first-apron events. It does not implement the Transaction Restrictions Table rows D-K, the complete TMLE cross-bar, transaction-specific post-state Apron Team Salary, or the post-Regular-Season dual-year assumptions/hard cap."
         ]
@@ -2995,9 +2993,7 @@
           "tests/trade/secondApronBoundary.test.ts",
           "tests/trade/signAndTrade_completeness.test.ts"
         ],
-        "negative_search": [
-          "CBA2-A05.4: Hard-cap state and some first/second-apron validations exist, but the trigger helper recognizes only NTMLE, BAE, and S&T first-apron events. It does not implement the Transaction Restrictions Table rows D-K, the complete TMLE cross-bar, transaction-specific post-state Apron Team Salary, or the post-Regular-Season dual-year assumptions/hard cap."
-        ],
+        "negative_search": [],
         "inspection_notes": [
           "CBA2-A05.6: Hard-cap state and some first/second-apron validations exist, but the trigger helper recognizes only NTMLE, BAE, and S&T first-apron events. It does not implement the Transaction Restrictions Table rows D-K, the complete TMLE cross-bar, transaction-specific post-state Apron Team Salary, or the post-Regular-Season dual-year assumptions/hard cap."
         ]
@@ -3393,9 +3389,7 @@
           "tests/trade/secondApronBoundary.test.ts",
           "tests/trade/signAndTrade_completeness.test.ts"
         ],
-        "negative_search": [
-          "CBA2-A05.5: Hard-cap state and some first/second-apron validations exist, but the trigger helper recognizes only NTMLE, BAE, and S&T first-apron events. It does not implement the Transaction Restrictions Table rows D-K, the complete TMLE cross-bar, transaction-specific post-state Apron Team Salary, or the post-Regular-Season dual-year assumptions/hard cap."
-        ],
+        "negative_search": [],
         "inspection_notes": [
           "CBA2-A05.15: Hard-cap state and some first/second-apron validations exist, but the trigger helper recognizes only NTMLE, BAE, and S&T first-apron events. It does not implement the Transaction Restrictions Table rows D-K, the complete TMLE cross-bar, transaction-specific post-state Apron Team Salary, or the post-Regular-Season dual-year assumptions/hard cap."
         ]

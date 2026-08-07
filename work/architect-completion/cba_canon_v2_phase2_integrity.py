@@ -14,6 +14,7 @@ from pathlib import Path
 EXPECTED_FAMILY_COUNTS = {"A": 151, "C": 417, "R": 118, "L": 102, "S": 27}
 EXPECTED_SCHEMA_VERSION = "2.0"
 LEAF_RE = re.compile(r"CBA2-([ACRLS])\d{2}\.\d+")
+NEGATIVE_SEARCH_LEAF_RE = re.compile(r"^(CBA2-[ACRLS]\d{2}\.\d+)\b")
 EVIDENCE_PATH_RE = re.compile(r"^(?:src|tests)/.+\.(?:tsx?|jsx?)(?::.+)?$")
 IMPLEMENTATION_STATES = {"correct", "incorrect", "partial", "absent", "not applicable"}
 CANON_COVERAGE = {
@@ -195,6 +196,13 @@ def validate_register(path: Path, leaves: dict[str, dict[str, str]]) -> list[str
                     errors.append(f"{label}: implementation/tests evidence must contain paths only")
                 if any(EVIDENCE_PATH_RE.fullmatch(value) for value in evidence["negative_search"]):
                     errors.append(f"{label}: evidence.negative_search must contain prose only")
+                for value in evidence["negative_search"]:
+                    prefix = NEGATIVE_SEARCH_LEAF_RE.match(value)
+                    if prefix and prefix.group(1) != record["leaf_id"]:
+                        errors.append(
+                            f"{label}: evidence.negative_search leaf prefix "
+                            f"{prefix.group(1)} does not match host leaf_id"
+                        )
                 if not (
                     evidence["implementation"]
                     or evidence["tests"]

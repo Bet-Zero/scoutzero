@@ -390,7 +390,7 @@ independent ledgers. No Phase 3 issue has been created during this audit.
 | `python3 work/architect-completion/cba_canon_v2_phase2_integrity.py` | PASS — 815 unique Canon/register identities; A 151, C 417, R 118, L 102, S 27 |
 | `python3 -m json.tool <implementation-gap register>` | PASS — valid JSON; schema version 2.0 |
 | Owner-reconciliation before/after invariant comparison | PASS — only A05.3/.4/.5 implementation states changed; all 815 identities/order, Canon fields, evidence strengths, product layers, and 57 clusters preserved |
-| Evidence-schema preservation proof | PASS — all prior evidence strings preserved; 729 path-array prose occurrences moved byte-for-byte, and three displaced A05 family-note strings retained on their actual owning leaves |
+| Evidence-schema preservation proof | PASS — all 729 valid within-leaf prose moves remain preserved; exactly three checker-identified superseded cross-leaf duplicates were removed; no substantive finding or other evidence was removed; the corrected candidate still awaits final independent confirmation and Phase 2 remains open |
 | Runtime-input split proof | PASS — exactly 523 `missing` rows moved to `partial`; all 61 available, 195 genuinely missing, 35 external-determination, and one not-required classifications reconcile |
 | Evidence-strength consistency proof | PASS — all 368 explicit missing/weak/non-aligned-evidence rows are insufficient; no covered/proven contradiction; the three correct/unproven leaves are partial/None; exact totals are 446 proven / 369 insufficient |
 | Evidence-path existence check | PASS — 129 path-array files plus 12 byte-preserved negative-search references; all 141 unique cited source/test paths resolve |
