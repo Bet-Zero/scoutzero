@@ -107,9 +107,73 @@ rookie-scale player as poison-pill eligible, suppressing a trade bonus when
 guaranteed money is zero, keeping the two-month aggregation rule retired, and
 making Standard-roster Trade Call room advisory.
 
-Passes 2 and 3 and final reconciliation remain pending. The register is
-intentionally incomplete at this checkpoint (173/815); exact full-universe
-integrity is required only after the final pass.
+### Pass 2 — Cap Manager completeness
+
+Completed 2026-08-07. The checkpoint covers C01-C15, R02-R04, R06-R10, L06,
+and S01-S03: 246 records. Together with Pass 1, the register now contains
+419/815 Canon leaves.
+
+| Measure | Pass 2 count |
+|---|---:|
+| Correct | 4 |
+| Incorrect | 52 |
+| Partial | 49 |
+| Absent | 141 |
+| Covered and proven | 4 |
+| Partial Canon coverage | 101 |
+| Missing in scope | 132 |
+| Data-blocked | 2 |
+| Externally adjudicated | 7 |
+| High severity | 191 |
+| Medium severity | 51 |
+| No defect severity | 4 |
+
+The Cap Manager has useful contract, free-agency, waiver, roster-count,
+exception, and season-transition surfaces, but it does not yet have the ledger
+and lifecycle model required for Canon-complete cap management:
+
+- Team Salary, Apron Salary, and Tax Salary are not independent ledgers. One
+  allocation total feeds several labels, likely bonuses enter only the trade
+  helper, and the ten Apron adjustments and last-game Tax Salary adjustments
+  have no owners.
+- cap holds use broad hardcoded percentages and a 2024-25 rookie table rather
+  than the full qualifying-veteran, minimum/maximum, bonus, RFA, and unsigned
+  pick rules; incomplete-roster charges also use the wrong population,
+  threshold, and date window.
+- minimum salary compensation and league reimbursement are conflated, the
+  contract-start-year matrix is missing, and no progressive luxury-tax or
+  repeater engine exists.
+- the Minimum Team Salary threshold is available and computed correctly at 90%
+  of the Salary Cap, but the MTS Cap Hold, Payment, Threshold, restoration,
+  payment, and distribution ledgers/workflows are absent.
+- long-term medical exclusion is absent. DPE has placeholder state and season
+  clearing, but no grant, medical determination, amount, use, or expiry engine.
+- non-TPE exception balances and resets exist, yet inventory remains manually
+  enabled and the full method, proration, term, raise, eligibility, and Salary
+  treatment matrix is incomplete.
+- Bird-rights inference is not backed by exact service/team-change history;
+  offer-sheet persistence covers pending/matched/declined states but not
+  reserved Room/exception accounting or the Arenas election chain.
+- waiver/dead-cap code produces protected schedules and the correct `2n+1`
+  stretch span, but omits January 10 earning, set-off, payment-vs-Salary
+  elections, timing, 15% handling, and reacquisition rules.
+- roster storage and count checks do not model governed Active, Inactive,
+  Suspended, Voluntarily Retired, hardship, treatment, or shortage-clock state.
+  The ordinary three-Two-Way maximum is correct; game-usage ledgers are absent.
+- Standard TPE amount/balance, partial-use persistence, one-year expiration,
+  history, and idempotency exist. Source-transaction/version provenance and an
+  all-state commit manifest do not.
+- source metadata is coarse and permits silent fallbacks; immutable source
+  version, artifact, field/input IDs, conflicts, re-verification state, and an
+  operational-rule provenance/election registry are absent.
+
+The four correct Pass 2 leaves are the 90% Minimum Team Salary threshold, the
+`2n+1` Salary stretch span, the ordinary maximum of three Two-Way Contracts,
+and Standard TPE partial-use balance persistence through its one-year window.
+
+Pass 3 and final reconciliation remain pending. The register is intentionally
+incomplete at this checkpoint (419/815); exact full-universe integrity is
+required only after the final pass.
 
 ## Validation log
 
@@ -117,6 +181,7 @@ integrity is required only after the final pass.
 |---|---|
 | `npm run test:diff -- --reporter=dot` | PASS — FAST tier, 57/57 tests |
 | `npm run test:trade -- --reporter=dot` | PASS — 72 files, 635/635 tests |
+| `npm run test:architect -- --reporter=dot` | PASS — 305 files, 3,555/3,555 tests; 257.00 seconds, exceeding the four-minute budget by 17 seconds; not repeated |
 | `npm run test:diff -- --files <Phase 2 artifacts> --reporter=dot` | PASS — FAST tier, 57/57 tests |
 
 Final reconciliation will add register counts, root-cause clusters, risk,
