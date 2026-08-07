@@ -2,8 +2,8 @@
 
 ## Status
 
-**Phase 2 maker remediation complete; independent re-review pending. No
-application fixes are underway.**
+**Phase 2 second maker remediation complete; final independent re-review
+pending. No application fixes are underway.**
 
 - Linear lane: BZE-266 (High / In Progress), under BZE-254 in Architect Completion.
 - Audit branch: `architect/bze-266-cba-canon-v2-phase2-audit`.
@@ -288,13 +288,14 @@ exclusion was invented.
 | None | 7 |
 
 Runtime inputs are missing for 718 leaves, available for 61, externally
-determined for 35, and not required for one. Evidence is proven for 479 leaves
-and insufficient for 336. All 335 rows whose test evidence explicitly declares
-a missing or weak relevant test are insufficient; `CBA2-R04.1` is additionally
-insufficient because its cited tests do not assert the `2n+1` formula. The three
-otherwise-correct but unproven leaves are `CBA2-A10.21`, `CBA2-C10.1`, and
-`CBA2-R04.1`; they retain correct implementation judgments but remain partial
-Canon coverage with Medium evidence gaps.
+determined for 35, and not required for one. Evidence is proven for 449 leaves
+and insufficient for 366. All 365 rows whose test evidence explicitly declares
+a missing, weak, adjacent-only, or otherwise non-aligned relevant test are
+insufficient; `CBA2-R04.1` is additionally insufficient because its cited tests
+do not assert the `2n+1` formula. The three otherwise-correct but unproven leaves
+are `CBA2-A10.21`, `CBA2-C10.1`, and `CBA2-R04.1`; they retain correct
+implementation judgments but remain partial Canon coverage with Medium evidence
+gaps.
 
 ### Shared roots and Phase 3 size
 
@@ -353,7 +354,7 @@ independent ledgers. No Phase 3 issue has been created during this audit.
 | `npm run test:architect -- --reporter=dot` | PASS — 305 files, 3,555/3,555 tests; 257.00 seconds, exceeding the four-minute budget by 17 seconds; not repeated |
 | `npm run test:diff -- --files <Phase 2 artifacts> --reporter=dot` | PASS — FAST tier, 57/57 tests at each audit checkpoint |
 | `python3 work/architect-completion/cba_canon_v2_phase2_integrity.py` | PASS — 815 unique Canon/register identities; A 151, C 417, R 118, L 102, S 27 |
-| Evidence-strength consistency proof | PASS — all 335 explicit missing/weak-test rows are insufficient; no covered/proven contradiction; the three correct/unproven leaves are partial/Medium; exact totals are 479 proven / 336 insufficient |
+| Evidence-strength consistency proof | PASS — all 365 explicit missing/weak/non-aligned-test rows are insufficient; no covered/proven contradiction; the three correct/unproven leaves are partial/Medium; exact totals are 449 proven / 366 insufficient |
 | Evidence-path existence check | PASS — all 141 unique cited source/test paths resolve |
 | `git diff --check` | PASS |
 | `npm run lint:md` | FAIL — pre-existing/out-of-scope violations in three `docs/architect/audits/` files, `docs/CODEBASE_MAP.md`, and the frozen accepted Canon; the configured command does not include `work/` |
@@ -419,3 +420,59 @@ the final evidence reconciliation unsafe to accept. Reclassify every missing
 or weak-test row, repair the affected counts and prose, and submit one new
 frozen maker checkpoint for independent review. No maker artifact was repaired
 by this checker.
+
+### Independent re-review
+
+**REJECT — repaired maker checkpoint `043a0ea0` fixes the initial cohort, but
+its weak-test reconciliation remains incomplete.**
+
+The re-review proved that `6a91edc4..043a0ea0` changes only the register and
+summary. In the register, 336 rows changed: 335 evidence-strength fields, three
+dependent coverage fields, two dependent severities, and explanatory
+evidence/remediation text for two leaves. Canon identity/order, implementation
+state, product layers, runtime inputs, clusters, and application files are
+unchanged. The checksum, 815-leaf join and family counts, 57 clusters, 141
+resolving evidence paths, pass tables, headline counts, ancestry, and
+no-application-delta boundary all pass.
+
+Independent semantic grouping reproduced the maker's repaired cohort: 333 rows
+say no relevant test was located and `CBA2-R09.2`/`.3` say the cited tests
+contain no relevant assertion; all 335 are now `insufficient`.
+`CBA2-R04.1` is also correctly the next insufficient row because its cited
+tests do not assert `2n+1`. Source inspection continues to support the three
+correct-but-unproven code judgments for `CBA2-A10.21`, `CBA2-C10.1`, and
+`CBA2-R04.1`, and each is consistently partial / Medium / insufficient.
+
+One blocker remains: 30 additional records are still `proven` even though
+their own test-evidence text expressly says the tests cover adjacent behavior,
+not the relevant Canon obligation:
+
+- `CBA2-C07.1`–`.11` (11): threshold tests, not the ten Apron Salary
+  adjustments;
+- `CBA2-C12.1`–`.9` (9): DPE placeholder clearing, not Canon eligibility,
+  amount, method, use, or expiry;
+- `CBA2-R07.1`–`.3` (3): current advisory counts, not shortage-clock
+  persistence; and
+- `CBA2-S04.1`–`.7` (7): rounded formula outputs, not provenance/input record
+  IDs.
+
+Those are explicitly weak tests under the objective and must be
+`insufficient`. Therefore the claimed 479 / 336 evidence totals and the
+evidence-consistency validation line are not trustworthy; reclassifying just
+these known rows would produce 449 proven / 366 insufficient. No maker artifact
+was repaired by this checker.
+
+### Maker remediation after independent re-review REJECT
+
+The second independent REJECT above is also preserved. The maker reclassified
+exactly the 30 named C07, C12, R07, and S04 leaves as `insufficient`, producing
+the independently projected totals of 449 proven / 366 insufficient. No Canon
+identity, implementation state, coverage, severity, product-layer,
+runtime-input, remediation, cluster, or application field changed in this
+second repair.
+
+The evidence consistency proof now covers the union of the initial 335-row
+missing/weak-test cohort and these 30 adjacent-only/non-aligned test rows, plus
+the separately inspected `CBA2-R04.1`. This second repaired maker checkpoint
+requires a final verdict from the same independent checker; the maker cannot
+self-accept it.
