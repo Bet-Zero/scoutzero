@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 2 second maker remediation complete; final independent re-review
+**Phase 2 evidence remediation complete; independent acceptance re-review
 pending. No application fixes are underway.**
 
 - Linear lane: BZE-266 (High / In Progress), under BZE-254 in Architect Completion.
@@ -288,9 +288,9 @@ exclusion was invented.
 | None | 7 |
 
 Runtime inputs are missing for 718 leaves, available for 61, externally
-determined for 35, and not required for one. Evidence is proven for 449 leaves
-and insufficient for 366. All 365 rows whose test evidence explicitly declares
-a missing, weak, adjacent-only, or otherwise non-aligned relevant test are
+determined for 35, and not required for one. Evidence is proven for 446 leaves
+and insufficient for 369. All 368 rows whose evidence explicitly declares a
+missing, weak, adjacent-only, or otherwise non-aligned relevant test are
 insufficient; `CBA2-R04.1` is additionally insufficient because its cited tests
 do not assert the `2n+1` formula. The three otherwise-correct but unproven leaves
 are `CBA2-A10.21`, `CBA2-C10.1`, and `CBA2-R04.1`; they retain correct
@@ -354,7 +354,7 @@ independent ledgers. No Phase 3 issue has been created during this audit.
 | `npm run test:architect -- --reporter=dot` | PASS — 305 files, 3,555/3,555 tests; 257.00 seconds, exceeding the four-minute budget by 17 seconds; not repeated |
 | `npm run test:diff -- --files <Phase 2 artifacts> --reporter=dot` | PASS — FAST tier, 57/57 tests at each audit checkpoint |
 | `python3 work/architect-completion/cba_canon_v2_phase2_integrity.py` | PASS — 815 unique Canon/register identities; A 151, C 417, R 118, L 102, S 27 |
-| Evidence-strength consistency proof | PASS — all 365 explicit missing/weak/non-aligned-test rows are insufficient; no covered/proven contradiction; the three correct/unproven leaves are partial/Medium; exact totals are 449 proven / 366 insufficient |
+| Evidence-strength consistency proof | PASS — all 368 explicit missing/weak/non-aligned-evidence rows are insufficient; no covered/proven contradiction; the three correct/unproven leaves are partial/Medium; exact totals are 446 proven / 369 insufficient |
 | Evidence-path existence check | PASS — all 141 unique cited source/test paths resolve |
 | `git diff --check` | PASS |
 | `npm run lint:md` | FAIL — pre-existing/out-of-scope violations in three `docs/architect/audits/` files, `docs/CODEBASE_MAP.md`, and the frozen accepted Canon; the configured command does not include `work/` |
@@ -476,3 +476,47 @@ missing/weak-test cohort and these 30 adjacent-only/non-aligned test rows, plus
 the separately inspected `CBA2-R04.1`. This second repaired maker checkpoint
 requires a final verdict from the same independent checker; the maker cannot
 self-accept it.
+
+### Final independent review
+
+**REJECT — frozen maker checkpoint `581ab9ce` applies the named 30-row repair
+exactly, but the full evidence reconciliation is still incomplete.**
+
+The final review proved that `043a0ea0..581ab9ce` changes only the register and
+summary. The register changes exactly `CBA2-C07.1`–`.11`, `CBA2-C12.1`–`.9`,
+`CBA2-R07.1`–`.3`, and `CBA2-S04.1`–`.7`: 30 `evidence_strength` values move
+from `proven` to `insufficient`, with no other register field changed. Both
+prior REJECT reports are preserved. The Canon checksum, 815 identities and
+order, A151/C417/R118/L102/S27 family counts, 57 clusters, 141 resolving paths,
+pass/final tables, ancestry, exact three-file package, and no-application-delta
+boundary all pass.
+
+Semantic inspection of all 61 distinct test-evidence descriptions confirms
+the 365 test-field rows that explicitly describe missing, weak, adjacent-only,
+or non-asserting evidence are now insufficient. `CBA2-R04.1` is also correctly
+the separately inspected insufficient row. No covered-and-proven row is
+insufficient, and source behavior continues to support the correct-but-
+unproven judgments for `CBA2-A10.21`, `CBA2-C10.1`, and `CBA2-R04.1`, each of
+which remains partial / Medium / insufficient.
+
+The blocking exception is in the inspection evidence outside that 365-row
+test-field cohort: `CBA2-C05.1`, `CBA2-C05.3`, and `CBA2-C05.5` each explicitly
+says there is no independent reimbursement-eligibility test for one-Season,
+Ten-Day, or Rest-of-Season Contracts. Their cited minimum-scale and dead-cap
+tests contain no such reimbursement-eligibility coverage, yet all three remain
+`proven`. The objective requires missing or weak tests to be `insufficient`.
+Therefore 449 proven / 366 insufficient and the evidence-consistency validation
+claim are not trustworthy; correcting these known rows would produce 446
+proven / 369 insufficient. No maker artifact was repaired by this checker.
+
+### Maker remediation after final independent review REJECT
+
+The third independent REJECT above is preserved. The maker reclassified exactly
+`CBA2-C05.1`, `CBA2-C05.3`, and `CBA2-C05.5` as `insufficient`, producing the
+independently projected totals of 446 proven / 369 insufficient. No other
+register field and no application file changed.
+
+The evidence consistency proof now includes all 365 semantically non-aligned
+test-field rows, the three additional C05 inspection-note gaps, and the
+separately inspected `CBA2-R04.1`. The same independent checker must issue the
+acceptance verdict; the maker cannot self-accept this repair.
