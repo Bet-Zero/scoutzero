@@ -2,11 +2,13 @@
 
 ## Status
 
-**Corrected Phase 2 audit candidate; awaiting narrow cross-model
-re-verification. No application fixes are underway.**
+**Owner-accepted and closed on 2026-08-07. Phase 3 has not begun, and no
+application fixes are underway.**
 
-- Linear lane: BZE-266 (High / In Progress), under BZE-254 in Architect Completion.
+- Linear lane: BZE-266 (None / Done), under BZE-254 in Architect Completion.
 - Audit branch: `architect/bze-266-cba-canon-v2-phase2-audit`.
+- Governed audit candidate: `19dc84fc4050ce9cf749136dae1f9854adc72ef7`.
+- Independent final acceptance: `623e351ec2d142e13ed40dc51ee8b4376bda5cec`.
 - Application baseline: `69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`.
 - Accepted Canon candidate: `6cf8aaf358c158a88e630e8a7336f7e9c3febc17`.
 - Accepted R9 / Phase 1 tip: `5aeaaf1d0e4a197cbf1aa22ecda5c0c62a333012`.
@@ -612,3 +614,25 @@ official corrected candidate now:
 This corrected candidate is not self-accepted and does not close Phase 2. It
 awaits the bounded cross-model re-verification required by the owner decision.
 No application, Linear, or Phase 3 state changed during this reconciliation.
+
+## Owner acceptance and Phase 2 closure
+
+**Explicitly accepted by the owner and closed on 2026-08-07.**
+
+The owner accepted governed audit candidate
+`19dc84fc4050ce9cf749136dae1f9854adc72ef7` on the strength of independent
+final acceptance commit `623e351ec2d142e13ed40dc51ee8b4376bda5cec`.
+The accepted Canon SHA-256 remains
+`23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76`.
+
+The final accepted implementation distribution is 13 correct, 145 partial,
+260 incorrect, and 397 absent. The final accepted product-risk severity
+distribution is 364 High, 243 Medium, 195 Low, and 13 None. All 57 shared
+root-cause clusters are preserved.
+
+This acceptance receipt closes only the read-only Phase 2 implementation
+audit. No application code, application tests, accepted Canon, product data or
+schema, configuration, or `main` changed. Phase 3 has not begun. The complete
+review, rejection, remediation, reconciliation, and independent-verification
+history above is preserved; this closure receipt supersedes only its prior
+open-state wording.
