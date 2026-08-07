@@ -2,8 +2,8 @@
 
 ## Status
 
-**Phase 2 maker audit complete; independent review pending. No fixes are
-underway.**
+**Phase 2 maker remediation complete; independent re-review pending. No
+application fixes are underway.**
 
 - Linear lane: BZE-266 (High / In Progress), under BZE-254 in Architect Completion.
 - Audit branch: `architect/bze-266-cba-canon-v2-phase2-audit`.
@@ -69,8 +69,8 @@ provenance leaves in L07-L09 and S04: 173 records total.
 | Incorrect | 39 |
 | Partial | 56 |
 | Absent | 74 |
-| Covered and proven | 4 |
-| Partial Canon coverage | 95 |
+| Covered and proven | 3 |
+| Partial Canon coverage | 96 |
 | Missing in scope | 64 |
 | Data-blocked | 10 |
 | High severity | 119 |
@@ -99,8 +99,9 @@ too coarse for the accepted Canon:
 The four correct leaf behaviors are the one-year Standard TPE window, the S&T
 four-season maximum, cash staying outside Team Salary, and the general one- or
 two-season non-rookie extension bar. The last has insufficient aligned test
-evidence and therefore remains a Medium evidence gap even though code behavior
-matches the rule.
+evidence, remains partial Canon coverage, and therefore remains a Medium
+evidence gap even though code behavior matches the rule. The other three are
+covered and proven.
 
 Green tests were not promoted to proof when their expected behavior conflicts
 with the Canon. Examples include the rounded Expanded TPE value, treating every
@@ -120,14 +121,14 @@ and S01-S03: 246 records. Together with Pass 1, the register now contains
 | Incorrect | 52 |
 | Partial | 49 |
 | Absent | 141 |
-| Covered and proven | 4 |
-| Partial Canon coverage | 101 |
+| Covered and proven | 2 |
+| Partial Canon coverage | 103 |
 | Missing in scope | 132 |
 | Data-blocked | 2 |
 | Externally adjudicated | 7 |
 | High severity | 191 |
-| Medium severity | 51 |
-| No defect severity | 4 |
+| Medium severity | 53 |
+| No defect severity | 2 |
 
 The Cap Manager has useful contract, free-agency, waiver, roster-count,
 exception, and season-transition surfaces, but it does not yet have the ledger
@@ -171,6 +172,8 @@ and lifecycle model required for Canon-complete cap management:
 The four correct Pass 2 leaves are the 90% Minimum Team Salary threshold, the
 `2n+1` Salary stretch span, the ordinary maximum of three Two-Way Contracts,
 and Standard TPE partial-use balance persistence through its one-year window.
+The first two lack aligned proof tests and therefore remain partial Canon
+coverage with Medium evidence gaps; the other two are covered and proven.
 
 ### Pass 3 — full GM depth
 
@@ -232,8 +235,8 @@ and their component ledgers do not.
 The only fully correct and proven Pass 3 leaves are the ordinary maximum of
 three Two-Way players and exclusion of Two-Way Salary from Team Salary.
 
-All three passes and maker reconciliation are complete. Independent review
-remains pending.
+All three passes and maker reconciliation are complete. Independent re-review
+remains pending after evidence-label remediation.
 
 ## Final reconciliation
 
@@ -254,8 +257,8 @@ exclusion was invented.
 
 | Canon coverage | Count |
 |---|---:|
-| Covered and proven | 10 |
-| Partial | 408 |
+| Covered and proven | 7 |
+| Partial | 411 |
 | Missing in scope | 361 |
 | Data-blocked | 14 |
 | Externally adjudicated | 22 |
@@ -280,14 +283,18 @@ exclusion was invented.
 |---|---:|
 | Critical | 0 |
 | High | 613 |
-| Medium | 192 |
+| Medium | 194 |
 | Low | 1 |
-| None | 9 |
+| None | 7 |
 
 Runtime inputs are missing for 718 leaves, available for 61, externally
-determined for 35, and not required for one. Evidence is proven for 814 leaves;
-one otherwise-correct extension-timing leaf has insufficient aligned test
-evidence and remains Medium rather than defect-free.
+determined for 35, and not required for one. Evidence is proven for 479 leaves
+and insufficient for 336. All 335 rows whose test evidence explicitly declares
+a missing or weak relevant test are insufficient; `CBA2-R04.1` is additionally
+insufficient because its cited tests do not assert the `2n+1` formula. The three
+otherwise-correct but unproven leaves are `CBA2-A10.21`, `CBA2-C10.1`, and
+`CBA2-R04.1`; they retain correct implementation judgments but remain partial
+Canon coverage with Medium evidence gaps.
 
 ### Shared roots and Phase 3 size
 
@@ -331,10 +338,10 @@ conflated state and create more contradictory behavior.
 - Independent Team/Apron/Tax Salary, payment, roster/list, rights, and external
   decision ledgers cannot be supplied reliably by presentation-only changes.
 
-The exact next recommendation is to accept this audit boundary, then authorize
-a Phase 3 planning pass that turns the eight workstreams into sequenced issues,
-starting with governed inputs/events and independent ledgers. No Phase 3 issue
-has been created during this audit.
+If independent re-review accepts this repaired audit boundary, the exact next
+recommendation is to authorize a Phase 3 planning pass that turns the eight
+workstreams into sequenced issues, starting with governed inputs/events and
+independent ledgers. No Phase 3 issue has been created during this audit.
 
 ## Validation log
 
@@ -346,6 +353,7 @@ has been created during this audit.
 | `npm run test:architect -- --reporter=dot` | PASS — 305 files, 3,555/3,555 tests; 257.00 seconds, exceeding the four-minute budget by 17 seconds; not repeated |
 | `npm run test:diff -- --files <Phase 2 artifacts> --reporter=dot` | PASS — FAST tier, 57/57 tests at each audit checkpoint |
 | `python3 work/architect-completion/cba_canon_v2_phase2_integrity.py` | PASS — 815 unique Canon/register identities; A 151, C 417, R 118, L 102, S 27 |
+| Evidence-strength consistency proof | PASS — all 335 explicit missing/weak-test rows are insufficient; no covered/proven contradiction; the three correct/unproven leaves are partial/Medium; exact totals are 479 proven / 336 insufficient |
 | Evidence-path existence check | PASS — all 141 unique cited source/test paths resolve |
 | `git diff --check` | PASS |
 | `npm run lint:md` | FAIL — pre-existing/out-of-scope violations in three `docs/architect/audits/` files, `docs/CODEBASE_MAP.md`, and the frozen accepted Canon; the configured command does not include `work/` |
@@ -358,7 +366,56 @@ Architect suite also crossed the four-minute budget and was not repeated.
 Graphify update was intentionally skipped because this audit is read-only and
 the objective forbids regenerating or committing Graphify output.
 
+### Maker remediation after independent REJECT
+
+The initial independent REJECT below is preserved as the durable review
+history. In response, the maker register was repaired without changing any
+application file or any implementation-state, product-layer, runtime-input, or
+root-cause-cluster judgment:
+
+- all 335 rows whose test evidence explicitly declares a missing or weak
+  relevant test were reclassified from `proven` to `insufficient`;
+- `CBA2-R04.1` was also reclassified as insufficient because its cited tests do
+  not assert the `2n+1` formula;
+- `CBA2-A10.21`, `CBA2-C10.1`, and `CBA2-R04.1` were reconciled to partial Canon
+  coverage with Medium evidence-gap severity;
+- the repaired totals are 479 proven / 336 insufficient, 7 covered and proven
+  / 411 partial coverage, and 613 High / 194 Medium / 1 Low / 7 None severity.
+
+Only the evidence classifications, their dependent coverage/severity fields,
+and explanatory notes for the affected correct leaves changed. This repaired
+maker checkpoint now requires re-review by the same fresh independent checker;
+the maker cannot replace the REJECT with acceptance.
+
 ## Independent review
 
-Pending after the final maker checkpoint. The fresh checker will append its
-ACCEPT or REJECT report here.
+**REJECT — maker checkpoint `6a91edc4` is mechanically complete, but its
+evidence classifications are not trustworthy.**
+
+The fresh review reconciled all 815 Canon leaves, inspected all 57 unique
+implementation/evidence clusters, fully reviewed the 806 records in the
+required risk cohorts, and checked all nine remaining correct/proven records.
+The Canon checksum, identity/order/family counts, summary totals, cited-path
+existence, frozen ancestry, maker boundary, and no-application-change proof all
+pass.
+
+Blocking evidence defects:
+
+- The objective says missing or weak tests must be `insufficient`. The register
+  itself declares that no relevant test was located for 333 records, but marks
+  332 of them `proven`. This includes `CBA2-C10.1`, which is classified
+  `correct` / `covered and proven` while its sole test citation says no aligned
+  Minimum Team Salary test was located.
+- `CBA2-A10.21` is internally contradictory: it is `covered and proven` while
+  its evidence strength is `insufficient`, its notes say no aligned Canon
+  boundary test exists, and the summary acknowledges the evidence gap.
+- `CBA2-R04.1` is `correct` / `covered and proven` even though neither cited
+  test calls `getStretchProvisionYears` or asserts the Canon `2n+1` boundary.
+  The source formula is inspectable, but the supplied tests are not aligned
+  proof under the objective.
+
+These defects overstate the `covered and proven` and `proven` totals and make
+the final evidence reconciliation unsafe to accept. Reclassify every missing
+or weak-test row, repair the affected counts and prose, and submit one new
+frozen maker checkpoint for independent review. No maker artifact was repaired
+by this checker.

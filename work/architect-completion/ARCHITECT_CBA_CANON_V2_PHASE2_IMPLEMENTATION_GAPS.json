@@ -1358,7 +1358,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -1393,7 +1393,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1428,7 +1428,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1463,7 +1463,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1498,7 +1498,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1533,7 +1533,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1568,7 +1568,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1603,7 +1603,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -1638,7 +1638,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -1673,7 +1673,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1708,7 +1708,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1743,7 +1743,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1778,7 +1778,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1813,7 +1813,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1848,7 +1848,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -1883,7 +1883,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -1918,7 +1918,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1953,7 +1953,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -1988,7 +1988,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2023,7 +2023,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2058,7 +2058,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2093,7 +2093,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2128,7 +2128,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2163,7 +2163,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2198,7 +2198,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2233,7 +2233,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2268,7 +2268,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2303,7 +2303,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2338,7 +2338,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2373,7 +2373,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2408,7 +2408,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2443,7 +2443,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2478,7 +2478,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2513,7 +2513,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2548,7 +2548,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2583,7 +2583,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2618,7 +2618,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2653,7 +2653,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -2688,7 +2688,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -3497,7 +3497,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -3532,7 +3532,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -3567,7 +3567,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4278,7 +4278,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4317,7 +4317,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4356,7 +4356,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4395,7 +4395,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4434,7 +4434,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4473,7 +4473,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4512,7 +4512,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4551,7 +4551,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4590,7 +4590,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4629,7 +4629,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4668,7 +4668,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4707,7 +4707,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4746,7 +4746,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -4785,7 +4785,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4824,7 +4824,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4863,7 +4863,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4902,7 +4902,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4941,7 +4941,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -4980,7 +4980,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5019,7 +5019,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5048,7 +5048,7 @@
       "canon_authority": "CBA",
       "canon_verification_method": "LIFECYCLE / SCEN; CBA2-SC-016(h)",
       "canon_lifecycle_date_inputs": "Contract term including Option Years",
-      "canon_coverage_classification": "covered and proven",
+      "canon_coverage_classification": "partial",
       "implementation_state": "correct",
       "product_layers": {
         "representation_data_model": "partial",
@@ -5097,7 +5097,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5136,7 +5136,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5175,7 +5175,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5214,7 +5214,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5253,7 +5253,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5292,7 +5292,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5331,7 +5331,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5370,7 +5370,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5409,7 +5409,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -5448,7 +5448,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -6726,7 +6726,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -6761,7 +6761,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -6796,7 +6796,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7216,7 +7216,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7251,7 +7251,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7286,7 +7286,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7321,7 +7321,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7356,7 +7356,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7391,7 +7391,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7426,7 +7426,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7461,7 +7461,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7496,7 +7496,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7531,7 +7531,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7566,7 +7566,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7601,7 +7601,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7636,7 +7636,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7671,7 +7671,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7706,7 +7706,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -7731,7 +7731,7 @@
       "canon_authority": "CBA",
       "canon_verification_method": "STATIC / —; —",
       "canon_lifecycle_date_inputs": "Salary Cap Year; Salary Cap",
-      "canon_coverage_classification": "covered and proven",
+      "canon_coverage_classification": "partial",
       "implementation_state": "correct",
       "product_layers": {
         "representation_data_model": "covered",
@@ -7741,8 +7741,8 @@
         "lifecycle_persistence": "partial"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
-      "severity": "None",
+      "evidence_strength": "insufficient",
+      "severity": "Medium",
       "evidence": {
         "implementation": [
           "No MTS Cap Hold/Payment/Threshold ledgers or payment/distribution workflow located; adjacent floor warning inspected at src/features/architect/utils/capLegality/postStateCapValidator.ts:collectFinalStateWarnings and season value at src/features/architect/utils/capProjections.ts."
@@ -7751,10 +7751,10 @@
           "No aligned Minimum Team Salary lifecycle/payment tests located in Architect test surfaces."
         ],
         "inspection_notes": [
-          "CBA2-C10.1: Season cap records include the official floor at 90% of Salary Cap and the rules context/post-state warning consumes that value."
+          "CBA2-C10.1: Season cap records include the official floor at 90% of Salary Cap and the rules context/post-state warning consumes that value, but no aligned test proves the amount boundary."
         ]
       },
-      "smallest_likely_remediation": "No amount change; retain the season-keyed floor while adding the separate MTS ledgers.",
+      "smallest_likely_remediation": "Add an aligned 90%-of-Salary-Cap amount test while retaining the season-keyed floor and adding the separate MTS ledgers.",
       "shared_root_cause_cluster": "minimum-team-salary-workflow-absent"
     },
     {
@@ -7776,7 +7776,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -7811,7 +7811,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -7846,7 +7846,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -7881,7 +7881,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -7916,7 +7916,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -7951,7 +7951,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -7986,7 +7986,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8021,7 +8021,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8056,7 +8056,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8091,7 +8091,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8126,7 +8126,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8161,7 +8161,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8196,7 +8196,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8231,7 +8231,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8266,7 +8266,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8301,7 +8301,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8336,7 +8336,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -8371,7 +8371,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -13282,7 +13282,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13317,7 +13317,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13352,7 +13352,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13387,7 +13387,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13422,7 +13422,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13457,7 +13457,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13492,7 +13492,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13527,7 +13527,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13562,7 +13562,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13597,7 +13597,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13632,7 +13632,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13667,7 +13667,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13702,7 +13702,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13737,7 +13737,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13772,7 +13772,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13807,7 +13807,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13842,7 +13842,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13877,7 +13877,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13912,7 +13912,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13947,7 +13947,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -13982,7 +13982,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -14017,7 +14017,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -14052,7 +14052,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14087,7 +14087,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14122,7 +14122,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14157,7 +14157,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14192,7 +14192,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14227,7 +14227,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14262,7 +14262,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14297,7 +14297,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14332,7 +14332,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14367,7 +14367,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14402,7 +14402,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14437,7 +14437,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14472,7 +14472,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14507,7 +14507,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14542,7 +14542,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14577,7 +14577,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14612,7 +14612,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14647,7 +14647,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -14682,7 +14682,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -15865,7 +15865,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -15900,7 +15900,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -15935,7 +15935,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -15970,7 +15970,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16005,7 +16005,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16040,7 +16040,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16075,7 +16075,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16110,7 +16110,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16145,7 +16145,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16180,7 +16180,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16215,7 +16215,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16250,7 +16250,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16285,7 +16285,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16320,7 +16320,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16355,7 +16355,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16390,7 +16390,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16425,7 +16425,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16460,7 +16460,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16495,7 +16495,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16530,7 +16530,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16565,7 +16565,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16600,7 +16600,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16635,7 +16635,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -16670,7 +16670,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -18494,7 +18494,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18529,7 +18529,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18564,7 +18564,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18599,7 +18599,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18634,7 +18634,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18669,7 +18669,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18704,7 +18704,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18739,7 +18739,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18774,7 +18774,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18809,7 +18809,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18844,7 +18844,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -18879,7 +18879,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19037,7 +19037,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19072,7 +19072,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19107,7 +19107,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19142,7 +19142,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19177,7 +19177,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19212,7 +19212,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19247,7 +19247,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19282,7 +19282,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19317,7 +19317,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -19820,7 +19820,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -19855,7 +19855,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -20699,7 +20699,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -20734,7 +20734,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -20769,7 +20769,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -20968,7 +20968,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21003,7 +21003,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21038,7 +21038,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21073,7 +21073,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21108,7 +21108,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21143,7 +21143,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21178,7 +21178,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21213,7 +21213,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21248,7 +21248,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21683,7 +21683,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -21718,7 +21718,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -21753,7 +21753,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -21788,7 +21788,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -21823,7 +21823,7 @@
         "lifecycle_persistence": "partial"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -21858,7 +21858,7 @@
         "lifecycle_persistence": "partial"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -21893,7 +21893,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -21928,7 +21928,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -21963,7 +21963,7 @@
         "lifecycle_persistence": "partial"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -21998,7 +21998,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22033,7 +22033,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22068,7 +22068,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22103,7 +22103,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22138,7 +22138,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22173,7 +22173,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22208,7 +22208,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22243,7 +22243,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22278,7 +22278,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22313,7 +22313,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22348,7 +22348,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22383,7 +22383,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22418,7 +22418,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22453,7 +22453,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22488,7 +22488,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22523,7 +22523,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22558,7 +22558,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22593,7 +22593,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22628,7 +22628,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22663,7 +22663,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22698,7 +22698,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22733,7 +22733,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22768,7 +22768,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22803,7 +22803,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22838,7 +22838,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22873,7 +22873,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22908,7 +22908,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22943,7 +22943,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -22978,7 +22978,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23013,7 +23013,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23048,7 +23048,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23083,7 +23083,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23118,7 +23118,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23153,7 +23153,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23188,7 +23188,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23223,7 +23223,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23258,7 +23258,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23293,7 +23293,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23328,7 +23328,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23363,7 +23363,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23398,7 +23398,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23433,7 +23433,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23468,7 +23468,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23503,7 +23503,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -23914,7 +23914,7 @@
       "canon_authority": "CBA",
       "canon_verification_method": "SCEN / —; CBA2-SC-068(a), CBA2-SC-068(h34)",
       "canon_lifecycle_date_inputs": "Inputs/window: valid Team Salary stretch election; applicable waived salary; number of remaining Contract Seasons at termination; allocation period `2n+1`; first allocation Salary Cap Year.",
-      "canon_coverage_classification": "covered and proven",
+      "canon_coverage_classification": "partial",
       "implementation_state": "correct",
       "product_layers": {
         "representation_data_model": "partial",
@@ -23924,8 +23924,8 @@
         "lifecycle_persistence": "partial"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
-      "severity": "None",
+      "evidence_strength": "insufficient",
+      "severity": "Medium",
       "evidence": {
         "implementation": [
           "src/features/architect/utils/waiverDeadCapAllocation.ts:getStretchProvisionYears",
@@ -23936,10 +23936,10 @@
           "src/tests/architect/editContractModal_buyout_and_close.behavior.test.tsx"
         ],
         "inspection_notes": [
-          "CBA2-R04.1: getStretchProvisionYears returns 2n+1 and computeWaiveResult evenly allocates the selected dead amount across exactly that many season rows."
+          "CBA2-R04.1: getStretchProvisionYears returns 2n+1 and computeWaiveResult evenly allocates the selected dead amount across exactly that many season rows, but the cited tests do not call the helper or assert the Canon boundary."
         ]
       },
-      "smallest_likely_remediation": "Preserve the 2n+1 arithmetic while gating it through the missing election rules.",
+      "smallest_likely_remediation": "Add an aligned n=0/1/multiple-season 2n+1 formula test while preserving the arithmetic and gating it through the missing election rules.",
       "shared_root_cause_cluster": "stretch-formula-without-election-rules"
     },
     {
@@ -25286,7 +25286,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -25321,7 +25321,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -25356,7 +25356,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -25391,7 +25391,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -25426,7 +25426,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -25461,7 +25461,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -25496,7 +25496,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -25531,7 +25531,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25566,7 +25566,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25601,7 +25601,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25636,7 +25636,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25671,7 +25671,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25706,7 +25706,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25741,7 +25741,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25776,7 +25776,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25811,7 +25811,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25846,7 +25846,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25881,7 +25881,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25916,7 +25916,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25951,7 +25951,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -25986,7 +25986,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28093,7 +28093,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28128,7 +28128,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28163,7 +28163,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28198,7 +28198,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28233,7 +28233,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28268,7 +28268,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28303,7 +28303,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28338,7 +28338,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28373,7 +28373,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28408,7 +28408,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28443,7 +28443,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28478,7 +28478,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28513,7 +28513,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28548,7 +28548,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28583,7 +28583,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28618,7 +28618,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28653,7 +28653,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -28688,7 +28688,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29120,7 +29120,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29155,7 +29155,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29190,7 +29190,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29225,7 +29225,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29260,7 +29260,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29295,7 +29295,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29330,7 +29330,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29365,7 +29365,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29400,7 +29400,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29435,7 +29435,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29470,7 +29470,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29505,7 +29505,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -29540,7 +29540,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29575,7 +29575,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29610,7 +29610,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29645,7 +29645,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29680,7 +29680,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29715,7 +29715,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29750,7 +29750,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29785,7 +29785,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29820,7 +29820,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -29855,7 +29855,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "external determination",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -30250,7 +30250,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -30285,7 +30285,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -30320,7 +30320,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -30355,7 +30355,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "available",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -30390,7 +30390,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -30425,7 +30425,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "High",
       "evidence": {
         "implementation": [
@@ -30460,7 +30460,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -30495,7 +30495,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -30530,7 +30530,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -30565,7 +30565,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
@@ -30600,7 +30600,7 @@
         "lifecycle_persistence": "absent"
       },
       "runtime_input_state": "missing",
-      "evidence_strength": "proven",
+      "evidence_strength": "insufficient",
       "severity": "Medium",
       "evidence": {
         "implementation": [
