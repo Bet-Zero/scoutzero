@@ -2461,15 +2461,17 @@ mutation anchor was absent. After the owner authorized exactly one additional
 unchanged execution, that fresh sequential run passed in 148.58 seconds with
 20 accepting controls, 218 rejecting controls, 238 / 238 cases passing,
 `baseline_clean=yes`, zero failures, a successful negative self-test and cache-
-isolation self-check, and frozen route checksum
-`b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1`.
+isolation self-check, and the frozen route checksum, recorded here as the exact
+concatenation `b0c97d74d1426a323101155d61ebb86d` +
+`2c42d6f66023ba383173e797db0a8cc1`.
 The 15-minute hard timeout did not fire, and the validator-consumed Canon was
 byte-identical before and after the run at 2,103,395 bytes and SHA-256
 `02b6a6e6374fa051129ec86c330ed97719d05ed34fed28ad3113c6c1a5d2d583`.
 This R7 unit is maker completion, not independent acceptance. The prior
-targeted-R7 and R8 checkpoints remain immutable rejected history. A new R8
-reconciliation/checksum has not started; renewed R9, owner acceptance, Phase
-2, W1.1, application work, Linear, Graphify, and `main` remain blocked.
+targeted-R7 and R8 checkpoints remain immutable rejected history. The
+post-global-R7 R8 maker reconciliation is now complete in its separately
+bounded checkpoint; renewed R9, owner acceptance, Phase 2, W1.1, application
+work, Linear, Graphify, and `main` remain blocked.
 
 **Bounded pre-R8 validator-route alignment — independently ACCEPTED.**
 The plan-route checks now follow the approved R5–R9 contract recorded here:
@@ -2485,9 +2487,10 @@ Its concise maker receipt is
 The independent checker receipt is
 `work/architect-completion/ARCHITECT_CBA_CANON_V2_PRE_R8_VALIDATOR_ROUTE_ALIGNMENT_INDEPENDENT_REVIEW.md`.
 The post-R9 global R7 maker repair is complete. The prior targeted-R7 and R8
-checkpoints are historical and rejected; the new repaired candidate has not
-entered R8. Renewed R9, owner acceptance, Phase 2, W1.1, application work,
-Linear, Graphify, and `main` remain blocked.
+checkpoints are historical and rejected; the post-global-R7 R8 maker
+reconciliation is complete for the new candidate. Renewed R9, owner
+acceptance, Phase 2, W1.1, application work, Linear, Graphify, and `main`
+remain blocked.
 
 **Frozen current-route contract declaration:** version
 `CBA-CANON-V2-R5-R9/1`; state `frozen-through-phase-1-closure`; SHA-256
@@ -2500,8 +2503,8 @@ and receive independent review.
 
 ## R8 — Final maker reconciliation and checksum
 
-- **Status:** unstarted for the post-global-R7 candidate; the prior completed
-  R8 checkpoint is immutable rejected history, the Canon remains an
+- **Status:** complete for the post-global-R7 candidate; the prior completed
+  R8 checkpoints remain immutable rejected history, the Canon remains an
   unaccepted working draft, and renewed R9 remains unstarted.
 - **Dependency:** accepted R3.1/R4/R5/R6 rule checkpoints and a completed R7
   scenario checkpoint. R7 maker completion is required before R8; no
@@ -2532,12 +2535,26 @@ and receive independent review.
   verdict; and no Architect comparison, data/configuration change, Linear, or
   `main`.
 
-**R8 execution status — unstarted for the post-global-R7 candidate; renewed
-R9 not started.** The prior R8 maker receipt and checksum remain unchanged as
-historical evidence for the checkpoint rejected by renewed R9 and are not
-current proof. The global R7 maker checkpoint must be committed and pushed
-before a separately authorized R8 reconciliation/checksum begins. The Canon
-remains unaccepted; renewed R9 and the explicit owner gate remain downstream.
+**R8 execution status — post-global-R7 maker reconciliation complete; renewed
+R9 not started.** The exact clean, synchronized input is
+`b2ef24dc20e0646c3583b39053b3f0222f5b5838`, whose direct parent is
+`d618e65c5377999cd0543a5b17a3fa7cc29e6fe4`. The prior R8 maker receipts and
+checksums remain immutable historical evidence for rejected checkpoints and
+are not current proof. The complete actual-document reconciliation reproduces
+61 GROUPs, 815 active LEAFs, 823 EV2 components, 494 XW2 edges, 744 LEAF
+dependency edges, 512 EV2 dependency edges, 82 scenarios, 728 named cases,
+955 Exercise edges and matching backlinks, 661 covered SCEN-designated LEAFs,
+89 historical scenario fragments and SXW2 dispositions, 272 generic decisions,
+822 structured AMEND details, and 29 terminal dispositions. The repaired R7
+boundary remains exactly 724,784 bytes with SHA-256
+`f558f126743f2eb1a64baaeec404a6952030399749ba538d7b799110966b309a`.
+The reconciled Canon is exactly 2,104,588 bytes with SHA-256
+`4bf1c587e844990d5dda26eedf382c632ef90a663700f221d68c9c2ef66524f0`.
+Complete G1–G15 reconciliation reports zero open blocker, unresolved record,
+cycle, or deferral. The current receipt is
+`work/architect-completion/ARCHITECT_CBA_CANON_V2_POST_GLOBAL_R7_R8_RECONCILIATION_CHECKSUM.md`.
+The Canon remains unaccepted; renewed R9 is the next and only next gate, and
+the explicit owner gate remains downstream.
 
 ## R9 — Single independent whole-canon acceptance
 
@@ -2579,7 +2596,8 @@ remains unaccepted; renewed R9 and the explicit owner gate remain downstream.
   remain blocked.
 
 **Latest post-R9 status — corrected R6 independently accepted; global R7 maker
-repair complete; post-global-R7 R8 and renewed R9 unstarted.**
+repair and post-global-R7 R8 maker reconciliation complete; renewed R9
+unstarted.**
 R9 independently rejected exact R8 checkpoint
 `16920362f75b97bb34a01a1b317f40244a5e91cc`; the rejection remains preserved
 at `5acedb1b024973adab43ab9957f7bed23a42390f`. The first ordered focused
@@ -2639,9 +2657,9 @@ receipt. No XW2/SXW2 target, accepted rule, source, evidence, dependency,
 mapping, lineage, historical scenario/fragment, terminal disposition, R9
 rejection record, frozen route field, validator, prior receipt, application
 surface, Linear record, Graphify output, or `main` content changed. The Canon
-remains unaccepted. A new R8 reconciliation/checksum, renewed R9, owner
-acceptance, Phase 2, W1.1, application work, Linear, Graphify, and `main` remain
-blocked and unstarted.
+remains unaccepted. Post-global-R7 R8 maker reconciliation is complete;
+renewed R9 is the next and only next gate. Owner acceptance, Phase 2, W1.1,
+application work, Linear, Graphify, and `main` remain blocked and unstarted.
 
 ### Correctness protections retained
 

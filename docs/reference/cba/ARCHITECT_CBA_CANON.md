@@ -1,6 +1,6 @@
 # The Architect — CBA & Transaction Rules Canon
 
-**Edition:** Canon v2.0 — **WORKING DRAFT** (repaired-candidate R8 maker reconciliation complete; renewed R9 and explicit owner acceptance pending; corrected R6 independently accepted and targeted R7 maker repair complete; not accepted, not an active audit oracle)\
+**Edition:** Canon v2.0 — **WORKING DRAFT** (post-global-R7 R8 maker reconciliation complete; renewed R9 and explicit owner acceptance pending; corrected R6 independently accepted and global R7 maker repair complete; not accepted, not an active audit oracle)\
 **Purpose:** The all-in-one Cap Manager + Trade Machine reference, implementation checklist, and acceptance-test canon for ScoutZero's Architect  
 **Authority cutoff:** July 12, 2026  
 **Current Salary Cap Year:** 2026–27  
@@ -5278,6 +5278,15 @@ by `/root/r4_checker` at checker commit
 exact repair checkpoint `5b29995b13664a15c1376a05074808c7eb552c4c` was independently **ACCEPTED** at
 checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. R6 then added the remaining R/L/S families. Its original maker/provenance-correction pair was focused rejected at checker commit `5921cc57`; the later repair lineage remains preserved as history. Final bounded maker checkpoint `8bd95b311075f17fa88b17c06b06fbbb07d1b4fb` was independently **ACCEPTED** by checker commit `802ae2cf795edd1e2dbc29f6ae4bd4b134ab3777`. After R9 rejected the historical R8 checkpoint, the complete corrected R6 material at `e464d76959455fca18b6900ee405e45aa46ccf76` was independently **ACCEPTED** by checker commit `ab8451a4dac4a5d4d385bfdd420610d722bb5d19`. The bounded post-R9 targeted R7 maker repair now closes the active scenario library at 82 scenarios, 728 named cases, 955 exercise edges, and complete coverage of 661 SCEN-designated LEAFs while preserving the 89 historical scenario fragments and `SXW2` dispositions. Phase 1 continues; repaired-candidate R8 maker reconciliation is complete in this checkpoint, renewed R9 is unstarted, and nothing here carries a Phase 2 verdict before R9 ACCEPT plus owner acceptance.
 
+**Post-global-R7 R8 status.** The global R7 maker checkpoint
+`b2ef24dc20e0646c3583b39053b3f0222f5b5838` is the exact input to this
+completed R8 maker reconciliation. The governed registry remains 61 GROUPs,
+815 active LEAFs, 823 evidence components, and 494 historical-rule crosswalk
+edges; the active scenario library remains 82 scenarios, 728 named cases, and
+955 bidirectional Exercise edges covering 661 SCEN-designated LEAFs. The
+724,784-byte repaired R7 scenario/crosswalk boundary is unchanged. The Canon
+remains unaccepted, and renewed R9 is the next and only next gate.
+
 #### 15.10.1 A family — GROUP index
 
 | ID | Title/audit question | Active LEAF children | Notes |
@@ -10208,6 +10217,16 @@ This classification is part of the canon. A later source may move an OPS item in
 **C14–C25 v2 status (R5 independently ACCEPTED).** The accepted R5 population contains 12 GROUPs and **297 active C LEAFs**, with its namespaces ending at `XW2-0356`, `EV2-0576`, and `DR2-0123`; `SM2-0009`, `SS2-0002`, and `BND-0010` remain unchanged. Exact repair checkpoint `5b29995b13664a15c1376a05074808c7eb552c4c` was independently **ACCEPTED** at checker commit `b58a5bc54a829dd426c3345f7a60734d80a943b4`. All 79 published C14–C25 rows have a current owner or exact process-only disposition when accepted `XW2-0154` is included. The source chain terminates in the signed CBA at `SRC2-001`; no secondary authority, OPS record, or unsupported-residual disposition was used.
 
 **R/L/S v2 status (post-R9 corrected R6 independently accepted; targeted R7 maker repair complete; repaired-candidate R8 maker reconciliation complete; renewed R9 unstarted).** The complete corrected R6 material at `e464d76959455fca18b6900ee405e45aa46ccf76` was independently **ACCEPTED** by checker commit `ab8451a4dac4a5d4d385bfdd420610d722bb5d19`; the earlier maker, rejection, repair, and acceptance checkpoints remain immutable lineage. The current population has 24 GROUPs and **247 active LEAFs** (118 R, 102 L, 27 S), 247 matching detail rows, 247 matching evidence owners, 27 governed LEAF retirements with 27 paired evidence retirements, `SRC2-005`–`SRC2-006`, stable `EV2-0577`–`EV2-0850`, current crosswalk through `XW2-0499`, decisions through `DR2-0272`, search manifests through `SM2-0017`, and search sets through `SS2-0004`; `BND-0010` remains the bundle high-water mark. The R/L/S graph retains 245 current dependency edges and no cycle. All 134 published R/L/S rows still resolve through the accepted 145 exact current fragments/edges; no source-certified rule, evidence, authority, locator, origin, dependency, or input contract changed in this targeted R7 unit. The repaired active scenario library contains 82 top-level scenarios, 728 named cases, 955 unique bidirectional named-case-to-LEAF exercise edges, and complete coverage of 661 SCEN-designated LEAFs (581 primary plus 80 secondary-only). Historical scenarios 1–89, their 89 exact fragments, and all 89 `SXW2` dispositions remain unchanged. `CBA2-SC-065(l)`–`(z)` close the accumulated R01 scenario gap, including all nine accepted Partial Waiver probes and downstream invalid-claim firewalls; the affected buyout/set-off, league-season transition, draft-rights assignment, Assignment Transaction window, and UFA/RFA-versus-retained-rights cases are corrected in place. One generic decision and 32 same-identity LEAF Scenario-evidence detail revisions advance the lineage totals to 272 generic decisions and 822 structured AMEND details; scenario case revisions are named directly in `DR2-0272` because the frozen validator deliberately has no machine-readable `CBA2-SC` AMEND population. The rejected R8 checkpoint `16920362` remains historical and was not edited or treated as current. Phase 1 continues. The Canon remains unaccepted; repaired-candidate R8 maker reconciliation is complete in this checkpoint; renewed R9, owner acceptance, Phase 2, W1.1, application work, Linear, Graphify, and `main` remain unstarted and untouched.
+
+**Post-global-R7 R8 reconciliation status.** Complete G1–G15 maker
+reconciliation preserves every accepted rule, source, evidence, dependency,
+mapping, lineage, terminal disposition, scenario identity, case identity,
+Exercise edge, and backlink from the exact R7 input checkpoint. The 614
+globally repaired cases remain concrete across their recorded 81 families;
+the other 114 cases remain byte-identical to the renewed-R9-rejected baseline.
+The Canon is still an unaccepted working draft. Renewed R9 remains unstarted
+and is the next and only next gate; owner acceptance and every downstream
+phase remain blocked.
 
 ### 19.4 CBA Guide sections reviewed for discovery
 
