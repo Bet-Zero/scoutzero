@@ -2,8 +2,7 @@
 
 ## Status
 
-**Phase 2 evidence remediation complete; independent acceptance re-review
-pending. No application fixes are underway.**
+**Phase 2 audit complete and independently accepted. No application fixes are underway.**
 
 - Linear lane: BZE-266 (High / In Progress), under BZE-254 in Architect Completion.
 - Audit branch: `architect/bze-266-cba-canon-v2-phase2-audit`.
@@ -520,3 +519,38 @@ The evidence consistency proof now includes all 365 semantically non-aligned
 test-field rows, the three additional C05 inspection-note gaps, and the
 separately inspected `CBA2-R04.1`. The same independent checker must issue the
 acceptance verdict; the maker cannot self-accept this repair.
+
+### Independent acceptance re-review
+
+**ACCEPT — frozen maker checkpoint `b9166f14` satisfies the authorized Phase 2
+audit objective.**
+
+The acceptance review proved that `581ab9ce..b9166f14` changes exactly
+`CBA2-C05.1`, `CBA2-C05.3`, and `CBA2-C05.5` from `proven` to `insufficient`;
+no other register field or application file changed. All three prior REJECT
+reports remain intact, and the summary accurately records each remediation.
+
+The full semantic pass inspected all 61 distinct test-evidence descriptions
+and 137 normalized inspection-note descriptions. All 365 explicit test-field
+gaps and all three explicit C05 inspection-note gaps are insufficient, with
+`CBA2-R04.1` separately inspected as the 369th insufficient row. No remaining
+proven record says its aligned proof is missing, weak, adjacent-only, or
+non-asserting. The cash records whose notes say tests pin an incomplete
+sent-only model are valid proven evidence of incorrect behavior, not
+missing-test admissions.
+
+The exact result is 446 proven / 369 insufficient, with no
+covered-and-proven/insufficient contradiction. `CBA2-A10.21`, `CBA2-C10.1`,
+and `CBA2-R04.1` are the only correct-but-unproven leaves; source inspection
+supports each implementation judgment, and each remains partial / Medium /
+insufficient. The Canon checksum, 815 identities and exact order,
+A151/C417/R118/L102/S27 family counts, 57 clusters, 141 resolving evidence
+paths, pass/final tables and prose, ancestry, exact three-file package, and
+no-application-delta boundary all pass.
+
+Acceptance certifies the completeness and trustworthiness of the Phase 2
+read-only audit, not CBA completeness of the application. The register still
+reports 805 non-correct leaves and 369 insufficient-evidence leaves, so the
+documented foundational Phase 3 program and aligned proof work remain the
+appropriate next step. No maker artifact was repaired by this checker beyond
+recording this independent verdict and accepted status.
