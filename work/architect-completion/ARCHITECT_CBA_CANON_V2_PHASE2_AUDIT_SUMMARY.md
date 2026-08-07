@@ -171,9 +171,68 @@ The four correct Pass 2 leaves are the 90% Minimum Team Salary threshold, the
 `2n+1` Salary stretch span, the ordinary maximum of three Two-Way Contracts,
 and Standard TPE partial-use balance persistence through its one-year window.
 
-Pass 3 and final reconciliation remain pending. The register is intentionally
-incomplete at this checkpoint (419/815); exact full-universe integrity is
-required only after the final pass.
+### Pass 3 — full GM depth
+
+Completed 2026-08-07. The checkpoint covers C16-C25, R01, R05, L01-L05, and
+L10: the remaining 396 records and therefore the full 815-leaf universe.
+
+| Measure | Pass 3 count |
+|---|---:|
+| Correct | 2 |
+| Incorrect | 172 |
+| Partial | 40 |
+| Absent | 182 |
+| Covered and proven | 2 |
+| Partial Canon coverage | 212 |
+| Missing in scope | 165 |
+| Data-blocked | 2 |
+| Externally adjudicated | 15 |
+| High severity | 303 |
+| Medium severity | 91 |
+| No defect severity | 2 |
+
+The deepest GM workflows expose the same architectural limit as the first two
+passes: useful scalar fields and actions exist, but dated governed transactions
+and their component ledgers do not.
+
+- Rookie Scale, maximum-salary, extension, option, guarantee, incentive, and
+  buyout surfaces cover fragments. They do not form one exact contract-route
+  model with scale classes, notices, award/team history, compensation
+  components, effective dates, amendments, and supersession.
+- Over-38 allocation, signing-bonus allocation, Ten-Day and Rest-of-Season
+  Contracts, Exhibit 9/10, Summer Contracts, drafted-player rights, retirement,
+  pending agreements, and grievance ledgers are absent.
+- Two-Way players are correctly limited to three and their Salary is correctly
+  excluded from Team Salary. The rest of the Two-Way contract, proration,
+  eligibility, protection, conversion, usage, advance, affiliate, and rights
+  engine is absent; an existing test expressly permits a three-year Two-Way
+  Contract because term validation skips the type.
+- yearly rows preserve guarantee amounts, option markers, and likely/unlikely
+  incentive totals, but do not enforce protection progression, future-maximum
+  adjustment order, component-specific annual changes, incentive/bonus caps,
+  deferral, international payments, loans, or insurance reimbursement.
+- option decisions persist exercise/decline effects, yet use an
+  upcoming-season proxy instead of exact deadlines and do not model notice,
+  protection alternatives, ETO shape, or downstream RFA/Extension effects.
+- a buyout scalar reduces remaining guaranteed money and writes dead cap, but
+  there is no written agreement, pro-rata original-term reduction, set-off
+  route, payment allocation, or complete reacquisition bar.
+- direct waiver currently means immediate release. It has no separate request,
+  claim, priority, pending financial responsibility, unclaimed expiry, or
+  ordinary/Partial Waiver lifecycle.
+- worlds can store an `asOfDate`, while multiple authoritative helpers still
+  fall back to today/current year. Contract, consent/trade-bar, RFA/Offer Sheet,
+  and drafted-player-rights state therefore lacks one immutable dated event
+  history.
+- medical, physical, expert, grievance, hardship, legal, and League decisions
+  have no authenticated external-determination record with authority, scope,
+  effective period, visible unresolved state, and supersession history.
+
+The only fully correct and proven Pass 3 leaves are the ordinary maximum of
+three Two-Way players and exclusion of Two-Way Salary from Team Salary.
+
+All three passes are complete. Final reconciliation and independent review
+remain pending.
 
 ## Validation log
 
