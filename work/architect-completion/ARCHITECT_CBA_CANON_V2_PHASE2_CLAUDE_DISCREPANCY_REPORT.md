@@ -742,3 +742,178 @@ acceptance and Phase 2 closure. No re-audit, no severity change, no verdict chan
 
 This document does not close Phase 2, update the official branch or Linear, or open
 Phase 3. BZE-266 remains open and unchanged.
+
+# 17. Final confirmation of the §16 repair (2026-08-07)
+
+Narrowly bounded confirmation of the single correction required by §16.9. This is not a
+re-audit: no verdict, severity, count, or classification was re-examined on its merits.
+The official repair was inspected read-only from a detached temporary worktree at
+`19dc84fc`; all writing happened on this Claude branch after `8d3f6b12`. No official
+branch, application, Linear, or Phase 3 state was touched, and no application tests were
+run.
+
+- Previous corrected candidate: `1035ae898e31992e5de286f478ad4868c5b496c0`
+- Final evidence-hygiene repair: `19dc84fc4050ce9cf749136dae1f9854adc72ef7`
+  ("docs(cba): remove superseded evidence duplicates")
+
+## 17.1 Result by required check
+
+| # | Check | Result |
+|---|---|---|
+| 1 | `19dc84fc` is exactly one normal child of `1035ae89` | **PASS** |
+| 2 | Only the three authorised audit artifacts changed | **PASS** |
+| 3 | Exactly the three named superseded cross-leaf duplicates deleted | **PASS** |
+| 4 | No other evidence, finding, verdict, severity, state, Canon field, layer, cluster, identity or ordering changed | **PASS** |
+| 5 | Checker now rejects mismatched `negative_search` leaf prefixes | **PASS** |
+| 6 | Summary records the three deletions and leaves Phase 2 open | **PASS** |
+| 7 | All established counts unchanged | **PASS** |
+| 8 | Checker, JSON validation, invariant comparison, attribution assertion, git diff | **PASS** |
+
+## 17.2 Checks 1–2 — ancestry and scope
+
+`git rev-list --parents -n 1 19dc84fc` returns a single parent, `1035ae89`. The range
+`1035ae89..19dc84fc` contains exactly one commit, non-merge. `git diff --name-status`
+reports three paths, all `M` — no additions, deletions, or renames:
+
+| Path | Delta |
+|---|---|
+| `ARCHITECT_CBA_CANON_V2_PHASE2_AUDIT_SUMMARY.md` | +1 / −1 |
+| `ARCHITECT_CBA_CANON_V2_PHASE2_IMPLEMENTATION_GAPS.json` | +3 / −9 |
+| `cba_canon_v2_phase2_integrity.py` | +8 / −0 |
+
+Zero paths changed outside `work/architect-completion/`; zero delta in `src/`, `tests/`,
+`docs/`, or package manifests. The Canon file still hashes to
+`23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76`, matching the
+register's declared `canon_sha256` — the frozen Canon is untouched. `git diff --check`
+passes.
+
+## 17.3 Check 3 — the three deletions, proved by the new guardrail itself
+
+Running the **new** checker against the **pre-repair** register identifies exactly three
+violations and no others — precisely the three deletions authorised in §16.9:
+
+```
+FAIL: CBA2-A05.1:  evidence.negative_search leaf prefix CBA2-A05.3 does not match host leaf_id
+FAIL: CBA2-A05.6:  evidence.negative_search leaf prefix CBA2-A05.4 does not match host leaf_id
+FAIL: CBA2-A05.15: evidence.negative_search leaf prefix CBA2-A05.5 does not match host leaf_id
+```
+
+Each host's `negative_search` went from exactly one entry to `[]`. The old checker still
+passes against the repaired register, so the repair introduced no regression against the
+previously accepted schema contract.
+
+**Sharpening of §16.6.** §16 described these strings as superseded notes belonging to
+`A05.3/.4/.5` and archived onto siblings. Mechanically the case is stronger: each removed
+string's body is *byte-identical to its own host's* retained, correctly-attributed
+`inspection_notes` entry — it was a stale duplicate of the host's own narrative wearing a
+neighbour's identifier. Meanwhile `A05.3/.4/.5` each carry their own distinct current
+note, which explicitly defers the rows D–K, TMLE cross-bar, post-state Apron Team Salary
+and dual-year gaps to "their owning leaves." The deletion is therefore provably lossless
+in both directions, and the §16.9 offer of a `superseded_notes` field was correctly
+declined as unnecessary. This strengthens, and does not alter, the §16 conclusion.
+
+## 17.4 Check 4 and 7 — mechanical invariant comparison
+
+A 59-assertion before/after comparison across all 815 records and every field passed with
+zero failures. Unchanged: all seven top-level header fields (including `record_count` 815
+and `canon_sha256`); the `leaf_id` sequence byte-identical, so identity **and ordering**
+are preserved; all 15 scalar fields on all 815 records; `product_layers` on all 815
+records; and the 57 root-cause clusters.
+
+Evidence census — the only delta register-wide:
+
+| Field | Before | After |
+|---|---|---|
+| `implementation` | 1628 | 1628 |
+| `tests` | 1602 | 1602 |
+| `inspection_notes` | 815 | 815 |
+| `negative_search` | 732 | **729** |
+
+Zero evidence strings were added or altered; exactly three were dropped, all
+`negative_search`, all on the three authorised hosts. Established distributions, all
+unchanged and all reconciling with the summary tables:
+
+- implementation state — 13 correct / 145 partial / 260 incorrect / 397 absent
+- severity — 364 High / 243 Medium / 195 Low / 13 None (Critical 0)
+- runtime input — 61 available / 523 partial / 195 missing / 35 external determination / 1 not required
+- evidence strength — 446 proven / 369 insufficient
+- Canon coverage — 10 covered and proven / 408 partial / 361 missing in scope / 14 data-blocked / 22 externally adjudicated
+- pass — 173 deterministic correctness / 246 cap manager completeness / 396 full gm depth
+- family — A 151, C 417, R 118, L 102, S 27 = 815
+
+A register-wide attribution sweep finds zero remaining cross-leaf prefixes in
+`negative_search` **or** `inspection_notes`.
+
+## 17.5 Check 5 — the new guardrail, and a disposable negative probe
+
+The checker adds `NEGATIVE_SEARCH_LEAF_RE` and one assertion: a `negative_search` entry
+whose leading `CBA2` leaf identifier does not equal its host `leaf_id` is an error. It is
+a pure addition — nothing was removed or weakened.
+
+All 729 surviving `negative_search` entries are plain prose carrying no leading
+identifier; the three removed were the only ones that carried one, and all three were
+foreign. The guardrail is therefore a forward-looking regression guard, which is exactly
+what §16.9 asked for.
+
+Three disposable probes on isolated copies (never committed; discarded, worktree verified
+clean afterwards):
+
+| Probe | Injected | Expected | Observed |
+|---|---|---|---|
+| Mismatch | foreign prefix `CBA2-C09.7` onto host `CBA2-A04.1` | reject | **FAIL**, exit 1, expected message |
+| Match | host's own prefix onto the same host | accept | **PASS**, exit 0 |
+| Sibling-extension trap | `CBA2-A05.15` prefix onto host `CBA2-A05.1` | reject | **FAIL**, exit 1, expected message |
+
+The third probe matters: the greedy `\d+` correctly reads `CBA2-A05.15` as a distinct
+leaf rather than colliding with `CBA2-A05.1`, so sibling extensions cannot slip through.
+The guardrail is neither under- nor over-broad.
+
+## 17.6 Check 6 — summary accuracy and open state
+
+The summary's single changed line is the evidence-schema preservation row, which now
+reads: all 729 valid within-leaf prose moves preserved; exactly three checker-identified
+superseded cross-leaf duplicates removed; no substantive finding or other evidence
+removed; the candidate still awaits final independent confirmation and Phase 2 remains
+open. Every clause is accurate against the register. The false clause flagged in §16.6 —
+that the three displaced strings were "retained on their actual owning leaves" — is gone.
+
+Phase 2 remains open in all four places it is asserted: the status header ("awaiting
+narrow cross-model re-verification"), §"All three audit passes remain complete", the
+changed validation row, and the closing statement that the candidate "is not self-accepted
+and does not close Phase 2." The maker did not self-accept.
+
+The surviving line "retaining every displaced hard-cap finding on its actual owning
+leaves" is accurate as written: `A05.1`, `A05.6` and `A05.15` each retain the substantive
+finding at `incorrect` / High. The "805 non-correct leaves" figure sits inside the
+explicitly historical review record that predates the reconciliation (10 correct at the
+time; 13 now, hence 802) and is untouched by this repair.
+
+## 17.7 Check 8 — validation performed
+
+| Check | Result |
+|---|---|
+| `python3 cba_canon_v2_phase2_integrity.py` on repaired state | **PASS** — 815 unique LEAFs; A 151, C 417, R 118, L 102, S 27; exit 0 |
+| New checker vs pre-repair register | **FAIL** with exactly the 3 authorised violations; exit 1 |
+| Old checker vs repaired register | **PASS**, exit 0 — no schema regression |
+| `python3 -m json.tool` on the register | **PASS** — well-formed |
+| 59-assertion before/after invariant comparison | **PASS** — 0 failures |
+| Guardrail negative probe (3 cases) | **PASS** — rejects mismatch and sibling-extension, accepts match |
+| `git diff --check`, `--name-status`, `--numstat`, ancestry | **PASS** |
+
+No application tests were run, as instructed.
+
+## 17.8 Verdict
+
+**ACCEPT** — the corrected Phase 2 audit is ready for explicit owner acceptance and
+closure.
+
+The single blocker from §16.9 is fully discharged, in all three of its parts: the three
+archived superseded notes are removed from `CBA2-A05.1`, `CBA2-A05.6` and `CBA2-A05.15`;
+no finding was lost, now proved byte-for-byte in both directions; and the integrity
+checker carries exactly the one requested attribution assertion, verified live against
+both a true positive and a true negative. The repair is minimal, correctly scoped, and
+changes nothing else — no verdict, severity, count, cluster, classification, layer,
+identity or ordering moved.
+
+This document does not close Phase 2, update the official branch or Linear, or open
+Phase 3. Closure is the owner's explicit act. BZE-266 remains open pending that act.
