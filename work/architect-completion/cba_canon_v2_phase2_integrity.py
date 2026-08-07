@@ -14,7 +14,14 @@ from pathlib import Path
 EXPECTED_FAMILY_COUNTS = {"A": 151, "C": 417, "R": 118, "L": 102, "S": 27}
 LEAF_RE = re.compile(r"CBA2-([ACRLS])\d{2}\.\d+")
 IMPLEMENTATION_STATES = {"correct", "incorrect", "partial", "absent", "not applicable"}
-CANON_COVERAGE = {"covered", "partial", "uncovered", "not applicable"}
+CANON_COVERAGE = {
+    "covered and proven",
+    "partial",
+    "missing in scope",
+    "intentional exclusion",
+    "data-blocked",
+    "externally adjudicated",
+}
 LAYER_STATES = {"covered", "partial", "absent", "not applicable", "insufficient evidence"}
 RUNTIME_INPUT_STATES = {"available", "missing", "external determination", "not required"}
 EVIDENCE_STRENGTH = {"proven", "insufficient"}

@@ -56,13 +56,68 @@ to the accepted Canon.
 
 ## Results
 
-Pending completion of the three audit passes and final reconciliation.
+### Pass 1 — deterministic correctness
+
+Completed 2026-08-07. The checkpoint covers all 151 A-family leaves plus the
+22 directly supporting hard-cap, Second Apron pick-history, and Expanded-TPE
+provenance leaves in L07-L09 and S04: 173 records total.
+
+| Measure | Pass 1 count |
+|---|---:|
+| Correct | 4 |
+| Incorrect | 39 |
+| Partial | 56 |
+| Absent | 74 |
+| Covered and proven | 4 |
+| Partial Canon coverage | 95 |
+| Missing in scope | 64 |
+| Data-blocked | 10 |
+| High severity | 119 |
+| Medium severity | 50 |
+| Low severity | 1 |
+| No defect severity | 3 |
+
+The transaction engine has meaningful scaffolding, but its dominant model is
+too coarse for the accepted Canon:
+
+- one cap-allocation total is reused as Team Salary, taxable payroll, and apron
+  salary instead of maintaining independent ledgers;
+- trade matching does not model Standard, Aggregated, Expanded, historical
+  Transition, and Room paths as distinct authorities, and the current Expanded
+  TPE input is rounded and season-blind;
+- BYC, poison-pill, and trade-bonus scalar calculations omit their complete
+  triggers, dated assumptions, and lifecycle allocation rules;
+- the hard-cap trigger helper implements only a small subset of rows A-K and no
+  post-Regular-Season dual-year hard cap;
+- the two-month aggregation rule is explicitly retired because acquisition-date
+  inputs are missing;
+- S&T, roster, cash, extension, decomposition, and draft/Stepien validators each
+  cover useful fragments but do not implement the complete Canon transaction;
+- Second Apron frozen-pick history and formula-provenance records do not exist.
+
+The four correct leaf behaviors are the one-year Standard TPE window, the S&T
+four-season maximum, cash staying outside Team Salary, and the general one- or
+two-season non-rookie extension bar. The last has insufficient aligned test
+evidence and therefore remains a Medium evidence gap even though code behavior
+matches the rule.
+
+Green tests were not promoted to proof when their expected behavior conflicts
+with the Canon. Examples include the rounded Expanded TPE value, treating every
+rookie-scale player as poison-pill eligible, suppressing a trade bonus when
+guaranteed money is zero, keeping the two-month aggregation rule retired, and
+making Standard-roster Trade Call room advisory.
+
+Passes 2 and 3 and final reconciliation remain pending. The register is
+intentionally incomplete at this checkpoint (173/815); exact full-universe
+integrity is required only after the final pass.
 
 ## Validation log
 
 | Check | Result |
 |---|---|
 | `npm run test:diff -- --reporter=dot` | PASS — FAST tier, 57/57 tests |
+| `npm run test:trade -- --reporter=dot` | PASS — 72 files, 635/635 tests |
+| `npm run test:diff -- --files <Phase 2 artifacts> --reporter=dot` | PASS — FAST tier, 57/57 tests |
 
 Final reconciliation will add register counts, root-cause clusters, risk,
 likely Phase 3 size, all validations/retries/skips, and the independent checker
