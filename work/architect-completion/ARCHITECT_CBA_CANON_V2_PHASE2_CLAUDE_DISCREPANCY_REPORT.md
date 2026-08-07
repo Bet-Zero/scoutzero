@@ -521,8 +521,224 @@ every evidence string. Nothing else is reopened.
 
 Phase 2 closes on the outcome of that re-verification. Until then it stays open.
 
-## 15.6 What this decision does not authorise
+## 15.6 What this decision does not authorise (superseded by §16 status)
 
 No application code, test, schema, data or configuration change. No modification of the
 accepted Canon or of the Codex Phase 2 artifacts. No Linear update. No Phase 3 issues,
 sizing, or ordering work. BZE-266 remains open and unchanged.
+
+---
+
+# 16. Bounded cross-model re-verification (final gate)
+
+Scope: the correction `f63452d5` → `1035ae89` only. No implementation verdict was
+reopened, no official artifact modified, no application test run (application code did
+not change). Performed read-only from the Claude branch plus a temporary detached
+worktree, since removed.
+
+## 16.1 Result by check group
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Scope and ancestry | **PASS** |
+| 2 | Implementation-state invariants | **PASS** |
+| 3 | Product-risk severity | **PASS** |
+| 4 | Runtime-input split | **PASS** |
+| 5 | Evidence-schema preservation | **FAIL — one bounded defect (§16.6)** |
+| 6 | Summary and validation | **PASS** |
+
+45 discrete assertions were executed. 44 pass. One fails.
+
+## 16.2 Check 1 — scope and ancestry
+
+- `1035ae89` has exactly one parent, `f63452d5`; `git rev-list --count` is 1; it is a
+  normal non-merge descendant. No amend, rebase or force-push.
+- Exactly the three authorized artifacts changed (summary, register, integrity checker).
+  A path-excluding diff over the rest of the tree returns empty.
+- `src/`, `tests/`, `scripts/`, `package.json`, `package-lock.json`, `vite.config.ts`,
+  `tsconfig.json`, `firestore.rules` and `data/` are byte-identical.
+- The Canon still hashes to `23fe883f…7ff76` at `1035ae89`.
+- `main` remains `69f8f6b6`. No Linear or Phase 3 state exists in the diff.
+
+## 16.3 Check 2 — implementation-state invariants
+
+- 815 records before and after; leaf identities **and positional ordering** compare
+  equal as lists; no duplicates.
+- Exactly `CBA2-A05.3`, `A05.4`, `A05.5` changed implementation state, each
+  `incorrect → correct`, each with severity `None`.
+- Final counts exactly **13 correct / 145 partial / 260 incorrect / 397 absent**, summing
+  to 815.
+- Canon-sourced fields (`canon_rule`, `canon_authority`, `canon_verification_method`,
+  `canon_lifecycle_date_inputs`, `family`, `group_id`, `pass`) unchanged on all 815 — zero diffs.
+- All five product layers unchanged on all 815 — zero diffs.
+- `evidence_strength` unchanged on all 815 — zero diffs.
+- All 57 root-cause clusters preserved with identical membership; no leaf reassigned.
+- `canon_coverage_classification` changed on exactly the three corrected leaves
+  (`partial → covered and proven`, moving the total 7 → 10), and
+  `smallest_likely_remediation` changed on the same three. Both are **required
+  consequences** of the verdict correction, not unauthorized edits; the new remediation
+  text still names the sibling work rather than dropping it.
+
+**Displaced findings retained.** The rows D–K, TMLE cross-bar, post-state Apron Team
+Salary and dual-year hard-cap findings are each present on 14 A05 leaves — `A05.1`,
+`A05.2` and `A05.6`–`A05.17` — in their own correctly-labelled `inspection_notes`. The
+three corrected leaves no longer assert them. Nothing was lost by the correction.
+
+## 16.4 Check 3 — product-risk severity
+
+369 leaves changed severity; 446 unchanged. Transitions: High→Medium 162, Medium→Low
+103, High→Low 91, Medium→High **7**, High→None 3, Medium→None 3.
+
+**Reviewed against the §15.1 definition and accepted.**
+
+- **Low-risk full-CBA depth was correctly de-escalated.** The 91 High→Low moves are
+  C23 (27, deferrals/international/loans), C25 (14, retired/pending/circumvention/
+  grievance), C15 (13, Arenas), C12 (9, DPE engine), C17 (9, Over-38), C09 (7, tax
+  brackets/repeater), R08 (7, Two-Way game usage), R07 (3, roster clocks), R03 (2).
+  This is precisely the cluster identified in §6. Each remains classified `absent`.
+- **No real Canon gap was removed or weakened.** Implementation states, absent counts
+  (397, unchanged), coverage classifications, evidence strengths and clusters are all
+  untouched by the re-scoring. Canon completeness is fully preserved.
+- **Foundational current-workflow defects remain High.** Spot-checked and confirmed
+  High: `A01.1` (single ledger), `C07.1` (apron ledger), `C08.1` (tax ledger),
+  `C03.1/.2` (incomplete-roster charge), `C01.4` (Bird multipliers), `A05.1/.2`
+  (post-transaction apron test and hard cap), `A02.11`, `A02.12`, `A04.1` (trade-kicker
+  doubling), `L03.1` (false December 15 block), `A08.1` (cash limit), `L08.1`,
+  `C13.1`, `C14.1`, `R01.1`, `L06.1`, `S02.1`, `A02.8`.
+- **No depth-only leaf was left High merely for being absent.** All 113 remaining
+  High-and-absent leaves sit in families inside an approved workflow or are foundational:
+  R01 48 (waiver claim lifecycle, W3), C07 10, A03 9 (W9), C08 8, C13 7, L08 7, C14 5,
+  L06 4, S02 4, A06 3, C06 3, A12 2, R02 2, C16 1.
+- **Seven leaves were raised** Medium→High: `C13.17` and `C14.25`–`C14.29`
+  (renunciation and post-match rescission — W4 renounce-rights and W6/W7 own-FA and
+  offer-sheet workflows, where an error produces wrong cap room on a shipped surface)
+  and `R02.5` (unclaimed termination dead salary, W3). Raising these is correct under
+  product risk and is good evidence the pass was a genuine re-evaluation rather than a
+  blanket downgrade.
+
+**Final distribution 364 High / 243 Medium / 195 Low / 13 None is defensible.** High
+falls from 75.2% to 44.7% and Low from 1 leaf to 195, so the field now discriminates
+and can sequence Phase 3.
+
+**Material divergences from Claude's Stage A, reported not forced.** Four leaves where
+Stage A scored Medium and the corrected register keeps High: `A02.11` (below-cap teams
+cannot elect the (iii)/(iv) paths), `A02.8` (season-blind Expanded TPE input), `L03.1`
+(false December 15 trade block), `A08.1` (cash limit ~$2.7M too tight). Each produces a
+wrong or blocking result inside W9, so High is defensible under the definition's first
+clause. **No change requested.** Stage A is a cross-check, not a replacement.
+
+## 16.5 Check 4 — runtime-input split
+
+- Before `{available 61, missing 718, external determination 35, not required 1}`;
+  after `{available 61, partial 523, missing 195, external determination 35, not required 1}`.
+- Exactly **523** rows changed runtime-input state, and **all 523** moved
+  `missing → partial`. Zero rows moved in any other direction or between any other pair.
+- `available`, `external determination` and `not required` are unchanged. 718 − 523 = 195.
+- Membership reconciles for all 523. Sampling the shared-evidence groups (A06 timing,
+  C07 apron, C13 exceptions, R01 waivers), each moved row's retained evidence names a
+  located implementation route **and** at least one unavailable input — the pattern the
+  `partial` value is for. The A06 rows are the clearest: an enforcement route exists and
+  is deliberately disabled for a missing acquisition-date field.
+
+## 16.6 Check 5 — evidence-schema preservation — **one defect**
+
+Passing:
+
+- `schema_version` is **2.0** (was `1.0`); all header fields unchanged; JSON well-formed
+  with no duplicate object keys.
+- **Zero** previous evidence strings lost register-wide: 1022 before, 1025 after, 0 lost.
+- Exactly **729** prose occurrences moved from `implementation`/`tests` into
+  `negative_search`.
+- Path arrays contain paths only — zero prose remaining.
+- `negative_search` contains prose only. *(An earlier heuristic flagged 35 entries as
+  bare paths; inspection shows all 35 are full prose sentences that merely begin with a
+  filename, e.g. "tests/trade/…test.ts and tests/trade/…test.ts explicitly pin absence
+  of the two-month aggregation rule; no minimum-stacking test was located." The maker's
+  own checker uses `fullmatch`, which classifies these correctly. Not a defect —
+  my check was wrong.)*
+- The updated integrity checker genuinely enforces the new schema (schema-version pin,
+  `record_count` consistency, the `partial` runtime value, the four-field evidence set,
+  and a path regex in both directions). It runs clean: `PASS: Canon/register
+  integrity — 815 unique LEAFs; A 151, C 417, R 118, L 102, S 27`, exit 0.
+- Exactly 3 evidence strings are new — the corrected verdict notes for `A05.3/.4/.5`.
+  Necessary and correct.
+
+**Failing — evidence reassigned to the wrong leaf.** The three superseded family notes
+from the corrected leaves were archived onto sibling leaves:
+
+| Archived string self-labelled | Now stored on | Field |
+|---|---|---|
+| `CBA2-A05.3: Hard-cap state and some first/second-apron validations exist…` | `CBA2-A05.1` | `evidence.negative_search` |
+| `CBA2-A05.4: Hard-cap state…` | `CBA2-A05.6` | `evidence.negative_search` |
+| `CBA2-A05.5: Hard-cap state…` | `CBA2-A05.15` | `evidence.negative_search` |
+
+This violates the stated invariant "no evidence … reassigned to the wrong leaf" and
+also the §15.4 definition of `negative_search`, which holds negative-search statements —
+not superseded verdict notes. These three movements are **outside** the authorized 729
+(those all moved within a single leaf, from path arrays); they are a separate cross-leaf
+relocation.
+
+The maker's intent is legible and good-faith: the instruction also required that every
+previous string survive byte-for-byte, and once a verdict is corrected its old note has
+nowhere to live on its own leaf. The two criteria genuinely pull against each other.
+
+**Impact is nil.** No verdict, count, cluster, coverage classification or finding is
+affected, and the substantive content is independently present on `A05.1`, `A05.2` and
+`A05.6`–`A05.17` in their own correctly-labelled notes. These three strings are archived
+duplicates of content that is already correctly placed elsewhere.
+
+## 16.7 Check 6 — summary and validation
+
+- The `incorrect` / `partial` / `absent` definitions are reproduced verbatim and
+  correctly, attributed to the reconciliation decision.
+- The product-risk severity definition is stated, with a Medium band defined beneath it.
+- Summary count tables match the register exactly: 13/145/260/397 and
+  364/243/195/13 (Critical 0).
+- Status reads "Corrected Phase 2 audit candidate; awaiting narrow cross-model
+  re-verification", and the closing section states the candidate "is not self-accepted
+  and does not close Phase 2." Correct — the maker did not self-accept.
+- Validation performed: updated integrity checker (exit 0), JSON well-formedness and
+  duplicate-key validation, full before/after invariant comparison across all 815
+  records and every field, register-wide evidence-preservation diffing, and git
+  ancestry/scope diffs. No application tests were run.
+
+## 16.8 Operational note
+
+The shared worktree was found checked out on `architect/bze-266-cba-canon-v2-phase2-audit`
+at `1035ae89` when this verification began — the maker session committed from the same
+working copy. The three frozen Claude commits were unaffected. The branch was restored
+and the temporary worktree removed. Concurrent sessions on this one worktree remain a
+standing collision hazard.
+
+## 16.9 Verdict
+
+**REJECT** — pending exactly one correction.
+
+Every substantive requirement passes. Scope and ancestry are clean; the three verdict
+corrections are exactly right with severity `None`; the final counts are exactly
+13/145/260/397; Canon fields, product layers, evidence strengths and all 57 clusters are
+untouched; the displaced hard-cap findings are retained on their owning leaves; the
+runtime-input split is exactly 523 `missing → partial` with no other movement; schema is
+2.0 with 729 prose occurrences moved and nothing lost; the integrity checker was
+genuinely hardened and runs clean; the summary is accurate and does not self-accept. The
+severity re-scoring is a real, well-targeted re-evaluation that de-escalates low-risk
+CBA depth, keeps every foundational current-workflow defect High, raises seven leaves
+that deserved it, and weakens no Canon gap.
+
+The single blocker:
+
+> **Correction required.** Remove the three archived superseded notes from
+> `CBA2-A05.1`, `CBA2-A05.6` and `CBA2-A05.15` `evidence.negative_search`. Each is a
+> duplicate of a note whose substance is already correctly carried by the owning leaves'
+> own `inspection_notes`, so deleting them loses no finding. If byte-level retention of
+> superseded text is wanted, keep it on its own leaf in a distinct field (for example
+> `superseded_notes` on `A05.3/.4/.5`) rather than in another leaf's `negative_search`.
+> Extend the integrity checker with one assertion: a `negative_search` entry that begins
+> with a `CBA2-` identifier must match its host `leaf_id`.
+
+Nothing else is required. After that single edit and a re-run of the integrity checker
+plus the leaf-attribution assertion, the corrected candidate is ready for owner
+acceptance and Phase 2 closure. No re-audit, no severity change, no verdict change.
+
+This document does not close Phase 2, update the official branch or Linear, or open
+Phase 3. BZE-266 remains open and unchanged.
