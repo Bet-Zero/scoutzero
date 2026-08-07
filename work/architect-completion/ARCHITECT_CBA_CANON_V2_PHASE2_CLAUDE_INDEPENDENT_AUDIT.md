@@ -25,7 +25,7 @@ Blindness control: the Stage A branch is rooted at `5aeaaf1d`, where none of
 The active audit universe is the v2 registry at §15.10 — **61 GROUPs, 815 active
 LEAFs**, confirmed by independent parse of both the main table (§15.10.2, 815 rows)
 and the detail table (§15.10.3, 815 rows). No historical `CBA-…` identity carries a
-verdict. Families: A 151, C 458, R 118, L 102, S 27.
+verdict. Families: A 151, C 417, R 118, L 102, S 27.
 
 Every leaf carries an independently derived verdict across implementation state,
 representation, calculation, enforcement, explanation/UI, lifecycle/persistence,
