@@ -388,3 +388,141 @@ alongside it.
 
 Nothing in this report authorises implementing fixes, closing Phase 2, updating Linear,
 or opening Phase 3. BZE-266 remains open and unchanged.
+
+---
+
+# 15. Reconciliation decision (owner, 2026-08-07)
+
+Recorded after the Stage B comparison above. Stage A (`a68fea37`) and Stage B
+(`ae01249b`) are unchanged in history; this section is additive. No audit was re-run
+and no leaf was re-scored to produce it.
+
+## 15.1 Severity is product risk — adjudication item 1 resolved
+
+Adjudication item 1 asked whether Phase 2 severity means Canon completeness or product
+risk. **The owner has chosen product risk.** The binding definition:
+
+> **High** means the gap could materially produce a wrong, misleading, illegal, or
+> unusable result in a currently approved Architect workflow, **or** it is a
+> foundational model defect affecting many such workflows.
+
+Two consequences follow, and both matter equally.
+
+**Canon completeness is not lost.** It remains fully visible through the
+implementation-state classifications (`correct` / `partial` / `incorrect` / `absent`)
+and through the root-cause clusters. A rule that is genuinely absent stays recorded as
+absent no matter how low its current product risk. **Lowering a severity score is not
+permission to close, dismiss, defer indefinitely, or delete a real Canon gap.** The
+absent count does not move.
+
+**The Codex severity column must be re-scored.** Under the adopted definition, 613 High
+out of 815 cannot stand: the ~94 leaves identified in §6 — concentrated in C23
+(deferrals, international payments, loans), C25 (retired, pending, circumvention,
+grievance), C15 (Arenas), C12 (DPE engine), C17 (Over-38), C09 (tax brackets and
+repeater), R08 (Two-Way game usage) and R07 (short-roster clocks) — are absent Canon
+obligations that no currently approved Architect workflow depends on. They are real
+gaps at low current product risk.
+
+The foundational clause of the definition is doing real work in the other direction.
+Defects such as the single-ledger substitution at `CBA2-A01.1`, the absent Apron Team
+Salary ledger (C07), the incomplete-roster charge (C03), the Bird cap-hold multipliers
+(C01.4), the false December 15 trade block (L03.1) and the false below-cap trade block
+(A02.11) remain **High** under product risk — several of them reach High specifically
+through the foundational clause rather than through any single workflow.
+
+Claude's Stage A severity distribution (330 High / 291 Medium / 194 Low) was derived
+under approximately this definition and is directionally consistent with it. It is
+**not** hereby adopted as the official scoring. Stage A carries its own errors (§7),
+and the official Phase 2 register is the Codex one. Stage A severity is a cross-check,
+not a substitute.
+
+## 15.2 Implementation-verdict corrections — `CBA2-A05.3`, `A05.4`, `A05.5`
+
+Adjudication item 2 is resolved in Claude's favour. These three leaves are corrected
+from `incorrect` to **`correct`**, with severity **None** under the product-risk
+definition.
+
+| Leaf | Transaction Restrictions Table row | Corrected verdict | Evidence |
+|---|---|---|---|
+| `CBA2-A05.3` | Row A — Bi-annual Exception carries the First Apron Level | correct | `src/features/architect/utils/hardCapUtils.ts:41-48`, `case 'BAE': return 'FirstApron'` |
+| `CBA2-A05.4` | Row B — Non-Taxpayer MLE carries the First Apron Level | correct | `src/features/architect/utils/hardCapUtils.ts:41-48`, `case 'NonTaxMLE': return 'FirstApron'` |
+| `CBA2-A05.5` | Row C — sign-and-trade acquisition carries the First Apron Level | correct | `src/features/architect/utils/hardCapUtils.ts:41-48`, `case 'SignAndTrade': return 'FirstApron'` |
+
+Each row's own obligation is the level assignment, and each is implemented. The
+inspection note Codex attached identically to all three describes real failures that
+belong to other leaves and **must be retained there, not deleted**: rows D–K to
+`CBA2-A05.6`–`A05.13`, the TMLE cross-bar to `CBA2-A05.14`, post-transaction Apron Team
+Salary to `CBA2-A05.1`/`A05.2`, and the post-Regular-Season dual-year hard cap to
+`CBA2-A05.15`–`A05.17`. Correcting three leaves removes no finding from the register.
+
+This correction does not disturb §7: on the 30 `CBA2-A10` leaves and the seven
+under-credited leaves, Codex was right and Claude's Stage A verdicts stay withdrawn.
+
+## 15.3 Required definition of `incorrect` — adjudication item 5
+
+Codex's `incorrect` is broader than Claude's, which accounts for roughly 204 leaves of
+disagreement. Codex's usage stands. It must be stated explicitly in the Phase 2 summary
+so the register is readable without reverse-engineering the convention:
+
+> **`incorrect`** — the application produces a result that conflicts with the Canon
+> obligation. This includes an implementation that is present but incomplete where the
+> incompleteness yields a Canon-wrong answer, not only a wrong constant, threshold, or
+> inverted condition.
+>
+> **`partial`** — an implementation route exists and its outputs are consistent with the
+> Canon as far as they go, but the obligation is not fully discharged.
+>
+> **`absent`** — no implementation route exists, established by negative search across
+> the plausible vocabulary and surfaces, not by a single failed symbol lookup.
+
+Adding this definition changes no verdict. It makes the existing 263 `incorrect`
+classifications defensible on their face.
+
+## 15.4 File-format correction — adjudication item 8, bounded
+
+29 of 87 distinct `evidence.implementation` strings and 28 of 99 `evidence.tests`
+strings in `ARCHITECT_CBA_CANON_V2_PHASE2_IMPLEMENTATION_GAPS.json` are prose
+negative-search statements placed in arrays that otherwise hold filesystem paths — for
+example, "No Over-38 trigger… located; adjacent term authoring inspected at
+`…/extensionRules.ts`".
+
+The content was independently verified as accurate, and recording negative searches is
+correct audit practice. The defect is confined to field shape: any consumer treating
+those arrays as paths will fail on roughly a third of the entries.
+
+**Bounded correction:** move those strings into a dedicated `negative_search` field
+alongside `implementation` and `tests`, leaving the path arrays containing only paths.
+No evidence text is to be deleted or rewritten in the move, and `schema_version` should
+be incremented. This is the whole of the correction; nothing else in the schema is in
+scope.
+
+## 15.5 Status — Phase 2 remains open
+
+The official Phase 2 artifacts at `f63452d5` are **not corrected by this document.**
+This branch is an independent verification record and holds no authority over them.
+Before Phase 2 can close, the maker-side register requires:
+
+1. severity re-scored against the §15.1 product-risk definition, with
+   implementation-state classifications and absent counts left untouched;
+2. the three `CBA2-A05.3/.4/.5` verdicts corrected per §15.2, with the displaced
+   findings retained on their owning leaves;
+3. the `incorrect` / `partial` / `absent` definitions from §15.3 stated in the summary;
+4. the `negative_search` field split per §15.4;
+5. the runtime-input scale published as a split rather than a single `missing` bucket
+   (adjudication item 6) — Codex has no `partial` value, which is why it reports
+   718/815 missing.
+
+**Then a narrow independent re-verification is required** — not a re-audit. Its scope
+is exactly: that severity moved only where the product-risk definition requires and
+that no implementation state, absent count, root-cause cluster or evidence string was
+weakened in the process; that the three corrected leaves read `correct` while their
+displaced findings survive on the correct leaves; and that the schema split preserved
+every evidence string. Nothing else is reopened.
+
+Phase 2 closes on the outcome of that re-verification. Until then it stays open.
+
+## 15.6 What this decision does not authorise
+
+No application code, test, schema, data or configuration change. No modification of the
+accepted Canon or of the Codex Phase 2 artifacts. No Linear update. No Phase 3 issues,
+sizing, or ordering work. BZE-266 remains open and unchanged.
