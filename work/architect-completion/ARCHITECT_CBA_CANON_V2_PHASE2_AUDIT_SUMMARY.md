@@ -2,7 +2,8 @@
 
 ## Status
 
-**Phase 2 audit active. No fixes are underway.**
+**Phase 2 maker audit complete; independent review pending. No fixes are
+underway.**
 
 - Linear lane: BZE-266 (High / In Progress), under BZE-254 in Architect Completion.
 - Audit branch: `architect/bze-266-cba-canon-v2-phase2-audit`.
@@ -231,18 +232,133 @@ and their component ledgers do not.
 The only fully correct and proven Pass 3 leaves are the ordinary maximum of
 three Two-Way players and exclusion of Two-Way Salary from Team Salary.
 
-All three passes are complete. Final reconciliation and independent review
-remain pending.
+All three passes and maker reconciliation are complete. Independent review
+remains pending.
+
+## Final reconciliation
+
+The maker register contains all and only the 815 active v2 LEAF identities,
+exactly once. Its overall result is 10 correct, 145 partial, 263 incorrect, and
+397 absent. No leaf was classified `not applicable`, and no intentional
+exclusion was invented.
+
+### Counts
+
+| Implementation state | Count |
+|---|---:|
+| Correct | 10 |
+| Partial | 145 |
+| Incorrect | 263 |
+| Absent | 397 |
+| Not applicable | 0 |
+
+| Canon coverage | Count |
+|---|---:|
+| Covered and proven | 10 |
+| Partial | 408 |
+| Missing in scope | 361 |
+| Data-blocked | 14 |
+| Externally adjudicated | 22 |
+| Intentional exclusion | 0 |
+
+| Pass | Correct | Partial | Incorrect | Absent | Total |
+|---|---:|---:|---:|---:|---:|
+| Deterministic correctness | 4 | 56 | 39 | 74 | 173 |
+| Cap Manager completeness | 4 | 49 | 52 | 141 | 246 |
+| Full GM depth | 2 | 40 | 172 | 182 | 396 |
+| **Total** | **10** | **145** | **263** | **397** | **815** |
+
+| Product layer | Covered | Partial | Absent | Not applicable |
+|---|---:|---:|---:|---:|
+| Representation / data model | 4 | 411 | 400 | 0 |
+| Calculation | 4 | 383 | 421 | 7 |
+| Enforcement | 4 | 383 | 428 | 0 |
+| Explanation / UI presentation | 5 | 411 | 399 | 0 |
+| Lifecycle / persistence | 3 | 340 | 472 | 0 |
+
+| Severity | Count |
+|---|---:|
+| Critical | 0 |
+| High | 613 |
+| Medium | 192 |
+| Low | 1 |
+| None | 9 |
+
+Runtime inputs are missing for 718 leaves, available for 61, externally
+determined for 35, and not required for one. Evidence is proven for 814 leaves;
+one otherwise-correct extension-timing leaf has insufficient aligned test
+evidence and remains Medium rather than defect-free.
+
+### Shared roots and Phase 3 size
+
+The 805 non-correct leaves collapse into 57 shared root-cause clusters. The
+largest are waiver claims (51), advanced contract routes (50), Exhibit/Summer
+Contracts (43), exception methods (40), trade-bonus lifecycle (39), Two-Way
+Contracts (35), extensions (30), Bird history (29), special compensation (27),
+options (22), roster/list clocks (21), and short contracts (20). The register
+retains every cluster and exact leaf mapping.
+
+This makes Phase 3 a large foundational implementation program, not 805
+independent fixes. A coherent first decomposition is eight workstreams:
+
+1. governed season inputs, immutable world time, source versions, and external
+   determinations;
+2. independent Team/Apron/Tax Salary and payment ledgers plus componentized
+   compensation;
+3. immutable contract, transaction, notice, decision, and supersession events;
+4. trade paths/decomposition, hard-cap rows, cash, and pick-history state;
+5. Standard/Rookie/Two-Way/Exhibit/short-contract authoring and validation;
+6. exceptions, Bird/RFA/Offer Sheet, DPE, and medical lifecycles;
+7. Player Lists, roster clocks, game usage, waivers, buyouts, set-off, and
+   retirement/grievance state;
+8. explanation/UI authoring depth and Canon-aligned proof tests.
+
+The first seven require foundational model, persistence, or governed-data
+changes. Starting with isolated leaf validators would preserve the current
+conflated state and create more contradictory behavior.
+
+### Material risks
+
+- Green tests currently pin several Canon-wrong behaviors, including rounded
+  Expanded TPE values, universal poison-pill treatment for rookie-scale
+  players, retired aggregation timing, a zero-guarantee trade-bonus result,
+  advisory Trade Call roster room, and a three-year Two-Way Contract.
+- Today/current-year and latest/prior-season fallbacks can make historical or
+  future results appear authoritative without the required inputs.
+- Existing mutation actions persist coherent application state, but that state
+  is often too coarse to distinguish request, approval, effective, expiry,
+  amendment, allocation, and supersession events.
+- Independent Team/Apron/Tax Salary, payment, roster/list, rights, and external
+  decision ledgers cannot be supplied reliably by presentation-only changes.
+
+The exact next recommendation is to accept this audit boundary, then authorize
+a Phase 3 planning pass that turns the eight workstreams into sequenced issues,
+starting with governed inputs/events and independent ledgers. No Phase 3 issue
+has been created during this audit.
 
 ## Validation log
 
 | Check | Result |
 |---|---|
 | `npm run test:diff -- --reporter=dot` | PASS — FAST tier, 57/57 tests |
+| `npm run validate:project` | PASS — setup checkpoint; initial sandbox write was denied, then the same command passed with the required workspace permission |
 | `npm run test:trade -- --reporter=dot` | PASS — 72 files, 635/635 tests |
 | `npm run test:architect -- --reporter=dot` | PASS — 305 files, 3,555/3,555 tests; 257.00 seconds, exceeding the four-minute budget by 17 seconds; not repeated |
-| `npm run test:diff -- --files <Phase 2 artifacts> --reporter=dot` | PASS — FAST tier, 57/57 tests |
+| `npm run test:diff -- --files <Phase 2 artifacts> --reporter=dot` | PASS — FAST tier, 57/57 tests at each audit checkpoint |
+| `python3 work/architect-completion/cba_canon_v2_phase2_integrity.py` | PASS — 815 unique Canon/register identities; A 151, C 417, R 118, L 102, S 27 |
+| Evidence-path existence check | PASS — all 141 unique cited source/test paths resolve |
+| `git diff --check` | PASS |
+| `npm run lint:md` | FAIL — pre-existing/out-of-scope violations in three `docs/architect/audits/` files, `docs/CODEBASE_MAP.md`, and the frozen accepted Canon; the configured command does not include `work/` |
 
-Final reconciliation will add register counts, root-cause clusters, risk,
-likely Phase 3 size, all validations/retries/skips, and the independent checker
-verdict.
+No application test failed and no test command was retried. The full suite was not run
+because the prompt did not contain `RUN FULL SUITE`. Build, typecheck, lint,
+`test:node`, `test:ui`, and `test:cap-sheet-boundary` were intentionally skipped
+because application code/tests/configuration did not change; the already-run
+Architect suite also crossed the four-minute budget and was not repeated.
+Graphify update was intentionally skipped because this audit is read-only and
+the objective forbids regenerating or committing Graphify output.
+
+## Independent review
+
+Pending after the final maker checkpoint. The fresh checker will append its
+ACCEPT or REJECT report here.
