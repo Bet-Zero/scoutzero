@@ -385,3 +385,316 @@ Temporary review scripts and downloaded artifacts remained outside the
 repository. No owner acceptance, Phase 2, W1.1, Architect comparison,
 application work, merge, or main-branch action was performed. R7 repair, R8,
 renewed R9, owner acceptance, and every downstream phase remain blocked.
+
+## Post-global-R7 renewed R9 independent acceptance — checkpoint `9b263272`
+
+### Verdict: REJECT
+
+**REJECT** exact post-global-R7 R8 checkpoint
+`9b263272cad2f7643ea394beaa7bdd96cf1a1b97` and Canon SHA-256
+`4bf1c587e844990d5dda26eedf382c632ef90a663700f221d68c9c2ef66524f0`.
+
+The global R7 maker replaced every one of the 614 literal predicate templates,
+but the complete case-by-case review found material defects in 65 repaired
+cases across 38 repaired families. Deterministic semantic confirmation of the
+114 byte-preserved cases found one additional, pre-existing mapping defect.
+The 66 affected cases span 39 families. Their scenario records are not all
+internally possible, independently calculable, source-correct, atomic, or
+consistent with their registered owners. The candidate therefore is not a
+sufficient Phase 1 Canon.
+
+### Baseline, independence, and preservation chain
+
+- Before review, local `HEAD`, the tracking ref, and the live remote topic ref
+  were exactly `9b263272cad2f7643ea394beaa7bdd96cf1a1b97`, 0 ahead and 0
+  behind. Its direct parent was
+  `b2ef24dc20e0646c3583b39053b3f0222f5b5838`.
+- Local, tracking, and live remote `main` were exactly
+  `69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`. Ancestry was intact and the
+  worktree was clean.
+- The Canon was exactly 2,104,588 bytes with the reviewed hash above. The
+  protected global-R7 boundary was exactly 724,784 bytes with SHA-256
+  `f558f126743f2eb1a64baaeec404a6952030399749ba538d7b799110966b309a`.
+- This checker authored or repaired none of the governed v2 rules, sources,
+  evidence, dependencies, mappings, lineage, or scenarios. Maker receipts
+  were treated as claims and independently checked. The sole repository write
+  is this appended checker section.
+- The pre-append report was byte-identical to its report-only checker commit
+  `d618e65c5377999cd0543a5b17a3fa7cc29e6fe4`: 21,308 bytes, SHA-256
+  `6d62d77118dee765a19669edfc3d6f50e2eedeb0a6d1570dbfb1d5d8d295e977`,
+  Git blob `0efec83722a0cac8216d11ab42e5cd649fc3fbc8`. Every preceding report byte
+  is preserved.
+
+The preservation chain was independently reconstructed from rejected R8
+checkpoint `3efe90d2755e49a169b699d8884681c074a0dc42`:
+
+- `3efe90d2…` to `d618e65c…` changes only this historical R9 report.
+- `d618e65c…` to global-R7 maker `b2ef24dc…` changes exactly the 614 named
+  case input/result cells, bounded repair-plan status, and the new maker
+  receipt. Case IDs, boundaries, authority cells, Exercises cells, and all 114
+  other case rows are preserved.
+- `b2ef24dc…` to current R8 `9b263272…` changes Canon and plan status/checksum
+  prose plus the new R8 receipt. No governed case row changes.
+- The frozen validator remains exactly 499,315 bytes, SHA-256
+  `e65103466154162f2f86b0526ce67e4be9fa394b54bc2fd71a7c1cd01d46c461`,
+  and Git blob `21f98550d2392c18fb3e6f5ec7d42220d050cc68`, unchanged since the accepted
+  validator-route alignment.
+- The accepted corrected-R6 governed source/evidence range remains exactly
+  289,241 bytes with SHA-256
+  `ca4288115e4753842668183250d4a7353dddcdbcd729836e4776dbbdcf41e23e`.
+  The historical crosswalk range remains exactly 122,555 bytes with SHA-256
+  `3fd7df67896f7cb27e48cd63f90eb2fefdbd8a0fc55bb145dd019325f7734a13`.
+
+### Complete mechanical, source, and prior-finding review
+
+Independent parsing of the actual candidate reproduced these populations:
+
+| Governed population | Result |
+|---|---:|
+| GROUPs | 61 (`A 12 / C 25 / R 10 / L 10 / S 4`) |
+| Active LEAF main/detail rows | 815 / 815 |
+| EV2 components | 823 |
+| XW2 edges / historical rule fragments | 494 / 491 |
+| LEAF / EV2 dependency edges | 744 / 512 |
+| Scenarios / named cases | 82 / 728 |
+| Repaired / byte-preserved cases | 614 / 114 |
+| Exercise edges / matching backlinks | 955 / 955 |
+| Primary / secondary-only covered SCEN LEAFs | 581 / 80 (`661` total) |
+| Historical scenario fragments / SXW2 edges | 89 / 89 |
+| Generic DR2 / structured AMEND details | 272 / 822 |
+| BND / SM2 / SS2 / terminal DISP records | 10 / 17 / 4 / 29 |
+
+All identities are unique, every mechanical reference resolves, both
+dependency graphs are acyclic, and no open blocker, unresolved record,
+surviving deferral, or `no-successor` edge exists. G1–G9 and G11–G15
+reconcile. G10's scenario-integrity obligation and whole-Canon scenario
+sufficiency do not pass because of the material ledger below; a mechanically
+complete graph cannot make a false or underdetermined oracle true.
+
+The complete 823-component authority population remains `CBA 647 / BYL 17 /
+NBA 4 / DERIVED 6 / INFERRED 137 / EXT 12`. The hash-matched signed CBA
+(2,850,534 bytes, 676 pages, SHA-256 `bf178ca0…ab32`) and June 2024 By-Laws
+(422,247 bytes, 88 pages, SHA-256 `be4d2781…2ccf`) were independently read
+with the relevant primary passages. All immutable locators and propositions
+carried forward by byte preservation remain valid. The 614 repaired cases
+exercise 614 distinct LEAFs and directly cite 622 EV2 IDs; their transitive
+closure contains 655 components (`CBA 559 / BYL 13 / NBA 3 / DERIVED 6 /
+INFERRED 74`) rooted only in the five registered official artifacts and no
+EXT source.
+
+Every prior R9 finding received a fresh disposition:
+
+| Prior finding | Post-global-R7 disposition |
+|---|---|
+| Missing or false direct CBA/By-Laws printed-page support | **Closed and preserved.** The complete current primary-source cohort and corrected `EV2-0591`–`EV2-0593` locators remain accurate. |
+| Incomplete Partial Waiver ownership, Room, validity, selection, and lifecycle | **Closed and preserved.** The accepted `CBA2-R01.14`–`.51` chain and all nine probes remain intact. |
+| Later corrected R/L source and lifecycle chains | **Closed and preserved.** Corrected-R6 bytes, owners, locators, and scenario roles remain intact. |
+| Predicate-template scenario population | **Literal form closed; semantic acceptance fails.** All 614 rows were rewritten, but 65 repaired rows remain materially false, contradictory, underdetermined, or mis-mapped as enumerated below. |
+
+### Complete 614-case and 114-case review
+
+The repaired population was mechanically enumerated and partitioned without
+gap or overlap:
+
+| Partition | All cases | Repaired | Preserved |
+|---|---:|---:|---:|
+| `CBA2-SC-001`–`CBA2-SC-040` | 356 | 306 | 50 |
+| `CBA2-SC-041`–`CBA2-SC-082` | 372 | 308 | 64 |
+| **Total** | **728** | **614** | **114** |
+
+The ordered repaired-ID SHA-256 is
+`75b9f324145aeeefb62d11432c776968400ccc5b54f5bfd4dc69c7a9f2bb1084`;
+partition digests are `d500ed66…8be7` and `36fdf787…5938`. The ordered
+preserved-ID SHA-256 is
+`5315344eeedd3163734bd34567b827a08178784aba868af09d2e1bbb0dd1a485`;
+partition digests are `05bc0e2b…afaa` and `a7b6e8ae…e9ac`. Every repaired
+row was compared with its governing LEAF input contract, direct-result role,
+evidence, arithmetic/timing/state transition, paired adverse boundary,
+Exercises edge, backlink, and SCEN coverage. Every preserved row was
+byte-compared with `3efe90d2…` and then deterministically confirmed across
+families. All 114 are byte-identical; 113 remain semantically valid, while
+`CBA2-SC-001(h03)` exposes the preserved defect below.
+
+Normalized duplicate analysis found no normalized full-row duplicate across
+unrelated repaired families. The only normalized input cluster,
+`CBA2-SC-040(k)`, `CBA2-SC-040(l)`, and `CBA2-SC-041(a)`, validly exercises
+the 25%/30%/35% maximum tiers. All high-similarity cross-family pairs were
+manually inspected; the analogous tax, annual-change, and Team Salary pairs
+have distinct registered roles. No additional copy/paste population was
+found.
+
+The following is the complete material ledger. Unless expressly split below,
+the owning stage is **global R7 scenario construction** at maker
+`b2ef24dc…`. These defects are localized to the named rows, but their presence
+inside the repaired population defeats global R7 completeness and therefore
+whole-Canon acceptance.
+
+#### Repaired cases `CBA2-SC-001`–`CBA2-SC-040`
+
+- **Stale or impossible direct-result snapshots:** `CBA2-SC-005(l)`,
+  `CBA2-SC-007(e)`, and `CBA2-SC-008(b)` retain `CBA2-A04.1:PASS@v1`
+  while the adverse bonus exceeds the 15% ceiling; `CBA2-SC-009(i)` retains
+  `CBA2-A02.6:PASS@v1` after moving the transition TPE to 2024-25;
+  `CBA2-SC-010(b)` retains its TMLE-use result after deleting all TMLE-use
+  history; `CBA2-SC-017(d)` marks the exercise-only `CBA2-A10.14` PASS while
+  the Option is not exercised; `CBA2-SC-019(g)` retains the unfreeze owner
+  after changing the above-apron count to two and removing the unfreeze
+  event; `CBA2-SC-019(i)` marks the disclosure owner PASS while omitting the
+  challenged term; and `CBA2-SC-020(a)` marks the removal-event owner PASS in
+  the unsigned, unrenounced positive record. Consuming those snapshots can
+  produce the opposite result from the concrete record.
+- **Non-atomic or contradictory paired records:** `CBA2-SC-016(a)` changes
+  both Option action and extended term, then makes an unexercised-Option owner
+  decide the exercised-Option case; `CBA2-SC-018(a)` duplicates a player but
+  still admits the same disjoint decomposition; `CBA2-SC-019(d)` pairs a
+  2026-27 cap year with the prior season's final game; `CBA2-SC-024(b)` retains
+  a `$3m` current minimum salary while adding a conflicting `$2.2m` current
+  salary; `CBA2-SC-024(d)` retains two-Season prose after changing the term to
+  one Season and incorrectly turns the independence rule into FAIL merely
+  because the two results coincide; `CBA2-SC-033(c)` says no prescribed Option
+  while retaining an Option salary entry and an unresolved `minimum`
+  placeholder; and `CBA2-SC-039(e)` adds a scalar year-two value that conflicts
+  with the retained schedule.
+- **Missing governing owner or required facts:** `CBA2-SC-005(g)` performs
+  `CBA2-A04.33` bonus reallocation while exercising only `A04.7`;
+  `CBA2-SC-005(j)` invokes `A04.12` extended-term allocation while exercising
+  only `A04.11`; `CBA2-SC-006(k)` and `CBA2-SC-006(l)` omit the trade date and
+  substitute legal-conclusion prose for required extension/exhibit facts;
+  `CBA2-SC-015(i)` hides required `A10.17` in the body although the detail,
+  authority, and Exercises chain names only `A10.4`; `CBA2-SC-024(a)` uses
+  the placeholder `ArticleIV6h predicates documented` and omits signing date
+  and day count; and `CBA2-SC-028(a)` / `CBA2-SC-028(c)` never assign the
+  contracted `$24,256,000` tax excess and perform `C09.7` tax arithmetic while
+  exercising only the rate-table owners. Their exact results cannot be
+  reproduced from their registered inputs and Exercises edges.
+- **False arithmetic or source-law result:** `CBA2-SC-007(c)` miscalculates
+  15.00005% of `$20m` as `$3,000,000.01` instead of `$3,000,010`;
+  `CBA2-SC-016(j)` calls dates exactly one year or less before July 1 “more
+  than one year” early; `CBA2-SC-020(d)` invents a three-YOS gate absent from
+  CBA Article VII section 4(d)(4); `CBA2-SC-032(a)` rejects `$6m` even though
+  the stated TMLE alone permits it; and `CBA2-SC-032(d)` uses an impossible
+  `$10m` 2026-27 BAE although the same Canon's authenticated final value is
+  `$5.477m`.
+- **Underdetermined component tests:** `CBA2-SC-034(b)`,
+  `CBA2-SC-034(e)`, `CBA2-SC-034(i)`, and `CBA2-SC-035(c)` provide only
+  aggregate Salary-plus-Unlikely totals. Article VII section 5(a)(1) tests
+  Salary excluding incentives, Regular Salary, and each bonus separately;
+  equal totals can mask a component violation.
+
+#### Repaired cases `CBA2-SC-041`–`CBA2-SC-082`
+
+- **Internally impossible or stale fields:** `CBA2-SC-041(c)` has 65
+  qualifying-minutes games in a 64-game season; `CBA2-SC-041(l)` changes both
+  remaining Seasons and an unspecified Regular-Season date while retaining
+  the concrete October 1 date/offseason state; `CBA2-SC-056(a)` adds scalar
+  protection values that conflict with the retained arrays; `CBA2-SC-058(a)`
+  changes an incentive component but retains the old total;
+  `CBA2-SC-058(c)` changes the first-extended bonus but retains its old 20%
+  percentage; `CBA2-SC-070(a)` changes the direct combined count to 14 while
+  retaining 14 Standard plus one Two-Way player; `CBA2-SC-070(b)` says the
+  Season total became 21 while retaining 20; `CBA2-SC-070(d)` and
+  `CBA2-SC-070(h)` make P8 unavailable while retaining P8 in the available
+  list; `CBA2-SC-077(e)` misses both starter thresholds but retains
+  `starterCriteria=true`; `CBA2-SC-077(i)` makes withdrawal ineffective but
+  retains UFA/non-renunciation consequences; `CBA2-SC-081(b)` leaves the
+  adjacent-pair boolean true after removing both 2028 and 2029 rights; and
+  `CBA2-SC-082(c)` declares the retained intermediate missing under a second
+  field name while retaining its explicit value.
+- **Aggregate inputs are incomplete or contradictory:** `CBA2-SC-042(k)`
+  never supplies `proposedMaximum` in P+, introduces it only in P− although it
+  is absent from `C16.35`'s registered input contract, and simultaneously
+  marks every tier owner PASS while selecting only `C16.12`;
+  `CBA2-SC-046(a)` is an ordinary-signing record that marks the trade-earned
+  `C18.4` branch PASS and simultaneously marks `C18.3` both PASS in the fixed
+  dependency list and not applicable in the record. Neither is a single,
+  internally possible aggregate truth vector.
+- **Wrong source basis, missing calculation inputs, or false exactness:**
+  `CBA2-SC-044(e)` weights Over-38 allocation by protected salaries rather
+  than prior-year Salaries; `CBA2-SC-045(a)`, `CBA2-SC-045(b)`,
+  `CBA2-SC-045(g)`, `CBA2-SC-045(h)`, and `CBA2-SC-046(b)` use protected
+  dollars without the Base Compensation/protected-percentage inputs required
+  by Article VII section 3(b); `CBA2-SC-047(c)` labels a truncated repeating
+  rational exact without a rounding rule; `CBA2-SC-063(b)` infers equal
+  `$4m` allocation from only a `$12m` aggregate although the CBA requires each
+  year's remaining unearned protected Compensation; `CBA2-SC-071(c)` prorates
+  by games rather than Regular-Season days; `CBA2-SC-073(a)` changes the
+  governing G League threshold without authenticated rule content or a new
+  version; and `CBA2-SC-080(a)` reverses the draft-penalty order by putting the
+  higher-winning-percentage penalized team earlier rather than later.
+- **The adverse pair is not a single meaningful boundary:**
+  `CBA2-SC-053(j)` changes both exception amount and previously unstated Room;
+  `CBA2-SC-075(c)` changes only an asserted dependency result while the
+  concrete Team Salary, Cap, and increase still leave `$4.961m` Room.
+- **Wrong result state:** `CBA2-SC-078(a)` labels TEAM-B FAIL after the changed
+  official draft record validly creates TEAM-B's right; `CBA2-SC-081(a)`
+  labels missing required inputs FAIL instead of `UNAVAILABLE/NEEDS-INPUT`;
+  and `CBA2-SC-082(a)` / `CBA2-SC-082(b)` label missing authenticated derived
+  amounts FAIL rather than `NEEDS-INPUT` with no amount.
+
+#### Byte-preserved and mixed-owner defects
+
+- `CBA2-SC-001(h03)` is byte-preserved from `3efe90d2…`, but maps a valid
+  one-outgoing/multiple-incoming Standard TPE to `CBA2-A05.10` Row H. The
+  active rule itself says Row H is the Aggregated Standard TPE and does not bar
+  multiple incoming players on one Standard TPE. Owning stage: **original R7
+  scenario mapping/detail construction** at `e59d0dcc…`.
+- `CBA2-SC-015(i)` has split ownership. Its repaired body is a global-R7
+  scenario defect, while the preserved detail/authority row omits the leaf's
+  actual `A10.17` dependency and names only `A10.4`. Owning stage for that
+  preserved register/detail defect: **original R7 detail construction** at
+  `e59d0dcc…`; the underlying `A10.9` LEAF correctly records `A10.17` and does
+  not require repair.
+
+Demonstrated downstream impact is direct: these records can accept an
+ineligible state, reject an eligible state, compute the wrong amount/date/order,
+return FAIL where the contract requires `NEEDS-INPUT`, or allow an aggregate
+to pass from mutually inconsistent direct results. They therefore cannot be
+used as Phase 2 comparison or implementation oracles. The source/rule Canon is
+not globally invalidated; the acceptance failure is global because the R7
+scenario library is a required whole-Canon gate and its repaired population is
+not complete or truthful.
+
+### SI-C1 and frozen-validator disposition
+
+The first R8 validator result of 237/238 was independently reproduced as a
+mutation-targeting defect, not a protected-route defect. At `b2ef24dc…`, the
+full route hash occurred first in historical prose and later in the sole
+machine-shaped declaration; `SI-C1`'s first-occurrence mutation changed the
+historical prose and left the active declaration valid. Current R8 preserves
+the historical value and meaning as the exact concatenation of two
+32-character halves, while the active declaration remains the sole full hash
+token. The frozen validator is byte-identical, its mutation now reaches the
+active declaration, all nine route fields and their normalized checksum are
+unchanged, and no rejecting control or protected Canon behavior was weakened.
+The final `SI-C1` PASS is legitimate representation isolation, not validation
+gaming.
+
+After all static and semantic lanes were complete, the unchanged validator was
+executed exactly once in one fresh sequential process under the 15-minute hard
+ceiling. The ceiling did not fire. It reported:
+
+- 20 accepting controls and 218 rejecting regressions;
+- 238/238 PASS, `baseline_clean=yes`, and zero failures;
+- successful knowingly wrong-expectation negative self-test;
+- successful inventory cache-isolation self-check; and
+- frozen route checksum
+  `b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1`.
+
+Actual `/usr/bin/time` runtime was 146.87 seconds real, 78.30 seconds user,
+and 48.30 seconds system. The validator's mechanical PASS does not inspect the
+case-level source arithmetic, internal possibility, or oracle sufficiency
+listed above and therefore does not override this REJECT.
+
+### Blocked scope and next eligible work
+
+Only the owning repairs become eligible: global R7 scenario correction for
+the 65 repaired cases, plus original-R7 correction of the `SC-001(h03)` mapping
+and `SC-015(i)` detail/authority dependency. After those are repaired, a new
+R8 reconciliation/checksum and renewed independent R9 are required. Explicit
+owner acceptance, Phase 2, W1.1, Architect comparison, application changes,
+Linear, Graphify, merge, and `main` remain blocked and unperformed.
+
+This checker changed only this appended report. It did not change the Canon,
+repair plan, R8 or maker/checker receipts, validator, application code, tests,
+data, schemas, configuration, README, Linear, Graphify, or `main`. Temporary
+review scripts and source artifacts remained outside the repository.
