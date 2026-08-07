@@ -698,3 +698,238 @@ This checker changed only this appended report. It did not change the Canon,
 repair plan, R8 or maker/checker receipts, validator, application code, tests,
 data, schemas, configuration, README, Linear, Graphify, or `main`. Temporary
 review scripts and source artifacts remained outside the repository.
+
+## Post-targeted-R7 renewed R9 independent acceptance — `6cf8aaf3`
+
+### Verdict, checkpoint, and independence
+
+**ACCEPT** exact pushed topic-branch checkpoint
+`6cf8aaf358c158a88e630e8a7336f7e9c3febc17` with Canon SHA-256
+`23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76`.
+This acceptance is commit-specific. It does not retroactively accept either
+rejected R9 candidate or erase any historical rejection finding.
+
+The reviewer did not author or repair any governed v2 rule, evidence record,
+mapping, scenario, case, detail row, route field, validator control, or maker
+receipt in this candidate. Maker and R8 receipts were treated as claims to
+recompute, not as acceptance evidence. Independent extraction, comparison,
+and source-review helpers remained outside the repository.
+
+At review start, local, tracking, and freshly fetched live-remote
+`architect/cba-canon-v2` all resolved to the exact checkpoint. Its ancestry was
+`eb43b3b730d9a7fd1857363070838a49487eadbf` →
+`c4f3e20fec97aed27c6eb7948fbc3e7830ce0796` → `6cf8aaf3`. Local and fetched
+live-remote `main` both remained
+`69f8f6b6c6f8ea58f1a24eba7949f8ed09744288`. The worktree was clean, and the
+Canon, plan, R8 receipt, and frozen validator matched their pinned hashes.
+
+### Independent semantic method and complete 66-case disposition
+
+The corrected population was extracted by comparing the actual Canon at
+`6cf8aaf3` to governed rejected checkpoint `9b263272`. For every changed case,
+the reviewer read the current exact inputs, tested boundary, exact output,
+authority/evidence chain, Exercises, active LEAF text, registered detail input
+contract, and direct dependencies. Calculations, dates, state transitions,
+result polarity, and `NEEDS-INPUT` behavior were recomputed from the current
+record rather than inferred from maker prose. The official signed CBA and
+June 2024 By-Laws were independently reacquired and matched the registered
+SHA-256 values `bf178ca0…ab32` and `be4d2781…2ccf`.
+
+All 66 exact identities pass. The complete disposition is:
+
+| Identity | Independent disposition |
+|---|---|
+| `CBA2-SC-001(h03)` | PASS — Standard-TPE structure and limit now exercise only A02.1/A02.2; the false Aggregated-TPE Row-H owner and backlink are absent. |
+| `CBA2-SC-005(g)` | PASS — no agreement uses the assignor default, while the express agreement activates the distinct A04.33 reallocation branch. |
+| `CBA2-SC-005(j)` | PASS — exact original/extended dates separate A04.11 calculation from A04.12 extended-term inapplicability. |
+| `CBA2-SC-005(l)` | PASS — the adverse 15.0001% form and `$3,000,020` amount make the 15% owner fail consistently. |
+| `CBA2-SC-006(k)` | PASS — term, timing, replacement exhibit, compensation, and protection inputs make the A04.24 allocation branch complete. |
+| `CBA2-SC-006(l)` | PASS — the A04.25 branch is expressed through concrete contract, exhibit, timing, term, and compensation facts rather than a legal conclusion. |
+| `CBA2-SC-007(c)` | PASS — 15.00005% of `$20,000,000` is exactly `$3,000,010`, ten dollars above the ceiling. |
+| `CBA2-SC-007(e)` | PASS — the prohibited `$0.01` increase now produces a consistent A04.1 failure. |
+| `CBA2-SC-008(b)` | PASS — the dollar form exceeding its percentage cap by `$0.01` consistently fails A04.1. |
+| `CBA2-SC-009(i)` | PASS — the Transition TPE passes only for 2023-24 and fails for the otherwise identical 2024-25 record. |
+| `CBA2-SC-010(b)` | PASS — the adverse empty TMLE-use history no longer retains a stale Row-K/TMLE-use result. |
+| `CBA2-SC-015(i)` | PASS — A10.17 is present in the body, authority, Exercises, A10.9 dependency detail, and A10.17 backlink; the 120% calculation is exact. |
+| `CBA2-SC-016(a)` | PASS — only Option exercise state changes, and A10.14 no longer purports to decide the separate A10.29 branch. |
+| `CBA2-SC-016(j)` | PASS — the proposed dates and first extended Season now create the stated more-than-one-year-early boundary. |
+| `CBA2-SC-017(d)` | PASS — the non-exercise result is truthful while A10.29 independently distinguishes two non-Option Seasons from one. |
+| `CBA2-SC-018(a)` | PASS — the underlying incoming Salary changes by `$0.01`, eliminating the formerly valid alternative decomposition. |
+| `CBA2-SC-019(d)` | PASS — the last Regular Season game is in the stated Salary Cap Year and the 2034 result follows from the concrete timeline. |
+| `CBA2-SC-019(g)` | PASS — the A12.5 state and unfreeze event agree across the one-above and two-above histories. |
+| `CBA2-SC-019(i)` | PASS — omission of the challenged term fails A12.6; disclosure of that same term passes it. |
+| `CBA2-SC-020(a)` | PASS — the removal owner is false before, and true after, the exact signing event. |
+| `CBA2-SC-020(d)` | PASS — the invented YOS gate is gone and the exact minimum-of-two-minima amount is tested directly. |
+| `CBA2-SC-024(a)` | PASS — signing date, 174-day season, covered days, YOS, term, and minimum amount are all concrete. |
+| `CBA2-SC-024(b)` | PASS — each side retains one internally consistent YOS/minimum-salary record with no conflicting scalar. |
+| `CBA2-SC-024(d)` | PASS — the two-Season facts remain fixed while separate versus improperly merged exception/reimbursement outputs are tested. |
+| `CBA2-SC-028(a)` | PASS — Tax Team Salary, Tax Level, exact excess, all operands, C09.7, and the progressive sum reconcile. |
+| `CBA2-SC-028(c)` | PASS — the repeater-tax vector likewise contains the complete C09.7 chain and exact progressive sum. |
+| `CBA2-SC-032(a)` | PASS — only the submitted combined allocation is rejected; the valid single-TMLE alternative is preserved. |
+| `CBA2-SC-032(d)` | PASS — the authenticated `$5.477m` BAE replaces the impossible `$10m` value while DPE non-proration remains distinct. |
+| `CBA2-SC-033(c)` | PASS — exact guaranteed and Option Salaries replace placeholders, and no Option Salary survives when the Option is absent. |
+| `CBA2-SC-034(b)` | PASS — Salary excluding incentives, Regular Salary, and the individual Unlikely Bonus are separate; only the bonus crosses 5%. |
+| `CBA2-SC-034(e)` | PASS — the Room-MLE annual-change test uses the same complete, non-masking component vector. |
+| `CBA2-SC-034(i)` | PASS — the BAE annual-change test uses the same complete, non-masking component vector. |
+| `CBA2-SC-035(c)` | PASS — the NTMLE annual-change test uses the same complete, non-masking component vector. |
+| `CBA2-SC-039(e)` | PASS — one retained schedule owns the changed year-two value; the conflicting scalar is gone. |
+| `CBA2-SC-041(c)` | PASS — both sides retain a 65-game season and change only qualifying games from 65 to 64. |
+| `CBA2-SC-041(l)` | PASS — one exact authenticated date remains fixed while remaining Seasons change from one to two. |
+| `CBA2-SC-042(k)` | PASS — both records supply the proposed amount, C16.35 registers it, and only applicable tier/amount owners are selected. |
+| `CBA2-SC-044(e)` | PASS — Over-38 allocation uses prior-year Salary weights and produces the exact signed 1:2 split. |
+| `CBA2-SC-045(a)` | PASS — Base Compensation, protected dollars, and protected percentages are complete, and the signed percentages drive allocation. |
+| `CBA2-SC-045(b)` | PASS — the complete protection basis and allocation array exclude the ETO Season as required. |
+| `CBA2-SC-045(g)` | PASS — cap state, deadline, Base Compensation, protected dollars, and protected percentages fully specify the extended-only branch. |
+| `CBA2-SC-045(h)` | PASS — the early below-cap branch carries the full original-plus-extended compensation and protection schedule. |
+| `CBA2-SC-046(a)` | PASS — the ordinary-signing vector applies C18.1/C18.2 and truthfully marks zero-protection and trade-earned branches inapplicable. |
+| `CBA2-SC-046(b)` | PASS — extended compensation and 50%/100% protection percentages produce the stated 1:2 allocation. |
+| `CBA2-SC-047(c)` | PASS — the authenticated comparison minimum makes ten-day proration exactly `$120,000`, with no false truncated-rational exactness. |
+| `CBA2-SC-053(j)` | PASS — P+ supplies zero Room and P− changes only the available Minimum Exception by `$0.01`. |
+| `CBA2-SC-056(a)` | PASS — both protection percentages derive from one Base/protected array pair; duplicate conflicting scalars are absent. |
+| `CBA2-SC-058(a)` | PASS — totals derive from components as `$4,000,000.00` and `$4,000,000.01`; no stale total survives. |
+| `CBA2-SC-058(c)` | PASS — 20% and 20.00000004% derive from exact amounts; no stale percentage survives. |
+| `CBA2-SC-063(b)` | PASS — per-year remaining unearned protected Compensation produces the exact 6:4:2 allocation. |
+| `CBA2-SC-070(a)` | PASS — combined count and bounds derive from consistent Standard and Two-Way counts. |
+| `CBA2-SC-070(b)` | PASS — the signed 14-consecutive/28-total limits distinguish 28 from 29 total days. |
+| `CBA2-SC-070(d)` | PASS — one player availability map derives eight available players versus seven without overlap. |
+| `CBA2-SC-070(h)` | PASS — the direct eight-player rule uses the same single, internally consistent availability map. |
+| `CBA2-SC-071(c)` | PASS — proration uses 174 total and 88 remaining Regular-Season days; 25.287… rounds to 25. |
+| `CBA2-SC-073(a)` | PASS — P+ consumes an authenticated controlling G League record; missing rule/version/threshold returns `NEEDS-INPUT` and borrows no Standard threshold. |
+| `CBA2-SC-075(c)` | PASS — Room is exactly `$10m` and only the proposed increase changes to `$10,000,000.01`. |
+| `CBA2-SC-077(e)` | PASS — starter status derives from 41/2,000 versus 40/1,999 rather than a stale asserted boolean. |
+| `CBA2-SC-077(i)` | PASS — July 13 withdrawal is effective; July 14 without written consent is ineffective, with consequences derived rather than asserted. |
+| `CBA2-SC-078(a)` | PASS — the changed official record creates TEAM-B's right; TEAM-B passes and TEAM-A is separately reported without the right. |
+| `CBA2-SC-080(a)` | PASS — inverse winning-percentage order is `.400`, `.500`, `.600`, leaving the best-winning Team for the final selection. |
+| `CBA2-SC-081(a)` | PASS — unresolved protection returns `UNAVAILABLE/NEEDS-INPUT` with no invented availability verdict. |
+| `CBA2-SC-081(b)` | PASS — every adjacent future-Draft pair derives from one retained-rights schedule; the stale boolean is absent. |
+| `CBA2-SC-082(a)` | PASS — a mismatched current-cap source year returns `NEEDS-INPUT` and no Tax Bracket amount. |
+| `CBA2-SC-082(b)` | PASS — a mismatched Salary Cap source year returns `NEEDS-INPUT` and no cash-limit amount. |
+| `CBA2-SC-082(c)` | PASS — P− removes the actual retained intermediate field, so the audit failure is internally possible. |
+
+This is exactly 66 identities across 39 scenario families. Their ordered
+identity digest is
+`a48405a6139de50f25ad983ac41ee420493213d059899f20c6f339587148e481`.
+No material semantic defect remains, so no repair-stage assignment is needed.
+
+### Seven changed detail rows and special chains
+
+The only non-case governed differences from `9b263272` are the following seven
+LEAF detail rows, and each change is both necessary and bounded:
+
+| Detail row | Independent disposition |
+|---|---|
+| `CBA2-A04.12` | PASS — adds the missing `SC-005(j)` Scenario-evidence backlink only. |
+| `CBA2-A04.33` | PASS — adds the missing `SC-005(g)` backlink for agreed obligation reallocation. |
+| `CBA2-A05.10` | PASS — removes only the false `SC-001(h03)` Row-H backlink. |
+| `CBA2-A10.9` | PASS — replaces the irrelevant A10.4 dependency with A10.17 and registers the incentive/Likely-Bonus inputs actually consumed by `SC-015(i)`. |
+| `CBA2-A10.17` | PASS — adds the missing `SC-015(i)` backlink. |
+| `CBA2-C09.7` | PASS — adds the `SC-028(a)` and `SC-028(c)` progressive-tax backlinks. |
+| `CBA2-C16.35` | PASS — adds the proposed maximum and applicable-tier/direct-result inputs consumed by `SC-042(k)`. |
+
+The protected `SC-001(h03)` correction is therefore closed end-to-end: the
+case, Exercises, authority, and A05.10 detail no longer misclassify a valid
+one-outgoing/multiple-incoming Standard TPE as Aggregated Row H. The mixed
+`SC-015(i)` correction is also closed end-to-end: its concrete 120% result,
+A10.17 evidence route, Exercises, A10.9 dependency/input contract, and A10.17
+backlink all agree.
+
+### Preservation, complete populations, and G1–G15
+
+The comparison proves exactly 66 changed case rows plus the seven detail rows
+above. All other governed content is preserved:
+
+- the other 662 named cases are byte-identical to `9b263272`, ordered digest
+  `2fb552235818a90d0e0ea51a26ed99239fefd571d6bbd612fdcf7ba1d7d82fe0`;
+- the 3,764 protected governed rows are byte-identical, ordered digest
+  `d28d08b0156bbd2c74dda43467e1c82767dace884c6a888c1b6b697d0cbf87b6`;
+- `c4f3e20f` and `6cf8aaf3` contain the same 3,837 governed rows; R8 changed
+  status and derived-count prose only;
+- the final active-scenario boundary is 734,090 bytes with SHA-256
+  `56058b28df76416b9dac1c1bacbbf80e0b3b5e0d2d0c32e393f400ffb0b596bc`;
+  and
+- the historical scenario boundary is 21,909 bytes with SHA-256
+  `08c5ed69be1075ad7a9909337b09be30b7d43dcf4114188bee142d64c468d787`.
+
+The complete current population independently reconciles at 61 GROUPs
+(A 12, C 25, R 10, L 10, S 4); 815 LEAF main/detail pairs (A 151, C 417,
+R 118, L 102, S 27); 823 EV2 records (CBA 647, BYL 17, NBA 4, DERIVED 6,
+INFERRED 137, EXT 12); 838 direct EV2-to-SRC2 references; 512 acyclic EV2
+dependency edges; and 744 acyclic LEAF dependency edges. The mapping surface
+contains 494 XW2 edges over 491 historical fragments, 89 SXW2 edges over 89
+historical scenario fragments, ten bundles, 17 searches, and four search sets.
+The decision surface contains 272 generic decisions and 822 structured AMEND
+details. All 82 scenarios and 728 unique cases create 959 unique Exercises and
+959 identical backlinks, covering exactly 581 primary plus 80 secondary-only
+SCEN LEAFs, or 661 total.
+
+| Gate | Independent result |
+|---|---|
+| G1 | PASS — all 368 published LEAFs, 491 fragments, 494 XW2 edges, ten bundles, and receipt/current endpoints reconcile without orphan or deferral. |
+| G2 | PASS — every nonterminal mapping target resolves to one active LEAF; no current deferred target remains. |
+| G3 | PASS — 22 terminal XW2 plus seven terminal SXW2 edges join uniquely to 29 DISP details; the four unsupported residuals retain truthful, searched, bounded scope. |
+| G4 | PASS — the active population is exactly 61 GROUPs and 815 LEAFs, excluding support and historical rows. |
+| G5 | PASS — Phase 1 scope remains bounded; this review does not begin Phase 2. |
+| G6 | PASS — the gate remains Canon/document-tree only; no application or runtime inspection is introduced. |
+| G7 | PASS — no product comparison, implementation, or data/configuration verdict is claimed. |
+| G8 | PASS — all LEAF and EV2 dependency targets resolve, both graphs are acyclic, and the 26 cross-family edges preserve accepted construction order. |
+| G9 | PASS — ATOM/OWN/DISP/METHOD/ORIGIN/AMEND/TG populations and duplicate-candidate generators reconcile with no unresolved candidate. |
+| G10 | PASS — 82 scenarios, 728 cases, 959 bidirectional links, 661 covered SCEN LEAFs, 89 fragments, and 89 SXW2 dispositions satisfy the full scenario contract. |
+| G11 | PASS — every one of the 66 corrected case oracles and seven changed details is truthful, sufficient, and source/owner consistent. |
+| G12 | PASS — Canon and plan truthfully describe R7/R8 completion, preserve both historical rejections, and leave renewed R9 unaccepted until this report-only checkpoint. |
+| G13 | PASS — actual populations, both protected boundaries, final Canon size of 2,114,569 bytes, and final Canon checksum are exact. |
+| G14 | PASS — typed roots, authority classes, locators, evidence dependencies, source/search coverage, owners, and backlinks close with no diagnostic. |
+| G15 | PASS — every live identity/version has one current endpoint or explicit retirement; no stale reference, broken chain, ID reuse, or renumbering remains. |
+
+There are zero open BLK findings, RES records, unresolved successors,
+`no-successor` edges, uncovered terminal dispositions, dependency cycles, or
+current deferrals.
+
+### Validator anchors, maker attempts, and checker execution
+
+The frozen validator remains 499,315 bytes with SHA-256
+`e65103466154162f2f86b0526ce67e4be9fa394b54bc2fd71a7c1cd01d46c461`.
+Its current-route checksum independently recomputes to
+`b0c97d74d1426a323101155d61ebb86d2c42d6f66023ba383173e797db0a8cc1`.
+Static inspection confirms that the two restored plan phrases are the exact
+literal inputs to the route-mode downgrade mutation, not decorative receipt
+text. The wrong-hash route mutation reaches the sole machine-shaped active
+declaration, the knowingly wrong-expectation self-test remains inverted, and
+the warm-cache isolation check mutates one parse result before proving later
+results are fresh.
+
+The four R8 maker attempts are preserved accurately: 86.61 seconds stopped at
+the missing `R7 execution status — complete in this checkpoint` anchor;
+83.35 seconds stopped at the adjacent `The canon now contains the complete
+active scenario` anchor; 147.52 seconds passed all 238 controls but required
+the receipt update; and the final 186.93-second exact-byte run passed 238/238
+with no repository edit afterward. The first two were meaningful pre-control
+failures that exposed literal-anchor drift; the later two demonstrate that the
+truthful restorations did not weaken the route contract.
+
+After the complete static and semantic review, this checker executed the
+unchanged frozen validator exactly once, fresh and sequentially, under the
+15-minute hard ceiling. It reported 20 accepting controls plus 218 rejecting
+regressions, 238/238 PASS, `baseline_clean=yes`, zero failures, the complete
+population notes above, successful inventory cache isolation, and a successful
+knowingly wrong-expectation negative self-test. Actual `/usr/bin/time` was
+152.15 seconds real, 78.93 seconds user, and 50.93 seconds system. The ceiling
+did not fire.
+
+### Scope validation and next eligible gate
+
+The report-only candidate passes targeted Markdown lint with inherited `MD029`
+disabled, `npm run test:diff` for this exact report with the dot reporter,
+`npm run docs:guardrails`, `npm run validate:project`, and `git diff --check`.
+Exact diff and staged-scope checks show this appended report as the sole
+repository change.
+
+No material blocker or limitation remains within renewed R9 scope. This ACCEPT
+makes only explicit owner acceptance eligible next. R9 ACCEPT alone does not
+close Phase 1 and does not authorize Phase 2. Until the owner explicitly
+accepts this checkpoint and separately scopes later work, Phase 2, W1.1,
+Architect comparison, application changes, Linear, Graphify, merge, and
+`main` remain blocked and untouched.
+
+This checker changed only this appended report. It did not modify the Canon,
+repair plan, R8 or any prior maker/checker receipt, validator, application,
+tests, data, schemas, configuration, README, Linear, Graphify, or `main`.
