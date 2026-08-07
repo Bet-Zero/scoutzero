@@ -12,7 +12,9 @@ from pathlib import Path
 
 
 EXPECTED_FAMILY_COUNTS = {"A": 151, "C": 417, "R": 118, "L": 102, "S": 27}
+EXPECTED_SCHEMA_VERSION = "2.0"
 LEAF_RE = re.compile(r"CBA2-([ACRLS])\d{2}\.\d+")
+EVIDENCE_PATH_RE = re.compile(r"^(?:src|tests)/.+\.(?:tsx?|jsx?)(?::.+)?$")
 IMPLEMENTATION_STATES = {"correct", "incorrect", "partial", "absent", "not applicable"}
 CANON_COVERAGE = {
     "covered and proven",
@@ -23,7 +25,7 @@ CANON_COVERAGE = {
     "externally adjudicated",
 }
 LAYER_STATES = {"covered", "partial", "absent", "not applicable", "insufficient evidence"}
-RUNTIME_INPUT_STATES = {"available", "missing", "external determination", "not required"}
+RUNTIME_INPUT_STATES = {"available", "partial", "missing", "external determination", "not required"}
 EVIDENCE_STRENGTH = {"proven", "insufficient"}
 SEVERITIES = {"Critical", "High", "Medium", "Low", "None"}
 PASSES = {"deterministic correctness", "cap manager completeness", "full gm depth"}
@@ -34,6 +36,7 @@ LAYERS = {
     "explanation_ui_presentation",
     "lifecycle_persistence",
 }
+EVIDENCE_FIELDS = {"implementation", "tests", "negative_search", "inspection_notes"}
 REQUIRED_RECORD_FIELDS = {
     "leaf_id",
     "family",
@@ -122,9 +125,16 @@ def validate_canon(leaves: dict[str, dict[str, str]]) -> list[str]:
 def validate_register(path: Path, leaves: dict[str, dict[str, str]]) -> list[str]:
     errors: list[str] = []
     payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != EXPECTED_SCHEMA_VERSION:
+        errors.append(
+            f"register.schema_version is {payload.get('schema_version')!r}, "
+            f"expected {EXPECTED_SCHEMA_VERSION!r}"
+        )
     records = payload.get("records")
     if not isinstance(records, list):
         return ["register.records must be an array"]
+    if payload.get("record_count") != len(records):
+        errors.append("register.record_count must equal the records array length")
     ids = [record.get("leaf_id") for record in records if isinstance(record, dict)]
     duplicates = sorted(key for key, count in Counter(ids).items() if count > 1)
     if duplicates:
@@ -168,10 +178,29 @@ def validate_register(path: Path, leaves: dict[str, dict[str, str]]) -> list[str
         elif any(value not in LAYER_STATES for value in layers.values()):
             errors.append(f"{label}: product_layers contains an invalid state")
         evidence = record["evidence"]
-        if not isinstance(evidence, dict) or set(evidence) != {"implementation", "tests", "inspection_notes"}:
-            errors.append(f"{label}: evidence must contain implementation, tests, and inspection_notes")
-        elif not all(isinstance(evidence[key], list) and evidence[key] for key in evidence):
-            errors.append(f"{label}: every evidence list must be non-empty")
+        if not isinstance(evidence, dict) or set(evidence) != EVIDENCE_FIELDS:
+            errors.append(f"{label}: evidence must contain exactly {sorted(EVIDENCE_FIELDS)}")
+        else:
+            for key in EVIDENCE_FIELDS:
+                values = evidence[key]
+                if not isinstance(values, list):
+                    errors.append(f"{label}: evidence.{key} must be an array")
+                elif any(not isinstance(value, str) or not value.strip() for value in values):
+                    errors.append(f"{label}: evidence.{key} must contain only non-empty text")
+            if all(isinstance(evidence[key], list) for key in EVIDENCE_FIELDS):
+                if not evidence["inspection_notes"]:
+                    errors.append(f"{label}: evidence.inspection_notes must be non-empty")
+                path_values = evidence["implementation"] + evidence["tests"]
+                if any(not EVIDENCE_PATH_RE.fullmatch(value) for value in path_values):
+                    errors.append(f"{label}: implementation/tests evidence must contain paths only")
+                if any(EVIDENCE_PATH_RE.fullmatch(value) for value in evidence["negative_search"]):
+                    errors.append(f"{label}: evidence.negative_search must contain prose only")
+                if not (
+                    evidence["implementation"]
+                    or evidence["tests"]
+                    or evidence["negative_search"]
+                ):
+                    errors.append(f"{label}: evidence must include a path or negative search")
         for field in ("canon_rule", "canon_authority", "canon_verification_method", "canon_lifecycle_date_inputs", "smallest_likely_remediation", "shared_root_cause_cluster"):
             if not isinstance(record[field], str) or not record[field].strip():
                 errors.append(f"{label}: {field} must be non-empty text")

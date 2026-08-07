@@ -2,7 +2,8 @@
 
 ## Status
 
-**Phase 2 audit complete and independently accepted. No application fixes are underway.**
+**Corrected Phase 2 audit candidate; awaiting narrow cross-model
+re-verification. No application fixes are underway.**
 
 - Linear lane: BZE-266 (High / In Progress), under BZE-254 in Architect Completion.
 - Audit branch: `architect/bze-266-cba-canon-v2-phase2-audit`.
@@ -54,6 +55,30 @@ smallest remediation, and shared root cause separate. Symbols and green tests
 are treated as leads until the expected behavior is independently reconciled
 to the accepted Canon.
 
+Implementation-state terms use the owner-accepted definitions from the
+cross-model reconciliation decision:
+
+> **`incorrect`** — the application produces a result that conflicts with the Canon
+> obligation. This includes an implementation that is present but incomplete where the
+> incompleteness yields a Canon-wrong answer, not only a wrong constant, threshold, or
+> inverted condition.
+>
+> **`partial`** — an implementation route exists and its outputs are consistent with the
+> Canon as far as they go, but the obligation is not fully discharged.
+>
+> **`absent`** — no implementation route exists, established by negative search across
+> the plausible vocabulary and surfaces, not by a single failed symbol lookup.
+
+Severity is product risk. High means a gap could materially produce a wrong,
+misleading, illegal, or unusable result in a currently approved Architect
+workflow, or is a foundational model defect affecting many such workflows.
+Medium identifies a meaningful current-workflow limit that does not meet High
+or has a reliable mitigating guardrail. Low preserves a real Canon gap with
+little current-product impact or no approved-workflow dependency. None means no
+implementation defect. Claude's blind severity results were used only as a
+directional cross-check; the official evidence and approved V1 workflow
+boundary determine this register's score.
+
 ## Results
 
 ### Pass 1 — deterministic correctness
@@ -64,18 +89,18 @@ provenance leaves in L07-L09 and S04: 173 records total.
 
 | Measure | Pass 1 count |
 |---|---:|
-| Correct | 4 |
-| Incorrect | 39 |
+| Correct | 7 |
+| Incorrect | 36 |
 | Partial | 56 |
 | Absent | 74 |
-| Covered and proven | 3 |
-| Partial Canon coverage | 96 |
+| Covered and proven | 6 |
+| Partial Canon coverage | 93 |
 | Missing in scope | 64 |
 | Data-blocked | 10 |
-| High severity | 119 |
-| Medium severity | 50 |
-| Low severity | 1 |
-| No defect severity | 3 |
+| High severity | 79 |
+| Medium severity | 78 |
+| Low severity | 9 |
+| No defect severity | 7 |
 
 The transaction engine has meaningful scaffolding, but its dominant model is
 too coarse for the accepted Canon:
@@ -95,12 +120,14 @@ too coarse for the accepted Canon:
   cover useful fragments but do not implement the complete Canon transaction;
 - Second Apron frozen-pick history and formula-provenance records do not exist.
 
-The four correct leaf behaviors are the one-year Standard TPE window, the S&T
-four-season maximum, cash staying outside Team Salary, and the general one- or
-two-season non-rookie extension bar. The last has insufficient aligned test
-evidence, remains partial Canon coverage, and therefore remains a Medium
-evidence gap even though code behavior matches the rule. The other three are
-covered and proven.
+The seven correct leaf behaviors are the one-year Standard TPE window, the S&T
+four-season maximum, cash staying outside Team Salary, the general one- or
+two-season non-rookie extension bar, and Transaction Restrictions Table rows A,
+B, and C assigning BAE, Non-Taxpayer MLE, and sign-and-trade acquisition to the
+First Apron Level. The extension bar has insufficient aligned test evidence and
+remains partial Canon coverage; the other six are covered and proven. All seven
+have None product-risk severity because no implementation defect remains on
+their own atomic obligations.
 
 Green tests were not promoted to proof when their expected behavior conflicts
 with the Canon. Examples include the rounded Expanded TPE value, treating every
@@ -125,9 +152,10 @@ and S01-S03: 246 records. Together with Pass 1, the register now contains
 | Missing in scope | 132 |
 | Data-blocked | 2 |
 | Externally adjudicated | 7 |
-| High severity | 191 |
-| Medium severity | 53 |
-| No defect severity | 2 |
+| High severity | 132 |
+| Medium severity | 37 |
+| Low severity | 73 |
+| No defect severity | 4 |
 
 The Cap Manager has useful contract, free-agency, waiver, roster-count,
 exception, and season-transition surfaces, but it does not yet have the ledger
@@ -172,7 +200,9 @@ The four correct Pass 2 leaves are the 90% Minimum Team Salary threshold, the
 `2n+1` Salary stretch span, the ordinary maximum of three Two-Way Contracts,
 and Standard TPE partial-use balance persistence through its one-year window.
 The first two lack aligned proof tests and therefore remain partial Canon
-coverage with Medium evidence gaps; the other two are covered and proven.
+coverage with insufficient evidence; the other two are covered and proven.
+All four have None product-risk severity because evidence strength does not
+convert a correct implementation into a product defect.
 
 ### Pass 3 — full GM depth
 
@@ -190,8 +220,9 @@ L10: the remaining 396 records and therefore the full 815-leaf universe.
 | Missing in scope | 165 |
 | Data-blocked | 2 |
 | Externally adjudicated | 15 |
-| High severity | 303 |
-| Medium severity | 91 |
+| High severity | 153 |
+| Medium severity | 128 |
+| Low severity | 113 |
 | No defect severity | 2 |
 
 The deepest GM workflows expose the same architectural limit as the first two
@@ -234,13 +265,14 @@ and their component ledgers do not.
 The only fully correct and proven Pass 3 leaves are the ordinary maximum of
 three Two-Way players and exclusion of Two-Way Salary from Team Salary.
 
-All three passes and maker reconciliation are complete. Independent re-review
-remains pending after evidence-label remediation.
+All three audit passes remain complete. The owner-authorized reconciliation is
+now applied, and the corrected candidate awaits narrow cross-model
+re-verification.
 
 ## Final reconciliation
 
-The maker register contains all and only the 815 active v2 LEAF identities,
-exactly once. Its overall result is 10 correct, 145 partial, 263 incorrect, and
+The corrected register contains all and only the 815 active v2 LEAF identities,
+exactly once. Its overall result is 13 correct, 145 partial, 260 incorrect, and
 397 absent. No leaf was classified `not applicable`, and no intentional
 exclusion was invented.
 
@@ -248,16 +280,16 @@ exclusion was invented.
 
 | Implementation state | Count |
 |---|---:|
-| Correct | 10 |
+| Correct | 13 |
 | Partial | 145 |
-| Incorrect | 263 |
+| Incorrect | 260 |
 | Absent | 397 |
 | Not applicable | 0 |
 
 | Canon coverage | Count |
 |---|---:|
-| Covered and proven | 7 |
-| Partial | 411 |
+| Covered and proven | 10 |
+| Partial | 408 |
 | Missing in scope | 361 |
 | Data-blocked | 14 |
 | Externally adjudicated | 22 |
@@ -265,10 +297,10 @@ exclusion was invented.
 
 | Pass | Correct | Partial | Incorrect | Absent | Total |
 |---|---:|---:|---:|---:|---:|
-| Deterministic correctness | 4 | 56 | 39 | 74 | 173 |
+| Deterministic correctness | 7 | 56 | 36 | 74 | 173 |
 | Cap Manager completeness | 4 | 49 | 52 | 141 | 246 |
 | Full GM depth | 2 | 40 | 172 | 182 | 396 |
-| **Total** | **10** | **145** | **263** | **397** | **815** |
+| **Total** | **13** | **145** | **260** | **397** | **815** |
 
 | Product layer | Covered | Partial | Absent | Not applicable |
 |---|---:|---:|---:|---:|
@@ -281,24 +313,27 @@ exclusion was invented.
 | Severity | Count |
 |---|---:|
 | Critical | 0 |
-| High | 613 |
-| Medium | 194 |
-| Low | 1 |
-| None | 7 |
+| High | 364 |
+| Medium | 243 |
+| Low | 195 |
+| None | 13 |
 
-Runtime inputs are missing for 718 leaves, available for 61, externally
-determined for 35, and not required for one. Evidence is proven for 446 leaves
-and insufficient for 369. All 368 rows whose evidence explicitly declares a
+Runtime inputs are available for 61 leaves, partially available for 523,
+missing for 195, externally determined for 35, and not required for one. The
+split preserves the prior available, external-determination, and not-required
+classifications; only former `missing` rows with recorded evidence of some
+required inputs moved to `partial`. Evidence is proven for 446 leaves and
+insufficient for 369. All 368 rows whose evidence explicitly declares a
 missing, weak, adjacent-only, or otherwise non-aligned relevant test are
 insufficient; `CBA2-R04.1` is additionally insufficient because its cited tests
 do not assert the `2n+1` formula. The three otherwise-correct but unproven leaves
 are `CBA2-A10.21`, `CBA2-C10.1`, and `CBA2-R04.1`; they retain correct
-implementation judgments but remain partial Canon coverage with Medium evidence
-gaps.
+implementation judgments, partial Canon coverage, insufficient evidence, and
+None product-risk severity.
 
 ### Shared roots and Phase 3 size
 
-The 805 non-correct leaves collapse into 57 shared root-cause clusters. The
+The 802 non-correct leaves collapse into 57 shared root-cause clusters. The
 largest are waiver claims (51), advanced contract routes (50), Exhibit/Summer
 Contracts (43), exception methods (40), trade-bonus lifecycle (39), Two-Way
 Contracts (35), extensions (30), Bird history (29), special compensation (27),
@@ -353,8 +388,12 @@ independent ledgers. No Phase 3 issue has been created during this audit.
 | `npm run test:architect -- --reporter=dot` | PASS — 305 files, 3,555/3,555 tests; 257.00 seconds, exceeding the four-minute budget by 17 seconds; not repeated |
 | `npm run test:diff -- --files <Phase 2 artifacts> --reporter=dot` | PASS — FAST tier, 57/57 tests at each audit checkpoint |
 | `python3 work/architect-completion/cba_canon_v2_phase2_integrity.py` | PASS — 815 unique Canon/register identities; A 151, C 417, R 118, L 102, S 27 |
-| Evidence-strength consistency proof | PASS — all 368 explicit missing/weak/non-aligned-evidence rows are insufficient; no covered/proven contradiction; the three correct/unproven leaves are partial/Medium; exact totals are 446 proven / 369 insufficient |
-| Evidence-path existence check | PASS — all 141 unique cited source/test paths resolve |
+| `python3 -m json.tool <implementation-gap register>` | PASS — valid JSON; schema version 2.0 |
+| Owner-reconciliation before/after invariant comparison | PASS — only A05.3/.4/.5 implementation states changed; all 815 identities/order, Canon fields, evidence strengths, product layers, and 57 clusters preserved |
+| Evidence-schema preservation proof | PASS — all prior evidence strings preserved; 729 path-array prose occurrences moved byte-for-byte, and three displaced A05 family-note strings retained on their actual owning leaves |
+| Runtime-input split proof | PASS — exactly 523 `missing` rows moved to `partial`; all 61 available, 195 genuinely missing, 35 external-determination, and one not-required classifications reconcile |
+| Evidence-strength consistency proof | PASS — all 368 explicit missing/weak/non-aligned-evidence rows are insufficient; no covered/proven contradiction; the three correct/unproven leaves are partial/None; exact totals are 446 proven / 369 insufficient |
+| Evidence-path existence check | PASS — 129 path-array files plus 12 byte-preserved negative-search references; all 141 unique cited source/test paths resolve |
 | `git diff --check` | PASS |
 | `npm run lint:md` | FAIL — pre-existing/out-of-scope violations in three `docs/architect/audits/` files, `docs/CODEBASE_MAP.md`, and the frozen accepted Canon; the configured command does not include `work/` |
 
@@ -554,3 +593,22 @@ reports 805 non-correct leaves and 369 insufficient-evidence leaves, so the
 documented foundational Phase 3 program and aligned proof work remain the
 appropriate next step. No maker artifact was repaired by this checker beyond
 recording this independent verdict and accepted status.
+
+## Current corrected candidate
+
+The historical review record above remains unchanged in substance, but its
+acceptance predates the owner reconciliation decision at `4487bc6a`. The
+official corrected candidate now:
+
+- re-scores severity as product risk against the approved V1 workflow boundary;
+- corrects only `CBA2-A05.3`, `CBA2-A05.4`, and `CBA2-A05.5` to correct / None,
+  while retaining every displaced hard-cap finding on its actual owning leaves;
+- publishes the owner-accepted implementation-state definitions;
+- uses evidence schema 2.0 with path arrays separated from byte-preserved
+  negative-search prose; and
+- splits runtime inputs into available, partial, missing, external
+  determination, and not required.
+
+This corrected candidate is not self-accepted and does not close Phase 2. It
+awaits the bounded cross-model re-verification required by the owner decision.
+No application, Linear, or Phase 3 state changed during this reconciliation.
