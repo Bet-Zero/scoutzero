@@ -243,6 +243,17 @@ export function ledgerProblemsFromPayloadIssues(
       );
     }
 
+    // An unexpected key on the envelope itself, reported at the payload root.
+    if (issue.code === 'unrecognized_keys') {
+      return problem(
+        'unsupported-field',
+        'payload',
+        `Unsupported field(s) ${issue.keys.join(
+          ', '
+        )}: a ledger payload carries only the fields the canonical schema declares.`
+      );
+    }
+
     const field = String(head ?? '');
     if (field === 'ledgerId') {
       return problem('missing-identity', 'ledgerId', issue.message);

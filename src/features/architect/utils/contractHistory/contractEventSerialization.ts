@@ -143,15 +143,14 @@ function readEnvelope(serialized: string): Record<string, unknown> {
  * has been checked field by field at runtime.
  */
 function parsePayload(serialized: string): ContractEventLedgerPayload {
+  // The decoded envelope is handed to the schema whole, never rebuilt from the
+  // fields this module happens to know about. Reconstructing it would drop any
+  // unexpected top-level key before the strict schema could see it, and would
+  // bypass the canonical `payloadVersion` literal — the envelope would be
+  // trusted for exactly the parts nobody checked.
   const envelope = readEnvelope(serialized);
 
-  const parsed = ContractEventLedgerPayloadZ.safeParse({
-    payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
-    ledgerId: envelope.ledgerId,
-    ledgerVersion: envelope.ledgerVersion,
-    events: envelope.events,
-  });
-
+  const parsed = ContractEventLedgerPayloadZ.safeParse(envelope);
   if (!parsed.success) {
     throw new ContractEventLedgerError(
       ledgerProblemsFromPayloadIssues(parsed.error.issues)

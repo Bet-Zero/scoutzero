@@ -475,7 +475,9 @@ describe('BZE-271 canonical runtime schema is the one contract', () => {
     ).not.toThrow();
 
     // Invalid: both absent, a blank string standing in for an identity, or a
-    // non-string value of any kind.
+    // non-string value of any kind. Every value here survives JSON encoding, so
+    // each case really does reach the schema as a wrong-typed value rather than
+    // as an absent key.
     (
       [
         { sourceTransactionId: null, authoringIdentity: null },
@@ -484,14 +486,98 @@ describe('BZE-271 canonical runtime schema is the one contract', () => {
         { sourceTransactionId: true, authoringIdentity: null },
         { sourceTransactionId: null, authoringIdentity: {} },
         { sourceTransactionId: [], authoringIdentity: null },
-        { sourceTransactionId: undefined, authoringIdentity: 'gm' },
+        { sourceTransactionId: 0, authoringIdentity: 'gm' },
+        { sourceTransactionId: 'txn-1', authoringIdentity: 0 },
       ] as Record<string, unknown>[]
     ).forEach((overrides) => {
+      const payload = payloadWith(overrides);
+
+      // Guard the test's own premise: the key must actually be present in the
+      // encoded payload, or the case would be testing omission by accident.
+      const encodedEvent = JSON.parse(payload).events[0];
       expect(
-        () => deserializeContractEventLedger(payloadWith(overrides)),
+        Object.keys(encodedEvent),
+        JSON.stringify(overrides)
+      ).toContain('sourceTransactionId');
+
+      expect(
+        () => deserializeContractEventLedger(payload),
         JSON.stringify(overrides)
       ).toThrow(ContractEventLedgerError);
     });
+  });
+
+  it('rejects an omitted provenance key, distinctly from a wrong-typed one', () => {
+    // `JSON.stringify` drops a key whose value is `undefined`, so an omitted
+    // key and a wrong-typed one are different inputs and are tested separately.
+    (['sourceTransactionId', 'authoringIdentity'] as const).forEach((field) => {
+      const event: Record<string, unknown> = { ...signingEvent() };
+      delete event[field];
+
+      const payload = JSON.stringify({
+        payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
+        ledgerId: LEDGER_ID,
+        ledgerVersion: 1,
+        events: [event],
+      });
+
+      expect(Object.keys(JSON.parse(payload).events[0]), field).not.toContain(
+        field
+      );
+      expect(() => deserializeContractEventLedger(payload), field).toThrow(
+        ContractEventLedgerError
+      );
+      expect(readContractEventLedger(payload).state, field).toBe('invalid');
+    });
+  });
+
+  it('rejects an unexpected key on the envelope itself', () => {
+    // The decoded envelope reaches the strict payload schema whole, so a
+    // top-level key nobody declared is refused rather than quietly dropped.
+    const payload = JSON.parse(
+      serializeContractEventLedger(build(fullLifecycleEvents()))
+    );
+    payload.smuggledCapRoom = 12_345_678;
+
+    const serialized = JSON.stringify(payload);
+    expect(() => deserializeContractEventLedger(serialized)).toThrow(
+      ContractEventLedgerError
+    );
+
+    const read = readContractEventLedger(serialized);
+    expect(read.state).toBe('invalid');
+    expect(read.problems.map((problem) => problem.kind)).toContain(
+      'unsupported-field'
+    );
+    expect(read.problems.map((problem) => problem.at)).toContain('payload');
+    expect(
+      read.problems.map((problem) => problem.detail).join(' ')
+    ).toContain('smuggledCapRoom');
+  });
+
+  it('validates payloadVersion through the canonical literal, not only the envelope check', () => {
+    // Envelope reading rejects a mismatched version as `unreadable-payload`;
+    // the canonical schema's literal is the second, independent guard on the
+    // same field, so neither can be bypassed by editing the other.
+    const withVersion = (payloadVersion: unknown) =>
+      readContractEventLedger(
+        JSON.stringify({
+          payloadVersion,
+          ledgerId: LEDGER_ID,
+          ledgerVersion: 1,
+          events: [],
+        })
+      );
+
+    [2, 0, '1', null, 1.5].forEach((version) => {
+      const read = withVersion(version);
+      expect(read.state, String(version)).toBe('invalid');
+      expect(read.ledger).toBeNull();
+    });
+
+    expect(withVersion(CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION).state).toBe(
+      'valid'
+    );
   });
 
   it('checks the runtime type of every declared field', () => {
