@@ -119,6 +119,25 @@ export interface DatedSalaryLedgerEvaluation {
   };
 }
 
+/**
+ * Request property name that owns each ledger kind. Missing-input paths are
+ * built from this map so a caller can navigate a returned path directly on the
+ * request object. Typing it against the request interface makes the two drift
+ * apart a compile error rather than a silently unnavigable path.
+ */
+const SALARY_LEDGER_REQUEST_KEYS: Record<
+  SalaryLedgerKind,
+  keyof NonNullable<DatedSalaryLedgerRequest['ledgers']>
+> = {
+  'team-salary': 'teamSalary',
+  'apron-team-salary': 'apronTeamSalary',
+  'tax-salary': 'taxSalary',
+};
+
+function ledgerRequestPath(kind: SalaryLedgerKind): string {
+  return `ledgers.${SALARY_LEDGER_REQUEST_KEYS[kind]}`;
+}
+
 const ZONED_ISO_DATE_TIME =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -213,9 +232,10 @@ function validateLineItems<K extends SalaryLedgerKind>(
 ): string[] {
   const missingInputs: string[] = [];
   const seenIds = new Set<string>();
+  const ledgerPath = ledgerRequestPath(kind);
 
   lineItems.forEach((item, index) => {
-    const path = `ledgers.${kind}.lineItems[${index}]`;
+    const path = `${ledgerPath}.lineItems[${index}]`;
     if (!isNonEmptyString(item.id) || seenIds.has(item.id)) {
       missingInputs.push(`${path}.id`);
     } else {
@@ -275,10 +295,12 @@ function evaluateLedger<K extends SalaryLedgerKind>(
   asOfDate: string,
   input: SalaryLedgerInput<K> | undefined
 ): SalaryLedgerResult<K> {
+  const ledgerPath = ledgerRequestPath(kind);
+
   if (!input) {
     return incompleteLedger(
       kind,
-      [`ledgers.${kind}`],
+      [ledgerPath],
       `No ${kind} input was supplied.`
     );
   }
@@ -293,6 +315,17 @@ function evaluateLedger<K extends SalaryLedgerKind>(
       lineItems: [],
       reason: input.reason,
     };
+  }
+
+  // A ready ledger with nothing in it is unevaluated input, not a $0 total.
+  // A real zero must be carried by an evidenced zero-dollar line item so the
+  // amount keeps its own Canon traceability and source authority.
+  if (!Array.isArray(input.lineItems) || input.lineItems.length === 0) {
+    return incompleteLedger(
+      kind,
+      [`${ledgerPath}.lineItems`],
+      `The ${kind} ledger was marked ready with no line items; a zero total must be supplied as an evidenced zero-dollar line item.`
+    );
   }
 
   const missingInputs = validateLineItems(kind, input.lineItems);

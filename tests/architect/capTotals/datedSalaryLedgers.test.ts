@@ -5,6 +5,24 @@ import {
   type SalaryLedgerLineItem,
 } from '@/features/architect/utils/capTotals';
 
+/**
+ * Walk a returned missing-input path against the request it describes. A path
+ * that does not resolve is not an audit trail, so the tests assert navigability
+ * rather than only string equality.
+ */
+function resolvePath(root: unknown, path: string): unknown {
+  return path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .reduce<unknown>(
+      (node, segment) =>
+        node == null
+          ? undefined
+          : (node as Record<string, unknown>)[segment],
+      root
+    );
+}
+
 const CONTEXT = {
   asOfDate: '2026-04-13T12:00:00-04:00',
   salaryCapYear: 2026,
@@ -233,7 +251,7 @@ describe('BZE-268 dated independent salary-ledger spine', () => {
         status: 'needs-input',
         total: null,
         lineItems: [],
-        missingInputs: [`ledgers.team-salary.lineItems[0].${field}`],
+        missingInputs: [`ledgers.teamSalary.lineItems[0].${field}`],
       });
     }
   );
@@ -287,7 +305,7 @@ describe('BZE-268 dated independent salary-ledger spine', () => {
     expect(result.ledgers.apronTeamSalary).toMatchObject({
       status: 'needs-input',
       total: null,
-      missingInputs: ['ledgers.apron-team-salary.lineItems[0].ledger'],
+      missingInputs: ['ledgers.apronTeamSalary.lineItems[0].ledger'],
     });
   });
 
@@ -314,9 +332,7 @@ describe('BZE-268 dated independent salary-ledger spine', () => {
         status: 'needs-input',
         total: null,
         lineItems: [],
-        missingInputs: [
-          'ledgers.team-salary.lineItems[0].source.authority',
-        ],
+        missingInputs: ['ledgers.teamSalary.lineItems[0].source.authority'],
       });
     }
   );
@@ -340,4 +356,110 @@ describe('BZE-268 dated independent salary-ledger spine', () => {
       expect(result.ledgers.teamSalary.status).toBe('complete');
     }
   );
+
+  it('reports missing-input paths that resolve on the actual request object', () => {
+    const request = buildCanonFixture();
+    request.ledgers!.apronTeamSalary = {
+      status: 'ready',
+      lineItems: [
+        {
+          ...excludedPerformanceBonus,
+          label: '',
+        },
+      ],
+    };
+
+    const result = evaluateDatedSalaryLedgers(request);
+    const [missingPath] = (
+      result.ledgers.apronTeamSalary as { missingInputs: string[] }
+    ).missingInputs;
+
+    expect(missingPath).toBe('ledgers.apronTeamSalary.lineItems[0].label');
+    // The path is only useful if a caller can walk it back to the input it names.
+    expect(resolvePath(request, missingPath)).toBe('');
+    expect(resolvePath(request, 'ledgers.apronTeamSalary.lineItems[0].id')).toBe(
+      'apron-excluded-performance-bonus'
+    );
+  });
+
+  it('names the request property, not the ledger kind, for an omitted ledger', () => {
+    const result = evaluateDatedSalaryLedgers({
+      context: CONTEXT,
+      ledgers: { teamSalary: { status: 'ready', lineItems: [teamSalaryBase] } },
+    });
+
+    expect(result.status).toBe('needs-input');
+    expect(result.ledgers.apronTeamSalary).toMatchObject({
+      status: 'needs-input',
+      total: null,
+      missingInputs: ['ledgers.apronTeamSalary'],
+    });
+    expect(result.ledgers.taxSalary).toMatchObject({
+      status: 'needs-input',
+      total: null,
+      missingInputs: ['ledgers.taxSalary'],
+    });
+    expect(resolvePath(CONTEXT, 'salaryCapYear')).toBe(2026);
+  });
+
+  it('refuses to report a ready ledger with no line items as a complete $0', () => {
+    const request = buildCanonFixture();
+    request.ledgers!.taxSalary = { status: 'ready', lineItems: [] };
+
+    const result = evaluateDatedSalaryLedgers(request);
+
+    expect(result.status).toBe('needs-input');
+    expect(result.ledgers.taxSalary).toMatchObject({
+      kind: 'tax-salary',
+      status: 'needs-input',
+      total: null,
+      lineItems: [],
+      missingInputs: ['ledgers.taxSalary.lineItems'],
+    });
+    expect(result.ledgers.taxSalary.total).not.toBe(0);
+    // The other ledgers still evaluate independently.
+    expect(result.ledgers.teamSalary.total).toBe(150_000_000);
+    expect(result.ledgers.apronTeamSalary.total).toBe(151_000_000);
+  });
+
+  it('reports a genuine zero only from an evidenced zero-dollar line item', () => {
+    const request = buildCanonFixture();
+    request.ledgers!.taxSalary = {
+      status: 'ready',
+      lineItems: [
+        {
+          ...taxSalaryBaseline,
+          id: 'tax-evidenced-zero',
+          label: 'Tax Salary baseline evidenced at zero',
+          amount: 0,
+        },
+      ],
+    };
+
+    const result = evaluateDatedSalaryLedgers(request);
+
+    expect(result.status).toBe('complete');
+    expect(result.ledgers.taxSalary).toMatchObject({
+      status: 'complete',
+      total: 0,
+    });
+    expect(result.ledgers.taxSalary.lineItems).toMatchObject([
+      { id: 'tax-evidenced-zero', amount: 0, included: true },
+    ]);
+  });
+
+  it('does not crash or total a ready ledger whose line items are absent', () => {
+    const request = buildCanonFixture();
+    request.ledgers!.teamSalary = {
+      status: 'ready',
+    } as unknown as (typeof request.ledgers)['teamSalary'];
+
+    const result = evaluateDatedSalaryLedgers(request);
+
+    expect(result.ledgers.teamSalary).toMatchObject({
+      status: 'needs-input',
+      total: null,
+      missingInputs: ['ledgers.teamSalary.lineItems'],
+    });
+  });
 });
