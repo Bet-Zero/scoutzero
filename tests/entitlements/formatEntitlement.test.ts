@@ -19,7 +19,7 @@ describe('formatEntitlement', () => {
     it('preserves exact tag mappings, keys, and color classes', () => {
       expect(getEntitlementKindTag('pick_ownership')).toEqual({
         label: 'Own',
-        colorClass: 'bg-green-600/30 text-green-400',
+        colorClass: 'bg-cockpit-safe/20 text-cockpit-safe',
       });
       expect(Object.keys(getEntitlementKindTag('pick_ownership'))).toEqual([
         'label',
@@ -28,22 +28,22 @@ describe('formatEntitlement', () => {
 
       expect(getEntitlementKindTag('conveyance_right')).toEqual({
         label: 'Conditional',
-        colorClass: 'bg-amber-600/30 text-amber-400',
+        colorClass: 'bg-cockpit-watch/20 text-cockpit-watch',
       });
       expect(getEntitlementKindTag('swap_right')).toEqual({
         label: 'Swap Option',
-        colorClass: 'bg-purple-600/30 text-purple-400',
+        colorClass: 'bg-cockpit-info/20 text-cockpit-info',
       });
     });
 
     it('preserves unknown fallback behavior exactly', () => {
       expect(getEntitlementKindTag('mystery_kind')).toEqual({
         label: 'mystery_kind',
-        colorClass: 'bg-gray-600/30 text-gray-400',
+        colorClass: 'bg-cockpit-raised text-cockpit-text-muted',
       });
       expect(getEntitlementKindTag(undefined)).toEqual({
         label: 'Unknown',
-        colorClass: 'bg-gray-600/30 text-gray-400',
+        colorClass: 'bg-cockpit-raised text-cockpit-text-muted',
       });
     });
   });

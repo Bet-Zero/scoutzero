@@ -114,7 +114,15 @@ describe('Salary Margin Utilities', () => {
         },
       };
 
-      expect(getAllowableIncomingMargin(team)).toBe(14_000_000);
+      // Base margin comes from the 2023 CBA Band 2 rule (outgoing + expanded
+      // TPE). For $10,000,000 outgoing the public source's own worked example
+      // gives $19,096,000 allowable incoming, i.e. a $9,096,000 base margin
+      // (2026-27 ETPE). On top of that only the USED buckets are added:
+      //   used TPE:       $3,000,000 (matchIncoming) + $2,000,000 (tpeAmount)
+      //   FA exception:   $1,500,000
+      //   MATCH player:   not added (absorbed by the base band)
+      // 9,096,000 + 5,000,000 + 1,500,000 = 15,596,000
+      expect(getAllowableIncomingMargin(team)).toBe(15_596_000);
     });
   });
 

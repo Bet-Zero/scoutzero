@@ -141,7 +141,7 @@ describe('entitlementWarnings', () => {
     it('preserves exact badge mappings, keys, and color classes', () => {
       expect(getEntitlementKindBadge('pick_ownership')).toEqual({
         label: 'Own',
-        colorClass: 'bg-blue-600/30 text-blue-300',
+        colorClass: 'bg-cockpit-info/20 text-cockpit-info',
       });
       expect(Object.keys(getEntitlementKindBadge('pick_ownership'))).toEqual([
         'label',
@@ -150,22 +150,22 @@ describe('entitlementWarnings', () => {
 
       expect(getEntitlementKindBadge('conveyance_right')).toEqual({
         label: 'Conditional',
-        colorClass: 'bg-purple-600/30 text-purple-300',
+        colorClass: 'bg-cockpit-info/20 text-cockpit-info',
       });
       expect(getEntitlementKindBadge('swap_right')).toEqual({
         label: 'Swap Option',
-        colorClass: 'bg-amber-600/30 text-amber-300',
+        colorClass: 'bg-cockpit-watch/20 text-cockpit-watch',
       });
     });
 
     it('preserves unknown badge fallback behavior exactly', () => {
       expect(getEntitlementKindBadge('mystery_kind')).toEqual({
         label: 'mystery_kind',
-        colorClass: 'bg-white/10 text-white/60',
+        colorClass: 'bg-cockpit-raised text-cockpit-text-secondary',
       });
       expect(getEntitlementKindBadge(undefined)).toEqual({
         label: 'Unknown',
-        colorClass: 'bg-white/10 text-white/60',
+        colorClass: 'bg-cockpit-raised text-cockpit-text-secondary',
       });
     });
   });
