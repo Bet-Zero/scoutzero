@@ -323,6 +323,7 @@ utils/
     index.ts
   capTotals/
     computeTeamCapTotals.ts
+    datedSalaryLedgers.ts
     deadMoneyForYear.ts
     hardCapSnapshotOverlay.ts
     index.ts
@@ -562,5 +563,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-07-12T01:06:12.231Z*
+*Generated on: 2026-08-08T01:38:57.252Z*
 *Auto-updated by: npm run docs*
