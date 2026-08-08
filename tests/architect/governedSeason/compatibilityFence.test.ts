@@ -16,15 +16,35 @@ const GOVERNED_LEDGER_ENTRY = join(
   'src/features/architect/utils/capTotals/governedDatedSalaryLedgers.ts'
 );
 
-function governedSourceFiles(): string[] {
-  return readdirSync(GOVERNED_DIR)
-    .filter((name) => name.endsWith('.ts'))
-    .map((name) => join(GOVERNED_DIR, name))
-    .concat(GOVERNED_LEDGER_ENTRY);
+/**
+ * Every governed source file, walked recursively. A flat `readdirSync` would
+ * skip a nested directory, and a `.ts`-only filter would skip a `.tsx` file, so
+ * either would let a prohibited import land somewhere the fence never reads.
+ */
+function governedSourceFiles(directory: string = GOVERNED_DIR): string[] {
+  const found = readdirSync(directory, { withFileTypes: true }).flatMap(
+    (entry) => {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return governedSourceFiles(path);
+      return /\.tsx?$/.test(entry.name) ? [path] : [];
+    }
+  );
+
+  return directory === GOVERNED_DIR ? [...found, GOVERNED_LEDGER_ENTRY] : found;
 }
 
-function importSpecifiers(source: string): string[] {
-  return [...source.matchAll(/from\s+'([^']+)'/g)].map((match) => match[1]);
+/**
+ * Every static module-specifier form the repository supports. Matching only
+ * single-quoted `from '…'` would let a double-quoted import, a side-effect
+ * import, a dynamic `import()`, or a `require()` walk straight past the fence.
+ */
+export function importSpecifiers(source: string): string[] {
+  return [
+    ...source.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g),
+    ...source.matchAll(/\bimport\s*['"]([^'"]+)['"]/g),
+    ...source.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g),
+    ...source.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g),
+  ].map((match) => match[1]);
 }
 
 /**
@@ -37,10 +57,19 @@ function stripComments(source: string): string {
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
+function fencedImportsIn(source: string): string[] {
+  return importSpecifiers(stripComments(source)).filter((specifier) =>
+    FENCED_LEGACY_MODULE_PATTERNS.some((pattern) => specifier.includes(pattern))
+  );
+}
+
 describe('BZE-270 governed / legacy compatibility fence', () => {
-  it('covers every governed source file', () => {
+  it('walks every governed source file recursively, including the ledger entry', () => {
     const files = governedSourceFiles();
+
     expect(files.length).toBeGreaterThanOrEqual(6);
+    expect(files).toContain(GOVERNED_LEDGER_ENTRY);
+    expect(files).toContain(join(GOVERNED_DIR, 'governedSeasonEnvelope.ts'));
     files.forEach((file) => {
       expect(() => readFileSync(file, 'utf8')).not.toThrow();
     });
@@ -50,17 +79,47 @@ describe('BZE-270 governed / legacy compatibility fence', () => {
     const offenders: string[] = [];
 
     governedSourceFiles().forEach((file) => {
-      const code = stripComments(readFileSync(file, 'utf8'));
-      importSpecifiers(code).forEach((specifier) => {
-        FENCED_LEGACY_MODULE_PATTERNS.forEach((pattern) => {
-          if (specifier.includes(pattern)) {
-            offenders.push(`${file} imports ${specifier}`);
-          }
-        });
+      fencedImportsIn(readFileSync(file, 'utf8')).forEach((specifier) => {
+        offenders.push(`${file} imports ${specifier}`);
       });
     });
 
     expect(offenders).toEqual([]);
+  });
+
+  it('catches every prohibited module form, so the fence cannot fail open', () => {
+    const prohibited = [
+      "import { capProjections } from '../capProjections';",
+      'import { capProjections } from "../capProjections";',
+      "import '../capProjections';",
+      'import "../capProjections";',
+      "const p = await import('../capProjections');",
+      'const p = await import("../capProjections");',
+      "const p = require('../capProjections');",
+      'const p = require("../capProjections");',
+      "export { capProjections } from '@/features/architect/utils/capProjections';",
+      "import { getCapRulesForYear } from '../capRulesProfile/capRulesProfile';",
+      "import { MINIMUM_SALARY_SCALES } from '@/features/architect/data/minimumSalaryScales';",
+      "import { resolveWorldAsOfDate } from '../mutationPipeline.read.utils';",
+      "import { CBA_THRESHOLDS } from '../tradeMachine/constants/cbaConstants';",
+    ];
+
+    prohibited.forEach((form) => {
+      expect(fencedImportsIn(form), `undetected: ${form}`).not.toEqual([]);
+    });
+  });
+
+  it('does not flag a governed or unrelated import', () => {
+    const allowed = [
+      "import { isZonedDateTime } from './governedTime';",
+      "import { describe } from 'vitest';",
+      "import { readFileSync } from 'node:fs';",
+      "import { evaluateDatedSalaryLedgers } from './datedSalaryLedgers';",
+    ];
+
+    allowed.forEach((form) => {
+      expect(fencedImportsIn(form), `false positive: ${form}`).toEqual([]);
+    });
   });
 
   it('never reads the runtime clock or derives a current year', () => {

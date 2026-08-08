@@ -16,6 +16,7 @@
 import {
   isDateOnly,
   isNonEmptyString,
+  isSupportedSalaryCapYear,
   isZonedDateTime,
   salaryCapYearWindow,
 } from './governedTime';
@@ -227,6 +228,13 @@ function validateEffectivePeriod(
   if (Date.parse(effectiveFrom) < Date.parse(window.from)) {
     problems.push(`${at}.effectiveFrom`);
   }
+  // An open-ended record starting after the year's upper boundary would be
+  // keyed to one Salary Cap Year while claiming authority in every later
+  // instant. The resolver rejects it at read time, but construction is where
+  // validation is total, so it is closed here too.
+  if (Date.parse(effectiveFrom) >= Date.parse(window.until)) {
+    problems.push(`${at}.effectiveFrom`);
+  }
   if (
     effectiveUntil != null &&
     Date.parse(effectiveUntil) > Date.parse(window.until)
@@ -250,7 +258,7 @@ function validateSystemLevelRecord(
   if (!GOVERNED_SYSTEM_LEVEL_IDS.some((id) => id === record.levelId)) {
     problems.push(`${at}.levelId`);
   }
-  if (!Number.isInteger(record.salaryCapYear)) {
+  if (!isSupportedSalaryCapYear(record.salaryCapYear)) {
     problems.push(`${at}.salaryCapYear`);
   }
   if (!GOVERNED_AUTHORITIES.some((a) => a === record.authority)) {
@@ -285,7 +293,7 @@ function validateSystemLevelRecord(
   ) {
     problems.push(`${at}.supersedesRecordVersion`);
   }
-  if (Number.isInteger(record.salaryCapYear)) {
+  if (isSupportedSalaryCapYear(record.salaryCapYear)) {
     validateEffectivePeriod(
       at,
       record.effectiveFrom,
@@ -322,7 +330,7 @@ function validateCalendarRecord(
   if (!Number.isInteger(record.recordVersion) || record.recordVersion < 1) {
     problems.push(`${at}.recordVersion`);
   }
-  if (!Number.isInteger(record.salaryCapYear)) {
+  if (!isSupportedSalaryCapYear(record.salaryCapYear)) {
     problems.push(`${at}.salaryCapYear`);
   }
   if (!isNonEmptyString(record.seasonKey)) problems.push(`${at}.seasonKey`);
@@ -370,7 +378,7 @@ function validateCalendarRecord(
   ) {
     problems.push(`${at}.regularSeasonClosing.value`);
   }
-  if (Number.isInteger(record.salaryCapYear)) {
+  if (isSupportedSalaryCapYear(record.salaryCapYear)) {
     validateEffectivePeriod(
       at,
       record.effectiveFrom,
@@ -379,6 +387,49 @@ function validateCalendarRecord(
       problems
     );
   }
+}
+
+/**
+ * Clone-and-freeze helpers.
+ *
+ * `Object.freeze` is shallow, and spreading an array copies element references
+ * rather than the elements. Freezing only the arrays would leave every record
+ * — and every nested date, leaf-id list, and uncertified-field list — writable
+ * through the objects the caller passed in. Because
+ * `CANON_GOVERNED_SEASON_REGISTRY` is a module-level singleton, one such
+ * mutation would change every later resolution and every manifest verification
+ * while the record version, registry version, and Canon hash stayed put. Each
+ * record is therefore copied away from the caller and frozen to its leaves.
+ */
+function freezeSourceRecord(
+  record: GovernedSourceRecord
+): GovernedSourceRecord {
+  return Object.freeze({ ...record });
+}
+
+function freezeSystemLevelRecord(
+  record: GovernedSystemLevelRecord
+): GovernedSystemLevelRecord {
+  return Object.freeze({
+    ...record,
+    canonLeafIds: Object.freeze([...record.canonLeafIds]),
+  });
+}
+
+function freezeCalendarDate(date: GovernedCalendarDate): GovernedCalendarDate {
+  return Object.freeze({ ...date });
+}
+
+function freezeCalendarRecord(
+  record: GovernedSeasonCalendarRecord
+): GovernedSeasonCalendarRecord {
+  return Object.freeze({
+    ...record,
+    regularSeasonOpening: freezeCalendarDate(record.regularSeasonOpening),
+    regularSeasonClosing: freezeCalendarDate(record.regularSeasonClosing),
+    canonLeafIds: Object.freeze([...record.canonLeafIds]),
+    uncertifiedFields: Object.freeze([...record.uncertifiedFields]),
+  });
 }
 
 /**
@@ -407,11 +458,28 @@ export function createGovernedSeasonRegistry(
     validateSourceRecord(record, index, problems)
   );
 
-  const sourceKeys = new Set(
-    sourceRecords.map(
-      (record) => `${record.sourceRecordId}@${record.sourceRecordVersion}`
-    )
-  );
+  // Two source records sharing one `id@version` would collapse into a single
+  // lookup entry while identifying different artifacts, hashes, or provenance.
+  // Governed records citing that key would then validate against an ambiguous
+  // source, which defeats exact-source traceability. Reject before the lookup
+  // is built rather than letting a Set silently pick one.
+  const seenSourceKeys = new Set<string>();
+  const duplicateSourceKeys = new Set<string>();
+  sourceRecords.forEach((record) => {
+    const key = `${record.sourceRecordId}@${record.sourceRecordVersion}`;
+    if (seenSourceKeys.has(key)) {
+      duplicateSourceKeys.add(key);
+      return;
+    }
+    seenSourceKeys.add(key);
+  });
+  duplicateSourceKeys.forEach((key) => {
+    problems.push(
+      `sourceRecords.sourceRecordId (duplicate source key ${key}; one key must identify exactly one artifact)`
+    );
+  });
+
+  const sourceKeys = seenSourceKeys;
 
   const systemLevels = input.systemLevels ?? [];
   const calendars = input.calendars ?? [];
@@ -445,9 +513,9 @@ export function createGovernedSeasonRegistry(
     registryVersion: input.registryVersion,
     canonCandidateCommit: input.canonCandidateCommit,
     canonSha256: input.canonSha256,
-    sourceRecords: Object.freeze([...sourceRecords]),
-    systemLevels: Object.freeze([...systemLevels]),
-    calendars: Object.freeze([...calendars]),
+    sourceRecords: Object.freeze(sourceRecords.map(freezeSourceRecord)),
+    systemLevels: Object.freeze(systemLevels.map(freezeSystemLevelRecord)),
+    calendars: Object.freeze(calendars.map(freezeCalendarRecord)),
     supportedSalaryCapYears: Object.freeze(supportedSalaryCapYears),
   });
 }

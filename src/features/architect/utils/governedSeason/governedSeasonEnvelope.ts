@@ -113,6 +113,15 @@ export interface GovernedRegistryIdentity {
   readonly canonSha256: string;
 }
 
+/**
+ * `sourceField` and `sourceArtifactSha256` are retained alongside the record
+ * and source versions because the governed contract advertises exact source
+ * *artifact and field* identity. Without them a registry could reuse
+ * `SRC2-x@v1` while pointing at a different artifact or quoting a different
+ * field, and an earlier result would still certify as current against inputs it
+ * never consumed. The hash is `null` only when the cited source record itself
+ * declares no artifact hash.
+ */
 export interface GovernedManifestInput {
   readonly levelId: GovernedSystemLevelId;
   readonly amount: number;
@@ -121,6 +130,8 @@ export interface GovernedManifestInput {
   readonly authority: GovernedAuthority;
   readonly sourceRecordId: string;
   readonly sourceRecordVersion: number;
+  readonly sourceField: string;
+  readonly sourceArtifactSha256: string | null;
 }
 
 export interface GovernedManifestCalendar {
@@ -130,6 +141,8 @@ export interface GovernedManifestCalendar {
   readonly seasonKey: string;
   readonly sourceRecordId: string;
   readonly sourceRecordVersion: number;
+  readonly sourceField: string;
+  readonly sourceArtifactSha256: string | null;
 }
 
 /**
@@ -201,6 +214,19 @@ function recordIdentity(
     effectiveUntil: record.effectiveUntil,
     canonLeafIds: Object.freeze([...record.canonLeafIds]),
   });
+}
+
+/** Artifact hash of the source record a governed record cites, if it declares one. */
+function sourceArtifactSha256For(
+  registry: GovernedSeasonRegistry,
+  record: Pick<GovernedRecordIdentity, 'sourceRecordId' | 'sourceRecordVersion'>
+): string | null {
+  const source = registry.sourceRecords.find(
+    (candidate) =>
+      candidate.sourceRecordId === record.sourceRecordId &&
+      candidate.sourceRecordVersion === record.sourceRecordVersion
+  );
+  return source?.artifactSha256 ?? null;
 }
 
 function unavailableLevel(
@@ -516,9 +542,27 @@ export function resolveGovernedSeasonEnvelope(
     }),
   });
 
-  const window = salaryCapYearWindow(salaryCapYear) as SalaryCapYearWindow;
-  const expectedSeasonKey = seasonKeyForSalaryCapYear(salaryCapYear) as string;
+  const window = salaryCapYearWindow(salaryCapYear);
+  const expectedSeasonKey = seasonKeyForSalaryCapYear(salaryCapYear);
   const findings: string[] = [];
+
+  // A Salary Cap Year outside the representable ISO range yields no window and
+  // no season key. Branch on that rather than asserting non-null: the resolver
+  // must fail closed, never dereference null inside its own guard.
+  if (!window || !expectedSeasonKey) {
+    return unavailableEnvelope(
+      registry,
+      requested,
+      Object.freeze({
+        state: 'not-evaluated' as const,
+        salaryCapYearWindow: null,
+        expectedSeasonKey: null,
+        findings: Object.freeze([]),
+      }),
+      `Salary Cap Year ${salaryCapYear} is not a representable Salary Cap Year, so no year window or season key can be derived and no record is consulted.`,
+      Object.freeze(['salaryCapYear'])
+    );
+  }
 
   // Date and Salary Cap Year must reconcile before any record is consulted.
   if (!isWithinSalaryCapYear(asOfDate, salaryCapYear)) {
@@ -576,12 +620,18 @@ export function resolveGovernedSeasonEnvelope(
     );
   });
 
+  // Completeness is decided by the resolution states, never by whether a reason
+  // string happens to be non-empty. Reasons are for reporting only: a future
+  // branch that returned `unavailable` with an empty reason must still make the
+  // envelope unavailable rather than falling through to a null dereference.
   const unavailableReasons: string[] = [];
+  let allResolved = calendar.state === 'available';
   if (calendar.state !== 'available' && calendar.unavailableReason) {
     unavailableReasons.push(calendar.unavailableReason);
   }
   GOVERNED_SYSTEM_LEVEL_IDS.forEach((levelId) => {
     const level = systemLevels[levelId];
+    if (level.state !== 'available') allResolved = false;
     if (level.state !== 'available' && level.unavailableReason) {
       unavailableReasons.push(level.unavailableReason);
     }
@@ -596,8 +646,8 @@ export function resolveGovernedSeasonEnvelope(
     findings: Object.freeze([...findings]),
   });
 
-  if (unavailableReasons.length > 0) {
-    return Object.freeze({
+  const unresolvedEnvelope = (reasons: readonly string[]) =>
+    Object.freeze({
       status: 'unavailable' as const,
       registry: registryIdentity(registry),
       requested,
@@ -605,12 +655,52 @@ export function resolveGovernedSeasonEnvelope(
       calendar,
       systemLevels: Object.freeze(systemLevels),
       missingInputs: Object.freeze([]),
-      unavailableReasons: Object.freeze(unavailableReasons),
+      unavailableReasons: Object.freeze(
+        reasons.length > 0
+          ? [...reasons]
+          : ['One or more governed inputs did not resolve.']
+      ),
       inputManifest: null,
     });
+
+  if (!allResolved) return unresolvedEnvelope(unavailableReasons);
+
+  // Build the manifest from the resolved values themselves. Anything still
+  // absent here means a resolution reported `available` without a record, which
+  // is a contract violation rather than a completed result — so it returns
+  // unavailable instead of being asserted away with a non-null cast.
+  const calendarRecord = calendar.record;
+  const calendarSeasonKey = calendar.seasonKey;
+  const manifestLevels: GovernedManifestInput[] = [];
+
+  for (const levelId of GOVERNED_SYSTEM_LEVEL_IDS) {
+    const level = systemLevels[levelId];
+    if (!level.record || level.amount === null) {
+      return unresolvedEnvelope([
+        `The ${levelId} resolution reported available without a governed record and amount.`,
+      ]);
+    }
+    manifestLevels.push(
+      Object.freeze({
+        levelId,
+        amount: level.amount,
+        recordId: level.record.recordId,
+        recordVersion: level.record.recordVersion,
+        authority: level.record.authority,
+        sourceRecordId: level.record.sourceRecordId,
+        sourceRecordVersion: level.record.sourceRecordVersion,
+        sourceField: level.record.sourceField,
+        sourceArtifactSha256: sourceArtifactSha256For(registry, level.record),
+      })
+    );
   }
 
-  const calendarRecord = calendar.record as GovernedRecordIdentity;
+  if (!calendarRecord || !calendarSeasonKey) {
+    return unresolvedEnvelope([
+      'The season calendar reported available without a governed record and season key.',
+    ]);
+  }
+
   const inputManifest: GovernedInputManifest = Object.freeze({
     manifestVersion: 1 as const,
     registry: registryIdentity(registry),
@@ -622,25 +712,13 @@ export function resolveGovernedSeasonEnvelope(
       recordId: calendarRecord.recordId,
       recordVersion: calendarRecord.recordVersion,
       authority: calendarRecord.authority,
-      seasonKey: calendar.seasonKey as string,
+      seasonKey: calendarSeasonKey,
       sourceRecordId: calendarRecord.sourceRecordId,
       sourceRecordVersion: calendarRecord.sourceRecordVersion,
+      sourceField: calendarRecord.sourceField,
+      sourceArtifactSha256: sourceArtifactSha256For(registry, calendarRecord),
     }),
-    systemLevels: Object.freeze(
-      GOVERNED_SYSTEM_LEVEL_IDS.map((levelId) => {
-        const level = systemLevels[levelId];
-        const record = level.record as GovernedRecordIdentity;
-        return Object.freeze({
-          levelId,
-          amount: level.amount as number,
-          recordId: record.recordId,
-          recordVersion: record.recordVersion,
-          authority: record.authority,
-          sourceRecordId: record.sourceRecordId,
-          sourceRecordVersion: record.sourceRecordVersion,
-        });
-      })
-    ),
+    systemLevels: Object.freeze(manifestLevels),
   });
 
   return Object.freeze({
@@ -659,13 +737,31 @@ export function resolveGovernedSeasonEnvelope(
 export type GovernedManifestVerificationState =
   | 'current'
   | 'superseded'
+  | 'content-mismatch'
   | 'registry-mismatch';
+
+/**
+ * Why one retained input no longer verifies.
+ *
+ * `record-absent`    the exact record id and version is gone from the registry;
+ * `record-superseded` it is still present but no longer current;
+ * `content-changed`  it is still present and current, but its governed content
+ *                    differs from what the result actually consumed — the most
+ *                    serious failure, because the version did not move.
+ */
+export type GovernedManifestDriftKind =
+  | 'record-absent'
+  | 'record-superseded'
+  | 'content-changed';
 
 export interface GovernedManifestDrift {
   readonly inputId: string;
   readonly recordId: string;
   readonly recordVersion: number;
+  readonly kind: GovernedManifestDriftKind;
   readonly reason: string;
+  /** Field names that differ, for `content-changed` only. */
+  readonly changedFields: readonly string[];
 }
 
 export interface GovernedManifestVerification {
@@ -673,11 +769,28 @@ export interface GovernedManifestVerification {
   readonly driftedInputs: readonly GovernedManifestDrift[];
 }
 
+/** Collect field names whose retained value no longer matches the registry. */
+function changedFieldsFor(
+  comparisons: readonly [string, unknown, unknown][]
+): string[] {
+  return comparisons
+    .filter(([, retained, current]) => retained !== current)
+    .map(([field]) => field);
+}
+
 /**
  * Check a retained manifest against a registry without changing the manifest.
- * A source revision that produced newer record versions is reported as drift;
- * the earlier result keeps the values it was computed from
- * (`CBA2-S02.1`, `CBA2-S02.6`).
+ *
+ * Existence and `current` status are not enough. A registry can be rebuilt with
+ * the same record id and version but a different amount, authority, level,
+ * season, or source identity; certifying an old result against that registry
+ * would claim it consumed inputs it never saw. So every retained field is
+ * compared against the matched record, and any difference is reported as
+ * `content-changed` drift — the version did not move, which is why it outranks
+ * a plain supersession.
+ *
+ * The manifest itself is never modified: the earlier result keeps the values it
+ * was computed from (`CBA2-S02.1`, `CBA2-S02.6`).
  */
 export function verifyGovernedInputManifest(
   manifest: GovernedInputManifest,
@@ -705,17 +818,57 @@ export function verifyGovernedInputManifest(
       inputId: 'calendar',
       recordId: manifest.calendar.recordId,
       recordVersion: manifest.calendar.recordVersion,
+      kind: 'record-absent',
       reason:
         'The calendar record version used by this result is not in the registry.',
+      changedFields: Object.freeze([]),
     });
   } else if (calendarRecord.recordStatus !== 'current') {
     drifted.push({
       inputId: 'calendar',
       recordId: calendarRecord.recordId,
       recordVersion: calendarRecord.recordVersion,
+      kind: 'record-superseded',
       reason:
         'The calendar record version used by this result has been superseded.',
+      changedFields: Object.freeze([]),
     });
+  } else {
+    const changedFields = changedFieldsFor([
+      ['authority', manifest.calendar.authority, calendarRecord.authority],
+      ['seasonKey', manifest.calendar.seasonKey, calendarRecord.seasonKey],
+      ['salaryCapYear', manifest.salaryCapYear, calendarRecord.salaryCapYear],
+      [
+        'sourceRecordId',
+        manifest.calendar.sourceRecordId,
+        calendarRecord.sourceRecordId,
+      ],
+      [
+        'sourceRecordVersion',
+        manifest.calendar.sourceRecordVersion,
+        calendarRecord.sourceRecordVersion,
+      ],
+      [
+        'sourceField',
+        manifest.calendar.sourceField,
+        calendarRecord.sourceField,
+      ],
+      [
+        'sourceArtifactSha256',
+        manifest.calendar.sourceArtifactSha256,
+        sourceArtifactSha256For(registry, calendarRecord),
+      ],
+    ]);
+    if (changedFields.length > 0) {
+      drifted.push({
+        inputId: 'calendar',
+        recordId: calendarRecord.recordId,
+        recordVersion: calendarRecord.recordVersion,
+        kind: 'content-changed',
+        reason: `The calendar record kept its version but its governed content changed (${changedFields.join(', ')}).`,
+        changedFields: Object.freeze(changedFields),
+      });
+    }
   }
 
   manifest.systemLevels.forEach((input) => {
@@ -729,8 +882,10 @@ export function verifyGovernedInputManifest(
         inputId: input.levelId,
         recordId: input.recordId,
         recordVersion: input.recordVersion,
+        kind: 'record-absent',
         reason:
           'The record version used by this result is not in the registry.',
+        changedFields: Object.freeze([]),
       });
       return;
     }
@@ -739,15 +894,49 @@ export function verifyGovernedInputManifest(
         inputId: input.levelId,
         recordId: record.recordId,
         recordVersion: record.recordVersion,
+        kind: 'record-superseded',
         reason: 'The record version used by this result has been superseded.',
+        changedFields: Object.freeze([]),
+      });
+      return;
+    }
+
+    const changedFields = changedFieldsFor([
+      ['levelId', input.levelId, record.levelId],
+      ['amount', input.amount, record.amount],
+      ['authority', input.authority, record.authority],
+      ['salaryCapYear', manifest.salaryCapYear, record.salaryCapYear],
+      ['sourceRecordId', input.sourceRecordId, record.sourceRecordId],
+      [
+        'sourceRecordVersion',
+        input.sourceRecordVersion,
+        record.sourceRecordVersion,
+      ],
+      ['sourceField', input.sourceField, record.sourceField],
+      [
+        'sourceArtifactSha256',
+        input.sourceArtifactSha256,
+        sourceArtifactSha256For(registry, record),
+      ],
+    ]);
+    if (changedFields.length > 0) {
+      drifted.push({
+        inputId: input.levelId,
+        recordId: record.recordId,
+        recordVersion: record.recordVersion,
+        kind: 'content-changed',
+        reason: `The ${input.levelId} record kept its version but its governed content changed (${changedFields.join(', ')}).`,
+        changedFields: Object.freeze(changedFields),
       });
     }
   });
 
-  return Object.freeze({
-    state: (drifted.length > 0 ? 'superseded' : 'current') as
-      | 'current'
-      | 'superseded',
-    driftedInputs: Object.freeze(drifted),
-  });
+  const state: GovernedManifestVerificationState =
+    drifted.length === 0
+      ? 'current'
+      : drifted.some((entry) => entry.kind === 'content-changed')
+        ? 'content-mismatch'
+        : 'superseded';
+
+  return Object.freeze({ state, driftedInputs: Object.freeze(drifted) });
 }

@@ -16,7 +16,7 @@
 import {
   isNonEmptyString,
   isZonedDateTime,
-} from '../governedSeason/governedTime';
+} from '@/features/architect/utils/governedSeason';
 
 export const SALARY_LEDGER_KINDS = [
   'team-salary',

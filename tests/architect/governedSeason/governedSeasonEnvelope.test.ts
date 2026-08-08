@@ -19,6 +19,7 @@ import {
   FIXTURE_LEVEL_AMOUNTS,
   FIXTURE_SALARY_CAP_YEAR,
   FIXTURE_SEASON_KEY,
+  FIXTURE_SOURCE_SHA256,
   FIXTURE_TEAM,
   revisedFixtureRegistry,
 } from './governedSeasonFixtures';
@@ -564,6 +565,8 @@ describe('BZE-270 source and version retention', () => {
       seasonKey: FIXTURE_SEASON_KEY,
       sourceRecordId: 'SRC2-TEST-002',
       sourceRecordVersion: 1,
+      sourceField: 'SRC2-TEST-002 test regular-season endpoints',
+      sourceArtifactSha256: FIXTURE_SOURCE_SHA256['SRC2-TEST-002'],
     });
     expect(manifest?.systemLevels.map((level) => level.levelId)).toEqual([
       ...GOVERNED_SYSTEM_LEVEL_IDS,

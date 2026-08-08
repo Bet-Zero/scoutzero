@@ -42,7 +42,14 @@ export const FIXTURE_LEVEL_AMOUNTS: Record<string, number> = {
   'second-apron': 255_000_000,
 };
 
-const FIXTURE_SOURCE_RECORDS: readonly GovernedSourceRecord[] = [
+/** Distinct fake artifact hashes so source-identity drift is observable. */
+export const FIXTURE_SOURCE_SHA256: Record<string, string> = {
+  'SRC2-TEST-001': '11'.repeat(32),
+  'SRC2-TEST-002': '22'.repeat(32),
+  'SRC2-TEST-003': '33'.repeat(32),
+};
+
+export const FIXTURE_SOURCE_RECORDS: readonly GovernedSourceRecord[] = [
   {
     sourceRecordId: 'SRC2-TEST-001',
     sourceRecordVersion: 1,
@@ -50,7 +57,7 @@ const FIXTURE_SOURCE_RECORDS: readonly GovernedSourceRecord[] = [
     identity: 'Test-only official system-level release for 2030-31',
     sourceDateBasis: 'publication:2030-06-30',
     officialUrl: null,
-    artifactSha256: null,
+    artifactSha256: FIXTURE_SOURCE_SHA256['SRC2-TEST-001'],
     artifactByteSize: null,
     retrievalTimestamp: '2030-07-01T00:00:00Z',
     authenticationTimestamp: null,
@@ -68,7 +75,7 @@ const FIXTURE_SOURCE_RECORDS: readonly GovernedSourceRecord[] = [
     identity: 'Test-only official 2030-31 regular-season schedule',
     sourceDateBasis: 'publication:2030-08-14',
     officialUrl: null,
-    artifactSha256: null,
+    artifactSha256: FIXTURE_SOURCE_SHA256['SRC2-TEST-002'],
     artifactByteSize: null,
     retrievalTimestamp: '2030-08-15T00:00:00Z',
     authenticationTimestamp: null,
@@ -86,7 +93,7 @@ const FIXTURE_SOURCE_RECORDS: readonly GovernedSourceRecord[] = [
     identity: 'Test-only revised official system-level release for 2030-31',
     sourceDateBasis: 'publication:2030-09-01',
     officialUrl: null,
-    artifactSha256: null,
+    artifactSha256: FIXTURE_SOURCE_SHA256['SRC2-TEST-003'],
     artifactByteSize: null,
     retrievalTimestamp: '2030-09-01T00:00:00Z',
     authenticationTimestamp: null,
@@ -174,6 +181,72 @@ export function buildFixtureRegistry(
       options.systemLevels ??
       GOVERNED_SYSTEM_LEVEL_IDS.map((levelId) => fixtureLevelRecord(levelId)),
     calendars: options.calendars ?? [fixtureCalendarRecord()],
+  });
+}
+
+/** Strips `readonly` so a test can attempt the mutation the fence must block. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+export interface RetainedFixtureInputs {
+  registry: GovernedSeasonRegistry;
+  sourceRecords: Mutable<GovernedSourceRecord>[];
+  systemLevels: Mutable<GovernedSystemLevelRecord>[];
+  calendars: Mutable<GovernedSeasonCalendarRecord>[];
+}
+
+/**
+ * A complete registry plus the exact objects it was built from, so a test can
+ * mutate the caller-side originals and prove the validated registry is immune.
+ */
+export function fixtureRegistryWithRetainedInputs(): RetainedFixtureInputs {
+  const sourceRecords = FIXTURE_SOURCE_RECORDS.map((record) => ({ ...record }));
+  const systemLevels = GOVERNED_SYSTEM_LEVEL_IDS.map((levelId) =>
+    fixtureLevelRecord(levelId)
+  );
+  const calendars = [fixtureCalendarRecord()];
+
+  const registry = createGovernedSeasonRegistry({
+    registryId: 'test-governed-season-registry',
+    registryVersion: 1,
+    canonCandidateCommit: 'test-fixture-commit',
+    canonSha256: FIXTURE_CANON_SHA256,
+    sourceRecords,
+    systemLevels,
+    calendars,
+  });
+
+  return { registry, sourceRecords, systemLevels, calendars };
+}
+
+/**
+ * A registry rebuilt at the same registry identity and the same record
+ * id/version, but with altered governed content. Nothing about the versioning
+ * signals the change, which is exactly what manifest verification must catch.
+ */
+export function contentAlteredFixtureRegistry(
+  levelId: (typeof GOVERNED_SYSTEM_LEVEL_IDS)[number],
+  overrides: Partial<GovernedSystemLevelRecord>
+): GovernedSeasonRegistry {
+  return buildFixtureRegistry({
+    systemLevels: GOVERNED_SYSTEM_LEVEL_IDS.map((id) =>
+      id === levelId
+        ? fixtureLevelRecord(id, overrides)
+        : fixtureLevelRecord(id)
+    ),
+  });
+}
+
+/** A complete-level registry whose calendar record has been removed outright. */
+export function fixtureRegistryWithoutCalendar(): GovernedSeasonRegistry {
+  return buildFixtureRegistry({ calendars: [] });
+}
+
+/** A registry where the calendar record's content changed under one version. */
+export function calendarAlteredFixtureRegistry(
+  overrides: Partial<GovernedSeasonCalendarRecord>
+): GovernedSeasonRegistry {
+  return buildFixtureRegistry({
+    calendars: [fixtureCalendarRecord(overrides)],
   });
 }
 

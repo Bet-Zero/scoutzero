@@ -26,7 +26,7 @@ import {
   type GovernedSeasonEnvelope,
   type GovernedSeasonRegistry,
   type GovernedTeamContext,
-} from '../governedSeason';
+} from '@/features/architect/utils/governedSeason';
 import {
   evaluateDatedSalaryLedgers,
   type DatedSalaryLedgerEvaluation,
@@ -54,11 +54,11 @@ export interface GovernedDatedSalaryLedgerRequest {
 }
 
 export interface GovernedDatedSalaryLedgerEvaluation {
-  status: SalaryLedgerStatus;
-  envelope: GovernedSeasonEnvelope;
-  ledgers: DatedSalaryLedgerEvaluation['ledgers'];
+  readonly status: SalaryLedgerStatus;
+  readonly envelope: GovernedSeasonEnvelope;
+  readonly ledgers: DatedSalaryLedgerEvaluation['ledgers'];
   /** Present only on a complete result. */
-  governedInputs: GovernedInputManifest | null;
+  readonly governedInputs: GovernedInputManifest | null;
 }
 
 function blockedLedger<K extends SalaryLedgerKind>(
@@ -77,8 +77,14 @@ function blockedLedger<K extends SalaryLedgerKind>(
 }
 
 /**
- * Governed context paths a caller can navigate on the request object, so an
- * unavailable envelope points at the input that has to change.
+ * Identifiers for the inputs that must change before the envelope resolves.
+ *
+ * A `context.*` entry is a path that resolves on the request object. A
+ * `registry.*` entry is a label naming the governed record the registry does
+ * not supply — it is deliberately not a navigable path, because `calendars` and
+ * `systemLevels` are arrays, so `registry.systemLevels.tax-level` would read
+ * `undefined`. Callers walking these strings must only walk the `context.*`
+ * ones.
  */
 function envelopeMissingInputPaths(envelope: GovernedSeasonEnvelope): string[] {
   if (envelope.missingInputs.length > 0) {

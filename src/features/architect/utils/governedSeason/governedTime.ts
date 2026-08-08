@@ -93,15 +93,40 @@ export interface SalaryCapYearWindow {
 }
 
 /**
+ * A Salary Cap Year is representable only when both it and the prior calendar
+ * year are four-digit ISO years, because every date primitive here parses
+ * `\d{4}` calendar strings. Outside this range the boundary strings become
+ * unparseable and `Date.parse` yields `NaN`, which silently answers `false` to
+ * every comparison — a validator reading that as "no violation" would accept a
+ * record it never actually checked. Rejecting the year at the single place both
+ * the resolver and the record validator derive from keeps that fail-closed.
+ */
+const MIN_SALARY_CAP_YEAR = 1001;
+const MAX_SALARY_CAP_YEAR = 9999;
+
+/** True only for a Salary Cap Year that yields valid ISO year boundaries. */
+export function isSupportedSalaryCapYear(salaryCapYear: unknown): boolean {
+  return (
+    typeof salaryCapYear === 'number' &&
+    Number.isInteger(salaryCapYear) &&
+    salaryCapYear >= MIN_SALARY_CAP_YEAR &&
+    salaryCapYear <= MAX_SALARY_CAP_YEAR
+  );
+}
+
+/**
  * Boundaries of a Salary Cap Year identified by its end year, e.g. 2026 for
  * the 2025-26 Salary Cap Year. The Canon fixes the year on a July 1 to June 30
  * period (Moratorium opens July 1 of the Salary Cap Year per `CBA2-L03.15`;
  * stretch and post-season windows close June 30 per `CBA2-R04.2`).
+ *
+ * Returns `null` for any year that cannot produce valid ISO boundaries; every
+ * caller must branch on that rather than assume a window exists.
  */
 export function salaryCapYearWindow(
   salaryCapYear: number
 ): SalaryCapYearWindow | null {
-  if (!Number.isInteger(salaryCapYear)) return null;
+  if (!isSupportedSalaryCapYear(salaryCapYear)) return null;
 
   return {
     from: `${salaryCapYear - 1}-07-01T00:00:00${SALARY_CAP_YEAR_BOUNDARY_OFFSET}`,
@@ -132,7 +157,9 @@ export function isDateOnlyWithinSalaryCapYear(
   value: string,
   salaryCapYear: number
 ): boolean {
-  if (!isDateOnly(value)) return false;
+  if (!isDateOnly(value) || !isSupportedSalaryCapYear(salaryCapYear)) {
+    return false;
+  }
 
   return (
     value >= `${salaryCapYear - 1}-07-01` && value <= `${salaryCapYear}-06-30`
@@ -143,7 +170,7 @@ export function isDateOnlyWithinSalaryCapYear(
 export function seasonKeyForSalaryCapYear(
   salaryCapYear: number
 ): string | null {
-  if (!Number.isInteger(salaryCapYear)) return null;
+  if (!isSupportedSalaryCapYear(salaryCapYear)) return null;
 
   return `${salaryCapYear - 1}-${String(salaryCapYear % 100).padStart(2, '0')}`;
 }

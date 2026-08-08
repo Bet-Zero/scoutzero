@@ -27,12 +27,17 @@ Every resolved value retains:
 | Retained | Where |
 |---|---|
 | Official vs projected authority | `record.authority`, `manifest.requiredAuthority` |
-| Exact source artifact | `record.sourceRecordId` + `sourceRecordVersion` |
-| Exact source field identity | `record.sourceField` |
+| Exact source artifact | `record.sourceRecordId` + `sourceRecordVersion`, and `manifest.*.sourceArtifactSha256` |
+| Exact source field identity | `record.sourceField`, and `manifest.*.sourceField` |
 | Record version | `record.recordVersion` |
 | Effective period | `record.effectiveFrom` / `effectiveUntil` |
 | Availability state | `available` / `unavailable` / `unresolved-conflict` |
 | Canon traceability | `record.canonLeafIds` |
+
+The manifest keeps the source field and artifact hash, not just the source
+version, so a registry that reuses `SRC2-x@v1` while pointing at a different
+artifact or quoting a different field cannot certify an earlier result as
+current.
 
 ## 2. Rules the resolver enforces
 
@@ -51,7 +56,15 @@ Every resolved value retains:
 6. A source revision appends a new versioned record; the earlier evaluated
    result keeps the values and record versions it was computed from. Verifying
    an old manifest against a revised registry reports drift instead of
-   rewriting the result.
+   rewriting the result. Drift is reported per input as `record-absent`,
+   `record-superseded`, or `content-changed`; the last means the record kept
+   its version while its governed content moved, which is why it outranks a
+   plain supersession in the overall verification state.
+7. Registry construction clones and deeply freezes every record and nested
+   object, so a caller that retains the input objects cannot alter a validated
+   registry — including the `CANON_GOVERNED_SEASON_REGISTRY` singleton.
+8. One `sourceRecordId@sourceRecordVersion` must identify exactly one artifact;
+   a duplicate key is rejected at construction rather than silently collapsed.
 
 ## 3. What the accepted evidence actually covers
 
