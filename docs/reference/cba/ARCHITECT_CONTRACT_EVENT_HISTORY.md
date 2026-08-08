@@ -148,12 +148,18 @@ history layer has no authority to pick a winner or invent a missing link.
    must have been produced. Two events succeeding the same version is a fork.
    Two events producing the same version is a competing-current-version
    conflict.
-9. **One contract, one subject.** All events of a contract must agree on the
+9. **Every current event reachable from the signing.** A cycle, or a run of
+   events detached from the origin, is a `broken-chain` refusal naming the
+   events that cannot be replayed. This is checked separately because each
+   version in such a run is produced once and consumed once, so none of the
+   gap, fork, or competing-version rules fires — the history is unreplayable
+   even though every local rule holds.
+10. **One contract, one subject.** All events of a contract must agree on the
    player and the team.
-10. **Unambiguous ordering.** Effective instants must strictly increase along
+11. **Unambiguous ordering.** Effective instants must strictly increase along
     the chain. A decrease is invalid chronology; a tie is ambiguous ordering,
     because no single contract version could be projected at that instant.
-11. **Deep immutability.** Events are cloned away from the caller and frozen to
+12. **Deep immutability.** Events are cloned away from the caller and frozen to
     their leaves, so a retained caller reference cannot alter a validated ledger
     or an earlier projection. Appending produces a new ledger at the next
     version and re-validates the whole history; the original object is untouched.

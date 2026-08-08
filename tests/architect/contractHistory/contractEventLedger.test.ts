@@ -14,6 +14,7 @@ import {
   isContractEventKind,
   reviseContractEvent,
   validateContractEventLedger,
+  walkChain,
   type ContractEventKind,
   type ContractEventRecord,
   type LifecycleLedgerProblemKind,
@@ -365,6 +366,81 @@ describe('BZE-271 chain integrity', () => {
       [signingEvent(), makeEvent({ teamId: 'team-LAL' })],
       'duplicate-identity'
     );
+  });
+
+  it('rejects current events unreachable from the signing', () => {
+    // Each version below is produced once and consumed once, so no gap, fork,
+    // or competing-version check fires — yet evt-B and evt-C form a run
+    // detached from the signing and could never be replayed. Reporting nothing
+    // here is how such a ledger used to validate.
+    const events = [
+      signingEvent(),
+      makeEvent({
+        eventId: 'evt-B',
+        predecessorContractVersion: 3,
+        predecessorEventId: 'evt-C',
+        resultingContractVersion: 4,
+        executedAt: '2026-09-01T15:00:00Z',
+        effectiveAt: '2026-09-01T15:00:00Z',
+        recordedAt: '2026-09-01T15:00:00Z',
+      }),
+      makeEvent({
+        eventId: 'evt-C',
+        predecessorContractVersion: 4,
+        predecessorEventId: 'evt-B',
+        resultingContractVersion: 3,
+        executedAt: '2026-10-01T15:00:00Z',
+        effectiveAt: '2026-10-01T15:00:00Z',
+        recordedAt: '2026-10-01T15:00:00Z',
+      }),
+    ];
+
+    expectRejected(events, 'broken-chain');
+
+    const unreachable = validateContractEventLedger({
+      ledgerId: LEDGER_ID,
+      ledgerVersion: 1,
+      events,
+    }).problems.find(
+      (problem) =>
+        problem.kind === 'broken-chain' &&
+        problem.detail.includes('cannot be replayed')
+    );
+    // The reported ids are frozen, so they are copied before sorting.
+    expect([...(unreachable?.eventIds ?? [])].sort()).toEqual([
+      'evt-B@v1',
+      'evt-C@v1',
+    ]);
+  });
+
+  it('rejects a chain that loops back on itself', () => {
+    // The signing produces v1, the amendment consumes v1 and produces v2, and
+    // the third event consumes v2 and produces v1 again — a cycle reachable
+    // from the root, which must terminate the walk and be reported.
+    const events = [
+      signingEvent(),
+      makeEvent({ eventId: 'evt-002', resultingContractVersion: 2 }),
+      makeEvent({
+        eventId: 'evt-003',
+        predecessorContractVersion: 2,
+        predecessorEventId: 'evt-002',
+        resultingContractVersion: 1,
+        executedAt: '2026-09-01T15:00:00Z',
+        effectiveAt: '2026-09-01T15:00:00Z',
+        recordedAt: '2026-09-01T15:00:00Z',
+      }),
+    ];
+
+    // Producing v1 twice is also a competing-version conflict; both are true
+    // and both must be reported rather than one masking the other.
+    const kinds = problemKinds(events);
+    expect(kinds).toContain('competing-current-version');
+    expect(() => build(events)).toThrow(ContractEventLedgerError);
+  });
+
+  it('accepts a fully reachable chain, so the check is not over-broad', () => {
+    expect(build(fullLifecycleEvents()).events).toHaveLength(9);
+    expect(walkChain(build(fullLifecycleEvents()).events)).toHaveLength(9);
   });
 
   it('keeps separate contracts and separate worlds independent', () => {

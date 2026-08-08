@@ -709,8 +709,40 @@ function validateContractChain(
   // Ordering along the chain. Walking the chain rather than sorting by
   // timestamp is what makes the order deterministic; the timestamp check then
   // proves the chain order and the effective order agree.
-  const chain = walkChain(events);
-  if (!chain) return;
+  const walk = walkFromRoot(events);
+
+  // No single signing — already reported above as a missing or duplicated
+  // origin, so re-reporting here would double-count.
+  if (!walk) return;
+
+  // A walk that did not reach every current event is a defect in its own right.
+  // Returning quietly here is how a cycle, or a run of events detached from the
+  // signing, reached an accepted ledger: each individual version was produced
+  // and consumed exactly once, so none of the gap, fork, or competing-version
+  // checks above fired, yet the history could never be replayed.
+  if (walk.cyclic || walk.unreachable.length > 0) {
+    problems.push(
+      problem(
+        'broken-chain',
+        `${at}.predecessorContractVersion`,
+        walk.cyclic
+          ? `Contract ${contractKey} has a cycle in its event chain, so its history has no end; ${
+              walk.unreachable.length
+            } event(s) cannot be replayed (${walk.unreachable
+              .map(eventKey)
+              .join(', ')}).`
+          : `Contract ${contractKey} has ${
+              walk.unreachable.length
+            } current event(s) that cannot be reached from its signing (${walk.unreachable
+              .map(eventKey)
+              .join(', ')}); the history cannot be replayed as one line.`,
+        walk.unreachable.map(eventKey)
+      )
+    );
+    return;
+  }
+
+  const chain = walk.reached;
 
   chain.forEach((event, position) => {
     const prior = chain[position - 1];
@@ -752,9 +784,25 @@ function validateContractChain(
  * the chain cannot be walked — those shapes are already reported by the
  * structural checks above, and re-reporting them here would double-count.
  */
-export function walkChain(
-  events: readonly ContractEventRecord[]
-): ContractEventRecord[] | null {
+interface ChainWalk {
+  /** Events reachable from the root, in chain order. */
+  readonly reached: readonly ContractEventRecord[];
+  /** True when the walk stopped because it re-entered an event. */
+  readonly cyclic: boolean;
+  /** Current events the walk never reached. */
+  readonly unreachable: readonly ContractEventRecord[];
+}
+
+/**
+ * Walk one contract's current events from its signing, reporting what the walk
+ * could and could not reach.
+ *
+ * This returns the partial result rather than just failing, because "the chain
+ * did not walk" is itself a defect that has to be reported with the events
+ * involved — silently returning nothing is how an unreachable event slips into
+ * an accepted ledger.
+ */
+function walkFromRoot(events: readonly ContractEventRecord[]): ChainWalk | null {
   const roots = events.filter(
     (event) => event.eventKind === CONTRACT_ROOT_EVENT_KIND
   );
@@ -767,24 +815,44 @@ export function walkChain(
     bySuccessor.set(event.predecessorContractVersion, event);
   });
 
-  const chain: ContractEventRecord[] = [roots[0]];
+  const reached: ContractEventRecord[] = [roots[0]];
   const visited = new Set<string>([eventKey(roots[0])]);
+  let cyclic = false;
 
   for (;;) {
-    const last = chain[chain.length - 1];
+    const last = reached[reached.length - 1];
     const next = bySuccessor.get(last.resultingContractVersion);
     if (!next) break;
-    // A cycle would otherwise loop forever. Cycles are impossible once the
-    // effective-instant check passes, but the walk must terminate before that
-    // check can run, so it guards itself.
-    if (visited.has(eventKey(next))) return null;
+    // A cycle would otherwise loop forever, so the walk guards itself and
+    // records that it stopped for this reason rather than for a clean end.
+    if (visited.has(eventKey(next))) {
+      cyclic = true;
+      break;
+    }
     visited.add(eventKey(next));
-    chain.push(next);
+    reached.push(next);
   }
 
-  // Every current event must be reachable from the root. An unreachable event
-  // means a gap or fork the caller must fix, already reported above.
-  return chain.length === events.length ? chain : null;
+  return {
+    reached,
+    cyclic,
+    unreachable: events.filter((event) => !visited.has(eventKey(event))),
+  };
+}
+
+/**
+ * The complete chain of one contract's current events, root first, or `null`
+ * when the history cannot be replayed as one line — no single signing, a cycle,
+ * or an event unreachable from the signing. Construction reports every one of
+ * those as a problem, so a validated ledger always walks.
+ */
+export function walkChain(
+  events: readonly ContractEventRecord[]
+): ContractEventRecord[] | null {
+  const walk = walkFromRoot(events);
+  if (!walk || walk.cyclic || walk.unreachable.length > 0) return null;
+
+  return [...walk.reached];
 }
 
 /**
