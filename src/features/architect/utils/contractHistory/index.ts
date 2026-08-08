@@ -17,20 +17,21 @@ export {
   effectiveTime,
   eventKey,
   isContractEventKind,
+  reviseContractEvent,
   validateContractEventLedger,
   walkChain,
 } from './contractEventRecords';
 export type {
-  ContractEventKind,
-  ContractEventLedger,
-  ContractEventLedgerInput,
-  ContractEventRecord,
-  ContractEventStatus,
-  ContractEventSubject,
-  ContractLedgerProblem,
-  ContractLedgerProblemKind,
-  ContractLedgerValidation,
-  ContractLedgerValidationState,
+  LifecycleEventKind,
+  LifecycleEventLedger,
+  LifecycleEventLedgerInput,
+  LifecycleEventRecord,
+  LifecycleEventStatus,
+  LifecycleEventSubject,
+  LifecycleLedgerProblem,
+  LifecycleLedgerProblemKind,
+  LifecycleLedgerValidation,
+  LifecycleLedgerValidationState,
 } from './contractEventRecords';
 
 export {
@@ -38,15 +39,15 @@ export {
   verifyContractProjectionManifest,
 } from './contractStateProjection';
 export type {
-  ContractLedgerIdentity,
-  ContractManifestDrift,
-  ContractManifestDriftKind,
-  ContractManifestVerification,
-  ContractProjectionEvent,
-  ContractProjectionManifest,
-  ContractProjectionState,
-  ContractStateProjection,
-  ContractStateProjectionRequest,
+  LifecycleLedgerIdentity,
+  LifecycleManifestDrift,
+  LifecycleManifestDriftKind,
+  LifecycleManifestVerification,
+  LifecycleProjectionEvent,
+  LifecycleProjectionManifest,
+  LifecycleProjectionState,
+  LifecycleStateProjection,
+  LifecycleProjectionRequest,
 } from './contractStateProjection';
 
 export {
@@ -57,7 +58,7 @@ export {
   serializeContractEventLedger,
   toContractEventLedgerPayload,
 } from './contractEventSerialization';
-export type { ContractEventLedgerPayload } from './contractEventSerialization';
+export type { LifecycleEventLedgerPayload } from './contractEventSerialization';
 
 export {
   ALLOWED_GOVERNED_HISTORY_IMPORT,

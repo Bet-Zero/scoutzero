@@ -8,9 +8,10 @@ import {
   appendContractEvents,
   createContractEventLedger,
   projectContractStateAsOf,
+  reviseContractEvent,
   verifyContractProjectionManifest,
-  type ContractEventLedger,
-  type ContractEventRecord,
+  type LifecycleEventLedger,
+  type LifecycleEventRecord,
 } from '@/features/architect/utils/contractHistory';
 import {
   AS_OF_BEFORE_SIGNING,
@@ -27,7 +28,7 @@ import {
   WORLD_ID,
 } from './contractHistoryFixtures';
 
-function build(events: readonly ContractEventRecord[]): ContractEventLedger {
+function build(events: readonly LifecycleEventRecord[]): LifecycleEventLedger {
   return createContractEventLedger({
     ledgerId: LEDGER_ID,
     ledgerVersion: 1,
@@ -35,7 +36,7 @@ function build(events: readonly ContractEventRecord[]): ContractEventLedger {
   });
 }
 
-function projectAt(ledger: ContractEventLedger, asOfDate: string) {
+function projectAt(ledger: LifecycleEventLedger, asOfDate: string) {
   return projectContractStateAsOf({
     ledger,
     worldId: WORLD_ID,
@@ -464,6 +465,92 @@ describe('BZE-271 an earlier projection survives later history', () => {
     expect(drifted.state).toBe('drifted');
     expect(drifted.drift.map((entry) => entry.kind)).toEqual(['history-extended']);
     expect(earlier.contractVersion).toBe(1);
+  });
+
+  it('survives an append-only revision, keeping the version it consumed', () => {
+    const original = build(twoEventChain());
+    const earlier = projectAt(original, AS_OF_LATE);
+
+    const revised = reviseContractEvent(
+      original,
+      makeEvent({
+        eventVersion: 2,
+        recordStatus: 'current',
+        supersedesEventVersion: 1,
+        executedAt: '2026-08-01T15:00:00Z',
+        effectiveAt: '2026-08-03T15:00:00Z',
+        recordedAt: '2026-09-01T15:00:00Z',
+      })
+    );
+
+    expect(earlier.contractVersion).toBe(2);
+    expect(earlier.manifest?.consumedEvents[1].eventVersion).toBe(1);
+    expect(earlier.manifest?.consumedEvents[1].effectiveAt).toBe(
+      '2026-08-01T15:00:00Z'
+    );
+
+    // The revised ledger projects the revised effective instant.
+    expect(projectAt(revised, '2026-08-02T00:00:00Z').contractVersion).toBe(1);
+    expect(projectAt(revised, '2026-08-04T00:00:00Z').contractVersion).toBe(2);
+
+    const drifted = verifyContractProjectionManifest(earlier.manifest, revised);
+    expect(drifted.state).toBe('drifted');
+    expect(drifted.drift.map((entry) => entry.kind)).toContain(
+      'event-superseded'
+    );
+  });
+
+  it('reports every retained field that moved under an unchanged identity', () => {
+    const original = build(twoEventChain());
+    const manifest = projectAt(original, AS_OF_LATE).manifest;
+
+    // Same ledger identity, same event identity, different retained content.
+    const forged = createContractEventLedger({
+      ledgerId: LEDGER_ID,
+      ledgerVersion: 1,
+      events: [
+        signingEvent(),
+        makeEvent({
+          eventKind: 'conversion',
+          executedAt: '2026-08-05T15:00:00Z',
+          effectiveAt: '2026-08-06T15:00:00Z',
+          recordedAt: '2026-08-07T15:00:00Z',
+          sourceTransactionId: null,
+          authoringIdentity: 'gm-console',
+        }),
+      ],
+    });
+
+    const drifted = verifyContractProjectionManifest(manifest, forged);
+    expect(drifted.state).toBe('drifted');
+    const changed = drifted.drift.find(
+      (entry) => entry.kind === 'event-content-changed'
+    );
+    expect(changed).toBeDefined();
+    [
+      'eventKind',
+      'executedAt',
+      'effectiveAt',
+      'recordedAt',
+      'sourceTransactionId',
+      'authoringIdentity',
+    ].forEach((field) => {
+      expect(changed?.detail, field).toContain(field);
+    });
+  });
+
+  it('is not comparable against a different ledger identity', () => {
+    const manifest = projectAt(build(twoEventChain()), AS_OF_LATE).manifest;
+    const otherLedger = createContractEventLedger({
+      ledgerId: 'ledger-somewhere-else',
+      ledgerVersion: 1,
+      events: twoEventChain(),
+    });
+
+    expect(verifyContractProjectionManifest(manifest, otherLedger)).toEqual({
+      state: 'not-comparable',
+      drift: [],
+    });
   });
 
   it('is not comparable without both a manifest and a ledger', () => {

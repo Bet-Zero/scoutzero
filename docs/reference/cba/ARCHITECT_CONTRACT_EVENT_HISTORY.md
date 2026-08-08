@@ -108,6 +108,13 @@ history layer has no authority to pick a winner or invent a missing link.
    that marks the prior one `superseded`. Two `current` versions, zero current
    versions, a revision superseding a version the ledger does not hold, or a
    revision recorded before the version it replaces are all rejected.
+   `reviseContractEvent` is the door for this, because the new version arriving
+   and the old one ceasing to be current have to happen together — appending a
+   `current` v2 beside a `current` v1 is precisely the conflict rule 8 rejects.
+   It re-emits the prior version as a **new** frozen record carrying
+   `superseded` inside a new ledger version; the ledger passed in keeps its
+   records untouched, so a projection already taken from it still reports the
+   version it consumed.
 7. **One origin.** Exactly one `signing` per contract. A signing names no
    predecessor; every other kind must name both a predecessor contract version
    and the event that produced it, and the two must agree.
@@ -165,7 +172,11 @@ history it never saw.
 
 `verifyContractProjectionManifest` compares an earlier manifest against a
 current ledger and reports drift (`event-absent`, `event-superseded`,
-`event-content-changed`, `history-extended`) instead of rewriting anything.
+`event-content-changed`, `history-extended`) instead of rewriting anything. It
+compares **every** retained field, not a chosen few, and returns
+`not-comparable` when the manifest and the ledger are not the same ledger — a
+cross-ledger comparison would flag every event as absent and read as drift when
+the truth is that the two cannot be compared.
 
 ### Money is not an input
 

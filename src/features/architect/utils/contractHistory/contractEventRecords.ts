@@ -58,11 +58,11 @@ export const CONTRACT_EVENT_KINDS = [
   'renegotiation',
 ] as const;
 
-export type ContractEventKind = (typeof CONTRACT_EVENT_KINDS)[number];
+export type LifecycleEventKind = (typeof CONTRACT_EVENT_KINDS)[number];
 
 /** Lifecycle family each event kind belongs to, as the Canon names them. */
 export const CONTRACT_EVENT_FAMILIES: Readonly<
-  Record<ContractEventKind, string>
+  Record<LifecycleEventKind, string>
 > = Object.freeze({
   signing: 'signing',
   amendment: 'amendment',
@@ -79,12 +79,12 @@ export const CONTRACT_EVENT_FAMILIES: Readonly<
  * Only a signing opens a contract's history. Every other kind transforms a
  * contract version that already exists, so it must name a predecessor.
  */
-export const CONTRACT_ROOT_EVENT_KIND: ContractEventKind = 'signing';
+export const CONTRACT_ROOT_EVENT_KIND: LifecycleEventKind = 'signing';
 
-export type ContractEventStatus = 'current' | 'superseded';
+export type LifecycleEventStatus = 'current' | 'superseded';
 
 /** Identity of the world, contract, player, and team an event belongs to. */
-export interface ContractEventSubject {
+export interface LifecycleEventSubject {
   readonly worldId: string;
   readonly contractId: string;
   readonly playerId: string;
@@ -106,10 +106,10 @@ export interface ContractEventSubject {
  * but written later; without it, an append-only revision would look like a
  * chronology violation.
  */
-export interface ContractEventRecord {
+export interface LifecycleEventRecord {
   readonly eventId: string;
   readonly eventVersion: number;
-  readonly eventKind: ContractEventKind;
+  readonly eventKind: LifecycleEventKind;
   readonly worldId: string;
   readonly contractId: string;
   readonly playerId: string;
@@ -127,22 +127,22 @@ export interface ContractEventRecord {
   readonly sourceTransactionId: string | null;
   /** Author of record, when no source transaction is available. */
   readonly authoringIdentity: string | null;
-  readonly recordStatus: ContractEventStatus;
+  readonly recordStatus: LifecycleEventStatus;
   /** Prior `eventVersion` this record supersedes. `null` on a first version. */
   readonly supersedesEventVersion: number | null;
   readonly canonLeafIds: readonly string[];
 }
 
-export interface ContractEventLedger {
+export interface LifecycleEventLedger {
   readonly ledgerId: string;
   readonly ledgerVersion: number;
-  readonly events: readonly ContractEventRecord[];
+  readonly events: readonly LifecycleEventRecord[];
 }
 
-export interface ContractEventLedgerInput {
+export interface LifecycleEventLedgerInput {
   ledgerId: string;
   ledgerVersion: number;
-  events?: readonly ContractEventRecord[];
+  events?: readonly LifecycleEventRecord[];
 }
 
 /**
@@ -150,7 +150,7 @@ export interface ContractEventLedgerInput {
  * resolved: the history layer has no authority to pick a winner between two
  * competing versions or to invent a missing link.
  */
-export type ContractLedgerProblemKind =
+export type LifecycleLedgerProblemKind =
   | 'missing-identity'
   | 'missing-version'
   | 'unsupported-event-kind'
@@ -163,8 +163,8 @@ export type ContractLedgerProblemKind =
   | 'ambiguous-ordering'
   | 'missing-provenance';
 
-export interface ContractLedgerProblem {
-  readonly kind: ContractLedgerProblemKind;
+export interface LifecycleLedgerProblem {
+  readonly kind: LifecycleLedgerProblemKind;
   /** Where the problem was found, e.g. `events[3].effectiveAt`. */
   readonly at: string;
   readonly detail: string;
@@ -173,9 +173,9 @@ export interface ContractLedgerProblem {
 }
 
 export class ContractEventLedgerError extends Error {
-  readonly problems: readonly ContractLedgerProblem[];
+  readonly problems: readonly LifecycleLedgerProblem[];
 
-  constructor(problems: readonly ContractLedgerProblem[]) {
+  constructor(problems: readonly LifecycleLedgerProblem[]) {
     super(
       `Invalid contract event ledger: ${problems
         .map((problem) => `${problem.kind} at ${problem.at}`)
@@ -186,7 +186,7 @@ export class ContractEventLedgerError extends Error {
   }
 }
 
-function freezeProblem(problem: ContractLedgerProblem): ContractLedgerProblem {
+function freezeProblem(problem: LifecycleLedgerProblem): LifecycleLedgerProblem {
   return Object.freeze({
     ...problem,
     eventIds: Object.freeze([...problem.eventIds]),
@@ -195,21 +195,21 @@ function freezeProblem(problem: ContractLedgerProblem): ContractLedgerProblem {
 
 /** Stable `eventId@vN` label used everywhere an event is named in a report. */
 export function eventKey(
-  event: Pick<ContractEventRecord, 'eventId' | 'eventVersion'>
+  event: Pick<LifecycleEventRecord, 'eventId' | 'eventVersion'>
 ): string {
   return `${event.eventId}@v${event.eventVersion}`;
 }
 
-export function isContractEventKind(value: unknown): value is ContractEventKind {
+export function isContractEventKind(value: unknown): value is LifecycleEventKind {
   return CONTRACT_EVENT_KINDS.some((kind) => kind === value);
 }
 
 function problem(
-  kind: ContractLedgerProblemKind,
+  kind: LifecycleLedgerProblemKind,
   at: string,
   detail: string,
   eventIds: readonly string[] = []
-): ContractLedgerProblem {
+): LifecycleLedgerProblem {
   return { kind, at, detail, eventIds };
 }
 
@@ -221,9 +221,9 @@ function problem(
  * rather than reporting cascading failures against fields they cannot trust.
  */
 function validateEventShape(
-  event: ContractEventRecord,
+  event: LifecycleEventRecord,
   index: number,
-  problems: ContractLedgerProblem[]
+  problems: LifecycleLedgerProblem[]
 ): boolean {
   const at = `events[${index}]`;
   const before = problems.length;
@@ -430,8 +430,8 @@ function validateEventShape(
 
 /** Reject two records sharing one `eventId@version`. */
 function validateUniqueIdentities(
-  events: readonly ContractEventRecord[],
-  problems: ContractLedgerProblem[]
+  events: readonly LifecycleEventRecord[],
+  problems: LifecycleLedgerProblem[]
 ): void {
   const seen = new Map<string, number>();
 
@@ -458,10 +458,10 @@ function validateUniqueIdentities(
  * version, and each later version recorded no earlier than the one before it.
  */
 function validateSupersession(
-  events: readonly ContractEventRecord[],
-  problems: ContractLedgerProblem[]
+  events: readonly LifecycleEventRecord[],
+  problems: LifecycleLedgerProblem[]
 ): void {
-  const byEventId = new Map<string, ContractEventRecord[]>();
+  const byEventId = new Map<string, LifecycleEventRecord[]>();
   events.forEach((event) => {
     const versions = byEventId.get(event.eventId) ?? [];
     versions.push(event);
@@ -569,9 +569,9 @@ function validateSupersession(
 
 /** Events of one contract inside one world, current versions only. */
 function currentEventsByContract(
-  events: readonly ContractEventRecord[]
-): Map<string, ContractEventRecord[]> {
-  const byContract = new Map<string, ContractEventRecord[]>();
+  events: readonly LifecycleEventRecord[]
+): Map<string, LifecycleEventRecord[]> {
+  const byContract = new Map<string, LifecycleEventRecord[]>();
 
   events
     .filter((event) => event.recordStatus === 'current')
@@ -592,8 +592,8 @@ function currentEventsByContract(
  */
 function validateContractChain(
   contractKey: string,
-  events: readonly ContractEventRecord[],
-  problems: ContractLedgerProblem[]
+  events: readonly LifecycleEventRecord[],
+  problems: LifecycleLedgerProblem[]
 ): void {
   const at = `events.${contractKey}`;
 
@@ -651,7 +651,7 @@ function validateContractChain(
     );
   }
 
-  const producers = new Map<number, ContractEventRecord[]>();
+  const producers = new Map<number, LifecycleEventRecord[]>();
   events.forEach((event) => {
     const sharing = producers.get(event.resultingContractVersion) ?? [];
     sharing.push(event);
@@ -670,7 +670,7 @@ function validateContractChain(
     }
   });
 
-  const consumers = new Map<number, ContractEventRecord[]>();
+  const consumers = new Map<number, LifecycleEventRecord[]>();
   events.forEach((event) => {
     if (event.predecessorContractVersion == null) return;
     const sharing = consumers.get(event.predecessorContractVersion) ?? [];
@@ -783,21 +783,21 @@ function validateContractChain(
  * structural checks above, and re-reporting them here would double-count.
  */
 export function walkChain(
-  events: readonly ContractEventRecord[]
-): ContractEventRecord[] | null {
+  events: readonly LifecycleEventRecord[]
+): LifecycleEventRecord[] | null {
   const roots = events.filter(
     (event) => event.eventKind === CONTRACT_ROOT_EVENT_KIND
   );
   if (roots.length !== 1) return null;
 
-  const bySuccessor = new Map<number, ContractEventRecord>();
+  const bySuccessor = new Map<number, LifecycleEventRecord>();
   events.forEach((event) => {
     if (event.predecessorContractVersion == null) return;
     if (bySuccessor.has(event.predecessorContractVersion)) return;
     bySuccessor.set(event.predecessorContractVersion, event);
   });
 
-  const chain: ContractEventRecord[] = [roots[0]];
+  const chain: LifecycleEventRecord[] = [roots[0]];
   const visited = new Set<string>([eventKey(roots[0])]);
 
   for (;;) {
@@ -825,7 +825,7 @@ export function walkChain(
  * would change a validated ledger and every projection already taken from it,
  * while the ledger version and event versions stayed put.
  */
-function freezeEvent(event: ContractEventRecord): ContractEventRecord {
+function freezeEvent(event: LifecycleEventRecord): LifecycleEventRecord {
   return Object.freeze({
     eventId: event.eventId,
     eventVersion: event.eventVersion,
@@ -858,9 +858,9 @@ function freezeEvent(event: ContractEventRecord): ContractEventRecord {
  * a rule the history layer has no authority to apply.
  */
 export function createContractEventLedger(
-  input: ContractEventLedgerInput
-): ContractEventLedger {
-  const problems: ContractLedgerProblem[] = [];
+  input: LifecycleEventLedgerInput
+): LifecycleEventLedger {
+  const problems: LifecycleLedgerProblem[] = [];
 
   if (!isNonEmptyString(input?.ledgerId)) {
     problems.push(
@@ -908,13 +908,13 @@ export function createContractEventLedger(
   });
 }
 
-export type ContractLedgerValidationState = 'valid' | 'invalid';
+export type LifecycleLedgerValidationState = 'valid' | 'invalid';
 
-export interface ContractLedgerValidation {
-  readonly state: ContractLedgerValidationState;
+export interface LifecycleLedgerValidation {
+  readonly state: LifecycleLedgerValidationState;
   /** The validated ledger, or `null` when validation failed. */
-  readonly ledger: ContractEventLedger | null;
-  readonly problems: readonly ContractLedgerProblem[];
+  readonly ledger: LifecycleEventLedger | null;
+  readonly problems: readonly LifecycleLedgerProblem[];
 }
 
 /**
@@ -927,8 +927,8 @@ export interface ContractLedgerValidation {
  * validation, so neither is a laxer door into the ledger.
  */
 export function validateContractEventLedger(
-  input: ContractEventLedgerInput
-): ContractLedgerValidation {
+  input: LifecycleEventLedgerInput
+): LifecycleLedgerValidation {
   try {
     return Object.freeze({
       state: 'valid' as const,
@@ -955,9 +955,9 @@ export function validateContractEventLedger(
  * is what makes an earlier projection taken from it still true.
  */
 export function appendContractEvents(
-  ledger: ContractEventLedger,
-  events: readonly ContractEventRecord[]
-): ContractEventLedger {
+  ledger: LifecycleEventLedger,
+  events: readonly LifecycleEventRecord[]
+): LifecycleEventLedger {
   return createContractEventLedger({
     ledgerId: ledger.ledgerId,
     ledgerVersion: ledger.ledgerVersion + 1,
@@ -965,7 +965,111 @@ export function appendContractEvents(
   });
 }
 
+/**
+ * Record a corrected version of an event that is already in the ledger.
+ *
+ * Supersession needs two things to happen together: the new version arrives and
+ * the version it replaces stops being current. `appendContractEvents` cannot
+ * express that on its own — appending a `current` v2 beside a `current` v1 is
+ * exactly the competing-current-version conflict the ledger rejects — so
+ * revision has its own door.
+ *
+ * Nothing is mutated. The prior version is re-emitted as a new frozen record
+ * carrying `superseded`, inside a new ledger at the next version. The ledger
+ * passed in keeps its records exactly as they were, so a projection or manifest
+ * already taken from it stays true and still reports the version it consumed.
+ *
+ * The revision must name an event that has a current version, must carry a
+ * higher `eventVersion`, and must declare that version in
+ * `supersedesEventVersion`. Anything else is refused rather than guessed at.
+ */
+export function reviseContractEvent(
+  ledger: LifecycleEventLedger,
+  revision: LifecycleEventRecord
+): LifecycleEventLedger {
+  const problems: LifecycleLedgerProblem[] = [];
+
+  if (!isNonEmptyString(revision?.eventId)) {
+    problems.push(
+      problem(
+        'missing-identity',
+        'revision.eventId',
+        'A revision must name the event it revises.'
+      )
+    );
+  }
+
+  const priorCurrent = ledger.events.find(
+    (event) =>
+      event.eventId === revision?.eventId && event.recordStatus === 'current'
+  );
+
+  if (!priorCurrent) {
+    problems.push(
+      problem(
+        'broken-chain',
+        'revision.eventId',
+        `Event ${String(
+          revision?.eventId
+        )} has no current version in ledger ${ledger.ledgerId}@v${
+          ledger.ledgerVersion
+        }; there is nothing to revise.`
+      )
+    );
+  } else {
+    if (
+      !Number.isInteger(revision.eventVersion) ||
+      revision.eventVersion <= priorCurrent.eventVersion
+    ) {
+      problems.push(
+        problem(
+          'missing-version',
+          'revision.eventVersion',
+          `A revision of ${eventKey(
+            priorCurrent
+          )} must carry a higher event version.`,
+          [eventKey(priorCurrent)]
+        )
+      );
+    }
+    if (revision.supersedesEventVersion !== priorCurrent.eventVersion) {
+      problems.push(
+        problem(
+          'missing-version',
+          'revision.supersedesEventVersion',
+          `A revision must declare that it supersedes version ${priorCurrent.eventVersion}.`,
+          [eventKey(priorCurrent)]
+        )
+      );
+    }
+    if (revision.recordStatus !== 'current') {
+      problems.push(
+        problem(
+          'competing-current-version',
+          'revision.recordStatus',
+          'A revision becomes the current version and must be recorded as current.'
+        )
+      );
+    }
+  }
+
+  if (problems.length > 0) throw new ContractEventLedgerError(problems);
+
+  return createContractEventLedger({
+    ledgerId: ledger.ledgerId,
+    ledgerVersion: ledger.ledgerVersion + 1,
+    events: [
+      ...ledger.events.map((event) =>
+        event === priorCurrent
+          ? { ...event, recordStatus: 'superseded' as const }
+          : event
+      ),
+      revision,
+    ],
+  });
+}
+
 /** Epoch milliseconds of an event's effective instant. */
-export function effectiveTime(event: ContractEventRecord): number {
+export function effectiveTime(event: LifecycleEventRecord): number {
   return parseZonedDateTime(event.effectiveAt) ?? Number.NaN;
 }

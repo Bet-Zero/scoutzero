@@ -39,12 +39,12 @@ import {
   effectiveTime,
   eventKey,
   walkChain,
-  type ContractEventKind,
-  type ContractEventLedger,
-  type ContractEventRecord,
+  type LifecycleEventKind,
+  type LifecycleEventLedger,
+  type LifecycleEventRecord,
 } from './contractEventRecords';
 
-export type ContractProjectionState =
+export type LifecycleProjectionState =
   /** History replayed; a contract version existed at the requested instant. */
   | 'projected'
   /** History exists, but nothing was effective yet at the requested instant. */
@@ -53,10 +53,10 @@ export type ContractProjectionState =
   | 'unavailable';
 
 /** One event exactly as a projection consumed it. */
-export interface ContractProjectionEvent {
+export interface LifecycleProjectionEvent {
   readonly eventId: string;
   readonly eventVersion: number;
-  readonly eventKind: ContractEventKind;
+  readonly eventKind: LifecycleEventKind;
   readonly executedAt: string;
   readonly effectiveAt: string;
   readonly recordedAt: string;
@@ -66,7 +66,7 @@ export interface ContractProjectionEvent {
   readonly authoringIdentity: string | null;
 }
 
-export interface ContractLedgerIdentity {
+export interface LifecycleLedgerIdentity {
   readonly ledgerId: string;
   readonly ledgerVersion: number;
 }
@@ -79,9 +79,9 @@ export interface ContractLedgerIdentity {
  * version. Without the version an earlier projection would appear to have been
  * computed from the corrected history it never saw.
  */
-export interface ContractProjectionManifest {
+export interface LifecycleProjectionManifest {
   readonly manifestVersion: 1;
-  readonly ledger: ContractLedgerIdentity;
+  readonly ledger: LifecycleLedgerIdentity;
   readonly worldId: string;
   readonly contractId: string;
   readonly playerId: string;
@@ -89,13 +89,13 @@ export interface ContractProjectionManifest {
   readonly asOfDate: string;
   readonly salaryCapYear: number;
   readonly seasonKey: string;
-  readonly consumedEvents: readonly ContractProjectionEvent[];
+  readonly consumedEvents: readonly LifecycleProjectionEvent[];
   readonly resultingContractVersion: number | null;
 }
 
-export interface ContractStateProjection {
-  readonly state: ContractProjectionState;
-  readonly ledger: ContractLedgerIdentity;
+export interface LifecycleStateProjection {
+  readonly state: LifecycleProjectionState;
+  readonly ledger: LifecycleLedgerIdentity;
   readonly worldId: string | null;
   readonly contractId: string | null;
   readonly playerId: string | null;
@@ -105,19 +105,19 @@ export interface ContractStateProjection {
   /** Contract version in force at `asOfDate`, or `null` when none was. */
   readonly contractVersion: number | null;
   /** The event that produced `contractVersion`, or `null` when none did. */
-  readonly effectiveEvent: ContractProjectionEvent | null;
+  readonly effectiveEvent: LifecycleProjectionEvent | null;
   /** Chain-ordered events effective at or before `asOfDate`. */
-  readonly consumedEvents: readonly ContractProjectionEvent[];
+  readonly consumedEvents: readonly LifecycleProjectionEvent[];
   /** Chain-ordered events not yet effective at `asOfDate`. */
-  readonly futureEvents: readonly ContractProjectionEvent[];
+  readonly futureEvents: readonly LifecycleProjectionEvent[];
   readonly missingInputs: readonly string[];
   readonly unavailableReasons: readonly string[];
   /** Present only on a `projected` result. */
-  readonly manifest: ContractProjectionManifest | null;
+  readonly manifest: LifecycleProjectionManifest | null;
 }
 
-export interface ContractStateProjectionRequest {
-  ledger?: ContractEventLedger | null;
+export interface LifecycleProjectionRequest {
+  ledger?: LifecycleEventLedger | null;
   worldId?: string | null;
   contractId?: string | null;
   /** ISO-8601 instant with an explicit `Z` or UTC offset. Required. */
@@ -126,12 +126,12 @@ export interface ContractStateProjectionRequest {
   salaryCapYear?: number | null;
 }
 
-const EMPTY_LEDGER_IDENTITY: ContractLedgerIdentity = Object.freeze({
+const EMPTY_LEDGER_IDENTITY: LifecycleLedgerIdentity = Object.freeze({
   ledgerId: '',
   ledgerVersion: 0,
 });
 
-function ledgerIdentity(ledger: ContractEventLedger): ContractLedgerIdentity {
+function ledgerIdentity(ledger: LifecycleEventLedger): LifecycleLedgerIdentity {
   return Object.freeze({
     ledgerId: ledger.ledgerId,
     ledgerVersion: ledger.ledgerVersion,
@@ -139,8 +139,8 @@ function ledgerIdentity(ledger: ContractEventLedger): ContractLedgerIdentity {
 }
 
 function projectionEvent(
-  event: ContractEventRecord
-): ContractProjectionEvent {
+  event: LifecycleEventRecord
+): LifecycleProjectionEvent {
   return Object.freeze({
     eventId: event.eventId,
     eventVersion: event.eventVersion,
@@ -156,11 +156,11 @@ function projectionEvent(
 }
 
 function unavailable(
-  ledger: ContractLedgerIdentity,
-  request: ContractStateProjectionRequest,
+  ledger: LifecycleLedgerIdentity,
+  request: LifecycleProjectionRequest,
   missingInputs: readonly string[],
   reasons: readonly string[]
-): ContractStateProjection {
+): LifecycleStateProjection {
   return Object.freeze({
     state: 'unavailable' as const,
     ledger,
@@ -193,8 +193,8 @@ function unavailable(
  * would mean inventing a time.
  */
 export function projectContractStateAsOf(
-  request: ContractStateProjectionRequest = {}
-): ContractStateProjection {
+  request: LifecycleProjectionRequest = {}
+): LifecycleStateProjection {
   const missingInputs: string[] = [];
   const reasons: string[] = [];
 
@@ -262,7 +262,7 @@ export function projectContractStateAsOf(
     );
   }
 
-  const forContract = (ledger as ContractEventLedger).events.filter(
+  const forContract = (ledger as LifecycleEventLedger).events.filter(
     (event) =>
       event.recordStatus === 'current' &&
       event.worldId === worldId &&
@@ -330,7 +330,7 @@ export function projectContractStateAsOf(
 
   const effective = consumed[consumed.length - 1];
 
-  const manifest: ContractProjectionManifest = Object.freeze({
+  const manifest: LifecycleProjectionManifest = Object.freeze({
     manifestVersion: 1 as const,
     ledger: identity,
     worldId,
@@ -372,28 +372,44 @@ export function projectContractStateAsOf(
  * has been revised, `absent` when one is no longer current, and `extended` when
  * the history has grown past what the manifest consumed.
  */
-export type ContractManifestDriftKind =
+export type LifecycleManifestDriftKind =
   | 'event-absent'
   | 'event-superseded'
   | 'event-content-changed'
   | 'history-extended';
 
-export interface ContractManifestDrift {
-  readonly kind: ContractManifestDriftKind;
+export interface LifecycleManifestDrift {
+  readonly kind: LifecycleManifestDriftKind;
   readonly eventId: string;
   readonly eventVersion: number;
   readonly detail: string;
 }
 
-export interface ContractManifestVerification {
+export interface LifecycleManifestVerification {
   readonly state: 'unchanged' | 'drifted' | 'not-comparable';
-  readonly drift: readonly ContractManifestDrift[];
+  readonly drift: readonly LifecycleManifestDrift[];
 }
 
+/**
+ * Every field a projection retains about an event. Drift compares all of them,
+ * not a chosen few: a manifest certifies the whole record it consumed, so any
+ * retained field moving under an unchanged identity is drift.
+ */
+const PROJECTION_EVENT_FIELDS = [
+  'eventKind',
+  'executedAt',
+  'effectiveAt',
+  'recordedAt',
+  'predecessorContractVersion',
+  'resultingContractVersion',
+  'sourceTransactionId',
+  'authoringIdentity',
+] as const;
+
 export function verifyContractProjectionManifest(
-  manifest: ContractProjectionManifest | null,
-  ledger: ContractEventLedger | null
-): ContractManifestVerification {
+  manifest: LifecycleProjectionManifest | null,
+  ledger: LifecycleEventLedger | null
+): LifecycleManifestVerification {
   if (!manifest || !ledger) {
     return Object.freeze({
       state: 'not-comparable' as const,
@@ -401,7 +417,17 @@ export function verifyContractProjectionManifest(
     });
   }
 
-  const drift: ContractManifestDrift[] = [];
+  // A manifest can only be verified against the ledger it was taken from.
+  // Comparing it to a different ledger would report every event as absent and
+  // read as drift, when the truth is that the two are not comparable at all.
+  if (manifest.ledger.ledgerId !== ledger.ledgerId) {
+    return Object.freeze({
+      state: 'not-comparable' as const,
+      drift: Object.freeze([]),
+    });
+  }
+
+  const drift: LifecycleManifestDrift[] = [];
 
   manifest.consumedEvents.forEach((consumed) => {
     const sameId = ledger.events.filter(
@@ -440,19 +466,19 @@ export function verifyContractProjectionManifest(
     // Same identity, changed content. Immutability makes this unreachable
     // through the constructor, so reaching it means the ledger was rebuilt from
     // altered input under an identity it already used.
-    if (
-      exact.effectiveAt !== consumed.effectiveAt ||
-      exact.executedAt !== consumed.executedAt ||
-      exact.resultingContractVersion !== consumed.resultingContractVersion ||
-      exact.eventKind !== consumed.eventKind
-    ) {
+    const changed = PROJECTION_EVENT_FIELDS.filter(
+      (field) => exact[field] !== consumed[field]
+    );
+    if (changed.length > 0) {
       drift.push({
         kind: 'event-content-changed',
         eventId: consumed.eventId,
         eventVersion: consumed.eventVersion,
         detail: `${eventKey(
           exact
-        )} keeps its identity but no longer matches the content the manifest consumed.`,
+        )} keeps its identity but no longer matches the content the manifest consumed (${changed.join(
+          ', '
+        )}).`,
       });
     }
   });

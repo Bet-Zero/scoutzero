@@ -20,19 +20,19 @@
 import {
   createContractEventLedger,
   validateContractEventLedger,
-  type ContractEventLedger,
-  type ContractEventRecord,
-  type ContractLedgerValidation,
+  type LifecycleEventLedger,
+  type LifecycleEventRecord,
+  type LifecycleLedgerValidation,
 } from './contractEventRecords';
 
 /** Bump only for a format change that older payloads cannot satisfy. */
 export const CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION = 1;
 
-export interface ContractEventLedgerPayload {
+export interface LifecycleEventLedgerPayload {
   readonly payloadVersion: number;
   readonly ledgerId: string;
   readonly ledgerVersion: number;
-  readonly events: readonly ContractEventRecord[];
+  readonly events: readonly LifecycleEventRecord[];
 }
 
 export class ContractEventLedgerPayloadError extends Error {
@@ -50,8 +50,8 @@ export class ContractEventLedgerPayloadError extends Error {
  * already deterministic: the constructor sorts on construction.
  */
 export function toContractEventLedgerPayload(
-  ledger: ContractEventLedger
-): ContractEventLedgerPayload {
+  ledger: LifecycleEventLedger
+): LifecycleEventLedgerPayload {
   return {
     payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
     ledgerId: ledger.ledgerId,
@@ -80,12 +80,12 @@ export function toContractEventLedgerPayload(
 }
 
 export function serializeContractEventLedger(
-  ledger: ContractEventLedger
+  ledger: LifecycleEventLedger
 ): string {
   return JSON.stringify(toContractEventLedgerPayload(ledger));
 }
 
-function readPayload(serialized: string): ContractEventLedgerPayload {
+function readPayload(serialized: string): LifecycleEventLedgerPayload {
   if (typeof serialized !== 'string' || serialized.trim().length === 0) {
     throw new ContractEventLedgerPayloadError('payload is empty');
   }
@@ -101,7 +101,7 @@ function readPayload(serialized: string): ContractEventLedgerPayload {
     throw new ContractEventLedgerPayloadError('payload is not an object');
   }
 
-  const payload = parsed as Partial<ContractEventLedgerPayload>;
+  const payload = parsed as Partial<LifecycleEventLedgerPayload>;
 
   // A payload written by a newer format could carry fields this build drops on
   // read, which would be silent loss rather than a round-trip. Refuse instead.
@@ -116,7 +116,7 @@ function readPayload(serialized: string): ContractEventLedgerPayload {
     throw new ContractEventLedgerPayloadError('payload has no events array');
   }
 
-  return payload as ContractEventLedgerPayload;
+  return payload as LifecycleEventLedgerPayload;
 }
 
 /**
@@ -129,7 +129,7 @@ function readPayload(serialized: string): ContractEventLedgerPayload {
  */
 export function deserializeContractEventLedger(
   serialized: string
-): ContractEventLedger {
+): LifecycleEventLedger {
   const payload = readPayload(serialized);
 
   return createContractEventLedger({
@@ -145,8 +145,8 @@ export function deserializeContractEventLedger(
  */
 export function readContractEventLedger(
   serialized: string
-): ContractLedgerValidation {
-  let payload: ContractEventLedgerPayload;
+): LifecycleLedgerValidation {
+  let payload: LifecycleEventLedgerPayload;
   try {
     payload = readPayload(serialized);
   } catch (error) {

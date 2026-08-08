@@ -15,8 +15,8 @@ import {
   serializeContractEventLedger,
   toContractEventLedgerPayload,
   verifyContractProjectionManifest,
-  type ContractEventLedger,
-  type ContractEventRecord,
+  type LifecycleEventLedger,
+  type LifecycleEventRecord,
 } from '@/features/architect/utils/contractHistory';
 import {
   AS_OF_LATE,
@@ -29,7 +29,7 @@ import {
   WORLD_ID,
 } from './contractHistoryFixtures';
 
-function build(events: readonly ContractEventRecord[]): ContractEventLedger {
+function build(events: readonly LifecycleEventRecord[]): LifecycleEventLedger {
   return createContractEventLedger({
     ledgerId: LEDGER_ID,
     ledgerVersion: 3,
@@ -37,7 +37,7 @@ function build(events: readonly ContractEventRecord[]): ContractEventLedger {
   });
 }
 
-function projectAt(ledger: ContractEventLedger, asOfDate: string) {
+function projectAt(ledger: LifecycleEventLedger, asOfDate: string) {
   return projectContractStateAsOf({
     ledger,
     worldId: WORLD_ID,
@@ -48,7 +48,7 @@ function projectAt(ledger: ContractEventLedger, asOfDate: string) {
 }
 
 /** History with a revised event, so supersession has to survive the trip too. */
-function revisedHistory(): ContractEventRecord[] {
+function revisedHistory(): LifecycleEventRecord[] {
   return [
     ...fullLifecycleEvents().filter((event) => event.eventId !== 'evt-002'),
     makeEvent({
@@ -239,7 +239,7 @@ describe('BZE-271 payload reading fails closed', () => {
       serializeContractEventLedger(build(fullLifecycleEvents()))
     );
     payload.events = payload.events.filter(
-      (event: ContractEventRecord) => event.eventId !== 'evt-005'
+      (event: LifecycleEventRecord) => event.eventId !== 'evt-005'
     );
 
     expect(() =>
@@ -256,6 +256,56 @@ describe('BZE-271 payload reading fails closed', () => {
     expect(() =>
       deserializeContractEventLedger(JSON.stringify(payload))
     ).toThrow(ContractEventLedgerError);
+  });
+
+  it('validates every payload event at runtime, not just at the type level', () => {
+    // The payload is untrusted JSON, so each element gets the same total
+    // field validation an in-memory event does. Nothing is trusted because
+    // TypeScript was told it is a record.
+    const garbage: unknown[] = [
+      null,
+      'a string',
+      42,
+      [],
+      {},
+      { eventId: 'evt-x' },
+      { ...signingEvent(), eventKind: 'buyout' },
+      { ...signingEvent(), effectiveAt: 12345 },
+      { ...signingEvent(), canonLeafIds: 'CBA2-L02.1' },
+      { ...signingEvent(), eventVersion: '1' },
+    ];
+
+    garbage.forEach((event) => {
+      const payload = JSON.stringify({
+        payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
+        ledgerId: LEDGER_ID,
+        ledgerVersion: 1,
+        events: [event],
+      });
+
+      expect(
+        () => deserializeContractEventLedger(payload),
+        JSON.stringify(event)
+      ).toThrow(ContractEventLedgerError);
+
+      const read = readContractEventLedger(payload);
+      expect(read.state, JSON.stringify(event)).toBe('invalid');
+      expect(read.ledger).toBeNull();
+      expect(read.problems.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('drops no field on a round-trip, so a restored event deep-equals the original', () => {
+    const ledger = build(revisedHistory());
+    const restored = deserializeContractEventLedger(
+      serializeContractEventLedger(ledger)
+    );
+
+    restored.events.forEach((event, index) => {
+      expect(Object.keys(event).sort()).toEqual(
+        Object.keys(ledger.events[index]).sort()
+      );
+    });
   });
 
   it('reports payload problems as data through the non-throwing reader', () => {

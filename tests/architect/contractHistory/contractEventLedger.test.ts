@@ -12,10 +12,11 @@ import {
   createContractEventLedger,
   eventKey,
   isContractEventKind,
+  reviseContractEvent,
   validateContractEventLedger,
-  type ContractEventKind,
-  type ContractEventRecord,
-  type ContractLedgerProblemKind,
+  type LifecycleEventKind,
+  type LifecycleEventRecord,
+  type LifecycleLedgerProblemKind,
 } from '@/features/architect/utils/contractHistory';
 import {
   CONTRACT_ID,
@@ -28,7 +29,7 @@ import {
   WORLD_ID,
 } from './contractHistoryFixtures';
 
-function build(events: readonly ContractEventRecord[]) {
+function build(events: readonly LifecycleEventRecord[]) {
   return createContractEventLedger({
     ledgerId: LEDGER_ID,
     ledgerVersion: 1,
@@ -36,7 +37,7 @@ function build(events: readonly ContractEventRecord[]) {
   });
 }
 
-function problemKinds(events: readonly ContractEventRecord[]) {
+function problemKinds(events: readonly LifecycleEventRecord[]) {
   const validation = validateContractEventLedger({
     ledgerId: LEDGER_ID,
     ledgerVersion: 1,
@@ -48,8 +49,8 @@ function problemKinds(events: readonly ContractEventRecord[]) {
 }
 
 function expectRejected(
-  events: readonly ContractEventRecord[],
-  kind: ContractLedgerProblemKind
+  events: readonly LifecycleEventRecord[],
+  kind: LifecycleLedgerProblemKind
 ) {
   expect(() => build(events)).toThrow(ContractEventLedgerError);
   expect(problemKinds(events)).toContain(kind);
@@ -105,9 +106,9 @@ describe('BZE-271 contract event kinds', () => {
     expect(isContractEventKind('signing')).toBe(true);
     expect(isContractEventKind('buyout')).toBe(false);
 
-    const unsupported: ContractEventRecord = {
+    const unsupported: LifecycleEventRecord = {
       ...makeEvent(),
-      eventKind: 'buyout' as ContractEventKind,
+      eventKind: 'buyout' as LifecycleEventKind,
     };
     expectRejected([signingEvent(), unsupported], 'unsupported-event-kind');
   });
@@ -146,7 +147,7 @@ describe('BZE-271 retained identity and context', () => {
     ['teamId'],
     ['eventId'],
   ] as const)('rejects a blank %s', (field) => {
-    const broken: ContractEventRecord = { ...makeEvent(), [field]: '  ' };
+    const broken: LifecycleEventRecord = { ...makeEvent(), [field]: '  ' };
     expectRejected([signingEvent(), broken], 'missing-identity');
   });
 
@@ -603,6 +604,134 @@ describe('BZE-271 append-only history', () => {
   });
 });
 
+describe('BZE-271 append-only revision', () => {
+  it('supersedes the prior version and leaves the earlier ledger untouched', () => {
+    const first = build(twoEventChain());
+    const revised = reviseContractEvent(
+      first,
+      makeEvent({
+        eventVersion: 2,
+        recordStatus: 'current',
+        supersedesEventVersion: 1,
+        executedAt: '2026-08-01T15:00:00Z',
+        effectiveAt: '2026-08-03T15:00:00Z',
+        recordedAt: '2026-09-01T15:00:00Z',
+      })
+    );
+
+    // The earlier ledger still holds v1 as current.
+    expect(first.ledgerVersion).toBe(1);
+    expect(first.events).toHaveLength(2);
+    expect(
+      first.events.find((event) => event.eventId === 'evt-002')?.recordStatus
+    ).toBe('current');
+
+    // The new ledger holds v1 superseded and v2 current.
+    expect(revised.ledgerVersion).toBe(2);
+    expect(
+      revised.events
+        .filter((event) => event.eventId === 'evt-002')
+        .map((event) => [event.eventVersion, event.recordStatus])
+    ).toEqual([
+      [1, 'superseded'],
+      [2, 'current'],
+    ]);
+  });
+
+  it('preserves the superseded version content rather than editing it', () => {
+    const first = build(twoEventChain());
+    const original = first.events.find((event) => event.eventId === 'evt-002');
+    const revised = reviseContractEvent(
+      first,
+      makeEvent({
+        eventVersion: 2,
+        supersedesEventVersion: 1,
+        executedAt: '2026-08-01T15:00:00Z',
+        effectiveAt: '2026-08-03T15:00:00Z',
+        recordedAt: '2026-09-01T15:00:00Z',
+      })
+    );
+    const superseded = revised.events.find(
+      (event) => event.eventId === 'evt-002' && event.eventVersion === 1
+    );
+
+    expect(superseded?.effectiveAt).toBe(original?.effectiveAt);
+    expect(superseded?.executedAt).toBe(original?.executedAt);
+    expect(superseded?.resultingContractVersion).toBe(
+      original?.resultingContractVersion
+    );
+    expect(superseded).not.toBe(original);
+    expect(Object.isFrozen(superseded)).toBe(true);
+  });
+
+  it('refuses to revise an event with no current version', () => {
+    const first = build(twoEventChain());
+
+    expect(() =>
+      reviseContractEvent(
+        first,
+        makeEvent({ eventId: 'evt-ghost', eventVersion: 2, supersedesEventVersion: 1 })
+      )
+    ).toThrow(ContractEventLedgerError);
+  });
+
+  it('refuses a revision that does not raise the event version', () => {
+    const first = build(twoEventChain());
+
+    expect(() =>
+      reviseContractEvent(
+        first,
+        makeEvent({ eventVersion: 1, supersedesEventVersion: 1 })
+      )
+    ).toThrow(ContractEventLedgerError);
+  });
+
+  it('refuses a revision that does not declare what it supersedes', () => {
+    const first = build(twoEventChain());
+
+    expect(() =>
+      reviseContractEvent(
+        first,
+        makeEvent({ eventVersion: 2, supersedesEventVersion: null })
+      )
+    ).toThrow(ContractEventLedgerError);
+  });
+
+  it('refuses a revision recorded as already superseded', () => {
+    const first = build(twoEventChain());
+
+    expect(() =>
+      reviseContractEvent(
+        first,
+        makeEvent({
+          eventVersion: 2,
+          supersedesEventVersion: 1,
+          recordStatus: 'superseded',
+          recordedAt: '2026-09-01T15:00:00Z',
+        })
+      )
+    ).toThrow(ContractEventLedgerError);
+  });
+
+  it('re-validates the whole history, so an invalid revision is refused', () => {
+    const first = build(twoEventChain());
+
+    expect(() =>
+      reviseContractEvent(
+        first,
+        makeEvent({
+          eventVersion: 2,
+          supersedesEventVersion: 1,
+          effectiveAt: '2026-07-01T15:00:00Z',
+          executedAt: '2026-07-01T15:00:00Z',
+          recordedAt: '2026-09-01T15:00:00Z',
+        })
+      )
+    ).toThrow(ContractEventLedgerError);
+    expect(first.events).toHaveLength(2);
+  });
+});
+
 describe('BZE-271 deep immutability', () => {
   it('freezes the ledger, its event array, every event, and every leaf list', () => {
     const ledger = build(twoEventChain());
@@ -618,7 +747,7 @@ describe('BZE-271 deep immutability', () => {
   it('ignores mutation of a caller reference retained after construction', () => {
     const leafIds = ['CBA2-L02.1'];
     const mutable: {
-      -readonly [K in keyof ContractEventRecord]: ContractEventRecord[K];
+      -readonly [K in keyof LifecycleEventRecord]: LifecycleEventRecord[K];
     } = { ...signingEvent(), canonLeafIds: leafIds };
     const ledger = build([mutable]);
 
