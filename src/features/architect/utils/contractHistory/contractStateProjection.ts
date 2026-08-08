@@ -35,13 +35,15 @@ import {
   salaryCapYearWindow,
   seasonKeyForSalaryCapYear,
 } from '../governedSeason/governedTime';
+import type {
+  ContractEventKind,
+  ContractEventRecord,
+} from '@/schemas/contractEventLedger';
 import {
   effectiveTime,
   eventKey,
   walkChain,
-  type LifecycleEventKind,
   type LifecycleEventLedger,
-  type LifecycleEventRecord,
 } from './contractEventRecords';
 
 export type LifecycleProjectionState =
@@ -56,7 +58,7 @@ export type LifecycleProjectionState =
 export interface LifecycleProjectionEvent {
   readonly eventId: string;
   readonly eventVersion: number;
-  readonly eventKind: LifecycleEventKind;
+  readonly eventKind: ContractEventKind;
   readonly executedAt: string;
   readonly effectiveAt: string;
   readonly recordedAt: string;
@@ -139,7 +141,7 @@ function ledgerIdentity(ledger: LifecycleEventLedger): LifecycleLedgerIdentity {
 }
 
 function projectionEvent(
-  event: LifecycleEventRecord
+  event: ContractEventRecord
 ): LifecycleProjectionEvent {
   return Object.freeze({
     eventId: event.eventId,

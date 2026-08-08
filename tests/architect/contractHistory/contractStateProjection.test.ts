@@ -11,7 +11,7 @@ import {
   reviseContractEvent,
   verifyContractProjectionManifest,
   type LifecycleEventLedger,
-  type LifecycleEventRecord,
+  type ContractEventRecord,
 } from '@/features/architect/utils/contractHistory';
 import {
   AS_OF_BEFORE_SIGNING,
@@ -28,7 +28,7 @@ import {
   WORLD_ID,
 } from './contractHistoryFixtures';
 
-function build(events: readonly LifecycleEventRecord[]): LifecycleEventLedger {
+function build(events: readonly ContractEventRecord[]): LifecycleEventLedger {
   return createContractEventLedger({
     ledgerId: LEDGER_ID,
     ledgerVersion: 1,
@@ -539,6 +539,84 @@ describe('BZE-271 an earlier projection survives later history', () => {
     });
   });
 
+  it('compares every non-identity field a projection event carries', () => {
+    // `eventId` and `eventVersion` are the identity the manifest matches on, so
+    // they cannot drift without becoming `event-absent`. Every remaining field
+    // must be compared, one at a time.
+    const alterations: Record<string, Record<string, unknown>> = {
+      eventKind: { eventKind: 'conversion' },
+      executedAt: { executedAt: '2026-07-20T15:00:00Z' },
+      effectiveAt: { effectiveAt: '2026-08-09T15:00:00Z' },
+      recordedAt: { recordedAt: '2026-10-01T15:00:00Z' },
+      resultingContractVersion: { resultingContractVersion: 3 },
+      sourceTransactionId: {
+        sourceTransactionId: null,
+        authoringIdentity: 'gm-console',
+      },
+      authoringIdentity: { authoringIdentity: 'gm-console' },
+    };
+
+    const manifest = projectAt(build(twoEventChain()), AS_OF_LATE).manifest;
+
+    Object.entries(alterations).forEach(([field, overrides]) => {
+      const forged = createContractEventLedger({
+        ledgerId: LEDGER_ID,
+        ledgerVersion: 1,
+        events: [signingEvent(), makeEvent(overrides)],
+      });
+
+      const drifted = verifyContractProjectionManifest(manifest, forged);
+      expect(drifted.state, field).toBe('drifted');
+      const changed = drifted.drift.find(
+        (entry) => entry.kind === 'event-content-changed'
+      );
+      expect(changed?.detail, field).toContain(field);
+    });
+  });
+
+  it('compares predecessorContractVersion too', () => {
+    // Altering the consumed version alone would break the chain, so the whole
+    // chain is renumbered; the manifest's consumed event still names version 1.
+    const manifest = projectAt(build(twoEventChain()), AS_OF_LATE).manifest;
+    const renumbered = createContractEventLedger({
+      ledgerId: LEDGER_ID,
+      ledgerVersion: 1,
+      events: [
+        signingEvent({ resultingContractVersion: 5 }),
+        makeEvent({ predecessorContractVersion: 5, resultingContractVersion: 6 }),
+      ],
+    });
+
+    const drifted = verifyContractProjectionManifest(manifest, renumbered);
+    expect(drifted.state).toBe('drifted');
+    expect(
+      drifted.drift
+        .filter((entry) => entry.kind === 'event-content-changed')
+        .map((entry) => entry.detail)
+        .join(' ')
+    ).toContain('predecessorContractVersion');
+  });
+
+  it('pins the projection-event shape so a new field cannot escape drift checks', () => {
+    // If a field is added to a projection event without being added to the
+    // drift comparison, this fails and points at the omission.
+    const consumed = projectAt(build(twoEventChain()), AS_OF_LATE)
+      .consumedEvents[0];
+
+    expect(Object.keys(consumed).sort()).toEqual([
+      'authoringIdentity',
+      'effectiveAt',
+      'eventId',
+      'eventKind',
+      'eventVersion',
+      'executedAt',
+      'predecessorContractVersion',
+      'recordedAt',
+      'resultingContractVersion',
+      'sourceTransactionId',
+    ]);
+  });
+
   it('is not comparable against a different ledger identity', () => {
     const manifest = projectAt(build(twoEventChain()), AS_OF_LATE).manifest;
     const otherLedger = createContractEventLedger({
@@ -572,19 +650,66 @@ describe('BZE-271 projection needs no cap, floor, tax, or apron value', () => {
     const projection = projectAt(build(fullLifecycleEvents()), AS_OF_LATE);
 
     expect(projection.state).toBe('projected');
-    expect(Object.keys(projection)).not.toContain('salaryCap');
-    expect(Object.keys(projection.manifest ?? {})).toEqual([
-      'manifestVersion',
-      'ledger',
-      'worldId',
-      'contractId',
-      'playerId',
-      'teamId',
+
+    // Content, not insertion order: the manifest carries exactly the identity,
+    // dating, and provenance a replay needs.
+    const manifestKeys = Object.keys(projection.manifest ?? {}).sort();
+    expect(manifestKeys).toEqual([
       'asOfDate',
+      'consumedEvents',
+      'contractId',
+      'ledger',
+      'manifestVersion',
+      'playerId',
+      'resultingContractVersion',
       'salaryCapYear',
       'seasonKey',
-      'consumedEvents',
-      'resultingContractVersion',
+      'teamId',
+      'worldId',
     ]);
+  });
+
+  it('admits no Salary Cap, floor, Tax, or apron value anywhere in the result', () => {
+    const projection = projectAt(build(fullLifecycleEvents()), AS_OF_LATE);
+
+    // `salaryCapYear` is a year label, not a money value, and is the only key
+    // allowed to contain the word "cap". Everything else is money and is absent.
+    const MONEY_KEYS = [
+      'salaryCap',
+      'salaryCapAmount',
+      'minimumTeamSalary',
+      'floor',
+      'taxLevel',
+      'tax',
+      'firstApron',
+      'secondApron',
+      'apron',
+      'teamSalary',
+      'capRoom',
+    ];
+
+    const surfaces: Record<string, unknown>[] = [
+      projection as unknown as Record<string, unknown>,
+      (projection.manifest ?? {}) as Record<string, unknown>,
+      ...projection.consumedEvents.map(
+        (event) => event as unknown as Record<string, unknown>
+      ),
+    ];
+
+    surfaces.forEach((surface, index) => {
+      MONEY_KEYS.forEach((key) => {
+        expect(Object.keys(surface), `${key} at surface ${index}`).not.toContain(
+          key
+        );
+      });
+    });
+
+    // And nothing anywhere in the serialized result names a money input.
+    const serialized = JSON.stringify(projection);
+    MONEY_KEYS.filter((key) => key !== 'tax' && key !== 'apron').forEach(
+      (key) => {
+        expect(serialized, key).not.toContain(`"${key}"`);
+      }
+    );
   });
 });

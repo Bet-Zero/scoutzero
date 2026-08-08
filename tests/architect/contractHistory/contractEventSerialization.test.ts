@@ -14,9 +14,11 @@ import {
   readContractEventLedger,
   serializeContractEventLedger,
   toContractEventLedgerPayload,
+  validateContractEventLedger,
   verifyContractProjectionManifest,
+  type ContractEventRecord,
   type LifecycleEventLedger,
-  type LifecycleEventRecord,
+  type LifecycleLedgerProblem,
 } from '@/features/architect/utils/contractHistory';
 import {
   AS_OF_LATE,
@@ -29,7 +31,7 @@ import {
   WORLD_ID,
 } from './contractHistoryFixtures';
 
-function build(events: readonly LifecycleEventRecord[]): LifecycleEventLedger {
+function build(events: readonly ContractEventRecord[]): LifecycleEventLedger {
   return createContractEventLedger({
     ledgerId: LEDGER_ID,
     ledgerVersion: 3,
@@ -48,7 +50,7 @@ function projectAt(ledger: LifecycleEventLedger, asOfDate: string) {
 }
 
 /** History with a revised event, so supersession has to survive the trip too. */
-function revisedHistory(): LifecycleEventRecord[] {
+function revisedHistory(): ContractEventRecord[] {
   return [
     ...fullLifecycleEvents().filter((event) => event.eventId !== 'evt-002'),
     makeEvent({
@@ -239,7 +241,7 @@ describe('BZE-271 payload reading fails closed', () => {
       serializeContractEventLedger(build(fullLifecycleEvents()))
     );
     payload.events = payload.events.filter(
-      (event: LifecycleEventRecord) => event.eventId !== 'evt-005'
+      (event: ContractEventRecord) => event.eventId !== 'evt-005'
     );
 
     expect(() =>
@@ -316,11 +318,6 @@ describe('BZE-271 payload reading fails closed', () => {
     expect(valid.ledger?.events).toHaveLength(9);
     expect(valid.problems).toEqual([]);
 
-    const unreadable = readContractEventLedger('not json');
-    expect(unreadable.state).toBe('invalid');
-    expect(unreadable.ledger).toBeNull();
-    expect(unreadable.problems[0].at).toBe('payload');
-
     const payload = JSON.parse(
       serializeContractEventLedger(build(fullLifecycleEvents()))
     );
@@ -330,5 +327,307 @@ describe('BZE-271 payload reading fails closed', () => {
     expect(broken.problems.map((problem) => problem.kind)).toContain(
       'broken-chain'
     );
+  });
+
+  it('classifies an unreadable envelope honestly, not as a record defect', () => {
+    // Each of these is a failure of the container. Nothing about any individual
+    // record has been established, so reporting a record-level kind such as
+    // `missing-identity` would name a defect the reader never checked for.
+    const envelopeFailures: Record<string, string> = {
+      'not json': 'payload is not valid JSON',
+      '': 'payload is empty',
+      '   ': 'payload is empty',
+      '[]': 'payload is not an object',
+      null: 'payload is not an object',
+      '"a string"': 'payload is not an object',
+      [JSON.stringify({
+        payloadVersion: 2,
+        ledgerId: LEDGER_ID,
+        ledgerVersion: 1,
+        events: [],
+      })]: 'payload version 2 is not the supported version 1',
+      [JSON.stringify({
+        payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
+        ledgerId: LEDGER_ID,
+        ledgerVersion: 1,
+      })]: 'payload has no events array',
+    };
+
+    Object.entries(envelopeFailures).forEach(([serialized, expectedDetail]) => {
+      const read = readContractEventLedger(serialized);
+
+      expect(read.state, serialized).toBe('invalid');
+      expect(read.ledger).toBeNull();
+      expect(read.problems, serialized).toHaveLength(1);
+      expect(read.problems[0].kind, serialized).toBe('unreadable-payload');
+      expect(read.problems[0].at, serialized).toBe('payload');
+      expect(read.problems[0].detail, serialized).toContain(expectedDetail);
+    });
+  });
+
+  it('reports a bad ledger identity or version distinctly from an unreadable envelope', () => {
+    const withLedgerId = (ledgerId: unknown, ledgerVersion: unknown) =>
+      readContractEventLedger(
+        JSON.stringify({
+          payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
+          ledgerId,
+          ledgerVersion,
+          events: [],
+        })
+      );
+
+    const blankId = withLedgerId('   ', 1);
+    expect(blankId.state).toBe('invalid');
+    expect(blankId.problems.map((problem) => problem.kind)).toContain(
+      'missing-identity'
+    );
+
+    const badVersion = withLedgerId(LEDGER_ID, '1');
+    expect(badVersion.state).toBe('invalid');
+    expect(badVersion.problems.map((problem) => problem.kind)).toContain(
+      'missing-version'
+    );
+  });
+});
+
+describe('BZE-271 canonical runtime schema is the one contract', () => {
+  /** A payload carrying exactly one event, built from a valid signing. */
+  function payloadWith(overrides: Record<string, unknown>): string {
+    return JSON.stringify({
+      payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
+      ledgerId: LEDGER_ID,
+      ledgerVersion: 1,
+      events: [{ ...signingEvent(), ...overrides }],
+    });
+  }
+
+  it('rejects a numeric sourceTransactionId even when authoringIdentity is valid', () => {
+    // The regression this closes: the previous check asked only whether at
+    // least ONE provenance field was a non-empty string, so a number in the
+    // other one passed and was stored under a `string | null` field.
+    const payload = payloadWith({
+      sourceTransactionId: 42,
+      authoringIdentity: 'gm-console',
+    });
+
+    expect(() => deserializeContractEventLedger(payload)).toThrow(
+      ContractEventLedgerError
+    );
+    const read = readContractEventLedger(payload);
+    expect(read.state).toBe('invalid');
+    expect(read.problems.map((problem) => problem.kind)).toContain(
+      'missing-provenance'
+    );
+  });
+
+  it('rejects a numeric authoringIdentity even when sourceTransactionId is valid', () => {
+    const payload = payloadWith({
+      sourceTransactionId: 'txn-0001',
+      authoringIdentity: 99,
+    });
+
+    expect(() => deserializeContractEventLedger(payload)).toThrow(
+      ContractEventLedgerError
+    );
+    expect(
+      readContractEventLedger(payload).problems.map((problem) => problem.kind)
+    ).toContain('missing-provenance');
+  });
+
+  it('rejects the same numeric provenance on the in-memory path', () => {
+    // Both entry points run the same canonical schema, so neither is a laxer
+    // door into the ledger.
+    (
+      [
+        { sourceTransactionId: 42, authoringIdentity: 'gm-console' },
+        { sourceTransactionId: 'txn-0001', authoringIdentity: 99 },
+      ] as const
+    ).forEach((overrides) => {
+      const validation = validateContractEventLedger({
+        ledgerId: LEDGER_ID,
+        ledgerVersion: 1,
+        events: [
+          {
+            ...signingEvent(),
+            ...overrides,
+          } as unknown as ContractEventRecord,
+        ],
+      });
+
+      expect(validation.state, JSON.stringify(overrides)).toBe('invalid');
+      expect(validation.problems.map((problem) => problem.kind)).toContain(
+        'missing-provenance'
+      );
+    });
+  });
+
+  it('accepts only a valid string or null in each provenance field', () => {
+    // Valid: a real string in either slot, or one slot null.
+    expect(() =>
+      deserializeContractEventLedger(
+        payloadWith({ sourceTransactionId: null, authoringIdentity: 'gm' })
+      )
+    ).not.toThrow();
+    expect(() =>
+      deserializeContractEventLedger(
+        payloadWith({ sourceTransactionId: 'txn-1', authoringIdentity: null })
+      )
+    ).not.toThrow();
+
+    // Invalid: both absent, a blank string standing in for an identity, or a
+    // non-string value of any kind.
+    (
+      [
+        { sourceTransactionId: null, authoringIdentity: null },
+        { sourceTransactionId: '   ', authoringIdentity: null },
+        { sourceTransactionId: null, authoringIdentity: '  ' },
+        { sourceTransactionId: true, authoringIdentity: null },
+        { sourceTransactionId: null, authoringIdentity: {} },
+        { sourceTransactionId: [], authoringIdentity: null },
+        { sourceTransactionId: undefined, authoringIdentity: 'gm' },
+      ] as Record<string, unknown>[]
+    ).forEach((overrides) => {
+      expect(
+        () => deserializeContractEventLedger(payloadWith(overrides)),
+        JSON.stringify(overrides)
+      ).toThrow(ContractEventLedgerError);
+    });
+  });
+
+  it('checks the runtime type of every declared field', () => {
+    const wrongTypes: Record<string, unknown>[] = [
+      { eventId: 7 },
+      { eventVersion: '1' },
+      { eventVersion: 1.5 },
+      { eventVersion: 0 },
+      { eventKind: 'buyout' },
+      { eventKind: 3 },
+      { worldId: null },
+      { contractId: {} },
+      { playerId: [] },
+      { teamId: false },
+      { executedAt: 12345 },
+      { effectiveAt: null },
+      { recordedAt: { at: 'now' } },
+      { predecessorContractVersion: 'v1' },
+      { resultingContractVersion: '1' },
+      { resultingContractVersion: null },
+      { predecessorEventId: 12 },
+      { recordStatus: 'archived' },
+      { recordStatus: null },
+      { supersedesEventVersion: '1' },
+      { canonLeafIds: 'CBA2-L02.1' },
+      { canonLeafIds: [] },
+      { canonLeafIds: [7] },
+      { canonLeafIds: ['  '] },
+      { canonLeafIds: null },
+    ];
+
+    wrongTypes.forEach((overrides) => {
+      expect(
+        () => deserializeContractEventLedger(payloadWith(overrides)),
+        JSON.stringify(overrides)
+      ).toThrow(ContractEventLedgerError);
+
+      const read = readContractEventLedger(payloadWith(overrides));
+      expect(read.state, JSON.stringify(overrides)).toBe('invalid');
+      expect(read.ledger).toBeNull();
+    });
+  });
+
+  it('rejects a field the canonical schema does not declare', () => {
+    const payload = payloadWith({ smuggledMoney: 154_647_000 });
+
+    expect(() => deserializeContractEventLedger(payload)).toThrow(
+      ContractEventLedgerError
+    );
+    expect(
+      readContractEventLedger(payload).problems.map((problem) => problem.kind)
+    ).toContain('unsupported-field');
+  });
+
+  it('rejects nulls, primitives, arrays, and partial records as events', () => {
+    const notRecords: unknown[] = [
+      null,
+      42,
+      'evt-001',
+      true,
+      [],
+      {},
+      { eventId: 'evt-001' },
+      [{ ...signingEvent() }],
+    ];
+
+    notRecords.forEach((element) => {
+      const payload = JSON.stringify({
+        payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
+        ledgerId: LEDGER_ID,
+        ledgerVersion: 1,
+        events: [element],
+      });
+
+      expect(
+        () => deserializeContractEventLedger(payload),
+        JSON.stringify(element)
+      ).toThrow(ContractEventLedgerError);
+      expect(
+        readContractEventLedger(payload).state,
+        JSON.stringify(element)
+      ).toBe('invalid');
+    });
+  });
+
+  it('holds the throwing and non-throwing readers to identical problems', () => {
+    const payloads = [
+      payloadWith({ sourceTransactionId: 42, authoringIdentity: 'gm' }),
+      payloadWith({ effectiveAt: 12345 }),
+      payloadWith({ canonLeafIds: [] }),
+      payloadWith({ smuggledMoney: 1 }),
+      payloadWith({ eventKind: 'buyout' }),
+    ];
+
+    payloads.forEach((payload) => {
+      let thrown: LifecycleLedgerProblem[] = [];
+      try {
+        deserializeContractEventLedger(payload);
+        throw new Error(`expected a refusal for ${payload}`);
+      } catch (error) {
+        expect(error, payload).toBeInstanceOf(ContractEventLedgerError);
+        thrown = [...(error as ContractEventLedgerError).problems];
+      }
+
+      const read = readContractEventLedger(payload);
+      expect(read.state).toBe('invalid');
+      expect(
+        read.problems.map((problem) => `${problem.kind}@${problem.at}`),
+        payload
+      ).toEqual(thrown.map((problem) => `${problem.kind}@${problem.at}`));
+    });
+  });
+
+  it('names the offending event index so a large payload is diagnosable', () => {
+    const events = fullLifecycleEvents().map((event, index) =>
+      index === 4 ? { ...event, effectiveAt: 12345 } : event
+    );
+    const read = readContractEventLedger(
+      JSON.stringify({
+        payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
+        ledgerId: LEDGER_ID,
+        ledgerVersion: 1,
+        events,
+      })
+    );
+
+    expect(read.state).toBe('invalid');
+    expect(read.problems.map((problem) => problem.at)).toContain(
+      'events[4].effectiveAt'
+    );
+  });
+
+  it('never emits a payload its own reader would reject', () => {
+    const serialized = serializeContractEventLedger(build(revisedHistory()));
+
+    expect(() => deserializeContractEventLedger(serialized)).not.toThrow();
+    expect(readContractEventLedger(serialized).state).toBe('valid');
   });
 });

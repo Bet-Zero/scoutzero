@@ -1,34 +1,42 @@
 /**
  * FILE: tests/architect/contractHistory/contractHistoryFence.test.ts
  * PURPOSE: BZE-271 structural fence between the contract history and the mutable contract path.
+ *
+ * The fence metadata is imported from the fence module rather than the public
+ * barrel: it describes a boundary, it is not part of the feature's runtime API.
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, posix, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  ALLOWED_GOVERNED_HISTORY_IMPORT,
+  ALLOWED_GOVERNED_HISTORY_MODULE,
+  FENCED_HISTORY_DIRECTORY,
+  FENCED_HISTORY_SCHEMA_MODULE,
   FENCED_MUTABLE_CONTRACT_PATTERNS,
   MUTABLE_CONTRACT_CONSUMERS,
-} from '@/features/architect/utils/contractHistory';
+} from '@/features/architect/utils/contractHistory/contractHistoryFence';
 
 const REPO_ROOT = resolve(__dirname, '../../..');
-const HISTORY_DIR = join(
-  REPO_ROOT,
-  'src/features/architect/utils/contractHistory'
-);
+const HISTORY_DIR = join(REPO_ROOT, FENCED_HISTORY_DIRECTORY);
+const HISTORY_SCHEMA = join(REPO_ROOT, FENCED_HISTORY_SCHEMA_MODULE);
 
 /**
- * Every history source file, walked recursively. A flat `readdirSync` would
- * skip a nested directory and a `.ts`-only filter would skip a `.tsx` file, so
- * either would let a prohibited import land somewhere the fence never reads.
+ * Every history source file, walked recursively, plus the canonical schema. A
+ * flat `readdirSync` would skip a nested directory and a `.ts`-only filter would
+ * skip a `.tsx` file, so either would let a prohibited import land somewhere the
+ * fence never reads.
  */
 function historySourceFiles(directory: string = HISTORY_DIR): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) return historySourceFiles(path);
-    return /\.tsx?$/.test(entry.name) ? [path] : [];
-  });
+  const found = readdirSync(directory, { withFileTypes: true }).flatMap(
+    (entry) => {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return historySourceFiles(path);
+      return /\.tsx?$/.test(entry.name) ? [path] : [];
+    }
+  );
+
+  return directory === HISTORY_DIR ? [...found, HISTORY_SCHEMA] : found;
 }
 
 /**
@@ -63,6 +71,31 @@ export function importSpecifiers(source: string): string[] {
   ].map((match) => decodeSpecifier(match[1]));
 }
 
+/**
+ * Resolve a specifier to a repo-relative module path with no extension, so an
+ * alias spelling, a relative spelling, and an extensioned spelling of the same
+ * module all normalize to one string that can be compared exactly.
+ *
+ * Returns `null` for a bare package specifier such as `zod`, which is not a
+ * repo module and cannot be the governed one.
+ */
+export function normalizeSpecifier(
+  specifier: string,
+  importingFile: string
+): string | null {
+  const withoutExtension = specifier.replace(/\.(tsx?|jsx?|mjs|cjs)$/, '');
+
+  const absolute = withoutExtension.startsWith('@/')
+    ? join(REPO_ROOT, 'src', withoutExtension.slice(2))
+    : withoutExtension.startsWith('.')
+      ? resolve(dirname(importingFile), withoutExtension)
+      : null;
+
+  if (absolute === null) return null;
+
+  return relative(REPO_ROOT, absolute).split(/[\\/]/).join(posix.sep);
+}
+
 /** The fence describes the mutable modules by name, so it reads code only. */
 function stripComments(source: string): string {
   return source
@@ -79,27 +112,40 @@ function fencedImportsIn(source: string): string[] {
 }
 
 /**
- * Governed imports that are not the one allowed date primitive. Contract
- * history needs dates and Salary Cap Years, never Salary Cap, floor, Tax, or
- * apron values, so pulling the envelope or registry in is a fence break even
- * though both live on the governed side.
+ * Governed imports that are not exactly the one allowed date module.
+ *
+ * Comparison is on the normalized module path, never a substring: a substring
+ * test would admit `governedSeason/governedTime/money` and every other module
+ * nested beneath the allowed one. Contract history needs dates and Salary Cap
+ * Years, never Salary Cap, floor, Tax, or apron values, so pulling in the
+ * envelope, the registry, or a submodule is a fence break even though all of
+ * them live on the governed side.
  */
-function disallowedGovernedImportsIn(source: string): string[] {
-  return importSpecifiers(stripComments(source)).filter(
-    (specifier) =>
-      specifier.includes('governedSeason') &&
-      !specifier.includes(ALLOWED_GOVERNED_HISTORY_IMPORT)
-  );
+export function disallowedGovernedImportsIn(
+  source: string,
+  importingFile: string
+): string[] {
+  return importSpecifiers(stripComments(source))
+    .filter((specifier) => specifier.includes('governedSeason'))
+    .filter(
+      (specifier) =>
+        normalizeSpecifier(specifier, importingFile) !==
+        ALLOWED_GOVERNED_HISTORY_MODULE
+    );
 }
 
+/** A file inside the history directory, used to anchor relative specifiers. */
+const ANCHOR_FILE = join(HISTORY_DIR, 'contractEventRecords.ts');
+
 describe('BZE-271 history / mutable-contract compatibility fence', () => {
-  it('walks every history source file recursively', () => {
+  it('walks every history source file recursively, including the canonical schema', () => {
     const files = historySourceFiles();
 
-    expect(files.length).toBeGreaterThanOrEqual(5);
+    expect(files.length).toBeGreaterThanOrEqual(6);
     expect(files).toContain(join(HISTORY_DIR, 'contractEventRecords.ts'));
     expect(files).toContain(join(HISTORY_DIR, 'contractStateProjection.ts'));
     expect(files).toContain(join(HISTORY_DIR, 'contractEventSerialization.ts'));
+    expect(files).toContain(HISTORY_SCHEMA);
     files.forEach((file) => {
       expect(() => readFileSync(file, 'utf8')).not.toThrow();
     });
@@ -155,6 +201,8 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
     const allowed = [
       "import { eventKey } from './contractEventRecords';",
       "import { isZonedDateTime } from '../governedSeason/governedTime';",
+      "import { z } from 'zod';",
+      "import { ContractEventRecordZ } from '@/schemas/contractEventLedger';",
       "import { describe } from 'vitest';",
       "import { readFileSync } from 'node:fs';",
     ];
@@ -164,11 +212,96 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
     });
   });
 
+  it('normalizes alias, relative, and extensioned spellings to one module path', () => {
+    expect(
+      normalizeSpecifier('../governedSeason/governedTime', ANCHOR_FILE)
+    ).toBe(ALLOWED_GOVERNED_HISTORY_MODULE);
+    expect(
+      normalizeSpecifier(
+        '@/features/architect/utils/governedSeason/governedTime',
+        ANCHOR_FILE
+      )
+    ).toBe(ALLOWED_GOVERNED_HISTORY_MODULE);
+    expect(
+      normalizeSpecifier('../governedSeason/governedTime.ts', ANCHOR_FILE)
+    ).toBe(ALLOWED_GOVERNED_HISTORY_MODULE);
+    expect(
+      normalizeSpecifier('../../utils/governedSeason/governedTime', ANCHOR_FILE)
+    ).toBe(ALLOWED_GOVERNED_HISTORY_MODULE);
+    // Bare package specifiers are not repo modules.
+    expect(normalizeSpecifier('zod', ANCHOR_FILE)).toBeNull();
+  });
+
+  it('allows the governed date module and prohibits a submodule beneath it', () => {
+    // The intended module stays allowed.
+    expect(
+      disallowedGovernedImportsIn(
+        "import { isZonedDateTime } from '../governedSeason/governedTime';",
+        ANCHOR_FILE
+      )
+    ).toEqual([]);
+
+    // A submodule nested under the allowed one is NOT the allowed module. This
+    // is the case a substring comparison silently admitted.
+    expect(
+      disallowedGovernedImportsIn(
+        "import { money } from '../governedSeason/governedTime/money';",
+        ANCHOR_FILE
+      )
+    ).toEqual(['../governedSeason/governedTime/money']);
+    expect(
+      disallowedGovernedImportsIn(
+        "import { x } from '../governedSeason/governedTimeExtras';",
+        ANCHOR_FILE
+      )
+    ).toEqual(['../governedSeason/governedTimeExtras']);
+  });
+
+  it('cannot be weakened by an aliased or relative spelling', () => {
+    // Aliased spelling of the allowed module is still allowed.
+    expect(
+      disallowedGovernedImportsIn(
+        "import { isZonedDateTime } from '@/features/architect/utils/governedSeason/governedTime';",
+        ANCHOR_FILE
+      )
+    ).toEqual([]);
+
+    // Aliased spelling of a submodule is still prohibited.
+    expect(
+      disallowedGovernedImportsIn(
+        "import { m } from '@/features/architect/utils/governedSeason/governedTime/money';",
+        ANCHOR_FILE
+      )
+    ).toHaveLength(1);
+
+    // A roundabout relative spelling of a prohibited module is still prohibited.
+    expect(
+      disallowedGovernedImportsIn(
+        "import { r } from '../governedSeason/../governedSeason/canonGovernedSeasonRegistry';",
+        ANCHOR_FILE
+      )
+    ).toHaveLength(1);
+  });
+
+  it('prohibits the governed envelope, registry, and barrel', () => {
+    [
+      "import { resolveGovernedSeasonEnvelope } from '../governedSeason';",
+      "import { CANON_GOVERNED_SEASON_REGISTRY } from '../governedSeason/canonGovernedSeasonRegistry';",
+      "import { resolveGovernedSeasonEnvelope } from '../governedSeason/governedSeasonEnvelope';",
+      "import { createGovernedSeasonRegistry } from '../governedSeason/governedSeasonRecords';",
+    ].forEach((form) => {
+      expect(
+        disallowedGovernedImportsIn(form, ANCHOR_FILE),
+        `undetected: ${form}`
+      ).toHaveLength(1);
+    });
+  });
+
   it('imports only the governed date primitives, never the money envelope', () => {
     const offenders: string[] = [];
 
     historySourceFiles().forEach((file) => {
-      disallowedGovernedImportsIn(readFileSync(file, 'utf8')).forEach(
+      disallowedGovernedImportsIn(readFileSync(file, 'utf8'), file).forEach(
         (specifier) => {
           offenders.push(`${file} imports ${specifier}`);
         }
@@ -176,34 +309,24 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
     });
 
     expect(offenders).toEqual([]);
-    expect(
-      disallowedGovernedImportsIn(
-        "import { resolveGovernedSeasonEnvelope } from '../governedSeason';"
-      )
-    ).toEqual(['../governedSeason']);
-    expect(
-      disallowedGovernedImportsIn(
-        "import { CANON_GOVERNED_SEASON_REGISTRY } from '../governedSeason/canonGovernedSeasonRegistry';"
-      )
-    ).toHaveLength(1);
-    expect(
-      disallowedGovernedImportsIn(
-        "import { isZonedDateTime } from '../governedSeason/governedTime';"
-      )
-    ).toEqual([]);
   });
 
   it('actually reuses the BZE-270 date primitives', () => {
-    const sources = historySourceFiles().map((file) =>
-      readFileSync(file, 'utf8')
-    );
-    const importing = sources.filter((source) =>
-      source.includes(ALLOWED_GOVERNED_HISTORY_IMPORT)
-    );
+    const importing = historySourceFiles()
+      .map((file) => ({ file, source: readFileSync(file, 'utf8') }))
+      .filter(
+        ({ file, source }) =>
+          importSpecifiers(stripComments(source)).filter(
+            (specifier) =>
+              normalizeSpecifier(specifier, file) ===
+              ALLOWED_GOVERNED_HISTORY_MODULE
+          ).length > 0
+      );
 
     expect(importing.length).toBeGreaterThanOrEqual(2);
-    expect(importing.join('\n')).toContain('isZonedDateTime');
-    expect(importing.join('\n')).toContain('isSupportedSalaryCapYear');
+    const joined = importing.map(({ source }) => source).join('\n');
+    expect(joined).toContain('isZonedDateTime');
+    expect(joined).toContain('isSupportedSalaryCapYear');
   });
 
   it('never reads the runtime clock or derives a current year', () => {
@@ -246,6 +369,14 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
       expect(source.length).toBeGreaterThan(0);
       expect(source).not.toContain('contractHistory');
     });
+  });
+
+  it('does not publish the fence metadata on the public barrel', () => {
+    const barrel = readFileSync(join(HISTORY_DIR, 'index.ts'), 'utf8');
+
+    expect(barrel).not.toContain('MUTABLE_CONTRACT_CONSUMERS');
+    expect(barrel).not.toContain('FENCED_MUTABLE_CONTRACT_PATTERNS');
+    expect(barrel).not.toContain('ALLOWED_GOVERNED_HISTORY_MODULE');
   });
 
   it('is not imported by any module outside the history boundary', () => {

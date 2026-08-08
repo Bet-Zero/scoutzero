@@ -30,39 +30,22 @@
  * the ledger never pretends it independently validated that version.
  */
 
+import { z } from 'zod';
+
+import {
+  ContractEventRecordZ,
+  type ContractEventKind,
+  type ContractEventRecord,
+} from '@/schemas/contractEventLedger';
 import {
   isNonEmptyString,
   isZonedDateTime,
   parseZonedDateTime,
 } from '../governedSeason/governedTime';
 
-/**
- * The seven lifecycle families of `CBA2-L02.1`, expressed as nine event kinds.
- *
- * Option and ETO each split into an exercise and a decline. The Canon names one
- * "option" event, but exercising and declining produce different resulting
- * contract versions and are not the same act; collapsing them into one kind
- * with a boolean would put the distinction in a payload field the history layer
- * does not interpret, which is exactly the inferred-from-flags defect the audit
- * recorded. Both remain in the option family for reporting.
- */
-export const CONTRACT_EVENT_KINDS = [
-  'signing',
-  'amendment',
-  'conversion',
-  'option-exercise',
-  'option-decline',
-  'eto-exercise',
-  'eto-decline',
-  'extension',
-  'renegotiation',
-] as const;
-
-export type LifecycleEventKind = (typeof CONTRACT_EVENT_KINDS)[number];
-
 /** Lifecycle family each event kind belongs to, as the Canon names them. */
 export const CONTRACT_EVENT_FAMILIES: Readonly<
-  Record<LifecycleEventKind, string>
+  Record<ContractEventKind, string>
 > = Object.freeze({
   signing: 'signing',
   amendment: 'amendment',
@@ -79,70 +62,23 @@ export const CONTRACT_EVENT_FAMILIES: Readonly<
  * Only a signing opens a contract's history. Every other kind transforms a
  * contract version that already exists, so it must name a predecessor.
  */
-export const CONTRACT_ROOT_EVENT_KIND: LifecycleEventKind = 'signing';
-
-export type LifecycleEventStatus = 'current' | 'superseded';
-
-/** Identity of the world, contract, player, and team an event belongs to. */
-export interface LifecycleEventSubject {
-  readonly worldId: string;
-  readonly contractId: string;
-  readonly playerId: string;
-  readonly teamId: string;
-}
+export const CONTRACT_ROOT_EVENT_KIND: ContractEventKind = 'signing';
 
 /**
- * A single immutable contract lifecycle event.
- *
- * Three timestamps are kept apart on purpose:
- *
- *  - `executedAt` — when the lifecycle act was executed;
- *  - `effectiveAt` — when the contract version it produced takes effect;
- *  - `recordedAt` — when this record version was appended to the ledger.
- *
- * Folding `executedAt` into `effectiveAt` is the defect the audit recorded for
- * this leaf: "signing versus effective dates ... are not distinct". `recordedAt`
- * is separate again because a correction is executed at the original act's time
- * but written later; without it, an append-only revision would look like a
- * chronology violation.
+ * A validated, frozen ledger. Distinct from the wire payload in
+ * `@/schemas/contractEventLedger`: a payload is untrusted data that has a
+ * format version, a ledger is the aggregate that survived validation.
  */
-export interface LifecycleEventRecord {
-  readonly eventId: string;
-  readonly eventVersion: number;
-  readonly eventKind: LifecycleEventKind;
-  readonly worldId: string;
-  readonly contractId: string;
-  readonly playerId: string;
-  readonly teamId: string;
-  readonly executedAt: string;
-  readonly effectiveAt: string;
-  readonly recordedAt: string;
-  /** Contract version consumed. `null` only for the root signing. */
-  readonly predecessorContractVersion: number | null;
-  /** Contract version produced. Supplied by the author, never derived here. */
-  readonly resultingContractVersion: number;
-  /** Event this one succeeds in the chain. `null` only for the root signing. */
-  readonly predecessorEventId: string | null;
-  /** Transaction that produced this event, when one is available. */
-  readonly sourceTransactionId: string | null;
-  /** Author of record, when no source transaction is available. */
-  readonly authoringIdentity: string | null;
-  readonly recordStatus: LifecycleEventStatus;
-  /** Prior `eventVersion` this record supersedes. `null` on a first version. */
-  readonly supersedesEventVersion: number | null;
-  readonly canonLeafIds: readonly string[];
-}
-
 export interface LifecycleEventLedger {
   readonly ledgerId: string;
   readonly ledgerVersion: number;
-  readonly events: readonly LifecycleEventRecord[];
+  readonly events: readonly ContractEventRecord[];
 }
 
 export interface LifecycleEventLedgerInput {
   ledgerId: string;
   ledgerVersion: number;
-  events?: readonly LifecycleEventRecord[];
+  events?: readonly ContractEventRecord[];
 }
 
 /**
@@ -161,7 +97,17 @@ export type LifecycleLedgerProblemKind =
   | 'broken-chain'
   | 'chain-fork'
   | 'ambiguous-ordering'
-  | 'missing-provenance';
+  | 'missing-provenance'
+  /** A field the canonical event schema does not declare. */
+  | 'unsupported-field'
+  /**
+   * The stored envelope could not be read at all: not JSON, not an object, a
+   * format version this build does not support, or a missing/non-array
+   * `events`. Distinct from the event-level kinds because nothing about a
+   * *record* is known yet — reporting it as `missing-identity` claimed a
+   * specific record defect the reader had not established.
+   */
+  | 'unreadable-payload';
 
 export interface LifecycleLedgerProblem {
   readonly kind: LifecycleLedgerProblemKind;
@@ -195,13 +141,9 @@ function freezeProblem(problem: LifecycleLedgerProblem): LifecycleLedgerProblem 
 
 /** Stable `eventId@vN` label used everywhere an event is named in a report. */
 export function eventKey(
-  event: Pick<LifecycleEventRecord, 'eventId' | 'eventVersion'>
+  event: Pick<ContractEventRecord, 'eventId' | 'eventVersion'>
 ): string {
   return `${event.eventId}@v${event.eventVersion}`;
-}
-
-export function isContractEventKind(value: unknown): value is LifecycleEventKind {
-  return CONTRACT_EVENT_KINDS.some((kind) => kind === value);
 }
 
 function problem(
@@ -214,62 +156,140 @@ function problem(
 }
 
 /**
- * Field-level validation of one event, independent of every other event.
+ * Which reported problem each canonical-schema field belongs to. The schema
+ * speaks in field paths; the ledger reports in defect kinds, and this is the
+ * one place the two vocabularies meet.
  *
- * Returns `true` when the record is structurally sound enough for the
- * relationship checks to read it. Relationship checks skip unsound records
- * rather than reporting cascading failures against fields they cannot trust.
+ * Both provenance fields map to `missing-provenance`: a numeric
+ * `sourceTransactionId` is not a different defect from an absent one — in each
+ * case the event carries no usable source identity.
+ */
+const SCHEMA_FIELD_PROBLEM_KINDS: Readonly<
+  Record<string, LifecycleLedgerProblemKind>
+> = Object.freeze({
+  eventId: 'missing-identity',
+  worldId: 'missing-identity',
+  contractId: 'missing-identity',
+  playerId: 'missing-identity',
+  teamId: 'missing-identity',
+  recordStatus: 'missing-identity',
+  canonLeafIds: 'missing-identity',
+  eventVersion: 'missing-version',
+  resultingContractVersion: 'missing-version',
+  supersedesEventVersion: 'missing-version',
+  eventKind: 'unsupported-event-kind',
+  executedAt: 'invalid-timestamp',
+  effectiveAt: 'invalid-timestamp',
+  recordedAt: 'invalid-timestamp',
+  predecessorContractVersion: 'broken-chain',
+  predecessorEventId: 'broken-chain',
+  sourceTransactionId: 'missing-provenance',
+  authoringIdentity: 'missing-provenance',
+});
+
+/**
+ * Translate one canonical-schema issue about a record into a ledger problem.
+ * `at` locates the record, `fieldPath` is the issue path relative to it.
+ */
+function eventProblemFromIssue(
+  at: string,
+  issue: z.core.$ZodIssue,
+  fieldPath: readonly PropertyKey[]
+): LifecycleLedgerProblem {
+  if (issue.code === 'unrecognized_keys') {
+    return problem(
+      'unsupported-field',
+      at,
+      `Unsupported field(s) ${issue.keys.join(
+        ', '
+      )}: a contract event carries only the fields the canonical schema declares.`
+    );
+  }
+
+  const field = String(fieldPath[0] ?? '');
+  return problem(
+    SCHEMA_FIELD_PROBLEM_KINDS[field] ?? 'missing-identity',
+    field ? `${at}.${field}` : at,
+    issue.message
+  );
+}
+
+function problemsFromSchemaIssues(
+  at: string,
+  issues: readonly z.core.$ZodIssue[]
+): LifecycleLedgerProblem[] {
+  return issues.map((issue) => eventProblemFromIssue(at, issue, issue.path));
+}
+
+/**
+ * Translate canonical *payload* schema issues into ledger problems.
+ *
+ * Payload issue paths are rooted at the envelope, so an event defect arrives as
+ * `['events', 3, 'effectiveAt']`. Envelope-level defects are reported as
+ * `unreadable-payload` because nothing about any individual record has been
+ * established when the envelope itself is wrong.
+ */
+export function ledgerProblemsFromPayloadIssues(
+  issues: readonly z.core.$ZodIssue[]
+): LifecycleLedgerProblem[] {
+  return issues.map((issue) => {
+    const [head, index] = issue.path;
+
+    if (head === 'events' && typeof index === 'number') {
+      return eventProblemFromIssue(
+        `events[${index}]`,
+        issue,
+        issue.path.slice(2)
+      );
+    }
+
+    const field = String(head ?? '');
+    if (field === 'ledgerId') {
+      return problem('missing-identity', 'ledgerId', issue.message);
+    }
+    if (field === 'ledgerVersion') {
+      return problem('missing-version', 'ledgerVersion', issue.message);
+    }
+    return problem('unreadable-payload', field || 'payload', issue.message);
+  });
+}
+
+/**
+ * Validation of one event, independent of every other event.
+ *
+ * The canonical runtime schema in `@/schemas/contractEventLedger` owns the
+ * shape — field presence, runtime types, enum membership, provenance
+ * nullability. It runs first and it runs on every entry point, so an in-memory
+ * caller and a deserialized payload are held to exactly the same contract. What
+ * remains here is what the schema deliberately does not own: zoned-instant
+ * validity, which belongs to BZE-270's governed date primitives, and the
+ * single-record rules about chain position and causality.
+ *
+ * Returns `true` when the record is sound enough for the relationship checks to
+ * read it. Relationship checks skip unsound records rather than reporting
+ * cascading failures against fields they cannot trust.
  */
 function validateEventShape(
-  event: LifecycleEventRecord,
+  event: ContractEventRecord,
   index: number,
   problems: LifecycleLedgerProblem[]
 ): boolean {
   const at = `events[${index}]`;
   const before = problems.length;
 
-  if (!isNonEmptyString(event?.eventId)) {
-    problems.push(
-      problem('missing-identity', `${at}.eventId`, 'Event ID is required.')
+  const parsed = ContractEventRecordZ.safeParse(event);
+  if (!parsed.success) {
+    problemsFromSchemaIssues(at, parsed.error.issues).forEach((entry) =>
+      problems.push(entry)
     );
-  }
-  if (!Number.isInteger(event?.eventVersion) || event.eventVersion < 1) {
-    problems.push(
-      problem(
-        'missing-version',
-        `${at}.eventVersion`,
-        'Event version must be an integer of at least 1.'
-      )
-    );
-  }
-  if (!isContractEventKind(event?.eventKind)) {
-    problems.push(
-      problem(
-        'unsupported-event-kind',
-        `${at}.eventKind`,
-        `Event kind ${String(
-          event?.eventKind
-        )} is not one of the supported lifecycle kinds: ${CONTRACT_EVENT_KINDS.join(
-          ', '
-        )}.`
-      )
-    );
+    return false;
   }
 
-  (['worldId', 'contractId', 'playerId', 'teamId'] as const).forEach((field) => {
-    if (!isNonEmptyString(event?.[field])) {
-      problems.push(
-        problem(
-          'missing-identity',
-          `${at}.${field}`,
-          `${field} is required so every event can be audited to its world, contract, player, and team.`
-        )
-      );
-    }
-  });
+  // Every field below is now known to be the declared runtime type, so these
+  // checks are about meaning rather than shape.
 
   (['executedAt', 'effectiveAt', 'recordedAt'] as const).forEach((field) => {
-    if (!isZonedDateTime(event?.[field])) {
+    if (!isZonedDateTime(event[field])) {
       problems.push(
         problem(
           'invalid-timestamp',
@@ -280,20 +300,7 @@ function validateEventShape(
     }
   });
 
-  if (
-    !Number.isInteger(event?.resultingContractVersion) ||
-    event.resultingContractVersion < 1
-  ) {
-    problems.push(
-      problem(
-        'missing-version',
-        `${at}.resultingContractVersion`,
-        'Resulting contract version must be an integer of at least 1.'
-      )
-    );
-  }
-
-  const isRoot = event?.eventKind === CONTRACT_ROOT_EVENT_KIND;
+  const isRoot = event.eventKind === CONTRACT_ROOT_EVENT_KIND;
 
   if (isRoot) {
     if (event.predecessorContractVersion != null) {
@@ -315,10 +322,7 @@ function validateEventShape(
       );
     }
   } else {
-    if (
-      !Number.isInteger(event?.predecessorContractVersion) ||
-      (event.predecessorContractVersion ?? 0) < 1
-    ) {
+    if (event.predecessorContractVersion == null) {
       problems.push(
         problem(
           'broken-chain',
@@ -327,7 +331,7 @@ function validateEventShape(
         )
       );
     }
-    if (!isNonEmptyString(event?.predecessorEventId)) {
+    if (!isNonEmptyString(event.predecessorEventId)) {
       problems.push(
         problem(
           'broken-chain',
@@ -339,59 +343,14 @@ function validateEventShape(
   }
 
   if (
-    event?.recordStatus !== 'current' &&
-    event?.recordStatus !== 'superseded'
-  ) {
-    problems.push(
-      problem(
-        'missing-identity',
-        `${at}.recordStatus`,
-        'Record status must be current or superseded.'
-      )
-    );
-  }
-
-  if (
-    event?.supersedesEventVersion != null &&
-    (!Number.isInteger(event.supersedesEventVersion) ||
-      event.supersedesEventVersion < 1 ||
-      event.supersedesEventVersion >= event.eventVersion)
+    event.supersedesEventVersion != null &&
+    event.supersedesEventVersion >= event.eventVersion
   ) {
     problems.push(
       problem(
         'missing-version',
         `${at}.supersedesEventVersion`,
         'A superseding version must supersede a lower, positive event version.'
-      )
-    );
-  }
-
-  // Provenance is what makes an event auditable at all. An event with neither a
-  // source transaction nor an author cannot be traced to anything that produced
-  // it, so it is rejected rather than admitted as anonymous history.
-  if (
-    !isNonEmptyString(event?.sourceTransactionId) &&
-    !isNonEmptyString(event?.authoringIdentity)
-  ) {
-    problems.push(
-      problem(
-        'missing-provenance',
-        `${at}.sourceTransactionId`,
-        'An event must retain a source transaction identity or an authoring identity.'
-      )
-    );
-  }
-
-  if (
-    !Array.isArray(event?.canonLeafIds) ||
-    event.canonLeafIds.length === 0 ||
-    event.canonLeafIds.some((leafId) => !isNonEmptyString(leafId))
-  ) {
-    problems.push(
-      problem(
-        'missing-identity',
-        `${at}.canonLeafIds`,
-        'Every event must cite at least one Canon leaf it is recorded under.'
       )
     );
   }
@@ -430,7 +389,7 @@ function validateEventShape(
 
 /** Reject two records sharing one `eventId@version`. */
 function validateUniqueIdentities(
-  events: readonly LifecycleEventRecord[],
+  events: readonly ContractEventRecord[],
   problems: LifecycleLedgerProblem[]
 ): void {
   const seen = new Map<string, number>();
@@ -458,10 +417,10 @@ function validateUniqueIdentities(
  * version, and each later version recorded no earlier than the one before it.
  */
 function validateSupersession(
-  events: readonly LifecycleEventRecord[],
+  events: readonly ContractEventRecord[],
   problems: LifecycleLedgerProblem[]
 ): void {
-  const byEventId = new Map<string, LifecycleEventRecord[]>();
+  const byEventId = new Map<string, ContractEventRecord[]>();
   events.forEach((event) => {
     const versions = byEventId.get(event.eventId) ?? [];
     versions.push(event);
@@ -569,9 +528,9 @@ function validateSupersession(
 
 /** Events of one contract inside one world, current versions only. */
 function currentEventsByContract(
-  events: readonly LifecycleEventRecord[]
-): Map<string, LifecycleEventRecord[]> {
-  const byContract = new Map<string, LifecycleEventRecord[]>();
+  events: readonly ContractEventRecord[]
+): Map<string, ContractEventRecord[]> {
+  const byContract = new Map<string, ContractEventRecord[]>();
 
   events
     .filter((event) => event.recordStatus === 'current')
@@ -592,7 +551,7 @@ function currentEventsByContract(
  */
 function validateContractChain(
   contractKey: string,
-  events: readonly LifecycleEventRecord[],
+  events: readonly ContractEventRecord[],
   problems: LifecycleLedgerProblem[]
 ): void {
   const at = `events.${contractKey}`;
@@ -651,7 +610,7 @@ function validateContractChain(
     );
   }
 
-  const producers = new Map<number, LifecycleEventRecord[]>();
+  const producers = new Map<number, ContractEventRecord[]>();
   events.forEach((event) => {
     const sharing = producers.get(event.resultingContractVersion) ?? [];
     sharing.push(event);
@@ -670,7 +629,7 @@ function validateContractChain(
     }
   });
 
-  const consumers = new Map<number, LifecycleEventRecord[]>();
+  const consumers = new Map<number, ContractEventRecord[]>();
   events.forEach((event) => {
     if (event.predecessorContractVersion == null) return;
     const sharing = consumers.get(event.predecessorContractVersion) ?? [];
@@ -783,21 +742,21 @@ function validateContractChain(
  * structural checks above, and re-reporting them here would double-count.
  */
 export function walkChain(
-  events: readonly LifecycleEventRecord[]
-): LifecycleEventRecord[] | null {
+  events: readonly ContractEventRecord[]
+): ContractEventRecord[] | null {
   const roots = events.filter(
     (event) => event.eventKind === CONTRACT_ROOT_EVENT_KIND
   );
   if (roots.length !== 1) return null;
 
-  const bySuccessor = new Map<number, LifecycleEventRecord>();
+  const bySuccessor = new Map<number, ContractEventRecord>();
   events.forEach((event) => {
     if (event.predecessorContractVersion == null) return;
     if (bySuccessor.has(event.predecessorContractVersion)) return;
     bySuccessor.set(event.predecessorContractVersion, event);
   });
 
-  const chain: LifecycleEventRecord[] = [roots[0]];
+  const chain: ContractEventRecord[] = [roots[0]];
   const visited = new Set<string>([eventKey(roots[0])]);
 
   for (;;) {
@@ -825,7 +784,7 @@ export function walkChain(
  * would change a validated ledger and every projection already taken from it,
  * while the ledger version and event versions stayed put.
  */
-function freezeEvent(event: LifecycleEventRecord): LifecycleEventRecord {
+function freezeEvent(event: ContractEventRecord): ContractEventRecord {
   return Object.freeze({
     eventId: event.eventId,
     eventVersion: event.eventVersion,
@@ -956,7 +915,7 @@ export function validateContractEventLedger(
  */
 export function appendContractEvents(
   ledger: LifecycleEventLedger,
-  events: readonly LifecycleEventRecord[]
+  events: readonly ContractEventRecord[]
 ): LifecycleEventLedger {
   return createContractEventLedger({
     ledgerId: ledger.ledgerId,
@@ -985,7 +944,7 @@ export function appendContractEvents(
  */
 export function reviseContractEvent(
   ledger: LifecycleEventLedger,
-  revision: LifecycleEventRecord
+  revision: ContractEventRecord
 ): LifecycleEventLedger {
   const problems: LifecycleLedgerProblem[] = [];
 
@@ -1070,6 +1029,6 @@ export function reviseContractEvent(
 }
 
 /** Epoch milliseconds of an event's effective instant. */
-export function effectiveTime(event: LifecycleEventRecord): number {
+export function effectiveTime(event: ContractEventRecord): number {
   return parseZonedDateTime(event.effectiveAt) ?? Number.NaN;
 }

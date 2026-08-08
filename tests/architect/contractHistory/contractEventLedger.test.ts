@@ -14,8 +14,8 @@ import {
   isContractEventKind,
   reviseContractEvent,
   validateContractEventLedger,
-  type LifecycleEventKind,
-  type LifecycleEventRecord,
+  type ContractEventKind,
+  type ContractEventRecord,
   type LifecycleLedgerProblemKind,
 } from '@/features/architect/utils/contractHistory';
 import {
@@ -29,7 +29,7 @@ import {
   WORLD_ID,
 } from './contractHistoryFixtures';
 
-function build(events: readonly LifecycleEventRecord[]) {
+function build(events: readonly ContractEventRecord[]) {
   return createContractEventLedger({
     ledgerId: LEDGER_ID,
     ledgerVersion: 1,
@@ -37,7 +37,7 @@ function build(events: readonly LifecycleEventRecord[]) {
   });
 }
 
-function problemKinds(events: readonly LifecycleEventRecord[]) {
+function problemKinds(events: readonly ContractEventRecord[]) {
   const validation = validateContractEventLedger({
     ledgerId: LEDGER_ID,
     ledgerVersion: 1,
@@ -49,7 +49,7 @@ function problemKinds(events: readonly LifecycleEventRecord[]) {
 }
 
 function expectRejected(
-  events: readonly LifecycleEventRecord[],
+  events: readonly ContractEventRecord[],
   kind: LifecycleLedgerProblemKind
 ) {
   expect(() => build(events)).toThrow(ContractEventLedgerError);
@@ -106,9 +106,9 @@ describe('BZE-271 contract event kinds', () => {
     expect(isContractEventKind('signing')).toBe(true);
     expect(isContractEventKind('buyout')).toBe(false);
 
-    const unsupported: LifecycleEventRecord = {
+    const unsupported: ContractEventRecord = {
       ...makeEvent(),
-      eventKind: 'buyout' as LifecycleEventKind,
+      eventKind: 'buyout' as ContractEventKind,
     };
     expectRejected([signingEvent(), unsupported], 'unsupported-event-kind');
   });
@@ -147,7 +147,7 @@ describe('BZE-271 retained identity and context', () => {
     ['teamId'],
     ['eventId'],
   ] as const)('rejects a blank %s', (field) => {
-    const broken: LifecycleEventRecord = { ...makeEvent(), [field]: '  ' };
+    const broken: ContractEventRecord = { ...makeEvent(), [field]: '  ' };
     expectRejected([signingEvent(), broken], 'missing-identity');
   });
 
@@ -713,6 +713,63 @@ describe('BZE-271 append-only revision', () => {
     ).toThrow(ContractEventLedgerError);
   });
 
+  it('does not mutate the prior record object the earlier ledger still holds', () => {
+    const first = build(twoEventChain());
+    const priorObject = first.events.find(
+      (event) => event.eventId === 'evt-002'
+    );
+    const priorSnapshot = JSON.stringify(priorObject);
+
+    reviseContractEvent(
+      first,
+      makeEvent({
+        eventVersion: 2,
+        supersedesEventVersion: 1,
+        executedAt: '2026-08-01T15:00:00Z',
+        effectiveAt: '2026-08-03T15:00:00Z',
+        recordedAt: '2026-09-01T15:00:00Z',
+      })
+    );
+
+    // Same object, byte-identical content, still current in the earlier ledger.
+    expect(first.events.find((event) => event.eventId === 'evt-002')).toBe(
+      priorObject
+    );
+    expect(JSON.stringify(priorObject)).toBe(priorSnapshot);
+    expect(priorObject?.recordStatus).toBe('current');
+  });
+
+  it('closes the correction workflow the append API alone cannot express', () => {
+    // Appending a current v2 beside a current v1 is the competing-current
+    // conflict, which is precisely why revision needs its own door.
+    const first = build(twoEventChain());
+    const correction = makeEvent({
+      eventVersion: 2,
+      recordStatus: 'current',
+      supersedesEventVersion: 1,
+      executedAt: '2026-08-01T15:00:00Z',
+      effectiveAt: '2026-08-03T15:00:00Z',
+      recordedAt: '2026-09-01T15:00:00Z',
+    });
+
+    expect(() => appendContractEvents(first, [correction])).toThrow(
+      ContractEventLedgerError
+    );
+
+    const revised = reviseContractEvent(first, correction);
+    expect(revised.ledgerVersion).toBe(2);
+    expect(
+      revised.events.filter(
+        (event) => event.eventId === 'evt-002' && event.recordStatus === 'current'
+      )
+    ).toHaveLength(1);
+    expect(
+      revised.events.find(
+        (event) => event.eventId === 'evt-002' && event.recordStatus === 'current'
+      )?.eventVersion
+    ).toBe(2);
+  });
+
   it('re-validates the whole history, so an invalid revision is refused', () => {
     const first = build(twoEventChain());
 
@@ -747,7 +804,7 @@ describe('BZE-271 deep immutability', () => {
   it('ignores mutation of a caller reference retained after construction', () => {
     const leafIds = ['CBA2-L02.1'];
     const mutable: {
-      -readonly [K in keyof LifecycleEventRecord]: LifecycleEventRecord[K];
+      -readonly [K in keyof ContractEventRecord]: ContractEventRecord[K];
     } = { ...signingEvent(), canonLeafIds: leafIds };
     const ledger = build([mutable]);
 

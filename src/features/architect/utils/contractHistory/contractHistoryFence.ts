@@ -103,8 +103,27 @@ export const FENCED_MUTABLE_CONTRACT_PATTERNS = Object.freeze([
 ] as const);
 
 /**
- * The only governed module the history path may import. Contract history needs
- * dates and Salary Cap Years, not money.
+ * The one governed module the history path may import, as a repo-relative path
+ * with no extension. Contract history needs dates and Salary Cap Years, not
+ * money.
+ *
+ * This is a full module path rather than a fragment because a fragment is not a
+ * fence. Matching `governedSeason/governedTime` as a substring would also admit
+ * `governedSeason/governedTime/money` and anything else nested beneath it, which
+ * is exactly the money dependency the boundary exists to keep out. The fence
+ * test resolves each specifier — alias or relative — to this form and compares
+ * it exactly.
  */
-export const ALLOWED_GOVERNED_HISTORY_IMPORT =
-  'governedSeason/governedTime' as const;
+export const ALLOWED_GOVERNED_HISTORY_MODULE =
+  'src/features/architect/utils/governedSeason/governedTime' as const;
+
+/**
+ * Files the fence covers. The canonical schema is included because it is part of
+ * the history contract: it must not reach a mutable contract module or the
+ * runtime clock either, even though it lives in `src/schemas/`.
+ */
+export const FENCED_HISTORY_DIRECTORY =
+  'src/features/architect/utils/contractHistory' as const;
+
+export const FENCED_HISTORY_SCHEMA_MODULE =
+  'src/schemas/contractEventLedger.ts' as const;

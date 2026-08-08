@@ -9,8 +9,8 @@
  */
 
 import type {
-  LifecycleEventKind,
-  LifecycleEventRecord,
+  ContractEventKind,
+  ContractEventRecord,
 } from '@/features/architect/utils/contractHistory';
 
 export const WORLD_ID = 'world-bze271';
@@ -27,7 +27,7 @@ export const AS_OF_BEFORE_SIGNING = '2026-07-02T00:00:00Z';
 export interface EventOverrides {
   eventId?: string;
   eventVersion?: number;
-  eventKind?: LifecycleEventKind;
+  eventKind?: ContractEventKind;
   worldId?: string;
   contractId?: string;
   playerId?: string;
@@ -50,7 +50,7 @@ export interface EventOverrides {
  * contract version 1, so a test that cares about one field overrides that field
  * alone.
  */
-export function makeEvent(overrides: EventOverrides = {}): LifecycleEventRecord {
+export function makeEvent(overrides: EventOverrides = {}): ContractEventRecord {
   const eventKind = overrides.eventKind ?? 'amendment';
   const isRoot = eventKind === 'signing';
 
@@ -98,7 +98,7 @@ export function makeEvent(overrides: EventOverrides = {}): LifecycleEventRecord 
 /** The root signing every chain fixture starts from. */
 export function signingEvent(
   overrides: EventOverrides = {}
-): LifecycleEventRecord {
+): ContractEventRecord {
   return makeEvent({
     eventId: 'evt-001',
     eventKind: 'signing',
@@ -113,7 +113,7 @@ export function signingEvent(
 
 interface ChainStep {
   readonly eventId: string;
-  readonly eventKind: LifecycleEventKind;
+  readonly eventKind: ContractEventKind;
   readonly effectiveAt: string;
   readonly executedAt: string;
 }
@@ -178,8 +178,8 @@ const CHAIN_STEPS: readonly ChainStep[] = [
  * A full nine-event history: one signing plus the eight other lifecycle kinds,
  * producing contract versions 1 through 9.
  */
-export function fullLifecycleEvents(): LifecycleEventRecord[] {
-  const events: LifecycleEventRecord[] = [signingEvent()];
+export function fullLifecycleEvents(): ContractEventRecord[] {
+  const events: ContractEventRecord[] = [signingEvent()];
 
   CHAIN_STEPS.forEach((step, index) => {
     events.push(
@@ -201,7 +201,7 @@ export function fullLifecycleEvents(): LifecycleEventRecord[] {
 }
 
 /** Signing plus one amendment — the smallest chain with a predecessor link. */
-export function twoEventChain(): LifecycleEventRecord[] {
+export function twoEventChain(): ContractEventRecord[] {
   return [signingEvent(), makeEvent()];
 }
 
