@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   evaluateGovernedDatedSalaryLedgers,
+  type SalaryLedgerKind,
   type SalaryLedgerLineItem,
+  type SalaryLedgerResult,
 } from '@/features/architect/utils/capTotals';
 import { GOVERNED_SYSTEM_LEVEL_IDS } from '@/features/architect/utils/governedSeason';
 import {
@@ -11,6 +13,20 @@ import {
   FIXTURE_TEAM,
   revisedFixtureRegistry,
 } from '../governedSeason/governedSeasonFixtures';
+
+/**
+ * Assert a ledger is blocked and narrow it, so the `needs-input`-only fields
+ * are reachable without widening the result union.
+ */
+function expectNeedsInput<K extends SalaryLedgerKind>(
+  ledger: SalaryLedgerResult<K>
+): Extract<SalaryLedgerResult<K>, { status: 'needs-input' }> {
+  expect(ledger.status).toBe('needs-input');
+  if (ledger.status !== 'needs-input') {
+    throw new Error(`expected ${ledger.kind} to need input`);
+  }
+  return ledger;
+}
 
 /** Walk a returned missing-input path against the request it describes. */
 function resolvePath(root: unknown, path: string): unknown {
@@ -97,7 +113,7 @@ describe('BZE-270 governed dated salary ledgers', () => {
 
     expect(result.status).toBe('needs-input');
     expect(result.ledgers.teamSalary.total).toBeNull();
-    expect(result.ledgers.teamSalary.reason).toContain(
+    expect(expectNeedsInput(result.ledgers.teamSalary).reason).toContain(
       'The governed season envelope did not resolve'
     );
   });
@@ -114,10 +130,9 @@ describe('BZE-270 governed dated salary ledgers', () => {
     };
     const result = evaluateGovernedDatedSalaryLedgers(request);
 
-    expect(result.ledgers.teamSalary.missingInputs).toContain(
-      'context.asOfDate'
-    );
-    result.ledgers.teamSalary.missingInputs.forEach((path) => {
+    const teamSalary = expectNeedsInput(result.ledgers.teamSalary);
+    expect(teamSalary.missingInputs).toContain('context.asOfDate');
+    teamSalary.missingInputs.forEach((path) => {
       if (path.startsWith('context.')) {
         expect(resolvePath(request, path)).toBeUndefined();
       }
@@ -254,7 +269,7 @@ describe('BZE-270 governed dated salary ledgers', () => {
 
     expect(result.status).toBe('needs-input');
     expect(result.governedInputs).toBeNull();
-    expect(result.ledgers.taxSalary.missingInputs).toContain(
+    expect(expectNeedsInput(result.ledgers.taxSalary).missingInputs).toContain(
       'registry.systemLevels.tax-level'
     );
   });

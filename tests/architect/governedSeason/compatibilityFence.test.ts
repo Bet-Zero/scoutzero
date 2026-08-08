@@ -34,17 +34,38 @@ function governedSourceFiles(directory: string = GOVERNED_DIR): string[] {
 }
 
 /**
+ * Decode the escape sequences a JavaScript string literal may carry.
+ *
+ * A module specifier is a string literal, so `'../capProjections'` loads
+ * `../capProjections` while its raw source text contains neither. Matching the
+ * raw spelling would let that import walk past the fence, so specifiers are
+ * decoded to the module path the runtime actually resolves before matching.
+ */
+export function decodeModuleSpecifier(raw: string): string {
+  return raw
+    .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_, hex) =>
+      String.fromCodePoint(Number.parseInt(hex, 16))
+    )
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16))
+    )
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16))
+    );
+}
+
+/**
  * Every static module-specifier form the repository supports. Matching only
  * single-quoted `from '…'` would let a double-quoted import, a side-effect
  * import, a dynamic `import()`, or a `require()` walk straight past the fence.
  */
 export function importSpecifiers(source: string): string[] {
   return [
-    ...source.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g),
-    ...source.matchAll(/\bimport\s*['"]([^'"]+)['"]/g),
-    ...source.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g),
-    ...source.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g),
-  ].map((match) => match[1]);
+    ...source.matchAll(/\bfrom\s*['"]((?:[^'"\\]|\\.)+)['"]/g),
+    ...source.matchAll(/\bimport\s*['"]((?:[^'"\\]|\\.)+)['"]/g),
+    ...source.matchAll(/\bimport\s*\(\s*['"]((?:[^'"\\]|\\.)+)['"]\s*\)/g),
+    ...source.matchAll(/\brequire\s*\(\s*['"]((?:[^'"\\]|\\.)+)['"]\s*\)/g),
+  ].map((match) => decodeModuleSpecifier(match[1]));
 }
 
 /**
@@ -102,11 +123,31 @@ describe('BZE-270 governed / legacy compatibility fence', () => {
       "import { MINIMUM_SALARY_SCALES } from '@/features/architect/data/minimumSalaryScales';",
       "import { resolveWorldAsOfDate } from '../mutationPipeline.read.utils';",
       "import { CBA_THRESHOLDS } from '../tradeMachine/constants/cbaConstants';",
+      // Escaped specifiers: the raw source text contains no fenced name, but
+      // the module the runtime resolves does.
+      "import '../cap\\u0050rojections';",
+      'import "../cap\\u0050rojections";',
+      "import { capProjections } from '../cap\\u{50}rojections';",
+      "const p = require('../cap\\x50rojections');",
+      "const p = await import('../cap\\u0050rojections');",
     ];
 
     prohibited.forEach((form) => {
       expect(fencedImportsIn(form), `undetected: ${form}`).not.toEqual([]);
     });
+  });
+
+  it('decodes escaped specifiers to the module actually resolved', () => {
+    expect(decodeModuleSpecifier('../cap\\u0050rojections')).toBe(
+      '../capProjections'
+    );
+    expect(decodeModuleSpecifier('../cap\\u{50}rojections')).toBe(
+      '../capProjections'
+    );
+    expect(decodeModuleSpecifier('../cap\\x50rojections')).toBe(
+      '../capProjections'
+    );
+    expect(decodeModuleSpecifier('./governedTime')).toBe('./governedTime');
   });
 
   it('does not flag a governed or unrelated import', () => {

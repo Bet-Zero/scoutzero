@@ -184,14 +184,25 @@ export function buildFixtureRegistry(
   });
 }
 
-/** Strips `readonly` so a test can attempt the mutation the fence must block. */
-type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+/**
+ * Strips `readonly` recursively so a test can attempt the mutations the
+ * registry must ignore. A shallow `Mutable<T>` would leave nested members such
+ * as `regularSeasonOpening.value` read-only, so the deep-freeze test could not
+ * even express the nested mutation it is meant to prove is harmless.
+ */
+type DeepMutable<T> = {
+  -readonly [K in keyof T]: T[K] extends readonly (infer U)[]
+    ? DeepMutable<U>[]
+    : T[K] extends object
+      ? DeepMutable<T[K]>
+      : T[K];
+};
 
 export interface RetainedFixtureInputs {
   registry: GovernedSeasonRegistry;
-  sourceRecords: Mutable<GovernedSourceRecord>[];
-  systemLevels: Mutable<GovernedSystemLevelRecord>[];
-  calendars: Mutable<GovernedSeasonCalendarRecord>[];
+  sourceRecords: DeepMutable<GovernedSourceRecord>[];
+  systemLevels: DeepMutable<GovernedSystemLevelRecord>[];
+  calendars: DeepMutable<GovernedSeasonCalendarRecord>[];
 }
 
 /**
@@ -199,11 +210,24 @@ export interface RetainedFixtureInputs {
  * mutate the caller-side originals and prove the validated registry is immune.
  */
 export function fixtureRegistryWithRetainedInputs(): RetainedFixtureInputs {
-  const sourceRecords = FIXTURE_SOURCE_RECORDS.map((record) => ({ ...record }));
-  const systemLevels = GOVERNED_SYSTEM_LEVEL_IDS.map((levelId) =>
-    fixtureLevelRecord(levelId)
-  );
-  const calendars = [fixtureCalendarRecord()];
+  const sourceRecords: DeepMutable<GovernedSourceRecord>[] =
+    FIXTURE_SOURCE_RECORDS.map((record) => ({ ...record }));
+
+  const systemLevels: DeepMutable<GovernedSystemLevelRecord>[] =
+    GOVERNED_SYSTEM_LEVEL_IDS.map((levelId) => {
+      const record = fixtureLevelRecord(levelId);
+      return { ...record, canonLeafIds: [...record.canonLeafIds] };
+    });
+
+  const calendars: DeepMutable<GovernedSeasonCalendarRecord>[] = [
+    fixtureCalendarRecord(),
+  ].map((record) => ({
+    ...record,
+    regularSeasonOpening: { ...record.regularSeasonOpening },
+    regularSeasonClosing: { ...record.regularSeasonClosing },
+    canonLeafIds: [...record.canonLeafIds],
+    uncertifiedFields: [...record.uncertifiedFields],
+  }));
 
   const registry = createGovernedSeasonRegistry({
     registryId: 'test-governed-season-registry',
