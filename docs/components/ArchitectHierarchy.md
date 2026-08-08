@@ -325,6 +325,7 @@ utils/
     computeTeamCapTotals.ts
     datedSalaryLedgers.ts
     deadMoneyForYear.ts
+    governedDatedSalaryLedgers.ts
     hardCapSnapshotOverlay.ts
     index.ts
   capUtils.ts
@@ -373,6 +374,13 @@ utils/
   firebaseTeamPlanHelpers.readers.ts
   firebaseTeamPlanHelpers.ts
   freeAgentRights.ts
+  governedSeason/
+    canonGovernedSeasonRegistry.ts
+    compatibilityFence.ts
+    governedSeasonEnvelope.ts
+    governedSeasonRecords.ts
+    governedTime.ts
+    index.ts
   hardCapUtils.ts
   leagueInvariants.entitlementInvariants.ts
   leagueInvariants.playerInvariants.ts
@@ -563,5 +571,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-08T01:38:57.252Z*
+*Generated on: 2026-08-08T07:17:38.025Z*
 *Auto-updated by: npm run docs*

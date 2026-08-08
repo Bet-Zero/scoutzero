@@ -7,7 +7,16 @@
  * independently derived line items for each ledger; this module does not infer
  * missing CBA adjustments, borrow another ledger's total, or fall back to the
  * runtime date or a different Salary Cap Year.
+ *
+ * BZE-270 note: this module still accepts a caller-asserted context. The
+ * governed entry point that requires a resolved, versioned season envelope is
+ * `./governedDatedSalaryLedgers`; prefer it for any new caller.
  */
+
+import {
+  isNonEmptyString,
+  isZonedDateTime,
+} from '../governedSeason/governedTime';
 
 export const SALARY_LEDGER_KINDS = [
   'team-salary',
@@ -136,48 +145,6 @@ const SALARY_LEDGER_REQUEST_KEYS: Record<
 
 function ledgerRequestPath(kind: SalaryLedgerKind): string {
   return `ledgers.${SALARY_LEDGER_REQUEST_KEYS[kind]}`;
-}
-
-const ZONED_ISO_DATE_TIME =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
-function hasValidCalendarDate(value: string): boolean {
-  const year = Number(value.slice(0, 4));
-  const month = Number(value.slice(5, 7));
-  const day = Number(value.slice(8, 10));
-
-  if (month < 1 || month > 12 || day < 1) return false;
-
-  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  const daysInMonth = [
-    31,
-    leapYear ? 29 : 28,
-    31,
-    30,
-    31,
-    30,
-    31,
-    31,
-    30,
-    31,
-    30,
-    31,
-  ];
-
-  return day <= daysInMonth[month - 1];
-}
-
-function isZonedDateTime(value: unknown): value is string {
-  return (
-    isNonEmptyString(value) &&
-    ZONED_ISO_DATE_TIME.test(value) &&
-    hasValidCalendarDate(value) &&
-    Number.isFinite(Date.parse(value))
-  );
 }
 
 function isSalaryLedgerSourceAuthority(
