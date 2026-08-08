@@ -11,8 +11,8 @@
  *    1. CapSheetFull.tsx imports computeTeamCapTotals
  *    2. CapSheetFull.tsx does NOT contain local reduce salary summation
  *    2D. CapSheetFull.tsx declares explicit multi-year hierarchy surfaces
- *    3. computeTeamCapTotals.ts declares explicit included/excluded ownership lists
- *    4. computeTeamCapTotals.ts declares canonical-owner usage fence
+ *    3. computeTeamCapTotals.ts declares the legacy compatibility ownership list
+ *    4. legacy totals and governed dated ledgers have an explicit usage fence
  *    5. calculateTeamCapHit(...) is fenced as player-only validation math
  *    6. useCapValidation.ts declares validation-only cap-math ownership
  *    7. capLegalityValidation.ts declares action-specific validation ownership
@@ -49,6 +49,11 @@ const CAP_SHEET_FULL_PATH = path.resolve(
 const COMPUTE_TOTALS_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/capTotals/computeTeamCapTotals.ts'
+);
+
+const DATED_SALARY_LEDGERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capTotals/datedSalaryLedgers.ts'
 );
 
 const CAP_HELPERS_PATH = path.resolve(
@@ -155,6 +160,10 @@ function createMultiYearPlayers(
 describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
   const capSheetFullSource = fs.readFileSync(CAP_SHEET_FULL_PATH, 'utf-8');
   const computeTotalsSource = fs.readFileSync(COMPUTE_TOTALS_PATH, 'utf-8');
+  const datedSalaryLedgersSource = fs.readFileSync(
+    DATED_SALARY_LEDGERS_PATH,
+    'utf-8'
+  );
   const capHelpersSource = fs.readFileSync(CAP_HELPERS_PATH, 'utf-8');
   const useCapValidationSource = fs.readFileSync(
     USE_CAP_VALIDATION_PATH,
@@ -216,18 +225,34 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     expect(capSheetFullSource).toContain('Canonical yearly total');
   });
 
-  it('TEST 3: computeTeamCapTotals declares explicit included/excluded ownership lists', () => {
-    expect(computeTotalsSource).toContain('INCLUDED IN CANONICAL TOTALS');
-    expect(computeTotalsSource).toContain('EXCLUDED FROM CANONICAL TOTALS');
+  it('TEST 3: computeTeamCapTotals declares the legacy compatibility ownership list', () => {
+    expect(computeTotalsSource).toContain('BZE-268 COMPATIBILITY BOUNDARY');
+    expect(computeTotalsSource).toContain(
+      'INCLUDED IN LEGACY COMPATIBILITY TOTALS'
+    );
+    expect(computeTotalsSource).toContain(
+      'EXCLUDED FROM LEGACY COMPATIBILITY TOTALS'
+    );
   });
 
-  it('TEST 4: computeTeamCapTotals declares canonical-owner usage fence', () => {
-    expect(computeTotalsSource).toContain('Canonical Cap Sheet totals owner.');
+  it('TEST 4: legacy totals and governed dated ledgers have an explicit usage fence', () => {
+    expect(computeTotalsSource).toContain(
+      'Legacy Cap Sheet compatibility totals owner.'
+    );
     expect(computeTotalsSource).toContain(
       'Use computeTeamCapTotals(...) when a caller needs totalCapAllocations,'
     );
     expect(computeTotalsSource).toContain(
       'Do not use computeTeamCapTotals(...) for player-only validation/projection'
+    );
+    expect(datedSalaryLedgersSource).toContain(
+      "borrow another ledger's total"
+    );
+    expect(datedSalaryLedgersSource).toContain(
+      'runtime date or a different Salary Cap Year'
+    );
+    expect(datedSalaryLedgersSource).toContain(
+      'export function evaluateDatedSalaryLedgers('
     );
   });
 

@@ -1,9 +1,15 @@
 /**
  * FILE: src/features/architect/utils/capTotals/computeTeamCapTotals.ts
- * PURPOSE: Single source of truth for canonical team cap totals computation.
+ * PURPOSE: Temporary compatibility owner for the legacy shared cap-allocation total.
  * OWNERSHIP: Feature: architect
  *
- * INCLUDED IN CANONICAL TOTALS:
+ * BZE-268 COMPATIBILITY BOUNDARY:
+ * - Existing consumers still receive the historical shared allocation snapshot.
+ * - This module is not authoritative for independent Apron or Tax Salary.
+ * - New governed work must use datedSalaryLedgers.ts and supply each ledger's
+ *   own inputs. Consumer migration is intentionally outside BZE-268.
+ *
+ * INCLUDED IN LEGACY COMPATIBILITY TOTALS:
  * - Player salaries/cap hits for standard roster contracts
  * - Dead money
  * - Active unsigned cap holds
@@ -11,7 +17,7 @@
  * - Salary cap / tax / apron thresholds
  * - Delta outputs versus those thresholds
  *
- * EXCLUDED FROM CANONICAL TOTALS:
+ * EXCLUDED FROM LEGACY COMPATIBILITY TOTALS:
  * - Exception state, usage display, or exception-card presentation
  * - Trade exception (TPE) state or display
  * - Hard-cap trigger state and human-readable reason text
@@ -230,7 +236,7 @@ function computeCanonicalTotalCapAllocations({
 }
 
 /**
- * Canonical Cap Sheet totals owner.
+ * Legacy Cap Sheet compatibility totals owner.
  *
  * Use computeTeamCapTotals(...) when a caller needs totalCapAllocations,
  * dead money, cap holds, incomplete roster charges, cap/tax/apron thresholds,
@@ -322,8 +328,8 @@ export function createCanonicalTeamTotalsSnapshot(
   selectedYear: number,
   options: CapTotalsOptions = {}
 ): ComputedTeamCapTotalsSnapshot {
-  // Downstream snapshot shaping consumes the canonical totals SSOT rather than
-  // acting as an alternate compute owner.
+  // Temporary BZE-268 compatibility path: preserve historical aliases for
+  // unmigrated consumers. These aliases are not governed Apron/Tax ledgers.
   const canonicalTotals = computeTeamCapTotals(
     teamCapSheet,
     selectedYear,
