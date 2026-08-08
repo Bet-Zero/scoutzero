@@ -182,6 +182,62 @@ describe('BZE-268 dated independent salary-ledger spine', () => {
     expect(result.ledgers.taxSalary.total).toBeNull();
   });
 
+  it.each([
+    '2026-02-30T12:00:00Z',
+    '2026-04-31T12:00:00-04:00',
+    '2025-02-29T12:00:00Z',
+  ])('rejects an impossible governed context date: %s', (asOfDate) => {
+    const result = evaluateDatedSalaryLedgers(buildCanonFixture(asOfDate));
+
+    expect(result).toMatchObject({
+      status: 'needs-input',
+      context: null,
+      ledgers: {
+        teamSalary: {
+          status: 'needs-input',
+          total: null,
+          missingInputs: ['context.asOfDate'],
+        },
+      },
+    });
+  });
+
+  it('accepts a valid leap-day governed context date', () => {
+    const result = evaluateDatedSalaryLedgers(
+      buildCanonFixture('2024-02-29T12:00:00Z')
+    );
+
+    expect(result.status).toBe('complete');
+    expect(result.context?.asOfDate).toBe('2024-02-29T12:00:00Z');
+  });
+
+  it.each([
+    ['effectiveFrom', '2026-02-30T12:00:00Z'],
+    ['effectiveUntil', '2025-02-29T12:00:00Z'],
+  ] as const)(
+    'rejects an impossible line-item %s date with its exact input path',
+    (field, value) => {
+      const invalidLineItem = {
+        ...teamSalaryBase,
+        [field]: value,
+      } as SalaryLedgerLineItem<'team-salary'>;
+      const request = buildCanonFixture();
+      request.ledgers!.teamSalary = {
+        status: 'ready',
+        lineItems: [invalidLineItem],
+      };
+
+      const result = evaluateDatedSalaryLedgers(request);
+
+      expect(result.ledgers.teamSalary).toMatchObject({
+        status: 'needs-input',
+        total: null,
+        lineItems: [],
+        missingInputs: [`ledgers.team-salary.lineItems[0].${field}`],
+      });
+    }
+  );
+
   it('preserves per-ledger needs-input and not-evaluated states', () => {
     const result = evaluateDatedSalaryLedgers({
       context: CONTEXT,
@@ -234,4 +290,54 @@ describe('BZE-268 dated independent salary-ledger spine', () => {
       missingInputs: ['ledgers.apron-team-salary.lineItems[0].ledger'],
     });
   });
+
+  it.each([undefined, 'spreadsheet-export'])(
+    'rejects a runtime-decoded source authority of %s with its exact input path',
+    (authority) => {
+      const invalidLineItem = {
+        ...teamSalaryBase,
+        source: {
+          ...(authority === undefined ? {} : { authority }),
+          reference: 'TEAM-R7-001@decoded',
+        },
+      } as unknown as SalaryLedgerLineItem<'team-salary'>;
+      const request = buildCanonFixture();
+      request.ledgers!.teamSalary = {
+        status: 'ready',
+        lineItems: [invalidLineItem],
+      };
+
+      const result = evaluateDatedSalaryLedgers(request);
+
+      expect(result.status).toBe('needs-input');
+      expect(result.ledgers.teamSalary).toMatchObject({
+        status: 'needs-input',
+        total: null,
+        lineItems: [],
+        missingInputs: [
+          'ledgers.team-salary.lineItems[0].source.authority',
+        ],
+      });
+    }
+  );
+
+  it.each(['canon', 'team-state', 'external-determination'] as const)(
+    'accepts the governed source authority: %s',
+    (authority) => {
+      const request = buildCanonFixture();
+      request.ledgers!.teamSalary = {
+        status: 'ready',
+        lineItems: [
+          {
+            ...teamSalaryBase,
+            source: { authority, reference: 'TEAM-R7-001@validated' },
+          },
+        ],
+      };
+
+      const result = evaluateDatedSalaryLedgers(request);
+
+      expect(result.ledgers.teamSalary.status).toBe('complete');
+    }
+  );
 });

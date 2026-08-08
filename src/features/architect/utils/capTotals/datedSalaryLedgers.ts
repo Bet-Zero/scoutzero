@@ -15,8 +15,16 @@ export const SALARY_LEDGER_KINDS = [
   'tax-salary',
 ] as const;
 
+const SALARY_LEDGER_SOURCE_AUTHORITIES = [
+  'canon',
+  'team-state',
+  'external-determination',
+] as const;
+
 export type SalaryLedgerKind = (typeof SALARY_LEDGER_KINDS)[number];
 export type SalaryLedgerStatus = 'complete' | 'needs-input' | 'not-evaluated';
+type SalaryLedgerSourceAuthority =
+  (typeof SALARY_LEDGER_SOURCE_AUTHORITIES)[number];
 
 export interface SalaryLedgerTeamContext {
   teamId: string;
@@ -43,7 +51,7 @@ export interface SalaryLedgerLineItem<K extends SalaryLedgerKind> {
   effectiveUntil?: string | null;
   canonLeafIds: readonly string[];
   source: {
-    authority: 'canon' | 'team-state' | 'external-determination';
+    authority: SalaryLedgerSourceAuthority;
     reference: string;
   };
 }
@@ -118,11 +126,46 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function hasValidCalendarDate(value: string): boolean {
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+
+  if (month < 1 || month > 12 || day < 1) return false;
+
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+
+  return day <= daysInMonth[month - 1];
+}
+
 function isZonedDateTime(value: unknown): value is string {
   return (
     isNonEmptyString(value) &&
     ZONED_ISO_DATE_TIME.test(value) &&
+    hasValidCalendarDate(value) &&
     Number.isFinite(Date.parse(value))
+  );
+}
+
+function isSalaryLedgerSourceAuthority(
+  value: unknown
+): value is SalaryLedgerSourceAuthority {
+  return SALARY_LEDGER_SOURCE_AUTHORITIES.some(
+    (authority) => authority === value
   );
 }
 
@@ -200,6 +243,9 @@ function validateLineItems<K extends SalaryLedgerKind>(
       item.canonLeafIds.some((leafId) => !isNonEmptyString(leafId))
     ) {
       missingInputs.push(`${path}.canonLeafIds`);
+    }
+    if (!isSalaryLedgerSourceAuthority(item.source?.authority)) {
+      missingInputs.push(`${path}.source.authority`);
     }
     if (!isNonEmptyString(item.source?.reference)) {
       missingInputs.push(`${path}.source.reference`);
