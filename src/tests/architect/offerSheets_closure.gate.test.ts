@@ -594,9 +594,9 @@ describe('Gate 8: Persistence writes teamUpdates (E1)', () => {
     expect(iteratesTeamUpdates).toBe(true);
   });
 
-  it('writes team updates to Firestore via batch.set', () => {
+  it('stages team updates for the atomic Firestore writer', () => {
     const writesToFirestore =
-      /persistWorldMutation[\s\S]{0,3000}batch\.set\s*\(\s*teamRef/.test(
+      /persistWorldMutation[\s\S]{0,4000}writes\.push\(\{\s*kind:\s*'set',\s*ref:\s*teamRef,\s*data:\s*sanitizedTeam\s*\}\)/.test(
         content
       );
     expect(writesToFirestore).toBe(true);

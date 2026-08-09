@@ -26,6 +26,7 @@ import {
   seedBaseData,
   seedTeamSnapshot,
   seedWorldMetadata,
+  type MockTeam,
 } from '../helpers/architectTestHelpers.js';
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
@@ -352,7 +353,7 @@ describe('renounceRights world persistence and reload', () => {
     if (!staleResult.success || !winningResult.success || !winningTeam) {
       throw new Error('concurrent fixture computations must succeed');
     }
-    seedTeamSnapshot(created.worldId, TEAM_ID, winningTeam);
+    seedTeamSnapshot(created.worldId, TEAM_ID, winningTeam as MockTeam);
 
     const persisted = await persistWorldMutation({
       worldId: created.worldId,

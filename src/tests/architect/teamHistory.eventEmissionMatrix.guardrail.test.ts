@@ -107,7 +107,13 @@ describe('TEAM_HISTORY_E3 event emission matrix guardrail', () => {
     const source = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8') +
       fs.readFileSync(MUTATION_PIPELINE_PERSIST_PATH, 'utf8');
 
-    expect(source).toContain('batch.set(eventRef, sanitizedEvent);');
+    expect(source).toContain(
+      "writes.push({ kind: 'set', ref: eventRef, data: sanitizedEvent });"
+    );
+    expect(source).toContain('applyWritesToBatch(batch, writes);');
+    expect(source).toContain(
+      'applyWritesToTransaction(transaction, writes);'
+    );
     expect(source).toContain('eventsWritten: eventId ? 1 : 0');
     expect(source).toContain('writesSummary.eventsWritten > 0');
     expect(source).toContain('persistedToWorld');
