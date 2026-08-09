@@ -805,13 +805,20 @@ export function verifyTransactionCommitManifest(
   history: CompletedTradeHistory,
   manifest: TransactionCommitManifest
 ): CommitManifestVerification {
+  const retainedManifests = history.manifests.map((entry) =>
+    entry.manifestId === manifest.manifestId &&
+    entry.manifestVersion === manifest.supersedesManifestVersion &&
+    entry.recordStatus === 'current'
+      ? { ...entry, recordStatus: 'superseded' as const }
+      : entry
+  );
   try {
     const candidate = createCompletedTradeHistory({
       ledgerId: history.ledgerId,
       ledgerVersion: history.ledgerVersion + 1,
       transactions: history.transactions,
       expectedWriteSets: history.expectedWriteSets,
-      manifests: [...history.manifests, manifest],
+      manifests: [...retainedManifests, manifest],
     });
     const accepted = candidate.manifests.find(
       (entry) =>
@@ -854,11 +861,19 @@ export function appendExpectedTransactionWriteSet(
   history: CompletedTradeHistory,
   writeSet: ExpectedTransactionWriteSet
 ): CompletedTradeHistory {
+  const retainedWriteSets = history.expectedWriteSets.map((entry) =>
+    entry.expectedWriteSetId === writeSet.expectedWriteSetId &&
+    entry.expectedWriteSetVersion ===
+      writeSet.supersedesExpectedWriteSetVersion &&
+    entry.recordStatus === 'current'
+      ? { ...entry, recordStatus: 'superseded' as const }
+      : entry
+  );
   return createCompletedTradeHistory({
     ledgerId: history.ledgerId,
     ledgerVersion: history.ledgerVersion + 1,
     transactions: history.transactions,
-    expectedWriteSets: [...history.expectedWriteSets, writeSet],
+    expectedWriteSets: [...retainedWriteSets, writeSet],
     manifests: history.manifests,
   });
 }

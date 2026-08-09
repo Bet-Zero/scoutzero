@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  appendExpectedTransactionWriteSet,
   appendVerifiedTransactionCommitManifest,
   createCompletedTradeHistory,
   ExpectedTransactionWriteSetZ,
@@ -250,6 +251,39 @@ describe('BZE-272 exact transaction commit manifests', () => {
     expect(history.manifests[1].manifestVersion).toBe(2);
     expect(history.manifests[9].manifestVersion).toBe(10);
     expect(history.manifests[9].recordStatus).toBe('current');
+  });
+
+  it('atomically supersedes an expected write set when appending its revision', () => {
+    const history = makeHistory({ withManifest: false });
+    const revised = appendExpectedTransactionWriteSet(
+      history,
+      makeWriteSet({
+        expectedWriteSetVersion: 2,
+        supersedesExpectedWriteSetVersion: 1,
+      })
+    );
+
+    expect(
+      revised.expectedWriteSets.map((entry) => entry.recordStatus)
+    ).toEqual(['superseded', 'current']);
+    expect(history.expectedWriteSets[0].recordStatus).toBe('current');
+  });
+
+  it('atomically supersedes a verified manifest when appending its revision', () => {
+    const history = makeHistory();
+    const revised = appendVerifiedTransactionCommitManifest(
+      history,
+      makeManifest({
+        manifestVersion: 2,
+        supersedesManifestVersion: 1,
+      })
+    );
+
+    expect(revised.manifests.map((entry) => entry.recordStatus)).toEqual([
+      'superseded',
+      'current',
+    ]);
+    expect(history.manifests[0].recordStatus).toBe('current');
   });
 
   it('rejects detached manifest and expected-write-set versions', () => {
