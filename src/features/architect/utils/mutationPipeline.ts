@@ -54,7 +54,10 @@ import {
   getWorldMetadata,
   updateWorldStats,
 } from '@/features/architect/utils/worldManager';
-import { resolveRightsWorldCompatibility } from '@/features/architect/utils/rightsHistory';
+import {
+  createRightsEventLedger,
+  resolveRightsWorldCompatibility,
+} from '@/features/architect/utils/rightsHistory';
 import {
   toEndYear,
   toSeasonCode,
@@ -702,6 +705,21 @@ export async function applyWorldMutation({
       beforeTeamsByCode,
       afterTeamsByCode,
     });
+    const expectedRightsLedgersByTeam: Record<
+      string,
+      { ledgerId: string; ledgerVersion: number }
+    > = {};
+    if (mutationType === 'renounceRights') {
+      for (const teamCode of teamCodes) {
+        const priorLedger = createRightsEventLedger(
+          beforeTeamsByCode[teamCode]?.rightsLedger
+        );
+        expectedRightsLedgersByTeam[teamCode] = {
+          ledgerId: priorLedger.ledgerId,
+          ledgerVersion: priorLedger.ledgerVersion,
+        };
+      }
+    }
 
     // PHASE 4: PERSIST - Write to Firestore (ONLY place that writes)
     // DEV DEBUG: Check for UID mismatch which causes PERMISSION_DENIED
@@ -736,6 +754,7 @@ export async function applyWorldMutation({
         computeResult,
         committedTeamUpdates,
         timestamp,
+        expectedRightsLedgersByTeam,
         payloadAsOfDate:
           sanitizedPayload.asOfDate != null
             ? String(sanitizedPayload.asOfDate)

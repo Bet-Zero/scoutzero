@@ -43,7 +43,6 @@ export type RenounceGovernedRightsResult =
 export function renounceGovernedRights(
   request: RenounceGovernedRightsRequest
 ): RenounceGovernedRightsResult {
-  const ledger = createRightsEventLedger(request.ledger);
   const before = projectRightsStateAsOf(request);
   if (before.status !== 'available' || !before.stateReference) {
     return Object.freeze({
@@ -52,6 +51,20 @@ export function renounceGovernedRights(
         before.status === 'renounced'
           ? 'These rights were already renounced.'
           : before.reasons[0] || 'Governed rights inputs are incomplete.',
+      before,
+    });
+  }
+
+  let ledger: RightsEventLedgerPayload;
+  try {
+    ledger = createRightsEventLedger(request.ledger);
+  } catch (error) {
+    return Object.freeze({
+      success: false as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'The governed rights ledger is invalid.',
       before,
     });
   }
@@ -99,12 +112,19 @@ export function renounceGovernedRights(
     ? Date.parse(`${request.asOfDate}T00:00:00Z`)
     : Date.parse(request.asOfDate);
   const recordedTime = Date.parse(request.recordedAt);
+  if (!Number.isFinite(recordedTime)) {
+    return Object.freeze({
+      success: false as const,
+      error: 'The rights renunciation recordedAt value must be a zoned ISO-8601 instant.',
+      before,
+    });
+  }
   const executedAt =
     recordedTime <= governedEffectiveTime
       ? request.recordedAt
       : request.asOfDate;
-  const event: RightsRenunciationEvent = {
-    eventId: `${ledger.ledgerId}:${request.playerId}:renunciation:${nextStateVersion}`,
+  const event: RightsRenunciationEvent = Object.freeze({
+    eventId: `${ledger.ledgerId}:${request.playerId}:${request.salaryCapYear}:renunciation:${nextStateVersion}`,
     eventVersion: 1,
     eventKind: 'rights-renounced',
     worldId: request.worldId,
@@ -117,7 +137,7 @@ export function renounceGovernedRights(
     predecessorEventId: predecessor.eventId,
     predecessorState: before.stateReference,
     resultingState: {
-      stateId: `${ledger.ledgerId}:${request.playerId}:rights-state`,
+      stateId: before.stateReference.stateId,
       stateVersion: nextStateVersion,
     },
     provenance: {
@@ -135,9 +155,21 @@ export function renounceGovernedRights(
     ],
     renouncedBirdType: before.birdType as RightsRenunciationEvent['renouncedBirdType'],
     renouncedFreeAgentAmount: before.freeAgentAmount ?? 0,
-  };
+  });
 
-  const nextLedger = appendRightsEvent(ledger, event);
+  let nextLedger: RightsEventLedgerPayload;
+  try {
+    nextLedger = appendRightsEvent(ledger, event);
+  } catch (error) {
+    return Object.freeze({
+      success: false as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'The rights renunciation event could not be appended.',
+      before,
+    });
+  }
   const after = projectRightsStateAsOf({ ...request, ledger: nextLedger });
   if (after.status !== 'renounced') {
     return Object.freeze({
@@ -152,6 +184,6 @@ export function renounceGovernedRights(
     ledger: nextLedger,
     before,
     after,
-    event: Object.freeze(event),
+    event,
   });
 }

@@ -133,6 +133,13 @@ type MockBatch = {
   commit: () => Promise<void>;
 };
 
+type MockTransaction = {
+  get: typeof getDoc;
+  set: MockBatch['set'];
+  update: MockBatch['update'];
+  delete: MockBatch['delete'];
+};
+
 type MockCallableImplementation = (data: unknown) => unknown | Promise<unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -706,6 +713,28 @@ export function writeBatch(_db: unknown): MockBatch {
 
   currentBatch = batch;
   return batch;
+}
+
+export async function runTransaction<T>(
+  db: unknown,
+  updateFunction: (transaction: MockTransaction) => Promise<T>
+): Promise<T> {
+  const batch = writeBatch(db);
+  const transaction: MockTransaction = {
+    get: getDoc,
+    set: batch.set,
+    update: batch.update,
+    delete: batch.delete,
+  };
+  try {
+    const result = await updateFunction(transaction);
+    await batch.commit();
+    return result;
+  } catch (error) {
+    batch.operations = [];
+    currentBatch = null;
+    throw error;
+  }
 }
 
 // Mock arrayUnion function

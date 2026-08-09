@@ -71,7 +71,10 @@ import type {
   SigningDetails,
 } from './useArchitectActions.types';
 import type { UseArchitectStateReturn } from './useArchitectState';
-import type { PreparedCapAuditedMutationBoundary } from './useArchitectActions.persistenceHelpers';
+import type {
+  ComputeNextTeam,
+  PreparedCapAuditedMutationBoundary,
+} from './useArchitectActions.persistenceHelpers';
 import type {
   ArchitectPostActionReceipt,
   ArchitectReceiptActionContext,
@@ -112,10 +115,7 @@ export interface UseSigningExecutionParams {
   prepareCapAuditedMutationBoundary: (params: {
     mutationType: string;
     playerIds?: string[];
-    computeNextTeam: (
-      beforeTeam: CapSheet,
-      context: { operationId: string; occurredAt: string }
-    ) => CapSheet;
+    computeNextTeam: ComputeNextTeam;
     yearOverride?: number;
   }) => PreparedCapAuditedMutationBoundary;
   buildCommittedWorldReloadPlan: (
@@ -530,10 +530,7 @@ export function useSigningExecution({
     (params: {
       mutationType: string;
       playerIds?: string[];
-      computeNextTeam: (
-        beforeTeam: CapSheet,
-        context: { operationId: string; occurredAt: string }
-      ) => CapSheet;
+      computeNextTeam: ComputeNextTeam;
       persistPayload?: ArchitectMutationPayload;
       invalidMessage: string;
       seasonIdOverride?: string;
@@ -705,6 +702,18 @@ export function useSigningExecution({
           applied: true,
           operationId: boundary.operationId,
           persistPromise: persistCompletionPromise,
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : `Cannot apply ${mutationType}: the computed team state is invalid.`;
+        reportMutationError(message, { mutationType });
+        return {
+          applied: false,
+          operationId: null,
+          message,
+          persistPromise: null,
         };
       } finally {
         if (optimisticLockAcquired && lockScopeKey && !persistScheduled) {

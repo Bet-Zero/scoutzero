@@ -124,12 +124,15 @@ const rewriteWorldIdentity = (
   if (isPlainRecord(next.rightsLedger)) {
     const priorLedger = createRightsEventLedger(next.rightsLedger);
     const nextLedgerId = `${childWorldId}:${priorLedger.teamId}:rights`;
-    const replaceLedgerIdentity = (value: string | null): string | null =>
-      value === null
-        ? null
-        : value.startsWith(priorLedger.ledgerId)
-          ? `${nextLedgerId}${value.slice(priorLedger.ledgerId.length)}`
-          : value;
+    const replaceLedgerIdentity = (value: string): string =>
+      value === priorLedger.ledgerId ||
+      (value.startsWith(priorLedger.ledgerId) &&
+        value.charAt(priorLedger.ledgerId.length) === ':')
+        ? `${nextLedgerId}${value.slice(priorLedger.ledgerId.length)}`
+        : value;
+    const replaceNullableLedgerIdentity = (
+      value: string | null
+    ): string | null => (value === null ? null : replaceLedgerIdentity(value));
     next.rightsLedger = createRightsEventLedger({
       ...priorLedger,
       ledgerId: nextLedgerId,
@@ -138,7 +141,9 @@ const rewriteWorldIdentity = (
         ...event,
         worldId: childWorldId,
         eventId: replaceLedgerIdentity(event.eventId),
-        predecessorEventId: replaceLedgerIdentity(event.predecessorEventId),
+        predecessorEventId: replaceNullableLedgerIdentity(
+          event.predecessorEventId
+        ),
         predecessorState: event.predecessorState
           ? {
               ...event.predecessorState,

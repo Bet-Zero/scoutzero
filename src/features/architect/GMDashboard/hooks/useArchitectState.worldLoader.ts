@@ -143,7 +143,11 @@ export function useWorldLoader(params: UseWorldLoaderParams): UseWorldLoaderResu
         setWorldCurrentSeason(metadataPatch.currentSeason || null);
       }
       if (metadataPatch.rightsLedgerVersion !== undefined) {
-        setRightsLedgerWorldVersion(metadataPatch.rightsLedgerVersion || null);
+        setRightsLedgerWorldVersion(
+          typeof metadataPatch.rightsLedgerVersion === 'number'
+            ? metadataPatch.rightsLedgerVersion
+            : null
+        );
       }
     },
     [

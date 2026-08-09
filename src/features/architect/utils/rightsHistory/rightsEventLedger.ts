@@ -93,6 +93,59 @@ function validateSourceDates(
   });
 }
 
+function validateNestedVersionChains<T>({
+  records,
+  identity,
+  version,
+  supersedesVersion,
+  recordStatus,
+  eventIndex,
+  field,
+  problems,
+}: {
+  records: readonly T[];
+  identity: (record: T) => string;
+  version: (record: T) => number;
+  supersedesVersion: (record: T) => number | null;
+  recordStatus: (record: T) => 'current' | 'superseded';
+  eventIndex: number;
+  field: string;
+  problems: RightsLedgerProblem[];
+}): void {
+  const recordsByIdentity = new Map<string, T[]>();
+  for (const record of records) {
+    const key = identity(record);
+    const versions = recordsByIdentity.get(key) ?? [];
+    versions.push(record);
+    recordsByIdentity.set(key, versions);
+  }
+
+  for (const [key, versions] of recordsByIdentity) {
+    const ordered = [...versions].sort(
+      (left, right) => version(left) - version(right)
+    );
+    ordered.forEach((record, index) => {
+      const expectedVersion = index + 1;
+      const expectedStatus =
+        index === ordered.length - 1 ? 'current' : 'superseded';
+      if (
+        version(record) !== expectedVersion ||
+        supersedesVersion(record) !==
+          (expectedVersion === 1 ? null : expectedVersion - 1) ||
+        recordStatus(record) !== expectedStatus
+      ) {
+        problems.push(
+          problem(
+            'broken-chain',
+            `events[${eventIndex}].${field}.${key}@v${version(record)}`,
+            'nested evidence versions must be contiguous, explicitly supersede the prior version, and leave only the highest version current'
+          )
+        );
+      }
+    });
+  }
+}
+
 function comparableEventTime(value: string): number {
   if (isDateOnly(value)) return Date.parse(`${value}T00:00:00Z`);
   return parseZonedDateTime(value) ?? Number.NaN;
@@ -171,8 +224,30 @@ export function createRightsEventLedger(
     }
 
     validateSourceDates(event, index, problems);
+    if (event.eventKind === 'rights-established') {
+      validateNestedVersionChains({
+        records: event.serviceSeasons,
+        identity: (record) => record.serviceRecordId,
+        version: (record) => record.serviceRecordVersion,
+        supersedesVersion: (record) => record.supersedesServiceRecordVersion,
+        recordStatus: (record) => record.recordStatus,
+        eventIndex: index,
+        field: 'serviceSeasons',
+        problems,
+      });
+      validateNestedVersionChains({
+        records: event.amountRecords,
+        identity: (record) => record.amountRecordId,
+        version: (record) => record.amountRecordVersion,
+        supersedesVersion: (record) => record.supersedesAmountRecordVersion,
+        recordStatus: (record) => record.recordStatus,
+        eventIndex: index,
+        field: 'amountRecords',
+        problems,
+      });
+    }
 
-    const versionKey = `${event.eventId}@${event.eventVersion}`;
+    const versionKey = `${event.eventId}@v${event.eventVersion}`;
     if (versionKeys.has(versionKey)) {
       problems.push(
         problem('duplicate-version', `events[${index}]`, versionKey)
@@ -276,6 +351,7 @@ export function createRightsEventLedger(
             event.predecessorState.stateVersion)) ||
       event.resultingState.stateVersion !==
         event.predecessorState.stateVersion + 1 ||
+      event.resultingState.stateId !== event.predecessorState.stateId ||
       comparableEventTime(predecessor.effectiveAt) >
         comparableEventTime(event.effectiveAt)
     ) {
@@ -373,7 +449,19 @@ export function appendRightsEvent(
   eventInput: unknown
 ): RightsEventLedgerPayload {
   const ledger = createRightsEventLedger(ledgerInput);
-  const event = RightsEventRecordZ.parse(eventInput);
+  const parsedEvent = RightsEventRecordZ.safeParse(eventInput);
+  if (!parsedEvent.success) {
+    throw new RightsEventLedgerError(
+      parsedEvent.error.issues.map((issue) =>
+        problem(
+          'invalid-payload',
+          `event.${issue.path.join('.') || 'record'}`,
+          issue.message
+        )
+      )
+    );
+  }
+  const event = parsedEvent.data;
   return createRightsEventLedger({
     ...ledger,
     ledgerVersion: ledger.ledgerVersion + 1,
@@ -436,13 +524,14 @@ export function reviseRightsEvent(
       revision.eventKind !== priorCurrent.eventKind ||
       revision.worldId !== priorCurrent.worldId ||
       revision.teamId !== priorCurrent.teamId ||
-      revision.playerId !== priorCurrent.playerId
+      revision.playerId !== priorCurrent.playerId ||
+      revision.salaryCapYear !== priorCurrent.salaryCapYear
     ) {
       problems.push(
         problem(
           'identity-mismatch',
           'revision',
-          'a revision must preserve the current event kind and world/team/player identity'
+          'a revision must preserve the current event kind and world/team/player/Salary Cap Year identity'
         )
       );
     }

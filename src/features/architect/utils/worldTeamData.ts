@@ -24,6 +24,7 @@ import { TeamSlugToCode, TeamCodeMap } from '@/constants/teamList';
 import type { TeamTotals } from '@/features/architect/types';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
+import { createRightsEventLedger } from '@/features/architect/utils/rightsHistory';
 
 // ==== Type Definitions ====
 
@@ -160,7 +161,15 @@ export async function loadWorldTeamData(
     // teamLoader.getTeam handles the fallback chain:
     // world snapshot → parent world → base team
     const teamData = await getTeam(worldId, teamCode);
-    return synchronizeLoadedTeamTotals(teamData as LoadedWorldTeamCapSheet);
+    if (!teamData) return null;
+    const validatedTeamData: LoadedWorldTeamCapSheet = {
+      ...teamData,
+      rightsLedger:
+        teamData.rightsLedger == null
+          ? null
+          : createRightsEventLedger(teamData.rightsLedger),
+    };
+    return synchronizeLoadedTeamTotals(validatedTeamData);
   } catch (error) {
     console.error('Error loading world team data:', error);
     return null;

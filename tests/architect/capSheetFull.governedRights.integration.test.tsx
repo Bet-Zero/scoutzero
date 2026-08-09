@@ -12,6 +12,7 @@ import {
   RIGHTS_FIXTURE_PLAYER_ID,
   RIGHTS_FIXTURE_TEAM_ID,
   RIGHTS_FIXTURE_WORLD_ID,
+  makeRightsEstablishedEvent,
   makeRightsLedger,
 } from '../fixtures/architect/rightsHistory';
 
@@ -113,6 +114,76 @@ describe('Full Cap Table governed rights consumer', () => {
         cell.textContent?.includes('Needs input')
       )
     ).toBe(true);
+  });
+
+  it('projects a future-season hold in the hold Salary Cap Year', () => {
+    const root = makeRightsEstablishedEvent();
+    const futureLedger = makeRightsLedger({
+      ...root,
+      eventId: 'rights-established-player-bze-273-2028',
+      salaryCapYear: 2028,
+      executedAt: '2027-07-01',
+      effectiveAt: '2027-07-01',
+      recordedAt: '2027-07-01T16:00:00Z',
+      serviceSeasons: root.serviceSeasons.map((entry) => ({
+        ...entry,
+        salaryCapYear: entry.salaryCapYear + 1,
+        source: {
+          ...entry.source,
+          effectiveFrom: '2027-07-01',
+          effectiveThrough: '2028-06-30',
+        },
+      })),
+      priorContract: {
+        ...root.priorContract,
+        finalSalaryCapYear: 2027,
+        source: {
+          ...root.priorContract.source,
+          effectiveFrom: '2027-07-01',
+          effectiveThrough: '2028-06-30',
+        },
+      },
+      amountRecords: root.amountRecords.map((record) => ({
+        ...record,
+        salaryCapYear: 2028,
+        source: {
+          ...record.source,
+          effectiveFrom: '2027-07-01',
+          effectiveThrough: '2028-06-30',
+        },
+      })),
+    });
+
+    render(
+      <CapSheetFull
+        teamCapSheet={{
+          ...team,
+          capHolds: [
+            {
+              ...team.capHolds[0],
+              season: '2027-28',
+            },
+          ],
+          rightsLedger: futureLedger,
+        } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('cap-sheet-full-rights-totals-incomplete')
+    ).not.toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId('cap-sheet-full-total-cell')
+        .every((cell) => cell.textContent !== 'Needs input')
+    ).toBe(true);
+    fireEvent.click(
+      screen.getByTestId('cap-sheet-full-cap-holds-toggle')
+    );
+    expect(screen.getByText('$21,850,000')).toBeInTheDocument();
   });
 
   it('identifies an incompatible pre-ledger world and requires recreation', () => {

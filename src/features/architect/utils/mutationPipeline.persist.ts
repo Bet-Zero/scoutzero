@@ -7,7 +7,18 @@
  */
 
 import { db } from '@/firebaseConfig';
-import { writeBatch, serverTimestamp, collection, doc } from 'firebase/firestore';
+import {
+  writeBatch,
+  runTransaction,
+  serverTimestamp,
+  collection,
+  doc,
+  type DocumentData,
+  type DocumentReference,
+  type SetOptions,
+  type Transaction,
+  type WriteBatch,
+} from 'firebase/firestore';
 import {
   worldTeamRef,
   worldPlayerRef,
@@ -38,6 +49,74 @@ import type {
   MutationEventMetadataLike,
   PersistWorldMutationResult,
 } from './mutationPipeline.types';
+import { createRightsEventLedger } from '@/features/architect/utils/rightsHistory';
+
+type ExpectedRightsLedgerReference = Readonly<{
+  ledgerId: string;
+  ledgerVersion: number;
+}>;
+
+type PreparedMutationWrite =
+  | {
+      kind: 'set';
+      ref: DocumentReference;
+      data: unknown;
+      options?: SetOptions;
+    }
+  | {
+      kind: 'update';
+      ref: DocumentReference;
+      data: unknown;
+    }
+  | {
+      kind: 'delete';
+      ref: DocumentReference;
+    };
+
+function requireDocumentData(value: unknown): DocumentData {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('A prepared Firestore mutation write must be an object.');
+  }
+  return value as DocumentData;
+}
+
+function applyWritesToBatch(
+  batch: WriteBatch,
+  writes: readonly PreparedMutationWrite[]
+): void {
+  for (const write of writes) {
+    if (write.kind === 'delete') {
+      batch.delete(write.ref);
+    } else if (write.kind === 'update') {
+      batch.update(write.ref, requireDocumentData(write.data));
+    } else if (write.options) {
+      batch.set(write.ref, requireDocumentData(write.data), write.options);
+    } else {
+      batch.set(write.ref, requireDocumentData(write.data));
+    }
+  }
+}
+
+function applyWritesToTransaction(
+  transaction: Transaction,
+  writes: readonly PreparedMutationWrite[]
+): void {
+  for (const write of writes) {
+    if (write.kind === 'delete') {
+      transaction.delete(write.ref);
+    } else if (write.kind === 'update') {
+      transaction.update(write.ref, requireDocumentData(write.data));
+    } else if (write.options) {
+      transaction.set(
+        write.ref,
+        requireDocumentData(write.data),
+        write.options
+      );
+    } else {
+      transaction.set(write.ref, requireDocumentData(write.data));
+    }
+  }
+}
 
 /**
  * Persist mutation to Firestore.
@@ -57,6 +136,7 @@ export async function persistWorldMutation({
   timestamp,
   payloadAsOfDate, // Phase 20: Only write asOfDate if explicitly provided in payload
   auditContext = {},
+  expectedRightsLedgersByTeam = {},
 }: {
   worldId: string;
   seasonId: string;
@@ -66,8 +146,11 @@ export async function persistWorldMutation({
   timestamp: number;
   payloadAsOfDate?: string | null;
   auditContext?: AuditContextLike;
+  expectedRightsLedgersByTeam?: Readonly<
+    Record<string, ExpectedRightsLedgerReference>
+  >;
 }): Promise<PersistWorldMutationResult> {
-  const batch = writeBatch(db);
+  const writes: PreparedMutationWrite[] = [];
   const teamCodesPatched = [];
   const playerIdsPatched = new Set<string>();
   const entitlementIdsPatched = [];
@@ -103,7 +186,7 @@ export async function persistWorldMutation({
         continue;
       }
       const teamRef = worldTeamRef(worldId, teamCode);
-      batch.set(teamRef, sanitizedTeam);
+      writes.push({ kind: 'set', ref: teamRef, data: sanitizedTeam });
       teamCodesPatched.push(String(teamCode));
     }
 
@@ -137,7 +220,7 @@ export async function persistWorldMutation({
         // Then remove undefined values
         const sanitizedPlayer = removeUndefinedDeep(afterSanitize);
         const playerRef = worldPlayerRef(worldId, teamCode, normalizedPlayerId);
-        batch.set(playerRef, sanitizedPlayer);
+        writes.push({ kind: 'set', ref: playerRef, data: sanitizedPlayer });
         playerIdsPatched.add(normalizedPlayerId);
       }
     }
@@ -154,7 +237,7 @@ export async function persistWorldMutation({
         normalizedTeamCode,
         normalizedPlayerId
       );
-      batch.delete(playerRef);
+      writes.push({ kind: 'delete', ref: playerRef });
       playerIdsPatched.add(normalizedPlayerId);
     }
 
@@ -175,7 +258,12 @@ export async function persistWorldMutation({
           entitlementId
         );
         // Merge holderTeam onto existing override doc (or create if none exists)
-        batch.set(entitlementRef, { holderTeam }, { merge: true });
+        writes.push({
+          kind: 'set',
+          ref: entitlementRef,
+          data: { holderTeam },
+          options: { merge: true },
+        });
         entitlementIdsPatched.push(String(entitlementId));
       }
     }
@@ -227,7 +315,7 @@ export async function persistWorldMutation({
       label: 'EVENT',
     });
     const sanitizedEvent = removeUndefinedDeep(afterEventSanitize);
-    batch.set(eventRef, sanitizedEvent);
+    writes.push({ kind: 'set', ref: eventRef, data: sanitizedEvent });
 
     // 4. Update world metadata
     // Use lastModifiedTeams (not modifiedTeams) to clarify this field records
@@ -245,10 +333,50 @@ export async function persistWorldMutation({
     }
 
     const metadataRef = worldMetadataRef(worldId);
-    batch.update(metadataRef, worldPatch);
+    writes.push({ kind: 'update', ref: metadataRef, data: worldPatch });
 
-    // Commit all writes atomically
-    await batch.commit();
+    // A rights append must compare the exact ledger version it consumed in the
+    // same atomic commit that publishes the replacement ledger. Otherwise two
+    // tabs can both report success while the later whole-team write silently
+    // erases the earlier immutable event.
+    if (mutationType === 'renounceRights') {
+      await runTransaction(db, async (transaction) => {
+        for (const { teamCode, team } of teamUpdates) {
+          const normalizedTeamCode = String(teamCode || '').trim();
+          if (!team || !normalizedTeamCode) continue;
+          const expected = expectedRightsLedgersByTeam[normalizedTeamCode];
+          if (!expected) {
+            throw new Error(
+              `Renunciation is missing the expected rights-ledger reference for ${normalizedTeamCode}.`
+            );
+          }
+          const teamRef = worldTeamRef(worldId, normalizedTeamCode);
+          const currentTeamSnapshot = await transaction.get(teamRef);
+          if (!currentTeamSnapshot.exists()) {
+            throw new Error(
+              `Team ${normalizedTeamCode} changed before the rights append could commit. Reload and try again.`
+            );
+          }
+          const currentTeamData = currentTeamSnapshot.data();
+          const currentLedger = createRightsEventLedger(
+            currentTeamData.rightsLedger
+          );
+          if (
+            currentLedger.ledgerId !== expected.ledgerId ||
+            currentLedger.ledgerVersion !== expected.ledgerVersion
+          ) {
+            throw new Error(
+              `Rights history for ${normalizedTeamCode} changed before commit. Reload and try again.`
+            );
+          }
+        }
+        applyWritesToTransaction(transaction, writes);
+      });
+    } else {
+      const batch = writeBatch(db);
+      applyWritesToBatch(batch, writes);
+      await batch.commit();
+    }
 
     const writesSummary = {
       ...cloneWritesSummary(),
@@ -294,5 +422,3 @@ export async function persistWorldMutation({
     };
   }
 }
-
-

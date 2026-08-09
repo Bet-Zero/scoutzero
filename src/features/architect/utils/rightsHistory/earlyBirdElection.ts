@@ -45,7 +45,6 @@ export type ElectEarlyBirdNonBirdResult =
 export function electEarlyBirdNonBirdForContract(
   request: ElectEarlyBirdNonBirdRequest
 ): ElectEarlyBirdNonBirdResult {
-  const ledger = createRightsEventLedger(request.ledger);
   const before = projectRightsStateAsOf(request);
   if (
     before.status !== 'available' ||
@@ -58,6 +57,20 @@ export function electEarlyBirdNonBirdForContract(
         before.status === 'available'
           ? 'The written Non-Bird election is available only from Early Bird rights.'
           : before.reasons[0] || 'Governed rights inputs are incomplete.',
+      before,
+    });
+  }
+
+  let ledger: RightsEventLedgerPayload;
+  try {
+    ledger = createRightsEventLedger(request.ledger);
+  } catch (error) {
+    return Object.freeze({
+      success: false as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'The governed rights ledger is invalid.',
       before,
     });
   }
@@ -93,8 +106,15 @@ export function electEarlyBirdNonBirdForContract(
     ? Date.parse(`${request.asOfDate}T00:00:00Z`)
     : Date.parse(request.asOfDate);
   const recordedTime = Date.parse(request.recordedAt);
-  const event: EarlyBirdElectionEvent = {
-    eventId: `${ledger.ledgerId}:${request.playerId}:early-bird-election:${nextStateVersion}`,
+  if (!Number.isFinite(recordedTime)) {
+    return Object.freeze({
+      success: false as const,
+      error: 'The Early Bird election recordedAt value must be a zoned ISO-8601 instant.',
+      before,
+    });
+  }
+  const event: EarlyBirdElectionEvent = Object.freeze({
+    eventId: `${ledger.ledgerId}:${request.playerId}:${request.salaryCapYear}:early-bird-election:${nextStateVersion}`,
     eventVersion: 1,
     eventKind: 'early-bird-election',
     worldId: request.worldId,
@@ -122,9 +142,21 @@ export function electEarlyBirdNonBirdForContract(
     canonLeafIds: ['CBA2-C14.9'],
     electedContractId: request.electedContractId,
     sourceRightsState: before.stateReference,
-  };
+  });
 
-  const nextLedger = appendRightsEvent(ledger, event);
+  let nextLedger: RightsEventLedgerPayload;
+  try {
+    nextLedger = appendRightsEvent(ledger, event);
+  } catch (error) {
+    return Object.freeze({
+      success: false as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'The Early Bird election event could not be appended.',
+      before,
+    });
+  }
   const after = projectRightsStateAsOf({ ...request, ledger: nextLedger });
   if (
     after.status !== 'available' ||

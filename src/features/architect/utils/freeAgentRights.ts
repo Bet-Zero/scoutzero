@@ -292,6 +292,7 @@ export function resolveFreeAgentRights(
     const renounced = projection.status === 'renounced';
     const freeAgentType = projection.freeAgentStatus ?? 'UFA';
     const birdType = projection.birdType ?? 'None';
+    const signingBirdType = projection.signingBirdType ?? 'None';
     const freeAgencyYear =
       context.holdSeasonStartYear ?? governed.salaryCapYear - 1;
     const placement = resolvePlacement(
@@ -318,7 +319,8 @@ export function resolveFreeAgentRights(
       canResignWithRights:
         projection.status === 'available' &&
         (lane === 'bird-rights' || lane === 'restricted-rights'),
-      signingMechanism: birdType !== 'None' ? birdType : 'Cap Space',
+      signingMechanism:
+        signingBirdType !== 'None' ? signingBirdType : 'Cap Space',
       placement,
       isDeadHold: placement === 'dead',
     };

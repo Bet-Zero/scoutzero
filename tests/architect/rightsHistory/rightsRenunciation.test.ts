@@ -29,6 +29,11 @@ const renounce = (ledger: unknown, overrides: Partial<Parameters<typeof renounce
   });
 
 describe('governed rights renunciation', () => {
+  it('fails closed instead of throwing for a structurally invalid ledger', () => {
+    expect(() => renounce({})).not.toThrow();
+    expect(renounce({})).toMatchObject({ success: false });
+  });
+
   it('appends a renunciation and projects the resulting state', () => {
     const result = renounce(makeRightsLedger());
     expect(result.success).toBe(true);
@@ -44,6 +49,7 @@ describe('governed rights renunciation', () => {
       'Two-Way',
     ]);
     expect(result.after.stateReference?.stateVersion).toBe(2);
+    expect(result.event.eventId).toContain(':2027:renunciation:');
   });
 
   it('does not mutate the prior service, source, or amount evidence', () => {
@@ -116,6 +122,12 @@ describe('governed rights renunciation', () => {
     expect(result.event.executedAt).toBe('2026-07-05T16:00:00Z');
     expect(result.event.effectiveAt).toBe(RIGHTS_FIXTURE_AS_OF_DATE);
     expect(result.after.status).toBe('renounced');
+  });
+
+  it('rejects an invalid recorded timestamp without throwing', () => {
+    expect(
+      renounce(makeRightsLedger(), { recordedAt: 'not-an-instant' })
+    ).toMatchObject({ success: false });
   });
 
   it('rejects a repeated renunciation without appending another event', () => {

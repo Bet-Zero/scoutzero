@@ -11,6 +11,7 @@ import {
   formatCurrency,
   formatMutationLabel,
   formatPlayerLabel,
+  formatRightOfFirstRefusal,
   formatTeamLabel,
   getFirstSpecificChangeLine,
   isGenericSummary,
@@ -412,7 +413,7 @@ export function toTeamHistoryEventDisplay(
         birdRightsType ? `Former status: ${birdRightsType}` : null,
         freeAgentStatus ? `Free agency: ${freeAgentStatus}` : null,
         rightOfFirstRefusal
-          ? `Right of First Refusal: ${rightOfFirstRefusal}`
+          ? `Right of First Refusal: ${formatRightOfFirstRefusal(rightOfFirstRefusal)}`
           : null,
         freeAgentAmountRemoved
           ? `Free Agent Amount removed: ${freeAgentAmountRemoved}`

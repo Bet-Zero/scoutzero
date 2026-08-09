@@ -2,6 +2,7 @@ export {
   RIGHTS_EVENT_LEDGER_PAYLOAD_VERSION,
   RIGHTS_LEDGER_WORLD_VERSION,
   BirdRightsTypeZ,
+  EarlyBirdElectionEventZ,
   FreeAgentAmountKindZ,
   FreeAgentAmountRecordZ,
   FreeAgentStatusZ,

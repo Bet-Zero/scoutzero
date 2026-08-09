@@ -101,8 +101,11 @@ capSheet/
     CapSummaryTiles.tsx
     index.ts
   CapSheetFull/
+    CapHoldDetailRow.tsx
     CapSheetFull.tsx
+    capSheetFullPresentation.ts
     index.ts
+    useGovernedCapHoldResolution.ts
   ExceptionHistoryTracker/
     ExceptionHistoryTracker.tsx
     index.ts
@@ -590,5 +593,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-09T08:10:00.249Z*
+*Generated on: 2026-08-09T09:19:25.420Z*
 *Auto-updated by: npm run docs*

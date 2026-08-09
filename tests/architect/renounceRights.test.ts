@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyWorldMutation,
   computeWorldMutation,
+  persistWorldMutation,
   type MutationTeamAndPlayerCurrentStateInput,
 } from '@/features/architect/utils/mutationPipeline';
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
@@ -108,7 +109,11 @@ function currentState(
   } as MutationTeamAndPlayerCurrentStateInput;
 }
 
-function compute(worldId = 'world-compute', state = currentState(worldId)) {
+function compute(
+  worldId = 'world-compute',
+  state = currentState(worldId),
+  operationId = 'operation-bze-273'
+) {
   return computeWorldMutation({
     mutationType: 'renounceRights',
     payload: { teamCode: TEAM_ID, playerId: PLAYER_ID },
@@ -117,7 +122,7 @@ function compute(worldId = 'world-compute', state = currentState(worldId)) {
     timestamp: TIMESTAMP,
     asOfDate: AS_OF_DATE,
     worldId,
-    operationId: 'operation-bze-273',
+    operationId,
     authoringIdentity: 'user-bze-273',
     recordedAt: '2026-07-15T16:00:00Z',
   });
@@ -264,7 +269,10 @@ describe('renounceRights world persistence and reload', () => {
     expect(result.persistedToWorld).toBe(true);
     const reloaded = getMockTeamSnapshot(created.worldId, TEAM_ID);
     expect(reloaded?.capHolds).toEqual([]);
-    expect(reloaded?.players?.find((entry) => entry.playerId === PLAYER_ID)?.contract.birdRights?.status).not.toBe('None');
+    expect(
+      reloaded?.players?.find((entry) => entry.playerId === PLAYER_ID)?.contract
+        ?.birdRights?.status
+    ).not.toBe('None');
     const projection = projectRightsStateAsOf({
       ledger: reloaded?.rightsLedger,
       worldId: created.worldId,
@@ -294,7 +302,7 @@ describe('renounceRights world persistence and reload', () => {
       expect.arrayContaining([
         'Former status: Full Bird',
         'Free agency: UFA',
-        'Right of First Refusal: not-applicable',
+        'Right of First Refusal: Not applicable',
         'Free Agent Amount removed: $21,850,000',
         expect.stringContaining('Resulting rights state:'),
       ])
@@ -317,6 +325,57 @@ describe('renounceRights world persistence and reload', () => {
     });
     expect(branchedProjection.status).toBe('renounced');
     expect(branchedProjection.stateReference?.stateVersion).toBe(2);
+  });
+
+  it('rejects a stale whole-ledger replacement instead of losing a concurrent append', async () => {
+    const created = await createWorld({
+      name: 'BZE-273 concurrent rights guard',
+      userId: 'user-bze-273',
+      currentSeason: SEASON_ID,
+    });
+    await updateWorldAsOfDate(created.worldId, AS_OF_DATE);
+    const initialState = currentState(created.worldId);
+    const initialLedger = initialState.team?.rightsLedger;
+    if (!initialLedger) throw new Error('fixture ledger is required');
+
+    const staleResult = compute(
+      created.worldId,
+      initialState,
+      'operation-stale-append'
+    );
+    const winningResult = compute(
+      created.worldId,
+      initialState,
+      'operation-winning-append'
+    );
+    const winningTeam = winningResult.teamUpdates?.[0]?.team;
+    if (!staleResult.success || !winningResult.success || !winningTeam) {
+      throw new Error('concurrent fixture computations must succeed');
+    }
+    seedTeamSnapshot(created.worldId, TEAM_ID, winningTeam);
+
+    const persisted = await persistWorldMutation({
+      worldId: created.worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'renounceRights',
+      computeResult: staleResult,
+      committedTeamUpdates: staleResult.teamUpdates ?? [],
+      timestamp: TIMESTAMP,
+      expectedRightsLedgersByTeam: {
+        [TEAM_ID]: {
+          ledgerId: initialLedger.ledgerId,
+          ledgerVersion: initialLedger.ledgerVersion,
+        },
+      },
+    });
+
+    expect(persisted.success).toBe(false);
+    if (persisted.success) throw new Error('stale persistence must fail');
+    expect(persisted.error).toContain('changed before commit');
+    expect(
+      getMockTeamSnapshot(created.worldId, TEAM_ID)?.rightsLedger?.events.at(-1)
+        ?.provenance.sourceTransactionId
+    ).toBe('operation-winning-append');
   });
 
   it('rejects a newly marked world until its governed date is supplied', async () => {

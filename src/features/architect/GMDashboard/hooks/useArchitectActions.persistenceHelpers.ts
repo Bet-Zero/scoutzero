@@ -79,6 +79,16 @@ export type PreparedCapAuditedMutationBoundary = {
   rollbackOptimisticLocalState: () => void;
 };
 
+export type CapAuditedMutationOperationContext = Readonly<{
+  operationId: string;
+  occurredAt: string;
+}>;
+
+export type ComputeNextTeam = (
+  beforeTeam: CapSheet,
+  context: CapAuditedMutationOperationContext
+) => CapSheet;
+
 export interface UsePersistenceHelpersParams {
   teamCode: string;
   worldId: string | null;
@@ -196,10 +206,7 @@ export function usePersistenceHelpers({
     (params: {
       mutationType: string;
       playerIds?: string[];
-      computeNextTeam: (
-        beforeTeam: CapSheet,
-        context: { operationId: string; occurredAt: string }
-      ) => CapSheet;
+      computeNextTeam: ComputeNextTeam;
       yearOverride?: number;
     }): PreparedCapAuditedMutationBoundary => {
       const {

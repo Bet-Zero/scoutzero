@@ -221,6 +221,7 @@ function currentAmountRecords(
   reasons: string[]
 ): ReadonlyMap<FreeAgentAmountKind, FreeAgentAmountRecord> | null {
   const amounts = new Map<FreeAgentAmountKind, FreeAgentAmountRecord>();
+  let hasMissingRequiredAmount = false;
   for (const record of event.amountRecords) {
     if (record.recordStatus !== 'current') continue;
     if (record.salaryCapYear !== salaryCapYear) continue;
@@ -238,12 +239,13 @@ function currentAmountRecords(
   }
   for (const kind of REQUIRED_AMOUNT_KINDS) {
     if (!amounts.has(kind)) {
+      hasMissingRequiredAmount = true;
       reasons.push(
         `The governed ${kind} input is missing for Salary Cap Year ${salaryCapYear}.`
       );
     }
   }
-  return reasons.length === 0 ? amounts : null;
+  return hasMissingRequiredAmount ? null : amounts;
 }
 
 function calculateFreeAgentAmount(

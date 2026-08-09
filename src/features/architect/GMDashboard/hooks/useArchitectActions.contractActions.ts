@@ -67,6 +67,7 @@ import {
   RIGHTS_LEDGER_WORLD_VERSION,
   renounceGovernedRights,
 } from '@/features/architect/utils/rightsHistory';
+import type { ComputeNextTeam } from './useArchitectActions.persistenceHelpers';
 
 export type UseContractActionsParams = {
   currentYear: number;
@@ -81,10 +82,7 @@ export type UseContractActionsParams = {
   applyCapAuditedTeamMutation: (params: {
     mutationType: string;
     playerIds?: string[];
-    computeNextTeam: (
-      beforeTeam: CapSheet,
-      context: { operationId: string; occurredAt: string }
-    ) => CapSheet;
+    computeNextTeam: ComputeNextTeam;
     persistPayload?: ArchitectMutationPayload;
     invalidMessage: string;
     seasonIdOverride?: string;
@@ -382,7 +380,9 @@ export function useContractActions({
             authoringIdentity: userId,
             recordedAt: context.occurredAt,
           });
-          if (!preview.success) return beforeTeam;
+          if (!preview.success) {
+            throw new Error(preview.error);
+          }
           return {
             ...beforeTeam,
             rightsLedger: preview.ledger,

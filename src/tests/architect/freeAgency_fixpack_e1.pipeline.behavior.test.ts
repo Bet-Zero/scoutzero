@@ -44,7 +44,10 @@ const firestoreMocks = vi.hoisted(() => ({
   batchSet: vi.fn(),
   batchUpdate: vi.fn(),
   batchCommit: vi.fn(async () => {}),
-  getDoc: vi.fn(async () => ({ exists: () => false, data: () => ({}) })),
+  getDoc: vi.fn(async () => ({
+    exists: (): boolean => false,
+    data: () => ({}),
+  })),
 }));
 
 vi.mock('@/firebaseConfig', () => ({
@@ -58,6 +61,16 @@ vi.mock('firebase/firestore', () => ({
     commit: firestoreMocks.batchCommit,
   })),
   getDoc: firestoreMocks.getDoc,
+  runTransaction: vi.fn(async (_db, updateFunction) => {
+    const result = await updateFunction({
+      get: firestoreMocks.getDoc,
+      set: firestoreMocks.batchSet,
+      update: firestoreMocks.batchUpdate,
+      delete: vi.fn(),
+    });
+    await firestoreMocks.batchCommit();
+    return result;
+  }),
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments) => segments.map(String).join('/')),
   doc: vi.fn((...segments) => segments.map(String).join('/')),
@@ -287,6 +300,10 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
 
     mockedGetTeam.mockResolvedValue(team as LoadedTeam);
     mockedGetPlayer.mockResolvedValue(player as LoadedPlayer);
+    firestoreMocks.getDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({ ...team, createdBy: userId }),
+    });
 
     const result = await applyWorldMutation({
       userId,

@@ -182,6 +182,16 @@ describe('World Manager', () => {
       expect(parentMetadata.childWorlds).toContain(childResult.worldId);
     });
 
+    it('surfaces the missing parent identity before creating a child', async () => {
+      await expect(
+        createWorld({
+          name: 'Orphaned Child',
+          parentWorldId: 'missing-parent-world',
+          userId,
+        })
+      ).rejects.toThrow('World missing-parent-world not found');
+    });
+
     it('throws error when userId is missing', async () => {
       await expect(
         createWorld({

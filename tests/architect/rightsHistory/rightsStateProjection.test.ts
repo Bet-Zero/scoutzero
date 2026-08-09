@@ -150,7 +150,9 @@ describe('dated rights projection', () => {
       })
     );
     expect(result.status).toBe('needs-input');
-    expect(result.reasons.join(' ')).toContain('inconsistent');
+    expect(result.reasons.join(' ')).toContain(
+      'Credited service record service-2026 has inconsistent or unsupported continuity evidence.'
+    );
   });
 
   it('fails closed on inconsistent UFA/RFA and ROFR evidence', () => {

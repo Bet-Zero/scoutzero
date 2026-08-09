@@ -136,6 +136,19 @@ export function formatCurrency(value: unknown): string | null {
   return `$${numericValue.toLocaleString()}`;
 }
 
+export function formatRightOfFirstRefusal(value: string): string {
+  switch (value) {
+    case 'active':
+      return 'Active';
+    case 'inactive':
+      return 'Inactive';
+    case 'not-applicable':
+      return 'Not applicable';
+    default:
+      return value;
+  }
+}
+
 export function formatSignedCurrency(value: number): string {
   const prefix = value > 0 ? '+' : value < 0 ? '-' : '';
   return `${prefix}$${Math.abs(value).toLocaleString()}`;

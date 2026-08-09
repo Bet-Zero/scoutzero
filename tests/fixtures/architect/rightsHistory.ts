@@ -1,4 +1,5 @@
 import {
+  RIGHTS_EVENT_LEDGER_PAYLOAD_VERSION,
   createRightsEventLedger,
   type FreeAgentAmountKind,
   type RightsEstablishedEvent,
@@ -146,7 +147,7 @@ export function makeRightsLedger(
   event: RightsEstablishedEvent = makeRightsEstablishedEvent()
 ): RightsEventLedgerPayload {
   return createRightsEventLedger({
-    payloadVersion: 1,
+    payloadVersion: RIGHTS_EVENT_LEDGER_PAYLOAD_VERSION,
     ledgerId: 'rights-ledger',
     ledgerVersion: 1,
     worldId: event.worldId,

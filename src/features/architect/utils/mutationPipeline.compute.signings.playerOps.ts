@@ -43,7 +43,7 @@ import type {
   MutationPipelineSalaryRow,
   MutationTeamAndPlayerCurrentState,
 } from './mutationPipeline';
-import { renounceGovernedRights } from './rightsHistory';
+import { renounceGovernedRights } from '@/features/architect/utils/rightsHistory';
 
 export function computeWaiveResult({
   payload,
