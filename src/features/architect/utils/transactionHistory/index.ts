@@ -70,6 +70,7 @@ export {
   serializeTransactionEventLedger,
   toTransactionEventLedgerPayload,
   TransactionEventLedgerPayloadError,
+  TransactionHistoryReadError,
 } from './transactionEventSerialization';
 export type {
   TransactionHistoryReadProblem,

@@ -4,6 +4,7 @@ import {
   deserializeTransactionEventLedger,
   readTransactionEventLedger,
   serializeTransactionEventLedger,
+  TransactionHistoryReadError,
 } from '@/features/architect/utils/transactionHistory';
 import {
   LEDGER_ID,
@@ -93,8 +94,12 @@ describe('BZE-272 transaction history serialization', () => {
     const payload = JSON.parse(serializeTransactionEventLedger(makeHistory()));
     payload.transactions[0].transactionVersion = 0;
     payload.manifests[0].manifestVersion = 0;
+    const serialized = JSON.stringify(payload);
 
-    const result = readTransactionEventLedger(JSON.stringify(payload));
+    expect(() => deserializeTransactionEventLedger(serialized)).toThrow(
+      TransactionHistoryReadError
+    );
+    const result = readTransactionEventLedger(serialized);
     expect(result.state).toBe('invalid');
     expect(result.problems.map((entry) => entry.source)).toEqual(
       expect.arrayContaining(['transaction', 'manifest'])

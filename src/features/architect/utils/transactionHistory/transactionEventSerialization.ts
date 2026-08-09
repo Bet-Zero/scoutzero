@@ -35,7 +35,7 @@ export type TransactionHistoryReadProblem =
   | { readonly source: 'manifest'; readonly detail: string }
   | { readonly source: 'payload'; readonly detail: string };
 
-class TransactionHistoryReadError extends Error {
+export class TransactionHistoryReadError extends Error {
   readonly problems: readonly TransactionHistoryReadProblem[];
 
   constructor(problems: readonly TransactionHistoryReadProblem[]) {
