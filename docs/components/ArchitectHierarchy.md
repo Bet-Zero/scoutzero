@@ -568,6 +568,12 @@ utils/
       validateInput.ts
       validationIssueText.ts
   tradeManager.ts
+  transactionHistory/
+    completedTradeLedger.ts
+    index.ts
+    transactionCommitManifest.ts
+    transactionEventSerialization.ts
+    transactionHistoryFence.ts
   validatePhase21.test.ts
   waiverDeadCapAllocation.ts
   worldManager.core.ts
@@ -577,5 +583,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-08T11:30:51.889Z*
+*Generated on: 2026-08-09T03:30:21.554Z*
 *Auto-updated by: npm run docs*
