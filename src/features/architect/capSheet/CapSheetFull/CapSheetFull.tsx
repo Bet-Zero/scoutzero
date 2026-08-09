@@ -40,10 +40,22 @@ import { ManageDeadMoneyModal } from '@/features/architect/capSheet/modals/Manag
 import { ManageExceptionsModal } from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 import type { ManualCapSheetMutationAuthority } from '@/features/architect/capSheet/CapSheet/CapSheet';
 import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
+import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
+import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
 import {
-  resolveFreeAgentRights,
-  type FreeAgentRights,
-} from '@/features/architect/utils/freeAgentRights';
+  getHoldLookupKeys,
+  getPlayerLookupKeys,
+  resolvedHoldAmount,
+  useGovernedCapHoldResolution,
+  type CapHoldLike,
+  type GovernedRightsContext,
+  type ResolvedCapHoldEntry,
+} from './useGovernedCapHoldResolution';
+import { CapHoldDetailRow } from './CapHoldDetailRow';
+import {
+  getTagColor,
+  normalizeFAType,
+} from './capSheetFullPresentation';
 
 type DeadCapSavePayload = Parameters<
   ManualCapSheetMutationAuthority['handleSetDeadCap']
@@ -55,14 +67,6 @@ type ExceptionsSavePayload = Parameters<
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
 type CapSheetFullPlayerLike = PlayerRulesProfileInput;
-type CapHoldLike = {
-  playerId?: string | number | null;
-  playerName?: string | null;
-  season?: string | null;
-  amount?: NumericLike;
-  type?: string | null;
-  isSigned?: boolean | null;
-};
 type DeadCapEntryLike = {
   playerId?: string | number | null;
   playerName?: string | null;
@@ -76,6 +80,7 @@ type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   name?: string | null;
   abbreviation?: string | null;
   id?: string | null;
+  rightsLedger?: RightsEventLedgerPayload | null;
 };
 type ContractYearSliceLike = ReturnType<typeof getContractYearSlice>;
 type VisiblePlayerEntry = {
@@ -85,12 +90,6 @@ type VisiblePlayerEntry = {
   firstVisibleYear: number;
   firstVisibleAmount: number;
   originalIndex: number;
-};
-type ResolvedCapHoldEntry = {
-  hold: CapHoldLike;
-  rights: FreeAgentRights;
-  player: CapSheetFullPlayerLike | null;
-  isOnRoster: boolean;
 };
 type ActionExposureClassification = 'V1 supported' | 'preview-only';
 
@@ -205,6 +204,7 @@ type CapSheetFullProps = {
    * can render as first-class, re-signable rows in the main cap table.
    */
   playersMap?: Record<string, unknown>;
+  governedRightsContext?: GovernedRightsContext | null;
 };
 
 const CAP_SHEET_FULL_SURFACE_LABELS = {
@@ -213,32 +213,6 @@ const CAP_SHEET_FULL_SURFACE_LABELS = {
   canonicalYearlyTotals: 'Multi-year canonical yearly totals surface',
   capHoldsDetail: 'Multi-year cap holds detail surface',
 } as const;
-
-// Helper to normalize free agent type to display format
-const normalizeFAType = (type: string | null | undefined): string | null => {
-  if (!type) return null;
-  const t = type.toLowerCase();
-  if (t === 'unrestricted' || t === 'ufa') return 'UFA';
-  if (t === 'restricted' || t === 'rfa') return 'RFA';
-  return type.toUpperCase();
-};
-
-// Glossy 2K-style contract chips: gradient fill, hairline border, soft glow.
-const getTagColor = (type: string | null) => {
-  const base =
-    'border shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] bg-gradient-to-b';
-  if (type === 'UFA')
-    return `${base} from-blue-400/40 to-blue-600/40 border-blue-300/40 text-blue-50`;
-  if (type === 'RFA')
-    return `${base} from-rose-400/40 to-rose-600/40 border-rose-300/40 text-rose-50`;
-  if (type === 'PO')
-    return `${base} from-emerald-400/40 to-emerald-600/40 border-emerald-300/40 text-emerald-50`;
-  if (type === 'TO')
-    return `${base} from-amber-400/40 to-amber-600/40 border-amber-300/40 text-amber-50`;
-  if (type === 'TWO-WAY')
-    return `${base} from-white/15 to-white/5 border-white/20 text-white/70`;
-  return `${base} from-slate-500/40 to-slate-700/40 border-slate-400/30 text-slate-50`;
-};
 
 // Soft full-cell tints that echo each tag's hue so a year cell reads as a
 // free-agency / option / extension season at a glance. A top-down gradient
@@ -291,80 +265,6 @@ const toEndYear = (value: unknown): number | null => {
     : null;
 };
 
-const toStartYear = (value: unknown): number | null => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value !== 'string') return null;
-
-  const trimmed = value.trim();
-  const seasonMatch = trimmed.match(/^(\d{4})-\d{2}$/);
-  if (seasonMatch) return Number(seasonMatch[1]);
-
-  const numericYear = Number.parseInt(trimmed, 10);
-  return /^\d{4}$/.test(trimmed) && Number.isFinite(numericYear)
-    ? numericYear
-    : null;
-};
-
-const normalizeLookupKey = (value: unknown): string | null => {
-  if (value == null) return null;
-  const normalized = String(value)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-  return normalized || null;
-};
-
-const addLookupKey = (keys: Set<string>, value: unknown) => {
-  if (value == null) return;
-  const raw = String(value).trim();
-  if (!raw) return;
-  keys.add(raw);
-  const normalized = normalizeLookupKey(raw);
-  if (normalized) keys.add(normalized);
-};
-
-const getPlayerLookupKeys = (player: CapSheetFullPlayerLike | null) => {
-  const keys = new Set<string>();
-  if (!player) return keys;
-  const anyPlayer = player as {
-    id?: unknown;
-    player_id?: unknown;
-    playerId?: unknown;
-    name?: unknown;
-    displayName?: unknown;
-    bio?: { playerId?: unknown; displayName?: unknown };
-  };
-  addLookupKey(keys, anyPlayer.id);
-  addLookupKey(keys, anyPlayer.player_id);
-  addLookupKey(keys, anyPlayer.playerId);
-  addLookupKey(keys, anyPlayer.bio?.playerId);
-  addLookupKey(keys, anyPlayer.name);
-  addLookupKey(keys, anyPlayer.displayName);
-  addLookupKey(keys, anyPlayer.bio?.displayName);
-  return keys;
-};
-
-const getHoldLookupKeys = (hold: CapHoldLike) => {
-  const keys = new Set<string>();
-  addLookupKey(keys, hold.playerId);
-  addLookupKey(keys, hold.playerName);
-  return keys;
-};
-
-const resolveCapHoldPlayer = (
-  hold: CapHoldLike,
-  playersMap: Record<string, unknown>
-): CapSheetFullPlayerLike | null => {
-  for (const key of getHoldLookupKeys(hold)) {
-    const player = playersMap[key];
-    if (player && typeof player === 'object') {
-      return player as CapSheetFullPlayerLike;
-    }
-  }
-  return null;
-};
 
 const collectDeadCapEndYears = (deadCapEntry: DeadCapEntryLike) => {
   const endYears: number[] = [];
@@ -602,6 +502,7 @@ export const CapSheetFull = ({
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
   playersMap = {},
+  governedRightsContext = null,
 }: CapSheetFullProps) => {
   const standardFreeAgentLauncherIsSupported =
     standardFreeAgentLauncherExposureClassification === 'V1 supported';
@@ -821,34 +722,20 @@ export const CapSheetFull = ({
     [teamCapSheet.capHolds]
   );
 
-  const resolvedCapHolds = useMemo<ResolvedCapHoldEntry[]>(
-    () =>
-      displayedCapHolds.map((hold) => {
-        const player = resolveCapHoldPlayer(hold, playersMap);
-        const holdKeys = getHoldLookupKeys(hold);
-        const playerKeys = getPlayerLookupKeys(player);
-        const isOnRoster =
-          Array.from(holdKeys).some((key) => rosterLookupKeys.has(key)) ||
-          Array.from(playerKeys).some((key) => rosterLookupKeys.has(key));
-        const rights = resolveFreeAgentRights(
-          player as unknown as Parameters<typeof resolveFreeAgentRights>[0], // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-172
-          {
-            // `currentYear` is the END year of the active column (e.g. 2027 for
-            // the "2026-27" season). Free-agency years are START years (LeBron's
-            // 2026 free agency), so convert to the season START year here — else
-            // the resolver promotes NEXT season's free agents and drops this
-            // year's. See [[one_screen_principle]].
-            activeSeasonStartYear: currentYear - 1,
-            holdType: hold.type,
-            holdSeasonStartYear: toStartYear(hold.season),
-            isOnRoster,
-          }
-        );
-
-        return { hold, rights, player, isOnRoster };
-      }),
-    [currentYear, displayedCapHolds, playersMap, rosterLookupKeys]
-  );
+  // CapSheetFull's pre-existing null-state return precedes its legacy hook
+  // block; this extracted hook preserves that established call position.
+  const {
+    resolvedCapHolds,
+    hasGovernedRightsNeedsInput,
+    governedRightsIncompleteYears,
+  } = useGovernedCapHoldResolution({ // eslint-disable-line react-hooks/rules-of-hooks
+    displayedCapHolds,
+    playersMap,
+    rosterLookupKeys,
+    rightsLedger: teamCapSheet.rightsLedger,
+    governedRightsContext,
+    currentYear,
+  });
 
   const { mainFaHolds, sectionHolds } = useMemo(() => {
     // Dedup on VISIBLE rows only: a player who already renders as a roster row
@@ -871,8 +758,7 @@ export const CapSheetFull = ({
       .filter((entry) => entry.rights.placement === 'main')
       .sort(
         (a, b) =>
-          Number(b.rights.capHoldAmount || b.hold.amount || 0) -
-          Number(a.rights.capHoldAmount || a.hold.amount || 0)
+          resolvedHoldAmount(b) - resolvedHoldAmount(a)
       );
     const section = renderable.filter((entry) => !main.includes(entry));
 
@@ -924,9 +810,9 @@ export const CapSheetFull = ({
     }
 
     for (const entry of mainFaHolds) {
-      const { hold, rights } = entry;
+      const { hold } = entry;
       const holdEnd = toEndYear(hold.season) ?? Number.MAX_SAFE_INTEGER;
-      const amount = Number(rights.capHoldAmount || hold.amount || 0);
+      const amount = resolvedHoldAmount(entry);
       entries.push({
         kind: 'hold',
         entry,
@@ -968,13 +854,17 @@ export const CapSheetFull = ({
     // the lookup missed — the cap hold IS the source of truth here.
     const player =
       entry.player ??
+      // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-173
       ({
         playerId: hold.playerId,
         displayName: hold.playerName,
-      } as unknown as CapSheetFullPlayerLike); // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-173
+      } as unknown as CapSheetFullPlayerLike);
 
     const tag = normalizeFAType(rights.freeAgentType || hold.type) || 'UFA';
-    const amount = Number(rights.capHoldAmount || hold.amount || 0);
+    const amount = resolvedHoldAmount(entry);
+    const rightsAvailable =
+      rights.projectionStatus === 'available' ||
+      rights.projectionStatus === 'legacy';
     const holdEndYear = toEndYear(hold.season);
     return (
       <div
@@ -1017,11 +907,17 @@ export const CapSheetFull = ({
             <button
               data-testid="cap-sheet-full-fa-absolve-button"
               data-action-exposure-classification="V1 supported"
+              disabled={!rightsAvailable}
+              title={
+                rightsAvailable
+                  ? `Renounce ${rights.birdType} rights`
+                  : rights.unavailableReasons[0]
+              }
               onClick={(e) => {
                 e.stopPropagation();
-                renounceCapHold?.(hold);
+                if (rightsAvailable) renounceCapHold?.(hold);
               }}
-              className="rounded border border-red-500/20 bg-red-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-300 hover:bg-red-500/30"
+              className="rounded border border-red-500/20 bg-red-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-300 hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Absolve
             </button>
@@ -1041,6 +937,20 @@ export const CapSheetFull = ({
           // dimmed + italic so it reads as "tentative / not locked in." No
           // tag chip — the cell tint already encodes the type (blue=UFA,
           // rose=RFA) and the tooltip spells it out. Bird icon sits bottom-right.
+          if (!rightsAvailable) {
+            return (
+              <div
+                key={year}
+                data-testid="cap-sheet-full-rights-needs-input"
+                className="relative flex h-[var(--cap-row-h,24px)] items-center justify-center border-l border-amber-400/20 bg-amber-500/10 px-2"
+                title={rights.unavailableReasons[0] || 'Governed rights inputs are incomplete.'}
+              >
+                <span className="truncate text-[10px] font-semibold text-amber-200">
+                  Needs input
+                </span>
+              </div>
+            );
+          }
           return (
             <div
               key={year}
@@ -1089,6 +999,24 @@ export const CapSheetFull = ({
         teamCapSheet
           ? {
               ...teamCapSheet,
+              capHolds: governedRightsContext
+                ? ((teamCapSheet.capHolds || []) as CapHoldLike[]).map(
+                    (hold) => {
+                      const entry = resolvedCapHolds.find(
+                        (candidate) => candidate.hold === hold
+                      );
+                      return entry?.rights.authority === 'governed-history'
+                        ? {
+                            ...hold,
+                            amount:
+                              entry.rights.projectionStatus === 'available'
+                                ? entry.rights.capHoldAmount
+                                : 0,
+                          }
+                        : { ...hold, amount: 0 };
+                    }
+                  )
+                : teamCapSheet.capHolds,
               players: teamCapSheet.players?.map((p) => ({ ...p })),
             }
           : null,
@@ -1096,7 +1024,7 @@ export const CapSheetFull = ({
       );
     }
     return totals;
-  }, [teamCapSheet, allYears]);
+  }, [teamCapSheet, allYears, governedRightsContext, resolvedCapHolds]);
   const hasIncompleteCharges = allYears.some(
     (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
   );
@@ -1210,6 +1138,27 @@ export const CapSheetFull = ({
               'inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px color-mix(in srgb, var(--team-primary,#4F46E5) 40%, transparent), 0 18px 50px -20px rgba(0,0,0,0.8)',
           }}
         >
+          {governedRightsContext &&
+          governedRightsContext.worldVersion !== RIGHTS_LEDGER_WORLD_VERSION ? (
+            <div
+              data-testid="cap-sheet-full-rights-incompatible"
+              className="shrink-0 border-b border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100"
+            >
+              This Team Plan predates governed rights history. Recreate it to
+              manage free-agent rights.
+            </div>
+          ) : null}
+          {governedRightsContext &&
+          governedRightsContext.worldVersion === RIGHTS_LEDGER_WORLD_VERSION &&
+          hasGovernedRightsNeedsInput ? (
+            <div
+              data-testid="cap-sheet-full-rights-totals-incomplete"
+              className="shrink-0 border-b border-amber-400/20 bg-amber-500/5 px-3 py-1.5 text-[11px] text-amber-100"
+            >
+              Governed rights inputs are incomplete. Affected holds and totals
+              remain blocked until source/version evidence is supplied.
+            </div>
+          ) : null}
           {freeAgentOptions.length > 0 ? (
             <section
               data-testid="cap-sheet-full-fa-options"
@@ -1899,9 +1848,12 @@ export const CapSheetFull = ({
                     </div>
                     {allYears.map((year) => {
                       const isTotalHighlighted = affectedTotalYears.has(year);
+                      const isRightsTotalIncomplete =
+                        governedRightsIncompleteYears.has(year);
                       return (
                         <div
                           key={year}
+                          data-salary-cap-year={year}
                           data-testid={
                             isTotalHighlighted
                               ? 'cap-sheet-full-total-cell-highlighted'
@@ -1913,10 +1865,11 @@ export const CapSheetFull = ({
                               : 'text-white'
                           }`}
                         >
-                          $
-                          {yearTotalBreakdowns[
-                            year
-                          ].totalCapAllocations.toLocaleString()}
+                          {isRightsTotalIncomplete
+                            ? 'Needs input'
+                            : `$${yearTotalBreakdowns[
+                                year
+                              ].totalCapAllocations.toLocaleString()}`}
                         </div>
                       );
                     })}
@@ -1983,96 +1936,16 @@ export const CapSheetFull = ({
                 entry: ResolvedCapHoldEntry,
                 idx: number,
                 isLegacy = false
-              ) => {
-                const h = entry.hold;
-                const amount = Number(
-                  entry.rights.capHoldAmount || h.amount || 0
-                );
-                const tag = normalizeFAType(
-                  entry.rights.freeAgentType || h.type
-                );
-                return (
-                  <div
-                    key={`${h.playerId}-${idx}`}
-                    className={`grid items-center hover:bg-white/[0.02] transition-colors group ${isLegacy ? 'bg-white/[0.01]' : ''}`}
-                    style={{ gridTemplateColumns: capHoldGridTemplate }}
-                  >
-                    {/* Name Column */}
-                    <div className="px-4 py-2 flex items-center border-r border-cockpit-edge h-[24px] relative overflow-hidden">
-                      <span
-                        className="text-xs font-medium text-cockpit-text-primary truncate w-full"
-                        title={h.playerName || String(h.playerId || '')}
-                      >
-                        {h.playerName || h.playerId}
-                      </span>
-
-                      {/* Renounce Button - Absolute Positioned on Hover */}
-                      <div className="absolute inset-0 bg-cockpit-slab flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        <button
-                          data-testid="cap-sheet-full-absolve-button"
-                          data-action-exposure-classification="preview-only"
-                          title="Secondary cap-hold drawer Absolve is not a V1 supported entry point"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            renounceCapHold?.(h);
-                          }}
-                          className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded border border-red-500/20"
-                        >
-                          Absolve
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Tag Column — dead/zombie holds (departed players never
-                  renounced, or past seasons) are marked DEAD so they read as
-                  renounce-able clutter, not live decisions. */}
-                    <div className="px-1 py-1 flex items-center justify-center border-r border-cockpit-edge h-[24px]">
-                      {entry.rights.isDeadHold ? (
-                        <span
-                          className="px-1 py-px rounded-[2px] text-[8px] font-bold uppercase tracking-wider truncate max-w-full border border-zinc-500/30 bg-zinc-600/20 text-zinc-300"
-                          title="Renounce-able hold for a departed player — not a live decision"
-                        >
-                          DEAD
-                        </span>
-                      ) : (
-                        <span
-                          className={`${getTagColor(h.type || null)} px-1 py-px rounded-[2px] text-[8px] font-bold uppercase tracking-wider truncate max-w-full`}
-                        >
-                          {h.type === 'FA Cap Hold'
-                            ? 'HOLD'
-                            : tag || h.type || 'HOLD'}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Year Columns */}
-                    {allYears.map((year) => {
-                      const seasonStr = `${year - 1}-${String(year % 100).padStart(2, '0')}`;
-                      const matchSeason = h.season === seasonStr;
-
-                      if (matchSeason) {
-                        return (
-                          <div
-                            key={year}
-                            className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[24px] bg-cyan-900/10"
-                          >
-                            <span className="text-xs font-mono text-cyan-200 tabular-nums">
-                              ${amount.toLocaleString()}
-                            </span>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div
-                          key={year}
-                          className="border-l border-white/[0.02] h-[24px] opacity-30"
-                        />
-                      );
-                    })}
-                  </div>
-                );
-              };
+              ) => (
+                <CapHoldDetailRow
+                  key={`${entry.hold.playerId}-${idx}`}
+                  entry={entry}
+                  isLegacy={isLegacy}
+                  allYears={allYears}
+                  gridTemplateColumns={capHoldGridTemplate}
+                  onRenounce={renounceCapHold}
+                />
+              );
 
               // The bar always renders so the compact Key (legend) is reachable,
               // but the `cap-sheet-full-cap-tools` identity only applies when

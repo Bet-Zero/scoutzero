@@ -74,6 +74,7 @@ export function buildCurrentStateBaseTeamBoundaryInput(
     roster:
       teamRecord.roster ?? teamRecord[CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY],
     capHolds: teamRecord.capHolds,
+    rightsLedger: teamRecord.rightsLedger,
     deadCap: teamRecord.deadCap,
     exceptions:
       teamRecord.exceptions ??
@@ -122,6 +123,7 @@ export function buildCurrentStateTradeTeamBoundaryInput(
     roster:
       teamRecord.roster ?? teamRecord[CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY],
     capHolds: teamRecord.capHolds,
+    rightsLedger: teamRecord.rightsLedger,
     deadCap: teamRecord.deadCap,
     exceptions:
       teamRecord.exceptions ??
@@ -161,6 +163,7 @@ export function normalizeCurrentStateTeamMutationCore(
   const teamName = toOptionalTrimmedString(teamRecord.teamName);
   const players = normalizeCurrentStatePlayerArray(teamRecord.players);
   const capHolds = normalizeCurrentStateCapHolds(teamRecord.capHolds);
+  const rightsLedger = teamRecord.rightsLedger;
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);
   const totals = normalizeCurrentStateTeamTotals(teamRecord.totals);
   const source = normalizeCurrentStateTeamSource(teamRecord.source);
@@ -182,6 +185,9 @@ export function normalizeCurrentStateTeamMutationCore(
   }
   if (capHolds !== undefined) {
     normalized.capHolds = capHolds;
+  }
+  if (rightsLedger !== undefined) {
+    normalized.rightsLedger = rightsLedger;
   }
   if (deadCap !== undefined) {
     normalized.deadCap = deadCap;

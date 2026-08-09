@@ -26,6 +26,7 @@ type ForwardedCapTableProps = Pick<
   | 'freeAgentOptions'
   | 'onOpenFreeAgentOption'
   | 'onRemoveFreeAgentOption'
+  | 'governedRightsContext'
 >;
 
 type CapTableSectionProps = ForwardedCapTableProps & {
@@ -60,6 +61,7 @@ const CapTableSection = ({
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
+  governedRightsContext = null,
 }: CapTableSectionProps) => (
   <CapSheetFull
     teamCapSheet={teamCapSheet}
@@ -92,6 +94,7 @@ const CapTableSection = ({
     freeAgentOptions={freeAgentOptions}
     onOpenFreeAgentOption={onOpenFreeAgentOption}
     onRemoveFreeAgentOption={onRemoveFreeAgentOption}
+    governedRightsContext={governedRightsContext}
   />
 );
 

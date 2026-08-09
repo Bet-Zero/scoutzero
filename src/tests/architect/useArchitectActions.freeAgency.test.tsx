@@ -8,6 +8,8 @@ import {
   type UseArchitectActionsReturn,
 } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
+import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
+import { makeRightsLedgerForIdentity } from '../../../tests/fixtures/architect/rightsHistory';
 
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
@@ -388,6 +390,19 @@ function renderActionsHarness({
   reloadActiveWorldTeamData?: ReloadActiveWorldTeamData | null;
   publishPostActionReceipt?: (receipt: ArchitectPostActionReceipt) => void;
 }) {
+  const governedInitialTeam = worldId
+    ? {
+        ...initialTeam,
+        rightsLedger:
+          initialTeam.rightsLedger ??
+          makeRightsLedgerForIdentity({
+            worldId,
+            teamId: 'LAL',
+            playerId: 'player_1',
+            salaryCapYear: 2026,
+          }),
+      }
+    : initialTeam;
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
   const finishSave = vi.fn();
@@ -399,7 +414,7 @@ function renderActionsHarness({
 
   const { result } = renderHook(() => {
     const [teamCapSheet, setTeamCapSheet] =
-      useState<FreeAgencyStateCapSheet>(initialTeam);
+      useState<FreeAgencyStateCapSheet>(governedInitialTeam);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
     const [selectedPlayer, setSelectedPlayer] =
       useState<FreeAgencySelectedPlayerState>(null);
@@ -416,6 +431,10 @@ function renderActionsHarness({
       state: {
         teamCapSheet,
         currentYear: 2026,
+        worldAsOfDate: worldId ? '2025-07-15' : null,
+        rightsLedgerWorldVersion: worldId
+          ? RIGHTS_LEDGER_WORLD_VERSION
+          : null,
         setTeamCapSheet,
         setSelectedRulesYear,
         setSelectedPlayer,

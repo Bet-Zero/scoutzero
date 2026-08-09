@@ -79,6 +79,16 @@ export type PreparedCapAuditedMutationBoundary = {
   rollbackOptimisticLocalState: () => void;
 };
 
+export type CapAuditedMutationOperationContext = Readonly<{
+  operationId: string;
+  occurredAt: string;
+}>;
+
+export type ComputeNextTeam = (
+  beforeTeam: CapSheet,
+  context: CapAuditedMutationOperationContext
+) => CapSheet;
+
 export interface UsePersistenceHelpersParams {
   teamCode: string;
   worldId: string | null;
@@ -196,7 +206,7 @@ export function usePersistenceHelpers({
     (params: {
       mutationType: string;
       playerIds?: string[];
-      computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
+      computeNextTeam: ComputeNextTeam;
       yearOverride?: number;
     }): PreparedCapAuditedMutationBoundary => {
       const {
@@ -209,11 +219,14 @@ export function usePersistenceHelpers({
         ? WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM
         : BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM;
       const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
-      const afterTeamSnapshot = safeCloneForAudit(
-        computeNextTeam(safeCloneForAudit(beforeTeamSnapshot))
-      );
       const operationId = generateLocalOperationId();
       const occurredAt = new Date().toISOString();
+      const afterTeamSnapshot = safeCloneForAudit(
+        computeNextTeam(safeCloneForAudit(beforeTeamSnapshot), {
+          operationId,
+          occurredAt,
+        })
+      );
       const beforeTeamsByCode: TeamsByCode = {
         [teamCode]: beforeTeamSnapshot,
       };

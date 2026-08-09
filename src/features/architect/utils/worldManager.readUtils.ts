@@ -47,6 +47,7 @@ export interface WorldMetadata extends UnknownRecord {
   stats?: WorldStats;
   draftPositionsByYear?: Record<string, DraftPositionsEntry | null | undefined>;
   asOfDate?: string | null;
+  rightsLedgerVersion?: number;
 }
 
 export interface CreateWorldParams {
@@ -260,6 +261,14 @@ export function readWorldMetadataDoc(
   const actionCount = readNumberField(record, 'actionCount', context);
   if (actionCount !== undefined) {
     metadata.actionCount = actionCount;
+  }
+  const rightsLedgerVersion = readNumberField(
+    record,
+    'rightsLedgerVersion',
+    context
+  );
+  if (rightsLedgerVersion !== undefined) {
+    metadata.rightsLedgerVersion = rightsLedgerVersion;
   }
 
   const isArchived = readBooleanField(record, 'isArchived', context);

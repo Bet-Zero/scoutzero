@@ -40,6 +40,7 @@ export type UseWorldLoaderParams = {
   setActiveWorldLabel: (v: string | null) => void;
   setWorldAsOfDate: (v: string | null) => void;
   setWorldCurrentSeason: (v: string | null) => void;
+  setRightsLedgerWorldVersion: (v: number | null) => void;
   setWorldMetadataLoading: (v: boolean) => void;
   setIsUpdatingWorldAsOfDate: (v: boolean) => void;
   setWorldRosterIndex: (v: Set<string> | null) => void;
@@ -92,6 +93,7 @@ export function useWorldLoader(params: UseWorldLoaderParams): UseWorldLoaderResu
     setActiveWorldLabel,
     setWorldAsOfDate,
     setWorldCurrentSeason,
+    setRightsLedgerWorldVersion,
     setWorldMetadataLoading,
     setIsUpdatingWorldAsOfDate,
     setWorldRosterIndex,
@@ -114,8 +116,18 @@ export function useWorldLoader(params: UseWorldLoaderParams): UseWorldLoaderResu
       setActiveWorldLabel(metadata?.worldName || null);
       setWorldAsOfDate(metadata?.asOfDate || null);
       setWorldCurrentSeason(metadata?.currentSeason || null);
+      setRightsLedgerWorldVersion(
+        typeof metadata?.rightsLedgerVersion === 'number'
+          ? metadata.rightsLedgerVersion
+          : null
+      );
     },
-    [setActiveWorldLabel, setWorldAsOfDate, setWorldCurrentSeason]
+    [
+      setActiveWorldLabel,
+      setRightsLedgerWorldVersion,
+      setWorldAsOfDate,
+      setWorldCurrentSeason,
+    ]
   );
 
   const applyWorldMetadataPatch = useCallback(
@@ -130,8 +142,20 @@ export function useWorldLoader(params: UseWorldLoaderParams): UseWorldLoaderResu
       if (metadataPatch.currentSeason !== undefined) {
         setWorldCurrentSeason(metadataPatch.currentSeason || null);
       }
+      if (metadataPatch.rightsLedgerVersion !== undefined) {
+        setRightsLedgerWorldVersion(
+          typeof metadataPatch.rightsLedgerVersion === 'number'
+            ? metadataPatch.rightsLedgerVersion
+            : null
+        );
+      }
     },
-    [setActiveWorldLabel, setWorldAsOfDate, setWorldCurrentSeason]
+    [
+      setActiveWorldLabel,
+      setRightsLedgerWorldVersion,
+      setWorldAsOfDate,
+      setWorldCurrentSeason,
+    ]
   );
 
   const applyWorldRosterBundle = useCallback(

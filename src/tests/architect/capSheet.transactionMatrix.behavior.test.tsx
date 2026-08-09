@@ -10,6 +10,8 @@ import {
 } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
+import { makeRightsLedgerForIdentity } from '../../../tests/fixtures/architect/rightsHistory';
 
 type MatrixTeamCapSheet = NonNullable<
   UseArchitectActionsParams['state']['teamCapSheet']
@@ -261,7 +263,20 @@ function renderActionsHarness({
   worldId: string | null;
   initialTeam?: MatrixTeamCapSheet;
 }) {
-  const team = initialTeam || buildTeamFixture();
+  const sourceTeam: MatrixTeamCapSheet = initialTeam || buildTeamFixture();
+  const team = worldId
+    ? {
+        ...sourceTeam,
+        rightsLedger:
+          sourceTeam.rightsLedger ??
+          makeRightsLedgerForIdentity({
+            worldId,
+            teamId: 'LAL',
+            playerId: 'p_renounce',
+            salaryCapYear: CURRENT_YEAR,
+          }),
+      }
+    : sourceTeam;
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
   const finishSave = vi.fn();
@@ -285,6 +300,10 @@ function renderActionsHarness({
       state: {
         teamCapSheet,
         currentYear: CURRENT_YEAR,
+        worldAsOfDate: worldId ? '2025-07-15' : null,
+        rightsLedgerWorldVersion: worldId
+          ? RIGHTS_LEDGER_WORLD_VERSION
+          : null,
         setTeamCapSheet,
         setSelectedRulesYear,
         setSelectedPlayer,
@@ -444,7 +463,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
-  it('base mode: renounce rights and cap-hold absolve remove holds, lower totals, and skip world persistence', async () => {
+  it('base mode: rights renunciation fails closed and skips world persistence', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
     const renounceBefore = totalForYear(result.current.teamCapSheet);
@@ -454,12 +473,12 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       );
     });
     const renounceAfter = totalForYear(result.current.teamCapSheet);
-    expect(renounceAfter).toBeLessThan(renounceBefore);
+    expect(renounceAfter).toBe(renounceBefore);
     expect(
       result.current.teamCapSheet.capHolds?.some(
         (hold: MatrixCapHold) => hold.playerId === 'p_renounce'
       )
-    ).toBe(false);
+    ).toBe(true);
 
     const absolveBefore = totalForYear(result.current.teamCapSheet);
     act(() => {
@@ -468,15 +487,16 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         playerName: 'hold_only',
       });
     });
-    await waitFor(() => {
-      expect(
-        result.current.teamCapSheet.capHolds?.some(
-          (hold: MatrixCapHold) => hold.playerId === 'hold_only'
-        )
-      ).toBe(false);
-    });
+    expect(
+      result.current.teamCapSheet.capHolds?.some(
+        (hold: MatrixCapHold) => hold.playerId === 'hold_only'
+      )
+    ).toBe(true);
     const absolveAfter = totalForYear(result.current.teamCapSheet);
-    expect(absolveAfter).toBeLessThan(absolveBefore);
+    expect(absolveAfter).toBe(absolveBefore);
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      'Renunciation requires a saved Team Plan with governed rights history.'
+    );
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
@@ -646,6 +666,8 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       playerId: 'p_renounce',
     });
 
+    const mutationCallsBeforeSnapshotOnlyHold =
+      mutationMocks.applyWorldMutation.mock.calls.length;
     act(() => {
       result.current.actions.handleCapHoldRenounce({
         playerId: 'hold_only',
@@ -653,12 +675,13 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       });
     });
     await waitFor(() => {
-      expect(mutationMocks.applyWorldMutation).toHaveBeenCalled();
+      expect(toastMocks.error).toHaveBeenCalledWith(
+        'No complete governed rights history exists for this player.'
+      );
     });
-    expectWorldMutationCall('renounceRights', {
-      teamCode: 'LAL',
-      playerId: 'hold_only',
-    });
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(
+      mutationCallsBeforeSnapshotOnlyHold
+    );
   });
 
   it('world mode: rights actions (re-sign + sign-and-trade) mutate state/totals and call world persistence branch', async () => {

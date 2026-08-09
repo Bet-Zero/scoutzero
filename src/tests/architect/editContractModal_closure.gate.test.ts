@@ -188,10 +188,15 @@ describe('Gate 3: Cancel Confirm Returns { success:false } (E1)', () => {
   });
 
   it('renounce cancel returns { success: false, message }', () => {
-    // Pattern: confirmAndRenounceRights has cancel return with success: false
+    const renounceCallbackBody = content.match(
+      /const\s+confirmAndRenounceRights\s*=\s*useCallback\(\s*async[\s\S]*?=>\s*\{([\s\S]*?)\n\s*\},\s*\n\s*\[/
+    )?.[1];
+    expect(renounceCallbackBody).toBeDefined();
+
+    // The cancellation guard must live inside this callback, not a nearby action.
     const renounceCancelReturn =
-      /confirmAndRenounceRights[\s\S]{0,800}window\.confirm[\s\S]{0,200}return\s*\{\s*success\s*:\s*false/.test(
-        content
+      /window\.confirm[\s\S]{0,300}return\s*\{\s*success\s*:\s*false/.test(
+        renounceCallbackBody ?? ''
       );
     expect(renounceCancelReturn).toBe(true);
   });

@@ -33,6 +33,7 @@ import type {
 } from '@/features/architect/utils/tradeContext/types';
 import type { CanonicalNonTpeExceptionKey } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import type { computeExpectedCapHoldAmount } from '@/features/architect/utils/capHoldTransitionHelpers';
+import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 
 export type LooseRecord = Record<string, unknown>;
 export type MutationScalarId = string | number | null | undefined;
@@ -419,6 +420,8 @@ export type ArchitectMutationTeamRecord = {
   roster?: Array<string | number>;
   twoWayPlayers?: ArchitectMutationPlayerRecord[];
   capHolds?: ArchitectMutationCapHold[];
+  /** BZE-273: team-scoped immutable free-agent rights history. */
+  rightsLedger?: RightsEventLedgerPayload | null;
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptionIngress | null;
   tradeExceptions?: MutationTradeExceptionRecord[];

@@ -101,8 +101,11 @@ capSheet/
     CapSummaryTiles.tsx
     index.ts
   CapSheetFull/
+    CapHoldDetailRow.tsx
     CapSheetFull.tsx
+    capSheetFullPresentation.ts
     index.ts
+    useGovernedCapHoldResolution.ts
   ExceptionHistoryTracker/
     ExceptionHistoryTracker.tsx
     index.ts
@@ -457,6 +460,13 @@ utils/
     rfaRules.ts
     types.ts
   reacqUtils.ts
+  rightsHistory/
+    earlyBirdElection.ts
+    index.ts
+    rightsEventLedger.ts
+    rightsRenunciation.ts
+    rightsStateProjection.ts
+    worldRightsCompatibility.ts
   runOffseason.ts
   salaryEngine/
     README.md
@@ -583,5 +593,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-09T03:30:21.554Z*
+*Generated on: 2026-08-09T09:19:25.420Z*
 *Auto-updated by: npm run docs*

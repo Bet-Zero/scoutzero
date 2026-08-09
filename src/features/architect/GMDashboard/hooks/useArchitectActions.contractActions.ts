@@ -41,14 +41,10 @@ import type { CapSheetModalActionType } from '@/features/architect/capSheet/CapS
 import type { PlayerRulesProfileInput } from '@/features/architect/types';
 import type { ActionContext } from './useArchitectModals';
 import {
-  type FreeAgencyWorldOnlyActionKind,
   type RenounceActionTarget,
   buildYearSeasonContext,
-  isCapHoldTarget,
-  getRenounceTargetCandidateValues,
   getRenounceTargetDisplayName,
   getRenounceTargetPrimaryId,
-  normalizeEntityIdentity,
   recordOverrideAudit,
 } from './useArchitectActions.helpers';
 import type {
@@ -67,18 +63,26 @@ import type {
   WaiveOptions,
 } from './useArchitectActions.types';
 import { normalizeOptionalMutationString } from './useArchitectActions.types';
+import {
+  RIGHTS_LEDGER_WORLD_VERSION,
+  renounceGovernedRights,
+} from '@/features/architect/utils/rightsHistory';
+import type { ComputeNextTeam } from './useArchitectActions.persistenceHelpers';
 
 export type UseContractActionsParams = {
   currentYear: number;
-  seasonId: string;
   teamCode: string;
+  worldId: string | null;
+  userId: string | null;
+  worldAsOfDate: string | null;
+  rightsLedgerWorldVersion: number | null;
   teamCapSheet: CapSheet | null | undefined;
   reportMutationError: (message: string, details?: Record<string, unknown>) => void;
   runManualCapSheetLedgerMutation: (params: ManualCapSheetLedgerMutationParams) => Promise<boolean>;
   applyCapAuditedTeamMutation: (params: {
     mutationType: string;
     playerIds?: string[];
-    computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
+    computeNextTeam: ComputeNextTeam;
     persistPayload?: ArchitectMutationPayload;
     invalidMessage: string;
     seasonIdOverride?: string;
@@ -110,8 +114,11 @@ export type UseContractActionsParams = {
 
 export function useContractActions({
   currentYear,
-  seasonId,
   teamCode,
+  worldId,
+  userId,
+  worldAsOfDate,
+  rightsLedgerWorldVersion,
   teamCapSheet,
   reportMutationError,
   runManualCapSheetLedgerMutation,
@@ -285,18 +292,70 @@ export function useContractActions({
     [currentYear, openPlayerContractModalRoute]
   );
 
-  // Shared helper for renounce confirmation and execution
-  // Now directly updates teamCapSheet instead of using capSheetState
+  // BZE-273: the saved-world rights ledger is the only renunciation authority.
   const confirmAndRenounceRights = useCallback(
     async (
       playerOrHold: RenounceActionTarget,
       overrideMetadata?: OverrideMetadata | null
     ): Promise<MutationActionResult> => {
+      void overrideMetadata;
       const playerName = getRenounceTargetDisplayName(playerOrHold);
+      const idToRenounce = getRenounceTargetPrimaryId(playerOrHold);
+      if (!idToRenounce) {
+        return { success: false, message: 'Cannot save: Player ID missing.' };
+      }
+      if (
+        !worldId ||
+        !userId ||
+        !worldAsOfDate ||
+        rightsLedgerWorldVersion !== RIGHTS_LEDGER_WORLD_VERSION
+      ) {
+        const message = worldId
+          ? 'This Team Plan predates governed rights history. Recreate it to manage free-agent rights.'
+          : 'Renunciation requires a saved Team Plan with governed rights history.';
+        reportMutationError(message, { playerName, idToRenounce });
+        return { success: false, message };
+      }
+      if (!teamCapSheet?.rightsLedger) {
+        const message =
+          'Governed rights inputs are not available for this team and player.';
+        reportMutationError(message, { playerName, idToRenounce });
+        return { success: false, message };
+      }
+      const salaryCapYear = Number.isInteger(currentYear) ? currentYear : null;
+      if (!salaryCapYear) {
+        return {
+          success: false,
+          message: 'Renunciation requires a governed Salary Cap Year.',
+        };
+      }
+
+      // Preflight before confirmation so an incomplete, repeated, too-early,
+      // or ROFR-blocked action never presents itself as executable.
+      const preflight = renounceGovernedRights({
+        ledger: teamCapSheet.rightsLedger,
+        worldId,
+        teamId: teamCode,
+        playerId: String(idToRenounce),
+        asOfDate: worldAsOfDate,
+        salaryCapYear,
+        operationId: 'rights-renunciation-preflight',
+        authoringIdentity: userId,
+        recordedAt:
+          worldAsOfDate.length === 10
+            ? `${worldAsOfDate}T23:59:59Z`
+            : worldAsOfDate,
+      });
+      if (!preflight.success) {
+        reportMutationError(preflight.error, { playerName, idToRenounce });
+        return { success: false, message: preflight.error };
+      }
 
       if (
         !window.confirm(
-          `Are you sure you want to renounce rights to ${playerName}? This will clear their cap hold.`
+          `Renounce ${preflight.before.birdType} rights to ${playerName} and remove the $${(
+            preflight.before.freeAgentAmount ?? 0
+          ).toLocaleString()} Free Agent Amount?`
         )
       ) {
         return {
@@ -305,144 +364,31 @@ export function useContractActions({
         };
       }
 
-      const candidateIdSet = new Set<string>();
-      const candidateNameSet = new Set<string>();
-      const collectCandidate = (value: unknown): void => {
-        const trimmed = String(value || '').trim();
-        if (trimmed) {
-          candidateIdSet.add(trimmed);
-        }
-        const normalized = normalizeEntityIdentity(value);
-        if (normalized) {
-          candidateNameSet.add(normalized);
-        }
-      };
-
-      for (const candidateValue of getRenounceTargetCandidateValues(
-        playerOrHold
-      )) {
-        collectCandidate(candidateValue);
-      }
-
-      const idToRenounce = getRenounceTargetPrimaryId(playerOrHold);
-
-      // Persist to world if in world mode
-      if (!idToRenounce) {
-        console.error('Renounce missing playerId');
-        toast.error('Cannot save: Player ID missing');
-        return { success: false, message: 'Cannot save: Player ID missing.' };
-      }
-
-      const matchesHold = (hold: CapHold): boolean => {
-        const holdId = String(hold?.playerId || '').trim();
-        return (
-          (holdId && candidateIdSet.has(holdId)) ||
-          candidateNameSet.has(normalizeEntityIdentity(hold?.playerName)) ||
-          candidateNameSet.has(normalizeEntityIdentity(holdId))
-        );
-      };
-      const isPlayerRenounceable = (player: ArchitectPlayer): boolean => {
-        const playerBirdStatus = String(
-          player.contract?.birdRights?.status || ''
-        ).toLowerCase();
-        const rightsAlreadyCleared =
-          Boolean(player.rightsRenounced) &&
-          (!playerBirdStatus || playerBirdStatus === 'none');
-        return !rightsAlreadyCleared;
-      };
-      const matchesPlayer = (player: ArchitectPlayer): boolean => {
-        const playerId = String(player?.id || '').trim();
-        const playerAltId = String(player?.player_id || '').trim();
-        return (
-          (playerId && candidateIdSet.has(playerId)) ||
-          (playerAltId && candidateIdSet.has(playerAltId)) ||
-          candidateNameSet.has(normalizeEntityIdentity(player?.name)) ||
-          candidateNameSet.has(normalizeEntityIdentity(player?.displayName))
-        );
-      };
-
-      const hasRemovableHold = (teamCapSheet?.capHolds || []).some((hold) =>
-        matchesHold(hold as CapHold)
-      );
-      const hasRenounceablePlayer = (teamCapSheet?.players || []).some(
-        (player) =>
-          matchesPlayer(player as ArchitectPlayer) &&
-          isPlayerRenounceable(player as ArchitectPlayer)
-      );
-      if (!hasRemovableHold && !hasRenounceablePlayer) {
-        const message =
-          'No matching cap hold or renounceable rights were found for this player.';
-        reportMutationError(message, {
-          playerName,
-          idToRenounce,
-          candidateIds: Array.from(candidateIdSet),
-        });
-        return { success: false, message };
-      }
-
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'renounceRights',
         playerIds: [String(idToRenounce)],
         invalidMessage: 'Renounce rights blocked by post-state cap validation.',
-        computeNextTeam: (beforeTeam) => {
-          // Remove from capHolds array
-          const updatedCapHolds = (beforeTeam.capHolds || []).filter(
-            (h) => !matchesHold(h as CapHold)
-          );
-
-          // Update player object if it exists
-          let rightsUpdates = 0;
-          const updatedPlayers = (beforeTeam.players || []).map((p) => {
-            if (matchesPlayer(p as ArchitectPlayer)) {
-              let playerChanged = false;
-              const updated: ArchitectPlayer = { ...p };
-              if (!updated.rightsRenounced) {
-                updated.rightsRenounced = true;
-                playerChanged = true;
-              }
-              const currentStatus = String(
-                updated.contract?.birdRights?.status || ''
-              ).toLowerCase();
-              if (updated.contract?.birdRights && currentStatus !== 'none') {
-                updated.contract = {
-                  ...updated.contract,
-                  birdRights: {
-                    ...updated.contract.birdRights,
-                    status: 'None',
-                  },
-                };
-                playerChanged = true;
-              }
-              if (playerChanged) {
-                rightsUpdates += 1;
-              }
-              return updated;
-            }
-            return p;
+        computeNextTeam: (beforeTeam, context) => {
+          const preview = renounceGovernedRights({
+            ledger: beforeTeam.rightsLedger,
+            worldId,
+            teamId: teamCode,
+            playerId: String(idToRenounce),
+            asOfDate: worldAsOfDate,
+            salaryCapYear,
+            operationId: context.operationId,
+            authoringIdentity: userId,
+            recordedAt: context.occurredAt,
           });
-
-          const removedHoldsCount =
-            (beforeTeam.capHolds || []).length - updatedCapHolds.length;
-          if (removedHoldsCount === 0 && rightsUpdates === 0) {
-            return beforeTeam;
+          if (!preview.success) {
+            throw new Error(preview.error);
           }
-
-          // Record override audit log if override was used
-          const overrideAuditLog = overrideMetadata?.overrideUsed
-            ? recordOverrideAudit(
-                beforeTeam,
-                'renounce',
-                overrideMetadata.overrideReasons || [],
-                idToRenounce,
-                playerName
-              )
-            : beforeTeam?.overrideAuditLog;
-
           return {
             ...beforeTeam,
-            players: updatedPlayers,
-            capHolds: updatedCapHolds,
-            ...(overrideAuditLog ? { overrideAuditLog } : {}),
+            rightsLedger: preview.ledger,
+            capHolds: (beforeTeam.capHolds || []).filter(
+              (hold) => String(hold.playerId) !== String(idToRenounce)
+            ),
           };
         },
         persistPayload: {
@@ -465,10 +411,15 @@ export function useContractActions({
     },
     [
       applyCapAuditedTeamMutation,
+      currentYear,
       finalizeCapMutationResult,
       reportMutationError,
       teamCapSheet,
       teamCode,
+      userId,
+      worldAsOfDate,
+      worldId,
+      rightsLedgerWorldVersion,
     ]
   );
 

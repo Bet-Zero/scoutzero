@@ -16,8 +16,9 @@ import {
   computeWorldMutation,
 } from '@/features/architect/utils/mutationPipeline';
 import type { ArchitectMutationTeamRecord } from '@/features/architect/utils/mutationPipeline';
+import { makeRightsLedgerForIdentity } from '../../../tests/fixtures/architect/rightsHistory';
 
-const TEST_TIMESTAMP = Date.parse('2026-03-24T12:00:00.000Z');
+const TEST_TIMESTAMP = Date.parse('2026-07-15T16:00:00.000Z');
 
 function makeMinimalTeam(teamCode: string): ArchitectMutationTeamRecord {
   return {
@@ -150,7 +151,15 @@ describe('mutationPipeline catchall narrowing — ArchitectMutationContract expl
 
 describe('mutationPipeline catchall narrowing — totals behavioral proof', () => {
   it('computeTeamCapTotals writes numeric cap fields into totals on the renounceRights path', () => {
-    const team = makeMinimalTeam('LAL');
+    const worldId = 'world-catchall-totals';
+    const team = {
+      ...makeMinimalTeam('LAL'),
+      rightsLedger: makeRightsLedgerForIdentity({
+        worldId,
+        teamId: 'LAL',
+        playerId: 'player_cap_1',
+      }),
+    };
     const player = {
       player_id: 'player_cap_1',
       displayName: 'Cap Player',
@@ -160,8 +169,13 @@ describe('mutationPipeline catchall narrowing — totals behavioral proof', () =
       mutationType: 'renounceRights',
       payload: { teamCode: 'LAL', playerId: 'player_cap_1' },
       currentState: { team, player },
-      seasonId: '2025-26',
+      seasonId: '2026-27',
       timestamp: TEST_TIMESTAMP,
+      asOfDate: '2026-07-15',
+      worldId,
+      operationId: 'operation-catchall-totals',
+      authoringIdentity: 'test-author',
+      recordedAt: '2026-07-15T16:00:00Z',
     });
 
     expect(result.success).toBe(true);

@@ -377,6 +377,7 @@ export const GMDashboard = () => {
     activeWorldLabel,
     worldAsOfDate,
     worldCurrentSeason,
+    rightsLedgerWorldVersion,
     worldMetadataLoading,
     activeWorldOwner,
     worldTimeOwner,
@@ -1358,6 +1359,16 @@ export const GMDashboard = () => {
           }
           onPlayerAction={handlePlayerAction}
           playersMap={playersMap}
+          governedRightsContext={
+            worldId
+              ? {
+                  worldId,
+                  teamId: resolveTeamCode(normalizedTeamId) || normalizedTeamId,
+                  asOfDate: worldAsOfDate,
+                  worldVersion: rightsLedgerWorldVersion,
+                }
+              : null
+          }
           getRulesProfileForYear={getProfileForYear}
           highlightPlayerId={focusedPlayerId}
           highlightPlayerIds={focusedPlayerIds}

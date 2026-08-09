@@ -82,6 +82,9 @@ export function useArchitectState({
   const [activeWorldLabel, setActiveWorldLabel] = useState<string | null>(null);
   const [worldAsOfDate, setWorldAsOfDate] = useState<string | null>(null);
   const [worldCurrentSeason, setWorldCurrentSeason] = useState<string | null>(null);
+  const [rightsLedgerWorldVersion, setRightsLedgerWorldVersion] = useState<
+    number | null
+  >(null);
   const [worldMetadataLoading, setWorldMetadataLoading] = useState<boolean>(false);
   const [hasRestoredActiveWorld, setHasRestoredActiveWorld] = useState<boolean>(false);
   const [isUpdatingWorldAsOfDate, setIsUpdatingWorldAsOfDate] = useState<boolean>(false);
@@ -166,6 +169,7 @@ export function useArchitectState({
     setActiveWorldLabel,
     setWorldAsOfDate,
     setWorldCurrentSeason,
+    setRightsLedgerWorldVersion,
     setWorldMetadataLoading,
     setIsUpdatingWorldAsOfDate,
     setWorldRosterIndex,
@@ -505,6 +509,7 @@ export function useArchitectState({
     activeWorldLabel,
     worldAsOfDate,
     worldCurrentSeason,
+    rightsLedgerWorldVersion,
     worldMetadataLoading,
     activeWorldOwner,
     worldTimeOwner,
