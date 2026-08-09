@@ -35,8 +35,10 @@ export function makeRightsSource(
 function makeServiceSeason(
   salaryCapYear: number,
   qualified: boolean,
+  governedSalaryCapYear: number,
   overrides: Partial<RightsServiceSeason> = {}
 ): RightsServiceSeason {
+  const governedSeasonStartYear = governedSalaryCapYear - 1;
   return {
     serviceRecordId: `service-${salaryCapYear}`,
     serviceRecordVersion: 1,
@@ -46,7 +48,10 @@ function makeServiceSeason(
     rightsTeamId: RIGHTS_FIXTURE_TEAM_ID,
     continuityRoute: qualified ? 'same-team' : 'not-applicable',
     continuityEventId: null,
-    source: makeRightsSource(`service-${salaryCapYear}-source`),
+    source: makeRightsSource(`service-${salaryCapYear}-source`, {
+      effectiveFrom: `${governedSeasonStartYear}-07-01`,
+      effectiveThrough: `${governedSalaryCapYear}-06-30`,
+    }),
     recordStatus: 'current',
     supersedesServiceRecordVersion: null,
     ...overrides,
@@ -65,25 +70,32 @@ const DEFAULT_AMOUNTS: Readonly<Record<FreeAgentAmountKind, number>> = {
 
 export function makeRightsEstablishedEvent({
   qualifiedSeasons = 3,
+  salaryCapYear = RIGHTS_FIXTURE_SALARY_CAP_YEAR,
   amountOverrides = {},
   freeAgentStatus = 'UFA',
   rightOfFirstRefusal = 'not-applicable',
   eventOverrides = {},
 }: {
   qualifiedSeasons?: number;
+  salaryCapYear?: number;
   amountOverrides?: Partial<Record<FreeAgentAmountKind, number>>;
   freeAgentStatus?: 'UFA' | 'RFA';
   rightOfFirstRefusal?: 'active' | 'inactive' | 'not-applicable';
   eventOverrides?: Partial<RightsEstablishedEvent>;
 } = {}): RightsEstablishedEvent {
+  const seasonStartYear = salaryCapYear - 1;
+  const governedSourceWindow = {
+    effectiveFrom: `${seasonStartYear}-07-01`,
+    effectiveThrough: `${salaryCapYear}-06-30`,
+  };
   const amounts = { ...DEFAULT_AMOUNTS, ...amountOverrides };
   const amountRecords = Object.entries(amounts).map(([kind, amount]) => ({
     amountRecordId: `amount-${kind}`,
     amountRecordVersion: 1,
     kind: kind as FreeAgentAmountKind,
-    salaryCapYear: RIGHTS_FIXTURE_SALARY_CAP_YEAR,
+    salaryCapYear,
     amount,
-    source: makeRightsSource(`amount-${kind}-source`),
+    source: makeRightsSource(`amount-${kind}-source`, governedSourceWindow),
     recordStatus: 'current' as const,
     supersedesAmountRecordVersion: null,
   }));
@@ -95,10 +107,10 @@ export function makeRightsEstablishedEvent({
     worldId: RIGHTS_FIXTURE_WORLD_ID,
     playerId: RIGHTS_FIXTURE_PLAYER_ID,
     teamId: RIGHTS_FIXTURE_TEAM_ID,
-    salaryCapYear: RIGHTS_FIXTURE_SALARY_CAP_YEAR,
-    executedAt: '2026-07-01',
-    effectiveAt: '2026-07-01',
-    recordedAt: '2026-07-01T16:00:00Z',
+    salaryCapYear,
+    executedAt: `${seasonStartYear}-07-01`,
+    effectiveAt: `${seasonStartYear}-07-01`,
+    recordedAt: `${seasonStartYear}-07-01T16:00:00Z`,
     predecessorEventId: null,
     predecessorState: null,
     resultingState: {
@@ -124,19 +136,31 @@ export function makeRightsEstablishedEvent({
     ],
     freeAgentStatus,
     rightOfFirstRefusal,
-    serviceHistoryCompleteFromSalaryCapYear: 2024,
+    serviceHistoryCompleteFromSalaryCapYear: salaryCapYear - 3,
     serviceSeasons: [
-      makeServiceSeason(2026, qualifiedSeasons >= 1),
-      makeServiceSeason(2025, qualifiedSeasons >= 2),
-      makeServiceSeason(2024, qualifiedSeasons >= 3),
+      makeServiceSeason(
+        salaryCapYear - 1,
+        qualifiedSeasons >= 1,
+        salaryCapYear
+      ),
+      makeServiceSeason(
+        salaryCapYear - 2,
+        qualifiedSeasons >= 2,
+        salaryCapYear
+      ),
+      makeServiceSeason(
+        salaryCapYear - 3,
+        qualifiedSeasons >= 3,
+        salaryCapYear
+      ),
     ],
     priorContract: {
       contractId: 'contract-bze-273',
       contractVersion: 4,
-      finalSalaryCapYear: 2026,
+      finalSalaryCapYear: salaryCapYear - 1,
       wasOneSeasonMinimumContract: false,
       wasRookieScaleFourthYear: false,
-      source: makeRightsSource('prior-contract-source'),
+      source: makeRightsSource('prior-contract-source', governedSourceWindow),
     },
     amountRecords,
     ...eventOverrides,
@@ -161,13 +185,18 @@ export function makeRightsLedgerForIdentity({
   teamId,
   playerId,
   qualifiedSeasons = 3,
+  salaryCapYear = RIGHTS_FIXTURE_SALARY_CAP_YEAR,
 }: {
   worldId: string;
   teamId: string;
   playerId: string;
   qualifiedSeasons?: number;
+  salaryCapYear?: number;
 }): RightsEventLedgerPayload {
-  const event = makeRightsEstablishedEvent({ qualifiedSeasons });
+  const event = makeRightsEstablishedEvent({
+    qualifiedSeasons,
+    salaryCapYear,
+  });
   return makeRightsLedger({
     ...event,
     worldId,
