@@ -180,6 +180,11 @@ describe('Full Cap Table governed rights consumer', () => {
         .getAllByTestId('cap-sheet-full-total-cell')
         .every((cell) => cell.textContent !== 'Needs input')
     ).toBe(true);
+    const futureSeasonTotal = screen
+      .getAllByTestId('cap-sheet-full-total-cell')
+      .find((cell) => cell.getAttribute('data-salary-cap-year') === '2028');
+    // Existing roster charges plus the governed $21.85M future-year hold.
+    expect(futureSeasonTotal).toHaveTextContent('$40,471,733');
     fireEvent.click(
       screen.getByTestId('cap-sheet-full-cap-holds-toggle')
     );

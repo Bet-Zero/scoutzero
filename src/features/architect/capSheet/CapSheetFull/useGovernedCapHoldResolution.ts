@@ -210,20 +210,26 @@ export function useGovernedCapHoldResolution({
     ]
   );
 
-  const incompleteEntries = resolvedCapHolds.filter(
-    (entry) =>
-      entry.rights.authority === 'governed-history' &&
-      entry.rights.projectionStatus !== 'available' &&
-      entry.rights.projectionStatus !== 'renounced'
-  );
+  const incompleteRights = useMemo(() => {
+    const incompleteEntries = resolvedCapHolds.filter(
+      (entry) =>
+        entry.rights.authority === 'governed-history' &&
+        entry.rights.projectionStatus !== 'available' &&
+        entry.rights.projectionStatus !== 'renounced'
+    );
+    return {
+      incompleteEntries,
+      hasGovernedRightsNeedsInput: incompleteEntries.length > 0,
+      governedRightsIncompleteYears: new Set(
+        incompleteEntries
+          .map((entry) => toEndYear(entry.hold.season))
+          .filter((year): year is number => year !== null)
+      ),
+    };
+  }, [resolvedCapHolds]);
 
   return {
     resolvedCapHolds,
-    hasGovernedRightsNeedsInput: incompleteEntries.length > 0,
-    governedRightsIncompleteYears: new Set(
-      incompleteEntries
-        .map((entry) => toEndYear(entry.hold.season))
-        .filter((year): year is number => year !== null)
-    ),
+    ...incompleteRights,
   };
 }

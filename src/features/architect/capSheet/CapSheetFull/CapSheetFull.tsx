@@ -1853,6 +1853,7 @@ export const CapSheetFull = ({
                       return (
                         <div
                           key={year}
+                          data-salary-cap-year={year}
                           data-testid={
                             isTotalHighlighted
                               ? 'cap-sheet-full-total-cell-highlighted'
