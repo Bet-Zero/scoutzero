@@ -381,7 +381,7 @@ describe('Architect TypeScript hardening E4 regression', () => {
     });
   });
 
-  it('keeps cap-hold renounce on an immediate path that does not reopen the modal', () => {
+  it('fails a cap-hold renounce closed without a governed saved world and does not reopen the modal', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { result, openContractModal } = renderActionsHarness();
 
@@ -392,9 +392,9 @@ describe('Architect TypeScript hardening E4 regression', () => {
       });
     });
 
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
-    expect(confirmSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Hold Only')
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      'Renunciation requires a saved Team Plan with governed rights history.'
     );
     expect(openContractModal).not.toHaveBeenCalled();
     expect(result.current.selectedPlayer).toBeNull();

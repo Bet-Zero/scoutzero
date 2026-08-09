@@ -190,7 +190,7 @@ describe('Gate 3: Cancel Confirm Returns { success:false } (E1)', () => {
   it('renounce cancel returns { success: false, message }', () => {
     // Pattern: confirmAndRenounceRights has cancel return with success: false
     const renounceCancelReturn =
-      /confirmAndRenounceRights[\s\S]{0,800}window\.confirm[\s\S]{0,200}return\s*\{\s*success\s*:\s*false/.test(
+      /confirmAndRenounceRights[\s\S]{0,8000}window\.confirm[\s\S]{0,300}return\s*\{\s*success\s*:\s*false/.test(
         content
       );
     expect(renounceCancelReturn).toBe(true);

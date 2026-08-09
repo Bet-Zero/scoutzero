@@ -154,3 +154,28 @@ export function makeRightsLedger(
     events: [event],
   });
 }
+
+export function makeRightsLedgerForIdentity({
+  worldId,
+  teamId,
+  playerId,
+  qualifiedSeasons = 3,
+}: {
+  worldId: string;
+  teamId: string;
+  playerId: string;
+  qualifiedSeasons?: number;
+}): RightsEventLedgerPayload {
+  const event = makeRightsEstablishedEvent({ qualifiedSeasons });
+  return makeRightsLedger({
+    ...event,
+    worldId,
+    teamId,
+    playerId,
+    serviceSeasons: event.serviceSeasons.map((entry) => ({
+      ...entry,
+      creditedTeamId: entry.creditedTeamId === null ? null : teamId,
+      rightsTeamId: teamId,
+    })),
+  });
+}

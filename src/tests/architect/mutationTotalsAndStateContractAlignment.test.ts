@@ -10,6 +10,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useArchitectState } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { makeRightsLedgerForIdentity } from '../../../tests/fixtures/architect/rightsHistory';
 
 const stateMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
@@ -43,7 +44,7 @@ vi.mock('@/features/architect/hooks/useArchitectPlayerData', () => ({
   useArchitectPlayerData: () => stateMocks.useArchitectPlayerData(),
 }));
 
-const TEST_TIMESTAMP = Date.parse('2026-03-24T12:00:00.000Z');
+const TEST_TIMESTAMP = Date.parse('2026-07-15T16:00:00.000Z');
 const SEASON_ID = '2025-26';
 const SEASON = '2025-26';
 const CURRENT_YEAR = 2026;
@@ -172,25 +173,38 @@ describe('mutation totals and state contract alignment', () => {
   });
 
   it('returns computed totals snapshot fields on the renounceRights mutation path', () => {
+    const worldId = 'world-mutation-totals';
     const result = computeWorldMutation({
       mutationType: 'renounceRights',
       payload: { teamCode: 'LAL', playerId: 'player_cap_1' },
       currentState: {
-        team: makeMinimalTeam('LAL'),
+        team: {
+          ...makeMinimalTeam('LAL'),
+          rightsLedger: makeRightsLedgerForIdentity({
+            worldId,
+            teamId: 'LAL',
+            playerId: 'player_cap_1',
+          }),
+        },
         player: {
           player_id: 'player_cap_1',
           displayName: 'Cap Player',
         },
       },
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       timestamp: TEST_TIMESTAMP,
+      asOfDate: '2026-07-15',
+      worldId,
+      operationId: 'operation-mutation-totals',
+      authoringIdentity: 'test-author',
+      recordedAt: '2026-07-15T16:00:00Z',
     });
 
     expect(result.success).toBe(true);
 
     const updatedTeam = result.teamUpdates?.[0]?.team;
     expect(updatedTeam?.totals).toMatchObject({
-      yearKey: 2026,
+      yearKey: 2027,
     });
     expect(typeof updatedTeam?.totals?.totalCapAllocations).toBe('number');
     expect(typeof updatedTeam?.totals?.salaryCap).toBe('number');

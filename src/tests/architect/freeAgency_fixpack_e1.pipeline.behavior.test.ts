@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { getPlayer, getTeam } from '@/features/architect/utils/teamLoader';
 import { updateWorldStats } from '@/features/architect/utils/worldManager';
+import { makeRightsLedgerForIdentity } from '../../../tests/fixtures/architect/rightsHistory';
 
 type LoadedTeam = Awaited<ReturnType<typeof getTeam>>;
 type LoadedPlayer = Awaited<ReturnType<typeof getPlayer>>;
@@ -73,6 +74,10 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   updateWorldStats: vi.fn(async () => {}),
+  getWorldMetadata: vi.fn(async () => ({
+    asOfDate: '2026-07-15',
+    rightsLedgerVersion: 1,
+  })),
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
@@ -111,7 +116,7 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
   const userId = 'user_1';
   const worldId = 'world_1';
-  const seasonId = '2025-26';
+  const seasonId = '2026-27';
   const teamCode = 'LAL';
   const playerId = 'player_1';
 
@@ -262,6 +267,11 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
       source: {
         type: 'world-snapshot',
       },
+      rightsLedger: makeRightsLedgerForIdentity({
+        worldId,
+        teamId: teamCode,
+        playerId,
+      }),
     };
     const player = {
       id: playerId,
@@ -302,9 +312,14 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
     expect(writesSummary.eventsWritten).toBeGreaterThan(0);
 
     expect(requireValue(changedTeam.capHolds, 'changedTeam.capHolds')).toHaveLength(0);
-    expect(changedPlayer.rightsRenounced).toBe(true);
-    expect(requireValue(changedPlayer.contract, 'changedPlayer.contract').birdRights?.status).toBe(
-      'None'
+    expect(changedPlayer).not.toHaveProperty('rightsRenounced');
+    expect(
+      requireValue(changedPlayer.contract, 'changedPlayer.contract').birdRights
+        ?.status
+    ).toBe('Early Bird');
+    expect(changedTeam.rightsLedger?.ledgerVersion).toBe(2);
+    expect(changedTeam.rightsLedger?.events.at(-1)?.eventKind).toBe(
+      'rights-renounced'
     );
 
     const setPaths = firestoreMocks.batchSet.mock.calls.map(([ref]) => String(ref));
