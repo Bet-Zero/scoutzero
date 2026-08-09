@@ -331,6 +331,12 @@ utils/
   capUtils.ts
   cbaConstants.ts
   consentUtils.ts
+  contractHistory/
+    contractEventRecords.ts
+    contractEventSerialization.ts
+    contractHistoryFence.ts
+    contractStateProjection.ts
+    index.ts
   contractNormalization.ts
   contractSalaryUtils.ts
   contractUtils.ts
@@ -571,5 +577,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-08T07:17:38.025Z*
+*Generated on: 2026-08-08T11:30:51.889Z*
 *Auto-updated by: npm run docs*
