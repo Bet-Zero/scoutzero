@@ -140,6 +140,28 @@ export function toTeamHistoryEventDisplay(
     mutationMetadata.rightsUsed,
     metadata.rightsUsed
   );
+  const birdRightsType = firstNonEmptyString(
+    mutationMetadata.birdRightsType,
+    metadata.birdRightsType
+  );
+  const freeAgentStatus = firstNonEmptyString(
+    mutationMetadata.freeAgentStatus,
+    metadata.freeAgentStatus
+  );
+  const rightOfFirstRefusal = firstNonEmptyString(
+    mutationMetadata.rightOfFirstRefusal,
+    metadata.rightOfFirstRefusal
+  );
+  const freeAgentAmountRemoved =
+    formatCurrency(mutationMetadata.freeAgentAmountRemoved) ||
+    formatCurrency(metadata.freeAgentAmountRemoved);
+  const rightsStateId = firstNonEmptyString(
+    mutationMetadata.rightsStateId,
+    metadata.rightsStateId
+  );
+  const rightsStateVersion = Number(
+    mutationMetadata.rightsStateVersion ?? metadata.rightsStateVersion
+  );
   const optionType = firstNonEmptyString(
     mutationMetadata.optionType,
     metadata.optionType
@@ -387,6 +409,17 @@ export function toTeamHistoryEventDisplay(
       pushSection(detailSections, 'Player', [firstPlayerLabel]);
       pushSection(detailSections, 'Rights', [
         rightsUsed ? `Rights action: ${rightsUsed}` : null,
+        birdRightsType ? `Former status: ${birdRightsType}` : null,
+        freeAgentStatus ? `Free agency: ${freeAgentStatus}` : null,
+        rightOfFirstRefusal
+          ? `Right of First Refusal: ${rightOfFirstRefusal}`
+          : null,
+        freeAgentAmountRemoved
+          ? `Free Agent Amount removed: ${freeAgentAmountRemoved}`
+          : null,
+        rightsStateId && Number.isInteger(rightsStateVersion)
+          ? `Resulting rights state: ${rightsStateId}@v${rightsStateVersion}`
+          : null,
         destinationTeamLabel ? `Team: ${destinationTeamLabel}` : null,
       ]);
       pushSection(detailSections, 'Cap Allocation', capDeltaLines);

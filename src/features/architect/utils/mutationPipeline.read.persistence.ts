@@ -333,6 +333,41 @@ export function buildTeamHistoryMutationMetadata({
       typeof metadata.rightsUsed === 'string' && metadata.rightsUsed
         ? metadata.rightsUsed
         : undefined,
+    birdRightsType:
+      typeof metadata.birdRightsType === 'string'
+        ? metadata.birdRightsType
+        : undefined,
+    freeAgentStatus:
+      typeof metadata.freeAgentStatus === 'string'
+        ? metadata.freeAgentStatus
+        : undefined,
+    rightOfFirstRefusal:
+      typeof metadata.rightOfFirstRefusal === 'string'
+        ? metadata.rightOfFirstRefusal
+        : undefined,
+    freeAgentAmountRemoved:
+      typeof metadata.freeAgentAmountRemoved === 'number' &&
+      Number.isFinite(metadata.freeAgentAmountRemoved)
+        ? metadata.freeAgentAmountRemoved
+        : undefined,
+    rightsLedgerId:
+      typeof metadata.rightsLedgerId === 'string'
+        ? metadata.rightsLedgerId
+        : undefined,
+    rightsLedgerVersion:
+      typeof metadata.rightsLedgerVersion === 'number' &&
+      Number.isInteger(metadata.rightsLedgerVersion)
+        ? metadata.rightsLedgerVersion
+        : undefined,
+    rightsStateId:
+      typeof metadata.rightsStateId === 'string'
+        ? metadata.rightsStateId
+        : undefined,
+    rightsStateVersion:
+      typeof metadata.rightsStateVersion === 'number' &&
+      Number.isInteger(metadata.rightsStateVersion)
+        ? metadata.rightsStateVersion
+        : undefined,
     stretched: metadata.stretched === true,
     buyout: metadata.buyout === true,
     deadCapAmount:

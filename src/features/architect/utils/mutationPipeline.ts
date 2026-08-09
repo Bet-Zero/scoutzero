@@ -54,6 +54,7 @@ import {
   getWorldMetadata,
   updateWorldStats,
 } from '@/features/architect/utils/worldManager';
+import { resolveRightsWorldCompatibility } from '@/features/architect/utils/rightsHistory';
 import {
   toEndYear,
   toSeasonCode,
@@ -353,8 +354,32 @@ export async function applyWorldMutation({
     typeof operationIdOverride === 'string' && operationIdOverride.trim()
       ? operationIdOverride
       : generateOperationId(timestamp);
+  let governedRenounceWorldAsOfDate: string | null = null;
 
   try {
+    // Clean-break compatibility is an ingress property of the saved world, so
+    // reject it before attempting to resolve legacy team/player snapshots.
+    if (mutationType === 'renounceRights') {
+      const worldMetadata = await getWorldMetadata(worldId);
+      const compatibility = resolveRightsWorldCompatibility(worldMetadata);
+      if (!compatibility.compatible) {
+        return buildMutationFailureResult(compatibility.message);
+      }
+      governedRenounceWorldAsOfDate = worldMetadata.asOfDate ?? null;
+      const governedDate = resolveWorldAsOfDate({
+        payloadAsOfDate:
+          sanitizedPayload.asOfDate != null
+            ? String(sanitizedPayload.asOfDate)
+            : null,
+        worldAsOfDate: governedRenounceWorldAsOfDate,
+      });
+      if (governedDate.defaulted) {
+        return buildMutationFailureResult(
+          'Renunciation requires an explicit governed world date; no runtime-clock fallback is permitted.'
+        );
+      }
+    }
+
     // PHASE 1: READ - Load required current state
     const currentState = await loadStateForMutation(
       worldId,
@@ -363,8 +388,14 @@ export async function applyWorldMutation({
     );
     const beforeTeamsByCode = extractTeamsByCodeFromCurrentState(currentState);
 
-    // Phase 20: Load world metadata asOfDate for SSOT resolution
-    const worldAsOfDate = await loadWorldAsOfDate(worldId);
+    // The migrated rights path is a clean break. A pre-BZE-273 world cannot
+    // silently enter the governed mutation through legacy snapshots.
+    let worldAsOfDate: string | null;
+    if (mutationType === 'renounceRights') {
+      worldAsOfDate = governedRenounceWorldAsOfDate;
+    } else {
+      worldAsOfDate = await loadWorldAsOfDate(worldId);
+    }
 
     // Phase 20: Resolve canonical asOfDate SSOT
     const { asOfDate, defaulted: dateDefaulted } = resolveWorldAsOfDate({
@@ -374,6 +405,11 @@ export async function applyWorldMutation({
           : null,
       worldAsOfDate,
     });
+    if (mutationType === 'renounceRights' && dateDefaulted) {
+      return buildMutationFailureResult(
+        'Renunciation requires an explicit governed world date; no runtime-clock fallback is permitted.'
+      );
+    }
 
     // PHASE 2: COMPUTE (PURE) - Calculate mutation result
     const computeResult: ComputeResultLike = computeTypedWorldMutation({
@@ -384,6 +420,9 @@ export async function applyWorldMutation({
       timestamp,
       asOfDate, // Phase 20: World time SSOT
       worldId,
+      operationId,
+      authoringIdentity: userId,
+      recordedAt: new Date(timestamp).toISOString(),
     });
 
     if (!computeResult.success) {

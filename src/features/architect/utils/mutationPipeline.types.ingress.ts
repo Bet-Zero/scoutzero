@@ -93,6 +93,7 @@ export type MutationCurrentStateTeamCoreIngress = Omit<
     | 'players'
     | 'roster'
     | 'capHolds'
+    | 'rightsLedger'
     | 'deadCap'
     | 'exceptions'
     | 'totals'
@@ -102,11 +103,18 @@ export type MutationCurrentStateTeamCoreIngress = Omit<
     | 'hardCapReason'
     | 'hardCapTriggeredBy'
   >,
-  'players' | 'roster' | 'capHolds' | 'deadCap' | 'exceptions' | 'totals'
+  | 'players'
+  | 'roster'
+  | 'capHolds'
+  | 'rightsLedger'
+  | 'deadCap'
+  | 'exceptions'
+  | 'totals'
 > & {
   players?: unknown[] | null;
   roster?: unknown[] | null;
   capHolds?: unknown[] | null;
+  rightsLedger?: ArchitectMutationTeamRecord['rightsLedger'];
   deadCap?: unknown[] | null;
   exceptions?: ArchitectMutationTeamRecord['exceptions'] | null;
   totals?: ArchitectMutationTeamRecord['totals'] | null;
@@ -404,6 +412,9 @@ export type PublicComputeWorldMutationArgsByType = {
     timestamp: number;
     asOfDate?: string | number | null;
     worldId?: string;
+    operationId?: string;
+    authoringIdentity?: string;
+    recordedAt?: string;
   };
 };
 export type LegacyPublicComputeWorldMutationArgsByType = {
@@ -415,6 +426,9 @@ export type LegacyPublicComputeWorldMutationArgsByType = {
     timestamp: number;
     asOfDate?: string | number | null;
     worldId?: string;
+    operationId?: string;
+    authoringIdentity?: string;
+    recordedAt?: string;
   };
 };
 export type PublicComputeWorldMutationArgs =
@@ -429,6 +443,9 @@ export type ComputeWorldMutationArgsByType = {
     timestamp: number;
     asOfDate?: string | number | null;
     worldId?: string;
+    operationId?: string;
+    authoringIdentity?: string;
+    recordedAt?: string;
   };
 };
 export type ComputeWorldMutationArgs =

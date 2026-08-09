@@ -196,7 +196,10 @@ export function usePersistenceHelpers({
     (params: {
       mutationType: string;
       playerIds?: string[];
-      computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
+      computeNextTeam: (
+        beforeTeam: CapSheet,
+        context: { operationId: string; occurredAt: string }
+      ) => CapSheet;
       yearOverride?: number;
     }): PreparedCapAuditedMutationBoundary => {
       const {
@@ -209,11 +212,14 @@ export function usePersistenceHelpers({
         ? WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM
         : BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM;
       const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
-      const afterTeamSnapshot = safeCloneForAudit(
-        computeNextTeam(safeCloneForAudit(beforeTeamSnapshot))
-      );
       const operationId = generateLocalOperationId();
       const occurredAt = new Date().toISOString();
+      const afterTeamSnapshot = safeCloneForAudit(
+        computeNextTeam(safeCloneForAudit(beforeTeamSnapshot), {
+          operationId,
+          occurredAt,
+        })
+      );
       const beforeTeamsByCode: TeamsByCode = {
         [teamCode]: beforeTeamSnapshot,
       };

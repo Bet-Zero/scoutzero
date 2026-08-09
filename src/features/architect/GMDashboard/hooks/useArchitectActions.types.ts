@@ -614,6 +614,7 @@ export type ArchitectStateForActions = Omit<
     | 'teamCapSheet'
     | 'currentYear'
     | 'worldAsOfDate'
+    | 'rightsLedgerWorldVersion'
     | 'setTeamCapSheet'
     | 'setSelectedRulesYear'
     | 'setSelectedPlayer'
@@ -624,9 +625,10 @@ export type ArchitectStateForActions = Omit<
     | 'setOffseasonSummary'
     | 'refreshWorldRosterIndex'
   >,
-  'worldAsOfDate'
+  'worldAsOfDate' | 'rightsLedgerWorldVersion'
 > & {
   worldAsOfDate?: UseArchitectStateReturn['worldAsOfDate'];
+  rightsLedgerWorldVersion?: UseArchitectStateReturn['rightsLedgerWorldVersion'];
   reloadActiveWorldTeamData?: UseArchitectStateReturn['reloadActiveWorldTeamData'];
 };
 

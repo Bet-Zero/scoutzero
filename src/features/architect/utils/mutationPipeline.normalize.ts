@@ -386,6 +386,9 @@ export function computeTypedWorldMutation<
   timestamp,
   asOfDate,
   worldId,
+  operationId,
+  authoringIdentity,
+  recordedAt,
 }: {
   mutationType: TMutationType;
   payload:
@@ -396,6 +399,9 @@ export function computeTypedWorldMutation<
   timestamp: number;
   asOfDate?: string | number | null;
   worldId?: string;
+  operationId?: string;
+  authoringIdentity?: string;
+  recordedAt?: string;
 }): ComputeResultLike {
   return computeNormalizedWorldMutation({
     mutationType,
@@ -405,6 +411,9 @@ export function computeTypedWorldMutation<
     timestamp,
     asOfDate,
     worldId,
+    operationId,
+    authoringIdentity,
+    recordedAt,
   } as ComputeWorldMutationArgs);
 }
 
@@ -491,7 +500,15 @@ export type StoreOfferSheetOwnershipCandidate = {
 export function computeNormalizedWorldMutation(
   args: ComputeWorldMutationArgs
 ): ComputeResultLike {
-  const { seasonId, timestamp, asOfDate, worldId } = args;
+  const {
+    seasonId,
+    timestamp,
+    asOfDate,
+    worldId,
+    operationId,
+    authoringIdentity,
+    recordedAt,
+  } = args;
   const result = (() => {
     switch (args.mutationType) {
       case 'executeTrade': {
@@ -635,6 +652,11 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
+            worldId,
+            operationId,
+            authoringIdentity,
+            recordedAt,
           })
         );
       }

@@ -457,6 +457,13 @@ utils/
     rfaRules.ts
     types.ts
   reacqUtils.ts
+  rightsHistory/
+    earlyBirdElection.ts
+    index.ts
+    rightsEventLedger.ts
+    rightsRenunciation.ts
+    rightsStateProjection.ts
+    worldRightsCompatibility.ts
   runOffseason.ts
   salaryEngine/
     README.md
@@ -583,5 +590,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-09T03:30:21.554Z*
+*Generated on: 2026-08-09T08:10:00.249Z*
 *Auto-updated by: npm run docs*

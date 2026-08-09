@@ -135,6 +135,7 @@ export type WorldMetadataLike = {
   worldName?: string | null;
   asOfDate?: string | null;
   currentSeason?: string | null;
+  rightsLedgerVersion?: number | null;
 };
 
 export const mergeWorldPlayerOverride = (
@@ -413,6 +414,7 @@ export interface UseArchitectStateReturn {
   activeWorldLabel: string | null;
   worldAsOfDate: string | null;
   worldCurrentSeason: string | null;
+  rightsLedgerWorldVersion: number | null;
   worldMetadataLoading: boolean;
   activeWorldOwner: ArchitectActiveWorldOwner;
   worldTimeOwner: ArchitectWorldTimeOwner;

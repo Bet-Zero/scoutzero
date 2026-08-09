@@ -112,7 +112,10 @@ export interface UseSigningExecutionParams {
   prepareCapAuditedMutationBoundary: (params: {
     mutationType: string;
     playerIds?: string[];
-    computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
+    computeNextTeam: (
+      beforeTeam: CapSheet,
+      context: { operationId: string; occurredAt: string }
+    ) => CapSheet;
     yearOverride?: number;
   }) => PreparedCapAuditedMutationBoundary;
   buildCommittedWorldReloadPlan: (
@@ -527,7 +530,10 @@ export function useSigningExecution({
     (params: {
       mutationType: string;
       playerIds?: string[];
-      computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
+      computeNextTeam: (
+        beforeTeam: CapSheet,
+        context: { operationId: string; occurredAt: string }
+      ) => CapSheet;
       persistPayload?: ArchitectMutationPayload;
       invalidMessage: string;
       seasonIdOverride?: string;

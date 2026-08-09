@@ -352,6 +352,7 @@ export type CurrentStateTeam = Omit<
     | 'roster'
     | 'twoWayPlayers'
     | 'capHolds'
+    | 'rightsLedger'
     | 'deadCap'
     | 'exceptions'
     | 'tradeExceptions'
@@ -389,6 +390,7 @@ export type CurrentStateTeamMutationCoreFieldMap = Pick<
   CurrentStateTeam,
   | 'players'
   | 'capHolds'
+  | 'rightsLedger'
   | 'deadCap'
   | 'totals'
   | 'source'

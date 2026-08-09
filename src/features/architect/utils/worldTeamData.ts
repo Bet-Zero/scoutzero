@@ -23,6 +23,7 @@ import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceCo
 import { TeamSlugToCode, TeamCodeMap } from '@/constants/teamList';
 import type { TeamTotals } from '@/features/architect/types';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 
 // ==== Type Definitions ====
 
@@ -46,6 +47,7 @@ export type LoadedWorldTeamCapSheet = Pick<
   players?: unknown[] | null;
   roster?: unknown[] | null;
   capHolds?: unknown[] | null;
+  rightsLedger?: RightsEventLedgerPayload | null;
   deadCap?: unknown[] | null;
   draftPicks?: unknown[] | null;
   draftPicksInventory?: unknown[] | null;

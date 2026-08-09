@@ -44,6 +44,8 @@ import {
   resolveFreeAgentRights,
   type FreeAgentRights,
 } from '@/features/architect/utils/freeAgentRights';
+import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
+import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
 
 type DeadCapSavePayload = Parameters<
   ManualCapSheetMutationAuthority['handleSetDeadCap']
@@ -76,6 +78,7 @@ type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   name?: string | null;
   abbreviation?: string | null;
   id?: string | null;
+  rightsLedger?: RightsEventLedgerPayload | null;
 };
 type ContractYearSliceLike = ReturnType<typeof getContractYearSlice>;
 type VisiblePlayerEntry = {
@@ -92,6 +95,13 @@ type ResolvedCapHoldEntry = {
   player: CapSheetFullPlayerLike | null;
   isOnRoster: boolean;
 };
+
+const resolvedHoldAmount = (entry: ResolvedCapHoldEntry): number =>
+  Number(
+    entry.rights.authority === 'governed-history'
+      ? entry.rights.capHoldAmount
+      : entry.rights.capHoldAmount || entry.hold.amount || 0
+  );
 type ActionExposureClassification = 'V1 supported' | 'preview-only';
 
 export type CapSheetActionType = 'rfa' | 'ufa' | 'po' | 'to' | 'renounce';
@@ -205,6 +215,12 @@ type CapSheetFullProps = {
    * can render as first-class, re-signable rows in the main cap table.
    */
   playersMap?: Record<string, unknown>;
+  governedRightsContext?: {
+    worldId: string;
+    teamId: string;
+    asOfDate: string | null;
+    worldVersion: number | null;
+  } | null;
 };
 
 const CAP_SHEET_FULL_SURFACE_LABELS = {
@@ -602,6 +618,7 @@ export const CapSheetFull = ({
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
   playersMap = {},
+  governedRightsContext = null,
 }: CapSheetFullProps) => {
   const standardFreeAgentLauncherIsSupported =
     standardFreeAgentLauncherExposureClassification === 'V1 supported';
@@ -842,12 +859,56 @@ export const CapSheetFull = ({
             holdType: hold.type,
             holdSeasonStartYear: toStartYear(hold.season),
             isOnRoster,
+            ...(governedRightsContext
+              ? {
+                  governedRights: {
+                    ledger: teamCapSheet.rightsLedger,
+                    worldId: governedRightsContext.worldId,
+                    teamId: governedRightsContext.teamId,
+                    playerId: String(
+                      hold.playerId ??
+                        player?.playerId ??
+                        player?.player_id ??
+                        player?.id ??
+                        ''
+                    ),
+                    asOfDate: governedRightsContext.asOfDate,
+                    salaryCapYear: currentYear,
+                    worldVersion: governedRightsContext.worldVersion,
+                  },
+                }
+              : {}),
           }
         );
 
         return { hold, rights, player, isOnRoster };
       }),
-    [currentYear, displayedCapHolds, playersMap, rosterLookupKeys]
+    [
+      currentYear,
+      displayedCapHolds,
+      governedRightsContext,
+      playersMap,
+      rosterLookupKeys,
+      teamCapSheet.rightsLedger,
+    ]
+  );
+
+  const hasGovernedRightsNeedsInput = resolvedCapHolds.some(
+    (entry) =>
+      entry.rights.authority === 'governed-history' &&
+      entry.rights.projectionStatus !== 'available' &&
+      entry.rights.projectionStatus !== 'renounced'
+  );
+  const governedRightsIncompleteYears = new Set(
+    resolvedCapHolds
+      .filter(
+        (entry) =>
+          entry.rights.authority === 'governed-history' &&
+          entry.rights.projectionStatus !== 'available' &&
+          entry.rights.projectionStatus !== 'renounced'
+      )
+      .map((entry) => toEndYear(entry.hold.season))
+      .filter((year): year is number => year !== null)
   );
 
   const { mainFaHolds, sectionHolds } = useMemo(() => {
@@ -871,8 +932,7 @@ export const CapSheetFull = ({
       .filter((entry) => entry.rights.placement === 'main')
       .sort(
         (a, b) =>
-          Number(b.rights.capHoldAmount || b.hold.amount || 0) -
-          Number(a.rights.capHoldAmount || a.hold.amount || 0)
+          resolvedHoldAmount(b) - resolvedHoldAmount(a)
       );
     const section = renderable.filter((entry) => !main.includes(entry));
 
@@ -924,9 +984,9 @@ export const CapSheetFull = ({
     }
 
     for (const entry of mainFaHolds) {
-      const { hold, rights } = entry;
+      const { hold } = entry;
       const holdEnd = toEndYear(hold.season) ?? Number.MAX_SAFE_INTEGER;
-      const amount = Number(rights.capHoldAmount || hold.amount || 0);
+      const amount = resolvedHoldAmount(entry);
       entries.push({
         kind: 'hold',
         entry,
@@ -974,7 +1034,10 @@ export const CapSheetFull = ({
       } as unknown as CapSheetFullPlayerLike); // eslint-disable-next-line no-restricted-syntax -- LEDGER:CAST-173
 
     const tag = normalizeFAType(rights.freeAgentType || hold.type) || 'UFA';
-    const amount = Number(rights.capHoldAmount || hold.amount || 0);
+    const amount = resolvedHoldAmount(entry);
+    const rightsAvailable =
+      rights.projectionStatus === 'available' ||
+      rights.projectionStatus === 'legacy';
     const holdEndYear = toEndYear(hold.season);
     return (
       <div
@@ -1017,11 +1080,17 @@ export const CapSheetFull = ({
             <button
               data-testid="cap-sheet-full-fa-absolve-button"
               data-action-exposure-classification="V1 supported"
+              disabled={!rightsAvailable}
+              title={
+                rightsAvailable
+                  ? `Renounce ${rights.birdType} rights`
+                  : rights.unavailableReasons[0]
+              }
               onClick={(e) => {
                 e.stopPropagation();
-                renounceCapHold?.(hold);
+                if (rightsAvailable) renounceCapHold?.(hold);
               }}
-              className="rounded border border-red-500/20 bg-red-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-300 hover:bg-red-500/30"
+              className="rounded border border-red-500/20 bg-red-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-300 hover:bg-red-500/30 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Absolve
             </button>
@@ -1041,6 +1110,20 @@ export const CapSheetFull = ({
           // dimmed + italic so it reads as "tentative / not locked in." No
           // tag chip — the cell tint already encodes the type (blue=UFA,
           // rose=RFA) and the tooltip spells it out. Bird icon sits bottom-right.
+          if (!rightsAvailable) {
+            return (
+              <div
+                key={year}
+                data-testid="cap-sheet-full-rights-needs-input"
+                className="relative flex h-[var(--cap-row-h,24px)] items-center justify-center border-l border-amber-400/20 bg-amber-500/10 px-2"
+                title={rights.unavailableReasons[0] || 'Governed rights inputs are incomplete.'}
+              >
+                <span className="truncate text-[10px] font-semibold text-amber-200">
+                  Needs input
+                </span>
+              </div>
+            );
+          }
           return (
             <div
               key={year}
@@ -1089,6 +1172,24 @@ export const CapSheetFull = ({
         teamCapSheet
           ? {
               ...teamCapSheet,
+              capHolds: governedRightsContext
+                ? ((teamCapSheet.capHolds || []) as CapHoldLike[]).map(
+                    (hold) => {
+                      const entry = resolvedCapHolds.find(
+                        (candidate) => candidate.hold === hold
+                      );
+                      return entry?.rights.authority === 'governed-history'
+                        ? {
+                            ...hold,
+                            amount:
+                              entry.rights.projectionStatus === 'available'
+                                ? entry.rights.capHoldAmount
+                                : 0,
+                          }
+                        : { ...hold, amount: 0 };
+                    }
+                  )
+                : teamCapSheet.capHolds,
               players: teamCapSheet.players?.map((p) => ({ ...p })),
             }
           : null,
@@ -1096,7 +1197,7 @@ export const CapSheetFull = ({
       );
     }
     return totals;
-  }, [teamCapSheet, allYears]);
+  }, [teamCapSheet, allYears, governedRightsContext, resolvedCapHolds]);
   const hasIncompleteCharges = allYears.some(
     (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
   );
@@ -1210,6 +1311,27 @@ export const CapSheetFull = ({
               'inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px color-mix(in srgb, var(--team-primary,#4F46E5) 40%, transparent), 0 18px 50px -20px rgba(0,0,0,0.8)',
           }}
         >
+          {governedRightsContext &&
+          governedRightsContext.worldVersion !== RIGHTS_LEDGER_WORLD_VERSION ? (
+            <div
+              data-testid="cap-sheet-full-rights-incompatible"
+              className="shrink-0 border-b border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100"
+            >
+              This Team Plan predates governed rights history. Recreate it to
+              manage free-agent rights.
+            </div>
+          ) : null}
+          {governedRightsContext &&
+          governedRightsContext.worldVersion === RIGHTS_LEDGER_WORLD_VERSION &&
+          hasGovernedRightsNeedsInput ? (
+            <div
+              data-testid="cap-sheet-full-rights-totals-incomplete"
+              className="shrink-0 border-b border-amber-400/20 bg-amber-500/5 px-3 py-1.5 text-[11px] text-amber-100"
+            >
+              Governed rights inputs are incomplete. Affected holds and totals
+              remain blocked until source/version evidence is supplied.
+            </div>
+          ) : null}
           {freeAgentOptions.length > 0 ? (
             <section
               data-testid="cap-sheet-full-fa-options"
@@ -1899,6 +2021,8 @@ export const CapSheetFull = ({
                     </div>
                     {allYears.map((year) => {
                       const isTotalHighlighted = affectedTotalYears.has(year);
+                      const isRightsTotalIncomplete =
+                        governedRightsIncompleteYears.has(year);
                       return (
                         <div
                           key={year}
@@ -1913,10 +2037,11 @@ export const CapSheetFull = ({
                               : 'text-white'
                           }`}
                         >
-                          $
-                          {yearTotalBreakdowns[
-                            year
-                          ].totalCapAllocations.toLocaleString()}
+                          {isRightsTotalIncomplete
+                            ? 'Needs input'
+                            : `$${yearTotalBreakdowns[
+                                year
+                              ].totalCapAllocations.toLocaleString()}`}
                         </div>
                       );
                     })}
@@ -1985,9 +2110,10 @@ export const CapSheetFull = ({
                 isLegacy = false
               ) => {
                 const h = entry.hold;
-                const amount = Number(
-                  entry.rights.capHoldAmount || h.amount || 0
-                );
+                const amount = resolvedHoldAmount(entry);
+                const rightsAvailable =
+                  entry.rights.projectionStatus === 'available' ||
+                  entry.rights.projectionStatus === 'legacy';
                 const tag = normalizeFAType(
                   entry.rights.freeAgentType || h.type
                 );
@@ -2011,12 +2137,17 @@ export const CapSheetFull = ({
                         <button
                           data-testid="cap-sheet-full-absolve-button"
                           data-action-exposure-classification="preview-only"
-                          title="Secondary cap-hold drawer Absolve is not a V1 supported entry point"
+                          disabled={!rightsAvailable}
+                          title={
+                            rightsAvailable
+                              ? 'Secondary cap-hold drawer Absolve is not a V1 supported entry point'
+                              : entry.rights.unavailableReasons[0]
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
-                            renounceCapHold?.(h);
+                            if (rightsAvailable) renounceCapHold?.(h);
                           }}
-                          className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded border border-red-500/20"
+                          className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded border border-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Absolve
                         </button>
@@ -2057,7 +2188,9 @@ export const CapSheetFull = ({
                             className="flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[24px] bg-cyan-900/10"
                           >
                             <span className="text-xs font-mono text-cyan-200 tabular-nums">
-                              ${amount.toLocaleString()}
+                              {rightsAvailable
+                                ? `$${amount.toLocaleString()}`
+                                : 'Needs input'}
                             </span>
                           </div>
                         );

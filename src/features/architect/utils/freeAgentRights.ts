@@ -5,14 +5,10 @@
  * OWNERSHIP: Feature: architect
  *
  * FOUNDATION PRINCIPLE — derive, never freeze:
- *   The PLAYER RECORD is the single source of truth for Bird rights and free
- *   agency status (`contract.birdRights`, `contract.freeAgency`). A cap hold is
- *   a DERIVED VIEW of a player, not a place to copy a frozen Bird tier or a
- *   stale dollar amount. Every surface (the Free Agent Pool and the Full Cap
- *   Table's inline cap-hold rows) resolves a free agent by joining `playerId`
- *   to the player record and calling into this module — so there is exactly one
- *   place that understands Bird rights, and advancing a season / trading /
- *   renouncing always recomputes from the player instead of trusting a copy.
+ *   The Full Cap Table's migrated saved-world path derives rights and the Free
+ *   Agent Amount from the governed rights ledger. Unmigrated consumers retain
+ *   the prior player-snapshot resolver until their owning tranche moves them;
+ *   a stored cap-hold amount is never authoritative on the migrated path.
  *
  * This module folds together logic that previously lived in three places:
  *   - deriveBirdType()            (buildRuleContext.helpers.ts)
@@ -25,6 +21,11 @@ import {
   calculateCapHold,
   type CapHoldPlayerInput,
 } from '@/features/architect/utils/capHolds';
+import {
+  RIGHTS_LEDGER_WORLD_VERSION,
+  projectRightsStateAsOf,
+  type DatedRightsStateProjection,
+} from '@/features/architect/utils/rightsHistory';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -94,9 +95,24 @@ export interface FreeAgentResolveContext {
   isOnRoster?: boolean;
   /** Has the team renounced this free agent's rights? */
   renounced?: boolean;
+  /** Present only on the BZE-273 saved-world consumer path. */
+  governedRights?: {
+    ledger: unknown;
+    worldId: string;
+    teamId: string;
+    playerId: string;
+    asOfDate: string | null;
+    salaryCapYear: number;
+    worldVersion: number | null;
+  };
 }
 
 export interface FreeAgentRights {
+  authority: 'governed-history' | 'legacy-snapshot';
+  projectionStatus: DatedRightsStateProjection['status'] | 'legacy';
+  stateReference: DatedRightsStateProjection['stateReference'];
+  ledgerReference: DatedRightsStateProjection['ledgerReference'];
+  unavailableReasons: readonly string[];
   birdType: BirdType;
   /** UFA | RFA | PO | TO | None — normalized free-agent classification. */
   freeAgentType: string;
@@ -241,6 +257,73 @@ export function resolveFreeAgentRights(
   player: FreeAgentPlayerInput | null,
   context: FreeAgentResolveContext = {}
 ): FreeAgentRights {
+  if (context.governedRights) {
+    const governed = context.governedRights;
+    if (governed.worldVersion !== RIGHTS_LEDGER_WORLD_VERSION) {
+      const reason =
+        'This Team Plan predates governed rights history. Recreate it to manage free-agent rights.';
+      return {
+        authority: 'governed-history',
+        projectionStatus: 'incompatible',
+        stateReference: null,
+        ledgerReference: null,
+        unavailableReasons: Object.freeze([reason]),
+        birdType: 'None',
+        freeAgentType: 'UFA',
+        freeAgencyYear:
+          context.holdSeasonStartYear ?? governed.salaryCapYear - 1,
+        capHoldAmount: 0,
+        capHoldReason: reason,
+        lane: 'cap-space-exception',
+        canResignWithRights: false,
+        signingMechanism: 'Cap Space',
+        placement: 'side',
+        isDeadHold: false,
+      };
+    }
+    const projection = projectRightsStateAsOf({
+      ledger: governed.ledger,
+      worldId: governed.worldId,
+      teamId: governed.teamId,
+      playerId: governed.playerId,
+      asOfDate: governed.asOfDate,
+      salaryCapYear: governed.salaryCapYear,
+    });
+    const renounced = projection.status === 'renounced';
+    const freeAgentType = projection.freeAgentStatus ?? 'UFA';
+    const birdType = projection.birdType ?? 'None';
+    const freeAgencyYear =
+      context.holdSeasonStartYear ?? governed.salaryCapYear - 1;
+    const placement = resolvePlacement(
+      { ...context, renounced },
+      freeAgencyYear,
+      freeAgentType
+    );
+    const lane = resolveLane(freeAgentType, birdType, renounced);
+    return {
+      authority: 'governed-history',
+      projectionStatus: projection.status,
+      stateReference: projection.stateReference,
+      ledgerReference: projection.ledgerReference,
+      unavailableReasons: projection.reasons,
+      birdType,
+      freeAgentType,
+      freeAgencyYear,
+      capHoldAmount: projection.freeAgentAmount ?? 0,
+      capHoldReason:
+        projection.status === 'available'
+          ? `${birdType} governed Free Agent Amount`
+          : projection.reasons[0] || 'Rights unavailable',
+      lane,
+      canResignWithRights:
+        projection.status === 'available' &&
+        (lane === 'bird-rights' || lane === 'restricted-rights'),
+      signingMechanism: birdType !== 'None' ? birdType : 'Cap Space',
+      placement,
+      isDeadHold: placement === 'dead',
+    };
+  }
+
   const freeAgency = readFreeAgency(player);
   const birdType = deriveBirdType(player);
 
@@ -261,6 +344,11 @@ export function resolveFreeAgentRights(
     birdType !== 'None' ? birdType : 'Cap Space';
 
   return {
+    authority: 'legacy-snapshot',
+    projectionStatus: 'legacy',
+    stateReference: null,
+    ledgerReference: null,
+    unavailableReasons: Object.freeze([]),
     birdType,
     freeAgentType,
     freeAgencyYear,

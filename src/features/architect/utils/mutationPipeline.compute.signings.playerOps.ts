@@ -43,6 +43,7 @@ import type {
   MutationPipelineSalaryRow,
   MutationTeamAndPlayerCurrentState,
 } from './mutationPipeline';
+import { renounceGovernedRights } from './rightsHistory';
 
 export function computeWaiveResult({
   payload,
@@ -484,10 +485,21 @@ export function computeRenounceResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
+  worldId,
+  operationId,
+  authoringIdentity,
+  recordedAt,
 }: ComputeMutationParamsWithCurrentState<
   MutationTeamAndPlayerCurrentState,
   MutationPayloadInputByType['renounceRights']
->): ComputeResultLike {
+> & {
+  asOfDate?: string | number | null;
+  worldId?: string;
+  operationId?: string;
+  authoringIdentity?: string;
+  recordedAt?: string;
+}): ComputeResultLike {
   const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'renounceRights'
@@ -496,38 +508,51 @@ export function computeRenounceResult({
   const playerId = payload.playerId || player.player_id || player.id;
   const playerName = player.displayName || player.name;
 
-  const updatedTeam = { ...team };
+  if (
+    !team.rightsLedger ||
+    typeof asOfDate !== 'string' ||
+    !worldId ||
+    !operationId ||
+    !authoringIdentity ||
+    !recordedAt ||
+    !teamCode ||
+    !playerId
+  ) {
+    return {
+      success: false,
+      error:
+        'Renunciation requires a compatible saved world, an explicit governed date, author provenance, and a complete rights ledger.',
+    };
+  }
+
+  const salaryCapYear = toEndYear(seasonId);
+  if (!salaryCapYear) {
+    return {
+      success: false,
+      error: 'Renunciation requires an explicit Salary Cap Year.',
+    };
+  }
+
+  const renunciation = renounceGovernedRights({
+    ledger: team.rightsLedger,
+    worldId,
+    teamId: teamCode,
+    playerId: String(playerId),
+    asOfDate,
+    salaryCapYear,
+    operationId,
+    authoringIdentity,
+    recordedAt,
+  });
+  if (!renunciation.success) {
+    return { success: false, error: renunciation.error };
+  }
+
+  const updatedTeam = { ...team, rightsLedger: renunciation.ledger };
 
   if (updatedTeam.capHolds && Array.isArray(updatedTeam.capHolds)) {
     updatedTeam.capHolds = updatedTeam.capHolds.filter((hold) => {
-      if (hold.playerId === playerId) return false;
-      if (hold.playerName === playerName) return false;
-      return true;
-    });
-  }
-
-  if (updatedTeam.players && Array.isArray(updatedTeam.players)) {
-    updatedTeam.players = updatedTeam.players.map((teamPlayer) => {
-      const pid = getMutationPlayerId(teamPlayer);
-      const isMatch =
-        pid === playerId || (pid == null && teamPlayer.name === playerName);
-      if (isMatch) {
-        return {
-          ...teamPlayer,
-          rightsRenounced: true,
-          renouncedAt: new Date(timestamp).toISOString(),
-          contract: {
-            ...(teamPlayer.contract || {}),
-            birdRights: {
-              ...(teamPlayer.contract?.birdRights || {}),
-              status: 'None',
-              renouncedBy: teamCode,
-              renouncedAt: new Date(timestamp).toISOString(),
-            },
-          },
-        };
-      }
-      return teamPlayer;
+      return String(hold.playerId ?? '') !== String(playerId);
     });
   }
 
@@ -552,6 +577,17 @@ export function computeRenounceResult({
       playerId,
       playerName: player.displayName || player.name,
       rightsUsed: 'Renounced',
+      birdRightsType: renunciation.before.birdType,
+      freeAgentStatus: renunciation.before.freeAgentStatus,
+      rightOfFirstRefusal: renunciation.before.rightOfFirstRefusal,
+      freeAgentAmountRemoved: renunciation.before.freeAgentAmount,
+      rightsLedgerId: renunciation.ledger.ledgerId,
+      rightsLedgerVersion: renunciation.ledger.ledgerVersion,
+      rightsStateId: renunciation.after.stateReference?.stateId,
+      rightsStateVersion: renunciation.after.stateReference?.stateVersion,
+      summary: `${playerName || playerId}: ${renunciation.before.birdType} rights and $${(
+        renunciation.before.freeAgentAmount ?? 0
+      ).toLocaleString()} Free Agent Amount renounced.`,
       timestamp,
     },
   };

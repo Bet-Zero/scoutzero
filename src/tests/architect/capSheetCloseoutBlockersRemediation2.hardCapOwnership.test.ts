@@ -20,6 +20,10 @@ import {
 } from '@/features/architect/utils/capLegalityValidation';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import {
+  makeRightsEstablishedEvent,
+  makeRightsLedger,
+} from '../../../tests/fixtures/architect/rightsHistory';
 
 const CAP_SETTINGS = {
   salaryCap: 140_588_000,
@@ -453,9 +457,23 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
   });
 
   it('preserves hard-cap overlay fields when a non-trade mutation recalculates team totals', () => {
+    const root = makeRightsEstablishedEvent();
+    const rightsLedger = makeRightsLedger({
+      ...root,
+      worldId: 'world_closeout',
+      teamId: 'LAL',
+      playerId: 'player_1',
+      serviceSeasons: root.serviceSeasons.map((record) => ({
+        ...record,
+        creditedTeamId:
+          record.creditedTeamId === null ? null : 'LAL',
+        rightsTeamId: 'LAL',
+      })),
+    });
     const beforeTeam = synchronizeTeamTotalsSnapshot(
       {
         ...TEAM_FIXTURE,
+        rightsLedger,
         hardCapLevel: 'firstApron',
         hardCapReason: 'Triggered by Non-Taxpayer MLE',
         hardCapTriggeredBy: 'fullMLE',
@@ -473,9 +491,13 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         player: PLAYER_FIXTURE,
         teamCode: 'LAL',
       },
-      seasonId: '2025-26',
-      timestamp: Date.parse('2026-03-29T12:05:00.000Z'),
+      seasonId: '2026-27',
+      timestamp: Date.parse('2026-07-15T12:05:00.000Z'),
+      asOfDate: '2026-07-15',
       worldId: 'world_closeout',
+      operationId: 'hard-cap-renounce',
+      authoringIdentity: 'guardrail-author',
+      recordedAt: '2026-07-15T12:05:00.000Z',
     });
 
     expect(result.success).toBe(true);

@@ -76,6 +76,7 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.fre
   // Financial structures
   'deadCap', // Array of DeadCapItemZ
   'capHolds', // Array of CapHoldItemZ
+  'rightsLedger', // BZE-273 immutable dated rights history
   'exceptions', // ExceptionsZ object (contains mle, bae, tpe[], etc.)
   // Phase 64: 'tradeExceptions' REMOVED from allowlist. Legacy TPE data is now normalized
   // into exceptions.tpe[] via normalizeTeamTpeSchema() before persistence. See Phase 64 docs.
@@ -377,6 +378,14 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.f
   'capHoldRemoved',
   'teamCode', // Team renouncing the player's rights
   'rightsUsed',
+  'birdRightsType',
+  'freeAgentStatus',
+  'rightOfFirstRefusal',
+  'freeAgentAmountRemoved',
+  'rightsLedgerId',
+  'rightsLedgerVersion',
+  'rightsStateId',
+  'rightsStateVersion',
 
   // Cap admin details
   'exceptionChanges',

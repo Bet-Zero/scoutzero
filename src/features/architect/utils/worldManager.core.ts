@@ -47,6 +47,11 @@ import {
   type WorldMetadata,
   type WorldStats,
 } from './worldManager.readUtils';
+import {
+  RIGHTS_LEDGER_WORLD_VERSION,
+  createRightsEventLedger,
+  resolveRightsWorldCompatibility,
+} from '@/features/architect/utils/rightsHistory';
 
 const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const BRANCH_COPY_BATCH_LIMIT = 450;
@@ -114,6 +119,46 @@ const rewriteWorldIdentity = (
       ...next.source,
       worldId: childWorldId,
     };
+  }
+
+  if (isPlainRecord(next.rightsLedger)) {
+    const priorLedger = createRightsEventLedger(next.rightsLedger);
+    const nextLedgerId = `${childWorldId}:${priorLedger.teamId}:rights`;
+    const replaceLedgerIdentity = (value: string | null): string | null =>
+      value === null
+        ? null
+        : value.startsWith(priorLedger.ledgerId)
+          ? `${nextLedgerId}${value.slice(priorLedger.ledgerId.length)}`
+          : value;
+    next.rightsLedger = createRightsEventLedger({
+      ...priorLedger,
+      ledgerId: nextLedgerId,
+      worldId: childWorldId,
+      events: priorLedger.events.map((event) => ({
+        ...event,
+        worldId: childWorldId,
+        eventId: replaceLedgerIdentity(event.eventId),
+        predecessorEventId: replaceLedgerIdentity(event.predecessorEventId),
+        predecessorState: event.predecessorState
+          ? {
+              ...event.predecessorState,
+              stateId: replaceLedgerIdentity(event.predecessorState.stateId),
+            }
+          : null,
+        resultingState: {
+          ...event.resultingState,
+          stateId: replaceLedgerIdentity(event.resultingState.stateId),
+        },
+        ...(event.eventKind === 'early-bird-election'
+          ? {
+              sourceRightsState: {
+                ...event.sourceRightsState,
+                stateId: replaceLedgerIdentity(event.sourceRightsState.stateId),
+              },
+            }
+          : {}),
+      })),
+    });
   }
 
   return next;
@@ -495,6 +540,7 @@ const buildBranchedWorldMetadata = ({
   if (parentMetadata.asOfDate !== undefined) {
     metadata.asOfDate = parentMetadata.asOfDate;
   }
+  metadata.rightsLedgerVersion = RIGHTS_LEDGER_WORLD_VERSION;
 
   if (parentMetadata.draftPositionsByYear !== undefined) {
     metadata.draftPositionsByYear = clonePlainValue(
@@ -553,6 +599,7 @@ export async function createWorld({
       totalRenounces: 0,
       teamsInvolved: 0,
     },
+    rightsLedgerVersion: RIGHTS_LEDGER_WORLD_VERSION,
   };
 
   const batch = writeBatch(db);
@@ -561,6 +608,11 @@ export async function createWorld({
   batch.set(metadataRef, metadata);
 
   if (parentWorldId) {
+    const parentMetadata = await getWorldMetadata(parentWorldId);
+    const compatibility = resolveRightsWorldCompatibility(parentMetadata);
+    if (!compatibility.compatible) {
+      throw new Error(compatibility.message);
+    }
     const parentRef = worldMetadataRef(parentWorldId);
     batch.update(parentRef, {
       childWorlds: arrayUnion(worldId),
@@ -800,6 +852,10 @@ export async function branchWorld(
   }
 
   const parentMetadata = await getWorldMetadata(parentWorldId);
+  const compatibility = resolveRightsWorldCompatibility(parentMetadata);
+  if (!compatibility.compatible) {
+    throw new Error(compatibility.message);
+  }
   const worldId = generateWorldId();
   const metadata = buildBranchedWorldMetadata({
     worldId,
