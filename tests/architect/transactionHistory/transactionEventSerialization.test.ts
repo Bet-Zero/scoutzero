@@ -41,11 +41,13 @@ describe('BZE-272 transaction history serialization', () => {
       transactionId: secondTransaction.transactionId,
       provenance: secondTransaction.provenance,
     });
-    const secondManifest = makeManifest({
-      manifestId: 'manifest-bze272-002',
-      transactionId: secondTransaction.transactionId,
-      expectedWriteSetId: secondWriteSet.expectedWriteSetId,
-    });
+    const secondManifest = makeManifest(
+      {
+        manifestId: 'manifest-bze272-002',
+        transactionId: secondTransaction.transactionId,
+      },
+      secondWriteSet
+    );
     const a = createCompletedTradeHistory({
       ledgerId: LEDGER_ID,
       ledgerVersion: 2,
@@ -84,6 +86,18 @@ describe('BZE-272 transaction history serialization', () => {
     payload.payloadVersion = 2;
     expect(readTransactionEventLedger(JSON.stringify(payload)).state).toBe(
       'invalid'
+    );
+  });
+
+  it('reports transaction and manifest failures from the same payload', () => {
+    const payload = JSON.parse(serializeTransactionEventLedger(makeHistory()));
+    payload.transactions[0].transactionVersion = 0;
+    payload.manifests[0].manifestVersion = 0;
+
+    const result = readTransactionEventLedger(JSON.stringify(payload));
+    expect(result.state).toBe('invalid');
+    expect(result.problems.map((entry) => entry.source)).toEqual(
+      expect.arrayContaining(['transaction', 'manifest'])
     );
   });
 

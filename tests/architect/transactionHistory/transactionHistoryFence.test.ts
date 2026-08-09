@@ -13,6 +13,7 @@ const REPO_ROOT = resolve(__dirname, '../../..');
 const HISTORY_DIR = join(REPO_ROOT, FENCED_TRANSACTION_HISTORY_DIRECTORY);
 const HISTORY_SCHEMA = join(REPO_ROOT, FENCED_TRANSACTION_HISTORY_SCHEMA);
 const SRC_DIR = join(REPO_ROOT, 'src');
+const ALLOWED_HISTORY_SCHEMA_LOCAL_MODULES: readonly string[] = [];
 
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -74,7 +75,11 @@ describe('BZE-272 transaction-history compatibility fence', () => {
         (specifier) => {
           const normalized = normalizeSpecifier(specifier, file);
           if (normalized === null) return;
-          const allowed = ALLOWED_TRANSACTION_HISTORY_LOCAL_MODULES.some(
+          const allowedModules =
+            file === HISTORY_SCHEMA
+              ? ALLOWED_HISTORY_SCHEMA_LOCAL_MODULES
+              : ALLOWED_TRANSACTION_HISTORY_LOCAL_MODULES;
+          const allowed = allowedModules.some(
             (module) =>
               normalized === module ||
               (module.endsWith('transactionHistory') &&

@@ -86,9 +86,9 @@ export function makeWriteSet(
 type ManifestOverrides = Partial<TransactionCommitManifest>;
 
 export function makeManifest(
-  overrides: ManifestOverrides = {}
+  overrides: ManifestOverrides = {},
+  writeSet: ExpectedTransactionWriteSet = makeWriteSet()
 ): TransactionCommitManifest {
-  const writeSet = makeWriteSet();
   return {
     manifestId: 'manifest-bze272-001',
     manifestVersion: 1,

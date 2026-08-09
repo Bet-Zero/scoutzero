@@ -30,6 +30,29 @@ export class TransactionEventLedgerPayloadError extends Error {
   }
 }
 
+export type TransactionHistoryReadProblem =
+  | { readonly source: 'transaction'; readonly detail: string }
+  | { readonly source: 'manifest'; readonly detail: string }
+  | { readonly source: 'payload'; readonly detail: string };
+
+class TransactionHistoryReadError extends Error {
+  readonly problems: readonly TransactionHistoryReadProblem[];
+
+  constructor(problems: readonly TransactionHistoryReadProblem[]) {
+    super('Transaction event ledger payload has multiple validation failures.');
+    this.name = 'TransactionHistoryReadError';
+    this.problems = Object.freeze(
+      problems.map((entry) => Object.freeze(entry))
+    );
+  }
+}
+
+function copyJsonCollection<T>(values: readonly T[]): T[] {
+  // Ledger contracts are JSON-only. This copy retains their established key
+  // order while allowing the canonical schema to validate every current field.
+  return JSON.parse(JSON.stringify(values)) as T[];
+}
+
 export function toTransactionEventLedgerPayload(
   history: CompletedTradeHistory
 ): TransactionEventLedgerPayload {
@@ -37,85 +60,9 @@ export function toTransactionEventLedgerPayload(
     payloadVersion: TRANSACTION_EVENT_LEDGER_PAYLOAD_VERSION,
     ledgerId: history.ledgerId,
     ledgerVersion: history.ledgerVersion,
-    transactions: history.transactions.map((transaction) => ({
-      transactionId: transaction.transactionId,
-      transactionVersion: transaction.transactionVersion,
-      transactionKind: transaction.transactionKind,
-      worldId: transaction.worldId,
-      salaryCapYear: transaction.salaryCapYear,
-      tradeCallAt: transaction.tradeCallAt,
-      committedAt: transaction.committedAt,
-      recordedAt: transaction.recordedAt,
-      provenance: {
-        sourceOperationId: transaction.provenance.sourceOperationId,
-        authoringIdentity: transaction.provenance.authoringIdentity,
-      },
-      recordStatus: transaction.recordStatus,
-      supersedesTransactionVersion: transaction.supersedesTransactionVersion,
-      canonLeafIds: [...transaction.canonLeafIds],
-    })),
-    expectedWriteSets: history.expectedWriteSets.map((writeSet) => ({
-      expectedWriteSetId: writeSet.expectedWriteSetId,
-      expectedWriteSetVersion: writeSet.expectedWriteSetVersion,
-      transactionId: writeSet.transactionId,
-      transactionVersion: writeSet.transactionVersion,
-      preCommitLedgers: {
-        teams: writeSet.preCommitLedgers.teams.map((reference) => ({
-          ledgerId: reference.ledgerId,
-          ledgerVersion: reference.ledgerVersion,
-        })),
-        players: writeSet.preCommitLedgers.players.map((reference) => ({
-          ledgerId: reference.ledgerId,
-          ledgerVersion: reference.ledgerVersion,
-        })),
-      },
-      expectedResults: Object.fromEntries(
-        Object.entries(writeSet.expectedResults).map(([category, values]) => [
-          category,
-          values.map((reference) => ({
-            stateId: reference.stateId,
-            stateVersion: reference.stateVersion,
-          })),
-        ])
-      ),
-      provenance: {
-        sourceOperationId: writeSet.provenance.sourceOperationId,
-        authoringIdentity: writeSet.provenance.authoringIdentity,
-      },
-      recordStatus: writeSet.recordStatus,
-      supersedesExpectedWriteSetVersion:
-        writeSet.supersedesExpectedWriteSetVersion,
-    })),
-    manifests: history.manifests.map((manifest) => ({
-      manifestId: manifest.manifestId,
-      manifestVersion: manifest.manifestVersion,
-      transactionId: manifest.transactionId,
-      transactionVersion: manifest.transactionVersion,
-      expectedWriteSetId: manifest.expectedWriteSetId,
-      expectedWriteSetVersion: manifest.expectedWriteSetVersion,
-      preCommitLedgers: {
-        teams: manifest.preCommitLedgers.teams.map((reference) => ({
-          ledgerId: reference.ledgerId,
-          ledgerVersion: reference.ledgerVersion,
-        })),
-        players: manifest.preCommitLedgers.players.map((reference) => ({
-          ledgerId: reference.ledgerId,
-          ledgerVersion: reference.ledgerVersion,
-        })),
-      },
-      resultingStates: Object.fromEntries(
-        Object.entries(manifest.resultingStates).map(([category, values]) => [
-          category,
-          values.map((reference) => ({
-            stateId: reference.stateId,
-            stateVersion: reference.stateVersion,
-          })),
-        ])
-      ),
-      verificationStatus: manifest.verificationStatus,
-      recordStatus: manifest.recordStatus,
-      supersedesManifestVersion: manifest.supersedesManifestVersion,
-    })),
+    transactions: copyJsonCollection(history.transactions),
+    expectedWriteSets: copyJsonCollection(history.expectedWriteSets),
+    manifests: copyJsonCollection(history.manifests),
   });
 }
 
@@ -162,6 +109,18 @@ function parsePayload(serialized: string): TransactionEventLedgerPayload {
       parsed.error.issues
     );
     const commitProblems = commitProblemsFromPayloadIssues(parsed.error.issues);
+    if (transactionProblems.length > 0 && commitProblems.length > 0) {
+      throw new TransactionHistoryReadError([
+        ...transactionProblems.map((entry) => ({
+          source: 'transaction' as const,
+          detail: `${entry.kind} at ${entry.at}: ${entry.detail}`,
+        })),
+        ...commitProblems.map((entry) => ({
+          source: 'manifest' as const,
+          detail: `${entry.kind} at ${entry.at}: ${entry.detail}`,
+        })),
+      ]);
+    }
     if (transactionProblems.length > 0) {
       throw new CompletedTradeLedgerError(transactionProblems);
     }
@@ -182,11 +141,6 @@ export function deserializeTransactionEventLedger(
     manifests: payload.manifests,
   });
 }
-
-export type TransactionHistoryReadProblem =
-  | { readonly source: 'transaction'; readonly detail: string }
-  | { readonly source: 'manifest'; readonly detail: string }
-  | { readonly source: 'payload'; readonly detail: string };
 
 export type TransactionHistoryReadResult =
   | {
@@ -211,7 +165,9 @@ export function readTransactionEventLedger(
     });
   } catch (error) {
     let problems: TransactionHistoryReadProblem[];
-    if (error instanceof CompletedTradeLedgerError) {
+    if (error instanceof TransactionHistoryReadError) {
+      problems = [...error.problems];
+    } else if (error instanceof CompletedTradeLedgerError) {
       problems = error.problems.map((entry) => ({
         source: 'transaction' as const,
         detail: `${entry.kind} at ${entry.at}: ${entry.detail}`,

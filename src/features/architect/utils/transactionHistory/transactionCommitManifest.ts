@@ -44,6 +44,7 @@ export type TransactionCommitProblemKind =
   | 'broken-chain'
   | 'missing-transaction'
   | 'missing-write-set'
+  | 'missing-manifest'
   | 'competing-current-write-set'
   | 'competing-current-manifest'
   | 'missing-result'
@@ -169,6 +170,16 @@ function ledgerReferenceKey(reference: VersionedLedgerReference): string {
 
 function compareString(a: string, b: string): number {
   return a === b ? 0 : a < b ? -1 : 1;
+}
+
+function compareVersionedIdentity(
+  firstId: string,
+  firstVersion: number,
+  secondId: string,
+  secondVersion: number
+): number {
+  const identityOrder = compareString(firstId, secondId);
+  return identityOrder === 0 ? firstVersion - secondVersion : identityOrder;
 }
 
 function sortedResultReferences(
@@ -301,15 +312,22 @@ function validateSupersessionChains<T extends { recordStatus: string }>(
         }
         return;
       }
-      if (
-        supersedesOf(value) !== versionOf(prior) ||
-        prior.recordStatus !== 'superseded'
-      ) {
+      if (supersedesOf(value) !== versionOf(prior)) {
         problems.push(
           problem(
             'broken-chain',
             `${at}.${id}.supersedesVersion`,
             `${keyOf(value)} must directly supersede ${keyOf(prior)}.`,
+            [keyOf(prior), keyOf(value)]
+          )
+        );
+      }
+      if (prior.recordStatus !== 'superseded') {
+        problems.push(
+          problem(
+            'broken-chain',
+            `${at}.${id}.recordStatus`,
+            `${keyOf(prior)} must be superseded by the next version.`,
             [keyOf(prior), keyOf(value)]
           )
         );
@@ -716,6 +734,12 @@ function freezeManifest(
   });
 }
 
+/**
+ * Builds and freezes the complete transaction-history aggregate.
+ *
+ * @throws CompletedTradeLedgerError when the transaction ledger is invalid.
+ * @throws TransactionCommitManifestError when write-set or manifest evidence is invalid.
+ */
 export function createCompletedTradeHistory(
   input: CompletedTradeHistoryInput
 ): CompletedTradeHistory {
@@ -738,22 +762,44 @@ export function createCompletedTradeHistory(
     ...ledger,
     expectedWriteSets: Object.freeze(
       [...writeSets]
-        .sort((a, b) => compareString(writeSetKey(a), writeSetKey(b)))
+        .sort((a, b) =>
+          compareVersionedIdentity(
+            a.expectedWriteSetId,
+            a.expectedWriteSetVersion,
+            b.expectedWriteSetId,
+            b.expectedWriteSetVersion
+          )
+        )
         .map(freezeWriteSet)
     ),
     manifests: Object.freeze(
       [...manifests]
-        .sort((a, b) => compareString(manifestKey(a), manifestKey(b)))
+        .sort((a, b) =>
+          compareVersionedIdentity(
+            a.manifestId,
+            a.manifestVersion,
+            b.manifestId,
+            b.manifestVersion
+          )
+        )
         .map(freezeManifest)
     ),
   });
 }
 
-export interface CommitManifestVerification {
-  readonly state: 'complete' | 'invalid';
-  readonly manifest: TransactionCommitManifest | null;
-  readonly problems: readonly TransactionCommitProblem[];
-}
+export type CommitManifestVerification =
+  | {
+      readonly state: 'complete';
+      readonly manifest: TransactionCommitManifest;
+      readonly history: CompletedTradeHistory;
+      readonly problems: readonly [];
+    }
+  | {
+      readonly state: 'invalid';
+      readonly manifest: null;
+      readonly history: null;
+      readonly problems: readonly TransactionCommitProblem[];
+    };
 
 export function verifyTransactionCommitManifest(
   history: CompletedTradeHistory,
@@ -772,16 +818,33 @@ export function verifyTransactionCommitManifest(
         entry.manifestId === manifest.manifestId &&
         entry.manifestVersion === manifest.manifestVersion
     );
+    if (!accepted) {
+      return Object.freeze({
+        state: 'invalid' as const,
+        manifest: null,
+        history: null,
+        problems: Object.freeze([
+          problem(
+            'missing-manifest',
+            'manifests',
+            `${manifestKey(manifest)} was not retained by the verified history.`,
+            [manifestKey(manifest)]
+          ),
+        ]),
+      });
+    }
     return Object.freeze({
       state: 'complete' as const,
-      manifest: accepted ?? null,
-      problems: Object.freeze([]),
+      manifest: accepted,
+      history: candidate,
+      problems: Object.freeze([]) as readonly [],
     });
   } catch (error) {
     if (!(error instanceof TransactionCommitManifestError)) throw error;
     return Object.freeze({
       state: 'invalid' as const,
       manifest: null,
+      history: null,
       problems: Object.freeze([...error.problems]),
     });
   }
@@ -808,13 +871,7 @@ export function appendVerifiedTransactionCommitManifest(
   if (verification.state !== 'complete') {
     throw new TransactionCommitManifestError(verification.problems);
   }
-  return createCompletedTradeHistory({
-    ledgerId: history.ledgerId,
-    ledgerVersion: history.ledgerVersion + 1,
-    transactions: history.transactions,
-    expectedWriteSets: history.expectedWriteSets,
-    manifests: [...history.manifests, manifest],
-  });
+  return verification.history;
 }
 
 export type CurrentCommitManifestSelection =

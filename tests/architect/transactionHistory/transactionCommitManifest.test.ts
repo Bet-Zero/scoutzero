@@ -49,6 +49,10 @@ describe('BZE-272 exact transaction commit manifests', () => {
     const verification = verifyTransactionCommitManifest(history, manifest);
     expect(verification.state).toBe('complete');
     expect(verification.problems).toEqual([]);
+    if (verification.state === 'complete') {
+      expect(verification.manifest).toEqual(manifest);
+      expect(verification.history.ledgerVersion).toBe(2);
+    }
 
     const committed = appendVerifiedTransactionCommitManifest(
       history,
@@ -169,10 +173,7 @@ describe('BZE-272 exact transaction commit manifests', () => {
 
   it('accepts explicitly empty categories when all seven are authenticated', () => {
     const writeSet = makeWriteSet({ expectedResults: emptyResults() });
-    const manifest = makeManifest({
-      preCommitLedgers: writeSet.preCommitLedgers,
-      resultingStates: emptyResults(),
-    });
+    const manifest = makeManifest({}, writeSet);
     const history = createCompletedTradeHistory({
       ledgerId: LEDGER_ID,
       ledgerVersion: 1,
@@ -227,25 +228,28 @@ describe('BZE-272 exact transaction commit manifests', () => {
   });
 
   it('validates reachable append-only manifest supersession', () => {
-    const first = makeManifest({ recordStatus: 'superseded' });
-    const second = makeManifest({
-      manifestVersion: 2,
-      supersedesManifestVersion: 1,
-    });
+    const manifests = Array.from({ length: 10 }, (_, index) => {
+      const manifestVersion = index + 1;
+      return makeManifest({
+        manifestVersion,
+        recordStatus: manifestVersion === 10 ? 'current' : 'superseded',
+        supersedesManifestVersion:
+          manifestVersion === 1 ? null : manifestVersion - 1,
+      });
+    }).reverse();
     const history = createCompletedTradeHistory({
       ledgerId: LEDGER_ID,
-      ledgerVersion: 2,
+      ledgerVersion: 10,
       transactions: [makeTransaction()],
       expectedWriteSets: [makeWriteSet()],
-      manifests: [second, first],
+      manifests,
     });
-    expect(history.manifests.map((entry) => entry.manifestVersion)).toEqual([
-      1, 2,
-    ]);
-    expect(history.manifests.map((entry) => entry.recordStatus)).toEqual([
-      'superseded',
-      'current',
-    ]);
+    expect(history.manifests.map((entry) => entry.manifestVersion)).toEqual(
+      Array.from({ length: 10 }, (_, index) => index + 1)
+    );
+    expect(history.manifests[1].manifestVersion).toBe(2);
+    expect(history.manifests[9].manifestVersion).toBe(10);
+    expect(history.manifests[9].recordStatus).toBe('current');
   });
 
   it('rejects detached manifest and expected-write-set versions', () => {

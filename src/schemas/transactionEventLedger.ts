@@ -83,20 +83,25 @@ export const TRANSACTION_RESULT_CATEGORIES = [
   'cash',
 ] as const;
 
+const TransactionResultReferencesShape = Object.fromEntries(
+  TRANSACTION_RESULT_CATEGORIES.map((category) => [
+    category,
+    z.array(ResultStateReferenceZ),
+  ])
+) as {
+  [K in (typeof TRANSACTION_RESULT_CATEGORIES)[number]]: z.ZodArray<
+    typeof ResultStateReferenceZ
+  >;
+};
+
 /**
  * Every category is mandatory. `[]` says the authenticated expected write-set
  * expects no output in that category; absence says the input is incomplete and
  * cannot produce a manifest.
  */
-export const TransactionResultReferencesZ = z.strictObject({
-  exception: z.array(ResultStateReferenceZ),
-  list: z.array(ResultStateReferenceZ),
-  rights: z.array(ResultStateReferenceZ),
-  restriction: z.array(ResultStateReferenceZ),
-  pick: z.array(ResultStateReferenceZ),
-  hardCap: z.array(ResultStateReferenceZ),
-  cash: z.array(ResultStateReferenceZ),
-});
+export const TransactionResultReferencesZ = z.strictObject(
+  TransactionResultReferencesShape
+);
 
 export const ExpectedTransactionWriteSetZ = z.strictObject({
   expectedWriteSetId: NonEmptyStringZ,

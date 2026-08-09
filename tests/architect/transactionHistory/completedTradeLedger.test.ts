@@ -64,6 +64,11 @@ describe('BZE-272 completed-trade ledger', () => {
       transactions: [makeTransaction({ recordedAt: '2026-08-01T15:04:00Z' })],
     });
     expect(recordedEarly.state).toBe('invalid');
+    expect(
+      recordedEarly.problems.some(
+        (entry) => entry.kind === 'invalid-chronology'
+      )
+    ).toBe(true);
   });
 
   it('requires a governed Salary Cap Year containing Trade Call and commit', () => {
@@ -73,6 +78,11 @@ describe('BZE-272 completed-trade ledger', () => {
       transactions: [makeTransaction({ salaryCapYear: 10000 })],
     });
     expect(invalidYear.state).toBe('invalid');
+    expect(
+      invalidYear.problems.some(
+        (entry) => entry.kind === 'invalid-salary-cap-year'
+      )
+    ).toBe(true);
 
     const wrongWindow = validateCompletedTradeLedger({
       ledgerId: LEDGER_ID,
@@ -80,6 +90,11 @@ describe('BZE-272 completed-trade ledger', () => {
       transactions: [makeTransaction({ salaryCapYear: 2026 })],
     });
     expect(wrongWindow.state).toBe('invalid');
+    expect(
+      wrongWindow.problems.some(
+        (entry) => entry.kind === 'invalid-salary-cap-year'
+      )
+    ).toBe(true);
   });
 
   it('requires positive identity versions and structured provenance', () => {
