@@ -34,7 +34,7 @@ import {
   parseZonedDateTime,
   salaryCapYearWindow,
   seasonKeyForSalaryCapYear,
-} from '../governedSeason/governedTime';
+} from '@/features/architect/utils/governedSeason/governedTime';
 import type {
   ContractEventKind,
   ContractEventRecord,
@@ -429,6 +429,19 @@ export function verifyContractProjectionManifest(
     });
   }
 
+  // The manifest arrives from the caller, so its date is read with the governed
+  // primitive rather than `Date.parse`. `Date.parse` would silently interpret an
+  // unzoned string as local time and produce a plausible but wrong window, and
+  // comparing against a `null` would coerce to 0 and report no drift at all.
+  // Neither is an answer, so an uninterpretable date is not comparable.
+  const manifestAsOfTime = parseZonedDateTime(manifest.asOfDate);
+  if (manifestAsOfTime === null) {
+    return Object.freeze({
+      state: 'not-comparable' as const,
+      drift: Object.freeze([]),
+    });
+  }
+
   const drift: LifecycleManifestDrift[] = [];
 
   manifest.consumedEvents.forEach((consumed) => {
@@ -495,7 +508,7 @@ export function verifyContractProjectionManifest(
         event.worldId === manifest.worldId &&
         event.contractId === manifest.contractId &&
         !consumedKeys.has(eventKey(event)) &&
-        Date.parse(event.effectiveAt) <= Date.parse(manifest.asOfDate)
+        effectiveTime(event) <= manifestAsOfTime
     )
     .forEach((event) => {
       drift.push({

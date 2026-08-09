@@ -41,7 +41,7 @@ import {
   isNonEmptyString,
   isZonedDateTime,
   parseZonedDateTime,
-} from '../governedSeason/governedTime';
+} from '@/features/architect/utils/governedSeason/governedTime';
 
 /** Lifecycle family each event kind belongs to, as the Canon names them. */
 export const CONTRACT_EVENT_FAMILIES: Readonly<

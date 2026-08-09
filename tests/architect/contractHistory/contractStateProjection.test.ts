@@ -11,8 +11,10 @@ import {
   reviseContractEvent,
   verifyContractProjectionManifest,
   type LifecycleEventLedger,
+  type LifecycleProjectionManifest,
   type ContractEventRecord,
 } from '@/features/architect/utils/contractHistory';
+import type { EventOverrides } from './contractHistoryFixtures';
 import {
   AS_OF_BEFORE_SIGNING,
   AS_OF_LATE,
@@ -543,7 +545,11 @@ describe('BZE-271 an earlier projection survives later history', () => {
     // `eventId` and `eventVersion` are the identity the manifest matches on, so
     // they cannot drift without becoming `event-absent`. Every remaining field
     // must be compared, one at a time.
-    const alterations: Record<string, Record<string, unknown>> = {
+    // Typed as EventOverrides so a misspelled field or a wrong value type is a
+    // compile error in the scoped test typecheck rather than a silently
+    // ineffective case. The repo tsconfig excludes tests/**, so this file is
+    // only type-checked by that scoped run.
+    const alterations: Record<string, EventOverrides> = {
       eventKind: { eventKind: 'conversion' },
       executedAt: { executedAt: '2026-07-20T15:00:00Z' },
       effectiveAt: { effectiveAt: '2026-08-09T15:00:00Z' },
@@ -629,6 +635,30 @@ describe('BZE-271 an earlier projection survives later history', () => {
       state: 'not-comparable',
       drift: [],
     });
+  });
+
+  it('is not comparable when the manifest date is not a zoned instant', () => {
+    // The manifest arrives from the caller, so its date is read with the
+    // governed primitive. `Date.parse` would read an unzoned string as local
+    // time and silently produce a plausible but wrong window.
+    const manifest = projectAt(build(twoEventChain()), AS_OF_LATE).manifest;
+    const ledger = build(twoEventChain());
+
+    (['2027-03-01T12:00:00', '2027-03-01', 'today', ''] as const).forEach(
+      (asOfDate) => {
+        const tampered = { ...(manifest as LifecycleProjectionManifest), asOfDate };
+
+        expect(
+          verifyContractProjectionManifest(tampered, ledger),
+          asOfDate
+        ).toEqual({ state: 'not-comparable', drift: [] });
+      }
+    );
+
+    // The untampered manifest still verifies.
+    expect(verifyContractProjectionManifest(manifest, ledger).state).toBe(
+      'unchanged'
+    );
   });
 
   it('is not comparable without both a manifest and a ledger', () => {
