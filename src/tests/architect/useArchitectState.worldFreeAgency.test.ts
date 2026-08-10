@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useArchitectState } from '@/features/architect/GMDashboard/hooks/useArchitectState';
+import type { CapSheet } from '@/features/architect/GMDashboard/hooks/useArchitectState.types';
 
 const stateMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
@@ -16,7 +17,32 @@ vi.mock('@/features/architect/utils/worldTeamData', () => ({
 }));
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
-  getWorldMetadata: stateMocks.getWorldMetadata,
+  getWorldMetadata: async (worldId: string) => {
+    const metadata = await stateMocks.getWorldMetadata(worldId);
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      return metadata;
+    }
+
+    // These cases exercise active-world behavior, so their fixture represents
+    // a newly created governed world. The clean-break rejection cases live in
+    // the dedicated contract-baseline compatibility coverage.
+    return {
+      ...metadata,
+      contractBaselineVersion: 2,
+      contractSourceRelease: {
+        releaseId: 'test-contract-source-release',
+        releaseVersion: 1,
+        releaseDigest: `sha256:${'1'.repeat(64)}`,
+      },
+      contractBaselineEffectiveAt: '2026-06-05T12:19:56.526Z',
+      contractBaselineSalaryCapYear: 2026,
+      contractBaselineCoverage: {
+        total: 1,
+        complete: 1,
+        needsInput: 0,
+      },
+    };
+  },
   updateWorldAsOfDate: stateMocks.updateWorldAsOfDate,
 }));
 
@@ -318,7 +344,7 @@ describe('useArchitectState world-aware free agency pool', () => {
       | null = null;
     await act(async () => {
       reloadResult = await result.current.reloadActiveWorldTeamData({
-        committedTeamSnapshot: committedTeam as any,
+        committedTeamSnapshot: committedTeam as CapSheet,
         committedTeamSource: 'changedTeams',
         committedWorldMetadata: {
           currentSeason: '2026-27',
@@ -412,7 +438,7 @@ describe('useArchitectState world-aware free agency pool', () => {
 
     await act(async () => {
       await result.current.reloadActiveWorldTeamData({
-        committedTeamSnapshot: committedTeam as any,
+        committedTeamSnapshot: committedTeam as CapSheet,
         committedWorldMetadata: {
           currentSeason: '2025-26',
         },
@@ -489,7 +515,7 @@ describe('useArchitectState world-aware free agency pool', () => {
         committedTeamSnapshot: {
           ...teamFixture,
           season: '2026-27',
-        } as any,
+        } as CapSheet,
         committedWorldMetadata: {
           currentSeason: '2026-27',
         },
@@ -1155,7 +1181,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     act(() => {
       blockFirstReloadMetadata = true;
       firstReloadPromise = result.current.reloadActiveWorldTeamData({
-        committedTeamSnapshot: firstCommittedTeam as any,
+        committedTeamSnapshot: firstCommittedTeam as CapSheet,
         committedWorldMetadata: {
           currentSeason: '2026-27',
         },
@@ -1179,7 +1205,7 @@ describe('useArchitectState world-aware free agency pool', () => {
       | null = null;
     await act(async () => {
       secondReloadResult = await result.current.reloadActiveWorldTeamData({
-        committedTeamSnapshot: secondCommittedTeam as any,
+        committedTeamSnapshot: secondCommittedTeam as CapSheet,
         committedWorldMetadata: {
           currentSeason: '2027-28',
         },
@@ -1273,7 +1299,7 @@ describe('useArchitectState world-aware free agency pool', () => {
         committedTeamSnapshot: {
           ...teamFixture,
           season: '2026-27',
-        } as any,
+        } as CapSheet,
         committedWorldMetadata: {
           currentSeason: '2026-27',
         },

@@ -9,6 +9,7 @@
 
 import { beforeEach, afterEach } from 'vitest';
 import { vi } from 'vitest';
+import { webcrypto } from 'node:crypto';
 import {
   resetMockDataStore,
   seedMockData,
@@ -18,6 +19,16 @@ import {
 } from './__mocks__/firebase.js';
 import { setContractSourceReleaseLoaderForTests } from '@/features/architect/utils/contractSource/contractSourceRelease';
 import { makeTestContractSourceRelease } from './fixtures/architect/contractSourceRelease';
+
+// GitHub Actions currently runs Node 18, where Web Crypto is not exposed on
+// globalThis by default. Match the browser runtime used by release verification
+// so governed SHA-256 checks exercise the same implementation in every suite.
+if (!globalThis.crypto?.subtle) {
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value: webcrypto,
+  });
+}
 
 const testContractSourceRelease = makeTestContractSourceRelease();
 setContractSourceReleaseLoaderForTests(async () => testContractSourceRelease);
