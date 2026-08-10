@@ -74,12 +74,28 @@ vi.mock('firebase/firestore', () => ({
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   getWorldMetadata: vi.fn(async (worldId: string) => {
-    return (
+    const metadata =
       stateMocks.worldMetadataById.get(worldId) || {
         parentWorldId: null,
         asOfDate: null,
-      }
-    );
+      };
+
+    return {
+      ...metadata,
+      contractBaselineVersion: 2,
+      contractSourceRelease: {
+        releaseId: 'test-contract-source-release',
+        releaseVersion: 1,
+        releaseDigest: `sha256:${'1'.repeat(64)}`,
+      },
+      contractBaselineEffectiveAt: '2026-06-05T12:19:56.526Z',
+      contractBaselineSalaryCapYear: 2026,
+      contractBaselineCoverage: {
+        total: 1,
+        complete: 1,
+        needsInput: 0,
+      },
+    };
   }),
   updateWorldAsOfDate: vi.fn(async () => undefined),
 }));
