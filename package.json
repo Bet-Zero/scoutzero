@@ -6,6 +6,7 @@
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "validate:project": "tsx scripts/validate-project-schema.ts",
+    "architect:contracts:release": "tsx scripts/architect/build-contract-source-release.ts --check",
     "admin:security:audit": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 tsx scripts/admin/architectSecurityBackfill.ts",
     "admin:security:apply": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 tsx scripts/admin/architectSecurityBackfill.ts --apply",
     "scrape:one": "tsx player-scrape/contracts/scripts/run_contracts.ts",

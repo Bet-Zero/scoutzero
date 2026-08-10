@@ -17,6 +17,12 @@ service cloud.firestore {
         && resource.data.createdBy == request.auth.uid;
     }
 
+    function isWorldOwnerAfter(worldId) {
+      return isAuthenticated()
+        && existsAfter(/databases/$(database)/documents/architect_worlds/$(worldId))
+        && getAfter(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid;
+    }
+
     // Lists: strict owner-scoped access.
     match /lists/{listId} {
       allow read: if isAuthenticated()
@@ -102,6 +108,12 @@ service cloud.firestore {
 
       match /entitlements/{entitlementId} {
         allow read, write: if isWorldOwner(worldId);
+      }
+
+      // Fresh governed worlds create metadata and baseline shards in one batch.
+      match /contractBaselines/{shardId} {
+        allow create: if isWorldOwnerAfter(worldId);
+        allow read, update, delete: if isWorldOwner(worldId);
       }
 
       // Any additional world subcollections are owner-only by default.

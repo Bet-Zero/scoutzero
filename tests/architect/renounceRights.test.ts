@@ -379,15 +379,20 @@ describe('renounceRights world persistence and reload', () => {
     ).toBe('operation-winning-append');
   });
 
-  it('rejects a newly marked world until its governed date is supplied', async () => {
-    const created = await createWorld({
-      name: 'BZE-273 missing date',
-      userId: 'user-bze-273',
-      currentSeason: SEASON_ID,
-    });
+  it('rejects a governed world record until its governed date is supplied', async () => {
+    const world = {
+      ...createMockWorld({
+        worldId: 'bze-273-missing-date',
+        userId: 'user-bze-273',
+        currentSeason: SEASON_ID,
+        asOfDate: null,
+      }),
+      rightsLedgerVersion: 1,
+    };
+    seedWorldMetadata(world.worldId, world);
     const result = await applyWorldMutation({
       userId: 'user-bze-273',
-      worldId: created.worldId,
+      worldId: world.worldId,
       seasonId: SEASON_ID,
       mutationType: 'renounceRights',
       payload: { teamCode: TEAM_ID, playerId: PLAYER_ID },

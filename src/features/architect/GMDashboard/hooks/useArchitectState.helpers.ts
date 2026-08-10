@@ -7,6 +7,7 @@
  */
 
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
 import type { CapProjectionMap } from './useArchitectState.types';
 
 // ==== Season helpers ====
@@ -57,6 +58,7 @@ export const isUsableActiveWorldMetadata = (
 ) =>
   Boolean(metadata) &&
   metadata?.isArchived !== true &&
+  resolveContractBaselineWorldCompatibility(metadata).compatible &&
   !(
     typeof metadata?.createdBy === 'string' && metadata.createdBy !== userId
   );

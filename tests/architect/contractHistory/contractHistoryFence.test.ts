@@ -14,6 +14,7 @@ import {
   FENCED_HISTORY_DIRECTORY,
   FENCED_HISTORY_SCHEMA_MODULE,
   FENCED_MUTABLE_CONTRACT_PATTERNS,
+  GOVERNED_CONTRACT_HISTORY_CONSUMERS,
   MUTABLE_CONTRACT_CONSUMERS,
 } from '@/features/architect/utils/contractHistory/contractHistoryFence';
 
@@ -379,7 +380,7 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
     expect(barrel).not.toContain('ALLOWED_GOVERNED_HISTORY_MODULE');
   });
 
-  it('is not imported by any module outside the history boundary', () => {
+  it('is imported only by the explicit governed source-bootstrap consumer', () => {
     const offenders: string[] = [];
 
     function walk(directory: string): void {
@@ -395,7 +396,10 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
         const code = stripComments(readFileSync(path, 'utf8'));
         importSpecifiers(code).forEach((specifier) => {
           if (specifier.includes('contractHistory')) {
-            offenders.push(`${path} imports ${specifier}`);
+            const relativePath = path.slice(REPO_ROOT.length + 1);
+            if (!GOVERNED_CONTRACT_HISTORY_CONSUMERS.includes(relativePath as never)) {
+              offenders.push(`${path} imports ${specifier}`);
+            }
           }
         });
       });
@@ -404,5 +408,10 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
     walk(join(REPO_ROOT, 'src'));
 
     expect(offenders).toEqual([]);
+    GOVERNED_CONTRACT_HISTORY_CONSUMERS.forEach((consumer) => {
+      expect(readFileSync(join(REPO_ROOT, consumer), 'utf8')).toContain(
+        'contractHistory'
+      );
+    });
   });
 });

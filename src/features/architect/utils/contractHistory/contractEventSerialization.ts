@@ -19,8 +19,9 @@
  * Deserialization has no repair mode. It does not drop an unreadable event,
  * invent a missing predecessor, or pick between competing versions.
  *
- * This is a wire format, not production persistence. BZE-271 migrates no saved
- * data and no Firestore document; see the compatibility fence.
+ * BZE-274 uses this wire format for newly established governed world baselines.
+ * It still has no repair or migration mode: pre-v2 ledgers and old saved worlds
+ * remain outside the compatibility fence.
  */
 
 import {
@@ -80,6 +81,7 @@ export function toContractEventLedgerPayload(
       recordStatus: event.recordStatus,
       supersedesEventVersion: event.supersedesEventVersion,
       canonLeafIds: [...event.canonLeafIds],
+      resultingState: event.resultingState,
     })),
   });
 }

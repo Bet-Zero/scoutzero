@@ -14,6 +14,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -144,6 +145,32 @@ describeWithFirestoreEmulator(
         createdBy: UID_A,
         name: 'Owner world',
       })
+    );
+  });
+
+  it('1b) owner can atomically create world metadata and governed baseline shards', async () => {
+    const db = ownerDb();
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'architect_worlds', WORLD_ID), {
+      worldId: WORLD_ID,
+      createdBy: UID_A,
+      name: 'Governed baseline world',
+    });
+    batch.set(
+      doc(db, 'architect_worlds', WORLD_ID, 'contractBaselines', 'LAL-000'),
+      { worldId: WORLD_ID, teamId: 'LAL', shardId: 'LAL-000' }
+    );
+    await assertSucceeds(batch.commit());
+  });
+
+  it('1c) non-owner cannot attach a baseline shard to another owner world', async () => {
+    await seedOwnedWorld();
+    const db = nonOwnerDb();
+    await assertFails(
+      setDoc(
+        doc(db, 'architect_worlds', WORLD_ID, 'contractBaselines', 'LAL-000'),
+        { worldId: WORLD_ID, teamId: 'LAL', shardId: 'LAL-000' }
+      )
     );
   });
 

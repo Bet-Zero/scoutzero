@@ -341,7 +341,7 @@ describe('BZE-271 projection manifests', () => {
     const ledger = build(fullLifecycleEvents());
     const manifest = projectAt(ledger, '2026-11-20T00:00:00Z').manifest;
 
-    expect(manifest?.manifestVersion).toBe(1);
+    expect(manifest?.manifestVersion).toBe(2);
     expect(
       manifest?.consumedEvents.map((event) => `${event.eventId}@v${event.eventVersion}`)
     ).toEqual([
@@ -619,6 +619,7 @@ describe('BZE-271 an earlier projection survives later history', () => {
       'predecessorContractVersion',
       'recordedAt',
       'resultingContractVersion',
+      'resultingState',
       'sourceTransactionId',
     ]);
   });
@@ -692,8 +693,10 @@ describe('BZE-271 projection needs no cap, floor, tax, or apron value', () => {
       'manifestVersion',
       'playerId',
       'resultingContractVersion',
+      'resultingStateDigest',
       'salaryCapYear',
       'seasonKey',
+      'sourceRelease',
       'teamId',
       'worldId',
     ]);

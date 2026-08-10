@@ -16,6 +16,11 @@ import {
   getAllMockData,
   clearMockCallables,
 } from './__mocks__/firebase.js';
+import { setContractSourceReleaseLoaderForTests } from '@/features/architect/utils/contractSource/contractSourceRelease';
+import { makeTestContractSourceRelease } from './fixtures/architect/contractSourceRelease';
+
+const testContractSourceRelease = makeTestContractSourceRelease();
+setContractSourceReleaseLoaderForTests(async () => testContractSourceRelease);
 
 // Mock Firebase app initialization
 vi.mock('@/firebaseConfig', () => {

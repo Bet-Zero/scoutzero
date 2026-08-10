@@ -29,6 +29,8 @@ import {
   baseTeamRef,
   worldEntitlementRef,
   worldEntitlementsCol,
+  worldContractBaselineRef,
+  worldContractBaselinesCol,
   worldMetadataRef,
   worldPlayerRef,
   worldPlayersCol,
@@ -37,7 +39,6 @@ import {
 } from './architectFirestorePaths';
 import {
   generateWorldId,
-  getCurrentSeason,
   readWorldMetadataDoc,
   type CallableErrorLike,
   type CreateWorldParams,
@@ -52,6 +53,16 @@ import {
   createRightsEventLedger,
   resolveRightsWorldCompatibility,
 } from '@/features/architect/utils/rightsHistory';
+import {
+  branchContractBaselineTeamDocument,
+  buildContractBaselineTeamDocuments,
+  contractBaselineMetadata,
+  loadBundledContractSourceRelease,
+  parseContractBaselineTeamDocument,
+  resolveContractBaselineWorldCompatibility,
+  validateContractBaselineDocumentSet,
+} from '@/features/architect/utils/contractSource/contractSourceRelease';
+import { seasonKeyForSalaryCapYear } from '@/features/architect/utils/governedSeason/governedTime';
 
 const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const BRANCH_COPY_BATCH_LIMIT = 450;
@@ -429,6 +440,28 @@ const collectSourceWorldEventsForBranch = async (
   return events;
 };
 
+const collectSourceContractBaselinesForBranch = async (
+  parentWorldId: string,
+  childWorldId: string
+) => {
+  const parentMetadata = await getWorldMetadata(parentWorldId);
+  const compatibility = resolveContractBaselineWorldCompatibility(parentMetadata);
+  if (!compatibility.compatible) throw new Error(compatibility.message);
+  const snapshot = await getDocs(worldContractBaselinesCol(parentWorldId));
+  const documents = snapshot.docs.map((entry) =>
+    parseContractBaselineTeamDocument(entry.data(), {
+      worldId: parentWorldId,
+      release: compatibility.metadata.contractSourceRelease,
+    })
+  );
+  return validateContractBaselineDocumentSet(
+    documents,
+    compatibility.metadata.contractBaselineCoverage.total
+  ).map((document) =>
+    branchContractBaselineTeamDocument(document, childWorldId)
+  );
+};
+
 const appendWorldStateCopyOperations = async ({
   operations,
   parentWorldId,
@@ -453,6 +486,10 @@ const appendWorldStateCopyOperations = async ({
     childWorldId
   );
   const events = await collectSourceWorldEventsForBranch(
+    parentWorldId,
+    childWorldId
+  );
+  const contractBaselines = await collectSourceContractBaselinesForBranch(
     parentWorldId,
     childWorldId
   );
@@ -496,6 +533,14 @@ const appendWorldStateCopyOperations = async ({
       eventData
     );
   }
+
+  for (const document of contractBaselines) {
+    appendSetOperation(
+      operations,
+      worldContractBaselineRef(childWorldId, document.shardId),
+      document
+    );
+  }
 };
 
 const buildBranchedWorldMetadata = ({
@@ -513,7 +558,16 @@ const buildBranchedWorldMetadata = ({
   userId: string;
   parentMetadata: WorldMetadata;
 }): Record<string, unknown> => {
-  const season = parentMetadata.currentSeason || getCurrentSeason();
+  const compatibility = resolveContractBaselineWorldCompatibility(parentMetadata);
+  if (!compatibility.compatible) throw new Error(compatibility.message);
+  const season =
+    parentMetadata.currentSeason ||
+    seasonKeyForSalaryCapYear(
+      compatibility.metadata.contractBaselineSalaryCapYear
+    );
+  if (!season) {
+    throw new Error('The governed contract baseline has no supported Salary Cap Year.');
+  }
   const metadata: Record<string, unknown> = {
     worldId,
     worldName: name.trim(),
@@ -546,6 +600,7 @@ const buildBranchedWorldMetadata = ({
     metadata.asOfDate = parentMetadata.asOfDate;
   }
   metadata.rightsLedgerVersion = RIGHTS_LEDGER_WORLD_VERSION;
+  Object.assign(metadata, compatibility.metadata);
 
   if (parentMetadata.draftPositionsByYear !== undefined) {
     metadata.draftPositionsByYear = clonePlainValue(
@@ -577,8 +632,19 @@ export async function createWorld({
     throw new Error('World name is required');
   }
 
+  if (parentWorldId) {
+    return branchWorld(parentWorldId, name, description, userId);
+  }
+
   const worldId = generateWorldId();
-  const season = currentSeason || getCurrentSeason();
+  const release = await loadBundledContractSourceRelease();
+  const governedSeason = seasonKeyForSalaryCapYear(release.salaryCapYear);
+  if (!governedSeason) {
+    throw new Error('The governed contract-source release has no supported Salary Cap Year.');
+  }
+  const season = currentSeason || governedSeason;
+  const baselineMetadata = contractBaselineMetadata(release);
+  const baselineDocuments = buildContractBaselineTeamDocuments(release, worldId);
 
   const metadata: Record<string, unknown> = {
     worldId,
@@ -605,6 +671,8 @@ export async function createWorld({
       teamsInvolved: 0,
     },
     rightsLedgerVersion: RIGHTS_LEDGER_WORLD_VERSION,
+    asOfDate: release.effectiveAt.slice(0, 10),
+    ...baselineMetadata,
   };
 
   const batch = writeBatch(db);
@@ -612,17 +680,12 @@ export async function createWorld({
   const metadataRef = worldMetadataRef(worldId);
   batch.set(metadataRef, metadata);
 
-  if (parentWorldId) {
-    const parentMetadata = await getWorldMetadata(parentWorldId);
-    const compatibility = resolveRightsWorldCompatibility(parentMetadata);
-    if (!compatibility.compatible) {
-      throw new Error(compatibility.message);
-    }
-    const parentRef = worldMetadataRef(parentWorldId);
-    batch.update(parentRef, {
-      childWorlds: arrayUnion(worldId),
-    });
-  }
+  baselineDocuments.forEach((document) => {
+    batch.set(
+      worldContractBaselineRef(worldId, document.shardId),
+      document
+    );
+  });
 
   await batch.commit();
 
@@ -861,6 +924,11 @@ export async function branchWorld(
   if (!compatibility.compatible) {
     throw new Error(compatibility.message);
   }
+  const contractCompatibility =
+    resolveContractBaselineWorldCompatibility(parentMetadata);
+  if (!contractCompatibility.compatible) {
+    throw new Error(contractCompatibility.message);
+  }
   const worldId = generateWorldId();
   const metadata = buildBranchedWorldMetadata({
     worldId,
@@ -877,6 +945,16 @@ export async function branchWorld(
     parentWorldId,
     childWorldId: worldId,
   });
+
+  // Establish ownership first so subsequent state-copy batches satisfy the
+  // owner-only subcollection rules. Keep the child hidden until every governed
+  // shard and unrelated Architect state copy succeeds.
+  const initializingBatch = writeBatch(db);
+  initializingBatch.set(worldMetadataRef(worldId), {
+    ...metadata,
+    isArchived: true,
+  });
+  await initializingBatch.commit();
   await commitBranchCopyOperations(copyOperations);
 
   const batch = writeBatch(db);

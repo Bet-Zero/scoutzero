@@ -61,6 +61,7 @@ describe('BZE-271 contract event kinds', () => {
   it('represents each lifecycle family CBA2-L02.1 names as its own kind', () => {
     expect([...CONTRACT_EVENT_KINDS]).toEqual([
       'signing',
+      'source-establishment',
       'amendment',
       'conversion',
       'option-exercise',
@@ -82,6 +83,7 @@ describe('BZE-271 contract event kinds', () => {
       'option',
       'renegotiation',
       'signing',
+      'source-establishment',
     ]);
   });
 

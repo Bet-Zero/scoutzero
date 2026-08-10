@@ -16,6 +16,7 @@ import {
   makeTransaction,
   TRANSACTION_ID,
 } from './transactionHistoryFixtures';
+import { makeResultingState } from '../contractHistory/contractHistoryFixtures';
 
 describe('BZE-272 completed-trade ledger', () => {
   it('constructs and freezes a strict immutable versioned record', () => {
@@ -251,6 +252,12 @@ describe('BZE-272 completed-trade ledger', () => {
       recordStatus: 'current',
       supersedesEventVersion: null,
       canonLeafIds: ['CBA2-L02.1'],
+      resultingState: makeResultingState({
+        contractId: 'contract-001',
+        contractVersion: 2,
+        playerId: 'player-001',
+        teamId: 'team-BOS',
+      }),
     };
     expect(ContractEventRecordZ.safeParse(contractEvent).success).toBe(true);
   });

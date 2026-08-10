@@ -30,9 +30,10 @@
  */
 
 import { z } from 'zod';
+import { GovernedContractStateZ } from './governedContractState';
 
 /** Bump only for a wire format change that older payloads cannot satisfy. */
-export const CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION = 1;
+export const CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION = 2;
 
 /**
  * A string carrying at least one non-whitespace character. `z.string().min(1)`
@@ -63,6 +64,7 @@ const PositiveVersionZ = z.number().int().min(1);
  */
 export const ContractEventKindZ = z.enum([
   'signing',
+  'source-establishment',
   'amendment',
   'conversion',
   'option-exercise',
@@ -103,6 +105,7 @@ export const ContractEventRecordZ = z
     recordStatus: ContractEventStatusZ,
     supersedesEventVersion: PositiveVersionZ.nullable(),
     canonLeafIds: z.array(NonEmptyStringZ).min(1),
+    resultingState: GovernedContractStateZ,
   })
   .superRefine((record, ctx) => {
     // An event with neither identity cannot be traced to anything that produced
@@ -117,6 +120,42 @@ export const ContractEventRecordZ = z
         path: ['sourceTransactionId'],
         message:
           'an event must retain a source transaction identity or an authoring identity',
+      });
+    }
+
+    if (record.resultingState.contractId !== record.contractId) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['resultingState', 'contractId'],
+        message: 'resulting state must identify the event contract',
+      });
+    }
+    if (record.resultingState.contractVersion !== record.resultingContractVersion) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['resultingState', 'contractVersion'],
+        message: 'resulting state version must match resultingContractVersion',
+      });
+    }
+    if (record.resultingState.playerId !== record.playerId) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['resultingState', 'playerId'],
+        message: 'resulting state must identify the event player',
+      });
+    }
+    if (record.resultingState.teamId !== record.teamId) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['resultingState', 'teamId'],
+        message: 'resulting state must identify the event team',
+      });
+    }
+    if (record.eventKind === 'source-establishment' && record.resultingState.establishmentKind !== 'source-establishment') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['resultingState', 'establishmentKind'],
+        message: 'a source-establishment event must retain source-establishment provenance',
       });
     }
   });

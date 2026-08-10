@@ -11,7 +11,9 @@
 import type {
   ContractEventKind,
   ContractEventRecord,
+  GovernedContractState,
 } from '@/features/architect/utils/contractHistory';
+import { deterministicStateDigest } from '@/features/architect/utils/contractSource/deterministicDigest';
 
 export const WORLD_ID = 'world-bze271';
 export const CONTRACT_ID = 'contract-0001';
@@ -43,6 +45,99 @@ export interface EventOverrides {
   recordStatus?: 'current' | 'superseded';
   supersedesEventVersion?: number | null;
   canonLeafIds?: readonly string[];
+  resultingState?: GovernedContractState;
+}
+
+export function makeResultingState(
+  overrides: Partial<GovernedContractState> & {
+    contractId?: string;
+    contractVersion?: number;
+    playerId?: string;
+    teamId?: string;
+    establishmentKind?: 'signing' | 'source-establishment';
+  } = {}
+): GovernedContractState {
+  const stateWithoutDigest: Omit<GovernedContractState, 'stateDigest'> = {
+    stateVersion: 1,
+    contractId: overrides.contractId ?? CONTRACT_ID,
+    contractVersion: overrides.contractVersion ?? 2,
+    playerId: overrides.playerId ?? PLAYER_ID,
+    teamId: overrides.teamId ?? TEAM_ID,
+    establishmentKind: overrides.establishmentKind ?? 'signing',
+    terms: overrides.terms ?? {
+      contractType: 'VETERAN CONTRACT',
+      isExtension: false,
+      isRookieScale: false,
+      signedUsing: 'Bird Exception',
+      signingTeam: TEAM_ID,
+      signingDate: {
+        precision: 'date',
+        value: '2026-07-05',
+        rawValue: '2026-07-05',
+      },
+      signingExecutive: null,
+      signedByCurrentTeam: true,
+      startSeason: '2026-27',
+      endSeason: '2027-28',
+      contractLength: 2,
+      totalValue: 20000000,
+      averageAnnualValue: 10000000,
+      guaranteedValue: 20000000,
+      guaranteedYears: 2,
+      salaries: [],
+      bonuses: { tradeKickerPercent: null },
+      restrictions: {
+        noTradeClause: false,
+        tradeRestrictions: [],
+        canBeTradedNow: null,
+        restrictedUntil: {
+          precision: 'unknown',
+          value: null,
+          rawValue: null,
+        },
+        reason: null,
+        baseYearCompensation: null,
+        poisonPill: null,
+        aggregation: null,
+      },
+      birdRights: {
+        status: null,
+        yearsOfService: null,
+        yearsWithTeam: null,
+        eligibleFor: [],
+      },
+      freeAgency: {
+        type: null,
+        year: null,
+        capHold: null,
+        qualifyingOffer: null,
+        earlyTerminationOption: null,
+        hasOption: null,
+        optionYear: null,
+        optionType: null,
+      },
+      sourceLimitations: ['Fixture source only.'],
+    },
+    evidence: overrides.evidence ?? [],
+    completeness: overrides.completeness ?? {
+      status: 'complete',
+      reasons: [],
+    },
+    source: overrides.source ?? {
+      releaseId: 'fixture-release',
+      releaseVersion: 1,
+      releaseDigest: `sha256:${'1'.repeat(64)}`,
+      sourceProvider: 'fixture',
+      sourceRecordVersion: '1',
+      sourceObservationId: 'fixture-observation',
+      sourceArtifactSha256: `sha256:${'2'.repeat(64)}`,
+      sourceContractPath: 'contract',
+    },
+  };
+  return {
+    ...stateWithoutDigest,
+    stateDigest: deterministicStateDigest(stateWithoutDigest),
+  };
 }
 
 /**
@@ -52,7 +147,8 @@ export interface EventOverrides {
  */
 export function makeEvent(overrides: EventOverrides = {}): ContractEventRecord {
   const eventKind = overrides.eventKind ?? 'amendment';
-  const isRoot = eventKind === 'signing';
+  const isRoot = eventKind === 'signing' || eventKind === 'source-establishment';
+  const resultingContractVersion = overrides.resultingContractVersion ?? 2;
 
   return {
     eventId: overrides.eventId ?? 'evt-002',
@@ -71,7 +167,7 @@ export function makeEvent(overrides: EventOverrides = {}): ContractEventRecord {
         : isRoot
           ? null
           : 1,
-    resultingContractVersion: overrides.resultingContractVersion ?? 2,
+    resultingContractVersion,
     predecessorEventId:
       overrides.predecessorEventId !== undefined
         ? overrides.predecessorEventId
@@ -92,6 +188,18 @@ export function makeEvent(overrides: EventOverrides = {}): ContractEventRecord {
         ? overrides.supersedesEventVersion
         : null,
     canonLeafIds: overrides.canonLeafIds ?? ['CBA2-L02.1'],
+    resultingState:
+      overrides.resultingState ??
+      makeResultingState({
+        contractId: overrides.contractId ?? CONTRACT_ID,
+        contractVersion: resultingContractVersion,
+        playerId: overrides.playerId ?? PLAYER_ID,
+        teamId: overrides.teamId ?? TEAM_ID,
+        establishmentKind:
+          eventKind === 'source-establishment'
+            ? 'source-establishment'
+            : 'signing',
+      }),
   };
 }
 

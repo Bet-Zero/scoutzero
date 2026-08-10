@@ -57,6 +57,21 @@
 **Status**: ✅ Active (Phase 10)
 **Usage**: World overrides or world-created entitlements
 
+### `/architect_worlds/{worldId}/contractBaselines/{shardId}` - Governed Baseline Contracts ✅ ACTIVE
+
+**Status**: ✅ Active for newly created governed worlds (BZE-274)
+**Usage**: Immutable, terms-capable version-two contract ledgers established
+from one exact pinned source release. Existing rendered contract consumers are
+not migrated to this subcollection yet.
+
+World metadata pins `contractBaselineVersion`, `contractSourceRelease`,
+`contractBaselineEffectiveAt`, `contractBaselineSalaryCapYear`, and exact
+complete/needs-input counts. Each deterministic team shard retains its team and
+shard identity, source-release pin, evidence catalog, immutable ledgers, and
+document digest. Missing evidence remains explicit in each ledger's resulting
+state; pre-baseline worlds require recreation and are never upgraded from
+mutable snapshots.
+
 ### `/architect_worlds/{worldId}/teams/{teamCode}/freeAgentPools/{seasonKey}` - Managed Free-Agent Pools ✅ ACTIVE
 
 **Status**: ✅ Active
