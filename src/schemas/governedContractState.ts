@@ -262,5 +262,6 @@ export type ContractFieldEvidence = z.infer<typeof ContractFieldEvidenceZ>;
 export type GovernedOptionDecisionTerms = z.infer<
   typeof GovernedOptionDecisionTermsZ
 >;
+export type ContractSalaryTerm = z.infer<typeof ContractSalaryTermZ>;
 export type GovernedContractTerms = z.infer<typeof GovernedContractTermsZ>;
 export type GovernedContractState = z.infer<typeof GovernedContractStateZ>;

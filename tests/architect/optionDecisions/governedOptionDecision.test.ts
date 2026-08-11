@@ -5,7 +5,7 @@ import {
   type ContractEventLedgerPayload,
 } from '@/schemas/contractEventLedger';
 import type {
-  GovernedContractState,
+  ContractSalaryTerm,
   GovernedOptionDecisionTerms,
 } from '@/schemas/governedContractState';
 import {
@@ -61,8 +61,6 @@ const WORLD_AS_OF_DATE = '2027-07-01';
 const DEADLINE = '2027-06-29T17:00:00-04:00';
 const WINDOW_OPENS = '2027-06-01T09:00:00-04:00';
 const CONTRACT_ENDS = '2027-07-01T00:00:00-04:00';
-
-type ContractSalaryTerm = GovernedContractState['terms']['salaries'][number];
 
 const instant = (value: string) => ({
   precision: 'instant' as const,
@@ -170,18 +168,14 @@ function baselineFor(
                 rookieScaleFourthSeasonTermsMatchThird:
                   rookieScaleTarget === 'fourth' ? true : null,
                 decisionWindowOpensAt: instant(
-                  rookieScaleTarget === 'third'
-                    ? '2026-10-01T09:00:00-04:00'
-                    : '2026-10-01T09:00:00-04:00'
+                  '2026-10-01T09:00:00-04:00'
                 ),
               }
             : {}),
           ...(options.terms || {}),
         });
   const deadline = isRookieScale
-    ? rookieScaleTarget === 'third'
-      ? '2026-11-02T17:00:00-05:00'
-      : '2026-11-02T17:00:00-05:00'
+    ? '2026-11-02T17:00:00-05:00'
     : DEADLINE;
   const salaries = Array.from({ length: rowCount }, (_, index) =>
     salaryRow({
@@ -580,11 +574,12 @@ describe('governed deadline, notice, shape, and source boundaries', () => {
     const result = decideGovernedOption(
       request('TO', 'exercise', {
         baseline,
-        leagueReceivedAt: '',
-        forwardedAt: '',
+        leagueReceivedAt: '2099-01-01T09:00:00-05:00',
+        forwardedAt: '2099-01-01T10:00:00-05:00',
       })
     );
     expect(result.success, JSON.stringify(result)).toBe(true);
+    if (result.success) expect(result.event.recordedAt).toBe(DEADLINE);
   });
 
   it.each([
@@ -1210,8 +1205,14 @@ describe('governed option mutation, atomic persistence, reload, and branch', () 
       ledgerId: 'ledger-valid-bze-275',
     });
     seedGovernedPersistenceWorld([first, second]);
-    const corrupt = structuredClone(first);
-    corrupt.events[0].authoringIdentity = 'rewritten-root';
+    const corrupt: ContractEventLedgerPayload = {
+      ...first,
+      events: first.events.map((event, index) =>
+        index === 0
+          ? { ...event, authoringIdentity: 'rewritten-root' }
+          : event
+      ),
+    };
 
     const entries = await loadWorldGovernedOptionEntries({
       worldId: WORLD_ID,

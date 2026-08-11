@@ -943,8 +943,12 @@ export function decideGovernedOption(
     effectiveAt: effectiveAt as string,
     recordedAt: latestGovernedInstant([
       request.notice.deliveredAt,
-      request.notice.leagueReceivedAt,
-      request.notice.playersAssociationForwardedAt,
+      ...(terms.leagueForwardingRequired
+        ? [
+            request.notice.leagueReceivedAt,
+            request.notice.playersAssociationForwardedAt,
+          ]
+        : []),
       effectiveAt as string,
     ]),
     predecessorContractVersion: projection.contractVersion,

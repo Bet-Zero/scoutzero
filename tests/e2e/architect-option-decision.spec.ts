@@ -263,6 +263,7 @@ const buildFixturePlayer = ({
 };
 
 const seededBasePlayerIds = new Set<string>();
+const seededWorldIds = new Set<string>();
 
 const buildSupportPlayer = (worldLabel: string, index: number): RecordLike => {
   const playerId = `bze275_${worldLabel.toLowerCase()}_support_${index}`;
@@ -486,6 +487,7 @@ const seedOptionWorld = async ({
   const worldId = `world_bze275_${optionType.toLowerCase()}_${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 7)}`;
+  seededWorldIds.add(worldId);
   const actionFixtures = [
     buildFixturePlayer({ optionType, suffix: 'Exercise' }),
     buildFixturePlayer({ optionType, suffix: 'Decline' }),
@@ -857,6 +859,7 @@ const branchFixtureWorld = async (
   const childWorldId = `world_bze275_branch_${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 7)}`;
+  seededWorldIds.add(childWorldId);
   const parent = await db.doc(`architect_worlds/${parentWorldId}`).get();
   const parentTeam = await db
     .doc(`architect_worlds/${parentWorldId}/teams/${TEAM_ID}`)
@@ -973,14 +976,36 @@ test.describe('BZE-275 governed Full Cap Table option/ETO browser proof', () => 
   });
 
   test.afterEach(async () => {
-    if (seededBasePlayerIds.size === 0) return;
     const db = getReviewAdminDb();
-    const cleanup = db.batch();
-    seededBasePlayerIds.forEach((playerId) => {
-      cleanup.delete(db.doc(`architect_basePlayers/${playerId}`));
-    });
-    await cleanup.commit();
+    const worldCleanup = await Promise.allSettled(
+      [...seededWorldIds].map((worldId) =>
+        db.recursiveDelete(db.doc(`architect_worlds/${worldId}`))
+      )
+    );
+    let basePlayerCleanupError: unknown = null;
+    if (seededBasePlayerIds.size > 0) {
+      try {
+        const cleanup = db.batch();
+        seededBasePlayerIds.forEach((playerId) => {
+          cleanup.delete(db.doc(`architect_basePlayers/${playerId}`));
+        });
+        await cleanup.commit();
+      } catch (error) {
+        basePlayerCleanupError = error;
+      }
+    }
+    const cleanupErrors = worldCleanup.flatMap((result) =>
+      result.status === 'rejected' ? [result.reason] : []
+    );
+    if (basePlayerCleanupError) cleanupErrors.push(basePlayerCleanupError);
+    seededWorldIds.clear();
     seededBasePlayerIds.clear();
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        cleanupErrors,
+        'BZE-275 emulator fixture cleanup failed.'
+      );
+    }
   });
 
   for (const optionType of ['TO', 'PO', 'ETO'] as const) {
