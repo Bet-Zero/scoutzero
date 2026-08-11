@@ -334,7 +334,7 @@ const releaseFor = (
   releaseId: `bze-275-browser-${fixtures[0]?.optionType.toLowerCase() ?? 'fixture'}`,
   releaseVersion: 1,
   releaseDigest:
-    '7777777777777777777777777777777777777777777777777777777777777777',
+    'sha256:7777777777777777777777777777777777777777777777777777777777777777',
   supersedes: null,
   effectiveAt: SOURCE_EFFECTIVE_AT,
   salaryCapYear: BASELINE_SALARY_CAP_YEAR,
