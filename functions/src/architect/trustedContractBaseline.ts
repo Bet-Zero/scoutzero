@@ -40,7 +40,7 @@ export const DEFAULT_TRUSTED_CONTRACT_RELEASE =
   ];
 
 const CONTRACT_BASELINE_SHARD_TARGET_BYTES = 700_000;
-const CONTRACT_BASELINE_WORLD_VERSION = 2;
+export const CONTRACT_BASELINE_WORLD_VERSION = 2;
 const CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION = 2;
 const FNV_OFFSET = 0xcbf29ce484222325n;
 const FNV_PRIME = 0x100000001b3n;
@@ -482,19 +482,31 @@ function partitionLedgers(
 ): JsonRecord[][] {
   const shards: JsonRecord[][] = [];
   let current: JsonRecord[] = [];
+  const emptyShardBytes = Buffer.byteLength(
+    canonicalStringify({ ...common, ledgers: [] }),
+    'utf8'
+  );
+  let currentBytes = emptyShardBytes;
   for (const ledger of ledgers) {
-    const candidate = [...current, ledger];
+    const ledgerBytes = Buffer.byteLength(canonicalStringify(ledger), 'utf8');
+    const singleLedgerShardBytes = emptyShardBytes + ledgerBytes;
+    if (singleLedgerShardBytes > CONTRACT_BASELINE_SHARD_TARGET_BYTES) {
+      throw new Error(
+        `Governed contract baseline ledger exceeds the ${CONTRACT_BASELINE_SHARD_TARGET_BYTES}-byte shard boundary.`
+      );
+    }
+    const candidateBytes =
+      currentBytes + ledgerBytes + (current.length > 0 ? 1 : 0);
     if (
       current.length > 0 &&
-      Buffer.byteLength(
-        canonicalStringify({ ...common, ledgers: candidate }),
-        'utf8'
-      ) > CONTRACT_BASELINE_SHARD_TARGET_BYTES
+      candidateBytes > CONTRACT_BASELINE_SHARD_TARGET_BYTES
     ) {
       shards.push(current);
       current = [ledger];
+      currentBytes = singleLedgerShardBytes;
     } else {
-      current = candidate;
+      current.push(ledger);
+      currentBytes = candidateBytes;
     }
   }
   if (current.length > 0) shards.push(current);

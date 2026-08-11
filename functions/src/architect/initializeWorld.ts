@@ -12,6 +12,7 @@ import {
   branchTrustedContractBaselineDocuments,
   buildTrustedContractBaselineDocuments,
   canonicalStringify,
+  CONTRACT_BASELINE_WORLD_VERSION,
   loadTrustedContractRelease,
   resolveFreshWorldSeason,
   seasonForSalaryCapYear,
@@ -158,7 +159,7 @@ function contractMetadataFromParent(
   const coverage = parent.contractBaselineCoverage;
   const trustedCoverage = trustedMetadata.contractBaselineCoverage;
   if (
-    parent.contractBaselineVersion !== 2 ||
+    parent.contractBaselineVersion !== CONTRACT_BASELINE_WORLD_VERSION ||
     !isRecord(parentRelease) ||
     !isRecord(trustedRelease) ||
     canonicalStringify(parentRelease) !== canonicalStringify(trustedRelease) ||

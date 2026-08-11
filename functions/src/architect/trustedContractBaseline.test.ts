@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -9,6 +10,8 @@ import {
   canonicalStringify,
   parseTrustedContractReleaseArtifact,
   resolveFreshWorldSeason,
+  TRUSTED_CONTRACT_RELEASE_ARTIFACT_SHA256,
+  TRUSTED_CONTRACT_RELEASE_FILENAME,
   TrustedContractReleaseRegistry,
   trustedContractBaselineMetadata,
   type TrustedContractReleaseDescriptor,
@@ -18,6 +21,12 @@ import {
 const artifactPath = resolve(
   __dirname,
   '../../../public/architect/contract-source-releases/salaryswish-retained-2026-06-05-v1.json'
+);
+const functionsRoot = resolve(__dirname, '../..');
+const runtimeArtifactPath = resolve(
+  functionsRoot,
+  'lib/architect/assets',
+  TRUSTED_CONTRACT_RELEASE_FILENAME
 );
 
 function fixturePin(version: number): TrustedContractReleasePin {
@@ -104,6 +113,22 @@ function fixtureRegistry(
 }
 
 describe('trusted governed contract baseline', () => {
+  it('packages the exact retained artifact at the deployed runtime path', () => {
+    execFileSync('npm', ['run', 'copy:contract-release'], {
+      cwd: functionsRoot,
+      stdio: 'pipe',
+    });
+    const artifact = readFileSync(runtimeArtifactPath);
+
+    expect(
+      `sha256:${createHash('sha256').update(artifact).digest('hex')}`
+    ).toBe(TRUSTED_CONTRACT_RELEASE_ARTIFACT_SHA256);
+    expect(parseTrustedContractReleaseArtifact(artifact)).toMatchObject({
+      releaseId: 'salaryswish-retained-2026-06-05',
+      releaseVersion: 1,
+    });
+  });
+
   it('pins the complete deployed artifact and builds deterministic shards', () => {
     const release = parseTrustedContractReleaseArtifact(
       readFileSync(artifactPath)
@@ -325,5 +350,18 @@ describe('trusted governed contract baseline', () => {
     expect(() => resolveFreshWorldSeason(release, '1999-00')).toThrow(
       'must match governed release season 2025-26'
     );
+  });
+
+  it('fails closed when one governed ledger cannot fit in a shard', () => {
+    const versionOneFixture = fixtureRelease(1);
+    const release = fixtureRegistry(
+      [versionOneFixture],
+      versionOneFixture.descriptor
+    ).loadDefault();
+    release.records[0].resultingState.oversizedFixture = 'x'.repeat(700_000);
+
+    expect(() =>
+      buildTrustedContractBaselineDocuments(release, 'oversized-world')
+    ).toThrow('ledger exceeds the 700000-byte shard boundary');
   });
 });

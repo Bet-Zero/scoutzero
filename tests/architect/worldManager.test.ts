@@ -768,6 +768,45 @@ describe('World Manager', () => {
       ]);
     });
 
+    it('attempts idempotent partial cleanup when initialization fails before the client receives success', async () => {
+      const parentResult = await createWorld({ name: 'Parent', userId });
+      let attemptedChildWorldId = '';
+      const cleanupRequests: unknown[] = [];
+      setMockCallable('initializeArchitectWorld', (data) => {
+        attemptedChildWorldId = String(
+          (data as { worldId?: unknown }).worldId ?? ''
+        );
+        const error = new Error('Initialization response was lost') as Error & {
+          code: string;
+        };
+        error.code = 'functions/internal';
+        throw error;
+      });
+      setMockCallable('purgeArchitectWorld', (data) => {
+        cleanupRequests.push(data);
+        return {
+          ok: true,
+          queued: false,
+          message: 'Partial branch is already absent.',
+          details: { worldDeleted: false, alreadyAbsent: true },
+        };
+      });
+
+      await expect(
+        branchWorld(parentResult.worldId, 'Lost Response Branch', '', userId)
+      ).rejects.toThrow('Initialization response was lost');
+      expect(attemptedChildWorldId).not.toBe('');
+      expect(cleanupRequests).toEqual([
+        {
+          worldId: attemptedChildWorldId,
+          cleanupPartialBranch: true,
+        },
+      ]);
+      expect(
+        getMockData(`architect_worlds/${attemptedChildWorldId}`)
+      ).toBeUndefined();
+    });
+
     it('throws error when parentWorldId is missing', async () => {
       await expect(branchWorld(null, 'Branch', '', userId)).rejects.toThrow(
         'parentWorldId is required'

@@ -147,10 +147,50 @@ type MockBatchCommitFailure = {
   error: Error;
 };
 
+type MockCallableErrorCode =
+  | 'functions/failed-precondition'
+  | 'functions/invalid-argument'
+  | 'functions/not-found';
+
 let mockBatchCommitFailure: MockBatchCommitFailure | null = null;
+const mockRetainedContractReleases = new Map<string, unknown>();
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function mockCallableError(
+  code: MockCallableErrorCode,
+  message: string
+): Error & { code: MockCallableErrorCode } {
+  const error = new Error(message) as Error & { code: MockCallableErrorCode };
+  error.code = code;
+  return error;
+}
+
+function mockContractReleaseKey(value: {
+  releaseId: string;
+  releaseVersion: number;
+  releaseDigest: string;
+}): string {
+  return `${value.releaseId}@v${value.releaseVersion}:${value.releaseDigest}`;
+}
+
+function isMockDateWithinSeason(date: string, season: string): boolean {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+    !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) ||
+    new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date
+  ) {
+    return false;
+  }
+  const startYear = Number(season.slice(0, 4));
+  const endYear = startYear + 1;
+  return (
+    season === `${startYear}-${String(endYear).slice(-2)}` &&
+    date >= `${startYear}-07-01` &&
+    date <= `${endYear}-06-30`
+  );
 }
 
 function cloneMockValue<T>(value: T): T {
@@ -867,6 +907,7 @@ function deepMerge(target: UnknownRecord, source: UnknownRecord): UnknownRecord 
 // Reset mock data store (for test cleanup)
 export function resetMockDataStore(): void {
   mockDataStore.clear();
+  mockRetainedContractReleases.clear();
   currentBatch = null;
   autoIdCounter = 0;
   mockBatchCommitFailure = null;
@@ -907,7 +948,10 @@ const mockCallableFunctions = new Map<string, MockCallableImplementation>();
 
 async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
   if (!isRecord(data)) {
-    throw new Error('initializeArchitectWorld mock requires an object request');
+    throw mockCallableError(
+      'functions/invalid-argument',
+      'initializeArchitectWorld mock requires an object request'
+    );
   }
   const { worldId, worldName, description, userId, currentSeason, parentWorldId } =
     data;
@@ -916,7 +960,10 @@ async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
     typeof worldName !== 'string' ||
     typeof userId !== 'string'
   ) {
-    throw new Error('initializeArchitectWorld mock request is malformed');
+    throw mockCallableError(
+      'functions/invalid-argument',
+      'initializeArchitectWorld mock request is malformed'
+    );
   }
 
   const contractSource = await import(
@@ -929,12 +976,48 @@ async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
   if (typeof parentWorldId === 'string') {
     const parentRaw = getDataFromStore(`architect_worlds/${parentWorldId}`);
     if (!isRecord(parentRaw)) {
-      throw new Error(`Parent world ${parentWorldId} not found`);
+      throw mockCallableError(
+        'functions/not-found',
+        `Parent world ${parentWorldId} not found`
+      );
     }
     const compatibility = contractSource.resolveContractBaselineWorldCompatibility(
       parentRaw
     );
-    if (!compatibility.compatible) throw new Error(compatibility.message);
+    if (!compatibility.compatible) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        compatibility.message
+      );
+    }
+    const retainedRelease = mockRetainedContractReleases.get(
+      mockContractReleaseKey(compatibility.metadata.contractSourceRelease)
+    ) as
+      | Awaited<
+          ReturnType<typeof contractSource.loadBundledContractSourceRelease>
+        >
+      | undefined;
+    if (!retainedRelease) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world governed contract release is not retained.'
+      );
+    }
+    const governedMetadata = contractSource.contractBaselineMetadata(
+      retainedRelease
+    );
+    const { canonicalStringify } = await import(
+      '@/features/architect/utils/contractSource/deterministicDigest'
+    );
+    if (
+      canonicalStringify(compatibility.metadata) !==
+      canonicalStringify(governedMetadata)
+    ) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world does not contain its retained governed contract baseline.'
+      );
+    }
     const parentDocuments: unknown[] = [];
     const prefix = `architect_worlds/${parentWorldId}/contractBaselines/`;
     for (const [path, value] of mockDataStore.entries()) {
@@ -951,15 +1034,45 @@ async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
       ),
       compatibility.metadata.contractBaselineCoverage.total
     );
+    if (
+      validated.some(
+        (document) =>
+          canonicalStringify(document.evidenceCatalog) !==
+          canonicalStringify(retainedRelease.source.evidenceCatalog)
+      )
+    ) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world contract evidence conflicts with its retained release.'
+      );
+    }
     documents = validated.map((document) =>
       contractSource.branchContractBaselineTeamDocument(document, worldId)
     );
-    const season =
-      typeof parentRaw.currentSeason === 'string'
-        ? parentRaw.currentSeason
-        : `${compatibility.metadata.contractBaselineSalaryCapYear - 1}-${String(
-            compatibility.metadata.contractBaselineSalaryCapYear
-          ).slice(-2)}`;
+    const governedBaselineSeason = `${compatibility.metadata.contractBaselineSalaryCapYear - 1}-${String(
+      compatibility.metadata.contractBaselineSalaryCapYear
+    ).slice(-2)}`;
+    if (parentRaw.baselineSeason !== governedBaselineSeason) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world baseline season contradicts its governed Salary Cap Year.'
+      );
+    }
+    const season = parentRaw.currentSeason;
+    const asOfDate = parentRaw.asOfDate;
+    if (
+      typeof season !== 'string' ||
+      typeof asOfDate !== 'string' ||
+      !isMockDateWithinSeason(asOfDate, season) ||
+      Number(season.slice(0, 4)) <
+        compatibility.metadata.contractBaselineSalaryCapYear - 1 ||
+      asOfDate < retainedRelease.effectiveAt.slice(0, 10)
+    ) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world date contradicts its governed contract baseline.'
+      );
+    }
     metadata = {
       worldId,
       worldName,
@@ -968,10 +1081,7 @@ async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
       createdAt: now,
       lastModifiedAt: now,
       currentSeason: season,
-      baselineSeason:
-        typeof parentRaw.baselineSeason === 'string'
-          ? parentRaw.baselineSeason
-          : season,
+      baselineSeason: governedBaselineSeason,
       parentWorldId,
       branchedFrom: now,
       childWorlds: [],
@@ -993,9 +1103,7 @@ async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
             teamsInvolved: 0,
           },
       rightsLedgerVersion: 1,
-      ...(typeof parentRaw.asOfDate === 'string'
-        ? { asOfDate: parentRaw.asOfDate }
-        : {}),
+      asOfDate,
       ...compatibility.metadata,
       ...(isRecord(parentRaw.draftPositionsByYear)
         ? {
@@ -1007,11 +1115,16 @@ async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
     };
   } else {
     const release = await contractSource.loadBundledContractSourceRelease();
+    mockRetainedContractReleases.set(
+      mockContractReleaseKey(release),
+      release
+    );
     const season = `${release.salaryCapYear - 1}-${String(
       release.salaryCapYear
     ).slice(-2)}`;
     if (currentSeason != null && currentSeason !== season) {
-      throw new Error(
+      throw mockCallableError(
+        'functions/invalid-argument',
         `currentSeason must match governed release season ${season}.`
       );
     }

@@ -10,6 +10,7 @@ import {
   MIA_SEASON_ADVANCE_URL,
   enableArchitectReviewFlags,
   getReviewAdminDb,
+  readReviewIdToken,
   readReviewUserId,
   waitForReviewDashboard,
 } from './helpers/architectReviewWorld';
@@ -51,46 +52,6 @@ const openWorldMenu = async (page: Page) => {
   }
   await expect(page.getByTestId('cockpit-world-menu-popover')).toBeVisible();
 };
-
-const readReviewIdToken = async (page: Page): Promise<string> =>
-  page.evaluate(
-    () =>
-      new Promise<string>((resolve) => {
-        const request = indexedDB.open('firebaseLocalStorageDb');
-        request.onerror = () => resolve('');
-        request.onsuccess = () => {
-          try {
-            const store = request.result
-              .transaction('firebaseLocalStorage', 'readonly')
-              .objectStore('firebaseLocalStorage');
-            const getAll = store.getAll();
-            getAll.onerror = () => resolve('');
-            getAll.onsuccess = () => {
-              const records = (getAll.result || []) as Array<{
-                fbase_key?: string;
-                value?: string | { stsTokenManager?: { accessToken?: string } };
-              }>;
-              const authRecord = records.find((record) =>
-                String(record.fbase_key || '').includes('authUser')
-              );
-              let value = authRecord?.value;
-              if (typeof value === 'string') {
-                try {
-                  value = JSON.parse(value) as {
-                    stsTokenManager?: { accessToken?: string };
-                  };
-                } catch {
-                  value = undefined;
-                }
-              }
-              resolve(value?.stsTokenManager?.accessToken || '');
-            };
-          } catch {
-            resolve('');
-          }
-        };
-      })
-  );
 
 const callReviewFunction = async (
   request: APIRequestContext,

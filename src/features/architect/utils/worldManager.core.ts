@@ -868,7 +868,6 @@ export async function branchWorld(
     childWorldId: worldId,
   });
 
-  let initialized = false;
   try {
     await initializeArchitectWorld({
       worldId,
@@ -877,7 +876,6 @@ export async function branchWorld(
       userId,
       parentWorldId,
     });
-    initialized = true;
     await commitBranchCopyOperations(copyOperations);
 
     const batch = writeBatch(db);
@@ -890,24 +888,22 @@ export async function branchWorld(
     });
     await batch.commit();
   } catch (error) {
-    if (initialized) {
-      let cleanupResult: PurgeWorldResult;
-      try {
-        cleanupResult = await retryBranchCleanup(worldId);
-      } catch (cleanupError) {
-        throw new BranchWorldCleanupError({
-          childWorldId: worldId,
-          originalBranchFailure: error,
-          cleanupFailure: cleanupError,
-        });
-      }
-      if (cleanupResult.ok !== true) {
-        throw new BranchWorldCleanupError({
-          childWorldId: worldId,
-          originalBranchFailure: error,
-          cleanupResult,
-        });
-      }
+    let cleanupResult: PurgeWorldResult;
+    try {
+      cleanupResult = await retryBranchCleanup(worldId);
+    } catch (cleanupError) {
+      throw new BranchWorldCleanupError({
+        childWorldId: worldId,
+        originalBranchFailure: error,
+        cleanupFailure: cleanupError,
+      });
+    }
+    if (cleanupResult.ok !== true) {
+      throw new BranchWorldCleanupError({
+        childWorldId: worldId,
+        originalBranchFailure: error,
+        cleanupResult,
+      });
     }
     throw error;
   }

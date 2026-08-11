@@ -220,11 +220,25 @@ describeWithFirestoreEmulator(
           name: 'Ordinary metadata still updates',
         })
       );
-      await assertFails(
-        updateDoc(doc(db, 'architect_worlds', WORLD_ID), {
-          contractBaselineSalaryCapYear: 2027,
-        })
-      );
+      for (const governedUpdate of [
+        { contractBaselineVersion: 3 },
+        {
+          contractSourceRelease: {
+            releaseId: 'release-v2',
+            releaseVersion: 2,
+            releaseDigest: `sha256:${'2'.repeat(64)}`,
+          },
+        },
+        { contractBaselineEffectiveAt: '2027-06-05T12:00:00Z' },
+        { contractBaselineSalaryCapYear: 2027 },
+        {
+          contractBaselineCoverage: { total: 2, complete: 2, needsInput: 0 },
+        },
+      ]) {
+        await assertFails(
+          updateDoc(doc(db, 'architect_worlds', WORLD_ID), governedUpdate)
+        );
+      }
       await assertFails(deleteDoc(doc(db, 'architect_worlds', WORLD_ID)));
       await assertFails(updateDoc(baselineRef, { teamId: 'BOS' }));
       await assertFails(deleteDoc(baselineRef));
