@@ -905,18 +905,26 @@ export const GMDashboard = () => {
 
   const modalPlayer = selectedPlayer as EditContractModalProps['player'];
   const modalTeamCapSheet = teamCapSheet as EditContractModalProps['teamCapSheet'];
-  const modalOptionDecisionAvailability =
-    worldId &&
-    selectedPlayer &&
-    typeof targetYear === 'number' &&
-    typeof actions.getOptionDecisionAvailability === 'function'
-      ? actions.getOptionDecisionAvailability(
-          selectedPlayer as Parameters<
-            typeof actions.getOptionDecisionAvailability
-          >[0],
-          targetYear
-        )
-      : null;
+  const modalOptionDecisionAvailability = useMemo(
+    () =>
+      worldId &&
+      selectedPlayer &&
+      typeof targetYear === 'number' &&
+      typeof actions.getOptionDecisionAvailability === 'function'
+        ? actions.getOptionDecisionAvailability(
+            selectedPlayer as Parameters<
+              typeof actions.getOptionDecisionAvailability
+            >[0],
+            targetYear
+          )
+        : null,
+    [
+      actions.getOptionDecisionAvailability,
+      selectedPlayer,
+      targetYear,
+      worldId,
+    ]
+  );
   const modalOnWaive: NonNullable<EditContractModalProps['onWaive']> = (
     player,
     payload

@@ -426,12 +426,14 @@ export const EditContractModal = ({
   // Get the timing error message for display - ONLY for option scenarios
   const optionTimingError =
     actionSet === 'option' && !isOptionActionable
-      ? optionDecisionAvailability?.reasons[0] ||
-        (normalizedTargetYear
+      ? optionDecisionAvailability
+        ? optionDecisionAvailability.reasons[0] ||
+          'This governed option is not ready because required evidence is incomplete.'
+        : normalizedTargetYear
           ? normalizedTargetYear < CURRENT_YEAR + 1
             ? 'This option has already been decided (past season)'
             : `Cannot act on this option yet. It can be decided during the ${normalizedTargetYear - 2}-${String((normalizedTargetYear - 1) % 100).padStart(2, '0')} offseason.`
-          : 'The exact option Season is required.')
+          : 'The exact option Season is required.'
       : null;
 
   const resolvedSignAndTradeInitiation = useMemo<SignAndTradeInitiation | null>(() => {
@@ -581,13 +583,22 @@ export const EditContractModal = ({
       parsedBuyoutAmount <= remainingGuaranteedForBuyout);
   const isOptionDecisionAction =
     selectedAction === 'accept' || selectedAction === 'decline';
+  const governedNoticeRequirements =
+    optionDecisionAvailability?.noticeRequirements ?? null;
+  const governedOptionNotice = governedNoticeRequirements
+    ? {
+        ...optionNotice,
+        recipient: governedNoticeRequirements.recipientId,
+      }
+    : optionNotice;
   const governedOptionNoticeIsComplete =
     !optionDecisionAvailability ||
     (optionDecisionAvailability.status === 'ready' &&
       Boolean(optionNotice.deliveredAt.trim()) &&
-      Boolean(optionNotice.recipient.trim()) &&
-      Boolean(optionNotice.leagueReceivedAt.trim()) &&
-      Boolean(optionNotice.playersAssociationForwardedAt.trim()));
+      Boolean(governedNoticeRequirements?.recipientId.trim()) &&
+      (!governedNoticeRequirements?.leagueForwardingRequired ||
+        (Boolean(optionNotice.leagueReceivedAt.trim()) &&
+          Boolean(optionNotice.playersAssociationForwardedAt.trim()))));
   const disableConfirm =
     !selectedAction ||
     (selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode) ||
@@ -612,11 +623,17 @@ export const EditContractModal = ({
         ? 'Choose a destination team'
         : !buyoutAmountIsValid
           ? 'Enter a valid buyout amount'
+          : isOptionDecisionAction &&
+              optionDecisionAvailability &&
+              optionDecisionAvailability.status !== 'ready'
+            ? optionDecisionAvailability.reasons[0] ||
+              'This governed option is not ready because required evidence is incomplete.'
           : validationState.incomplete
             ? 'Finish the contract details to continue'
             : isOptionDecisionAction && !governedOptionNoticeIsComplete
-              ? optionDecisionAvailability?.reasons[0] ||
-                'Enter all exact governed notice evidence to continue'
+              ? !governedNoticeRequirements?.recipientId.trim()
+                ? 'The governed notice recipient is missing.'
+                : 'Enter all required exact governed notice evidence to continue'
             : !validationState.isLegal && !isOverrideConfirmed
               ? 'Resolve the blocking issues above to continue'
               : null;
@@ -840,7 +857,7 @@ export const EditContractModal = ({
               true,
               overrideMetadata,
               normalizedTargetYear,
-              optionDecisionAvailability ? optionNotice : null
+              optionDecisionAvailability ? governedOptionNotice : null
             );
             break;
           case 'decline':
@@ -849,7 +866,7 @@ export const EditContractModal = ({
               false,
               overrideMetadata,
               normalizedTargetYear,
-              optionDecisionAvailability ? optionNotice : null
+              optionDecisionAvailability ? governedOptionNotice : null
             );
             break;
           case 'renounce':

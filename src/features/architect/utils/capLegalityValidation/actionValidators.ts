@@ -112,9 +112,8 @@ const calculateOptionDecisionBaselineCapHit = (
         if (!yearEntry) return null;
 
         const isPendingTargetOption =
-          getPlayerId(
-            mutationPlayer as Parameters<typeof getPlayerId>[0]
-          ) === playerId &&
+          getPlayerId(mutationPlayer as Parameters<typeof getPlayerId>[0]) ===
+            playerId &&
           Boolean(yearEntry.option) &&
           yearEntry.optionUsed !== true;
 
@@ -468,12 +467,18 @@ type GovernedOptionValidationEvent = {
 
 function findGovernedOptionValidationEvent(
   team: MutationTeam | null | undefined,
-  playerId: string
+  playerId: string,
+  contractId?: string | null
 ): GovernedOptionValidationEvent | null {
   const ledgers = Array.isArray(team?.contractEventLedgers)
     ? team.contractEventLedgers
     : [];
-  const candidates: Array<GovernedOptionValidationEvent & { version: number }> = [];
+  const candidates: Array<
+    GovernedOptionValidationEvent & {
+      recordedAt: string;
+      version: number;
+    }
+  > = [];
   for (const ledgerValue of ledgers) {
     const ledger = asRecordLike(ledgerValue);
     const events = Array.isArray(ledger?.events) ? ledger.events : [];
@@ -483,6 +488,7 @@ function findGovernedOptionValidationEvent(
       if (
         event?.recordStatus !== 'current' ||
         String(event?.playerId || '') !== playerId ||
+        (contractId && String(event?.contractId || '') !== contractId) ||
         ![
           'option-exercise',
           'option-decline',
@@ -499,6 +505,7 @@ function findGovernedOptionValidationEvent(
       candidates.push({
         eventId: String(event.eventId || ''),
         eventKind: eventKind as GovernedOptionValidationEvent['eventKind'],
+        recordedAt: String(event.recordedAt || ''),
         freeAgentAmount:
           typeof capHold === 'number' && Number.isFinite(capHold)
             ? capHold
@@ -507,7 +514,13 @@ function findGovernedOptionValidationEvent(
       });
     }
   }
-  const latest = candidates.sort((left, right) => right.version - left.version)[0];
+  const latest = candidates.sort((left, right) => {
+    const versionOrder = right.version - left.version;
+    if (versionOrder !== 0) return versionOrder;
+    const recordedOrder =
+      (Date.parse(right.recordedAt) || 0) - (Date.parse(left.recordedAt) || 0);
+    return recordedOrder || right.eventId.localeCompare(left.eventId);
+  })[0];
   return latest
     ? {
         eventId: latest.eventId,
@@ -525,6 +538,7 @@ export function validateOptionDecision({
   team,
   player,
   accepted,
+  contractId,
   targetYear,
   currentYear,
 }: ValidateOptionDecisionParams): MutationValidationResult {
@@ -544,7 +558,8 @@ export function validateOptionDecision({
     typeof currentYear === 'number' ? currentYear : Number(currentYear);
   const governedEvent = findGovernedOptionValidationEvent(
     updatedTeam,
-    playerId || ''
+    playerId || '',
+    contractId
   );
   const endsContract = governedEvent
     ? governedEvent.eventKind === 'option-decline' ||
@@ -756,8 +771,8 @@ export function validateOptionDecision({
             governedHold?.governedContractEventId === governedEvent.eventId
         );
         const authoritativeExpectedAmount = isGovernedHold
-          ? governedEvent?.freeAgentAmount ?? null
-          : capHoldExpectation?.amount ?? null;
+          ? (governedEvent?.freeAgentAmount ?? null)
+          : (capHoldExpectation?.amount ?? null);
 
         if (!amountCheck.valid) {
           violations.push({

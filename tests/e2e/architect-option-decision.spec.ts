@@ -137,12 +137,10 @@ const salaryRow = ({
 };
 
 const buildFixturePlayer = ({
-  worldId,
   optionType,
   suffix,
   blocked = false,
 }: {
-  worldId: string;
   optionType: OptionType;
   suffix: string;
   blocked?: boolean;
@@ -263,6 +261,8 @@ const buildFixturePlayer = ({
     blocked,
   };
 };
+
+const seededBasePlayerIds = new Set<string>();
 
 const buildSupportPlayer = (worldLabel: string, index: number): RecordLike => {
   const playerId = `bze275_${worldLabel.toLowerCase()}_support_${index}`;
@@ -487,14 +487,13 @@ const seedOptionWorld = async ({
     .toString(36)
     .slice(2, 7)}`;
   const actionFixtures = [
-    buildFixturePlayer({ worldId, optionType, suffix: 'Exercise' }),
-    buildFixturePlayer({ worldId, optionType, suffix: 'Decline' }),
+    buildFixturePlayer({ optionType, suffix: 'Exercise' }),
+    buildFixturePlayer({ optionType, suffix: 'Decline' }),
   ];
   const fixtures = includeBlocked
     ? [
         ...actionFixtures,
         buildFixturePlayer({
-          worldId,
           optionType,
           suffix: 'Missing Deadline',
           blocked: true,
@@ -588,6 +587,7 @@ const seedOptionWorld = async ({
   await db.doc(`architect_worlds/${worldId}/teams/${TEAM_ID}`).set(team);
   const playerBatch = db.batch();
   players.forEach((player) => {
+    seededBasePlayerIds.add(String(player.playerId));
     playerBatch.set(
       db.doc(`architect_basePlayers/${String(player.playerId)}`),
       player
@@ -724,6 +724,27 @@ const teamPlayerIds = (team: RecordLike | undefined) =>
         : String(player)
     )
     .filter(Boolean);
+
+const contractLedgerEvents = (team: RecordLike | undefined): RecordLike[] => {
+  const ledgers = Array.isArray(team?.contractEventLedgers)
+    ? team.contractEventLedgers
+    : [];
+  return ledgers.flatMap((ledgerValue) => {
+    if (
+      !ledgerValue ||
+      typeof ledgerValue !== 'object' ||
+      Array.isArray(ledgerValue)
+    )
+      return [];
+    const events = (ledgerValue as RecordLike).events;
+    return Array.isArray(events)
+      ? events.filter(
+          (event): event is RecordLike =>
+            Boolean(event) && typeof event === 'object' && !Array.isArray(event)
+        )
+      : [];
+  });
+};
 
 const assertAllSurfaces = async ({
   page,
@@ -887,7 +908,8 @@ const branchFixtureWorld = async (
       parentWorldId,
       childWorldId
     ) as RecordLike;
-    const { documentDigest: _digest, ...withoutDigest } = rewritten;
+    const withoutDigest = { ...rewritten };
+    delete withoutDigest.documentDigest;
     batch.set(
       db.doc(
         `architect_worlds/${childWorldId}/contractBaselines/${snapshot.id}`
@@ -948,6 +970,17 @@ test.describe('BZE-275 governed Full Cap Table option/ETO browser proof', () => 
     }, DEV_LOCAL_STORAGE_FLAGS);
     await page.goto(DASHBOARD_URL, { waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
+  });
+
+  test.afterEach(async () => {
+    if (seededBasePlayerIds.size === 0) return;
+    const db = getReviewAdminDb();
+    const cleanup = db.batch();
+    seededBasePlayerIds.forEach((playerId) => {
+      cleanup.delete(db.doc(`architect_basePlayers/${playerId}`));
+    });
+    await cleanup.commit();
+    seededBasePlayerIds.clear();
   });
 
   for (const optionType of ['TO', 'PO', 'ETO'] as const) {
@@ -1027,11 +1060,7 @@ test.describe('BZE-275 governed Full Cap Table option/ETO browser proof', () => 
       expect(teamPlayerIds(persisted)).toContain(retained.playerId);
       expect(teamPlayerIds(persisted)).not.toContain(ended.playerId);
       expect(await worldEvents(worldId)).toHaveLength(2);
-      expect(
-        (persisted?.contractEventLedgers as Array<RecordLike>).flatMap(
-          (ledger) => ledger.events as RecordLike[]
-        )
-      ).toEqual(
+      expect(contractLedgerEvents(persisted)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             worldId,
@@ -1106,11 +1135,7 @@ test.describe('BZE-275 governed Full Cap Table option/ETO browser proof', () => 
       });
       const childTeam = await worldTeam(childWorldId);
       expect(teamPlayerIds(childTeam)).toEqual(teamPlayerIds(persisted));
-      expect(
-        (childTeam?.contractEventLedgers as Array<RecordLike>).flatMap(
-          (ledger) => ledger.events as RecordLike[]
-        )
-      ).toEqual(
+      expect(contractLedgerEvents(childTeam)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ worldId: childWorldId }),
         ])

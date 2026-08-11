@@ -223,6 +223,11 @@ const rewriteWorldIdentity = (
       if (!contractId) {
         throw new Error('A branched contract event ledger cannot be empty.');
       }
+      if (prior.events.some((event) => event.contractId !== contractId)) {
+        throw new Error(
+          `A branched contract event ledger must contain exactly one Contract (${contractId}).`
+        );
+      }
       return toContractEventLedgerPayload(
         createContractEventLedger({
           ledgerId: `${childWorldId}:${contractId}:contract`,

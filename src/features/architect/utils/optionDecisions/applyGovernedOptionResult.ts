@@ -96,9 +96,15 @@ export function applyGovernedOptionResult<
     ],
   };
   if (result.endsContract) {
-    if (result.freeAgentAmount === null || !result.birdType) {
+    const freeAgencyYear = result.contractState.terms.freeAgency.year;
+    if (
+      result.freeAgentAmount === null ||
+      !result.birdType ||
+      !Number.isInteger(freeAgencyYear) ||
+      Number(freeAgencyYear) <= 0
+    ) {
       throw new Error(
-        'Governed option termination is missing the exact Free Agent Amount or rights type.'
+        'Governed option termination is missing the exact Free Agent Amount, rights type, or Free Agency Year.'
       );
     }
     nextTeam.roster = (team.roster || []).filter(
@@ -116,7 +122,7 @@ export function applyGovernedOptionResult<
         playerName: player.displayName || player.name || '',
         amount: result.freeAgentAmount,
         type: `${result.birdType} UFA Amount`,
-        season: toSeasonCode(result.contractState.terms.freeAgency.year || 0),
+        season: toSeasonCode(Number(freeAgencyYear)),
         isSigned: false,
         active: true,
         reason:

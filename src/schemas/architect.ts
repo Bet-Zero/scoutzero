@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { JsonValueZ, MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
-import { ContractEventLedgerPayloadZ } from './contractEventLedger';
+import { ContractEventLedgerPayloadZ } from '@/schemas/contractEventLedger';
 
 const HardCapLevelZ = z.enum(['none', 'firstApron', 'secondApron']);
 const EntitlementKindZ = z.enum([

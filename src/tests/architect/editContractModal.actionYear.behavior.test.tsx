@@ -7,13 +7,7 @@
  */
 
 import React from 'react';
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   cleanup,
   fireEvent,
@@ -81,12 +75,10 @@ vi.mock('@/features/architect/utils/capHelpers', () => ({
   calculateTeamCapHit: () => 0,
 }));
 
-vi.mock(
-  '@/features/architect/utils/contractUtils',
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import('@/features/architect/utils/contractUtils')
+vi.mock('@/features/architect/utils/contractUtils', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/features/architect/utils/contractUtils')
       >();
 
     return {
@@ -124,30 +116,36 @@ vi.mock(
             option: row.option || null,
             isExtension: Boolean(row.isExtension),
             guaranteed: row.guaranteed,
-          };
-        }),
-      getContractYearSlice: (
-        contract: {
-          salariesByYear?: Array<Record<string, unknown>> | null;
-        } | null | undefined,
-        year: number
-      ) =>
-        (contract?.salariesByYear || []).find((row) => {
+        };
+      }),
+    getContractYearSlice: (
+      contract:
+        | {
+            salariesByYear?: Array<Record<string, unknown>> | null;
+          }
+        | null
+        | undefined,
+      year: number
+    ) =>
+      (contract?.salariesByYear || []).find((row) => {
           const season = String(row.season || '');
           if (/^\d{4}-\d{2}$/.test(season)) {
             return 2000 + parseInt(season.split('-')[1], 10) === year;
           }
-          return parseInt(season, 10) === year;
-        }) || null,
-      getPlayerCapHitForYear: (
-        player: {
-          contract?: {
-            salariesByYear?: Array<Record<string, unknown>> | null;
-          } | null;
-        } | null | undefined,
-        year: number
-      ) => {
-        const contractSlice =
+        return parseInt(season, 10) === year;
+      }) || null,
+    getPlayerCapHitForYear: (
+      player:
+        | {
+            contract?: {
+              salariesByYear?: Array<Record<string, unknown>> | null;
+            } | null;
+          }
+        | null
+        | undefined,
+      year: number
+    ) => {
+      const contractSlice =
           (player?.contract?.salariesByYear || []).find((row) => {
             const season = String(row.season || '');
             if (/^\d{4}-\d{2}$/.test(season)) {
@@ -155,11 +153,10 @@ vi.mock(
             }
             return parseInt(season, 10) === year;
           }) || null;
-        return Number(contractSlice?.capHit ?? contractSlice?.salary ?? 0) || 0;
-      },
-    };
-  }
-);
+      return Number(contractSlice?.capHit ?? contractSlice?.salary ?? 0) || 0;
+    },
+  };
+});
 
 vi.mock('@/features/architect/utils/seasonFormat', async (importOriginal) => {
   const actual =
@@ -368,7 +365,11 @@ describe('EditContractModal future-year action-year routing', () => {
       .getAllByRole('option')
       .map((option) => option.textContent?.trim());
 
-    expect(initialOptions).toEqual(['Cap Space / Rights', 'Full MLE', 'Minimum']);
+    expect(initialOptions).toEqual([
+      'Cap Space / Rights',
+      'Full MLE',
+      'Minimum',
+    ]);
 
     fireEvent.change(initialExceptionSelect, {
       target: { value: 'Full MLE' },
@@ -421,7 +422,9 @@ describe('EditContractModal future-year action-year routing', () => {
       />
     );
 
-    const confirmButton = screen.getByTestId('edit-contract-confirm-action-button');
+    const confirmButton = screen.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
     expect(confirmButton).toBeEnabled();
 
     fireEvent.click(confirmButton);
@@ -628,6 +631,68 @@ describe('EditContractModal future-year action-year routing', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('does not request league forwarding evidence when the governed terms do not', async () => {
+    const onOptionDecision = vi.fn().mockResolvedValue({ success: true });
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={ETO_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        targetYear={2028}
+        actionYear={2028}
+        actionContext="option"
+        initialAction="accept"
+        actionsOverride={['accept', 'decline']}
+        optionDecisionAvailability={{
+          status: 'ready',
+          playerId: 'eto_player_1',
+          contractId: 'contract-eto-1',
+          targetYear: 2028,
+          optionType: 'ETO',
+          reasons: [],
+          noticeRequirements: {
+            deadline: '2027-06-29T17:00:00-04:00',
+            windowOpensAt: '2027-06-01T09:00:00-04:00',
+            allowedMethods: ['email'],
+            recipientId: 'eto_player_1',
+            recipientRole: 'player',
+            leagueForwardingRequired: false,
+          },
+        }}
+        onOptionDecision={onOptionDecision}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('option-notice-league-received-at')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('option-notice-pa-forwarded-at')
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('option-notice-delivered-at'), {
+      target: { value: '2027-06-29T16:30:00-04:00' },
+    });
+    const confirm = screen.getByTestId('edit-contract-confirm-action-button');
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await waitFor(() => {
+      expect(onOptionDecision).toHaveBeenCalledWith(
+        ETO_PLAYER,
+        true,
+        null,
+        2028,
+        expect.objectContaining({
+          deliveredAt: '2027-06-29T16:30:00-04:00',
+          recipient: 'eto_player_1',
+          leagueReceivedAt: '',
+          playersAssociationForwardedAt: '',
+        })
+      );
+    });
+  });
+
   it('shows a governed Needs input reason and cannot select a blocked decision', () => {
     render(
       <EditContractModal
@@ -639,6 +704,7 @@ describe('EditContractModal future-year action-year routing', () => {
         targetYear={2028}
         actionYear={2028}
         actionContext="option"
+        initialAction="accept"
         actionsOverride={['accept', 'decline']}
         optionDecisionAvailability={{
           status: 'needs-input',
@@ -656,8 +722,8 @@ describe('EditContractModal future-year action-year routing', () => {
     );
 
     expect(
-      screen.getByText(/exact contractual notice deadline/i)
-    ).toBeInTheDocument();
+      screen.getAllByText(/exact contractual notice deadline/i).length
+    ).toBeGreaterThan(0);
     const optionRadios = screen.getAllByRole('radio');
     expect(optionRadios).toHaveLength(2);
     optionRadios.forEach((radio) => expect(radio).toBeDisabled());

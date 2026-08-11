@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import {
+  ContractEventLedgerPayloadZ,
+  type ContractEventLedgerPayload,
+} from '@/schemas/contractEventLedger';
 import type {
-  ContractSalaryTerm,
   GovernedContractState,
   GovernedOptionDecisionTerms,
 } from '@/schemas/governedContractState';
@@ -14,7 +16,11 @@ import {
   resolveGovernedOptionLedgerAuthority,
   type GovernedOptionType,
 } from '@/features/architect/utils/optionDecisions';
-import { projectContractStateAsOf } from '@/features/architect/utils/contractHistory';
+import {
+  createContractEventLedger,
+  projectContractStateAsOf,
+  toContractEventLedgerPayload,
+} from '@/features/architect/utils/contractHistory';
 import {
   buildGeneralMutationDashboardReloadTeamSnapshot,
   computeWorldMutation,
@@ -55,6 +61,8 @@ const WORLD_AS_OF_DATE = '2027-07-01';
 const DEADLINE = '2027-06-29T17:00:00-04:00';
 const WINDOW_OPENS = '2027-06-01T09:00:00-04:00';
 const CONTRACT_ENDS = '2027-07-01T00:00:00-04:00';
+
+type ContractSalaryTerm = GovernedContractState['terms']['salaries'][number];
 
 const instant = (value: string) => ({
   precision: 'instant' as const,
@@ -138,9 +146,18 @@ function baselineFor(
     row?: Partial<ContractSalaryTerm>;
     terms?: Partial<GovernedOptionDecisionTerms> | null;
     isRookieScale?: boolean;
+    rookieScaleTarget?: 'third' | 'fourth';
+    contractId?: string;
+    playerId?: string;
+    teamId?: string;
+    ledgerId?: string;
   } = {}
 ): ContractEventLedgerPayload {
+  const contractId = options.contractId ?? CONTRACT_ID;
+  const playerId = options.playerId ?? PLAYER_ID;
+  const teamId = options.teamId ?? TEAM_ID;
   const isRookieScale = options.isRookieScale === true;
+  const rookieScaleTarget = options.rookieScaleTarget ?? 'fourth';
   const rowCount = optionType === 'ETO' ? 5 : isRookieScale ? 4 : 3;
   const finalIndex = rowCount - 1;
   const terms =
@@ -149,35 +166,70 @@ function baselineFor(
       : optionTerms(optionType, {
           ...(isRookieScale
             ? {
-                rookieScaleOptionOrdinal: 'fourth' as const,
-                rookieScaleFourthSeasonTermsMatchThird: true,
-                decisionWindowOpensAt: instant('2026-10-01T09:00:00-04:00'),
+                rookieScaleOptionOrdinal: rookieScaleTarget,
+                rookieScaleFourthSeasonTermsMatchThird:
+                  rookieScaleTarget === 'fourth' ? true : null,
+                decisionWindowOpensAt: instant(
+                  rookieScaleTarget === 'third'
+                    ? '2026-10-01T09:00:00-04:00'
+                    : '2026-10-01T09:00:00-04:00'
+                ),
               }
             : {}),
           ...(options.terms || {}),
         });
-  const deadline = isRookieScale ? '2026-11-02T17:00:00-05:00' : DEADLINE;
+  const deadline = isRookieScale
+    ? rookieScaleTarget === 'third'
+      ? '2026-11-02T17:00:00-05:00'
+      : '2026-11-02T17:00:00-05:00'
+    : DEADLINE;
   const salaries = Array.from({ length: rowCount }, (_, index) =>
     salaryRow({
-      index: index + (5 - rowCount),
+      index:
+        index +
+        (5 - rowCount) +
+        (isRookieScale && rookieScaleTarget === 'third' ? 1 : 0),
       ...(isRookieScale && index === 2
         ? {
             option: 'TO' as const,
-            optionUsed: true,
-            deadline: '2025-10-31T17:00:00-04:00',
+            optionUsed: rookieScaleTarget === 'third' ? null : true,
+            deadline:
+              rookieScaleTarget === 'third'
+                ? '2026-11-02T17:00:00-05:00'
+                : '2025-10-31T17:00:00-04:00',
+            terms: rookieScaleTarget === 'third' ? terms : null,
           }
         : {}),
-      ...(index === finalIndex ? { option: optionType, deadline, terms } : {}),
+      ...(index === finalIndex
+        ? {
+            option: optionType,
+            deadline:
+              rookieScaleTarget === 'third'
+                ? '2027-11-01T17:00:00-04:00'
+                : deadline,
+            terms:
+              rookieScaleTarget === 'third'
+                ? optionTerms('TO', {
+                    rookieScaleOptionOrdinal: 'fourth',
+                    rookieScaleFourthSeasonTermsMatchThird: true,
+                    decisionWindowOpensAt: instant('2027-10-01T09:00:00-04:00'),
+                  })
+                : terms,
+          }
+        : {}),
     })
   );
   if (options.row)
-    salaries[finalIndex] = { ...salaries[finalIndex], ...options.row };
+    salaries[rookieScaleTarget === 'third' ? 2 : finalIndex] = {
+      ...salaries[rookieScaleTarget === 'third' ? 2 : finalIndex],
+      ...options.row,
+    };
 
   const governedState = makeResultingState({
-    contractId: CONTRACT_ID,
+    contractId,
     contractVersion: 1,
-    playerId: PLAYER_ID,
-    teamId: TEAM_ID,
+    playerId,
+    teamId,
     establishmentKind: 'source-establishment',
     terms: {
       ...makeResultingState().terms,
@@ -201,7 +253,10 @@ function baselineFor(
       salaries,
       freeAgency: {
         type: 'UFA',
-        year: TARGET_YEAR,
+        year:
+          isRookieScale && rookieScaleTarget === 'third'
+            ? TARGET_YEAR + 1
+            : TARGET_YEAR,
         capHold: null,
         qualifyingOffer: null,
         earlyTerminationOption: optionType === 'ETO' ? 'ETO' : null,
@@ -212,12 +267,12 @@ function baselineFor(
     },
   });
   const root = makeEvent({
-    eventId: 'source-contract-bze-275',
+    eventId: `source-${contractId}`,
     eventKind: 'source-establishment',
     worldId: WORLD_ID,
-    contractId: CONTRACT_ID,
-    playerId: PLAYER_ID,
-    teamId: TEAM_ID,
+    contractId,
+    playerId,
+    teamId,
     executedAt: '2026-07-01T00:00:00-04:00',
     effectiveAt: '2026-07-01T00:00:00-04:00',
     recordedAt: '2026-07-01T00:01:00-04:00',
@@ -226,12 +281,23 @@ function baselineFor(
     predecessorEventId: null,
     resultingState: governedState,
   });
-  return {
-    payloadVersion: 2,
-    ledgerId: 'contract-ledger-bze-275',
-    ledgerVersion: 1,
-    events: [root],
-  };
+  return toContractEventLedgerPayload(
+    createContractEventLedger({
+      ledgerId: options.ledgerId ?? 'contract-ledger-bze-275',
+      ledgerVersion: 1,
+      events: [root],
+    })
+  );
+}
+
+function contractLedgersFromMockTeam(
+  team: unknown
+): readonly ContractEventLedgerPayload[] {
+  if (!team || typeof team !== 'object' || Array.isArray(team)) return [];
+  const parsed = ContractEventLedgerPayloadZ.array().safeParse(
+    Reflect.get(team, 'contractEventLedgers')
+  );
+  return parsed.success ? parsed.data : [];
 }
 
 function rightsFor(options: { rfa?: boolean } = {}) {
@@ -267,6 +333,7 @@ function request(
     method?: 'email' | 'certified-mail' | 'facsimile';
     leagueReceivedAt?: string;
     forwardedAt?: string;
+    targetYear?: number;
   } = {}
 ) {
   const baseline = options.baseline ?? baselineFor(optionType);
@@ -282,7 +349,7 @@ function request(
     contractId: CONTRACT_ID,
     baselineSalaryCapYear: BASELINE_SALARY_CAP_YEAR,
     worldAsOfDate: options.worldAsOfDate ?? WORLD_AS_OF_DATE,
-    targetYear: TARGET_YEAR,
+    targetYear: options.targetYear ?? TARGET_YEAR,
     choice,
     notice: {
       deliveredAt: options.deliveredAt ?? DEADLINE,
@@ -469,13 +536,80 @@ describe('governed deadline, notice, shape, and source boundaries', () => {
 
   it('does not use the runtime clock or another Season as a legal fallback', () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2045-01-01T00:00:00Z'));
-    const futureClock = decideGovernedOption(request('PO', 'exercise'));
-    vi.setSystemTime(new Date('1995-01-01T00:00:00Z'));
-    const pastClock = decideGovernedOption(request('PO', 'exercise'));
-    vi.useRealTimers();
-    expect(futureClock).toEqual(pastClock);
+    try {
+      vi.setSystemTime(new Date('2045-01-01T00:00:00Z'));
+      const futureClock = decideGovernedOption(request('PO', 'exercise'));
+      vi.setSystemTime(new Date('1995-01-01T00:00:00Z'));
+      const pastClock = decideGovernedOption(request('PO', 'exercise'));
+      expect(futureClock.success).toBe(true);
+      expect(pastClock.success).toBe(true);
+      expect(futureClock).toEqual(pastClock);
+    } finally {
+      vi.useRealTimers();
+    }
   });
+
+  it('reports an invalid delivery instant without inventing a chronology conflict', () => {
+    const result = decideGovernedOption(
+      request('TO', 'exercise', { deliveredAt: 'not-an-instant' })
+    );
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.reasons.join(' ')).toContain('exact governed instant');
+    expect(result.reasons.join(' ')).not.toContain('chronology');
+  });
+
+  it('fails closed when the exact contract termination boundary is missing', () => {
+    const baseline = baselineFor('ETO', {
+      terms: { contractEndsAt: unknownTemporal() },
+    });
+    const result = decideGovernedOption(
+      request('ETO', 'exercise', { baseline })
+    );
+    expect(result).toMatchObject({ success: false, status: 'needs-input' });
+    if (!result.success)
+      expect(result.reasons.join(' ')).toContain(
+        'Contract termination boundary'
+      );
+  });
+
+  it('does not require NBA forwarding evidence when the pinned terms do not', () => {
+    const baseline = baselineFor('TO', {
+      terms: { leagueForwardingRequired: false },
+    });
+    const result = decideGovernedOption(
+      request('TO', 'exercise', {
+        baseline,
+        leagueReceivedAt: '',
+        forwardedAt: '',
+      })
+    );
+    expect(result.success, JSON.stringify(result)).toBe(true);
+  });
+
+  it.each([
+    {
+      leagueReceivedAt: '2027-07-02T09:00:00-04:00',
+      forwardedAt: '2027-07-02T10:00:00-04:00',
+    },
+    {
+      leagueReceivedAt: '2027-07-01T09:00:00-04:00',
+      forwardedAt: '2027-07-02T09:00:00-04:00',
+    },
+  ])(
+    'rejects receipt or forwarding evidence after the governed world date',
+    ({ leagueReceivedAt, forwardedAt }) => {
+      const result = decideGovernedOption(
+        request('TO', 'exercise', { leagueReceivedAt, forwardedAt })
+      );
+      expect(result).toMatchObject({ success: false, status: 'needs-input' });
+      if (!result.success) {
+        expect(result.reasons.join(' ')).toContain(
+          'must not occur after the Team Plan’s governed date'
+        );
+      }
+    }
+  );
 
   it('blocks a contract-ending action before the exact effective boundary', () => {
     const result = decideGovernedOption(
@@ -488,6 +622,28 @@ describe('governed deadline, notice, shape, and source boundaries', () => {
 });
 
 describe('Rookie Scale, rights, and replay refusal', () => {
+  it('records the governed third-Season Rookie Scale Team Option', () => {
+    const baseline = baselineFor('TO', {
+      isRookieScale: true,
+      rookieScaleTarget: 'third',
+    });
+    const result = decideGovernedOption(
+      request('TO', 'exercise', {
+        baseline,
+        targetYear: TARGET_YEAR,
+        worldAsOfDate: '2026-11-03',
+        deliveredAt: '2026-11-02T17:00:00-05:00',
+        leagueReceivedAt: '2026-11-02T17:01:00-05:00',
+        forwardedAt: '2026-11-03T09:00:00-05:00',
+      })
+    );
+    expect(result.success, JSON.stringify(result)).toBe(true);
+    if (!result.success) return;
+    expect(result.contractState.terms.salaries[2].optionUsed).toBe(true);
+    expect(result.contractState.terms.salaries[3].option).toBe('TO');
+    expect(result.contractState.terms.salaries[3].optionUsed).toBeNull();
+  });
+
   it('enforces the adjusted fourth-Season Rookie Scale TO deadline and offer ceiling', () => {
     const baseline = baselineFor('TO', { isRookieScale: true });
     const result = decideGovernedOption(
@@ -651,7 +807,15 @@ const RELEASE_PIN = {
   releaseDigest: `sha256:${'7'.repeat(64)}`,
 };
 
-function seedGovernedPersistenceWorld(baseline = baselineFor('TO')): void {
+function seedGovernedPersistenceWorld(
+  baselineInput:
+    | ContractEventLedgerPayload
+    | readonly ContractEventLedgerPayload[] = baselineFor('TO')
+): void {
+  const baselines = Array.isArray(baselineInput)
+    ? baselineInput
+    : [baselineInput];
+  const baseline = baselines[0];
   const world = {
     ...createMockWorld({
       worldId: WORLD_ID,
@@ -664,7 +828,11 @@ function seedGovernedPersistenceWorld(baseline = baselineFor('TO')): void {
     contractSourceRelease: RELEASE_PIN,
     contractBaselineEffectiveAt: '2026-07-01T00:00:00-04:00',
     contractBaselineSalaryCapYear: BASELINE_SALARY_CAP_YEAR,
-    contractBaselineCoverage: { total: 1, complete: 1, needsInput: 0 },
+    contractBaselineCoverage: {
+      total: baselines.length,
+      complete: baselines.length,
+      needsInput: 0,
+    },
   };
   seedWorldMetadata(WORLD_ID, world);
   const player = compatibilityPlayer(baseline);
@@ -698,7 +866,7 @@ function seedGovernedPersistenceWorld(baseline = baselineFor('TO')): void {
     shardCount: 1,
     release: RELEASE_PIN,
     evidenceCatalog: { transformations: [], limitations: [] },
-    ledgers: [baseline],
+    ledgers: baselines,
   };
   seedMockData(
     `architect_worlds/${WORLD_ID}/contractBaselines/${TEAM_ID}-000`,
@@ -774,6 +942,7 @@ describe('governed option mutation, atomic persistence, reload, and branch', () 
           result.playerUpdates?.find((entry) => entry.playerId === PLAYER_ID)
             ?.player ?? null,
         accepted,
+        contractId: CONTRACT_ID,
         targetYear: TARGET_YEAR,
         currentYear: BASELINE_SALARY_CAP_YEAR,
       });
@@ -807,7 +976,7 @@ describe('governed option mutation, atomic persistence, reload, and branch', () 
         governedContractEventId: expect.any(String),
       }),
     ]);
-    expect(reloaded?.contractEventLedgers?.[0]?.ledgerVersion).toBe(2);
+    expect(contractLedgersFromMockTeam(reloaded)[0]?.ledgerVersion).toBe(2);
     expect(
       getAllMockData().has(
         `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`
@@ -877,7 +1046,7 @@ describe('governed option mutation, atomic persistence, reload, and branch', () 
       'user-bze-275'
     );
     const childTeam = getMockTeamSnapshot(child.worldId, TEAM_ID);
-    const childLedger = childTeam?.contractEventLedgers?.[0];
+    const childLedger = contractLedgersFromMockTeam(childTeam)[0];
     expect(childLedger?.ledgerId).toBe(
       `${child.worldId}:${CONTRACT_ID}:contract`
     );
@@ -898,6 +1067,53 @@ describe('governed option mutation, atomic persistence, reload, and branch', () 
     );
     expect(childTeam?.roster).toEqual([]);
     expect(childTeam?.capHolds?.[0]?.amount).toBe(21_850_000);
+  });
+
+  it('refuses a mixed-contract overlay before deriving a child ledger identity', async () => {
+    const created = await createWorld({
+      name: 'BZE-275 mixed-ledger parent',
+      userId: 'user-bze-275',
+    });
+    const first = baselineFor('TO');
+    const second = baselineFor('PO', {
+      contractId: 'contract-other-bze-275',
+      playerId: 'player-other-bze-275',
+      ledgerId: 'ledger-other-bze-275',
+    });
+    const mixedLedger: ContractEventLedgerPayload = {
+      payloadVersion: 2,
+      ledgerId: `${created.worldId}:mixed-contracts`,
+      ledgerVersion: 1,
+      events: [...first.events, ...second.events].map((event) => ({
+        ...event,
+        worldId: created.worldId,
+      })),
+    };
+    seedTeamSnapshot(
+      created.worldId,
+      TEAM_ID,
+      {
+        teamCode: TEAM_ID,
+        teamName: 'Detroit Pistons',
+        season: '2025-26',
+        roster: [],
+        players: [],
+        capHolds: [],
+        contractEventLedgers: [mixedLedger],
+        totals: { totalSalary: 0 },
+        source: { type: 'world-snapshot', provider: 'fixture' },
+      } as unknown as MockTeam,
+      { padRoster: false }
+    );
+
+    await expect(
+      branchWorld(
+        created.worldId,
+        'BZE-275 invalid governed branch',
+        '',
+        'user-bze-275'
+      )
+    ).rejects.toThrow('exactly one Contract');
   });
 
   it('rejects a stale overlay replacement with no event or team write', async () => {
@@ -930,6 +1146,94 @@ describe('governed option mutation, atomic persistence, reload, and branch', () 
     expect(JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID))).toBe(before);
   });
 
+  it('rejects a stale whole-team replacement after another contract changes', async () => {
+    seedGovernedPersistenceWorld();
+    const stale = computeMutation('TO', 'exercise', {
+      operationId: 'stale-different-contract',
+    });
+    expect(stale.success).toBe(true);
+    const current = getMockTeamSnapshot(WORLD_ID, TEAM_ID);
+    const unrelatedOverlay = baselineFor('PO', {
+      contractId: 'contract-other-player',
+      playerId: 'other-player',
+      ledgerId: 'contract-ledger-other-player',
+    });
+    seedTeamSnapshot(
+      WORLD_ID,
+      TEAM_ID,
+      {
+        ...current,
+        contractEventLedgers: [unrelatedOverlay],
+      } as unknown as MockTeam,
+      { padRoster: false }
+    );
+    const before = JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID));
+    const result = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'optionDecision',
+      computeResult: stale,
+      committedTeamUpdates: stale.teamUpdates || [],
+      timestamp: Date.parse('2027-07-01T09:00:00-04:00'),
+    });
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(result.error).toContain('changed before commit');
+    expect(JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID))).toBe(before);
+  });
+
+  it('resolves a traded player outside the destination baseline shard', async () => {
+    seedGovernedPersistenceWorld();
+    const entries = await loadWorldGovernedOptionEntries({
+      worldId: WORLD_ID,
+      teamId: 'MIA',
+      worldAsOfDate: WORLD_AS_OF_DATE,
+    });
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          playerId: PLAYER_ID,
+          contractId: CONTRACT_ID,
+          targetYear: TARGET_YEAR,
+          availability: expect.objectContaining({ status: 'ready' }),
+        }),
+      ])
+    );
+    expect(entries[0].availability.noticeRequirements?.recipientId).toBe('MIA');
+  });
+
+  it('isolates an incompatible overlay to its Contract without hiding valid entries', async () => {
+    const first = baselineFor('TO');
+    const second = baselineFor('PO', {
+      contractId: 'contract-valid-bze-275',
+      playerId: 'player-valid-bze-275',
+      ledgerId: 'ledger-valid-bze-275',
+    });
+    seedGovernedPersistenceWorld([first, second]);
+    const corrupt = structuredClone(first);
+    corrupt.events[0].authoringIdentity = 'rewritten-root';
+
+    const entries = await loadWorldGovernedOptionEntries({
+      worldId: WORLD_ID,
+      teamId: TEAM_ID,
+      overlays: [corrupt],
+      worldAsOfDate: WORLD_AS_OF_DATE,
+    });
+
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          contractId: CONTRACT_ID,
+          availability: expect.objectContaining({ status: 'incompatible' }),
+        }),
+        expect.objectContaining({
+          contractId: 'contract-valid-bze-275',
+          availability: expect.objectContaining({ status: 'ready' }),
+        }),
+      ])
+    );
+  });
+
   it('keeps a blocked record and an incompatible older world byte-unchanged', async () => {
     const missingDeadline = baselineFor('TO', {
       row: { optionDecisionDeadline: unknownTemporal() },
@@ -946,7 +1250,8 @@ describe('governed option mutation, atomic persistence, reload, and branch', () 
       asOfDate: WORLD_AS_OF_DATE,
     });
     seedWorldMetadata(oldWorld.worldId, oldWorld);
-    const before = [...getAllMockData().entries()];
+    const snapshot = () => JSON.stringify([...getAllMockData().entries()]);
+    const before = snapshot();
     await expect(
       loadWorldGovernedOptionEntries({
         worldId: oldWorld.worldId,
@@ -954,6 +1259,6 @@ describe('governed option mutation, atomic persistence, reload, and branch', () 
         worldAsOfDate: WORLD_AS_OF_DATE,
       })
     ).rejects.toThrow('predates governed baseline contracts');
-    expect([...getAllMockData().entries()]).toEqual(before);
+    expect(snapshot()).toBe(before);
   });
 });

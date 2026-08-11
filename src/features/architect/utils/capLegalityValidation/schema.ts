@@ -137,6 +137,7 @@ export type ValidateOptionDecisionParams = {
   team?: MutationTeam | null;
   player?: MutationPlayer | null;
   accepted?: boolean | null;
+  contractId?: string | null;
   targetYear?: number | string | null;
   currentYear?: number | string | null;
 };

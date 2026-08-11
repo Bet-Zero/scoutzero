@@ -5,7 +5,7 @@ import {
   createContractEventLedger,
   walkChain,
 } from '@/features/architect/utils/contractHistory';
-import { getWorldContractBaselineTeam } from '@/features/architect/utils/contractSource/worldContractBaseline';
+import { listWorldContractBaselines } from '@/features/architect/utils/contractSource/worldContractBaseline';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager.core';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -44,7 +44,7 @@ export async function loadWorldGovernedOptionEntries({
   worldAsOfDate: string;
 }): Promise<readonly WorldGovernedOptionEntry[]> {
   const [documents, metadata] = await Promise.all([
-    getWorldContractBaselineTeam(worldId, teamId),
+    listWorldContractBaselines(worldId),
     getWorldMetadata(worldId),
   ]);
   const compatibility = resolveContractBaselineWorldCompatibility(metadata);
@@ -58,11 +58,28 @@ export async function loadWorldGovernedOptionEntries({
   for (const baselineLedger of documents.flatMap(
     (document) => document.ledgers
   )) {
-    const authority = resolveGovernedOptionLedgerAuthority({
-      baselineLedger,
-      overlayLedger: overlayByLedgerId.get(baselineLedger.ledgerId),
-      baselineSalaryCapYear,
-    });
+    let authority: GovernedOptionLedgerAuthority;
+    let overlayError: string | null = null;
+    try {
+      authority = resolveGovernedOptionLedgerAuthority({
+        baselineLedger,
+        overlayLedger: overlayByLedgerId.get(baselineLedger.ledgerId),
+        baselineSalaryCapYear,
+      });
+    } catch (error) {
+      overlayError =
+        error instanceof Error
+          ? error.message
+          : 'The writable governed Contract history is unreadable.';
+      try {
+        authority = resolveGovernedOptionLedgerAuthority({
+          baselineLedger,
+          baselineSalaryCapYear,
+        });
+      } catch {
+        continue;
+      }
+    }
     const state = latestState(authority.currentLedger);
     if (!state) continue;
     state.terms.salaries.forEach((row) => {
@@ -75,16 +92,28 @@ export async function loadWorldGovernedOptionEntries({
           contractId: state.contractId,
           targetYear,
           authority,
-          availability: inspectGovernedOptionDecision({
-            authority,
-            worldId,
-            teamId,
-            playerId: state.playerId,
-            contractId: state.contractId,
-            targetYear,
-            baselineSalaryCapYear,
-            worldAsOfDate,
-          }),
+          availability: overlayError
+            ? Object.freeze({
+                status: 'incompatible' as const,
+                playerId: state.playerId,
+                contractId: state.contractId,
+                targetYear,
+                optionType: row.option,
+                reasons: Object.freeze([
+                  `Governed Contract history is incompatible: ${overlayError}`,
+                ]),
+                noticeRequirements: null,
+              })
+            : inspectGovernedOptionDecision({
+                authority,
+                worldId,
+                teamId,
+                playerId: state.playerId,
+                contractId: state.contractId,
+                targetYear,
+                baselineSalaryCapYear,
+                worldAsOfDate,
+              }),
         })
       );
     });
@@ -104,7 +133,7 @@ export async function loadWorldGovernedOptionAuthority({
   overlays?: readonly ContractEventLedgerPayload[] | null;
 }): Promise<GovernedOptionLedgerAuthority> {
   const [documents, metadata] = await Promise.all([
-    getWorldContractBaselineTeam(worldId, teamId),
+    listWorldContractBaselines(worldId),
     getWorldMetadata(worldId),
   ]);
   const compatibility = resolveContractBaselineWorldCompatibility(metadata);

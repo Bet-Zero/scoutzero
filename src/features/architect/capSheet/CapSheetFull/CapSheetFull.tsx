@@ -94,7 +94,9 @@ type VisiblePlayerEntry = {
 };
 type ActionExposureClassification =
   | 'V1 supported'
-  | 'preview-only'
+  | 'preview-only';
+type OptionExposureClassification =
+  | ActionExposureClassification
   | 'Needs input'
   | 'recorded';
 
@@ -205,7 +207,7 @@ type CapSheetFullProps = {
   standardWaiveExposureClassification?: ActionExposureClassification;
   standardWaiveStretchExposureClassification?: ActionExposureClassification;
   standardBuyoutExposureClassification?: ActionExposureClassification;
-  optionDecisionExposureClassification?: ActionExposureClassification;
+  optionDecisionExposureClassification?: OptionExposureClassification;
   getOptionDecisionAvailability?:
     | ((
         player: CapSheetFullPlayerLike,
@@ -1520,10 +1522,7 @@ export const CapSheetFull = ({
                                   onSelect: () =>
                                     onLaunchPlayerAction?.(player, action),
                                   testId: `cap-sheet-full-player-row-action-${action}`,
-                                  actionExposureClassification:
-                                    classification === 'V1 supported'
-                                      ? ('V1 supported' as const)
-                                      : ('preview-only' as const),
+                                  actionExposureClassification: classification,
                                   title,
                                 }))
                               : [];
@@ -1681,7 +1680,7 @@ export const CapSheetFull = ({
                             const governedAvailability =
                               getOptionDecisionAvailability?.(player, year) ??
                               null;
-                            const optionExposureClassification: ActionExposureClassification =
+                            const optionExposureClassification: OptionExposureClassification =
                               governedAvailability
                                 ? governedAvailability.status === 'ready'
                                   ? 'V1 supported'
@@ -1704,19 +1703,50 @@ export const CapSheetFull = ({
                                   : optionExposureClassification === 'V1 supported'
                                     ? `Record ${optionLabel} decision`
                                     : `Preview: manage ${optionLabel}`;
+                            const optionCellIsClickable =
+                              optionExposureClassification !== 'recorded';
+                            const launchOptionDecision = () => {
+                              if (!optionCellIsClickable) return;
+                              launchContractAction?.(
+                                player,
+                                isETO ? 'eto' : isPO ? 'po' : 'to',
+                                year
+                              );
+                            };
+                            const optionAccessibleLabel = `${optionTitle} for ${
+                              player.displayName ||
+                              player.bio?.displayName ||
+                              player.name ||
+                              'player'
+                            }, ${year - 1}-${String(year % 100).padStart(2, '0')}`;
 
                             return (
                               <div
                                 key={year}
-                                onClick={() => {
-                                  if (optionExposureClassification === 'recorded') return;
-                                  launchContractAction?.(
-                                    player,
-                                    isETO ? 'eto' : isPO ? 'po' : 'to',
-                                    year
-                                  );
+                                role={
+                                  optionCellIsClickable ? 'button' : undefined
+                                }
+                                tabIndex={optionCellIsClickable ? 0 : undefined}
+                                aria-label={
+                                  optionCellIsClickable
+                                    ? optionAccessibleLabel
+                                    : undefined
+                                }
+                                onKeyDown={(event) => {
+                                  if (
+                                    event.key !== 'Enter' &&
+                                    event.key !== ' '
+                                  )
+                                    return;
+                                  event.preventDefault();
+                                  launchOptionDecision();
                                 }}
-                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] transition-all cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
+                                onClick={launchOptionDecision}
+                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] transition-all ${
+                                  optionCellIsClickable
+                                    ? 'cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20'
+                                    : 'cursor-default'
+                                } ${optionStyle}`}
                                 title={optionTitle}
                                 data-action-exposure-classification={
                                   optionExposureClassification

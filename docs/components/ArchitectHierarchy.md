@@ -450,6 +450,7 @@ utils/
     resolveOffseasonTransition.validation.ts
   optionDecisions/
     applyGovernedOptionResult.ts
+    contractOverlaySetDigest.ts
     governedOptionDecision.ts
     index.ts
     worldOptionDecisionAuthority.ts
@@ -604,5 +605,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-11T18:30:19.118Z*
+*Generated on: 2026-08-11T22:24:04.406Z*
 *Auto-updated by: npm run docs*

@@ -377,6 +377,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.f
   'expectedContractLedgerId',
   'expectedContractLedgerVersion',
   'expectedContractOverlayLedgerVersion',
+  'expectedContractOverlaySetDigest',
   'freeAgentStatus',
   'freeAgentAmount',
   'priorTeamOfferCeiling',

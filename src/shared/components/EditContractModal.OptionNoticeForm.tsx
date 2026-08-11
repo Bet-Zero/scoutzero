@@ -75,15 +75,19 @@ export const GovernedOptionNoticeForm = ({
             ))}
           </select>
         </label>
-        <label className="text-xs text-white/70">
-          NBA received at
-          <input
-            data-testid="option-notice-league-received-at"
-            value={value.leagueReceivedAt}
-            onChange={(event) => set('leagueReceivedAt', event.target.value)}
-            placeholder="2026-06-29T16:31:00-04:00"
-            className="mt-1 w-full rounded border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-amber-400/50"
-          />
+        {requirements.leagueForwardingRequired && (
+          <>
+            <label className="text-xs text-white/70">
+              NBA received at
+              <input
+                data-testid="option-notice-league-received-at"
+                value={value.leagueReceivedAt}
+                onChange={(event) =>
+                  set('leagueReceivedAt', event.target.value)
+                }
+                placeholder="2026-06-29T16:31:00-04:00"
+                className="mt-1 w-full rounded border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-amber-400/50"
+              />
         </label>
         <label className="text-xs text-white/70">
           Players Association forwarded at
@@ -94,15 +98,17 @@ export const GovernedOptionNoticeForm = ({
               set('playersAssociationForwardedAt', event.target.value)
             }
             placeholder="2026-06-30T09:00:00-04:00"
-            className="mt-1 w-full rounded border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-amber-400/50"
-          />
-        </label>
+                className="mt-1 w-full rounded border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-amber-400/50"
+              />
+            </label>
+          </>
+        )}
       </div>
 
       <div className="mt-3 rounded border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/65">
         Recipient:{' '}
         <span className="font-mono text-white/90">
-          {requirements.recipientId}
+          {requirements.recipientId || 'Missing governed recipient'}
         </span>{' '}
         ({requirements.recipientRole})
       </div>

@@ -293,7 +293,7 @@ function validateOptionShape(
   if (salaries.length !== state.terms.contractLength) {
     reasons.push('Contract length and governed salary-row count conflict.');
   }
-  if (optionIndex !== salaries.length - 1) {
+  if (!state.terms.isRookieScale && optionIndex !== salaries.length - 1) {
     reasons.push(
       `${optionType} must govern exactly one final Contract Season on this path.`
     );
@@ -625,22 +625,41 @@ function validateNotice({
       'Notice was delivered before the governed decision window opened.'
     );
   }
-  if (datePart(notice.deliveredAt) > worldAsOfDate) {
-    reasons.push('Notice evidence occurs after the Team Plan’s governed date.');
+  const governedEvidence = terms.leagueForwardingRequired
+    ? [
+        notice.deliveredAt,
+        notice.leagueReceivedAt,
+        notice.playersAssociationForwardedAt,
+      ]
+    : [notice.deliveredAt];
+  const evidenceAfterWorldDate = governedEvidence.some(
+    (value) => datePart(value) > worldAsOfDate
+  );
+  if (evidenceAfterWorldDate) {
+    reasons.push(
+      'Notice delivery, NBA receipt, and Players Association forwarding evidence must not occur after the Team Plan’s governed date.'
+    );
   }
-  if (received === null || forwarded === null) {
+  if (
+    terms.leagueForwardingRequired &&
+    (received === null || forwarded === null)
+  ) {
     reasons.push(
       'NBA receipt and Players Association forwarding must be exact governed instants.'
     );
   } else if (
-    received < (delivered ?? Number.POSITIVE_INFINITY) ||
-    forwarded < received
+    terms.leagueForwardingRequired &&
+    received !== null &&
+    forwarded !== null &&
+    ((delivered !== null && received < delivered) || forwarded < received)
   ) {
     reasons.push(
       'NBA receipt and Players Association forwarding chronology is contradictory.'
     );
   } else if (
     terms.leagueForwardingRequired &&
+    received !== null &&
+    forwarded !== null &&
     datePart(notice.playersAssociationForwardedAt) >
       addBusinessDays(datePart(notice.leagueReceivedAt), 2)
   ) {
@@ -758,6 +777,7 @@ export function decideGovernedOption(
   const endsContract =
     (row.option === 'ETO' && request.choice === 'exercise') ||
     (row.option !== 'ETO' && request.choice === 'decline');
+  if (!contractEndsAt) return unavailable('needs-input', reasons);
   const effectiveAt = endsContract
     ? contractEndsAt
     : request.notice.deliveredAt;
@@ -782,7 +802,7 @@ export function decideGovernedOption(
       worldId: request.worldId,
       teamId: request.teamId,
       playerId: request.playerId,
-      asOfDate: datePart(contractEndsAt as string),
+      asOfDate: datePart(contractEndsAt),
       salaryCapYear: request.targetYear,
     });
     if (rights.status !== 'available' || !rights.ledgerReference) {
@@ -842,6 +862,8 @@ export function decideGovernedOption(
   const remainingOptions = resultingSalaries.filter(
     (salary) => salary.option !== null && salary.optionUsed === null
   );
+  // The digest is deliberately omitted before computing the successor state.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {
     stateDigest: _predecessorStateDigest,
     ...predecessorStateWithoutDigest

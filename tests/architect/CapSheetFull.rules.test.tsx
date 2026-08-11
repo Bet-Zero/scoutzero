@@ -143,7 +143,9 @@ describe('CapSheetFull — governed option exposure', () => {
           reasons:
             player.id === 'eto-player'
               ? []
-              : ['The exact contractual notice deadline must be an exact governed instant with a UTC offset.'],
+              : [
+                  'The exact contractual notice deadline must be an exact governed instant with a UTC offset.',
+                ],
           noticeRequirements:
             player.id === 'eto-player'
               ? {
@@ -159,19 +161,54 @@ describe('CapSheetFull — governed option exposure', () => {
       />
     );
 
-    const etoCell = document.querySelector(
-      '[title="Record Early Termination Option decision"]'
+    const etoCell = screen.getByTitle(
+      'Record Early Termination Option decision'
     );
     expect(etoCell).toHaveAttribute(
       'data-action-exposure-classification',
       'V1 supported'
     );
-    fireEvent.click(etoCell as Element);
+    expect(etoCell).toHaveAttribute('role', 'button');
+    expect(etoCell).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('ETO Player, 2027-28')
+    );
+    fireEvent.keyDown(etoCell, { key: 'Enter' });
     expect(onLaunchContractAction).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'eto-player' }),
       'eto',
       2028
     );
+  });
+
+  it('renders a recorded option without clickable or keyboard affordances', () => {
+    const onLaunchContractAction = vi.fn();
+    render(
+      <CapSheetFull
+        teamCapSheet={optionTeam}
+        currentYear={2025}
+        onLaunchContractAction={onLaunchContractAction}
+        getOptionDecisionAvailability={(player, year) => ({
+          status: 'decided',
+          playerId: String(player.id),
+          contractId: `contract-${player.id}`,
+          targetYear: year,
+          optionType: player.id === 'eto-player' ? 'ETO' : 'TO',
+          reasons: ['The governed option decision is already recorded.'],
+          noticeRequirements: null,
+        })}
+      />
+    );
+
+    const recordedCell = screen.getByTitle(
+      'Early Termination Option decision recorded'
+    );
+    expect(recordedCell).not.toHaveAttribute('role');
+    expect(recordedCell).not.toHaveAttribute('tabindex');
+    expect(recordedCell).not.toHaveClass('cursor-pointer');
+    fireEvent.click(recordedCell);
+    fireEvent.keyDown(recordedCell, { key: 'Enter' });
+    expect(onLaunchContractAction).not.toHaveBeenCalled();
   });
 
   it('renders the exact missing-deadline record as Needs input', () => {

@@ -40,6 +40,7 @@ import type {
 import { renounceGovernedRights } from '@/features/architect/utils/rightsHistory';
 import {
   applyGovernedOptionResult,
+  contractOverlaySetDigest,
   decideGovernedOption,
 } from '@/features/architect/utils/optionDecisions';
 
@@ -431,6 +432,9 @@ export function computeOptionResult({
         result.expectedContractLedger.ledgerVersion,
       expectedContractOverlayLedgerVersion:
         result.expectedContractLedger.overlayLedgerVersion,
+      expectedContractOverlaySetDigest: contractOverlaySetDigest(
+        team.contractEventLedgers
+      ),
       rightsLedgerId: result.expectedRightsLedger?.ledgerId,
       rightsLedgerVersion: result.expectedRightsLedger?.ledgerVersion,
       freeAgentStatus: result.freeAgentStatus,

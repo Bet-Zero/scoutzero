@@ -34,7 +34,10 @@ import {
   PERSISTENCE_CONTRACTS,
 } from '@/features/architect/utils/persistenceContracts';
 import { sanitizeTransientFieldsForPersistence } from '@/features/architect/utils/persistenceContracts/enforcement';
-import { buildWorldMutationEventPayload, guardAgainstUndefined } from './mutationPipeline.read';
+import {
+  buildWorldMutationEventPayload,
+  guardAgainstUndefined,
+} from './mutationPipeline.read';
 import {
   removeUndefinedDeep,
   getMutationPlayerId,
@@ -51,6 +54,7 @@ import type {
 } from './mutationPipeline.types';
 import { createRightsEventLedger } from '@/features/architect/utils/rightsHistory';
 import { createContractEventLedger } from '@/features/architect/utils/contractHistory';
+import { contractOverlaySetDigest } from '@/features/architect/utils/optionDecisions/contractOverlaySetDigest';
 
 type ExpectedRightsLedgerReference = Readonly<{
   ledgerId: string;
@@ -336,11 +340,14 @@ export async function persistWorldMutation({
     const metadataRef = worldMetadataRef(worldId);
     writes.push({ kind: 'update', ref: metadataRef, data: worldPatch });
 
-    // A rights append must compare the exact ledger version it consumed in the
-    // same atomic commit that publishes the replacement ledger. Otherwise two
-    // tabs can both report success while the later whole-team write silently
-    // erases the earlier immutable event.
-    if (mutationType === 'renounceRights' || mutationType === 'optionDecision') {
+    // A governed ledger append must compare the exact history it consumed in
+    // the same atomic commit that publishes the replacement ledger. Otherwise
+    // two tabs can both report success while the later whole-team write
+    // silently erases the earlier immutable event.
+    if (
+      mutationType === 'renounceRights' ||
+      mutationType === 'optionDecision'
+    ) {
       await runTransaction(db, async (transaction) => {
         for (const { teamCode, team } of teamUpdates) {
           const normalizedTeamCode = String(teamCode || '').trim();
@@ -349,7 +356,7 @@ export async function persistWorldMutation({
           const currentTeamSnapshot = await transaction.get(teamRef);
           if (!currentTeamSnapshot.exists()) {
             throw new Error(
-              `Team ${normalizedTeamCode} changed before the rights append could commit. Reload and try again.`
+              `Team ${normalizedTeamCode} changed before the governed history append could commit. Reload and try again.`
             );
           }
           const currentTeamData = currentTeamSnapshot.data();
@@ -391,12 +398,23 @@ export async function persistWorldMutation({
             const overlays = Array.isArray(currentTeamData.contractEventLedgers)
               ? currentTeamData.contractEventLedgers
               : [];
+            const expectedOverlaySetDigest =
+              metadata.expectedContractOverlaySetDigest;
+            if (
+              typeof expectedOverlaySetDigest !== 'string' ||
+              contractOverlaySetDigest(overlays) !== expectedOverlaySetDigest
+            ) {
+              throw new Error(
+                `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
+              );
+            }
             const currentOverlay = overlays.find(
               (ledger: unknown) =>
                 ledger &&
                 typeof ledger === 'object' &&
                 !Array.isArray(ledger) &&
-                (ledger as Record<string, unknown>).ledgerId === expectedLedgerId
+                (ledger as Record<string, unknown>).ledgerId ===
+                  expectedLedgerId
             );
             if (expectedOverlayVersion === null) {
               if (currentOverlay) {
@@ -416,7 +434,9 @@ export async function persistWorldMutation({
                 );
               }
               const currentContractLedger = createContractEventLedger(
-                currentOverlay as Parameters<typeof createContractEventLedger>[0]
+                currentOverlay as Parameters<
+                  typeof createContractEventLedger
+                >[0]
               );
               if (
                 currentContractLedger.ledgerId !== expectedLedgerId ||

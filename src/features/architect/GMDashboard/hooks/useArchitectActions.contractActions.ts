@@ -199,7 +199,10 @@ export function useContractActions({
       const playerId = String(
         player.id || player.player_id || player.name || ''
       );
-      const normalizedTargetYear = Number(targetYear);
+      const hasTargetYear = targetYear !== null && targetYear !== undefined;
+      const normalizedTargetYear = hasTargetYear
+        ? Number(targetYear)
+        : Number.NaN;
       const fallback = (
         status: 'needs-input' | 'incompatible',
         reason: string
@@ -208,9 +211,7 @@ export function useContractActions({
           status,
           playerId,
           contractId: null,
-          targetYear: Number.isInteger(normalizedTargetYear)
-            ? normalizedTargetYear
-            : 0,
+          targetYear: normalizedTargetYear,
           optionType: null,
           reasons: Object.freeze([reason]),
           noticeRequirements: null,
@@ -221,7 +222,11 @@ export function useContractActions({
           'Open a fresh governed Team Plan to record this option decision.'
         );
       }
-      if (!playerId || !Number.isInteger(normalizedTargetYear)) {
+      if (
+        !playerId ||
+        !hasTargetYear ||
+        !Number.isInteger(normalizedTargetYear)
+      ) {
         return fallback(
           'needs-input',
           'The player and exact option Season are required.'
@@ -231,6 +236,12 @@ export function useContractActions({
         return fallback(
           'needs-input',
           'Checking the pinned contract deadline and notice terms…'
+        );
+      }
+      if (governedOptionLoadState === 'idle') {
+        return fallback(
+          'needs-input',
+          'The Team and governed Team Plan date must finish loading before this option can be checked.'
         );
       }
       if (governedOptionLoadState === 'incompatible') {

@@ -17,3 +17,4 @@ export {
 } from './worldOptionDecisionAuthority';
 export type { WorldGovernedOptionEntry } from './worldOptionDecisionAuthority';
 export { applyGovernedOptionResult } from './applyGovernedOptionResult';
+export { contractOverlaySetDigest } from './contractOverlaySetDigest';

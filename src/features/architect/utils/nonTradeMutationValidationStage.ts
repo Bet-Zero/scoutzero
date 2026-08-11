@@ -279,6 +279,7 @@ function validateRosterAndContractMutation({
         updatedTeam,
         updatedPlayer,
         accepted: payload.accepted,
+        contractId: payload.contractId,
         targetYear: payload.targetYear,
         currentYear,
       });

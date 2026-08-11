@@ -27,7 +27,6 @@ import {
   toCurrentStateTeam,
 } from './mutationPipeline.read.normalizeTeam';
 import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
-import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -508,10 +507,9 @@ export async function loadStateForMutation(
         worldId,
         teamId: teamCode,
         contractId: String(contractId),
-        overlays:
-          ((team as LoadedMutationTeam & {
-            contractEventLedgers?: ContractEventLedgerPayload[] | null;
-          })?.contractEventLedgers ?? []),
+        overlays: Array.isArray(team?.contractEventLedgers)
+          ? team.contractEventLedgers
+          : [],
       });
       return {
         team: toCurrentStateTeam(
