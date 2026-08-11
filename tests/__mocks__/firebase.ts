@@ -145,6 +145,7 @@ type MockCallableImplementation = (data: unknown) => unknown | Promise<unknown>;
 type MockBatchCommitFailure = {
   remainingSuccessfulCommits: number;
   error: Error;
+  applyBeforeFailure: boolean;
 };
 
 type MockCallableErrorCode =
@@ -743,15 +744,20 @@ export function writeBatch(_db: unknown): MockBatch {
       return batch;
     },
     async commit() {
+      let appliedFailure: Error | null = null;
       if (mockBatchCommitFailure) {
         if (mockBatchCommitFailure.remainingSuccessfulCommits === 0) {
-          const { error } = mockBatchCommitFailure;
+          const { error, applyBeforeFailure } = mockBatchCommitFailure;
           mockBatchCommitFailure = null;
-          batch.operations = [];
-          currentBatch = null;
-          throw error;
+          if (!applyBeforeFailure) {
+            batch.operations = [];
+            currentBatch = null;
+            throw error;
+          }
+          appliedFailure = error;
+        } else {
+          mockBatchCommitFailure.remainingSuccessfulCommits -= 1;
         }
-        mockBatchCommitFailure.remainingSuccessfulCommits -= 1;
       }
 
       for (const operation of batch.operations) {
@@ -766,6 +772,9 @@ export function writeBatch(_db: unknown): MockBatch {
 
       batch.operations = [];
       currentBatch = null;
+      if (appliedFailure) {
+        throw appliedFailure;
+      }
     },
   };
 
@@ -920,6 +929,18 @@ export function failMockBatchCommitAfter(
   mockBatchCommitFailure = {
     remainingSuccessfulCommits: successfulCommits,
     error,
+    applyBeforeFailure: false,
+  };
+}
+
+export function failMockBatchCommitAfterApplied(
+  successfulCommits: number,
+  error = new Error('Mock batch commit response failed after applying writes')
+): void {
+  mockBatchCommitFailure = {
+    remainingSuccessfulCommits: successfulCommits,
+    error,
+    applyBeforeFailure: true,
   };
 }
 

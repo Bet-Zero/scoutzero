@@ -76,7 +76,10 @@ Creation is server-only through `initializeArchitectWorld`, which verifies the
 deployed retained artifact before atomically writing world metadata and all
 baseline shards. Client rules allow owner reads only: direct baseline create,
 update, and delete are denied, and governed release metadata cannot be changed
-by later world updates.
+by later world updates. During failed-branch recovery, the trusted cleanup
+callable may add a transient `partialBranchCleanupClaim` to an archived child;
+clients cannot add, alter, or remove the claim or write that child's metadata
+and subcollections while it exists.
 
 ### `/architect_worlds/{worldId}/teams/{teamCode}/freeAgentPools/{seasonKey}` - Managed Free-Agent Pools ✅ ACTIVE
 

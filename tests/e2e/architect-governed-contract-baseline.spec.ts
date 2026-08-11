@@ -286,6 +286,62 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
     ).toEqual(
       parentLedgers.map(resultingState).map((state) => JSON.stringify(state))
     );
+    expect(childDocuments).toHaveLength(33);
+
+    const finalizedChildBeforeCleanup = JSON.stringify(childMetadata);
+    const finalizedShardsBeforeCleanup = JSON.stringify(childDocuments);
+    const parentLineageBeforeCleanup = JSON.stringify(
+      await db
+        .doc(`architect_worlds/${parentWorldId}`)
+        .get()
+        .then((snapshot) => snapshot.data())
+    );
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const refusedCleanup = await callReviewFunction(
+        request,
+        'purgeArchitectWorld',
+        idToken,
+        {
+          worldId: childWorldId,
+          cleanupPartialBranch: true,
+          expectedParentWorldId: parentWorldId,
+        }
+      );
+      expect(refusedCleanup).toMatchObject({
+        status: 200,
+        body: {
+          result: {
+            ok: false,
+            queued: false,
+            cleanupRefused: true,
+            details: {
+              worldDeleted: false,
+              cleanupState: 'refused',
+              cleanupRefusalReason: 'child-is-visible',
+            },
+          },
+        },
+      });
+    }
+    expect(
+      JSON.stringify(
+        await db
+          .doc(`architect_worlds/${childWorldId}`)
+          .get()
+          .then((snapshot) => snapshot.data())
+      )
+    ).toBe(finalizedChildBeforeCleanup);
+    expect(JSON.stringify(await baselineDocuments(childWorldId))).toBe(
+      finalizedShardsBeforeCleanup
+    );
+    expect(
+      JSON.stringify(
+        await db
+          .doc(`architect_worlds/${parentWorldId}`)
+          .get()
+          .then((snapshot) => snapshot.data())
+      )
+    ).toBe(parentLineageBeforeCleanup);
 
     const simulatedV2WorldId = `bze-274-simulated-v2-${Date.now()}`;
     const simulatedV2Metadata = {
@@ -368,7 +424,7 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
 
     testInfo.annotations.push({
       type: 'audit-note',
-      description: `BZE-274 browser proof: fresh world ${parentWorldId} pinned ${RELEASE_ID}@v1, persisted ${parentDocuments.length} safe shards / 774 roots / 772 complete / 2 needs-input, survived reload byte-for-byte, and branch ${childWorldId} preserved every state digest and evidence envelope. Future and past season mismatches failed before writes, simulated v2 selection did not mutate either release-pinned world, and the pre-ledger world remained unchanged and visibly required recreation.`,
+      description: `BZE-274 browser proof: fresh world ${parentWorldId} pinned ${RELEASE_ID}@v1, persisted ${parentDocuments.length} safe shards / 774 roots / 772 complete / 2 needs-input, survived reload byte-for-byte, and branch ${childWorldId} preserved every state digest and evidence envelope. Two partial-cleanup attempts refused the finalized child and preserved its metadata, all 33 shards, and parent lineage. Future and past season mismatches failed before writes, simulated v2 selection did not mutate either release-pinned world, and the pre-ledger world remained unchanged and visibly required recreation.`,
     });
   });
 
@@ -413,12 +469,14 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
     expect(parentBaseline.docs).toHaveLength(1);
 
     const partialChildId = `bze-274-partial-${Date.now()}`;
+    const nonChildId = `bze-274-non-child-${Date.now()}`;
     await db.doc(`architect_worlds/${partialChildId}`).set({
       ...parentMetadata,
       worldId: partialChildId,
       worldName: `${worldName} Partial`,
       createdBy: userId,
       parentWorldId,
+      branchedFrom: new Date('2026-08-11T00:00:00.000Z'),
       isArchived: true,
       childWorlds: [],
     });
@@ -427,6 +485,16 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
         `architect_worlds/${partialChildId}/contractBaselines/${parentBaseline.docs[0].id}`
       )
       .set(parentBaseline.docs[0].data());
+    await db.doc(`architect_worlds/${nonChildId}`).set({
+      ...parentMetadata,
+      worldId: nonChildId,
+      worldName: `${worldName} Archived Non-Child`,
+      createdBy: userId,
+      parentWorldId: null,
+      branchedFrom: null,
+      isArchived: true,
+      childWorlds: [],
+    });
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
@@ -438,11 +506,70 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
         .count()
     ).toBe(0);
 
+    const parentBeforeRefusals = JSON.stringify(
+      await db
+        .doc(`architect_worlds/${parentWorldId}`)
+        .get()
+        .then((snapshot) => snapshot.data())
+    );
+    for (const refusedRequest of [
+      {
+        worldId: partialChildId,
+        cleanupPartialBranch: true,
+        expectedParentWorldId: `${parentWorldId}-wrong`,
+      },
+      {
+        worldId: nonChildId,
+        cleanupPartialBranch: true,
+        expectedParentWorldId: parentWorldId,
+      },
+    ]) {
+      const refusal = await callReviewFunction(
+        request,
+        'purgeArchitectWorld',
+        idToken,
+        refusedRequest
+      );
+      expect(refusal).toMatchObject({
+        status: 200,
+        body: {
+          result: {
+            ok: false,
+            queued: false,
+            cleanupRefused: true,
+            details: {
+              worldDeleted: false,
+              cleanupState: 'refused',
+              cleanupRefusalReason: 'child-not-branch',
+            },
+          },
+        },
+      });
+    }
+    expect(
+      (await db.doc(`architect_worlds/${partialChildId}`).get()).exists
+    ).toBe(true);
+    expect((await db.doc(`architect_worlds/${nonChildId}`).get()).exists).toBe(
+      true
+    );
+    expect(
+      JSON.stringify(
+        await db
+          .doc(`architect_worlds/${parentWorldId}`)
+          .get()
+          .then((snapshot) => snapshot.data())
+      )
+    ).toBe(parentBeforeRefusals);
+
     const firstRetry = await callReviewFunction(
       request,
       'purgeArchitectWorld',
       idToken,
-      { worldId: partialChildId, cleanupPartialBranch: true }
+      {
+        worldId: partialChildId,
+        cleanupPartialBranch: true,
+        expectedParentWorldId: parentWorldId,
+      }
     );
     expect(firstRetry).toMatchObject({
       status: 200,
@@ -452,7 +579,11 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
       request,
       'purgeArchitectWorld',
       idToken,
-      { worldId: partialChildId, cleanupPartialBranch: true }
+      {
+        worldId: partialChildId,
+        cleanupPartialBranch: true,
+        expectedParentWorldId: parentWorldId,
+      }
     );
     expect(secondRetry).toMatchObject({
       status: 200,
@@ -474,10 +605,11 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
           .get()
       ).empty
     ).toBe(true);
+    await db.doc(`architect_worlds/${nonChildId}`).delete();
 
     testInfo.annotations.push({
       type: 'audit-note',
-      description: `BZE-274 browser cleanup proof: recoverable partial child ${partialChildId} stayed archived and absent from the selector, its governed baseline shard was removed by cleanup retry, and a second retry completed idempotently. Focused world-manager failure injection separately proves that a queued purge preserves both the original branch failure and cleanup result.`,
+      description: `BZE-274 browser cleanup proof: mismatched-parent and archived non-child cleanup attempts returned structured refusals without changing parent lineage. Recoverable partial child ${partialChildId} stayed archived and absent from the selector, its governed baseline shard was removed by cleanup retry, and a second retry completed idempotently. Focused world-manager failure injection separately proves that a queued purge preserves both the original branch failure and cleanup result.`,
     });
   });
 });

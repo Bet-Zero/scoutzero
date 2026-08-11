@@ -39,6 +39,7 @@ import {
   setMockCallable,
   clearMockCallables,
   failMockBatchCommitAfter,
+  failMockBatchCommitAfterApplied,
   resetMockDataStore,
 } from '../__mocks__/firebase.js';
 
@@ -686,6 +687,92 @@ describe('World Manager', () => {
       });
     });
 
+    it('preserves a finalized branch when its commit applied but its response failed', async () => {
+      const parentResult = await createWorld({ name: 'Parent', userId });
+      const cleanupRequests: unknown[] = [];
+      setMockCallable('purgeArchitectWorld', (data) => {
+        cleanupRequests.push(data);
+        return {
+          ok: false,
+          queued: false,
+          cleanupRefused: true,
+          message:
+            'Partial branch cleanup refused (child-is-visible); no world or lineage data was changed.',
+          details: {
+            worldDeleted: false,
+            cleanupState: 'refused',
+            cleanupRefusalReason: 'child-is-visible',
+          },
+        };
+      });
+      failMockBatchCommitAfterApplied(
+        0,
+        new Error('Finalization response was lost')
+      );
+
+      let failure: unknown;
+      try {
+        await branchWorld(parentResult.worldId, 'Committed Branch', '', userId);
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).toBeInstanceOf(BranchWorldCleanupError);
+      const cleanupError = failure as BranchWorldCleanupError;
+      expect(cleanupError.originalBranchFailure).toEqual(
+        new Error('Finalization response was lost')
+      );
+      expect(cleanupError.cleanupResult).toMatchObject({
+        ok: false,
+        queued: false,
+        cleanupRefused: true,
+        details: {
+          worldDeleted: false,
+          cleanupState: 'refused',
+          cleanupRefusalReason: 'child-is-visible',
+        },
+      });
+      expect(cleanupRequests).toEqual([
+        {
+          worldId: cleanupError.childWorldId,
+          cleanupPartialBranch: true,
+          expectedParentWorldId: parentResult.worldId,
+        },
+      ]);
+      expect(
+        getMockData(`architect_worlds/${cleanupError.childWorldId}`)
+      ).toMatchObject({
+        worldId: cleanupError.childWorldId,
+        isArchived: false,
+        parentWorldId: parentResult.worldId,
+      });
+      expect(
+        getRequiredWorldMetadata(parentResult.worldId).childWorlds
+      ).toContain(cleanupError.childWorldId);
+      expect(
+        (await listUserWorlds(userId)).some(
+          (world) => world.worldId === cleanupError.childWorldId
+        )
+      ).toBe(true);
+
+      await expect(
+        retryBranchCleanup(
+          cleanupError.childWorldId,
+          cleanupError.parentWorldId
+        )
+      ).resolves.toMatchObject({
+        ok: false,
+        cleanupRefused: true,
+        details: { worldDeleted: false },
+      });
+      expect(
+        getMockData(`architect_worlds/${cleanupError.childWorldId}`)
+      ).toBeDefined();
+      expect(
+        getRequiredWorldMetadata(parentResult.worldId).childWorlds
+      ).toContain(cleanupError.childWorldId);
+    });
+
     it('surfaces a queued cleanup with the hidden child identity and supports idempotent retry', async () => {
       const parentResult = await createWorld({ name: 'Parent', userId });
       seedMockData(`architect_worlds/${parentResult.worldId}/teams/LAL`, {
@@ -718,6 +805,7 @@ describe('World Manager', () => {
         'Governed cleanup timed out; retry is required.'
       );
       expect(cleanupError.cleanupPending).toBe(true);
+      expect(cleanupError.parentWorldId).toBe(parentResult.worldId);
       expect(cleanupError.cleanupResult).toMatchObject({
         ok: false,
         queued: true,
@@ -726,6 +814,7 @@ describe('World Manager', () => {
         {
           worldId: cleanupError.childWorldId,
           cleanupPartialBranch: true,
+          expectedParentWorldId: parentResult.worldId,
         },
       ]);
       expect(
@@ -751,19 +840,27 @@ describe('World Manager', () => {
         };
       });
       await expect(
-        retryBranchCleanup(cleanupError.childWorldId)
+        retryBranchCleanup(
+          cleanupError.childWorldId,
+          cleanupError.parentWorldId
+        )
       ).resolves.toMatchObject({ ok: true, queued: false });
       await expect(
-        retryBranchCleanup(cleanupError.childWorldId)
+        retryBranchCleanup(
+          cleanupError.childWorldId,
+          cleanupError.parentWorldId
+        )
       ).resolves.toMatchObject({ ok: true, queued: false });
       expect(cleanupRequests.slice(1)).toEqual([
         {
           worldId: cleanupError.childWorldId,
           cleanupPartialBranch: true,
+          expectedParentWorldId: parentResult.worldId,
         },
         {
           worldId: cleanupError.childWorldId,
           cleanupPartialBranch: true,
+          expectedParentWorldId: parentResult.worldId,
         },
       ]);
     });
@@ -800,6 +897,7 @@ describe('World Manager', () => {
         {
           worldId: attemptedChildWorldId,
           cleanupPartialBranch: true,
+          expectedParentWorldId: parentResult.worldId,
         },
       ]);
       expect(

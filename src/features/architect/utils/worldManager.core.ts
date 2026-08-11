@@ -60,10 +60,13 @@ type BranchCopyOperation = (batch: WriteBatch) => void;
 
 export type PurgeWorldOptions = {
   cleanupPartialBranch?: boolean;
+  expectedParentWorldId?: string;
 };
 
 export class BranchWorldCleanupError extends Error {
   readonly childWorldId: string;
+
+  readonly parentWorldId: string;
 
   readonly originalBranchFailure: unknown;
 
@@ -75,6 +78,7 @@ export class BranchWorldCleanupError extends Error {
 
   constructor(args: {
     childWorldId: string;
+    parentWorldId: string;
     originalBranchFailure: unknown;
     cleanupResult?: PurgeWorldResult;
     cleanupFailure?: unknown;
@@ -92,13 +96,14 @@ export class BranchWorldCleanupError extends Error {
         : String(args.cleanupFailure ?? 'unknown cleanup failure');
     const cleanupPending = args.cleanupResult?.queued === true;
     super(
-      `Branch failed while creating a hidden child: ${branchReason}. ` +
+      `Branch operation reported failure: ${branchReason}. ` +
         `Cleanup ${cleanupPending ? 'is pending' : 'failed'}: ${cleanupReason}. ` +
-        'The partial child remains unusable; its recorded identity can be used to retry governed cleanup.',
+        'The child was not reported deleted; its child and parent identities are recorded for a safe governed cleanup retry.',
       { cause: args.originalBranchFailure }
     );
     this.name = 'BranchWorldCleanupError';
     this.childWorldId = args.childWorldId;
+    this.parentWorldId = args.parentWorldId;
     this.originalBranchFailure = args.originalBranchFailure;
     this.cleanupResult = args.cleanupResult ?? null;
     this.cleanupFailure = args.cleanupFailure ?? null;
@@ -797,6 +802,11 @@ export async function purgeWorld(
   if (!worldId) {
     throw new Error('worldId is required');
   }
+  if (options.cleanupPartialBranch && !options.expectedParentWorldId) {
+    throw new Error(
+      'expectedParentWorldId is required for partial branch cleanup'
+    );
+  }
 
   const purgeFunction = httpsCallable(functions, 'purgeArchitectWorld');
 
@@ -804,6 +814,9 @@ export async function purgeWorld(
     const result = await purgeFunction({
       worldId,
       ...(options.cleanupPartialBranch ? { cleanupPartialBranch: true } : {}),
+      ...(options.cleanupPartialBranch
+        ? { expectedParentWorldId: options.expectedParentWorldId }
+        : {}),
     });
     return result.data as PurgeWorldResult;
   } catch (error) {
@@ -828,9 +841,13 @@ export async function purgeWorld(
 }
 
 export async function retryBranchCleanup(
-  childWorldId: string
+  childWorldId: string,
+  expectedParentWorldId: string
 ): Promise<PurgeWorldResult> {
-  return purgeWorld(childWorldId, { cleanupPartialBranch: true });
+  return purgeWorld(childWorldId, {
+    cleanupPartialBranch: true,
+    expectedParentWorldId,
+  });
 }
 
 export async function branchWorld(
@@ -890,10 +907,11 @@ export async function branchWorld(
   } catch (error) {
     let cleanupResult: PurgeWorldResult;
     try {
-      cleanupResult = await retryBranchCleanup(worldId);
+      cleanupResult = await retryBranchCleanup(worldId, parentWorldId);
     } catch (cleanupError) {
       throw new BranchWorldCleanupError({
         childWorldId: worldId,
+        parentWorldId,
         originalBranchFailure: error,
         cleanupFailure: cleanupError,
       });
@@ -901,6 +919,7 @@ export async function branchWorld(
     if (cleanupResult.ok !== true) {
       throw new BranchWorldCleanupError({
         childWorldId: worldId,
+        parentWorldId,
         originalBranchFailure: error,
         cleanupResult,
       });

@@ -28,6 +28,18 @@ service cloud.firestore {
         : !('contractBaselineVersion' in request.resource.data);
     }
 
+    function isOpenForClientWorldWrites(worldId) {
+      return isWorldOwner(worldId)
+        && !('partialBranchCleanupClaim' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
+    }
+
+    function preservesPartialBranchCleanupClaim() {
+      return !('partialBranchCleanupClaim' in resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'partialBranchCleanupClaim'
+        ]);
+    }
+
     // Lists: strict owner-scoped access.
     match /lists/{listId} {
       allow read: if isAuthenticated()
@@ -97,27 +109,33 @@ service cloud.firestore {
       allow create: if false;
       allow update: if isWorldMetadataOwner()
         && request.resource.data.createdBy == resource.data.createdBy
-        && preservesGovernedContractMetadata();
+        && preservesGovernedContractMetadata()
+        && preservesPartialBranchCleanupClaim();
       allow delete: if false;
 
       match /teams/{teamCode} {
-        allow read, write: if isWorldOwner(worldId);
+        allow read: if isWorldOwner(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId);
 
         match /players/{playerId} {
-          allow read, write: if isWorldOwner(worldId);
+          allow read: if isWorldOwner(worldId);
+          allow write: if isOpenForClientWorldWrites(worldId);
         }
 
         match /freeAgentPools/{seasonKey} {
-          allow read, write: if isWorldOwner(worldId);
+          allow read: if isWorldOwner(worldId);
+          allow write: if isOpenForClientWorldWrites(worldId);
         }
       }
 
       match /events/{eventId} {
-        allow read, write: if isWorldOwner(worldId);
+        allow read: if isWorldOwner(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId);
       }
 
       match /entitlements/{entitlementId} {
-        allow read, write: if isWorldOwner(worldId);
+        allow read: if isWorldOwner(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId);
       }
 
       // Governed roots are created only by initializeArchitectWorld through the

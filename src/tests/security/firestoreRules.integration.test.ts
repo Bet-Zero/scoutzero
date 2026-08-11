@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, afterEach, describe, it } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest';
 import {
   assertFails,
   assertSucceeds,
@@ -27,6 +27,7 @@ const rulesPath = path.resolve(__dirname, '../../../firestore.rules');
 
 const PROJECT_ID = 'architect-rules-integration-e1';
 const WORLD_ID = 'world_owner_uid_a';
+const CLAIMED_CHILD_ID = 'world_claimed_child_uid_a';
 const TEAM_CODE = 'LAL';
 const EVENT_ID = 'evt_1';
 const ENTITLEMENT_ID = 'ent_1';
@@ -248,6 +249,57 @@ describeWithFirestoreEmulator(
           { worldId: WORLD_ID, teamId: 'BOS', shardId: 'BOS-000' }
         )
       );
+    });
+
+    it('1e) a trusted partial-cleanup claim cannot race client finalization', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const trustedDb = context.firestore();
+        await setDoc(doc(trustedDb, 'architect_worlds', WORLD_ID), {
+          worldId: WORLD_ID,
+          createdBy: UID_A,
+          childWorlds: [],
+          isArchived: false,
+        });
+        await setDoc(doc(trustedDb, 'architect_worlds', CLAIMED_CHILD_ID), {
+          worldId: CLAIMED_CHILD_ID,
+          createdBy: UID_A,
+          parentWorldId: WORLD_ID,
+          branchedFrom: 1,
+          childWorlds: [],
+          isArchived: true,
+          partialBranchCleanupClaim: {
+            state: 'claimed',
+            childWorldId: CLAIMED_CHILD_ID,
+            parentWorldId: WORLD_ID,
+            ownerId: UID_A,
+          },
+        });
+      });
+
+      const db = ownerDb();
+      const finalization = writeBatch(db);
+      finalization.update(doc(db, 'architect_worlds', CLAIMED_CHILD_ID), {
+        isArchived: false,
+      });
+      finalization.update(doc(db, 'architect_worlds', WORLD_ID), {
+        childWorlds: [CLAIMED_CHILD_ID],
+      });
+      await assertFails(finalization.commit());
+      await assertFails(
+        setDoc(
+          doc(db, 'architect_worlds', CLAIMED_CHILD_ID, 'teams', TEAM_CODE),
+          { teamCode: TEAM_CODE }
+        )
+      );
+
+      const child = await assertSucceeds(
+        getDoc(doc(db, 'architect_worlds', CLAIMED_CHILD_ID))
+      );
+      const parent = await assertSucceeds(
+        getDoc(doc(db, 'architect_worlds', WORLD_ID))
+      );
+      expect(child.data()?.isArchived).toBe(true);
+      expect(parent.data()?.childWorlds).toEqual([]);
     });
 
     it('2) non-owner cannot read world doc', async () => {

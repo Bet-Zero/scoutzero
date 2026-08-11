@@ -31,9 +31,18 @@ cannot upgrade, rewrite, invalidate, or strand an older world.
 A branch child starts archived and becomes usable only after every copy and
 lineage write succeeds. If a later step fails, any purge result whose `ok` value
 is not `true` is retained as cleanup-pending or cleanup-failed alongside the
-original branch failure and child identity. The archived child remains hidden,
-and cleanup can be retried safely; retry after successful deletion is
-idempotent.
+original branch failure and exact child/parent identity.
+
+Partial cleanup requires that parent identity and atomically verifies the child
+is still archived, is an actual child of that parent, has no descendants, and
+is not present in the parent's finalized lineage before writing a trusted
+cleanup claim. While claimed, client metadata and subcollection writes are
+blocked. A visible or lineage-attached world, a non-child, and a mismatched or
+malformed relationship return a structured refusal without changing either
+world. This transaction/claim boundary makes a concurrent finalization choose
+one outcome: finalization wins and cleanup refuses, or cleanup wins and client
+finalization is denied. A real partial child remains hidden and unusable while
+cleanup is pending; retry after successful deletion is idempotent.
 
 This boundary changes no audit accounting and authorizes no option, extension,
 ETO, renegotiation, or other later contract route.

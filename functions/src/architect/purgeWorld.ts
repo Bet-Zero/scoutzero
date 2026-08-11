@@ -8,11 +8,17 @@
  */
 
 import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import {
   onCall,
   HttpsError,
   CallableRequest,
 } from 'firebase-functions/v2/https';
+import {
+  evaluatePartialBranchCleanupEligibility,
+  PARTIAL_BRANCH_CLEANUP_CLAIM_FIELD,
+  type PartialBranchCleanupRefusalReason,
+} from './partialBranchCleanup';
 
 // Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if (!admin.apps.length) {
@@ -39,6 +45,98 @@ const BATCH_SIZE = 400;
  * Cloud Functions v2 can run up to 60 minutes, but we'll be conservative
  */
 const MAX_EXECUTION_MS = 30_000; // 30 seconds
+
+type PartialBranchCleanupClaimResult =
+  | { state: 'already-absent' }
+  | {
+      state: 'refused';
+      reason: PartialBranchCleanupRefusalReason;
+    }
+  | {
+      state: 'claimed';
+      worldData: admin.firestore.DocumentData;
+    };
+
+const emptyDeletionDetails = () => ({
+  teamsDeleted: 0,
+  playersDeleted: 0,
+  freeAgentPoolsDeleted: 0,
+  eventsDeleted: 0,
+  entitlementsDeleted: 0,
+  contractBaselinesDeleted: 0,
+  worldDeleted: false,
+});
+
+/**
+ * Atomically verifies and claims a hidden unfinished branch. A concurrent
+ * client finalization changes the same child document, forcing this
+ * transaction to retry and refuse the now-visible/attached world. Once the
+ * claim lands, Firestore rules block browser writes to the child.
+ */
+async function claimPartialBranchCleanup(args: {
+  worldId: string;
+  expectedParentWorldId: string;
+  userId: string;
+}): Promise<PartialBranchCleanupClaimResult> {
+  const { worldId, expectedParentWorldId, userId } = args;
+  const worldRef = db.collection('architect_worlds').doc(worldId);
+  const parentRef = db
+    .collection('architect_worlds')
+    .doc(expectedParentWorldId);
+
+  return db.runTransaction(async (transaction) => {
+    const worldDoc = await transaction.get(worldRef);
+    if (!worldDoc.exists) {
+      return { state: 'already-absent' };
+    }
+
+    const worldData = worldDoc.data() ?? {};
+    if (worldData.createdBy !== userId) {
+      throw new HttpsError(
+        'permission-denied',
+        'You do not have permission to delete this world'
+      );
+    }
+
+    const parentDoc = await transaction.get(parentRef);
+    const eligibility = evaluatePartialBranchCleanupEligibility({
+      childWorldId: worldId,
+      expectedParentWorldId,
+      ownerId: userId,
+      child: worldData,
+      parent: parentDoc.exists ? (parentDoc.data() ?? {}) : null,
+    });
+    if (!eligibility.eligible) {
+      return {
+        state: 'refused',
+        reason: eligibility.reason,
+      };
+    }
+
+    if (
+      !Object.prototype.hasOwnProperty.call(
+        worldData,
+        PARTIAL_BRANCH_CLEANUP_CLAIM_FIELD
+      )
+    ) {
+      transaction.set(
+        worldRef,
+        {
+          [PARTIAL_BRANCH_CLEANUP_CLAIM_FIELD]: {
+            state: 'claimed',
+            childWorldId: worldId,
+            parentWorldId: expectedParentWorldId,
+            ownerId: userId,
+            claimedAt: FieldValue.serverTimestamp(),
+          },
+        },
+        { merge: true }
+      );
+    }
+
+    return { state: 'claimed', worldData };
+  });
+}
 
 /**
  * Recursively delete all documents in a collection
@@ -245,6 +343,7 @@ export const purgeArchitectWorld = onCall(
     request: CallableRequest<{
       worldId: string;
       cleanupPartialBranch?: boolean;
+      expectedParentWorldId?: string;
     }>
   ) => {
     const startTime = Date.now();
@@ -258,7 +357,11 @@ export const purgeArchitectWorld = onCall(
     }
 
     const userId = request.auth.uid;
-    const { worldId, cleanupPartialBranch = false } = request.data;
+    const {
+      worldId,
+      cleanupPartialBranch = false,
+      expectedParentWorldId,
+    } = request.data;
 
     // 2) Validate input
     if (!worldId || typeof worldId !== 'string') {
@@ -270,44 +373,72 @@ export const purgeArchitectWorld = onCall(
         'cleanupPartialBranch must be a boolean'
       );
     }
+    if (
+      cleanupPartialBranch &&
+      (!expectedParentWorldId || typeof expectedParentWorldId !== 'string')
+    ) {
+      throw new HttpsError(
+        'invalid-argument',
+        'expectedParentWorldId is required for partial branch cleanup'
+      );
+    }
+    if (cleanupPartialBranch && expectedParentWorldId === worldId) {
+      throw new HttpsError(
+        'invalid-argument',
+        'A partial branch cannot be its own parent'
+      );
+    }
 
-    // 3) Load world document and verify ownership
+    // 3) Claim partial cleanup atomically, or use the ordinary purge path.
     const worldRef = db.collection('architect_worlds').doc(worldId);
-    const worldDoc = await worldRef.get();
-
-    if (!worldDoc.exists) {
-      if (cleanupPartialBranch) {
+    let worldData: admin.firestore.DocumentData;
+    if (cleanupPartialBranch) {
+      const claim = await claimPartialBranchCleanup({
+        worldId,
+        expectedParentWorldId: expectedParentWorldId as string,
+        userId,
+      });
+      if (claim.state === 'already-absent') {
         return {
           ok: true,
           queued: false,
           message: `Partial branch ${worldId} is already absent`,
           details: {
-            teamsDeleted: 0,
-            playersDeleted: 0,
-            freeAgentPoolsDeleted: 0,
-            eventsDeleted: 0,
-            entitlementsDeleted: 0,
-            contractBaselinesDeleted: 0,
-            worldDeleted: false,
+            ...emptyDeletionDetails(),
             alreadyAbsent: true,
           },
         };
       }
-      throw new HttpsError('not-found', `World ${worldId} not found`);
-    }
-
-    const worldData = worldDoc.data();
-    const ownerId = worldData?.createdBy;
-
-    if (ownerId !== userId) {
-      throw new HttpsError(
-        'permission-denied',
-        'You do not have permission to delete this world'
-      );
+      if (claim.state === 'refused') {
+        return {
+          ok: false,
+          queued: false,
+          cleanupRefused: true,
+          message: `Partial branch cleanup refused (${claim.reason}); no world or lineage data was changed.`,
+          details: {
+            ...emptyDeletionDetails(),
+            cleanupState: 'refused',
+            cleanupRefusalReason: claim.reason,
+          },
+        };
+      }
+      worldData = claim.worldData;
+    } else {
+      const worldDoc = await worldRef.get();
+      if (!worldDoc.exists) {
+        throw new HttpsError('not-found', `World ${worldId} not found`);
+      }
+      worldData = worldDoc.data() ?? {};
+      if (worldData.createdBy !== userId) {
+        throw new HttpsError(
+          'permission-denied',
+          'You do not have permission to delete this world'
+        );
+      }
     }
 
     // 4) Check if world has child worlds - prevent deletion if so
-    const childWorlds = worldData?.childWorlds || [];
+    const childWorlds = worldData.childWorlds || [];
     if (childWorlds.length > 0) {
       throw new HttpsError(
         'failed-precondition',
@@ -316,8 +447,8 @@ export const purgeArchitectWorld = onCall(
     }
 
     // 5) Remove from parent's childWorlds array if this is a child world
-    const parentWorldId = worldData?.parentWorldId;
-    if (parentWorldId) {
+    const parentWorldId = worldData.parentWorldId;
+    if (!cleanupPartialBranch && parentWorldId) {
       try {
         const parentRef = db.collection('architect_worlds').doc(parentWorldId);
         const parentDoc = await parentRef.get();
@@ -362,7 +493,7 @@ export const purgeArchitectWorld = onCall(
     return {
       ok: true,
       queued: false,
-      message: `World "${worldData?.worldName || worldId}" permanently deleted`,
+      message: `World "${worldData.worldName || worldId}" permanently deleted`,
       details: {
         teamsDeleted: result.teamsDeleted,
         playersDeleted: result.playersDeleted,
