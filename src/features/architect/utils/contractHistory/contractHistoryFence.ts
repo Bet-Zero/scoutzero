@@ -135,6 +135,7 @@ export const FENCED_HISTORY_SCHEMA_MODULE =
  */
 export const GOVERNED_CONTRACT_HISTORY_CONSUMERS = Object.freeze([
   'src/features/architect/utils/contractSource/contractSourceRelease.ts',
+  'src/features/architect/utils/optionDecisions/contractOverlaySetDigest.ts',
   'src/features/architect/utils/optionDecisions/governedOptionDecision.ts',
   'src/features/architect/utils/optionDecisions/worldOptionDecisionAuthority.ts',
   'src/features/architect/utils/mutationPipeline.persist.ts',
